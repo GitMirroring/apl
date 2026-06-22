@@ -131,6 +131,13 @@ Var WasCustomSelected ; "1" if SecCustom group was selected in previous call
                    "$INSTDIR\gnu_apl.ico" 0 SW_SHOWNORMAL "" "$INSTDIR"
 !macroend
 
+!macro M_SVars
+    SetOutPath "$INSTDIR"
+    File "APserver.exe"
+    File "AP100.exe"
+    File "AP210.exe"
+!macroend
+
 ;--------------------------------
 ; Section layout
 ;
@@ -141,6 +148,7 @@ Var WasCustomSelected ; "1" if SecCustom group was selected in previous call
 ;    SecFont      — font
 ;    SecKeyb      — keyboard layout file
 ;    SecDesk      — desktop shortcut
+;    SecSVars     — shared variables (APserver, AP100, AP210); unchecked by default
 
 Section "Full install" SecFull
     ; Runs only when SecFull is checked (Full mode); children are then deselected.
@@ -149,6 +157,7 @@ Section "Full install" SecFull
     !insertmacro M_Font
     !insertmacro M_Keyb
     !insertmacro M_Desk
+    !insertmacro M_SVars
 SectionEnd
 
 SectionGroup /e "Custom install" SecCustom
@@ -173,6 +182,10 @@ SectionGroup /e "Custom install" SecCustom
         !insertmacro M_Desk
     SectionEnd
 
+    Section /o "Shared variables (APserver, AP100, AP210)" SecSVars
+        !insertmacro M_SVars
+    SectionEnd
+
 SectionGroupEnd
 
 ;--------------------------------
@@ -185,6 +198,7 @@ Function EnterFull
     SectionSetFlags ${SecFont}   0
     SectionSetFlags ${SecKeyb}   0
     SectionSetFlags ${SecDesk}   0
+    SectionSetFlags ${SecSVars}  0
     SectionSetFlags ${SecCustom} 0   ; deselect group header
 FunctionEnd
 
@@ -195,6 +209,7 @@ Function EnterCustom
     SectionSetFlags ${SecFont}   ${SF_SELECTED}
     SectionSetFlags ${SecKeyb}   ${SF_SELECTED}
     SectionSetFlags ${SecDesk}   ${SF_SELECTED}
+    SectionSetFlags ${SecSVars}  0   ; unchecked by default; user must opt in
     SectionSetFlags ${SecCustom} ${SF_SELECTED}  ; check group header
 FunctionEnd
 
@@ -209,6 +224,7 @@ Function .onInit
     SectionSetFlags ${SecFont}   0
     SectionSetFlags ${SecKeyb}   0
     SectionSetFlags ${SecDesk}   0
+    SectionSetFlags ${SecSVars}  0
     StrCpy $Mode              "F"
     StrCpy $WasCustomSelected "0"
 FunctionEnd
@@ -283,6 +299,10 @@ then run the generated setup to install an AltGr-based APL keyboard layout."
     !insertmacro MUI_DESCRIPTION_TEXT ${SecDesk} \
         "Create a GNU APL shortcut on the Desktop, using the striped \
 GNU APL icon."
+    !insertmacro MUI_DESCRIPTION_TEXT ${SecSVars} \
+        "APserver (shared variable broker), AP100 and AP210 auxiliary \
+processors.  Required for shared variables between APL and external programs. \
+Unchecked by default in custom mode; always included in Full install."
 !insertmacro MUI_FUNCTION_DESCRIPTION_END
 
 ;--------------------------------

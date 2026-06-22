@@ -6943,6 +6943,7 @@ perf: apl
 
 @apl_TARGET_MINGW_TRUE@windows-release: apl-$(VERSION).exe
 @apl_TARGET_MINGW_TRUE@	cp apl-$(VERSION).exe ../support-files/windows-installer/
+@apl_TARGET_MINGW_TRUE@	cp APs/.libs/APserver.exe ../support-files/windows-installer/
 
 .PHONY:	patch
 patch:

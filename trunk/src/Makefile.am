@@ -339,6 +339,9 @@ CLEANFILES = apl-$(VERSION).exe
 
 windows-release: apl-$(VERSION).exe
 	cp apl-$(VERSION).exe ../support-files/windows-installer/
+	cp APs/.libs/APserver.exe ../support-files/windows-installer/
+	cp APs/.libs/AP100.exe    ../support-files/windows-installer/
+	cp APs/.libs/AP210.exe    ../support-files/windows-installer/
 endif
 
 

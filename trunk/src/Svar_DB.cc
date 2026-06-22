@@ -495,19 +495,10 @@ const TCP_socket tcp = Svar_DB::get_DB_tcp();
         if (!warned)
            {
              warned = true;
-#if MINGW_SRC
-             MORE_ERROR() <<
-"APserver (the shared variable server) is not supported on Windows.\n"
-"This message is harmless unless you use shared variables.";
-             get_CERR() << "Svar_DB not connected in Svar_DB::"
-                  << calling_function << "()+"
-                  << endl;
-#else
              get_CERR() << "Svar_DB not connected in Svar_DB::"
                   << calling_function << "()"
                   << " (APserver not running; shared variables unavailable)"
                   << endl;
-#endif
            }
       }
 
@@ -695,10 +686,6 @@ bool
 Svar_DB::start_APserver(const char * server_sockname,
                         const char * bin_dir, bool logit)
 {
-#if MINGW_SRC
-   return true;   // APserver is not supported on Windows; suppress all output
-#endif
-
    // bin_dir is the directory where the apl interpreter binary lives.
    // The APserver then lives in:
    //
@@ -708,14 +695,19 @@ Svar_DB::start_APserver(const char * server_sockname,
    // set APserver_path to the case that applies.
    //
 char APserver_path[APL_PATH_MAX + 1];
-   SPRINTF(APserver_path, "%s/APserver", bin_dir);
+#if MINGW_SRC
+# define APSERVER_EXE "APserver.exe"
+#else
+# define APSERVER_EXE "APserver"
+#endif
+   SPRINTF(APserver_path, "%s/" APSERVER_EXE, bin_dir);
    if (access(APserver_path, X_OK) != 0)   // no APserver in bin_dir
       {
         logit && get_CERR() << "    Executable " << APserver_path
                  << " not found (this is OK when apl was started\n"
                     "    from the src directory): " << strerror(errno) << endl;
 
-        SPRINTF(APserver_path, "%s/APs/APserver", bin_dir);
+        SPRINTF(APserver_path, "%s/APs/" APSERVER_EXE, bin_dir);
         if (access(APserver_path, X_OK) != 0)   // no APs/APserver either
            {
              get_CERR() << "Executable " << APserver_path << " not found.\n"
@@ -742,6 +734,27 @@ char popen_args[APL_PATH_MAX + 50];
 
    logit && get_CERR() << "Starting " << popen_args << "..." << endl;
 
+#if MINGW_SRC
+   // On Windows there is no fork(), so popen()/pclose() would block forever
+   // waiting for APserver to exit (it never does — it's a daemon).
+   // Use _spawnl(_P_NOWAIT) to launch APserver detached and return immediately.
+   {
+   char port_str[20];
+   SPRINTF(port_str, "%u", APserver_port);
+   const intptr_t pid = server_sockname
+       ? _spawnl(_P_NOWAIT, APserver_path, APserver_path,
+                 "--path", server_sockname, "--auto", NULL)
+       : _spawnl(_P_NOWAIT, APserver_path, APserver_path,
+                 "--port", port_str, "--auto", NULL);
+   if (pid == -1)
+      {
+        get_CERR() << "_spawnl(" << APserver_path << ") failed: "
+                   << strerror(errno) << endl;
+        return true;   // error
+      }
+   Sleep(500);   // give APserver time to bind and start listening
+   }
+#else
 PipeReader reader(popen_args);
    if (!reader)
       {
@@ -752,7 +765,7 @@ PipeReader reader(popen_args);
 
    // wait until the parent process (= this process) in APserver returns.
    // APserver does not really output anything (and we would see if it would),
-   // but the interesting part is the EOF of the parent process in APserfver.
+   // but the interesting part is the EOF of the parent process in APserver.
    //
    for (int cc; (cc = reader.fgetc()) != EOF;)
        {
@@ -768,6 +781,7 @@ const int APserver_result = reader.close();
          get_CERR() << "pclose(APserver) returned error " << errno << ": "
                     << strerror(errno) << endl;
       }
+#endif
 
    return false;   // success
 }

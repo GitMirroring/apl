@@ -1,0 +1,63 @@
+⍝ ZZ64_Regression.tc
+⍝ ══════════════════
+
+      ⍝ bug-apl@gnu.org, 6/21/2026 (Blake McBride):
+      ⍝ Multiple bugs found by Claude Code audit.
+
+      )CLEAR
+CLEAR WS
+
+      ⍝ Bug 1: 4-byte UTF-8 lead byte decoded with wrong bit mask (0x0E vs 0x07)
+      ⍝ in UCS_string.cc. Every U+10000..U+10FFFF character decoded to wrong
+      ⍝ codepoint. Fixed in UCS_string.cc.
+      ⎕UCS ⎕UCS 128512
+128512
+      ⎕UCS ⎕UCS 128077
+128077
+
+      ⍝ Bug 2: UTF8_string::getc() buffer cc[4] too small for 5/6-byte
+      ⍝ lead bytes (len up to 5 → write 7 bytes including NUL). Fixed by
+      ⍝ enlarging cc to cc[8].
+
+      ⍝ Bug 3: find_closing_bracket / find_closing_parent both tested the
+      ⍝ closing token in the else-if branch (dead code), so nesting depth
+      ⍝ was never incremented and nested brackets/parens returned the wrong
+      ⍝ closing position. Fixed in Token_string.cc.
+      A ← 3 3 ⍴ ⍳ 9
+      A[A[1;1];]
+1 2 3
+
+      ⍝ Bug 5: 41 ⎕CR B packed-bit unpacker returned Idx0(LOC) (always 0)
+      ⍝ and read bits from wrong memory (&get_cfirst() → static cell).
+      ⍝ Fixed in Quad_CR.cc.
+      B ← 16 ⍴ 0 1
+      41 ⎕CR 40 ⎕CR B
+0 1 0 1 0 1 0 1 0 1 0 1 0 1 0 1
+
+      ⍝ Bug 6: ⎕XML treated CR codepoint as array index into string_B,
+      ⍝ causing out-of-bounds read. Fixed in Quad_XML.cc.
+      ⊃ ⍴ ⎕XML '<a>',(⎕UCS 13),'b</a>'
+8 2
+
+      ⍝ Bug 7: ComplexCell::get_near_int() used result+0.3 for both positive
+      ⍝ and negative near-integers; negative values rounded toward zero by 1.
+      ⍝ Fixed in ComplexCell.cc.
+      (¯3J0) ↑ ⍳ 10
+8 9 10
+
+      ⍝ Bug 8: FloatCell::is_big() table last entry was 10^18 instead of 10^17,
+      ⍝ so ⎕PP←17 used decimal for values ≥ 10^17 (threshold 10x too large).
+      ⍝ Fixed in FloatCell.cc.
+      ⎕PP ← 17
+      ⍕ 1E17
+1E17
+      ⎕PP ← 10
+
+      ⍝ Bug 11: ComplexCell::bif_power tested imag()>0 instead of real()>0
+      ⍝ for the 0⋆N case; 0⋆N with N a complex with imag 0 gave DOMAIN ERROR.
+      ⍝ Fixed in ComplexCell.cc.
+      0 ⋆ 3J0
+0
+
+]NEXTFILE
+

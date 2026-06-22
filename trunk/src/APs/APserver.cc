@@ -993,7 +993,13 @@ sockaddr_in local;
               sizeof(sockaddr_in)))
       {
         cerr << prog << ": ::bind(127.0.0.1 port"
-             << listen_port << ") failed:" << strerror(errno) << endl;
+             << listen_port << ") failed:"
+#if MINGW_SRC
+             << WSAGetLastError()
+#else
+             << strerror(errno)
+#endif
+             << endl;
         return -13;
       }
 
@@ -1028,6 +1034,11 @@ usage()
 int
 main(int argc, char * argv[])
 {
+#if MINGW_SRC
+   // Winsock must be initialised before any socket() call.
+   { WSADATA wsa; WSAStartup(MAKEWORD(2, 2), &wsa); }
+#endif
+
    prog = argv[0];
 
 int listen_port = cfg_APSERVER_PORT;
