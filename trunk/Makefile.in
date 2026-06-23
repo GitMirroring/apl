@@ -712,6 +712,9 @@ distdir-am: $(DISTFILES)
 	      || exit 1; \
 	  fi; \
 	done
+	$(MAKE) $(AM_MAKEFLAGS) \
+	  top_distdir="$(top_distdir)" distdir="$(distdir)" \
+	  dist-hook
 	-test -n "$(am__skip_mode_fix)" \
 	|| find "$(distdir)" -type d ! -perm -755 \
 		-exec chmod u+rwx,go+rx {} \; -o \
@@ -964,8 +967,8 @@ uninstall-am: uninstall-dist_docDATA uninstall-nobase_dist_sysconfDATA
 .PHONY: $(am__recursive_targets) CTAGS GTAGS TAGS all all-am \
 	am--refresh check check-am clean clean-cscope clean-generic \
 	clean-libtool cscope cscopelist-am ctags ctags-am dist \
-	dist-all dist-bzip2 dist-gzip dist-lzip dist-shar dist-tarZ \
-	dist-xz dist-zip dist-zstd distcheck distclean \
+	dist-all dist-bzip2 dist-gzip dist-hook dist-lzip dist-shar \
+	dist-tarZ dist-xz dist-zip dist-zstd distcheck distclean \
 	distclean-generic distclean-hdr distclean-libtool \
 	distclean-tags distcleancheck distdir distuninstallcheck dvi \
 	dvi-am html html-am info info-am install install-am \
@@ -1222,8 +1225,10 @@ windows-installer-stage:
 .PHONY: windows-installer
 windows-installer: windows-installer-stage
 	VUS=`echo "$(VERSION)" | tr . _` && \
+	SVN=`svnversion | sed 's/M//' | sed 's/.*://'` && \
 	cd support-files/windows-installer && \
 	makensis -DAPL_VERSION=$(VERSION) -DAPL_VERSION_US=$$VUS \
+	         -DAPL_SVN=$$SVN \
 	         GNU_APL_2_0_Setup.nsi
 
 # Produce versioned release files for the GNU mirror: the standalone binary
@@ -1238,8 +1243,9 @@ windows-release:
 	$(MAKE) windows-installer
 	cp support-files/windows-installer/apl-$(VERSION).exe apl-$(VERSION).exe
 	VUS=`echo "$(VERSION)" | tr . _` && \
-	cp "support-files/windows-installer/GNU_APL_$${VUS}_Setup.exe" \
-	   "GNU_APL_$${VUS}_Setup.exe"
+	SVN=`svnversion | sed 's/M//' | sed 's/.*://'` && \
+	cp "support-files/windows-installer/GNU_APL_$${VUS}_r$${SVN}_Setup.exe" \
+	   "GNU_APL_$${VUS}_r$${SVN}_Setup.exe"
 
 Makefile.dist:
 	echo "%:"		 > $@
@@ -1256,6 +1262,9 @@ Makefile.dist:
 # before ./configure is run. This avoids running ./configure if not needed
 # or running ./configure twice (e.g. for make develop)
 #
+dist-hook:
+	rm -rf $(distdir)/mingw-libs
+
 DIST:	dist Makefile.dist
 	pwd
 	mkdir -p tmp

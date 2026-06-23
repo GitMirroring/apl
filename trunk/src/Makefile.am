@@ -2,9 +2,11 @@
 # NOTE: without 'no-dependencies' make target distclean won't work.
 # AUTOMAKE_OPTIONS = no-dependencies
 
-dist_noinst_SCRIPTS = integral.py
-dist_SCRIPTS = integral.py
-distdir = ${bindir}
+# integral.py is a support script that ⌹ (matrix divide, see Bif_F12_DOMINO.cc)
+# pipes through python3.  It is data, not an executable, so it is installed
+# below $(pkgdatadir) rather than in $(bindir).  PythonPipe.cc locates it via
+# apl_DIR__pkgdata (from config.h, i.e. ./configure --datarootdir).
+dist_pkgdata_DATA = integral.py
 
 EXTRA_DIRS =
 if ! apl_TARGET_ANDROID
@@ -44,7 +46,7 @@ host_os = @host_os@
 
 # common means common to the apl and libapl builds
 #
-common_CXXFLAGS = -Wall $(plot_CXXFLAGS) -I sql -I $(abs_top_srcdir) $(CXX_WERROR)
+common_CXXFLAGS = -Wall $(plot_CXXFLAGS) -I $(srcdir)/sql -I $(abs_top_srcdir) $(CXX_WERROR)
 common_CXXFLAGS += $(GTK_CFLAGS) $(GTK_LIBS)
 common_CXXFLAGS += $(PYTHON_CFLAGS)
 common_LDFLAGS  = -L/usr/local/lib -export-dynamic $(GTK_LDFLAGS)

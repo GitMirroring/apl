@@ -5,7 +5,7 @@
 #define ARCHIVE_SVN " 3120"
 
 /* How and when GNU APL was configured */
-#define BUILDTAG PACKAGE_NAME, PACKAGE_VERSION " / SVN: 3293", "2026-06-23 13:53:09 CEST", "Linux 5.15.0-177-generic x86_64", "default ./configure options"
+#define BUILDTAG PACKAGE_NAME, PACKAGE_VERSION " / SVN: 3294", "2026-06-23 14:17:23 CEST", "Linux 5.15.0-177-generic x86_64", "default ./configure options"
 
 /* Define to 1 iff pthread_setaffinity_np() is available */
 #define HAVE_AFFINITY_NP 1
@@ -530,6 +530,9 @@
 
 /* --localedir */
 #define apl_DIR__locale "/usr/local/share/locale"
+
+/* installation directory for GNU APL data files */
+#define apl_DIR__pkgdata "/usr/local/share/apl"
 
 /* installation directory for GNU APL libraries */
 #define apl_DIR__pkglib "/usr/local/lib/apl"

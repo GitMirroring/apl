@@ -20,7 +20,6 @@
 
 
 
-
 VPATH = @srcdir@
 am__is_gnu_make = { \
   if test -z '$(MAKELEVEL)'; then \
@@ -145,15 +144,15 @@ am__aclocal_m4_deps = $(top_srcdir)/m4/depend.m4 \
 	$(top_srcdir)/m4/build_date.m4 $(top_srcdir)/configure.ac
 am__configure_deps = $(am__aclocal_m4_deps) $(CONFIGURE_DEPENDENCIES) \
 	$(ACLOCAL_M4)
-DIST_COMMON = $(srcdir)/Makefile.am $(dist_noinst_SCRIPTS) \
-	$(dist_noinst_DATA) $(am__pkginclude_HEADERS_DIST) \
+DIST_COMMON = $(srcdir)/Makefile.am $(dist_noinst_DATA) \
+	$(dist_pkgdata_DATA) $(am__pkginclude_HEADERS_DIST) \
 	$(am__DIST_COMMON)
 mkinstalldirs = $(install_sh) -d
 CONFIG_HEADER = $(top_builddir)/config.h
 CONFIG_CLEAN_FILES =
 CONFIG_CLEAN_VPATH_FILES =
 am__installdirs = "$(DESTDIR)$(bindir)" "$(DESTDIR)$(pkglibdir)" \
-	"$(DESTDIR)$(distdir)" "$(DESTDIR)$(pkgincludedir)"
+	"$(DESTDIR)$(pkgdatadir)" "$(DESTDIR)$(pkgincludedir)"
 PROGRAMS = $(bin_PROGRAMS)
 am__vpath_adj_setup = srcdirstrip=`echo "$(srcdir)" | sed 's|.|.|g'`;
 am__vpath_adj = case $$p in \
@@ -694,7 +693,6 @@ apl_DEPENDENCIES = $(am__DEPENDENCIES_1)
 apl_LINK = $(LIBTOOL) $(AM_V_lt) --tag=CXX $(AM_LIBTOOLFLAGS) \
 	$(LIBTOOLFLAGS) --mode=link $(CXXLD) $(apl_CXXFLAGS) \
 	$(CXXFLAGS) $(apl_LDFLAGS) $(LDFLAGS) -o $@
-SCRIPTS = $(dist_SCRIPTS) $(dist_noinst_SCRIPTS)
 AM_V_P = $(am__v_P_@AM_V@)
 am__v_P_ = $(am__v_P_@AM_DEFAULT_V@)
 am__v_P_0 = false
@@ -1110,7 +1108,7 @@ am__can_run_installinfo = \
     n|no|NO) false;; \
     *) (install-info --version) >/dev/null 2>&1;; \
   esac
-DATA = $(dist_noinst_DATA)
+DATA = $(dist_noinst_DATA) $(dist_pkgdata_DATA)
 am__pkginclude_HEADERS_DIST = libapl.h Error.def
 HEADERS = $(pkginclude_HEADERS)
 RECURSIVE_CLEAN_TARGETS = mostlyclean-recursive clean-recursive	\
@@ -1326,9 +1324,12 @@ target_alias = @target_alias@
 top_build_prefix = @top_build_prefix@
 top_builddir = @top_builddir@
 top_srcdir = @top_srcdir@
-dist_noinst_SCRIPTS = integral.py
-dist_SCRIPTS = integral.py
-distdir = ${bindir}
+
+# integral.py is a support script that ⌹ (matrix divide, see Bif_F12_DOMINO.cc)
+# pipes through python3.  It is data, not an executable, so it is installed
+# below $(pkgdatadir) rather than in $(bindir).  PythonPipe.cc locates it via
+# apl_DIR__pkgdata (from config.h, i.e. ./configure --datarootdir).
+dist_pkgdata_DATA = integral.py
 EXTRA_DIRS = $(am__append_1)
 @apl_TARGET_MINGW_FALSE@SUBDIRS = native $(EXTRA_DIRS) $(am__append_2)
 @apl_TARGET_MINGW_TRUE@SUBDIRS = $(EXTRA_DIRS) $(am__append_2)
@@ -1340,9 +1341,9 @@ DIST_SUBDIRS = $(SUBDIRS) testcases
 
 # common means common to the apl and libapl builds
 #
-common_CXXFLAGS = -Wall $(plot_CXXFLAGS) -I sql -I $(abs_top_srcdir) \
-	$(CXX_WERROR) $(GTK_CFLAGS) $(GTK_LIBS) $(PYTHON_CFLAGS) \
-	$(am__append_8) $(am__append_12)
+common_CXXFLAGS = -Wall $(plot_CXXFLAGS) -I $(srcdir)/sql -I \
+	$(abs_top_srcdir) $(CXX_WERROR) $(GTK_CFLAGS) $(GTK_LIBS) \
+	$(PYTHON_CFLAGS) $(am__append_8) $(am__append_12)
 common_LDFLAGS = -L/usr/local/lib -export-dynamic $(GTK_LDFLAGS) \
 	$(am__append_9) $(am__append_13)
 common_SOURCES = $(plot_SOURCES) ../config.h APL_Float_as_class.hh \
@@ -1633,41 +1634,6 @@ sql/apl-PostgresProvider.$(OBJEXT): sql/$(am__dirstamp) \
 apl$(EXEEXT): $(apl_OBJECTS) $(apl_DEPENDENCIES) $(EXTRA_apl_DEPENDENCIES) 
 	@rm -f apl$(EXEEXT)
 	$(AM_V_CXXLD)$(apl_LINK) $(apl_OBJECTS) $(apl_LDADD) $(LIBS)
-install-distSCRIPTS: $(dist_SCRIPTS)
-	@$(NORMAL_INSTALL)
-	@list='$(dist_SCRIPTS)'; test -n "$(distdir)" || list=; \
-	if test -n "$$list"; then \
-	  echo " $(MKDIR_P) '$(DESTDIR)$(distdir)'"; \
-	  $(MKDIR_P) "$(DESTDIR)$(distdir)" || exit 1; \
-	fi; \
-	for p in $$list; do \
-	  if test -f "$$p"; then d=; else d="$(srcdir)/"; fi; \
-	  if test -f "$$d$$p"; then echo "$$d$$p"; echo "$$p"; else :; fi; \
-	done | \
-	sed -e 'p;s,.*/,,;n' \
-	    -e 'h;s|.*|.|' \
-	    -e 'p;x;s,.*/,,;$(transform)' | sed 'N;N;N;s,\n, ,g' | \
-	$(AWK) 'BEGIN { files["."] = ""; dirs["."] = 1; } \
-	  { d=$$3; if (dirs[d] != 1) { print "d", d; dirs[d] = 1 } \
-	    if ($$2 == $$4) { files[d] = files[d] " " $$1; \
-	      if (++n[d] == $(am__install_max)) { \
-		print "f", d, files[d]; n[d] = 0; files[d] = "" } } \
-	    else { print "f", d "/" $$4, $$1 } } \
-	  END { for (d in files) print "f", d, files[d] }' | \
-	while read type dir files; do \
-	     if test "$$dir" = .; then dir=; else dir=/$$dir; fi; \
-	     test -z "$$files" || { \
-	       echo " $(INSTALL_SCRIPT) $$files '$(DESTDIR)$(distdir)$$dir'"; \
-	       $(INSTALL_SCRIPT) $$files "$(DESTDIR)$(distdir)$$dir" || exit $$?; \
-	     } \
-	; done
-
-uninstall-distSCRIPTS:
-	@$(NORMAL_UNINSTALL)
-	@list='$(dist_SCRIPTS)'; test -n "$(distdir)" || exit 0; \
-	files=`for p in $$list; do echo "$$p"; done | \
-	       sed -e 's,.*/,,;$(transform)'`; \
-	dir='$(DESTDIR)$(distdir)'; $(am__uninstall_files_from_dir)
 
 mostlyclean-compile:
 	-rm -f *.$(OBJEXT)
@@ -5775,6 +5741,27 @@ mostlyclean-libtool:
 clean-libtool:
 	-rm -rf .libs _libs
 	-rm -rf sql/.libs sql/_libs
+install-dist_pkgdataDATA: $(dist_pkgdata_DATA)
+	@$(NORMAL_INSTALL)
+	@list='$(dist_pkgdata_DATA)'; test -n "$(pkgdatadir)" || list=; \
+	if test -n "$$list"; then \
+	  echo " $(MKDIR_P) '$(DESTDIR)$(pkgdatadir)'"; \
+	  $(MKDIR_P) "$(DESTDIR)$(pkgdatadir)" || exit 1; \
+	fi; \
+	for p in $$list; do \
+	  if test -f "$$p"; then d=; else d="$(srcdir)/"; fi; \
+	  echo "$$d$$p"; \
+	done | $(am__base_list) | \
+	while read files; do \
+	  echo " $(INSTALL_DATA) $$files '$(DESTDIR)$(pkgdatadir)'"; \
+	  $(INSTALL_DATA) $$files "$(DESTDIR)$(pkgdatadir)" || exit $$?; \
+	done
+
+uninstall-dist_pkgdataDATA:
+	@$(NORMAL_UNINSTALL)
+	@list='$(dist_pkgdata_DATA)'; test -n "$(pkgdatadir)" || list=; \
+	files=`for p in $$list; do echo $$p; done | sed -e 's|^.*/||'`; \
+	dir='$(DESTDIR)$(pkgdatadir)'; $(am__uninstall_files_from_dir)
 install-pkgincludeHEADERS: $(pkginclude_HEADERS)
 	@$(NORMAL_INSTALL)
 	@list='$(pkginclude_HEADERS)'; test -n "$(pkgincludedir)" || list=; \
@@ -5956,11 +5943,11 @@ distdir-am: $(DISTFILES)
 check-am: all-am
 check: check-recursive
 @apl_TARGET_MINGW_FALSE@all-local:
-all-am: Makefile $(PROGRAMS) $(LTLIBRARIES) $(SCRIPTS) $(DATA) \
-		$(HEADERS) all-local
+all-am: Makefile $(PROGRAMS) $(LTLIBRARIES) $(DATA) $(HEADERS) \
+		all-local
 installdirs: installdirs-recursive
 installdirs-am:
-	for dir in "$(DESTDIR)$(bindir)" "$(DESTDIR)$(pkglibdir)" "$(DESTDIR)$(distdir)" "$(DESTDIR)$(pkgincludedir)"; do \
+	for dir in "$(DESTDIR)$(bindir)" "$(DESTDIR)$(pkglibdir)" "$(DESTDIR)$(pkgdatadir)" "$(DESTDIR)$(pkgincludedir)"; do \
 	  test -z "$$dir" || $(MKDIR_P) "$$dir"; \
 	done
 install: install-recursive
@@ -6411,7 +6398,7 @@ info: info-recursive
 
 info-am:
 
-install-data-am: install-distSCRIPTS install-pkgincludeHEADERS
+install-data-am: install-dist_pkgdataDATA install-pkgincludeHEADERS
 
 install-dvi: install-dvi-recursive
 
@@ -6849,7 +6836,7 @@ ps: ps-recursive
 
 ps-am:
 
-uninstall-am: uninstall-binPROGRAMS uninstall-distSCRIPTS \
+uninstall-am: uninstall-binPROGRAMS uninstall-dist_pkgdataDATA \
 	uninstall-pkgincludeHEADERS uninstall-pkglibLTLIBRARIES
 
 .MAKE: $(am__recursive_targets) install-am install-strip
@@ -6861,17 +6848,17 @@ uninstall-am: uninstall-binPROGRAMS uninstall-distSCRIPTS \
 	distclean-generic distclean-libtool distclean-tags distdir dvi \
 	dvi-am html html-am info info-am install install-am \
 	install-binPROGRAMS install-data install-data-am \
-	install-distSCRIPTS install-dvi install-dvi-am install-exec \
-	install-exec-am install-html install-html-am install-info \
-	install-info-am install-man install-pdf install-pdf-am \
-	install-pkgincludeHEADERS install-pkglibLTLIBRARIES install-ps \
-	install-ps-am install-strip installcheck installcheck-am \
-	installdirs installdirs-am maintainer-clean \
-	maintainer-clean-generic mostlyclean mostlyclean-compile \
-	mostlyclean-generic mostlyclean-libtool pdf pdf-am ps ps-am \
-	tags tags-am uninstall uninstall-am uninstall-binPROGRAMS \
-	uninstall-distSCRIPTS uninstall-pkgincludeHEADERS \
-	uninstall-pkglibLTLIBRARIES
+	install-dist_pkgdataDATA install-dvi install-dvi-am \
+	install-exec install-exec-am install-html install-html-am \
+	install-info install-info-am install-man install-pdf \
+	install-pdf-am install-pkgincludeHEADERS \
+	install-pkglibLTLIBRARIES install-ps install-ps-am \
+	install-strip installcheck installcheck-am installdirs \
+	installdirs-am maintainer-clean maintainer-clean-generic \
+	mostlyclean mostlyclean-compile mostlyclean-generic \
+	mostlyclean-libtool pdf pdf-am ps ps-am tags tags-am uninstall \
+	uninstall-am uninstall-binPROGRAMS uninstall-dist_pkgdataDATA \
+	uninstall-pkgincludeHEADERS uninstall-pkglibLTLIBRARIES
 
 .PRECIOUS: Makefile
 
@@ -6944,6 +6931,8 @@ perf: apl
 @apl_TARGET_MINGW_TRUE@windows-release: apl-$(VERSION).exe
 @apl_TARGET_MINGW_TRUE@	cp apl-$(VERSION).exe ../support-files/windows-installer/
 @apl_TARGET_MINGW_TRUE@	cp APs/.libs/APserver.exe ../support-files/windows-installer/
+@apl_TARGET_MINGW_TRUE@	cp APs/.libs/AP100.exe    ../support-files/windows-installer/
+@apl_TARGET_MINGW_TRUE@	cp APs/.libs/AP210.exe    ../support-files/windows-installer/
 
 .PHONY:	patch
 patch:

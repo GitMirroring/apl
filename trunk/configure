@@ -22828,6 +22828,9 @@ printf "%s\n" "#define apl_DIR__sysconf \"$apl_sysconfdir\"" >>confdefs.h
 printf "%s\n" "#define apl_DIR__pkglib \"$apl_libdir/apl\"" >>confdefs.h
 
 
+printf "%s\n" "#define apl_DIR__pkgdata \"$apl_datarootdir/apl\"" >>confdefs.h
+
+
 if test -n "$SOURCE_DATE_EPOCH"
 then   # reproducible build
 

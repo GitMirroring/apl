@@ -530,6 +530,9 @@
 /* --localedir */
 #undef apl_DIR__locale
 
+/* installation directory for GNU APL data files */
+#undef apl_DIR__pkgdata
+
 /* installation directory for GNU APL libraries */
 #undef apl_DIR__pkglib
 
