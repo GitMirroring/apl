@@ -341,7 +341,7 @@ PERFORMANCE_START(start_2)
                         if (ec != E_NO_ERROR)
                            {
                              // give up the ownership of A, B, Z.
-                             job_AB->~PJob_scalar_AB();
+                             *job_AB = PJob_scalar_AB();
                              job_AB = 0;
                              return Value_P();
                            }
@@ -350,7 +350,7 @@ CELL_PERFORMANCE_END(get_statistics_AB(), start_2, z)
                  }
            }
         job_AB->value_Z->check_value(LOC);
-        job_AB->~PJob_scalar_AB();   // give up ownership of A, B, and Z.
+        *job_AB = PJob_scalar_AB();   // give up ownership of A, B, and Z.
         job_AB = 0;
       }
 
@@ -435,7 +435,7 @@ PERFORMANCE_START(start_2)
                         ec = (cell_B.*fun)(&cell_Z);
                         if (ec != E_NO_ERROR)
                            {
-                             job_B->~PJob_scalar_B();   // ownership of B, and Z
+                             *job_B = PJob_scalar_B();   // ownership of B, and Z
                              job_B = 0;
                              return Value_P();
                            }
@@ -444,7 +444,7 @@ CELL_PERFORMANCE_END(get_statistics_B(), start_2, z)
                  }
            }
         job_B->value_Z->check_value(LOC);
-        job_B->~PJob_scalar_B();   // give up ownership of B, and Z.
+        *job_B = PJob_scalar_B();   // give up ownership of B, and Z.
         job_B = 0;
       }
 

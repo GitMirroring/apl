@@ -368,27 +368,35 @@ Cell * cell = &val->get_wravel(idx);
 
 LIBAPL_error
 apl_exec(const char* line)
-{ 
+{
 UTF8_string line_utf8(line);
 UCS_string line_ucs(line_utf8);
 const StateIndicator * si = Workspace::SI_top();
-  Command::process_line(line_ucs, 0);
+   try { Command::process_line(line_ucs, 0); }
+   catch (Error & err)
+      { if (err.get_print_loc() == 0)   err.print_em(UERR, LOC);
+        return LIBAPL_error(err.get_error_code()); }
+   catch (...) { return LAE_UNKNOWN_ERROR; }
    if (si == Workspace::SI_top())   return LAE_NO_ERROR;
 
    si = Workspace::SI_top_error(false);
    if (si == 0)   return LAE_UNKNOWN_ERROR;
    return LIBAPL_error(StateIndicator::get_error(si).get_error_code());
-} 
+}
 //────────────────────────────────────────────────────────────────────────────
 LIBAPL_error
 apl_exec_ucs(const unsigned int * line_ucs)
-{ 
+{
 UCS_string line;
    line.reserve(200);
    while (*line_ucs)   line << Unicode(*line_ucs++);
 
 const StateIndicator * si = Workspace::SI_top();
-  Command::process_line(line, 0);
+   try { Command::process_line(line, 0); }
+   catch (Error & err)
+      { if (err.get_print_loc() == 0)   err.print_em(UERR, LOC);
+        return LIBAPL_error(err.get_error_code()); }
+   catch (...) { return LAE_UNKNOWN_ERROR; }
    if (si == Workspace::SI_top())   return LAE_NO_ERROR;
 
    si = Workspace::SI_top_error(false);
