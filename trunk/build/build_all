@@ -55,10 +55,8 @@ cd "$SCRIPT_DIR"
 TOP_BUILD_dir=$(pwd)
 SVN_VERSION=$(svnversion)
 
-# NOTE: -j8 fails with out of memory on small hosts (like those
-# used for nightly builds). By setting J8="" we avoid that
+# -j1 is safe on all hosts including server72 (848 MB RAM, 1 core).
 J8="-j1"
-# J8="-j10"   # too many parallel jobs for hosts with little RAM
 
 # TOP_LOG_dir="/tmp"       # where to store longer build logs
 TOP_LOG_dir="$TOP_BUILD_dir"   # where to store longer build logs

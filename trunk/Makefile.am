@@ -168,8 +168,10 @@ windows-installer-stage:
 .PHONY: windows-installer
 windows-installer: windows-installer-stage
 	VUS=`echo "$(VERSION)" | tr . _` && \
+	SVN=`svnversion | sed 's/M//' | sed 's/.*://'` && \
 	cd support-files/windows-installer && \
 	makensis -DAPL_VERSION=$(VERSION) -DAPL_VERSION_US=$$VUS \
+	         -DAPL_SVN=$$SVN \
 	         GNU_APL_2_0_Setup.nsi
 
 # Produce versioned release files for the GNU mirror: the standalone binary
@@ -184,8 +186,9 @@ windows-release:
 	$(MAKE) windows-installer
 	cp support-files/windows-installer/apl-$(VERSION).exe apl-$(VERSION).exe
 	VUS=`echo "$(VERSION)" | tr . _` && \
-	cp "support-files/windows-installer/GNU_APL_$${VUS}_Setup.exe" \
-	   "GNU_APL_$${VUS}_Setup.exe"
+	SVN=`svnversion | sed 's/M//' | sed 's/.*://'` && \
+	cp "support-files/windows-installer/GNU_APL_$${VUS}_r$${SVN}_Setup.exe" \
+	   "GNU_APL_$${VUS}_r$${SVN}_Setup.exe"
 
 Makefile.dist:
 	echo "%:"		 > $@
@@ -202,6 +205,9 @@ Makefile.dist:
 # before ./configure is run. This avoids running ./configure if not needed
 # or running ./configure twice (e.g. for make develop)
 #
+dist-hook:
+	rm -rf $(distdir)/mingw-libs
+
 DIST:	dist Makefile.dist
 	pwd
 	mkdir -p tmp

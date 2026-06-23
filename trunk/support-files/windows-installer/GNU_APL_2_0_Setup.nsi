@@ -28,9 +28,12 @@
 !ifndef APL_VERSION_US
   !define APL_VERSION_US "0_0"
 !endif
+!ifndef APL_SVN
+  !define APL_SVN "0"
+!endif
 
 Name "GNU APL"
-OutFile "GNU_APL_${APL_VERSION_US}_Setup.exe"
+OutFile "GNU_APL_${APL_VERSION_US}_r${APL_SVN}_Setup.exe"
 RequestExecutionLevel user
 Unicode true
 

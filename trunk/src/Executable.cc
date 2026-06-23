@@ -1063,6 +1063,12 @@ ShapeItem insertion_point = b;
             }
        }
 
+   // at_stmt_start tracks whether the next token is statement-initial (true at
+   // the very first token, and after every TOK_END).  A statement-initial
+   // TOK_R_ARROW is a branch-as-statement (→N) which is illegal in a lambda.
+   // A mid-statement TOK_R_ARROW is the supported dyadic form A→B.
+   bool at_stmt_start = true;
+
    for (; b < bend; ++b)
        {
          Token t;
@@ -1079,13 +1085,33 @@ ShapeItem insertion_point = b;
               case TOK_OMEGA_U: if (!level)   signature |= SIG_RO;  // no break
               case TOK_ALPHA_U: if (!level)   signature |= SIG_LO;        break;
 
+              // TOK_DIAMOND is dead code here: parse_body_line() converts
+              // diamonds inside {} to TOK_END before compute_lambda_body()
+              // runs.  Keep the case as documentation.
               case TOK_DIAMOND:
-                   MORE_ERROR() << "◊ is not allowed in λ expression ";
-                   DEFN_ERROR;
-
+              // TOK_BRANCH is the resolved branch token.  Always illegal.
               case TOK_BRANCH:
                    MORE_ERROR() << "→ is not allowed in λ expression ";
                    DEFN_ERROR;
+
+              // TOK_R_ARROW is what the tokenizer produces for →N when
+              // parse_body_line() split statements at a diamond inside {}.
+              // When statement-initial it is a branch (→N) and must be
+              // rejected.  When mid-statement it is the supported dyadic
+              // form A→B (conditional branch with a value).
+              case TOK_R_ARROW:
+                   if (at_stmt_start)
+                      {
+                        MORE_ERROR() << "→ is not allowed in λ expression ";
+                        DEFN_ERROR;
+                      }
+                   break;
+
+              // TOK_END marks a statement boundary inside a multi-statement
+              // lambda; the next token is statement-initial.
+              case TOK_END:
+                   at_stmt_start = true;
+                   break;
 
               case TOK_ESCAPE:
               case TOK_IF_THEN:
@@ -1099,6 +1125,7 @@ ShapeItem insertion_point = b;
               case TOK_R_CURLY: --level;   break;
               default: break;
             }
+         at_stmt_start = (t.get_tag() == TOK_END);
 
          if (b == insertion_point)
             {
@@ -1419,20 +1446,6 @@ const UCS_string lambda_text = extract_lambda_text(signature, lambda_num - 1);
 
    reverse_each_statement(lambda_body);
    reverse_all_token(lambda_body);
-
-  {
-    vector<Symbol *> local_vars;
-    while (lambda_body.size() > 4)
-       {
-         const size_t semi = lambda_body.size() - 4;
-         if (lambda_body[semi]    .get_tag() != TOK_SEMICOL)   break;
-         if (lambda_body[semi + 1].get_tag() != TOK_SYMBOL)    break;
-         local_vars.push_back(lambda_body[semi + 1].get_sym_ptr());
-         lambda_body[semi]     = lambda_body[semi + 2];
-         lambda_body[semi + 1] = lambda_body[semi + 3];
-         lambda_body.resize(semi + 2);   // leave ENDL and RETURN_SYMBOL
-       }
-   }
 
 UserFunction * ufun = new UserFunction(signature, lambda_num,
                                        lambda_text, lambda_body, local_vars);
