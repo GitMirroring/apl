@@ -7,6 +7,11 @@
       ⊃⍴⍴(⊂'gui_driver: ASCII') ⎕PLOT ⍳5
 3
 
+      ⍝ regression (Dave Alden 6/24/2026): LHA with attributes but no gui_driver
+      ⍝ must still use the compile-time default — in ASCII builds that means ASCII:
+      ⊃⍴⍴(⊂'caption: regression test') ⎕PLOT ⍳5
+3
+
       ⍝ ASCII-plot f(x)=sin(x)÷x in the x range where 10≥|f(x)|
       ⍝ (i.e. all x ≠ 0 with |x|≤10 in steps of 0.1)
       x ← (¯0.1 × ⌽⍳100), 0.1 × ⍳100

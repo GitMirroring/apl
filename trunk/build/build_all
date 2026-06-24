@@ -87,7 +87,7 @@ local TD1="<TD><b>$htmlname</b> : </TD>"
 local TD2="<TD><A href=\"$linkname\">$filename</A><$1</TD>"
 local noTD2="<TD>missing (<b>$linkname</b>: No such file or directory)<$1</TD>"
 
-if [ -f $linkname ]
+if [ -f /var/www/html/$linkname ]
 then
       echo "
 $indent <TR>

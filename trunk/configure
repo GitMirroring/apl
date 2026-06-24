@@ -20769,53 +20769,6 @@ fi
 
 
  apl_have_opt_lib=yes
-           { printf "%s\n" "$as_me:${as_lineno-$LINENO}: checking for png_init_io in -lpng" >&5
-printf %s "checking for png_init_io in -lpng... " >&6; }
-if test ${ac_cv_lib_png_png_init_io+y}
-then :
-  printf %s "(cached) " >&6
-else $as_nop
-  ac_check_lib_save_LIBS=$LIBS
-LIBS="-lpng  $LIBS"
-cat confdefs.h - <<_ACEOF >conftest.$ac_ext
-/* end confdefs.h.  */
-
-namespace conftest {
-  extern "C" int png_init_io ();
-}
-int
-main (void)
-{
-return conftest::png_init_io ();
-  ;
-  return 0;
-}
-_ACEOF
-if ac_fn_cxx_try_link "$LINENO"
-then :
-  ac_cv_lib_png_png_init_io=yes
-else $as_nop
-  ac_cv_lib_png_png_init_io=no
-fi
-rm -f core conftest.err conftest.$ac_objext conftest.beam \
-    conftest$ac_exeext conftest.$ac_ext
-LIBS=$ac_check_lib_save_LIBS
-fi
-{ printf "%s\n" "$as_me:${as_lineno-$LINENO}: result: $ac_cv_lib_png_png_init_io" >&5
-printf "%s\n" "$ac_cv_lib_png_png_init_io" >&6; }
-if test "x$ac_cv_lib_png_png_init_io" = xyes
-then :
-  printf "%s\n" "#define HAVE_LIBPNG 1" >>confdefs.h
-
-  LIBS="-lpng $LIBS"
-
-else $as_nop
-  test -n "will affect: ⎕PNG" && printf "%s\n" "   └──── will affect: ⎕PNG "; apl_have_opt_lib=no
-fi
-
-   test "x$apl_have_opt_lib" != "xyes" && return        # libpng missing
-
- apl_have_opt_lib=yes
            { printf "%s\n" "$as_me:${as_lineno-$LINENO}: checking for uncompress in -lz" >&5
 printf %s "checking for uncompress in -lz... " >&6; }
 if test ${ac_cv_lib_z_uncompress+y}
@@ -20861,6 +20814,53 @@ else $as_nop
 fi
 
    test "x$apl_have_opt_lib" != "xyes" && return        # libz missing
+
+ apl_have_opt_lib=yes
+           { printf "%s\n" "$as_me:${as_lineno-$LINENO}: checking for png_init_io in -lpng" >&5
+printf %s "checking for png_init_io in -lpng... " >&6; }
+if test ${ac_cv_lib_png_png_init_io+y}
+then :
+  printf %s "(cached) " >&6
+else $as_nop
+  ac_check_lib_save_LIBS=$LIBS
+LIBS="-lpng  $LIBS"
+cat confdefs.h - <<_ACEOF >conftest.$ac_ext
+/* end confdefs.h.  */
+
+namespace conftest {
+  extern "C" int png_init_io ();
+}
+int
+main (void)
+{
+return conftest::png_init_io ();
+  ;
+  return 0;
+}
+_ACEOF
+if ac_fn_cxx_try_link "$LINENO"
+then :
+  ac_cv_lib_png_png_init_io=yes
+else $as_nop
+  ac_cv_lib_png_png_init_io=no
+fi
+rm -f core conftest.err conftest.$ac_objext conftest.beam \
+    conftest$ac_exeext conftest.$ac_ext
+LIBS=$ac_check_lib_save_LIBS
+fi
+{ printf "%s\n" "$as_me:${as_lineno-$LINENO}: result: $ac_cv_lib_png_png_init_io" >&5
+printf "%s\n" "$ac_cv_lib_png_png_init_io" >&6; }
+if test "x$ac_cv_lib_png_png_init_io" = xyes
+then :
+  printf "%s\n" "#define HAVE_LIBPNG 1" >>confdefs.h
+
+  LIBS="-lpng $LIBS"
+
+else $as_nop
+  test -n "will affect: ⎕PNG" && printf "%s\n" "   └──── will affect: ⎕PNG "; apl_have_opt_lib=no
+fi
+
+   test "x$apl_have_opt_lib" != "xyes" && return        # libpng missing
 
 apl_PNG=yes                                     # success
 } }

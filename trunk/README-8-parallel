@@ -5,7 +5,7 @@ CPU cores in parallel.
 1. Supported Platforms
 ======================
 
-As of SVN 484 parallel execution in GNU APL requires the following:
+Parallel execution in GNU APL requires the following:
 
 a.	POSIX thread (pthread) support
 
@@ -42,7 +42,7 @@ PERFORMANCE_COUNTERS_WANTED=yes.
 3. Parallelized Functions
 =========================
 
-As of SVN 484 the following APL functions were parallelized:
+The following APL functions are parallelized:
 
 a. all monadic and dyadic scalar functions
 b. inner products of all dyadic scalar functions

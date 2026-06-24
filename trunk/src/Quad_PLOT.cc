@@ -314,12 +314,13 @@ Plot_window_properties * w_props = new Plot_window_properties(data, verbosity);
         Value_P Z = do_plot_ASCII(*w_props, *data);
         return Token(TOK_APL_VALUE2, Z);
       }
-   else
+   else if (w_props->get_gui_driver() != "")
       {
         MORE_ERROR() << "A ⎕PLOT B: invalid gui_driver "
                      << w_props->get_gui_driver().c_str();
         DOMAIN_ERROR;
       }
+   // empty gui_driver with GTK/XCB available → fall through to do_plot_data()
 
    // from here on we use GTK or XCB...
 

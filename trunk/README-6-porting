@@ -24,21 +24,18 @@ terminal. For example, in xterm you need enable UTF-8 encoding and
 UTF-8 Fonts in xterm's VT menu (Ctrl + right mouse). It may be possible
 to set this permanently in your terminal's configuration file(s).
 
-Freebsd 8.4
+FreeBSD (older versions, e.g. 8.4 / 9)
 -------------------------------------------------------------------------------
 
-Many thanks to Sam Sirlin for providing this!
-
-for configure:
---------------
+On older FreeBSD releases (contributed by Sam Sirlin) the following
+environment variables were needed before running ./configure:
 
 setenv CC gcc46
 setenv CXX g++46
 setenv LDFLAGS '-L/usr/local/lib -L/usr/local/lib/gcc46 -R/usr/local/lib -R/usr/local/lib/gcc46'
-setenv LIBS ' -lexecinfo ' 
+setenv LIBS ' -lexecinfo '
 
-Freebsd 9
--------------------------------------------------------------------------------
+On FreeBSD 9 the following was sufficient:
 
 setenv LDFLAGS '-L/usr/local/lib'
 
@@ -77,11 +74,11 @@ GNU APL compiles on CYGWIN, see README-5-WINDOWS for details
 
 ===============================================================================
 ====									   ====
-====			    OS-X					   ====
+====			    macOS					   ====
 ====									   ====
 ===============================================================================
 
-The latest version (SVN) of GNU APL was reported to compile and run on OS-X
+The latest version (SVN) of GNU APL was reported to compile and run on macOS
 without special measures.
 
 For Macintosh users, Peter Teeson has contributed very nice installation

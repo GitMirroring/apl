@@ -1169,6 +1169,8 @@ std::vector<bool> ts_lines;
    parse_body(LOC, false);
 }
 //────────────────────────────────────────────────────────────────────────────
+// Vestigial: loads a function from the legacy binary workspace format
+// (workspaces/<ws>/<func>.fun).  Not called anywhere in the current source.
 UserFunction *
 UserFunction::do_load(const char * workspace, const char * function)
 {
@@ -1453,6 +1455,7 @@ vector<Symbol *> local_vars;
                                          body_text, body, local_vars);
 }
 //────────────────────────────────────────────────────────────────────────────
+// Vestigial: wrapper around do_load(); not called anywhere in the current source.
 UserFunction *
 UserFunction::load(const char * workspace, const char * function)
 {

@@ -331,14 +331,14 @@ ShapeItem b = 0;
        {
          if (padded && r == 0)
             {
-              mtx->set_val(0, c, complex(1.0, 0.0));
+              mtx->set_val(0, c, complex<double>(1.0, 0.0));
             }
          else
             {
               const Cell & Bb = B->get_cravel(b++);
               const APL_Float Bbr = Bb.get_real_value();
               const APL_Float Bbi = Bb.get_imag_value();
-              mtx->set_val(r, c, complex(Bbr, Bbi));
+              mtx->set_val(r, c, complex<double>(Bbr, Bbi));
             }
        }
 
@@ -932,8 +932,8 @@ const int nr_buckets = A->get_sole_integer();
         RANK_ERROR;
       }
 
-double maxv = -MAXFLOAT;
-double minv =  MAXFLOAT;
+double maxv = -DBL_MAX;
+double minv =  DBL_MAX;
    loop(b, B_count)
        {   
          const Cell & Bb = B->get_cravel(b);
@@ -1066,30 +1066,30 @@ Value_P Z(shape_Z, LOC);
               // https://en.cppreference.com/w/cpp/numeric/random
 
               case 0:  {
-                         normal_distribution real_dist{0.0, B0_real};
-                         normal_distribution imag_dist{0.0, B0_imag};
-                         yy = complex(real_dist(rgen), imag_dist(igen));
+                         normal_distribution<double> real_dist{0.0, B0_real};
+                         normal_distribution<double> imag_dist{0.0, B0_imag};
+                         yy = complex<double>(real_dist(rgen), imag_dist(igen));
                        }
                         break;
 
               case 1:   {
-                          lognormal_distribution real_dist{0.0, B0_real};
-                          lognormal_distribution imag_dist{0.0, B0_imag};
-                          yy = complex(real_dist(rgen), imag_dist(igen));
+                          lognormal_distribution<double> real_dist{0.0, B0_real};
+                          lognormal_distribution<double> imag_dist{0.0, B0_imag};
+                          yy = complex<double>(real_dist(rgen), imag_dist(igen));
                         }
                         break;
 
               case 2:   {
-                          chi_squared_distribution real_dist{B0_real};
-                          chi_squared_distribution imag_dist{B0_imag};
-                          yy = complex(real_dist(rgen), imag_dist(igen));
+                          chi_squared_distribution<double> real_dist{B0_real};
+                          chi_squared_distribution<double> imag_dist{B0_imag};
+                          yy = complex<double>(real_dist(rgen), imag_dist(igen));
                         }
                         break;
 
               case 3:   {
-                          student_t_distribution real_dist{B0_real};
-                          student_t_distribution imag_dist{B0_imag};
-                          yy = complex(real_dist(rgen), imag_dist(igen));
+                          student_t_distribution<double> real_dist{B0_real};
+                          student_t_distribution<double> imag_dist{B0_imag};
+                          yy = complex<double>(real_dist(rgen), imag_dist(igen));
                         }
                         break;
 

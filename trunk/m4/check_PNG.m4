@@ -12,11 +12,11 @@ apl_PNG=no
 AC_CHECK_HEADER([png.h], , return)
 AC_CHECK_HEADER([zlib.h], , return)
 
-apl_OPT_LIB([png], [png_init_io], [will affect: ⎕PNG])
-   apl_NYES($apl_have_opt_lib) && return        # libpng missing
-
 apl_OPT_LIB([z], [uncompress], [will affect: ⎕PNG])
    apl_NYES($apl_have_opt_lib) && return        # libz missing
+
+apl_OPT_LIB([png], [png_init_io], [will affect: ⎕PNG])
+   apl_NYES($apl_have_opt_lib) && return        # libpng missing
 
 apl_PNG=yes                                     # success
 } }
