@@ -1,6 +1,6 @@
 ⍝ Quad_EX.tc
 
-⍝ ----------------------------------
+      ⍝ ----------------------------------
 
       RUNS←3
       ⎕EX 'RUNS'
@@ -31,7 +31,7 @@ HITS
       ⎕EX 3 4ρ'HITSRUNSERRS'
 1 1 1
 
-⍝ system variable ----------------------------------
+      ⍝ system variable ----------------------------------
 
        ⎕IO
 1
@@ -42,7 +42,7 @@ HITS
        ⎕IO
 1
 
-⍝ suspended function ----------------------------------
+      ⍝ suspended function ----------------------------------
 
       )SIS
 
@@ -101,5 +101,5 @@ OK      - no stale values
 OK      - no stale indices
 OK      - no duplicate parents
 
-⍝ ==================================
+      ⍝ ==================================
 

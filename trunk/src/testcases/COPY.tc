@@ -1,7 +1,7 @@
 ⍝ COPY.tc
 ⍝ ----------------------------------
 
-)CLEAR
+      )CLEAR
 CLEAR WS
 
       )DROP COPY_tc
@@ -15,21 +15,21 @@ CLEAR WS
  Z←'2'
 ∇
 
-VAR1←'V1'
-VAR2←'V2'
-VAR3←1 (2 3)
+      VAR1←'V1'
+      VAR2←'V2'
+      VAR3←1 (2 3)
 
-)WSID COPY_tc
+      )WSID COPY_tc
 WAS CLEAR WS
 
-)DUMP COPY_tc
+      )DUMP COPY_tc
 ³
 
-)CLEAR
+      )CLEAR
 CLEAR WS
 
-⍝ selective COPY. Make sure that only FUN1, VAR2 and VAR3 are being copies
-)COPY COPY_tc.apl FUN1 VAR2 VAR3
+      ⍝ selective COPY. Make sure that only FUN1, VAR2 and VAR3 are being copies
+      )COPY COPY_tc.apl FUN1 VAR2 VAR3
 DUMPED ³
 
 )VARS

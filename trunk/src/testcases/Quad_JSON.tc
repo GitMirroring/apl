@@ -20,7 +20,7 @@ DOMAIN ERROR+
       )MORE
 ⎕JSON B: Got '5' when expecting ',' at 4↓B
 
-)SIC
+      )SIC
 
       ⍝ number
       ⎕JSON '33'
@@ -46,22 +46,22 @@ he"lo
       ⎕JSON '"a\uD834\uDD1Eb"'
 a𝄞b
 
-   ⍝ JSON array
+      ⍝ JSON array
       ⎕JSON '[1, 2, .3, 3E4, 5.6E¯7, -1 ]'
 1 2 0.3 30000 5.6E¯7 ¯1
 
 
-   ⍝ JSON object
-   ⎕JSON 36 ⎕CR """
-{ "a": 1,
-  "b": 2,
-  "c": "ccc",
-  "dd" : 3,
-  "Ee" : 3E4,
-  "f" : 5.6E¯7,
-  "G:" :  -1
-}
-"""
+      ⍝ JSON object
+      ⎕JSON 36 ⎕CR """
+      { "a": 1,
+      "b": 2,
+      "c": "ccc",
+      "dd" : 3,
+      "Ee" : 3E4,
+      "f" : 5.6E¯7,
+      "G:" :  -1
+      }
+      """
 .dd: 3
 
 .f:  5.6E¯7
@@ -169,15 +169,15 @@ a𝄞b
 [ 1, 2, 0.3, 30000, 5.6e-07, -1 ]
 
       ⊃35 ⎕CR 2 ⎕JSON ⎕JSON 36 ⎕CR """
-{ "a": 1,
-  "b": 2,
-  "c": "ccc",
-  "dd" : 3,
-  "Ee" : 3E4,
-  "f" : 5.6E¯7,
-  "G:" :  -1
-}
-"""
+      { "a": 1,
+      "b": 2,
+      "c": "ccc",
+      "dd" : 3,
+      "Ee" : 3E4,
+      "f" : 5.6E¯7,
+      "G:" :  -1
+      }
+      """
 { "dd": 3,     
   "f": 5.6e-07,
   "G:": -1,    

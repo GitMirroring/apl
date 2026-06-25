@@ -365,7 +365,8 @@ public:
    /// @param creator entity (editor, ⎕FX, filename) creating the function
    static UserFunction * fix(const UCS_string & text, int & err_line,
                              bool keep_existing, const char * loc,
-                             const UTF8_string &  creator);
+                             const UTF8_string &  creator,
+                             bool quiet = false);
 
    /// (re-)create a lambda
    /// @param var symbol to which the lambda will be bound
@@ -385,7 +386,8 @@ protected:
    /// @param _creator entity (editor, ⎕FX, filename) that created the function
    /// @param macro true if the function is a system macro
    UserFunction(const UCS_string txt, const char * loc,
-                const UTF8_string &  _creator, bool macro);
+                const UTF8_string &  _creator, bool macro,
+                bool quiet = false);
 
    void bind_to_symbol() const
       {

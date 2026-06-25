@@ -12,7 +12,7 @@
       ⎕TZ
 6.2
 
-⍝ ignore values too small or too large ----------------------------------
+      ⍝ ignore values too small or too large ----------------------------------
 
       ⎕TZ←15
       ⎕TZ
@@ -50,7 +50,7 @@
       (∆_MON = 0) ∨ (∆_DAY = ¯30)           ⍝ Jan, Mar, May, Jul, Aug, Oct, Dec
 1
 
-⍝ ==================================
+      ⍝ ==================================
 
       ⎕TZ←¯1
 

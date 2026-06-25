@@ -1,7 +1,7 @@
 ⍝ Macro.tc
 ⍝ ----------------------------------
 
-   )CLEAR
+      )CLEAR
 CLEAR WS
 
       )DROP test.xml
@@ -22,23 +22,23 @@ CLEAR WS
  Z←A-B
 ∇
 
-NEG_LAMBDA ← { -⍵ }
+      NEG_LAMBDA ← { -⍵ }
 
       ⍝ EACH varieties with user defined LO
       ⍝
-   NEG ¨ 4 3⍴⍳99
+      NEG ¨ 4 3⍴⍳99
  ¯1  ¯2  ¯3
  ¯4  ¯5  ¯6
  ¯7  ¯8  ¯9
 ¯10 ¯11 ¯12
 
-   NEG_LAMBDA ¨ 4 3⍴⍳99
+      NEG_LAMBDA ¨ 4 3⍴⍳99
  ¯1  ¯2  ¯3
  ¯4  ¯5  ¯6
  ¯7  ¯8  ¯9
 ¯10 ¯11 ¯12
 
-   NEG_ERR5 ¨ 4 3⍴⍳99
+      NEG_ERR5 ¨ 4 3⍴⍳99
 SYNTAX ERROR+
 NEG_ERR5[2]  ←
              ^
@@ -127,5 +127,5 @@ OK      - no stale values
 OK      - no stale indices
 OK      - no duplicate parents
 
-⍝ ==================================
+      ⍝ ==================================
 

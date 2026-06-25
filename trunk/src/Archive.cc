@@ -2229,7 +2229,8 @@ UCS_string text;
            }
         else
            {
-             ufun = UserFunction::fix(text, error, false, LOC, creator);
+             ufun = UserFunction::fix(text, error, false, LOC, creator,
+                                     /* quiet = */ true);
            }
 
         if (d == 0)   symbol.pop();

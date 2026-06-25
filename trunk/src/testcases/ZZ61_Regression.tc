@@ -7,13 +7,13 @@
 CLEAR WS
 
 
-⎕FX ⎕INP '⍝∆∆∆'
-WWW
-ws←3↓1⊃⍎')WSID'
-→ x                                                                                            
-x:                                                                                             
-marker ← ⊂'⍝','∆∆∆'                                                                                   
-⍝∆∆∆
+      ⎕FX ⎕INP '⍝∆∆∆'
+      WWW
+      ws←3↓1⊃⍎')WSID'
+      → x                                                                                            
+      x:                                                                                             
+      marker ← ⊂'⍝','∆∆∆'                                                                                   
+      ⍝∆∆∆
 WWW
 
       WWW

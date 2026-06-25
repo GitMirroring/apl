@@ -1,7 +1,7 @@
 ⍝ Rank
 ⍝ ----------------------------------
 
-)COPY ASSERT.apl ASSERT ASSERT_EQUIV
+      )COPY ASSERT.apl ASSERT ASSERT_EQUIV
 DUMPED ³
 
 )COPY 5 ISO-13751.apl

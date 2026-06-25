@@ -1,6 +1,6 @@
 ⍝ Pick.tc
 
-⍝ ----------------------------------
+      ⍝ ----------------------------------
 
       R←'FOUR' 'TO' 'GO'
       ≡R
@@ -51,7 +51,7 @@ SI
       ≡X
 2
 
-⍝ pick from higher rank array ----------------------------------
+      ⍝ pick from higher rank array ----------------------------------
 
       C←2 2ρ'ONE' 'TWO' 'BUCKLE' ('MY' 'SHOE')
       4⎕CR C
@@ -120,7 +120,7 @@ FOUR
       ≡Q
 1
 
-⍝ specifying the left argument ----------------------------------
+      ⍝ specifying the left argument ----------------------------------
 
       Q←'FLY' 'PAPER'
       2 4⊃Q
@@ -154,7 +154,7 @@ F
       ≡A
 1
 
-⍝ additional examples ----------------------------------
+      ⍝ additional examples ----------------------------------
 
       H←2 2ρ'BUCKS' 'TWANG' 'LYMPH' 'FROZE'
       4⎕CR  H
@@ -282,7 +282,7 @@ G
       ≡I
 0
 
-⍝ selective spec ----------------------------------
+      ⍝ selective spec ----------------------------------
 
       B←'P' 'PI' ('PIE' 'PIER')
       B
@@ -336,7 +336,7 @@ G
 ┃  ┗ϵ━━━━━┛ ┗ϵ━━━━━━━━━━━┛┃
 ┗ϵϵ━━━━━━━━━━━━━━━━━━━━━━━┛
 
-⍝ ==================================
+      ⍝ ==================================
 
       )SI
 
@@ -348,5 +348,5 @@ OK      - no stale values
 OK      - no stale indices
 OK      - no duplicate parents
 
-⍝     ]OWNERS
+      ⍝     ]OWNERS
 

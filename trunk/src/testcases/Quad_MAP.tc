@@ -12,7 +12,7 @@ zZ
 Halloween
 
       ⍝ the result of A ⎕MAP B
-A ⎕MAP B
+      A ⎕MAP B
 HAlloWEEn
 
       ⍝ replace scalar 'a' with vector 1 2 3

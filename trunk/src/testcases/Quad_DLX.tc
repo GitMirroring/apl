@@ -93,7 +93,7 @@
      1        1         2         2           
        1   1       2               2          
 
-   ⍴¯1 ⎕DLX Q8   ⍝ number of solutions
+      ⍴¯1 ⎕DLX Q8   ⍝ number of solutions
 92
 
       ¯2 ⎕DLX Q8
@@ -141,5 +141,5 @@ OK      - no stale values
 OK      - no stale indices
 OK      - no duplicate parents
 
-⍝ ==================================
+      ⍝ ==================================
 

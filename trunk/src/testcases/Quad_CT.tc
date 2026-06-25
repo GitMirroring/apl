@@ -33,13 +33,13 @@
   Z←M1 M2 M3
 ∇
 
-⍝ A differs by: 10E¯12
-⍝ ⎕CT           1E¯10 (left matrix),
-⍝ or            1E¯14 (middle matrix)
-⍝ Differences shown in right matrix
-⍝
-⍝
-⍝
+      ⍝ A differs by: 10E¯12
+      ⍝ ⎕CT           1E¯10 (left matrix),
+      ⍝ or            1E¯14 (middle matrix)
+      ⍝ Differences shown in right matrix
+      ⍝
+      ⍝
+      ⍝
 
       = CT_OP A
  1 1 1   1 0 0   _≠≠ 
@@ -98,18 +98,18 @@
  0 0 0   11.999999999999 12 0.00000000000000E0     ≠≠_ 
 
 
-⍝ other functions depending on ⎕CT ----------------------------------
+      ⍝ other functions depending on ⎕CT ----------------------------------
 
       ⎕CT←1E¯10
 
       ⌊ A
 12 12 12
 
-   (A,13) ∼ 1↑A
+      (A,13) ∼ 1↑A
 13
-   (A,13) ∼ 2↑A
+      (A,13) ∼ 2↑A
 13
-   (A,13) ∼ 3↑A
+      (A,13) ∼ 3↑A
 13
 
       ⌈ A
@@ -123,17 +123,17 @@
       ⌈ A
 12 12 13
 
-   (A,13) ∼ 1↑A
+      (A,13) ∼ 1↑A
 12 12.000000000001 13
 
-   (A,13) ∼ 2↑A
+      (A,13) ∼ 2↑A
 12.000000000001 13
 
-   (A,13) ∼ 3↑A
+      (A,13) ∼ 3↑A
 13
 
 
-⍝ Localizing ⎕CT ----------------------------------
+      ⍝ Localizing ⎕CT ----------------------------------
 
       )ERASE FOO
 ∇FOO;⎕CT
@@ -149,7 +149,7 @@
       ⎕CT
 1E¯12
 
-⍝ ----------------------------------
+      ⍝ ----------------------------------
 
       ⍝ reset to default
       ⍝
@@ -158,5 +158,5 @@
       )ERASE CT_OP
       )ERASE FOO
 
-⍝ ==================================
+      ⍝ ==================================
 

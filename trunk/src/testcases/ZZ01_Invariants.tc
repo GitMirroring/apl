@@ -1,14 +1,14 @@
 ⍝ ZZ01_Invariants.tc
 
-⍝ Test some (and in the long run all) APL2 invariants
-⍝ Source references: lrm p. NNN means: IBM APL2 Language reference page NNN
-⍝                    iso p. NNN means: ISO standard page NNN
-⍝
+      ⍝ Test some (and in the long run all) APL2 invariants
+      ⍝ Source references: lrm p. NNN means: IBM APL2 Language reference page NNN
+      ⍝                    iso p. NNN means: ISO standard page NNN
+      ⍝
 
       )CLEAR
 CLEAR WS
 
-)COPY_ONCE 3 INVARIANTS.apl   ⍝ defines INV∆CHECK, INV∆EQUIV
+      )COPY_ONCE 3 INVARIANTS.apl   ⍝ defines INV∆CHECK, INV∆EQUIV
 ³   ⍝ e.g. NEW )COPY_ONCE workspace: 3 INVARIANTS.apl
 ³   ⍝ e.g. DUMPED 2023-03-22  20:07:13 (GMT+1)·
 

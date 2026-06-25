@@ -17,18 +17,18 @@
       ⍎'195÷5×13'
 3
 
-     ⍎'MATRIX←3 3⍴ι9' 
-     MATRIX 
+      ⍎'MATRIX←3 3⍴ι9' 
+      MATRIX 
 1 2 3
 4 5 6
 7 8 9
 
-     ⍎'''AGNES''' 
+      ⍎'''AGNES''' 
 AGNES
 
-⍝ TODO: valueless expression  ----------------------------------
+      ⍝ TODO: valueless expression  ----------------------------------
 
-⍝ Conditional execution ----------------------------------
+      ⍝ Conditional execution ----------------------------------
 
       V←ι0
       ⍎(0=⍴V)/'''EMPTY'''

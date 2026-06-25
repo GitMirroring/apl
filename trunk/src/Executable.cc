@@ -38,6 +38,7 @@ Executable::Executable(const UCS_string & ucs,  bool multi_line,
                        ParseMode pm, const char * loc)
    : alloc_loc(loc),
      pmode(pm),
+     quiet_parse(false),
      refcount(0)
 {
 // { cerr << "Executable " << (void *)this << " created at " << loc << endl; }
@@ -71,6 +72,7 @@ Executable::Executable(Fun_signature sig, int lambda_num,
                        const UCS_string & lambda_text, const char * loc)
    : alloc_loc(loc),
      pmode(PM_FUNCTION),
+     quiet_parse(false),
      refcount(0)
 {
 UCS_string header = UserFunction_header::lambda_header(sig, lambda_num);
@@ -1273,11 +1275,14 @@ Token_string output;   // in reverse order
                        tag != TOK_L_CURLY             &&   // but allow {
                        tag != TOK_R_CURLY)                 // and allow }
                  {
-                   CERR << "Line " << line << endl
-                        << "Offending token: (tag > TC_MAX_PERM) "
-                        << tag << " " << tok << "\nStatement: ";
-                   input.print(CERR, /* details */ 0);
-                   CERR << endl;
+                   if (!quiet_parse)
+                      {
+                        CERR << "Line " << line << endl
+                             << "Offending token: (tag > TC_MAX_PERM) "
+                             << tag << " " << tok << "\nStatement: ";
+                        input.print(CERR, /* details */ 0);
+                        CERR << endl;
+                      }
 
                    return E_SYNTAX_ERROR;
                  }

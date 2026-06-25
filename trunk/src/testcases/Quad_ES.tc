@@ -1,7 +1,7 @@
 ⍝ Quad_ES.tc
 ⍝ ----------------------------------
 
-⍝ monadic, character B ----------------------------------
+      ⍝ monadic, character B ----------------------------------
 
       )ERASE EXPO
 
@@ -28,7 +28,7 @@ ZERO INVALID
 
       →
 
-⍝ monadic, integer B, B is a defined error ----------------------------------
+      ⍝ monadic, integer B, B is a defined error ----------------------------------
 
       )ERASE FACTR
 ∇Z←FACTR A
@@ -54,7 +54,7 @@ DOMAIN ERROR
 
       →
 
-⍝ monadic, B is 0 0 ----------------------------------
+      ⍝ monadic, B is 0 0 ----------------------------------
 
       )ERASE FN
 ∇FN
@@ -82,7 +82,7 @@ OK      - no duplicate parents
 0 0
 
 
-⍝ monadic, B is not a defined error ----------------------------------
+      ⍝ monadic, B is not a defined error ----------------------------------
 
 ∇Z←RECIP A
  ⎕ES(0=A)/13 17
@@ -110,7 +110,7 @@ Unknown error (major 13, minor 17) in ⎕ES B
 
       →
 
-⍝ dyadic ----------------------------------
+      ⍝ dyadic ----------------------------------
 
       'ERROR SIMULATION' ⎕ES 101 9
 ERROR SIMULATION
@@ -127,7 +127,7 @@ ERROR SIMULATION
 
       →
 
-⍝ dyadic, integer B, B is a defined error ----------------------------------
+      ⍝ dyadic, integer B, B is a defined error ----------------------------------
 
       )ERASE FACTR
 ∇Z←FACTR A
@@ -154,7 +154,7 @@ ZERO INVALID
 
       →
 
-⍝ dyadic, B is 0 0 ----------------------------------
+      ⍝ dyadic, B is 0 0 ----------------------------------
 
       )ERASE FN
 ∇FN
@@ -179,5 +179,5 @@ DONE
 
       ]EXPECT 1
 
-⍝ ==================================
+      ⍝ ==================================
 

@@ -16,7 +16,7 @@
       ≡W
 2
 
-⍝ regression ----------------------------------
+      ⍝ regression ----------------------------------
 
 ∇Z←depth B
  Z←≡B
@@ -39,5 +39,5 @@
 
       ⍝ dyadic defined functions should make no difference
       ⍝
-  ((⍴BB)⍴'x') depth_dya¨BB
+      ((⍴BB)⍴'x') depth_dya¨BB
 2 2

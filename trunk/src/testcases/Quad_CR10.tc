@@ -191,7 +191,7 @@
        SUMMARY←SUMMARY, ⎕←test_CR10 facs
 1
 
-⍝ another regression ----------------------------------
+      ⍝ another regression ----------------------------------
 
       )ERASE a b c d e f g h i j
 

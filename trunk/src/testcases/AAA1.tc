@@ -11,7 +11,7 @@ L5: 'Line 5' ◊ L5 ◊ →3
 L6: 'Line 6' ◊ L6 ◊ →2
 ∇
 
-JUMPS
+      JUMPS
 Line 1
 1
 Line 6
@@ -26,7 +26,7 @@ Line 4
 4
 
 
-⍝ ----------------------------------
+      ⍝ ----------------------------------
 
       )CHECK
 OK      - no stale functions

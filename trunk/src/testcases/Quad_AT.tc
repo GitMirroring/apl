@@ -1,7 +1,7 @@
 ⍝ Quad_AT.tc
 ⍝ ----------------------------------
 
-⍝ A←1 valences ----------------------------------
+      ⍝ A←1 valences ----------------------------------
 
       ⎕FX 'TOTAL R' '⎕←''TOTAL IS'',+/R'
 TOTAL
@@ -20,17 +20,17 @@ TOTAL
 1 1 0
 1 0 0
 
-⍝ A←2 : creation time ----------------------------------
+      ⍝ A←2 : creation time ----------------------------------
 
       2 ⎕AT 'TOTAL'
 ⁰ ⁰ ⁰ ⁰ ⁰ ⁰ ⁰
 
-⍝ A←3 : execution properties ----------------------------------
+      ⍝ A←3 : execution properties ----------------------------------
 
       3 ⎕AT 'TOTAL'
 0 0 0 0
 
-1 0 0 0 ⎕FX ⎕CR 'TOTAL'
+      1 0 0 0 ⎕FX ⎕CR 'TOTAL'
 TOTAL
 
       3 ⎕AT 'TOTAL'
@@ -39,7 +39,7 @@ TOTAL
       3 ⎕AT '⎕FX'
 1 1 1 0
 
-⍝ A←4 : CDR sizes ----------------------------------
+      ⍝ A←4 : CDR sizes ----------------------------------
 
       4 ⎕AT 'TOTAL'
 0 0
@@ -76,7 +76,7 @@ OK      - no stale values
 OK      - no stale indices
 OK      - no duplicate parents
 
-⍝ ==================================
+      ⍝ ==================================
 
-   )ERASE TOTAL
+      )ERASE TOTAL
 

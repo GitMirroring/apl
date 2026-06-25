@@ -3,7 +3,7 @@
 
       ⍝ monadic → as expression (GNU APL extension).
       ⍝
-)ERASE FOO
+      )ERASE FOO
 
 ∇FOO
  N←4
@@ -56,7 +56,7 @@ DONE
 3
 ∇
 
-FOO
+      FOO
 1
 2
 3

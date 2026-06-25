@@ -34,7 +34,7 @@ TOTAL
 
       )ERASE TOTAL
 
-⍝ dyadic ----------------------------------
+      ⍝ dyadic ----------------------------------
 
       B←'A' 'AB' 1 (1 2) (1 2 (3 4))
 
@@ -297,7 +297,7 @@ A ┌2─┐ 1 ┌2──┐ ┌3────────┐
 ┗ϵ━━━━━━━━━━┛
 
 
-   30 ⎕CR 1 (2 3) (2 3⍴10+⍳6) (3 2⍴20+⍳6)
+      30 ⎕CR 1 (2 3) (2 3⍴10+⍳6) (3 2⍴20+⍳6)
  1  0  0
  0  0  0
  0  0  0
@@ -373,7 +373,7 @@ A ⎕CR B with invalid A < 0
 Hello
 World
 
-)erase foo
+      )erase foo
 ∇foo
 1
  2
@@ -394,7 +394,7 @@ foo
 
       )erase foo
 
-     ⍴38 ⎕CR 50
+      ⍴38 ⎕CR 50
 64 2
 
       QP←40 ⎕CR Q ← Q←40⍴0 1
@@ -456,10 +456,10 @@ Z←2 2⍴5 6.6 7J8
 5207031D
 4307041D
 
-⍝     ┌─┬─┬─┬──────────────────── 16 bit ID (0 for user defined names)
-⍝     │ │ │ │   ┌─┬──────────────  8 bit value type
-⍝     │ │ │ │   │ │   ┌─┬────────  8 bit token type
-⍝     │ │ │ │   │ │   │ │
+      ⍝     ┌─┬─┬─┬──────────────────── 16 bit ID (0 for user defined names)
+      ⍝     │ │ │ │   ┌─┬──────────────  8 bit value type
+      ⍝     │ │ │ │   │ │   ┌─┬────────  8 bit token type
+      ⍝     │ │ │ │   │ │   │ │
       1 1 1 1 0 1 1 0 1 1 \ B32
 0000 05 0E
 410D 00 01
@@ -503,10 +503,10 @@ Z←2 2⍴5 6.6 7J8
 410D0001
 410F070F
 
-⍝     ┌─┬─┬─┬──────────────────── 16 bit ID (0 for user defined names)
-⍝     │ │ │ │   ┌─┬──────────────  8 bit value type
-⍝     │ │ │ │   │ │   ┌─┬────────  8 bit token type
-⍝     │ │ │ │   │ │   │ │
+      ⍝     ┌─┬─┬─┬──────────────────── 16 bit ID (0 for user defined names)
+      ⍝     │ │ │ │   ┌─┬──────────────  8 bit value type
+      ⍝     │ │ │ │   │ │   ┌─┬────────  8 bit token type
+      ⍝     │ │ │ │   │ │   │ │
       1 1 1 1 0 1 1 0 1 1 \ B32
 0001 05 0E
 410D 00 01
@@ -531,7 +531,7 @@ Z←2 2⍴5 6.6 7J8
       1124533277
 
 
-   ⍪44 ⎕CR TAGs
+      ⍪44 ⎕CR TAGs
  TOK_SYMBOL(TC_SYMBOL, TV_SYM)    
  TOK_ASSIGN1(TC_ASSIGN, TV_NONE)  
  TOK_INTEGER(TC_LIT_ITEM, TV_INT) 
@@ -542,7 +542,7 @@ Z←2 2⍴5 6.6 7J8
  TOK_COMPLEX(TC_LIT_ITEM, TV_CPX) 
 
 
-   ⍪44 ⎕CR TOKs
+      ⍪44 ⎕CR TOKs
  TOK_SYMBOL( Z )    
  TOK_ASSIGN1( ← )   
  TOK_INTEGER( 2 )   
@@ -565,7 +565,7 @@ Z←2 2⍴5 6.6 7J8
               7J8 5   
 
 
-     ⍪44 ⎕CR TOKs
+      ⍪44 ⎕CR TOKs
  TOK_LSYMB( Z )                    
  TOK_ASSIGN1( ← )                  
  TOK_APL_VALUE4( 2 2⍴5 6.6 7J8 5 ) 
@@ -625,5 +625,5 @@ OK      - no stale values
 OK      - no stale indices
 OK      - no duplicate parents
 
-⍝ ==================================
+      ⍝ ==================================
 

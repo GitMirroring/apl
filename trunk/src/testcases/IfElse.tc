@@ -1,7 +1,7 @@
 ⍝ IfElse.tc
 
-  ⍝   ]log 9  ON   ⍝ fix logging
-  ⍝   ]log 48 ON   ⍝ IfElse logging
+      ⍝   ]log 9  ON   ⍝ fix logging
+      ⍝   ]log 48 ON   ⍝ IfElse logging
 
       ⍝ test various COND →→ THEN ←→ ELSE ←← cases
 

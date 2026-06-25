@@ -311,6 +311,9 @@ protected:
    /// the mode \b this Executable
    const ParseMode pmode;
 
+   /// when true, suppress CERR output from parse errors (e.g. during )LOAD)
+   bool quiet_parse;
+
    /// reference counter (for lambdas)
    int refcount;
 

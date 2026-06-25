@@ -6,7 +6,7 @@ CLEAR WS
 
       ⎕IO←1
 
-]NEXTFILE
+      ]NEXTFILE
 
 ⍝ SI limit ----------------------------------
 

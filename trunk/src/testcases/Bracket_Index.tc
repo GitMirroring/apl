@@ -8,7 +8,7 @@ APL
       M1[;2]
 2 4
 
-⍝ Check ⎕IO ----------------------------------
+      ⍝ Check ⎕IO ----------------------------------
 
       ⎕IO←1
       'CURTAIL'[1 2 4]
@@ -19,7 +19,7 @@ CUT
 
       ⎕IO←1
 
-⍝ Index vector ----------------------------------
+      ⍝ Index vector ----------------------------------
 
       A←23 9 6.3 8 ¯3 7
       Z←A[3]
@@ -49,14 +49,14 @@ CUT
       ρQ
 2 3
 
-⍝ Index matrix ----------------------------------
+      ⍝ Index matrix ----------------------------------
 
       ⎕←C←3 6ρ'ABCDEFGHIJKLMNOPQR'
 ABCDEF
 GHIJKL
 MNOPQR
       J←C[2;3]
-J
+      J
 I
       ρJ
 
@@ -81,7 +81,7 @@ PQN
       ρN
 2 2 3
 
-⍝ Elided index ----------------------------------
+      ⍝ Elided index ----------------------------------
 
       D←3 4ρC[1 2;]
       D
@@ -96,7 +96,7 @@ IJKL
       1 2 3[]
 1 2 3
 
-⍝ repeated index values ----------------------------------
+      ⍝ repeated index values ----------------------------------
 
       H←2 4ρ3 4 1 2 2 3 4 1
       H
@@ -108,7 +108,7 @@ MITE
       'NAB'[3 2 1 2 1 2]
 BANANA
 
-⍝ higher rank index ----------------------------------
+      ⍝ higher rank index ----------------------------------
 
       U←2 3 4ρ(,C),'STUVWX'
       U
@@ -136,7 +136,7 @@ MNOP
 IJKL
 UVWX
 
-⍝ nested array index ----------------------------------
+      ⍝ nested array index ----------------------------------
 
       V←'H' 'HI' ('HIM' 'HIS')
       Z←V[1]
@@ -159,7 +159,7 @@ H
       ρρS
 0
 
-⍝ selective specification ----------------------------------
+      ⍝ selective specification ----------------------------------
 
       ρV
 3
@@ -177,7 +177,7 @@ H
 D E F
       B←3 4 5
       B[]←9
-B
+      B
 9 9 9
 
       ⍝ Regression
@@ -232,7 +232,7 @@ OK      - no duplicate parents
 ∇Z←(LO opex RO) [X] B
  Z←RO (⎕NC 'X') B
 ∇
-     1 oper 'xyz' [2] 3
+      1 oper 'xyz' [2] 3
 y 3
 
       1 opex 'xyz' [2] 3

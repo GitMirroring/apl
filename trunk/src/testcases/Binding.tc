@@ -19,7 +19,7 @@
       C
 1 2 3
 
-⍝ dyadic operator ----------------------------------
+      ⍝ dyadic operator ----------------------------------
 
 ∇z←(f glue l) r
  ⍝ From Intro to APL2, p72
@@ -39,7 +39,7 @@
 
       )ERASE glue AND
 
-⍝ bracked index and function axis
+      ⍝ bracked index and function axis
 
 ∇Z←A DyMon B
 ⊃('Monadic' 'Dyadic')[Z←,1+0≠⎕NC 'A']
@@ -61,7 +61,7 @@ Monadic
 Dyadic
 2
 
-⍝ selective spec ----------------------------------
+      ⍝ selective spec ----------------------------------
 
       D←(A B C)←4 5 6
       A
@@ -83,7 +83,7 @@ Dyadic
       D
  4 5 6 
 
-⍝ IBM APL2 compatibility ----------------------------------
+      ⍝ IBM APL2 compatibility ----------------------------------
 
       ∇Z←SHOW_NC B¯B;N
        N←8↑B,':'
@@ -116,40 +116,40 @@ Dyadic
       ⍝ binding of bracket index
       ⍝
       1 2 3[2]
-RANK ERROR
+      RANK ERROR
 
       ⍝ binding of left operand (literal)
       ⍝
       11 22 33 OPER1 1 2 3
-A       : Unused Name
-LO      : Value  11 22 33
-OPER1   : Operator
-B       : Value  1 2 3
+      A       : Unused Name
+      LO      : Value  11 22 33
+      OPER1   : Operator
+      B       : Value  1 2 3
 
       ⍝ binding of left operand (parser)
       ⍝
       (UU VV WW)←11 22 33
-A       : Unused Name
-LO      : Value  11 22 33
-OPER1   : Operator
-B       : Value  1 2 3
+      A       : Unused Name
+      LO      : Value  11 22 33
+      OPER1   : Operator
+      B       : Value  1 2 3
 
       ⍝ binding of left operand (in parentheses)
       ⍝
       11 22 (33 OPER1) 1 2 3
-A       : 11
-LO      : Value  22 33
-OPER1   : Operator
-B       : Value  1 2 3
+      A       : 11
+      LO      : Value  22 33
+      OPER1   : Operator
+      B       : Value  1 2 3
 
       ⍝ binding of left and right operands (literal)
       ⍝
       11 22 33 'lop' OPER2 'rop' 1 2 3
-A:      Value Unused Name
-LO:     Value lop
-OPER1:  Operator
-RO:     Value rop
-B:      Value 1 2 3
+      A:      Value Unused Name
+      LO:     Value lop
+      OPER1:  Operator
+      RO:     Value rop
+      B:      Value 1 2 3
        »»»
 
 
@@ -184,7 +184,7 @@ R
 
       )ERASE L R
 
-⍝ ==================================
+      ⍝ ==================================
 
       )ERASE A B C D
 

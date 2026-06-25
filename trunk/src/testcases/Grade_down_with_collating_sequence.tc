@@ -29,7 +29,7 @@ DEED
       C[B⍒C]
 FECA$
 
-⍝ diffs in spelling ----------------------------------
+      ⍝ diffs in spelling ----------------------------------
 
       ⎕←K←5 4ρ'dealDealdeadDeadDEED'
 deal
@@ -50,7 +50,7 @@ deal
 Dead
 dead
 
-⍝ DCS ----------------------------------
+      ⍝ DCS ----------------------------------
 
       DCS←10 2 28⍴' '
       DCS[1;1;1+⍳26]←⎕UCS  64+⍳26
@@ -155,14 +155,14 @@ X3
 X2 
 X1 
 
-⍝ identical subarrays ----------------------------------
+      ⍝ identical subarrays ----------------------------------
 
       'ABCDE'⍒'DABBED'
 5 6 1 4 3 2
       'DABBED'['ABCDE'⍒'DABBED']
 EDDBBA
 
-⍝ item not in collating sequence ----------------------------------
+      ⍝ item not in collating sequence ----------------------------------
 
       Q←'BLEAT'
       W←'ABCDE'⍒Q

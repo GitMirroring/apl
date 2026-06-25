@@ -47,6 +47,6 @@
 140
 320
 
-   )ERASE cA cB mA mB
-   )CHECK BRIEF
+      )ERASE cA cB mA mB
+      )CHECK BRIEF
 

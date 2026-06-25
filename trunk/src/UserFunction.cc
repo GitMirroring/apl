@@ -1232,7 +1232,7 @@ int error_line = -1;
 UserFunction *
 UserFunction::fix(const UCS_string & text, int & err_line,
                   bool keep_existing, const char * loc,
-                  const UTF8_string & creator)
+                  const UTF8_string & creator, bool quiet)
 {
    Log(LOG_UserFunction__fix)
       {
@@ -1241,7 +1241,7 @@ UserFunction::fix(const UCS_string & text, int & err_line,
       }
 
 UserFunction * ufun = new UserFunction(text, loc, creator,
-                                       /* macro = */ false);
+                                       /* macro = */ false, quiet);
 const char * info = ufun->get_error_info();
    err_line = ufun->get_error_line();
 
@@ -1485,7 +1485,8 @@ UserFunction * fun = 0;
 //────────────────────────────────────────────────────────────────────────────
 // constructor for a normal (non-lambda) define function
 UserFunction::UserFunction(const UCS_string txt, const char * loc,
-                           const UTF8_string & _creator, bool macro)
+                           const UTF8_string & _creator, bool macro,
+                           bool quiet)
   : Function(ID_USER_SYMBOL, TOK_FUN2),
     Executable(txt, true, PM_FUNCTION, loc),
     creator(_creator),
@@ -1493,6 +1494,7 @@ UserFunction::UserFunction(const UCS_string txt, const char * loc,
     error_line(0),   // assume header is wrong
     header(txt, macro)
 {
+   quiet_parse = quiet;
    if (header.get_error())
       {
         error_info = header.get_error_info();

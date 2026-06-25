@@ -433,12 +433,12 @@ A 0
       ⍝
       ⍝ page 132 ------------------------------------------------------
       ⍝
-⍝ old GNU APL ⍤[]
-⍝
-⍝       0 1 2 ⌽⍤[0 1] 'ABC'
-⍝ ABC
-⍝ BCA
-⍝ CAB
+      ⍝ old GNU APL ⍤[]
+      ⍝
+      ⍝       0 1 2 ⌽⍤[0 1] 'ABC'
+      ⍝ ABC
+      ⍝ BCA
+      ⍝ CAB
 
       2 2 2⊤⍤1 0 N5
 0 0 1
@@ -973,7 +973,7 @@ FABCDE
 133 233
 134 234
 
-     ⍴⍴(⍳0)⍉5
+      ⍴⍴(⍳0)⍉5
 0
 
       ⍝ page 161 ------------------------------------------------------
@@ -1028,8 +1028,8 @@ FABCDE
       ⍝ 10.2.14 Indexed Reference
       ⍝ ISO says 2, apllrm says RANK ERROR on 3[2]
       ⍝
-⍝      1 2 3[2]
-⍝ 2
+      ⍝      1 2 3[2]
+      ⍝ 2
 
       1 2 3[2]
 RANK ERROR
@@ -1120,7 +1120,7 @@ FRANCE
       A←2 14⍴' abcdegiklmnrt ABCDEGIKLMNRT'
       W ← ⊃ 'Ab' 'AB' 'aba' 'ABA' 'abaca' 'abecedarian' 'Abelian' 'black' 'blackball' 'black belt' 'blacking' 'Black Mass'
 
-     W W[(,A)⍋W;]   W[(,⍉A)⍋W;]  W[A⍋W;]
+      W W[(,A)⍋W;]   W[(,⍉A)⍋W;]  W[A⍋W;]
  Ab           aba          aba          Ab          
  AB           abaca        abaca        AB          
  aba          abecedarian  abecedarian  aba         

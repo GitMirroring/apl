@@ -15,6 +15,6 @@ OK      - no stale indices
 OK      - no duplicate parents
 
 
- '2+3' ⎕EA 'A←B)←2)'  ⍝ Causes a syntax error, print 5
+      '2+3' ⎕EA 'A←B)←2)'  ⍝ Causes a syntax error, print 5
 5
 

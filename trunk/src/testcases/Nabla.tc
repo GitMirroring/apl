@@ -1,8 +1,8 @@
 ⍝ Nabla
 ⍝ ----------------------------------
 
-   )SIC
-   )ERASE FOO BAR
+      )SIC
+      )ERASE FOO BAR
 
       ⍝ new function
       ⍝
@@ -25,7 +25,7 @@ F3
       ⍝ edit line
       ⍝
       ∇FOO
-[2] F2-changed
+      [2] F2-changed
       ∇
 
       ∇FOO[⎕]∇
@@ -39,8 +39,8 @@ F3
       ⍝ change name
       ⍝
       ∇FOO
-[0] BAR
-[2] F2-bar
+      [0] BAR
+      [2] F2-bar
       ∇
 
       ∇FOO[⎕]∇
@@ -61,7 +61,7 @@ F3
 
       ⍝ Regression. M. Hall Jan. 27. 2025
       ⍝
-)ERASE FOO
+      )ERASE FOO
 
       ⊣⎕FX 'FOO' '10' '20'
       ∇FOO[1]123∇

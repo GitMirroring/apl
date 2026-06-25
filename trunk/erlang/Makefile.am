@@ -24,7 +24,8 @@ CLEANFILES = ${FILES}
 
 all: apl.beam apl_example.beam
 .erl.beam:
-	erlc $<
+	@if command -v erlc >/dev/null 2>&1; then erlc $<; \
+	else echo "NOTE: erlc not found, skipping $< (Erlang byte-code not built)"; touch $@; fi
 
 else   # not WANT_ERLANG
 

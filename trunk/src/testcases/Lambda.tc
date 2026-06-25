@@ -65,7 +65,7 @@ CLEAR WS
       )CLEAR
 CLEAR WS
 
-SUM ← { ⍺ + ⍵⊣C←0 ;C;⎕io}
+      SUM ← { ⍺ + ⍵⊣C←0 ;C;⎕io}
       ⎕CR 'SUM'
 λ←⍺ λ1 ⍵;C;⎕io
 λ← ⍺ + ⍵⊣C←0  

@@ -45,7 +45,7 @@ J:  6 5 3
 J LINE 7
 H LINE 6
 
-⍝ Suspended/halted function ----------------------------------
+      ⍝ Suspended/halted function ----------------------------------
 
 ∇J
 [6.1] ∘∘∘∘∘∘
@@ -66,7 +66,7 @@ H LINE 6
 
       )ERASE FACTR
 ∇Z←FACTR A
- Z←!A
+      Z←!A
 ∇
 
       FACTR ¯3
@@ -134,12 +134,12 @@ FACTR[1]  Z←!A
       →
       →
 
-⍝ ----------------------------------
+      ⍝ ----------------------------------
 
-   )ERASE FACTR
-   )ERASE G
-   )ERASE H
-   )ERASE J
+      )ERASE FACTR
+      )ERASE G
+      )ERASE H
+      )ERASE J
 
-⍝ ==================================
+      ⍝ ==================================
 

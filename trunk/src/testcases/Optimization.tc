@@ -22,7 +22,7 @@ L3
 
       ]log 38 OFF
 
-)ERASE FOO
+      )ERASE FOO
 
-)CHECK BRIEF
+      )CHECK BRIEF
 

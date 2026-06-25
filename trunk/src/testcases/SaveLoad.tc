@@ -76,7 +76,7 @@ SAVED 20⁰-⁰-⁰ ⁰:⁰:⁰ (GMT⁵⁰)
       )DROP test.xml
 ³
 
-⍝ Davd Alden 8. Nov. 2025 bugapl@gnu.org
+      ⍝ Davd Alden 8. Nov. 2025 bugapl@gnu.org
 
       )CLEAR
 CLEAR WS
@@ -116,5 +116,5 @@ Attempt (of ⎕FX) to create or edit a lambda. Use { ... } instead.
 
       )CHECK BRIEF
 
-⍝ ==================================
+      ⍝ ==================================
 

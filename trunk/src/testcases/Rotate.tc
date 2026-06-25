@@ -15,7 +15,7 @@ ASIDE
 GLEAN
 IDEAS
 
-⍝ negative A ----------------------------------
+      ⍝ negative A ----------------------------------
 
       ¯2⌽A
 6 7 1 2 3 4 5
@@ -58,7 +58,7 @@ EAT
  BEAR PONY CAT  
  FOX  GNU  BIRD 
 
-⍝ left arg for 3 dimensions ----------------------------------
+      ⍝ left arg for 3 dimensions ----------------------------------
 
       S←2 3 5ρ'TARESSMARTEARTHSETONLAGERSHEAR'
       S
@@ -87,7 +87,7 @@ ONSET
 LAGER
 HEARS
 
-⍝ selective spec ----------------------------------
+      ⍝ selective spec ----------------------------------
 
       W←'STRIPE'
       2⌽W
@@ -97,5 +97,5 @@ RIPEST
       W
 MOTHER
 
-⍝ ==================================
+      ⍝ ==================================
 

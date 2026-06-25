@@ -189,7 +189,7 @@ LENGTH ERROR+
 └ϵ──────────────────┘
 
 
-⍝ Regression. Hudson Lacerda June 2, 2022
+      ⍝ Regression. Hudson Lacerda June 2, 2022
 
       L←1 0 1 0 ◊ R←'abcd'
       ⊢PCnt← +/ 2 </ 0,L   ⍝ partition count = number of L↑
@@ -230,7 +230,7 @@ c
 c
 1
 
-⍝ ==================================
+      ⍝ ==================================
 
       )SI
 

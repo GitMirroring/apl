@@ -130,7 +130,7 @@ member access: cannot use non-leaf member A.b in selective specification.
      └──────┘
 
       R←39 ⎕CR W
-R
+      R
  bb leaf-bb 
  a  leaf-a  
 
