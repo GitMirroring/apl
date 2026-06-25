@@ -1759,13 +1759,16 @@ cairo_surface_t *
              → do_plot_data()
                  → plot_main_GTK()
                    ↓
-                   ↓ → → pthread_create(gtk_main_wrapper) → return immediately
+                   ↓ g_idle_add(post_gtk_started)
+                   ↓ → → pthread_create(gtk_main_wrapper)
                    ↓                            ↓
-            ┌─────────────┐           ┌────── thread ──────┐
-            │ GTK_context │           │ gtk_main_wrapper() │
-            └─────────────┘           │ → gtk_main()       │
-                   ↓                  └────────────────────┘
-                   ↓                            ↓
+                   ↓ sem_wait(gtk_started_sema) ↓
+                   ↓         ⇐⇐⇐⇐⇐⇐⇐⇐⇐⇐⇐  ┌────── thread ──────┐
+                   ↓  (idle fires)            │ gtk_main_wrapper() │
+                   ↓                          │ → gtk_main()       │
+            ┌─────────────┐                   └────────────────────┘
+            │ GTK_context │                              ↓
+            └─────────────┘                             ↓
                    ↓ → → gtk_window_new() → → event
                    ↓                            ↓
            all_PLOT_windows → GTK_context → → window
@@ -1773,6 +1776,16 @@ cairo_surface_t *
    NOTE that gtk_main_wrapper() is called only once (and not per window).
    Therefore the functions called from it must not throw any APL ERRORs.
  */
+
+/// semaphore posted by the GLib idle callback once gtk_main() is running
+static sem_t gtk_started_sema;
+
+static gboolean
+post_gtk_started(gpointer data)
+{
+   sem_post(static_cast<sem_t *>(data));
+   return G_SOURCE_REMOVE;   // one-shot: remove after first call
+}
 
 static void *
 gtk_main_wrapper(void *)
@@ -1799,14 +1812,22 @@ Plot_window_properties & w_props =
       *reinterpret_cast<Plot_window_properties *>(vp_props);
    verbosity = w_props.get_verbosity();
 
-   MAYBE_XInitThreads();
-
    if (!gtk_init_done)
       {
+        MAYBE_XInitThreads();
         int argc = 0;
         char ** argv = { 0 };
         gtk_init(&argc, &argv);   setlocale(LC_ALL, "C");
         gtk_init_done = true;
+
+        // Register a one-shot idle callback that posts gtk_started_sema once
+        // gtk_main() has started its event loop.  On slow (e.g. 32-bit) systems,
+        // gtk_widget_realize() crashes with g_source_set_name_by_id() if the GLib
+        // main context has not yet been acquired by gtk_main(); the sem_wait below
+        // ensures the loop is running before we create any GTK windows.
+        //
+        sem_init(&gtk_started_sema, 0, 0);
+        g_idle_add(post_gtk_started, &gtk_started_sema);
 
         pthread_t thread = 0;
         pthread_create(&thread, 0, gtk_main_wrapper, 0);
@@ -1815,6 +1836,8 @@ Plot_window_properties & w_props =
          // show with e.g.   ps H -o 'pid tid cmd comm'
          pthread_setname_np(thread, "apl/GTK");
 # endif
+
+        sem_wait(&gtk_started_sema);   // block until gtk_main() loop is running
       }
 
 GTK_context * pctx = new GTK_context(w_props, handle);

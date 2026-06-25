@@ -742,8 +742,8 @@ uninstall-am: uninstall-pkglibLTLIBRARIES
 
 @apl_TARGET_ERLANG_TRUE@all: apl.beam apl_example.beam
 @apl_TARGET_ERLANG_TRUE@.erl.beam:
-@apl_TARGET_ERLANG_TRUE@	@if command -v erlc >/dev/null 2>&1; then erlc $<; \
-@apl_TARGET_ERLANG_TRUE@	else echo "NOTE: erlc not found, skipping $< (Erlang byte-code not built)"; touch $@; fi
+@apl_TARGET_ERLANG_TRUE@	@if erlc -version >/dev/null 2>&1; then erlc $<; \
+@apl_TARGET_ERLANG_TRUE@	else echo "NOTE: erlc not working, skipping $< (Erlang byte-code not built)"; touch $@; fi
 
 @apl_TARGET_ERLANG_FALSE@.PHONY:	all
 @apl_TARGET_ERLANG_FALSE@all:
