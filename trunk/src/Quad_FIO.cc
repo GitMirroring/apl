@@ -600,6 +600,7 @@ const pid_t child = fork();
 
    if (child)   // parent process: return handle
       {
+        ::close(spair[1]);   // close child's end so read(spair[0]) gets EOF when child exits
         file_entry fe(0, spair[0]);
         fe.fe_may_read = true;
         fe.fe_may_write = true;
@@ -622,6 +623,7 @@ const int sock = spair[1];
    //  (== STDERR + 1) in the client
    //
    dup2(sock, 3);
+   ::close(sock);   // close the extra reference so fd 3 is the sole owner
 
 const UCS_string path_ucs(B);
 const UTF8_string path(path_ucs);

@@ -5632,6 +5632,9 @@ EOF
 # ifdef __CYGWIN__
 #  include <io.h>
 # endif
+# ifdef __MINGW32__
+#  include <process.h>
+# endif
 #endif
 #include <malloc.h>
 #include <stdarg.h>

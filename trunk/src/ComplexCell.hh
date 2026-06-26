@@ -148,11 +148,6 @@ public:
 
    /// overloaded from the corresponding Cell:: function (see class Cell).
    /// @param Z uninitialised result cell to be filled in
-   /// @param A left argument cell
-   virtual ErrorCode bif_equal(Cell * Z, const Cell * A) const;
-
-   /// overloaded from the corresponding Cell:: function (see class Cell).
-   /// @param Z uninitialised result cell to be filled in
    /// @param A left argument cell (the base)
    virtual ErrorCode bif_logarithm(Cell * Z, const Cell * A) const;
 

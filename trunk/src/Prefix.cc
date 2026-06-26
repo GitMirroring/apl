@@ -1621,27 +1621,6 @@ Prefix::reduce_LPAR_B_RPAR_()
 }
 //────────────────────────────────────────────────────────────────────────────
 void
-Prefix::reduce_LPAR_F_C_RPAR()
-{
-   Assert1(prefix_len == 4);
-
-   // C should be an axis and not a [;;] index
-   //
-   if (at2().get_ValueType() != TV_VAL)   SYNTAX_ERROR;
-   if (!at2().get_apl_val())              SYNTAX_ERROR;
-
-   //     at: 0 1 2 3
-   // before: ( F C )
-   // after:  F C
-   //
-   at3().move_from(at2(), LOC);   // move C left
-   at2().move_from(at1(), LOC);   // move F left
-   pop_and_discard();          // discard old C
-   pop_and_discard();          // discard old RPAR
-   set_action(RA_CONTINUE);   // match again (w/o SHIFT)
-}
-//────────────────────────────────────────────────────────────────────────────
-void
 Prefix::reduce_N___()
 {
    Assert1(prefix_len == 1);
@@ -1942,21 +1921,6 @@ DerivedFunction * derived = get_fun_oper_slot(LOC);
    new (derived) Derived_LO_M_X(tok_F_C, M, MX, LOC);
 
    pop_args_push_result(Token(TOK_FUN2, derived));
-   set_action(RA_CONTINUE);   // match again (w/o SHIFT)
-}
-//────────────────────────────────────────────────────────────────────────────
-void
-Prefix::reduce_A_M__()
-{
-   Assert1(prefix_len == 2);
-
-Token & LO_A = at0();
-cMonOP     M = at1().get_function();
-
-DerivedFunction * derived = get_fun_oper_slot(LOC);
-   new (derived) Derived_LO_M(LO_A, M, LOC);
-
-   pop_args_push_result(Token(TOK_FUN1, derived));
    set_action(RA_CONTINUE);   // match again (w/o SHIFT)
 }
 //────────────────────────────────────────────────────────────────────────────

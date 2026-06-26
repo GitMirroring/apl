@@ -280,7 +280,8 @@ protected:
 
    /// fix the syntax of the RANK (⍤) operator.
    /// @param tos token string modified in place
-   static bool fix_RANK_syntax(Token_string & tos);
+   /// @param has_power set to true if ⍣ (TOK_OPER2_POWER) appears in \b tos
+   static bool fix_RANK_syntax(Token_string & tos, bool & has_power);
 
    /// return the number of INT or near-INT tokens, starting at \b pos (and
    /// at most 4). Replace near-int floats and complex /// literals with ints.

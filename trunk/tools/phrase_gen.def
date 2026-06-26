@@ -47,7 +47,6 @@
 //
 phrase(BS_ANY+3      , LPAR , B    , RPAR ,      , DITO )
 phrase(BS_ANY+3      , LPAR , F    , RPAR ,      , "LPAR_B_RPAR_")
-phrase(BS_ANY+4      , LPAR , F    , C    , RPAR , ""    )
 
 // niladic function call
 phrase(BS_ANY+ 1,      N    ,      ,      ,      , DITO )
@@ -71,7 +70,6 @@ phrase(BS_LO_OP+2    , M    , M    ,      ,      , DITO )   // /¨
 phrase(BS_LO_OP+3    , F    , M    , C    ,      , DITO )   // +/[2]
 phrase(BS_LO_OP+3    , F    , C    , M    ,      , DITO )   // ,[2]/
 phrase(BS_LO_OP+4    , F    , C    , M    , C    , DITO )   // ,[2]/[2]
-phrase(BS_LO_OP+2    , A    , M    ,      ,      , DITO )   // A/
 
 // dyadic operator
 //

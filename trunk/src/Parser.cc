@@ -776,7 +776,12 @@ vector<Value_P>value_rows;   value_rows.reserve(100);
                   {
                     Value_P ZZ = tos[t].get_apl_val();
                     if (ZZ->get_rank() > 1)   RANK_ERROR;
-                    len_Z += ZZ->element_count();
+                    // TOK_APL_VALUE1 is a string literal that was not
+                    // grouped with its neighbours (e.g. because a <<<
+                    // marker is adjacent).  Treat it as one nested
+                    // element, not as a spread of its characters.
+                    if (tos[t].get_tag() == TOK_APL_VALUE1)   ++len_Z;
+                    else                                       len_Z += ZZ->element_count();
                   }
                else
                   {
@@ -801,10 +806,15 @@ vector<Value_P>value_rows;   value_rows.reserve(100);
                else if (tos[t].get_Class() == TC_VALUE)
                   {
                     Value_P ZZ = tos[t].get_apl_val();
-                    loop(z, ZZ->element_count())
-                        {
-                          Z->next_ravel_Cell(ZZ->get_cravel(z));
-                        }
+                    if (tos[t].get_tag() == TOK_APL_VALUE1)
+                       {
+                         Z->next_ravel_Value(ZZ.get());
+                       }
+                    else
+                       {
+                         loop(z, ZZ->element_count())
+                             Z->next_ravel_Cell(ZZ->get_cravel(z));
+                       }
                   }
                else FIXME;
              }
@@ -1553,11 +1563,11 @@ bool progress = false;
 }
 //────────────────────────────────────────────────────────────────────────────
 bool
-Parser::fix_RANK_syntax(Token_string & tos)
+Parser::fix_RANK_syntax(Token_string & tos, bool & has_power)
 {
 bool progress = false;
-   /* Z ← A ⍤ y B  or  Z ← ⍤ y B 
-     
+   /* Z ← A ⍤ y B  or  Z ← ⍤ y B
+
       where y is a near-int-vector of length 1, 2, or 3
 
       Collecting the items of such an expression can make the expression
@@ -1586,6 +1596,7 @@ bool progress = false;
        {
          if (tos[t].get_tag() != TOK_OPER2_RANK)
             {
+              if (tos[t].get_tag() == TOK_OPER2_POWER)   has_power = true;
               continue;   // next ⍤ (if any)
             }
 
@@ -1970,11 +1981,10 @@ Parser::parse_log(int N, const Token_string & tos)
 ErrorCode
 Parser::parse_statement(Token_string & tos, bool optimize)
 {
-   /// fix the broken syntax of the RANK OPERATOR
-   if (fix_RANK_syntax(tos))   parse_log(2, tos);;
+   bool has_power_op = false;
+   if (fix_RANK_syntax(tos, has_power_op))   parse_log(2, tos);
 
-   /// fix the broken syntax of the RANK OPERATOR
-   if (fix_POWER_syntax(tos))   parse_log(3, tos);;
+   if (has_power_op && fix_POWER_syntax(tos))   parse_log(3, tos);
 
    // 1. convert (X) into X and ((X...)) into (X...)
    //

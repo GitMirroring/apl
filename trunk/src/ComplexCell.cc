@@ -238,15 +238,6 @@ ComplexCell::bif_divide(Cell * Z, const Cell * A) const
 
    return ComplexCell::zC(Z, A->get_complex_value() / get_complex_value());
 }
-//────────────────────────────────────────────────────────────────────────────
-ErrorCode
-ComplexCell::bif_equal(Cell * Z, const Cell * A) const
-{
-   if (!A->is_numeric())   return IntCell::z0(Z);
-   return IntCell::zI(Z, tolerantly_equal(A->get_complex_value(),
-                                          get_complex_value(),
-                                          Workspace::get_CT()));
-}
 //════════════════════════════════════════════════════════════════════════════
 ErrorCode
 ComplexCell::bif_logarithm(Cell * Z, const Cell * A) const
