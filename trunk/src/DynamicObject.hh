@@ -45,6 +45,7 @@ class IndexExpr;
 class DynamicObject
 {
    friend class Value;   // for rValue()
+   friend class cValue;  // for rValue() in moved const methods
 
 public:
    /// constructor: a DynamicObject allocated at source location \b loc

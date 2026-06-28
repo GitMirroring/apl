@@ -30,15 +30,15 @@ Bif_F12_COMMA1 Bif_F12_COMMA1::fun;    // ⍪
 
 //════════════════════════════════════════════════════════════════════════════
 Token
-Bif_COMMA::ravel_axis(Value_P X, Value_P B, uAxis axis)
+Bif_COMMA::ravel_axis(cValue_R X, cValue_R B, uAxis axis)
 {
 const APL_Integer qio = Workspace::get_IO();
 
-   if (!X)   SYNTAX_ERROR;
+   if (false)   SYNTAX_ERROR;
 
    // I must be a (integer or real) scalar or simple integer vector
    //
-   if (X->get_rank() > 1)   INDEX_ERROR;
+   if (X.get_rank() > 1)   INDEX_ERROR;
 
    // There are 3 variants, determined by I:
    //
@@ -49,42 +49,42 @@ const APL_Integer qio = Workspace::get_IO();
 
    // case 1:   ,['']B or ,[⍳0]B : append new first or last axis of length 1.
    //
-   if (X->element_count() == 0)
+   if (X.element_count() == 0)
       {
-        if (B->get_rank() == MAX_RANK)   AXIS_ERROR;
+        if (B.get_rank() == MAX_RANK)   AXIS_ERROR;
 
-        const Shape shape_Z = B->get_shape().insert_axis(axis, 1);
+        const Shape shape_Z = B.get_shape().insert_axis(axis, 1);
         return ravel(shape_Z, B);
       }
 
    // case 2:   ,[x.y]B : insert axis before axis x+1
    //
-   if (!X->get_cfirst().is_near_int())  // fraction: insert an axis
+   if (!X.get_cfirst().is_near_int())  // fraction: insert an axis
       {
-        if (B->get_rank() == MAX_RANK)   INDEX_ERROR;
+        if (B.get_rank() == MAX_RANK)   INDEX_ERROR;
 
-        const APL_Float new_axis = X->get_cfirst().get_real_value() - qio;
+        const APL_Float new_axis = X.get_cfirst().get_real_value() - qio;
         sAxis axis = new_axis;   if (new_axis < 0.0)   axis = -1;
-        const Shape shape_Z = B->get_shape().insert_axis(axis + 1, 1);
+        const Shape shape_Z = B.get_shape().insert_axis(axis + 1, 1);
         return ravel(shape_Z, B);
       }
    // case 3a: ,[n]B : return B (combine single axis doesn't change anything)
    //
-   if (X->is_scalar_or_len1_vector())   // single int: return B->
+   if (X.is_scalar_or_len1_vector())   // single int: return B.
       {
-        Token result(TOK_APL_VALUE1, CLONE_P(B, LOC));
+        Token result(TOK_APL_VALUE1, CLONE(&B, LOC));
         return result;
       }
 
    // case 3b: ,[n1 ... nk]B : combine axes.
    //
-const Shape axes(*X, qio);
+const Shape axes(X, qio);
 
 const ShapeItem from = axes.get_first_shape_item();
    if (from < 0)   AXIS_ERROR;
 
 const ShapeItem to   = axes.get_last_shape_item();
-   if (to >= B->get_rank())   AXIS_ERROR;
+   if (to >= B.get_rank())   AXIS_ERROR;
 
    // check that the axes are contiguous and compute the number of elements
    // in the combined axes
@@ -93,35 +93,35 @@ ShapeItem count = 1;
    loop(a, axes.get_rank())
       {
         if (axes.get_shape_item(a) != (from + a))   AXIS_ERROR;
-        count *= B->get_shape_item(from + a);
+        count *= B.get_shape_item(from + a);
       }
 
 Shape shape_Z;
-   loop (r, from)   shape_Z.add_shape_item(B->get_shape_item(r));
+   loop (r, from)   shape_Z.add_shape_item(B.get_shape_item(r));
    shape_Z.add_shape_item(count);
-   for (uRank r = to + 1; r < B->get_rank(); ++r)
-       shape_Z.add_shape_item(B->get_shape_item(r));
+   for (uRank r = to + 1; r < B.get_rank(); ++r)
+       shape_Z.add_shape_item(B.get_shape_item(r));
 
    return ravel(shape_Z, B);
 }
 //════════════════════════════════════════════════════════════════════════════
 Token
-Bif_COMMA::ravel(const Shape & new_shape, Value_P B)
+Bif_COMMA::ravel(const Shape & new_shape, cValue_R B)
 {
 Value_P Z(new_shape, LOC);
 
-const ShapeItem count = B->element_count();
+const ShapeItem count = B.element_count();
    Assert(count == Z->element_count());
 
-   loop(c, count)   Z->next_ravel_Cell(B->get_cravel(c));
+   loop(c, count)   Z->next_ravel_Cell(B.get_cravel(c));
 
-   Z->set_default(*B.get(), LOC);
+   Z->set_default(B, LOC);
    Z->check_value(LOC);
    return Token(TOK_APL_VALUE1, Z);
 }
 //────────────────────────────────────────────────────────────────────────────
 Value_P
-Bif_COMMA::catenate(const Value & A, sAxis axis, const Value & B)
+Bif_COMMA::catenate(const cValue & A, sAxis axis, const cValue & B)
 {
    // NOTE: the case A.is_scalar() && B.is_scalar() was supposedly ruled out
    //       before calling catenate()
@@ -281,7 +281,7 @@ Value_P Z(shape_Z, LOC);
 }
 //────────────────────────────────────────────────────────────────────────────
 Value_P
-Bif_COMMA::laminate(const Value & A, sAxis axis, const Value & B)
+Bif_COMMA::laminate(const cValue & A, sAxis axis, const cValue & B)
 {
    // shapes of A and B must be the same, unless one of them is a scalar.
    //
@@ -343,8 +343,8 @@ const Cell * cB = &B.get_cfirst();
 }
 //────────────────────────────────────────────────────────────────────────────
 Value_P
-Bif_COMMA::catenate_or_laminate(const Value & A, const Value & X,
-                                const Value & B)
+Bif_COMMA::catenate_or_laminate(const cValue & A, const cValue & X,
+                                const cValue & B)
 {
  if (A.is_scalar() && B.is_scalar())   RANK_ERROR;
 
@@ -372,7 +372,7 @@ const APL_Float axis = cX.get_real_value() - qio;
 }
 //════════════════════════════════════════════════════════════════════════════
 Value_P
-Bif_COMMA::prepend_scalar(const Cell & cell_A, uAxis axis, const Value & B)
+Bif_COMMA::prepend_scalar(const Cell & cell_A, uAxis axis, const cValue & B)
 {
    if (B.is_empty())
       {
@@ -424,7 +424,7 @@ const Cell * cB = &B.get_cfirst();
 }
 //────────────────────────────────────────────────────────────────────────────
 Value_P
-Bif_COMMA::append_scalar(const Value & A, uAxis axis, const Cell & cell_B)
+Bif_COMMA::append_scalar(const cValue & A, uAxis axis, const Cell & cell_B)
 {
    if (A.is_empty())
       {
@@ -467,86 +467,86 @@ const Cell * cA = &A.get_cfirst();
 }
 //════════════════════════════════════════════════════════════════════════════
 Token
-Bif_F12_COMMA::eval_AB(Value_P A, Value_P B) const
+Bif_F12_COMMA::eval_AB(cValue_R A, cValue_R B) const
 {
-  if (A->is_scalar() && B->is_scalar())
+  if (A.is_scalar() && B.is_scalar())
      {
        Value_P Z(2, LOC);
-       Z->next_ravel_Cell(A->get_cscalar());
-       Z->next_ravel_Cell(B->get_cscalar());
+       Z->next_ravel_Cell(A.get_cscalar());
+       Z->next_ravel_Cell(B.get_cscalar());
        Z->check_value(LOC);
        return Token(TOK_APL_VALUE1, Z);
      }
 
-uRank max_rank = A->get_rank();
-   if (max_rank < B->get_rank())  max_rank = B->get_rank();
-   return Token(TOK_APL_VALUE1, catenate(*A, max_rank-1, *B));
+uRank max_rank = A.get_rank();
+   if (max_rank < B.get_rank())  max_rank = B.get_rank();
+   return Token(TOK_APL_VALUE1, catenate(A, max_rank-1, B));
 }
 //────────────────────────────────────────────────────────────────────────────
 Token
-Bif_F12_COMMA::eval_B(Value_P B) const
+Bif_F12_COMMA::eval_B(cValue_R B) const
 {
-const Shape shape_Z(B->element_count());
+const Shape shape_Z(B.element_count());
 
    if (DO_RT_COMMA_B              &&
-       B->get_owner_count() == 2  &&
+       B.get_owner_count() == 1  &&
        this == Workspace::SI_top()->get_prefix().get_monadic_fun())
       {
         Log(LOG_optimization)
            CERR << "optimizing ,B (len="
-                << B->nz_element_count() << ")" << endl;
+                << B.nz_element_count() << ")" << endl;
 
         OptmizationStatistics::count(OPTI_RT_COMMA_B);
 
-        B->set_shape(shape_Z);
-        return Token(TOK_APL_VALUE1, B);
+        static_cast<Value *>(const_cast<cValue *>(&B))->set_shape(shape_Z);
+        return Token(TOK_APL_VALUE1, CLONE(&B, LOC));
       }
 
    return ravel(shape_Z, B);
 }
 //════════════════════════════════════════════════════════════════════════════
 Token
-Bif_F12_COMMA1::eval_B(Value_P B) const
+Bif_F12_COMMA1::eval_B(cValue_R B) const
 {
    // turn B into a matrix
    //
 ShapeItem c1 = 1;   // assume B is scalar
 ShapeItem c2 = 1;   // assume B is scalar;
 
-   if (B->get_rank() >= 1)
+   if (B.get_rank() >= 1)
       {
-        c1 = B->get_shape_item(0);
-        for (uRank r = 1; r < B->get_rank(); ++r)   c2 *= B->get_shape_item(r);
+        c1 = B.get_shape_item(0);
+        for (uRank r = 1; r < B.get_rank(); ++r)   c2 *= B.get_shape_item(r);
       }
 
 Shape shape_Z(c1, c2);
    if (DO_RT_COMMA1_B            &&
-       B->get_owner_count() == 2 &&
+       B.get_owner_count() == 1 &&
        this == Workspace::SI_top()->get_prefix().get_monadic_fun())
       {
         Log(LOG_optimization) CERR << "optimizing ,B" << endl;
 
         OptmizationStatistics::count(OPTI_RT_COMMA1_B);
 
-        B->set_shape(shape_Z);
-        return Token(TOK_APL_VALUE1, B);
+        static_cast<Value *>(const_cast<cValue *>(&B))->set_shape(shape_Z);
+        return Token(TOK_APL_VALUE1, CLONE(&B, LOC));
       }
    return ravel(shape_Z, B);
 }
 //────────────────────────────────────────────────────────────────────────────
 Token
-Bif_F12_COMMA1::eval_AB(Value_P A, Value_P B) const
+Bif_F12_COMMA1::eval_AB(cValue_R A, cValue_R B) const
 {
-  if (A->is_scalar() && B->is_scalar())
+  if (A.is_scalar() && B.is_scalar())
      {
        Value_P Z(2, LOC);
-       Z->next_ravel_Cell(A->get_cfirst());
-       Z->next_ravel_Cell(B->get_cfirst());
+       Z->next_ravel_Cell(A.get_cfirst());
+       Z->next_ravel_Cell(B.get_cfirst());
        Z->check_value(LOC);
        return Token(TOK_APL_VALUE1, Z);
      }
 
-   return Token(TOK_APL_VALUE1, catenate(*A, 0, *B));
+   return Token(TOK_APL_VALUE1, catenate(A, 0, B));
 }
 //════════════════════════════════════════════════════════════════════════════
 

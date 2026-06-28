@@ -750,7 +750,7 @@ a little easier by localizing the root cause of a problem.</p></div>
 <div class="sectionbody">
 <div class="paragraph"><p><strong>GNU APL</strong> is, in terms of source code size, a fairly large program. As of
 this writing the source code for the interpreter, not counting code in
-sub-directories, has more than 110,000 lines of code. Finding faults in
+sub-directories, has more than 130,000 lines of code. Finding faults in
 code of that quantity is not as trivial as finding faults in a short program
 of only a few thousand lines. Past experience shows, that after a new fault
 was observed, the time for reproducing and localizing the fault typically
@@ -837,16 +837,12 @@ present, indicates that there is more information available about the error
 Example:</p></div>
 <div class="literalblock">
 <div class="content">
-<pre>
-
-<code>      +/[1;2] 3   ⍝ ; is not allowed in function axes.
+<pre><code>      +/[1;2] 3   ⍝ ; is not allowed in function axes.
 AXIS ERROR+
       +/[1;2]3
       ^     ^
       )MORE
-illegal ; in axis</code>
-
-</pre>
+illegal ; in axis</code></pre>
 </div></div>
 <div class="paragraph"><p>APL errors shall, of course, not be reported to the <strong>GNU APL</strong> maintainers,
 with the following exceptions:</p></div>
@@ -928,13 +924,13 @@ don&#8217;t be afraid to report the same error twice if you are not sure.</p></d
 <h2 id="_failed_assertions">Failed Assertions</h2>
 <div class="sectionbody">
 <div class="paragraph"><p>An assertion is an expression in the source code that the programmer assumes
-to be <strong>true</strong> (aka. ≠ 0 in C/C++). It can be very hard to find the origin
+to be <strong>true</strong> (aka. ≠ 0 in C/Cpp). It can be very hard to find the origin
 (root cause) of an error, in particular when many CPU instructions were
 performed between the root cause and error being detected.</p></div>
 <div class="paragraph"><p>By making assertions all over place in the source code, the programmer
 introduces checks along the execution path in order to reduce the number of
 CPU instructions between a root cause and the point in time where it is
-being detected. In the C/C++ code, assertions are typically made in the
+being detected. In the C/Cpp code, assertions are typically made in the
 following places:</p></div>
 <div class="ulist"><ul>
 <li>
@@ -955,9 +951,9 @@ near the end of a function (post-condition) to check the result returned by
 </p>
 </li>
 </ul></div>
-<div class="paragraph"><p>Assertions are implemented as one or the other of two C/C++ macros called
-Assert() and Assert1(). As of this writing there are more than 530 Assert()
-and more than 110 Assert1() macros spread across the <strong>GNU APL</strong> source code.
+<div class="paragraph"><p>Assertions are implemented as one or the other of two C/Cpp macros called
+Assert() and Assert1(). As of this writing there are more than 600 Assert()
+and more than 120 Assert1() macros spread across the <strong>GNU APL</strong> source code.
 The reason for having different Assert macros is their impact on performance.</p></div>
 <div class="paragraph"><p>Assert1() macros are intended to test more trivial conditions while Assert()
 macros test more complex conditions. Every test performed by a single Assert()
@@ -998,21 +994,15 @@ be protected with Assert() macros.</p></div>
 <div class="paragraph"><p>Fortunately we can emulate a failed Assert() or Assert1() macro with ⎕FIO:</p></div>
 <div class="listingblock">
 <div class="content">
-<pre>
+<pre><code>      ⎕FIO ¯16   ⍝ emulate Assert()
 
-<code>      ⎕FIO ¯16   ⍝ emulate Assert()
-
-      ⎕FIO ¯17   ⍝ emulate Assert1()</code>
-
-</pre>
+      ⎕FIO ¯17   ⍝ emulate Assert1()</code></pre>
 </div></div>
 <div class="paragraph"><p>If the respective macro is enabled with ASSERT_LEVEL_WANTED as explained
 above, then it produces a stack trace like this:</p></div>
 <div class="listingblock">
 <div class="content">
-<pre>
-
-<code>       ⎕FIO ¯16
+<pre><code>       ⎕FIO ¯16
 
 
  ==============================================================================
@@ -1020,7 +1010,7 @@ above, then it produces a stack trace like this:</p></div>
  in Function:      eval_B
  in file:          Quad_FIO.cc:1085
 
- C/C++ call stack:
+ C/Cpp call stack:
 
  ----------------------------------------
  -- Stack trace at Assert.cc:72
@@ -1050,37 +1040,31 @@ above, then it produces a stack trace like this:</p></div>
  Stat:       ⎕FIO ¯16
  err_code:   0x0
 
- ==============================================================================</code>
-
-</pre>
+ ==============================================================================</code></pre>
 </div></div>
-<div class="paragraph"><p>The C/C++ stack above tells us which assertion has failed and where the
-assertion is located in the C/C++ source code (i.e. file Quad_FIO.cc line 1085),
+<div class="paragraph"><p>The C/Cpp stack above tells us which assertion has failed and where the
+assertion is located in the C/Cpp source code (i.e. file Quad_FIO.cc line 1085),
 while the )SI stack tells us where that location is in the APL code.</p></div>
 <div class="paragraph"><p>This brings us closer to the root cause of a problem. Unfortunately the hex
-addresses numbers on the left side of the C/C++ stack dump are process
+addresses numbers on the left side of the C/Cpp stack dump are process
 specific, i.e. the same <strong>⎕FIO ¯16</strong> will produce different numbers in a
 different process of the operating system.</p></div>
 </div>
 <div class="sect2">
 <h3 id="_line_numbers_in_stack_traces">Line numbers in Stack Traces</h3>
-<div class="paragraph"><p>If the functions on the right side of the C/C++ stack are relatively small (as
+<div class="paragraph"><p>If the functions on the right side of the C/Cpp stack are relatively small (as
 most functions in the source code of <strong>GNU APL</strong> are) then we can usually find the
 exact source line for each stack entry rather easily using the function name
 displayed. For larger functions, the same function may be called from different
 source code lines in the same function. This can be improved by converting the
 hex addresses on the left into source line numbers as explained in the
 following.</p></div>
-<div class="paragraph"><p>First of all the C++ compiler must be instructed to not discard line numbers.
+<div class="paragraph"><p>First of all the Cpp compiler must be instructed to not discard line numbers.
 Older g++ versions would always keep line numbers in the object files, but
 newer versions do not. The trick is this:</p></div>
 <div class="listingblock">
 <div class="content">
-<pre>
-
-<code>CXXFLAGS="-rdynamic -gdwarf-2" ./configure ...</code>
-
-</pre>
+<pre><code>CXXFLAGS="-rdynamic -gdwarf-2" ./configure ...</code></pre>
 </div></div>
 <div class="paragraph"><p><strong>make develop</strong> also does that for you. The CXXFLAGS above tell the <strong>g++</strong>
 compiler to use an older object format in which line numbers are not discarded.
@@ -1092,27 +1076,21 @@ while and is therefore not created in a standard build). <strong>make apl.lines<
 essentially does:</p></div>
 <div class="listingblock">
 <div class="content">
-<pre>
-
-<code>objdump --section=.text --line-numbers --disassemble apl &gt; apl.lines</code>
-
-</pre>
+<pre><code>objdump --section=.text --line-numbers --disassemble apl &gt; apl.lines</code></pre>
 </div></div>
 <div class="paragraph"><p>which extracts the line numbers from the apl binary (provided that the
 compiler has inserted them - see above). If <strong>GNU APL</strong> finds apl.lines, then
 the stack dump looks a little different:</p></div>
 <div class="listingblock">
 <div class="content">
-<pre>
-
-<code>      ⎕FIO ¯16
+<pre><code>      ⎕FIO ¯16
 
  ==============================================================================
  Assertion failed: 0 &amp;&amp; "Simulated Assert() (aka. ⎕FIO ¯16)"
  in Function:      eval_B
  in file:          Quad_FIO.cc:1085
 
- C/C++ call stack:
+ C/Cpp call stack:
  total_lines in apl.lines:     618610
  assembler lines in apl.lines: 86495
  source line numbers found:    86495
@@ -1146,9 +1124,7 @@ the stack dump looks a little different:</p></div>
  err_code:   0x0
 
 
- ==============================================================================</code>
-
-</pre>
+ ==============================================================================</code></pre>
 </div></div>
 <div class="paragraph"><p>The difference is twofold:</p></div>
 <div class="olist arabic"><ol class="arabic">
@@ -1162,7 +1138,7 @@ the hex numbers are now relative to the location of the <strong>main()</strong> 
 <li>
 <p>
 The source line numbers are now displayed for most hex numbers. Some
-  addresses can not be resolved, this could be caused by C/C++ function
+  addresses can not be resolved, this could be caused by C/Cpp function
   inlining or calls through function pointers etc.
 </p>
 </li>
@@ -1172,17 +1148,13 @@ numbers resolved to line numbers.</p></div>
 <div class="paragraph"><p>Occasionally you may get this message:</p></div>
 <div class="listingblock">
 <div class="content">
-<pre>
-
-<code>...
-C/C++ call stack:
+<pre><code>...
+C/Cpp call stack:
 
 Cannot show line numbers, since apl.lines is older than apl.
 Consider running 'make apl.lines' in directory
-/home/eedjsa/apl-1.8 to fix this
-...</code>
-
-</pre>
+/home/eedjsa/apl-2.0 to fix this
+...</code></pre>
 </div></div>
 <div class="paragraph"><p>This happens if you do <strong>make apl</strong> without a subsequent <strong>make apl.lines</strong>.</p></div>
 </div>
@@ -1191,15 +1163,11 @@ Consider running 'make apl.lines' in directory
 <div class="paragraph"><p>The <strong>GNU APL</strong> configuration for troubleshooting purposes is obtained like this:</p></div>
 <div class="listingblock">
 <div class="content">
-<pre>
-
-<code>cd &lt;top-level-directory&gt;
+<pre><code>cd &lt;top-level-directory&gt;
 make develop
 cd src
 make clean
-make apl.lines</code>
-
-</pre>
+make apl.lines</code></pre>
 </div></div>
 <div class="paragraph"><p>where <strong>top-level-directory</strong> is the directory that contains the <strong>README</strong> files.
 Additional troubleshooting options may be used as well. Consider the <strong>make</strong>
@@ -1218,14 +1186,10 @@ data structures of the interpreter.</p></div>
 <div class="paragraph"><p>Under normal circumstances, the output of the <strong>)CHECK</strong> command should be:</p></div>
 <div class="listingblock">
 <div class="content">
-<pre>
-
-<code>OK      - no stale functions
+<pre><code>OK      - no stale functions
 OK      - no stale values
 OK      - no stale indices
-OK      - no duplicate parents</code>
-
-</pre>
+OK      - no duplicate parents</code></pre>
 </div></div>
 <div class="paragraph"><p>If not, then there were inconsistencies (primarily memory leaks) that need to
 be fixed and should therefore be reported to <a href="mailto:bug-apl@gnu.org">bug-apl@gnu.org</a>. For example,
@@ -1248,11 +1212,7 @@ conditions, the history of a value at fault is being displayed and helps the
 <strong>./configure</strong>:</p></div>
 <div class="listingblock">
 <div class="content">
-<pre>
-
-<code>    ./configure VALUE_HISTORY_WANTED=yes ...</code>
-
-</pre>
+<pre><code>    ./configure VALUE_HISTORY_WANTED=yes ...</code></pre>
 </div></div>
 <div class="paragraph"><p>and therefore requires recompilation of the interpreter.</p></div>
 </div>
@@ -1276,11 +1236,7 @@ crashed. These days the creation of core files may need to be enabled before
 the crashing binary is started. In GNU/Linux with its <strong>bash</strong> shell that means:</p></div>
 <div class="listingblock">
 <div class="content">
-<pre>
-
-<code>ulimit -c unlimited   # enable core files</code>
-
-</pre>
+<pre><code>ulimit -c unlimited   # enable core files</code></pre>
 </div></div>
 <div class="paragraph"><p>Instead of <strong>unlimited</strong> you may also use a different file size limit.</p></div>
 <div class="paragraph"><p>After a core file was produced (we always assume the interpreter was started
@@ -1288,11 +1244,7 @@ in directory src below the top&#8212;level-directory) you can start the debugger
 <strong>gdb</strong> in the src directory with the core file as its second argument:</p></div>
 <div class="listingblock">
 <div class="content">
-<pre>
-
-<code>gdb ./apl core</code>
-
-</pre>
+<pre><code>gdb ./apl core</code></pre>
 </div></div>
 <div class="paragraph"><p>After that, you can use the gdb command <strong>bt</strong> (for <em>backtrace</em>) to show a
 stack dump similar to the one discussed earlier. The <strong>GNU APL</strong> maintainer(s)
@@ -1318,7 +1270,7 @@ into errors so you will see at the end if the build was successful.</p></div>
 <div class="sect2">
 <h3 id="_optimization">Optimization</h3>
 <div class="paragraph"><p>Recently we have seen faults that may have been caused by an overly aggressive
-optimization of the <strong>GNU APL</strong> C++ source code. These faults were observed for
+optimization of the <strong>GNU APL</strong> Cpp source code. These faults were observed for
 the same source code but only when compiled with newer versions of the
 same g++ compiler.</p></div>
 <div class="paragraph"><p>By default <strong>GNU APL</strong> compiles with optimization level -O2. If a fault is
@@ -1327,13 +1279,9 @@ test the same source code of <strong>GNU APL</strong> without any optimization.<
 <div class="paragraph"><p>To do that:</p></div>
 <div class="listingblock">
 <div class="content">
-<pre>
-
-<code>cd src
+<pre><code>cd src
 find and remove or replace the string -O2 in the relevant Makefile(s)
-make clean all</code>
-
-</pre>
+make clean all</code></pre>
 </div></div>
 </div>
 </div>
@@ -1347,7 +1295,7 @@ execution of the APL interpreter reaches them.</p></div>
 <div class="paragraph"><p>If all these Log() macros would output something, then even a trivial
 APL statement would cause a lot of output in which the relevant information
 gets easily lost. For that reason, each Log () macro belongs to one of
-currently over 45 Groups called <strong>logging facilities</strong>. Each logging facility
+currently over 50 Groups called <strong>logging facilities</strong>. Each logging facility
 can be turned ON or OFF which causes Log() macros belonging the facility
 to print or not to print its information.</p></div>
 <div class="paragraph"><p>The large (and increasing) number of logging facilities cause the tests,
@@ -1373,11 +1321,7 @@ dynamic logging
 <div class="paragraph"><p>Static logging is used with:</p></div>
 <div class="listingblock">
 <div class="content">
-<pre>
-
-<code>   ./configure DYNAMIC_LOG_WANTED=no</code>
-
-</pre>
+<pre><code>   ./configure DYNAMIC_LOG_WANTED=no</code></pre>
 </div></div>
 <div class="paragraph"><p>Static logging is also the default, therefore <strong>DYNAMIC_LOG_WANTED=no</strong> is the
 same as not using DYNAMIC_LOG_WANTED= in <strong>./configure</strong>.</p></div>
@@ -1408,11 +1352,7 @@ Disadvantage: changes of log_def() macros require re-compilation of GNU
 <div class="paragraph"><p>Dynamic logging is used with:</p></div>
 <div class="listingblock">
 <div class="content">
-<pre>
-
-<code>   ./configure DYNAMIC_LOG_WANTED=yes</code>
-
-</pre>
+<pre><code>   ./configure DYNAMIC_LOG_WANTED=yes</code></pre>
 </div></div>
 <div class="paragraph"><p>With dynamic logging, the log_def() macro defines the initial value of a
 variable (rather than an enum value) for each logging facility. After the
@@ -1441,9 +1381,7 @@ controls the logging facilities.</p></div>
 because changing the logging facilities at run-time requires dynamic logging.</p></div>
 <div class="listingblock">
 <div class="content">
-<pre>
-
-<code>      ]LOG
+<pre><code>      ]LOG
 
 Command ]LOG is not available, since dynamic logging was not configured
 for this APL interpreter. To enable dynamic logging (which will slightly
@@ -1453,17 +1391,13 @@ decrease performance), recompile the interpreter as follows:
    make
    make install (or try: src/apl)
 
-above the src directory.</code>
-
-</pre>
+above the src directory.</code></pre>
 </div></div>
 <div class="paragraph"><p>If dynamic logging was ./configure&#8217;d then <strong>]LOG</strong> without an argument displays
 the current state (i.e. ON or OFF) of all logging facilities:</p></div>
 <div class="listingblock">
 <div class="content">
-<pre>
-
-<code>      ]LOG
+<pre><code>      ]LOG
      1: (OFF) AV details
      2: (OFF) new and delete calls
      3: (OFF) input from user or testcase file
@@ -1510,28 +1444,22 @@ the current state (i.e. ON or OFF) of all logging facilities:</p></div>
     44: (OFF) command ]DOXY
     45: (OFF) details of Value allocation
     46: (OFF) ⎕TF details
-    47: (OFF) ⎕PLOT details</code>
-
-</pre>
+    47: (OFF) ⎕PLOT details</code></pre>
 </div></div>
 <div class="paragraph"><p>Otherwise <strong>]LOG N</strong> toggles the state of logging facility N, e.g.:</p></div>
 <div class="listingblock">
 <div class="content">
-<pre>
-
-<code>      ]log 25
+<pre><code>      ]log 25
     Logging facility 'more verbose errors' is now ON
 
       ]log 26
-    Logging facility 'details of error throwing' is now ON</code>
-
-</pre>
+    Logging facility 'details of error throwing' is now ON</code></pre>
 </div></div>
 </div>
 </div>
 <div class="sect2">
 <h3 id="_logging_facilities_of_interest">Logging Facilities of Interest</h3>
-<div class="paragraph"><p>Many of the currently over 40 logging facilities serve a particular purpose
+<div class="paragraph"><p>Many of the currently over 50 logging facilities serve a particular purpose
 for the maintainers or have become obsolete and are therefore not too useful
 for the trouble-shooting performed by the user. The others are mentioned below.</p></div>
 <div class="sect3">
@@ -1542,7 +1470,7 @@ To find memory leaks.</p></div>
 <div class="sect3">
 <h4 id="_log_25_and_26_apl_errors">]Log 25 and 26 : APL Errors</h4>
 <div class="paragraph"><p>An APL ERROR provides enough information as to where an error has occurred
-in the APL code, but none as to where that error was detected on the C/C++
+in the APL code, but none as to where that error was detected on the C/Cpp
 code. These logging facilities add this information.</p></div>
 </div>
 <div class="sect3">
@@ -1568,16 +1496,12 @@ locations where no Log() macros have been inserted. The top-level algorithm
 for intrusive troubleshooting is this:</p></div>
 <div class="listingblock">
 <div class="content">
-<pre>
-
-<code>loop:
+<pre><code>loop:
    1. modify the source code by adding printouts
    2. recompile GNU APL
    3. run apl and reproduce the problem
    4. repeat until the error (or a least a source code file or function
-      responsible for the error) was found.</code>
-
-</pre>
+      responsible for the error) was found.</code></pre>
 </div></div>
 <div class="paragraph"><p>All this is usually done in the <strong>src</strong> directory where most of the source
 files are located and where the compile result will be stored.</p></div>
@@ -1601,22 +1525,16 @@ in file <strong>Common.hh</strong> which makes them available in practically eve
 file. The definitions are:</p></div>
 <div class="listingblock">
 <div class="content">
-<pre>
-
-<code>#define STR(x) #x
+<pre><code>#define STR(x) #x
 
 #define LOC Loc(__FILE__, __LINE__)
 
-#define Loc(f, l) f ":" STR(l)</code>
-
-</pre>
+#define Loc(f, l) f ":" STR(l)</code></pre>
 </div></div>
-<div class="paragraph"><p>How does this work? Suppose we have a 13-line C++ file <strong>test.cc</strong> like this:</p></div>
+<div class="paragraph"><p>How does this work? Suppose we have a 13-line Cpp file <strong>test.cc</strong> like this:</p></div>
 <div class="listingblock">
 <div class="content">
-<pre>
-
-<code>#include &lt;iostream&gt;   // for cout
+<pre><code>#include &lt;iostream&gt;   // for cout
 
 #define LOC Loc(__FILE__, __LINE__)
 #define Loc(f, l) f ":" STR(l)
@@ -1628,20 +1546,14 @@ main()
    std::cout &lt;&lt; LOC &lt;&lt; std::endl;   // line 10 of test.cc
    std::cout &lt;&lt; LOC &lt;&lt; std::endl;   // line 11 of test.cc
    std::cout &lt;&lt; LOC &lt;&lt; std::endl;   // line 12 of test.cc
-}</code>
-
-</pre>
+}</code></pre>
 </div></div>
 <div class="paragraph"><p>If we compile and run this file then it produces the following output:</p></div>
 <div class="listingblock">
 <div class="content">
-<pre>
-
-<code>test.cc:10
+<pre><code>test.cc:10
 test.cc:11
-test.cc:12</code>
-
-</pre>
+test.cc:12</code></pre>
 </div></div>
 <div class="paragraph"><p>That is, LOC expands to a string literal that consists of the filename in
 which LOC was used, followed by a colon, followed by the line number in which
@@ -1698,11 +1610,7 @@ run-time cost for <strong>GNU APL</strong> is only the loading of the string lit
 <div class="paragraph"><p>The second trick is the Q() macro which is defined as</p></div>
 <div class="listingblock">
 <div class="content">
-<pre>
-
-<code>#define Q(x) get_CERR() &lt;&lt; std::left &lt;&lt; setw(20) &lt;&lt; #x ":" &lt;&lt; " '" &lt;&lt; x &lt;&lt; "' at " LOC &lt;&lt; endl;</code>
-
-</pre>
+<pre><code>#define Q(x) get_CERR() &lt;&lt; std::left &lt;&lt; setw(20) &lt;&lt; #x ":" &lt;&lt; " '" &lt;&lt; x &lt;&lt; "' at " LOC &lt;&lt; endl;</code></pre>
 </div></div>
 <div class="paragraph"><p>In this definition <strong>get_CERR()</strong> is a function which returns an output channel
 such as <strong>std::cerr</strong> (or <strong>stderr</strong> in C). The operator &lt;&lt; is overloaded a lot
@@ -1715,9 +1623,7 @@ invocation and essentially prints <strong>x</strong> in a suitable format and fo
 its source code location. For example:</p></div>
 <div class="listingblock">
 <div class="content">
-<pre>
-
-<code>#include &lt;iostream&gt;   // for cout
+<pre><code>#include &lt;iostream&gt;   // for cout
 #include &lt;iomanip&gt;    // for setw
 
 using namespace std;
@@ -1734,24 +1640,18 @@ main()
    Q("Hello")   // line 15
    Q(10)
    Q(LOC)
-}</code>
-
-</pre>
+}</code></pre>
 </div></div>
 <div class="paragraph"><p>which, when compiled, produces:</p></div>
 <div class="listingblock">
 <div class="content">
-<pre>
-
-<code>"Hello":             'Hello' at test.cc:15
+<pre><code>"Hello":             'Hello' at test.cc:15
 10:                  '10' at test.cc:16
-LOC:                 'test.cc:17' at test.cc:17</code>
-
-</pre>
+LOC:                 'test.cc:17' at test.cc:17</code></pre>
 </div></div>
 <div class="paragraph"><p>With these prerequisites intrusive troubleshooting boils down to spreading
 <strong>Q()</strong> macros in different source files until the fault is found.</p></div>
-<div class="paragraph"><p>A frequent question is not the value of a C++ variable, but rather if (and
+<div class="paragraph"><p>A frequent question is not the value of a Cpp variable, but rather if (and
 when) a particular source code line of code is reached. To answer this
 question just insert <strong>Q(LOC)</strong> or <strong>Q(0)</strong> on the line of interest.</p></div>
 <div class="paragraph"><p>Another useful helper is <strong>subversion</strong> (svn). After having made multiple
@@ -1759,11 +1659,7 @@ insertions of <strong>Q()</strong> macros in various source files (and hopefully
 located the fault this way), simply do</p></div>
 <div class="listingblock">
 <div class="content">
-<pre>
-
-<code>svn revert *</code>
-
-</pre>
+<pre><code>svn revert *</code></pre>
 </div></div>
 <div class="paragraph"><p>in the <strong>src</strong> directory which undoes all changes you made.</p></div>
 </div>
@@ -1830,7 +1726,7 @@ reduced to a small number of APL lines.</p></div>
 <div id="footer">
 <div id="footer-text">
 Last updated
- 2026-05-21 12:59:23 CEST
+ 2026-06-26 16:05:19 CEST
 </div>
 </div>
 </body>

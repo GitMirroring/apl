@@ -42,15 +42,15 @@ protected:
    /// overloaded Function::eval_AB()
    /// @param A left argument APL value (the mapping table)
    /// @param B right argument APL value (the data to map)
-   virtual Token eval_AB(Value_P A, Value_P B) const;
+   virtual Token eval_AB(cValue_R A, cValue_R B) const;
 
    /// compute ⎕MAP with (indices of) sorted A
    /// @param A the mapping table value
    /// @param ordered_indices_A sorted indices into A's key column
    /// @param B the data value to map
    /// @param recursive true to apply mapping recursively to nested elements
-   static Value_P do_map(const Value & A, const vector<ShapeItem> ordered_indices_A,
-                         const Value * B, bool recursive);
+   static Value_P do_map(const cValue & A, const vector<ShapeItem> ordered_indices_A,
+                         cValue_R B, bool recursive);
 
    /// Heapsort helper
    /// @param a first ShapeItem index to compare

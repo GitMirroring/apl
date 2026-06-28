@@ -440,16 +440,16 @@ const Function_PC pc = get_executable()->get_exec_ufun()->pc_for_line(new_line);
 }
 //────────────────────────────────────────────────────────────────────────────
 Token
-StateIndicator::jump(const Value * B)
+StateIndicator::jump(cValue_R B)
 {
    // perform a jump. We either remain in the current function (and then
    // return TOK_VOID), or we (want to) jump back into the calling
    // function (and then return TOK_BRANCH.). The jump itself (if any)
    // is executed in Prefix.cc.
    //
-   if (B->get_rank() > 1)   RANK_ERROR;
+   if (B.get_rank() > 1)   RANK_ERROR;
 
-   if (B->element_count() == 0)     // →''
+   if (B.element_count() == 0)     // →''
       {
         // →'' in immediate execution means resume (retry) suspended function
         // →'' on ⍎ or defined functions means do nothing
@@ -460,7 +460,7 @@ StateIndicator::jump(const Value * B)
         return Token(TOK_NOBRANCH);           // stay in context
       }
 
-const Function_Line line = B->get_line_number();
+const Function_Line line = B.get_line_number();
    return jump_to_line(line);
 }
 //────────────────────────────────────────────────────────────────────────────
@@ -520,7 +520,7 @@ UCS_string function;
 }
 //────────────────────────────────────────────────────────────────────────────
 #ifdef apl_TARGET_LIBAPL
-typedef int (*result_callback)(const Value * result, int committed);
+typedef int (*result_callback)(const cValue * result, int committed);
 extern "C" result_callback res_callback;
 result_callback res_callback = 0;
 #endif
@@ -629,7 +629,7 @@ const int boxing_format = Command::get_boxing_format();
    else if (boxing_format < 0)
       {
         const PrintContext pctx = Workspace::get_PrintContext(PST_NONE);
-        Value_P B1 = Quad_CR::do_CR(-boxing_format, B.get(), pctx);
+        Value_P B1 = Quad_CR::do_CR(-boxing_format, *B, pctx);
         if (B1->get_cols() >= Workspace::get_PW())   // too large
            B->print(COUT);   // don't box
         else
@@ -638,7 +638,7 @@ const int boxing_format = Command::get_boxing_format();
    else
       {
         const PrintContext pctx = Workspace::get_PrintContext(PST_NONE);
-        Value_P B1 = Quad_CR::do_CR(boxing_format, B.get(), pctx);
+        Value_P B1 = Quad_CR::do_CR(boxing_format, *B, pctx);
         B1->print(COUT);
       }
 }

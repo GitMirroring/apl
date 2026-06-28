@@ -70,7 +70,7 @@ TraceData::display_value_for_trace( ostream &out, Value_P value, int cr_level)
             }
 
          PrintContext context(PST_NONE, Workspace::get_PP(), 100000);
-         Value_P cr_formatted = Quad_CR::do_CR(cr_level, value.get(), context);
+         Value_P cr_formatted = Quad_CR::do_CR(cr_level, *value, context);
 
          PrintContext context2(PST_NONE, Workspace::get_PP(), 100000);
          cr_formatted->print1(out, context2);

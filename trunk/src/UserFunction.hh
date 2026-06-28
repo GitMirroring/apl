@@ -212,20 +212,20 @@ public:
    /// Overloaded Function::eval_AB()
    /// @param A left argument APL value
    /// @param B right argument APL value
-   virtual Token eval_AB(Value_P A, Value_P B) const;
+   virtual Token eval_AB(cValue_R A, cValue_R B) const;
 
    /// Overloaded Function::eval_ALB.
    /// @param A left argument APL value
    /// @param LO left operand token
    /// @param B right argument APL value
-   virtual Token eval_ALB(Value_P A, Token & LO, Value_P B) const;
+   virtual Token eval_ALB(cValue_R A, Token & LO, cValue_R B) const;
 
    /// Overloaded Function::eval_ALRB()
    /// @param A left argument APL value
    /// @param LO left operand token
    /// @param RO right operand token
    /// @param B right argument APL value
-   virtual Token eval_ALRB(Value_P A, Token & LO, Token & RO, Value_P B) const;
+   virtual Token eval_ALRB(cValue_R A, Token & LO, Token & RO, cValue_R B) const;
 
    /// Overloaded Function::eval_ALRXB()
    /// @param A left argument APL value
@@ -233,54 +233,53 @@ public:
    /// @param RO right operand token
    /// @param X axis specification APL value
    /// @param B right argument APL value
-   virtual Token eval_ALRXB(Value_P A, Token & LO, Token & RO, Value_P X,
-                            Value_P B) const;
+   virtual Token eval_ALRXB(cValue_R A, Token & LO, Token & RO, cValue_R X, cValue_R B) const;
 
    /// Overloaded Function::eval_ALXB()
    /// @param A left argument APL value
    /// @param LO left operand token
    /// @param X axis specification APL value
    /// @param B right argument APL value
-   virtual Token eval_ALXB(Value_P A, Token & LO, Value_P X, Value_P B) const;
+   virtual Token eval_ALXB(cValue_R A, Token & LO, cValue_R X, cValue_R B) const;
 
    /// Overloaded Function::eval_AXB()
    /// @param A left argument APL value
    /// @param X axis specification APL value
    /// @param B right argument APL value
-   virtual Token eval_AXB(Value_P A, Value_P X, Value_P B) const;
+   virtual Token eval_AXB(cValue_R A, cValue_R X, cValue_R B) const;
 
    /// Overloaded Function::eval_B()
    /// @param B right argument APL value
-   virtual Token eval_B(Value_P B) const;
+   virtual Token eval_B(cValue_R B) const;
 
    /// Overloaded Function::eval_LB.
    /// @param LO left operand token
    /// @param B right argument APL value
-   virtual Token eval_LB(Token & LO, Value_P B) const;
+   virtual Token eval_LB(Token & LO, cValue_R B) const;
 
    /// Overloaded Function::eval_LRB()
    /// @param LO left operand token
    /// @param RO right operand token
    /// @param B right argument APL value
-   virtual Token eval_LRB(Token & LO, Token & RO, Value_P B) const;
+   virtual Token eval_LRB(Token & LO, Token & RO, cValue_R B) const;
 
    /// Overloaded Function::eval_LRXB()
    /// @param LO left operand token
    /// @param RO right operand token
    /// @param X axis specification APL value
    /// @param B right argument APL value
-   virtual Token eval_LRXB(Token & LO, Token & RO, Value_P X, Value_P B) const;
+   virtual Token eval_LRXB(Token & LO, Token & RO, cValue_R X, cValue_R B) const;
 
    /// Overloaded Function::eval_LXB()
    /// @param LO left operand token
    /// @param X axis specification APL value
    /// @param B right argument APL value
-   virtual Token eval_LXB(Token & LO, Value_P X, Value_P B) const;
+   virtual Token eval_LXB(Token & LO, cValue_R X, cValue_R B) const;
 
    /// Overloaded Function::eval_XB()
    /// @param X axis specification APL value
    /// @param B right argument APL value
-   virtual Token eval_XB(Value_P X, Value_P B) const;
+   virtual Token eval_XB(cValue_R X, cValue_R B) const;
 
    /// overloaded Executable::get_line()
    Function_Line get_line(Function_PC pc) const;
@@ -409,11 +408,11 @@ protected:
    /// Overloaded Function::eval_fill_AB()
    /// @param A left argument APL value used to determine fill element
    /// @param B right argument APL value used to determine fill element
-   virtual Token eval_fill_AB(Value_P A, Value_P B) const;
+   virtual Token eval_fill_AB(cValue_R A, cValue_R B) const;
 
    /// Overloaded Function::eval_fill_B()
    /// @param B right argument APL value used to determine fill element
-   virtual Token eval_fill_B(Value_P B) const;
+   virtual Token eval_fill_B(cValue_R B) const;
 
    /// return the "[nn] " prefix
    /// @param nn function line number for the prefix

@@ -400,11 +400,11 @@ protected:
    /// overloaded Function::eval_AB()
    /// @param A left argument APL value (character class selector)
    /// @param B right argument APL value (characters to test)
-   Token eval_AB(Value_P A, Value_P B) const;
+   Token eval_AB(cValue_R A, cValue_R B) const;
 
    /// overloaded Function::eval_B()
    /// @param B right argument APL value (character class selector)
-   Token eval_B(Value_P B) const;
+   Token eval_B(cValue_R B) const;
 
    /// retur true if \b is contained in character class \b cls
    /// @param uni Unicode code point to test

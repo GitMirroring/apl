@@ -2,10 +2,10 @@
 /* config.h.in.  Generated from configure.ac by autoheader.  */
 
 /* the SVN version of Archive.cc */
-#define ARCHIVE_SVN " 3301"
+#define ARCHIVE_SVN " 3317"
 
 /* How and when GNU APL was configured */
-#define BUILDTAG PACKAGE_NAME, PACKAGE_VERSION " / SVN: 3306:3307M", "2026-06-25 21:26:30 CEST", "Linux 5.15.0-177-generic x86_64", "default ./configure options"
+#define BUILDTAG PACKAGE_NAME, PACKAGE_VERSION " / SVN: 3323", "2026-06-28 13:21:19 CEST", "Linux 5.15.0-177-generic x86_64", "default ./configure options"
 
 /* Define to 1 iff pthread_setaffinity_np() is available */
 #define HAVE_AFFINITY_NP 1
@@ -604,7 +604,7 @@
 #define cfg_ASSERT_LEVEL_WANTED 1
 
 /* how ./configure was called */
-#define cfg_CONFIGURE_ARGS "./configure  'GPROF_WANTED=yes'"
+#define cfg_CONFIGURE_ARGS "./configure  '--disable-maintainer-mode'"
 
 /* core count */
 #define cfg_CORE_COUNT_WANTED 0

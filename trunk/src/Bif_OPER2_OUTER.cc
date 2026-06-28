@@ -34,58 +34,58 @@ Bif_OPER2_OUTER::PJob_product Bif_OPER2_OUTER::job;
 
 //════════════════════════════════════════════════════════════════════════════
 Token
-Bif_JOT::eval_AB(Value_P A, Value_P B) const
+Bif_JOT::eval_AB(cValue_R A, cValue_R B) const
 {
    // compute A∘B ←→ A +.× B
    // the rank of A and B is 0..2
    //
-   if (A->get_rank() > 2)   RANK_ERROR;
-   if (B->get_rank() > 2)   RANK_ERROR;
+   if (A.get_rank() > 2)   RANK_ERROR;
+   if (B.get_rank() > 2)   RANK_ERROR;
 
-   if (A->is_scalar() || B->is_scalar())
+   if (A.is_scalar() || B.is_scalar())
       return Bif_F12_TIMES::fun.eval_AB(A, B);
 
    // ranks are valid. check that A and B are numeric (so that we can depend
    // on it below instead of testing it multiple times.
    //
-   loop(a, A->nz_element_count())
+   loop(a, A.nz_element_count())
        {
-         if (!A->get_cravel(a).is_numeric())
+         if (!A.get_cravel(a).is_numeric())
             {
               MORE_ERROR() << "A∘B: non-numeric item in A";
               DOMAIN_ERROR;
             }
        }
 
-   loop(b, B->nz_element_count())
+   loop(b, B.nz_element_count())
        {
-         if (!B->get_cravel(b).is_numeric())
+         if (!B.get_cravel(b).is_numeric())
             {
               MORE_ERROR() << "A∘B: non-numeric item in B";
               DOMAIN_ERROR;
             }
        }
 
-ShapeItem rows_A = A->get_rows();
-ShapeItem cols_A = A->get_cols();
-ShapeItem rows_B = B->get_rows();
-ShapeItem cols_B = B->get_cols();
+ShapeItem rows_A = A.get_rows();
+ShapeItem cols_A = A.get_cols();
+ShapeItem rows_B = B.get_rows();
+ShapeItem cols_B = B.get_cols();
 
    // we allow A resp. B to be row- resp. column-vectors
    //
-   if (A->get_rank() == 1)   // (row-)vector A ∘ matrix B
+   if (A.get_rank() == 1)   // (row-)vector A ∘ matrix B
       {
         rows_A = 1;
-        cols_A = A->element_count();
-        rows_B = B->get_rows();
-        cols_B = B->get_cols();
+        cols_A = A.element_count();
+        rows_B = B.get_rows();
+        cols_B = B.get_cols();
       }
 
-   if (B->get_rank() == 1)   // matrix A ∘ (column-)vector B
+   if (B.get_rank() == 1)   // matrix A ∘ (column-)vector B
       {
-        rows_A = A->get_rows();
-        cols_A = A->get_cols();
-        rows_B = B->element_count();
+        rows_A = A.get_rows();
+        cols_A = A.get_cols();
+        rows_B = B.element_count();
         cols_B = 1;
       }
 
@@ -96,10 +96,10 @@ Value_P Z(shape_Z, LOC);
 
    loop(a, rows_A)
        {
-         const Cell * cA = &A->get_cravel(a * cols_A);   // start of row A[a;]
+         const Cell * cA = &A.get_cravel(a * cols_A);   // start of row A[a;]
          loop(b, cols_B)
              {
-               const Cell * cB = &B->get_cravel(b);   // start of column B];b]
+               const Cell * cB = &B.get_cravel(b);   // start of column B];b]
                APL_Float sum_real = 0;
                APL_Float sum_imag = 0;
                bool need_complex = false;
@@ -137,13 +137,13 @@ Value_P Z(shape_Z, LOC);
              }
        }
 
-   Z->set_default(*B.get(), LOC);
+   Z->set_default(B, LOC);
    Z->check_value(LOC);
    return Token(TOK_APL_VALUE1, Z);
 }
 //════════════════════════════════════════════════════════════════════════════
 Token
-Bif_OPER2_OUTER::eval_ALRB(Value_P A, Token & LO, Token & _RO, Value_P B) const
+Bif_OPER2_OUTER::eval_ALRB(cValue_R A, Token & LO, Token & _RO, cValue_R B) const
 {
    if (!_RO.is_function())    SYNTAX_ERROR;
 
@@ -152,26 +152,26 @@ cFunction_P RO = _RO.get_function();
 
    if (!RO->has_result())   DOMAIN_ERROR;
 
-Value_P Z(A->get_shape() + B->get_shape(), LOC);
+Value_P Z(A.get_shape() + B.get_shape(), LOC);
 
    // an important (and the most likely) special case is RO being a scalar
    // function. This case can be implemented in a far simpler fashion than
    // the general case.
    //
-   if (RO->get_scalar_f2() && A->is_simple() && B->is_simple())
+   if (RO->get_scalar_f2() && A.is_simple() && B.is_simple())
       {
         job.cZ     = &Z->get_wfirst();
-        job.cA     = &A->get_cfirst();
-        job.ZAh    = A->element_count();
+        job.cA     = &A.get_cfirst();
+        job.ZAh    = A.element_count();
         job.RO     = RO->get_scalar_f2();
-        job.cB     = &B->get_cfirst();
-        job.ZBl    = B->element_count();
+        job.cB     = &B.get_cfirst();
+        job.ZBl    = B.element_count();
         job.ec     = E_NO_ERROR;
 
         scalar_outer_product();
         if (job.ec != E_NO_ERROR)   throw_apl_error(job.ec, LOC);
 
-        Z->set_default(*B.get(), LOC);
+        Z->set_default(B, LOC);
  
         Z->check_value(LOC);
         return Token(TOK_APL_VALUE1, Z);
@@ -179,10 +179,10 @@ Value_P Z(A->get_shape() + B->get_shape(), LOC);
 
    if (Z->is_empty())
       {
-        Value_P Fill_A = Bif_F12_TAKE::first(*A);
-        Value_P Fill_B = Bif_F12_TAKE::first(*B);
+        Value_P Fill_A = Bif_F12_TAKE::first(A);
+        Value_P Fill_B = Bif_F12_TAKE::first(B);
 
-        Value_P Z1 = RO->eval_fill_AB(Fill_A, Fill_B).get_apl_val();
+        Value_P Z1 = RO->eval_fill_AB(*Fill_A, *Fill_B).get_apl_val();
         Z->set_ravel_Cell(0, Z1->get_cfirst());
         Z->check_value(LOC);
         return Token(TOK_APL_VALUE1, Z);
@@ -194,16 +194,16 @@ Value_P Z(A->get_shape() + B->get_shape(), LOC);
                     ->eval_ALB(A, _RO, B);
       }
 
-const ShapeItem len_B = B->element_count();
-const ShapeItem len_Z = A->element_count() * len_B;
+const ShapeItem len_B = B.element_count();
+const ShapeItem len_Z = A.element_count() * len_B;
 
 Value_P RO_A;
 Value_P RO_B;
 
    loop(z, len_Z)
       {
-        const Cell * cA = &A->get_cravel(z / len_B);
-        const Cell * cB = &B->get_cravel(z % len_B);
+        const Cell * cA = &A.get_cravel(z / len_B);
+        const Cell * cB = &B.get_cravel(z % len_B);
 
         if (cA->is_pointer_cell())
            {
@@ -225,7 +225,7 @@ Value_P RO_B;
              RO_B->set_ravel_Cell(0, *cB);
            }
 
-        Token result = RO->eval_AB(RO_A, RO_B);
+        Token result = RO->eval_AB(*RO_A, *RO_B);
 
       // if RO was a primitive function, then result may be a value.
       // if RO was a user defined function then result may be
@@ -243,7 +243,7 @@ Value_P RO_B;
         Q1(result);   FIXME;
       }
 
-   Z->set_default(*B.get(), LOC);
+   Z->set_default(B, LOC);
 
    Z->check_value(LOC);
    return Token(TOK_APL_VALUE1, Z);

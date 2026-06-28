@@ -74,13 +74,13 @@ int Bif_F1_EXECUTE::copy_pending = 0;
 
 //════════════════════════════════════════════════════════════════════════════
 Token
-PrimitiveFunction::eval_fill_AB(Value_P A, Value_P B) const
+PrimitiveFunction::eval_fill_AB(cValue_R A, cValue_R B) const
 {
    return eval_AB(A, B);
 }
 //────────────────────────────────────────────────────────────────────────────
 Token
-PrimitiveFunction::eval_fill_B(Value_P B) const
+PrimitiveFunction::eval_fill_B(cValue_R B) const
 {
    return eval_B(B);
 }
@@ -101,13 +101,13 @@ UCS_string ind(indent, UNI_SPACE);
 }
 //════════════════════════════════════════════════════════════════════════════
 Token
-NonscalarFunction_default_identity::eval_identity_fun(Value_P B,
+NonscalarFunction_default_identity::eval_identity_fun(cValue_R B,
                                                       sAxis axis) const
 {
    // axis is already normalized to IO←0
    // return Z←,/B0 where (B0 , B) is B.
 
-const Shape & shape_B = B->get_shape();
+const Shape & shape_B = B.get_shape();
 const sRank rank_B = shape_B.get_rank();
    if (rank_B < 1)       RANK_ERROR;   // identity restriction, lrm p. 212
    if (axis >= rank_B)   RANK_ERROR;
@@ -134,7 +134,7 @@ const Shape shape_Z = shape_B.without_axis(axis);
    if (shape_Z.get_rank() && shape_Z.get_volume() > 0)   DOMAIN_ERROR;
 
 Value_P Z(shape_Z, LOC);
-   Z->set_default(*B, LOC);
+   Z->set_default(B, LOC);
    Z->check_value(LOC);
    return Token(TOK_APL_VALUE1, Z);
 }
@@ -146,11 +146,11 @@ Bif_F0_ZILDE::eval_() const
 }
 //════════════════════════════════════════════════════════════════════════════
 Token
-Bif_F1_EXECUTE::eval_B(Value_P B) const
+Bif_F1_EXECUTE::eval_B(cValue_R B) const
 {
-   if (B->get_rank() > 1)   RANK_ERROR;
+   if (B.get_rank() > 1)   RANK_ERROR;
 
-UCS_string statement(*B.get());
+UCS_string statement(B);
 
    if (statement.size() == 0)   return Token(TOK_NO_VALUE);
 
@@ -158,7 +158,7 @@ UCS_string statement(*B.get());
 }
 //────────────────────────────────────────────────────────────────────────────
 Token
-Bif_F1_EXECUTE::eval_fill_B(Value_P B) const
+Bif_F1_EXECUTE::eval_fill_B(cValue_R B) const
 {
    return Token(TOK_VOID);
 }
@@ -273,19 +273,19 @@ ExecuteList * fun = ExecuteList::fix(statement.no_pad(), LOC);
 }
 //════════════════════════════════════════════════════════════════════════════
 Token
-Bif_F2_INDEX::eval_AB(Value_P A, Value_P B) const
+Bif_F2_INDEX::eval_AB(cValue_R A, cValue_R B) const
 {
-   if (A->get_rank() > 1)   RANK_ERROR;
+   if (A.get_rank() > 1)   RANK_ERROR;
 
-const ShapeItem ec_A = A->element_count();
-   if (ec_A != B->get_rank())   RANK_ERROR;
+const ShapeItem ec_A = A.element_count();
+   if (ec_A != B.get_rank())   RANK_ERROR;
 
    // index_expr is in reverse order!
    //
 IndexExpr index_expr(ASS_none, LOC);
    loop(a, ec_A)
       {
-         const Cell & cell = A->get_cravel(ec_A - a - 1);
+         const Cell & cell = A.get_cravel(ec_A - a - 1);
          if (cell.is_pointer_cell())
             {
               Value_P val = CLONE_P(cell.get_pointer_value(), LOC);
@@ -308,26 +308,26 @@ IndexExpr index_expr(ASS_none, LOC);
    if (index_expr.is_axis())   // [ ] or [ axis ]
       {
         Value_P single_index = index_expr.extract_axis();
-        Value_P Z = B->index(single_index.get());
+        Value_P Z = B.index(*single_index);
         return Token(TOK_APL_VALUE1, Z);
       }
    else
       {
-        Value_P Z = B->index(index_expr);
+        Value_P Z = B.index(index_expr);
         return Token(TOK_APL_VALUE1, Z);
       }
 }
 //────────────────────────────────────────────────────────────────────────────
 Token
-Bif_F2_INDEX::eval_AXB(Value_P A, Value_P X, Value_P B) const
+Bif_F2_INDEX::eval_AXB(cValue_R A, cValue_R X, cValue_R B) const
 {
-   if (A->get_rank() > 1)   RANK_ERROR;
+   if (A.get_rank() > 1)   RANK_ERROR;
 
-const AxesBitmap axes_X = X->to_bitmap("⌷[X] B", B->get_rank());
+const AxesBitmap axes_X = X.to_bitmap("⌷[X] B", B.get_rank());
 
-const ShapeItem ec_A = A->element_count();
-   if (ec_A != X->element_count())   RANK_ERROR;
-   if (ec_A > B->get_rank())              RANK_ERROR;
+const ShapeItem ec_A = A.element_count();
+   if (ec_A != X.element_count())   RANK_ERROR;
+   if (ec_A > B.get_rank())              RANK_ERROR;
 
    // construct an IndexExpr in index (= parse-) order (i.e. the index_expr[0]
    // corresponds to the lasr axis ¯1↑⍴B of B). We therefore move backwards
@@ -337,7 +337,7 @@ IndexExpr index_expr(ASS_none, LOC);   // start with an empty IndexExpr
    index_expr.quad_io = Workspace::get_IO();
 
 ShapeItem a = ec_A;   // index_expr[0] ←→  B[;;;b]
-   for (sAxis b = B->get_rank() - 1; b >= 0; --b)
+   for (sAxis b = B.get_rank() - 1; b >= 0; --b)
        {
          if (!(axes_X & 1 << b))   // Axis  b was not in X: elided idx
             {
@@ -345,7 +345,7 @@ ShapeItem a = ec_A;   // index_expr[0] ←→  B[;;;b]
               continue;
             }
 
-         const Cell & cell_A = A->get_cravel(--a);
+         const Cell & cell_A = A.get_cravel(--a);
           if (cell_A.is_pointer_cell())
              {
                Value_P val = CLONE_P(cell_A.get_pointer_value(), LOC);
@@ -364,30 +364,30 @@ ShapeItem a = ec_A;   // index_expr[0] ←→  B[;;;b]
    if (index_expr.is_axis())   // Z←B[x] or Z←B[]
       {
         Value_P single_index = index_expr.extract_axis();
-        Value_P Z = B->index(single_index.get());
+        Value_P Z = B.index(*single_index);
 
         Z->check_value(LOC);
         return Token(TOK_APL_VALUE1, Z);
       }
    else                        // Z←B[x;...]
       {
-        Value_P Z = B->index(index_expr);
+        Value_P Z = B.index(index_expr);
         Z->check_value(LOC);
         return Token(TOK_APL_VALUE1, Z);
       }
 }
 //════════════════════════════════════════════════════════════════════════════
 Token
-Bif_F12_ELEMENT::eval_AB(Value_P A, Value_P B) const
+Bif_F12_ELEMENT::eval_AB(cValue_R A, cValue_R B) const
 {
    // return Z←A ϵ B. Z[i] is 1 iff A[i] = B[j] for some j
    //
 const double qct = Workspace::get_CT();
-Value_P Z(A->get_shape(), LOC);
+Value_P Z(A.get_shape(), LOC);
 
-   if (A->element_count() == 0)
+   if (A.element_count() == 0)
       {
-        Z->set_default(*B, LOC);
+        Z->set_default(B, LOC);
         Z->check_value(LOC);
         return Token(TOK_APL_VALUE1, Z);
       }
@@ -411,15 +411,15 @@ Value_P Z(A->get_shape(), LOC);
 }
 //════════════════════════════════════════════════════════════════════════════
 Value_P
-Bif_F12_ELEMENT::do_eval_B(const Value * B)
+Bif_F12_ELEMENT::do_eval_B(cValue_R B)
 {
    // enlist
    //
    // lrm p. 118, ⍴⍴Z = 1, ⍴Z = number of simple scalars in B
    //
-   if (B->element_count() == 0)   // empty argument
+   if (B.element_count() == 0)   // empty argument
       {
-        const Cell * C0 = &B->get_cproto();
+        const Cell * C0 = &B.get_cproto();
         if (C0->is_numeric())
            {
              Value_P Z(1, LOC);
@@ -448,7 +448,7 @@ Bif_F12_ELEMENT::do_eval_B(const Value * B)
 
         if (C0->is_pointer_cell())
             {
-             return do_eval_B(C0->get_pointer_value().get());
+             return do_eval_B(*C0->get_pointer_value());
             }
 
 
@@ -457,26 +457,26 @@ Bif_F12_ELEMENT::do_eval_B(const Value * B)
         FIXME;
       }
 
-const ShapeItem len_Z = B->get_enlist_count();
+const ShapeItem len_Z = B.get_enlist_count();
 
    // B contains no simple scalars (e.g. ∊⊂''): recurse into the first
    // enclosed value to determine the prototype and return an empty result.
    //
    if (len_Z == 0)
       {
-        loop(c, B->element_count())
+        loop(c, B.element_count())
            {
-             const Cell & cell = B->get_cravel(c);
+             const Cell & cell = B.get_cravel(c);
              if (cell.is_pointer_cell())
-                return do_eval_B(cell.get_pointer_value().get());
+                return do_eval_B(*cell.get_pointer_value());
            }
         FIXME;
       }
 
 Value_P Z(len_Z, LOC);
 
-   if (B->get_lval_cellowner())   B->enlist_left(*Z);
-   else                           B->enlist_right(*Z);
+   if (B.get_lval_cellowner())   B.enlist_left(*Z);
+   else                           B.enlist_right(*Z);
 
    Assert(len_Z);   // cannot be empty
    Z->check_value(LOC);
@@ -484,22 +484,22 @@ Value_P Z(len_Z, LOC);
 }
 //════════════════════════════════════════════════════════════════════════════
 Token
-Bif_F12_EQUIV::eval_B(Value_P B) const
+Bif_F12_EQUIV::eval_B(cValue_R B) const
 {
-const APL_Integer depth = B->compute_depth();
+const APL_Integer depth = B.compute_depth();
 
 Value_P Z = IntScalar(depth, LOC);
    return Token(TOK_APL_VALUE1, Z);
 }
 //────────────────────────────────────────────────────────────────────────────
 bool
-Bif_F12_EQUIV::do_eval_AB(Value_P A, Value_P B)
+Bif_F12_EQUIV::do_eval_AB(cValue_R A, cValue_R B)
 {
    // match
    //
 const double qct = Workspace::get_CT();
 
-   if (!A->same_shape(*B))   return false;   // shape mismatch
+   if (!A.same_shape(B))   return false;   // shape mismatch
 
    for (ConstRavel_P a(A, true), b(B, true); +a; ++a, ++b)
        {
@@ -510,13 +510,13 @@ const double qct = Workspace::get_CT();
 }
 //════════════════════════════════════════════════════════════════════════════
 Token
-Bif_F12_NEQUIV::eval_AB(Value_P A, Value_P B) const
+Bif_F12_NEQUIV::eval_AB(cValue_R A, cValue_R B) const
 {
    // A ≢ B aka.  ∼A ≡ B
    //
 const double qct = Workspace::get_CT();
 
-   if (!A->same_shape(*B))   // shape mismatch
+   if (!A.same_shape(B))   // shape mismatch
       return Token(TOK_APL_VALUE1, IntScalar(1, LOC));
 
    for (ConstRavel_P a(A, true), b(B, true); +a; ++a, ++b)
@@ -531,26 +531,26 @@ const double qct = Workspace::get_CT();
 }
 //════════════════════════════════════════════════════════════════════════════
 Token
-Bif_F12_NEQUIV::eval_B(Value_P B) const
+Bif_F12_NEQUIV::eval_B(cValue_R B) const
 {
    // Tally
    //
-const ShapeItem len = B->is_scalar() ? 1 : B->get_shape().get_shape_item(0);
+const ShapeItem len = B.is_scalar() ? 1 : B.get_shape().get_shape_item(0);
 
    return Token(TOK_APL_VALUE1, IntScalar(len, LOC));   // match
 }
 //════════════════════════════════════════════════════════════════════════════
 Token
-Bif_F12_ENCODE::eval_AB(Value_P A, Value_P B) const
+Bif_F12_ENCODE::eval_AB(cValue_R A, cValue_R B) const
 {
    // A⊤B: every number in B is represented in a number system with
    // radix A. ⍴Z ←→ (⍴A, ⍴B) and Z[...;...b...] = A⊤B[...b...]
 
-   if (A->is_scalar())   return Bif_F12_STILE::fun.eval_AB(A, B);
+   if (A.is_scalar())   return Bif_F12_STILE::fun.eval_AB(A, B);
 
-const ShapeItem ec_A = A->element_count();
-const ShapeItem ec_B = B->element_count();
-const Shape shape_Z = A->get_shape() + B->get_shape();
+const ShapeItem ec_A = A.element_count();
+const ShapeItem ec_B = B.element_count();
+const Shape shape_Z = A.get_shape() + B.get_shape();
 Value_P Z(shape_Z, LOC);
 
    if (ec_A == 0 || ec_B == 0)   // empty A or B
@@ -559,7 +559,7 @@ Value_P Z(shape_Z, LOC);
         return Token(TOK_APL_VALUE1, Z);
       }
 
-const ShapeItem aL = A->get_shape_item(0);    // first (LSB) dimension of A
+const ShapeItem aL = A.get_shape_item(0);    // first (LSB) dimension of A
 const ShapeItem aH = ec_A/aL;                 // remaining (MSB) dimensions
 
 const double qct = Workspace::get_CT();
@@ -567,7 +567,7 @@ const double qct = Workspace::get_CT();
 ConstRavel_P iA(A, true);
    loop(a, aH)
       {
-        const Cell * cB = &B->get_cfirst();
+        const Cell * cB = &B.get_cfirst();
 
         // find largest Celltype in A, starting with CT_INT and maybe
         // "increasing" it to CT_FLOAT or CT_COMPLEX as needed.
@@ -575,7 +575,7 @@ ConstRavel_P iA(A, true);
         CellType ct_a = CT_INT;
         loop(h, aL)
             {
-              const CellType ct = A->get_cravel(a + h*aH).get_cell_type();
+              const CellType ct = A.get_cravel(a + h*aH).get_cell_type();
               if (ct == CT_INT)            ;
               else if (ct == CT_FLOAT)     { if (ct_a == CT_INT)  ct_a = ct; }
               else if (ct == CT_COMPLEX)   ct_a = CT_COMPLEX;
@@ -601,33 +601,33 @@ ConstRavel_P iA(A, true);
          ++iA;
        }
 
-   Z->set_default(*B.get(), LOC);
+   Z->set_default(B, LOC);
 
    Z->check_value(LOC);
    return Token(TOK_APL_VALUE1, Z);
 }
 //════════════════════════════════════════════════════════════════════════════
 Token
-Bif_F12_ENCODE::eval_AXB(Value_P A, Value_P X, Value_P B) const
+Bif_F12_ENCODE::eval_AXB(cValue_R A, cValue_R X, cValue_R B) const
 {
    // A ⊤[X] B  ←→ (X⍴A)⊤B   for X > 0, or
    //              (Q⍴A)⊤B   for X = 0 and Q computed from B
    //
-const APL_Integer A0 = A->get_sole_integer();   // may throw RANK_ERROR or LENGTH_ERROR
+const APL_Integer A0 = A.get_sole_integer();   // may throw RANK_ERROR or LENGTH_ERROR
 
    /// radix 0 means that an item of of B overflows entirely into its leading element
    /// (which is the item itself).
-   if (A0 == 0)   return Token(TOK_APL_VALUE1, B);
+   if (A0 == 0)   return Token(TOK_APL_VALUE1, CLONE(&B, LOC));
 
-APL_Integer X0 = X->get_sole_integer();   // may throw RANK_ERROR or LENGTH_ERROR
+APL_Integer X0 = X.get_sole_integer();   // may throw RANK_ERROR or LENGTH_ERROR
    if (X0 < 0)   DOMAIN_ERROR;
 
-   if (X0 == 0)   X0 = get_X0(A0, *B);   // compute X0 from B
+   if (X0 == 0)   X0 = get_X0(A0, B);   // compute X0 from B
 
 Value_P new_A(X0, LOC);
    loop(x, X0)   new_A->next_ravel_Int(A0);
    new_A->check_value(LOC);
-   return eval_AB(new_A, B);
+   return eval_AB(*new_A, B);
 }
 //────────────────────────────────────────────────────────────────────────────
 void
@@ -752,7 +752,7 @@ APL_Integer bi = iB->get_int_value();   // the value being decoded
 }
 //────────────────────────────────────────────────────────────────────────────
 int
-Bif_F12_ENCODE::get_X0(APL_Integer A0, const Value & B)
+Bif_F12_ENCODE::get_X0(APL_Integer A0, const cValue & B)
 {
    // X0 == 0.   // compute X0 from B
    //
@@ -829,16 +829,16 @@ const int N = max_N > min_N ? max_N : min_N;
 }
 //════════════════════════════════════════════════════════════════════════════
 Token
-Bif_F12_DECODE::eval_AB(Value_P A, Value_P B) const
+Bif_F12_DECODE::eval_AB(cValue_R A, cValue_R B) const
 {
    // ρZ  is: (¯1↓ρA),1↓ρB
    // ρρZ is: (0⌈¯1+ρρA) + (0⌈¯1+ρρB)
    //
-const Shape shape_A1 = A->get_shape().without_last_axis();
-const Shape shape_B1 = B->get_shape().without_first_axis();
+const Shape shape_A1 = A.get_shape().without_last_axis();
+const Shape shape_B1 = B.get_shape().without_first_axis();
 
-const ShapeItem l_len_A = A->get_rank() ? A->get_last_shape_item() : 1;
-const ShapeItem h_len_B = B->get_rank() ? B->get_shape_item(0)     : 1;
+const ShapeItem l_len_A = A.get_rank() ? A.get_last_shape_item() : 1;
+const ShapeItem h_len_B = B.get_rank() ? B.get_shape_item(0)     : 1;
 
 const ShapeItem h_len_A = shape_A1.get_volume();
 const ShapeItem l_len_B = shape_B1.get_volume();
@@ -860,7 +860,7 @@ const Shape shape_Z = shape_A1 + shape_B1;
 
 Value_P Z(shape_Z, LOC);
 
-const Cell * cA = &A->get_cfirst();
+const Cell * cA = &A.get_cfirst();
 
    loop(h, h_len_A)
        {
@@ -888,18 +888,18 @@ const Cell * cA = &A->get_cfirst();
                 bool integer_B = true;
                 loop(bb, h_len_B)
                     {
-                      if (!B->get_cravel(l + bb*l_len_B).is_near_real())
+                      if (!B.get_cravel(l + bb*l_len_B).is_near_real())
                          {
                            complex_B = true;
                            integer_B = false;
                            break;
                          }
 
-                      if (!B->get_cravel(l + bb*l_len_B).is_near_int())
+                      if (!B.get_cravel(l + bb*l_len_B).is_near_int())
                          integer_B = false;
                     }
 
-               const Cell * cB = &B->get_cravel(l);
+               const Cell * cB = &B.get_cravel(l);
                if (integer_A && integer_B)
                   {
                     const bool overflow = decode_int(*Z, l_len_A, cA,
@@ -919,7 +919,7 @@ const Cell * cA = &A->get_cfirst();
          cA += l_len_A;
        }
 
-   Z->set_default(*B.get(), LOC);
+   Z->set_default(B, LOC);
    Z->check_value(LOC);
    return Token(TOK_APL_VALUE1, Z);
 }
@@ -1018,17 +1018,17 @@ APL_Float weight = 1.0;
 }
 //════════════════════════════════════════════════════════════════════════════
 Token
-Bif_ROTATE::reverse(Value_P B, sAxis axis)
+Bif_ROTATE::reverse(cValue_R B, sAxis axis)
 {
-   if (B->is_scalar())
+   if (B.is_scalar())
       {
-        Token result(TOK_APL_VALUE1, CLONE_P(B, LOC));
+        Token result(TOK_APL_VALUE1, CLONE(&B, LOC));
         return result;
       }
 
-const Shape3 shape_B3(B->get_shape(), axis);
+const Shape3 shape_B3(B.get_shape(), axis);
 
-Value_P Z(B->get_shape(), LOC);
+Value_P Z(B.get_shape(), LOC);
 
    loop(h, shape_B3.h())
        {
@@ -1042,111 +1042,111 @@ Value_P Z(B->get_shape(), LOC);
                                      + (shape_B3.l() * (shape_B3.m() - m - 1));
                loop(l, shape_B3.l())
                    {
-                     Z->next_ravel_Cell(B->get_cravel(col_m + l));
+                     Z->next_ravel_Cell(B.get_cravel(col_m + l));
                    }
              }
        }
 
-   Z->set_default(*B.get(), LOC);
+   Z->set_default(B, LOC);
    Z->check_value(LOC);
    return Token(TOK_APL_VALUE1, Z);
 }
 //────────────────────────────────────────────────────────────────────────────
 Token
-Bif_ROTATE::rotate(Value_P A, Value_P B, sAxis axis)
+Bif_ROTATE::rotate(cValue_R A, cValue_R B, sAxis axis)
 {
 int32_t gsh = 0;   // global shift (scalar A); 0 means local shift (A) used.
 
-const Shape3 shape_B3(B->get_shape(), axis);
+const Shape3 shape_B3(B.get_shape(), axis);
 const Shape shape_A2(shape_B3.h(), shape_B3.l());
 
-   if (A->is_scalar_or_len1_vector())
+   if (A.is_scalar_or_len1_vector())
       {
-        gsh = A->get_cfirst().get_near_int();
+        gsh = A.get_cfirst().get_near_int();
         if (gsh == 0)   // nothing to do.
            {
-             Token result(TOK_APL_VALUE1, CLONE_P(B, LOC));
+             Token result(TOK_APL_VALUE1, CLONE(&B, LOC));
              return result;
            }
       }
    else   // otherwise shape A must be shape B with 'axis' removed.
       {
-        A->get_shape().check_same(B->get_shape().without_axis(axis),
+        A.get_shape().check_same(B.get_shape().without_axis(axis),
                                  E_RANK_ERROR, E_LENGTH_ERROR, LOC);
       }
 
 
-Value_P Z(B->get_shape(), LOC);
+Value_P Z(B.get_shape(), LOC);
 
    loop(h, shape_B3.h())
    loop(m, shape_B3.m())
    loop(l, shape_B3.l())
        {
          ShapeItem src = gsh;
-         if (!src)   src = A->get_cravel(l + h*shape_B3.l()).get_near_int();
+         if (!src)   src = A.get_cravel(l + h*shape_B3.l()).get_near_int();
          src += shape_B3.m() + m;
          while (src < 0)               src += shape_B3.m();
          while (src >= shape_B3.m())   src -= shape_B3.m();
-         Z->next_ravel_Cell(B->get_cravel(shape_B3.hml(h, src, l)));
+         Z->next_ravel_Cell(B.get_cravel(shape_B3.hml(h, src, l)));
        }
 
-   Z->set_default(*B.get(), LOC);
+   Z->set_default(B, LOC);
 
    Z->check_value(LOC);
    return Token(TOK_APL_VALUE1, Z);
 }
 //════════════════════════════════════════════════════════════════════════════
 Token
-Bif_F12_ROTATE::eval_AXB(Value_P A, Value_P X, Value_P B) const
+Bif_F12_ROTATE::eval_AXB(cValue_R A, cValue_R X, cValue_R B) const
 {
-const sAxis axis = Value::get_single_axis(X.get(), B->get_rank());
+const sAxis axis = Value::get_single_axis(&X, B.get_rank());
    return rotate(A, B, axis);
 }
 //════════════════════════════════════════════════════════════════════════════
 Token
-Bif_F12_ROTATE::eval_XB(Value_P X, Value_P B) const
+Bif_F12_ROTATE::eval_XB(cValue_R X, cValue_R B) const
 {
-const sAxis axis = Value::get_single_axis(X.get(), B->get_rank());
+const sAxis axis = Value::get_single_axis(&X, B.get_rank());
    return reverse(B, axis);
 }
 //════════════════════════════════════════════════════════════════════════════
 Token
-Bif_F12_ROTATE1::eval_AXB(Value_P A, Value_P X, Value_P B) const
+Bif_F12_ROTATE1::eval_AXB(cValue_R A, cValue_R X, cValue_R B) const
 {
-const sAxis axis = Value::get_single_axis(X.get(), B->get_rank());
+const sAxis axis = Value::get_single_axis(&X, B.get_rank());
    return rotate(A, B, axis);
 }
 //════════════════════════════════════════════════════════════════════════════
 Token
-Bif_F12_ROTATE1::eval_XB(Value_P X, Value_P B) const
+Bif_F12_ROTATE1::eval_XB(cValue_R X, cValue_R B) const
 {
-const sAxis axis = Value::get_single_axis(X.get(), B->get_rank());
+const sAxis axis = Value::get_single_axis(&X, B.get_rank());
    return reverse(B, axis);
 }
 //════════════════════════════════════════════════════════════════════════════
 Token
-Bif_F12_TRANSPOSE::eval_AB(Value_P A, Value_P B) const
+Bif_F12_TRANSPOSE::eval_AB(cValue_R A, cValue_R B) const
 {
    // A should be a scalar or vector.
    //
-   if (A->get_rank() > 1)
+   if (A.get_rank() > 1)
       {
         MORE_ERROR() << "A⍉B: A is not a vector or scalar.";
         RANK_ERROR;
       }
 
-const Shape shape_A(*A, Workspace::get_IO());   // rank(shape_A) = length(A)
-   if (shape_A.get_rank() != B->get_rank())
+const Shape shape_A(A, Workspace::get_IO());   // rank(shape_A) = length(A)
+   if (shape_A.get_rank() != B.get_rank())
       {
         MORE_ERROR() << "A⍉B: ⍴A is " << shape_A.get_rank()
-                     << ", but ⍴⍴B is " << B->get_rank()
+                     << ", but ⍴⍴B is " << B.get_rank()
                      << " (i.e. ≠ ⍴A)";
         LENGTH_ERROR;
       }
 
-   if (B->is_scalar())   // B is a scalar (so A should be empty)
+   if (B.is_scalar())   // B is a scalar (so A should be empty)
       {
-        Value_P Z = CLONE_P(B, LOC);
+        Value_P Z(static_cast<Value *>(const_cast<cValue *>(&B)), LOC);
         Z->check_value(LOC);
         return Token(TOK_APL_VALUE1, Z);
       }
@@ -1155,35 +1155,35 @@ const Shape shape_A(*A, Workspace::get_IO());   // rank(shape_A) = length(A)
    loop(r, shape_A.get_rank())
       {
         if (shape_A.get_shape_item(r) < 0)                DOMAIN_ERROR;
-        if (shape_A.get_shape_item(r) >= B->get_rank())   DOMAIN_ERROR;
+        if (shape_A.get_shape_item(r) >= B.get_rank())   DOMAIN_ERROR;
       }
 
-Value_P Z = shape_A.get_rank() == B->get_rank() && shape_A.is_permutation()
-          ? transpose(shape_A, B.get())
-          : transpose_diag(shape_A, B.get());
+Value_P Z = shape_A.get_rank() == B.get_rank() && shape_A.is_permutation()
+          ? transpose(shape_A, B)
+          : transpose_diag(shape_A, B);
 
-   Z->set_default(*B.get(), LOC);
+   Z->set_default(B, LOC);
 
    Z->check_value(LOC);
    return Token(TOK_APL_VALUE1, Z);
 }
 //════════════════════════════════════════════════════════════════════════════
 Token
-Bif_F12_TRANSPOSE::do_eval_B(const Value * B)
+Bif_F12_TRANSPOSE::do_eval_B(cValue_R B)
 {
    // monadic transpose is A⍉B with A = ... 4 3 2 1 0
    //
 Shape shape_A;
-   loop(r, B->get_rank())   shape_A.add_shape_item(B->get_rank() - r - 1);
+   loop(r, B.get_rank())   shape_A.add_shape_item(B.get_rank() - r - 1);
 
 Value_P Z = transpose(shape_A, B);
-   Z->set_default(*B, LOC);
+   Z->set_default(B, LOC);
    Z->check_value(LOC);
    return Token(TOK_APL_VALUE1, Z);
 }
 //────────────────────────────────────────────────────────────────────────────
 Value_P
-Bif_F12_TRANSPOSE::transpose(const Shape & sh_A, const Value * B)
+Bif_F12_TRANSPOSE::transpose(const Shape & sh_A, cValue_R B)
 {
    // some frequent and simple to optimize cases beforehand...
    //
@@ -1191,21 +1191,21 @@ Bif_F12_TRANSPOSE::transpose(const Shape & sh_A, const Value * B)
       {
         if (sh_A.get_rank() <= 1)   // scalar or vector B:
            {
-              return CLONE(B, LOC);
+              return CLONE(&B, LOC);
            }
 
         // 2-dimensional matrix (probably the most frequent case).
         //
         if (sh_A.get_shape_item(0) == 0 &&
-            sh_A.get_shape_item(1) == 1)   return CLONE(B, LOC);   // identity
+            sh_A.get_shape_item(1) == 1)   return CLONE(&B, LOC);   // identity
 
-        const ShapeItem rows_B = B->get_shape_item(0);
-        const ShapeItem cols_B = B->get_shape_item(1);
+        const ShapeItem rows_B = B.get_shape_item(0);
+        const ShapeItem cols_B = B.get_shape_item(1);
         const Shape shape_Z(cols_B, rows_B);
         Value_P Z(shape_Z, LOC);
         loop(rZ, cols_B)   // the rows of B are columns of Z
         loop(cZ, rows_B)   // the columns of B are rows of Z
-            Z->next_ravel_Cell(B->get_cravel(rZ + cZ*cols_B));
+            Z->next_ravel_Cell(B.get_cravel(rZ + cZ*cols_B));
         Z->check_value(LOC);
         return Z;
       }
@@ -1236,20 +1236,20 @@ Bif_F12_TRANSPOSE::transpose(const Shape & sh_A, const Value * B)
     */
 
 const Shape   shape_inv_A = inverse_permutation(sh_A);
-const Shape & shape_B     = B->get_shape();
+const Shape & shape_B     = B.get_shape();
 const Shape   shape_Z     = permute(shape_B, shape_inv_A);
 
 Value_P Z(shape_Z, LOC);
 
    if (shape_Z.is_empty())
       {
-         Z->set_default(*B, LOC);
+         Z->set_default(B, LOC);
          return Z;
       }
 
    for (ArrayIterator b(shape_Z, sh_A); b.has_more(); ++b)
        {
-         Z->next_ravel_Cell(B->get_cravel(b.get_ravel_offset()));
+         Z->next_ravel_Cell(B.get_cravel(b.get_ravel_offset()));
        }
 
    Z->check_value(LOC);
@@ -1341,14 +1341,14 @@ Shape ret;
 }
 //────────────────────────────────────────────────────────────────────────────
 Value_P
-Bif_F12_TRANSPOSE::transpose_diag(const Shape & sh_A, const Value * B)
+Bif_F12_TRANSPOSE::transpose_diag(const Shape & sh_A, cValue_R B)
 {
    // A⍉B with repeated items in A. The caller has normalized sh_A to ⎕IO←0.
 
    // 1. compute rank_Z ← 1 + ⌈/sh_A.
    //
 ShapeItem rank_Z = 0;
-const Shape & sh_B = B->get_shape();
+const Shape & sh_B = B.get_shape();
    loop(a, sh_A.get_rank())
        {
          const ShapeItem s_A = sh_A.get_shape_item(a);
@@ -1416,13 +1416,13 @@ ShapeItem * weight_Z = ALLOCA(ShapeItem, rank_Z);
 Value_P Z(shape_Z, LOC);
    if (Z->is_empty())
       {
-         Z->set_default(*B, LOC);
+         Z->set_default(B, LOC);
         return Z;
       }
 
    for (ArrayIterator iZ(shape_Z); iZ.has_more(); ++iZ)
        {
-         const Cell * cB = &B->get_cfirst();
+         const Cell * cB = &B.get_cfirst();
          loop(z, rank_Z)   cB += iZ.get_shape_offset(z) * weight_Z[z];
          Z->next_ravel_Cell(*cB);
        }
@@ -1432,13 +1432,13 @@ Value_P Z(shape_Z, LOC);
 }
 //════════════════════════════════════════════════════════════════════════════
 Token
-Bif_F12_RHO::eval_AB(Value_P A, Value_P B) const
+Bif_F12_RHO::eval_AB(cValue_R A, cValue_R B) const
 {
 #ifdef cfg_PERFORMANCE_COUNTERS_WANTED
 const uint64_t start_1 = cycle_counter();
 #endif
 
-const Shape shape_Z(*A, 0);
+const Shape shape_Z(A, 0);
 
    // check that shape_Z is positive
    //
@@ -1450,87 +1450,90 @@ const Shape shape_Z(*A, 0);
 const ShapeItem len_Z = shape_Z.get_volume();
 
    if (DO_RT_A_RHO_B               &&
-       len_Z <= B->element_count() &&   // 1.   Z is not longer than B
-       B->get_owner_count() == 2   &&   // 2.   B is a temporary value
+       len_Z <= B.element_count() &&   // 1.   Z is not longer than B
+       B.get_owner_count() == 1   &&   // 2.   B is a temporary value
        this == Workspace::SI_top()->get_prefix().get_dyadic_fun())   // 3. below
       {
         /* Optimization of Z←A⍴B. At this point:
 
           1. Z is not longer than B, and
-          2. B has only 2 owners:
-             2a. the prefix (who will discard it after we return), and
-             2b. our Value_P B.
+          2. B has only 1 owner: the prefix (who will discard it after we
+             return). Previously the check was == 2 when B arrived as Value_P
+             (prefix + our local copy); now B arrives as const cValue * so
+             the prefix is the sole owner.
           3. A⍴B was called from a reduction rule (Prefix::reduce_A_F_B())
 
-           We will give up our ownership 2a. on return ret; below, and
+           We will give up our ownership on return below, and
            Prefix::reduce_A_F_B prefix will Prefix::pop_args_push_result()
-           and hence give up its ownership 2b, causeing B to be erased.
+           and hence give up its ownership, causing B to be erased.
 
            That means that B will no longer be used and that, instead of
            of copying B into a new Z and then erasing B, we can reshape B
            in place and return the reshaped B.
 
-           return Token(TOK_APL_VALUE1, B); below will take ownership of B
+           return Token(TOK_APL_VALUE1, vB); below will take ownership of B
            so that Prefix::reduce_A_F_B() won't erase B.
          */
         Log(LOG_optimization) CERR << "optimizing A⍴B" << endl;
 
+Value * vB = static_cast<Value *>(const_cast<cValue *>(&B));
+
         // release the no longer used cells of B after shape_Z.
         //
-        const ShapeItem len_B = B->element_count();   // all Cells
+        const ShapeItem len_B = B.element_count();   // all Cells
         ShapeItem rest = len_Z;                       // Cells remaining
         if (rest == 0)   // Z is empty
            {
              rest = 1;
-             if (B->get_cproto().is_pointer_cell())
+             if (B.get_cproto().is_pointer_cell())
                 {
-                  B->get_cproto().get_pointer_value()->to_type(false);
+                  B.get_cproto().get_pointer_value()->to_type(false);
                 }
              else
                 {
-                   B->get_wproto().init_type(B->get_cproto(), *B, LOC);
+                   vB->get_wproto().init_type(B.get_cproto(), *vB, LOC);
                 }
            }
 
         // release the Cells after Z
-        while (rest < len_B)   B->release(rest++, LOC);
+        while (rest < len_B)   vB->release(rest++, LOC);
 
-        B->set_shape(shape_Z);
+        vB->set_shape(shape_Z);
 
 #ifdef cfg_PERFORMANCE_COUNTERS_WANTED
 const uint64_t end_1 = cycle_counter();
    Performance::fs_F12_RHO_AB.add_sample(end_1 - start_1,
-                                         B->nz_element_count());
+                                         vB->nz_element_count());
 #endif
 
         OptmizationStatistics::count(OPTI_RT_A_RHO_B);
-        return Token(TOK_APL_VALUE1, B);
+        return Token(TOK_APL_VALUE1, Value_P(vB, LOC));
       }
 
 #ifdef cfg_PERFORMANCE_COUNTERS_WANTED
-Token ret = do_reshape(shape_Z, *B);
+Token ret = do_reshape(shape_Z, B);
 const uint64_t end_1 = cycle_counter();
    Performance::fs_F12_RHO_AB.add_sample(end_1 - start_1,
                                          shape_Z.get_volume());
    return ret;
 #else
-   return do_reshape(shape_Z, *B);
+   return do_reshape(shape_Z, B);
 #endif
 }
 //────────────────────────────────────────────────────────────────────────────
 Token
-Bif_F12_RHO::eval_B(Value_P B) const
+Bif_F12_RHO::eval_B(cValue_R B) const
 {
-Value_P Z(B->get_rank(), LOC);
+Value_P Z(B.get_rank(), LOC);
 
-   loop(r, B->get_rank())   Z->next_ravel_Int(B->get_shape_item(r));
+   loop(r, B.get_rank())   Z->next_ravel_Int(B.get_shape_item(r));
 
    Z->check_value(LOC);
    return Token(TOK_APL_VALUE1, Z);
 }
 //────────────────────────────────────────────────────────────────────────────
 Token
-Bif_F12_RHO::do_reshape(const Shape & shape_Z, const Value & B)
+Bif_F12_RHO::do_reshape(const Shape & shape_Z, const cValue & B)
 {
 const ShapeItem len_B = B.element_count();
 
@@ -1555,7 +1558,7 @@ const ShapeItem len_Z = Z->element_count();
 }
 //════════════════════════════════════════════════════════════════════════════
 Token
-Bif_F12_UNION::eval_AB(Value_P A, Value_P B) const
+Bif_F12_UNION::eval_AB(cValue_R A, cValue_R B) const
 {
    /*
       NOTE: Neither IBM APL2 nor ISO define dyadic A ∪ B.
@@ -1573,39 +1576,39 @@ Bif_F12_UNION::eval_AB(Value_P A, Value_P B) const
             which is simpler, symmetrical, and closer to the mathematical
             definition of a set.
     */
-   if (A->get_rank() > 1)   RANK_ERROR;
-   if (B->get_rank() > 1)   RANK_ERROR;
+   if (A.get_rank() > 1)   RANK_ERROR;
+   if (B.get_rank() > 1)   RANK_ERROR;
 
-const ShapeItem len_A = A->element_count();
-const ShapeItem len_B = B->element_count();
+const ShapeItem len_A = A.element_count();
+const ShapeItem len_B = B.element_count();
 
    // Z←A, B
    //
 Value_P Z(len_A + len_B, LOC);
 
-   loop(a, len_A)   Z->next_ravel_Cell(A->get_cravel(a));
-   loop(b, len_B)   Z->next_ravel_Cell(B->get_cravel(b));
-   Z->set_default(*B, LOC);
+   loop(a, len_A)   Z->next_ravel_Cell(A.get_cravel(a));
+   loop(b, len_B)   Z->next_ravel_Cell(B.get_cravel(b));
+   Z->set_default(B, LOC);
    Z->check_value(LOC);
-   return eval_B(Z);
+   return eval_B(*Z);
 }
 //────────────────────────────────────────────────────────────────────────────
 Token
-Bif_F12_UNION::eval_B(Value_P B) const
+Bif_F12_UNION::eval_B(cValue_R B) const
 {
    // ∪B : Unique. The items of B without duplicates
 
-   if (B->get_rank() > 1)   RANK_ERROR;
+   if (B.get_rank() > 1)   RANK_ERROR;
 
-const ShapeItem len_B = B->element_count();
-   if (len_B <= 1)   return Token(TOK_APL_VALUE1, CLONE_P(B, LOC));
+const ShapeItem len_B = B.element_count();
+   if (len_B <= 1)   return Token(TOK_APL_VALUE1, CLONE(&B, LOC));
 
    // 1. create a vector with all cells of B and sort it.
    //
 vector<const Cell *> cells_B;
    cells_B.reserve(len_B);
 
-   loop(b, len_B)   cells_B.push_back(&B->get_cravel(b));
+   loop(b, len_B)   cells_B.push_back(&B.get_cravel(b));
    Heapsort<const Cell *>::sort(cells_B, Cell::compare_stable, 0);
 
    // 2. remove duplicates
@@ -1632,13 +1635,13 @@ Value_P Z(len_Z, LOC);
 }
 //════════════════════════════════════════════════════════════════════════════
 Token
-Bif_F2_INTER::eval_AB(Value_P A, Value_P B) const
+Bif_F2_INTER::eval_AB(cValue_R A, cValue_R B) const
 {
-   if (A->get_rank() > 1)   RANK_ERROR;
-   if (B->get_rank() > 1)   RANK_ERROR;
+   if (A.get_rank() > 1)   RANK_ERROR;
+   if (B.get_rank() > 1)   RANK_ERROR;
 
-const ShapeItem len_A = A->element_count();
-const ShapeItem len_B = B->element_count();
+const ShapeItem len_A = A.element_count();
+const ShapeItem len_B = B.element_count();
 
 const double qct = Workspace::get_CT();
 
@@ -1656,8 +1659,8 @@ const double qct = Workspace::get_CT();
             } catch (std::bad_alloc &) { WS_FULL; }
               catch (...)              { FIXME; }
 
-        loop(a, len_A)   cells_A.push_back(&A->get_cravel(a));
-        loop(b, len_B)   cells_B.push_back(&B->get_cravel(b));
+        loop(a, len_A)   cells_A.push_back(&A.get_cravel(a));
+        loop(b, len_B)   cells_B.push_back(&B.get_cravel(b));
 
         Heapsort<const Cell *>::sort(cells_A, Cell::compare_stable, 0);
         Heapsort<const Cell *>::sort(cells_B, Cell::compare_stable, 0);
@@ -1688,7 +1691,7 @@ const double qct = Workspace::get_CT();
         Value_P Z(cells_Z.size(), LOC);
         loop(z, cells_Z.size())   Z->next_ravel_Cell(*cells_Z[z]);
 
-        Z->set_default(*B, LOC);
+        Z->set_default(B, LOC);
         Z->check_value(LOC);
         return Token(TOK_APL_VALUE1, Z);
       }
@@ -1712,56 +1715,56 @@ const double qct = Workspace::get_CT();
         Value_P Z(cells_Z.size(), LOC);
         loop(z, cells_Z.size())   Z->next_ravel_Cell(*cells_Z[z]);
 
-        Z->set_default(*B, LOC);
+        Z->set_default(B, LOC);
         Z->check_value(LOC);
         return Token(TOK_APL_VALUE1, Z);
       }
 }
 //════════════════════════════════════════════════════════════════════════════
 Token
-Bif_F2_RIGHT::eval_AXB(Value_P A, Value_P X, Value_P B) const
+Bif_F2_RIGHT::eval_AXB(cValue_R A, cValue_R X, cValue_R B) const
 {
    // Z ← A ⊢[X] B: select corresponding items of A or B according to X.
    //  A, B, and X must have matching shapes
    //
-const int inc_A = A->is_scalar_extensible() ? 0 : 1;
-const int inc_B = B->is_scalar_extensible() ? 0 : 1;
-const int inc_X = X->is_scalar_extensible() ? 0 : 1;
+const int inc_A = A.is_scalar_extensible() ? 0 : 1;
+const int inc_B = B.is_scalar_extensible() ? 0 : 1;
+const int inc_X = X.is_scalar_extensible() ? 0 : 1;
 
    if (inc_X == 0)   // single item X: pick entire A or B according to X
       {
-        const APL_Integer x0 = X->get_cfirst().get_int_value();
-        if (x0 == 0)   return Token(TOK_APL_VALUE1, CLONE_P(A, LOC));
-        if (x0 == 1)   return Token(TOK_APL_VALUE1, CLONE_P(B, LOC));
+        const APL_Integer x0 = X.get_cfirst().get_int_value();
+        if (x0 == 0)   return Token(TOK_APL_VALUE1, CLONE(&A, LOC));
+        if (x0 == 1)   return Token(TOK_APL_VALUE1, CLONE(&B, LOC));
         DOMAIN_ERROR;
       }
 
    // X is non-scalar, so it must match any non-scalar A and B
    //
-   if (inc_A && ! X->same_shape(*A))
+   if (inc_A && ! X.same_shape(A))
       {
-        if (A->get_rank() != X->get_rank())   RANK_ERROR;
+        if (A.get_rank() != X.get_rank())   RANK_ERROR;
         else                                  LENGTH_ERROR;
       }
 
-   if (inc_B && ! X->same_shape(*B))
+   if (inc_B && ! X.same_shape(B))
       {
-        if (B->get_rank() != X->get_rank())   RANK_ERROR;
+        if (B.get_rank() != X.get_rank())   RANK_ERROR;
         else                                  LENGTH_ERROR;
       }
 
-const Shape * shape_Z = &A->get_shape();   // last resort if X and B are scalar
-   if (inc_X)        shape_Z = &X->get_shape();
-   else if (inc_B)   shape_Z = &B->get_shape();
+const Shape * shape_Z = &A.get_shape();   // last resort if X and B are scalar
+   if (inc_X)        shape_Z = &X.get_shape();
+   else if (inc_B)   shape_Z = &B.get_shape();
 
 Value_P Z(*shape_Z, LOC);
    loop(z, shape_Z->get_volume())
        {
-        const APL_Integer xz = X->get_cravel(z*inc_X).get_int_value();   // X[z]
+        const APL_Integer xz = X.get_cravel(z*inc_X).get_int_value();   // X[z]
         if (xz == 0)        // take A[z]
-           Z->next_ravel_Cell(A->get_cravel(z*inc_A));
+           Z->next_ravel_Cell(A.get_cravel(z*inc_A));
         else if (xz == 1)   // take B[z]
-           Z->next_ravel_Cell(B->get_cravel(z*inc_B));
+           Z->next_ravel_Cell(B.get_cravel(z*inc_B));
         else
            {
              MORE_ERROR() << "non-Boolean X in A⊢[X]B";
@@ -1769,7 +1772,7 @@ Value_P Z(*shape_Z, LOC);
            }
        }
 
-   Z->set_default(*B, LOC);
+   Z->set_default(B, LOC);
    Z->check_value(LOC);
    return Token(TOK_APL_VALUE1, Z);
 }

@@ -28,7 +28,7 @@
 
 //════════════════════════════════════════════════════════════════════════════
 int
-Monomial::get_order(const Value & order) const
+Monomial::get_order(const cValue & order) const
 {
    // find the index of this monomial in order.
    //
@@ -209,7 +209,7 @@ size_t found_len = 0;
       }
 }
 //════════════════════════════════════════════════════════════════════════════
-Polynomial::Polynomial(const Value & value)
+Polynomial::Polynomial(const cValue & value)
 {
    reserve(40);
    loop(v, value.element_count())
@@ -226,7 +226,7 @@ Polynomial::Polynomial(const Value & value)
 }
 //────────────────────────────────────────────────────────────────────────────
 size_t
-Polynomial::LT_pos(const Value * order) const
+Polynomial::LT_pos(const cValue * order) const
 {
 size_t pos = 0;
 

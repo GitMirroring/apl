@@ -103,33 +103,33 @@ protected:
    /// overloaded Function::eval_AB()
    /// @param A left-argument APL value (GTK command or parameters)
    /// @param B right-argument APL value (GTK arguments)
-   virtual Token eval_AB(Value_P A, Value_P B) const;
+   virtual Token eval_AB(cValue_R A, cValue_R B) const;
 
    /// overloaded Function::eval_AXB()
    /// @param A left-argument APL value (GTK command or parameters)
    /// @param X axis argument identifying the window
    /// @param B right-argument APL value (GTK arguments)
-   virtual Token eval_AXB(Value_P A, Value_P X, Value_P B) const;
+   virtual Token eval_AXB(cValue_R A, cValue_R X, cValue_R B) const;
 
    /// overloaded Function::eval_B()
    /// @param B right-argument APL value (GTK command selector)
-   virtual Token eval_B(Value_P B) const;
+   virtual Token eval_B(cValue_R B) const;
 
    /// overloaded Function::eval_XB()
    /// @param X axis argument identifying the window
    /// @param B right-argument APL value (GTK command selector)
-   virtual Token eval_XB(Value_P X, Value_P B) const;
+   virtual Token eval_XB(cValue_R X, cValue_R B) const;
 
    /// X is supposed to be something like 4,"win_id". Store win_id in window_id
    /// and return the window number (4 in this  example)
    /// @param X axis argument encoding the window number and optional ID
    /// @param window_id output string receiving the window identifier
-   static int resolve_window(const Value * X, UTF8_string & window_id);
+   static int resolve_window(cValue_R X, UTF8_string & window_id);
 
    /// B is a function name (-suffix).
    /// @param window_id window identifier string (updated if present in B)
    /// @param B APL value containing the function name or suffix
-   static Fnum resolve_fun_name(UTF8_string & window_id, const Value * B);
+   static Fnum resolve_fun_name(UTF8_string & window_id, cValue_R B);
 
    /// write a TLV with an empty V (thus L=0)
    /// @param fd file descriptor of the GTK server pipe

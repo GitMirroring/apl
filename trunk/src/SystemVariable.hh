@@ -62,7 +62,7 @@ public:
    /// overloaded Symbol::assign_indexed().
    /// @param X index specification
    /// @param B the APL value to assign
-   virtual void assign_indexed(const Value * X, Value_P B);
+   virtual void assign_indexed(const cValue * X, Value_P B);
 
    /// overloaded Symbol::get_attributes().
    /// @param mode attribute mode selector
@@ -134,7 +134,7 @@ protected:
    /// overloaded Symbol::assign_indexed()
    /// @param X index specification
    /// @param B the APL value to assign
-   virtual void assign_indexed(const Value * X, Value_P B) {}
+   virtual void assign_indexed(const cValue * X, Value_P B) {}
 
    /// overloaded Symbol::is_readonly()
    virtual bool is_readonly() const   { return true; }
@@ -305,7 +305,7 @@ protected:
    /// overloaded Symbol::assign_indexed().
    /// @param X index specification
    /// @param B the APL value to assign
-   virtual void assign_indexed(const Value * X, Value_P B);
+   virtual void assign_indexed(const cValue * X, Value_P B);
 
    /// overloaded Symbol::assign_indexed().
    /// @param IX index expression
@@ -403,7 +403,7 @@ protected:
    /// overloaded Symbol::assign_indexed()
    /// @param X index specification
    /// @param B the APL value to assign
-   virtual void assign_indexed(const Value * X, Value_P B) {}
+   virtual void assign_indexed(const cValue * X, Value_P B) {}
 };
 //════════════════════════════════════════════════════════════════════════════
 /**
@@ -503,7 +503,7 @@ protected:
    /// overloaded Symbol::assign_indexed()
    /// @param X index specification
    /// @param B the APL value to assign
-   virtual void assign_indexed(const Value * X, Value_P B);
+   virtual void assign_indexed(const cValue * X, Value_P B);
 
    /// overloaded Symbol::push()
    virtual void push()
@@ -654,7 +654,7 @@ public:
    /// overloaded Symbol::assign_indexed()
    /// @param X index specification
    /// @param B the APL value to assign
-   virtual void assign_indexed(const Value * X, Value_P B);
+   virtual void assign_indexed(const cValue * X, Value_P B);
 
    /// overloaded Symbol::assign_indexed()
    /// @param IDX index expression

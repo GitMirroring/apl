@@ -466,9 +466,9 @@ Doxy::variables_table(const std::vector<const Symbol *> & variables,
             {
               if (var_sym[si].get_NC() != NC_VARIABLE)   continue;
 
-              const Value * value = var_sym[si].get_val_cptr();
+              const cValue * value = var_sym[si].get_val_cptr();
               const int si_level  = var_sym.get_SI_level(*value);
-              Value_P elem = Bif_F12_ELEMENT::do_eval_B(value);
+              Value_P elem = Bif_F12_ELEMENT::do_eval_B(*value);
               Value_P first = Bif_F12_TAKE::first(*elem.get());
               page <<
 "     <TR>"                                                               CRLF

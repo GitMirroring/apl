@@ -39,19 +39,19 @@ public:
    /// Overloaded Function::eval_LB().
    /// @param LO left operand token
    /// @param B right argument APL value
-   virtual Token eval_LB(Token & LO, Value_P B) const
+   virtual Token eval_LB(Token & LO, cValue_R B) const
       { return do_eval_LB(LO, B); }
 
    /// Overloaded Function::eval_ALB().
    /// @param A left argument APL value
    /// @param LO left operand token
    /// @param B right argument APL value
-   virtual Token eval_ALB(Value_P A, Token & LO, Value_P B) const;
+   virtual Token eval_ALB(cValue_R A, Token & LO, cValue_R B) const;
 
    /// implementation of eval_LB()
    /// @param LO left operand token
    /// @param B right argument APL value
-   static Token do_eval_LB(Token & LO, Value_P B);
+   static Token do_eval_LB(Token & LO, cValue_R B);
 
    static Bif_OPER1_EACH  fun;      ///< Built-in function.
 

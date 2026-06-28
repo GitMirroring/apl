@@ -316,7 +316,7 @@ public:
          if (src.is_apl_val())   // according to its get_ValueType()
             {
               int use_count = -1;   // assume this token has no Value *
-              const Value * valp = src.value.apl_val.get();
+              const cValue * valp = src.value.apl_val.get();
               if (valp)   use_count = valp->get_owner_count();
               ADD_EVENT(valp, VHE_TokCopy, use_count, loc);
             }
@@ -338,7 +338,7 @@ public:
 
          if (src.is_apl_val())   // according to its get_ValueType()
             {
-              const Value * valp = src.value.apl_val.get();
+              const cValue * valp = src.value.apl_val.get();
               const int use_count = valp ? valp->get_owner_count() - 1 : -1;
               ADD_EVENT(valp, VHE_TokMove, use_count, loc);
             }

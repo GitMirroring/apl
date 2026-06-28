@@ -96,6 +96,10 @@ public:
    /// @param qio_A index origin (⎕IO) for interpreting A
    Shape(const Value & A, int qio_A);
 
+   /// @param A APL value (const cValue variant) whose ravel elements define the shape
+   /// @param qio_A index origin (⎕IO) for interpreting A
+   Shape(const cValue & A, int qio_A);
+
    /// return a shape with the lower \b cnt dimensions of this shape
    /// @param cnt number of trailing dimensions to retain
    Shape chunk_shape(uRank cnt) const

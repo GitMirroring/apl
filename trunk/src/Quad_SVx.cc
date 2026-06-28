@@ -146,17 +146,17 @@ const char * end = strchr(file_and_args, ' ');
 }
 //════════════════════════════════════════════════════════════════════════════
 Token
-Quad_SVC::eval_AB(Value_P A, Value_P B) const
+Quad_SVC::eval_AB(cValue_R A, cValue_R B) const
 {
-   if (A->get_rank() > 2)   RANK_ERROR;
-   if (B->get_rank() > 2)   RANK_ERROR;
+   if (A.get_rank() > 2)   RANK_ERROR;
+   if (B.get_rank() > 2)   RANK_ERROR;
 
-const ShapeItem var_count = B->get_rows();
-   if (A->get_rows() != var_count)               LENGTH_ERROR;
-   if (A->get_rank() > 0 && A->get_cols() != 4)   LENGTH_ERROR;
-const UCS_string_vector vars(*B, false);
+const ShapeItem var_count = B.get_rows();
+   if (A.get_rows() != var_count)               LENGTH_ERROR;
+   if (A.get_rank() > 0 && A.get_cols() != 4)   LENGTH_ERROR;
+const UCS_string_vector vars(B, false);
 
-const Cell * cA = &A->get_cfirst();
+const Cell * cA = &A.get_cfirst();
 
 Shape sh_Z;
    if (var_count > 1)   sh_Z.add_shape_item(var_count);
@@ -168,17 +168,17 @@ Value_P Z(sh_Z, LOC);
         // construct control value
         //
         int ctl = 0;
-        if (A->is_scalar())
+        if (A.is_scalar())
            {
-             const bool val = A->get_cfirst().get_near_bool();
+             const bool val = A.get_cfirst().get_near_bool();
               ctl = val ? ALL_SVAR_CONTROLS : NO_SVAR_CONTROL;
            }
-        else if (A->is_vector())
+        else if (A.is_vector())
            {
-             if (A->get_cfirst().get_near_bool())   ctl |= SET_BY_1;
-             if (A->get_cravel(1).get_near_bool())   ctl |= SET_BY_2;
-             if (A->get_cravel(2).get_near_bool())   ctl |= USE_BY_1;
-             if (A->get_cravel(3).get_near_bool())   ctl |= USE_BY_2;
+             if (A.get_cfirst().get_near_bool())   ctl |= SET_BY_1;
+             if (A.get_cravel(1).get_near_bool())   ctl |= SET_BY_2;
+             if (A.get_cravel(2).get_near_bool())   ctl |= USE_BY_1;
+             if (A.get_cravel(3).get_near_bool())   ctl |= USE_BY_2;
            }
         else // matrix
            {
@@ -208,12 +208,12 @@ Value_P Z(sh_Z, LOC);
 }
 //────────────────────────────────────────────────────────────────────────────
 Token
-Quad_SVC::eval_B(Value_P B) const
+Quad_SVC::eval_B(cValue_R B) const
 {
-   if (B->get_rank() > 2)   RANK_ERROR;
+   if (B.get_rank() > 2)   RANK_ERROR;
 
-const ShapeItem var_count = B->get_rows();
-const UCS_string_vector vars(*B, false);
+const ShapeItem var_count = B.get_rows();
+const UCS_string_vector vars(B, false);
 
 Shape sh_Z;
    if (var_count > 1)   sh_Z.add_shape_item(var_count);
@@ -305,16 +305,16 @@ const APL_Float remaining = timer_end - now();
  ** Offer variables in B to corresponding processors in A
  **/
 Token
-Quad_SVO::eval_AB(Value_P A, Value_P B) const
+Quad_SVO::eval_AB(cValue_R A, cValue_R B) const
 {
-   if (A->get_rank() > 1)   RANK_ERROR;
-   if (B->get_rank() > 2)   RANK_ERROR;
+   if (A.get_rank() > 1)   RANK_ERROR;
+   if (B.get_rank() > 2)   RANK_ERROR;
 
-const ShapeItem var_count = B->get_rows();
-   if (A->get_rank() == 1 && A->element_count() != var_count)   LENGTH_ERROR;
+const ShapeItem var_count = B.get_rows();
+   if (A.get_rank() == 1 && A.element_count() != var_count)   LENGTH_ERROR;
 
-const UCS_string_vector apl_vars(*B, false);
-const UCS_string_vector surrogates(*B, true);
+const UCS_string_vector apl_vars(B, false);
+const UCS_string_vector surrogates(B, true);
 
 Shape sh_Z;
    if (var_count > 1)   sh_Z.add_shape_item(var_count);
@@ -322,7 +322,7 @@ Value_P Z(sh_Z, LOC);
 
    loop(z, var_count)
       {
-        ShapeItem a = A->is_scalar() ? 0 : z;
+        ShapeItem a = A.is_scalar() ? 0 : z;
         uint32_t vname[MAX_SVAR_NAMELEN + 1];
         const int vlen = surrogates[z].size();
         if (vlen > MAX_SVAR_NAMELEN)   DOMAIN_ERROR;
@@ -347,7 +347,7 @@ Value_P Z(sh_Z, LOC);
         Symbol * sym = Workspace::lookup_symbol(apl_vars[z]);
         assert(sym);
 
-        const AP_num proc = AP_num(A->get_cravel(a).get_int_value());
+        const AP_num proc = AP_num(A.get_cravel(a).get_int_value());
 
         ValueStackItem * vsp = sym->top_of_stack();
         Assert(vsp);
@@ -390,12 +390,12 @@ Value_P Z(sh_Z, LOC);
  ** Return degree of coupling for variables in B
  **/
 Token
-Quad_SVO::eval_B(Value_P B) const
+Quad_SVO::eval_B(cValue_R B) const
 {
-   if (B->get_rank() > 2)   RANK_ERROR;
+   if (B.get_rank() > 2)   RANK_ERROR;
 
-const ShapeItem var_count = B->get_rows();
-const UCS_string_vector vars(*B, false);
+const ShapeItem var_count = B.get_rows();
+const UCS_string_vector vars(B, false);
 
 Shape sh_Z;
    if (var_count > 1)   sh_Z.add_shape_item(var_count);
@@ -481,22 +481,22 @@ const SV_key key = Svar_DB::match_or_make(vname, to_proc, from);
 }
 //════════════════════════════════════════════════════════════════════════════
 Token
-Quad_SVQ::eval_B(Value_P B) const
+Quad_SVQ::eval_B(cValue_R B) const
 {
-   if (B->get_rank() > 1)        RANK_ERROR;
-   if (B->element_count() > 1)   LENGTH_ERROR;
+   if (B.get_rank() > 1)        RANK_ERROR;
+   if (B.element_count() > 1)   LENGTH_ERROR;
 
 Value_P Z;
 
    // B is empty or has 1 element.
    //
-   if (B->element_count()  == 0)    // B empty: return processors offering
+   if (B.element_count()  == 0)    // B empty: return processors offering
       {
         Z = get_processors();
       }
    else                            // return variables offered by processor ↑B
       {
-        const AP_num proc = AP_num(B->get_cfirst().get_int_value());
+        const AP_num proc = AP_num(B.get_cfirst().get_int_value());
         Z = get_variables(proc);
       }
 
@@ -658,12 +658,12 @@ int v = 0;
 }
 //════════════════════════════════════════════════════════════════════════════
 Token
-Quad_SVR::eval_B(Value_P B) const
+Quad_SVR::eval_B(cValue_R B) const
 {
-   if (B->get_rank() > 2)   RANK_ERROR;
+   if (B.get_rank() > 2)   RANK_ERROR;
 
-const ShapeItem var_count = B->get_rows();
-const UCS_string_vector vars(*B, false);
+const ShapeItem var_count = B.get_rows();
+const UCS_string_vector vars(B, false);
 
 Shape sh_Z;
    if (var_count > 1)   sh_Z.add_shape_item(var_count);
@@ -688,12 +688,12 @@ Value_P Z(sh_Z, LOC);
 }
 //════════════════════════════════════════════════════════════════════════════
 Token
-Quad_SVS::eval_B(Value_P B) const
+Quad_SVS::eval_B(cValue_R B) const
 {
-   if (B->get_rank() > 2)   RANK_ERROR;
+   if (B.get_rank() > 2)   RANK_ERROR;
 
-const ShapeItem var_count = B->get_rows();
-const UCS_string_vector vars(*B, false);
+const ShapeItem var_count = B.get_rows();
+const UCS_string_vector vars(B, false);
 
 Shape sh_Z;
    if (var_count > 1)   sh_Z.add_shape_item(var_count);

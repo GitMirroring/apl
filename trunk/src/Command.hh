@@ -60,10 +60,10 @@ public:
    struct val_val
       {
         /// the parent (0 unless \b this is a sub-value)
-        const Value * parent;
+        const cValue * parent;
 
         /// the value (always valid)
-        const Value * child;
+        const cValue * child;
 
         /// compare function for Heapsort::sort()
         /// @param A     first val_val element
@@ -71,10 +71,10 @@ public:
         static bool greater(const val_val & A, const val_val & B, const void *)
            { return A.child > B.child; }
 
-        /// compare function for Heapsort<val_val>::search<const Value *>()
+        /// compare function for Heapsort<val_val>::search<const cValue *>()
         /// @param key   the Value pointer to search for
         /// @param B     the val_val element to compare against
-        static int compare(const Value * key, const val_val * B, const void *)
+        static int compare(const cValue * key, const val_val * B, const void *)
            { return key - B->child; }
       };
 

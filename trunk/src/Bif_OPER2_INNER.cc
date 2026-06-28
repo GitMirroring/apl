@@ -35,7 +35,7 @@ Bif_OPER2_INNER::PJob_product Bif_OPER2_INNER::job;
 
 //════════════════════════════════════════════════════════════════════════════
 Token
-Bif_OPER2_INNER::eval_ALRB(Value_P A, Token & _LO, Token & _RO, Value_P B) const
+Bif_OPER2_INNER::eval_ALRB(cValue_R A, Token & _LO, Token & _RO, cValue_R B) const
 {
    if (!_LO.is_function() || !_RO.is_function())   SYNTAX_ERROR;
 
@@ -49,19 +49,19 @@ cFunction_P RO = _RO.get_function();
    if (LO->get_fun_valence() + RO->get_fun_valence() != 4)   SYNTAX_ERROR;
    if (!LO->has_result() || !RO->has_result())               DOMAIN_ERROR;
 
-   if (!A->is_scalar_extensible() &&
-       !B->is_scalar_extensible() &&
-       A->get_rank() > 1          &&
-       B->get_rank() > 1          && 
-       A->get_shape().get_last_shape_item() !=
-       B->get_shape().get_shape_item(0)
+   if (!A.is_scalar_extensible() &&
+       !B.is_scalar_extensible() &&
+       A.get_rank() > 1          &&
+       B.get_rank() > 1          && 
+       A.get_shape().get_last_shape_item() !=
+       B.get_shape().get_shape_item(0)
       )   LENGTH_ERROR;
 
-const Shape shape_A1 =A->get_shape().without_last_axis();
-const ShapeItem len_A = A->get_last_shape_item();
+const Shape shape_A1 =A.get_shape().without_last_axis();
+const ShapeItem len_A = A.get_last_shape_item();
 
-const Shape shape_B1 = B->get_shape().without_first_axis();
-const ShapeItem len_B = B->get_first_shape_item();
+const Shape shape_B1 = B.get_shape().without_first_axis();
+const ShapeItem len_B = B.get_first_shape_item();
 
    // we do not check len_A == len_B here, since a non-scalar LO may
    // accept different lengths of its left and right arguments
@@ -75,14 +75,14 @@ const ShapeItem items_B1 = shape_B1.get_volume();
         // Apply the fill function of RO
         //
         const Shape shape_Z = shape_A1 + shape_B1;
-        return fill(shape_Z, A, RO, B, LOC);
+        return fill(shape_Z, CLONE(&A, LOC), RO, CLONE(&B, LOC), LOC);
       }
 
    if (LO->may_push_SI() || RO->may_push_SI())   // user defined LO or RO
       {
         // ISO: if A1 and B1 are both vectors, return f/A1 g B1.
         //
-        if (A->get_rank() <= 1 && B->get_rank() <= 1)
+        if (A.get_rank() <= 1 && B.get_rank() <= 1)
            return Macro::get_macro(Macro::MAC_Z__vA_LO_INNER_RO_vB)
                        ->eval_ALRB(A, _LO, _RO, B);
         else
@@ -98,41 +98,48 @@ Value_P Z(shape_A1 + shape_B1, LOC);
    //
    job.LO = LO->get_scalar_f2();
    job.RO = RO->get_scalar_f2();
-   if (job.LO && job.RO && A->is_simple() && B->is_simple() && len_A)
+   if (job.LO && job.RO && A.is_simple() && B.is_simple() && len_A)
       {
-        job.incA   = (A->element_count() == 1) ? 0 : 1;
-        job.incB   = (B->element_count() == 1) ? 0 : 1;
+        job.incA   = (A.element_count() == 1) ? 0 : 1;
+        job.incB   = (B.element_count() == 1) ? 0 : 1;
 
    // len_A must be len_B, unless at least one length is 1
    //
         if (len_A != len_B && job.incA && job.incB)   LENGTH_ERROR;
 
         job.cZ     = &Z->get_wfirst();
-        job.cA     = &A->get_cfirst();
+        job.cA     = &A.get_cfirst();
         job.ZAh    = items_A1;
-        job.LO_len = A->is_scalar() ? len_B : len_A;
-        job.cB     = &B->get_cfirst();
+        job.LO_len = A.is_scalar() ? len_B : len_A;
+        job.cB     = &B.get_cfirst();
         job.ZBl    = items_B1;
         job.ec     = E_NO_ERROR;
 
         scalar_inner_product();
         if (job.ec != E_NO_ERROR)   throw_apl_error(job.ec, LOC);
 
-        Z->set_default(*B.get(), LOC);
+        Z->set_default(B, LOC);
  
         Z->check_value(LOC);
         return Token(TOK_APL_VALUE1, Z);
       }
 
-const bool A_enclosed = A->get_rank() > 1;
-const bool B_enclosed = B->get_rank() > 1;
+const bool A_enclosed = A.get_rank() > 1;
+const bool B_enclosed = B.get_rank() > 1;
+
+Value_P A_enclosed_holder;
+Value_P B_enclosed_holder;
+
+const cValue * pA = &A;   // may be rebound if A_enclosed
+const cValue * pB = &B;   // may be rebound if B_enclosed
 
    // enclose last axis of A if necessary
    //
    if (A_enclosed)
       {
-        const Shape last_axis(A->get_rank() - 1);
-        A = Bif_F12_PARTITION::enclose_with_axes(last_axis, A);
+        const Shape last_axis(A.get_rank() - 1);
+        A_enclosed_holder = Bif_F12_PARTITION::enclose_with_axes(last_axis, CLONE(&A, LOC));
+        pA = A_enclosed_holder.get();
       }
 
    // enclose first axis of B if necessary
@@ -140,19 +147,20 @@ const bool B_enclosed = B->get_rank() > 1;
    if (B_enclosed)
       {
         const Shape first_axis(0);
-        B = Bif_F12_PARTITION::enclose_with_axes(first_axis, B);
+        B_enclosed_holder = Bif_F12_PARTITION::enclose_with_axes(first_axis, CLONE(&B, LOC));
+        pB = B_enclosed_holder.get();
       }
 
    loop (a, items_A1)
    loop (b, items_B1)
       {
-        Value_P RO_A(A, LOC);
-        if (A_enclosed)   RO_A = A->get_cravel(a).get_pointer_value();
+        Value_P RO_A = CLONE(pA, LOC);
+        if (A_enclosed)   RO_A = pA->get_cravel(a).get_pointer_value();
 
-        Value_P RO_B(B, LOC);
-        if (B_enclosed)   RO_B = B->get_cravel(b).get_pointer_value();
+        Value_P RO_B = CLONE(pB, LOC);
+        if (B_enclosed)   RO_B = pB->get_cravel(b).get_pointer_value();
 
-        const Token T1 = RO->eval_AB(RO_A, RO_B);
+        const Token T1 = RO->eval_AB(*RO_A, *RO_B);
 
         if (T1.get_tag() == TOK_ERROR)   return T1;
 
@@ -178,7 +186,7 @@ const bool B_enclosed = B->get_rank() > 1;
            }
       }
 
-   Z->set_default(*B.get(), LOC);
+   Z->set_default(*pB, LOC);
    Z->check_value(LOC);
    return Token(TOK_APL_VALUE1, Z);
 }
@@ -235,7 +243,7 @@ Value_P Fill_B;   // argument B of the fill function
    if (B->is_empty())   Fill_B = B->prototype(LOC);
    else                 Fill_B = Bif_F12_TAKE::first(*B);
 
-Token tok = fun->eval_fill_AB(Fill_A, Fill_B);
+Token tok = fun->eval_fill_AB(*Fill_A, *Fill_B);
 
    if (tok.get_Class() != TC_VALUE)   return tok;
 

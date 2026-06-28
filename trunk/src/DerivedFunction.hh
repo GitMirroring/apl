@@ -43,7 +43,7 @@ public:
    DerivedFunction() : Function(TOK_FUN0)   {}
 
    /// return the axis argument (or 0 if none) of this derived function
-   const Value * get_AXIS() const
+   const cValue * get_AXIS() const
       { return axis.get(); }
 
    /// return the value (if any) bound to an operator (that allows it)
@@ -154,22 +154,22 @@ public:
    /// overloaded Function::eval_AB()
    /// @param A left APL argument value
    /// @param B right APL argument value
-   virtual Token eval_AB(Value_P A, Value_P B) const;
+   virtual Token eval_AB(cValue_R A, cValue_R B) const;
 
    /// overloaded Function::eval_B()
    /// @param B right APL argument value
-   virtual Token eval_B(Value_P B) const;
+   virtual Token eval_B(cValue_R B) const;
 
    /// overloaded Function::eval_AXB()
    /// @param A left APL argument value
    /// @param X axis specification value
    /// @param B right APL argument value
-   virtual Token eval_AXB(Value_P A, Value_P X, Value_P B) const;
+   virtual Token eval_AXB(cValue_R A, cValue_R X, cValue_R B) const;
 
    /// overloaded Function::eval_XB()
    /// @param X axis specification value
    /// @param B right APL argument value
-   virtual Token eval_XB(Value_P X, Value_P B) const;
+   virtual Token eval_XB(cValue_R X, cValue_R B) const;
 };
 //════════════════════════════════════════════════════════════════════════════
 /// A dyadic operator bound to its left and right functions and its axis.
@@ -193,11 +193,11 @@ public:
    /// overloaded Function::eval_AXB()
    /// @param A left APL argument value
    /// @param B right APL argument value
-   virtual Token eval_AB(Value_P A, Value_P B) const;
+   virtual Token eval_AB(cValue_R A, cValue_R B) const;
 
    /// overloaded Function::eval_XB()
    /// @param B right APL argument value
-   virtual Token eval_B(Value_P B) const;
+   virtual Token eval_B(cValue_R B) const;
 };
 //════════════════════════════════════════════════════════════════════════════
 /// A monadic operator bound to its left function. E.g. +/ ←→ (+/)
@@ -217,22 +217,22 @@ public:
    /// overloaded Function::eval_AB()
    /// @param A left APL argument value
    /// @param B right APL argument value
-   virtual Token eval_AB(Value_P A, Value_P B) const;
+   virtual Token eval_AB(cValue_R A, cValue_R B) const;
 
    /// overloaded Function::eval_AB()
    /// @param B right APL argument value
-   virtual Token eval_B(Value_P B) const;
+   virtual Token eval_B(cValue_R B) const;
 
    /// overloaded Function::eval_AXB()
    /// @param A left APL argument value
    /// @param X axis specification value
    /// @param B right APL argument value
-   virtual Token eval_AXB(Value_P A, Value_P X, Value_P B) const;
+   virtual Token eval_AXB(cValue_R A, cValue_R X, cValue_R B) const;
 
    /// overloaded Function::eval_XB()
    /// @param X axis specification value
    /// @param B right APL argument value
-   virtual Token eval_XB(Value_P X, Value_P B) const;
+   virtual Token eval_XB(cValue_R X, cValue_R B) const;
 };
 //════════════════════════════════════════════════════════════════════════════
 /// A monadic operator bound to its left function and to its axis.
@@ -253,22 +253,22 @@ public:
    /// overloaded Function::eval_AB();
    /// @param A left APL argument value
    /// @param B right APL argument value
-   virtual Token eval_AB(Value_P A, Value_P B) const;
+   virtual Token eval_AB(cValue_R A, cValue_R B) const;
 
    /// overloaded Function::eval_B();
    /// @param B right APL argument value
-   virtual Token eval_B(Value_P B) const;
+   virtual Token eval_B(cValue_R B) const;
 
    /// overloaded Function::eval_AXB();
    /// @param A left APL argument value
    /// @param X axis specification value
    /// @param B right APL argument value
-   virtual Token eval_AXB(Value_P A, Value_P X, Value_P B) const;
+   virtual Token eval_AXB(cValue_R A, cValue_R X, cValue_R B) const;
 
    /// overloaded Function::eval_XB();
    /// @param X axis specification value
    /// @param B right APL argument value
-   virtual Token eval_XB(Value_P X, Value_P B) const;
+   virtual Token eval_XB(cValue_R X, cValue_R B) const;
 
 
 };
@@ -291,11 +291,11 @@ public:
    /// overloaded Function::eval_AB()
    /// @param A left APL argument value
    /// @param B right APL argument value
-   virtual Token eval_AB(Value_P A, Value_P B) const;
+   virtual Token eval_AB(cValue_R A, cValue_R B) const;
 
    /// overloaded Function::eval_B()
    /// @param B right APL argument value
-   virtual Token eval_B(Value_P B) const;
+   virtual Token eval_B(cValue_R B) const;
 };
 //════════════════════════════════════════════════════════════════════════════
 /// a small cache for storing a few DerivedFunction objects

@@ -31,12 +31,12 @@ Bif_F12_INTERVAL_INDEX Bif_F12_INTERVAL_INDEX::fun;    // ⍳
 /// are indices of A so that A[Z[N]] ≤ B[N] < A[Z[N] + 1]
 //════════════════════════════════════════════════════════════════════════════
 Token
-Bif_F12_INTERVAL_INDEX::eval_AB(Value_P A, Value_P B) const
+Bif_F12_INTERVAL_INDEX::eval_AB(cValue_R A, cValue_R B) const
 {
   // A must be a non-empty sorted vector
   //
-   if (A->get_rank() > 1)   RANK_ERROR;
-const ShapeItem ec_A = A->element_count();
+   if (A.get_rank() > 1)   RANK_ERROR;
+const ShapeItem ec_A = A.element_count();
    if (ec_A < 1)
       {
         MORE_ERROR() << "the left argument of A ⍸ B is empty";
@@ -45,8 +45,8 @@ const ShapeItem ec_A = A->element_count();
 
    for(ShapeItem a = 1; a < ec_A; ++a)
        {
-         const Cell & c1 = A->get_cravel(a-1);
-         const Cell & c2 = A->get_cravel(a);
+         const Cell & c1 = A.get_cravel(a-1);
+         const Cell & c2 = A.get_cravel(a);
          const Comp_result c1_c2 = c1.compare(c2);
          if (c1_c2 != COMP_LT)
             {
@@ -58,14 +58,14 @@ const ShapeItem ec_A = A->element_count();
 
    // from here on nothing can fail.
    //
-Value_P Z(B->get_shape(), LOC);
-const ShapeItem ec_B = B->element_count();
-const Cell * cells_A = &A->get_cfirst();
+Value_P Z(B.get_shape(), LOC);
+const ShapeItem ec_B = B.element_count();
+const Cell * cells_A = &A.get_cfirst();
 const APL_Integer qio = Workspace::get_IO();
 
    loop(b, ec_B)
       {
-        const ShapeItem z = find_range(B->get_cravel(b), cells_A, ec_A);
+        const ShapeItem z = find_range(B.get_cravel(b), cells_A, ec_A);
         Z->next_ravel_Int(z + qio);
       }
 
@@ -83,23 +83,23 @@ const APL_Integer qio = Workspace::get_IO();
  **/
 
 Token
-Bif_F12_INTERVAL_INDEX::eval_B(Value_P B) const
+Bif_F12_INTERVAL_INDEX::eval_B(cValue_R B) const
 {
    // B must be boolean. Che that and count the number of 1s in B.
    //
 const APL_Integer qio = Workspace::get_IO();
-const ShapeItem ec_B = B->element_count();
+const ShapeItem ec_B = B.element_count();
 ShapeItem count = 0;
    loop(b, ec_B)
        {
-         const Cell & cell = B->get_cravel(b);
+         const Cell & cell = B.get_cravel(b);
          if (!cell.is_near_int())
             {
               MORE_ERROR() << "non-integer item in the argument of monadic ⍸";
               DOMAIN_ERROR;
             }
 
-          const APL_Integer Bi = B->get_cravel(b).get_near_int();
+          const APL_Integer Bi = B.get_cravel(b).get_near_int();
           if (Bi < 0)
             {
               MORE_ERROR() << "negative item in the argument of monadic ⍸";
@@ -111,14 +111,14 @@ ShapeItem count = 0;
 
 Value_P Z(count, LOC);
 
-const uRank rank = B->get_rank();
+const uRank rank = B.get_rank();
    loop(b, ec_B)
        {
-         const Cell & cell = B->get_cravel(b);
+         const Cell & cell = B.get_cravel(b);
          const APL_Integer Bi = cell.get_near_int();   // number of repetitions
          if (!Bi)   continue;   // nothing to do
 
-        const Shape sh_b = B->get_shape().offset_to_index(b, qio);
+        const Shape sh_b = B.get_shape().offset_to_index(b, qio);
         Assert(sh_b.get_rank() == rank);
          loop(rep, Bi)
              {

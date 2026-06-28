@@ -80,11 +80,11 @@ protected:
    /// overloaded Function::eval_AB()
    /// @param A left argument APL value
    /// @param B right argument APL value
-   Token eval_AB(Value_P A, Value_P B) const;
+   Token eval_AB(cValue_R A, cValue_R B) const;
 
    /// overloaded Function::eval_B()
    /// @param B right argument APL value
-   Token eval_B(Value_P B) const;
+   Token eval_B(cValue_R B) const;
 
    /// control logging etc. of ⎕PNG
    /// @param B integer control code
@@ -113,7 +113,7 @@ protected:
    /// @param bit_depth PNG bit depth for the output file
    /// @param B         APL pixel matrix to write
    static void write_PNG_file(const char * filename, int bit_depth,
-                              const Value & B);
+                              const cValue & B);
 };
 //════════════════════════════════════════════════════════════════════════════
 

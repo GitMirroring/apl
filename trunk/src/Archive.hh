@@ -115,14 +115,14 @@ public:
          /// constructor
          /// @param v pointer to the APL value
          /// @param par value ID of the parent, or INVALID_VID for top-level
-         _val_par(const Value * v, Vid par)
+         _val_par(const cValue * v, Vid par)
          : _val(v),
            _par(par),
            _depth(v->compute_depth())
          {}
 
          /// the value
-         const Value * _val;
+         const cValue * _val;
 
          /// the optional parent, -1 for top-level values
          Vid _par;
@@ -145,7 +145,7 @@ public:
          /// compare function for binary searches.
          /// @param key value pointer to search for
          /// @param B element to compare against
-         static int compare(const Value * const & key,
+         static int compare(const cValue * const & key,
                             const _val_par & B, const void *)
             {
               /* CAUTION: Cannot use int64_t(key) - int64_t(B._val) here
@@ -258,7 +258,7 @@ protected:
 
    /// return the index of \b val in values
    /// @param val pointer to the APL value to look up
-   Vid find_vid(const Value * val);
+   Vid find_vid(const cValue * val);
 
    void write_XML_header();
 

@@ -462,5 +462,5 @@ Quick smoke test in the APL session:
 ⎕←⎕IO ⎕CT ⎕PP
 ----
 
-`)lib` should list `wslib1` through `wslib9`; `)copy 3 meta` tests the
+`)lib` should list `wslib1` through `wslib5`; `)copy 3 meta` tests the
 library path via `wslib3/meta.apl`; the last line reads back system variables.

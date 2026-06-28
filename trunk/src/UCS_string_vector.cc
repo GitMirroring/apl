@@ -29,7 +29,7 @@
 
 
 //════════════════════════════════════════════════════════════════════════════
-UCS_string_vector::UCS_string_vector(const Value & val, bool surrogate)
+UCS_string_vector::UCS_string_vector(const cValue & val, bool surrogate)
 {
   // val is a simple text matrix with var_count rows and name_len columns.
   // Each row of val is one or two variable names.

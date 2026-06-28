@@ -317,7 +317,7 @@ UCS_string ucs(pb, 0, Workspace::get_PW());
 }
 //════════════════════════════════════════════════════════════════════════════
 ErrorCode
-Cell::sorted_indices(vector<ShapeItem> & indices, const Value & value,
+Cell::sorted_indices(vector<ShapeItem> & indices, const cValue & value,
                      Sort_order order, ShapeItem comp_len)
 {
    Assert(indices.size() == 0);   // initially empty, filled by this function

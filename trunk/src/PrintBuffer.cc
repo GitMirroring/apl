@@ -93,7 +93,7 @@ PrintBuffer::PrintBuffer(const UCS_string & ucs, const ColInfo & ci)
    buffer.push_back(ucs);
 }
 //────────────────────────────────────────────────────────────────────────────
-PrintBuffer::PrintBuffer(const Value & value, const PrintContext & _pctx,
+PrintBuffer::PrintBuffer(const cValue & value, const PrintContext & _pctx,
                          ostream * out)
    : complete(false)
 {
@@ -216,7 +216,7 @@ PrintBuffer * item_matrix = 0;
 }
 //────────────────────────────────────────────────────────────────────────────
 bool
-PrintBuffer::do_PrintBuffer(const Value & value, const PrintContext & pctx,
+PrintBuffer::do_PrintBuffer(const cValue & value, const PrintContext & pctx,
                             ostream * out, PrintStyle outer_style,
                             PrintBuffer * item_matrix)
 {
@@ -292,7 +292,7 @@ vector<PrintBuffer> pcols;    pcols.reserve(cols);
 
               if (cell.is_pointer_cell())
                  {
-                   const Value * sub_val = cell.get_pointer_value().get();
+                   const cValue * sub_val = cell.get_pointer_value().get();
                    const sRank sub_rank = sub_val->get_rank();
                    if (max_row_ranks.back() < sub_rank)
                       max_row_ranks.back() = sub_rank;
@@ -497,7 +497,7 @@ vector<PrintBuffer> pcols;    pcols.reserve(cols);
 }
 //════════════════════════════════════════════════════════════════════════════
 void
-PrintBuffer::pb_for_function(const Value & value, PrintContext pctx, 
+PrintBuffer::pb_for_function(const cValue & value, PrintContext pctx, 
                              PrintStyle outer_style)
 {
 const ShapeItem ec = value.element_count();
@@ -531,7 +531,7 @@ ColInfo ci;
 }
 //────────────────────────────────────────────────────────────────────────────
 void
-PrintBuffer::pb_empty(const Value & value, PrintContext pctx, 
+PrintBuffer::pb_empty(const cValue & value, PrintContext pctx, 
                              PrintStyle outer_style)
 {
    if (value.get_rank() == 1)   // vector: 1 line
@@ -1429,7 +1429,7 @@ UCS_string new_buf(buffer[0], 0, col_info.int_len);
 }
 //────────────────────────────────────────────────────────────────────────────
 ShapeItem
-PrintBuffer::separator_rows(ShapeItem y, const Value & value, bool nested,
+PrintBuffer::separator_rows(ShapeItem y, const cValue & value, bool nested,
                             sRank rk1, sRank rk2)
 {
    if (y == 0)   return 0;

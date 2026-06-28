@@ -254,16 +254,16 @@ const string driver_attr = w_props->get_gui_driver();
 }
 //────────────────────────────────────────────────────────────────────────────
 Token
-Quad_PLOT::eval_AB(Value_P A, Value_P B) const
+Quad_PLOT::eval_AB(cValue_R A, cValue_R B) const
 {
    CHECK_SECURITY(disable_Quad_PLOT);
 
-   if (B->get_rank() > 3)        RANK_ERROR;
-   if (B->element_count() < 2)   LENGTH_ERROR;
+   if (B.get_rank() > 3)        RANK_ERROR;
+   if (B.element_count() < 2)   LENGTH_ERROR;
 
    // plot window with default attributes
    //
-Plot_data * data = setup_data(*B);
+Plot_data * data = setup_data(B);
    if (data == 0)   DOMAIN_ERROR;
 
 Plot_window_properties * w_props = new Plot_window_properties(data, verbosity);
@@ -279,7 +279,7 @@ Plot_window_properties * w_props = new Plot_window_properties(data, verbosity);
    // from here on 'data' is owned by 'w_props' (whose destructor
    // will delete it).
    //
-   if (const ErrorCode ec = parse_attributes(*A, w_props))
+   if (const ErrorCode ec = parse_attributes(A, w_props))
       {
         delete w_props;
         throw_apl_error(ec, LOC);
@@ -331,30 +331,30 @@ const APL_Integer Z = do_plot_data(w_props, data);
 }
 //────────────────────────────────────────────────────────────────────────────
 Token
-Quad_PLOT::eval_B(Value_P B) const
+Quad_PLOT::eval_B(cValue_R B) const
 {
    CHECK_SECURITY(disable_Quad_PLOT);
 
-   if (B->get_rank() == 0 && !B->get_cfirst().is_pointer_cell())
+   if (B.get_rank() == 0 && !B.get_cfirst().is_pointer_cell())
       {
         // scalar (integer) argument: window control and logging
         //
-        const APL_Integer B0 = B->get_cscalar().get_int_value();
+        const APL_Integer B0 = B.get_cscalar().get_int_value();
         Value_P Z = window_control(B0);
         return Token(TOK_APL_VALUE1, Z);
       }
 
-   if (B->get_rank() == 1 && B->element_count() == 0)
+   if (B.get_rank() == 1 && B.element_count() == 0)
       {
         help();
         return Token(TOK_APL_VALUE1, Idx0(LOC));
       }
 
-   if (B->get_rank() > 3)   RANK_ERROR;
+   if (B.get_rank() > 3)   RANK_ERROR;
 
    // plot window with default attributes
    //
-Plot_data * data = setup_data(*B);
+Plot_data * data = setup_data(B);
    if (data == 0)   DOMAIN_ERROR;
 
 Plot_window_properties * w_props = new Plot_window_properties(data, verbosity);
@@ -572,7 +572,7 @@ const APL_Integer Z = ++next_handle;
 }
 //────────────────────────────────────────────────────────────────────────────
 Plot_data *
-Quad_PLOT::setup_data(const Value & B)
+Quad_PLOT::setup_data(const cValue & B)
 {
    /** check data. We expect B to be either:
 
@@ -583,7 +583,7 @@ Quad_PLOT::setup_data(const Value & B)
        3.  a 3-dimensional real vector for surface plots
     **/
 
-const Value * pB = &B;
+const cValue * pB = &B;
    if (B.is_scalar())   // case 2a. → 1a. by disclosing scalar B
       {
         if (!B.get_cfirst().is_pointer_cell())   DOMAIN_ERROR;
@@ -596,7 +596,7 @@ const Value * pB = &B;
 }
 //────────────────────────────────────────────────────────────────────────────
 Plot_data *
-Quad_PLOT::setup_data_3D(const Value & B)
+Quad_PLOT::setup_data_3D(const cValue & B)
 {
    /** initialize the data for a 3D (surface-) plot. B is the right argument
        of ⎕PLOT B or A ⎕PLOT B and can be:
@@ -748,7 +748,7 @@ const ShapeItem data_points = rows * cols;
 }
 //────────────────────────────────────────────────────────────────────────────
 Plot_data *
-Quad_PLOT::setup_data_2D(const Value & B)
+Quad_PLOT::setup_data_2D(const cValue & B)
 {
    /** initialize the data for a 2D plot. B is the right argument
        of ⎕PLOT B or A ⎕PLOT B and contains the plot coordinates of
@@ -809,7 +809,7 @@ Plot_data * data = new Plot_data(rows_B);
 }
 //════════════════════════════════════════════════════════════════════════════
 Plot_data *
-Quad_PLOT::setup_data_2D_2b(const Value & B)
+Quad_PLOT::setup_data_2D_2b(const cValue & B)
 {
    /** initialize the data for a 2D plot. B is the right argument
        of ⎕PLOT B or A ⎕PLOT B and contains the plot lines as nested
@@ -823,7 +823,7 @@ ShapeItem data_points = 0;
 const ShapeItem rows = B.element_count();   // number of plot rows
    loop(r, rows)
        {
-         const Value * vrow = B.get_cravel(r).get_pointer_value().get();
+         const cValue * vrow = B.get_cravel(r).get_pointer_value().get();
          if (vrow->get_rank() > 1)   RANK_ERROR;
          const ShapeItem row_len = vrow->element_count();
          data_points += row_len;
@@ -843,7 +843,7 @@ const APL_Integer qio = Workspace::get_IO();
 
    loop(r, rows)
        {
-         const Value * vrow = B.get_cravel(r).get_pointer_value().get();
+         const cValue * vrow = B.get_cravel(r).get_pointer_value().get();
          loop(v, vrow->element_count())
              {
                const Cell & cB = vrow->get_cravel(v);
@@ -868,7 +868,7 @@ Plot_data * data = new Plot_data(rows);
          const double * pX = X + idx;
          const double * pY = Y + idx;
          const double * pZ = Z + idx;
-         const Value * vrow = B.get_cravel(r).get_pointer_value().get();
+         const cValue * vrow = B.get_cravel(r).get_pointer_value().get();
          const ShapeItem row_len = vrow->element_count();
          const Plot_data_row * pdr = new Plot_data_row(pX, pY, pZ, r,
                                                             row_len);
@@ -880,7 +880,7 @@ Plot_data * data = new Plot_data(rows);
 }
 //════════════════════════════════════════════════════════════════════════════
 ErrorCode
-Quad_PLOT::parse_attributes(const Value & A, Plot_window_properties * w_props)
+Quad_PLOT::parse_attributes(const cValue & A, Plot_window_properties * w_props)
 {
    if (A.is_member())   // new-style attributes
       {
@@ -922,7 +922,7 @@ const APL_Integer qio = Workspace::get_IO();
                return E_DOMAIN_ERROR;
             }
 
-         const Value * attr = cell_A.get_pointer_value().get();
+         const cValue * attr = cell_A.get_pointer_value().get();
          if (!attr->is_char_string())
             {
                MORE_ERROR() << "A[" << (a + qio)

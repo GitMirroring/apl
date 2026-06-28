@@ -159,7 +159,7 @@ UCS_string ind(indent, UNI_SPACE);
 }
 //════════════════════════════════════════════════════════════════════════════
 Token
-Derived_LO_D_RO::eval_AB(Value_P A, Value_P B) const
+Derived_LO_D_RO::eval_AB(cValue_R A, cValue_R B) const
 {
    Log(LOG_FunOperX)   entering("Derived_LO_D_RO", "eval_AB");
 
@@ -169,7 +169,7 @@ Token & right = const_cast<Token &>(right_arg);
 }
 //────────────────────────────────────────────────────────────────────────────
 Token
-Derived_LO_D_RO::eval_B(Value_P B) const
+Derived_LO_D_RO::eval_B(cValue_R B) const
 {
    Log(LOG_FunOperX)   entering("Derived_LO_D_RO", "eval_B");
 
@@ -179,7 +179,7 @@ Token & right = const_cast<Token &>(right_arg);
 }
 //────────────────────────────────────────────────────────────────────────────
 Token
-Derived_LO_D_RO::eval_AXB(Value_P A, Value_P X, Value_P B) const
+Derived_LO_D_RO::eval_AXB(cValue_R A, cValue_R X, cValue_R B) const
 {
    Log(LOG_FunOperX)   entering("Derived_LO_D_RO", "eval_AXB");
 
@@ -189,7 +189,7 @@ Token & right = const_cast<Token &>(right_arg);
 }
 //────────────────────────────────────────────────────────────────────────────
 Token
-Derived_LO_D_RO::eval_XB(Value_P X, Value_P B) const
+Derived_LO_D_RO::eval_XB(cValue_R X, cValue_R B) const
 {
    Log(LOG_FunOperX)   entering("Derived_LO_D_RO", "eval_XB");
 
@@ -199,27 +199,27 @@ Token & right = const_cast<Token &>(right_arg);
 }
 //════════════════════════════════════════════════════════════════════════════
 Token
-Derived_LO_D_X_RO::eval_AB(Value_P A, Value_P B) const
+Derived_LO_D_X_RO::eval_AB(cValue_R A, cValue_R B) const
 {
    Log(LOG_FunOperX)   entering("Derived_LO_D_X_RO", "eval_AB");
 
 Token & left  = const_cast<Token &>(left_arg);
 Token & right = const_cast<Token &>(right_arg);
-   return oper->eval_ALRXB(A, left, right, axis, B);
+   return oper->eval_ALRXB(A, left, right, *axis, B);
 }
 //────────────────────────────────────────────────────────────────────────────
 Token
-Derived_LO_D_X_RO::eval_B(Value_P B) const
+Derived_LO_D_X_RO::eval_B(cValue_R B) const
 {
    Log(LOG_FunOperX)   entering("Derived_LO_D_X_RO", "eval_B");
 
 Token & left  = const_cast<Token &>(left_arg);
 Token & right = const_cast<Token &>(right_arg);
-   return oper->eval_LRXB(left, right, axis, B);
+   return oper->eval_LRXB(left, right, *axis, B);
 }
 //════════════════════════════════════════════════════════════════════════════
 Token
-Derived_LO_M::eval_AB(Value_P A, Value_P B) const
+Derived_LO_M::eval_AB(cValue_R A, cValue_R B) const
 {
    Log(LOG_FunOperX)   entering("Derived_LO_M", "eval_AB");
 
@@ -227,18 +227,18 @@ Derived_LO_M::eval_AB(Value_P A, Value_P B) const
       {
         Token & left  = const_cast<Token &>(left_arg);
         if (!axis)   return oper->eval_ALB(A, left, B);
-        else         return oper->eval_ALXB(A, left, axis, B);
+        else         return oper->eval_ALXB(A, left, *axis, B);
       }
    else
       {
         Value_P A = left_arg.get_apl_val();
-        if (!axis)   return oper->eval_AB(A, B);
-        else         return oper->eval_AXB(A, axis, B);
+        if (!axis)   return oper->eval_AB(*A, B);
+        else         return oper->eval_AXB(*A, *axis, B);
       }
 }
 //────────────────────────────────────────────────────────────────────────────
 Token
-Derived_LO_M::eval_B(Value_P B) const
+Derived_LO_M::eval_B(cValue_R B) const
 {
    Log(LOG_FunOperX)   entering("Derived_LO_M", "eval_B");
 
@@ -254,19 +254,19 @@ Derived_LO_M::eval_B(Value_P B) const
            {
              Token & left = const_cast<Token &>(left_arg);
              if (!axis)   return oper->eval_LB(left, B);
-             else         return oper->eval_LXB(left, axis, B);
+             else         return oper->eval_LXB(left, *axis, B);
            }
         else                         // operator with left value operand
            {
              Value_P A = left_arg.get_apl_val();
-             if (!axis)   return oper->eval_AB(A, B);
-             else         return oper->eval_AXB(A, axis, B);
+             if (!axis)   return oper->eval_AB(*A, B);
+             else         return oper->eval_AXB(*A, *axis, B);
            }
       }
 }
 //────────────────────────────────────────────────────────────────────────────
 Token
-Derived_LO_M::eval_AXB(Value_P A, Value_P X, Value_P B) const
+Derived_LO_M::eval_AXB(cValue_R A, cValue_R X, cValue_R B) const
 {
    Log(LOG_FunOperX)   entering("Derived_LO_M", "eval_AXB");
 
@@ -275,7 +275,7 @@ Token & left  = const_cast<Token &>(left_arg);
 }
 //────────────────────────────────────────────────────────────────────────────
 Token
-Derived_LO_M::eval_XB(Value_P X, Value_P B) const
+Derived_LO_M::eval_XB(cValue_R X, cValue_R B) const
 {
    Log(LOG_FunOperX)   entering("Derived_LO_M", "eval_XB");
 
@@ -283,18 +283,18 @@ Derived_LO_M::eval_XB(Value_P X, Value_P B) const
       {
         Token & left = const_cast<Token &>(left_arg);
         if (!axis)   return oper->eval_LB(left, B);
-        else         return oper->eval_LXB(left, axis, B);
+        else         return oper->eval_LXB(left, *axis, B);
       }
    else                         // operator with left value operand
       {
         Value_P A = left_arg.get_apl_val();
-        if (!axis)   return oper->eval_AB(A, B);
-        else         return oper->eval_AXB(A, axis, B);
+        if (!axis)   return oper->eval_AB(*A, B);
+        else         return oper->eval_AXB(*A, *axis, B);
       }
 }
 //════════════════════════════════════════════════════════════════════════════
 Token
-Derived_LO_M_X::eval_AB(Value_P A, Value_P B) const
+Derived_LO_M_X::eval_AB(cValue_R A, cValue_R B) const
 {
    Log(LOG_FunOperX)   entering("Derived_LO_M_X", "eval_AB");
 
@@ -302,18 +302,18 @@ Derived_LO_M_X::eval_AB(Value_P A, Value_P B) const
       {
         Token & LO  = const_cast<Token &>(left_arg);
         if (!axis)   return oper->eval_ALB(A, LO, B);
-        else         return oper->eval_ALXB(A, LO, axis, B);
+        else         return oper->eval_ALXB(A, LO, *axis, B);
       }
    else
       {
         Value_P A = left_arg.get_apl_val();
-        if (!axis)   return oper->eval_AB(A, B);
-        else         return oper->eval_AXB(A, axis, B);
+        if (!axis)   return oper->eval_AB(*A, B);
+        else         return oper->eval_AXB(*A, *axis, B);
       }
 }
 //────────────────────────────────────────────────────────────────────────────
 Token
-Derived_LO_M_X::eval_B(Value_P B) const
+Derived_LO_M_X::eval_B(cValue_R B) const
 {
    Log(LOG_FunOperX)   entering("Derived_LO_M_X", "eval_B");
 
@@ -321,18 +321,18 @@ Derived_LO_M_X::eval_B(Value_P B) const
       {
         Token & left = const_cast<Token &>(left_arg);
         if (!axis)   return oper->eval_LB(left, B);
-        else         return oper->eval_LXB(left, axis, B);
+        else         return oper->eval_LXB(left, *axis, B);
       }
    else                         // operator with left value operand
       {
         Value_P A = left_arg.get_apl_val();
-        if (!axis)   return oper->eval_AB(A, B);
-        else         return oper->eval_AXB(A, axis, B);
+        if (!axis)   return oper->eval_AB(*A, B);
+        else         return oper->eval_AXB(*A, *axis, B);
       }
 }
 //────────────────────────────────────────────────────────────────────────────
 Token
-Derived_LO_M_X::eval_AXB(Value_P A, Value_P X, Value_P B) const
+Derived_LO_M_X::eval_AXB(cValue_R A, cValue_R X, cValue_R B) const
 {
    Log(LOG_FunOperX)   entering("Derived_LO_M_X", "eval_AXB");
 
@@ -341,7 +341,7 @@ Token & left  = const_cast<Token &>(left_arg);
 }
 //────────────────────────────────────────────────────────────────────────────
 Token
-Derived_LO_M_X::eval_XB(Value_P X, Value_P B) const
+Derived_LO_M_X::eval_XB(cValue_R X, cValue_R B) const
 {
    Log(LOG_FunOperX)   entering("Derived_LO_M_X", "eval_XB");
 
@@ -349,30 +349,30 @@ Derived_LO_M_X::eval_XB(Value_P X, Value_P B) const
       {
         Token & left = const_cast<Token &>(left_arg);
         if (!axis)   return oper->eval_LB(left, B);
-        else         return oper->eval_LXB(left, axis, B);
+        else         return oper->eval_LXB(left, *axis, B);
       }
    else                         // operator with left value operand
       {
         Value_P A = left_arg.get_apl_val();
-        if (!axis)   return oper->eval_AB(A, B);
-        else         return oper->eval_AXB(A, axis, B);
+        if (!axis)   return oper->eval_AB(*A, B);
+        else         return oper->eval_AXB(*A, *axis, B);
       }
 }
 //════════════════════════════════════════════════════════════════════════════
 Token
-Derived_F_X::eval_AB(Value_P A, Value_P B) const
+Derived_F_X::eval_AB(cValue_R A, cValue_R B) const
 {
    Log(LOG_FunOperX)   entering("Derived_F_X", "eval_AB");
 
-   return oper->eval_AXB(A, axis, B);
+   return oper->eval_AXB(A, *axis, B);
 }
 //────────────────────────────────────────────────────────────────────────────
 Token
-Derived_F_X::eval_B(Value_P B) const
+Derived_F_X::eval_B(cValue_R B) const
 {
    Log(LOG_FunOperX)   entering("Derived_F_X", "eval_B");
 
-   return oper->eval_XB(axis, B);
+   return oper->eval_XB(*axis, B);
 }
 //════════════════════════════════════════════════════════════════════════════
 DerivedFunctionCache::DerivedFunctionCache()

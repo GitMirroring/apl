@@ -36,11 +36,10 @@ enum { SMALL_BUF = Quad_FIO::SMALL_BUF };
 extern "C" void * get_function_mux(const char * function_name);
 static Fun_signature get_signature();
 static bool close_fun(Cause cause,          const NativeFunction * caller);
-static Token eval_B  (Value_P B,            const NativeFunction * caller);
-static Token eval_AB (Value_P A, Value_P B, const NativeFunction * caller);
-static Token eval_XB (Value_P X, Value_P B, const NativeFunction * caller);
-static Token eval_AXB(Value_P A, Value_P X,
-                      Value_P B,            const NativeFunction * caller);
+static Token eval_B  (const cValue * B,                           const NativeFunction * caller);
+static Token eval_AB (Value_P A, Value_P B,                      const NativeFunction * caller);
+static Token eval_XB (const cValue * X, const cValue * B,          const NativeFunction * caller);
+static Token eval_AXB(const cValue * A, const cValue * X, const cValue * B,            const NativeFunction * caller);
 
 void *
 get_function_mux(const char * function_name)
@@ -173,32 +172,32 @@ list_functions(ostream & out)
 }
 //════════════════════════════════════════════════════════════════════════════
 Token
-eval_B(Value_P B, const NativeFunction * caller)
+eval_B(const cValue * B, const NativeFunction * caller)
 {
    if (B->get_rank() > 1)   RANK_ERROR;
 
    if (!B->get_cravel(0).is_integer_cell())     return list_functions(COUT);
 
-   return Quad_FIO::fun.eval_B(B);
+   return Quad_FIO::fun.eval_B(*B);
 }
 //════════════════════════════════════════════════════════════════════════════
 Token
 eval_AB(Value_P A, Value_P B, const NativeFunction * caller)
 {
-   return Quad_FIO::fun.eval_AB(A, B);
+   return Quad_FIO::fun.eval_AB(*A, *B);
 }
 //════════════════════════════════════════════════════════════════════════════
 Token
-eval_XB(Value_P X, Value_P B, const NativeFunction * caller)
+eval_XB(const cValue * X, const cValue * B, const NativeFunction * caller)
 {
-   return Quad_FIO::fun.eval_XB(X, B);
+   return Quad_FIO::fun.eval_XB(*X, *B);
 }
 //════════════════════════════════════════════════════════════════════════════
 Token
-eval_AXB(const Value_P A, const Value_P X, const Value_P B,
+eval_AXB(const cValue * A, const cValue * X, const cValue * B,
          const NativeFunction * caller)
 {
-   return Quad_FIO::fun.eval_AXB(A, X, B);
+   return Quad_FIO::fun.eval_AXB(*A, *X, *B);
 }
 //════════════════════════════════════════════════════════════════════════════
 

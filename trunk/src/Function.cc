@@ -123,7 +123,7 @@ FunctionGroup::subfun_to_axis(const UCS_string & subfun_name) const
 }
 //────────────────────────────────────────────────────────────────────────────
 sAxis
-FunctionGroup::value_to_subfun(const Value & A_or_X) const
+FunctionGroup::value_to_subfun(const cValue & A_or_X) const
 {
    if (A_or_X.is_int_scalar())   // function number
       {
@@ -296,81 +296,81 @@ Function::eval_() const
 }
 //────────────────────────────────────────────────────────────────────────────
 Token
-Function::eval_AB(Value_P A, Value_P B) const
+Function::eval_AB(cValue_R A, cValue_R B) const
 {
    return phrase_error("AB");
 }
 //────────────────────────────────────────────────────────────────────────────
 Token
-Function::eval_ALB(Value_P A, Token & LO, Value_P B) const
+Function::eval_ALB(cValue_R A, Token & LO, cValue_R B) const
 {
    return phrase_error("ALB");
 }
 //────────────────────────────────────────────────────────────────────────────
 Token
-Function::eval_ALRB(Value_P A, Token & LO, Token & RO, Value_P B) const
+Function::eval_ALRB(cValue_R A, Token & LO, Token & RO, cValue_R B) const
 {
    return phrase_error("ALRB");
 }
 //────────────────────────────────────────────────────────────────────────────
 Token
-Function::eval_ALRXB(Value_P A, Token & LO, Token & RO,
-                     Value_P X, Value_P B) const
+Function::eval_ALRXB(cValue_R A, Token & LO, Token & RO,
+                     cValue_R X, cValue_R B) const
 {
    return phrase_error("ALRXB");
 }
 //────────────────────────────────────────────────────────────────────────────
 Token
-Function::eval_ALXB(Value_P A, Token & LO, Value_P X, Value_P B) const
+Function::eval_ALXB(cValue_R A, Token & LO, cValue_R X, cValue_R B) const
 {
    return phrase_error("ALXB");
 }
 //────────────────────────────────────────────────────────────────────────────
 Token
-Function::eval_AXB(Value_P A, Value_P X, Value_P B) const
+Function::eval_AXB(cValue_R A, cValue_R X, cValue_R B) const
 {
    return phrase_error("AXB");
 }
 //────────────────────────────────────────────────────────────────────────────
 Token
-Function::eval_B(Value_P B) const
+Function::eval_B(cValue_R B) const
 {
    return phrase_error("B");
 }
 //────────────────────────────────────────────────────────────────────────────
 Token
-Function::eval_LB(Token & LO, Value_P B) const
+Function::eval_LB(Token & LO, cValue_R B) const
 {
    return phrase_error("LB");
 }
 //────────────────────────────────────────────────────────────────────────────
 Token
-Function::eval_LRB(Token & LO, Token & RO, Value_P B) const
+Function::eval_LRB(Token & LO, Token & RO, cValue_R B) const
 {
    return phrase_error("LRB");
 }
 //────────────────────────────────────────────────────────────────────────────
 Token
 Function::eval_LRXB(Token & LO, Token & RO,
-                     Value_P X, Value_P B) const
+                     cValue_R X, cValue_R B) const
 {
    return phrase_error("LRXB");
 }
 //────────────────────────────────────────────────────────────────────────────
 Token
-Function::eval_LXB(Token & LO, Value_P X, Value_P B) const
+Function::eval_LXB(Token & LO, cValue_R X, cValue_R B) const
 {
    return phrase_error("LXB");
 }
 //────────────────────────────────────────────────────────────────────────────
 Token
-Function::eval_XB(Value_P X, Value_P B) const
+Function::eval_XB(cValue_R X, cValue_R B) const
 {
    return phrase_error("XB");
 }
 //────────────────────────────────────────────────────────────────────────────
 Token
-Function::eval_fill_AB(Value_P A, Value_P B) const
+Function::eval_fill_AB(cValue_R A, cValue_R B) const
 {
   MORE_ERROR() << "Function " << get_name() 
                      << " has no dyadic fill function";
@@ -379,7 +379,7 @@ Function::eval_fill_AB(Value_P A, Value_P B) const
 }
 //────────────────────────────────────────────────────────────────────────────
 Token
-Function::eval_fill_B(Value_P B) const
+Function::eval_fill_B(cValue_R B) const
 {
   MORE_ERROR() << "Function " << get_name() 
                      << " has no monadic fill function";
@@ -388,7 +388,7 @@ Function::eval_fill_B(Value_P B) const
 }
 //────────────────────────────────────────────────────────────────────────────
 Token
-Function::eval_identity_fun(Value_P B, sAxis axis) const
+Function::eval_identity_fun(cValue_R B, sAxis axis) const
 {
   MORE_ERROR() << "Function " << get_name() 
                      << " has no identity function";

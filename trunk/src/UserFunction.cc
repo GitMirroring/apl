@@ -122,13 +122,15 @@ UserFunction::eval_() const
 }
 //────────────────────────────────────────────────────────────────────────────
 Token
-UserFunction::eval_AB(Value_P A, Value_P B) const
+UserFunction::eval_AB(cValue_R A, cValue_R B) const
 {
    Log(LOG_UserFunction__enter_leave)
       {
         CERR << "Function " << get_name() << " calls eval_AB("
-             << Token(TOK_APL_VALUE1, A) << ", "
-             << Token(TOK_APL_VALUE1, B) << ")" << endl;
+             << Token(TOK_APL_VALUE1, CLONE(&A, LOC))
+             << ", "
+             << Token(TOK_APL_VALUE1, CLONE(&B, LOC))
+             << ")" << endl;
       }
 
    if (header.LO())    SYNTAX_ERROR;    // defined as operator
@@ -137,9 +139,9 @@ UserFunction::eval_AB(Value_P A, Value_P B) const
    Workspace::push_SI(this, LOC);
 
    if (header.Z())   header.Z()->push();
-   if (header.A())   header.A()->push_value(A);
+   if (header.A())   header.A()->push_value(CLONE(&A, LOC));
    if (header.X())   header.X()->push();
-   if (header.B())   header.B()->push_value(B);
+   if (header.B())   header.B()->push_value(CLONE(&B, LOC));
 
    header.eval_common();
 
@@ -147,14 +149,14 @@ UserFunction::eval_AB(Value_P A, Value_P B) const
 }
 //────────────────────────────────────────────────────────────────────────────
 Token
-UserFunction::eval_ALB(Value_P A, Token & LO, Value_P B) const
+UserFunction::eval_ALB(cValue_R A, Token & LO, cValue_R B) const
 {
    Log(LOG_UserFunction__enter_leave)
       {
         CERR << "Function " << get_name() << " calls " << __FUNCTION__ << "("
-             << Token(TOK_APL_VALUE1, A) << ", " << endl;
+             << Token(TOK_APL_VALUE1, CLONE(&A, LOC)) << ", " << endl;
         print_val_or_fun(CERR, LO) << ", "
-             << Token(TOK_APL_VALUE1, B) << ")" << endl;
+             << Token(TOK_APL_VALUE1, CLONE(&B, LOC)) << ")" << endl;
       }
 
    if (header.RO())    SYNTAX_ERROR;    // defined as dyadic operator
@@ -165,10 +167,10 @@ UserFunction::eval_ALB(Value_P A, Token & LO, Value_P B) const
    if (header.X())         header.X()->push();
 
    if (header.Z())         header.Z()->push();
-   /* ALWAYS */            header.A()->push_value(A);
+   /* ALWAYS */            header.A()->push_value(CLONE(&A, LOC));
    if (LO.is_function())   header.LO()->push_function(LO.get_function());
    else                    header.LO()->push_value(LO.get_apl_val());
-   /* ALWAYS */            header.B()->push_value(B);
+   /* ALWAYS */            header.B()->push_value(CLONE(&B, LOC));
 
    header.eval_common();
 
@@ -176,15 +178,15 @@ UserFunction::eval_ALB(Value_P A, Token & LO, Value_P B) const
 }
 //────────────────────────────────────────────────────────────────────────────
 Token
-UserFunction::eval_ALRB(Value_P A, Token & LO, Token & RO, Value_P B) const
+UserFunction::eval_ALRB(cValue_R A, Token & LO, Token & RO, cValue_R B) const
 {
    Log(LOG_UserFunction__enter_leave)
       {
         CERR << "Function " << get_name() << " calls " << __FUNCTION__ << "("
-             << Token(TOK_APL_VALUE1, A) << ", " << endl;
+             << Token(TOK_APL_VALUE1, CLONE(&A, LOC)) << ", " << endl;
         print_val_or_fun(CERR, LO) << ", ";
         print_val_or_fun(CERR, RO) << ", "
-             << Token(TOK_APL_VALUE1, B) << ")" << endl;
+             << Token(TOK_APL_VALUE1, CLONE(&B, LOC)) << ")" << endl;
       }
 
    if (!header.RO())    SYNTAX_ERROR;   // defined monadic op called dyadically
@@ -194,13 +196,13 @@ UserFunction::eval_ALRB(Value_P A, Token & LO, Token & RO, Value_P B) const
 
    if (header.Z())         header.Z()->push();
 
-   header                        .A()->push_value(A);
+   header                        .A()->push_value(CLONE(&A, LOC));
    if (LO.is_function())   header.LO()->push_function(LO.get_function());
    else                    header.LO()->push_value(LO.get_apl_val());
    if (RO.is_function())   header.RO()->push_function(RO.get_function());
    else                    header.RO()->push_value(RO.get_apl_val());
    if (header.X())         header.X()->push();
-   header                        .B()->push_value(B);
+   header                        .B()->push_value(CLONE(&B, LOC));
 
    header.eval_common();
 
@@ -208,17 +210,17 @@ UserFunction::eval_ALRB(Value_P A, Token & LO, Token & RO, Value_P B) const
 }
 //────────────────────────────────────────────────────────────────────────────
 Token
-UserFunction::eval_ALRXB(Value_P A, Token & LO, Token & RO,
-                         Value_P X, Value_P B) const
+UserFunction::eval_ALRXB(cValue_R A, Token & LO, Token & RO,
+                         cValue_R X, cValue_R B) const
 {
    Log(LOG_UserFunction__enter_leave)
       {
         CERR << "Function " << get_name() << " calls " << __FUNCTION__ << "("
-             << Token(TOK_APL_VALUE1, A) << ", " << endl;
+             << Token(TOK_APL_VALUE1, CLONE(&A, LOC)) << ", " << endl;
         print_val_or_fun(CERR, LO) << ", ";
         print_val_or_fun(CERR, RO) << ", "
-             << Token(TOK_APL_VALUE1, X) << ", "
-             << Token(TOK_APL_VALUE1, B) << ")" << endl;
+             << Token(TOK_APL_VALUE1, CLONE(&X, LOC)) << ", "
+             << Token(TOK_APL_VALUE1, CLONE(&B, LOC)) << ")" << endl;
       }
 
    if (!header.RO())   SYNTAX_ERROR;   // defined monadic op called dyadically
@@ -228,13 +230,13 @@ UserFunction::eval_ALRXB(Value_P A, Token & LO, Token & RO,
    Workspace::push_SI(this, LOC);
 
    if (header.Z())         header.Z()->push();
-   header                        .A()->push_value(A);
+   header                        .A()->push_value(CLONE(&A, LOC));
    if (LO.is_function())   header.LO()->push_function(LO.get_function());
    else                    header.LO()->push_value(LO.get_apl_val());
    if (RO.is_function())   header.RO()->push_function(RO.get_function());
    else                    header.RO()->push_value(RO.get_apl_val());
-   if (header.X())         header.X()->push_value(X);
-   header                        .B()->push_value(B);
+   if (header.X())         header.X()->push_value(CLONE(&X, LOC));
+   header                        .B()->push_value(CLONE(&B, LOC));
 
    header.eval_common();
 
@@ -242,15 +244,15 @@ UserFunction::eval_ALRXB(Value_P A, Token & LO, Token & RO,
 }
 //────────────────────────────────────────────────────────────────────────────
 Token
-UserFunction::eval_ALXB(Value_P A, Token & LO, Value_P X, Value_P B) const
+UserFunction::eval_ALXB(cValue_R A, Token & LO, cValue_R X, cValue_R B) const
 {
    Log(LOG_UserFunction__enter_leave)
       {
         CERR << "Function " << get_name() << " calls " << __FUNCTION__ << "("
-             << Token(TOK_APL_VALUE1, A) << ", " << endl;
+             << Token(TOK_APL_VALUE1, CLONE(&A, LOC)) << ", " << endl;
         print_val_or_fun(CERR, LO) << ", "
-             << Token(TOK_APL_VALUE1, X) << ", "
-             << Token(TOK_APL_VALUE1, B) << ")" << endl;
+             << Token(TOK_APL_VALUE1, CLONE(&X, LOC)) << ", "
+             << Token(TOK_APL_VALUE1, CLONE(&B, LOC)) << ")" << endl;
       }
 
    if (header.RO())    SYNTAX_ERROR;    // defined as dyadic operator
@@ -260,11 +262,11 @@ UserFunction::eval_ALXB(Value_P A, Token & LO, Value_P X, Value_P B) const
    Workspace::push_SI(this, LOC);
 
    if (header.Z())         header.Z()->push();
-   header                        .A()->push_value(A);
+   header                        .A()->push_value(CLONE(&A, LOC));
    if (LO.is_function())   header.LO()->push_function(LO.get_function());
    else                    header.LO()->push_value(LO.get_apl_val());
-   if (header.X())         header.X()->push_value(X);
-   header                        .B()->push_value(B);
+   if (header.X())         header.X()->push_value(CLONE(&X, LOC));
+   header                        .B()->push_value(CLONE(&B, LOC));
 
    header.eval_common();
 
@@ -272,13 +274,13 @@ UserFunction::eval_ALXB(Value_P A, Token & LO, Value_P X, Value_P B) const
 }
 //────────────────────────────────────────────────────────────────────────────
 Token
-UserFunction::eval_AXB(Value_P A, Value_P X, Value_P B) const
+UserFunction::eval_AXB(cValue_R A, cValue_R X, cValue_R B) const
 {
    Log(LOG_UserFunction__enter_leave)
       {
         CERR << "Function " << get_name() << " calls eval_AB("
-             << Token(TOK_APL_VALUE1, A) << ", "
-             << Token(TOK_APL_VALUE1, B) << ")" << endl;
+             << Token(TOK_APL_VALUE1, CLONE(&A, LOC)) << ", "
+             << Token(TOK_APL_VALUE1, CLONE(&B, LOC)) << ")" << endl;
       }
 
    if (header.LO())    SYNTAX_ERROR;    // defined as operator
@@ -288,9 +290,9 @@ UserFunction::eval_AXB(Value_P A, Value_P X, Value_P B) const
    Workspace::push_SI(this, LOC);
 
    if (header.Z())   header.Z()->push();
-   if (header.A())   header.A()->push_value(A);
-   if (header.X())   header.X()->push_value(X);
-   if (header.B())   header.B()->push_value(B);
+   if (header.A())   header.A()->push_value(CLONE(&A, LOC));
+   if (header.X())   header.X()->push_value(CLONE(&X, LOC));
+   if (header.B())   header.B()->push_value(CLONE(&B, LOC));
 
    header.eval_common();
 
@@ -298,12 +300,12 @@ UserFunction::eval_AXB(Value_P A, Value_P X, Value_P B) const
 }
 //────────────────────────────────────────────────────────────────────────────
 Token
-UserFunction::eval_B(Value_P B) const
+UserFunction::eval_B(cValue_R B) const
 {
    Log(LOG_UserFunction__enter_leave)
       {
         CERR << "Function " << get_name() << " calls eval_B("
-             << Token(TOK_APL_VALUE1, B) << ")" << endl;
+             << Token(TOK_APL_VALUE1, CLONE(&B, LOC)) << ")" << endl;
       }
 
    if (header.LO())    SYNTAX_ERROR;   // defined as operator
@@ -313,7 +315,7 @@ UserFunction::eval_B(Value_P B) const
    if (header.Z())   header.Z()->push();
    if (header.A())   header.A()->push();
    if (header.X())   header.X()->push();
-   if (header.B())   header.B()->push_value(B);
+   if (header.B())   header.B()->push_value(CLONE(&B, LOC));
 
    header.eval_common();
 
@@ -321,13 +323,13 @@ UserFunction::eval_B(Value_P B) const
 }
 //────────────────────────────────────────────────────────────────────────────
 Token
-UserFunction::eval_LB(Token & LO, Value_P B) const
+UserFunction::eval_LB(Token & LO, cValue_R B) const
 {
    Log(LOG_UserFunction__enter_leave)
       {
         CERR << "Function " << get_name() << " calls " << __FUNCTION__ << "(";
         print_val_or_fun(CERR, LO) << ", "
-             << Token(TOK_APL_VALUE1, B) << ")" << endl;
+             << Token(TOK_APL_VALUE1, CLONE(&B, LOC)) << ")" << endl;
       }
 
    if (header.RO())    SYNTAX_ERROR;   // dyadic operator called monadically
@@ -339,7 +341,7 @@ UserFunction::eval_LB(Token & LO, Value_P B) const
    if (LO.is_function())   header.LO()->push_function(LO.get_function());
    else                    header.LO()->push_value(LO.get_apl_val());
    if (header.X())         header.X() ->push();
-   header                        .B() ->push_value(B);
+   header                        .B() ->push_value(CLONE(&B, LOC));
 
    header.eval_common();
 
@@ -347,14 +349,14 @@ UserFunction::eval_LB(Token & LO, Value_P B) const
 }
 //────────────────────────────────────────────────────────────────────────────
 Token
-UserFunction::eval_LRB(Token & LO, Token & RO, Value_P B) const
+UserFunction::eval_LRB(Token & LO, Token & RO, cValue_R B) const
 {
    Log(LOG_UserFunction__enter_leave)
       {
         CERR << "Function " << get_name() << " calls " << __FUNCTION__ << "(";
         print_val_or_fun(CERR, LO) << ", ";
         print_val_or_fun(CERR, RO) << ", "
-             << Token(TOK_APL_VALUE1, B) << ")" << endl;
+             << Token(TOK_APL_VALUE1, CLONE(&B, LOC)) << ")" << endl;
       }
 
    if (!header.RO())    SYNTAX_ERROR;   // not defined as dyadic operator
@@ -369,7 +371,7 @@ UserFunction::eval_LRB(Token & LO, Token & RO, Value_P B) const
    if (RO.is_function())   header.RO()->push_function(RO.get_function());
    else                    header.RO()->push_value(RO.get_apl_val());
    if (header.X())         header.X() ->push();
-   header                        .B() ->push_value(B);
+   header                        .B() ->push_value(CLONE(&B, LOC));
 
    header.eval_common();
 
@@ -377,15 +379,15 @@ UserFunction::eval_LRB(Token & LO, Token & RO, Value_P B) const
 }
 //────────────────────────────────────────────────────────────────────────────
 Token
-UserFunction::eval_LRXB(Token & LO, Token & RO, Value_P X, Value_P B) const
+UserFunction::eval_LRXB(Token & LO, Token & RO, cValue_R X, cValue_R B) const
 {
    Log(LOG_UserFunction__enter_leave)
       {
         CERR << "Function " << get_name() << " calls " << __FUNCTION__ << "(";
         print_val_or_fun(CERR, LO) << ", ";
         print_val_or_fun(CERR, RO) << ", "
-             << Token(TOK_APL_VALUE1, X) << ", "
-             << Token(TOK_APL_VALUE1, B) << ")" << endl;
+             << Token(TOK_APL_VALUE1, CLONE(&X, LOC)) << ", "
+             << Token(TOK_APL_VALUE1, CLONE(&B, LOC)) << ")" << endl;
       }
 
    if (!header.RO())   SYNTAX_ERROR;   // not defined as dyadic operator
@@ -399,8 +401,8 @@ UserFunction::eval_LRXB(Token & LO, Token & RO, Value_P X, Value_P B) const
    else                    header.LO()->push_value(LO.get_apl_val());
    if (RO.is_function())   header.RO()->push_function(RO.get_function());
    else                    header.RO()->push_value(RO.get_apl_val());
-   header.X()->push_value(X);
-   header                        .B()->push_value(B);
+   header.X()->push_value(CLONE(&X, LOC));
+   header                        .B()->push_value(CLONE(&B, LOC));
 
    header.eval_common();
 
@@ -408,14 +410,14 @@ UserFunction::eval_LRXB(Token & LO, Token & RO, Value_P X, Value_P B) const
 }
 //────────────────────────────────────────────────────────────────────────────
 Token
-UserFunction::eval_LXB(Token & LO, Value_P X, Value_P B) const
+UserFunction::eval_LXB(Token & LO, cValue_R X, cValue_R B) const
 {
    Log(LOG_UserFunction__enter_leave)
       {
         CERR << "Function " << get_name() << " calls " << __FUNCTION__ << "(";
         print_val_or_fun(CERR, LO) << ", "
-             << Token(TOK_APL_VALUE1, X) << ", "
-             << Token(TOK_APL_VALUE1, B) << ")" << endl;
+             << Token(TOK_APL_VALUE1, CLONE(&X, LOC)) << ", "
+             << Token(TOK_APL_VALUE1, CLONE(&B, LOC)) << ")" << endl;
       }
 
    if (header.RO())    SYNTAX_ERROR;   // dyadic operator called monadically
@@ -427,8 +429,8 @@ UserFunction::eval_LXB(Token & LO, Value_P X, Value_P B) const
    if (header.A())         header.A()->push();
    if (LO.is_function())   header.LO()->push_function(LO.get_function());
    else                    header.LO()->push_value(LO.get_apl_val());
-   if (header.X())         header.X()->push_value(X);
-   header                        .B()->push_value(B);
+   if (header.X())         header.X()->push_value(CLONE(&X, LOC));
+   header                        .B()->push_value(CLONE(&B, LOC));
 
    header.eval_common();
 
@@ -436,12 +438,12 @@ UserFunction::eval_LXB(Token & LO, Value_P X, Value_P B) const
 }
 //────────────────────────────────────────────────────────────────────────────
 Token
-UserFunction::eval_XB(Value_P X, Value_P B) const
+UserFunction::eval_XB(cValue_R X, cValue_R B) const
 {
    Log(LOG_UserFunction__enter_leave)
       {
         CERR << "Function " << get_name() << " calls eval_B("
-             << Token(TOK_APL_VALUE1, B) << ")" << endl;
+             << Token(TOK_APL_VALUE1, CLONE(&B, LOC)) << ")" << endl;
       }
 
    if (!header.X())    AXIS_ERROR;
@@ -451,8 +453,8 @@ UserFunction::eval_XB(Value_P X, Value_P B) const
 
    if (header.Z())   header.Z()->push();
    if (header.A())   header.A()->push();
-   if (header.X())   header.X()->push_value(X);
-   if (header.B())   header.B()->push_value(B);
+   if (header.X())   header.X()->push_value(CLONE(&X, LOC));
+   if (header.B())   header.B()->push_value(CLONE(&B, LOC));
 
    header.eval_common();
 
@@ -867,7 +869,7 @@ const size_t labels_declared = header.get_label_count();
                  }
               else if (tok.get_Class() == TC_VALUE)   // →N
                  {
-                   const Value * val_N = tok.get_apl_val().get();
+                   const cValue * val_N = tok.get_apl_val().get();
                    const Cell & cell_N = val_N->get_cfirst();
                    if (val_N->is_int_scalar())
                       {
@@ -1552,16 +1554,16 @@ UserFunction::UserFunction(const UCS_string txt, const char * loc,
 }
 //────────────────────────────────────────────────────────────────────────────
 Token
-UserFunction::eval_fill_AB(Value_P A, Value_P B) const
+UserFunction::eval_fill_AB(cValue_R A, cValue_R B) const
 {
-Value_P Z = CLONE_P(B, LOC);
+Value_P Z(static_cast<Value *>(const_cast<cValue *>(&B)), LOC);
    return Token(TOK_APL_VALUE1, Z);
 }
 //────────────────────────────────────────────────────────────────────────────
 Token
-UserFunction::eval_fill_B(Value_P B) const
+UserFunction::eval_fill_B(cValue_R B) const
 {
-Value_P Z = CLONE_P(B, LOC);
+Value_P Z(static_cast<Value *>(const_cast<cValue *>(&B)), LOC);
    return Token(TOK_APL_VALUE1, Z);
 }
 //────────────────────────────────────────────────────────────────────────────

@@ -41,15 +41,15 @@ enum { Quad_PP_TF = 17 };
 
 //════════════════════════════════════════════════════════════════════════════
 Token
-Quad_TF::eval_AB(Value_P A, Value_P B) const
+Quad_TF::eval_AB(cValue_R A, cValue_R B) const
 {
    // A should be an integer scalar or 1-element_vector with value 1 or 2
    //
-   if (A->get_rank() > 0)         RANK_ERROR;
-   if (A->element_count() != 1)   LENGTH_ERROR;
+   if (A.get_rank() > 0)         RANK_ERROR;
+   if (A.element_count() != 1)   LENGTH_ERROR;
 
-const APL_Integer mode = A->get_cfirst().get_int_value();
-const UCS_string symbol_name(*B.get());
+const APL_Integer mode = A.get_cfirst().get_int_value();
+const UCS_string symbol_name(B);
 
 Value_P Z;
 
@@ -363,10 +363,10 @@ Token_string tos;
        tos[2].get_tag()   == TOK_Quad_FX &&
        tos[3].get_Class() == TC_VALUE)
       {
-        const Value * fname   =  tos[1].get_apl_val().get();
-        const Value * so_path =  tos[3].get_apl_val().get();
+        const cValue * fname   =  tos[1].get_apl_val().get();
+        const cValue * so_path =  tos[3].get_apl_val().get();
 
-        const Token tok = Quad_FX::do_eval_AB(so_path, fname);
+        const Token tok = Quad_FX::do_eval_AB(*so_path, *fname);
         if (tok.get_Class() == TC_VALUE)   // ⎕FX successful
            {
              Value_P val = tok.get_apl_val();
@@ -392,7 +392,7 @@ Token_string tos;
    if (tos[2].get_Class() != TC_VALUE)    return UCS_string();
 
 static const int eprops[] = { 0, 0, 0, 0 };
-const Token tok = Quad_FX::do_quad_FX(eprops, tos[2].get_apl_val().get(),
+const Token tok = Quad_FX::do_quad_FX(eprops, *tos[2].get_apl_val(),
                                       UTF8_string("2 ⎕TF"));
 
    if (tok.get_Class() != TC_VALUE)
@@ -408,7 +408,7 @@ const Token tok = Quad_FX::do_quad_FX(eprops, tos[2].get_apl_val().get(),
 }
 //════════════════════════════════════════════════════════════════════════════
 void
-Quad_TF::tf2_value(int level, UCS_string & ucs, const Value & value,
+Quad_TF::tf2_value(int level, UCS_string & ucs, const cValue & value,
                    ShapeItem nesting)
 {
    Log(LOG_Quad_TF)
@@ -451,7 +451,7 @@ const ShapeItem ec = value.nz_element_count();
 }
 //────────────────────────────────────────────────────────────────────────────
 Token
-Quad_TF::tf2_var(const UCS_string & var_name, const Value & B)
+Quad_TF::tf2_var(const UCS_string & var_name, const cValue & B)
 {
    Log(LOG_Quad_TF)   CERR << "tf2_var(" << var_name << ")" << endl;
 
@@ -499,7 +499,7 @@ const NamedObject * obj = Workspace::lookup_existing_name(name);
 const Symbol * symbol = obj->get_symbol();
    if (symbol)
       {
-        if (const Value * value = symbol->get_apl_value().get())
+        if (const cValue * value = symbol->get_apl_value().get())
            {
              CDR_string cdr;
              CDR::to_CDR(cdr, value);
@@ -586,7 +586,7 @@ Quad_TF::tf2_ravel(int level, UCS_string & ucs, const ShapeItem len,
 }
 //────────────────────────────────────────────────────────────────────────────
 void
-Quad_TF::tf2_all_char_ravel(int level, UCS_string & ucs, const Value & value)
+Quad_TF::tf2_all_char_ravel(int level, UCS_string & ucs, const cValue & value)
 {
 const ShapeItem ec = value.nz_element_count();
 
@@ -849,7 +849,7 @@ const int data_chars = len - idx;
         loop(d, data_chars)   new_val->next_ravel_Char(ravel[idx + d]);
         new_val->check_value(LOC);
 
-         Token t = Quad_FX::do_eval_B(new_val.get());
+         Token t = Quad_FX::do_eval_B(*new_val);
       }
    else if (mode == UNI_C)   // char array
       {

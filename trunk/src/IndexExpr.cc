@@ -50,7 +50,7 @@ IndexExpr::check_index_range(const Shape & shape) const
 {
    loop(r, rank)
       {
-        if (const Value * ival = get_axis_value(r))   // unless elided index
+        if (const cValue * ival = get_axis_value(r))   // unless elided index
            {
              const ShapeItem max_idx = shape.get_shape_item(r) + quad_io;
              loop(i, ival->element_count())
@@ -165,7 +165,7 @@ operator <<(ostream & out, const IndexExpr & idx)
    loop(i, idx.get_rank())
       {
         if (i)   out << ";";
-        if (const Value * ival = idx.get_axis_value(i))
+        if (const cValue * ival = idx.get_axis_value(i))
            {
              // value::print() may print a trailing LF that we don't want here.
              // We therefore print the index values ourselves.

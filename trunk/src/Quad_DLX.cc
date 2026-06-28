@@ -202,7 +202,7 @@ class DLX_Root_Node : public DLX_Node
 public:
    /// constructor
    DLX_Root_Node(ShapeItem rows, ShapeItem cols, ShapeItem max_sol,
-                 const Value & B);
+                 const cValue & B);
 
    /// check of all nodes
    void deep_check() const;
@@ -319,7 +319,7 @@ protected:
 };
 //════════════════════════════════════════════════════════════════════════════
 DLX_Root_Node::DLX_Root_Node(ShapeItem rs, ShapeItem cs, ShapeItem max_sol,
-                             const Value & B)
+                             const cValue & B)
    : DLX_Node(true, -1, -1, this, this, this, this),
      max_solutions(max_sol),
      rows(rs),
@@ -747,37 +747,37 @@ DLX_Node * h = right;
 }
 //════════════════════════════════════════════════════════════════════════════
 Token
-Quad_DLX::eval_AB(Value_P A, Value_P B) const
+Quad_DLX::eval_AB(cValue_R A, cValue_R B) const
 {
-   if (A->get_rank() > 1)   RANK_ERROR;
-   if (A->element_count() < 1)   LENGTH_ERROR;
+   if (A.get_rank() > 1)   RANK_ERROR;
+   if (A.element_count() < 1)   LENGTH_ERROR;
 
-   if (B->get_rank() != 2)   RANK_ERROR;
-const APL_Integer a0 = A->get_cfirst().get_int_value();
+   if (B.get_rank() != 2)   RANK_ERROR;
+const APL_Integer a0 = A.get_cfirst().get_int_value();
 
    if (a0 < -4)   DOMAIN_ERROR;
    if (a0 == -4)   // perform some dance steps with the constraints matrix
       {
-        const ShapeItem rows = B->get_rows();
-        const ShapeItem cols = B->get_cols();
-        DLX_Root_Node root(rows, cols, 0, *B);
-        return root.preset(&A->get_cravel(1), A->element_count() - 1,
-                           &B->get_cfirst());
+        const ShapeItem rows = B.get_rows();
+        const ShapeItem cols = B.get_cols();
+        DLX_Root_Node root(rows, cols, 0, B);
+        return root.preset(&A.get_cravel(1), A.element_count() - 1,
+                           &B.get_cfirst());
       }
 
-   if (A->element_count() != 1)   LENGTH_ERROR;
-   return do_DLX(a0, *B);
+   if (A.element_count() != 1)   LENGTH_ERROR;
+   return do_DLX(a0, B);
 }
 //────────────────────────────────────────────────────────────────────────────
 Token
-Quad_DLX::eval_B(Value_P B) const
+Quad_DLX::eval_B(cValue_R B) const
 {
-   if (B->get_rank() != 2)   RANK_ERROR;
-   return do_DLX(0, *B);
+   if (B.get_rank() != 2)   RANK_ERROR;
+   return do_DLX(0, B);
 };
 //────────────────────────────────────────────────────────────────────────────
 Token
-Quad_DLX::do_DLX(ShapeItem how, const Value & B)
+Quad_DLX::do_DLX(ShapeItem how, const cValue & B)
 {
 
 const ShapeItem rows = B.get_rows();

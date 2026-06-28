@@ -215,7 +215,7 @@ public:
    /// monomial with
    /// other monomials
    /// @param order APL value defining the monomial ordering
-   int get_order(const Value & order) const;
+   int get_order(const cValue & order) const;
 
    /// print \b this term
    /// @param out output stream to write to
@@ -255,7 +255,7 @@ public:
 
    /// constructor: from APL value (holding the coefficients).
    /// @param value APL value whose ravel provides the polynomial coefficients
-   Polynomial(const Value & value);
+   Polynomial(const cValue & value);
 
    typedef complex<double> Complex;
 
@@ -305,7 +305,7 @@ public:
 
    /// remove the largest term from \b this polynomial and return it.
    /// @param order APL value defining the monomial ordering (may be null)
-   Monomial extract_LT(const Value * order)
+   Monomial extract_LT(const cValue * order)
       {
         const size_t pos = LT_pos(order);
         Monomial result = at(pos);
@@ -315,7 +315,7 @@ public:
 
    /// return the largest term from \b this polynomial.
    /// @param order APL value defining the monomial ordering (may be null)
-   Monomial get_LT(const Value * order)
+   Monomial get_LT(const cValue * order)
       {
         return at(LT_pos(order));
       }
@@ -347,7 +347,7 @@ public:
 
    /// return (the index of) the largest term (aka. LT).
    /// @param order APL value defining the monomial ordering (may be null)
-   size_t LT_pos(const Value * order) const;
+   size_t LT_pos(const cValue * order) const;
 
    /// print \b this polynomial
    /// @param out output stream to write to

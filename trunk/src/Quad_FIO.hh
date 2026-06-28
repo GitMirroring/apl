@@ -54,20 +54,20 @@ public:
 
    /// return the open FILE * for (APL integer value) \b handle
    /// @param handle APL value holding the integer file handle
-   static FILE * get_FILE(const Value & handle)
+   static FILE * get_FILE(const cValue & handle)
       { return get_FILE(handle.get_cscalar().get_near_int()); }
 
    /// overloaded Function::eval_AB().
-   virtual Token eval_AB(Value_P A, Value_P B) const;
+   virtual Token eval_AB(cValue_R A, cValue_R B) const;
 
    /// overloaded Function::eval_AXB().
-   virtual Token eval_AXB(Value_P A, Value_P X, Value_P B) const;
+   virtual Token eval_AXB(cValue_R A, cValue_R X, cValue_R B) const;
 
    /// overloaded Function::eval_B().
-   virtual Token eval_B(Value_P B) const;
+   virtual Token eval_B(cValue_R B) const;
 
    /// overloaded Function::eval_AXB().
-   virtual Token eval_XB(Value_P X, Value_P B) const;
+   virtual Token eval_XB(cValue_R X, cValue_R B) const;
 
    /// close all open files
    static void clear();
@@ -160,7 +160,7 @@ protected:
 
    /// return the open file for (APL integer) \b handle
    /// @param handle APL value holding the integer file handle
-   static file_entry & get_file_entry(const Value & handle)
+   static file_entry & get_file_entry(const cValue & handle)
       { return get_file_entry(handle.get_cscalar().get_near_int()); }
 
    /// overloaded Function::eval_ALXB().
@@ -168,13 +168,13 @@ protected:
    /// @param LO left operator function token
    /// @param X axis value
    /// @param B right APL value argument
-   virtual Token eval_ALXB(Value_P A, Token & LO, Value_P X, Value_P B) const;
+   virtual Token eval_ALXB(cValue_R A, Token & LO, cValue_R X, cValue_R B) const;
 
    /// overloaded Function::eval_LXB().
    /// @param LO left operator function token
    /// @param X axis value
    /// @param B right APL value argument
-   virtual Token eval_LXB(Token & LO, Value_P X, Value_P B) const;
+   virtual Token eval_LXB(Token & LO, cValue_R X, cValue_R B) const;
 
    /// list all ⎕IO functions to \b out
    Token list_functions(ostream & out) const;
@@ -202,7 +202,7 @@ protected:
    /// @param B_start starting index into B for data items
    /// @param funname calling function name for error messages
    static void do_snprintf(UCS_string & UZ, const UCS_string & A_format,
-                   const Value * B, int B_start, const char * funname);
+                   cValue_R B, int B_start, const char * funname);
 
    /// eval_AB case -3: read probe A and clear it
    static Token eval_AB___3(Value_P A);
@@ -462,7 +462,7 @@ protected:
 
    /// for Date/Time Bv. return its seconds since midnight Jan 1, 1970
    /// @param B APL value containing a date/time vector
-   static APL_Integer secs_epoch(const Value & B);
+   static APL_Integer secs_epoch(const cValue & B);
 
    /// the open files
    static std::vector<file_entry> open_files;

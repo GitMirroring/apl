@@ -239,41 +239,41 @@ public:
    /// split src, e.g. "_2_name" into integer 2, Unicode '_', and
    /// UCS_string 'name'. Null pointers if not relevant.
    static int split_name(Unicode * category, ShapeItem * position,
-                         UCS_string * name, const Value & src);
+                         UCS_string * name, const cValue & src);
 protected:
    /// overloaded Function::eval_AB()
-   Token eval_AB(Value_P A, Value_P B) const;
+   Token eval_AB(cValue_R A, cValue_R B) const;
 
    /// convert APL associative array to XML string
-   static Value_P APL_to_XML(const Value & B);
+   static Value_P APL_to_XML(const cValue & B);
 
    /// return the entities in B, sorted by their position prefix
    static void add_sorted_entities(vector<const UCS_string *> & entities,
-                                   const Value & B);
+                                   const cValue & B);
 
    /// convert XML string to APL associative array
-   static Value_P XML_to_APL(const Value & B);
+   static Value_P XML_to_APL(const cValue & B);
 
    /// overloaded Function::eval_B()
-   Token eval_B(Value_P B) const;
+   Token eval_B(cValue_R B) const;
 
    /// return XML file (-name in B) converted to APL structured value
-   Token convert_file(const Value & B) const;
+   Token convert_file(const cValue & B) const;
 
    /// "M1" M2" ... "Mn" ← "M1.M2...Mn"
-   static Value_P path_split(const Value & B);
+   static Value_P path_split(const cValue & B);
 
    /// (POS CATEGORY TAG_NAME) ← MEMBER_NAME
-   static Value_P name_split(const Value & B);
+   static Value_P name_split(const cValue & B);
 
    /// MEMBER_NAME ← POS CATEGORY TAG_NAME
-   static Value_P name_unsplit(const Value & B);
+   static Value_P name_unsplit(const cValue & B);
 
    /// return all XML nodes as member names
-   static Token all_members(const Value & B, int flags);
+   static Token all_members(const cValue & B, int flags);
 
    /// iterator: return the next member after A in structured value B
-   static Token next_member(const Value & A, const Value & B);
+   static Token next_member(const cValue & A, const cValue & B);
 
    /// display details for tree() functions
    enum tree_flags
@@ -292,14 +292,14 @@ protected:
       };
 
    /// return a tree-view of the members in B according to flags
-   static Value_P tree(const Value & B, int flags);
+   static Value_P tree(const cValue & B, int flags);
 
    /// return a sub-tree-view of the members in B at \b level
-   static void tree(const Value & B, UCS_string & z, UCS_string & prefix,
+   static void tree(const cValue & B, UCS_string & z, UCS_string & prefix,
                     const UCS_string & name_prefix, int flags);
 
    /// return all member names according to flags
-   static void all_members(UCS_string_vector & result, const Value & B,
+   static void all_members(UCS_string_vector & result, const cValue & B,
                            const UCS_string & name_prefix, int flags);
 };
 //════════════════════════════════════════════════════════════════════════════

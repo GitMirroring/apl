@@ -108,31 +108,31 @@ Quad_SQL::close_all_connections()
 }
 //────────────────────────────────────────────────────────────────────────────
 Token
-Quad_SQL::eval_AB(Value_P A, Value_P B) const
+Quad_SQL::eval_AB(cValue_R A, cValue_R B) const
 {
    CHECK_SECURITY(disable_Quad_SQL);
    return list_functions(COUT);
 }
 //────────────────────────────────────────────────────────────────────────────
 Token
-Quad_SQL::eval_AXB(const Value_P A, const Value_P X, const Value_P B) const
+Quad_SQL::eval_AXB(cValue_R A, cValue_R X, cValue_R B) const
 {
    CHECK_SECURITY(disable_Quad_SQL);
 
-const APL_Integer function_number = X->get_cfirst().get_near_int();
+const APL_Integer function_number = X.get_cfirst().get_near_int();
 
    switch(function_number)
       {
         case  0: return list_functions(CERR);
-        case  1: return Token(TOK_APL_VALUE1, open_database(*A, *B));
+        case  1: return Token(TOK_APL_VALUE1, open_database(A, B));
         case  2: VALENCE_ERROR;
-        case  3: return Token(TOK_APL_VALUE1, run_query(*A, *X, *B));
-        case  4: return Token(TOK_APL_VALUE1, run_update(*A, *X, *B));
+        case  3: return Token(TOK_APL_VALUE1, run_query(A, X, B));
+        case  4: return Token(TOK_APL_VALUE1, run_update(A, X, B));
         case  5:
         case  6:
         case  7:
         case  8: VALENCE_ERROR;
-        case  9: return Token(TOK_APL_VALUE1, column_names(A, B));
+        case  9: return Token(TOK_APL_VALUE1, column_names(CLONE(&A, LOC), CLONE(&B, LOC)));
         case 10: VALENCE_ERROR;
         case 11: VALENCE_ERROR;
       }
@@ -143,13 +143,13 @@ const APL_Integer function_number = X->get_cfirst().get_near_int();
 }
 //────────────────────────────────────────────────────────────────────────────
 Token
-Quad_SQL::eval_B(Value_P B) const
+Quad_SQL::eval_B(cValue_R B) const
 {
    CHECK_SECURITY(disable_Quad_SQL);
 
-   if (B->get_rank() > 1)         RANK_ERROR;
+   if (B.get_rank() > 1)         RANK_ERROR;
 
-   if (B->is_int_scalar() && B->get_cfirst().get_int_value() == 0)
+   if (B.is_int_scalar() && B.get_cfirst().get_int_value() == 0)
       {
         // ⎕SQL 0 : show open handles
         //
@@ -185,38 +185,38 @@ Quad_SQL::eval_B(Value_P B) const
         return Token(TOK_APL_VALUE1, Z);
       }
 
-   if (B->is_zilde())   return list_mappings(CERR);
-   if (B->is_str0())    return list_functions(CERR);
-   if (B->element_count() != 0)   LENGTH_ERROR;
+   if (B.is_zilde())   return list_mappings(CERR);
+   if (B.is_str0())    return list_functions(CERR);
+   if (B.element_count() != 0)   LENGTH_ERROR;
    DOMAIN_ERROR;
 }
 //────────────────────────────────────────────────────────────────────────────
 Token
-Quad_SQL::eval_XB(Value_P X, Value_P B) const
+Quad_SQL::eval_XB(cValue_R X, cValue_R B) const
 {
    CHECK_SECURITY(disable_Quad_SQL);
 
-const sAxis subfunction = value_to_subfun(*X);
+const sAxis subfunction = value_to_subfun(X);
 
-const bool map = B->get_cfirst().is_character_cell();
+const bool map = B.get_cfirst().is_character_cell();
 
     switch(subfunction)
        {
          case  0: if (map)   return list_mappings(CERR);
                   else       return list_functions(CERR);
          case  1: VALENCE_ERROR;
-         case  2: return close_database(B);
+         case  2: return close_database(CLONE(&B, LOC));
          case  3:
          case  4:
-         case  5: return run_transaction_begin(B);
-         case  6: return run_transaction_commit(B);
-         case  7: return run_transaction_rollback(B);
-         case  8: return show_tables(B);
+         case  5: return run_transaction_begin(CLONE(&B, LOC));
+         case  6: return run_transaction_commit(CLONE(&B, LOC));
+         case  7: return run_transaction_rollback(CLONE(&B, LOC));
+         case  8: return show_tables(CLONE(&B, LOC));
          case  9:
          case 10: return Token(TOK_APL_VALUE1,
-                               get_version_number(UCS_string(*B)));
+                               get_version_number(UCS_string(B)));
          case 11: return Token(TOK_APL_VALUE1,
-                               get_version_string(UCS_string(*B)));
+                               get_version_string(UCS_string(B)));
 
          default: bad_subfun_number_ERROR(subfunction);
        }
@@ -312,7 +312,7 @@ const char * Quad_SQL::get_legend(Legend_type lt) const
 }
 //────────────────────────────────────────────────────────────────────────────
 Value_P
-Quad_SQL::open_database(const Value & A, const Value & B)
+Quad_SQL::open_database(const cValue & A, const cValue & B)
 {
    // open an SQL database of type A in database file B
    //
@@ -401,7 +401,7 @@ Value_P Z(shape, LOC);
 }
 //────────────────────────────────────────────────────────────────────────────
 Value_P
-Quad_SQL::run_generic(Connection * conn, const Value & A, const Value & B,
+Quad_SQL::run_generic(Connection * conn, const cValue & A, const cValue & B,
                       bool query)
 {
    // A is the SQL query string
@@ -525,7 +525,7 @@ UCS_string & more = MORE_ERROR();
 }
 //────────────────────────────────────────────────────────────────────────────
 Value_P
-Quad_SQL::run_generic_one_query(ArgListBuilder * arg_list, const Value & B,
+Quad_SQL::run_generic_one_query(ArgListBuilder * arg_list, const cValue & B,
                                 int start, int num_args)
 {
     loop (i, num_args)
@@ -702,7 +702,7 @@ Value_P value;
 }
 //────────────────────────────────────────────────────────────────────────────
 Connection *
-Quad_SQL::param_to_db(const Value & X)
+Quad_SQL::param_to_db(const cValue & X)
 {
 
 const Shape & shape = X.get_shape();
@@ -748,17 +748,17 @@ Quad_SQL_3::Quad_SQL_3()
 }
 //────────────────────────────────────────────────────────────────────────────
 Token
-Quad_SQL_3::eval_AXB(Value_P A, Value_P X, Value_P B) const
+Quad_SQL_3::eval_AXB(cValue_R A, cValue_R X, cValue_R B) const
 {
    /// convert integer scalar X to (3, X) or (4, X)
-const APL_Integer DB = X->get_cfirst().get_int_value();
+const APL_Integer DB = X.get_cfirst().get_int_value();
 const APL_Integer subfun = 3;
 
 Value_P FUN_DB(2, LOC);
    FUN_DB->next_ravel_Int(subfun);
    FUN_DB->next_ravel_Int(DB);
    FUN_DB->check_value(LOC);
-   return Token(TOK_APL_VALUE1, Quad_SQL::run_query(*A, *FUN_DB, *B));
+   return Token(TOK_APL_VALUE1, Quad_SQL::run_query(A, *FUN_DB, B));
 }
 //════════════════════════════════════════════════════════════════════════════
 Quad_SQL_4::Quad_SQL_4()
@@ -767,16 +767,16 @@ Quad_SQL_4::Quad_SQL_4()
 }
 //────────────────────────────────────────────────────────────────────────────
 Token
-Quad_SQL_4::eval_AXB(Value_P A, Value_P X, Value_P B) const
+Quad_SQL_4::eval_AXB(cValue_R A, cValue_R X, cValue_R B) const
 {
    /// convert integer scalar X to (3, X) or (4, X)
-const APL_Integer DB = X->get_cfirst().get_int_value();
+const APL_Integer DB = X.get_cfirst().get_int_value();
 const APL_Integer subfun = 4;
 
 Value_P FUN_DB(2, LOC);
    FUN_DB->next_ravel_Int(subfun);
    FUN_DB->next_ravel_Int(DB);
    FUN_DB->check_value(LOC);
-   return Token(TOK_APL_VALUE1, Quad_SQL::run_update(*A, *FUN_DB, *B));
+   return Token(TOK_APL_VALUE1, Quad_SQL::run_update(A, *FUN_DB, B));
 }
 //════════════════════════════════════════════════════════════════════════════

@@ -22,6 +22,30 @@
 */
 
 //════════════════════════════════════════════════════════════════════════════
+inline const cValue *
+Value_P_Base::get() const
+{
+   return value_p;
+}
+//════════════════════════════════════════════════════════════════════════════
+inline int
+cValue::get_owner_count() const
+{
+   return static_cast<const Value *>(this)->owner_count;
+}
+//════════════════════════════════════════════════════════════════════════════
+inline const cValue &
+Value_P_Base::operator*() const
+{
+   return *value_p;
+}
+//════════════════════════════════════════════════════════════════════════════
+inline const cValue *
+Value_P_Base::operator->() const
+{
+   return value_p;
+}
+//════════════════════════════════════════════════════════════════════════════
 inline void
 Value_P_Base::reset()
 {

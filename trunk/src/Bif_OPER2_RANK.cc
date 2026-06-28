@@ -225,52 +225,56 @@ const ShapeItem B_len = length - y123_len;
 }
 //────────────────────────────────────────────────────────────────────────────
 Token
-Bif_OPER2_RANK::eval_ALRB(Value_P A, Token & LO, Token & y, Value_P B) const
+Bif_OPER2_RANK::eval_ALRB(cValue_R A, Token & LO, Token & y, cValue_R B) const
 {
-   if (B->element_count() == 1 && B->get_cfirst().is_pointer_cell())
-      B = B->get_cfirst().get_pointer_value();
+const cValue * pB = &B;
+   if (pB->element_count() == 1 && pB->get_cfirst().is_pointer_cell())
+   { Value_P B_hold_ = pB->get_cfirst().get_pointer_value(); pB = B_hold_.get(); }
 
-sRank rank_chunk_A = A->get_rank();
-sRank rank_chunk_B = B->get_rank();
-   y123_to_AB(y.get_apl_val(), rank_chunk_A, rank_chunk_B);
+sRank rank_chunk_A = A.get_rank();
+sRank rank_chunk_B = pB->get_rank();
+   y123_to_AB(y.get_apl_val().get(), rank_chunk_A, rank_chunk_B);
 
-   return do_ALyXB(A, rank_chunk_A, LO, Value_P(), B, rank_chunk_B);
+   return do_ALyXB(CLONE(&A, LOC), rank_chunk_A, LO, Value_P(), CLONE(pB, LOC), rank_chunk_B);
 }
 //────────────────────────────────────────────────────────────────────────────
 Token
-Bif_OPER2_RANK::eval_ALRXB(Value_P A, Token & LO, Token & y,
-                           Value_P X, Value_P B) const
+Bif_OPER2_RANK::eval_ALRXB(cValue_R A, Token & LO, Token & y,
+                           cValue_R X, cValue_R B) const
 {
-   if (B->element_count() == 1 && B->get_cfirst().is_pointer_cell())
-      B = B->get_cfirst().get_pointer_value();
+const cValue * pB = &B;
+   if (pB->element_count() == 1 && pB->get_cfirst().is_pointer_cell())
+   { Value_P B_hold_ = pB->get_cfirst().get_pointer_value(); pB = B_hold_.get(); }
 
-sRank rank_chunk_A = A->get_rank();
-sRank rank_chunk_B = B->get_rank();
+sRank rank_chunk_A = A.get_rank();
+sRank rank_chunk_B = pB->get_rank();
 
-   y123_to_AB(y.get_apl_val(), rank_chunk_A, rank_chunk_B);
+   y123_to_AB(y.get_apl_val().get(), rank_chunk_A, rank_chunk_B);
 
-   return do_ALyXB(A, rank_chunk_A, LO, X, B, rank_chunk_B);
+   return do_ALyXB(CLONE(&A, LOC), rank_chunk_A, LO, CLONE(&X, LOC), CLONE(pB, LOC), rank_chunk_B);
 }
 //────────────────────────────────────────────────────────────────────────────
 Token
-Bif_OPER2_RANK::eval_LRB(Token & LO, Token & y, Value_P B) const
+Bif_OPER2_RANK::eval_LRB(Token & LO, Token & y, cValue_R B) const
 {
-   if (B->element_count() == 1 && B->get_cfirst().is_pointer_cell())
-      B = B->get_cfirst().get_pointer_value();
+const cValue * pB = &B;
+   if (pB->element_count() == 1 && pB->get_cfirst().is_pointer_cell())
+   { Value_P B_hold_ = pB->get_cfirst().get_pointer_value(); pB = B_hold_.get(); }
 
-const sRank rank_chunk_B = y123_to_chunk_B_rank(y.get_apl_val(), B->get_rank());
-   return do_LyXB(LO, Value_P(), B, rank_chunk_B);
+const sRank rank_chunk_B = y123_to_chunk_B_rank(y.get_apl_val().get(), pB->get_rank());
+   return do_LyXB(LO, Value_P(), CLONE(pB, LOC), rank_chunk_B);
 }
 //────────────────────────────────────────────────────────────────────────────
 Token
-Bif_OPER2_RANK::eval_LRXB(Token & LO, Token & y, Value_P X, Value_P B) const
+Bif_OPER2_RANK::eval_LRXB(Token & LO, Token & y, cValue_R X, cValue_R B) const
 {
-   if (B->element_count() == 1 && B->get_cfirst().is_pointer_cell())
-      B = B->get_cfirst().get_pointer_value();
+const cValue * pB = &B;
+   if (pB->element_count() == 1 && pB->get_cfirst().is_pointer_cell())
+   { Value_P B_hold_ = pB->get_cfirst().get_pointer_value(); pB = B_hold_.get(); }
 
-const sRank rank_chunk_B = y123_to_chunk_B_rank(y.get_apl_val(), B->get_rank());
+const sRank rank_chunk_B = y123_to_chunk_B_rank(y.get_apl_val().get(), pB->get_rank());
 
-   return do_LyXB(LO, X, B, rank_chunk_B);
+   return do_LyXB(LO, CLONE(&X, LOC), CLONE(pB, LOC), rank_chunk_B);
 }
 //────────────────────────────────────────────────────────────────────────────
 Token
@@ -290,7 +294,7 @@ sRank frame_B_rank = B->get_rank() - rank_chunk_B;   // frame_B_rank is y9
 
    // if both high-ranks are 0 (i.e. high shapes are ⍬), then return A LO B.
    //
-   if (frame_A_rank == 0 && frame_B_rank == 0)   return LO->eval_AB(A, B);
+   if (frame_A_rank == 0 && frame_B_rank == 0)   return LO->eval_AB(*A, *B);
 
    /* Otherwise at least one of the frame ranks is > 0.
       split shapes of A1 and B1 into high (frame) and low (chunk) shapes.
@@ -347,7 +351,7 @@ const Shape shape_Z = frame_B_rank ? B->get_shape().frame_shape(frame_B_rank)
         if (B->is_empty())          shape_Z = B->get_shape();
         else if (!B->is_scalar())   DOMAIN_ERROR;
 
-        Value_P Z1 = LO->eval_fill_AB(Fill_A, Fill_B).get_apl_val();
+        Value_P Z1 = LO->eval_fill_AB(*Fill_A, *Fill_B).get_apl_val();
 
         Value_P Z(shape_Z, LOC);
         Z->set_ravel_Value(0, Z1.get());
@@ -392,7 +396,7 @@ Value_P X7(7, LOC);
    X7->next_ravel_Value(vsh_Z.get());
    X7->check_value(LOC);
    return Macro::get_macro(Macro::MAC_Z__A_LO_RANK_X7_B)
-                           ->eval_ALXB(A, _LO, X7, B);
+                           ->eval_ALXB(*A, _LO, *X7, *B);
 }
 //────────────────────────────────────────────────────────────────────────────
 Token
@@ -413,7 +417,7 @@ const Shape shape_Z = B->get_shape().frame_shape(frame_B_rank);
    if (shape_Z.is_empty())
       {
         Value_P Fill_B = Bif_F12_TAKE::first(*B);
-        Token tZ = LO->eval_fill_B(Fill_B);
+        Token tZ = LO->eval_fill_B(*Fill_B);
         Value_P Z = tZ.get_apl_val();
         Z->set_shape(B->get_shape());
         Z->check_value(LOC);
@@ -473,11 +477,11 @@ Value_P X5(5, LOC);
    X5->next_ravel_Pointer(vsh_Z.get());         // rho_Z
    X5->check_value(LOC);
 
-   return Macro::get_macro(Macro::MAC_Z__LO_RANK_X5_B)->eval_LXB(_LO, X5, B);
+   return Macro::get_macro(Macro::MAC_Z__LO_RANK_X5_B)->eval_LXB(_LO, *X5, *B);
 }
 //────────────────────────────────────────────────────────────────────────────
 sRank
-Bif_OPER2_RANK::y123_to_chunk_B_rank(Value_P y123, sRank rank_B)
+Bif_OPER2_RANK::y123_to_chunk_B_rank(const cValue * y123, sRank rank_B)
 {
    /* y123_to_AB() splits the ranks of A and B into a (higher-dimensions)
       "frame" and a (lower-dimensions) "chunk" as specified by y123.
@@ -548,7 +552,7 @@ sRank y6 = y5;   if (y5 < 0)   y6 = y5 > 0 ? y5 : 0;
 }
 //────────────────────────────────────────────────────────────────────────────
 void
-Bif_OPER2_RANK::y123_to_AB(Value_P y123, sRank & rank_A, sRank & rank_B)
+Bif_OPER2_RANK::y123_to_AB(const cValue * y123, sRank & rank_A, sRank & rank_B)
 {
    // y123_to_AB() splits the ranks of A and B into a (higher-dimensions)
    // "frame" and a (lower-dimensions) "chunk" as specified by y123.

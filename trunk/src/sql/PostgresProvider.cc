@@ -26,7 +26,7 @@
 
 //════════════════════════════════════════════════════════════════════════════
 static PostgresConnection *
-create_postgres_connection(const Value & B)
+create_postgres_connection(const cValue & B)
 {
     if( !B.is_char_string() ) {
         MORE_ERROR() << "Argument must be a single string";
@@ -62,7 +62,7 @@ create_postgres_connection(const Value & B)
 }
 //════════════════════════════════════════════════════════════════════════════
 Connection *
-PostgresProvider::open_database(const Value & B)
+PostgresProvider::open_database(const cValue & B)
 {
 Connection * connection = create_postgres_connection(B);
     return connection;

@@ -158,32 +158,32 @@ Quad_PNG::~Quad_PNG()
 //────────────────────────────────────────────────────────────────────────────
 #if PNG_LIBS
 Token
-Quad_PNG::eval_AB(Value_P A, Value_P B) const
+Quad_PNG::eval_AB(cValue_R A, cValue_R B) const
 {
    // write pixels B to file A. A is either
    //
    // 1. a string for the filename, or
    // 2. a 2-element vector (nested filename, bit-depth)
    //
-   if (A->is_apl_char_vector())   // case 1: write PNG-file A depth 8
+   if (A.is_apl_char_vector())   // case 1: write PNG-file A depth 8
       {
-        if (B->get_rank() != 3)   RANK_ERROR;
+        if (B.get_rank() != 3)   RANK_ERROR;
 
-        UCS_string filename_ucs(*A);
+        UCS_string filename_ucs(A);
         UTF8_string filename_utf8(filename_ucs);
-        write_PNG_file(filename_utf8.c_str(), 8, *B);
+        write_PNG_file(filename_utf8.c_str(), 8, B);
 
         return Token(TOK_APL_VALUE1, Idx0_0(LOC));
       }
-   else if (A->element_count() == 2)   // case 2: PNG file A[1] depth A[2]
+   else if (A.element_count() == 2)   // case 2: PNG file A[1] depth A[2]
       {
-        const APL_Integer A1 = A->get_cravel(1).get_int_value();   // bit depth
-        if (A->get_cravel(0).is_pointer_cell())   // probably file name
+        const APL_Integer A1 = A.get_cravel(1).get_int_value();   // bit depth
+        if (A.get_cravel(0).is_pointer_cell())   // probably file name
            {
-             const Value_P A0 = A->get_cravel(0).get_pointer_value();
+             const Value_P A0 = A.get_cravel(0).get_pointer_value();
              UCS_string filename_ucs(*A0);
              UTF8_string filename_utf8(filename_ucs);
-             write_PNG_file(filename_utf8.c_str(), A1, *B);
+             write_PNG_file(filename_utf8.c_str(), A1, B);
 
         return Token(TOK_APL_VALUE1, Idx0_0(LOC));
            }
@@ -202,7 +202,7 @@ Quad_PNG::eval_AB(Value_P A, Value_P B) const
 #else   // not PNG_LIBS
 
 Token
-Quad_PNG::eval_AB(Value_P A, Value_P B) const
+Quad_PNG::eval_AB(cValue_R A, cValue_R B) const
 {
   // complain about missing libraries. Same as monadic eval_B().
   return eval_B(B);
@@ -211,29 +211,29 @@ Quad_PNG::eval_AB(Value_P A, Value_P B) const
 //────────────────────────────────────────────────────────────────────────────
 #if PNG_LIBS
 Token
-Quad_PNG::eval_B(Value_P B) const
+Quad_PNG::eval_B(cValue_R B) const
 {
-   if (B->get_rank() == 0 && !B->get_cfirst().is_pointer_cell())
+   if (B.get_rank() == 0 && !B.get_cfirst().is_pointer_cell())
       {
         // scalar (integer) argument: window control and logging
         //
-        const APL_Integer B0 = B->get_cscalar().get_int_value();
+        const APL_Integer B0 = B.get_cscalar().get_int_value();
         Value_P Z = window_control(B0);
         return Token(TOK_APL_VALUE1, Z);
       }
 
-   if (B->is_apl_char_vector())   // read PNG file
+   if (B.is_apl_char_vector())   // read PNG file
       {
-        const UCS_string filename_ucs(*B);
+        const UCS_string filename_ucs(B);
         UTF8_string filename_utf(filename_ucs);
         Value_P Z = read_PNG_file(filename_utf);
         return Token(TOK_APL_VALUE1, Z);
       }
 
 #if PNG_GTK
-   if (B->get_rank() == 3)   // display B (an RGB or RGBA matrix)
+   if (B.get_rank() == 3)   // display B (an RGB or RGBA matrix)
       {
-        const APL_Integer handle = display_PNG_main(B);
+        const APL_Integer handle = display_PNG_main(CLONE(&B, LOC));
 
         sem_wait(PNG_window_sema);   // blocks until window shown
         sem_post(PNG_window_sema);   // restore for next sem_wait()
@@ -247,7 +247,7 @@ Quad_PNG::eval_B(Value_P B) const
 }
 #else   // not PNG_LIBS
 Token
-Quad_PNG::eval_B(Value_P B) const
+Quad_PNG::eval_B(cValue_R B) const
 {
 const char * libs[] = { "libpng.so",  "libgtk-3.so",  0 };
 const char * hdrs[] = { "png.h",      "gtk/gtk.h",    0 };
@@ -567,7 +567,7 @@ enum { valid = 0b10000000100010110 };  // 16, 8, 4, 2, and 1
 //────────────────────────────────────────────────────────────────────────────
 void
 Quad_PNG::write_PNG_file(const char * filename, int bit_depth,
-                         const Value & B)
+                         const cValue & B)
 {
 #if PNG_LIBS
 
@@ -777,7 +777,7 @@ paint_data(const PNG_context & pctx)
       bytes for each pixel with one byte per color component (or alpha).
     */
 
-const Value * B = pctx.get_APL_value().get();
+const cValue * B = pctx.get_APL_value().get();
 const ShapeItem width  = B->get_shape_item(2);
 const ShapeItem height = B->get_shape_item(1);
 const bool has_colors  = B->get_shape_item(0) > 2;   // RGB or RGBA

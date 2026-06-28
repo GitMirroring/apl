@@ -110,25 +110,25 @@ const UCS_string blanks(max_function_name_length - strlen(name), UNI_SPACE);
 }
 //────────────────────────────────────────────────────────────────────────────
 Token
-Quad_MX::eval_AXB(Value_P A, Value_P X, Value_P B) const
+Quad_MX::eval_AXB(cValue_R A, cValue_R X, cValue_R B) const
 {
 MX_ops op    = OP_LIST;
 int modifier = 0;
 
-   if (X->is_int_scalar() || X->is_char_string())   // op only
+   if (X.is_int_scalar() || X.is_char_string())   // op only
       {
-        op = MX_ops(value_to_subfun(*X));
+        op = MX_ops(value_to_subfun(X));
         if (op >= 100 && op <= 104)
            {
              op = OP_RANDOMS;
              modifier = op - 100;
            } 
       }
-   else if (X->is_vector())                         // op and modifier
+   else if (X.is_vector())                         // op and modifier
       {
-        const ShapeItem X_count = X->element_count();
-        op = MX_ops(X->get_cravel(0).get_int_value());
-        if (X_count > 1)   modifier = X->get_cravel(1).get_int_value();
+        const ShapeItem X_count = X.element_count();
+        op = MX_ops(X.get_cravel(0).get_int_value());
+        if (X_count > 1)   modifier = X.get_cravel(1).get_int_value();
       }
    else
       {
@@ -138,22 +138,24 @@ int modifier = 0;
   
    if (op < OP_LIST || int(op) >= subfun_count)   bad_subfun_number_ERROR(op);
 
+Value_P A_vp(static_cast<Value *>(const_cast<cValue *>(&A)), LOC);
+Value_P B_vp(static_cast<Value *>(const_cast<cValue *>(&B)), LOC);
 Value_P Z;
   switch(op)
     {
       case OP_LIST:
-           if (B->is_str0())    return list_functions(CERR);
-           if (B->is_zilde())   return list_mappings(CERR);
+           if (B.is_str0())    return list_functions(CERR);
+           if (B.is_zilde())   return list_mappings(CERR);
            DOMAIN_ERROR;
            break;
 
-      case OP_CROSS_PRODUCT:      Z = dyadicCrossProduct(A, B);   break;
-      case OP_VECTOR_ANGLE:       Z = vectorAngle(A, B);          break;
-      case OP_HOMOGENEOUS_MATRIX: Z = dyadicRotation(16, A, B);   break;
-      case OP_COVARIANCE:         Z = dyadicCovariance(A, B);     break;
-      case OP_HISTOGRAM:          Z = histogram(A, B);            break;
-      case OP_RANDOMS:            Z = randoms(A, B, modifier);    break;
-      case OP_PRINT:              Z = printit(A, B);              break;
+      case OP_CROSS_PRODUCT:      Z = dyadicCrossProduct(A_vp, B_vp);   break;
+      case OP_VECTOR_ANGLE:       Z = vectorAngle(A_vp, B_vp);          break;
+      case OP_HOMOGENEOUS_MATRIX: Z = dyadicRotation(16, A_vp, B_vp);   break;
+      case OP_COVARIANCE:         Z = dyadicCovariance(A_vp, B_vp);     break;
+      case OP_HISTOGRAM:          Z = histogram(A_vp, B_vp);            break;
+      case OP_RANDOMS:            Z = randoms(A_vp, B_vp, modifier);    break;
+      case OP_PRINT:              Z = printit(A_vp, B_vp);              break;
 
       default: MORE_ERROR() << "⎕MX[" << op << "] B is monadic.";
                VALENCE_ERROR;
@@ -164,20 +166,20 @@ Value_P Z;
 }
 //────────────────────────────────────────────────────────────────────────────
 Token
-Quad_MX::eval_XB(Value_P X, Value_P B) const
+Quad_MX::eval_XB(cValue_R X, cValue_R B) const
 {
 MX_ops op    = OP_LIST;
 int modifier = 0;
 
-  if (X->is_int_scalar() || X->is_char_string())   // op only
+  if (X.is_int_scalar() || X.is_char_string())   // op only
      {
-       op = MX_ops(value_to_subfun(*X));
+       op = MX_ops(value_to_subfun(X));
      }
-  else if (X->is_vector())                         // op and modifier
+  else if (X.is_vector())                         // op and modifier
      {
-       const ShapeItem X_count = X->element_count();
-       op = MX_ops(X->get_cravel(0).get_int_value());
-        if (X_count > 1)   modifier = X->get_cravel(1).get_int_value();
+       const ShapeItem X_count = X.element_count();
+       op = MX_ops(X.get_cravel(0).get_int_value());
+        if (X_count > 1)   modifier = X.get_cravel(1).get_int_value();
       }
    else
       {
@@ -188,25 +190,26 @@ int modifier = 0;
    if (op < OP_LIST || int(op) >= subfun_count)   bad_subfun_number_ERROR(op);
 
 Value_P opt_A;   // = 0
+Value_P B_vp(static_cast<Value *>(const_cast<cValue *>(&B)), LOC);
 Value_P Z = Idx0_0(LOC);
    switch(op)
       {
         case OP_LIST:
-             if (B->is_str0())   return  list_functions(COUT);
-             if (B->is_zilde())   return list_mappings(COUT);
+             if (B.is_str0())   return  list_functions(COUT);
+             if (B.is_zilde())   return list_mappings(COUT);
              DOMAIN_ERROR;
        
-        case OP_CROSS_PRODUCT:      Z = monadicCrossProduct(B);          break;
+        case OP_CROSS_PRODUCT:      Z = monadicCrossProduct(B_vp);          break;
              //v←v,⍉1 100⍴100 ⎕mx[12] 100000 ⎕mx[10 2] 1
-        case OP_RANDOMS:            Z = randoms(opt_A, B, modifier);     break;
-        case OP_DETERMINANT:        Z = determinant(B);                  break;
-        case OP_COVARIANCE:         Z = monadicCovariance(B);            break;
-        case OP_NORM:               Z = norm(B);                         break;
-        case OP_EIGENVECTORS:       Z = eigenvectors(B);                 break;
-        case OP_EIGENVALUES:        Z = eigenvalues(B);                  break;
-        case OP_IDENT:              Z = ident(B);                        break;
-        case OP_ROTATION_MATRIX:    Z = monadicRotation(B);              break;
-        case OP_SET_RNG_SEED:       Z = set_rng_seed(B);                 break;
+        case OP_RANDOMS:            Z = randoms(opt_A, B_vp, modifier);     break;
+        case OP_DETERMINANT:        Z = determinant(B_vp);                  break;
+        case OP_COVARIANCE:         Z = monadicCovariance(B_vp);            break;
+        case OP_NORM:               Z = norm(B_vp);                         break;
+        case OP_EIGENVECTORS:       Z = eigenvectors(B_vp);                 break;
+        case OP_EIGENVALUES:        Z = eigenvalues(B_vp);                  break;
+        case OP_IDENT:              Z = ident(B_vp);                        break;
+        case OP_ROTATION_MATRIX:    Z = monadicRotation(B_vp);              break;
+        case OP_SET_RNG_SEED:       Z = set_rng_seed(B_vp);                 break;
         default:   MORE_ERROR() << "A ⎕MX[" << op << "] B is dyadic.";
                    VALENCE_ERROR;
       }
@@ -217,19 +220,19 @@ Value_P Z = Idx0_0(LOC);
 
 //────────────────────────────────────────────────────────────────────────────
 Token
-Quad_MX::eval_AB(Value_P A, Value_P B) const
+Quad_MX::eval_AB(cValue_R A, cValue_R B) const
 {
   return eval_B(B);   // show help
 }
 //────────────────────────────────────────────────────────────────────────────
 Token
-Quad_MX::eval_B(Value_P B) const
+Quad_MX::eval_B(cValue_R B) const
 {
-   if (B->is_str0())    return list_functions(CERR);
-   if (B->is_zilde())   return list_mappings(CERR);
+   if (B.is_str0())    return list_functions(CERR);
+   if (B.is_zilde())   return list_mappings(CERR);
 
-   if (!B->is_vector())      RANK_ERROR;
-   if (B->element_count())   LENGTH_ERROR;   // not empty
+   if (!B.is_vector())      RANK_ERROR;
+   if (B.element_count())   LENGTH_ERROR;   // not empty
   DOMAIN_ERROR;
 }
 //────────────────────────────────────────────────────────────────────────────
@@ -1266,25 +1269,25 @@ Quad_MX::print_map_syntax(ostream & out,
 }
 //────────────────────────────────────────────────────────────────────────────
 Token
-Quad_MX::eval_AXB(Value_P A, Value_P X, Value_P B) const
+Quad_MX::eval_AXB(cValue_R A, cValue_R X, cValue_R B) const
 {
   return eval_B(B);
 }
 //────────────────────────────────────────────────────────────────────────────
 Token
-Quad_MX::eval_XB(Value_P X, Value_P B) const
+Quad_MX::eval_XB(cValue_R X, cValue_R B) const
 {
   return eval_B(B);
 }
 //────────────────────────────────────────────────────────────────────────────
 Token
-Quad_MX::eval_AB(Value_P A, Value_P B) const
+Quad_MX::eval_AB(cValue_R A, cValue_R B) const
 {
   return eval_B(B);
 }
 //────────────────────────────────────────────────────────────────────────────
 Token
-Quad_MX::eval_B(Value_P B) const
+Quad_MX::eval_B(cValue_R B) const
 {
 const char * libs[] = { "libgsl.so", "libgslcblas.so", 0 };
 const char * hdrs[] = { "gsl_statistics.h", "gsl_math.h", "gsl_eigen.h", 0 };

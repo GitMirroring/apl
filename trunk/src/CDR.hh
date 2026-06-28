@@ -67,7 +67,7 @@ public:
    /// convert \b value into a CDR_string
    /// @param result output CDR byte string
    /// @param value APL value to serialise
-   static void to_CDR(CDR_string & result, const Value * value);
+   static void to_CDR(CDR_string & result, const cValue * value);
 
 protected:
    /// fill result with the bytes of the CDR of \b value
@@ -75,7 +75,7 @@ protected:
    /// @param type CDR type code for the value
    /// @param len total byte length of the CDR representation
    /// @param val APL value whose CDR bytes are appended
-   static void fill(CDR_string & result, int type, int len, const Value & val);
+   static void fill(CDR_string & result, int type, int len, const cValue & val);
 };
 //════════════════════════════════════════════════════════════════════════════
 

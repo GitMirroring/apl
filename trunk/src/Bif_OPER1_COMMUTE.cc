@@ -28,19 +28,19 @@ Bif_OPER1_COMMUTE   Bif_OPER1_COMMUTE::fun;
 
 //════════════════════════════════════════════════════════════════════════════
 Token
-Bif_OPER1_COMMUTE::eval_ALB(Value_P A, Token & LO, Value_P B) const
+Bif_OPER1_COMMUTE::eval_ALB(cValue_R A, Token & LO, cValue_R B) const
 {
    return LO.get_function()->eval_AB(B, A);
 }
 //────────────────────────────────────────────────────────────────────────────
 Token
-Bif_OPER1_COMMUTE::eval_ALXB(Value_P A, Token & LO, Value_P X, Value_P B) const
+Bif_OPER1_COMMUTE::eval_ALXB(cValue_R A, Token & LO, cValue_R X, cValue_R B) const
 {
    return LO.get_function()->eval_AXB(B, X, A);
 }
 //────────────────────────────────────────────────────────────────────────────
 Token
-Bif_OPER1_COMMUTE::eval_LB(Token & LO, Value_P B) const
+Bif_OPER1_COMMUTE::eval_LB(Token & LO, cValue_R B) const
 {
    if (!LO.is_function())   SYNTAX_ERROR;
 cFunction_P fun_LO = LO.get_function();
@@ -86,7 +86,7 @@ cFunction_P fun_LO = LO.get_function();
         if (+A)   // definitelt special case
            {
               cFunction_P LO = A_LO->get_OPER();
-              return LO->eval_AB(B, A);
+              return LO->eval_AB(B, *A);
            }
       }
 
@@ -96,7 +96,7 @@ cFunction_P fun_LO = LO.get_function();
 }
 //────────────────────────────────────────────────────────────────────────────
 Token
-Bif_OPER1_COMMUTE::eval_LXB(Token & LO, Value_P X, Value_P B) const
+Bif_OPER1_COMMUTE::eval_LXB(Token & LO, cValue_R X, cValue_R B) const
 {
    return LO.get_function()->eval_AXB(B, X, B);
 }

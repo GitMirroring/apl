@@ -39,12 +39,12 @@ public:
    /// overloaded Function::eval_AB().
    /// @param A left argument APL value
    /// @param B right argument APL value
-   virtual Token eval_AB(Value_P A, Value_P B) const
+   virtual Token eval_AB(cValue_R A, cValue_R B) const
       { VALENCE_ERROR; }
 
    /// overloaded Function::eval_B().
    /// @param B right argument APL value
-   virtual Token eval_B(Value_P B) const
+   virtual Token eval_B(cValue_R B) const
       { VALENCE_ERROR; }
 
    /// overloaded Function::has_alpha()
@@ -64,7 +64,7 @@ public:
 
    /// overloaded Function::eval_B().
    /// @param B right argument APL value
-   virtual Token eval_B(Value_P B) const;
+   virtual Token eval_B(cValue_R B) const;
 
    static Quad_AF  fun;          ///< Built-in function.
 
@@ -82,7 +82,7 @@ public:
    /// overloaded Function::eval_AB().
    /// @param A left argument APL value (attribute selector)
    /// @param B right argument APL value (name(s) to query)
-   virtual Token eval_AB(Value_P A, Value_P B) const;
+   virtual Token eval_AB(cValue_R A, cValue_R B) const;
 
    static Quad_AT  fun;          ///< Built-in function.
 
@@ -102,7 +102,7 @@ public:
 protected:
    /// overloaded Function::eval_B().
    /// @param B right argument APL value (delay in seconds)
-   virtual Token eval_B(Value_P B) const;
+   virtual Token eval_B(cValue_R B) const;
 };
 //────────────────────────────────────────────────────────────────────────────
 /**
@@ -124,7 +124,7 @@ protected:
    /// overloaded Function::eval_AB().
    /// @param A left argument APL value (alternate expression string)
    /// @param B right argument APL value (primary expression string)
-   virtual Token eval_AB(Value_P A, Value_P B) const;
+   virtual Token eval_AB(cValue_R A, cValue_R B) const;
 };
 //────────────────────────────────────────────────────────────────────────────
 /**
@@ -146,7 +146,7 @@ protected:
    /// overloaded Function::eval_AB().
    /// @param A left argument APL value (expression string)
    /// @param B right argument APL value (expression string)
-   virtual Token eval_AB(Value_P A, Value_P B) const;
+   virtual Token eval_AB(cValue_R A, cValue_R B) const;
 };
 //────────────────────────────────────────────────────────────────────────────
 /**
@@ -171,11 +171,11 @@ public:
 protected:
    /// overloaded Function::eval_B().
    /// @param B right argument APL value (expression string)
-   virtual Token eval_B(Value_P B) const;
+   virtual Token eval_B(cValue_R B) const;
 
    /// overloaded Function::eval_fill_B().
    /// @param B right argument APL value (expression string)
-   virtual Token eval_fill_B(Value_P B) const;
+   virtual Token eval_fill_B(cValue_R B) const;
 };
 //────────────────────────────────────────────────────────────────────────────
 /**
@@ -193,7 +193,7 @@ public:
 protected:
    /// overloaded Function::eval_B().
    /// @param B right argument APL value (variable name pattern)
-   virtual Token eval_B(Value_P B) const;
+   virtual Token eval_B(cValue_R B) const;
 };
 //────────────────────────────────────────────────────────────────────────────
 /**
@@ -212,11 +212,11 @@ protected:
    /// overloaded Function::eval_AB().
    /// @param A left argument APL value (event message string)
    /// @param B right argument APL value (event code)
-   virtual Token eval_AB(Value_P A, Value_P B) const;
+   virtual Token eval_AB(cValue_R A, cValue_R B) const;
 
    /// overloaded Function::eval_B().
    /// @param B right argument APL value (event code)
-   virtual Token eval_B(Value_P B) const;
+   virtual Token eval_B(cValue_R B) const;
 
    /// common inplementation for eval_AB() and eval_B()
    /// @param A optional event message string (null means no message)
@@ -248,7 +248,7 @@ public:
 protected:
    /// overloaded Function::eval_B().
    /// @param B right argument APL value (name(s) to expunge)
-   virtual Token eval_B(Value_P B) const;
+   virtual Token eval_B(cValue_R B) const;
 };
 //────────────────────────────────────────────────────────────────────────────
 /**
@@ -271,16 +271,16 @@ protected:
    /// overloaded Function::eval_AB().
    /// @param A left argument APL value (escape delimiters)
    /// @param B right argument APL value (end-marker string)
-   virtual Token eval_AB(Value_P A, Value_P B) const;
+   virtual Token eval_AB(cValue_R A, cValue_R B) const;
 
    /// overloaded Function::eval_B().
    /// @param B right argument APL value (end-marker string)
-   virtual Token eval_B(Value_P B) const;
+   virtual Token eval_B(cValue_R B) const;
 
    /// overloaded Function::eval_XB().
    /// @param X axis specifier APL value
    /// @param B right argument APL value (end-marker string)
-   virtual Token eval_XB(Value_P X, Value_P B) const;
+   virtual Token eval_XB(cValue_R X, cValue_R B) const;
 
    /// extract the esc1 and esc2 strings from \b A
    /// @param A left argument APL value carrying the escape delimiters
@@ -336,12 +336,12 @@ protected:
    /// overloaded Function::eval_AB()
    /// @param A left argument APL value (calling-convention descriptor)
    /// @param B right argument APL value (function/library specification)
-   virtual Token eval_AB(Value_P A, Value_P B) const
+   virtual Token eval_AB(cValue_R A, cValue_R B) const
       { TODO; }
 
    /// overloaded Function::eval_B()
    /// @param B right argument APL value (name association query)
-   virtual Token eval_B(Value_P B) const
+   virtual Token eval_B(cValue_R B) const
       { TODO; }
 };
 //────────────────────────────────────────────────────────────────────────────
@@ -357,7 +357,7 @@ public:
 
    /// overloaded Function::eval_B().
    /// @param B right argument APL value (name(s) to classify)
-   virtual Token eval_B(Value_P B) const;
+   virtual Token eval_B(cValue_R B) const;
 
    /// return the ⎕NC for variable name \b var
    /// @param var Unicode name to classify
@@ -381,13 +381,13 @@ public:
    /// overloaded Function::eval_AB().
    /// @param A left argument APL value (name prefix filter)
    /// @param B right argument APL value (name-class filter)
-   virtual Token eval_AB(Value_P A, Value_P B) const
-      { return do_quad_NL(A, B); }
+   virtual Token eval_AB(cValue_R A, cValue_R B) const
+      { return do_quad_NL(CLONE(&A, LOC), CLONE(&B, LOC)); }
 
    /// overloaded Function::eval_B().
    /// @param B right argument APL value (name-class filter)
-   virtual Token eval_B(Value_P B) const
-      { return do_quad_NL(Value_P(), B); }
+   virtual Token eval_B(cValue_R B) const
+      { return do_quad_NL(Value_P(), CLONE(&B, LOC)); }
 
    static Quad_NL  fun;          ///< Built-in function.
 
@@ -411,11 +411,11 @@ public:
    /// overloaded Function::eval_AB().
    /// @param A left argument APL value (SI attribute selector)
    /// @param B right argument APL value (SI level or name)
-   virtual Token eval_AB(Value_P A, Value_P B) const;
+   virtual Token eval_AB(cValue_R A, cValue_R B) const;
 
    /// overloaded Function::eval_AB().
    /// @param B right argument APL value (SI attribute selector)
-   virtual Token eval_B(Value_P B) const;
+   virtual Token eval_B(cValue_R B) const;
 
    static Quad_SI  fun;          ///< Built-in function.
 
@@ -434,7 +434,7 @@ public:
 
    /// overloaded Function::eval_B().
    /// @param B right argument APL value (characters or code points to convert)
-   virtual Token eval_B(Value_P B) const;
+   virtual Token eval_B(cValue_R B) const;
 
    static Quad_UCS  fun;          ///< Built-in function.
 
@@ -455,11 +455,11 @@ protected:
    /// @param ufun user-defined function whose stop/trace lines are updated
    /// @param new_value APL value containing the new line numbers
    /// @param stop true for ⎕STOP, false for ⎕TRACE
-   static void assign(UserFunction * ufun, const Value & new_value, bool stop);
+   static void assign(UserFunction * ufun, const cValue & new_value, bool stop);
 
    /// find UserFunction named \b fun_name
    /// @param fun_name APL value containing the function name to locate
-   static const UserFunction * locate_fun(const Value & fun_name);
+   static const UserFunction * locate_fun(const cValue & fun_name);
 
    /// return integers in lines
    /// @param lines vector of function line numbers
@@ -480,11 +480,11 @@ public:
    /// Overloaded Function::eval_AB()
    /// @param A left argument APL value (line numbers to set as stop points)
    /// @param B right argument APL value (function name)
-   virtual Token eval_AB(Value_P A, Value_P B) const;
+   virtual Token eval_AB(cValue_R A, cValue_R B) const;
 
    /// Overloaded Function::eval_B()
    /// @param B right argument APL value (function name)
-   virtual Token eval_B(Value_P B) const;
+   virtual Token eval_B(cValue_R B) const;
 
    static Quad_STOP  fun;          ///< Built-in function.
 };
@@ -501,11 +501,11 @@ public:
    /// Overloaded Function::eval_AB()
    /// @param A left argument APL value (line numbers to set as trace points)
    /// @param B right argument APL value (function name)
-   virtual Token eval_AB(Value_P A, Value_P B) const;
+   virtual Token eval_AB(cValue_R A, cValue_R B) const;
 
    /// Overloaded Function::eval_B()
    /// @param B right argument APL value (function name)
-   virtual Token eval_B(Value_P B) const;
+   virtual Token eval_B(cValue_R B) const;
 
    static Quad_TRACE  fun;          ///< Built-in function.
 };

@@ -42,17 +42,17 @@ protected:
    /// overloaded Function::eval_AB()
    /// @param A left argument APL value
    /// @param B right argument APL value
-   virtual Token eval_AB(Value_P A, Value_P B) const;
+   virtual Token eval_AB(cValue_R A, cValue_R B) const;
 
    /// overloaded Function::eval_B()
    /// @param B right argument APL value
-   virtual Token eval_B(Value_P B) const;
+   virtual Token eval_B(cValue_R B) const;
 
    /// overloaded Function::eval_XB().
    /// ⎕RVAL[X] B  ←→  X ⎕RVAL B
    /// @param X axis/subfunction index
    /// @param B right argument APL value
-   virtual Token eval_XB(Value_P X, Value_P B) const;
+   virtual Token eval_XB(cValue_R X, cValue_R B) const;
 
    /// overloaded FunctionGroup::print_fun_syntax()
    /// @param out  output stream to print to
@@ -69,10 +69,10 @@ protected:
    /// do eval_B(B);
    /// @param B     right argument APL value
    /// @param depth remaining nesting depth for random values
-   Value_P do_eval_B(const Value & B, int depth) const;
+   Value_P do_eval_B(const cValue & B, int depth) const;
 
    /// initialize the next ravel cell of \b Z with a random nested value
-   void random_nested(Value & Z, const Value & B, int depth) const;
+   void random_nested(Value & Z, const cValue & B, int depth) const;
 
    /// choose an integer value at random according to distribution \b dist
    static int choose_integer(const vector<int> & dist);
@@ -80,10 +80,10 @@ protected:
    /// do eval_AB(A, B);
    /// @param A integer subfunction selector
    /// @param B right argument APL value
-   static Value_P do_eval_AB(int A, const Value & B);
+   static Value_P do_eval_AB(int A, const cValue & B);
 
    /// set or return the state of the random generator
-   static Value_P generator_state(const Value & B);
+   static Value_P generator_state(const cValue & B);
 
    /// return a 17-bit random number from random()
    static uint64_t rand17();
@@ -104,16 +104,16 @@ protected:
    static void random_integer(Value & Z);
 
    /// set or return the desired max. depth of random numbers
-   static Value_P result_maxdepth(const Value & B);
+   static Value_P result_maxdepth(const cValue & B);
 
    /// set or return the desired rank of random numbers
-   static Value_P result_rank(const Value & B);
+   static Value_P result_rank(const cValue & B);
 
    /// set or return the desired ranks of random numbers
-   static Value_P result_shape(const Value & B);
+   static Value_P result_shape(const cValue & B);
 
    /// set or return the desired types of random numbers
-   static Value_P result_type(const Value & B);
+   static Value_P result_type(const cValue & B);
 
    /// a mapping between function names and function numbers
    static const FunctionGroup::function_info subfunction_infos[];

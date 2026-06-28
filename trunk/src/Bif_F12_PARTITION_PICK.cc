@@ -32,17 +32,17 @@ Bif_F12_PICK      Bif_F12_PICK     ::fun;    // ⊃
 
 //════════════════════════════════════════════════════════════════════════════
 Value_P
-Bif_F12_PARTITION::do_eval_B(Value_P B)
+Bif_F12_PARTITION::do_eval_B(cValue_R B)
 {
 Value_P Z(LOC);   // Z ← ⊂B is always a scalar
 
-   if (B->is_simple_scalar())   // B is not nested: copy ↑B
+   if (B.is_simple_scalar())   // B is not nested: copy ↑B
       {
-        Z->next_ravel_Cell(B->get_cscalar());
+        Z->next_ravel_Cell(B.get_cscalar());
       }
    else                         // B is nested: clone and copy
       {
-        Value_P Z0 = B->clone(LOC);
+        Value_P Z0 = B.clone(LOC);
         Z->next_ravel_Pointer(Z0.get());
       }
    Z->check_value(LOC);
@@ -50,9 +50,9 @@ Value_P Z(LOC);   // Z ← ⊂B is always a scalar
 }
 //────────────────────────────────────────────────────────────────────────────
 Token
-Bif_F12_PARTITION::eval_AXB(Value_P A, Value_P X, Value_P B) const
+Bif_F12_PARTITION::eval_AXB(cValue_R A, cValue_R X, cValue_R B) const
 {
-const sAxis axis = Value::get_single_axis(X.get(), B->get_rank());
+const sAxis axis = Value::get_single_axis(&X, B.get_rank());
    return Token(TOK_APL_VALUE1, partition(A, B, axis));
 }
 //════════════════════════════════════════════════════════════════════════════
@@ -95,7 +95,7 @@ AxesBitmap axes_X = 0;   // axes in axes_X with ⎕IO←0
       {
         //  ⊂[⍳0]B   ←→   ⊂¨B
         Token part(TOK_FUN1, &Bif_F12_PARTITION::fun);
-        return Bif_OPER1_EACH::do_eval_LB(part, B).get_apl_val();
+        return Bif_OPER1_EACH::do_eval_LB(part, *B).get_apl_val();
       }
 
 Value_P Z(shape_Z, LOC);
@@ -141,15 +141,15 @@ Value_P Z(shape_Z, LOC);
 }
 //────────────────────────────────────────────────────────────────────────────
 Value_P
-Bif_F12_PARTITION::partition(Value_P A, Value_P B, sAxis axis)
+Bif_F12_PARTITION::partition(cValue_R A, cValue_R B, sAxis axis)
 {
    // A must be a scalar or vector (of non-negative integers)
    // B must be non-scalar
    //
-   if (A->get_rank() > 1)    RANK_ERROR;
-   if (B->get_rank() == 0)   RANK_ERROR;
+   if (A.get_rank() > 1)    RANK_ERROR;
+   if (B.get_rank() == 0)   RANK_ERROR;
 
-const ShapeItem len_A = A->element_count();
+const ShapeItem len_A = A.element_count();
 
    // the length of A shall be 1 (which is then extended to the length of the
    // B axis) or else the length of the B-axis along which the partitioning
@@ -158,11 +158,11 @@ const ShapeItem len_A = A->element_count();
    // Unlike IBM APL2 we not only extend scalars and one-item vectors but
    // also one-element arrays of rank ≥ 2.
    //
-   if (len_A != 1 && len_A != B->get_shape_item(axis))
+   if (len_A != 1 && len_A != B.get_shape_item(axis))
       {
         MORE_ERROR() << "In A ⊂ B: partition length ⍴A is " << len_A
                      << ", which does not match the B axis length "
-                     << B->get_shape_item(axis);
+                     << B.get_shape_item(axis);
         LENGTH_ERROR;
       }
 
@@ -173,7 +173,7 @@ vector<Partition> partitions;   // all partitions on the B-axis
      bool in_partition = false;
      loop(apos, len_A)
          {
-           const APL_Integer aval = A->get_cravel(apos).get_near_int();
+           const APL_Integer aval = A.get_cravel(apos).get_near_int();
            if (aval < 0)            DOMAIN_ERROR;
 
            if (aval > prev_A)   // new partition starting at apos
@@ -199,7 +199,7 @@ vector<Partition> partitions;   // all partitions on the B-axis
    // ⍴Z  ←→ (⍴B) ⊢[axis=⍳⍴⍴B] bm   ( for A ⊂[axis] B )
    //
 const ShapeItem Zm = partitions.size();   // number of non-0 partitions
-Shape shape_Z(B->get_shape());
+Shape shape_Z(B.get_shape());
    shape_Z.set_shape_item(axis, Zm);
 
 Value_P Z(shape_Z, LOC);
@@ -208,14 +208,14 @@ Value_P Z(shape_Z, LOC);
       {
         const ShapeItem len = 0;
         Value_P ZZ(len, LOC);
-        ZZ->set_default(*B.get(), LOC);
+        ZZ->set_default(B, LOC);
         ZZ->check_value(LOC);
         new (&Z->get_wproto()) PointerCell(ZZ.get(), *Z);
         Z->check_value(LOC);
         return Z;
       }
 
-const Shape & shape_B = B->get_shape();
+const Shape & shape_B = B.get_shape();
 const Shape3 shape_B3(shape_B, axis);
 const ShapeItem B3_lm = shape_B3.l() * shape_B3.m();
 
@@ -230,7 +230,7 @@ const ShapeItem B3_lm = shape_B3.l() * shape_B3.m();
          const ShapeItem partition_len   = partitions[m].length();
          const ShapeItem start_B =
                          l + partition_start * shape_B3.l() + h * B3_lm;
-         const Cell * src_B = &B->get_cravel(start_B);
+         const Cell * src_B = &B.get_cravel(start_B);
 
          Value_P ZZ(partition_len, LOC);   // the m'th partition
          loop(p, partition_len)
@@ -247,42 +247,42 @@ const ShapeItem B3_lm = shape_B3.l() * shape_B3.m();
 }
 //════════════════════════════════════════════════════════════════════════════
 Token
-Bif_F12_PICK::eval_AB(Value_P A, Value_P B) const
+Bif_F12_PICK::eval_AB(cValue_R A, cValue_R B) const
 {
-   if (A->get_rank() > 1)    RANK_ERROR;
+   if (A.get_rank() > 1)    RANK_ERROR;
 
-const ShapeItem ec_A = A->element_count();
+const ShapeItem ec_A = A.element_count();
 
    // if A is empty, return B
    //
-   if (ec_A == 0)   return Token(TOK_APL_VALUE1, B);
+   if (ec_A == 0)   return Token(TOK_APL_VALUE1, CLONE(&B, LOC));
 
 const APL_Integer qio = Workspace::get_IO();
 
-Value_P Z = pick(&A->get_cfirst(), 0, ec_A, B.get(), qio);
+Value_P Z = pick(&A.get_cfirst(), 0, ec_A, B, qio);
 
    Z->check_value(LOC);
    return Token(TOK_APL_VALUE1, Z);
 }
 //════════════════════════════════════════════════════════════════════════════
 Value_P
-Bif_F12_PICK::disclose(Value_P B, bool rank_tolerant)
+Bif_F12_PICK::disclose(cValue_R B, bool rank_tolerant)
 {
    // for simple scalars B: B ≡ ⊂ B and therefore B ≡ ⊃ B
    //
-   if (B->is_simple_scalar())   return B;
+   if (B.is_simple_scalar())   return CLONE(&B, LOC);
 
    // compute item_shape, which is the smallest shape into which each
    // item of B fits, and then ⍴Z ←→ (⍴B), item_shape
 
 const Shape item_shape = compute_item_shape(B, rank_tolerant);
-const Shape shape_Z = B->get_shape() + item_shape;
+const Shape shape_Z = B.get_shape() + item_shape;
 
-const ShapeItem len_B = B->element_count();
+const ShapeItem len_B = B.element_count();
    if (len_B == 0)
       {
-         Value_P first = Bif_F12_TAKE::first(*B);
-         Value_P result = disclose(first, rank_tolerant);
+         Value_P first = Bif_F12_TAKE::first(B);
+         Value_P result = disclose(*first, rank_tolerant);
          result->set_shape(shape_Z);
          return result;
       }
@@ -293,7 +293,7 @@ const ShapeItem item_len = item_shape.get_volume();
 
    if (item_len == 0)   // empty enclosed value
       {
-        const Cell & B0 = B->get_cproto();
+        const Cell & B0 = B.get_cproto();
         if (B0.is_pointer_cell())
            {
              Value_P vB = B0.get_pointer_value();
@@ -310,11 +310,11 @@ const ShapeItem item_len = item_shape.get_volume();
 
    loop(b, len_B)   // for all items in B...
        {
-         const Cell & B_item = B->get_cravel(b);
+         const Cell & B_item = B.get_cravel(b);
          disclose_item(*Z, b, item_shape, item_len, B_item);
        }
 
-   Z->set_default(*B.get(), LOC);
+   Z->set_default(B, LOC);
    Z->check_value(LOC);
    return Z;
 }
@@ -395,7 +395,7 @@ Bif_F12_PICK::disclose_item(Value & Z, ShapeItem b,
 }
 //────────────────────────────────────────────────────────────────────────────
 Value_P
-Bif_F12_PICK::disclose_with_axis(const Shape & sh_X, Value_P B)
+Bif_F12_PICK::disclose_with_axis(const Shape & sh_X, cValue_R B)
 {
    // disclose with axis: Z←⊃[X] B
    // implemented as: cB ← ⊃ B ◊ cX ← ((⍳⍴⍴cB)∼X),X ◊ Z←cX ⍉ B
@@ -447,11 +447,11 @@ Shape perm_cB;   // perm_cB is the permutation of cB, constructed from X
         RANK_ERROR;
       }
 
-   return Bif_F12_TRANSPOSE::transpose(perm_cB, cB.get());
+   return Bif_F12_TRANSPOSE::transpose(perm_cB, *cB);
 }
 //────────────────────────────────────────────────────────────────────────────
 Shape
-Bif_F12_PICK::compute_item_shape(Value_P B, bool rank_tolerant)
+Bif_F12_PICK::compute_item_shape(cValue_R B, bool rank_tolerant)
 {
    /* The ravel cells of B are either simple or else PointerCells of nested
       values with possibly different shapes.
@@ -472,11 +472,11 @@ ShapeItem ret_rank = 0;
 ShapeItem ret[MAX_RANK];
    loop(r, MAX_RANK)   ret[r] = 0;
 
-   loop(b, B->nz_element_count())
+   loop(b, B.nz_element_count())
        {
-         const Value * val;
+         const cValue * val;
          {
-           const Cell & cB = B->get_cravel(b);
+           const Cell & cB = B.get_cravel(b);
            if (cB.is_pointer_cell())
               {
                 val = cB.get_pointer_value().get();
@@ -538,20 +538,20 @@ ShapeItem ret[MAX_RANK];
 //────────────────────────────────────────────────────────────────────────────
 Value_P
 Bif_F12_PICK::pick(const Cell * const A0, ShapeItem idx_A, ShapeItem len_A,
-                   const Value * B, APL_Integer qio)
+                   cValue_R B, APL_Integer qio)
 {
    // A0 points to ↑A and we are at depth idx_A, which means that A0[idx_A] is
    // the current index of B.
    //
 const ShapeItem offset = pick_offset(A0, idx_A, len_A, B, qio);
-const Cell * cB = &B->get_cravel(offset);
+const Cell * cB = &B.get_cravel(offset);
 
    if (len_A > 1)   // more levels coming.
       {
         if (cB->is_pointer_cell())
            {
              return pick(A0, idx_A+1, len_A-1,
-                         cB->get_pointer_value().get(), qio);
+                         *cB->get_pointer_value(), qio);
            }
 
         if (cB->is_lval_cell())
@@ -569,7 +569,7 @@ const Cell * cB = &B->get_cravel(offset);
              //
              Value_P subval = target.get_pointer_value();   // right-value
              Value_P subrefs = subval->get_cellrefs(LOC);   // left-value
-             return pick(A0, idx_A + 1, len_A - 1, subrefs.get(), qio);
+             return pick(A0, idx_A + 1, len_A - 1, *subrefs, qio);
            }
 
         // simple cell. This means that the depth of B does not suffice to
@@ -616,7 +616,7 @@ const Cell * cB = &B->get_cravel(offset);
 #endif
 
         Value_P Z(LOC);
-        Value * cell_owner = B->get_lval_cellowner();
+        Value * cell_owner = B.get_lval_cellowner();
         Z->next_ravel_Lval(target, cell_owner);
         return Z;
       }
@@ -630,7 +630,7 @@ const Cell * cB = &B->get_cravel(offset);
 //────────────────────────────────────────────────────────────────────────────
 ShapeItem
 Bif_F12_PICK::pick_offset(const Cell * const A0, ShapeItem idx_A,
-                          ShapeItem len_A, const Value * B, APL_Integer qio)
+                          ShapeItem len_A, cValue_R B, APL_Integer qio)
 {
 const Cell & cA = A0[idx_A];
 
@@ -646,7 +646,7 @@ const Cell & cA = A0[idx_A];
 
         const Value & A = *cA.get_pointer_value();
 
-        if (B->is_member())   // case i. (structured B)
+        if (B.is_member())   // case i. (structured B)
            {
              if (!A.is_char_string())
                 {
@@ -660,8 +660,8 @@ const Cell & cA = A0[idx_A];
              vector<const UCS_string *> members;
              members.push_back(&member);
              members.push_back(&top_level);   // dummy, must be last
-             const Cell * Bsub = B->get_existing_member(members);  // may throw
-             return Bsub - &B->get_cfirst();
+             const Cell * Bsub = B.get_existing_member(members);  // may throw
+             return Bsub - &B.get_cfirst();
            }
         else                  // case ii. (normal B)
            {
@@ -673,16 +673,16 @@ const Cell & cA = A0[idx_A];
                 }
 
              const ShapeItem len_A = A.element_count();
-             if (B->get_rank() != len_A)
+             if (B.get_rank() != len_A)
                 {
-                  MORE_ERROR() << "⍴⍴B (" << B->get_rank()
+                  MORE_ERROR() << "⍴⍴B (" << B.get_rank()
                                << ") = ⍴,A (" << len_A
                                << ") expected for A⊃B (nested A["
                                << (idx_A + qio) << "])";
                   RANK_ERROR;
                 }
 
-             const Shape weights_B = B->get_shape().get_weights();
+             const Shape weights_B = B.get_shape().get_weights();
              const Shape A_as_shape(A, qio);
              ShapeItem offset = 0;
 
@@ -690,7 +690,7 @@ const Cell & cA = A0[idx_A];
                  {
                    const ShapeItem ar = A_as_shape.get_shape_item(r);
                    if (ar < 0)                       INDEX_ERROR;
-                   if (ar >= B->get_shape_item(r))   INDEX_ERROR;
+                   if (ar >= B.get_shape_item(r))   INDEX_ERROR;
                    offset += weights_B.get_shape_item(r) * ar;
                  }
              return offset;
@@ -698,15 +698,15 @@ const Cell & cA = A0[idx_A];
       }
    else   // A is a scalar, so B must be a vector.
       {
-        if (B->get_rank() != 1)
+        if (B.get_rank() != 1)
            {
-             MORE_ERROR() << "⍴⍴B (" << B->get_rank()
+             MORE_ERROR() << "⍴⍴B (" << B.get_rank()
                           << ") = 1 expected for A⊃B (with scalar A)";
              RANK_ERROR;
            }
         const APL_Integer a = cA.get_near_int() - qio;
         if (a < 0)                       INDEX_ERROR;
-        if (a >= B->get_shape_item(0))   INDEX_ERROR;
+        if (a >= B.get_shape_item(0))   INDEX_ERROR;
         return a;
       }
 }

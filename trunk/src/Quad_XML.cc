@@ -909,7 +909,7 @@ UCS_string ret;
 //────────────────────────────────────────────────────────────────────────────
 int
 Quad_XML::split_name(Unicode * category, ShapeItem * position,
-                     UCS_string * name, const Value & value)
+                     UCS_string * name, const cValue & value)
 {
    // name is one of:
    // ⍙N                        (tag name, N was ⎕IO
@@ -959,11 +959,11 @@ ShapeItem pos = 0;
 }
 //────────────────────────────────────────────────────────────────────────────
 Token
-Quad_XML::eval_AB(Value_P A, Value_P B) const
+Quad_XML::eval_AB(cValue_R A, cValue_R B) const
 {
-   if (A->get_rank() > 1)   RANK_ERROR;
+   if (A.get_rank() > 1)   RANK_ERROR;
 
-const int function_number = A->get_cfirst().get_int_value();
+const int function_number = A.get_cfirst().get_int_value();
    switch(function_number)
       {
          case 0:   // same as monadic ⎕XML
@@ -973,83 +973,83 @@ const int function_number = A->get_cfirst().get_int_value();
 
          case 1:   // read and convert an XML file
               {
-                return convert_file(*B);
+                return convert_file(B);
               }
 
          case 2:
               {
-                Value_P Z = path_split(*B);
+                Value_P Z = path_split(B);
                 return Token(TOK_APL_VALUE1, Z);
               }
 
          case 3:
               {
-                Value_P Z = name_split(*B);
+                Value_P Z = name_split(B);
                 return Token(TOK_APL_VALUE1, Z);
               }
 
          case -3:
               {
-                Value_P Z = name_unsplit(*B);
+                Value_P Z = name_unsplit(B);
                 return Token(TOK_APL_VALUE1, Z);
               }
 
          case 4:
               {
-                Value_P Z = tree(*B, tf_none);
+                Value_P Z = tree(B, tf_none);
                 return Token(TOK_APL_VALUE1, Z);
               }
 
          case 5:
               {
-                Value_P Z = tree(*B, tf_with_pos | tf_with_decl);
+                Value_P Z = tree(B, tf_with_pos | tf_with_decl);
                 return Token(TOK_APL_VALUE1, Z);
               }
 
          case 6:
               {
-                Value_P Z = tree(*B, tf_with_pos | tf_fullpath);
+                Value_P Z = tree(B, tf_with_pos | tf_fullpath);
                 return Token(TOK_APL_VALUE1, Z);
               }
 
          case 7:
               {
-                return all_members(*B, tf_all);
+                return all_members(B, tf_all);
               }
 
          case 8:
               {
-                return all_members(*B, tf_tagname);
+                return all_members(B, tf_tagname);
               }
 
          case 9:
               {
-                return all_members(*B, tf_decl);
+                return all_members(B, tf_decl);
               }
 
          case 10:
               {
-                return all_members(*B, tf_text);
+                return all_members(B, tf_text);
               }
 
          case 11:
               {
-                return all_members(*B, tf_sub);
+                return all_members(B, tf_sub);
               }
 
          case 12:
               {
-                return all_members(*B, tf_all | tf_flat);
+                return all_members(B, tf_all | tf_flat);
               }
 
          case 13:
               {
-                return all_members(*B, tf_sub | tf_flat);
+                return all_members(B, tf_sub | tf_flat);
               }
 
          case 14:
               {
-                return next_member(*A, *B);
+                return next_member(A, B);
               }
 
       }
@@ -1059,7 +1059,7 @@ const int function_number = A->get_cfirst().get_int_value();
 }
 //────────────────────────────────────────────────────────────────────────────
 Value_P
-Quad_XML::APL_to_XML(const Value & B)
+Quad_XML::APL_to_XML(const cValue & B)
 {
 vector<const UCS_string *> entities;
    add_sorted_entities(entities, B);
@@ -1082,7 +1082,7 @@ Value_P Z(len_Z, LOC);
 //────────────────────────────────────────────────────────────────────────────
 void
 Quad_XML::add_sorted_entities(vector<const UCS_string *> & entities,
-                              const Value & B)
+                              const cValue & B)
 {
    Assert(B.is_structured());
 
@@ -1186,7 +1186,7 @@ bool tag_open = false;
 }
 //────────────────────────────────────────────────────────────────────────────
 Value_P
-Quad_XML::XML_to_APL(const Value & B)
+Quad_XML::XML_to_APL(const cValue & B)
 {
 const ShapeItem len_B = B.element_count();
    if (len_B == 0)   LENGTH_ERROR;
@@ -1285,24 +1285,24 @@ cleanup:
 }
 //────────────────────────────────────────────────────────────────────────────
 Token
-Quad_XML::eval_B(Value_P B) const
+Quad_XML::eval_B(cValue_R B) const
 {
-   if (B->is_structured())   // associative B array to XML string
+   if (B.is_structured())   // associative B array to XML string
       {
-        Value_P Z = APL_to_XML(*B);
+        Value_P Z = APL_to_XML(B);
         Z->check_value(LOC);
         return Token(TOK_APL_VALUE1, Z);
       }
 
-   if (B->get_rank() != 1)   RANK_ERROR;
+   if (B.get_rank() != 1)   RANK_ERROR;
 
-Value_P Z = XML_to_APL(*B);
+Value_P Z = XML_to_APL(B);
    Z->check_value(LOC);
    return Token(TOK_APL_VALUE1, Z);
 }
 //────────────────────────────────────────────────────────────────────────────
 Token
-Quad_XML::convert_file(const Value & B) const
+Quad_XML::convert_file(const cValue & B) const
 {
    // safeguard against accidental use
    //
@@ -1358,11 +1358,11 @@ const UTF8_string xml_document_utf8(buffer, bytes_read);
 UCS_string xml_document_ucs(xml_document_utf8);
 Value_P xml_document_value(xml_document_ucs, LOC);
 
-   return eval_B(xml_document_value);
+   return eval_B(*xml_document_value);
 }
 //────────────────────────────────────────────────────────────────────────────
 Value_P
-Quad_XML::path_split(const Value & B)
+Quad_XML::path_split(const cValue & B)
 {
    if (B.get_rank() != 1)       RANK_ERROR;
 
@@ -1416,7 +1416,7 @@ ShapeItem from = 0;
 }
 //────────────────────────────────────────────────────────────────────────────
 Value_P
-Quad_XML::name_split(const Value & B)
+Quad_XML::name_split(const cValue & B)
 {
    if (B.get_rank() != 1)       RANK_ERROR;
    if (B.element_count() < 3)   LENGTH_ERROR;
@@ -1437,7 +1437,7 @@ Value_P Z3(name, LOC);
 }
 //────────────────────────────────────────────────────────────────────────────
 Value_P
-Quad_XML::name_unsplit(const Value & B)
+Quad_XML::name_unsplit(const cValue & B)
 {
    if (B.get_rank() != 1)        RANK_ERROR;
    if (B.element_count() != 3)   LENGTH_ERROR;
@@ -1463,7 +1463,7 @@ UCS_string UCS_Z;
       }
    else                     // multi char name (the normal case)
       {
-        const Value * B2 = b2.get_pointer_value().get();
+        const cValue * B2 = b2.get_pointer_value().get();
         if (B2->get_rank() > 1)
            {
              MORE_ERROR() << "¯3 ⎕XML B←NS POS NAME: NAME has bad rank "
@@ -1480,7 +1480,7 @@ Value_P Z(UCS_Z, LOC);
 }
 //────────────────────────────────────────────────────────────────────────────
 Token
-Quad_XML::all_members(const Value & B, int flags)
+Quad_XML::all_members(const cValue & B, int flags)
 {
    if (!B.is_structured())
       {
@@ -1505,7 +1505,7 @@ Value_P Z(result.size(), LOC);
 }
 //────────────────────────────────────────────────────────────────────────────
 Token
-Quad_XML::next_member(const Value & A, const Value & B)
+Quad_XML::next_member(const cValue & A, const cValue & B)
 {
    // A is (14, ⊂A1)
    // B is an associative array;
@@ -1554,7 +1554,7 @@ const ShapeItem path_length = path->element_count();
    // path. path_idx is the position in the path, corresponding to the
    // depth in the value tree.
    //
-const Value * container = &B;
+const cValue * container = &B;
    for (size_t path_idx = 0; path_idx < size_t(path_length - 1); ++path_idx)
        {
          const UCS_string member(path->get_cravel(path_idx));
@@ -1609,7 +1609,7 @@ std::vector<ShapeItem> member_indices;
 }
 //────────────────────────────────────────────────────────────────────────────
 Value_P
-Quad_XML::tree(const Value & B, int flags)
+Quad_XML::tree(const cValue & B, int flags)
 {
    if (!B.is_structured())
       {
@@ -1626,7 +1626,7 @@ const UCS_string name_prefix;
 }
 //────────────────────────────────────────────────────────────────────────────
 void
-Quad_XML::tree(const Value & B, UCS_string & z, UCS_string & prefix,
+Quad_XML::tree(const cValue & B, UCS_string & z, UCS_string & prefix,
                const UCS_string & name_prefix, int flags)
 {
    enum { LEG_IND = 1,    // blanks before  ├──
@@ -1719,7 +1719,7 @@ std::vector<const Cell *>member_values;
 }
 //────────────────────────────────────────────────────────────────────────────
 void
-Quad_XML::all_members(UCS_string_vector & result, const Value & B,
+Quad_XML::all_members(UCS_string_vector & result, const cValue & B,
                       const UCS_string & name_prefix, int flags)
 {
 Unicode filters[4];

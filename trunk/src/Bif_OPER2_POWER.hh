@@ -54,13 +54,13 @@ protected:
    /// @param LO left operand token
    /// @param RO right operand token
    /// @param B right APL value argument
-   virtual Token eval_ALRB(Value_P A, Token & LO, Token & RO, Value_P B) const;
+   virtual Token eval_ALRB(cValue_R A, Token & LO, Token & RO, cValue_R B) const;
 
    /// overloaded Function::eval_LRB()
    /// @param LO left operand token
    /// @param RO right operand token
    /// @param B right APL value argument
-   virtual Token eval_LRB(Token & LO, Token & RO, Value_P B) const;
+   virtual Token eval_LRB(Token & LO, Token & RO, cValue_R B) const;
 
    /// eval_ALRB() or eval_LRB() for numeric RO (aka. Form 1)
    /// @param A left APL value argument (may be empty)

@@ -192,7 +192,7 @@ public:
 
    /// evaluate a →B statement. Update PC if needed, maybe do nothing (→'')
    /// @param B right argument giving the target line number or empty vector
-   Token jump(const Value * B);
+   Token jump(cValue_R B);
 
    /// do a jump to function line \b line
    /// @param line target function line number

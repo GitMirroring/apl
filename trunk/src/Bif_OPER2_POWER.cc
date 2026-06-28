@@ -76,24 +76,24 @@ const Cell & second = N_B->get_cravel(1);
 }
 //────────────────────────────────────────────────────────────────────────────
 Token
-Bif_OPER2_POWER::eval_ALRB(Value_P A, Token & LO, Token & RO, Value_P B) const
+Bif_OPER2_POWER::eval_ALRB(cValue_R A, Token & LO, Token & RO, cValue_R B) const
 {
    if (RO.get_ValueType() == TV_VAL)   // integer count
-      return eval_form_1(A, LO, RO.get_apl_val(), B);
+      return eval_form_1(CLONE(&A, LOC), LO, RO.get_apl_val(), CLONE(&B, LOC));
    if (RO.get_ValueType() == TV_INT)   // integer count
-      return eval_form_1(A, LO, IntScalar(RO.get_int_val(), LOC), B);
+      return eval_form_1(CLONE(&A, LOC), LO, IntScalar(RO.get_int_val(), LOC), CLONE(&B, LOC));
 
    // Boolean termonation function
-   return eval_form_2(A, LO, RO, B);
+   return eval_form_2(CLONE(&A, LOC), LO, RO, CLONE(&B, LOC));
 }
 //────────────────────────────────────────────────────────────────────────────
 Token
-Bif_OPER2_POWER::eval_LRB(Token & LO, Token & RO, Value_P B) const
+Bif_OPER2_POWER::eval_LRB(Token & LO, Token & RO, cValue_R B) const
 {
    if (RO.get_ValueType() == TV_VAL)   // integer count
-      return eval_form_1(Value_P(), LO, RO.get_apl_val(), B);
+      return eval_form_1(Value_P(), LO, RO.get_apl_val(), CLONE(&B, LOC));
    else                               // Boolean termonation function
-      return eval_form_2(Value_P(), LO, RO, B);
+      return eval_form_2(Value_P(), LO, RO, CLONE(&B, LOC));
 }
 //────────────────────────────────────────────────────────────────────────────
 // the eval_form_1() function is for LO ⍣ N B and A LO ⍣ N B variants
@@ -133,8 +133,8 @@ ShapeItem repeat_cnt = N->get_cfirst().get_checked_near_int();
 
    if (repeat_cnt == 1)
       {
-        if (!A)   return  LO->eval_B(B);
-        else      return  LO->eval_AB(A, B);
+        if (!A)   return  LO->eval_B(*B);
+        else      return  LO->eval_AB(*A, *B);
       }
 
    // at this point, repeat_cnt > 1
@@ -144,20 +144,20 @@ ShapeItem repeat_cnt = N->get_cfirst().get_checked_near_int();
         Token N(TOK_APL_VALUE1, IntScalar(repeat_cnt, LOC));
         if (LO->has_result())
            if (!A)   return Macro::get_macro(Macro::MAC_Z__LO_POWER_N_B)
-                                 ->eval_LRB (   _LO, N, B);
+                                 ->eval_LRB (   _LO, N, *B);
            else      return Macro::get_macro(Macro::MAC_Z__A_LO_POWER_N_B)
-                                 ->eval_ALRB(A, _LO, N, B);
+                                 ->eval_ALRB(*A, _LO, N, *B);
         else
            if (!A)   return Macro::get_macro(Macro::MAC_LO_POWER_N_B)
-                                 ->eval_LRB (   _LO, N, B);
+                                 ->eval_LRB (   _LO, N, *B);
            else      return Macro::get_macro(Macro::MAC_A_LO_POWER_N_B)
-                                 ->eval_ALRB(A, _LO, N, B);
+                                 ->eval_ALRB(*A, _LO, N, *B);
       }
 
    for (;;)
        {
-         Token result = !A ? LO->eval_B(B)
-                           : LO->eval_AB(A, B);
+         Token result = !A ? LO->eval_B(*B)
+                           : LO->eval_AB(*A, *B);
 
          if (result.get_tag() == TOK_ERROR)   return result;
          Assert(result.get_Class() == TC_VALUE);
@@ -180,22 +180,22 @@ cFunction_P RO = _RO.get_function();   Assert(RO);
    if (LO->may_push_SI() || RO->may_push_SI())   // user-defined or macro
       {
         if (!A)   return Macro::get_macro(Macro::MAC_Z__LO_POWER_RO_B)
-                              ->eval_LRB (_LO, _RO, B);
+                              ->eval_LRB (_LO, _RO, *B);
         else      return Macro::get_macro(Macro::MAC_Z__A_LO_POWER_RO_B)
-                              ->eval_ALRB(A, _LO, _RO, B);
+                              ->eval_ALRB(*A, _LO, _RO, *B);
       }
 
    // primitive LO and RO
    //
    for (;;)
        {
-         const Token result_LO = !A ? LO->eval_B(B) : LO->eval_AB(A, B);
+         const Token result_LO = !A ? LO->eval_B(*B) : LO->eval_AB(*A, *B);
          if (result_LO.get_tag() == TOK_ERROR)   return result_LO;
 
          Assert(result_LO.get_Class() == TC_VALUE);
          Value_P LO_Z = result_LO.get_apl_val();
 
-         const Token result_RO = RO->eval_AB(LO_Z, B);
+         const Token result_RO = RO->eval_AB(*LO_Z, *B);
          if (result_RO.get_tag() == TOK_ERROR)   return result_RO;
 
          Assert(result_RO.get_Class() == TC_VALUE);

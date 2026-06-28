@@ -257,7 +257,7 @@ const ShapeItem count = A->nz_element_count();
 Value_P
 PointerCell::get_pointer_value() const
 {
-Value * vp = const_cast<Value *>(value.pval.valp.get());
+Value * vp = static_cast<Value *>(const_cast<cValue *>(value.pval.valp.get()));
 Value_P ret(vp, LOC);   // Value_P constructor increments owner_count
    return ret;
 }

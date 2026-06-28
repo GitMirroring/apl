@@ -42,44 +42,44 @@ public:
    /// @param X    axis specification value
    /// @param B    APL value to ravel
    /// @param axis default axis to use when X is absent
-   static Token ravel_axis(Value_P X, Value_P B, uAxis axis);
+   static Token ravel_axis(cValue_R X, cValue_R B, uAxis axis);
 
    /// Return the ravel of B as APL value
    /// @param new_shape desired shape of the result
    /// @param B         APL value to ravel
-   static Token ravel(const Shape & new_shape, Value_P B);
+   static Token ravel(const Shape & new_shape, cValue_R B);
 
    /// Catenate A and B
    /// @param A    left APL value
    /// @param axis axis along which to catenate
    /// @param B    right APL value
-   static Value_P catenate(const Value & A, sAxis axis, const Value & B);
+   static Value_P catenate(const cValue & A, sAxis axis, const cValue & B);
 
    /// Laminate A and B
    /// @param A    left APL value
    /// @param axis fractional axis between existing axes
    /// @param B    right APL value
-   static Value_P laminate(const Value & A, sAxis axis, const Value & B);
+   static Value_P laminate(const cValue & A, sAxis axis, const cValue & B);
 
    /// either catenate A and B or laminate A and B
    /// @param A left APL value
    /// @param X axis specification (integer → catenate, fractional → laminate)
    /// @param B right APL value
-   static Value_P catenate_or_laminate(const Value & A, const Value & X,
-                                       const Value & B);
+   static Value_P catenate_or_laminate(const cValue & A, const cValue & X,
+                                       const cValue & B);
 
    /// Prepend scalar cell_A to B along axis
    /// @param cell_A scalar cell to prepend
    /// @param axis   axis along which to prepend
    /// @param B      APL value to prepend to
    static Value_P prepend_scalar(const Cell & cell_A, uAxis axis,
-                                 const Value & B);
+                                 const cValue & B);
 
    /// Prepend scalar cell_B to A along axis
    /// @param A      APL value to append to
    /// @param axis   axis along which to append
    /// @param cell_B scalar cell to append
-   static Value_P append_scalar(const Value & A, uAxis axis,
+   static Value_P append_scalar(const cValue & A, uAxis axis,
                                 const Cell & cell_B);
 };
 //────────────────────────────────────────────────────────────────────────────
@@ -97,24 +97,24 @@ public:
    /// @param A left argument APL value
    /// @param X axis specification
    /// @param B right argument APL value
-   virtual Token eval_AXB(Value_P A, Value_P X, Value_P B) const
+   virtual Token eval_AXB(cValue_R A, cValue_R X, cValue_R B) const
       { return Token(TOK_APL_VALUE1,
-               catenate_or_laminate(*A, *X, *B)); }
+               catenate_or_laminate(A, X, B)); }
 
    /// overloaded Function::eval_XB()
    /// @param X axis specification
    /// @param B right argument APL value
-   virtual Token eval_XB(Value_P X, Value_P B) const
-      { return ravel_axis(X, B, B->get_rank()); }
+   virtual Token eval_XB(cValue_R X, cValue_R B) const
+      { return ravel_axis(X, B, B.get_rank()); }
 
    /// overloaded Function::eval_AB()
    /// @param A left argument APL value
    /// @param B right argument APL value
-   virtual Token eval_AB(Value_P A, Value_P B) const;
+   virtual Token eval_AB(cValue_R A, cValue_R B) const;
 
    /// overloaded Function::eval_B()
    /// @param B right argument APL value
-   virtual Token eval_B(Value_P B) const;
+   virtual Token eval_B(cValue_R B) const;
 
    static Bif_F12_COMMA  fun;   ///< Built-in function
 
@@ -133,25 +133,25 @@ public:
 
    /// overloaded Function::eval_B()
    /// @param B right argument APL value
-   virtual Token eval_B(Value_P B) const;
+   virtual Token eval_B(cValue_R B) const;
 
    /// overloaded Function::eval_AB()
    /// @param A left argument APL value
    /// @param B right argument APL value
-   virtual Token eval_AB(Value_P A, Value_P B) const;
+   virtual Token eval_AB(cValue_R A, cValue_R B) const;
 
    /// overloaded Function::eval_XB()
    /// @param X axis specification
    /// @param B right argument APL value
-   virtual Token eval_XB(Value_P X, Value_P B) const
+   virtual Token eval_XB(cValue_R X, cValue_R B) const
       { return ravel_axis(X, B, 0); }
 
   /// overloaded Function::eval_AXB()
    /// @param A left argument APL value
    /// @param X axis specification
    /// @param B right argument APL value
-   virtual Token eval_AXB(Value_P A, Value_P X, Value_P B) const
-      { return Token(TOK_APL_VALUE1, catenate_or_laminate(*A, *X, *B)); }
+   virtual Token eval_AXB(cValue_R A, cValue_R X, cValue_R B) const
+      { return Token(TOK_APL_VALUE1, catenate_or_laminate(A, X, B)); }
 
    static Bif_F12_COMMA1  fun;   ///< Built-in function
 

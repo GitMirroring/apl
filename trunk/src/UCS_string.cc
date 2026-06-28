@@ -342,6 +342,18 @@ const ShapeItem ec = value.element_count();
    loop(e, ec)   *this << value.get_cravel(e).get_char_value();
 }
 //────────────────────────────────────────────────────────────────────────────
+UCS_string::UCS_string(const cValue & value)
+{
+   create(LOC);
+
+   if (value.get_rank() > 1) RANK_ERROR;
+
+const ShapeItem ec = value.element_count();
+   reserve(ec);
+
+   loop(e, ec)   *this << value.get_cravel(e).get_char_value();
+}
+//────────────────────────────────────────────────────────────────────────────
 /// constructor
 UCS_string::UCS_string(const Cell & cell)
 {

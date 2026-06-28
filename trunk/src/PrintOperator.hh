@@ -114,5 +114,8 @@ ostream & operator << (ostream & out, const UTF8 * x);            // UTF8_string
 /// @param out output stream
 /// @param x value to print
 ostream & operator << (ostream & out, const Value & x);           // Value.cc
+/// @param out output stream
+/// @param x value to print
+ostream & operator << (ostream & out, const cValue & x);          // cValue.cc
 
 #endif // __PRINTOPERATOR_HH_DEFINED

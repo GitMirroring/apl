@@ -30,18 +30,18 @@ Bif_F12_INDEX_OF Bif_F12_INDEX_OF ::fun;    // ⍳
 /// search elements of B in A. ⍴Z is ⍴B, and elements of Z are indices of A.
 //════════════════════════════════════════════════════════════════════════════
 Token
-Bif_F12_INDEX_OF::eval_AB(Value_P A, Value_P B) const
+Bif_F12_INDEX_OF::eval_AB(cValue_R A, cValue_R B) const
 {
    // A⍳B (aka. Index of)
    //
-const bool simple_result = A->is_scalar_or_vector();
+const bool simple_result = A.is_scalar_or_vector();
 const double qct = Workspace::get_CT();
 const APL_Integer qio = Workspace::get_IO();
 
-const ShapeItem len_A  = A->element_count();
-const ShapeItem len_BZ = B->element_count();
+const ShapeItem len_A  = A.element_count();
+const ShapeItem len_BZ = B.element_count();
 
-Value_P Z(B->get_shape(), LOC);
+Value_P Z(B.get_shape(), LOC);
 
 #if 1
    // ⎕RL←42 ◊ D←?100 100⍴100 ◊ T←⎕FIO ¯1 ◊ ⊣(⍳100) ⍳ D ◊ -T-⎕FIO ¯1
@@ -57,11 +57,11 @@ Value_P Z(B->get_shape(), LOC);
         // start-up cost of the sorting.
         //
         vector<ShapeItem> sorted_idx_A;
-        Cell::sorted_indices(sorted_idx_A, *A, SORT_ASCENDING, 1);
+        Cell::sorted_indices(sorted_idx_A, A, SORT_ASCENDING, 1);
         loop(bz, len_BZ)
             {
-              const APL_Integer z = find_B_in_sorted_A(*A, sorted_idx_A,
-                                                       B->get_cravel(bz), qct);
+              const APL_Integer z = find_B_in_sorted_A(A, sorted_idx_A,
+                                                       B.get_cravel(bz), qct);
 
               if (simple_result)   Z->next_ravel_Int(qio + z);
               else if (z == len_A)   // not found: set result item to ⍬
@@ -71,7 +71,7 @@ Value_P Z(B->get_shape(), LOC);
                  }
               else                   // element found (first at z (+⎕IO)
                  {
-                   const Shape Sz = A->get_shape().offset_to_index(z, qio);
+                   const Shape Sz = A.get_shape().offset_to_index(z, qio);
                    Value_P Vz(LOC, &Sz);
                    Z->next_ravel_Pointer(Vz.get());
                  }
@@ -82,8 +82,8 @@ Value_P Z(B->get_shape(), LOC);
       {
         loop(bz, len_BZ)
             {
-              const APL_Integer z = find_B_in_A(&A->get_cfirst(), len_A,
-                                                B->get_cravel(bz), qct);
+              const APL_Integer z = find_B_in_A(&A.get_cfirst(), len_A,
+                                                B.get_cravel(bz), qct);
 
               if (simple_result)   Z->next_ravel_Int(qio + z);
               else if (z == len_A)   // not found: set result item to ⍬
@@ -93,7 +93,7 @@ Value_P Z(B->get_shape(), LOC);
                  }
               else                   // element found (first at z (+⎕IO)
                  {
-                   const Shape Sz = A->get_shape().offset_to_index(z, qio);
+                   const Shape Sz = A.get_shape().offset_to_index(z, qio);
                    Value_P Vz(LOC, &Sz);
                    Z->next_ravel_Pointer(Vz.get());
                  }
@@ -105,18 +105,18 @@ Value_P Z(B->get_shape(), LOC);
 }
 //════════════════════════════════════════════════════════════════════════════
 Token
-Bif_F12_INDEX_OF::eval_B(Value_P B) const
+Bif_F12_INDEX_OF::eval_B(cValue_R B) const
 {
-   if (B->get_rank() > 1)   RANK_ERROR;
+   if (B.get_rank() > 1)   RANK_ERROR;
 
 const APL_Integer qio = Workspace::get_IO();
-const ShapeItem ec = B->element_count();
+const ShapeItem ec = B.element_count();
 
    if (ec == 1)
       {
         // interval (standard ⍳B with scalar or 1-element B)
         //
-        const APL_Integer len = B->get_cfirst().get_near_int();
+        const APL_Integer len = B.get_cfirst().get_near_int();
         if (len < 0)   DOMAIN_ERROR;
 
         Value_P Z(len, LOC);
@@ -138,7 +138,7 @@ const ShapeItem ec = B->element_count();
         return Token(TOK_APL_VALUE1, Z);
       }
 
-Shape sh_Z(*B, 0);
+Shape sh_Z(B, 0);
    loop(b, ec)   if (sh_Z.get_shape_item(b) < 0)   DOMAIN_ERROR;
 
    // at this point sh is correct and ⍳ cannot fail.
@@ -190,7 +190,7 @@ const int ret = cell.compare(cell_A);
 }
 //────────────────────────────────────────────────────────────────────────────
 ShapeItem
-Bif_F12_INDEX_OF::find_B_in_sorted_A(const Value & A,
+Bif_F12_INDEX_OF::find_B_in_sorted_A(const cValue & A,
                                      const vector<ShapeItem> & Idx_A,
                                      const Cell & cell_B, double qct)
 {

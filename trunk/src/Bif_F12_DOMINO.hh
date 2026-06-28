@@ -41,34 +41,34 @@ public:
 
    /// overloaded Function::eval_B()
    /// @param B right argument APL value
-   virtual Token eval_B(Value_P B) const;
+   virtual Token eval_B(cValue_R B) const;
 
    /// overloaded Function::eval_XB()
    /// @param X axis specification value
    /// @param B right argument APL value
-   virtual Token eval_XB(Value_P X, Value_P B) const;
+   virtual Token eval_XB(cValue_R X, cValue_R B) const;
 
    /// overloaded Function::eval_AXB()
    /// @param A left argument APL value
    /// @param X axis specification value
    /// @param B right argument APL value
-   virtual Token eval_AXB(Value_P A, Value_P X, Value_P B) const;
+   virtual Token eval_AXB(cValue_R A, cValue_R X, cValue_R B) const;
 
    /// overloaded Function::eval_AB()
    /// @param A left argument APL value
    /// @param B right argument APL value
-   virtual Token eval_AB(Value_P A, Value_P B) const;
+   virtual Token eval_AB(cValue_R A, cValue_R B) const;
 
    static Bif_F12_DOMINO  fun;   ///< Built-in function
 
    /// overloaded Function::eval_fill_B()
    /// @param B right argument APL value
-   virtual Token eval_fill_B(Value_P B) const;
+   virtual Token eval_fill_B(cValue_R B) const;
 
    /// overloaded Function::eval_fill_AB()
    /// @param A left argument APL value
    /// @param B right argument APL value
-   virtual Token eval_fill_AB(Value_P A, Value_P B) const;
+   virtual Token eval_fill_AB(cValue_R A, cValue_R B) const;
 
 protected:
    /// a mapping between function names and function numbers
@@ -113,56 +113,56 @@ protected:
    /// return the polynomial B with indeterminant A as APL string
    /// @param A value providing the indeterminant name(s)
    /// @param B coefficient array of the polynomial
-   static Value_P print_polynomial(const Value & A, const Value & B);
+   static Value_P print_polynomial(const cValue & A, const cValue & B);
 
    /// return the polynomial B with indeterminant A as APL string
    /// @param vars vector of variable name strings
    /// @param B coefficient array of the polynomial
    static UCS_string print_polynomial(const UCS_string_vector & vars,
-                                      const Value & B);
+                                      const cValue & B);
 
    /// return the polynomial B with indeterminant 'x' as APL string
    /// @param B coefficient array of the polynomial
-   static Value_P print_polynomial(const Value & B);
+   static Value_P print_polynomial(const cValue & B);
 
    /// return the product A×B of polynomilals A and B
    /// @param A left polynomial coefficient array
    /// @param B right polynomial coefficient array
-   static Value_P polynomial_product(const Value & A, const Value & B);
+   static Value_P polynomial_product(const cValue & A, const cValue & B);
 
    /// return the quotient A÷B of polynomilals A and B (1 indeterminant)
    /// @param A dividend polynomial coefficient array
    /// @param B divisor polynomial coefficient array
-   static Value_P poly_quotient(const Value & A, const Value & B);
+   static Value_P poly_quotient(const cValue & A, const cValue & B);
 
    /// return the quotient A÷B of polynomilals A and B (with orders)
    /// @param A dividend polynomial coefficient array
    /// @param B divisor polynomial coefficient array
    /// @param optional_order_A optional order override for A (may be null)
    /// @param optional_order_B optional order override for B (may be null)
-   static Value_P poly_quotient_NO(const Value & A, const Value & B,
-                                   const Value * optional_order_A,
-                                   const Value * optional_order_B);
+   static Value_P poly_quotient_NO(const cValue & A, const cValue & B,
+                                   const cValue * optional_order_A,
+                                   const cValue * optional_order_B);
 
    /// return the quotient A÷B of polynomilals A and B
    /// @param A dividend polynomial coefficient array
    /// @param B divisor polynomial coefficient array
-   static Value_P poly_quotient_N(const Value & A, const Value & B);
+   static Value_P poly_quotient_N(const cValue & A, const cValue & B);
 
    /// return the polynomial B with indeterminant 'x' as APL string
    /// @param A value providing the indeterminant name(s)
    /// @param B coefficient array of the polynomial
-   static Value_P scan_polynomial(const Value & A, const Value & B);
+   static Value_P scan_polynomial(const cValue & A, const cValue & B);
 
    /// return the polynomial B with indeterminant 'x' as APL string
    /// @param B coefficient array of the polynomial
-   static Value_P scan_polynomial(const Value & B);
+   static Value_P scan_polynomial(const cValue & B);
 
    /// return the polynomial B with indeterminant A as APL string
    /// @param vars vector of variable name strings
    /// @param B coefficient array of the polynomial
    static Value_P scan_polynomial(const UCS_string_vector & vars,
-                                  const Value & B);
+                                  const cValue & B);
 
    /// run (python-) script \b script with command line arguments \b args
    /// @param script path or name of the script to execute
@@ -174,7 +174,7 @@ protected:
    /// return the integral for B.
    /// @param A optional integration bounds or variable (may be null)
    /// @param B polynomial coefficient array to integrate
-   static Value_P integral(const Value * A, const Value & B);
+   static Value_P integral(const cValue * A, const cValue & B);
 
    /// initialize complex D with Cells cB
    /// @param cB pointer to source ravel cells

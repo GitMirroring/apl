@@ -191,6 +191,7 @@ common_SOURCES += UserFunction_header.cc				UserFunction_header.hh
 common_SOURCES += UserPreferences.cc					UserPreferences.hh
 common_SOURCES += UTF8_string.cc						UTF8_string.hh
 common_SOURCES += Value.cc		Value.icc				Value.hh
+common_SOURCES += cValue.cc
 common_SOURCES += 			    Value_P.icc				Value_P.hh
 common_SOURCES += ValueHistory.cc						ValueHistory.hh
 common_SOURCES += Workspace.cc	Workspace.icc			Workspace.hh

@@ -48,7 +48,7 @@ protected:
    /// @param A    expansion vector
    /// @param B    APL value to expand
    /// @param axis axis along which to expand
-   static Token expand(Value_P A, Value_P B, uAxis axis);
+   static Token expand(cValue_R A, cValue_R B, uAxis axis);
 
    /// Compute one scan item and store result in Z.
    /// @param Z     result cell pointer
@@ -72,26 +72,26 @@ public:
    /// Overloaded Function::eval_AB().
    /// @param A left argument APL value (expansion vector)
    /// @param B right argument APL value
-   virtual Token eval_AB(Value_P A, Value_P B) const
-      { return expand(A, B, B->get_rank() - 1); }
+   virtual Token eval_AB(cValue_R A, cValue_R B) const
+      { return expand(A, B, B.get_rank() - 1); }
 
    /// Overloaded Function::eval_LB().
    /// @param LO left operand function token
    /// @param B  right argument APL value
-   virtual Token eval_LB(Token & LO, Value_P B) const
-      { return scan(LO, B, B->get_rank() - 1); }
+   virtual Token eval_LB(Token & LO, cValue_R B) const
+      { return scan(LO, CLONE(&B, LOC), B.get_rank() - 1); }
 
    /// Overloaded Function::eval_AXB().
    /// @param A left argument APL value
    /// @param X axis specification
    /// @param B right argument APL value
-   virtual Token eval_AXB(Value_P A, Value_P X, Value_P B) const;
+   virtual Token eval_AXB(cValue_R A, cValue_R X, cValue_R B) const;
 
    /// Overloaded Function::eval_LXB().
    /// @param LO left operand function token
    /// @param X  axis specification
    /// @param B  right argument APL value
-   virtual Token eval_LXB(Token & LO, Value_P X, Value_P B) const;
+   virtual Token eval_LXB(Token & LO, cValue_R X, cValue_R B) const;
 
    static Bif_OPER1_SCAN  fun;      ///< Built-in function.
 
@@ -114,26 +114,26 @@ public:
    /// Overloaded Function::eval_AB().
    /// @param A left argument APL value (expansion vector)
    /// @param B right argument APL value
-   virtual Token eval_AB(Value_P A, Value_P B) const
+   virtual Token eval_AB(cValue_R A, cValue_R B) const
       { return expand(A, B, 0); }
 
    /// Overloaded Function::eval_ALB().
    /// @param LO left operand function token
    /// @param B  right argument APL value
-   virtual Token eval_LB(Token & LO, Value_P B) const
-      { return scan(LO, B, 0); }
+   virtual Token eval_LB(Token & LO, cValue_R B) const
+      { return scan(LO, CLONE(&B, LOC), 0); }
 
    /// Overloaded Function::eval_AXB().
    /// @param A left argument APL value
    /// @param X axis specification
    /// @param B right argument APL value
-   virtual Token eval_AXB(Value_P A, Value_P X, Value_P B) const;
+   virtual Token eval_AXB(cValue_R A, cValue_R X, cValue_R B) const;
 
    /// Overloaded Function::eval_ALXB().
    /// @param LO left operand function token
    /// @param X  axis specification
    /// @param B  right argument APL value
-   virtual Token eval_LXB(Token & LO, Value_P X, Value_P B) const;
+   virtual Token eval_LXB(Token & LO, cValue_R X, cValue_R B) const;
 
    static Bif_OPER1_SCAN1  fun;     ///< Built-in function.
 

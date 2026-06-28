@@ -44,16 +44,16 @@ public:
 protected:
    /// return JSON file (-name in B) converted to APL structured value
    /// @param B APL value containing the filename or JSON data
-   Token convert_file(const Value & B) const;
+   Token convert_file(const cValue & B) const;
 
    /// overloaded Function::eval_AB()
    /// @param A left-argument APL value (conversion options)
    /// @param B right-argument APL value (data to convert)
-   Token eval_AB(Value_P A, Value_P B) const;
+   Token eval_AB(cValue_R A, cValue_R B) const;
 
    /// overloaded Function::eval_B()
    /// @param B right-argument APL value (JSON string or APL value)
-   Token eval_B(Value_P B) const;
+   Token eval_B(cValue_R B) const;
 
    /// return true iff uni is a high surrogate Unicode (0xD8xx)
    static bool is_high_surrogate(Unicode uni)
@@ -71,14 +71,14 @@ protected:
    /// convert APL value to JSON string
    /// @param B APL value to serialise
    /// @param sorted true to emit object keys in sorted order
-   static Value_P APL_to_JSON(const Value & B, bool sorted);
+   static Value_P APL_to_JSON(const cValue & B, bool sorted);
 
    /// append APL value to JSON string \b result
    /// @param result output UCS string being built
    /// @param B APL value to serialise
    /// @param level current nesting level (for indentation)
    /// @param sorted true to emit object keys in sorted order
-   static void APL_to_JSON_string(UCS_string & result, const Value & B,
+   static void APL_to_JSON_string(UCS_string & result, const cValue & B,
                                   bool level, bool sorted);
 
    /// append Cell value to JSON string \b result
@@ -107,7 +107,7 @@ protected:
 
    /// convert JSON string to APL associative array
    /// @param B APL value containing the JSON text
-   static Value_P JSON_to_APL(const Value & B);
+   static Value_P JSON_to_APL(const cValue & B);
 
    /// parse a JSON array: [ value (, value)* ] and increment token0
    /// along the way.

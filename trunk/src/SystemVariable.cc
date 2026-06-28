@@ -78,7 +78,7 @@ SystemVariable::assign(Value_P B, bool clone, const char * loc)
 }
 //────────────────────────────────────────────────────────────────────────────
 void
-SystemVariable::assign_indexed(const Value * X, Value_P B)
+SystemVariable::assign_indexed(const cValue * X, Value_P B)
 {
    CERR << "SystemVariable::assign_indexed() not (yet) implemented for "
         << get_Id() << endl;
@@ -370,7 +370,7 @@ Value_P new_val(ucs, LOC);
 }
 //────────────────────────────────────────────────────────────────────────────
 void
-Quad_FC::assign_indexed(const Value * X, Value_P B)
+Quad_FC::assign_indexed(const cValue * X, Value_P B)
 {
    // we don't do scalar extension but require indices to match the value.
    //
@@ -642,7 +642,7 @@ Value_P B2(2, LOC);
 }
 //────────────────────────────────────────────────────────────────────────────
 void
-Quad_PS::assign_indexed(const Value * X, Value_P B)
+Quad_PS::assign_indexed(const cValue * X, Value_P B)
 {
    if (!(X->is_int_scalar() || X->is_int_vector()))   INDEX_ERROR;
    if (!(B->is_int_scalar() || B->is_int_vector()))   DOMAIN_ERROR;
@@ -922,7 +922,7 @@ Quad_SYL::assign(Value_P B, bool clone, const char * loc)
 }
 //────────────────────────────────────────────────────────────────────────────
 void
-Quad_SYL::assign_indexed(const Value * X, Value_P B)
+Quad_SYL::assign_indexed(const cValue * X, Value_P B)
 {
    // try to assign ⎕SYL[X;2]
    //
@@ -1007,7 +1007,7 @@ Quad_SYL::assign_indexed(const IndexExpr & IDX, Value_P B)
    // The only point of getting X2 is to check that it is not elided
    // but quasi-scalar qio + 1
    //
-const Value * X2 = IDX.get_axis_value(1);
+const cValue * X2 = IDX.get_axis_value(1);
 const APL_Integer qio = Workspace::get_IO();
 
    if (!X2)                                          INDEX_ERROR;
@@ -1015,7 +1015,7 @@ const APL_Integer qio = Workspace::get_IO();
    if (!X2->get_cfirst().is_near_int())              INDEX_ERROR;
    if (X2->get_cfirst().get_near_int() != qio + 1)   INDEX_ERROR;
 
-   if (const Value * X1 = IDX.get_axis_value(0))   // normal index
+   if (const cValue * X1 = IDX.get_axis_value(0))   // normal index
       {
         assign_indexed(X1, B);
       }

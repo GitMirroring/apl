@@ -38,7 +38,7 @@ public:
    /// Overloaded Function::eval_AB().
    /// @param A left argument APL value (transfer format number)
    /// @param B right argument APL value (symbol name or data)
-   virtual Token eval_AB(Value_P A, Value_P B) const;
+   virtual Token eval_AB(cValue_R A, cValue_R B) const;
 
    /// return true if val contains an 1⎕TF or 2⎕TF record
    /// @param maybe_name string to test for transfer-format content
@@ -80,12 +80,12 @@ public:
    /// @param value APL value whose ravel to format
    /// @param nesting current nesting level in the output
    static void tf2_value(int level, UCS_string & ucs,
-                                    const Value & value, ShapeItem nesting);
+                                    const cValue & value, ShapeItem nesting);
 
    /// return B in transfer format 2 (new APL format) for a variable
    /// @param var_name name of the variable
    /// @param val APL value to encode
-   static Token tf2_var(const UCS_string & var_name, const Value & val);
+   static Token tf2_var(const UCS_string & var_name, const cValue & val);
 
    /// return B in transfer format 3 (APL2 CDR format)
    /// @param symbol_name name of the symbol to transfer
@@ -114,7 +114,7 @@ protected:
    /// @param ucs output string being built
    /// @param value APL value whose character ravel to encode
    static void tf2_all_char_ravel(int level, UCS_string & ucs,
-                                  const Value & value);
+                                  const cValue & value);
 
    /// return B in transfer format 1 (old APL format) for variable B
    /// @param var_name name of the variable

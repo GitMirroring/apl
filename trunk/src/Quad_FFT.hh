@@ -50,17 +50,17 @@ protected:
    /// overloaded Function::eval_AB()
    /// @param A left-argument APL value (FFT mode selector)
    /// @param B right-argument APL value (input signal)
-   virtual Token eval_AB(Value_P A, Value_P B) const;
+   virtual Token eval_AB(cValue_R A, cValue_R B) const;
 
    /// overloaded Function::eval_B()
    /// @param B right-argument APL value (input signal)
-   virtual Token eval_B(Value_P B) const;
+   virtual Token eval_B(cValue_R B) const;
 
    /// overloaded Function::eval_XB().
    /// ⎕FFT[X] B  ←→  X ⎕FFT B
    /// @param X axis/mode specification
    /// @param B right-argument APL value (input signal)
-   virtual Token eval_XB(Value_P X, Value_P B) const;
+   virtual Token eval_XB(cValue_R X, cValue_R B) const;
 
    /// overloaded FunctionGroup::print_fun_syntax()
    /// @param out output stream to write to
@@ -77,7 +77,7 @@ protected:
    /// compute FFT with mode \b A of B
    /// @param A_or_X APL value specifying the FFT mode or axis
    /// @param B right-argument APL value (input signal)
-   Token do_eval_AorX_B(const Value & A_or_X, Value_P B) const;
+   Token do_eval_AorX_B(const cValue & A_or_X, Value_P B) const;
 
    /// return the Blackman-Harris window value for sample n of N
    /// @param n sample index (0-based)

@@ -250,14 +250,14 @@ am__lib_gnu_apl_la_SOURCES_DIST = Plot_ascii.cc Plot_gtk.cc \
 	Unicode.hh UserFunction.cc UserFunction.hh \
 	UserFunction_header.cc UserFunction_header.hh \
 	UserPreferences.cc UserPreferences.hh UTF8_string.cc \
-	UTF8_string.hh Value.cc Value.icc Value.hh Value_P.icc \
-	Value_P.hh ValueHistory.cc ValueHistory.hh Workspace.cc \
-	Workspace.icc Workspace.hh static_Objects.cc static_Objects.hh \
-	Regexp.cc Regexp.hh sql/SqliteArgListBuilder.cc \
-	sql/SqliteArgListBuilder.hh sql/SqliteConnection.cc \
-	sql/SqliteConnection.hh sql/SqliteResultValue.cc \
-	sql/SqliteResultValue.hh sql/SqliteProvider.cc \
-	sql/SqliteProvider.hh sql/Connection.cc \
+	UTF8_string.hh Value.cc Value.icc Value.hh cValue.cc \
+	Value_P.icc Value_P.hh ValueHistory.cc ValueHistory.hh \
+	Workspace.cc Workspace.icc Workspace.hh static_Objects.cc \
+	static_Objects.hh Regexp.cc Regexp.hh \
+	sql/SqliteArgListBuilder.cc sql/SqliteArgListBuilder.hh \
+	sql/SqliteConnection.cc sql/SqliteConnection.hh \
+	sql/SqliteResultValue.cc sql/SqliteResultValue.hh \
+	sql/SqliteProvider.cc sql/SqliteProvider.hh sql/Connection.cc \
 	sql/PostgresArgListBuilder.cc sql/PostgresArgListBuilder.hh \
 	sql/PostgresConnection.cc sql/PostgresConnection.hh \
 	sql/PostgresProvider.cc sql/PostgresProvider.hh python_apl.cc
@@ -349,9 +349,10 @@ am__objects_8 = $(am__objects_3) lib_gnu_apl_la-Archive.lo \
 	lib_gnu_apl_la-UserFunction_header.lo \
 	lib_gnu_apl_la-UserPreferences.lo \
 	lib_gnu_apl_la-UTF8_string.lo lib_gnu_apl_la-Value.lo \
-	lib_gnu_apl_la-ValueHistory.lo lib_gnu_apl_la-Workspace.lo \
-	lib_gnu_apl_la-static_Objects.lo $(am__objects_4) \
-	$(am__objects_5) $(am__objects_6) $(am__objects_7)
+	lib_gnu_apl_la-cValue.lo lib_gnu_apl_la-ValueHistory.lo \
+	lib_gnu_apl_la-Workspace.lo lib_gnu_apl_la-static_Objects.lo \
+	$(am__objects_4) $(am__objects_5) $(am__objects_6) \
+	$(am__objects_7)
 @apl_TARGET_LIBAPL_FALSE@@apl_TARGET_PYTHON_TRUE@am_lib_gnu_apl_la_OBJECTS = $(am__objects_8) \
 @apl_TARGET_LIBAPL_FALSE@@apl_TARGET_PYTHON_TRUE@	lib_gnu_apl_la-python_apl.lo
 lib_gnu_apl_la_OBJECTS = $(am_lib_gnu_apl_la_OBJECTS)
@@ -434,14 +435,14 @@ am__libapl_la_SOURCES_DIST = Plot_ascii.cc Plot_gtk.cc Plot_xcb.cc \
 	Unicode.hh UserFunction.cc UserFunction.hh \
 	UserFunction_header.cc UserFunction_header.hh \
 	UserPreferences.cc UserPreferences.hh UTF8_string.cc \
-	UTF8_string.hh Value.cc Value.icc Value.hh Value_P.icc \
-	Value_P.hh ValueHistory.cc ValueHistory.hh Workspace.cc \
-	Workspace.icc Workspace.hh static_Objects.cc static_Objects.hh \
-	Regexp.cc Regexp.hh sql/SqliteArgListBuilder.cc \
-	sql/SqliteArgListBuilder.hh sql/SqliteConnection.cc \
-	sql/SqliteConnection.hh sql/SqliteResultValue.cc \
-	sql/SqliteResultValue.hh sql/SqliteProvider.cc \
-	sql/SqliteProvider.hh sql/Connection.cc \
+	UTF8_string.hh Value.cc Value.icc Value.hh cValue.cc \
+	Value_P.icc Value_P.hh ValueHistory.cc ValueHistory.hh \
+	Workspace.cc Workspace.icc Workspace.hh static_Objects.cc \
+	static_Objects.hh Regexp.cc Regexp.hh \
+	sql/SqliteArgListBuilder.cc sql/SqliteArgListBuilder.hh \
+	sql/SqliteConnection.cc sql/SqliteConnection.hh \
+	sql/SqliteResultValue.cc sql/SqliteResultValue.hh \
+	sql/SqliteProvider.cc sql/SqliteProvider.hh sql/Connection.cc \
 	sql/PostgresArgListBuilder.cc sql/PostgresArgListBuilder.hh \
 	sql/PostgresConnection.cc sql/PostgresConnection.hh \
 	sql/PostgresProvider.cc sql/PostgresProvider.hh libapl.h \
@@ -517,10 +518,10 @@ am__objects_16 = $(am__objects_11) libapl_la-Archive.lo \
 	libapl_la-UCS_string.lo libapl_la-UCS_string_vector.lo \
 	libapl_la-UserFunction.lo libapl_la-UserFunction_header.lo \
 	libapl_la-UserPreferences.lo libapl_la-UTF8_string.lo \
-	libapl_la-Value.lo libapl_la-ValueHistory.lo \
-	libapl_la-Workspace.lo libapl_la-static_Objects.lo \
-	$(am__objects_12) $(am__objects_13) $(am__objects_14) \
-	$(am__objects_15)
+	libapl_la-Value.lo libapl_la-cValue.lo \
+	libapl_la-ValueHistory.lo libapl_la-Workspace.lo \
+	libapl_la-static_Objects.lo $(am__objects_12) \
+	$(am__objects_13) $(am__objects_14) $(am__objects_15)
 @apl_TARGET_LIBAPL_TRUE@am_libapl_la_OBJECTS = $(am__objects_16) \
 @apl_TARGET_LIBAPL_TRUE@	libapl_la-libapl.lo
 libapl_la_OBJECTS = $(am_libapl_la_OBJECTS)
@@ -595,14 +596,14 @@ am__apl_SOURCES_DIST = main.cc Plot_ascii.cc Plot_gtk.cc Plot_xcb.cc \
 	Unicode.hh UserFunction.cc UserFunction.hh \
 	UserFunction_header.cc UserFunction_header.hh \
 	UserPreferences.cc UserPreferences.hh UTF8_string.cc \
-	UTF8_string.hh Value.cc Value.icc Value.hh Value_P.icc \
-	Value_P.hh ValueHistory.cc ValueHistory.hh Workspace.cc \
-	Workspace.icc Workspace.hh static_Objects.cc static_Objects.hh \
-	Regexp.cc Regexp.hh sql/SqliteArgListBuilder.cc \
-	sql/SqliteArgListBuilder.hh sql/SqliteConnection.cc \
-	sql/SqliteConnection.hh sql/SqliteResultValue.cc \
-	sql/SqliteResultValue.hh sql/SqliteProvider.cc \
-	sql/SqliteProvider.hh sql/Connection.cc \
+	UTF8_string.hh Value.cc Value.icc Value.hh cValue.cc \
+	Value_P.icc Value_P.hh ValueHistory.cc ValueHistory.hh \
+	Workspace.cc Workspace.icc Workspace.hh static_Objects.cc \
+	static_Objects.hh Regexp.cc Regexp.hh \
+	sql/SqliteArgListBuilder.cc sql/SqliteArgListBuilder.hh \
+	sql/SqliteConnection.cc sql/SqliteConnection.hh \
+	sql/SqliteResultValue.cc sql/SqliteResultValue.hh \
+	sql/SqliteProvider.cc sql/SqliteProvider.hh sql/Connection.cc \
 	sql/PostgresArgListBuilder.cc sql/PostgresArgListBuilder.hh \
 	sql/PostgresConnection.cc sql/PostgresConnection.hh \
 	sql/PostgresProvider.cc sql/PostgresProvider.hh
@@ -680,10 +681,10 @@ am__objects_24 = $(am__objects_19) apl-Archive.$(OBJEXT) \
 	apl-UCS_string.$(OBJEXT) apl-UCS_string_vector.$(OBJEXT) \
 	apl-UserFunction.$(OBJEXT) apl-UserFunction_header.$(OBJEXT) \
 	apl-UserPreferences.$(OBJEXT) apl-UTF8_string.$(OBJEXT) \
-	apl-Value.$(OBJEXT) apl-ValueHistory.$(OBJEXT) \
-	apl-Workspace.$(OBJEXT) apl-static_Objects.$(OBJEXT) \
-	$(am__objects_20) $(am__objects_21) $(am__objects_22) \
-	$(am__objects_23)
+	apl-Value.$(OBJEXT) apl-cValue.$(OBJEXT) \
+	apl-ValueHistory.$(OBJEXT) apl-Workspace.$(OBJEXT) \
+	apl-static_Objects.$(OBJEXT) $(am__objects_20) \
+	$(am__objects_21) $(am__objects_22) $(am__objects_23)
 @apl_TARGET_LIBAPL_FALSE@@apl_TARGET_PYTHON_FALSE@am_apl_OBJECTS = apl-main.$(OBJEXT) \
 @apl_TARGET_LIBAPL_FALSE@@apl_TARGET_PYTHON_FALSE@	$(am__objects_24)
 am__EXTRA_apl_SOURCES_DIST = Plot_gtk.cc Plot_xcb.cc
@@ -782,8 +783,8 @@ am__depfiles_remade = ./$(DEPDIR)/apl-Archive.Po \
 	./$(DEPDIR)/apl-UserFunction_header.Po \
 	./$(DEPDIR)/apl-UserPreferences.Po ./$(DEPDIR)/apl-Value.Po \
 	./$(DEPDIR)/apl-ValueHistory.Po ./$(DEPDIR)/apl-Workspace.Po \
-	./$(DEPDIR)/apl-main.Po ./$(DEPDIR)/apl-sbrk.Po \
-	./$(DEPDIR)/apl-static_Objects.Po \
+	./$(DEPDIR)/apl-cValue.Po ./$(DEPDIR)/apl-main.Po \
+	./$(DEPDIR)/apl-sbrk.Po ./$(DEPDIR)/apl-static_Objects.Po \
 	./$(DEPDIR)/lib_gnu_apl_la-Archive.Plo \
 	./$(DEPDIR)/lib_gnu_apl_la-Assert.Plo \
 	./$(DEPDIR)/lib_gnu_apl_la-Avec.Plo \
@@ -904,6 +905,7 @@ am__depfiles_remade = ./$(DEPDIR)/apl-Archive.Po \
 	./$(DEPDIR)/lib_gnu_apl_la-Value.Plo \
 	./$(DEPDIR)/lib_gnu_apl_la-ValueHistory.Plo \
 	./$(DEPDIR)/lib_gnu_apl_la-Workspace.Plo \
+	./$(DEPDIR)/lib_gnu_apl_la-cValue.Plo \
 	./$(DEPDIR)/lib_gnu_apl_la-python_apl.Plo \
 	./$(DEPDIR)/lib_gnu_apl_la-sbrk.Plo \
 	./$(DEPDIR)/lib_gnu_apl_la-static_Objects.Plo \
@@ -1026,6 +1028,7 @@ am__depfiles_remade = ./$(DEPDIR)/apl-Archive.Po \
 	./$(DEPDIR)/libapl_la-Value.Plo \
 	./$(DEPDIR)/libapl_la-ValueHistory.Plo \
 	./$(DEPDIR)/libapl_la-Workspace.Plo \
+	./$(DEPDIR)/libapl_la-cValue.Plo \
 	./$(DEPDIR)/libapl_la-libapl.Plo \
 	./$(DEPDIR)/libapl_la-sbrk.Plo \
 	./$(DEPDIR)/libapl_la-static_Objects.Plo \
@@ -1413,11 +1416,11 @@ common_SOURCES = $(plot_SOURCES) ../config.h APL_Float_as_class.hh \
 	Unicode.hh UserFunction.cc UserFunction.hh \
 	UserFunction_header.cc UserFunction_header.hh \
 	UserPreferences.cc UserPreferences.hh UTF8_string.cc \
-	UTF8_string.hh Value.cc Value.icc Value.hh Value_P.icc \
-	Value_P.hh ValueHistory.cc ValueHistory.hh Workspace.cc \
-	Workspace.icc Workspace.hh static_Objects.cc static_Objects.hh \
-	$(am__append_7) $(am__append_10) $(am__append_11) \
-	$(am__append_14)
+	UTF8_string.hh Value.cc Value.icc Value.hh cValue.cc \
+	Value_P.icc Value_P.hh ValueHistory.cc ValueHistory.hh \
+	Workspace.cc Workspace.icc Workspace.hh static_Objects.cc \
+	static_Objects.hh $(am__append_7) $(am__append_10) \
+	$(am__append_11) $(am__append_14)
 pkglib_LTLIBRARIES = $(am__append_15) $(am__append_16)
 @apl_TARGET_LIBAPL_TRUE@pkginclude_HEADERS = libapl.h Error.def
 @apl_TARGET_LIBAPL_TRUE@libapl_la_SOURCES = $(common_SOURCES) libapl.h libapl.cc
@@ -1763,6 +1766,7 @@ distclean-compile:
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/apl-Value.Po@am__quote@ # am--include-marker
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/apl-ValueHistory.Po@am__quote@ # am--include-marker
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/apl-Workspace.Po@am__quote@ # am--include-marker
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/apl-cValue.Po@am__quote@ # am--include-marker
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/apl-main.Po@am__quote@ # am--include-marker
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/apl-sbrk.Po@am__quote@ # am--include-marker
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/apl-static_Objects.Po@am__quote@ # am--include-marker
@@ -1886,6 +1890,7 @@ distclean-compile:
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/lib_gnu_apl_la-Value.Plo@am__quote@ # am--include-marker
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/lib_gnu_apl_la-ValueHistory.Plo@am__quote@ # am--include-marker
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/lib_gnu_apl_la-Workspace.Plo@am__quote@ # am--include-marker
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/lib_gnu_apl_la-cValue.Plo@am__quote@ # am--include-marker
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/lib_gnu_apl_la-python_apl.Plo@am__quote@ # am--include-marker
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/lib_gnu_apl_la-sbrk.Plo@am__quote@ # am--include-marker
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/lib_gnu_apl_la-static_Objects.Plo@am__quote@ # am--include-marker
@@ -2009,6 +2014,7 @@ distclean-compile:
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libapl_la-Value.Plo@am__quote@ # am--include-marker
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libapl_la-ValueHistory.Plo@am__quote@ # am--include-marker
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libapl_la-Workspace.Plo@am__quote@ # am--include-marker
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libapl_la-cValue.Plo@am__quote@ # am--include-marker
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libapl_la-libapl.Plo@am__quote@ # am--include-marker
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libapl_la-sbrk.Plo@am__quote@ # am--include-marker
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libapl_la-static_Objects.Plo@am__quote@ # am--include-marker
@@ -2892,6 +2898,13 @@ lib_gnu_apl_la-Value.lo: Value.cc
 @AMDEP_TRUE@@am__fastdepCXX_FALSE@	$(AM_V_CXX)source='Value.cc' object='lib_gnu_apl_la-Value.lo' libtool=yes @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
 @am__fastdepCXX_FALSE@	$(AM_V_CXX@am__nodep@)$(LIBTOOL) $(AM_V_lt) --tag=CXX $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(lib_gnu_apl_la_CXXFLAGS) $(CXXFLAGS) -c -o lib_gnu_apl_la-Value.lo `test -f 'Value.cc' || echo '$(srcdir)/'`Value.cc
+
+lib_gnu_apl_la-cValue.lo: cValue.cc
+@am__fastdepCXX_TRUE@	$(AM_V_CXX)$(LIBTOOL) $(AM_V_lt) --tag=CXX $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(lib_gnu_apl_la_CXXFLAGS) $(CXXFLAGS) -MT lib_gnu_apl_la-cValue.lo -MD -MP -MF $(DEPDIR)/lib_gnu_apl_la-cValue.Tpo -c -o lib_gnu_apl_la-cValue.lo `test -f 'cValue.cc' || echo '$(srcdir)/'`cValue.cc
+@am__fastdepCXX_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/lib_gnu_apl_la-cValue.Tpo $(DEPDIR)/lib_gnu_apl_la-cValue.Plo
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	$(AM_V_CXX)source='cValue.cc' object='lib_gnu_apl_la-cValue.lo' libtool=yes @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCXX_FALSE@	$(AM_V_CXX@am__nodep@)$(LIBTOOL) $(AM_V_lt) --tag=CXX $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(lib_gnu_apl_la_CXXFLAGS) $(CXXFLAGS) -c -o lib_gnu_apl_la-cValue.lo `test -f 'cValue.cc' || echo '$(srcdir)/'`cValue.cc
 
 lib_gnu_apl_la-ValueHistory.lo: ValueHistory.cc
 @am__fastdepCXX_TRUE@	$(AM_V_CXX)$(LIBTOOL) $(AM_V_lt) --tag=CXX $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(lib_gnu_apl_la_CXXFLAGS) $(CXXFLAGS) -MT lib_gnu_apl_la-ValueHistory.lo -MD -MP -MF $(DEPDIR)/lib_gnu_apl_la-ValueHistory.Tpo -c -o lib_gnu_apl_la-ValueHistory.lo `test -f 'ValueHistory.cc' || echo '$(srcdir)/'`ValueHistory.cc
@@ -3809,6 +3822,13 @@ libapl_la-Value.lo: Value.cc
 @AMDEP_TRUE@@am__fastdepCXX_FALSE@	$(AM_V_CXX)source='Value.cc' object='libapl_la-Value.lo' libtool=yes @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
 @am__fastdepCXX_FALSE@	$(AM_V_CXX@am__nodep@)$(LIBTOOL) $(AM_V_lt) --tag=CXX $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libapl_la_CXXFLAGS) $(CXXFLAGS) -c -o libapl_la-Value.lo `test -f 'Value.cc' || echo '$(srcdir)/'`Value.cc
+
+libapl_la-cValue.lo: cValue.cc
+@am__fastdepCXX_TRUE@	$(AM_V_CXX)$(LIBTOOL) $(AM_V_lt) --tag=CXX $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libapl_la_CXXFLAGS) $(CXXFLAGS) -MT libapl_la-cValue.lo -MD -MP -MF $(DEPDIR)/libapl_la-cValue.Tpo -c -o libapl_la-cValue.lo `test -f 'cValue.cc' || echo '$(srcdir)/'`cValue.cc
+@am__fastdepCXX_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/libapl_la-cValue.Tpo $(DEPDIR)/libapl_la-cValue.Plo
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	$(AM_V_CXX)source='cValue.cc' object='libapl_la-cValue.lo' libtool=yes @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCXX_FALSE@	$(AM_V_CXX@am__nodep@)$(LIBTOOL) $(AM_V_lt) --tag=CXX $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libapl_la_CXXFLAGS) $(CXXFLAGS) -c -o libapl_la-cValue.lo `test -f 'cValue.cc' || echo '$(srcdir)/'`cValue.cc
 
 libapl_la-ValueHistory.lo: ValueHistory.cc
 @am__fastdepCXX_TRUE@	$(AM_V_CXX)$(LIBTOOL) $(AM_V_lt) --tag=CXX $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libapl_la_CXXFLAGS) $(CXXFLAGS) -MT libapl_la-ValueHistory.lo -MD -MP -MF $(DEPDIR)/libapl_la-ValueHistory.Tpo -c -o libapl_la-ValueHistory.lo `test -f 'ValueHistory.cc' || echo '$(srcdir)/'`ValueHistory.cc
@@ -5567,6 +5587,20 @@ apl-Value.obj: Value.cc
 @AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
 @am__fastdepCXX_FALSE@	$(AM_V_CXX@am__nodep@)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(apl_CXXFLAGS) $(CXXFLAGS) -c -o apl-Value.obj `if test -f 'Value.cc'; then $(CYGPATH_W) 'Value.cc'; else $(CYGPATH_W) '$(srcdir)/Value.cc'; fi`
 
+apl-cValue.o: cValue.cc
+@am__fastdepCXX_TRUE@	$(AM_V_CXX)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(apl_CXXFLAGS) $(CXXFLAGS) -MT apl-cValue.o -MD -MP -MF $(DEPDIR)/apl-cValue.Tpo -c -o apl-cValue.o `test -f 'cValue.cc' || echo '$(srcdir)/'`cValue.cc
+@am__fastdepCXX_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/apl-cValue.Tpo $(DEPDIR)/apl-cValue.Po
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	$(AM_V_CXX)source='cValue.cc' object='apl-cValue.o' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCXX_FALSE@	$(AM_V_CXX@am__nodep@)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(apl_CXXFLAGS) $(CXXFLAGS) -c -o apl-cValue.o `test -f 'cValue.cc' || echo '$(srcdir)/'`cValue.cc
+
+apl-cValue.obj: cValue.cc
+@am__fastdepCXX_TRUE@	$(AM_V_CXX)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(apl_CXXFLAGS) $(CXXFLAGS) -MT apl-cValue.obj -MD -MP -MF $(DEPDIR)/apl-cValue.Tpo -c -o apl-cValue.obj `if test -f 'cValue.cc'; then $(CYGPATH_W) 'cValue.cc'; else $(CYGPATH_W) '$(srcdir)/cValue.cc'; fi`
+@am__fastdepCXX_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/apl-cValue.Tpo $(DEPDIR)/apl-cValue.Po
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	$(AM_V_CXX)source='cValue.cc' object='apl-cValue.obj' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCXX_FALSE@	$(AM_V_CXX@am__nodep@)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(apl_CXXFLAGS) $(CXXFLAGS) -c -o apl-cValue.obj `if test -f 'cValue.cc'; then $(CYGPATH_W) 'cValue.cc'; else $(CYGPATH_W) '$(srcdir)/cValue.cc'; fi`
+
 apl-ValueHistory.o: ValueHistory.cc
 @am__fastdepCXX_TRUE@	$(AM_V_CXX)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(apl_CXXFLAGS) $(CXXFLAGS) -MT apl-ValueHistory.o -MD -MP -MF $(DEPDIR)/apl-ValueHistory.Tpo -c -o apl-ValueHistory.o `test -f 'ValueHistory.cc' || echo '$(srcdir)/'`ValueHistory.cc
 @am__fastdepCXX_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/apl-ValueHistory.Tpo $(DEPDIR)/apl-ValueHistory.Po
@@ -6109,6 +6143,7 @@ distclean: distclean-recursive
 	-rm -f ./$(DEPDIR)/apl-Value.Po
 	-rm -f ./$(DEPDIR)/apl-ValueHistory.Po
 	-rm -f ./$(DEPDIR)/apl-Workspace.Po
+	-rm -f ./$(DEPDIR)/apl-cValue.Po
 	-rm -f ./$(DEPDIR)/apl-main.Po
 	-rm -f ./$(DEPDIR)/apl-sbrk.Po
 	-rm -f ./$(DEPDIR)/apl-static_Objects.Po
@@ -6232,6 +6267,7 @@ distclean: distclean-recursive
 	-rm -f ./$(DEPDIR)/lib_gnu_apl_la-Value.Plo
 	-rm -f ./$(DEPDIR)/lib_gnu_apl_la-ValueHistory.Plo
 	-rm -f ./$(DEPDIR)/lib_gnu_apl_la-Workspace.Plo
+	-rm -f ./$(DEPDIR)/lib_gnu_apl_la-cValue.Plo
 	-rm -f ./$(DEPDIR)/lib_gnu_apl_la-python_apl.Plo
 	-rm -f ./$(DEPDIR)/lib_gnu_apl_la-sbrk.Plo
 	-rm -f ./$(DEPDIR)/lib_gnu_apl_la-static_Objects.Plo
@@ -6355,6 +6391,7 @@ distclean: distclean-recursive
 	-rm -f ./$(DEPDIR)/libapl_la-Value.Plo
 	-rm -f ./$(DEPDIR)/libapl_la-ValueHistory.Plo
 	-rm -f ./$(DEPDIR)/libapl_la-Workspace.Plo
+	-rm -f ./$(DEPDIR)/libapl_la-cValue.Plo
 	-rm -f ./$(DEPDIR)/libapl_la-libapl.Plo
 	-rm -f ./$(DEPDIR)/libapl_la-sbrk.Plo
 	-rm -f ./$(DEPDIR)/libapl_la-static_Objects.Plo
@@ -6547,6 +6584,7 @@ maintainer-clean: maintainer-clean-recursive
 	-rm -f ./$(DEPDIR)/apl-Value.Po
 	-rm -f ./$(DEPDIR)/apl-ValueHistory.Po
 	-rm -f ./$(DEPDIR)/apl-Workspace.Po
+	-rm -f ./$(DEPDIR)/apl-cValue.Po
 	-rm -f ./$(DEPDIR)/apl-main.Po
 	-rm -f ./$(DEPDIR)/apl-sbrk.Po
 	-rm -f ./$(DEPDIR)/apl-static_Objects.Po
@@ -6670,6 +6708,7 @@ maintainer-clean: maintainer-clean-recursive
 	-rm -f ./$(DEPDIR)/lib_gnu_apl_la-Value.Plo
 	-rm -f ./$(DEPDIR)/lib_gnu_apl_la-ValueHistory.Plo
 	-rm -f ./$(DEPDIR)/lib_gnu_apl_la-Workspace.Plo
+	-rm -f ./$(DEPDIR)/lib_gnu_apl_la-cValue.Plo
 	-rm -f ./$(DEPDIR)/lib_gnu_apl_la-python_apl.Plo
 	-rm -f ./$(DEPDIR)/lib_gnu_apl_la-sbrk.Plo
 	-rm -f ./$(DEPDIR)/lib_gnu_apl_la-static_Objects.Plo
@@ -6793,6 +6832,7 @@ maintainer-clean: maintainer-clean-recursive
 	-rm -f ./$(DEPDIR)/libapl_la-Value.Plo
 	-rm -f ./$(DEPDIR)/libapl_la-ValueHistory.Plo
 	-rm -f ./$(DEPDIR)/libapl_la-Workspace.Plo
+	-rm -f ./$(DEPDIR)/libapl_la-cValue.Plo
 	-rm -f ./$(DEPDIR)/libapl_la-libapl.Plo
 	-rm -f ./$(DEPDIR)/libapl_la-sbrk.Plo
 	-rm -f ./$(DEPDIR)/libapl_la-static_Objects.Plo

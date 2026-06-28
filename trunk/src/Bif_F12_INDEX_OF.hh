@@ -40,11 +40,11 @@ public:
    /// overloaded Function::eval_AB()
    /// @param A left APL value argument (the array to search in)
    /// @param B right APL value argument (items to look up)
-   virtual Token eval_AB(Value_P A, Value_P B) const;
+   virtual Token eval_AB(cValue_R A, cValue_R B) const;
 
    /// overloaded Function::eval_B()
    /// @param B right APL value argument
-   virtual Token eval_B(Value_P B) const;
+   virtual Token eval_B(cValue_R B) const;
 
    static Bif_F12_INDEX_OF  fun;   ///< Built-in function
 
@@ -74,7 +74,7 @@ protected:
    /// @param Idx_A ascending sort-index of A (grade-up, ⎕IO←0)
    /// @param cell_B cell value to search for
    /// @param qct comparison tolerance (⎕CT)
-   static ShapeItem find_B_in_sorted_A(const Value & A,
+   static ShapeItem find_B_in_sorted_A(const cValue & A,
                                        const vector<ShapeItem> & Idx_A,
                                        const Cell & cell_B, double qct);
 };

@@ -43,7 +43,7 @@ Bif_F12_SORT_DES  Bif_F12_SORT_DES::fun;     // ⍒
     not stored in the CollatingCache.
  **/
 //════════════════════════════════════════════════════════════════════════════
-CollatingCache::CollatingCache(const Value & A,
+CollatingCache::CollatingCache(const cValue & A,
                                const vector<ShapeItem> & signif,
                                ShapeItem clen)
    : rank(A.get_rank()),
@@ -152,17 +152,17 @@ const sRank rank = cache.get_rank();
 }
 //════════════════════════════════════════════════════════════════════════════
 Token
-Bif_F12_SORT::sort(Value_P B, Sort_order order)
+Bif_F12_SORT::sort(cValue_R B, Sort_order order)
 {
-   if (B->is_scalar())          return Token(TOK_ERROR, E_RANK_ERROR);
-   if (!B->can_be_compared())   return Token(TOK_ERROR, E_DOMAIN_ERROR);
+   if (B.is_scalar())          return Token(TOK_ERROR, E_RANK_ERROR);
+   if (!B.can_be_compared())   return Token(TOK_ERROR, E_DOMAIN_ERROR);
 
-const ShapeItem len_BZ = B->get_shape_item(0);
+const ShapeItem len_BZ = B.get_shape_item(0);
    if (len_BZ == 0)   return Token(TOK_APL_VALUE1, Idx0(LOC));
-const ShapeItem comp_len = B->element_count()/len_BZ;
+const ShapeItem comp_len = B.element_count()/len_BZ;
 
 vector<ShapeItem> ordered_indices_B;
-   Cell::sorted_indices(ordered_indices_B, *B, order, comp_len);
+   Cell::sorted_indices(ordered_indices_B, B, order, comp_len);
 
 Value_P Z(len_BZ, LOC);
 const int qio = Workspace::get_IO();
@@ -174,15 +174,15 @@ const int qio = Workspace::get_IO();
 }
 //════════════════════════════════════════════════════════════════════════════
 Token
-Bif_F12_SORT::sort_collating(Value_P A, Value_P B, Sort_order order)
+Bif_F12_SORT::sort_collating(cValue_R A, cValue_R B, Sort_order order)
 {
 const APL_Integer qio = Workspace::get_IO();
-   if (A->is_scalar())   RANK_ERROR;
-   if (A->NOTCHAR())     DOMAIN_ERROR;
-   if (B->NOTCHAR())     DOMAIN_ERROR;
-   if (B->is_scalar())   return Token(TOK_APL_VALUE1, IntScalar(qio, LOC));
+   if (A.is_scalar())   RANK_ERROR;
+   if (A.NOTCHAR())     DOMAIN_ERROR;
+   if (B.NOTCHAR())     DOMAIN_ERROR;
+   if (B.is_scalar())   return Token(TOK_APL_VALUE1, IntScalar(qio, LOC));
 
-const ShapeItem len_BZ = B->get_shape_item(0);
+const ShapeItem len_BZ = B.get_shape_item(0);
    if (len_BZ == 0)   return Token(TOK_APL_VALUE1, Idx0(LOC));   // return ⍬
    if (len_BZ == 1)
       {
@@ -192,7 +192,7 @@ const ShapeItem len_BZ = B->get_shape_item(0);
         return Token(TOK_APL_VALUE1, Z);
       }
 
-const ShapeItem ec_B = B->element_count();
+const ShapeItem ec_B = B.element_count();
 const ShapeItem comp_len = ec_B/len_BZ;
 
    // create integer vector B1 which is a 1:1 mapping of the characters
@@ -200,10 +200,10 @@ const ShapeItem comp_len = ec_B/len_BZ;
    //
 vector<ShapeItem> B1;
    B1.reserve(ec_B);
-CollatingCache cache(*A, B1, comp_len);
+CollatingCache cache(A, B1, comp_len);
    loop(b, ec_B)
       {
-        const Unicode uni = B->get_cravel(b).get_char_value();
+        const Unicode uni = B.get_cravel(b).get_char_value();
         const ShapeItem b1 = cache.get_significance(uni);
         B1.push_back(b1);
       }

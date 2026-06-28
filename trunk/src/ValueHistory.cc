@@ -35,7 +35,7 @@ VH_entry VH_entry::history[VALUEHISTORY_SIZE + 1];
 int VH_entry::idx = 0;
 
 //════════════════════════════════════════════════════════════════════════════
-VH_entry::VH_entry(const Value * _val, VH_event _ev, int _iarg,
+VH_entry::VH_entry(const cValue * _val, VH_event _ev, int _iarg,
                    const char * _loc)
   : event(_ev),
     iarg(_iarg),
@@ -55,7 +55,7 @@ void * h = history;
 //────────────────────────────────────────────────────────────────────────────
 /// add event \b ev with event argumant \b ia to the history of \b val
 void
-add_event(const Value * val, VH_event ev, int ia, const char * loc)
+add_event(const cValue * val, VH_event ev, int ia, const char * loc)
 {
    Assert(loc);
 
@@ -66,7 +66,7 @@ VH_entry * entry = VH_entry::history + VH_entry::idx++;
 }
 //────────────────────────────────────────────────────────────────────────────
 void
-VH_entry::print_history(ostream & out, const Value & val, const char * loc)
+VH_entry::print_history(ostream & out, const cValue & val, const char * loc)
 {
    // search backwards for events of val.
    //
@@ -90,7 +90,7 @@ int cidx = VH_entry::idx;
               continue;
             }
 
-          if (entry->val != &val)           continue;   // some other var
+          if (entry->val != static_cast<const cValue *>(&val))   continue;   // some other var
 
           var_events.push_back(entry);
 
@@ -137,7 +137,7 @@ UCS_string ret;
 }
 //────────────────────────────────────────────────────────────────────────────
 void
-VH_entry::print(int & flags, ostream & out, const Value & val,
+VH_entry::print(int & flags, ostream & out, const cValue & val,
                const VH_entry * previous) const
 {
 const ValueFlags flags_before = ValueFlags(flags);

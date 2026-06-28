@@ -40,10 +40,10 @@ public:
    /// overloaded Function::eval_AB()
    /// @param A left argument APL value (sorted interval boundaries)
    /// @param B right argument APL value (values to locate in intervals)
-   virtual Token eval_AB(Value_P A, Value_P B) const;
+   virtual Token eval_AB(cValue_R A, cValue_R B) const;
 
    /// overloaded Function::eval_B()
-   virtual Token eval_B(Value_P B) const;
+   virtual Token eval_B(cValue_R B) const;
 
    static Bif_F12_INTERVAL_INDEX  fun;   ///< Built-in function
 

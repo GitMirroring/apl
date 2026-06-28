@@ -738,6 +738,7 @@ asciidoc.install(4);
 <span id="author">Dr. Jürgen Sauermann, GNU APL</span><br />
 <div id="toc">
   <div id="toctitle">Table of Contents</div>
+  <noscript><p><b>JavaScript must be enabled in your browser to display the table of contents.</b></p></noscript>
 </div>
 </div>
 <div id="content">
@@ -748,7 +749,7 @@ asciidoc.install(4);
 understanding the GNU APL source code. Its primary purpose is to support
 the fading memory of the author, but it may be interesting for others as well.
 In addition to the hints there are also a number of rules. These rules
-should be observed by those who contribute C/C++ source code to the
+should be observed by those who contribute C/Cpp source code to the
 GNU APL project (as opposed to those that contribute APL code).</p></div>
 <div class="paragraph"><p>This document is <strong>NOT</strong> aimed at the normal GNU APL user, i.e. at the APL
 programmer. Those users are referred to the various <strong>README</strong> files in the
@@ -764,7 +765,7 @@ unpacking a GNU APL tar file like <strong>apl-2.0.tar.gz</strong> or after fetch
 APL sourced with SVN or with git - the file named <strong>configure.ac</strong>.</p></div>
 <div class="paragraph"><p>GNU APL uses <strong>automake</strong> and <strong>autoconf</strong> to build the interpreter. The build
 system performs a number of major steps in typically different places and
-by different persons (C/C++ designer/maintainer vs. user):</p></div>
+by different persons (C/Cpp designer/maintainer vs. user):</p></div>
 <div class="sect2">
 <h3 id="_step_1_generate_configure_and_a_makefile_in_for_every_makefile_am">Step 1: Generate ./configure and a Makefile.in for every Makefile.am</h3>
 <div class="paragraph"><p>Every directory of the GNU APL source tree contains a file named <strong>Makefile.am</strong>.
@@ -772,11 +773,7 @@ The command <strong>autoreconf</strong>, performed in top-level directory of the
 source tree:</p></div>
 <div class="listingblock">
 <div class="content">
-<pre>
-
-<code>$ autoreconf</code>
-
-</pre>
+<pre><code>$ autoreconf</code></pre>
 </div></div>
 <div class="paragraph"><p>generates a file named <strong>Makefile.in</strong> for every <strong>Makefile.am</strong>. In addition it
 creates a script named <strong>configure</strong>. This is normally done by the maintainer
@@ -816,11 +813,7 @@ It is performed by the end user (or by the system administrator where
 appropriate) in the top-level directory of the GNU APL source tree:</p></div>
 <div class="listingblock">
 <div class="content">
-<pre>
-
-<code>$ ./configure</code>
-
-</pre>
+<pre><code>$ ./configure</code></pre>
 </div></div>
 <div class="paragraph"><p>The typical end user will run <strong>./configure</strong> without any arguments, while
 experts may run it with additional arguments (see README-2-configure
@@ -887,32 +880,20 @@ the library only lives in a non-standard location (e.g. below the user&#8217;s
 <div class="paragraph"><p>The final step is to compile the interpreter:</p></div>
 <div class="listingblock">
 <div class="content">
-<pre>
-
-<code>$ make</code>
-
-</pre>
+<pre><code>$ make</code></pre>
 </div></div>
 <div class="paragraph"><p>The code base is quite large, therefore one may prefer to compile several
 sources in parallel. For example, on an 8 core CPU:</p></div>
 <div class="listingblock">
 <div class="content">
-<pre>
-
-<code>make -j 7</code>
-
-</pre>
+<pre><code>make -j 7</code></pre>
 </div></div>
 <div class="paragraph"><p>leaving one core for other purposes. If the compilation is successful then the
 interpreter is named <strong>apl</strong> in directory <strong>src</strong>, i.e. <strong>src/apl</strong>. During
 development, the interpreter can be started from there without installing it:</p></div>
 <div class="listingblock">
 <div class="content">
-<pre>
-
-<code>$ src/apl</code>
-
-</pre>
+<pre><code>$ src/apl</code></pre>
 </div></div>
 <div class="paragraph"><p>After the development is done, the interpreter is installed properly.</p></div>
 <div class="admonitionblock">
@@ -932,11 +913,7 @@ writable by ordinary users.</td>
 <div class="paragraph"><p>Installation of the interpreter must be performed by root:</p></div>
 <div class="listingblock">
 <div class="content">
-<pre>
-
-<code>$ sudo make install</code>
-
-</pre>
+<pre><code>$ sudo make install</code></pre>
 </div></div>
 <div class="admonitionblock">
 <table><tr>
@@ -951,11 +928,7 @@ and will no longer be writable by the user. To fix this:</td>
 </div>
 <div class="listingblock">
 <div class="content">
-<pre>
-
-<code>$ sudo chown -R username.username .   # assume user is 'username'</code>
-
-</pre>
+<pre><code>$ sudo chown -R username.username .   # assume user is 'username'</code></pre>
 </div></div>
 <div class="paragraph"><p>The <strong>make install</strong> installs a few files (all owned by root, but with read
 permissions for everybody):</p></div>
@@ -995,9 +968,7 @@ options.</p></div>
 interpreter and the files involved:</p></div>
 <div class="listingblock">
 <div class="content">
-<pre>
-
-<code>     ┌─────────────┐
+<pre><code>     ┌─────────────┐
     ┌┴────────────┐│     ┌──────────────┐
    ┌┴────────────┐├┘     │ configure.ac │     autoreconf (GNU APL designer)
    │ Makefile.am ├┘      └──────────────┘
@@ -1022,9 +993,7 @@ interpreter and the files involved:</p></div>
                      ╔════════════════════╗
                      ║ /usr/local/bin/apl ║    make install (root)
                      ╚════════════════════╝
-                               ↓               ──────────────────────────</code>
-
-</pre>
+                               ↓               ──────────────────────────</code></pre>
 </div></div>
 </div>
 <div class="sect2">
@@ -1038,9 +1007,7 @@ again with <strong>make</strong> run in the top-level directory, unless noted ot
 <div class="paragraph"><p>Shows all top-level make targets:</p></div>
 <div class="listingblock">
 <div class="content">
-<pre>
-
-<code>In addition to the standard make targets (all, install, clean, ...),
+<pre><code>In addition to the standard make targets (all, install, clean, ...),
 the following make targets may be supported (at this level):
 
     make help        - print this text
@@ -1063,9 +1030,7 @@ author) and are not very useful for normal users:
     make python      - make develop + build python module
     make parallel    - enable multi-core APL (buggy and experimental!)
     make parallel1   - make parallel for benchmarking
-    make VPATH_clean - prepare for VPATH build</code>
-
-</pre>
+    make VPATH_clean - prepare for VPATH build</code></pre>
 </div></div>
 </div>
 <div class="sect2">
@@ -1081,7 +1046,7 @@ execution.</p></div>
 <h3 id="_make_apl_lines">make apl.lines</h3>
 <div class="paragraph"><p>This make target is only available in sub-directory <strong>src</strong>. It produces a file
 named <strong>src/apl.lines</strong> and must be run right after building the interpreter.
-When the interpreter produces a stack trace (i.e. it lists the C++ call stack)
+When the interpreter produces a stack trace (i.e. it lists the Cpp call stack)
 then:</p></div>
 <div class="ulist"><ul>
 <li>
@@ -1162,21 +1127,13 @@ browsing the source code.</p></div>
 itself is installed, be produced like this:</p></div>
 <div class="listingblock">
 <div class="content">
-<pre>
-
-<code>make DOXY</code>
-
-</pre>
+<pre><code>make DOXY</code></pre>
 </div></div>
 <div class="paragraph"><p>The result is around 6,000 files in directory <strong>html</strong>. After generating them,
 the files can be browsed with e.g.</p></div>
 <div class="listingblock">
 <div class="content">
-<pre>
-
-<code>firefox html/index.html</code>
-
-</pre>
+<pre><code>firefox html/index.html</code></pre>
 </div></div>
 <div class="paragraph"><p>or with some other browser. The <strong>Doxygen</strong> documentation is a good starting
 point for those that want to get a quick overview of the GNU APL source code.</p></div>
@@ -1201,17 +1158,17 @@ C header files (file extension <strong>.h</strong>) are almost never used, a not
 </li>
 <li>
 <p>
-C++ source files for inline functions (file extension <strong>.icc</strong>),
+Cpp source files for inline functions (file extension <strong>.icc</strong>),
 </p>
 </li>
 <li>
 <p>
-C++ source files (file extension <strong>.cc</strong>),
+Cpp source files (file extension <strong>.cc</strong>),
 </p>
 </li>
 <li>
 <p>
-C++ header files (file extension <strong>.hh</strong>), and
+Cpp header files (file extension <strong>.hh</strong>), and
 </p>
 </li>
 <li>
@@ -1220,7 +1177,7 @@ pure macro files (file extension <strong>.def</strong>).
 </p>
 </li>
 </ul></div>
-<div class="paragraph"><p>By and large, the rules for C and C++ source and header files are:</p></div>
+<div class="paragraph"><p>By and large, the rules for C and Cpp source and header files are:</p></div>
 <div class="ulist"><ul>
 <li>
 <p>
@@ -1248,7 +1205,7 @@ The .cc and .hh file names are the same, except for the file name extension
 </li>
 <li>
 <p>
-C++ declarations can be made in the .cc file if their scope is local to the
+Cpp declarations can be made in the .cc file if their scope is local to the
   .cc file (like static declarations in C), otherwise they go into the
   corresponding .hh file.
 </p>
@@ -1256,10 +1213,10 @@ C++ declarations can be made in the .cc file if their scope is local to the
 </ul></div>
 <div class="sect2">
 <h3 id="_def_files">.def Files</h3>
-<div class="paragraph"><p>C/C++ source files primarily contain C/C++ code and occasionally declarations.
-C/C++ header files primarily contain C/C++ declarations and often (inline)
-C/C++ code. In contrast, .def files contain neither C/C++ code nor
-C/C++ declarations. They only contain macro calls whereby the definition of
+<div class="paragraph"><p>C/Cpp source files primarily contain C/Cpp code and occasionally declarations.
+C/Cpp header files primarily contain C/Cpp declarations and often (inline)
+C/Cpp code. In contrast, .def files contain neither C/Cpp code nor
+C/Cpp declarations. They only contain macro calls whereby the definition of
 the macro is defined outside the .def file. Currently there are about 20 .def
 files in the GNU APL source code so that they deserve an explanation.</p></div>
 <div class="sect3">
@@ -1267,29 +1224,23 @@ files in the GNU APL source code so that they deserve an explanation.</p></div>
 <div class="paragraph"><p>Suppose we have a number of integer error codes:</p></div>
 <div class="listingblock">
 <div class="content">
-<pre>
-
-<code>   enum ErrorCode
+<pre><code>   enum ErrorCode
       {
         NO_ERROR     = 0,
         SYNTAX_ERROR = 1,
         RANK_ERROR   = 2,
         LENGTH_ERROR = 4
-      };</code>
-
-</pre>
+      };</code></pre>
 </div></div>
 <div class="paragraph"><p>Sooner or later we need a string that describes the error in a human readable
 format. This requires a mapping between integer error codes and string
-literals. There are 2 standard methods in C/C++ to define such a mapping.</p></div>
+literals. There are 2 standard methods in C/Cpp to define such a mapping.</p></div>
 </div>
 <div class="sect3">
 <h4 id="_method_1_struct_definition">Method 1: struct definition</h4>
 <div class="listingblock">
 <div class="content">
-<pre>
-
-<code>struct _error_map
+<pre><code>struct _error_map
 {
   ErrorCode ecode;
   const char * ename;
@@ -1305,18 +1256,14 @@ const char *
 get_error_string(ErrorCode ec)
 {
    return error_map[ec];
-}</code>
-
-</pre>
+}</code></pre>
 </div></div>
 </div>
 <div class="sect3">
 <h4 id="_method_2_switch_statement">Method 2: switch statement</h4>
 <div class="listingblock">
 <div class="content">
-<pre>
-
-<code>const char *
+<pre><code>const char *
 get_error_string(ErrorCode ec)
 {
    switch(ec)
@@ -1327,9 +1274,7 @@ get_error_string(ErrorCode ec)
         case LENGTH_ERROR:  return "Length Error";
       }
    return "Unknown error";
-}</code>
-
-</pre>
+}</code></pre>
 </div></div>
 <div class="paragraph"><p>Now suppose we add another ErrorCode <strong>DOMAIN_ERROR</strong> to the <strong>enum ErrorCode</strong>.
 Suppose further that we add the new error code to the enum but not to the
@@ -1339,14 +1284,14 @@ because <strong>ErrorCode</strong> is usually declared in a <strong>.hh</strong>
 Method 1 will most likely produce a segmentation fault at runtime, which is
 about the worst case that may happen. Method 2 is a little better because a
 smart compiler like g++ will issue a warning in this case. Both methods are,
-however, quite inconvenient for the C/C++ programmer, in particular if many
+however, quite inconvenient for the C/Cpp programmer, in particular if many
 such mappings are needed in a larger program.</p></div>
 <div class="paragraph"><p>In GNU APL this problem is solved in the following way:</p></div>
 <div class="ulist"><ul>
 <li>
 <p>
 #define a macro that expresses the relationship (between integer error codes
-  and C/C++ literals for the corresponding error text in our example), and
+  and C/Cpp literals for the corresponding error text in our example), and
 </p>
 </li>
 <li>
@@ -1360,37 +1305,27 @@ call that macro, typically in several different files with the macro
 <div class="paragraph"><p>In e.g. <strong>errors.def</strong>:</p></div>
 <div class="listingblock">
 <div class="content">
-<pre>
-
-<code>   error_def(NO_ERROR     , 0, OK           )
+<pre><code>   error_def(NO_ERROR     , 0, OK           )
    error_def(SYNTAX_ERROR , 1, Syntax Error )
    error_def(RANK_ERROR:    2, Rank Error   )
    error_def(LENGTH_ERROR:  3, Length Error )
 
-#undef error_def   /* to detect missing definitions of the error_def() macro */</code>
-
-</pre>
+#undef error_def   /* to detect missing definitions of the error_def() macro */</code></pre>
 </div></div>
 <div class="paragraph"><p>In, say, <strong>errors.hh</strong>:</p></div>
 <div class="listingblock">
 <div class="content">
-<pre>
-
-<code>   enum ErrorCode
+<pre><code>   enum ErrorCode
       {
 #define error_def(enum_name, enum_value, _error_string) \
    enum_name = enum_value,
 #include "errors.def"
-      };</code>
-
-</pre>
+      };</code></pre>
 </div></div>
 <div class="paragraph"><p>And finally in <strong>errors.cc</strong>:</p></div>
 <div class="listingblock">
 <div class="content">
-<pre>
-
-<code>const char *
+<pre><code>const char *
 get_error_string(ErrorCode ec)
 {
    switch(ec)
@@ -1400,9 +1335,7 @@ get_error_string(ErrorCode ec)
 #include "errors.def"
       }
    return "Unknown error";
-}</code>
-
-</pre>
+}</code></pre>
 </div></div>
 <div class="paragraph"><p>Note the following:</p></div>
 <div class="ulist"><ul>
@@ -1494,7 +1427,7 @@ the macros are #defined outside the <strong>.def</strong> file but #undef&#8217;
 <div class="paragraph"><p>GNU APL is a GNU project. For the most part it therefore follows the GNU
 coding standard, see: <a href="https://www.gnu.org/prep/standards/standards.html">https://www.gnu.org/prep/standards/standards.html</a>
 With some minor deviations which attempt to further improve the readability
-of the C/C++ code.</p></div>
+of the C/Cpp code.</p></div>
 <div class="sect2">
 <h3 id="_general">General</h3>
 <div class="ulist"><ul>
@@ -1522,15 +1455,13 @@ Variable declarations at top-level scope are <strong><em>not</em></strong> inden
 </li>
 <li>
 <p>
-C++ code at the top-level scope is indented with 3 blanks:
+Cpp code at the top-level scope is indented with 3 blanks:
 </p>
 </li>
 </ul></div>
 <div class="listingblock">
 <div class="content">
-<pre>
-
-<code>void
+<pre><code>void
 foo()
 {
 int x = 0;            // declaration: not indented!
@@ -1539,9 +1470,7 @@ int x = 0;            // declaration: not indented!
 
 int y = 1;            // another declaration.
    ...
-}</code>
-
-</pre>
+}</code></pre>
 </div></div>
 <div class="ulist"><ul>
 <li>
@@ -1552,15 +1481,13 @@ Variable declarations below top-level scope are indented with 2 (from the {
 </li>
 <li>
 <p>
-C++ code below the top-level scope are also indented with 2 blanks:
+Cpp code below the top-level scope are also indented with 2 blanks:
 </p>
 </li>
 </ul></div>
 <div class="listingblock">
 <div class="content">
-<pre>
-
-<code>void
+<pre><code>void
 foo()
 {
 int x = 0;         // declaration: not indented!
@@ -1574,9 +1501,7 @@ int y = 1;         // another declaration.
       {                               // start of another sub-scope
         printf("zero x");             // code: indented by 2 spaces
       }
-}</code>
-
-</pre>
+}</code></pre>
 </div></div>
 </div>
 <div class="sect3">
@@ -1597,9 +1522,7 @@ the body of the conditional is indented according to the opening <strong>(</stro
 </ul></div>
 <div class="listingblock">
 <div class="content">
-<pre>
-
-<code>void
+<pre><code>void
 foo()
 {
 int x = 0;
@@ -1622,9 +1545,7 @@ int x = 0;
       {
         ...
       }
-}</code>
-
-</pre>
+}</code></pre>
 </div></div>
 <div class="ulist"><ul>
 <li>
@@ -1650,9 +1571,7 @@ you MUST NEVER NEVER NEVER use K&amp;R style:
 </ul></div>
 <div class="listingblock">
 <div class="content">
-<pre>
-
-<code>   // DO:
+<pre><code>   // DO:
 
    if (x &gt;= 0)   return "positive";
    else          return "negative";
@@ -1674,9 +1593,7 @@ you MUST NEVER NEVER NEVER use K&amp;R style:
       return "positive";
    } else {
       return "negative";
-   }</code>
-
-</pre>
+   }</code></pre>
 </div></div>
 </div>
 <div class="sect3">
@@ -1690,9 +1607,7 @@ one blank after every comma and between tokens:
 </ul></div>
 <div class="listingblock">
 <div class="content">
-<pre>
-
-<code>   // DO:
+<pre><code>   // DO:
 
 int
 main(int argc, char * argv[])
@@ -1724,16 +1639,14 @@ int
 main(int argc, char* argv[])   // no space before *
 {
    ...
-}</code>
-
-</pre>
+}</code></pre>
 </div></div>
 </div>
 </div>
 <div class="sect2">
 <h3 id="_naming_conventions">Naming Conventions</h3>
 <div class="sect3">
-<h4 id="_cpp_class_names">C++ Class Names</h4>
+<h4 id="_cpp_class_names">Cpp Class Names</h4>
 <div class="paragraph"><p>Class names should be in <strong>CamelCase</strong>. That is:</p></div>
 <div class="ulist"><ul>
 <li>
@@ -1755,7 +1668,7 @@ Abbreviations shall be all uppercase (in that case _ is allowed if it
 </ul></div>
 </div>
 <div class="sect3">
-<h4 id="_cpp_file_names">C++ File Names</h4>
+<h4 id="_cpp_file_names">Cpp File Names</h4>
 <div class="ulist"><ul>
 <li>
 <p>
@@ -1770,7 +1683,7 @@ file names: always use .cc (not .cxx or .cpp) and .hh (not .hxx or hpp).
 </li>
 <li>
 <p>
-Pure C (as opposed to C++) files should use .c and .h as usual.
+Pure C (as opposed to Cpp) files should use .c and .h as usual.
 </p>
 </li>
 </ul></div>
@@ -1783,7 +1696,7 @@ Pure C (as opposed to C++) files should use .c and .h as usual.
 <p>
 Use <strong>(const) char <strong> for ASCII characters (i.e. 0x00&#8230;0x7F)
   and *(const) UTF </strong> for UTF8 encoded strings. Keep in mind that
-  C++ literals with APL characters (e.g. "A∆B") are automatically
+  Cpp literals with APL characters (e.g. "A∆B") are automatically
   UTF8 encoded by the compiler even though their type is *const char *</strong>.
 </p>
 </li>
@@ -1853,7 +1766,7 @@ non-inline functions
 <p>
 always use <strong>protected:</strong> rather than <strong>private:</strong> for the members of a class.
   GNU APL uses the convention that <strong>private:</strong> members are used to prevent the
-  accidental function calls that are sometimes generated by the C++ compiler
+  accidental function calls that are sometimes generated by the Cpp compiler
   (implicit conversion). In GNU APL, such members are declared, but not
   defined (so that the linker will complain if the compiler should generate
   them).
@@ -1892,16 +1805,12 @@ do not like them.</p></div>
 <h2 id="_debugging">Debugging</h2>
 <div class="sectionbody">
 <div class="paragraph"><p>GNU APL has a number of built-in means to locate faults. In a code base of
-around 120,000 LOC, locating the fault in the source file takes most of the
+around 130,000 LOC, locating the fault in the source file takes most of the
 time required to fix it. Many of the GNU APL debugging facilities have
 performance impacts; they need to be enabled. The make target <strong>develop</strong>, i.e.</p></div>
 <div class="listingblock">
 <div class="content">
-<pre>
-
-<code>make develop</code>
-
-</pre>
+<pre><code>make develop</code></pre>
 </div></div>
 <div class="paragraph"><p>will enable a useful set of debugging facilities. <strong>make develop</strong> re-runs
 <strong>./configure</strong>, therefore a normal build must have been performed beforehand
@@ -1918,13 +1827,9 @@ possible to enable or disable some or all of them. This is done via the
 ./configure argument ASSERT_LEVEL (see also <strong>README-2-configure</strong>):</p></div>
 <div class="listingblock">
 <div class="content">
-<pre>
-
-<code>.configure ASSERT_LEVEL_WANTED=0    (the default, best performance)
+<pre><code>.configure ASSERT_LEVEL_WANTED=0    (the default, best performance)
 .configure ASSERT_LEVEL_WANTED=1    disable trivial assertions, enable others
-.configure ASSERT_LEVEL_WANTED=2    enable all assertions (worst performance)</code>
-
-</pre>
+.configure ASSERT_LEVEL_WANTED=2    enable all assertions (worst performance)</code></pre>
 </div></div>
 <div class="paragraph"><p>The <strong>make develop</strong> target sets, among other things, <strong>ASSERT_LEVEL_WANTED=2</strong>.</p></div>
 </div>
@@ -1940,9 +1845,7 @@ printout is produced which provides additional information for the
 troubleshooter. As of this writing, the following logging facilities exist:</p></div>
 <div class="listingblock">
 <div class="content">
-<pre>
-
-<code>     ]log
+<pre><code>     ]log
      1: (OFF) AV details
      2: (OFF) new and delete calls
      3: (OFF) input from user or testcase file
@@ -1989,9 +1892,7 @@ troubleshooter. As of this writing, the following logging facilities exist:</p><
     44: (OFF) command ]DOXY
     45: (OFF) details of Value allocation
     46: (OFF) ⎕TF details
-    47: (OFF) ⎕PLOT details</code>
-
-</pre>
+    47: (OFF) ⎕PLOT details</code></pre>
 </div></div>
 <div class="paragraph"><p>Like assertions, debugging facilities may have a performance impact. There are
 almost 400 places in the source code where a decision is made about if and what
@@ -2018,15 +1919,11 @@ performs an internal check of all data structures inside the interpreter.
 The primary purpose is to find memory leaks:</p></div>
 <div class="listingblock">
 <div class="content">
-<pre>
-
-<code>      )CHECK
+<pre><code>      )CHECK
 OK      - no stale functions
 OK      - no stale values
 OK      - no stale indices
-OK      - no duplicate parents</code>
-
-</pre>
+OK      - no duplicate parents</code></pre>
 </div></div>
 <div class="paragraph"><p>A value or function is <strong>stale</strong> if the current workspace cannot reach it
 anymore. The interpreter does a sort of double-entry accounting of APL values
@@ -2054,18 +1951,14 @@ simplify such printouts.</p></div>
 <div class="sect3">
 <h4 id="_the_loc_macro">The LOC macro</h4>
 <div class="paragraph"><p>The macro <strong>LOC</strong> expands to the current source file name and line number. Many
-C++ functions use it for non-debug purposes to see from where they were
+Cpp functions use it for non-debug purposes to see from where they were
 called. The expanded LOC macro is a string literal, therefore the overhead is
 minimal:</p></div>
 <div class="listingblock">
 <div class="content">
-<pre>
-
-<code>#define STR(x) #x
+<pre><code>#define STR(x) #x
 #define Loc(f, l) f ":" STR(l)
-#define LOC Loc(__FILE__, __LINE__)</code>
-
-</pre>
+#define LOC Loc(__FILE__, __LINE__)</code></pre>
 </div></div>
 </div>
 <div class="sect3">
@@ -2074,13 +1967,9 @@ minimal:</p></div>
 at which the value of <strong>x</strong> was printed:</p></div>
 <div class="listingblock">
 <div class="content">
-<pre>
-
-<code>/// print x and its source code location
+<pre><code>/// print x and its source code location
 #define Q(x) get_CERR() &lt;&lt; std::left &lt;&lt; setw(20) &lt;&lt; #x ":" \
-                        &lt;&lt; " '" &lt;&lt; x &lt;&lt; "' at " LOC &lt;&lt; endl;</code>
-
-</pre>
+                        &lt;&lt; " '" &lt;&lt; x &lt;&lt; "' at " LOC &lt;&lt; endl;</code></pre>
 </div></div>
 <div class="paragraph"><p>The other debug means are somewhat coarse-grained. Dividing around <strong>120,000
 LOC</strong> (lines of source code) by 400 places where logging facilities may
@@ -2133,9 +2022,7 @@ or <strong>)COPY</strong>ed into another interpreter instance.</p></div>
 to as <strong>REPL</strong>, an abbreviation for <strong>R</strong>ead-<strong>E</strong>valuate-<strong>P</strong>rint-<strong>L</strong>oop:</p></div>
 <div class="listingblock">
 <div class="content">
-<pre>
-
-<code>   ┌──────┐
+<pre><code>   ┌──────┐
    │ INIT │
    └──────┘
      ↓
@@ -2149,23 +2036,17 @@ to as <strong>REPL</strong>, an abbreviation for <strong>R</strong>ead-<strong>E
                                                   ↓
                                                ┌──────┐
                                                │ EXIT │
-                                               └──────┘</code>
-
-</pre>
+                                               └──────┘</code></pre>
 </div></div>
 <div class="paragraph"><p>The <strong>REPL</strong> of GNU APL is located at the end of function <strong>main()</strong> in source
 file <strong>main.cc</strong>:</p></div>
 <div class="listingblock">
 <div class="content">
-<pre>
-
-<code>   for (const bool exit_on_error = IO_Files::exit_on_error();;)
+<pre><code>   for (const bool exit_on_error = IO_Files::exit_on_error();;)
        {
          const Token tok = Workspace::immediate_execution(exit_on_error);
          if (tok.get_tag() == TOK_OFF)   Command::cmd_OFF(0);
-       }</code>
-
-</pre>
+       }</code></pre>
 </div></div>
 <div class="paragraph"><p>The <strong>R</strong>ead, <strong>E</strong>valuate, and <strong>P</strong>rint parts of the <strong>REPL</strong> are performed
 in function <strong>immediate_execution()</strong> which returns <strong>TOK_OFF</strong> if the APL
@@ -2174,13 +2055,11 @@ command <strong>)OFF</strong> was processed and something else otherwise.</p></d
 <h3 id="_the_workspace_immediate_execution_function">The Workspace::immediate_execution() Function</h3>
 <div class="paragraph"><p>Function <strong>Workspace::immediate_execution()</strong> processes one line of input,
 in source file <strong>Workspace.cc</strong>. It simply calls <strong>Command::process_line()</strong>.
-More importantly, it <strong>catch</strong>es C++ errors that may be thrown and processes
+More importantly, it <strong>catch</strong>es Cpp errors that may be thrown and processes
 the errors:</p></div>
 <div class="listingblock">
 <div class="content">
-<pre>
-
-<code>Token
+<pre><code>Token
 Workspace::immediate_execution(bool exit_on_error)
 {
    for (;;)
@@ -2190,9 +2069,7 @@ Workspace::immediate_execution(bool exit_on_error)
               Command::process_line();
            }
          catch (Error &amp; err)
-         ...</code>
-
-</pre>
+         ...</code></pre>
 </div></div>
 <div class="admonitionblock">
 <table><tr>
@@ -2223,7 +2100,7 @@ the functions called by process_line() will be called repeatedly until an
 <div class="paragraph"><p>This fact is sometimes missed by programmers using <strong>libapl</strong>. <strong>libapl</strong> is a
 library that contains most of the normal interpreter code, <strong>but not</strong> the REPL
 loops of the interpreter. The purpose of <strong>libapl</strong> is to provide a C-API to
-other front-ends like <strong>Erlang</strong>, <strong>Python</strong>, or <strong>C++</strong> programs. For example,
+other front-ends like <strong>Erlang</strong>, <strong>Python</strong>, or <strong>Cpp</strong> programs. For example,
 if a front end opens a defined function with a line that starts with ∇, then
 the front-end is responsible for providing the subsequent (defined function-)
 lines including the final ∇ that closes the function definition. The same
@@ -2324,9 +2201,7 @@ line. The decision about the further processing is done in the latter, i.e. in
 <strong>process_line(line&#8230;I)</strong>:</p></div>
 <div class="listingblock">
 <div class="content">
-<pre>
-
-<code>void
+<pre><code>void
 Command::process_line(UCS_string &amp; line, ostream * out)
 {
    line.remove_leading_white spaces();
@@ -2359,9 +2234,7 @@ Command::process_line(UCS_string &amp; line, ostream * out)
 
    ++APL_expression_count;
    do_APL_expression(line);
-}</code>
-
-</pre>
+}</code></pre>
 </div></div>
 <div class="paragraph"><p>By default the output of process_line() is printed to the console, but a
 non-zero <strong>out</strong> redirects the output to <strong>out</strong>. This is used by functions that
@@ -2370,9 +2243,7 @@ normally APL commands cannot be used by ⍎).</p></div>
 <div class="paragraph"><p>As explained, further processing depends on the first character of the line:</p></div>
 <div class="listingblock">
 <div class="content">
-<pre>
-
-<code>                  ┌──────────────┐
+<pre><code>                  ┌──────────────┐
                   │ process_line │
                   └──────┬───────┘
                          │
@@ -2383,9 +2254,7 @@ normally APL commands cannot be used by ⍎).</p></div>
     ┌────┴─────┐    ┌────┴─────┐    ┌───────┴────────┐
     │ ∇-editor │    │ )COMMAND │    │ APL expression │
     └──────────┘    │ ]COMMAND │    └────────────────┘
-                    └──────────┘</code>
-
-</pre>
+                    └──────────┘</code></pre>
 </div></div>
 <div class="paragraph"><p>Strictly speaking the ∇-editor and APL commands are not part of the APL
 language (they have their own syntax). At this point it should suffice that
@@ -2450,18 +2319,14 @@ in ⍎-strings, etc. are handled via a <strong>ParseMode</strong> declared and d
 <strong>APL_types.hh</strong>:</p></div>
 <div class="listingblock">
 <div class="content">
-<pre>
-
-<code>///  What is being parsed (defined function, immediate execution statements,
+<pre><code>///  What is being parsed (defined function, immediate execution statements,
 /// or ⍎expr)
 enum ParseMode
 {
    PM_FUNCTION       = 0,   ///&lt; defined function
    PM_STATEMENT_LIST = 1,   ///&lt; immediate execution
    PM_EXECUTE        = 2,   ///&lt; execute (⍎)
-};</code>
-
-</pre>
+};</code></pre>
 </div></div>
 <div class="paragraph"><p>The <strong>ParseMode</strong> defines the origin of a particular line; the options are:</p></div>
 <div class="ulist"><ul>
@@ -2484,18 +2349,14 @@ The line was an APL string (⍎, ⎕EA, ⎕ES &#8230;).
 <div class="paragraph"><p>The next steps in the processing of a line are tokenization and pre-parsing:</p></div>
 <div class="listingblock">
 <div class="content">
-<pre>
-
-<code>    ┌───────────────┐
+<pre><code>    ┌───────────────┐
     │ Tokenization  │
     └───────┬───────┘
     ┌───────┴──────┐
     │ Pre-Parsing  │
     ├──────────────┤
     │ Optimization │
-    └──────────────┘</code>
-
-</pre>
+    └──────────────┘</code></pre>
 </div></div>
 </div>
 <div class="sect2">
@@ -2509,45 +2370,29 @@ can be interpreted significantly faster than the APL characters entered by the
 APL programmer. For example:</p></div>
 <div class="listingblock">
 <div class="content">
-<pre>
-
-<code>      A←1 2 3 ◊ B←'abc'            ⍝ APL input string</code>
-
-</pre>
+<pre><code>      A←1 2 3 ◊ B←'abc'            ⍝ APL input string</code></pre>
 </div></div>
 <div class="paragraph"><p>is tokenized into:</p></div>
 <div class="listingblock">
 <div class="content">
-<pre>
-
-<code>      ┌───┐ ┌───┐ ┌───────┐ ┌───┐ ┌───┐ ┌───┐ ┌─────┐ ┌─────┐
+<pre><code>      ┌───┐ ┌───┐ ┌───────┐ ┌───┐ ┌───┐ ┌───┐ ┌─────┐ ┌─────┐
       │ A │ │ ← │ │ 1 2 3 │ │ ◊ │ │ B │ │ ← │ │ abc │ │ EOL │
-      └───┘ └───┘ └───────┘ └───┘ └───┘ └───┘ └─────┘ └─────┘</code>
-
-</pre>
+      └───┘ └───┘ └───────┘ └───┘ └───┘ └───┘ └─────┘ └─────┘</code></pre>
 </div></div>
 <div class="paragraph"><p>The function that performs the tokenization is:</p></div>
 <div class="listingblock">
 <div class="content">
-<pre>
-
-<code>   ErrorCode tokenize(const UCS_string &amp; input, Token_string &amp; tos) const;</code>
-
-</pre>
+<pre><code>   ErrorCode tokenize(const UCS_string &amp; input, Token_string &amp; tos) const;</code></pre>
 </div></div>
 <div class="paragraph"><p>which is a member of <strong>class Tokenizer</strong>, see <strong>Tokenizer.hh</strong>. The result is
 a Token_string:</p></div>
 <div class="listingblock">
 <div class="content">
-<pre>
-
-<code>// A sequence of Tokens
+<pre><code>// A sequence of Tokens
 class Token_string : public  std::vector&lt;Token&gt;
 {
    ...
-};</code>
-
-</pre>
+};</code></pre>
 </div></div>
 <div class="paragraph"><p>see file <strong>Token.hh</strong>.</p></div>
 </div>
@@ -2581,67 +2426,47 @@ performing some optimizations
 <div class="paragraph"><p>In the example above, the token string</p></div>
 <div class="listingblock">
 <div class="content">
-<pre>
-
-<code>      ┌───┐ ┌───┐ ┌───┐ ┌───┐ ┌───┐ ┌───┐ ┌───┐ ┌───┐ ┌─────┐ ┌─────┐
+<pre><code>      ┌───┐ ┌───┐ ┌───┐ ┌───┐ ┌───┐ ┌───┐ ┌───┐ ┌───┐ ┌─────┐ ┌─────┐
       │ A │ │ ← │ │ 1 │ │ 2 │ │ 3 │ │ ◊ │ │ B │ │ ← │ │ abc │ │ EOL │
-      └───┘ └───┘ └───┘ └───┘ └───┘ └───┘ └───┘ └───┘ └─────┘ └─────┘</code>
-
-</pre>
+      └───┘ └───┘ └───┘ └───┘ └───┘ └───┘ └───┘ └───┘ └─────┘ └─────┘</code></pre>
 </div></div>
 <div class="paragraph"><p>is first split into 2 statements:</p></div>
 <div class="listingblock">
 <div class="content">
-<pre>
-
-<code>      ┌───┐ ┌───┐ ┌───┐ ┌───┐ ┌───┐
+<pre><code>      ┌───┐ ┌───┐ ┌───┐ ┌───┐ ┌───┐
       │ A │ │ ← │ │ 1 │ │ 2 │ │ 3 │
       └───┘ └───┘ └───┘ └───┘ └───┘
       ┌───┐ ┌───┐ ┌─────┐
       │ B │ │ ← │ │ abc │
-      └───┘ └───┘ └─────┘</code>
-
-</pre>
+      └───┘ └───┘ └─────┘</code></pre>
 </div></div>
 <div class="paragraph"><p>The scalars 1, 2, and 3 are then combined into a single APL value (the APL
 value <em>abc</em> is already a single value after tokenization):</p></div>
 <div class="listingblock">
 <div class="content">
-<pre>
-
-<code>      ┌───┐ ┌───┐ ┌───────┐
+<pre><code>      ┌───┐ ┌───┐ ┌───────┐
       │ A │ │ ← │ │ 1 2 3 │
       └───┘ └───┘ └───────┘
       ┌───┐ ┌───┐ ┌─────┐
       │ B │ │ ← │ │ abc │
-      └───┘ └───┘ └─────┘</code>
-
-</pre>
+      └───┘ └───┘ └─────┘</code></pre>
 </div></div>
 <div class="paragraph"><p>Next, the individual statements are reversed:</p></div>
 <div class="listingblock">
 <div class="content">
-<pre>
-
-<code>      ┌───────┐ ┌───┐ ┌───┐
+<pre><code>      ┌───────┐ ┌───┐ ┌───┐
       │ 1 2 3 │ │ ← │ │ A │
       └───────┘ └───┘ └───┘
       ┌─────┐ ┌───┐ ┌───┐
       │ abc │ │ ← │ │ B │
-      └─────┘ └───┘ └───┘</code>
-
-</pre>
+      └─────┘ └───┘ └───┘</code></pre>
 </div></div>
 <div class="paragraph"><p>and finally combined again:</p></div>
 <div class="listingblock">
 <div class="content">
-<pre>
-
-<code>      ┌───────┐ ┌───┐ ┌───┐ ┌───┐ ┌─────┐ ┌───┐ ┌───┐ ┌────┐
+<pre><code>      ┌───────┐ ┌───┐ ┌───┐ ┌───┐ ┌─────┐ ┌───┐ ┌───┐ ┌────┐
       │ 1 2 3 │ │ ← │ │ A │ │ ◊ │ │ abc │ │ ← │ │ B │ │ EOL│
-      └───────┘ └───┘ └───┘ └───┘ └─────┘ └───┘ └───┘ └────┘</code>
-
-</pre>
+      └───────┘ └───┘ └───┘ └───┘ └─────┘ └───┘ └───┘ └────┘</code></pre>
 </div></div>
 <div class="paragraph"><p>The reason for reversing the tokens of every statement is somewhat subtle: APL
 statements are executed from left to right, but the tokens inside a statement
@@ -2649,28 +2474,20 @@ are processed from right to left. Without the reversal the tokens would need to
 be processed like this:</p></div>
 <div class="listingblock">
 <div class="content">
-<pre>
-
-<code>    → → → → → → → → → →        → → → → → → → → → → → → → →
+<pre><code>    → → → → → → → → → →        → → → → → → → → → → → → → →
                       ↓       ↑                          ↓
       ┌───┐ ┌───┐ ┌───────┐ ┌───┐ ┌───┐ ┌───┐ ┌─────┐ ┌─────┐
       │ A │←│ ← │←│ 1 2 3 │ │ ◊ │←│ B │←│ ← │←│ abc │ │ EOL │
       └───┘ └───┘ └───────┘ └───┘ └───┘ └───┘ └─────┘ └─────┘
         ↓                                        ↑
-         → → → → → → → → → → → → → → → → → → → →</code>
-
-</pre>
+         → → → → → → → → → → → → → → → → → → → →</code></pre>
 </div></div>
 <div class="paragraph"><p>By reversing every statement the same processing order now becomes:</p></div>
 <div class="listingblock">
 <div class="content">
-<pre>
-
-<code>      ┌───────┐ ┌───┐ ┌───┐ ┌───┐ ┌─────┐ ┌───┐ ┌───┐ ┌─────┐
+<pre><code>      ┌───────┐ ┌───┐ ┌───┐ ┌───┐ ┌─────┐ ┌───┐ ┌───┐ ┌─────┐
       │ 1 2 3 │→│ ← │→│ A │→│ ◊ │→│ abc │→│ ← │→│ B │→│ EOL │
-      └───────┘ └───┘ └───┘ └───┘ └─────┘ └───┘ └───┘ └─────┘</code>
-
-</pre>
+      └───────┘ └───┘ └───┘ └───┘ └─────┘ └───┘ └───┘ └─────┘</code></pre>
 </div></div>
 <div class="paragraph"><p><strong>DEFINITION</strong>: in source code comments, we refer to the initial token order
 (statement tokens from left to right, statements from left to right,
@@ -2695,43 +2512,31 @@ O(1) rather than O(∆) for distance ∆ between the matching parentheses
 or brackets):</p></div>
 <div class="listingblock">
 <div class="content">
-<pre>
-
-<code>    ┌─────┐       ┌─────┐            ┌─────┐       ┌─────┐
+<pre><code>    ┌─────┐       ┌─────┐            ┌─────┐       ┌─────┐
     │ (,∆ │  ...  │ ),∆ │     or     │ [,∆ │  ...  │ ],∆ │
     └─────┘       └─────┘            └─────┘       └─────┘
-      │← ← ← ∆ → → →│                  │← ← ← ∆ → → →│</code>
-
-</pre>
+      │← ← ← ∆ → → →│                  │← ← ← ∆ → → →│</code></pre>
 </div></div>
 <div class="paragraph"><p>The Pre-parser function returns an error code and fills its argument <strong>tos</strong>
 as a side effect:</p></div>
 <div class="listingblock">
 <div class="content">
-<pre>
-
-<code>  Parser.hh:
+<pre><code>  Parser.hh:
 
   /// Parse token string \b input into token string \b tos.
-   ErrorCode parse(const Token_string &amp; input, Token_string &amp; tos) const;</code>
-
-</pre>
+   ErrorCode parse(const Token_string &amp; input, Token_string &amp; tos) const;</code></pre>
 </div></div>
 <div class="paragraph"><p>The entire conversion (i.e. tokenization and pre-parsing
 happens in function <strong>Executable::parse_body_line()</strong>; the result is stored in
 member <strong>body</strong> of class Executable:</p></div>
 <div class="listingblock">
 <div class="content">
-<pre>
-
-<code>   Executable.hh:
+<pre><code>   Executable.hh:
 
    /// The tokens to be executed. They are organized line by line and
    /// statement by statement, but the tokens within a statement are
    /// reversed due to the right-to-left execution of APL.
-   Token_string body;</code>
-
-</pre>
+   Token_string body;</code></pre>
 </div></div>
 <div class="paragraph"><p>Every defined function, every line entered in immediate execution, and every
 statement from a ⍎ expression is converted into an object of base
@@ -2742,13 +2547,9 @@ delete it if no longer used, etc.</p></div>
 ParseModes are derived:</p></div>
 <div class="listingblock">
 <div class="content">
-<pre>
-
-<code>class ExecuteList : public Executable { ...}              // in Executable.hh
+<pre><code>class ExecuteList : public Executable { ...}              // in Executable.hh
 class StatementList : public Executable { ... }           // in Executable.hh
-class UserFunction : public Function, public Executable   // in UserFunction.hh</code>
-
-</pre>
+class UserFunction : public Function, public Executable   // in UserFunction.hh</code></pre>
 </div></div>
 <div class="paragraph"><p>This is because the minor differences between the ParseModes not only affect
 the parsing of the input line but also some runtime aspects. The base class
@@ -2881,9 +2682,7 @@ macro <strong>st(&#8230;)</strong>: <strong>s</strong>ystem  <strong>t</strong>o
 <div class="paragraph"><p>With the prerequisites above we can define the structure of a <strong>Token</strong>:</p></div>
 <div class="listingblock">
 <div class="content">
-<pre>
-
-<code>   Token.hh:
+<pre><code>   Token.hh:
 
 class Token
 {
@@ -2918,9 +2717,7 @@ class Token
    sval value;
 
    ...
-}</code>
-
-</pre>
+}</code></pre>
 </div></div>
 <div class="paragraph"><p>In short this means that:</p></div>
 <div class="ulist"><ul>
@@ -2938,7 +2735,7 @@ the tag (an <strong>enum TokenTag</strong>) determines which member (if any) of 
 </ul></div>
 <div class="paragraph"><p>The APL interpreter can be understood as virtual machine whose opcodes are
 Tokens. In this context the attribute <strong>virtual</strong> of <em>virtual machine</em> must not
-be confused with the attribute <strong>virtual</strong> of <em>virtual C++ functions</em> or
+be confused with the attribute <strong>virtual</strong> of <em>virtual Cpp functions</em> or
 <em>classes</em>. The tokenization and pre-parsing is then the "compilation" of APL
 source code into machine code of this virtual APL machine.
 The rest of <strong>Token.hh</strong> defines quite a number of constructors and access
@@ -2947,14 +2744,10 @@ of Token is usually simple but performed frequently.</p></div>
 <div class="paragraph"><p>The <strong>TokenTag</strong> is a 32-bit (4 byte) number which has 3 sub-fields:</p></div>
 <div class="listingblock">
 <div class="content">
-<pre>
-
-<code>                 ------16 bit------ ---8 bit---   ---8 bit---
+<pre><code>                 ------16 bit------ ---8 bit---   ---8 bit---
                 ┌────────┬─────────┬────────────┬─────────────┐
     Token Tag:  │        ID        │ Value-type │ Token-class │
-                └────────┴─────────┴────────────┴─────────────┘</code>
-
-</pre>
+                └────────┴─────────┴────────────┴─────────────┘</code></pre>
 </div></div>
 <div class="sect3">
 <h4 id="_the_id_of_a_token">The ID of a Token</h4>
@@ -2973,9 +2766,7 @@ the <strong>union sval</strong> members have constructors.</p></div>
 <div class="paragraph"><p>The value types are defined in <strong>TokenEnums.hh</strong>:</p></div>
 <div class="listingblock">
 <div class="content">
-<pre>
-
-<code>TokenEnums.hh:
+<pre><code>TokenEnums.hh:
 
 /// The value type of a token
 
@@ -2995,16 +2786,12 @@ enum TokenValueType
    TV_VAL           = 0x0700,   // Value_P            .apl_val;
    TV_INDEX         = 0x0800,   // IndexExpr *        .index_val;
    TV_FUN           = 0x0900,   // Function_P         .function;
-};</code>
-
-</pre>
+};</code></pre>
 </div></div>
 <div class="paragraph"><p>The typical (inline) function that copies a Token is:</p></div>
 <div class="listingblock">
 <div class="content">
-<pre>
-
-<code>Token.hh:
+<pre><code>Token.hh:
 
 Token::copy_N(const Token &amp; src)
 {
@@ -3026,9 +2813,7 @@ Token::copy_N(const Token &amp; src)
         case TV_FUN:   value.function      = src.value.function;        break;
         default:       FIXME;
       }
-}</code>
-
-</pre>
+}</code></pre>
 </div></div>
 <div class="paragraph"><p>In <strong>copy_N()</strong>, <strong>src</strong> is a token that is copied into token <strong>this</strong>, and <strong>value</strong>
 is the member (of <strong>union sval</strong>) that is being copied.</p></div>
@@ -3036,14 +2821,12 @@ is the member (of <strong>union sval</strong>) that is being copied.</p></div>
 <div class="sect3">
 <h4 id="_the_tokenclass_type_of_a_token">The TokenClass-Type of a token</h4>
 <div class="paragraph"><p>The most important part of a <strong>TokenTag</strong> is its class (not to be confused with
-C++ classes). Like the token value types they are defined in <strong>TokenEnums.hh</strong>.
+Cpp classes). Like the token value types they are defined in <strong>TokenEnums.hh</strong>.
 There are two different kinds of token classes: <strong>permanent token class</strong>es and
 <strong>temporary token class</strong>es. The permanent classes are:</p></div>
 <div class="listingblock">
 <div class="content">
-<pre>
-
-<code>TokenEnums.hh:
+<pre><code>TokenEnums.hh:
 
 enum TokenClass
 {
@@ -3070,9 +2853,7 @@ enum TokenClass
    TC_VALUE         = 0x0F,   ///&lt; APL value
 
    TC_MAX_PERM,               ///&lt; permanent token are &lt; TC_MAX_PERM
-   ...</code>
-
-</pre>
+   ...</code></pre>
 </div></div>
 <div class="paragraph"><p>In contrast, temporary tokens are never used in the body of an <strong>Executable</strong>.
 They are short-lived and vanish after some permanent token was created from
@@ -3086,9 +2867,7 @@ another to indicate the result of a defined function.</p></div>
 prefix parser. The temporary token classes are:</p></div>
 <div class="listingblock">
 <div class="content">
-<pre>
-
-<code>TokenEnums.hh:
+<pre><code>TokenEnums.hh:
    ...
    // temporary Token classes. Token of these classes only appear as
    // intermediate results during tokenization and prefix parsing
@@ -3110,22 +2889,18 @@ prefix parser. The temporary token classes are:</p></div>
    TC_COLON         = 0x19,   // :
    TC_QUOTE         = 0x1A,   // ' or "
    TC_L_CURLY       = 0x1B,   // {
-   TC_R_CURLY       = 0x1C,   // }</code>
-
-</pre>
+   TC_R_CURLY       = 0x1C,   // }</code></pre>
 </div></div>
 <div class="paragraph"><p>The phrase table (or phrase tree) described in
 <a href="#_the_phrase_table">The Phrase Table</a>
 below maps particular sequences of token classes
 to reduce functions. To make the phrase table a little more readable,
 we define some shorter names (SN_xxx) for token classes that better reflect
-the relation between the APL point of view and the C++ representation of
+the relation between the APL point of view and the Cpp representation of
 it, and/or abbreviates them:</p></div>
 <div class="listingblock">
 <div class="content">
-<pre>
-
-<code>TokenEnums.hh:
+<pre><code>TokenEnums.hh:
    ...
    // shorter token class aliases for the phrase table
    //
@@ -3148,9 +2923,7 @@ it, and/or abbreviates them:</p></div>
    SN_RPAR          = TC_R_PARENT,
    SN_V             = TC_SYMBOL,
    SN_VOID          = TC_VOID,
-   SN_              = TC_INVALID</code>
-
-</pre>
+   SN_              = TC_INVALID</code></pre>
 </div></div>
 <div class="paragraph"><p>For example: the ISO APL standard defines a phrase table of 39 phrases. In
 particular phrase 7 is defined as:</p></div>
@@ -3161,19 +2934,15 @@ by means of some macro magic, so that the same ISO phrase in the GNU APL
 phrase table (in <strong>Prefix.def</strong>) becomes:</p></div>
 <div class="listingblock">
 <div class="content">
-<pre>
+<pre><code>  Prefix.def :
 
-<code>  Prefix.def :
-
-  PH( A F B          , A_F_B_        , 0x03CEF ,  33  ,   0  ,  3),  // [EA]</code>
-
-</pre>
+  PH( A F B          , A_F_B_        , 0x03CEF ,  33  ,   0  ,  3),  // [EA]</code></pre>
 </div></div>
 <div class="paragraph"><p>Given that <strong>SN_A</strong> and <strong>SN B</strong> are both short names for <strong>TC_VALUE</strong>, and that
-<strong>SN_F</strong> is the short name for <strong>TC_FUN12</strong>, after expanding macro PH() in the C++
+<strong>SN_F</strong> is the short name for <strong>TC_FUN12</strong>, after expanding macro PH() in the Cpp
 preprocessor this translated to something like:</p></div>
 <div class="paragraph"><p><em>If a sequence of token classes TC_VALUE TC_FUN12 TC_VALUE is discovered, then
-call C++ function reduce_A_F_B().</em></p></div>
+call Cpp function reduce_A_F_B().</em></p></div>
 </div>
 </div>
 </div>
@@ -3350,7 +3119,7 @@ an end of statement token (class TC_END) does not stop the parser. The
 </p>
 </li>
 </ol></div>
-<div class="paragraph"><p>The tokens in the current sequence are of C++ type <strong>Token_loc</strong> instead of
+<div class="paragraph"><p>The tokens in the current sequence are of Cpp type <strong>Token_loc</strong> instead of
 type <strong>Token</strong>. <strong>Token_loc</strong> is a Token and a range in the <strong>body</strong>. When a
 token is first fetched from, say, <strong>body[PC]</strong>) then the range of its
 <strong>Token_loc</strong> is <strong>[PC:PC+1]</strong>. As more and more consecutive tokens are being
@@ -3360,25 +3129,23 @@ is needed for proper error reporting.</p></div>
 <div class="paragraph"><p>The case 3. above is the most tricky one and deserves a closer look at it.</p></div>
 <div class="sect3">
 <h4 id="_ambiguity_of_apl_symbols">Ambiguity of APL symbols.</h4>
-<div class="paragraph"><p>In compiled languages like C/C++ every name defined by the user must be
+<div class="paragraph"><p>In compiled languages like C/Cpp every name defined by the user must be
 <em>declared</em>. Any use of a name without a prior declaration is an error detected
 by the compiler. The declaration determines, among other things, whether the
 name refers to a variable, or to a function, and in that latter case the arity
 (number of arguments) of a function.</p></div>
 <div class="paragraph"><p>In contrast, in APL the role of a user defined name is not defined at
-⎕FX-time but at runtime. Due to the declarations in e.g. C/C++ the scope
+⎕FX-time but at runtime. Due to the declarations in e.g. C/Cpp the scope
 of a name (and from that the relevant declaration) can be determined
 statically (i.e. at compile time) while in APL the role of a name must
-be inevitably determined at runtime. In both cases (APL vs. C/C++) the
+be inevitably determined at runtime. In both cases (APL vs. C/Cpp) the
 same name may have different roles at different times, but the point in
 time where the role is determined varies. As a consequence, the compiler uses
 its symbol table only at compile time while APL also uses it at runtime.
 Consider the following example:</p></div>
 <div class="listingblock">
 <div class="content">
-<pre>
-
-<code>      )CLEAR
+<pre><code>      )CLEAR
 
       ⍝ define function LEAF (for a function that does not call others)
       ⍝
@@ -3403,9 +3170,7 @@ Consider the following example:</p></div>
       ⍝
       FOO ◊ BAR
 LEAF is a (localized) variable.
-LEAF is a niladic defined function.</code>
-
-</pre>
+LEAF is a niladic defined function.</code></pre>
 </div></div>
 <div class="paragraph"><p>In the simple example above, <strong>BAR</strong> is called twice: first from <strong>FOO</strong> and then
 directly from immediate execution (to simplify the example; the same
@@ -3510,9 +3275,7 @@ on the position of the symbol in the statement. This position is tracked
 with <strong>Prefix::set_assign_state()</strong>, which is one of:</p></div>
 <div class="listingblock">
 <div class="content">
-<pre>
-
-<code>APL_types.hh:
+<pre><code>APL_types.hh:
    ...
 // the state of an assignment
 enum Assign_state
@@ -3522,9 +3285,7 @@ enum Assign_state
    ASS_var_seen   = 2,   ///&lt; var and ← seen
    ASS_unknown    = 3,   ///&lt; not known (too much effort to determine)
 };
-   ...</code>
-
-</pre>
+   ...</code></pre>
 </div></div>
 <div class="admonitionblock">
 <table><tr>
@@ -3536,9 +3297,9 @@ in the ISO standard. The token sequence above is called <strong>stack</strong> i
 standard and also in some of GNU APL debug printouts.</td>
 </tr></table>
 </div>
-<div class="paragraph"><p>The main implementation of the algorithm above is C++ function
+<div class="paragraph"><p>The main implementation of the algorithm above is Cpp function
 <strong>Prefix::reduce_statements()</strong>. It returns a <strong>Token</strong>. The function
-uses C/C++ goto statements because that leads to much clearer code than the
+uses C/Cpp goto statements because that leads to much clearer code than the
 so called "structured programming" would. The goto labels in this function
 are:</p></div>
 <div class="ulist"><ul>
@@ -3569,22 +3330,14 @@ before but now can without reading another token.</p></div>
 execution:</p></div>
 <div class="literalblock">
 <div class="content">
-<pre>
-
-<code>A←1 2 3</code>
-
-</pre>
+<pre><code>A←1 2 3</code></pre>
 </div></div>
 <div class="paragraph"><p>The tokenizer translates the string "A←1 2 3" into a 4-item <strong>Token_string</strong>:</p></div>
 <div class="literalblock">
 <div class="content">
-<pre>
-
-<code>┌───────┐ ┌───┐ ┌───┐  ┌────────┐
+<pre><code>┌───────┐ ┌───┐ ┌───┐  ┌────────┐
 │ 1 2 3 │ │ ← │ │ A │  │ RETURN │
-└───────┘ └───┘ └───┘  └────────┘</code>
-
-</pre>
+└───────┘ └───┘ └───┘  └────────┘</code></pre>
 </div></div>
 <div class="paragraph"><p>To be precise, the <strong>RETURN</strong> token is actually appended by function
 <strong>StatementList::fix()</strong> and not by the Tokenizer itself. Then:</p></div>
@@ -3626,22 +3379,14 @@ The parser has no more token to read and returns.
 <h3 id="_another_example">Another Example</h3>
 <div class="literalblock">
 <div class="content">
-<pre>
-
-<code>(1 + 2) FOO 4   ⍝ with dyadic defined function FOO</code>
-
-</pre>
+<pre><code>(1 + 2) FOO 4   ⍝ with dyadic defined function FOO</code></pre>
 </div></div>
 <div class="paragraph"><p>The tokenizer produces:</p></div>
 <div class="literalblock">
 <div class="content">
-<pre>
-
-<code>┌───┐ ┌─────┐ ┌───┐ ┌───┐ ┌───┐ ┌───┐ ┌───┐  ┌────────┐
+<pre><code>┌───┐ ┌─────┐ ┌───┐ ┌───┐ ┌───┐ ┌───┐ ┌───┐  ┌────────┐
 │ 4 │ │ FOO │ │ ) │ │ 2 │ │ + │ │ 1 │ │ ( │  │ RETURN │
-└───┘ └─────┘ └───┘ └───┘ └───┘ └───┘ └───┘  └────────┘</code>
-
-</pre>
+└───┘ └─────┘ └───┘ └───┘ └───┘ └───┘ └───┘  └────────┘</code></pre>
 </div></div>
 <div class="olist arabic"><ol class="arabic">
 <li>
@@ -3763,7 +3508,7 @@ set member <strong>Prefix::action</strong> to the next action that the prefix pa
 them. For that reason the declaration of all <strong>reduce_XXX()</strong> functions (in
 <strong>Prefix.hh</strong>, as well as the instantiation of a hash table for fast lookup of
 phrases (or, alternatively a search tree) in <strong>Prefix.cc</strong> are realized by
-including <strong>src/Prefix.def</strong>. That is, <strong>Prefix.def</strong> is, with the help of the C++
+including <strong>src/Prefix.def</strong>. That is, <strong>Prefix.def</strong> is, with the help of the Cpp
 preprocessor, a code generator for <strong>Prefix.hh</strong> and <strong>Prefix.cc</strong>. <strong>Prefix.def</strong>
 itself is also generated (with <strong>tools/phrase_gen</strong>). And <strong>tools/phrase_gen</strong>
 itself <strong>#includes</strong> file <strong>tools/phrase_gen</strong>.def which contains the primary
@@ -3774,9 +3519,7 @@ tools directory also contains an (uppercase) <strong>Makefile</strong> which bel
 build system. The full picture is this:</p></div>
 <div class="listingblock">
 <div class="content">
-<pre>
-
-<code>    ╔═════════════════════╗    ╔══════════════════════╗
+<pre><code>    ╔═════════════════════╗    ╔══════════════════════╗
     ║ tools/phrase_gen.cc ║    ║ tools/phrase_gen.def ║
     ╚══════════╤══════════╝    ╚══════════╤═══════════╝
                │                          │
@@ -3809,9 +3552,7 @@ build system. The full picture is this:</p></div>
                                        │
                              ┌─────────┴────────┐
                              │ src/apl-Prefix.o │
-                             └──────────────────┘</code>
-
-</pre>
+                             └──────────────────┘</code></pre>
 </div></div>
 <div class="admonitionblock">
 <table><tr>
@@ -3826,12 +3567,8 @@ change the GNU APL phrase table.</td>
 <div class="paragraph"><p>If, however, <strong>tools/phrase_gen.def</strong> was modified, then</p></div>
 <div class="listingblock">
 <div class="content">
-<pre>
-
-<code>    make gen    # generate new src/Prefix.def with a phrase table, or
-    make gen2   # generate new src/Prefix.def with a phrase tree</code>
-
-</pre>
+<pre><code>    make gen    # generate new src/Prefix.def with a phrase table, or
+    make gen2   # generate new src/Prefix.def with a phrase tree</code></pre>
 </div></div>
 <div class="paragraph"><p>needs to be performed once. The build system will then note the changed
 <strong>src/Prefix.def</strong> and a top-level make will recompile the affected files in
@@ -3884,9 +3621,7 @@ UTF8_strings are commonly used between GNU APL and its environment. They
 <div class="paragraph"><p>The starting point is:</p></div>
 <div class="listingblock">
 <div class="content">
-<pre>
-
-<code>   Unicode.hh:
+<pre><code>   Unicode.hh:
 
    enum Unicode
    {
@@ -3896,9 +3631,7 @@ UTF8_strings are commonly used between GNU APL and its environment. They
 
      Unicode_0       = 0,            ///&lt; End of unicode string
      Invalid_Unicode = 0x55AA55AA,   ///&lt; An invalid Unicode.
-   };</code>
-
-</pre>
+   };</code></pre>
 </div></div>
 <div class="paragraph"><p>where:</p></div>
 <div class="ulist"><ul>
@@ -3954,7 +3687,7 @@ any Unicode with APL significance (primitives etc.) are (and
 </li>
 <li>
 <p>
-any Unicode used in the GNU APL C++ source code is defined with
+any Unicode used in the GNU APL Cpp source code is defined with
    macro <strong>char_uni()</strong>.
 </p>
 </li>
@@ -3972,9 +3705,7 @@ Noteworthy examples of the latter are the sub- and superscripts
 <div class="paragraph"><p>The helpers mentioned above are:</p></div>
 <div class="listingblock">
 <div class="content">
-<pre>
-
-<code>   Avec.hh:
+<pre><code>   Avec.hh:
    /// a pointer to 256 Unicode characters that are exactly the APL2 character
    /// set (⎕AV) shown in LRM Appendix A, page 470. The ⎕AV of GNU APL is
    /// similar, but contains characters like ≢ that are not in IBM's ⎕AV
@@ -3982,25 +3713,19 @@ Noteworthy examples of the latter are the sub- and superscripts
    static const Unicode * IBM_quad_AV();
 
   /// recompute \b inverse_ibm_av from \b ibm_av and print it
-   static void print_inverse_IBM_quad_AV();</code>
-
-</pre>
+   static void print_inverse_IBM_quad_AV();</code></pre>
 </div></div>
 <div class="paragraph"><p>After this digression into Unicodes we can now:</p></div>
 <div class="listingblock">
 <div class="content">
-<pre>
-
-<code>   UCS_string.hh:
+<pre><code>   UCS_string.hh:
 
 class UCS_string : public std::basic_string&lt;Unicode&gt;
 {
    ...
    UCS_string(const UTF8_string &amp; utf);
    ...
-}</code>
-
-</pre>
+}</code></pre>
 </div></div>
 <div class="paragraph"><p>UCS_string has many constructors, most importantly the constructor from a
 UTF8_string which converts the UTF8_string into a UCS_string. In addition the
@@ -4012,34 +3737,26 @@ processing of UCS_strings.</p></div>
 <div class="paragraph"><p>In good old C, there were C literals like <strong>"Hello, world"</strong>. At that time the
 only relevant encoding of such literals was the 7-bit ASCII code and all
 literals contained only positive (signed) characters.</p></div>
-<div class="paragraph"><p>Next, C++ defined a template class <strong>std::basic_string&lt;&gt;</strong> which provides
+<div class="paragraph"><p>Next, Cpp defined a template class <strong>std::basic_string&lt;&gt;</strong> which provides
 numerous string processing methods (indexing, iteration) for <strong>basic_string</strong>
 that are also used in our derived classes <strong>UCS_string</strong> and <strong>UTF8_string</strong>.
 So far so good.</p></div>
-<div class="paragraph"><p>But now comes the problem. The C++ standard string library says:</p></div>
+<div class="paragraph"><p>But now comes the problem. The Cpp standard string library says:</p></div>
 <div class="listingblock">
 <div class="content">
-<pre>
-
-<code>   class string : public basic_string&lt;char&gt; { }</code>
-
-</pre>
+<pre><code>   class string : public basic_string&lt;char&gt; { }</code></pre>
 </div></div>
 <div class="paragraph"><p>On almost all platforms (read: compilers), a <strong>char</strong> is <strong>signed</strong> as
-opposed to type <strong>unsigned char</strong>. Often this does not hurt because C and C++
+opposed to type <strong>unsigned char</strong>. Often this does not hurt because C and Cpp
 automatically convert between the signed and unsigned variants and not every
 programmer is always aware of the dire consequences of signedness. Like, for
 example:</p></div>
 <div class="listingblock">
 <div class="content">
-<pre>
-
-<code>              !
-    char(-56) = char(200) &lt; char(100) = unsigned char(100) &lt; unsigned char(200).</code>
-
-</pre>
+<pre><code>              !
+    char(-56) = char(200) &lt; char(100) = unsigned char(100) &lt; unsigned char(200).</code></pre>
 </div></div>
-<div class="paragraph"><p>To make things worse, UTF8 encoding works on (unsigned) bytes while C/C++
+<div class="paragraph"><p>To make things worse, UTF8 encoding works on (unsigned) bytes while C/Cpp
 literals in compilers are, without specific qualifiers, signed. As a
 consequence, the APL character <strong><em>←</em></strong> has Unicode 8592 aka. 0x2190, and a UTF8
 encoding of (hex) <strong>E2 86 90</strong> which makes the string literal "→" a
@@ -4055,9 +3772,7 @@ UTF-encoded strings.</p></div>
 constructor from a <strong>UCS_string</strong>:</p></div>
 <div class="listingblock">
 <div class="content">
-<pre>
-
-<code>   UTF8_string.hh:
+<pre><code>   UTF8_string.hh:
 
 /// one byte (not character)! of a UTF8 encoded Unicode (RFC 3629) string
 typedef uint8_t UTF8;
@@ -4068,9 +3783,7 @@ class UTF8_string : public std::basic_string&lt;UTF8&gt;
    /// constructor: copy of UCS string. The Unicodes in ucs
    /// will be UTF8-encoded
    UTF8_string(const UCS_string &amp; ucs);
-};</code>
-
-</pre>
+};</code></pre>
 </div></div>
 <div class="paragraph"><p>The take-aways for designers and contributors are:</p></div>
 <div class="ulist"><ul>
@@ -4108,9 +3821,7 @@ functions that make the code that deals with shapes more readable.</p></div>
 almost every shape is accessed in the context of a value. For example:</p></div>
 <div class="listingblock">
 <div class="content">
-<pre>
-
-<code>   Shape.hh:
+<pre><code>   Shape.hh:
 
    ...
   /// return the rank
@@ -4125,25 +3836,19 @@ almost every shape is accessed in the context of a value. For example:</p></div>
      { return shape.get_rank(); }
    ...
    Shape shape;
-   ...</code>
-
-</pre>
+   ...</code></pre>
 </div></div>
-<div class="paragraph"><p>The ravel is simply a C++ array of type <strong>Cell</strong>:</p></div>
+<div class="paragraph"><p>The ravel is simply a Cpp array of type <strong>Cell</strong>:</p></div>
 <div class="listingblock">
 <div class="content">
-<pre>
-
-<code>   Value.hh:
+<pre><code>   Value.hh:
 
    ...
    /// The ravel of \b this value.
    Cell * ravel;
 
    /// the cells of a short (i.e. ⍴,value ≤ cfg_SHORT_VALUE_LENGTH_WANTED) value
-   Cell short_value[cfg_SHORT_VALUE_LENGTH_WANTED];</code>
-
-</pre>
+   Cell short_value[cfg_SHORT_VALUE_LENGTH_WANTED];</code></pre>
 </div></div>
 <div class="paragraph"><p>Many real-life APL values are short. To avoid unnecessary memory allocations,
 GNU APL allocates short ravels inside the class instance and longer ravels
@@ -4170,16 +3875,16 @@ was returned.</p></div>
 (mistakenly) use it for empty values.</td>
 </tr></table>
 </div>
-<div class="paragraph"><p>Empty APL values like <strong>0⍴0</strong> are never empty at the C++ level because every APL
+<div class="paragraph"><p>Empty APL values like <strong>0⍴0</strong> are never empty at the Cpp level because every APL
 value <strong>V</strong> has a <em>prototype</em> <strong>↑0⍴V</strong> whose ravel has one item stored in
 <strong>ravel[0]</strong>. An old APL joke was, <em>How many empty arrays does it take to fill
 an APL workspace? One, if it&#8217;s big enough.</em> If a value <strong>V</strong> is empty, then <strong>⍴V</strong>
-is 0 (i.e. its ravel has length 0) but length 1 at C++ level (due to its
+is 0 (i.e. its ravel has length 0) but length 1 at Cpp level (due to its
 prototype). For this reason, a <strong>Value</strong> has a <strong>Value::element_count()</strong>, which
 is the ravel length in APL, and a <strong>Value::nz_element_count()</strong> which is the
-ravel length in C++. The <strong>Value::next_ravel()</strong> iterator uses the former, which
+ravel length in Cpp. The <strong>Value::next_ravel()</strong> iterator uses the former, which
 causes a segfault when used with an empty value. In short this means that APL
-values may be empty, but their C++ implementations are never empty <em>and need
+values may be empty, but their Cpp implementations are never empty <em>and need
 to be properly initialized</em>.</p></div>
 <div class="admonitionblock">
 <table><tr>
@@ -4195,23 +3900,17 @@ may then use <strong>Value::element_count()</strong> safely).</td>
 <div class="paragraph"><p>The typical design patterns are:</p></div>
 <div class="listingblock">
 <div class="content">
-<pre>
-
-<code>Value_P Z(...);   // may be empty
+<pre><code>Value_P Z(...);   // may be empty
 
    loop(z, Z-&gt;nz_element_count())   // not element_count() !!!
        {
          new (Z-&gt;get_wravel(z)) XxxCell(...));   // safe, but (next_ravel_XXX() is not)
-       }</code>
-
-</pre>
+       }</code></pre>
 </div></div>
 <div class="paragraph"><p>and:</p></div>
 <div class="listingblock">
 <div class="content">
-<pre>
-
-<code>Value_P Z(...);   // may be empty
+<pre><code>Value_P Z(...);   // may be empty
 
    if (Z-&gt;element_count())   // not Z-&gt;nz_element_count() !!!
       {
@@ -4221,9 +3920,7 @@ may then use <strong>Value::element_count()</strong> safely).</td>
    else
       {
         new (Z-&gt;get_wproto()) XxxCell(...));   // init prototype
-      }</code>
-
-</pre>
+      }</code></pre>
 </div></div>
 <div class="paragraph"><p><strong>Z&#8594;get_wproto()</strong> is the same as <strong>Z&#8594;get_wravel(0)</strong> and is used here to make
 the role of <strong>get_wravel(0)</strong> as the prototype of Z explicit.</p></div>
@@ -4237,7 +3934,7 @@ using several counter-measures:</p></div>
 <div class="ulist"><ul>
 <li>
 <p>
-C++ overloading of operators ::new() and ::delete(). Every newly allocated
+Cpp overloading of operators ::new() and ::delete(). Every newly allocated
   Value, no matter if long or short, is tracked in a link list called
   <strong>DynamicObject::all_values</strong>, see <strong>DynamicObject.hh</strong>
 </p>
@@ -4431,14 +4128,10 @@ do both are mere convenience constructors for frequent cases. The following
 design pattern can found in many places:</p></div>
 <div class="listingblock">
 <div class="content">
-<pre>
-
-<code>Value_P Z(...);   // construct Z (with un-initialized ravel)
+<pre><code>Value_P Z(...);   // construct Z (with un-initialized ravel)
    loop(x, z.element_count())   Z-&gt;next_ravel_XXX(...);   // initialize the ravel
    Z-&gt;check_value(LOC)   // set checked flag, detect un-initialized ravel items
-   return Z;</code>
-
-</pre>
+   return Z;</code></pre>
 </div></div>
 <div class="paragraph"><p>The constructors for <strong>Value</strong>s are protected (with friend <strong>Value_P</strong>) to
 enforce that values are always constructed via <strong>Value_P::Value_P(&#8230;)</strong> rather
@@ -4457,15 +4150,11 @@ to a Symbol (i.e. a variable) then it must be cloned because the variable may
 or may not be changed later. Think of a literal in a function body:</p></div>
 <div class="listingblock">
 <div class="content">
-<pre>
-
-<code>      ∇Z←FOO
+<pre><code>      ∇Z←FOO
 Z←1 2 3
       ∇
 
-X←FOO ◊ X←4 5 6</code>
-
-</pre>
+X←FOO ◊ X←4 5 6</code></pre>
 </div></div>
 <div class="paragraph"><p>If the result of FOO is not cloned before assigning it to
 X, then the subsequent assignment to X would modify the body of FOO and the
@@ -4473,15 +4162,11 @@ next call of FOO would return 4 5 6.</p></div>
 <div class="paragraph"><p>On the other hand:</p></div>
 <div class="listingblock">
 <div class="content">
-<pre>
-
-<code>      ∇Z←FOO
+<pre><code>      ∇Z←FOO
 Z←1 2 3
       ∇
 
-X←1 + FOO ◊ X←4 5 6</code>
-
-</pre>
+X←1 + FOO ◊ X←4 5 6</code></pre>
 </div></div>
 <div class="paragraph"><p>is safe because the addition + does not modify the result of FOO but rather
 discards it immediately. GNU APL versions have always cloned values before
@@ -4489,9 +4174,7 @@ assigning them (to be on the safe side). Current versions check how many
 owners a value has before cloning them:</p></div>
 <div class="listingblock">
 <div class="content">
-<pre>
-
-<code>   Value.hh
+<pre><code>   Value.hh
 
 #define NEW_CLONE
 
@@ -4511,15 +4194,13 @@ owners a value has before cloning them:</p></div>
 /// clone, given a Value *. Result is a Value_P.
 # define CLONE(pB, L)      (pB)-&gt;clone(L)
 
-#endif</code>
-
-</pre>
+#endif</code></pre>
 </div></div>
 <div class="paragraph"><p>The rules are:</p></div>
 <div class="ulist"><ul>
 <li>
 <p>
-If a C++ function knows from its context that cloning is not needed (like in
+If a Cpp function knows from its context that cloning is not needed (like in
   the second example above) then it may CLONE() and CLONE_P(). Determining if
   the cloning is actually performed, then depends on whether <strong>NEW_CLONE</strong>
   is <strong>#defined</strong> or not. This could be a mistake and then <em>not</em> <strong>#define</strong>ing
@@ -4536,7 +4217,7 @@ Otherwise, <em>in particular if</em> <strong>#define NEW_CLONE</strong> <em>make
 </div>
 <div class="sect3">
 <h4 id="_ravel_cells">Ravel Cells</h4>
-<div class="paragraph"><p>The ravel of every <strong>Value</strong> is a simple C array and not a C++
+<div class="paragraph"><p>The ravel of every <strong>Value</strong> is a simple C array and not a Cpp
 <strong>std::vector&lt;Cell&gt;</strong>. The alternative <strong>std::vector&lt;Cell&gt;</strong> has some performance
 penalties when used for the ravel of a <strong>Value</strong>:</p></div>
 <div class="ulist"><ul>
@@ -4598,9 +4279,7 @@ Loops in the mixed case for scalar functions become much simpler because
 functions (a monadic and a dyadic one for each of the scalar APL functions:</p></div>
 <div class="listingblock">
 <div class="content">
-<pre>
-
-<code>   Cell.hh:
+<pre><code>   Cell.hh:
 
    ...
    virtual ErrorCode bif_ceiling(Cell * Z) const
@@ -4610,9 +4289,7 @@ functions (a monadic and a dyadic one for each of the scalar APL functions:</p><
    virtual ErrorCode bif_add(Cell * Z, const Cell * A) const
    virtual ErrorCode bif_and(Cell * Z, const Cell * A) const
    virtual ErrorCode bif_and_bitwise(Cell * Z, const Cell * A) const
-   ...</code>
-
-</pre>
+   ...</code></pre>
 </div></div>
 <div class="paragraph"><p>The base class <strong>Cell</strong> is inherited by the following derived classes:</p></div>
 <div class="ulist"><ul>
@@ -4628,7 +4305,7 @@ functions (a monadic and a dyadic one for each of the scalar APL functions:</p><
 </li>
 <li>
 <p>
-<strong>RealCell</strong>, their relevant content is a 64-bit floating point number,
+<strong>FloatCell</strong>, their relevant content is a 64-bit floating point number,
 </p>
 </li>
 <li>
@@ -4638,11 +4315,16 @@ functions (a monadic and a dyadic one for each of the scalar APL functions:</p><
 </li>
 <li>
 <p>
-<strong>NumericCell</strong>, the base class of <strong>IntCell</strong>, <strong>RealCell</strong>, and <strong>ComplexCell</strong>.
+<strong>RealCell</strong>, the abstract intermediate base class of <strong>IntCell</strong> and <strong>FloatCell</strong>.
+</p>
+</li>
+<li>
+<p>
+<strong>NumericCell</strong>, the base class of <strong>RealCell</strong> and <strong>ComplexCell</strong>.
    Many Cell functions are almost identical for these base classes and these
    functions are implemented in <strong>NumericCell</strong> rather than implementing a
    copy in each base class. The simple trick that replaces hundreds of
-   C/C++ <strong>switch</strong> statements and <strong>case</strong>s is this:
+   C/Cpp <strong>switch</strong> statements and <strong>case</strong>s is this:
 </p>
 <div class="ulist"><ul>
 <li>
@@ -4730,9 +4412,7 @@ normal approach, i.e. APL_Integers as member of IntCells, APL_Float members
 in FloatCells, etc.) they are declared as a union in the base Class Cell:</p></div>
 <div class="listingblock">
 <div class="content">
-<pre>
-
-<code>   Cell.hh:
+<pre><code>   Cell.hh:
    ...
    /// A union containing all possible cell values for the different Cell types
    union SomeValue
@@ -4743,9 +4423,7 @@ in FloatCells, etc.) they are declared as a union in the base Class Cell:</p></d
         APL_Integer    ival;      ///&lt; for IntCell
         Cell          *lval;      ///&lt; for LvalCell (selective assignment)
         ...
-      };</code>
-
-</pre>
+      };</code></pre>
 </div></div>
 <div class="paragraph"><p>This union ensures that all derived classes have the same size.</p></div>
 <div class="paragraph"><p>Now back to the Cell functions. We take dyadic <strong>A + B</strong> and monadic <strong>+ B</strong>
@@ -4813,9 +4491,7 @@ To summarize the example:
 </ol></div>
 <div class="listingblock">
 <div class="content">
-<pre>
-
-<code>   ScalarFunction.hh:
+<pre><code>   ScalarFunction.hh:
    ...
    ///
 class Bif_F12_PLUS : public ScalarFunction
@@ -4832,9 +4508,7 @@ class Bif_F12_PLUS : public ScalarFunction
    ...
    static Bif_F12_PLUS * fun;           ///&lt; Built-in function.
    static Bif_F12_PLUS  _fun;           ///&lt; Built-in function.
-};</code>
-
-</pre>
+};</code></pre>
 </div></div>
 </div>
 </div>
@@ -4960,13 +4634,11 @@ between ⎕-variables and ⎕-functions. The only noteworthy difference between
 APL primitives and ⎕-functions is their name and the fact that the
 APL primitives are defined in the APL standard, while most ⎕-functions
 and ⎕-variables are not. They are used by APL interpreter providers to extend
-their functionality (and to lock-in their customers). The C++ class hierarchy
+their functionality (and to lock-in their customers). The Cpp class hierarchy
 in GNU APL (excerpted, the full picture is shown in the .png files) are:</p></div>
 <div class="listingblock">
 <div class="content">
-<pre>
-
-<code>    html/classSystemVariable__inherit__graph.png:
+<pre><code>    html/classSystemVariable__inherit__graph.png:
 
         ┌─────────────┐
         │ NamedObject │
@@ -4986,16 +4658,12 @@ in GNU APL (excerpted, the full picture is shown in the .png files) are:</p></di
                ↑
      ╔═══════════════════╗
      ║ RO-SystemVariable ║
-     ╚═══════════════════╝</code>
-
-</pre>
+     ╚═══════════════════╝</code></pre>
 </div></div>
 <div class="paragraph"><p>and:</p></div>
 <div class="listingblock">
 <div class="content">
-<pre>
-
-<code>    html/classFunction__inherit__graph.png:
+<pre><code>    html/classFunction__inherit__graph.png:
 
                                          ┌─────────────────────────────────┐
                                          │           NamedObject           │
@@ -5011,9 +4679,7 @@ in GNU APL (excerpted, the full picture is shown in the .png files) are:</p></di
             ↑               ↑                   ↑                  ↑
     ╔══════════════╗┌────────────────┐┌───────────────────┐    ┌───────┐
     ║ QuadFunction ║│ ScalarFunction ││ NonscalarFunction │    │ Macro │
-    ╚══════════════╝└────────────────┘└───────────────────┘    └───────┘</code>
-
-</pre>
+    ╚══════════════╝└────────────────┘└───────────────────┘    └───────┘</code></pre>
 </div></div>
 <div class="paragraph"><p>Some explanations might be helpful:</p></div>
 <div class="ulist"><ul>
@@ -5100,9 +4766,7 @@ top of the <strong>Symbol::value_stack</strong> defines the role (scope) that th
 currently has. The possibilities are:</p></div>
 <div class="listingblock">
 <div class="content">
-<pre>
-
-<code>    NamedObject.hh:
+<pre><code>    NamedObject.hh:
 
 enum NameClass
 {
@@ -5123,11 +4787,9 @@ enum NameClass
                          NC_SYSTEM_VAR       |
                          NC_INVALID          //  ⎕, ⍞, ⎕xx
                         ) &amp; NC_bool_mask
-};</code>
-
-</pre>
+};</code></pre>
 </div></div>
-<div class="paragraph"><p>The <strong>NameClass</strong> is equally well suited for C/C++ <strong>switch</strong> statements (by using
+<div class="paragraph"><p>The <strong>NameClass</strong> is equally well suited for C/Cpp <strong>switch</strong> statements (by using
 the lower byte) and for testing groups of <strong>NameClass</strong>es (by using the upper
 byte). After the tokenization (or localization) of a symbol it has the
 NameClass <strong>NC_UNUSED_USER_NAME</strong>; this changes to e.g. <strong>NC_VARIABLE</strong> when a
@@ -5160,18 +4822,14 @@ static instance <strong>Workspace::the_workspace</strong>. The classes <strong>S
 functionality is implemented in their template base class <strong>SymbolTableBase</strong>:</p></div>
 <div class="listingblock">
 <div class="content">
-<pre>
-
-<code>SymbolTable.hh:
+<pre><code>SymbolTable.hh:
    ...
 /// common part of user-defined names and distinguished names
 template &lt;typename T, size_t SYMBOL_COUNT&gt;
 class SymbolTableBase
 {
    ...
-};</code>
-
-</pre>
+};</code></pre>
 </div></div>
 <div class="paragraph"><p>The differences are:</p></div>
 <div class="ulist"><ul>
@@ -5367,9 +5025,7 @@ is an <strong>Executable</strong>. The primary content of any <strong>Executable
 named <strong>body</strong>:</p></div>
 <div class="listingblock">
 <div class="content">
-<pre>
-
-<code>   Token.hh:
+<pre><code>   Token.hh:
 
 class Token_string : public  std::vector&lt;Token&gt; { ... }
 
@@ -5381,9 +5037,7 @@ class Executable
    ...
    Token_string body;
    ...
-}</code>
-
-</pre>
+}</code></pre>
 </div></div>
 <div class="paragraph"><p>The rest of class <strong>Executable</strong> are helper functions that support the
 execution of the raw <strong>body</strong>.</p></div>
@@ -5411,16 +5065,12 @@ The evaluation of an APL string with APL primitive ⍎ (aka. Execute).
 above), a corresponding class for that case is derived:</p></div>
 <div class="listingblock">
 <div class="content">
-<pre>
-
-<code>    Executable.hh:
+<pre><code>    Executable.hh:
     ...
 class UserFunction : public Function, public Executable { ... }
 class StatementList : public Executable { ... }
 class ExecuteList : public Executable { ... }
-    ....</code>
-
-</pre>
+    ....</code></pre>
 </div></div>
 <div class="paragraph"><p>In some debug outputs, as well as in some commands and in ⎕SI, the derived
 class of a particular <strong>Executable</strong> is displayed as a single character like
@@ -5567,13 +5217,9 @@ when a defined function is called, its arguments (if any) are assigned
 <div class="paragraph"><p>Let:</p></div>
 <div class="listingblock">
 <div class="content">
-<pre>
-
-<code>∇Z←A SUM B;C;D
+<pre><code>∇Z←A SUM B;C;D
  Z←A + B
-∇</code>
-
-</pre>
+∇</code></pre>
 </div></div>
 <div class="paragraph"><p>The typical life-cycle of Userfunction SUM is then:</p></div>
 <div class="olist arabic"><ol class="arabic">
@@ -5693,15 +5339,11 @@ in the )SI stack is member <strong>StateIndicator::parent</strong>.</p></div>
 executed and the parent that has initiated the execution:</p></div>
 <div class="listingblock">
 <div class="content">
-<pre>
-
-<code>StateIndicator.hh:
+<pre><code>StateIndicator.hh:
    ...
   /// constructor
    StateIndicator(const Executable * exec, StateIndicator * _par);
-   ...</code>
-
-</pre>
+   ...</code></pre>
 </div></div>
 <div class="paragraph"><p>The constructor initializes <strong>StateIndicator::parent</strong>, which does not change
 thereafter. Since the )SI stack is a linked list, it can be represented as a
@@ -5709,21 +5351,15 @@ single pointer to the most recent StateIndicator object. This pointer is
 stored in class <strong>Workspace</strong>:</p></div>
 <div class="listingblock">
 <div class="content">
-<pre>
-
-<code>Workspace.hh:
+<pre><code>Workspace.hh:
    ...
    /// the SI stack. Initially top_SI is 0 (empty stack)
-   StateIndicator * top_SI;</code>
-
-</pre>
+   StateIndicator * top_SI;</code></pre>
 </div></div>
 <div class="paragraph"><p>The full picture is something like this:</p></div>
 <div class="listingblock">
 <div class="content">
-<pre>
-
-<code>╔═══ Workspace ═══╗     ╔═════ StateIndicator ═══╗
+<pre><code>╔═══ Workspace ═══╗     ╔═════ StateIndicator ═══╗
 ║        ┌──────┐ ║     ║┌──────┐                ║
 ║        │top_SI├─╫─ → ─╢│  0   │                ║    (latest )SI entry)
 ║        └──────┘ ║     ║└──────┘                ║
@@ -5747,9 +5383,7 @@ stored in class <strong>Workspace</strong>:</p></div>
                ║┌──┴───┐                ║
                ║│parent│                ║    (oldest )SI entry)
                ║└──────┘                ║
-               ╚════════════════════════╝</code>
-
-</pre>
+               ╚════════════════════════╝</code></pre>
 </div></div>
 <div class="paragraph"><p>By and large the only active StateIndicator is the topmost one. The
 StateIndicators below it are relatively passive and only come back
@@ -5806,18 +5440,14 @@ StateIndicator class implements an individual entry in that linked list.</td>
 <div class="paragraph"><p>The Class has two more members of interest:</p></div>
 <div class="listingblock">
 <div class="content">
-<pre>
-
-<code>StateIndicator.hh:
+<pre><code>StateIndicator.hh:
    ...
    /// details of the last error in this context.
    Error error;
 
    /// the current-stack of this context.
    Prefix current_stack;
-   ...</code>
-
-</pre>
+   ...</code></pre>
 </div></div>
 <div class="paragraph"><p><strong>StateIndicator::error</strong> contains the error information (if any) for the
 StateIndicator, e.g. for ⎕EM. There can be several StateIndicators on the
@@ -5834,9 +5464,7 @@ StateIndicator. See below.</p></div>
 important member is a stack named <strong>content</strong>:</p></div>
 <div class="listingblock">
 <div class="content">
-<pre>
-
-<code>Prefix.hh:
+<pre><code>Prefix.hh:
 
    ...
    /// put pointer (for the next token at PC). Since content is a stack,
@@ -5860,9 +5488,7 @@ important member is a stack named <strong>content</strong>:</p></div>
         int            misc;            ///&lt; 1 if MISC phrase
         int            phrase_len;      ///&lt; phrase length
         uint8_t        sub_nodes[TC_MAX_PHRASE+1];   ///&lt; parent nodes
-      };</code>
-
-</pre>
+      };</code></pre>
 </div></div>
 <div class="paragraph"><p>Member <strong>Prefix::content</strong> is by and large processed as follows:</p></div>
 <div class="olist arabic"><ol class="arabic">
@@ -5886,7 +5512,7 @@ The function <strong>Phrase::reduce_fun</strong> in the phrase is called;
 The <strong>reduce_fun()</strong> is a non-static member of class <strong>Prefix</strong> and can
    therefore access the content in order to produce a result.
    The <strong>reduce_fun()</strong> has no arguments because accessing <strong>content</strong> directly
-   is far more efficient than using (C++) function arguments.
+   is far more efficient than using (Cpp) function arguments.
 </p>
 </li>
 <li>
@@ -5920,9 +5546,7 @@ Otherwise the stack does not start with a valid phrase. In this case
 somewhat more complicated):</p></div>
 <div class="listingblock">
 <div class="content">
-<pre>
-
-<code>      ╔══ StateIndicator::Executable-&gt;body ═════╗
+<pre><code>      ╔══ StateIndicator::Executable-&gt;body ═════╗
       ║                                         ║
       ║ PC=0  ... PC=k-1  PC=k   ...            ║   PC is Prefix::PC
       ║┌────┐     ┌─────┐ ┌───┐ ┌───┐ ┌───┐     ║
@@ -5945,9 +5569,7 @@ somewhat more complicated):</p></div>
                 │         └───────┬─────────┘
                 │                 │
                 └──── result ─────┘
-                Prefix::pop_args_push_result(result)</code>
-
-</pre>
+                Prefix::pop_args_push_result(result)</code></pre>
 </div></div>
 <div class="paragraph"><p>Apart from <strong>Prefix::content</strong>, Prefix has the following members of interest
 (the others just helpers that make the code more readable):</p></div>
@@ -6061,7 +5683,7 @@ Unfortunately the decision about whether <strong>Prefix::reduce_MISC_F_B_()</str
    decision is in favor of <strong>Prefix::reduce_A_F_B_()</strong>, then everything is fine.
    However, for <strong>Prefix::reduce_MISC_F_B_()</strong> the <strong>MISC</strong> token is not used and
    must be considered somehow. The solution is to store the <strong>MISC</strong> token in
-   C++ variable <strong>Prefix::saved_MISC</strong>. Note that one cannot simply decrement
+   Cpp variable <strong>Prefix::saved_MISC</strong>. Note that one cannot simply decrement
    the PC in order to <em>undo</em> the fetching of the <strong>MISC</strong> token. Decrementing
    the PC looks much simpler at first glance, but would only work if the <strong>MISC</strong>
    token came directly from the body of the <strong>Executable</strong>.
@@ -6077,9 +5699,7 @@ Unfortunately the decision about whether <strong>Prefix::reduce_MISC_F_B_()</str
 <div class="paragraph"><p>The following picture is a slightly more detailed version of the previous one:</p></div>
 <div class="listingblock">
 <div class="content">
-<pre>
-
-<code>      ╔══ StateIndicator::Executable-&gt;body ═════╗
+<pre><code>      ╔══ StateIndicator::Executable-&gt;body ═════╗
       ║                                         ║
       ║ PC=0  ... PC=k-1  PC=k   ...            ║   PC is Prefix::PC
       ║┌────┐     ┌─────┐ ┌───┐ ┌───┐ ┌───┐     ║
@@ -6110,9 +5730,7 @@ Unfortunately the decision about whether <strong>Prefix::reduce_MISC_F_B_()</str
              │                      │           └─── pop_args_push_result()
              │                      │
              └──── clear_MISC() ────┘    in: Prefix::reduce_A_XXX()
-                                 but not in: Prefix::reduce_MISC_XXX()</code>
-
-</pre>
+                                 but not in: Prefix::reduce_MISC_XXX()</code></pre>
 </div></div>
 </div>
 <div class="sect2">
@@ -6122,7 +5740,7 @@ Unfortunately the decision about whether <strong>Prefix::reduce_MISC_F_B_()</str
 <li>
 <p>
 APL primitives (functions and operators) and system functions. They are
-  defined by the interpreter itself and are implemented in C++, and
+  defined by the interpreter itself and are implemented in Cpp, and
 </p>
 </li>
 <li>
@@ -6142,9 +5760,7 @@ However, not all possible bitmaps are valid signatures (e.g. a function with
 a left argument but no right argument):</p></div>
 <div class="listingblock">
 <div class="content">
-<pre>
-
-<code>   APL_types.hh:
+<pre><code>   APL_enums.hh:
    ...
 /// signature of a defined function
 enum Fun_signature
@@ -6210,9 +5826,7 @@ enum Fun_signature
    SIG_Z_A_LO_OP1_X_B  = SIG_Z   | SIG_A_LO_OP1_X_B,    ///&lt; dito
    SIG_Z_A_LO_OP2_RO_B = SIG_Z   | SIG_A_LO_OP2_RO_B,   ///&lt; dito
 };
-   ...</code>
-
-</pre>
+   ...</code></pre>
 </div></div>
 <div class="paragraph"><p>There are 0x80 = 128 possible signature bitmaps of which 22 are valid.</p></div>
 <div class="paragraph"><p>The base class <strong>Function</strong> of all functions has a non-virtual function
@@ -6220,9 +5834,7 @@ enum Fun_signature
 signature atoms:</p></div>
 <div class="listingblock">
 <div class="content">
-<pre>
-
-<code>   Function.cc:
+<pre><code>   Function.cc:
    ...
 un_signature
 Function::get_signature() const
@@ -6238,9 +5850,7 @@ int sig = SIG_FUN;
    if (get_fun_valence() &gt;= 1)    sig |= SIG_B;
 
    return Fun_signature(sig);
-}</code>
-
-</pre>
+}</code></pre>
 </div></div>
 <div class="paragraph"><p>System functions do not use signatures because their classes know the
 signatures that they support already at compile time. Defined functions
@@ -6255,9 +5865,7 @@ and <strong>eval_AB()</strong>. Likewise the axis variant A[X] is overloaded wit
 <strong>eval_AB()</strong> and then delegated to their companions in class <strong>ScalarFunction</strong>.</p></div>
 <div class="listingblock">
 <div class="content">
-<pre>
-
-<code>   ScalarFunction.hh:
+<pre><code>   ScalarFunction.hh:
    ...
    class Bif_F12_PLUS : public ScalarFunction
    {
@@ -6270,9 +5878,7 @@ and <strong>eval_AB()</strong>. Likewise the axis variant A[X] is overloaded wit
       { return eval_scalar_AB(A, B,
                inverse ? &amp;Cell::bif_add_inverse : &amp;Cell::bif_add); }
    ...
-   }</code>
-
-</pre>
+   }</code></pre>
 </div></div>
 <div class="admonitionblock">
 <table><tr>
@@ -6431,9 +6037,7 @@ of another APL session. Many of the APL commands modify the state of
 members of class <strong>Workspace</strong> are:</p></div>
 <div class="listingblock">
 <div class="content">
-<pre>
-
-<code>    Workspace
+<pre><code>    Workspace
     ╔═══════════════════════════════════╗
     ║ ┌─────────┐ ┌────────────┐        ║
     ║ │ WS_name │ │ APL prompt │        ║
@@ -6448,18 +6052,14 @@ members of class <strong>Workspace</strong> are:</p></div>
     ║ ┌─┴──────────────┐ │              ║
     ║ │ StateIndicator ├─┘  ∘∘∘         ║
     ║ └────────────────┘                ║
-    ╚═══════════════════════════════════╝</code>
-
-</pre>
+    ╚═══════════════════════════════════╝</code></pre>
 </div></div>
 <div class="paragraph"><p>As a matter of fact, class <strong>Workspace</strong> is derived from a simple container
 <strong>Workspace_0</strong> which contains 2 more items <strong>symbol_table</strong> and
 <strong>distinguished_names</strong>,</p></div>
 <div class="listingblock">
 <div class="content">
-<pre>
-
-<code>Workspace.hh:
+<pre><code>Workspace.hh:
 
 class Workspace_0
 {
@@ -6470,9 +6070,7 @@ protected:
    /// the symbol table for system names (aka. distinguished names) of
    /// this workspace.
    SystemSymTab distinguished_names;
-};</code>
-
-</pre>
+};</code></pre>
 </div></div>
 <div class="paragraph"><p>The idea behind this distinction between base class <strong>Workspace_0</strong> and
 derived class <strong>Workspace</strong> is twofold:</p></div>
@@ -6566,8 +6164,8 @@ loop over )SI stack entries.
 </li>
 </ol></div>
 <div class="paragraph"><p>The de-serializer expects the XML tags to appear in the same order. The
-following table shows the mapping between C++ types and XML tags (some
-trivial C++ types were omitted):</p></div>
+following table shows the mapping between Cpp types and XML tags (some
+trivial Cpp types were omitted):</p></div>
 <div class="tableblock">
 <table rules="all"
 frame="border"
@@ -6576,7 +6174,7 @@ cellspacing="0" cellpadding="4">
 <col />
 <thead>
 <tr>
-<th align="left" valign="top"> C++ type</th>
+<th align="left" valign="top"> Cpp type</th>
 <th align="left" valign="top"> XML Tag(s) and attributes</th>
 </tr>
 </thead>
@@ -6634,15 +6232,15 @@ cellspacing="0" cellpadding="4">
 <div class="ulist"><ul>
 <li>
 <p>
-The XML tag corresponds to the C++ type,
+The XML tag corresponds to the Cpp type,
 </p>
 </li>
 <li>
 <p>
-the tag attributes correspond to the data members of the C++ type.
+the tag attributes correspond to the data members of the Cpp type.
   To the extent possible, all data members are stored in a single tag (i.e.
   &lt;TAG &#8230; /&gt; in XML) as opposed to start and end tags (i.e. &lt;TAG &#8230;&gt; &#8230;
-  &lt;/TAG&gt; in XML. The exceptions are C++ classes of variable size (arrays,
+  &lt;/TAG&gt; in XML. The exceptions are Cpp classes of variable size (arrays,
   vectors, linked lists, etc.), whose items are serialized between the
   corresponding start and end tags,
 </p>
@@ -6653,7 +6251,7 @@ empty vectors, etc., may be omitted.
 </p>
 </li>
 </ul></div>
-<div class="paragraph"><p>Most C++ types are mapped to XML in a straightforward fashion. The exceptions
+<div class="paragraph"><p>Most Cpp types are mapped to XML in a straightforward fashion. The exceptions
 are described in more detail in the following.</p></div>
 </div>
 <div class="sect3">
@@ -6661,35 +6259,29 @@ are described in more detail in the following.</p></div>
 <div class="paragraph"><p>The serialization of APL Values is implemented with two different loops: one
 for the (typically large) ravel of the value, and one for the rest (i.e.
 shape, flags, etc.</p></div>
-<div class="paragraph"><p>In C++, objects refer to each other by their addresses in memory (aka.
-<em>pointers</em> in C, and/or <em>references</em> in C++). Even though one could, in
+<div class="paragraph"><p>In Cpp, objects refer to each other by their addresses in memory (aka.
+<em>pointers</em> in C, and/or <em>references</em> in Cpp). Even though one could, in
 theory, emulate pointers with file offsets, this would lead to a rather
 complicated implementation. Instead, GNU APL uses IDs that define relations
 between different objects in the serialization; the IDs thus replace pointers
-and/or references in C++.</p></div>
-<div class="paragraph"><p>The IDs are different <strong>enum</strong> types (so that the C++ compiler can detect
+and/or references in Cpp.</p></div>
+<div class="paragraph"><p>The IDs are different <strong>enum</strong> types (so that the Cpp compiler can detect
 the use of incompatible pointers). The <strong>enum Vid { &#8230; }</strong> is the ID that
 relates XML &lt;Value &#8230;/&gt; tags to the corresponding XML &lt;Ravel &#8230;/&gt; tag.</p></div>
 <div class="paragraph"><p>For example, Let:</p></div>
 <div class="listingblock">
 <div class="content">
-<pre>
-
-<code>   )CLEAR
+<pre><code>   )CLEAR
    )WSID TEST
 
    Z←1 2 3
 
-   )SAVE</code>
-
-</pre>
+   )SAVE</code></pre>
 </div></div>
 <div class="paragraph"><p>The )SAVE command serializes workspace TEST (into file TEST.xml) like this:</p></div>
 <div class="listingblock">
 <div class="content">
-<pre>
-
-<code>TEST.xml:
+<pre><code>TEST.xml:
    ...
    &lt;Ravel vid="15" cells="³1³2³3"/&gt;
    ...
@@ -6699,9 +6291,7 @@ relates XML &lt;Value &#8230;/&gt; tags to the corresponding XML &lt;Ravel &#823
     &lt;Symbol name="Z" stack-size="1"&gt;
       &lt;Variable vid="15"/&gt;
     &lt;/Symbol&gt;
-  &lt;/SymbolTable&gt;</code>
-
-</pre>
+  &lt;/SymbolTable&gt;</code></pre>
 </div></div>
 <div class="paragraph"><p>The serialization of the &lt;Ravel&gt; deserves some more explanation. As already
 explained, the <strong>vid="15"</strong> attribute of the &lt;Ravel&gt; tag links the ravel to
@@ -6727,7 +6317,7 @@ related to (and later needed to de-serialize) a Cell:</p></div>
 <div class="ulist"><ul>
 <li>
 <p>
-the C++ Cell Type (CharCell, IntCell, FloatCell, ComplexCell, PointerCell,
+the Cpp Cell Type (CharCell, IntCell, FloatCell, ComplexCell, PointerCell,
   or LvalCell)
 </p>
 </li>
@@ -6758,7 +6348,7 @@ cellspacing="0" cellpadding="4">
 <thead>
 <tr>
 <th align="center" valign="top">μ-Tag</th>
-<th align="left" valign="top">C++ Cell Type</th>
+<th align="left" valign="top">Cpp Cell Type</th>
 <th align="left" valign="top">Encoding                            </th>
 <th align="left" valign="top">Example      </th>
 <th align="right" valign="top">Cells</th>
@@ -6853,29 +6443,21 @@ that defines a defined function). For these cases, a common XML tag
 with μ-Tags ⁰, ¹, and ² as described above. For example. the APL function:</p></div>
 <div class="listingblock">
 <div class="content">
-<pre>
-
-<code>∇Z←A DIV B
+<pre><code>∇Z←A DIV B
  Z←A÷B
-∇</code>
-
-</pre>
+∇</code></pre>
 </div></div>
 <div class="paragraph"><p>will be serialized as:</p></div>
 <div class="listingblock">
 <div class="content">
-<pre>
-
-<code>    &lt;Symbol name="DIV" stack-size="1"&gt;
+<pre><code>    &lt;Symbol name="DIV" stack-size="1"&gt;
       &lt;Function fid="0x55BCF671DC80" creation-time="1687101368729013"
                 exec-properties="0,0,0,0"&gt;
         &lt;UCS uni="²Z←A DIV B⁰¹A
                   ² Z←A÷B⁰¹A
                   "/&gt;
       &lt;/Function&gt;
-    &lt;/Symbol&gt;</code>
-
-</pre>
+    &lt;/Symbol&gt;</code></pre>
 </div></div>
 <div class="paragraph"><p>Note the <strong>¹A</strong> above, which is the ASCII line feed character <strong>0x0A</strong> (which
 is not allowed in a tag attribute value in XML).</p></div>
@@ -6918,7 +6500,7 @@ cellspacing="0" cellpadding="4">
 <tr>
 <th align="left" valign="top"> SavingArchive        </th>
 <th align="left" valign="top"> LoadingArchive       </th>
-<th align="left" valign="top"> C++ class (de-)serialized</th>
+<th align="left" valign="top"> Cpp class (de-)serialized</th>
 </tr>
 </thead>
 <tbody>
@@ -7014,7 +6596,7 @@ have no corresponding <strong>save_XXX()</strong> function.</p></div>
 <div class="sect2">
 <h3 id="_background">Background</h3>
 <div class="paragraph"><p>In the early 1980s the author learned APL (after ALGOL, Assembler, and BASIC,
-and before C. C++ was in its early days and not (yet) commercially available.
+and before C. Cpp was in its early days and not (yet) commercially available.
 The platform was an IBM 5110 desktop, a precursor to the IBM PC which came
 later. C compilers and APL interpreters were expensive and on the IBM 5110 was
 slow, particularly in comparison with Assembler or compiled languages like C
@@ -7032,9 +6614,7 @@ connected to the corresponding rightmost Transputers and the top Transputers
 connected to the bottom Transputers):</p></div>
 <div class="listingblock">
 <div class="content">
-<pre>
-
-<code>    4×4 Transputer Torus
+<pre><code>    4×4 Transputer Torus
 
     ┌─────┐   ┌───┐   ┌───┐   ┌───┐
     │ ┌───────────────────────────────┐
@@ -7053,9 +6633,7 @@ connected to the bottom Transputers):</p></div>
     │ │ ╔═╧═╗   ╔═╧═╗   ╔═╧═╗   ╔═╧═╗ │
     │ └─╢ T ╟───╢ T ╟───╢ T ╟───╢ T ╟─┘
     │   ╚═╤═╝ │ ╚═╤═╝ │ ╚═╤═╝ │ ╚═╤═╝
-    └─────┘   └───┘   └───┘   └───┘</code>
-
-</pre>
+    └─────┘   └───┘   └───┘   └───┘</code></pre>
 </div></div>
 <div class="paragraph"><p>Another architecture that was initially considered was the Intel Hypercube.
 However, neither the Transputer torus nor the Intel Hypercube seemed to suit
@@ -7090,9 +6668,7 @@ communication bandwidth of 5.3 Gigabits/s.</p></div>
 <div class="paragraph"><p>The architecture of the DATIS-P is:</p></div>
 <div class="listingblock">
 <div class="content">
-<pre>
-
-<code>           Entire DATIS-P                      One CPU
+<pre><code>           Entire DATIS-P                      One CPU
            ──────────────                      ───────
 
     ┌──────────────────────────┐               network       ┌───┐
@@ -7107,9 +6683,7 @@ communication bandwidth of 5.3 Gigabits/s.</p></div>
                   │                        │   1 MByte   │   └───┘
                ╔══╧══╗                     └──────┬──────┘
                ║ CPU ║                            │
-               ╚═════╝                          Master</code>
-
-</pre>
+               ╚═════╝                          Master</code></pre>
 </div></div>
 <div class="paragraph"><p>An entire DATIS-P consists of:</p></div>
 <div class="ulist"><ul>
@@ -7258,11 +6832,7 @@ Add a symbol <strong>FOO</strong> to <strong>src/Id.def:</strong>
 </p>
 <div class="listingblock">
 <div class="content">
-<pre>
-
-<code>qf( FOO                , "⎕FOO"    ,          )</code>
-
-</pre>
+<pre><code>qf( FOO                , "⎕FOO"    ,          )</code></pre>
 </div></div>
 <div class="paragraph"><p>The proper position of <strong>FOO</strong> in <strong>Id.def</strong> is important (after the last
 ⎕-symbol group that starts with <strong>F</strong>, i.e. after the <strong>⎕FFT</strong> line.</p></div>
@@ -7273,9 +6843,7 @@ Add a header file <strong>src/Quad_FOO.hh</strong> like this:
 </p>
 <div class="listingblock">
 <div class="content">
-<pre>
-
-<code>#ifndef __Quad_FOO_HH_DEFINED__
+<pre><code>#ifndef __Quad_FOO_HH_DEFINED__
 #define __Quad_FOO_HH_DEFINED__
 
 #include "QuadFunction.hh"
@@ -7300,9 +6868,7 @@ protected:
    ...
 };
 
-#endif // __Quad_FOO_HH_DEFINED__</code>
-
-</pre>
+#endif // __Quad_FOO_HH_DEFINED__</code></pre>
 </div></div>
 <div class="paragraph"><p>Since <strong>⎕FOO</strong> is monadic, we have one handler eval_B(Value_P B), which
 overloads <strong>virtual Function::eval_B()</strong> in <strong>Function.hh</strong> and causes our
@@ -7312,13 +6878,11 @@ point in time.</p></div>
 </li>
 <li>
 <p>
-Add a C++ source file <strong>src/Quad_FOO.cc</strong> like this:
+Add a Cpp source file <strong>src/Quad_FOO.cc</strong> like this:
 </p>
 <div class="listingblock">
 <div class="content">
-<pre>
-
-<code>#include "Quad_FOO.hh"
+<pre><code>#include "Quad_FOO.hh"
 
 Quad_FOO  Quad_FOO::fun;
 Quad_FOO * Quad_FOO::_fun = &amp;Quad_FOO::fun;
@@ -7328,13 +6892,11 @@ Token
 Quad_FOO::eval_B(Value_P B) const
 {
 Value_P Z(LOC);                       // makes Z an APL scalar,
-   Z-&gt;next_ravel_int(42);             // which is the integer 42
+   Z-&gt;next_ravel_Int(42);             // which is the integer 42
    Z-&gt;check_value(LOC);               // check Z and set its Z-&gt;VF_complete flag
    return Token(TOK_APL_VALUE1, Z);   // return the result.
 }
-//-----------------------------------------------------------------------------</code>
-
-</pre>
+//-----------------------------------------------------------------------------</code></pre>
 </div></div>
 <div class="paragraph"><p>We have not (yet) implemented the requested functionality in
 <strong>Quad_FOO::eval_B()</strong>. It makes life easier to first integrate <strong>⎕FOO</strong> into the
@@ -7347,12 +6909,8 @@ When using SVN then add the new files to the repository:
 </p>
 <div class="listingblock">
 <div class="content">
-<pre>
-
-<code>$ svn add Quad_FOO.cc Quad_FOO.hh
-$ svn commit -m "new file"</code>
-
-</pre>
+<pre><code>$ svn add Quad_FOO.cc Quad_FOO.hh
+$ svn commit -m "new file"</code></pre>
 </div></div>
 </li>
 <li>
@@ -7361,11 +6919,7 @@ Add the following line to several source files:
 </p>
 <div class="listingblock">
 <div class="content">
-<pre>
-
-<code>#include "Quad_FOO.hh"</code>
-
-</pre>
+<pre><code>#include "Quad_FOO.hh"</code></pre>
 </div></div>
 <div class="paragraph"><p>This makes the new declarations available in the <strong>.cc</strong> files that need it.
 The files concerned are:</p></div>
@@ -7404,11 +6958,7 @@ Add the new files <strong>Quad_FOO.cc</strong> and <strong>Quad_FOO.hh</strong> 
 </p>
 <div class="listingblock">
 <div class="content">
-<pre>
-
-<code>   Quad_FOO.cc Quad_FOO.hh</code>
-
-</pre>
+<pre><code>   Quad_FOO.cc Quad_FOO.hh</code></pre>
 </div></div>
 <div class="paragraph"><p>Keep <strong>src/Makefile.am</strong> sorted alphabetically and indented in the same way as
 the other files.</p></div>
@@ -7419,11 +6969,7 @@ the other files.</p></div>
 </p>
 <div class="listingblock">
 <div class="content">
-<pre>
-
-<code> $ autoreconf</code>
-
-</pre>
+<pre><code> $ autoreconf</code></pre>
 </div></div>
 <div class="paragraph"><p>This creates a new <strong>src/Makefile.in</strong> from <strong>src/Makefile.am</strong>, and</p></div>
 </li>
@@ -7433,11 +6979,7 @@ the other files.</p></div>
 </p>
 <div class="listingblock">
 <div class="content">
-<pre>
-
-<code> $ ./configure</code>
-
-</pre>
+<pre><code> $ ./configure</code></pre>
 </div></div>
 <div class="paragraph"><p>This includes the new files in <strong>src/Makefile</strong> so that they are properly
 compiled and linked.</p></div>
@@ -7450,11 +6992,7 @@ Add a <strong>TD()</strong> macro for <strong>⎕FOO</strong> in <strong>src/Tok
 </p>
 <div class="listingblock">
 <div class="content">
-<pre>
-
-<code>TD(TOK_Quad_FOO      , TC_FUN1      , TV_FUN  , ID::Quad_FOO     )</code>
-
-</pre>
+<pre><code>TD(TOK_Quad_FOO      , TC_FUN1      , TV_FUN  , ID::Quad_FOO     )</code></pre>
 </div></div>
 <div class="paragraph"><p>This defines a new Token with token class <strong>TC_FUN1</strong>, value type <strong>TV_FUN</strong> i.e.
 <strong>Function</strong> (-pointer), and ID <strong>ID::Quad_FOO</strong>. Note that:</p></div>
@@ -7480,11 +7018,7 @@ Add a <strong>sf_def()</strong> macro to <strong>src/SystemVariable.def</strong>
 </p>
 <div class="listingblock">
 <div class="content">
-<pre>
-
-<code>  sf_def(Quad_FOO,   "FOO",   "Definitely not ⎕BAR"          )</code>
-
-</pre>
+<pre><code>  sf_def(Quad_FOO,   "FOO",   "Definitely not ⎕BAR"          )</code></pre>
 </div></div>
 <div class="paragraph"><p>This takes care of a number of things:</p></div>
 <div class="olist loweralpha"><ol class="loweralpha">
@@ -7526,15 +7060,11 @@ After these changes you can build and test that the new interpreter compiles
 </p>
 <div class="listingblock">
 <div class="content">
-<pre>
-
-<code>$ make
+<pre><code>$ make
 $ src/apl
 
       ⎕FOO 5
-42</code>
-
-</pre>
+42</code></pre>
 </div></div>
 </li>
 <li>
@@ -7543,9 +7073,7 @@ If so, then we can add some more beef into <strong>Quad_FOO::eval_B()</strong>:
 </p>
 <div class="listingblock">
 <div class="content">
-<pre>
-
-<code>#include "Quad_FOO.hh"
+<pre><code>#include "Quad_FOO.hh"
 
 Quad_FOO  Quad_FOO::fun;
 Quad_FOO * Quad_FOO::_fun = &amp;Quad_FOO::fun;
@@ -7558,21 +7086,19 @@ Quad_FOO::eval_B(Value_P B) const
    //
    if (B-&gt;element_count() != 1)   // rank or length error
       {
-        if (B-&gt;get_ranke() != 1)   RANK_ERROR;
+        if (B-&gt;get_rank() != 1)   RANK_ERROR;
         else                       LENGTH_ERROR;
       }
 
 const Cell &amp; B0 = B-&gt;get_cfirst();          // first item in B
 const APL_Integer b = B0.get_int_value();   // DOMAIN_ERROR for non integers
 UCS_string z("FOO-");                       // z is string "FOO-"
-   z.append_number(b);                      // now z is e.g. "FOO-42"
+   z.append_int(b);                         // now z is e.g. "FOO-42"
 
 Value_P Z(z);                         // constructor: APL value from string
    return Token(TOK_APL_VALUE1, Z);   // return the result.
 }
-//-----------------------------------------------------------------------------</code>
-
-</pre>
+//-----------------------------------------------------------------------------</code></pre>
 </div></div>
 </li>
 </ol></div>
@@ -7644,9 +7170,7 @@ Therefore our <strong>Quad_FOO.hh</strong> reads:
 </ul></div>
 <div class="listingblock">
 <div class="content">
-<pre>
-
-<code>//----------------------------------------------------------------------------
+<pre><code>//----------------------------------------------------------------------------
 #ifndef __Quad_FOO_HH_DEFINED__
 #define __Quad_FOO_HH_DEFINED__
 
@@ -7658,8 +7182,8 @@ class Quad_FOO : public SystemVariable
 {
 public:
    /// Constructor.
-   Quad_IO()
-   : SystemVariable(ID_Quad_IO)
+   Quad_FOO()
+   : SystemVariable(ID_Quad_FOO)
       {
          Symbol::assign(IntScalar(0, LOC), false, LOC);
       }
@@ -7676,9 +7200,7 @@ protected:
       }
 };
 
-#endif // __Quad_FOO_HH_DEFINED__</code>
-
-</pre>
+#endif // __Quad_FOO_HH_DEFINED__</code></pre>
 </div></div>
 <div class="ulist"><ul>
 <li>
@@ -7687,11 +7209,7 @@ and the <strong>TD()</strong> macro now becomes:
 </p>
 <div class="listingblock">
 <div class="content">
-<pre>
-
-<code>TD(TOK_Quad_FOO      , TC_SYMBOL    , TV_SYM  , ID_Quad_FOO     )</code>
-
-</pre>
+<pre><code>TD(TOK_Quad_FOO      , TC_SYMBOL    , TV_SYM  , ID_Quad_FOO     )</code></pre>
 </div></div>
 </li>
 <li>
@@ -7701,11 +7219,7 @@ The <strong>sf_def()</strong> macro (<strong>sf</strong> stands for <strong>s</s
 </p>
 <div class="listingblock">
 <div class="content">
-<pre>
-
-<code>  rw_sv_def(Quad_FOO,  "FOO",    "not BAR "                 )</code>
-
-</pre>
+<pre><code>  rw_sv_def(Quad_FOO,  "FOO",    "not BAR "                 )</code></pre>
 </div></div>
 <div class="paragraph"><p>where <strong>rw_sv_def</strong> stands for <strong>r</strong>ead/<strong>w</strong>rite <strong>s</strong>ystem <strong>v</strong>ariable. If
 <strong>⎕FOO</strong> were read-only (which implies that localizing it has no effect), then
@@ -7814,7 +7328,7 @@ Permutationsnetzwerkes als Teil des Multiprozerssorsystems DATIS-P-256.</em>
 <div id="footer">
 <div id="footer-text">
 Last updated
- 2026-05-21 13:06:32 CEST
+ 2026-06-26 16:05:29 CEST
 </div>
 </div>
 </body>

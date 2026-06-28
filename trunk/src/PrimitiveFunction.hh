@@ -73,12 +73,12 @@ public:
    /// overloaded Function::eval_fill_AB()
    /// @param A  the left APL argument value
    /// @param B  the right APL argument value
-   virtual Token eval_fill_AB(Value_P A, Value_P B) const;
+   virtual Token eval_fill_AB(cValue_R A, cValue_R B) const;
 
 protected:
    /// overloaded Function::eval_fill_B()
    /// @param B  the right APL argument value
-   virtual Token eval_fill_B(Value_P B) const;
+   virtual Token eval_fill_B(cValue_R B) const;
 
    /// Print the name of \b this PrimitiveFunction to \b out
    /// @param out  output stream to print the function name to
@@ -121,13 +121,13 @@ public:
    /// Overloaded Function::eval_identity_fun()
    /// @param B     the right APL argument value
    /// @param axis  the axis along which to apply the identity
-   virtual Token eval_identity_fun(Value_P B, sAxis axis) const;
+   virtual Token eval_identity_fun(cValue_R B, sAxis axis) const;
 
    /// implementation of eval_identity_fun(), so that non-derived functions
    /// may use it as well.
    /// @param B     the right APL argument value
    /// @param axis  the axis along which to apply the identity
-   static Token do_eval_identity_fun(Value_P B, sAxis axis);
+   static Token do_eval_identity_fun(cValue_R B, sAxis axis);
 };
 //────────────────────────────────────────────────────────────────────────────
 /** System function zilde (⍬) */
@@ -162,11 +162,11 @@ public:
 
    /// overladed Function::eval_B()
    /// @param B  the right APL argument value
-   virtual Token eval_B(Value_P B) const;
+   virtual Token eval_B(cValue_R B) const;
 
    /// overloaded Function::eval_fill_B()
    /// @param B  the right APL argument value
-   virtual Token eval_fill_B(Value_P B) const;
+   virtual Token eval_fill_B(cValue_R B) const;
 
    /// execute string containing an APL command
    /// @param command  the APL command text to execute
@@ -199,13 +199,13 @@ public:
    /// overloaded Function::eval_AB()
    /// @param A  the left APL argument value
    /// @param B  the right APL argument value
-   virtual Token eval_AB(Value_P A, Value_P B) const;
+   virtual Token eval_AB(cValue_R A, cValue_R B) const;
 
    /// overloaded Function::eval_AXB()
    /// @param A  the left APL argument value
    /// @param X  the axis specification value
    /// @param B  the right APL argument value
-   virtual Token eval_AXB(Value_P A, Value_P X, Value_P B) const;
+   virtual Token eval_AXB(cValue_R A, cValue_R X, cValue_R B) const;
 
    static Bif_F2_INDEX  fun;   ///< Built-in function
 protected:
@@ -223,17 +223,17 @@ public:
 
    /// overloaded Function::eval_B()
    /// @param B  the right APL argument value
-   virtual Token eval_B(Value_P B) const
-      { return Token(TOK_APL_VALUE1, do_eval_B(B.get())); }
+   virtual Token eval_B(cValue_R B) const
+      { return Token(TOK_APL_VALUE1, do_eval_B(B)); }
 
    /// overloaded Function::eval_AB()
    /// @param A  the left APL argument value
    /// @param B  the right APL argument value
-   virtual Token eval_AB(Value_P A, Value_P B) const;
+   virtual Token eval_AB(cValue_R A, cValue_R B) const;
 
    /// implementation of eval_B()
    /// @param B  the right APL value (raw pointer)
-   static Value_P do_eval_B(const Value * B);
+   static Value_P do_eval_B(cValue_R B);
 
    static Bif_F12_ELEMENT  fun;   ///< Built-in function
 
@@ -253,17 +253,17 @@ public:
    /// overloaded Function::eval_AB() : A ≡ B
    /// @param A  the left APL argument value
    /// @param B  the right APL argument value
-   virtual Token eval_AB(Value_P A, Value_P B) const
+   virtual Token eval_AB(cValue_R A, cValue_R B) const
       { return Token(TOK_APL_VALUE1,
                      IntScalar((do_eval_AB(A, B) ? 1 : 0), LOC)); }
 
    /// overloaded Function::eval_B() : B
    /// @param B  the right APL argument value
-   virtual Token eval_B(Value_P B) const;
+   virtual Token eval_B(cValue_R B) const;
 
    /// @param A  the left APL argument value
    /// @param B  the right APL argument value
-   static bool do_eval_AB(Value_P A, Value_P B);
+   static bool do_eval_AB(cValue_R A, cValue_R B);
 
    static Bif_F12_EQUIV  fun;   ///< Built-in function
 
@@ -286,11 +286,11 @@ public:
    /// overloaded Function::eval_AB()
    /// @param A  the left APL argument value
    /// @param B  the right APL argument value
-   virtual Token eval_AB(Value_P A, Value_P B) const;
+   virtual Token eval_AB(cValue_R A, cValue_R B) const;
 
    /// overloaded Function::eval_B()
    /// @param B  the right APL argument value
-   virtual Token eval_B(Value_P B) const;
+   virtual Token eval_B(cValue_R B) const;
 
    static Bif_F12_NEQUIV  fun;   ///< Built-in function
 };
@@ -308,13 +308,13 @@ public:
    /// overloaded Function::eval_AB()
    /// @param A  the left APL argument value (number system bases)
    /// @param B  the right APL argument value (numbers to encode)
-   virtual Token eval_AB(Value_P A, Value_P B) const;
+   virtual Token eval_AB(cValue_R A, cValue_R B) const;
 
    /// overloaded Function::eval_AXB()
    /// @param A  the left APL argument value (number system bases)
    /// @param X  the axis specification value
    /// @param B  the right APL argument value (numbers to encode)
-   virtual Token eval_AXB(Value_P A, Value_P X, Value_P B) const;
+   virtual Token eval_AXB(cValue_R A, cValue_R X, cValue_R B) const;
 
    static Bif_F12_ENCODE  fun;   ///< Built-in function
 
@@ -355,7 +355,7 @@ protected:
    /// item in B in a number system with base A0.
    /// @param A0  the radix (base) of the number system
    /// @param B   the APL value containing the numbers to represent
-   static int get_X0(APL_Integer A0, const Value & B);
+   static int get_X0(APL_Integer A0, const cValue & B);
 };
 //────────────────────────────────────────────────────────────────────────────
 /** System function decode */
@@ -371,7 +371,7 @@ public:
    /// overloaded Function::eval_AB()
    /// @param A  the left APL argument value (number system bases)
    /// @param B  the right APL argument value (digit vectors to decode)
-   virtual Token eval_AB(Value_P A, Value_P B) const;
+   virtual Token eval_AB(cValue_R A, cValue_R B) const;
 
    static Bif_F12_DECODE  fun;   ///< Built-in function
 
@@ -422,13 +422,13 @@ protected:
    /// Reverse B along axis
    /// @param B     the right APL argument value (array to reverse)
    /// @param axis  the axis along which to reverse
-   static Token reverse(Value_P B, sAxis axis);
+   static Token reverse(cValue_R B, sAxis axis);
 
    /// Rotate B according to A along axis
    /// @param A     the left APL argument value (rotation amounts)
    /// @param B     the right APL argument value (array to rotate)
    /// @param axis  the axis along which to rotate
-   static Token rotate(Value_P A, Value_P B, sAxis axis);
+   static Token rotate(cValue_R A, cValue_R B, sAxis axis);
 };
 //────────────────────────────────────────────────────────────────────────────
 /** primitive functions rotate and reverse along last axis */
@@ -442,23 +442,23 @@ public:
    {}
 
    /// overloaded Function::eval_AB()
-   virtual Token eval_AB(Value_P A, Value_P B) const
-      { return rotate(A, B, B->get_rank() - 1); }
+   virtual Token eval_AB(cValue_R A, cValue_R B) const
+      { return rotate(A, B, B.get_rank() - 1); }
 
    /// overloaded Function::eval_B()
-   virtual Token eval_B(Value_P B) const
-      { return reverse(B, B->get_rank() - 1); }
+   virtual Token eval_B(cValue_R B) const
+      { return reverse(B, B.get_rank() - 1); }
 
    /// overloaded Function::eval_AXB()
    /// @param A  the left APL argument value (rotation amounts)
    /// @param X  the axis specification value
    /// @param B  the right APL argument value
-   virtual Token eval_AXB(Value_P A, Value_P X, Value_P B) const;
+   virtual Token eval_AXB(cValue_R A, cValue_R X, cValue_R B) const;
 
    /// overloaded Function::eval_XB()
    /// @param X  the axis specification value
    /// @param B  the right APL argument value
-   virtual Token eval_XB(Value_P X, Value_P B) const;
+   virtual Token eval_XB(cValue_R X, cValue_R B) const;
 
    static Bif_F12_ROTATE  fun;   ///< Built-in function
 protected:
@@ -475,23 +475,23 @@ public:
    {}
 
    /// overloaded Function::eval_AB()
-   virtual Token eval_AB(Value_P A, Value_P B) const
+   virtual Token eval_AB(cValue_R A, cValue_R B) const
       { return rotate(A, B, 0); }
 
    /// overloaded Function::eval_B()
-   virtual Token eval_B(Value_P B) const
+   virtual Token eval_B(cValue_R B) const
       { return reverse(B, 0); }
 
    /// overloaded Function::eval_AXB()
    /// @param A  the left APL argument value (rotation amounts)
    /// @param X  the axis specification value
    /// @param B  the right APL argument value
-   virtual Token eval_AXB(Value_P A, Value_P X, Value_P B) const;
+   virtual Token eval_AXB(cValue_R A, cValue_R X, cValue_R B) const;
 
    /// overloaded Function::eval_XB()
    /// @param X  the axis specification value
    /// @param B  the right APL argument value
-   virtual Token eval_XB(Value_P X, Value_P B) const;
+   virtual Token eval_XB(cValue_R X, cValue_R B) const;
 
    static Bif_F12_ROTATE1  fun;   ///< Built-in function
 protected:
@@ -509,22 +509,22 @@ public:
 
    /// overloaded Function::eval_B()
    /// @param B  the right APL argument value
-   virtual Token eval_B(Value_P B) const
-      { return do_eval_B(B.get()); }
+   virtual Token eval_B(cValue_R B) const
+      { return do_eval_B(B); }
 
    /// overloaded Function::eval_AB()
    /// @param A  the left APL argument value (axis permutation vector)
    /// @param B  the right APL argument value (array to transpose)
-   virtual Token eval_AB(Value_P A, Value_P B) const;
+   virtual Token eval_AB(cValue_R A, cValue_R B) const;
 
    /// implementation of eval_B()
    /// @param B  the APL array to reverse-transpose (raw pointer)
-   static Token do_eval_B(const Value * B);
+   static Token do_eval_B(cValue_R B);
 
    /// Transpose B according to axes A (without diagonals)
    /// @param A  the permutation shape specifying new axis order
    /// @param B  the APL array to transpose (raw pointer)
-   static Value_P transpose(const Shape & A, const Value * B);
+   static Value_P transpose(const Shape & A, cValue_R B);
 
    static Bif_F12_TRANSPOSE  fun;   ///< Built-in function
 
@@ -542,7 +542,7 @@ protected:
    /// Transpose B according to axes A (with diagonals)
    /// @param A  the permutation shape (may map multiple axes to one)
    /// @param B  the APL array to transpose (raw pointer)
-   static Value_P transpose_diag(const Shape & A, const Value * B);
+   static Value_P transpose_diag(const Shape & A, cValue_R B);
 };
 //────────────────────────────────────────────────────────────────────────────
 /** primitive functions reshape and shape */
@@ -556,13 +556,13 @@ public:
    {}
 
    /// overloaded Function::eval_AB()
-   virtual Token eval_AB(Value_P A, Value_P B) const;
+   virtual Token eval_AB(cValue_R A, cValue_R B) const;
 
    /// overloaded Function::eval_B()
-   virtual Token eval_B(Value_P B) const;
+   virtual Token eval_B(cValue_R B) const;
 
    /// Reshape B according to rank and shape
-   static Token do_reshape(const Shape & shape, const Value & B);
+   static Token do_reshape(const Shape & shape, const cValue & B);
 
    static Bif_F12_RHO  fun;   ///< Built-in function
 protected:
@@ -579,10 +579,10 @@ public:
    {}
 
    /// overloaded Function::eval_AB()
-   virtual Token eval_AB(Value_P A, Value_P B) const;
+   virtual Token eval_AB(cValue_R A, cValue_R B) const;
 
    /// overloaded Function::eval_B()
-   virtual Token eval_B(Value_P B) const;
+   virtual Token eval_B(cValue_R B) const;
 
    /// Built-in function
    static Bif_F12_UNION  fun;
@@ -599,7 +599,7 @@ public:
    {}
 
    /// overloaded Function::eval_AB()
-   virtual Token eval_AB(Value_P A, Value_P B) const;
+   virtual Token eval_AB(cValue_R A, cValue_R B) const;
 
    static Bif_F2_INTER  fun;   ///< Built-in function
 
@@ -617,11 +617,11 @@ public:
    {}
 
    /// overloaded Function::eval_AB()
-   virtual Token eval_AB(Value_P A, Value_P B) const
-      { return Token(TOK_APL_VALUE1, A->clone(LOC)); }
+   virtual Token eval_AB(cValue_R A, cValue_R B) const
+      { return Token(TOK_APL_VALUE1, A.clone(LOC)); }
 
    /// overloaded Function::eval_B()
-   virtual Token eval_B(Value_P B) const
+   virtual Token eval_B(cValue_R B) const
       { return Token(TOK_APL_VALUE2, IntScalar(0, LOC)); }
 
    static Bif_F2_LEFT  fun;   ///< Built-in function
@@ -639,15 +639,15 @@ public:
    {}
 
    /// overloaded Function::eval_AB()
-   virtual Token eval_AB(Value_P A, Value_P B) const
-      { return Token(TOK_APL_VALUE1, B->clone(LOC)); }
+   virtual Token eval_AB(cValue_R A, cValue_R B) const
+      { return Token(TOK_APL_VALUE1, B.clone(LOC)); }
 
    /// overloaded Function::eval_B()
-   virtual Token eval_B(Value_P B) const
-      { return Token(TOK_APL_VALUE1, B->clone(LOC)); }
+   virtual Token eval_B(cValue_R B) const
+      { return Token(TOK_APL_VALUE1, B.clone(LOC)); }
 
    /// overloaded Function::eval_AXB()
-   virtual Token eval_AXB(Value_P A, Value_P X, Value_P B) const;
+   virtual Token eval_AXB(cValue_R A, cValue_R X, cValue_R B) const;
 
    static Bif_F2_RIGHT  fun;   ///< Built-in function
 protected:

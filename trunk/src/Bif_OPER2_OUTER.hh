@@ -40,7 +40,7 @@ public:
    /// overloaded Function::eval_AB().
    /// @param A  left value argument
    /// @param B  right value argument
-   virtual Token eval_AB(Value_P A, Value_P B) const;
+   virtual Token eval_AB(cValue_R A, cValue_R B) const;
 
    static Bif_JOT  fun;             ///< Built-in function.
  
@@ -64,7 +64,7 @@ public:
    /// @param LO  left operator function argument (∘ jot)
    /// @param RO  right operator function argument
    /// @param B   right value argument
-   virtual Token eval_ALRB(Value_P A, Token & LO, Token & RO, Value_P B) const;
+   virtual Token eval_ALRB(cValue_R A, Token & LO, Token & RO, cValue_R B) const;
 
    static Bif_OPER2_OUTER  fun;   ///< Built-in function.
 

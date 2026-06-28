@@ -59,12 +59,12 @@ protected:
    /// overloaded Function::eval_fill_AB()
    /// @param A left argument APL value
    /// @param B right argument APL value
-   virtual Token eval_fill_AB(Value_P A, Value_P B) const
+   virtual Token eval_fill_AB(cValue_R A, cValue_R B) const
       { return do_eval_fill_AB(A, B); }
 
    /// overloaded Function::eval_fill_B()
    /// @param B right argument APL value
-   virtual Token eval_fill_B(Value_P B) const
+   virtual Token eval_fill_B(cValue_R B) const
       { return do_eval_fill_B(B); }
 
    /// overloaded Function::has_result()
@@ -79,11 +79,11 @@ protected:
    /// A helper function for eval_fill_AB().
    /// @param A left argument APL value
    /// @param B right argument APL value
-   Token do_eval_fill_AB(const Value_P A, const Value_P B) const;
+   Token do_eval_fill_AB(cValue_R A, cValue_R B) const;
 
    /// A helper function for eval_fill_B().
    /// @param B right argument APL value
-   Token do_eval_fill_B(const Value_P B) const;
+   Token do_eval_fill_B(cValue_R B) const;
 
    /// compute the dyadic scalar function \b fun along one ravel
    /// @param ec receives error code on failure
@@ -203,14 +203,15 @@ public:
 protected:
    /// overloaded Function::eval_B().
    /// @param B right argument APL value
-   virtual Token eval_B(Value_P B) const
-      { return eval_scalar_B(B, &Cell::bif_factorial); }
+   virtual Token eval_B(cValue_R B) const
+      { return eval_scalar_B(CLONE(&B, LOC), &Cell::bif_factorial); }
 
    /// overloaded Function::eval_AB().
    /// @param A left argument APL value
    /// @param B right argument APL value
-   virtual Token eval_AB(Value_P A, Value_P B) const
-      { return eval_scalar_AB(A, B, &Cell::bif_binomial); }
+   virtual Token eval_AB(cValue_R A, cValue_R B) const
+      { return eval_scalar_AB(CLONE(&A, LOC),
+                       CLONE(&B, LOC), &Cell::bif_binomial); }
 
    /// overloaded Function::get_scalar_f2
    virtual prim_f2 get_scalar_f2() const
@@ -219,15 +220,15 @@ protected:
    /// overloaded Function::eval_identity_fun();
    /// @param B right argument APL value
    /// @param axis axis along which the identity is applied
-   virtual Token eval_identity_fun(Value_P B, sAxis axis) const
-      { return eval_scalar_identity_fun(B, axis, integer_1); }
+   virtual Token eval_identity_fun(cValue_R B, sAxis axis) const
+      { return eval_scalar_identity_fun(CLONE(&B, LOC), axis, integer_1); }
 
    /// overloaded Function::eval_AXB().
    /// @param A left argument APL value
    /// @param X axis specification value
    /// @param B right argument APL value
-   virtual Token eval_AXB(Value_P A, Value_P X, Value_P B) const
-      { return eval_scalar_AXB(A, X, B, &Cell::bif_binomial); }
+   virtual Token eval_AXB(cValue_R A, cValue_R X, cValue_R B) const
+      { return eval_scalar_AXB(CLONE(&A, LOC), CLONE(&X, LOC), CLONE(&B, LOC), &Cell::bif_binomial); }
 };
 //────────────────────────────────────────────────────────────────────────────
 /** Scalar function less than.
@@ -247,8 +248,9 @@ protected:
    /// overloaded Function::eval_AB().
    /// @param A left argument APL value
    /// @param B right argument APL value
-   virtual Token eval_AB(Value_P A, Value_P B) const
-      { return eval_scalar_AB(A, B, &Cell::bif_less_than); }
+   virtual Token eval_AB(cValue_R A, cValue_R B) const
+      { return eval_scalar_AB(CLONE(&A, LOC),
+                       CLONE(&B, LOC), &Cell::bif_less_than); }
 
    /// overloaded Function::get_scalar_f2
    virtual prim_f2 get_scalar_f2() const
@@ -257,15 +259,15 @@ protected:
    /// overloaded Function::eval_identity_fun();
    /// @param B right argument APL value
    /// @param axis axis along which the identity is applied
-   virtual Token eval_identity_fun(Value_P B, sAxis axis) const
-      { return eval_scalar_identity_fun(B, axis, integer_0); }
+   virtual Token eval_identity_fun(cValue_R B, sAxis axis) const
+      { return eval_scalar_identity_fun(CLONE(&B, LOC), axis, integer_0); }
 
    /// overloaded Function::eval_AXB().
    /// @param A left argument APL value
    /// @param X axis specification value
    /// @param B right argument APL value
-   virtual Token eval_AXB(Value_P A, Value_P X, Value_P B) const
-      { return eval_scalar_AXB(A, X, B, &Cell::bif_less_than); }
+   virtual Token eval_AXB(cValue_R A, cValue_R X, cValue_R B) const
+      { return eval_scalar_AXB(CLONE(&A, LOC), CLONE(&X, LOC), CLONE(&B, LOC), &Cell::bif_less_than); }
 };
 //────────────────────────────────────────────────────────────────────────────
 /** Scalar function equal.
@@ -285,8 +287,9 @@ protected:
    /// overloaded Function::eval_AB().
    /// @param A left argument APL value
    /// @param B right argument APL value
-   virtual Token eval_AB(Value_P A, Value_P B) const
-      { return eval_scalar_AB(A, B, &Cell::bif_equal); }
+   virtual Token eval_AB(cValue_R A, cValue_R B) const
+      { return eval_scalar_AB(CLONE(&A, LOC),
+                       CLONE(&B, LOC), &Cell::bif_equal); }
 
    /// overloaded Function::get_scalar_f2
    virtual prim_f2 get_scalar_f2() const
@@ -295,15 +298,15 @@ protected:
    /// overloaded Function::eval_identity_fun();
    /// @param B right argument APL value
    /// @param axis axis along which the identity is applied
-   virtual Token eval_identity_fun(Value_P B, sAxis axis) const
-      { return eval_scalar_identity_fun(B, axis, integer_1); }
+   virtual Token eval_identity_fun(cValue_R B, sAxis axis) const
+      { return eval_scalar_identity_fun(CLONE(&B, LOC), axis, integer_1); }
 
    /// overloaded Function::eval_AXB().
    /// @param A left argument APL value
    /// @param X axis specification value
    /// @param B right argument APL value
-   virtual Token eval_AXB(Value_P A, Value_P X, Value_P B) const
-      { return eval_scalar_AXB(A, X, B, &Cell::bif_equal); }
+   virtual Token eval_AXB(cValue_R A, cValue_R X, cValue_R B) const
+      { return eval_scalar_AXB(CLONE(&A, LOC), CLONE(&X, LOC), CLONE(&B, LOC), &Cell::bif_equal); }
 };
 //────────────────────────────────────────────────────────────────────────────
 /** Scalar function EQ bitwise (i.e. bitwise not A xor B)
@@ -323,8 +326,9 @@ protected:
    /// overloaded Function::eval_AB().
    /// @param A left argument APL value
    /// @param B right argument APL value
-   virtual Token eval_AB(Value_P A, Value_P B) const
-      { return eval_scalar_AB(A, B,
+   virtual Token eval_AB(cValue_R A, cValue_R B) const
+      { return eval_scalar_AB(CLONE(&A, LOC),
+                       CLONE(&B, LOC),
                               &Cell::bif_equal_bitwise); }
 
    /// overloaded Function::get_scalar_f2
@@ -334,15 +338,15 @@ protected:
    /// overloaded Function::eval_identity_fun();
    /// @param B right argument APL value
    /// @param axis axis along which the identity is applied
-   virtual Token eval_identity_fun(Value_P B, sAxis axis) const
-      { return eval_scalar_identity_fun(B, axis, integer_1); }
+   virtual Token eval_identity_fun(cValue_R B, sAxis axis) const
+      { return eval_scalar_identity_fun(CLONE(&B, LOC), axis, integer_1); }
 
    /// overloaded Function::eval_AXB().
    /// @param A left argument APL value
    /// @param X axis specification value
    /// @param B right argument APL value
-   virtual Token eval_AXB(Value_P A, Value_P X, Value_P B) const
-      { return eval_scalar_AXB(A, X, B, &Cell::bif_equal_bitwise); }
+   virtual Token eval_AXB(cValue_R A, cValue_R X, cValue_R B) const
+      { return eval_scalar_AXB(CLONE(&A, LOC), CLONE(&X, LOC), CLONE(&B, LOC), &Cell::bif_equal_bitwise); }
 };
 //────────────────────────────────────────────────────────────────────────────
 /** Scalar function NE bitwise (i.e. bitwise A xor B)
@@ -362,8 +366,9 @@ protected:
    /// overloaded Function::eval_AB().
    /// @param A left argument APL value
    /// @param B right argument APL value
-   virtual Token eval_AB(Value_P A, Value_P B) const
-      { return eval_scalar_AB(A, B, &Cell::bif_not_equal_bitwise); }
+   virtual Token eval_AB(cValue_R A, cValue_R B) const
+      { return eval_scalar_AB(CLONE(&A, LOC),
+                       CLONE(&B, LOC), &Cell::bif_not_equal_bitwise); }
 
    /// overloaded Function::get_scalar_f2
    virtual prim_f2 get_scalar_f2() const
@@ -372,15 +377,15 @@ protected:
    /// overloaded Function::eval_identity_fun();
    /// @param B right argument APL value
    /// @param axis axis along which the identity is applied
-   virtual Token eval_identity_fun(Value_P B, sAxis axis) const
-      { return eval_scalar_identity_fun(B, axis, integer_1); }
+   virtual Token eval_identity_fun(cValue_R B, sAxis axis) const
+      { return eval_scalar_identity_fun(CLONE(&B, LOC), axis, integer_1); }
 
    /// overloaded Function::eval_AXB().
    /// @param A left argument APL value
    /// @param X axis specification value
    /// @param B right argument APL value
-   virtual Token eval_AXB(Value_P A, Value_P X, Value_P B) const
-      { return eval_scalar_AXB(A, X, B, &Cell::bif_not_equal_bitwise); }
+   virtual Token eval_AXB(cValue_R A, cValue_R X, cValue_R B) const
+      { return eval_scalar_AXB(CLONE(&A, LOC), CLONE(&X, LOC), CLONE(&B, LOC), &Cell::bif_not_equal_bitwise); }
 };
 //────────────────────────────────────────────────────────────────────────────
 /** Scalar function greater than.
@@ -400,8 +405,9 @@ protected:
    /// overloaded Function::eval_AB().
    /// @param A left argument APL value
    /// @param B right argument APL value
-   virtual Token eval_AB(Value_P A, Value_P B) const
-      { return eval_scalar_AB(A, B, &Cell::bif_greater_than); }
+   virtual Token eval_AB(cValue_R A, cValue_R B) const
+      { return eval_scalar_AB(CLONE(&A, LOC),
+                       CLONE(&B, LOC), &Cell::bif_greater_than); }
 
    /// overloaded Function::get_scalar_f2
    virtual prim_f2 get_scalar_f2() const
@@ -410,15 +416,15 @@ protected:
    /// overloaded Function::eval_identity_fun();
    /// @param B right argument APL value
    /// @param axis axis along which the identity is applied
-   virtual Token eval_identity_fun(Value_P B, sAxis axis) const
-      { return eval_scalar_identity_fun(B, axis, integer_0); }
+   virtual Token eval_identity_fun(cValue_R B, sAxis axis) const
+      { return eval_scalar_identity_fun(CLONE(&B, LOC), axis, integer_0); }
 
    /// overloaded Function::eval_AXB().
    /// @param A left argument APL value
    /// @param X axis specification value
    /// @param B right argument APL value
-   virtual Token eval_AXB(Value_P A, Value_P X, Value_P B) const
-      { return eval_scalar_AXB(A, X, B, &Cell::bif_greater_than); }
+   virtual Token eval_AXB(cValue_R A, cValue_R X, cValue_R B) const
+      { return eval_scalar_AXB(CLONE(&A, LOC), CLONE(&X, LOC), CLONE(&B, LOC), &Cell::bif_greater_than); }
 };
 //────────────────────────────────────────────────────────────────────────────
 /** Scalar function AND/LCM
@@ -438,8 +444,9 @@ protected:
    /// overloaded Function::eval_AB().
    /// @param A left argument APL value
    /// @param B right argument APL value
-   virtual Token eval_AB(Value_P A, Value_P B) const
-      { return eval_scalar_AB(A, B, &Cell::bif_and); }
+   virtual Token eval_AB(cValue_R A, cValue_R B) const
+      { return eval_scalar_AB(CLONE(&A, LOC),
+                       CLONE(&B, LOC), &Cell::bif_and); }
 
    /// overloaded Function::get_scalar_f2
    virtual prim_f2 get_scalar_f2() const
@@ -451,15 +458,15 @@ protected:
    /// overloaded Function::eval_identity_fun();
    /// @param B right argument APL value
    /// @param axis axis along which the identity is applied
-   virtual Token eval_identity_fun(Value_P B, sAxis axis) const
-      { return eval_scalar_identity_fun(B, axis, integer_1); }
+   virtual Token eval_identity_fun(cValue_R B, sAxis axis) const
+      { return eval_scalar_identity_fun(CLONE(&B, LOC), axis, integer_1); }
 
    /// overloaded Function::eval_AXB().
    /// @param A left argument APL value
    /// @param X axis specification value
    /// @param B right argument APL value
-   virtual Token eval_AXB(Value_P A, Value_P X, Value_P B) const
-      { return eval_scalar_AXB(A, X, B, &Cell::bif_and); }
+   virtual Token eval_AXB(cValue_R A, cValue_R X, cValue_R B) const
+      { return eval_scalar_AXB(CLONE(&A, LOC), CLONE(&X, LOC), CLONE(&B, LOC), &Cell::bif_and); }
 };
 //────────────────────────────────────────────────────────────────────────────
 /** Scalar function AND bitwise
@@ -478,14 +485,15 @@ public:
 protected:
    /// overloaded Function::eval_B().
    /// @param B right argument APL value
-   virtual Token eval_B(Value_P B) const
-      { return eval_scalar_B(B, &Cell::bif_within_quad_CT); }
+   virtual Token eval_B(cValue_R B) const
+      { return eval_scalar_B(CLONE(&B, LOC), &Cell::bif_within_quad_CT); }
 
    /// overloaded Function::eval_AB().
    /// @param A left argument APL value
    /// @param B right argument APL value
-   virtual Token eval_AB(Value_P A, Value_P B) const
-      { return eval_scalar_AB(A, B,
+   virtual Token eval_AB(cValue_R A, cValue_R B) const
+      { return eval_scalar_AB(CLONE(&A, LOC),
+                       CLONE(&B, LOC),
                               &Cell::bif_and_bitwise); }
 
    /// overloaded Function::get_scalar_f2
@@ -498,15 +506,15 @@ protected:
    /// overloaded Function::eval_identity_fun();
    /// @param B right argument APL value
    /// @param axis axis along which the identity is applied
-   virtual Token eval_identity_fun(Value_P B, sAxis axis) const
-      { return eval_scalar_identity_fun(B, axis, integer_1); }
+   virtual Token eval_identity_fun(cValue_R B, sAxis axis) const
+      { return eval_scalar_identity_fun(CLONE(&B, LOC), axis, integer_1); }
 
    /// overloaded Function::eval_AXB().
    /// @param A left argument APL value
    /// @param X axis specification value
    /// @param B right argument APL value
-   virtual Token eval_AXB(Value_P A, Value_P X, Value_P B) const
-      { return eval_scalar_AXB(A, X, B, &Cell::bif_and_bitwise); }
+   virtual Token eval_AXB(cValue_R A, cValue_R X, cValue_R B) const
+      { return eval_scalar_AXB(CLONE(&A, LOC), CLONE(&X, LOC), CLONE(&B, LOC), &Cell::bif_and_bitwise); }
 };
 //────────────────────────────────────────────────────────────────────────────
 /** Scalar function OR/GCD
@@ -526,8 +534,9 @@ protected:
    /// overloaded Function::eval_AB().
    /// @param A left argument APL value
    /// @param B right argument APL value
-   virtual Token eval_AB(Value_P A, Value_P B) const
-      { return eval_scalar_AB(A, B, &Cell::bif_or); }
+   virtual Token eval_AB(cValue_R A, cValue_R B) const
+      { return eval_scalar_AB(CLONE(&A, LOC),
+                       CLONE(&B, LOC), &Cell::bif_or); }
 
    /// overloaded Function::get_scalar_f2
    virtual prim_f2 get_scalar_f2() const
@@ -539,15 +548,15 @@ protected:
    /// overloaded Function::eval_identity_fun();
    /// @param B right argument APL value
    /// @param axis axis along which the identity is applied
-   virtual Token eval_identity_fun(Value_P B, sAxis axis) const
-      { return eval_scalar_identity_fun(B, axis, integer_0); }
+   virtual Token eval_identity_fun(cValue_R B, sAxis axis) const
+      { return eval_scalar_identity_fun(CLONE(&B, LOC), axis, integer_0); }
 
    /// overloaded Function::eval_AXB().
    /// @param A left argument APL value
    /// @param X axis specification value
    /// @param B right argument APL value
-   virtual Token eval_AXB(Value_P A, Value_P X, Value_P B) const
-      { return eval_scalar_AXB(A, X, B, &Cell::bif_or); }
+   virtual Token eval_AXB(cValue_R A, cValue_R X, cValue_R B) const
+      { return eval_scalar_AXB(CLONE(&A, LOC), CLONE(&X, LOC), CLONE(&B, LOC), &Cell::bif_or); }
 };
 //────────────────────────────────────────────────────────────────────────────
 /** Scalar function OR bitwise
@@ -566,14 +575,15 @@ public:
 protected:
    /// overloaded Function::eval_B().
    /// @param B right argument APL value
-   virtual Token eval_B(Value_P B) const
-      { return eval_scalar_B(B, &Cell::bif_near_int64_t); }
+   virtual Token eval_B(cValue_R B) const
+      { return eval_scalar_B(CLONE(&B, LOC), &Cell::bif_near_int64_t); }
 
    /// overloaded Function::eval_AB().
    /// @param A left argument APL value
    /// @param B right argument APL value
-   virtual Token eval_AB(Value_P A, Value_P B) const
-      { return eval_scalar_AB(A, B, &Cell::bif_or_bitwise); }
+   virtual Token eval_AB(cValue_R A, cValue_R B) const
+      { return eval_scalar_AB(CLONE(&A, LOC),
+                       CLONE(&B, LOC), &Cell::bif_or_bitwise); }
 
    /// overloaded Function::get_scalar_f2
    virtual prim_f2 get_scalar_f2() const
@@ -585,15 +595,15 @@ protected:
    /// overloaded Function::eval_identity_fun();
    /// @param B right argument APL value
    /// @param axis axis along which the identity is applied
-   virtual Token eval_identity_fun(Value_P B, sAxis axis) const
-      { return eval_scalar_identity_fun(B, axis, integer_0); }
+   virtual Token eval_identity_fun(cValue_R B, sAxis axis) const
+      { return eval_scalar_identity_fun(CLONE(&B, LOC), axis, integer_0); }
 
    /// overloaded Function::eval_AXB().
    /// @param A left argument APL value
    /// @param X axis specification value
    /// @param B right argument APL value
-   virtual Token eval_AXB(Value_P A, Value_P X, Value_P B) const
-      { return eval_scalar_AXB(A, X, B, &Cell::bif_or_bitwise); }
+   virtual Token eval_AXB(cValue_R A, cValue_R X, cValue_R B) const
+      { return eval_scalar_AXB(CLONE(&A, LOC), CLONE(&X, LOC), CLONE(&B, LOC), &Cell::bif_or_bitwise); }
 };
 //────────────────────────────────────────────────────────────────────────────
 /** Scalar function less or equal.
@@ -613,8 +623,9 @@ protected:
    /// overloaded Function::eval_AB().
    /// @param A left argument APL value
    /// @param B right argument APL value
-   virtual Token eval_AB(Value_P A, Value_P B) const
-      { return eval_scalar_AB(A, B, &Cell::bif_less_eq); }
+   virtual Token eval_AB(cValue_R A, cValue_R B) const
+      { return eval_scalar_AB(CLONE(&A, LOC),
+                       CLONE(&B, LOC), &Cell::bif_less_eq); }
 
    /// overloaded Function::get_scalar_f2()
    virtual prim_f2 get_scalar_f2() const
@@ -623,15 +634,15 @@ protected:
    /// overloaded Function::eval_identity_fun();
    /// @param B right argument APL value
    /// @param axis axis along which the identity is applied
-   virtual Token eval_identity_fun(Value_P B, sAxis axis) const
-      { return eval_scalar_identity_fun(B, axis, integer_1); }
+   virtual Token eval_identity_fun(cValue_R B, sAxis axis) const
+      { return eval_scalar_identity_fun(CLONE(&B, LOC), axis, integer_1); }
 
    /// overloaded Function::eval_AXB().
    /// @param A left argument APL value
    /// @param X axis specification value
    /// @param B right argument APL value
-   virtual Token eval_AXB(Value_P A, Value_P X, Value_P B) const
-      { return eval_scalar_AXB(A, X, B, &Cell::bif_less_eq); }
+   virtual Token eval_AXB(cValue_R A, cValue_R X, cValue_R B) const
+      { return eval_scalar_AXB(CLONE(&A, LOC), CLONE(&X, LOC), CLONE(&B, LOC), &Cell::bif_less_eq); }
 };
 //────────────────────────────────────────────────────────────────────────────
 /** Scalar function greater or equal.
@@ -649,20 +660,21 @@ public:
 
 protected:
    /// overloaded Function::eval_AB().
-   virtual Token eval_AB(Value_P A, Value_P B) const
-      { return eval_scalar_AB(A, B, &Cell::bif_greater_eq); }
+   virtual Token eval_AB(cValue_R A, cValue_R B) const
+      { return eval_scalar_AB(CLONE(&A, LOC),
+                       CLONE(&B, LOC), &Cell::bif_greater_eq); }
 
    /// overloaded Function::get_scalar_f2()
    virtual prim_f2 get_scalar_f2() const
       { return &Cell::bif_greater_eq; }
 
    /// overloaded Function::eval_identity_fun();
-   virtual Token eval_identity_fun(Value_P B, sAxis axis) const
-      { return eval_scalar_identity_fun(B, axis, integer_1); }
+   virtual Token eval_identity_fun(cValue_R B, sAxis axis) const
+      { return eval_scalar_identity_fun(CLONE(&B, LOC), axis, integer_1); }
 
    /// overloaded Function::eval_AXB().
-   virtual Token eval_AXB(Value_P A, Value_P X, Value_P B) const
-      { return eval_scalar_AXB(A, X, B, &Cell::bif_greater_eq); }
+   virtual Token eval_AXB(cValue_R A, cValue_R X, cValue_R B) const
+      { return eval_scalar_AXB(CLONE(&A, LOC), CLONE(&X, LOC), CLONE(&B, LOC), &Cell::bif_greater_eq); }
 };
 //────────────────────────────────────────────────────────────────────────────
 /** Scalar function not equal
@@ -679,11 +691,12 @@ public:
    static Bif_F2_UNEQU  fun;         ///< Built-in function.
 
    /// overloaded Function::eval_AB().
-   virtual Token eval_AB(Value_P A, Value_P B) const
-      { return eval_scalar_AB(A, B, &Cell::bif_not_equal); }
+   virtual Token eval_AB(cValue_R A, cValue_R B) const
+      { return eval_scalar_AB(CLONE(&A, LOC),
+                       CLONE(&B, LOC), &Cell::bif_not_equal); }
 
    /// overloaded Function::eval_B().
-   virtual Token eval_B(Value_P B) const;
+   virtual Token eval_B(cValue_R B) const;
 
    /// overloaded Function::get_scalar_f2()
    virtual prim_f2 get_scalar_f2() const
@@ -691,12 +704,12 @@ public:
 
 protected:
    /// overloaded Function::eval_identity_fun();
-   virtual Token eval_identity_fun(Value_P B, sAxis axis) const
-      { return eval_scalar_identity_fun(B, axis, integer_0); }
+   virtual Token eval_identity_fun(cValue_R B, sAxis axis) const
+      { return eval_scalar_identity_fun(CLONE(&B, LOC), axis, integer_0); }
 
    /// overloaded Function::eval_AXB().
-   virtual Token eval_AXB(Value_P A, Value_P X, Value_P B) const
-      { return eval_scalar_AXB(A, X, B, &Cell::bif_not_equal); }
+   virtual Token eval_AXB(cValue_R A, cValue_R X, cValue_R B) const
+      { return eval_scalar_AXB(CLONE(&A, LOC), CLONE(&X, LOC), CLONE(&B, LOC), &Cell::bif_not_equal); }
 };
 //────────────────────────────────────────────────────────────────────────────
 /** Scalar function find.
@@ -717,7 +730,7 @@ public:
 
 protected:
    /// overloaded Function::eval_AB().
-   virtual Token eval_AB(Value_P A, Value_P B) const;
+   virtual Token eval_AB(cValue_R A, cValue_R B) const;
 
    /// overloaded Function::get_scalar_f2()
    virtual prim_f2 get_scalar_f2() const
@@ -743,16 +756,17 @@ public:
 
 protected:
    /// overloaded Function::eval_AB().
-   virtual Token eval_AB(Value_P A, Value_P B) const
-      { return eval_scalar_AB(A, B, &Cell::bif_nor); }
+   virtual Token eval_AB(cValue_R A, cValue_R B) const
+      { return eval_scalar_AB(CLONE(&A, LOC),
+                       CLONE(&B, LOC), &Cell::bif_nor); }
 
    /// overloaded Function::get_scalar_f2()
    virtual prim_f2 get_scalar_f2() const
       { return &Cell::bif_nor; }
 
    /// overloaded Function::eval_AXB().
-   virtual Token eval_AXB(Value_P A, Value_P X, Value_P B) const
-      { return eval_scalar_AXB(A, X, B, &Cell::bif_nor); }
+   virtual Token eval_AXB(cValue_R A, cValue_R X, cValue_R B) const
+      { return eval_scalar_AXB(CLONE(&A, LOC), CLONE(&X, LOC), CLONE(&B, LOC), &Cell::bif_nor); }
 };
 //────────────────────────────────────────────────────────────────────────────
 /** Scalar function NOR bitwise
@@ -770,12 +784,13 @@ public:
 
 protected:
    /// overloaded Function::eval_B().
-   virtual Token eval_B(Value_P B) const
-      { return eval_scalar_B(B, &Cell::bif_not_bitwise); }
+   virtual Token eval_B(cValue_R B) const
+      { return eval_scalar_B(CLONE(&B, LOC), &Cell::bif_not_bitwise); }
 
    /// overloaded Function::eval_AB().
-   virtual Token eval_AB(Value_P A, Value_P B) const
-      { return eval_scalar_AB(A, B,
+   virtual Token eval_AB(cValue_R A, cValue_R B) const
+      { return eval_scalar_AB(CLONE(&A, LOC),
+                       CLONE(&B, LOC),
                               &Cell::bif_nor_bitwise); }
 
    /// overloaded Function::get_scalar_f2()
@@ -783,8 +798,8 @@ protected:
       { return &Cell::bif_nor_bitwise; }
 
    /// overloaded Function::eval_AXB().
-   virtual Token eval_AXB(Value_P A, Value_P X, Value_P B) const
-      { return eval_scalar_AXB(A, X, B, &Cell::bif_nor_bitwise); }
+   virtual Token eval_AXB(cValue_R A, cValue_R X, cValue_R B) const
+      { return eval_scalar_AXB(CLONE(&A, LOC), CLONE(&X, LOC), CLONE(&B, LOC), &Cell::bif_nor_bitwise); }
 };
 //────────────────────────────────────────────────────────────────────────────
 /** Scalar function nand.
@@ -802,16 +817,17 @@ public:
 
 protected:
    /// overloaded Function::eval_AB().
-   virtual Token eval_AB(Value_P A, Value_P B) const
-      { return eval_scalar_AB(A, B, &Cell::bif_nand); }
+   virtual Token eval_AB(cValue_R A, cValue_R B) const
+      { return eval_scalar_AB(CLONE(&A, LOC),
+                       CLONE(&B, LOC), &Cell::bif_nand); }
 
    /// overloaded Function::get_scalar_f2()
    virtual prim_f2 get_scalar_f2() const
       { return &Cell::bif_nand; }
 
    /// overloaded Function::eval_AXB().
-   virtual Token eval_AXB(Value_P A, Value_P X, Value_P B) const
-      { return eval_scalar_AXB(A, X, B, &Cell::bif_nand); }
+   virtual Token eval_AXB(cValue_R A, cValue_R X, cValue_R B) const
+      { return eval_scalar_AXB(CLONE(&A, LOC), CLONE(&X, LOC), CLONE(&B, LOC), &Cell::bif_nand); }
 };
 //────────────────────────────────────────────────────────────────────────────
 /** Scalar function NAND bitwise
@@ -829,16 +845,17 @@ public:
 
 protected:
    /// overloaded Function::eval_AB().
-   virtual Token eval_AB(Value_P A, Value_P B) const
-      { return eval_scalar_AB(A, B, &Cell::bif_nand_bitwise); }
+   virtual Token eval_AB(cValue_R A, cValue_R B) const
+      { return eval_scalar_AB(CLONE(&A, LOC),
+                       CLONE(&B, LOC), &Cell::bif_nand_bitwise); }
 
    /// overloaded Function::get_scalar_f2()
    virtual prim_f2 get_scalar_f2() const
       { return &Cell::bif_nand_bitwise; }
 
    /// overloaded Function::eval_AXB().
-   virtual Token eval_AXB(Value_P A, Value_P X, Value_P B) const
-      { return eval_scalar_AXB(A, X, B, &Cell::bif_nand_bitwise); }
+   virtual Token eval_AXB(cValue_R A, cValue_R X, cValue_R B) const
+      { return eval_scalar_AXB(CLONE(&A, LOC), CLONE(&X, LOC), CLONE(&B, LOC), &Cell::bif_nand_bitwise); }
 };
 //────────────────────────────────────────────────────────────────────────────
 /** Scalar functions power and exponential.
@@ -856,24 +873,25 @@ public:
 
 protected:
    /// overloaded Function::eval_B().
-   virtual Token eval_B(Value_P B) const
-      { return eval_scalar_B(B, &Cell::bif_exponential); }
+   virtual Token eval_B(cValue_R B) const
+      { return eval_scalar_B(CLONE(&B, LOC), &Cell::bif_exponential); }
 
    /// overloaded Function::eval_AB().
-   virtual Token eval_AB(Value_P A, Value_P B) const
-      { return eval_scalar_AB(A, B, &Cell::bif_power); }
+   virtual Token eval_AB(cValue_R A, cValue_R B) const
+      { return eval_scalar_AB(CLONE(&A, LOC),
+                       CLONE(&B, LOC), &Cell::bif_power); }
 
    /// overloaded Function::get_scalar_f2()
    virtual prim_f2 get_scalar_f2() const
       { return &Cell::bif_power; }
 
    /// overloaded Function::eval_identity_fun();
-   virtual Token eval_identity_fun(Value_P B, sAxis axis) const
-      { return eval_scalar_identity_fun(B, axis, integer_1); }
+   virtual Token eval_identity_fun(cValue_R B, sAxis axis) const
+      { return eval_scalar_identity_fun(CLONE(&B, LOC), axis, integer_1); }
 
    /// overloaded Function::eval_AXB().
-   virtual Token eval_AXB(Value_P A, Value_P X, Value_P B) const
-      { return eval_scalar_AXB(A, X, B, &Cell::bif_power); }
+   virtual Token eval_AXB(cValue_R A, cValue_R X, cValue_R B) const
+      { return eval_scalar_AXB(CLONE(&A, LOC), CLONE(&X, LOC), CLONE(&B, LOC), &Cell::bif_power); }
 
    /// overloaded Function::get_monadic_inverse()
    virtual cFunction_P get_monadic_inverse() const;
@@ -895,12 +913,13 @@ public:
    {}
 
    /// overloaded Function::eval_B().
-   virtual Token eval_B(Value_P B) const
-      { return eval_scalar_B(B, &Cell::bif_conjugate); }
+   virtual Token eval_B(cValue_R B) const
+      { return eval_scalar_B(CLONE(&B, LOC), &Cell::bif_conjugate); }
 
    /// overloaded Function::eval_AB().
-   virtual Token eval_AB(Value_P A, Value_P B) const
-      { return eval_scalar_AB(A, B,
+   virtual Token eval_AB(cValue_R A, cValue_R B) const
+      { return eval_scalar_AB(CLONE(&A, LOC),
+                       CLONE(&B, LOC),
                inverse ? &Cell::bif_add_inverse : &Cell::bif_add); }
 
    /// overloaded Function::get_scalar_f2()
@@ -915,12 +934,12 @@ public:
 
 protected:
    /// overloaded Function::eval_identity_fun();
-   virtual Token eval_identity_fun(Value_P B, sAxis axis) const
-      { return eval_scalar_identity_fun(B, axis, integer_0); }
+   virtual Token eval_identity_fun(cValue_R B, sAxis axis) const
+      { return eval_scalar_identity_fun(CLONE(&B, LOC), axis, integer_0); }
 
    /// overloaded Function::eval_AXB().
-   virtual Token eval_AXB(Value_P A, Value_P X, Value_P B) const
-      { return eval_scalar_AXB(A, X, B, &Cell::bif_add); }
+   virtual Token eval_AXB(cValue_R A, cValue_R X, cValue_R B) const
+      { return eval_scalar_AXB(CLONE(&A, LOC), CLONE(&X, LOC), CLONE(&B, LOC), &Cell::bif_add); }
 
    /// overloaded Function::get_dyadic_inverse()
    virtual cFunction_P get_dyadic_inverse() const;
@@ -946,24 +965,25 @@ public:
 
 protected:
    /// overloaded Function::eval_AB()
-   virtual Token eval_AB(Value_P A, Value_P B) const
-      { return eval_scalar_AB(A, B, &Cell::bif_subtract); }
+   virtual Token eval_AB(cValue_R A, cValue_R B) const
+      { return eval_scalar_AB(CLONE(&A, LOC),
+                       CLONE(&B, LOC), &Cell::bif_subtract); }
 
    /// overloaded Function::eval_B().
-   virtual Token eval_B(Value_P B) const
-      { return eval_scalar_B(B, &Cell::bif_negative); }
+   virtual Token eval_B(cValue_R B) const
+      { return eval_scalar_B(CLONE(&B, LOC), &Cell::bif_negative); }
 
    /// overloaded Function::get_scalar_f2()
    virtual prim_f2 get_scalar_f2() const
       { return &Cell::bif_subtract; }
 
    /// overloaded Function::eval_identity_fun();
-   virtual Token eval_identity_fun(Value_P B, sAxis axis) const
-      { return eval_scalar_identity_fun(B, axis, integer_0); }
+   virtual Token eval_identity_fun(cValue_R B, sAxis axis) const
+      { return eval_scalar_identity_fun(CLONE(&B, LOC), axis, integer_0); }
 
    /// overloaded Function::eval_AXB().
-   virtual Token eval_AXB(Value_P A, Value_P X, Value_P B) const
-      { return eval_scalar_AXB(A, X, B, &Cell::bif_subtract); }
+   virtual Token eval_AXB(cValue_R A, cValue_R X, cValue_R B) const
+      { return eval_scalar_AXB(CLONE(&A, LOC), CLONE(&X, LOC), CLONE(&B, LOC), &Cell::bif_subtract); }
 
    /// overloaded Function::get_monadic_inverse()
    virtual cFunction_P get_monadic_inverse() const;
@@ -987,11 +1007,11 @@ public:
 
 protected:
    /// overloaded Function::eval_B().
-   virtual Token eval_B(Value_P B) const;
+   virtual Token eval_B(cValue_R B) const;
 
    /// dial A from B.
    /// overloaded Function::eval_AB().
-   virtual Token eval_AB(Value_P A, Value_P B) const;
+   virtual Token eval_AB(cValue_R A, cValue_R B) const;
 
    /// overloaded Function::get_scalar_f2
    virtual prim_f2 get_scalar_f2() const
@@ -1002,7 +1022,7 @@ protected:
 
    /// recursively check that all ravel elements of B are integers ≥ 0 and
    /// return \b true iff not.
-   static bool check_B(const Value & B, double qct);
+   static bool check_B(const cValue & B, double qct);
 };
 //────────────────────────────────────────────────────────────────────────────
 /** Scalar function not and non-scalar function without.
@@ -1020,26 +1040,26 @@ public:
 
    /// Compute A without B.
    /// overloaded Function::eval_AB().
-   virtual Token eval_AB(Value_P A, Value_P B) const;
+   virtual Token eval_AB(cValue_R A, cValue_R B) const;
 
    /// Overloaded Function::eval_identity_fun. Dyadic ∼ is not scalar, therefore
    /// its eval_identity_fun() differs from ScalarFunction::eval_identity_fun().
-   virtual Token eval_identity_fun(Value_P B, sAxis axis) const;
+   virtual Token eval_identity_fun(cValue_R B, sAxis axis) const;
 
    /// overloaded ScalarFunction::may_parallel()
    virtual bool may_parallel() const   { return false; }
 
 protected:
    /// overloaded Function::eval_B().
-   virtual Token eval_B(Value_P B) const
-      { return eval_scalar_B(B, &Cell::bif_not); }
+   virtual Token eval_B(cValue_R B) const
+      { return eval_scalar_B(CLONE(&B, LOC), &Cell::bif_not); }
 
    /// overloaded Function::get_scalar_f2
    virtual prim_f2 get_scalar_f2() const
       { return 0; }
 
    /// eval_AB for large A and/or B
-   static Value_P large_eval_AB(const Value & A, const Value & B);
+   static Value_P large_eval_AB(const cValue & A, const cValue & B);
 };
 //────────────────────────────────────────────────────────────────────────────
 /** Scalar functions times and direction.
@@ -1058,14 +1078,15 @@ public:
    static Bif_F12_TIMES  fun_inverse;   ///< Built-in function.
 
    /// overloaded Function::eval_AB().
-   virtual Token eval_AB(Value_P A, Value_P B) const
-      { return eval_scalar_AB(A, B,
+   virtual Token eval_AB(cValue_R A, cValue_R B) const
+      { return eval_scalar_AB(CLONE(&A, LOC),
+                       CLONE(&B, LOC),
                inverse ? &Cell::bif_multiply_inverse : &Cell::bif_multiply); }
 
 protected:
    /// overloaded Function::eval_B().
-   virtual Token eval_B(Value_P B) const
-      { return eval_scalar_B(B, &Cell::bif_direction); }
+   virtual Token eval_B(cValue_R B) const
+      { return eval_scalar_B(CLONE(&B, LOC), &Cell::bif_direction); }
 
    /// overloaded Function::get_scalar_f2()
    virtual prim_f2 get_scalar_f2() const
@@ -1075,12 +1096,12 @@ protected:
    virtual assoc_f2 get_assoc() const { return &Cell::bif_multiply; }
 
    /// overloaded Function::eval_identity_fun();
-   virtual Token eval_identity_fun(Value_P B, sAxis axis) const
-      { return eval_scalar_identity_fun(B, axis, integer_1); }
+   virtual Token eval_identity_fun(cValue_R B, sAxis axis) const
+      { return eval_scalar_identity_fun(CLONE(&B, LOC), axis, integer_1); }
 
    /// overloaded Function::eval_AXB().
-   virtual Token eval_AXB(Value_P A, Value_P X, Value_P B) const
-      { return eval_scalar_AXB(A, X, B, &Cell::bif_multiply); }
+   virtual Token eval_AXB(cValue_R A, cValue_R X, cValue_R B) const
+      { return eval_scalar_AXB(CLONE(&A, LOC), CLONE(&X, LOC), CLONE(&B, LOC), &Cell::bif_multiply); }
 
    /// overloaded Function::get_dyadic_inverse()
    virtual cFunction_P get_dyadic_inverse() const;
@@ -1106,24 +1127,25 @@ public:
 
 protected:
    /// overloaded Function::eval_B().
-   virtual Token eval_B(Value_P B) const
-      { return eval_scalar_B(B, &Cell::bif_reciprocal); }
+   virtual Token eval_B(cValue_R B) const
+      { return eval_scalar_B(CLONE(&B, LOC), &Cell::bif_reciprocal); }
 
    /// overloaded Function::eval_AB().
-   virtual Token eval_AB(Value_P A, Value_P B) const
-      { return eval_scalar_AB(A, B, &Cell::bif_divide); }
+   virtual Token eval_AB(cValue_R A, cValue_R B) const
+      { return eval_scalar_AB(CLONE(&A, LOC),
+                       CLONE(&B, LOC), &Cell::bif_divide); }
 
    /// overloaded Function::get_scalar_f2
    virtual prim_f2 get_scalar_f2() const
       { return &Cell::bif_divide; }
 
    /// overloaded Function::eval_identity_fun();
-   virtual Token eval_identity_fun(Value_P B, sAxis axis) const
-      { return eval_scalar_identity_fun(B, axis, integer_1); }
+   virtual Token eval_identity_fun(cValue_R B, sAxis axis) const
+      { return eval_scalar_identity_fun(CLONE(&B, LOC), axis, integer_1); }
 
    /// overloaded Function::eval_AXB().
-   virtual Token eval_AXB(Value_P A, Value_P X, Value_P B) const
-      { return eval_scalar_AXB(A, X, B, &Cell::bif_divide); }
+   virtual Token eval_AXB(cValue_R A, cValue_R X, cValue_R B) const
+      { return eval_scalar_AXB(CLONE(&A, LOC), CLONE(&X, LOC), CLONE(&B, LOC), &Cell::bif_divide); }
 
    /// overloaded Function::get_monadic_inverse()
    virtual cFunction_P get_monadic_inverse() const;
@@ -1149,13 +1171,14 @@ public:
 
 protected:
    /// overloaded Function::eval_B().
-   virtual Token eval_B(Value_P B) const
-      { return eval_scalar_B(B,
+   virtual Token eval_B(cValue_R B) const
+      { return eval_scalar_B(CLONE(&B, LOC),
                inverse ? &Cell::bif_pi_times_inverse : &Cell::bif_pi_times); }
 
    /// overloaded Function::eval_AB().
-   virtual Token eval_AB(Value_P A, Value_P B) const
-      { return eval_scalar_AB(A, B, inverse ? &Cell::bif_circle_fun_inverse
+   virtual Token eval_AB(cValue_R A, cValue_R B) const
+      { return eval_scalar_AB(CLONE(&A, LOC),
+                       CLONE(&B, LOC), inverse ? &Cell::bif_circle_fun_inverse
                                             : &Cell::bif_circle_fun); }
 
    /// overloaded Function::get_scalar_f2
@@ -1190,12 +1213,13 @@ public:
 
 protected:
    /// overloaded Function::eval_B().
-   virtual Token eval_B(Value_P B) const
-      { return eval_scalar_B(B, &Cell::bif_ceiling); }
+   virtual Token eval_B(cValue_R B) const
+      { return eval_scalar_B(CLONE(&B, LOC), &Cell::bif_ceiling); }
 
    /// overloaded Function::eval_AB().
-   virtual Token eval_AB(Value_P A, Value_P B) const
-      { return eval_scalar_AB(A, B, &Cell::bif_maximum); }
+   virtual Token eval_AB(cValue_R A, cValue_R B) const
+      { return eval_scalar_AB(CLONE(&A, LOC),
+                       CLONE(&B, LOC), &Cell::bif_maximum); }
 
    /// overloaded Function::get_scalar_f2()
    virtual prim_f2 get_scalar_f2() const
@@ -1205,12 +1229,12 @@ protected:
    virtual assoc_f2 get_assoc() const { return &Cell::bif_maximum; }
 
    /// overloaded Function::eval_identity_fun();
-   virtual Token eval_identity_fun(Value_P B, sAxis axis) const
-      { return eval_scalar_identity_fun(B, axis, float_min); }
+   virtual Token eval_identity_fun(cValue_R B, sAxis axis) const
+      { return eval_scalar_identity_fun(CLONE(&B, LOC), axis, float_min); }
 
    /// overloaded Function::eval_AXB().
-   virtual Token eval_AXB(Value_P A, Value_P X, Value_P B) const
-      { return eval_scalar_AXB(A, X, B, &Cell::bif_maximum); }
+   virtual Token eval_AXB(cValue_R A, cValue_R X, cValue_R B) const
+      { return eval_scalar_AXB(CLONE(&A, LOC), CLONE(&X, LOC), CLONE(&B, LOC), &Cell::bif_maximum); }
 };
 //────────────────────────────────────────────────────────────────────────────
 /** Scalar functions minimum and round down.
@@ -1228,12 +1252,13 @@ public:
 
 protected:
    /// overloaded Function::eval_B().
-   virtual Token eval_B(Value_P B) const
-      { return eval_scalar_B(B, &Cell::bif_floor); }
+   virtual Token eval_B(cValue_R B) const
+      { return eval_scalar_B(CLONE(&B, LOC), &Cell::bif_floor); }
 
    /// overloaded Function::eval_AB().
-   virtual Token eval_AB(Value_P A, Value_P B) const
-      { return eval_scalar_AB(A, B, &Cell::bif_minimum); }
+   virtual Token eval_AB(cValue_R A, cValue_R B) const
+      { return eval_scalar_AB(CLONE(&A, LOC),
+                       CLONE(&B, LOC), &Cell::bif_minimum); }
 
    /// overloaded Function::get_scalar_f2()
    virtual prim_f2 get_scalar_f2() const
@@ -1243,12 +1268,12 @@ protected:
    virtual assoc_f2 get_assoc() const { return &Cell::bif_minimum; }
 
    /// overloaded Function::eval_identity_fun();
-   virtual Token eval_identity_fun(Value_P B, sAxis axis) const
-      { return eval_scalar_identity_fun(B, axis, float_max); }
+   virtual Token eval_identity_fun(cValue_R B, sAxis axis) const
+      { return eval_scalar_identity_fun(CLONE(&B, LOC), axis, float_max); }
 
    /// overloaded Function::eval_AXB().
-   virtual Token eval_AXB(Value_P A, Value_P X, Value_P B) const
-      { return eval_scalar_AXB(A, X, B, &Cell::bif_minimum); }
+   virtual Token eval_AXB(cValue_R A, cValue_R X, cValue_R B) const
+      { return eval_scalar_AXB(CLONE(&A, LOC), CLONE(&X, LOC), CLONE(&B, LOC), &Cell::bif_minimum); }
 };
 //────────────────────────────────────────────────────────────────────────────
 /** Scalar functions residue and magnitude.
@@ -1265,8 +1290,9 @@ public:
    static Bif_F12_STILE  fun;       ///< Built-in function.
 
    /// overloaded Function::eval_AB().
-   virtual Token eval_AB(Value_P A, Value_P B) const
-      { return eval_scalar_AB(A, B, &Cell::bif_residue); }
+   virtual Token eval_AB(cValue_R A, cValue_R B) const
+      { return eval_scalar_AB(CLONE(&A, LOC),
+                       CLONE(&B, LOC), &Cell::bif_residue); }
 
    /// overloaded Function::get_scalar_f2()
    virtual prim_f2 get_scalar_f2() const
@@ -1274,16 +1300,16 @@ public:
 
 protected:
    /// overloaded Function::eval_B().
-   virtual Token eval_B(Value_P B) const
-      { return eval_scalar_B(B, &Cell::bif_magnitude); }
+   virtual Token eval_B(cValue_R B) const
+      { return eval_scalar_B(CLONE(&B, LOC), &Cell::bif_magnitude); }
 
    /// overloaded Function::eval_identity_fun();
-   virtual Token eval_identity_fun(Value_P B, sAxis axis) const
-   { return eval_scalar_identity_fun(B, axis, integer_0); }
+   virtual Token eval_identity_fun(cValue_R B, sAxis axis) const
+   { return eval_scalar_identity_fun(CLONE(&B, LOC), axis, integer_0); }
 
    /// overloaded Function::eval_AXB().
-   virtual Token eval_AXB(Value_P A, Value_P X, Value_P B) const
-      { return eval_scalar_AXB(A, X, B, &Cell::bif_residue); }
+   virtual Token eval_AXB(cValue_R A, cValue_R X, cValue_R B) const
+      { return eval_scalar_AXB(CLONE(&A, LOC), CLONE(&X, LOC), CLONE(&B, LOC), &Cell::bif_residue); }
 };
 //────────────────────────────────────────────────────────────────────────────
 /** Scalar functions logarithms.
@@ -1301,20 +1327,21 @@ public:
 
 protected:
    /// overloaded Function::eval_B().
-   virtual Token eval_B(Value_P B) const
-      { return eval_scalar_B(B, &Cell::bif_nat_log); }
+   virtual Token eval_B(cValue_R B) const
+      { return eval_scalar_B(CLONE(&B, LOC), &Cell::bif_nat_log); }
 
    /// overloaded Function::eval_AB().
-   virtual Token eval_AB(Value_P A, Value_P B) const
-      { return eval_scalar_AB(A, B, &Cell::bif_logarithm); }
+   virtual Token eval_AB(cValue_R A, cValue_R B) const
+      { return eval_scalar_AB(CLONE(&A, LOC),
+                       CLONE(&B, LOC), &Cell::bif_logarithm); }
 
    /// overloaded Function::get_scalar_f2()
    virtual prim_f2 get_scalar_f2() const
       { return &Cell::bif_logarithm; }
 
    /// overloaded Function::eval_AXB().
-   virtual Token eval_AXB(Value_P A, Value_P X, Value_P B) const
-      { return eval_scalar_AXB(A, X, B, &Cell::bif_logarithm); }
+   virtual Token eval_AXB(cValue_R A, cValue_R X, cValue_R B) const
+      { return eval_scalar_AXB(CLONE(&A, LOC), CLONE(&X, LOC), CLONE(&B, LOC), &Cell::bif_logarithm); }
 
    /// overloaded Function::get_monadic_inverse()
    virtual cFunction_P get_monadic_inverse() const;

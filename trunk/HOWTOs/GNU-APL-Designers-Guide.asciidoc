@@ -738,7 +738,7 @@ do not like them.
 == Debugging
 
 GNU APL has a number of built-in means to locate faults. In a code base of
-around 120,000 LOC, locating the fault in the source file takes most of the
+around 130,000 LOC, locating the fault in the source file takes most of the
 time required to fix it. Many of the GNU APL debugging facilities have
 performance impacts; they need to be enabled. The make target *develop*, i.e.
 
@@ -2598,9 +2598,10 @@ The base class *Cell* is inherited by the following derived classes:
 
 * *CharCell*, their relevant content is a single 32-bit Unicode,
 * *IntCell*, their relevant content is a single 64-bit signed integer,
-* *RealCell*, their relevant content is a 64-bit floating point number,
+* *FloatCell*, their relevant content is a 64-bit floating point number,
 * *ComplexCell*, their relevant content is two 64-bit floating point numbers
-* *NumericCell*, the base class of *IntCell*, *RealCell*, and *ComplexCell*.
+* *RealCell*, the abstract intermediate base class of *IntCell* and *FloatCell*.
+* *NumericCell*, the base class of *RealCell* and *ComplexCell*.
    Many Cell functions are almost identical for these base classes and these
    functions are implemented in *NumericCell* rather than implementing a
    copy in each base class. The simple trick that replaces hundreds of
@@ -3482,7 +3483,7 @@ However, not all possible bitmaps are valid signatures (e.g. a function with
 a left argument but no right argument):
 
 ----
-   APL_types.hh:
+   APL_enums.hh:
    ...
 /// signature of a defined function
 enum Fun_signature
@@ -4270,7 +4271,7 @@ Token
 Quad_FOO::eval_B(Value_P B) const
 {
 Value_P Z(LOC);                       // makes Z an APL scalar,
-   Z->next_ravel_int(42);             // which is the integer 42
+   Z->next_ravel_Int(42);             // which is the integer 42
    Z->check_value(LOC);               // check Z and set its Z->VF_complete flag
    return Token(TOK_APL_VALUE1, Z);   // return the result.
 }
@@ -4393,14 +4394,14 @@ Quad_FOO::eval_B(Value_P B) const
    //
    if (B->element_count() != 1)   // rank or length error
       {
-        if (B->get_ranke() != 1)   RANK_ERROR;
+        if (B->get_rank() != 1)   RANK_ERROR;
         else                       LENGTH_ERROR;
       }
 
 const Cell & B0 = B->get_cfirst();          // first item in B
 const APL_Integer b = B0.get_int_value();   // DOMAIN_ERROR for non integers
 UCS_string z("FOO-");                       // z is string "FOO-"
-   z.append_number(b);                      // now z is e.g. "FOO-42"
+   z.append_int(b);                         // now z is e.g. "FOO-42"
 
 Value_P Z(z);                         // constructor: APL value from string
    return Token(TOK_APL_VALUE1, Z);   // return the result.
@@ -4452,8 +4453,8 @@ class Quad_FOO : public SystemVariable
 {
 public:
    /// Constructor.
-   Quad_IO()
-   : SystemVariable(ID_Quad_IO)
+   Quad_FOO()
+   : SystemVariable(ID_Quad_FOO)
       {
          Symbol::assign(IntScalar(0, LOC), false, LOC);
       }

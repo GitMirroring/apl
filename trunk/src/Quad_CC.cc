@@ -157,19 +157,19 @@ CC_MATH::contains(Unicode uni) const
 }
 //════════════════════════════════════════════════════════════════════════════
 Token
-Quad_CC::eval_AB(Value_P A, Value_P B) const
+Quad_CC::eval_AB(cValue_R A, cValue_R B) const
 {
-Value_P Z(A->get_shape(), LOC);
+Value_P Z(A.get_shape(), LOC);
    new (&Z->get_wproto())   IntCell(0);   // prototype
  
-   loop(a, A->element_count())
+   loop(a, A.element_count())
        {
-         const Unicode uni_a = A->get_cravel(a).get_char_value();
+         const Unicode uni_a = A.get_cravel(a).get_char_value();
          bool found = false;
-         loop(b, B->element_count())
+         loop(b, B.element_count())
              {
                const CC_base::CharClass cc =
-                     CC_base::CharClass(B->get_cravel(b).get_int_value());
+                     CC_base::CharClass(B.get_cravel(b).get_int_value());
                if (contained_in(uni_a, cc))
                   {
                     found = true;
@@ -185,28 +185,28 @@ Value_P Z(A->get_shape(), LOC);
 }
 //────────────────────────────────────────────────────────────────────────────
 Token
-Quad_CC::eval_B(Value_P B) const
+Quad_CC::eval_B(cValue_R B) const
 {
-   if (B->get_rank() > 1)         RANK_ERROR;
-   if (B->element_count() == 0)
+   if (B.get_rank() > 1)         RANK_ERROR;
+   if (B.element_count() == 0)
       {
         print_classes(CERR);
         return Token();
       }
 
-   if (B->is_scalar())
+   if (B.is_scalar())
       {
         const CC_base::CharClass b =
-              CC_base::CharClass(B->get_cfirst().get_int_value());
+              CC_base::CharClass(B.get_cfirst().get_int_value());
         Value_P Z = get_character_class(b);
         return Token(TOK_APL_VALUE1, Z);
       }
 
-Value_P Z(B->get_shape(), LOC);
-   loop(b, B->element_count())
+Value_P Z(B.get_shape(), LOC);
+   loop(b, B.element_count())
        {
          const CC_base::CharClass bb =
-               CC_base::CharClass(B->get_cravel(b).get_int_value());
+               CC_base::CharClass(B.get_cravel(b).get_int_value());
         Value_P ZZ = get_character_class(bb);
         Z->next_ravel_Pointer(ZZ.get());
        }

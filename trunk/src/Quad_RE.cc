@@ -33,27 +33,27 @@ Quad_RE Quad_RE::fun;
 
 //════════════════════════════════════════════════════════════════════════════
 Token
-Quad_RE::eval_AXB(Value_P A, Value_P X, Value_P B) const
+Quad_RE::eval_AXB(cValue_R A, cValue_R X, cValue_R B) const
 {
-   if (A->get_rank() > 1)   RANK_ERROR;
-   if (X->get_rank() > 1)   RANK_ERROR;
+   if (A.get_rank() > 1)   RANK_ERROR;
+   if (X.get_rank() > 1)   RANK_ERROR;
 
-   if (!A->is_char_string())
+   if (!A.is_char_string())
       {
         MORE_ERROR() << "left ⎕RE arguments must be a string value";
         DOMAIN_ERROR;
       }
 
-Flags flags(X->get_UCS_ravel());
-Regexp regexp(A->get_UCS_ravel(), flags.get_compflags());
+Flags flags(X.get_UCS_ravel());
+Regexp regexp(A.get_UCS_ravel(), flags.get_compflags());
 
-const Shape & shape = B->get_shape();
+const Shape & shape = B.get_shape();
     if (shape.get_rank() == 0)
         return Token(TOK_APL_VALUE1, Idx0(LOC));
 
-    if (B->is_char_string())
+    if (B.is_char_string())
        {
-         Value_P Z = regex_results(regexp, flags, B->get_UCS_ravel());
+         Value_P Z = regex_results(regexp, flags, B.get_UCS_ravel());
          Z->check_value(LOC);
          return Token(TOK_APL_VALUE1, Z);
        }
@@ -61,7 +61,7 @@ const Shape & shape = B->get_shape();
 Value_P Z(shape, LOC);
    for (ShapeItem i = 0 ; i < shape.get_volume() ; i++)
        {
-         const Cell & cell = B->get_cravel(i);
+         const Cell & cell = B.get_cravel(i);
          Value_P B_sub = cell.to_value(LOC);
          if (!B_sub->is_char_string())
             {
@@ -404,7 +404,7 @@ vector<int> ccount(ovector_count,   0);   // 0 children
 #else // ! HAVE_LIBPCRE2_32
 
 Token
-Quad_RE::eval_AXB(Value_P A, Value_P X, Value_P B) const
+Quad_RE::eval_AXB(cValue_R A, cValue_R X, cValue_R B) const
 {
 const char * libs[] = { "libpcre.so",   0 };
 const char * hdrs[] = { "pcre2.h",      0 };

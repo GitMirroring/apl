@@ -655,7 +655,7 @@ public:
    /// return 0-based indices i1, i2, ... iN so that
    /// value[i1] < value[i2] < ... < value[iN].
    static ErrorCode sorted_indices(vector<ShapeItem> & indices,
-                                     const Value & value, Sort_order order,
+                                     const cValue & value, Sort_order order,
                                      ShapeItem comp_len);
 
    /// ISO p.19: return \b true if real A is tolerantly equal to real B within C

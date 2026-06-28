@@ -63,11 +63,11 @@ protected:
    /// Overloaded Function::eval_AB().
    /// @param A left-argument APL value (access control vector)
    /// @param B right-argument APL value (shared variable name)
-   virtual Token eval_AB(Value_P A, Value_P B) const;
+   virtual Token eval_AB(cValue_R A, cValue_R B) const;
 
    /// Overloaded Function::eval_B().
    /// @param B right-argument APL value (shared variable name)
-   virtual Token eval_B(Value_P B) const;
+   virtual Token eval_B(cValue_R B) const;
 };
 //────────────────────────────────────────────────────────────────────────────
 /**
@@ -110,11 +110,11 @@ protected:
    /// Overloaded Function::eval_AB().
    /// @param A left-argument APL value (processor number)
    /// @param B right-argument APL value (variable name to share)
-   virtual Token eval_AB(Value_P A, Value_P B) const;
+   virtual Token eval_AB(cValue_R A, cValue_R B) const;
 
    /// Overloaded Function::eval_B().
    /// @param B right-argument APL value (variable name to share)
-   virtual Token eval_B(Value_P B) const;
+   virtual Token eval_B(cValue_R B) const;
 
    /// share one variable
    /// @param proc target auxiliary processor number
@@ -139,7 +139,7 @@ public:
 protected:
    /// Overloaded Function::eval_B().
    /// @param B right-argument APL value (query selector)
-   virtual Token eval_B(Value_P B) const;
+   virtual Token eval_B(cValue_R B) const;
 
    /// return processors with matching offers
    static Value_P get_processors();
@@ -164,7 +164,7 @@ public:
 protected:
    /// Overloaded Function::eval_B().
    /// @param B right-argument APL value (variable name to retract)
-   virtual Token eval_B(Value_P B) const;
+   virtual Token eval_B(cValue_R B) const;
 };
 //════════════════════════════════════════════════════════════════════════════
 /**
@@ -182,7 +182,7 @@ public:
 protected:
    /// Overloaded Function::eval_B().
    /// @param B right-argument APL value (variable name to query)
-   virtual Token eval_B(Value_P B) const;
+   virtual Token eval_B(cValue_R B) const;
 };
 //════════════════════════════════════════════════════════════════════════════
 

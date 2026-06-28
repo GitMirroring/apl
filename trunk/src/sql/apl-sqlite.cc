@@ -106,7 +106,7 @@ static int find_free_connection( void )
 }
 
 static Token
-open_database(const Value & A, const Value & B)
+open_database(const cValue & A, const cValue & B)
 {
     if (!A.is_apl_char_vector() )
        {
@@ -449,7 +449,7 @@ Token eval_AXB(const Value_P A, const Value_P X, const Value_P B)
         return list_functions(CERR);
 
     case 1:
-        return open_database(*A, *B);
+        return open_database(*A.get(), *B.get());
 
     case 3:
         return run_query(param_to_db(X), A, B);

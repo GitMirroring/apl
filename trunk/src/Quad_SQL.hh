@@ -54,7 +54,7 @@ public:
    /// @param A left-argument APL value (SQL statement or parameters)
    /// @param X axis argument identifying the database connection
    /// @param B right-argument APL value (query parameters)
-   static Value_P run_query(const Value & A, const Value & X, const Value & B)
+   static Value_P run_query(const cValue & A, const cValue & X, const cValue & B)
       { return run_generic(param_to_db(X), A, B, /*  query = */ true); }
 
 
@@ -62,7 +62,7 @@ public:
    /// @param A left-argument APL value (SQL statement or parameters)
    /// @param X axis argument identifying the database connection
    /// @param B right-argument APL value (update parameters)
-   static Value_P run_update(const Value & A, const Value & X, const Value & B)
+   static Value_P run_update(const cValue & A, const cValue & X, const cValue & B)
       { return run_generic(param_to_db(X), A, B, /*  query = */ false); }
 
 
@@ -73,22 +73,22 @@ protected:
    /// overloaded Function::eval_AB().
    /// @param A left-argument APL value (SQL command or options)
    /// @param B right-argument APL value (query parameters or data)
-   virtual Token eval_AB(Value_P A, Value_P B) const;
+   virtual Token eval_AB(cValue_R A, cValue_R B) const;
 
    /// overloaded Function::eval_AXB().
    /// @param A left-argument APL value (SQL command or options)
    /// @param X axis argument identifying the database connection
    /// @param B right-argument APL value (query parameters or data)
-   virtual Token eval_AXB(Value_P A, Value_P X, Value_P B) const;
+   virtual Token eval_AXB(cValue_R A, cValue_R X, cValue_R B) const;
 
    /// overloaded Function::eval_B().
    /// @param B right-argument APL value (SQL sub-function selector)
-   virtual Token eval_B(Value_P B) const;
+   virtual Token eval_B(cValue_R B) const;
 
    /// overloaded Function::eval_XB().
    /// @param X axis argument identifying the database connection
    /// @param B right-argument APL value (SQL sub-function selector)
-   virtual Token eval_XB(Value_P X, Value_P B) const;
+   virtual Token eval_XB(cValue_R X, cValue_R B) const;
 
    /// overloaded FunctionGroup::print_map_syntax()
    /// @param out output stream to write to
@@ -107,7 +107,7 @@ protected:
    /// open a database, return its handle
    /// @param A left-argument APL value (connection options)
    /// @param B right-argument APL value (database filename or URL)
-   static Value_P open_database(const Value & A, const Value & B);
+   static Value_P open_database(const cValue & A, const cValue & B);
 
    /// return the names of the database columns
    /// @param A left-argument APL value identifying the table
@@ -119,8 +119,8 @@ protected:
    /// @param A left-argument APL value (SQL statement)
    /// @param B right-argument APL value (bind parameters)
    /// @param query true for read-only query, false for read/write update
-   static Value_P run_generic(Connection * conn, const Value & A,
-                              const Value & B, bool query);
+   static Value_P run_generic(Connection * conn, const cValue & A,
+                              const cValue & B, bool query);
 
    /// return the version number of the SQL provider named B
    /// @param ucs_B provider name string
@@ -136,7 +136,7 @@ protected:
    /// @param start first parameter index to bind
    /// @param num_args number of parameters to bind
    static Value_P run_generic_one_query(ArgListBuilder * arg_list,
-                                        const Value & B, int start,
+                                        const cValue & B, int start,
                                         int num_args);
 
    /// @param filename database file path to search for
@@ -171,7 +171,7 @@ protected:
    /// only with B nested and ↑B being the database handle).
    ///
    /// @param X axis argument encoding the function number and optional DB handle
-   static Connection * param_to_db(const Value & X);
+   static Connection * param_to_db(const cValue & X);
 
    /// init a table of supported provides (as detected by ./configure)
    static void init_provider_map();
@@ -207,7 +207,7 @@ protected:
    /// @param A left-argument APL value (SQL statement or options)
    /// @param X axis argument identifying the database connection
    /// @param B right-argument APL value (query parameters)
-   virtual Token eval_AXB(Value_P A, Value_P X, Value_P B) const;
+   virtual Token eval_AXB(cValue_R A, cValue_R X, cValue_R B) const;
 };
 //────────────────────────────────────────────────────────────────────────────
 
@@ -224,7 +224,7 @@ protected:
    /// @param A left-argument APL value (SQL statement or options)
    /// @param X axis argument identifying the database connection
    /// @param B right-argument APL value (query parameters)
-   virtual Token eval_AXB(Value_P A, Value_P X, Value_P B) const;
+   virtual Token eval_AXB(cValue_R A, cValue_R X, cValue_R B) const;
 };
 //════════════════════════════════════════════════════════════════════════════
 

@@ -94,7 +94,7 @@ const ValueStackItem & vs = value_stack[0];
    if (vs.get_NC() == NC_VARIABLE)
       {
         UCS_string_vector CR10;
-        const Value * value = vs.get_val_cptr();
+        const cValue * value = vs.get_val_cptr();
         Quad_CR::do_CR10_variable(CR10, get_name(), value);
 
         if (value->is_member())
@@ -191,7 +191,7 @@ Symbol::get_apl_value() const
    if (value_stack.back().get_NC() != NC_VARIABLE)
       Error::throw_symbol_error(get_name(), LOC);
 
-   return Value_P(const_cast<Value *>(value_stack.back().get_val_cptr()), LOC);
+   return Value_P(static_cast<Value *>(const_cast<cValue *>(value_stack.back().get_val_cptr())), LOC);
 }
 //────────────────────────────────────────────────────────────────────────────
 const Cell *
@@ -235,7 +235,7 @@ Symbol::get_SI_level(cFunction_P fun) const
 }
 //────────────────────────────────────────────────────────────────────────────
 int
-Symbol::get_SI_level(const Value & val) const
+Symbol::get_SI_level(const cValue & val) const
 {
    loop(v, value_stack.size())
        {
@@ -630,7 +630,7 @@ Value_P Z = get_apl_value();
         Shape IX1;
         for (ShapeItem ix = IX.get_rank() - 1; ix >= 0; --ix)
             {
-              const Value * ix_val = IX.values[ix].get();
+              const cValue * ix_val = IX.values[ix].get();
               if (ix_val)   // non-elided index
                  {
                    if (ix_val->element_count() == 0)   return;   // empty index
@@ -678,7 +678,7 @@ const int incr_B = (ec_B == 1) ? 0 : 1;
 }
 //────────────────────────────────────────────────────────────────────────────
 void
-Symbol::assign_indexed(const Value * X, Value_P B)   // A[X] ← B
+Symbol::assign_indexed(const cValue * X, Value_P B)   // A[X] ← B
 {
    // this function is only called for A[X}←B when X is one-dimensional,
    // i.e. an index with no semicolons. If X contains semicolons, then
@@ -1051,7 +1051,7 @@ int has_result = 0;   // no result
                 break;
 
         case 4: {
-                  const Value * val = get_val_cptr();
+                  const cValue * val = get_val_cptr();
                   const CDR_type cdr_type = val->get_CDR_type();
                   const int brutto = val->total_CDR_size_brutto(cdr_type);
                   const int data = val->CDR_data_size(cdr_type);
@@ -1123,7 +1123,7 @@ const ValueStackItem & vs = value_stack.back();
       {
         Log(LOG_SYMBOL_push_pop)
            {
-             const Value * ret = get_val_cptr();
+             const cValue * ret = get_val_cptr();
              CERR << "-pop-value " << name
                   << " flags " << ret->get_flags() << " ";
              if (value_stack.size() == 0)   CERR << " (last)";
@@ -1179,7 +1179,7 @@ Symbol::print_verbose(ostream & out) const
 
               case NC_VARIABLE:
                    {
-                      const Value * val = item.get_val_cptr();
+                      const cValue * val = item.get_val_cptr();
                       out << "Variable at " << voidP(val) << endl;
                       val->print_properties(out, 8, false);
                       out << endl;

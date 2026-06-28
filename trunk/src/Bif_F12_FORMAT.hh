@@ -168,7 +168,7 @@ public:
    /// A character array with B formatted by specification
    /// @param A format specification APL value (numeric width and precision)
    /// @param B APL value to format
-   static Value_P format_by_specification(Value_P A, Value_P B);
+   static Value_P format_by_specification(cValue_R A, cValue_R B);
 
    /// Return true iff uni is '0' .. '9', comma, or full-stop
    /// @param uni Unicode character to test
@@ -176,24 +176,24 @@ public:
 
    /// A character array with the display of B
    /// @param B APL value to format
-   static Value_P monadic_format(Value_P B);
+   static Value_P monadic_format(cValue_R B);
 
    static Bif_F12_FORMAT  fun;   ///< Built-in function
 
 protected:
    /// Overloaded Function::eval_B()
    /// @param B right argument APL value
-   virtual Token eval_B(Value_P B) const;
+   virtual Token eval_B(cValue_R B) const;
 
    /// Overloaded Function::eval_AB()
    /// @param A left argument APL value (format specification or example)
    /// @param B right argument APL value to format
-   virtual Token eval_AB(Value_P A, Value_P B) const;
+   virtual Token eval_AB(cValue_R A, cValue_R B) const;
 
    /// A character array with B formatted by example
    /// @param A format example APL value (character string with picture)
    /// @param B APL value to format
-   static Value_P format_by_example(Value_P A, Value_P B);
+   static Value_P format_by_example(cValue_R A, cValue_R B);
 
    /// split entire format string string into \b column format strings
    /// @param format overall format picture string to split

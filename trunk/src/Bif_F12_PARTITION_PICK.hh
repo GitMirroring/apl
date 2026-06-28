@@ -40,39 +40,39 @@ public:
 
    /// overloaded Function::eval_B()
    /// @param B right argument APL value
-   virtual Token eval_B(Value_P B) const
+   virtual Token eval_B(cValue_R B) const
       { return Token(TOK_APL_VALUE1, do_eval_B(B)); }
 
    /// implementation of eval_B()
    /// @param B right argument APL value
-   static Value_P do_eval_B(Value_P B);
+   static Value_P do_eval_B(cValue_R B);
 
    /// overloaded Function::eval_AB()
    /// @param A left argument APL value
    /// @param B right argument APL value
-   virtual Token eval_AB(Value_P A, Value_P B) const
-      { return Token(TOK_APL_VALUE1, partition(A, B, B->get_rank() - 1)); }
+   virtual Token eval_AB(cValue_R A, cValue_R B) const
+      { return Token(TOK_APL_VALUE1, partition(A, B, B.get_rank() - 1)); }
 
    /// overloaded Function::eval_XB()
    /// @param X axis argument APL value
    /// @param B right argument APL value
-   virtual Token eval_XB(Value_P X, Value_P B) const
+   virtual Token eval_XB(cValue_R X, cValue_R B) const
       {
-        X->to_bitmap("⊂[X] B", B->get_rank());   // check X
-        const Shape shape_X = Value::to_shape(X.get());
-        return Token(TOK_APL_VALUE1, enclose_with_axes(shape_X, B));
+        X.to_bitmap("⊂[X] B", B.get_rank());   // check X
+        const Shape shape_X = Value::to_shape(&X);
+        return Token(TOK_APL_VALUE1, enclose_with_axes(shape_X, CLONE(&B, LOC)));
       }
 
    /// implementation of eval_XB()
    /// @param X axis argument APL value
    /// @param B right argument APL value
-   static Value_P do_eval_XB(Value_P X, Value_P B);
+   static Value_P do_eval_XB(cValue_R X, cValue_R B);
 
    /// overloaded Function::eval_AXB()
    /// @param A left argument APL value
    /// @param X axis argument APL value
    /// @param B right argument APL value
-   virtual Token eval_AXB(Value_P A, Value_P X, Value_P B) const;
+   virtual Token eval_AXB(cValue_R A, cValue_R X, cValue_R B) const;
 
    static Bif_F12_PARTITION  fun;   ///< Built-in function
 
@@ -101,7 +101,7 @@ protected:
    /// @param A left argument APL value (partition mask)
    /// @param B right argument APL value
    /// @param axis axis along which to partition
-   static Value_P partition(Value_P A, Value_P B, sAxis axis);
+   static Value_P partition(cValue_R A, cValue_R B, sAxis axis);
 };
 //════════════════════════════════════════════════════════════════════════════
 /** primitive functions pick and disclose */
@@ -117,17 +117,17 @@ public:
    /// overloaded Function::eval_AB()
    /// @param A left argument APL value
    /// @param B right argument APL value
-   virtual Token eval_AB(Value_P A, Value_P B) const;
+   virtual Token eval_AB(cValue_R A, cValue_R B) const;
 
    /// overloaded Function::eval_B()
    /// @param B right argument APL value
-   virtual Token eval_B(Value_P B) const
+   virtual Token eval_B(cValue_R B) const
       { return Token(TOK_APL_VALUE1, disclose(B, true)); }
 
    /// ⊃B
    /// @param B right argument APL value
    /// @param rank_tolerant if true, allow rank mismatches when padding items
-   static Value_P disclose(Value_P B, bool rank_tolerant);
+   static Value_P disclose(cValue_R B, bool rank_tolerant);
 
    /// create a copy of B_item, pad as needed to have item_shape, and
    /// store it in Z, starteding at Z_start.
@@ -143,16 +143,16 @@ public:
    /// overloaded Function::eval_XB()
    /// @param X axis argument APL value
    /// @param B right argument APL value
-   virtual Token eval_XB(Value_P X, Value_P B) const
+   virtual Token eval_XB(cValue_R X, cValue_R B) const
       {
-        const Shape sh_X = Value::to_shape(X.get());
+        const Shape sh_X = Value::to_shape(&X);
         return Token(TOK_APL_VALUE1, disclose_with_axis(sh_X, B));
       }
 
    /// ⊃[X]B
    /// @param axes_X axes along which to disclose
    /// @param B right argument APL value
-   static Value_P disclose_with_axis(const Shape & axes_X, Value_P B);
+   static Value_P disclose_with_axis(const Shape & axes_X, cValue_R B);
 
    static Bif_F12_PICK  fun;   ///< Built-in function
 
@@ -160,7 +160,7 @@ protected:
    /// the shape of the items being disclosed
    /// @param B right argument APL value
    /// @param rank_tolerant if true, allow rank mismatches when padding items
-   static Shape compute_item_shape(Value_P B, bool rank_tolerant);
+   static Shape compute_item_shape(cValue_R B, bool rank_tolerant);
 
    /// Pick from B according to cA and len_A. \b cell_owner is non-zero
    /// if a left-vlues is picked, (e.g (2 1⊃B)←'TR')
@@ -170,7 +170,7 @@ protected:
    /// @param B right argument APL value
    /// @param qio current value of ⎕IO
    static Value_P pick(const Cell * const A0, ShapeItem idx_A, ShapeItem len_A,
-                       const Value * B, APL_Integer qio);
+                       cValue_R B, APL_Integer qio);
 
    /// compute the offset of the Cell in B that shall be picked.
    /// @param A0 pointer to the first cell of the index array A
@@ -179,7 +179,7 @@ protected:
    /// @param B right argument APL value
    /// @param qio current value of ⎕IO
    static ShapeItem pick_offset(const Cell * const A0, ShapeItem idx_A,
-                                ShapeItem len_A, const Value * B,
+                                ShapeItem len_A, cValue_R B,
                                 APL_Integer qio);
 };
 //════════════════════════════════════════════════════════════════════════════

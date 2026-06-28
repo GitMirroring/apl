@@ -147,21 +147,22 @@ file_entry f2(stderr, STDERR_FILENO);   f2.path << "stderr";
 }
 //────────────────────────────────────────────────────────────────────────────
 Token
-Quad_FIO::eval_AB(Value_P A, Value_P B) const
+Quad_FIO::eval_AB(cValue_R A, cValue_R B) const
 {
    CHECK_SECURITY(disable_Quad_FIO);
 
-   if (A->get_rank() > 1)   RANK_ERROR;
-   if (B->get_rank() > 1)   RANK_ERROR;
+   if (A.get_rank() > 1)   RANK_ERROR;
+   if (B.get_rank() > 1)   RANK_ERROR;
 
-   if (B->is_str0())    return list_functions(CERR);
-   if (B->is_zilde())   return list_mappings(CERR);
+   if (B.is_str0())    return list_functions(CERR);
+   if (B.is_zilde())   return list_mappings(CERR);
 
-const APL_Integer function_number = B->get_cfirst().get_int_value();
+const APL_Integer function_number = B.get_cfirst().get_int_value();
+Value_P B_vp = CLONE(&B, LOC);
    switch(function_number)
       {
         case -3: // read probe A and clear it
-             return eval_AB___3(A);
+             return eval_AB___3(CLONE(&A, LOC));
 
         default: break;
       }
@@ -170,140 +171,143 @@ const APL_Integer function_number = B->get_cfirst().get_int_value();
 }
 //────────────────────────────────────────────────────────────────────────────
 Token
-Quad_FIO::eval_AXB(const Value_P A, const Value_P X, const Value_P B) const
+Quad_FIO::eval_AXB(cValue_R A, cValue_R X, cValue_R B) const
 {
    CHECK_SECURITY(disable_Quad_FIO);
 
-   if (A->get_rank() > 1)   RANK_ERROR;
-   if (B->get_rank() > 1)   RANK_ERROR;
+   if (A.get_rank() > 1)   RANK_ERROR;
+   if (B.get_rank() > 1)   RANK_ERROR;
 
-const sAxis function_number = value_to_subfun(*X);
+Value_P A_vp = CLONE(&A, LOC);
+Value_P B_vp = CLONE(&B, LOC);
+const sAxis function_number = value_to_subfun(X);
    switch(function_number)
       {
          case 0:   // list functions
               return list_functions(COUT);
 
          case 3:   // fopen(Bs, As) filename Bs mode As
-              return eval_AXB__3(A, B);
+              return eval_AXB__3(A_vp, B_vp);
 
          case 6:   // fread(Zi, 1, Ai, Bh) 1 byte per Zi
-              return eval_AXB__6(A, B);
+              return eval_AXB__6(A_vp, B_vp);
 
          case 7:   // fwrite(Ai, 1, ⍴Ai, Bh) 1 byte per Zi
-              return eval_AXB__7(A, B);
+              return eval_AXB__7(A_vp, B_vp);
 
          case 8:   // fgets(Zi, Ai, Bh) 1 byte per Zi
-              return eval_AXB__8(A, B);
+              return eval_AXB__8(A_vp, B_vp);
 
          case 13:   // fseek(Bh, Ai, SEEK_SET)
-              return eval_AXB__13(A, B);
+              return eval_AXB__13(A_vp, B_vp);
 
          case 14:   // fseek(Bh, Ai, SEEK_CUR)
-              return eval_AXB__14(A, B);
+              return eval_AXB__14(A_vp, B_vp);
 
          case 15:   // fseek(Bh, Ai, SEEK_END)
-              return eval_AXB__15(A, B);
+              return eval_AXB__15(A_vp, B_vp);
 
          case 20:   // mkdir(Bc, Ai)
-              return eval_AXB__20(A, B);
+              return eval_AXB__20(A_vp, B_vp);
 
          case 22:   // fprintf(Bh, A) ←→
                     // fprintf(FILE *stream, const char *format, ...)
-              return eval_AXB__22(A, B);
+              return eval_AXB__22(A_vp, B_vp);
 
          case 23:   // fwrite(Ac, 1, ⍴Ac, Bh) Unicode Ac Output UTF-8
-              return eval_AXB__23(A, B);
+              return eval_AXB__23(A_vp, B_vp);
 
          case 24:   // popen(Bs, As) command Bs mode As
-              return eval_AXB__24(A, B);
+              return eval_AXB__24(A_vp, B_vp);
 
          case 27:   // rename(As, Bs)
-              return eval_AXB__27(A, B);
+              return eval_AXB__27(A_vp, B_vp);
 
          case 31:   // access
-              return eval_AXB__31(A, B);
+              return eval_AXB__31(A_vp, B_vp);
 
          case 33:   // bind(Bh, Aa)
-              return eval_AXB__33(A, B);
+              return eval_AXB__33(A_vp, B_vp);
 
          case 34:   // listen(Bh, Ai)
-              return eval_AXB__34(A, B);
+              return eval_AXB__34(A_vp, B_vp);
 
          case 36:   // connect(Bh, Aa)
-              return eval_AXB__36(A, B);
+              return eval_AXB__36(A_vp, B_vp);
 
          case 37:   // recv(Bh, Zi, Ai, 0) 1 byte per Zi
-              return eval_AXB__37(A, B);
+              return eval_AXB__37(A_vp, B_vp);
 
          case 38:   // send(Bh, Ai, ⍴Ai, 0) 1 byte per Zi
-              return eval_AXB__38(A, B);
+              return eval_AXB__38(A_vp, B_vp);
 
          case 39:   // send(Bh, Ac, ⍴Ac, 0) Unicode Ac Output UTF-8
-              return eval_AXB__39(A, B);
+              return eval_AXB__39(A_vp, B_vp);
 
          case 41:   // read(Bh, Zi, Ai) 1 byte per Zi
-              return eval_AXB__41(A, B);
+              return eval_AXB__41(A_vp, B_vp);
 
          case 42:   // write(Bh, Ai, ⍴Ai) 1 byte per Zi
-              return eval_AXB__42(A, B);
+              return eval_AXB__42(A_vp, B_vp);
 
          case 43:   // write(Bh, Ac, ⍴Ac) Unicode Ac Output UTF-8
-              return eval_AXB__43(A, B);
+              return eval_AXB__43(A_vp, B_vp);
 
          case 46:   // getsockopt(Bh, A_level, A_optname, Zi)
-              return eval_AXB__46(A, B);
+              return eval_AXB__46(A_vp, B_vp);
 
          case 47:   // setsockopt(Bh, A_level, A_optname, A_optval)
-              return eval_AXB__47(A, B);
+              return eval_AXB__47(A_vp, B_vp);
 
          case 48:   // fscanf(Bh, A_format)
-              return eval_AXB__48(A, B);
+              return eval_AXB__48(A_vp, B_vp);
 
          case 55:   // sscanf(Bh, A_format)
-              return eval_AXB__55(A, B);
+              return eval_AXB__55(A_vp, B_vp);
 
          case 56:   // write nested lines As to file Bs
-              return eval_AXB__56(A, B);
+              return eval_AXB__56(A_vp, B_vp);
 
          case 58:   // snprintf(Af, B...)
-              return eval_AXB__58(A, B);
+              return eval_AXB__58(A_vp, B_vp);
 
          case 59:   // fcntl(Bh, Ai...)
-              return eval_AXB__59(A, B);
+              return eval_AXB__59(A_vp, B_vp);
 
          case 60:   // random value(s)
-              return eval_AXB__60(A, B);
+              return eval_AXB__60(A_vp, B_vp);
 
          case 202:   // set monadic parallel threshold
          case 203:   // set dyadic parallel threshold
-              return eval_AXB__202(A, B, function_number);
+              return eval_AXB__202(A_vp, B_vp, function_number);
 
         default: bad_subfun_number_ERROR(function_number);
       }
 }
 //────────────────────────────────────────────────────────────────────────────
 Token
-Quad_FIO::eval_B(Value_P B) const
+Quad_FIO::eval_B(cValue_R B) const
 {
    CHECK_SECURITY(disable_Quad_FIO);
 
-   if (B->get_rank() > 1)   RANK_ERROR;
+   if (B.get_rank() > 1)   RANK_ERROR;
 
-   if (B->element_count() == 0)   // '' or ⍬
+   if (B.element_count() == 0)   // '' or ⍬
       {
-        if (B->is_str0())    return list_functions(CERR);
-        if (B->is_zilde())   return list_mappings(CERR);
+        if (B.is_str0())    return list_functions(CERR);
+        if (B.is_zilde())   return list_mappings(CERR);
         DOMAIN_ERROR;
       }
 
-const APL_Integer function_number = B->get_cfirst().get_int_value();
+const APL_Integer function_number = B.get_cfirst().get_int_value();
+Value_P B_vp = CLONE(&B, LOC);
    switch(function_number)
       {
         // function_numbers < 0 refer to "hacker functions" that should not be
         // used by normal mortals.
         //
         case -18: // memory test
-             return eval_B___18(B);
+             return eval_B___18(B_vp);
 
         case -17: // emulate Assert1()
              Assert1(0 && "Simulated Assert1() (aka. ⎕FIO ¯17)");
@@ -370,7 +374,7 @@ NOT_MINGW(
              return eval_B__0();
 
         case 30:   // getcwd()
-             return eval_B__30(B);
+             return eval_B__30(B_vp);
 
         default: break;
       }
@@ -379,13 +383,14 @@ NOT_MINGW(
 }
 //────────────────────────────────────────────────────────────────────────────
 Token
-Quad_FIO::eval_XB(Value_P X, Value_P B) const
+Quad_FIO::eval_XB(cValue_R X, cValue_R B) const
 {
    CHECK_SECURITY(disable_Quad_FIO);
 
-   if (B->get_rank() > 1)   RANK_ERROR;
+   if (B.get_rank() > 1)   RANK_ERROR;
 
-   switch(const APL_Integer function_number = value_to_subfun(*X))
+Value_P B_vp = CLONE(&B, LOC);
+   switch(const APL_Integer function_number = value_to_subfun(X))
       {
          case 0:   // list functions
               return list_functions(CERR);
@@ -394,138 +399,138 @@ Quad_FIO::eval_XB(Value_P X, Value_P B) const
               goto out_errno;
 
          case 2:   // return strerror(B)
-              return eval_XB__2(B);
+              return eval_XB__2(B_vp);
 
          case 3:   // fopen(Bs, "r") filename Bs
-              return eval_XB__3(B);
+              return eval_XB__3(B_vp);
 
          case 4:   // fclose(Bh)
-              return eval_XB__4(B);
+              return eval_XB__4(B_vp);
 
          case 5:   // errno of Bh
               {
                 errno = 0;
-                file_entry & fe = get_file_entry(*B.get());
+                file_entry & fe = get_file_entry(B);
                 return Token(TOK_APL_VALUE1, IntScalar(fe.fe_errno, LOC));
               }
 
          case 6:   // fread(Zi, 1, SMALL_BUF, Bh) 1 byte per Zi
-              return eval_XB__6(B);
+              return eval_XB__6(B_vp);
 
          case 8:   // fgets(Zi, SMALL_BUF, Bh) 1 byte per Zi
-              return eval_XB__8(B);
+              return eval_XB__8(B_vp);
 
          case 9:   // fgetc(Bh)
               {
-                FILE * file = get_FILE(*B.get());
+                FILE * file = get_FILE(B);
                 return Token(TOK_APL_VALUE1, IntScalar(fgetc(file), LOC));
               }
 
          case 10:   // feof(Bh)
               {
-                FILE * file = get_FILE(*B.get());
+                FILE * file = get_FILE(B);
                 return Token(TOK_APL_VALUE1, IntScalar(feof(file), LOC));
               }
 
          case 11:   // ferror(Bh)
               {
-                FILE * file = get_FILE(*B.get());
+                FILE * file = get_FILE(B);
                 return Token(TOK_APL_VALUE1, IntScalar(ferror(file),LOC));
               }
 
          case 12:   // ftell(Bh)
               {
-                FILE * file = get_FILE(*B.get());
+                FILE * file = get_FILE(B);
                 return Token(TOK_APL_VALUE1, IntScalar(ftell(file),LOC));
               }
 
          case 16:   // fflush(Bh)
-              return eval_XB__16(B);
+              return eval_XB__16(B_vp);
 
          case 17:   // fsync(Bh)
-              return eval_XB__17(B);
+              return eval_XB__17(B_vp);
 
          case 18:   // fstat(Bh)
-              return eval_XB__18(B);
+              return eval_XB__18(B_vp);
 
          case 19:   // unlink(Bc)
-              return eval_XB__19(B);
+              return eval_XB__19(B_vp);
 
          case 20:   // mkdir(Bc)
-              return eval_XB__20(B);
+              return eval_XB__20(B_vp);
 
          case 21:   // rmdir(Bc)
-              return eval_XB__21(B);
+              return eval_XB__21(B_vp);
 
          case 24:   // popen(Bs, "r") command Bs
-              return eval_XB__24(B);
+              return eval_XB__24(B_vp);
 
          case 25:   // pclose(Bh)
-              return eval_XB__25(B);
+              return eval_XB__25(B_vp);
 
          case 26:   // read entire file
-              return eval_XB__26(B);
+              return eval_XB__26(B_vp);
 
          case 28:   // read directory Bs
          case 29:   // read file names in directory Bs
-              return eval_XB__28(B, function_number);
+              return eval_XB__28(B_vp, function_number);
 
          case 32:   // socket(Bi=AF_INET, SOCK_STREAM, 0)
-              return eval_XB__32(B);
+              return eval_XB__32(B_vp);
 
          case 34:   // listen(Bh, 10)
-              return eval_XB__34(B);
+              return eval_XB__34(B_vp);
 
          case 35:   // accept(Bh)
-              return eval_XB__35(B);
+              return eval_XB__35(B_vp);
 
          case 37:   // recv(Bh, Zi, SMALL_BUF, 0) 1 byte per Zi
-              return eval_XB__37(B);
+              return eval_XB__37(B_vp);
 
          case 40:   // select(Br, Bw, Be, Bt)
-              return eval_XB__40(B);
+              return eval_XB__40(B_vp);
 
          case 41:   // read(Bh, Zi, SMALL_BUF) 1 byte per Zi
-              return eval_XB__41(B);
+              return eval_XB__41(B_vp);
 
          case 44:   // getsockname(Bh, Zi)
-              return eval_XB__44(B);
+              return eval_XB__44(B_vp);
 
          case 45:   // getpeername(Bh, Zi)
-              return eval_XB__45(B);
+              return eval_XB__45(B_vp);
 
          case 49:   // read entire file as nested lines
-              return eval_XB__49(B);
+              return eval_XB__49(B_vp);
 
          case 50:   // gettimeofday
-              return eval_XB__50(B);
+              return eval_XB__50(B_vp);
 
          case 51:   // mktime
-              return eval_XB__51(B);
+              return eval_XB__51(B_vp);
 
          case 52:   // localtime
          case 53:   // gmtime
-              return eval_XB__52(B, function_number);
+              return eval_XB__52(B_vp, function_number);
 
          case 54:    // chdir
-              return eval_XB__54(B);
+              return eval_XB__54(B_vp);
 
          case 57:   // fork() + execve() in the child
-              return eval_XB__57(B);
+              return eval_XB__57(B_vp);
 
          case 60:   // random value
-              return eval_XB__60(B);
+              return eval_XB__60(B_vp);
 
          case 200:   // clear statistics Bi
          case 201:   // get statistics Bi
-              return eval_XB__200(B, function_number);
+              return eval_XB__200(B_vp, function_number);
 
          case 202:   // get monadic parallel threshold
          case 203:   // get dyadic  parallel threshold
-              return eval_XB__202(B, function_number);
+              return eval_XB__202(B_vp, function_number);
 
          case 61:   // secs_epoch(Bh)
-              return Token(TOK_APL_VALUE1, IntScalar(secs_epoch(*B), LOC));
+              return Token(TOK_APL_VALUE1, IntScalar(secs_epoch(B), LOC));
 
         default: bad_subfun_number_ERROR(function_number);
       }
@@ -695,13 +700,13 @@ uint32_t uni = 0;
 }
 //────────────────────────────────────────────────────────────────────────────
 Token
-Quad_FIO::eval_ALXB(Value_P A, Token & LO, Value_P X, Value_P B) const
+Quad_FIO::eval_ALXB(cValue_R A, Token & LO, cValue_R X, cValue_R B) const
 {
-const APL_Integer function_number = X->get_cfirst().get_int_value();
+const APL_Integer function_number = X.get_cfirst().get_int_value();
    switch(function_number)
       {
         case -1:   // benchmark monadic LO with argument B
-             return eval_ALXB___1(A, LO, B);
+             return eval_ALXB___1(CLONE(&A, LOC), LO, CLONE(&B, LOC));
       }
 
    MORE_ERROR() << "Bad function number (axis X) in operator A LO ⎕FIO[X] B";
@@ -709,7 +714,7 @@ const APL_Integer function_number = X->get_cfirst().get_int_value();
 }
 //────────────────────────────────────────────────────────────────────────────
 Token
-Quad_FIO::eval_LXB(Token & LO, Value_P X, Value_P B) const
+Quad_FIO::eval_LXB(Token & LO, cValue_R X, cValue_R B) const
 {
    CHECK_SECURITY(disable_Quad_FIO);
 
@@ -727,16 +732,16 @@ Quad_FIO::eval_LXB(Token & LO, Value_P X, Value_P B) const
          return result;
       }
 
-const APL_Integer function_number = X->get_cfirst().get_int_value();
+const APL_Integer function_number = X.get_cfirst().get_int_value();
    switch (function_number)
       {
         case -1:   // benchmark monadic LO with argument B
-             return eval_LXB___1(LO, B);
+             return eval_LXB___1(LO, CLONE(&B, LOC));
 
         case 49:
            {
              Token lines_B = eval_XB(X, B);
-             return Bif_OPER1_EACH::do_eval_LB(LO, lines_B.get_apl_val());
+             return Bif_OPER1_EACH::do_eval_LB(LO, *lines_B.get_apl_val());
            }
       }
 
@@ -901,7 +906,7 @@ Quad_FIO::do_fprintf(FILE * outf, Value_P A)
 UCS_string UZ;
 const Value & A1 = *A->get_cfirst().get_pointer_value();
 UCS_string A_format(A1);
-   do_snprintf(UZ, A_format, A.get(), 1, "⎕FIO.fprintf B");
+   do_snprintf(UZ, A_format, *A, 1, "⎕FIO.fprintf B");
 UTF8_string utf(UZ);
    if (fwrite(utf.c_str(), 1, utf.size(), outf) != utf.size())   SYSTEM_ERROR;
    return Token(TOK_APL_VALUE1, IntScalar(UZ.size(), LOC));
@@ -1354,14 +1359,14 @@ const Shape sh_Z(Z->get_valid_item_count());
 //────────────────────────────────────────────────────────────────────────────
 void
 Quad_FIO::do_snprintf(UCS_string & UZ, const UCS_string & A_format,
-                    const Value * B, int off_B, const char * funname)
+                    cValue_R B, int off_B, const char * funname)
 {
    // A is the format string, B the nested APL values for each % field in A.
    // The result UZ is the formatted string. off_B is the starting point (1
    // for fprintf(A, ...) and 0 for snprintf(format, B ...).
    //
 char numbuf[50];
-const int arg_count_B = B->element_count() - off_B;
+const int arg_count_B = B.element_count() - off_B;
 int conversion_count_A = 0;   // the number of conversions (in A_format)
 
 #define COUNT_ARG if   (conversion_count_A++ >= arg_count_B)   goto missing_arg
@@ -1446,7 +1451,7 @@ int conversion_count_A = 0;   // the number of conversions (in A_format)
                      case 'u':   case 'x':   case 'X':   case 'p':
                           {
                             COUNT_ARG;
-                            const Cell & cell = B->get_cravel(off_B++);
+                            const Cell & cell = B.get_cravel(off_B++);
                             APL_Integer int_val;
                             if (cell.is_integer_cell())
                                {
@@ -1470,7 +1475,7 @@ int conversion_count_A = 0;   // the number of conversions (in A_format)
                           {
                             COUNT_ARG;
                             const APL_Float float_val =
-                                  B->get_cravel(off_B++).get_real_value();
+                                  B.get_cravel(off_B++).get_real_value();
                             fmt[fm++] = uni_1;   fmt[fm] = 0;
                             SPRINTF(numbuf, fmt, float_val);
                             if (thousands)
@@ -1492,14 +1497,14 @@ int conversion_count_A = 0;   // the number of conversions (in A_format)
 
                      case 's':   // string or char
                           COUNT_ARG;
-                          if (B->get_cravel(off_B).is_character_cell())
+                          if (B.get_cravel(off_B).is_character_cell())
                              {
-                               UZ << B->get_cravel(off_B++) .get_char_value();
+                               UZ << B.get_cravel(off_B++) .get_char_value();
                                goto field_done;
                              }
                           {
                             Value_P str =
-                                    B->get_cravel(off_B++).get_pointer_value();
+                                    B.get_cravel(off_B++).get_pointer_value();
                             UCS_string ucs(*str.get());
                             UZ << ucs;
                           }
@@ -1507,7 +1512,7 @@ int conversion_count_A = 0;   // the number of conversions (in A_format)
 
                      case 'c':   // single char
                           COUNT_ARG;
-                          UZ << B->get_cravel(off_B++).get_char_value();
+                          UZ << B.get_cravel(off_B++).get_char_value();
                           goto field_done;
 
                      case 'm':
@@ -1533,9 +1538,9 @@ int conversion_count_A = 0;   // the number of conversions (in A_format)
          field_done: ;
        }
 
-   if (B->element_count() > off_B)
+   if (B.element_count() > off_B)
       {
-        const int unused = B->element_count() - off_B;
+        const int unused = B.element_count() - off_B;
         MORE_ERROR() << unused << " unused argument(s) in argument B of: "
                      << funname << "\n" << "    " << conversion_count_A
                      << " argument(s) were used, but " << arg_count_B
@@ -1586,7 +1591,7 @@ Quad_FIO::eval_ALXB___1(Value_P A, Token & LO, Value_P B)
 cFunction_P fun = LO.get_function();
    Assert(fun);
    const uint64_t from = cycle_counter();
-Token result = fun->eval_AB(A, B);
+Token result = fun->eval_AB(*A, *B);
 const uint64_t to = cycle_counter();
    if (result.get_tag() == TOK_SI_PUSHED)
       {
@@ -1605,7 +1610,7 @@ Token
 Quad_FIO::eval_AXB__13(Value_P A, Value_P B)
 {
    errno = 0;
-FILE * file = get_FILE(*B.get());
+FILE * file = get_FILE(*B);
 const APL_Integer pos = A->get_cfirst().get_near_int();
    fseek(file, pos, SEEK_SET);
    return Token(TOK_APL_VALUE1, IntScalar(-errno, LOC));
@@ -1615,7 +1620,7 @@ Token
 Quad_FIO::eval_AXB__14(Value_P A, Value_P B)
 {
    errno = 0;
-FILE * file = get_FILE(*B.get());
+FILE * file = get_FILE(*B);
 const APL_Integer pos = A->get_cfirst().get_near_int();
    fseek(file, pos, SEEK_CUR);
    return Token(TOK_APL_VALUE1, IntScalar(-errno, LOC));
@@ -1625,7 +1630,7 @@ Token
 Quad_FIO::eval_AXB__15(Value_P A, Value_P B)
 {
    errno = 0;
-FILE * file = get_FILE(*B.get());
+FILE * file = get_FILE(*B);
 const APL_Integer pos = A->get_cfirst().get_near_int();
    fseek(file, pos, SEEK_END);
    return Token(TOK_APL_VALUE1, IntScalar(-errno, LOC));
@@ -1684,7 +1689,7 @@ Token
 Quad_FIO::eval_AXB__22(Value_P A, Value_P B)
 {
    errno = 0;
-FILE * file = get_FILE(*B.get());
+FILE * file = get_FILE(*B);
    return do_fprintf(file, A);
 }
 //────────────────────────────────────────────────────────────────────────────
@@ -1693,7 +1698,7 @@ Quad_FIO::eval_AXB__23(Value_P A, Value_P B)
 {
    CHECK_SECURITY(disable_Quad_FIO__write);
    errno = 0;
-FILE * file = get_FILE(*B.get());
+FILE * file = get_FILE(*B);
 UCS_string text(*A.get());
 UTF8_string utf(text);
 const size_t len = fwrite(utf.c_str(), 1, utf.size(), file);
@@ -1985,7 +1990,7 @@ const int fd = get_fd(*B.get());
 Token
 Quad_FIO::eval_AXB__48(Value_P A, Value_P B)
 {
-FILE * file = get_FILE(*B.get());
+FILE * file = get_FILE(*B);
 const UCS_string format(*A.get());
 File_or_String fos(file);
    errno = 0;
@@ -2065,7 +2070,7 @@ Quad_FIO::eval_AXB__58(Value_P A, Value_P B)
 {
 const UCS_string A_format(*A);
 UCS_string UZ;
-   do_snprintf(UZ, A_format, B.get(), 0, "A ⎕FIO.snprintf B");
+   do_snprintf(UZ, A_format, *B, 0, "A ⎕FIO.snprintf B");
 Value_P Z(UZ, LOC);
    return Token(TOK_APL_VALUE1, Z);
 }
@@ -2103,7 +2108,7 @@ Quad_FIO::eval_AXB__6(Value_P A, Value_P B)
 {
    errno = 0;
 const size_t bytes = A->get_cfirst().get_near_int();
-FILE * file = get_FILE(*B.get());
+FILE * file = get_FILE(*B);
    clearerr(file);
 char small_buffer[SMALL_BUF];
 char * buffer = small_buffer;
@@ -2143,7 +2148,7 @@ Quad_FIO::eval_AXB__7(Value_P A, Value_P B)
    CHECK_SECURITY(disable_Quad_FIO__write);
    errno = 0;
 const size_t bytes = A->element_count();
-FILE * file = get_FILE(*B.get());
+FILE * file = get_FILE(*B);
 char small_buffer[SMALL_BUF];
 char * buffer = small_buffer;
 char * del = 0;
@@ -2160,7 +2165,7 @@ Quad_FIO::eval_AXB__8(Value_P A, Value_P B)
 {
    errno = 0;
 const size_t bytes = A->get_cfirst().get_near_int();
-FILE * file = get_FILE(*B.get());
+FILE * file = get_FILE(*B);
    clearerr(file);
 char small_buffer[SMALL_BUF];
 char * buffer = small_buffer;
@@ -2358,7 +2363,7 @@ cFunction_P fun = LO.get_function();
    Assert(fun);
 const uint64_t from = cycle_counter();
    Workspace::SI_top()->set_safe_execution_depth();   // pretend ⎕ES
-Token result = fun->eval_B(B);
+Token result = fun->eval_B(*B);
    if (result.get_tag() == TOK_SI_PUSHED)
       {
         benchmark_cycles_from = from | 1;
@@ -2374,7 +2379,7 @@ Token
 Quad_FIO::eval_XB__16(Value_P B)
 {
    errno = 0;
-FILE * file = get_FILE(*B.get());
+FILE * file = get_FILE(*B);
    fflush(file);
    return Token(TOK_APL_VALUE1, IntScalar(-errno, LOC));
 }
@@ -2577,7 +2582,7 @@ Token
 Quad_FIO::eval_XB__25(Value_P B)
 {
    errno = 0;
-file_entry & fe = get_file_entry(*B.get());
+file_entry & fe = get_file_entry(*B);
 int err = EBADF;   /* Bad file number */
    if (fe.fe_FILE)
       {
@@ -2786,7 +2791,7 @@ Quad_FIO::eval_XB__4(Value_P B)
 {
    CHECK_SECURITY(disable_Quad_FIO__open);
    errno = 0;
-file_entry & fe = get_file_entry(*B.get());
+file_entry & fe = get_file_entry(*B);
    if (fe.fe_fd <= STDERR_FILENO)   DOMAIN_ERROR;
    if (fe.fe_FILE)   fclose(fe.fe_FILE);   // also closes fe.fe_fd
    else              close(fe.fe_fd);
@@ -3095,7 +3100,7 @@ Token
 Quad_FIO::eval_XB__6(Value_P B)
 {
    errno = 0;
-FILE * file = get_FILE(*B.get());
+FILE * file = get_FILE(*B);
    clearerr(file);
 char buffer[SMALL_BUF];
 const size_t len = fread(buffer, 1, SMALL_BUF, file);
@@ -3121,7 +3126,7 @@ Token
 Quad_FIO::eval_XB__8(Value_P B)
 {
    errno = 0;
-FILE * file = get_FILE(*B.get());
+FILE * file = get_FILE(*B);
    clearerr(file);
 char buffer[SMALL_BUF];
 const char * s = fgets(buffer, SMALL_BUF, file);
@@ -3262,7 +3267,7 @@ int digit_count = 0;
 }
 //────────────────────────────────────────────────────────────────────────────
 APL_Integer
-Quad_FIO::secs_epoch(const Value & B)
+Quad_FIO::secs_epoch(const cValue & B)
 {
    // B is a time/date like YYYY [MM [DD [HH [MM [SS]]]]]
    if (B.get_rank() > 1)   RANK_ERROR;

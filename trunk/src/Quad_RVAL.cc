@@ -76,31 +76,31 @@ enum { count = sizeof(subfunction_infos) / sizeof(*subfunction_infos) };
 }
 //────────────────────────────────────────────────────────────────────────────
 Token
-Quad_RVAL::eval_AB(Value_P A, Value_P B) const
+Quad_RVAL::eval_AB(cValue_R A, cValue_R B) const
 {
-const sAxis subfunction = value_to_subfun(*A);
+const sAxis subfunction = value_to_subfun(A);
 
-Value_P Z = do_eval_AB(subfunction, *B);
+Value_P Z = do_eval_AB(subfunction, B);
    return Token(TOK_APL_VALUE1, Z);
 }
 //────────────────────────────────────────────────────────────────────────────
 Token
-Quad_RVAL::eval_B(Value_P B) const
+Quad_RVAL::eval_B(cValue_R B) const
 {
-   if (B->is_str0())    return list_functions(CERR);
-   if (B->is_zilde())   return list_mappings(CERR);
-   if (B->is_empty())   DOMAIN_ERROR;
-   if (B->get_rank() > 1)
+   if (B.is_str0())    return list_functions(CERR);
+   if (B.is_zilde())   return list_mappings(CERR);
+   if (B.is_empty())   DOMAIN_ERROR;
+   if (B.get_rank() > 1)
       {
         MORE_ERROR() << "⎕RVAL B: rank of B must be ≤ 1.";
         RANK_ERROR;
       }
 
-   return Token(TOK_APL_VALUE1, do_eval_B(*B, 0));
+   return Token(TOK_APL_VALUE1, do_eval_B(B, 0));
 }
 //────────────────────────────────────────────────────────────────────────────
 Token
-Quad_RVAL::eval_XB(Value_P X, Value_P B) const
+Quad_RVAL::eval_XB(cValue_R X, cValue_R B) const
 {
    return eval_AB(X, B);
 }
@@ -122,7 +122,7 @@ const UCS_string blanks(max_function_name_length - strlen(name), UNI_SPACE);
 }
 //────────────────────────────────────────────────────────────────────────────
 Value_P
-Quad_RVAL::do_eval_B(const Value & B, int depth) const
+Quad_RVAL::do_eval_B(const cValue & B, int depth) const
 {
 ShapeItem len_B = B.element_count();
 
@@ -272,7 +272,7 @@ const ShapeItem ec = Z->element_count();
 }
 //────────────────────────────────────────────────────────────────────────────
 void
-Quad_RVAL::random_nested(Value & Z, const Value & B, int depth) const
+Quad_RVAL::random_nested(Value & Z, const cValue & B, int depth) const
 {
 Value_P Zsub;
 
@@ -326,7 +326,7 @@ const int rand = (rand17() & 0xFFFF) % sum;
 }
 //────────────────────────────────────────────────────────────────────────────
 Value_P
-Quad_RVAL::do_eval_AB(int subfunction, const Value & B)
+Quad_RVAL::do_eval_AB(int subfunction, const cValue & B)
 {
    switch(subfunction)
       {
@@ -341,7 +341,7 @@ Quad_RVAL::do_eval_AB(int subfunction, const Value & B)
 }
 //────────────────────────────────────────────────────────────────────────────
 Value_P
-Quad_RVAL::generator_state(const Value & B)
+Quad_RVAL::generator_state(const cValue & B)
 {
    // expect an empty, 8, 16, 32, 64, 128, or 256 byte integer vector
    //
@@ -467,7 +467,7 @@ const int64_t rnd = rand17()
 }
 //────────────────────────────────────────────────────────────────────────────
 Value_P
-Quad_RVAL::result_maxdepth(const Value & B)
+Quad_RVAL::result_maxdepth(const cValue & B)
 {
    if (B.get_rank() > 1)        RANK_ERROR;
    if (B.element_count() > 1)   LENGTH_ERROR;
@@ -496,7 +496,7 @@ Value_P Z = IntScalar(desired_maxdepth, LOC);
 }
 //────────────────────────────────────────────────────────────────────────────
 Value_P
-Quad_RVAL::result_rank(const Value & B)
+Quad_RVAL::result_rank(const cValue & B)
 {
    // B is a single rank or a distribution of ranks 0, 1, ...
    if (B.get_rank() > 1)   RANK_ERROR;
@@ -551,7 +551,7 @@ Value_P Z(desired_ranks.size(), LOC);
 }
 //────────────────────────────────────────────────────────────────────────────
 Value_P
-Quad_RVAL::result_shape(const Value & B)
+Quad_RVAL::result_shape(const cValue & B)
 {
    if (B.get_rank() > 1)   RANK_ERROR;
 
@@ -602,7 +602,7 @@ Value_P Z(MAX_RANK, LOC);
 }
 //────────────────────────────────────────────────────────────────────────────
 Value_P
-Quad_RVAL::result_type(const Value & B)
+Quad_RVAL::result_type(const cValue & B)
 {
    // B is a distribution of cell types char (0), int (1), real (2),
    // complex (3), // or nested (4).

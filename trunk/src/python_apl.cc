@@ -75,7 +75,7 @@ ostringstream out;
 }
 //════════════════════════════════════════════════════════════════════════════
 static PyObject *
-apl_to_python(const Value * value)
+apl_to_python(const cValue * value)
 {
 PyObject * shape = PyList_New(value->get_rank());
    loop(r, value->get_rank())
@@ -219,7 +219,7 @@ PyObject * ret = exec_result;
    return ret;
 }
 //════════════════════════════════════════════════════════════════════════════
-static const Value *
+static const cValue *
 apl_get_var_value(PyObject * args)
 {
 const char * varname = 0;
@@ -264,14 +264,14 @@ PyObject * result = PyList_New(shape.get_rank());
 static PyObject *
 apl_get_shape(PyObject * self, PyObject * args)
 {
-const Value * value = apl_get_var_value(args);
+const cValue * value = apl_get_var_value(args);
    if (value == 0)   return 0;
 
    return make_shape(value->get_shape());
 }
 //────────────────────────────────────────────────────────────────────────────
 static PyObject *
-make_ravel(const Value * value)
+make_ravel(const cValue * value)
 {
 const ShapeItem len = value->nz_element_count();
 PyObject * result = PyList_New(len);
@@ -301,7 +301,7 @@ PyObject * result = PyList_New(len);
 static PyObject *
 apl_get_ravel(PyObject * self, PyObject * args)
 {
-const Value * value = apl_get_var_value(args);
+const cValue * value = apl_get_var_value(args);
    if (value == 0)   return 0;
    return make_ravel(value);
 }
@@ -309,7 +309,7 @@ const Value * value = apl_get_var_value(args);
 static PyObject *
 apl_get_value(PyObject * self, PyObject * args)
 {
-const Value * value = apl_get_var_value(args);
+const cValue * value = apl_get_var_value(args);
    if (value == 0)   return 0;
 
 PyObject * shape = make_shape(value->get_shape());

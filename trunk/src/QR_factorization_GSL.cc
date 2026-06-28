@@ -49,7 +49,7 @@ GSL::LQ_factorize(Value & Z, int M, int N, Value_P B, bool need_complex)
   //   (⍉Q, ⍉R, and ⊖Ri)
   //
 const Shape shape_BT(N, M);
-Value_P BT = Bif_F12_TRANSPOSE::transpose(shape_BT, B.get());   // BT←⍉B
+Value_P BT = Bif_F12_TRANSPOSE::transpose(shape_BT, *B);   // BT←⍉B
 Value_P ZT(3, LOC);
   if (need_complex)
      QR_factorize_ZZ_matrix(*ZT, N, M, &BT->get_cfirst());
@@ -61,13 +61,13 @@ Value_P RT  = ZT->get_cravel(1).get_pointer_value();
 Value_P RiT = ZT->get_cravel(2).get_pointer_value();
 
 const Shape shape_Q (N, N);
-Value_P Z0 = Bif_F12_TRANSPOSE::transpose(shape_Q, QT.get());   // BT←⍉B
+Value_P Z0 = Bif_F12_TRANSPOSE::transpose(shape_Q, *QT);   // BT←⍉B
 
 const Shape shape_R(M, M);
-Value_P Z1 = Bif_F12_TRANSPOSE::transpose(shape_R, RT.get());   // BT←⍉B
+Value_P Z1 = Bif_F12_TRANSPOSE::transpose(shape_R, *RT);   // BT←⍉B
 
 const Shape shape_Ri(M, M);
-Value_P Z2 = Bif_F12_TRANSPOSE::transpose(shape_Ri, RiT.get());   // BT←⍉B
+Value_P Z2 = Bif_F12_TRANSPOSE::transpose(shape_Ri, *RiT);   // BT←⍉B
 
   Z.next_ravel_Pointer(Z0.get());
   Z.next_ravel_Pointer(Z1.get());
@@ -440,7 +440,7 @@ GSL::RQ_factorize(Value & Z, int M, int N, Value_P B)
   //   (⍉Q, ⍉R, and ⊖Ri)
   //
 const Shape shape_BT(N, M);
-Value_P BT = Bif_F12_TRANSPOSE::transpose(shape_BT, B.get());   // BT←⍉B
+Value_P BT = Bif_F12_TRANSPOSE::transpose(shape_BT, *B);   // BT←⍉B
 Value_P ZT(3, LOC);
   QL_factorize_DD_matrix(*ZT, N, M, &BT->get_cfirst());
 
@@ -449,13 +449,13 @@ Value_P RT  = ZT->get_cravel(1).get_pointer_value();
 Value_P RiT = ZT->get_cravel(2).get_pointer_value();
 
 const Shape shape_Q (N, N);
-Value_P Z0 = Bif_F12_TRANSPOSE::transpose(shape_Q, QT.get());   // BT←⍉B
+Value_P Z0 = Bif_F12_TRANSPOSE::transpose(shape_Q, *QT);   // BT←⍉B
 
 const Shape shape_R(M, M);
-Value_P Z1 = Bif_F12_TRANSPOSE::transpose(shape_R, RT.get());   // BT←⍉B
+Value_P Z1 = Bif_F12_TRANSPOSE::transpose(shape_R, *RT);   // BT←⍉B
 
 const Shape shape_Ri(M, M);
-Value_P Z2 = Bif_F12_TRANSPOSE::transpose(shape_Ri, RiT.get());   // BT←⍉B
+Value_P Z2 = Bif_F12_TRANSPOSE::transpose(shape_Ri, *RiT);   // BT←⍉B
 
   Z.next_ravel_Pointer(Z0.get());
   Z.next_ravel_Pointer(Z1.get());

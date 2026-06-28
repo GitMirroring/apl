@@ -104,7 +104,7 @@ public:
    /// return a function number (pseudo-axis) for \b value. \b value shall
    /// be an integer scalar, or else a valid subfunction name (APL string).
    /// @param A_or_X APL value that is either an integer axis or a name string
-   sAxis value_to_subfun(const Value & A_or_X) const;
+   sAxis value_to_subfun(const cValue & A_or_X) const;
    //
    /// print some help (not for )HELP, but for ⎕XXX ⍬).
    /// The help for )HELP is defined in \b Help.def
@@ -365,47 +365,47 @@ public:
    virtual Token eval_() const;
 
    /// plain function, 2 arguments
-   virtual Token eval_AB(Value_P A, Value_P B) const;
+   virtual Token eval_AB(cValue_R A, cValue_R B) const;
 
    /// monadic operator, 2 arguments
-   virtual Token eval_ALB(Value_P A, Token & LO, Value_P B) const;
+   virtual Token eval_ALB(cValue_R A, Token & LO, cValue_R B) const;
 
    /// dyadic operator, 2 arguments
-   virtual Token eval_ALRB(Value_P A, Token & LO, Token & RO, Value_P B) const;
+   virtual Token eval_ALRB(cValue_R A, Token & LO, Token & RO, cValue_R B) const;
 
    /// dyadic operator, 2 arguments, plus axis
-   virtual Token eval_ALRXB(Value_P A, Token & LO, Token & RO,
-                            Value_P X, Value_P B) const;
+   virtual Token eval_ALRXB(cValue_R A, Token & LO, Token & RO,
+                            cValue_R X, cValue_R B) const;
 
    /// monadic operator, 2 arguments, plus axis
-   virtual Token eval_ALXB(Value_P A, Token & LO, Value_P X, Value_P B) const;
+   virtual Token eval_ALXB(cValue_R A, Token & LO, cValue_R X, cValue_R B) const;
 
    /// plain function, 2 arguments, plus axis
-   virtual Token eval_AXB(Value_P A, Value_P X, Value_P B) const;
+   virtual Token eval_AXB(cValue_R A, cValue_R X, cValue_R B) const;
 
    /// plain function, 1 argument
-   virtual Token eval_B(Value_P B) const;
+   virtual Token eval_B(cValue_R B) const;
 
    /// monadic operator, 1 argument
-   virtual Token eval_LB(Token & LO, Value_P B) const;
+   virtual Token eval_LB(Token & LO, cValue_R B) const;
 
    /// dyadic operator, 1 arguments
-   virtual Token eval_LRB(Token & LO, Token & RO, Value_P B) const;
+   virtual Token eval_LRB(Token & LO, Token & RO, cValue_R B) const;
 
    /// dyadic operator, 1 arguments, plus axis
-   virtual Token eval_LRXB(Token & LO, Token & RO, Value_P X, Value_P B) const;
+   virtual Token eval_LRXB(Token & LO, Token & RO, cValue_R X, cValue_R B) const;
 
    /// monadic operator, 1 arguments, plus axis
-   virtual Token eval_LXB(Token & LO, Value_P X, Value_P B) const;
+   virtual Token eval_LXB(Token & LO, cValue_R X, cValue_R B) const;
 
    /// plain function, 1 argument, plus axis
-   virtual Token eval_XB(Value_P X, Value_P B) const;
+   virtual Token eval_XB(cValue_R X, cValue_R B) const;
 
    /// Evaluate \b the fill function.
-   virtual Token eval_fill_AB(Value_P A, Value_P B) const;
+   virtual Token eval_fill_AB(cValue_R A, cValue_R B) const;
 
    /// Evaluate \b the fill function.
-   virtual Token eval_fill_B(Value_P B) const;
+   virtual Token eval_fill_B(cValue_R B) const;
 
    /** Evaluate \b the identity function. B is empty and the result is a
    /// value f/B0 with (B0 f ↑B) ≡ B for all B (and f is \b this function).
@@ -413,7 +413,7 @@ public:
 
        NOTE that eval_identity_fun() returns f/B0 and not B0 !!!
     **/
-   virtual Token eval_identity_fun(Value_P B, sAxis axis) const;
+   virtual Token eval_identity_fun(cValue_R B, sAxis axis) const;
 
    /// store the attributes (as per ⎕AT) of symbol in Z, ...
    virtual void get_attributes(int mode, Value & Z) const;

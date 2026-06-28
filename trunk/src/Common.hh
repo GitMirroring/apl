@@ -495,14 +495,17 @@ extern std::ostream & get_CERR();   // defined in: Output.cc
 
 //────────────────────────────────────────────────────────────────────────────
 
+class cValue;   // forward declaration (defined in Value.hh)
+
 #ifdef cfg_VALUE_HISTORY_WANTED
 
+class cValue;   // forward declaration (defined in Value.hh)
    enum { VALUEHISTORY_SIZE = 100000 };
    /// @param val  the APL value the event applies to
    /// @param ev   the value-history event type
    /// @param ia   auxiliary integer parameter for the event
    /// @param loc  caller location for diagnostics
-   extern void add_event(const Value * val, VH_event ev, int ia,
+   extern void add_event(const cValue * val, VH_event ev, int ia,
                         const char * loc);
 #  define ADD_EVENT(val, ev, ia, loc)   add_event(val, ev, ia, loc);
 

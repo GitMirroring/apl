@@ -41,7 +41,7 @@ public:
    /// @param LO  left operator function argument
    /// @param RO  right operator function argument
    /// @param B   right value argument
-   virtual Token eval_ALRB(Value_P A, Token & LO, Token & RO, Value_P B) const;
+   virtual Token eval_ALRB(cValue_R A, Token & LO, Token & RO, cValue_R B) const;
 
    static Bif_OPER2_INNER  fun;   ///< Built-in function.
 

@@ -41,6 +41,20 @@ const ShapeItem len_A = A.element_count();
       }
 }
 //────────────────────────────────────────────────────────────────────────────
+Shape::Shape(const cValue & A, int qio_A)
+   : rho_rho(0),
+     volume(1)
+{
+   if (A.get_rank() > 1)   RANK_ERROR;
+const ShapeItem len_A = A.element_count();
+   if (len_A > MAX_RANK)   LIMIT_ERROR_RANK;
+
+   loop(a, len_A)
+      {
+        add_shape_item(A.get_cravel(a).get_near_int() - qio_A);
+      }
+}
+//────────────────────────────────────────────────────────────────────────────
 Shape Shape::abs() const
 {
 Shape ret;

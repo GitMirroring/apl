@@ -99,16 +99,16 @@ public:
    /// @param value APL value to render
    /// @param pctx print context controlling formatting
    /// @param out optional output stream for interruptible printing
-   PrintBuffer(const Value & value, const PrintContext & pctx, ostream * out);
+   PrintBuffer(const cValue & value, const PrintContext & pctx, ostream * out);
 
-   /// helper for non-trivial PrintBuffer(const Value & ...) constructor.
+   /// helper for non-trivial PrintBuffer(const cValue & ...) constructor.
    /// return \b true iff the user has hit ^C twice
    /// @param value APL value to render
    /// @param pctx print context controlling formatting
    /// @param out optional output stream for interruptible printing
    /// @param outer_style print style of the enclosing context
    /// @param item_matrix pre-allocated matrix of per-item PrintBuffers
-   bool do_PrintBuffer(const Value & value,const PrintContext & pctx,
+   bool do_PrintBuffer(const cValue & value,const PrintContext & pctx,
                          ostream * out, PrintStyle outer_style,
                          PrintBuffer * item_matrix);
 
@@ -116,14 +116,14 @@ public:
    /// @param value APL value to render
    /// @param pctx print context controlling formatting
    /// @param outer_style print style of the enclosing context
-   void pb_for_function(const Value & value, PrintContext pctx,
+   void pb_for_function(const cValue & value, PrintContext pctx,
                         PrintStyle outer_style);
 
    /// PrintBuffer from an empty APL value
    /// @param value empty APL value to render
    /// @param pctx print context controlling formatting
    /// @param outer_style print style of the enclosing context
-   void pb_empty(const Value & value, PrintContext pctx,
+   void pb_empty(const cValue & value, PrintContext pctx,
                         PrintStyle outer_style);
 
    /// return the number of rows
@@ -286,7 +286,7 @@ protected:
    /// @param nested true if the value contains nested sub-values
    /// @param rk1 rank label for the current row
    /// @param rk2 rank label for the following row
-   static ShapeItem separator_rows(ShapeItem y, const Value & value,
+   static ShapeItem separator_rows(ShapeItem y, const cValue & value,
                                    bool nested, sRank rk1, sRank rk2);
 
    /// the character buffer.

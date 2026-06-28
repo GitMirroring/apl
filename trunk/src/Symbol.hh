@@ -67,7 +67,7 @@ public:
    /// return the APL value of \b this ValueStackItem, or 0 if it has none.
    /// Only used to iterate over the ValueStack in Doxy.cc and in Quad_RL to
    /// quickly access the current ⎕RL
-   const Value * get_val_cptr() const
+   const cValue * get_val_cptr() const
       { return apl_val.get(); }
 
    /// delete the function
@@ -218,7 +218,7 @@ public:
       { return this; }
 
    /// return a const pointer to the current APL value
-   const Value * get_val_cptr() const
+   const cValue * get_val_cptr() const
       { return value_stack.back().get_val_cptr(); }
 
    /// return true, iff this Symbol is not used (i.e. erased)
@@ -300,7 +300,7 @@ public:
 
    /// return the SI stack level of val on the stack of \b this Symbol)
    /// @param val  APL value to locate on the SI stack
-   int get_SI_level(const Value & val) const;
+   int get_SI_level(const cValue & val) const;
 
    /// return the current SV_key (or throw a VALUE_ERROR)
    SV_key get_SV_key() const;
@@ -343,7 +343,7 @@ public:
    /// Indexed (one-dimensional) assign \b value to \b this \b Symbol
    /// @param X      one-dimensional index vector
    /// @param value  APL value to assign at the indexed positions
-   virtual void assign_indexed(const Value * X, Value_P value);
+   virtual void assign_indexed(const cValue * X, Value_P value);
 
    /// assign lambda, eg. V←{ ... }
    /// @param lambda  lambda function to assign

@@ -91,7 +91,7 @@ prim_f2 scalar_LO       = LO->get_scalar_f2();
                 {
                   Value_P LO_A = cB.to_value(LOC);
                   Value_P LO_B = accu.to_value(LOC);
-                  Token result = LO->eval_AB(LO_A, LO_B);
+                  Token result = LO->eval_AB(*LO_A, *LO_B);
                   accu.release(LOC);
 
                   if (result.get_tag() == TOK_ERROR)
@@ -152,7 +152,7 @@ const ShapeItem m_len = B->get_shape_item(axis);
             therefore:  B₁   ←→   f/B₁   ←→   B₀ f B₁
                         if there is such a B₀ (i.e. with B₀ f B₁   ←→    B₁).
          */
-        return LO->eval_identity_fun(B, axis);
+        return LO->eval_identity_fun(*B, axis);
       }
 
 const Shape shape_Z = B->get_shape().without_axis(axis);
@@ -170,7 +170,7 @@ const Shape3 B3(B->get_shape(), axis);
         X4->next_ravel_Int(B3.l());
         X4->check_value(LOC);
         return Macro::get_macro(Macro::MAC_Z__LO_REDUCE_X4_B)
-                                ->eval_LXB(tok_LO, X4, B);
+                                ->eval_LXB(tok_LO, *X4, *B);
       }
 
 const Shape3 Z3(B3.h(), 1, B3.l());
@@ -212,7 +212,7 @@ const int n_wise = A0 < 0 ? -A0 : A0;   // the number of items (= M1 in ISO)
         if (n_wise > 2)    DOMAIN_ERROR;
         if (n_wise == 0)
            {
-              Token ident = LO->eval_identity_fun(B, axis);
+              Token ident = LO->eval_identity_fun(*B, axis);
               Value_P Z(2, LOC);
               Z->next_ravel_Cell(ident.get_apl_val()->get_cfirst());
               Z->next_ravel_Cell(ident.get_apl_val()->get_cfirst());
@@ -243,7 +243,7 @@ const int n_wise = A0 < 0 ? -A0 : A0;   // the number of items (= M1 in ISO)
         Value_P val(shape_B1, LOC);
         val->set_ravel_Cell(0, B->get_cproto()); // prototype
 
-        Token result = LO->eval_identity_fun(val, axis);
+        Token result = LO->eval_identity_fun(*val, axis);
         return result;
       }
 
@@ -264,7 +264,7 @@ const int n_wise = A0 < 0 ? -A0 : A0;   // the number of items (= M1 in ISO)
 
 Shape shape_Z(B->get_shape());
    shape_Z.set_shape_item(axis, shape_Z.get_shape_item(axis) - n_wise + 1);
-   if (shape_Z.is_empty())   return LO->eval_identity_fun(B, axis);
+   if (shape_Z.is_empty())   return LO->eval_identity_fun(*B, axis);
 
    if (n_wise == 1)   return Bif_F12_RHO::do_reshape(shape_Z, *B);
 
@@ -283,31 +283,31 @@ const Shape3 B3(B->get_shape(), axis);
         X4->next_ravel_Pointer(vsh_B3.get());             // ⍴B3
         X4->check_value(LOC);
         if (A0 < 0)   return Macro::get_macro(Macro::MAC_Z__nA_LO_REDUCE_X4_B)
-                                              ->eval_ALXB(A1, tok_LO, X4, B);
+                                              ->eval_ALXB(*A1, tok_LO, *X4, *B);
         else         return Macro::get_macro(Macro::MAC_Z__pA_LO_REDUCE_X4_B)
-                                              ->eval_ALXB(A1, tok_LO, X4, B);
+                                              ->eval_ALXB(*A1, tok_LO, *X4, *B);
       }
 
    return do_reduce(shape_Z, Z3, A0, LO, B, B->get_shape_item(axis));
 }
 //────────────────────────────────────────────────────────────────────────────
 Token
-Bif_REDUCE::replicate(Value_P A, Value_P B, uAxis axis)
+Bif_REDUCE::replicate(cValue_R A, cValue_R B, uAxis axis)
 {
    // turn scalar B into ,B
    //
-Shape shape_B = B->get_shape();
+Shape shape_B = B.get_shape();
    if (shape_B.get_rank() == 0)
       {
          shape_B.add_shape_item(1);
          axis = 0;
       }
 
-   if (A->get_rank() > 1)             RANK_ERROR;
+   if (A.get_rank() > 1)             RANK_ERROR;
    if (axis >= shape_B.get_rank())    AXIS_ERROR;
 
 const ShapeItem len_B = shape_B.get_shape_item(axis);
-ShapeItem len_A = A->element_count();
+ShapeItem len_A = A.element_count();
 
    // compute len_Z ← +/A
    //
@@ -317,7 +317,7 @@ std::vector<ShapeItem> rep_counts;
    if (len_A == 1)   // single a -> a a ... a (len_B times)
       {
         len_A = len_B;
-        APL_Integer rep_A = A->get_cfirst().get_near_int();
+        APL_Integer rep_A = A.get_cfirst().get_near_int();
         loop(a, len_A)   rep_counts.push_back(rep_A);
         if (rep_A < 0)   len_Z = -rep_A*len_B;   // replicate ↑B
         else             len_Z =  rep_A*len_B;   // replicat B[a]
@@ -327,7 +327,7 @@ std::vector<ShapeItem> rep_counts;
         ShapeItem nonneg_A = 0;   // number of items >= 0 in A
         loop(a, len_A)
            {
-             const APL_Integer rep_A = A->get_cravel(a).get_near_int();
+             const APL_Integer rep_A = A.get_cravel(a).get_near_int();
              rep_counts.push_back(rep_A);
              len_Z += rep_A;   ++nonneg_A;        // most likely:  rep_A >= 0
              if (rep_A < 0)    { len_Z -= 2*rep_A;  --nonneg_A; }   // rare
@@ -357,7 +357,7 @@ const Shape3 shape_B3(shape_B, axis);
                   loop(l, shape_B3.l())
                      {
                        const ShapeItem src = shape_B3.hml(h, bm, l);
-                       Z->next_ravel_Cell(B->get_cravel(src));
+                       Z->next_ravel_Cell(B.get_cravel(src));
                      }
                   if (shape_B3.m() > 1)   ++bm;
                 }
@@ -367,7 +367,7 @@ const Shape3 shape_B3(shape_B, axis);
                   loop(l, shape_B3.l())
                      {
                        const ShapeItem src = shape_B3.hml(h, 0, l);
-                       Z->next_ravel_Proto(B->get_cravel(src));
+                       Z->next_ravel_Proto(B.get_cravel(src));
                      }
 
                   // cB is not incremented when fill item is used.
@@ -375,51 +375,51 @@ const Shape3 shape_B3(shape_B, axis);
            }
       }
 
-   Z->set_default(*B.get(), LOC);
+   Z->set_default(B, LOC);
    Z->check_value(LOC);
    return Token(TOK_APL_VALUE1, Z);
 }
 //════════════════════════════════════════════════════════════════════════════
 Token
-Bif_OPER1_REDUCE::eval_ALXB(Value_P A, Token & _LO, Value_P X, Value_P B) const
+Bif_OPER1_REDUCE::eval_ALXB(cValue_R A, Token & _LO, cValue_R X, cValue_R B) const
 {
-const sAxis axis = Value::get_single_axis(X.get(), B->get_rank());
-   return reduce_n_wise(A, _LO, B, axis);
+const sAxis axis = Value::get_single_axis(&X, B.get_rank());
+   return reduce_n_wise(CLONE(&A, LOC), _LO, CLONE(&B, LOC), axis);
 }
 //════════════════════════════════════════════════════════════════════════════
 Token
-Bif_OPER1_REDUCE::eval_AXB(Value_P A, Value_P X, Value_P B) const
+Bif_OPER1_REDUCE::eval_AXB(cValue_R A, cValue_R X, cValue_R B) const
 {
-const sAxis axis = Value::get_single_axis(X.get(), B->get_rank());
+const sAxis axis = Value::get_single_axis(&X, B.get_rank());
    return replicate(A, B, axis);
 }
 //════════════════════════════════════════════════════════════════════════════
 Token
-Bif_OPER1_REDUCE::eval_LXB(Token & _LO, Value_P X, Value_P B) const
+Bif_OPER1_REDUCE::eval_LXB(Token & _LO, cValue_R X, cValue_R B) const
 {
-const sAxis axis = Value::get_single_axis(X.get(), B->get_rank());
-   return reduce(_LO, B, axis);
+const sAxis axis = Value::get_single_axis(&X, B.get_rank());
+   return reduce(_LO, CLONE(&B, LOC), axis);
 }
 //════════════════════════════════════════════════════════════════════════════
 Token
-Bif_OPER1_REDUCE1::eval_ALXB(Value_P A, Token & LO, Value_P X, Value_P B) const
+Bif_OPER1_REDUCE1::eval_ALXB(cValue_R A, Token & LO, cValue_R X, cValue_R B) const
 {
-const sAxis axis = Value::get_single_axis(X.get(), B->get_rank());
-   return reduce_n_wise(A, LO, B, axis);
+const sAxis axis = Value::get_single_axis(&X, B.get_rank());
+   return reduce_n_wise(CLONE(&A, LOC), LO, CLONE(&B, LOC), axis);
 }
 //════════════════════════════════════════════════════════════════════════════
 Token
-Bif_OPER1_REDUCE1::eval_AXB(Value_P A, Value_P X, Value_P B) const
+Bif_OPER1_REDUCE1::eval_AXB(cValue_R A, cValue_R X, cValue_R B) const
 {
-const sAxis axis = Value::get_single_axis(X.get(), B->get_rank());
+const sAxis axis = Value::get_single_axis(&X, B.get_rank());
 
    return replicate(A, B, axis);
 }
 //════════════════════════════════════════════════════════════════════════════
 Token
-Bif_OPER1_REDUCE1::eval_LXB(Token & LO, Value_P X, Value_P B) const
+Bif_OPER1_REDUCE1::eval_LXB(Token & LO, cValue_R X, cValue_R B) const
 {
-const sAxis axis = Value::get_single_axis(X.get(), B->get_rank());
-   return reduce(LO, B, axis);
+const sAxis axis = Value::get_single_axis(&X, B.get_rank());
+   return reduce(LO, CLONE(&B, LOC), axis);
 }
 //════════════════════════════════════════════════════════════════════════════

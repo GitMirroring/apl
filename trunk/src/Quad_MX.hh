@@ -134,21 +134,21 @@ protected:
    /// @param A left argument APL value
    /// @param X axis APL value
    /// @param B right argument APL value
-   virtual Token eval_AXB(Value_P A, Value_P X, Value_P B) const;
+   virtual Token eval_AXB(cValue_R A, cValue_R X, cValue_R B) const;
 
    /// overloaded Function::eval_XB().
    /// @param X axis APL value
    /// @param B right argument APL value
-  virtual Token eval_XB(Value_P X, Value_P B) const;
+  virtual Token eval_XB(cValue_R X, cValue_R B) const;
 
   /// overloaded Function::eval_AB().
   /// @param A left argument APL value
   /// @param B right argument APL value
-  virtual Token eval_AB(Value_P A, Value_P B) const;
+  virtual Token eval_AB(cValue_R A, cValue_R B) const;
 
    /// overloaded Function::eval_B().
   /// @param B right argument APL value
-  virtual Token eval_B(Value_P B) const;
+  virtual Token eval_B(cValue_R B) const;
 
   /// return the cros product of all rows in \b mtx
   /// @param mtx matrix whose row cross-product is to be computed

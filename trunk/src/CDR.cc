@@ -248,7 +248,7 @@ const uint8_t * ravel = data + 16 + 4*rank;
 }
 //────────────────────────────────────────────────────────────────────────────
 void
-CDR::to_CDR(CDR_string & result, const Value * value)
+CDR::to_CDR(CDR_string & result, const cValue * value)
 {
 const CDR_type type = value->get_CDR_type();
 const int len = value->total_CDR_size_brutto(type);
@@ -259,7 +259,7 @@ const int len = value->total_CDR_size_brutto(type);
 }
 //────────────────────────────────────────────────────────────────────────────
 void
-CDR::fill(CDR_string & result, int type, int len, const Value & val)
+CDR::fill(CDR_string & result, int type, int len, const cValue & val)
 {
    Assert((len & 0x0F) == 0);
 
@@ -469,7 +469,7 @@ const uint32_t nelm = val.element_count();
                 }
              else if (cell.is_pointer_cell())
                 {
-                  const Value & sub_val = *cell.get_pointer_value();
+                  const cValue & sub_val = *cell.get_pointer_value();
                   const CDR_type sub_type = sub_val.get_CDR_type();
                   offset += sub_val.total_CDR_size_brutto(sub_type);
                 }

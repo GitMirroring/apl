@@ -160,7 +160,7 @@ bool show_OK = true;   // assume more verbose output
                 DynamicObject::get_all_values()->get_next();
           obj != DynamicObject::get_all_values(); obj = obj->get_next())
          {
-           const Value * val = static_cast<const Value *>(obj);
+           const cValue * val = static_cast<const cValue *>(obj);
 
            val_val vv = { 0, val };   // no parent
            val_vals.push_back(vv);
@@ -177,14 +177,14 @@ bool show_OK = true;   // assume more verbose output
       //
       loop(v, val_vals.size())   // for every .child (acting as parent here)
           {
-            const Value * val = val_vals[v].child;
+            const cValue * val = val_vals[v].child;
             const ShapeItem ec = val->nz_element_count();
             loop(e, ec)   // for every ravel cell of the (parent-) value
                 {
                   const Cell & cP = val->get_cravel(e);
                   if (!cP.is_pointer_cell())   continue;   // not a parent
 
-                  const Value * sub = cP.get_pointer_value().get();
+                  const cValue * sub = cP.get_pointer_value().get();
                   Assert1(sub);
 
                   val_val * vvp = reinterpret_cast<val_val *>

@@ -24,6 +24,8 @@
 #include "PrintOperator.hh"
 #include "UCS_string.hh"
 
+class cValue;
+
 #ifndef __UCS_STRING_VECTOR_HH_DEFINED__
 #  define __UCS_STRING_VECTOR_HH_DEFINED__
 
@@ -38,7 +40,7 @@ public:
    /// constructor: from APL character matrix (removes trailing blanks)
    /// @param val        APL character matrix to convert
    /// @param surrogate  true to treat surrogate pairs as single characters
-   UCS_string_vector(const Value & val, bool surrogate);
+   UCS_string_vector(const cValue & val, bool surrogate);
 
    /// return true iff one of the strings is equal to \b ucs
    /// @param ucs  string to search for

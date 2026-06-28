@@ -30,7 +30,7 @@ SqliteProvider::~SqliteProvider()
 }
 //────────────────────────────────────────────────────────────────────────────
 static SqliteConnection *
-create_sqlite_connection(const Value & B)
+create_sqlite_connection(const cValue & B)
 {
     if (!B.is_char_string())
        {
@@ -58,7 +58,7 @@ sqlite3 * db;
 }
 //────────────────────────────────────────────────────────────────────────────
 Connection *
-SqliteProvider::open_database(const Value & B)
+SqliteProvider::open_database(const cValue & B)
 {
 Connection * conn = create_sqlite_connection(B);
     return conn;

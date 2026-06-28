@@ -67,24 +67,24 @@ enum { count = sizeof(subfunction_infos) / sizeof(*subfunction_infos) };
 }
 //────────────────────────────────────────────────────────────────────────────
 Token
-Quad_FFT::eval_AB(Value_P A, Value_P B) const
+Quad_FFT::eval_AB(cValue_R A, cValue_R B) const
 {
-  return do_eval_AorX_B(*A, B);
+  return do_eval_AorX_B(A, CLONE(&B, LOC));
 }
 //────────────────────────────────────────────────────────────────────────────
 Token
-Quad_FFT::eval_B(Value_P B) const
+Quad_FFT::eval_B(cValue_R B) const
 {
-   if (B->element_count())   return do_fft(FFTW_FORWARD, B, 0);
-   if (B->is_str0())         return list_functions(CERR);
-   if (B->is_zilde())        return list_mappings(CERR);
+   if (B.element_count())   return do_fft(FFTW_FORWARD, CLONE(&B, LOC), 0);
+   if (B.is_str0())         return list_functions(CERR);
+   if (B.is_zilde())        return list_mappings(CERR);
    DOMAIN_ERROR;
 }
 //────────────────────────────────────────────────────────────────────────────
 Token
-Quad_FFT::eval_XB(Value_P X, Value_P B) const
+Quad_FFT::eval_XB(cValue_R X, cValue_R B) const
 {
-  return do_eval_AorX_B(*X, B);
+  return do_eval_AorX_B(X, CLONE(&B, LOC));
 }
 //────────────────────────────────────────────────────────────────────────────
 void
@@ -113,7 +113,7 @@ const UCS_string blanks(max_function_name_length - strlen(name), UNI_SPACE);
 }
 //────────────────────────────────────────────────────────────────────────────
 Token
-Quad_FFT::do_eval_AorX_B(const Value & A_or_X, Value_P B) const
+Quad_FFT::do_eval_AorX_B(const cValue & A_or_X, Value_P B) const
 {
 const sAxis subfunction = value_to_subfun(A_or_X);
    switch(subfunction)
@@ -363,13 +363,13 @@ Quad_FFT::Quad_FFT()
 }
 //────────────────────────────────────────────────────────────────────────────
 
-Token Quad_FFT::eval_AB(Value_P A, Value_P B) const 
+Token Quad_FFT::eval_AB(cValue_R A, cValue_R B) const 
 {
    return eval_B(B);
 }
 //────────────────────────────────────────────────────────────────────────────
 Token
-Quad_FFT::eval_B(Value_P B) const
+Quad_FFT::eval_B(cValue_R B) const
 {
 const char * libs[] = { "libfftw3.so",   0 };
 const char * hdrs[] = { "fftw3.h",      0 };

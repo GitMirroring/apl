@@ -219,7 +219,7 @@ const TokenTag tag = token.get_tag();
              if (tag == TOK_AXIS)
                 {
                   out << "[";
-                  if (const Value * val = token.get_axes().get())
+                  if (const cValue * val = token.get_axes().get())
                      out << *val;
                   return out << "]";
                 }
@@ -328,7 +328,7 @@ UCS_string ucs;
 
                   // caution: get_apl_val() may be 0 (for index []).
                   //
-                  if (const Value * axis = get_apl_val().get())
+                  if (const cValue * axis = get_apl_val().get())
                      {
                       ret << ShapeItem(axis->get_cfirst().get_int_value());
                      }
@@ -555,7 +555,7 @@ Token::print_value(ostream & out) const
         case TOK_APL_VALUE1:
         case TOK_APL_VALUE3:
              {
-               const Value * v = value.apl_val.get();
+               const cValue * v = value.apl_val.get();
                if (v->get_rank() == 0)   out << "''";
                loop(r, v->get_rank())
                    {

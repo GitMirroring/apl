@@ -43,25 +43,22 @@ class Value_P_Base
    friend class PointerCell;
 
 public:
-   /// return a const pointer to the Value
-   const Value * get() const
-      { return value_p; }
+   /// return a const pointer to the Value as cValue
+   inline const cValue * get() const;
 
    /// return true if the pointer is invalid
    bool operator!() const
       { return value_p == 0; }
 
-   /// return a const reference to the Value
-   const Value & operator*() const
-      { return *value_p; }
+   /// return a const reference to the Value as cValue
+   inline const cValue & operator*() const;
 
    /// return true if the pointer is valid
    bool operator+() const
       { return value_p != 0; }
 
-   /// return a const pointer to the Value (overloaded *)
-   const Value * operator->()  const
-      { return value_p; }
+   /// return a const pointer to the Value (overloaded ->)
+   inline const cValue * operator->() const;
 
    /// return a pointer to the Value
    Value * get()

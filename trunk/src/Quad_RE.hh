@@ -53,25 +53,25 @@ protected:
    /// overloaded Function::eval_AB().
    /// @param A left argument APL value (regex pattern)
    /// @param B right argument APL value (subject string)
-   virtual Token eval_AB(Value_P A, Value_P B) const
-      { return eval_AXB(A, Str0(LOC), B); }
+   virtual Token eval_AB(cValue_R A, cValue_R B) const
+      { return eval_AXB(A, *Str0(LOC), B); }
 
    /// overloaded Function::eval_B().
    /// @param B right argument APL value
-   virtual Token eval_B(Value_P B) const
+   virtual Token eval_B(cValue_R B) const
       { VALENCE_ERROR; }
 
    /// overloaded Function::eval_XB().
    /// @param X axis/flags specification
    /// @param B right argument APL value
-   virtual Token eval_XB(Value_P X, Value_P B) const
+   virtual Token eval_XB(cValue_R X, cValue_R B) const
       { VALENCE_ERROR; }
 
    /// overloaded Function::eval_AXB().
    /// @param A left argument APL value (regex pattern)
    /// @param X axis/flags specification
    /// @param B right argument APL value (subject string)
-   virtual Token eval_AXB(Value_P A, Value_P X, Value_P B) const;
+   virtual Token eval_AXB(cValue_R A, cValue_R X, cValue_R B) const;
 
 #ifdef HAVE_LIBPCRE2_32
 

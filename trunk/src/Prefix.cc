@@ -1556,7 +1556,7 @@ const Token & si_pushed = Workspace::SI_top()->get_prefix().at0();
    Assert(si_pushed.get_tag() == TOK_SI_PUSHED);
 
 Value_P v_line = IntScalar(line, LOC);
-   Workspace::SI_top()->jump(v_line.get());
+   Workspace::SI_top()->jump(*v_line);
 }
 //════════════════════════════════════════════════════════════════════════════
 void
@@ -1657,7 +1657,7 @@ Prefix::reduce_MISC_F_B_()
         // fall through (REDUCE)
       }
 
-const Token result = at0().get_function()->eval_B(at1().get_apl_val());
+const Token result = at0().get_function()->eval_B(*at1().get_apl_val());
    if (result.get_Class() != TC_SI_CHANGE)   // the normal case
       {
         pop_args_push_result(result);
@@ -1783,7 +1783,7 @@ Value_P B = at2().get_apl_val();
            }
       }
 
-const Token Z = M->eval_XB(C, B);
+const Token Z = M->eval_XB(*C, *B);
    if (push_error(Z))   return;
 
    pop_args_push_result(Z);
@@ -1795,8 +1795,8 @@ Prefix::reduce_A_F_B_()
 {
    Assert1(prefix_len == 3);
 
-const Token result = at1().get_function()->eval_AB(at0().get_apl_val(),
-                                                   at2().get_apl_val());
+const Token result = at1().get_function()->eval_AB(*at0().get_apl_val(),
+                                                   *at2().get_apl_val());
    if (push_error(result))   return;
 
    pop_args_push_result(result);
@@ -1820,7 +1820,7 @@ cFunction_P F = at1().get_function();
 Value_P     C = at2().get_function_axis();
 Value_P     B = at3().get_apl_val();
 
-const Token Z = F->eval_AXB(A, C, B);
+const Token Z = F->eval_AXB(*A, *C, *B);
 
    // result could be a value or an error
    //
@@ -2367,7 +2367,7 @@ Value_P Z;
 
    if (at1().get_tag() == TOK_AXIS)   // [] or [IX]
       {
-        Z = A->index(at1().get_apl_val().get());
+        Z = A->index(*at1().get_apl_val());
       }
    else                               // [I1; I2...]
       {
@@ -2415,7 +2415,7 @@ Value_P B = at3().get_apl_val();
 
    if (at1().get_tag() == TOK_AXIS)   // [] or [x]
       {
-        const Value * v_idx = at1().get_axes().get();
+        const cValue * v_idx = at1().get_axes().get();
 
         try
            {
@@ -3052,7 +3052,7 @@ Prefix::reduce_END_GOTO_B_()
 const bool end_of_line = at0().get_tag() == TOK_ENDL;
 const bool trace = end_of_line && (at0().get_int_val() & 1);
 
-const Value * line = at2().get_apl_val().get();
+const cValue * line = at2().get_apl_val().get();
 
    // produce ⎕TRACE output if enabled and branch is not empty
    //
@@ -3063,7 +3063,7 @@ const Value * line = at2().get_apl_val().get();
         si.statement_result(bra, true);   // display trace line
       }
 
-const Token result = si.jump(line);   // may change the PC
+const Token result = si.jump(*line);   // may change the PC
 
    if (result.get_tag() == TOK_BRANCH)   // branch back into a function
       {
@@ -3331,7 +3331,7 @@ Prefix::reduce_RETC_GOTO_B_()
 const bool end_of_line = at0().get_tag() == TOK_ENDL;
 const bool trace = end_of_line && (at0().get_int_val() & 1);
 
-const Value * line = at2().get_apl_val().get();
+const cValue * line = at2().get_apl_val().get();
 
    // produce ⎕TRACE output if enabled and branch is not empty
    //
@@ -3342,7 +3342,7 @@ const Value * line = at2().get_apl_val().get();
         si.statement_result(bra, true);   // display trace line
       }
 
-const Token result = si.jump(line);   // may change the PC
+const Token result = si.jump(*line);   // may change the PC
 
    if (result.get_tag() == TOK_BRANCH)   // branch back into a function
       {

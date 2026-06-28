@@ -54,21 +54,21 @@ Quad_GTK::close_all_windows()
 }
 //────────────────────────────────────────────────────────────────────────────
 Token
-Quad_GTK::eval_AB(Value_P A, Value_P B) const
+Quad_GTK::eval_AB(cValue_R A, cValue_R B) const
 {
    CHECK_SECURITY(disable_Quad_GTK);
 
-   if (A->get_rank() > 1)   RANK_ERROR;
-   if (B->get_rank() > 1)   RANK_ERROR;
-   if (A->is_char_array() && B->is_char_array())
+   if (A.get_rank() > 1)   RANK_ERROR;
+   if (B.get_rank() > 1)   RANK_ERROR;
+   if (A.is_char_array() && B.is_char_array())
       {
-         const UCS_string css_name_or_data = A->get_UCS_ravel();
-         const UCS_string gui_name_or_data = B->get_UCS_ravel();
+         const UCS_string css_name_or_data = A.get_UCS_ravel();
+         const UCS_string gui_name_or_data = B.get_UCS_ravel();
          const int fd = open_window(gui_name_or_data, &css_name_or_data);
          return Token(TOK_APL_VALUE1, IntScalar(fd, LOC));
       }
 
-   if (!B->is_int_scalar())
+   if (!B.is_int_scalar())
       {
         MORE_ERROR() <<
 "A ⎕GTK B expects an integer scalar B (function number)\n"
@@ -76,18 +76,18 @@ Quad_GTK::eval_AB(Value_P A, Value_P B) const
         DOMAIN_ERROR;
       }
 
-const int function = B->get_cfirst().get_int_value();
+const int function = B.get_cfirst().get_int_value();
 int fd = -1;
    switch(function)
       {
         case 0: // close window/GUI
-             if (!A->is_int_scalar())   goto bad_fd;
-             fd = A->get_cfirst().get_int_value();
+             if (!A.is_int_scalar())   goto bad_fd;
+             fd = A.get_cfirst().get_int_value();
              return Token(TOK_APL_VALUE1, close_window(fd));
 
         case 3: // increase verbosity
-             if (!A->is_int_scalar())   goto bad_fd;
-             fd = A->get_cfirst().get_int_value();
+             if (!A.is_int_scalar())   goto bad_fd;
+             fd = A.get_cfirst().get_int_value();
              if (write_TL0(fd, 7))
                 {
                   CERR << "write(Tag 7) failed in Ah ⎕GTK 3" << endl;
@@ -96,8 +96,8 @@ int fd = -1;
              return Token(TOK_APL_VALUE1, IntScalar(0, LOC));
 
         case 4: // decrease verbosity
-             if (!A->is_int_scalar())   goto bad_fd;
-             fd = A->get_cfirst().get_int_value();
+             if (!A.is_int_scalar())   goto bad_fd;
+             fd = A.get_cfirst().get_int_value();
              if (write_TL0(fd, 8))
                 {
                   CERR << "write(Tag 8) failed in Ah ⎕GTK 4" << endl;
@@ -106,15 +106,15 @@ int fd = -1;
              return Token(TOK_APL_VALUE1, IntScalar(0, LOC));
 
         case 5: // function name for function number A
-             if (A->is_scalar())
+             if (A.is_scalar())
                 return Token(TOK_APL_VALUE1, fnum_to_function_name(
-                                     Fnum(A->get_cscalar().get_int_value())));
+                                     Fnum(A.get_cscalar().get_int_value())));
              RANK_ERROR;
 
         case 6: // widget class for function number A
-             if (A->is_scalar())
+             if (A.is_scalar())
                 return Token(TOK_APL_VALUE1, fnum_to_widget_class(
-                                     Fnum(A->get_cscalar().get_int_value())));
+                                     Fnum(A.get_cscalar().get_int_value())));
              RANK_ERROR;
 
         default: MORE_ERROR() << "Invalid function number Bi=" << function
@@ -132,7 +132,7 @@ bad_fd:
 }
 //────────────────────────────────────────────────────────────────────────────
 Token
-Quad_GTK::eval_AXB(Value_P A, Value_P X, Value_P B) const
+Quad_GTK::eval_AXB(cValue_R A, cValue_R X, cValue_R B) const
 {
    CHECK_SECURITY(disable_Quad_GTK);
 
@@ -159,17 +159,17 @@ Quad_GTK::eval_AXB(Value_P A, Value_P X, Value_P B) const
          and calls it.
     */
 
-   if (B->get_rank() > 1)   RANK_ERROR;
+   if (B.get_rank() > 1)   RANK_ERROR;
 
    // split X into handle ↑X and widget_id 1↓X
    //
 UTF8_string widget_id;            // e.g. "entry1" from id= in .ui
-const int fd = resolve_window(X.get(), widget_id);
+const int fd = resolve_window(X, widget_id);
    write_TLV(fd, 6, widget_id);   // select widget
 
 Fnum fun = FNUM_INVALID;
-   if      (B->is_int_scalar())    fun = Fnum(B->get_cfirst().get_int_value());
-   else if (B->is_char_string())   fun = resolve_fun_name(widget_id, B.get());
+   if      (B.is_int_scalar())    fun = Fnum(B.get_cfirst().get_int_value());
+   else if (B.is_char_string())   fun = resolve_fun_name(widget_id, B);
    else
       {
         MORE_ERROR() <<
@@ -200,19 +200,19 @@ Gtype Atype = gtype_V;   // assume void
 
         default:
              MORE_ERROR() << "Bad function B in A ⎕GTK B (B='"
-                          << *B << ", fun=" << fun;
+                          << B << ", fun=" << fun;
              DOMAIN_ERROR;
       }
 
    if (Atype == gtype_V)    VALENCE_ERROR;
-   if (A->get_rank() > 1)   RANK_ERROR;
+   if (A.get_rank() > 1)   RANK_ERROR;
 
 UCS_string ucs_A;
    if (fun == FNUM_GtkDrawingArea_draw_commands)
       {
-        loop(a, A->element_count())
+        loop(a, A.element_count())
             {
-              const Cell & cell = A->get_cravel(a);
+              const Cell & cell = A.get_cravel(a);
               if (!cell.is_pointer_cell())
                  {
                     MORE_ERROR() << "A ⎕GTK " << fun
@@ -227,13 +227,13 @@ UCS_string ucs_A;
       }
    else
       {
-        if (!A->is_char_string())
+        if (!A.is_char_string())
            {
              MORE_ERROR() << "A ⎕GTK[X] B expects A to be a text vector";
              DOMAIN_ERROR;
            }
 
-        ucs_A = UCS_string(*A);
+        ucs_A = UCS_string(A);
       }
 UTF8_string utf_A(ucs_A);
    write_TLV(fd, command_tag, utf_A);
@@ -241,13 +241,13 @@ UTF8_string utf_A(ucs_A);
 }
 //────────────────────────────────────────────────────────────────────────────
 Token
-Quad_GTK::eval_B(Value_P B) const
+Quad_GTK::eval_B(cValue_R B) const
 {
    CHECK_SECURITY(disable_Quad_GTK);
 
-   if (B->get_rank() > 1)   RANK_ERROR;
+   if (B.get_rank() > 1)   RANK_ERROR;
 
-   if (B->element_count() == 0)   // empty B: print GTK help
+   if (B.element_count() == 0)   // empty B: print GTK help
       {
         COUT <<
 "   ⎕GTK Usage:\n"
@@ -270,14 +270,14 @@ Quad_GTK::eval_B(Value_P B) const
         return Token(TOK_APL_VALUE1, Idx0(LOC));
       }
 
-   if (B->is_char_array())
+   if (B.is_char_array())
       {
-         const UCS_string gui_filename = B->get_UCS_ravel();
+         const UCS_string gui_filename = B.get_UCS_ravel();
          const int fd = open_window(gui_filename, /* no CSS */ 0);
          return Token(TOK_APL_VALUE1, IntScalar(fd, LOC));
       }
 
-   if (!B->is_int_scalar())
+   if (!B.is_int_scalar())
       {
         MORE_ERROR() <<
 "⎕GTK B expects an integer scalar B (function number)\n"
@@ -285,7 +285,7 @@ Quad_GTK::eval_B(Value_P B) const
         DOMAIN_ERROR;
       }
 
-const int function = B->get_cfirst().get_int_value();
+const int function = B.get_cfirst().get_int_value();
    switch(function)
       {
         case 0:   // list of open fds
@@ -379,23 +379,23 @@ const int function = B->get_cfirst().get_int_value();
 }
 //────────────────────────────────────────────────────────────────────────────
 Token
-Quad_GTK::eval_XB(Value_P X, Value_P B) const
+Quad_GTK::eval_XB(cValue_R X, cValue_R B) const
 {
    CHECK_SECURITY(disable_Quad_GTK);
 
    // see eval_AXB above for an explanation of X and B.
 
-   if (B->get_rank() > 1)   RANK_ERROR;
+   if (B.get_rank() > 1)   RANK_ERROR;
 
    // split X into handle ↑X and widget_id 1↓X
    //
 UTF8_string widget_id;                // e.g. "entry1"
-const int fd = resolve_window(X.get(), widget_id);
+const int fd = resolve_window(X, widget_id);
    write_TLV(fd, 6, widget_id);   // select widget
 
 int fun = FNUM_INVALID;
-   if (B->is_int_scalar())         fun = B->get_cfirst().get_int_value();
-   else if (B->is_char_string())   fun = resolve_fun_name(widget_id, B.get());
+   if (B.is_int_scalar())         fun = B.get_cfirst().get_int_value();
+   else if (B.is_char_string())   fun = resolve_fun_name(widget_id, B);
    else                            DOMAIN_ERROR;
 
 int command_tag = -1;
@@ -425,7 +425,7 @@ Gtype Atype = gtype_V;
 }
 //────────────────────────────────────────────────────────────────────────────
 Quad_GTK::Fnum
-Quad_GTK::resolve_fun_name(UTF8_string & widget_id, const Value * B)
+Quad_GTK::resolve_fun_name(UTF8_string & widget_id, cValue_R B)
 {
    // By convention, widget_id is a class prefix (lowercase a-z),
    // possibly followed by an instance number (if glade is used),
@@ -435,7 +435,7 @@ Quad_GTK::resolve_fun_name(UTF8_string & widget_id, const Value * B)
 int wid_len = 0;
    while (widget_id[wid_len] >= 'a' && widget_id[wid_len] <= 'z')   ++wid_len;
 
-const UCS_string ucs_B(*B);
+const UCS_string ucs_B(B);
 UTF8_string utf_B(ucs_B);
 const char * wid_class = widget_id.c_str();   // e.g. button-OK
 const char * fun_name = utf_B.c_str();        // gtk_widget_get_state_flags
@@ -744,10 +744,10 @@ Value_P Z(open_windows.size(), LOC);
 }
 //────────────────────────────────────────────────────────────────────────────
 int
-Quad_GTK::resolve_window(const Value * X, UTF8_string & widget_id)
+Quad_GTK::resolve_window(cValue_R X, UTF8_string & widget_id)
 {
-   if (X->get_rank() > 1)   RANK_ERROR;
-const int fd = X->get_cfirst().get_int_value();
+   if (X.get_rank() > 1)   RANK_ERROR;
+const int fd = X.get_cfirst().get_int_value();
 
    // verify that the handle ↑X is an open window...
    //
@@ -769,9 +769,9 @@ bool window_valid = false;
       }
 
    // copy string 1↓X into widget_id
-   loop(i, X->element_count())
+   loop(i, X.element_count())
        {
-         if (i)   widget_id += X->get_cravel(i).get_char_value();
+         if (i)   widget_id += X.get_cravel(i).get_char_value();
        }
 
    return fd;
@@ -958,19 +958,19 @@ Quad_GTK::close_all_windows()
 }
 //────────────────────────────────────────────────────────────────────────────
 Token
-Quad_GTK::eval_AB(Value_P A, Value_P B) const
+Quad_GTK::eval_AB(cValue_R A, cValue_R B) const
 {
    return eval_B(B);
 }
 //────────────────────────────────────────────────────────────────────────────
 Token
-Quad_GTK::eval_AXB(Value_P A, Value_P X, Value_P B) const
+Quad_GTK::eval_AXB(cValue_R A, cValue_R X, cValue_R B) const
 {
    return eval_B(B);
 }
 //────────────────────────────────────────────────────────────────────────────
 Token
-Quad_GTK::eval_B(Value_P B) const
+Quad_GTK::eval_B(cValue_R B) const
 {
 const char * libs[] = { "libgtk-3.so",  0 };
 const char * hdrs[] = { "gtk/gtk.h",    0 };
@@ -980,7 +980,7 @@ const char * pkgs[] = { "libgtk-3-dev", 0 };
 }
 //────────────────────────────────────────────────────────────────────────────
 Token
-Quad_GTK::eval_XB(Value_P X, Value_P B) const
+Quad_GTK::eval_XB(cValue_R X, cValue_R B) const
 {
    return eval_B(B);
 }

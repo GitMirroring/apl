@@ -69,33 +69,33 @@ enum { count = sizeof(subfunction_infos) / sizeof(*subfunction_infos) };
 }
 //────────────────────────────────────────────────────────────────────────────
 Token
-Bif_F12_DOMINO::eval_B(Value_P B) const
+Bif_F12_DOMINO::eval_B(cValue_R B) const
 {
-   if (B->is_scalar())
+   if (B.is_scalar())
       {
         Value_P Z(LOC);
 
-        B->get_cscalar().bif_reciprocal(&Z->get_wscalar());
+        B.get_cscalar().bif_reciprocal(&Z->get_wscalar());
         Z->check_value(LOC);
         return Token(TOK_APL_VALUE1, Z);
       }
 
-   if (B->get_rank() == 1)   // help or inversion at the unit sphere
+   if (B.get_rank() == 1)   // help or inversion at the unit sphere
       {
-        if (B->element_count() == 0)   // '' or ⍬: help
+        if (B.element_count() == 0)   // '' or ⍬: help
            {
-             if (B->get_cfirst().is_character_cell())      list_functions(CERR);
-             else if (B->get_cfirst().is_integer_cell())   list_mappings(CERR);
+             if (B.get_cfirst().is_character_cell())      list_functions(CERR);
+             else if (B.get_cfirst().is_integer_cell())   list_mappings(CERR);
              else                                          DOMAIN_ERROR;
              return Token(TOK_APL_VALUE1, Idx0_0(LOC));
            }
 
         const double qct = Workspace::get_CT();
-        const ShapeItem len = B->get_shape_item(0);
+        const ShapeItem len = B.get_shape_item(0);
         APL_Complex r2(0.0);
         loop(l, len)
             {
-              const APL_Complex b = B->get_cravel(l).get_complex_value();
+              const APL_Complex b = B.get_cravel(l).get_complex_value();
               r2 += b*b;
             }
 
@@ -109,7 +109,7 @@ Bif_F12_DOMINO::eval_B(Value_P B) const
            {
              loop(l, len)
                  {
-                   const APL_Float b = B->get_cravel(l).get_real_value();
+                   const APL_Float b = B.get_cravel(l).get_real_value();
                    Z->next_ravel_Float(b / r2.real());
                  }
            }
@@ -117,20 +117,20 @@ Bif_F12_DOMINO::eval_B(Value_P B) const
            {
              loop(l, len)
                  {
-                   const APL_Complex b = B->get_cravel(l).get_complex_value();
+                   const APL_Complex b = B.get_cravel(l).get_complex_value();
                    Z->next_ravel_Complex(b / r2);
                  }
            }
 
-        Z->set_default(*B.get(), LOC);
+        Z->set_default(B, LOC);
         Z->check_value(LOC);
         return Token(TOK_APL_VALUE1, Z);
       }
 
-   if (B->get_rank() > 2)   RANK_ERROR;
+   if (B.get_rank() > 2)   RANK_ERROR;
 
-const ShapeItem rows = B->get_shape_item(0);
-const ShapeItem cols = B->get_shape_item(1);
+const ShapeItem rows = B.get_shape_item(0);
+const ShapeItem cols = B.get_shape_item(1);
    if (cols > rows)
       {
         MORE_ERROR() <<
@@ -146,12 +146,12 @@ Value_P I(shape_I, LOC);
    loop(y, rows)
    loop(x, rows)   I->next_ravel_Float(y == x ? 1.0 : 0.0);
 
-Token result = eval_AB(I, B);
+Token result = eval_AB(*I, B);
    return result;
 }
 //────────────────────────────────────────────────────────────────────────────
 Token
-Bif_F12_DOMINO::eval_XB(Value_P X, Value_P B) const
+Bif_F12_DOMINO::eval_XB(cValue_R X, cValue_R B) const
 {
    // X shall be a scalar with:
    //
@@ -159,7 +159,7 @@ Bif_F12_DOMINO::eval_XB(Value_P X, Value_P B) const
    // b. integer 0 for the QR factorization with the Helzer algorithm, or
    // c. integer 1 for the QR factorization with LApack
    //
-   if (!X->is_scalar())   RANK_ERROR;
+   if (!X.is_scalar())   RANK_ERROR;
 
 enum { ALGO_BAD,         ///< bad algorithm number
        ALGO_QR_HELZER,   ///< QR factorization with Gary Helzer's algorithm
@@ -171,7 +171,7 @@ enum { ALGO_BAD,         ///< bad algorithm number
        ALGO_LU_GSL,      ///< LU factorization (libgsl based)
      } algo = ALGO_BAD;
 
-const Cell & X0 = X->get_cscalar();
+const Cell & X0 = X.get_cscalar();
 double EPS = Workspace::get_CT();
 
    if (X0.is_float_cell())   // a.
@@ -190,9 +190,9 @@ double EPS = Workspace::get_CT();
         else if (x0 ==  5)   algo = ALGO_QL_GSL;
         else if (x0 ==  6)   algo = ALGO_LU_GSL;
 #endif
-        else if (x0 ==  7)   return Token(TOK_APL_VALUE1, print_polynomial(*B));
-        else if (x0 == 11)   return Token(TOK_APL_VALUE1, scan_polynomial(*B));
-        else if (x0 == 20)   return Token(TOK_APL_VALUE1, integral(0, *B));
+        else if (x0 ==  7)   return Token(TOK_APL_VALUE1, print_polynomial(B));
+        else if (x0 == 11)   return Token(TOK_APL_VALUE1, scan_polynomial(B));
+        else if (x0 == 20)   return Token(TOK_APL_VALUE1, integral(0, B));
       }
 
    if (algo == ALGO_BAD)   // none of the above
@@ -201,23 +201,23 @@ double EPS = Workspace::get_CT();
         DOMAIN_ERROR;
       }
 
-   if (B->get_rank() != 2)   RANK_ERROR;
+   if (B.get_rank() != 2)   RANK_ERROR;
 
    // if rank of A or B is < 2 then treat it as a
    // 1 by n (or 1 by 1) matrix..
    //
-const ShapeItem M = B->get_rows();
-const ShapeItem N = B->get_cols();
+const ShapeItem M = B.get_rows();
+const ShapeItem N = B.get_cols();
    if (M*N == 0)   LENGTH_ERROR;   // empty B
 
-const bool need_complex = B->is_complex(true);
+const bool need_complex = B.is_complex(true);
 Value_P Z(3, LOC);
 
    if (algo == ALGO_QR_HELZER)
       {
         LA_DEBUG && CERR <<
                     "QR factorization with Gary Helzer's algorithm...\n";
-        QR_Helzer(Z, need_complex, M, N, &B->get_cfirst(), EPS);
+        QR_Helzer(Z, need_complex, M, N, &B.get_cfirst(), EPS);
       }
 #if apl_GSL
    else if (algo == ALGO_QR_GSL)
@@ -225,11 +225,11 @@ Value_P Z(3, LOC);
         LA_DEBUG && CERR << "QR factorization with libgsl algorithm...\n";
         if (need_complex)
            {
-             GSL::QR_factorize_ZZ_matrix(*Z, M, N, &B->get_cfirst());
+             GSL::QR_factorize_ZZ_matrix(*Z, M, N, &B.get_cfirst());
            }
         else   // real
            {
-             GSL::QR_factorize_DD_matrix(*Z, M, N, &B->get_cfirst());
+             GSL::QR_factorize_DD_matrix(*Z, M, N, &B.get_cfirst());
            }
       }
    else if (algo == ALGO_RQ_GSL)
@@ -242,12 +242,12 @@ Value_P Z(3, LOC);
            }
 
         LA_DEBUG && CERR << "RQ factorization with libgsl algorithm...\n";
-        GSL::RQ_factorize(*Z, M, N, B);
+        GSL::RQ_factorize(*Z, M, N, CLONE(&B, LOC));
       }
    else if (algo == ALGO_LQ_GSL)
       {
         LA_DEBUG && CERR << "LQ factorization with libgsl algorithm...\n";
-        GSL::LQ_factorize(*Z, M, N, B, need_complex);
+        GSL::LQ_factorize(*Z, M, N, CLONE(&B, LOC), need_complex);
       }
    else if (algo == ALGO_QL_GSL)
       {
@@ -260,7 +260,7 @@ Value_P Z(3, LOC);
            }
         else   // real
            {
-             GSL::QL_factorize_DD_matrix(*Z, M, N, &B->get_cfirst());
+             GSL::QL_factorize_DD_matrix(*Z, M, N, &B.get_cfirst());
            }
       }
    else if (algo == ALGO_LU_GSL)
@@ -268,11 +268,11 @@ Value_P Z(3, LOC);
         LA_DEBUG && CERR << "LU factorization with libgsl algorithm...\n";
         if (need_complex)
            {
-             GSL::LU_factorize_ZZ_matrix(*Z, M, N, &B->get_cfirst());
+             GSL::LU_factorize_ZZ_matrix(*Z, M, N, &B.get_cfirst());
            }
         else
            {
-             GSL::LU_factorize_DD_matrix(*Z, M, N, &B->get_cfirst());
+             GSL::LU_factorize_DD_matrix(*Z, M, N, &B.get_cfirst());
            }
       }
 #endif
@@ -283,19 +283,19 @@ Value_P Z(3, LOC);
 }
 //════════════════════════════════════════════════════════════════════════════
 Token
-Bif_F12_DOMINO::eval_AXB(Value_P A, Value_P X, Value_P B) const
+Bif_F12_DOMINO::eval_AXB(cValue_R A, cValue_R X, cValue_R B) const
 {
-const APL_Integer X0 = X->get_sole_integer();
+const APL_Integer X0 = X.get_sole_integer();
    if (X0 < 7)     VALENCE_ERROR;
    switch(X0)
       {
-        case  7: return Token(TOK_APL_VALUE1, print_polynomial(*A, *B));
-        case  8: return Token(TOK_APL_VALUE1, polynomial_product(*A, *B));
-        case  9: return Token(TOK_APL_VALUE1, poly_quotient(*A, *B));
-        case 10: return Token(TOK_APL_VALUE1, poly_quotient_NO(*A, *B, 0, 0));
-        case 11: return Token(TOK_APL_VALUE1, scan_polynomial(*A, *B));
-        case 12: return Token(TOK_APL_VALUE1, poly_quotient_N(*A, *B));
-        case 20: return Token(TOK_APL_VALUE1, integral(A.get(), *B));
+        case  7: return Token(TOK_APL_VALUE1, print_polynomial(A, B));
+        case  8: return Token(TOK_APL_VALUE1, polynomial_product(A, B));
+        case  9: return Token(TOK_APL_VALUE1, poly_quotient(A, B));
+        case 10: return Token(TOK_APL_VALUE1, poly_quotient_NO(A, B, 0, 0));
+        case 11: return Token(TOK_APL_VALUE1, scan_polynomial(A, B));
+        case 12: return Token(TOK_APL_VALUE1, poly_quotient_N(A, B));
+        case 20: return Token(TOK_APL_VALUE1, integral(&A, B));
       }
 
    MORE_ERROR() << "A ⌹[X] B: invalid function number X (=" << X0 << ").";
@@ -303,7 +303,7 @@ const APL_Integer X0 = X->get_sole_integer();
 }
 //────────────────────────────────────────────────────────────────────────────
 Token
-Bif_F12_DOMINO::eval_AB(Value_P A, Value_P B) const
+Bif_F12_DOMINO::eval_AB(cValue_R A, cValue_R B) const
 {
 ShapeItem rows_A = 1;
 ShapeItem cols_A = 1;
@@ -314,30 +314,30 @@ ShapeItem cols_B = 1;
    // 1 by n (or 1 by 1) matrix..
    //
 Shape shape_Z;   // ⍴Z ←→ (¯1↓⍴A), (1↓⍴B)
-   switch(B->get_rank())
+   switch(B.get_rank())
       {
          case 0:  break;
 
-         case 1:  rows_B = B->get_shape_item(0);
+         case 1:  rows_B = B.get_shape_item(0);
                   break;
 
-         case 2:  cols_B = B->get_shape_item(1);
-                  rows_B = B->get_shape_item(0);
+         case 2:  cols_B = B.get_shape_item(1);
+                  rows_B = B.get_shape_item(0);
                   shape_Z.add_shape_item(cols_B);
                   break;
 
          default: RANK_ERROR;
       }
 
-   switch(A->get_rank())
+   switch(A.get_rank())
       {
          case 0:  break;
 
-         case 1:  rows_A = A->get_shape_item(0);
+         case 1:  rows_A = A.get_shape_item(0);
                   break;
 
-         case 2:  cols_A = A->get_shape_item(1);
-                  rows_A = A->get_shape_item(0);
+         case 2:  cols_A = A.get_shape_item(1);
+                  rows_A = A.get_shape_item(0);
                   shape_Z.add_shape_item(cols_A);
                   break;
 
@@ -357,14 +357,14 @@ Shape shape_Z;   // ⍴Z ←→ (¯1↓⍴A), (1↓⍴B)
         LENGTH_ERROR;
       }
 
-const bool need_complex = A->is_complex(true) || B->is_complex(true);
+const bool need_complex = A.is_complex(true) || B.is_complex(true);
 Value_P Z(shape_Z, LOC);
 const sRank rank = need_complex ?  LA_pack::divide_ZZ_matrix(*Z, rows_A,
-                                          cols_A, &A->get_cfirst(),
-                                          cols_B, &B->get_cfirst())
+                                          cols_A, &A.get_cfirst(),
+                                          cols_B, &B.get_cfirst())
                                 :  LA_pack::divide_DD_matrix(*Z, rows_A,
-                                          cols_A, &A->get_cfirst(),
-                                          cols_B, &B->get_cfirst());
+                                          cols_A, &A.get_cfirst(),
+                                          cols_B, &B.get_cfirst());
 
    if (rank < cols_B)
       {
@@ -377,24 +377,24 @@ const sRank rank = need_complex ?  LA_pack::divide_ZZ_matrix(*Z, rows_A,
         DOMAIN_ERROR;
       }
 
-   Z->set_default(*B.get(), LOC);
+   Z->set_default(B, LOC);
 
    Z->check_value(LOC);
    return Token(TOK_APL_VALUE1, Z);
 }
 //════════════════════════════════════════════════════════════════════════════
 Token
-Bif_F12_DOMINO::eval_fill_B(Value_P B) const
+Bif_F12_DOMINO::eval_fill_B(cValue_R B) const
 {
-   return Bif_F12_TRANSPOSE::do_eval_B(B.get());
+   return Bif_F12_TRANSPOSE::do_eval_B(B);
 }
 //────────────────────────────────────────────────────────────────────────────
 Token
-Bif_F12_DOMINO::eval_fill_AB(Value_P A, Value_P B) const
+Bif_F12_DOMINO::eval_fill_AB(cValue_R A, cValue_R B) const
 {
 Shape shape_Z;
-   loop(r, A->get_rank() - 1)  shape_Z.add_shape_item(A->get_shape_item(r + 1));
-   loop(r, B->get_rank() - 1)  shape_Z.add_shape_item(B->get_shape_item(r + 1));
+   loop(r, A.get_rank() - 1)  shape_Z.add_shape_item(A.get_shape_item(r + 1));
+   loop(r, B.get_rank() - 1)  shape_Z.add_shape_item(B.get_shape_item(r + 1));
 
 Value_P Z(shape_Z, LOC);
    while (Z->more())   Z->next_ravel_0();
@@ -459,7 +459,7 @@ Value_P A(2, LOC);   // A←0 4
    A->next_ravel_Int(4);   // number of fractional digits
    A->check_value(LOC);
 
-Value_P Z = Bif_F12_FORMAT::format_by_specification(A, B);
+Value_P Z = Bif_F12_FORMAT::format_by_specification(A.get(), B.get());
    CERR << name;
    Z->print_boxed(CERR, 0);
 #endif // DOMINO_DEBUG
@@ -482,7 +482,7 @@ Value_P A(2, LOC);
    A->next_ravel_Int(4);   // number of fractional digits
    A->check_value(LOC);
 
-Value_P Z = Bif_F12_FORMAT::format_by_specification(A, B);
+Value_P Z = Bif_F12_FORMAT::format_by_specification(A.get(), B.get());
    CERR << name;
    Z->print_boxed(CERR, 0);
 #endif // DOMINO_DEBUG
@@ -877,7 +877,7 @@ mB.debug("[13] B");
 }
 //════════════════════════════════════════════════════════════════════════════
 Value_P
-Bif_F12_DOMINO::print_polynomial(const Value & A, const Value & B)
+Bif_F12_DOMINO::print_polynomial(const cValue & A, const cValue & B)
 {
    /* A is a vector of names for the indeterminants (typically
       'x', 'x'y, 'x'z, ...) and B is the coefficients of the powers of
@@ -919,7 +919,7 @@ UCS_string_vector vars;
         loop(a, ec_A)
             {
               const Cell & cell = A.get_cravel(a);
-              const Value & x = *cell.get_pointer_value();
+              const cValue & x = *cell.get_pointer_value();
               if (!x.is_char_array())
                  {
                     MORE_ERROR() << "A ⌹.print_poly B: Bad variable name A["
@@ -937,7 +937,7 @@ const UCS_string Z_ucs = print_polynomial(vars, B);
 //────────────────────────────────────────────────────────────────────────────
 UCS_string
 Bif_F12_DOMINO::print_polynomial(const UCS_string_vector & vars,
-                                 const Value & B)
+                                 const cValue & B)
 {
 const UTF8_string expo_digits_utf("⁰¹²³⁴⁵⁶⁷⁸⁹");
 const UCS_string expo_digits(expo_digits_utf);
@@ -1079,7 +1079,7 @@ int term = 0;
 }
 //────────────────────────────────────────────────────────────────────────────
 Value_P
-Bif_F12_DOMINO::print_polynomial(const Value & B)
+Bif_F12_DOMINO::print_polynomial(const cValue & B)
 {
 const uRank rank_B = B.get_rank();
    if (rank_B > 8)   RANK_ERROR;
@@ -1098,7 +1098,7 @@ const UCS_string Z = print_polynomial(vars, B);
 }
 //────────────────────────────────────────────────────────────────────────────
 Value_P
-Bif_F12_DOMINO::polynomial_product(const Value & A, const Value & B)
+Bif_F12_DOMINO::polynomial_product(const cValue & A, const cValue & B)
 {
    // the rank is the number of indeterminants (which should be the same for
    // A and B).
@@ -1200,7 +1200,7 @@ Value_P Z(shape_Z, LOC);
 }
 //────────────────────────────────────────────────────────────────────────────
 Value_P
-Bif_F12_DOMINO::poly_quotient(const Value & A, const Value & B)
+Bif_F12_DOMINO::poly_quotient(const cValue & A, const cValue & B)
 {
    if (A.get_rank() > 1)   RANK_ERROR;
    if (B.get_rank() > 1)   RANK_ERROR;
@@ -1407,8 +1407,8 @@ Value_P Z(2, LOC);   // Z is quotient Z1 and remainder Z2
 }
 //────────────────────────────────────────────────────────────────────────────
 Value_P
-Bif_F12_DOMINO::poly_quotient_NO(const Value & A, const Value & B,
-                              const Value * order_A, const Value * order_B)
+Bif_F12_DOMINO::poly_quotient_NO(const cValue & A, const cValue & B,
+                              const cValue * order_A, const cValue * order_B)
 {
    // divide multivariate polynomials.
    //
@@ -1499,7 +1499,7 @@ Value_P Z(2, LOC);
 }
 //────────────────────────────────────────────────────────────────────────────
 Value_P
-Bif_F12_DOMINO::poly_quotient_N(const Value & A, const Value & B)
+Bif_F12_DOMINO::poly_quotient_N(const cValue & A, const cValue & B)
 {
    // A contains 2 "planes": the real polynomial A[1;...] and the item
    // order A[2;...] for the corresponding coefficient in A[1[...].
@@ -1564,7 +1564,7 @@ Value_P order_B(shape_B, LOC);  // B[2;...]
 }
 //────────────────────────────────────────────────────────────────────────────
 Value_P
-Bif_F12_DOMINO::scan_polynomial(const Value & A, const Value & B)
+Bif_F12_DOMINO::scan_polynomial(const cValue & A, const cValue & B)
 {
    /* A is a vector of names for the indeterminants (typically
       'x', 'x'y, 'x'z, ...) and B is the coefficients of the powers of
@@ -1606,7 +1606,7 @@ UCS_string_vector vars;
         loop(a, ec_A)
             {
               const Cell & cell = A.get_cravel(a);
-              const Value & x = *cell.get_pointer_value();
+              const cValue & x = *cell.get_pointer_value();
               if (!x.is_char_array())
                  {
                     MORE_ERROR() << "A ⌹.print_poly B: Bad variable name A["
@@ -1622,7 +1622,7 @@ UCS_string_vector vars;
 }
 //────────────────────────────────────────────────────────────────────────────
 Value_P
-Bif_F12_DOMINO::scan_polynomial(const Value & B)
+Bif_F12_DOMINO::scan_polynomial(const cValue & B)
 {
 const uRank rank_B = B.get_rank();
    if (rank_B > 8)   RANK_ERROR;
@@ -1640,7 +1640,7 @@ UCS_string_vector vars;   vars.reserve(8);
 }
 //────────────────────────────────────────────────────────────────────────────
 Value_P
-Bif_F12_DOMINO::scan_polynomial(const UCS_string_vector & vars, const Value & B)
+Bif_F12_DOMINO::scan_polynomial(const UCS_string_vector & vars, const cValue & B)
 {
    if (B.get_rank() > 1)     RANK_ERROR;
    if (!B.is_char_array())   DOMAIN_ERROR;
@@ -1865,7 +1865,7 @@ char buffer[BUFSIZE + 1];
 #endif
 //────────────────────────────────────────────────────────────────────────────
 Value_P
-Bif_F12_DOMINO::integral(const Value * A, const Value & B)
+Bif_F12_DOMINO::integral(const cValue * A, const cValue & B)
 {
 int printer = 1;
    if (A)   // optional attributes

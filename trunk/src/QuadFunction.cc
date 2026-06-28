@@ -81,14 +81,14 @@ Quad_TRACE Quad_TRACE::fun;   // T∆
 
 //════════════════════════════════════════════════════════════════════════════
 Token
-Quad_AF::eval_B(Value_P B) const
+Quad_AF::eval_B(cValue_R B) const
 {
-const ShapeItem ec = B->element_count();
-Value_P Z(B->get_shape(), LOC);
+const ShapeItem ec = B.element_count();
+Value_P Z(B.get_shape(), LOC);
 
    loop(v, ec)
        {
-         const Cell & cell_B = B->get_cravel(v);
+         const Cell & cell_B = B.get_cravel(v);
 
          if (cell_B.is_character_cell())   // Unicode to AV index
             {
@@ -114,19 +114,19 @@ Value_P Z(B->get_shape(), LOC);
 }
 //════════════════════════════════════════════════════════════════════════════
 Token
-Quad_AT::eval_AB(Value_P A, Value_P B) const
+Quad_AT::eval_AB(cValue_R A, cValue_R B) const
 {
    // A is an integer scalar 1, 2, 3, or 4 (the mode)
    // B is a matrix of symbol names
 
-   if (A->get_rank() > 0)   RANK_ERROR;
+   if (A.get_rank() > 0)   RANK_ERROR;
 
-const APL_Integer mode = A->get_cfirst().get_near_int();
+const APL_Integer mode = A.get_cfirst().get_near_int();
    if (mode < 1)   DOMAIN_ERROR;
    if (mode > 4)   DOMAIN_ERROR;
 
-const ShapeItem cols = B->get_cols();
-const ShapeItem rows = B->get_rows();
+const ShapeItem cols = B.get_cols();
+const ShapeItem rows = B.get_rows();
    if (rows == 0)   LENGTH_ERROR;
 
                // mode:  1  2  3  4
@@ -145,7 +145,7 @@ Value_P Z(shape_Z, LOC);
         UCS_string symbol_name;
         loop(c, cols)
            {
-            const Unicode uni = B->get_cravel(b + c).get_char_value();
+            const Unicode uni = B.get_cravel(b + c).get_char_value();
             if (uni == UNI_SPACE)   break;
             symbol_name << uni;
            }
@@ -201,16 +201,16 @@ Value_P Z(shape_Z, LOC);
 }
 //════════════════════════════════════════════════════════════════════════════
 Token
-Quad_DL::eval_B(Value_P B) const
+Quad_DL::eval_B(cValue_R B) const
 {
 const APL_time_us start = now();
 
    // B should be an integer or real scalar
    //
-   if (B->get_rank() > 0)                 RANK_ERROR;
-   if (!B->get_cfirst().is_real_cell())   DOMAIN_ERROR;
+   if (B.get_rank() > 0)                 RANK_ERROR;
+   if (!B.get_cfirst().is_real_cell())   DOMAIN_ERROR;
 
-const APL_time_us end = start + 1000000 * B->get_cfirst().get_real_value();
+const APL_time_us end = start + 1000000 * B.get_cfirst().get_real_value();
    if (end < start)                           DOMAIN_ERROR;
    if (end > start + 31*24*60*60*1000000LL)   DOMAIN_ERROR;   // > 1 month
 
@@ -238,17 +238,17 @@ bool need_LF = false;
 }
 //════════════════════════════════════════════════════════════════════════════
 Token
-Quad_EA::eval_AB(Value_P A, Value_P B) const
+Quad_EA::eval_AB(cValue_R A, cValue_R B) const
 {
-   if (!A->is_char_string())
+   if (!A.is_char_string())
       {
-        if (A->get_rank() > 1)   RANK_ERROR;
+        if (A.get_rank() > 1)   RANK_ERROR;
         else                     DOMAIN_ERROR;
       }
 
-   if (!B->is_char_string())
+   if (!B.is_char_string())
       {
-        if (B->get_rank() > 1)   RANK_ERROR;
+        if (B.get_rank() > 1)   RANK_ERROR;
         else                     DOMAIN_ERROR;
       }
 
@@ -256,17 +256,17 @@ Quad_EA::eval_AB(Value_P A, Value_P B) const
 }
 //════════════════════════════════════════════════════════════════════════════
 Token
-Quad_EB::eval_AB(Value_P A, Value_P B) const
+Quad_EB::eval_AB(cValue_R A, cValue_R B) const
 {
-   if (!A->is_char_string())
+   if (!A.is_char_string())
       {
-        if (A->get_rank() > 1)   RANK_ERROR;
+        if (A.get_rank() > 1)   RANK_ERROR;
         else                     DOMAIN_ERROR;
       }
 
-   if (!B->is_char_string())
+   if (!B.is_char_string())
       {
-        if (B->get_rank() > 1)   RANK_ERROR;
+        if (B.get_rank() > 1)   RANK_ERROR;
         else                     DOMAIN_ERROR;
       }
 
@@ -383,9 +383,9 @@ Token tok_Z(TOK_APL_VALUE1, Z);
 }
 //────────────────────────────────────────────────────────────────────────────
 Token
-Quad_EC::eval_B(Value_P B) const
+Quad_EC::eval_B(cValue_R B) const
 {
-const UCS_string statement_B(*B.get());
+const UCS_string statement_B(B);
 
 ExecuteList * fun = 0;
    try {
@@ -427,7 +427,7 @@ ExecuteList * fun = 0;
 }
 //────────────────────────────────────────────────────────────────────────────
 Token
-Quad_EC::eval_fill_B(Value_P B) const
+Quad_EC::eval_fill_B(cValue_R B) const
 {
 Value_P Z2(2, LOC);                             // Z2←0 0 0
    Z2->next_ravel_0();
@@ -447,11 +447,11 @@ Value_P Z(ShapeItem(0), LOC);                   // Z ← 0 ⍴ ⊂Zsub
 }
 //════════════════════════════════════════════════════════════════════════════
 Token
-Quad_ENV::eval_B(Value_P B) const
+Quad_ENV::eval_B(cValue_R B) const
 {
-   if (!B->is_char_string())   DOMAIN_ERROR;
+   if (!B.is_char_string())   DOMAIN_ERROR;
 
-const ShapeItem ec_B = B->element_count();
+const ShapeItem ec_B = B.element_count();
 
 std::vector<const char *> evars;
 
@@ -464,7 +464,7 @@ std::vector<const char *> evars;
          bool match = true;
          loop(b, ec_B)
             {
-              if (B->get_cravel(b).get_char_value() != Unicode(env[b]))
+              if (B.get_cravel(b).get_char_value() != Unicode(env[b]))
                  {
                    match = false;
                    break;
@@ -505,21 +505,21 @@ Value_P Z(sh_Z, LOC);
 }
 //════════════════════════════════════════════════════════════════════════════
 Token
-Quad_ES::eval_AB(Value_P A, Value_P B) const
+Quad_ES::eval_AB(cValue_R A, cValue_R B) const
 {
-const UCS_string ucs(*A.get());
+const UCS_string ucs(A);
 Error error(E_NO_ERROR, LOC);
-const Token ret = event_simulate(&ucs, B, error);
+const Token ret = event_simulate(&ucs, CLONE(&B, LOC), error);
    if (error.get_error_code() == E_NO_ERROR)   return ret;
 
    throw error;
 }
 //────────────────────────────────────────────────────────────────────────────
 Token
-Quad_ES::eval_B(Value_P B) const
+Quad_ES::eval_B(cValue_R B) const
 {
 Error error(E_NO_ERROR, LOC);
-const Token ret = event_simulate(0, B, error);
+const Token ret = event_simulate(0, CLONE(&B, LOC), error);
    if (error.get_error_code() == E_NO_ERROR)              return ret;
    if (Workspace::SI_top()->get_safe_execution_depth())   return ret;
 
@@ -701,15 +701,15 @@ cleanup:
 }
 //════════════════════════════════════════════════════════════════════════════
 Token
-Quad_EX::eval_B(Value_P B) const
+Quad_EX::eval_B(cValue_R B) const
 {
-   if (B->get_rank() > 2)   RANK_ERROR;
+   if (B.get_rank() > 2)   RANK_ERROR;
 
    // we don't throw a DOMAIN ERROR if B is bad, but provide info for
    // the user if she asks for it with )MORE.
-   loop(b, B->element_count())
+   loop(b, B.element_count())
        {
-         const Cell & cell = B->get_cravel(b);
+         const Cell & cell = B.get_cravel(b);
          if (!cell.is_character_cell())
             {
               MORE_ERROR() << "⎕EX B: non-character in list B "
@@ -728,8 +728,8 @@ Quad_EX::eval_B(Value_P B) const
            }
        }
 
-const ShapeItem var_count = B->get_rows();
-const UCS_string_vector vars(*B, false);
+const ShapeItem var_count = B.get_rows();
+const UCS_string_vector vars(B, false);
 
 Shape sh_Z;
    if (var_count > 1)   sh_Z.add_shape_item(var_count);
@@ -757,7 +757,7 @@ UCS_string_vector Quad_INP::suffixes;
 bool Quad_INP::Quad_INP_running = false;
 
 Token
-Quad_INP::eval_AB(Value_P A, Value_P B) const
+Quad_INP::eval_AB(cValue_R A, cValue_R B) const
 {
    if (Quad_INP_running)
       {
@@ -767,18 +767,18 @@ Quad_INP::eval_AB(Value_P A, Value_P B) const
 
    // make sure that B is a non-empty string
    //
-   if (B->get_rank() > 1)         RANK_ERROR;
-   if (B->element_count() == 0)   LENGTH_ERROR;
+   if (B.get_rank() > 1)         RANK_ERROR;
+   if (B.element_count() == 0)   LENGTH_ERROR;
 
    // temporary strings if get_esc() should fail
    //
 UCS_string e1;
 UCS_string e2;
-   get_esc(A, e1, e2);
+   get_esc(CLONE(&A, LOC), e1, e2);
 
    Quad_INP_running = true;
 
-   end_marker = B->get_UCS_ravel();
+   end_marker = B.get_UCS_ravel();
    esc1 = e1;
    esc2 = e2;
 
@@ -826,7 +826,7 @@ Value_P BB(line_count, LOC);
        }
    BB->check_value(LOC);
 
-Token ret = Macro::get_macro(Macro::MAC_Z__Quad_INP_B)->eval_B(BB);
+Token ret = Macro::get_macro(Macro::MAC_Z__Quad_INP_B)->eval_B(*BB);
    Assert1(ret.get_tag() == TOK_SI_PUSHED);
 
 // loop(l, line_count)   BB->release(l, LOC);
@@ -836,7 +836,7 @@ Token ret = Macro::get_macro(Macro::MAC_Z__Quad_INP_B)->eval_B(BB);
 }
 //════════════════════════════════════════════════════════════════════════════
 Token
-Quad_INP::eval_B(Value_P B) const
+Quad_INP::eval_B(cValue_R B) const
 {
    if (Quad_INP_running)
       {
@@ -846,10 +846,10 @@ Quad_INP::eval_B(Value_P B) const
 
    // make sure that B is a non-empty string
    //
-   if (B->get_rank() > 1)         RANK_ERROR;
-   if (B->element_count() == 0)   LENGTH_ERROR;
+   if (B.get_rank() > 1)         RANK_ERROR;
+   if (B.element_count() == 0)   LENGTH_ERROR;
 
-   end_marker = B->get_UCS_ravel();
+   end_marker = B.get_UCS_ravel();
 
    Quad_INP_running = true;
 
@@ -868,15 +868,15 @@ Value_P Z(raw_lines.size(), LOC);
 }
 //────────────────────────────────────────────────────────────────────────────
 Token
-Quad_INP::eval_XB(Value_P X, Value_P B) const
+Quad_INP::eval_XB(cValue_R X, cValue_R B) const
 {
-   if (X->element_count() != 1)
+   if (X.element_count() != 1)
       {
-        if (X->get_rank() > 1)   RANK_ERROR;
+        if (X.get_rank() > 1)   RANK_ERROR;
         else                     LENGTH_ERROR;
       }
 
-APL_Integer x = X->get_cfirst().get_near_int();
+APL_Integer x = X.get_cfirst().get_near_int();
    if (x == 0)   return eval_B(B);
    if (x > 1)    DOMAIN_ERROR;
 
@@ -885,10 +885,10 @@ APL_Integer x = X->get_cfirst().get_near_int();
    //
    // make sure that B is a non-empty string and extract it.
    //
-   if (B->get_rank() > 1)         RANK_ERROR;
-   if (B->element_count() == 0)   LENGTH_ERROR;
+   if (B.get_rank() > 1)         RANK_ERROR;
+   if (B.element_count() == 0)   LENGTH_ERROR;
 
-UCS_string end_marker(B->get_UCS_ravel());
+UCS_string end_marker(B.get_UCS_ravel());
 
 UCS_string_vector lines;
 Parser parser(PM_EXECUTE, LOC, false);
@@ -1079,12 +1079,12 @@ UCS_string empty;
 }
 //════════════════════════════════════════════════════════════════════════════
 Token
-Quad_NC::eval_B(Value_P B) const
+Quad_NC::eval_B(cValue_R B) const
 {
-   if (B->get_rank() > 2)   RANK_ERROR;
+   if (B.get_rank() > 2)   RANK_ERROR;
 
-const ShapeItem var_count = B->get_rows();
-const UCS_string_vector vars(*B, false);
+const ShapeItem var_count = B.get_rows();
+const UCS_string_vector vars(B, false);
 
 Shape sh_Z;
    if (var_count > 1)   sh_Z.add_shape_item(var_count);
@@ -1299,14 +1299,14 @@ Value_P Z(shZ, LOC);
 }
 //════════════════════════════════════════════════════════════════════════════
 Token
-Quad_SI::eval_AB(Value_P A, Value_P B) const
+Quad_SI::eval_AB(cValue_R A, cValue_R B) const
 {
-   if (A->element_count() != 1)   // not scalar-like
+   if (A.element_count() != 1)   // not scalar-like
       {
-        if (A->get_rank() > 1)   RANK_ERROR;
+        if (A.get_rank() > 1)   RANK_ERROR;
         else                     LENGTH_ERROR;
       }
-APL_Integer a = A->get_cfirst().get_near_int();
+APL_Integer a = A.get_cfirst().get_near_int();
 const ShapeItem len = Workspace::SI_entry_count();
    if (a >= len)   DOMAIN_ERROR;
    if (a < -len)   DOMAIN_ERROR;
@@ -1320,9 +1320,9 @@ const StateIndicator * si = 0;
 
    Assert(si);
 
-   if (B->element_count() != 1)   // not scalar-like
+   if (B.element_count() != 1)   // not scalar-like
       {
-        if (B->get_rank() > 1)   RANK_ERROR;
+        if (B.get_rank() > 1)   RANK_ERROR;
         else                     LENGTH_ERROR;
       }
 
@@ -1334,7 +1334,7 @@ const Function_Line fun_line = exec->get_line(PC);
 
 Value_P Z;
 
-const APL_Integer b = B->get_cfirst().get_near_int();
+const APL_Integer b = B.get_cfirst().get_near_int();
    switch(b)
       {
         case 1:  Z = Value_P(fun_name, LOC);
@@ -1380,15 +1380,15 @@ const APL_Integer b = B->get_cfirst().get_near_int();
 }
 //════════════════════════════════════════════════════════════════════════════
 Token
-Quad_SI::eval_B(Value_P B) const
+Quad_SI::eval_B(cValue_R B) const
 {
-   if (B->element_count() != 1)   // not scalar-like
+   if (B.element_count() != 1)   // not scalar-like
       {
-        if (B->get_rank() > 1)   RANK_ERROR;
+        if (B.get_rank() > 1)   RANK_ERROR;
         else                     LENGTH_ERROR;
       }
 
-const APL_Integer b = B->get_cfirst().get_near_int();
+const APL_Integer b = B.get_cfirst().get_near_int();
 const ShapeItem len = Workspace::SI_entry_count();
 
    if (b < 1)   DOMAIN_ERROR;
@@ -1455,14 +1455,14 @@ Value_P Z(len, LOC);
 }
 //════════════════════════════════════════════════════════════════════════════
 Token
-Quad_UCS::eval_B(Value_P B) const
+Quad_UCS::eval_B(cValue_R B) const
 {
-Value_P Z(B->get_shape(), LOC);
-const ShapeItem ec = B->element_count();
+Value_P Z(B.get_shape(), LOC);
+const ShapeItem ec = B.element_count();
 
    if (ec == 0)   // prototype
       {
-        if (B->get_cfirst().is_character_cell())   // char to integer Unicode
+        if (B.get_cfirst().is_character_cell())   // char to integer Unicode
            Z->set_proto_Int();
         else
            Z->set_proto_Spc();
@@ -1470,7 +1470,7 @@ const ShapeItem ec = B->element_count();
 
    loop(v, ec)
        {
-         const Cell & cell_B = B->get_cravel(v);
+         const Cell & cell_B = B.get_cravel(v);
 
          if (cell_B.is_character_cell())   // char to Unicode
             {
@@ -1521,7 +1521,7 @@ const ShapeItem ec = B->element_count();
 }
 //════════════════════════════════════════════════════════════════════════════
 void
-Stop_Trace::assign(UserFunction * ufun, const Value & new_value, bool stop)
+Stop_Trace::assign(UserFunction * ufun, const cValue & new_value, bool stop)
 {
 std::vector<Function_Line> lines;
    lines.reserve(new_value.element_count());
@@ -1537,7 +1537,7 @@ std::vector<Function_Line> lines;
 }
 //────────────────────────────────────────────────────────────────────────────
 const UserFunction *
-Stop_Trace::locate_fun(const Value & fun_name)
+Stop_Trace::locate_fun(const cValue & fun_name)
 {
    if (!fun_name.is_char_string())   return 0;
 
@@ -1581,24 +1581,24 @@ Value_P Z(lines.size(), LOC);
 }
 //════════════════════════════════════════════════════════════════════════════
 Token
-Quad_STOP::eval_AB(Value_P A, Value_P B) const
+Quad_STOP::eval_AB(cValue_R A, cValue_R B) const
 {
    // Note: Quad_STOP::eval_AB can be called directly or via S∆. If
    //
    // 1. called via S∆   then A is the function and B are the lines.
    // 2. called directly then B is the function and A are the lines.
    //
-   if (const UserFunction * ufun = locate_fun(*A))   // case 1.
+   if (const UserFunction * ufun = locate_fun(A))   // case 1.
       {
-        assign(const_cast<UserFunction *>(ufun), *B, true);
+        assign(const_cast<UserFunction *>(ufun), B, true);
         return reference(ufun->get_stop_lines(), true);
       }
 
    // case 2.
    //
-   if (const UserFunction * ufun = locate_fun(*B))   // case 2.
+   if (const UserFunction * ufun = locate_fun(B))   // case 2.
       {
-        assign(const_cast<UserFunction *>(ufun), *A, true);
+        assign(const_cast<UserFunction *>(ufun), A, true);
         return reference(ufun->get_stop_lines(), true);
      }
 
@@ -1606,31 +1606,31 @@ Quad_STOP::eval_AB(Value_P A, Value_P B) const
 }
 //────────────────────────────────────────────────────────────────────────────
 Token
-Quad_STOP::eval_B(Value_P B) const
+Quad_STOP::eval_B(cValue_R B) const
 {
-   if (const UserFunction * ufun = locate_fun(*B))
+   if (const UserFunction * ufun = locate_fun(B))
       return reference(ufun->get_stop_lines(), false);
 
    DOMAIN_ERROR;
 }
 //════════════════════════════════════════════════════════════════════════════
 Token
-Quad_TRACE::eval_AB(Value_P A, Value_P B) const
+Quad_TRACE::eval_AB(cValue_R A, cValue_R B) const
 {
    // Note: Quad_TRACE::eval_AB can be called directly or via S∆. If
    //
    // 1. called via S∆   then A is the function and B are the lines.
    // 2. called directly then B is the function and A are the lines.
    //
-   if (const UserFunction * ufun = locate_fun(*A))   // case 1.
+   if (const UserFunction * ufun = locate_fun(A))   // case 1.
       {
-        assign(const_cast<UserFunction *>(ufun), *B, false);
+        assign(const_cast<UserFunction *>(ufun), B, false);
         return reference(ufun->get_trace_lines(), true);
       }
 
-   if (const UserFunction * ufun = locate_fun(*B))   // case 2.
+   if (const UserFunction * ufun = locate_fun(B))   // case 2.
       {
-        assign(const_cast<UserFunction *>(ufun), *A, false);
+        assign(const_cast<UserFunction *>(ufun), A, false);
         return reference(ufun->get_trace_lines(), true);
       }
 
@@ -1638,9 +1638,9 @@ Quad_TRACE::eval_AB(Value_P A, Value_P B) const
 }
 //────────────────────────────────────────────────────────────────────────────
 Token
-Quad_TRACE::eval_B(Value_P B) const
+Quad_TRACE::eval_B(cValue_R B) const
 {
-   if (const UserFunction * ufun = locate_fun(*B))
+   if (const UserFunction * ufun = locate_fun(B))
       return reference(ufun->get_trace_lines(), false);
 
    DOMAIN_ERROR;

@@ -38,7 +38,7 @@ Quad_JSON  Quad_JSON::fun;
 //════════════════════════════════════════════════════════════════════════════
 //════════════════════════════════════════════════════════════════════════════
 Token
-Quad_JSON::convert_file(const Value & B) const
+Quad_JSON::convert_file(const cValue & B) const
 {
 const UCS_string filename_ucs(B);
 const UTF8_string filename_utf(filename_ucs);
@@ -85,14 +85,14 @@ const UTF8_string json_string_utf8(buffer, bytes_read);
 UCS_string json_string_ucs(json_string_utf8);
 Value_P json_string_value(json_string_ucs, LOC);
 
-   return eval_B(json_string_value);
+   return eval_B(*json_string_value);
 }
 Token
-Quad_JSON::eval_AB(Value_P A, Value_P B) const
+Quad_JSON::eval_AB(cValue_R A, cValue_R B) const
 {
-   if (A->get_rank() > 0)   RANK_ERROR;
+   if (A.get_rank() > 0)   RANK_ERROR;
 
-const int function_number = A->get_cfirst().get_int_value();
+const int function_number = A.get_cfirst().get_int_value();
    switch(function_number)
       {
         case 0:   // same as monadic ⎕JSON
@@ -102,17 +102,17 @@ const int function_number = A->get_cfirst().get_int_value();
 
          case 1:   // read and convert a JSOM file
               {
-                return convert_file(*B);
+                return convert_file(B);
               }
 
          case 2:   // read and convert a JSOM file (unsorted)
               {
-                return Token(TOK_APL_VALUE1, APL_to_JSON(*B, false));
+                return Token(TOK_APL_VALUE1, APL_to_JSON(B, false));
               }
 
          case 3:   // read and convert a JSOM file (sorted)
               {
-                return Token(TOK_APL_VALUE1, APL_to_JSON(*B, true));
+                return Token(TOK_APL_VALUE1, APL_to_JSON(B, true));
               }
 
       }
@@ -122,11 +122,11 @@ const int function_number = A->get_cfirst().get_int_value();
 }
 //────────────────────────────────────────────────────────────────────────────
 Token
-Quad_JSON::eval_B(Value_P B) const
+Quad_JSON::eval_B(cValue_R B) const
 {
-   if (B->get_rank() != 1)   RANK_ERROR;
+   if (B.get_rank() != 1)   RANK_ERROR;
 
-Value_P Z = JSON_to_APL(*B);
+Value_P Z = JSON_to_APL(B);
    Z->check_value(LOC);
    return Token(TOK_APL_VALUE1, Z);
 }
@@ -161,7 +161,7 @@ const ShapeItem B0 = b;
 }
 //────────────────────────────────────────────────────────────────────────────
 Value_P
-Quad_JSON::APL_to_JSON(const Value & B, bool sorted)
+Quad_JSON::APL_to_JSON(const cValue & B, bool sorted)
 {
 UCS_string ucs_Z;
    ucs_Z.reserve(2*B.get_enlist_count());
@@ -173,7 +173,7 @@ Value_P Z(ucs_Z, LOC);
 }
 //────────────────────────────────────────────────────────────────────────────
 void
-Quad_JSON::APL_to_JSON_string(UCS_string & result, const Value & B,
+Quad_JSON::APL_to_JSON_string(UCS_string & result, const cValue & B,
                               bool level, bool sorted)
 {
    if (B.is_scalar())   // number or literal
@@ -313,7 +313,7 @@ Quad_JSON::APL_to_JSON_string(UCS_string & result, const Cell & cell,
 
    // at this point the cell should end up as char vector. Determint its depth.
    //
-const Value * Z = cell.get_pointer_value().get();
+const cValue * Z = cell.get_pointer_value().get();
    if (!(Z->get_cfirst().is_pointer_cell() && Z->is_scalar()))
       {
         APL_to_JSON_string(result, *Z, level, sorted);
@@ -473,7 +473,7 @@ char cc[5];
 }
 //────────────────────────────────────────────────────────────────────────────
 Value_P
-Quad_JSON::JSON_to_APL(const Value & B)
+Quad_JSON::JSON_to_APL(const cValue & B)
 {
 const ShapeItem len_B = B.element_count();
 

@@ -574,17 +574,17 @@ UCS_string ucs;
 }
 //────────────────────────────────────────────────────────────────────────────
 Value_P
-Bif_F12_FORMAT::format_by_specification(Value_P A, Value_P B)
+Bif_F12_FORMAT::format_by_specification(cValue_R A, cValue_R B)
 {
    // A is a near-int scalar or vector.
 
 const Shape shape_1(1);
-const Shape & shape_B = B->get_rank() ? B->get_shape() : shape_1;
+const Shape & shape_B = B.get_rank() ? B.get_shape() : shape_1;
 
 const ShapeItem rows_B = shape_B.get_rows();
 const ShapeItem cols_B = shape_B.get_cols();
 
-const ShapeItem len_A = A->element_count();
+const ShapeItem len_A = A.element_count();
 
    if (len_A != 1 && len_A != 2 && len_A != 2*cols_B)   LENGTH_ERROR;
 
@@ -593,8 +593,8 @@ const ShapeItem len_A = A->element_count();
         ShapeItem W = 0;
         loop(c, cols_B)
            {
-             if (len_A <= 2)   W += A->get_cfirst().get_near_int();
-             else              W += A->get_cravel(2*c).get_near_int();
+             if (len_A <= 2)   W += A.get_cfirst().get_near_int();
+             else              W += A.get_cravel(2*c).get_near_int();
            }
 
         Shape shape_Z = shape_B.without_last_axis();
@@ -617,23 +617,23 @@ PrintBuffer pb;
          if (len_A == 1)
             {
               col_width = 0;
-              precision = A->get_cfirst().get_near_int();
+              precision = A.get_cfirst().get_near_int();
             }
          else if (len_A == 2)
             {
-              col_width = A->get_cfirst().get_near_int();
-              precision = A->get_cravel(1).get_near_int();
+              col_width = A.get_cfirst().get_near_int();
+              precision = A.get_cravel(1).get_near_int();
             }
          else
             {
-              col_width = A->get_cravel(2*col)    .get_near_int();
-              precision = A->get_cravel(2*col + 1).get_near_int();
+              col_width = A.get_cravel(2*col)    .get_near_int();
+              precision = A.get_cravel(2*col + 1).get_near_int();
             }
 
          // pb_col is the PrintBuffer for one numeric column.
          //
          PrintBuffer pb_col(format_one_col_by_spec(col_width, precision,
-                                                   &B->get_cravel(col),
+                                                   &B.get_cravel(col),
                                                    cols_B, rows_B));
 
          bool insert_space_left = col_width == 0;   // automatic col width
@@ -678,14 +678,14 @@ Bif_F12_FORMAT::is_control_char(Unicode uni)
 }
 //────────────────────────────────────────────────────────────────────────────
 Value_P
-Bif_F12_FORMAT::monadic_format(Value_P B)
+Bif_F12_FORMAT::monadic_format(cValue_R B)
 {
-   Assert(B->get_rank() <= 2);
+   Assert(B.get_rank() <= 2);
 
 const PrintStyle style(PrintStyle(PR_APL | PST_NO_FRACT_0));
 const PrintContext pctx = Workspace::get_PrintContext(style);
 
-const PrintBuffer pb(*B, pctx, 0);
+const PrintBuffer pb(B, pctx, 0);
 
 const ShapeItem width  = pb.get_column_count();
 const ShapeItem height = pb.get_row_count();
@@ -711,23 +711,23 @@ Value_P Z;
 }
 //════════════════════════════════════════════════════════════════════════════
 Token
-Bif_F12_FORMAT::eval_B(Value_P B) const
+Bif_F12_FORMAT::eval_B(cValue_R B) const
 {
    // ISO and lrm: If B is a character array, then Z is B
    //
-   if (!B->NOTCHAR())   return Token(TOK_APL_VALUE1, B);
+   if (!B.NOTCHAR())   return Token(TOK_APL_VALUE1, CLONE(&B, LOC));
 
-   if (B->is_empty())
+   if (B.is_empty())
       {
-        Value_P Z(B->get_shape(), LOC);
+        Value_P Z(B.get_shape(), LOC);
         Z->set_proto_Spc();
         Z->check_value(LOC);
         return Token(TOK_APL_VALUE1, Z);
       }
 
-   if (!B->is_simple())
+   if (!B.is_simple())
       {
-        PrintBuffer pb(*B, Workspace::get_PrintContext(PR_APL), 0);
+        PrintBuffer pb(B, Workspace::get_PrintContext(PR_APL), 0);
         Assert(pb.is_rectangular());
         const ShapeItem cols = pb.get_column_count();
         const ShapeItem rows = pb.get_row_count();
@@ -754,28 +754,28 @@ Bif_F12_FORMAT::eval_B(Value_P B) const
       }
 
 Value_P Z;
-   if (B->get_rank() > 2)
+   if (B.get_rank() > 2)
       {
         // temporarily reduce the N > 2 dimensions of B
         // to N = 2 dimensions of B1 (with the same ravel).
         //
-        const Shape shape_B = B->get_shape();
-        const Shape shape_B1(B->get_rows(), B->get_cols());
+        const Shape shape_B = B.get_shape();
+        const Shape shape_B1(B.get_rows(), B.get_cols());
 
         try
            {
-             B->set_shape(shape_B1);
+             static_cast<Value *>(const_cast<cValue *>(&B))->set_shape(shape_B1);
              Z = monadic_format(B);
-             B->set_shape(shape_B);
+             static_cast<Value *>(const_cast<cValue *>(&B))->set_shape(shape_B);
            }
         catch (Error &)
            {
-             B->set_shape(shape_B);
+             static_cast<Value *>(const_cast<cValue *>(&B))->set_shape(shape_B);
              throw;   // rethrow error
            }
         catch (std::bad_alloc &)
            {
-             B->set_shape(shape_B);
+             static_cast<Value *>(const_cast<cValue *>(&B))->set_shape(shape_B);
              throw;   // rethrow error
            }
         catch (...)
@@ -785,11 +785,11 @@ Value_P Z;
         // the leading axes of Z. monadic ⍕ changes (increases) only the length
         // of the last axis. We reshape Z to ¯1↓⍴B , ¯1⍴⍴Z.
         //
-        Shape shape_Z = B->get_shape().without_last_axis();   // ¯1↓⍴B
+        Shape shape_Z = B.get_shape().without_last_axis();   // ¯1↓⍴B
         shape_Z.add_shape_item(Z->get_last_shape_item());     // ¯1↓⍴B , ¯1↑⍴Z
         Z->set_shape(shape_Z);
       }
-   else   // B->get_rank() is 0, 1, or 2
+   else   // B.get_rank() is 0, 1, or 2
       {
         Z = monadic_format(B);
       }
@@ -798,7 +798,7 @@ Value_P Z;
    // ρρZ ←→ ,1⌈⍴ρB     if B is simple
    // ρρZ ←→ ,1 or ,2   if B is nested
    //
-const APL_types::Depth depth = B->compute_depth();
+const APL_types::Depth depth = B.compute_depth();
 Shape sZ;
    if (depth > 1)   // B is nested, therefore ⍴⍴R is 1 or 2
       {
@@ -815,7 +815,7 @@ Shape sZ;
         //
         // We try our best...
         //
-        if (B->is_one_dimensional())
+        if (B.is_one_dimensional())
            {
              sZ = Shape(Z->element_count());
            }
@@ -826,13 +826,13 @@ Shape sZ;
       }
    else             // B is simple:                    result rank: ,1⌈⍴ρB
       {
-        if (B->get_rank() < 2)
+        if (B.get_rank() < 2)
            {
              sZ = Shape(Z->get_cols());
            }
         else
            {
-             sZ = B->get_shape();
+             sZ = B.get_shape();
              sZ.set_last_shape_item(Z->get_last_shape_item());
            }
       }
@@ -848,16 +848,16 @@ Shape sZ;
 }
 //════════════════════════════════════════════════════════════════════════════
 Token
-Bif_F12_FORMAT::eval_AB(Value_P A, Value_P B) const
+Bif_F12_FORMAT::eval_AB(cValue_R A, cValue_R B) const
 {
 Value_P Z;
 
    // any A should be a scalar or a vcector
    //
-   if (A->get_rank() > 1)   RANK_ERROR;
+   if (A.get_rank() > 1)   RANK_ERROR;
 
-   if      (A->is_char_array())   Z = format_by_example(A, B);
-   else if (A->is_int_array())    Z = format_by_specification(A, B);
+   if      (A.is_char_array())   Z = format_by_example(A, B);
+   else if (A.is_int_array())    Z = format_by_specification(A, B);
    else
       {
         MORE_ERROR() << "Bad left argument of ⍕";
@@ -870,15 +870,15 @@ Value_P Z;
 }
 //────────────────────────────────────────────────────────────────────────────
 Value_P
-Bif_F12_FORMAT::format_by_example(Value_P A, Value_P B)
+Bif_F12_FORMAT::format_by_example(cValue_R A, cValue_R B)
 {
    // convert the ravel of char vector A into UCS_string 'format'.
    //
-UCS_string all_formats = A->get_UCS_ravel();
+UCS_string all_formats = A.get_UCS_ravel();
    if (all_formats.size() == 0)   LENGTH_ERROR;
 
-const ShapeItem cols = B->get_cols();
-const ShapeItem rows = B->get_rows();
+const ShapeItem cols = B.get_cols();
+const ShapeItem rows = B.get_rows();
 
    // split string all_formats into individual format fields, one per column.
    // If there is only one format field, then repeat it cols times.
@@ -928,8 +928,8 @@ vector<Format_LIFER> col_items;
             }
       }
 
-Shape shape_Z(B->get_shape());
-   if (B->is_scalar())   shape_Z.add_shape_item(1);
+Shape shape_Z(B.get_shape());
+   if (B.is_scalar())   shape_Z.add_shape_item(1);
    shape_Z.set_last_shape_item(all_formats.size());
 
 Value_P Z(shape_Z, LOC);
@@ -941,7 +941,7 @@ Value_P Z(shape_Z, LOC);
              UCS_string row;
              loop(c, cols)
                 {
-                  const Cell & cB = B->get_cravel(c + r*cols);
+                  const Cell & cB = B.get_cravel(c + r*cols);
                   if (!cB.is_real_cell())   DOMAIN_ERROR;
 
                   const APL_Float value = cB.get_real_value();

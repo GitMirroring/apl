@@ -134,7 +134,7 @@ public:
    /// constructor from the owner of the Cell
    /// @param _owner the APL value whose ravel is iterated
    /// @param _inc   whether operator++() shall advance the offset
-   ConstRavel_P(const Value & _owner, bool _inc)
+   ConstRavel_P(const cValue & _owner, bool _inc)
    : owner(_owner),
      end(_owner.element_count()),
      offset(0),
@@ -156,7 +156,7 @@ public:
       { return end; }
 
    /// return the owner of the Cells
-   const Value & get_owner() const
+   const cValue & get_owner() const
       { return owner; }
 
    /// return the ravel offset of the current Cell
@@ -182,7 +182,7 @@ public:
 
 protected:
    /// the owner of the ravel
-   const Value & owner;
+   const cValue & owner;
 
    /// position of the first Cell after the ravel
    const Cell_offset end;

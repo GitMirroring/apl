@@ -33,38 +33,38 @@ Bif_F12_DROP      Bif_F12_DROP     ::fun;    // ↓
 
 //════════════════════════════════════════════════════════════════════════════
 Token
-Bif_F12_TAKE::eval_AB(Value_P A, Value_P B) const
+Bif_F12_TAKE::eval_AB(cValue_R A, cValue_R B) const
 {
-Shape ravel_A1(*A, /* ⎕IO */ 0);   // checks 1 ≤ ⍴⍴A and ⍴A ≤ MAX_RANK
+Shape ravel_A1(A, /* ⎕IO */ 0);   // checks 1 ≤ ⍴⍴A and ⍴A ≤ MAX_RANK
 
-   if (B->is_scalar())
+   if (B.is_scalar())
       {
         Shape shape_B1;
         loop(a, ravel_A1.get_rank())   shape_B1.add_shape_item(1);
-        Value_P B1 = CLONE_P(B, LOC);   // so that we can set_shape()
+        Value_P B1 = CLONE(&B, LOC);   // so that we can set_shape()
         B1->set_shape(shape_B1);
         return Token(TOK_APL_VALUE1, do_take(ravel_A1, *B1, false));
       }
    else
       {
-        if (ravel_A1.get_rank() != B->get_rank())   LENGTH_ERROR;
-        return Token(TOK_APL_VALUE1, do_take(ravel_A1, *B, false));
+        if (ravel_A1.get_rank() != B.get_rank())   LENGTH_ERROR;
+        return Token(TOK_APL_VALUE1, do_take(ravel_A1, B, false));
       }
 }
 //────────────────────────────────────────────────────────────────────────────
 Token
-Bif_F12_TAKE::eval_AXB(Value_P A, Value_P X, Value_P B) const
+Bif_F12_TAKE::eval_AXB(cValue_R A, cValue_R X, cValue_R B) const
 {
-   if (A->get_rank() > 1)   RANK_ERROR;
-   if (X->get_rank() > 1)   RANK_ERROR;
+   if (A.get_rank() > 1)   RANK_ERROR;
+   if (X.get_rank() > 1)   RANK_ERROR;
 
-const ShapeItem len_A = A->element_count();
-const ShapeItem len_X = X->element_count();
+const ShapeItem len_A = A.element_count();
+const ShapeItem len_X = X.element_count();
    if (len_A != len_X)   LENGTH_ERROR;
 
    if (len_X == 0)   // no axes
       {
-        Token result(TOK_APL_VALUE1, CLONE_P(B, LOC));
+        Token result(TOK_APL_VALUE1, CLONE(&B, LOC));
         return result;
       }
 
@@ -72,40 +72,40 @@ const ShapeItem len_X = X->element_count();
    // then replace corresponding shape items with A[X[x]].
    //
 const APL_Integer qio = Workspace::get_IO();
-const AxesBitmap axes_X = X->to_bitmap("A ↑[X] B", B->get_rank());
-Shape sh_take = B->get_shape();   // start with ⍴B
+const AxesBitmap axes_X = X.to_bitmap("A ↑[X] B", B.get_rank());
+Shape sh_take = B.get_shape();   // start with ⍴B
    loop(x, len_X)                 // for exery axis X[x] in X
       {
-        const APL_Integer axis = X->get_cravel(x).get_near_int() - qio;
-        const APL_Integer alen = A->get_cravel(x).get_near_int();
+        const APL_Integer axis = X.get_cravel(x).get_near_int() - qio;
+        const APL_Integer alen = A.get_cravel(x).get_near_int();
         sh_take.set_shape_item(axis, alen);
       }
 
-   return Token(TOK_APL_VALUE1, do_take(sh_take, *B, axes_X));
+   return Token(TOK_APL_VALUE1, do_take(sh_take, B, axes_X));
 }
 //════════════════════════════════════════════════════════════════════════════
 Token
-Bif_F12_TAKE::eval_XB(Value_P X, Value_P B) const
+Bif_F12_TAKE::eval_XB(cValue_R X, cValue_R B) const
 {
    // ↑[X] B    ←→ ((⍴X)⍴1)↑[X] B   (GNU APL only)
-   if (X->get_rank() > 1)   AXIS_ERROR;
+   if (X.get_rank() > 1)   AXIS_ERROR;
 
-const AxesBitmap axes_X = X->to_bitmap("↑[X] B", B->get_rank());
+const AxesBitmap axes_X = X.to_bitmap("↑[X] B", B.get_rank());
 
    // construct the left argument of Bif_F12_TAKE::fill(). Start with ⍴B and
    // then replace corresponding shape items with 1.
    //
-Shape sh_take = B->get_shape();   // start with ⍴B
-   loop(b, B->get_rank())         // for exery axis X[x] in X
+Shape sh_take = B.get_shape();   // start with ⍴B
+   loop(b, B.get_rank())         // for exery axis X[x] in X
        {
          if (axes_X & 1 << b) sh_take.set_shape_item(b, 1);
        }
 
-   return Token(TOK_APL_VALUE1, do_take(sh_take, *B, axes_X));
+   return Token(TOK_APL_VALUE1, do_take(sh_take, B, axes_X));
 }
 //────────────────────────────────────────────────────────────────────────────
 Value_P
-Bif_F12_TAKE::do_take(const Shape & ravel_A1, const Value & B,
+Bif_F12_TAKE::do_take(const Shape & ravel_A1, const cValue & B,
                       AxesBitmap axes)
 {
    // ravel_A1 can have negative items (for take from the end).
@@ -120,7 +120,7 @@ Value_P Z(ravel_A1.abs(), LOC);
 //────────────────────────────────────────────────────────────────────────────
 void
 Bif_F12_TAKE::fill(const Shape & shape_Zi, Value & Z,
-                   const Value & B, AxesBitmap axes)
+                   const cValue & B, AxesBitmap axes)
 {
    for (TakeDropIterator i(true, shape_Zi, B.get_shape()); i.has_more(); ++i)
        {
@@ -142,7 +142,7 @@ Bif_F12_TAKE::fill(const Shape & shape_Zi, Value & Z,
 }
 //────────────────────────────────────────────────────────────────────────────
 Value_P
-Bif_F12_TAKE::first(const Value & B)
+Bif_F12_TAKE::first(const cValue & B)
 {
    /*
       lrm p. 131: ⍴ Z ← ↑ B depends on the shape of the first item.
@@ -179,13 +179,13 @@ const Cell & first_B = B.get_cfirst();
 }
 //════════════════════════════════════════════════════════════════════════════
 Token
-Bif_F12_DROP::eval_AB(Value_P A, Value_P B) const
+Bif_F12_DROP::eval_AB(cValue_R A, cValue_R B) const
 {
-   if (A->get_rank() > 1)   RANK_ERROR;
+   if (A.get_rank() > 1)   RANK_ERROR;
 
-const Shape ravel_A(*A, /* ⎕IO */ 0);
+const Shape ravel_A(A, /* ⎕IO */ 0);
 
-   if (B->is_scalar())
+   if (B.is_scalar())
       {
         /*
            A scalar B is taken as ((⍴⍴B)⍴1)⍴B.
@@ -211,19 +211,19 @@ const Shape ravel_A(*A, /* ⎕IO */ 0);
 
         Value_P Z(shape_Z, LOC);
 
-        Z->set_ravel_Cell(0, B->get_cfirst());
+        Z->set_ravel_Cell(0, B.get_cfirst());
         if (shape_Z.get_volume() == 0)   Z->to_type(false);
         Z->check_value(LOC);
         return Token(TOK_APL_VALUE1, Z);
       }
 
-   if (ravel_A.get_rank() != B->get_rank())   LENGTH_ERROR;
+   if (ravel_A.get_rank() != B.get_rank())   LENGTH_ERROR;
 
 Shape shape_Z;
    loop(r, ravel_A.get_rank())
        {
          const ShapeItem sA = ravel_A.get_shape_item(r);    // A[r]
-         const ShapeItem sB = B->get_shape_item(r);         // (⍴B[r]
+         const ShapeItem sB = B.get_shape_item(r);         // (⍴B[r]
          const ShapeItem pA = sA < 0 ? -sA : sA;            // ∣ A[r]
          if (pA >= sB)   shape_Z.add_shape_item(0);         // over-drop
          else            shape_Z.add_shape_item(sB - pA);   // normal drop
@@ -233,15 +233,15 @@ Value_P Z(shape_Z, LOC);
    if (shape_Z.is_empty())   // empty Z, e.g. from overdrop
       {
         Value_P Z(shape_Z, LOC);
-        Z->set_default(*B.get(), LOC);
+        Z->set_default(B, LOC);
         Z->check_value(LOC);
         return Token(TOK_APL_VALUE1, Z);
       }
 
-   for (TakeDropIterator i(false, ravel_A, B->get_shape()); i.has_more(); ++i)
+   for (TakeDropIterator i(false, ravel_A, B.get_shape()); i.has_more(); ++i)
       {
         const ShapeItem offset = i();
-        Z->next_ravel_Cell(B->get_cravel(offset));
+        Z->next_ravel_Cell(B.get_cravel(offset));
       }
 
    Z->check_value(LOC);
@@ -249,45 +249,44 @@ Value_P Z(shape_Z, LOC);
 }
 //────────────────────────────────────────────────────────────────────────────
 Token
-Bif_F12_DROP::eval_AXB(Value_P A, Value_P X, Value_P B) const
+Bif_F12_DROP::eval_AXB(cValue_R A, cValue_R X, cValue_R B) const
 {
-   if (X->element_count() == 0)   // no axes
+   if (X.element_count() == 0)   // no axes
       {
-        Value_P Z = CLONE_P(B, LOC);
-        Token result(TOK_APL_VALUE1, Z);
+        Token result(TOK_APL_VALUE1, CLONE(&B, LOC));
         return result;
       }
 
-   if (X->get_rank() > 1)    INDEX_ERROR;
+   if (X.get_rank() > 1)    INDEX_ERROR;
 
-const uint64_t len_X = X->element_count();
+const uint64_t len_X = X.element_count();
    if (len_X > MAX_RANK)     INDEX_ERROR;
    if (len_X == 0)           INDEX_ERROR;
 
-   if (A->get_rank() > 1)    RANK_ERROR;
+   if (A.get_rank() > 1)    RANK_ERROR;
 
-uint64_t len_A = A->element_count();
+uint64_t len_A = A.element_count();
    if (len_A != len_X)   LENGTH_ERROR;
 
 const APL_Integer qio = Workspace::get_IO();
 
    // init ravel_A = shape_B and seen.
    //
-Shape ravel_A(B->get_shape());
+Shape ravel_A(B.get_shape());
 bool seen[MAX_RANK];
-   loop(r, B->get_rank())   seen[r] = false;
+   loop(r, B.get_rank())   seen[r] = false;
 
    loop(r, len_X)
        {
-         const APL_Integer a = A->get_cravel(r).get_near_int();
-         const APL_Integer x = X->get_cravel(r).get_near_int() - qio;
+         const APL_Integer a = A.get_cravel(r).get_near_int();
+         const APL_Integer x = X.get_cravel(r).get_near_int() - qio;
 
          if (x <  0)               INDEX_ERROR;
-         if (x >= B->get_rank())   INDEX_ERROR;
+         if (x >= B.get_rank())   INDEX_ERROR;
          if (seen[x])              INDEX_ERROR;
          seen[x] = true;
 
-         const ShapeItem amax = B->get_shape_item(x);
+         const ShapeItem amax = B.get_shape_item(x);
          if      (a >= amax)   ravel_A.set_shape_item(x, 0);
          else if (a >= 0)      ravel_A.set_shape_item(x, a - amax);
          else if (a > -amax)   ravel_A.set_shape_item(x, amax + a);
@@ -295,7 +294,7 @@ bool seen[MAX_RANK];
        }
 
    return Token(TOK_APL_VALUE1,
-                Bif_F12_TAKE::do_take(ravel_A, *B, 0));
+                Bif_F12_TAKE::do_take(ravel_A, B, 0));
 }
 //════════════════════════════════════════════════════════════════════════════
 ShapeItem

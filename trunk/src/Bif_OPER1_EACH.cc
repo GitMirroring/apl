@@ -33,20 +33,20 @@ Bif_OPER1_EACH Bif_OPER1_EACH::fun;
 
 //════════════════════════════════════════════════════════════════════════════
 Token
-Bif_OPER1_EACH::eval_ALB(Value_P A, Token & _LO, Value_P B) const
+Bif_OPER1_EACH::eval_ALB(cValue_R A, Token & _LO, cValue_R B) const
 {
    // dyadic EACH: call _LO for corresponding items of A and B
 
-   if (!A->same_shape(*B))
+   if (!A.same_shape(B))
       {
         // if the shapes differ then either A or B must be a scalar or
         // 1-element vector.
         //
-        if (A->get_rank() != B->get_rank())
+        if (A.get_rank() != B.get_rank())
            {
-             if      (A->is_scalar_or_len1_vector())    ;   // OK
-             else if (B->is_scalar_or_len1_vector())    ;   // OK
-             else if (A->get_rank() != B->get_rank())   RANK_ERROR;
+             if      (A.is_scalar_or_len1_vector())    ;   // OK
+             else if (B.is_scalar_or_len1_vector())    ;   // OK
+             else if (A.get_rank() != B.get_rank())   RANK_ERROR;
              else                                       LENGTH_ERROR;
            }
       }
@@ -59,19 +59,19 @@ cFunction_P LO = _LO.get_function();
    //
    if ((LO->get_signature() & SIG_DYA) != SIG_DYA)   VALENCE_ERROR;
 
-   if (A->is_empty() || B->is_empty())
+   if (A.is_empty() || B.is_empty())
       {
         if (!LO->has_result())   return Token(TOK_VOID);
 
-        Value_P first_A = Bif_F12_TAKE::first(*A);
-        Value_P first_B = Bif_F12_TAKE::first(*B);
+        Value_P first_A = Bif_F12_TAKE::first(A);
+        Value_P first_B = Bif_F12_TAKE::first(B);
         Shape shape_Z;   // will be ⍴A or ⍴B and therefore empty
 
-        if (A->is_empty())          shape_Z = A->get_shape();
-        else if (!A->is_scalar())   DOMAIN_ERROR;
+        if (A.is_empty())          shape_Z = A.get_shape();
+        else if (!A.is_scalar())   DOMAIN_ERROR;
 
-        if (B->is_empty())          shape_Z = B->get_shape();
-        else if (!B->is_scalar())   DOMAIN_ERROR;
+        if (B.is_empty())          shape_Z = B.get_shape();
+        else if (!B.is_scalar())   DOMAIN_ERROR;
 
         // evaluate the fill function (lrm p. 245)
         //
@@ -89,7 +89,7 @@ cFunction_P LO = _LO.get_function();
              //       fill function because it (and not the dyadic fill
              //       function handles the empty argument case).
              //
-             Token tok_Z1 = LO->eval_fill_B(B->is_empty() ? first_B : first_A);
+             Token tok_Z1 = LO->eval_fill_B(*(B.is_empty() ? first_B : first_A));
              if (tok_Z1.get_Class() != TC_VALUE)   return tok_Z1;
              Z1 = tok_Z1.get_apl_val();
            }
@@ -97,7 +97,7 @@ cFunction_P LO = _LO.get_function();
            {
              // the fill function is the function itself
              //
-             Token tok_Z1 = LO->eval_AB(first_A, first_B);
+             Token tok_Z1 = LO->eval_AB(*first_A, *first_B);
              if (tok_Z1.get_Class() != TC_VALUE)   return tok_Z1;
              Z1 = tok_Z1.get_apl_val();
            }
@@ -122,8 +122,8 @@ cFunction_P LO = _LO.get_function();
 
    if (LO->may_push_SI())   // user defined LO
       {
-         const bool extend_A = A->is_scalar_or_len1_vector() && !B->is_scalar();
-         const bool extend_B = B->is_scalar_or_len1_vector();
+         const bool extend_A = A.is_scalar_or_len1_vector() && !B.is_scalar();
+         const bool extend_B = B.is_scalar_or_len1_vector();
 
          Macro * macro = 0;
          if (LO->has_result())
@@ -162,36 +162,36 @@ cFunction_P LO = _LO.get_function();
                  }
             }
 
-        if (extend_A && !A->is_scalar())        // 1-element non-scalar A
+        if (extend_A && !A.is_scalar())        // 1-element non-scalar A
            {
-             if (extend_B && !B->is_scalar())   // 1-element non-scalar B
+             if (extend_B && !B.is_scalar())   // 1-element non-scalar B
                 {
                   Value_P A1(LOC);   // A1 ← , A
-                  A1->get_wscalar().init(A->get_cscalar(), *A1, LOC);
+                  A1->get_wscalar().init(A.get_cscalar(), *A1, LOC);
                   A1->check_value(LOC);
 
                   Value_P B1(LOC);   // B1 ← , B
-                  B1->get_wscalar().init(B->get_cscalar(), *B1, LOC);
+                  B1->get_wscalar().init(B.get_cscalar(), *B1, LOC);
                   B1->check_value(LOC);
 
-                  return macro->eval_ALB(A1, _LO, B1);
+                  return macro->eval_ALB(*A1, _LO, *B1);
                 }
              else
                 {
                   Value_P A1(LOC);
-                  A1->get_wscalar().init(A->get_cfirst(), *A1, LOC);
+                  A1->get_wscalar().init(A.get_cfirst(), *A1, LOC);
                   A1->check_value(LOC);
 
-                  return macro->eval_ALB(A1, _LO, B);
+                  return macro->eval_ALB(*A1, _LO, B);
                 }
            }
-        else if (extend_B && !B->is_scalar())   // 1-element non-scalar B
+        else if (extend_B && !B.is_scalar())   // 1-element non-scalar B
            {
              Value_P B1(LOC);
-             B1->get_wscalar().init(B->get_cfirst(), *B1, LOC);
+             B1->get_wscalar().init(B.get_cfirst(), *B1, LOC);
              B1->check_value(LOC);
 
-             return macro->eval_ALB(A, _LO, B1);
+             return macro->eval_ALB(A, _LO, *B1);
            }
         else
            {
@@ -204,18 +204,18 @@ cFunction_P LO = _LO.get_function();
    // the shape of the result. In order to detect conformity errors we compute
    // shape_Z even if no result is returned.
    //
-const int inc_A = A->get_increment();
-const int inc_B = B->get_increment();
+const int inc_A = A.get_increment();
+const int inc_B = B.get_increment();
 
 const Shape * shape_Z = 0;
-   if      (A->is_scalar())      shape_Z = &B->get_shape();
-   else if (B->is_scalar())      shape_Z = &A->get_shape();
-   else if (inc_A == 0)          shape_Z = &B->get_shape();
-   else if (inc_B == 0)          shape_Z = &A->get_shape();
-   else if (A->same_shape(*B))   shape_Z = &B->get_shape();
+   if      (A.is_scalar())      shape_Z = &B.get_shape();
+   else if (B.is_scalar())      shape_Z = &A.get_shape();
+   else if (inc_A == 0)          shape_Z = &B.get_shape();
+   else if (inc_B == 0)          shape_Z = &A.get_shape();
+   else if (A.same_shape(B))   shape_Z = &B.get_shape();
    else   // error
       {
-        if (!A->same_rank(*B))   RANK_ERROR;
+        if (!A.same_rank(B))   RANK_ERROR;
         else                     LENGTH_ERROR;
       }
 
@@ -225,8 +225,8 @@ Value_P Z;
 
    loop(z, len_Z)
       {
-        const Cell * cA = &A->get_cravel(inc_A * z);
-        const Cell * cB = &B->get_cravel(inc_B * z);
+        const Cell * cA = &A.get_cravel(inc_A * z);
+        const Cell * cB = &B.get_cravel(inc_B * z);
         const bool left_val = cB->is_lval_cell();
         Value_P LO_A = cA->to_value(LOC);     // left argument of LO
         Value_P LO_B = cB->to_value(LOC);     // right argument of LO;
@@ -240,7 +240,7 @@ Value_P Z;
                 }
            }
 
-        Token result = LO->eval_AB(LO_A, LO_B);
+        Token result = LO->eval_AB(*LO_A, *LO_B);
 
         // if LO was a primitive function, then result may be a value.
         // if LO was a user defined function then result may be TOK_SI_PUSHED.
@@ -265,13 +265,13 @@ Value_P Z;
 
    if (!Z)   return Token(TOK_VOID);   // LO without result
 
-   Z->set_default(*B.get(), LOC);
+   Z->set_default(B, LOC);
    Z->check_value(LOC);
    return Token(TOK_APL_VALUE1, Z);
 }
 //────────────────────────────────────────────────────────────────────────────
 Token
-Bif_OPER1_EACH::do_eval_LB(Token & _LO, Value_P B)
+Bif_OPER1_EACH::do_eval_LB(Token & _LO, cValue_R B)
 {
    // monadic EACH: call _LO for every item of B
 
@@ -282,11 +282,11 @@ cFunction_P LO = _LO.get_function();
        !_LO.is_SLASH_or_BACKSLASH())     SYNTAX_ERROR;
    if (!(LO->get_signature() & SIG_B))   VALENCE_ERROR;
 
-   if (B->is_empty())
+   if (B.is_empty())
       {
         if (!LO->has_result())   return Token(TOK_VOID);    // no-op
 
-        Value_P first_B = Bif_F12_TAKE::first(*B);
+        Value_P first_B = Bif_F12_TAKE::first(B);
 
         // evaluate the fill function (lrm p. 245)
         //
@@ -300,7 +300,7 @@ cFunction_P LO = _LO.get_function();
            }
         else if (LO->is_scalar_function() || (LO == &Bif_F12_DOMINO::fun))
            {
-             Token tok_Z1 = LO->eval_fill_B(first_B);
+             Token tok_Z1 = LO->eval_fill_B(*first_B);
              if (tok_Z1.get_Class() != TC_VALUE)   return tok_Z1;
              Z1 = tok_Z1.get_apl_val();
            }
@@ -308,7 +308,7 @@ cFunction_P LO = _LO.get_function();
            {
              // fake Z1←⎕EC ''  ←→  3 (0 0) (0 0⍴0)
              //
-             if (!B->get_cfirst().is_character_cell())   DOMAIN_ERROR;
+             if (!B.get_cfirst().is_character_cell())   DOMAIN_ERROR;
              Z1 = Value_P(3, LOC);
              Z1->next_ravel_Number(3);
              {
@@ -325,12 +325,12 @@ cFunction_P LO = _LO.get_function();
            {
              // the fill function is the function itself
              //
-             Token tok_Z1 = LO->eval_B(first_B);
+             Token tok_Z1 = LO->eval_B(*first_B);
              if (tok_Z1.get_Class() != TC_VALUE)   return tok_Z1;
              Z1 = tok_Z1.get_apl_val();
            }
 
-        Value_P Z(B->get_shape(), LOC);
+        Value_P Z(B.get_shape(), LOC);
 
         // Z1 is the prototype of the empty Z
         //
@@ -355,9 +355,9 @@ cFunction_P LO = _LO.get_function();
         return Macro::get_macro(Macro::MAC_Z__LO_EACH_B)->eval_LB(_LO, B);
       }
 
-const ShapeItem len_Z = B->element_count();
+const ShapeItem len_Z = B.element_count();
 Value_P Z;
-   if (LO->has_result())   Z = Value_P(B->get_shape(), LOC);
+   if (LO->has_result())   Z = Value_P(B.get_shape(), LOC);
 
    loop (z, len_Z)
       {
@@ -387,7 +387,7 @@ Value_P Z;
            }
         else
            {
-             const Cell * cB = &B->get_cravel(z);
+             const Cell * cB = &B.get_cravel(z);
              const bool is_left_val = cB->is_lval_cell();
              Value_P LO_B = cB->to_value(LOC);      // right argument of LO
 
@@ -401,7 +401,7 @@ Value_P Z;
                      }
                 }
 
-             Token result = LO->eval_B(LO_B);
+             Token result = LO->eval_B(*LO_B);
              if (result.get_Class() == TC_VALUE)
                 {
                   Value * vZ = result.get_apl_val().get();
@@ -425,7 +425,7 @@ Value_P Z;
 
    if (!Z)   return Token(TOK_VOID);   // LO without result
 
-   Z->set_default(*B.get(), LOC);
+   Z->set_default(B, LOC);
    Z->check_value(LOC);
    return Token(TOK_APL_VALUE1, Z);
 }

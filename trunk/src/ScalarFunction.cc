@@ -93,7 +93,7 @@ PJob_scalar_B  * job_B  = 0;
 
 //────────────────────────────────────────────────────────────────────────────
 Token
-ScalarFunction::do_eval_fill_AB(Value_P A, Value_P B) const
+ScalarFunction::do_eval_fill_AB(cValue_R A, cValue_R B) const
 {
    /* eval_fill_AB() is called when A and/or B is empty and the non-empty
       argument (if any) is non-scalar (!!!). The scalar case for the non-empty
@@ -136,13 +136,13 @@ ScalarFunction::do_eval_fill_AB(Value_P A, Value_P B) const
       given on p. 110/Figure 20 looks wrong.
     */
 
-   if (B->element_count() == 0)   return do_eval_fill_B(B);
-   if (A->element_count() == 0)   return do_eval_fill_B(A);
+   if (B.element_count() == 0)   return do_eval_fill_B(B);
+   if (A.element_count() == 0)   return do_eval_fill_B(A);
    return do_eval_fill_B(A);
 }
 //────────────────────────────────────────────────────────────────────────────
 Token
-ScalarFunction::do_eval_fill_B(Value_P B) const
+ScalarFunction::do_eval_fill_B(cValue_R B) const
 {
    /* eval_fill_B() is called for:
 
@@ -154,9 +154,9 @@ ScalarFunction::do_eval_fill_B(Value_P B) const
    // lrm p. 56: When the prototypes of the empty arguments are simple
    //            scalars, return a zero prototype
    //
-   if (B->get_cfirst().is_numeric() || B->get_cfirst().is_character_cell())
+   if (B.get_cfirst().is_numeric() || B.get_cfirst().is_character_cell())
       {
-        Value_P Z(B->get_shape(), LOC);
+        Value_P Z(B.get_shape(), LOC);
         Z->set_ravel_Int(0, 0);
         Z->check_value(LOC);
         return Token(TOK_APL_VALUE1, Z);
@@ -166,7 +166,7 @@ ScalarFunction::do_eval_fill_B(Value_P B) const
       here, so we clone() and to_type(true) where true forces numeric 0
       for character Cells.
     */
-Value_P Z = B->clone(LOC);
+Value_P Z = B.clone(LOC);
    Z->check_value(LOC);
 
    // lrm p. 56: the fill function for primitive scalar functions is numeric
@@ -186,7 +186,7 @@ const Shape * shape_Z = conforming_shape(ec, A->get_shape(), B->get_shape());
    if (ec)   return Value_P();
 
 const ShapeItem len_Z = shape_Z->get_volume();
-   if (len_Z == 0)   return do_eval_fill_AB(A, B).get_apl_val();
+   if (len_Z == 0)   return do_eval_fill_AB(*A, *B).get_apl_val();
 
 Value_P Z(*shape_Z, LOC);
 
@@ -257,7 +257,7 @@ PERFORMANCE_END(fs_M_join_AB, start_M_join, 1);
                         const ShapeItem len_Z1 = sh_Z1->get_volume();
                         if (len_Z1 == 0)
                            {
-                             Value_P Z1 = do_eval_fill_AB(A1, B1).get_apl_val();
+                             Value_P Z1 = do_eval_fill_AB(*A1, *B1).get_apl_val();
                              job_AB->value_Z->next_ravel_Pointer(Z1.get());
                              continue;
                            }
@@ -281,7 +281,7 @@ PERFORMANCE_END(fs_M_join_AB, start_M_join, 1);
                         const ShapeItem len_Z1 = A1->element_count();
                         if (len_Z1 == 0)
                            {
-                             Value_P Z1 = do_eval_fill_B(A1).get_apl_val();
+                             Value_P Z1 = do_eval_fill_B(*A1).get_apl_val();
                              new (&cell_Z) PointerCell(Z1.get(),
                                                        *job_AB->value_Z);
                            }
@@ -312,7 +312,7 @@ PERFORMANCE_END(fs_M_join_AB, start_M_join, 1);
                         if (len_Z1 == 0)
                            {
                              Value_P Z1 =
-                                     do_eval_fill_B(B1).get_apl_val();
+                                     do_eval_fill_B(*B1).get_apl_val();
                              new (&cell_Z) PointerCell(Z1.get(),
                                                        *job_AB->value_Z);
                            }
@@ -606,7 +606,7 @@ Token
 ScalarFunction::eval_scalar_B(Value_P B, prim_f1 fun) const
 {
 const ShapeItem len_Z = B->element_count();
-   if (len_Z == 0)   return do_eval_fill_B(B);
+   if (len_Z == 0)   return do_eval_fill_B(*B);
 
 PERFORMANCE_START(start)
 
@@ -909,17 +909,17 @@ CELL_PERFORMANCE_END(job_B->fun->get_statistics_B(), start_2, z)
 }
 //════════════════════════════════════════════════════════════════════════════
 Token
-Bif_F2_UNEQU::eval_B(Value_P B) const
+Bif_F2_UNEQU::eval_B(cValue_R B) const
 {
    // ≠ B : nub sievce. Return a boolean vector Z, corresponding to B, where 
    // Z[i] is 1 iff B[i] is the first occurrence in B. Aka.(B⍳B)=(⍳⍴B).
    //
 const double qct = Workspace::get_CT();
 vector<const Cell *> firsts;
-Value_P Z(B->get_shape(), LOC);
-   loop(b, B->element_count())
+Value_P Z(B.get_shape(), LOC);
+   loop(b, B.element_count())
        {
-         const Cell & cell_B = B->get_cravel(b);
+         const Cell & cell_B = B.get_cravel(b);
 
          // sequentially search cell_B in firsts...
          //
@@ -933,7 +933,7 @@ Value_P Z(B->get_shape(), LOC);
                        {
                          Value_P vB = cell_B.get_pointer_value();
                          Value_P vF = cell_F.get_pointer_value();
-                         const Token equiv = Bif_F12_EQUIV::fun.eval_AB(vB, vF);
+                         const Token equiv = Bif_F12_EQUIV::fun.eval_AB(*vB, *vF);
                          if (equiv.get_apl_val()->get_cfirst()
                                   .get_int_value() == 0)   continue;
                        }
@@ -963,23 +963,23 @@ Value_P Z(B->get_shape(), LOC);
             }
        }
 
-   Z->set_default(*B.get(), LOC);
+   Z->set_default(B, LOC);
    Z->check_value(LOC);
    return Token(TOK_APL_VALUE1, Z);
 }
 //════════════════════════════════════════════════════════════════════════════
 Token
-Bif_F2_FIND::eval_AB(Value_P A, Value_P B) const
+Bif_F2_FIND::eval_AB(cValue_R A, cValue_R B) const
 {
 PERFORMANCE_START(start_1)
 
 const double qct = Workspace::get_CT();
-Value_P Z(B->get_shape(), LOC);
+Value_P Z(B.get_shape(), LOC);
 Shape shape_A;
 
 const ShapeItem len_Z = Z->element_count();
 
-   if (A->get_rank() > B->get_rank())   // then Z is all zeros.
+   if (A.get_rank() > B.get_rank())   // then Z is all zeros.
       {
         loop(z, len_Z)   Z->next_ravel_0();
         goto done;
@@ -988,32 +988,32 @@ const ShapeItem len_Z = Z->element_count();
    // Reshape A to match rank B if necessary...
    //
    {
-     const sRank rank_diff = B->get_rank() - A->get_rank();
+     const sRank rank_diff = B.get_rank() - A.get_rank();
      loop(d, rank_diff)       shape_A.add_shape_item(1);
-     loop(r, A->get_rank())   shape_A.add_shape_item(A->get_shape_item(r));
+     loop(r, A.get_rank())   shape_A.add_shape_item(A.get_shape_item(r));
    }
 
    // if any dimension of A is longer than that of B, then A cannot be found.
    //
-   loop(r, B->get_rank())
+   loop(r, B.get_rank())
        {
-         if (shape_A.get_shape_item(r) > B->get_shape_item(r))
+         if (shape_A.get_shape_item(r) > B.get_shape_item(r))
             {
               loop(z, len_Z)   Z->next_ravel_0();
               goto done;
             }
        }
 
-   for (ArrayIterator zi(B->get_shape()); zi.has_more(); ++zi)
+   for (ArrayIterator zi(B.get_shape()); zi.has_more(); ++zi)
        {
 PERFORMANCE_START(start_2)
-         if (contained(shape_A, &A->get_cfirst(),
-                       B, zi.get_shape_offsets(), qct))
+         if (contained(shape_A, &A.get_cfirst(),
+                       CLONE(&B, LOC), zi.get_shape_offsets(), qct))
             Z->next_ravel_1();
          else
             Z->next_ravel_0();
 
-CELL_PERFORMANCE_END(get_statistics_AB(), start_2, B->get_shape().get_volume())
+CELL_PERFORMANCE_END(get_statistics_AB(), start_2, B.get_shape().get_volume())
        }
 
 done:
@@ -1094,26 +1094,26 @@ Bif_F12_MINUS::get_dyadic_inverse() const
 }
 //════════════════════════════════════════════════════════════════════════════
 Token
-Bif_F12_ROLL::eval_B(Value_P B) const
+Bif_F12_ROLL::eval_B(cValue_R B) const
 {
    // the standard wants ? to be atomic. We therefore check beforehand
    // that all elements of B are proper, and throw an error if not
    //
-   if (check_B(*B, Workspace::get_CT()))   DOMAIN_ERROR;
+   if (check_B(B, Workspace::get_CT()))   DOMAIN_ERROR;
 
-   return eval_scalar_B(B, &Cell::bif_roll);
+   return eval_scalar_B(CLONE(&B, LOC), &Cell::bif_roll);
 }
 //────────────────────────────────────────────────────────────────────────────
 Token
-Bif_F12_ROLL::eval_AB(Value_P A, Value_P B) const
+Bif_F12_ROLL::eval_AB(cValue_R A, cValue_R B) const
 {
    // draw A items  from the set { ⎕IO ... ⎕IO+ B } (i.e. without repetitions)
    //
-   if (!A->is_scalar_extensible())   RANK_ERROR;
-   if (!B->is_scalar_extensible())   RANK_ERROR;
+   if (!A.is_scalar_extensible())   RANK_ERROR;
+   if (!B.is_scalar_extensible())   RANK_ERROR;
 
-const ShapeItem zlen = A->get_cfirst().get_near_int();
-APL_Integer set_size = B->get_cfirst().get_near_int();
+const ShapeItem zlen = A.get_cfirst().get_near_int();
+APL_Integer set_size = B.get_cfirst().get_near_int();
    if (zlen > set_size)         DOMAIN_ERROR;
    if (zlen <  0)               DOMAIN_ERROR;
    if (set_size <  0)           DOMAIN_ERROR;
@@ -1150,7 +1150,7 @@ uint8_t * used = new uint8_t[(set_size + 7)/8];
 }
 //────────────────────────────────────────────────────────────────────────────
 bool
-Bif_F12_ROLL::check_B(const Value & B, const double qct)
+Bif_F12_ROLL::check_B(const cValue & B, const double qct)
 {
 const ShapeItem count = B.nz_element_count();
 const Cell * C = &B.get_cfirst();
@@ -1174,19 +1174,19 @@ const Cell * C = &B.get_cfirst();
 }
 //════════════════════════════════════════════════════════════════════════════
 Token
-Bif_F12_WITHOUT::eval_AB(Value_P A, Value_P B) const
+Bif_F12_WITHOUT::eval_AB(cValue_R A, cValue_R B) const
 {
-   if (A->get_rank() > 1)   RANK_ERROR;
-   if (B->get_rank() > 1)   RANK_ERROR;
+   if (A.get_rank() > 1)   RANK_ERROR;
+   if (B.get_rank() > 1)   RANK_ERROR;
 
-const ShapeItem len_A = A->element_count();
-const ShapeItem len_B = B->element_count();
+const ShapeItem len_A = A.element_count();
+const ShapeItem len_B = B.element_count();
 
    // if called with (⍳N) ∼ (⍳2×N) then the break-even point where
    // large_eval_AB() becomes faster than plain eval_AB() is N=61.
    //
    if (len_A*len_B > 60*60)
-      return Token(TOK_APL_VALUE1, large_eval_AB(*A, *B));
+      return Token(TOK_APL_VALUE1, large_eval_AB(A, B));
 
 const double qct = Workspace::get_CT();
 Value_P Z(len_A, LOC);
@@ -1196,10 +1196,10 @@ ShapeItem len_Z = 0;
    loop(a, len_A)
       {
         bool found = false;
-        const Cell & cell_A = A->get_cravel(a);
+        const Cell & cell_A = A.get_cravel(a);
         loop(b, len_B)
             {
-              if (cell_A.equal(B->get_cravel(b), qct))
+              if (cell_A.equal(B.get_cravel(b), qct))
                  {
                    found = true;
                    break;
@@ -1215,22 +1215,22 @@ ShapeItem len_Z = 0;
 
    Z->set_shape_item(0, len_Z);
 
-   Z->set_default(*A.get(), LOC);
+   Z->set_default(A, LOC);
    Z->check_value(LOC);
    return Token(TOK_APL_VALUE1, Z);
 }
 //════════════════════════════════════════════════════════════════════════════
 Token
-Bif_F12_WITHOUT::eval_identity_fun(Value_P B, sAxis axis) const
+Bif_F12_WITHOUT::eval_identity_fun(cValue_R B, sAxis axis) const
 {
    // axis is already normalized to IO←0
    // return Z←,/B0 where (B0 , B) is B.
 
-const sRank rank_B = B->get_rank();
+const sRank rank_B = B.get_rank();
    if (rank_B < 1)       RANK_ERROR;   // identity restriction, lrm p. 212
    if (axis >= rank_B)   RANK_ERROR;
 
-const Shape shape_Z = B->get_shape().without_axis(axis);
+const Shape shape_Z = B.get_shape().without_axis(axis);
 
    /* the removal of the reduction axis must not create a non-empty result.
 
@@ -1244,13 +1244,13 @@ const Shape shape_Z = B->get_shape().without_axis(axis);
    if (shape_Z.get_volume() > 0)   DOMAIN_ERROR;
 
 Value_P Z(shape_Z, LOC);
-   Z->set_default(*B, LOC);
+   Z->set_default(B, LOC);
    Z->check_value(LOC);
    return Token(TOK_APL_VALUE1, Z);
 }
 //────────────────────────────────────────────────────────────────────────────
 Value_P
-Bif_F12_WITHOUT::large_eval_AB(const Value & A, const Value & B)
+Bif_F12_WITHOUT::large_eval_AB(const cValue & A, const cValue & B)
 {
 const ShapeItem len_A = A.element_count();
 const ShapeItem len_B = B.element_count();

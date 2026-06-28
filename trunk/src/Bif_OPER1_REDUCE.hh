@@ -72,7 +72,7 @@ protected:
    /// @param A left-argument replication counts
    /// @param B right-argument APL value
    /// @param axis axis along which to replicate
-   static Token replicate(Value_P A, Value_P B, uAxis axis);
+   static Token replicate(cValue_R A, cValue_R B, uAxis axis);
 
 };
 //────────────────────────────────────────────────────────────────────────────
@@ -88,40 +88,40 @@ public:
    /// Overloaded Function::eval_AB().
    /// @param A left-argument replication counts
    /// @param B right-argument APL value
-   virtual Token eval_AB(Value_P A, Value_P B) const
-      { return replicate(A, B, B->get_rank() - 1); }
+   virtual Token eval_AB(cValue_R A, cValue_R B) const
+      { return replicate(A, B, B.get_rank() - 1); }
 
    /// Overloaded Function::eval_ALB().
    /// @param A left-argument window size
    /// @param LO left-operand function
    /// @param B right-argument APL value
-   virtual Token eval_ALB(Value_P A, Token & LO, Value_P B) const
-      { return reduce_n_wise(A, LO, B, B->get_rank() - 1); }
+   virtual Token eval_ALB(cValue_R A, Token & LO, cValue_R B) const
+      { return reduce_n_wise(CLONE(&A, LOC), LO, CLONE(&B, LOC), B.get_rank() - 1); }
 
    /// Overloaded Function::eval_LB().
    /// @param LO left-operand function
    /// @param B right-argument APL value
-   virtual Token eval_LB(Token & LO, Value_P B) const
-      { return reduce(LO, B, B->get_rank() - 1); }
+   virtual Token eval_LB(Token & LO, cValue_R B) const
+      { return reduce(LO, CLONE(&B, LOC), B.get_rank() - 1); }
 
    /// Overloaded Function::eval_ALXB().
    /// @param A left-argument window size
    /// @param LO left-operand function
    /// @param X axis specification
    /// @param B right-argument APL value
-   virtual Token eval_ALXB(Value_P A, Token & LO, Value_P X, Value_P B) const;
+   virtual Token eval_ALXB(cValue_R A, Token & LO, cValue_R X, cValue_R B) const;
 
    /// Overloaded Function::eval_AXB().
    /// @param A left-argument replication counts
    /// @param X axis specification
    /// @param B right-argument APL value
-   virtual Token eval_AXB(Value_P A, Value_P X, Value_P B) const;
+   virtual Token eval_AXB(cValue_R A, cValue_R X, cValue_R B) const;
 
    /// Overloaded Function::eval_LXB().
    /// @param LO left-operand function
    /// @param X axis specification
    /// @param B right-argument APL value
-   virtual Token eval_LXB(Token & LO, Value_P X, Value_P B) const;
+   virtual Token eval_LXB(Token & LO, cValue_R X, cValue_R B) const;
 
    static Bif_OPER1_REDUCE  fun;    ///< Built-in function.
 
@@ -140,40 +140,40 @@ public:
    /// Overloaded Function::eval_AB().
    /// @param A left-argument replication counts
    /// @param B right-argument APL value
-   virtual Token eval_AB(Value_P A, Value_P B) const
+   virtual Token eval_AB(cValue_R A, cValue_R B) const
       { return replicate(A, B, 0); }
 
    /// Overloaded Function::eval_ALB().
    /// @param A left-argument window size
    /// @param LO left-operand function
    /// @param B right-argument APL value
-   virtual Token eval_ALB(Value_P A, Token & LO, Value_P B) const
-      { return reduce_n_wise(A, LO, B, 0); }
+   virtual Token eval_ALB(cValue_R A, Token & LO, cValue_R B) const
+      { return reduce_n_wise(CLONE(&A, LOC), LO, CLONE(&B, LOC), 0); }
 
    /// Overloaded Function::eval_LB().
    /// @param LO left-operand function
    /// @param B right-argument APL value
-   virtual Token eval_LB(Token & LO, Value_P B) const
-      { return reduce(LO, B, 0); }
+   virtual Token eval_LB(Token & LO, cValue_R B) const
+      { return reduce(LO, CLONE(&B, LOC), 0); }
 
    /// Overloaded Function::eval_ALXB().
    /// @param A left-argument window size
    /// @param LO left-operand function
    /// @param X axis specification
    /// @param B right-argument APL value
-   virtual Token eval_ALXB(Value_P A, Token & LO, Value_P X, Value_P B) const;
+   virtual Token eval_ALXB(cValue_R A, Token & LO, cValue_R X, cValue_R B) const;
 
    /// Overloaded Function::eval_AXB().
    /// @param A left-argument replication counts
    /// @param X axis specification
    /// @param B right-argument APL value
-   virtual Token eval_AXB(Value_P A, Value_P X, Value_P B) const;
+   virtual Token eval_AXB(cValue_R A, cValue_R X, cValue_R B) const;
 
    /// Overloaded Function::eval_LXB().
    /// @param LO left-operand function
    /// @param X axis specification
    /// @param B right-argument APL value
-   virtual Token eval_LXB(Token & LO, Value_P X, Value_P B) const;
+   virtual Token eval_LXB(Token & LO, cValue_R X, cValue_R B) const;
 
    static Bif_OPER1_REDUCE1  fun;   ///< Built-in function.
 

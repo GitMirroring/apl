@@ -142,7 +142,7 @@ XML_Saving_Archive::save()
         dob != DynamicObject::get_all_values(); dob = dob->get_next())
        {
          // WARNING: do not use pValue() here !
-         const Value * val = static_cast<const Value *>(dob);
+         const cValue * val = static_cast<const Value *>(dob);
 
          if (val->is_marked())    continue;   // stale
 
@@ -175,7 +175,7 @@ XML_Saving_Archive::save()
         dob != DynamicObject::get_all_values(); dob = dob->get_next())
        {
          // WARNING: do not use pValue() here !
-         const Value * val = static_cast<const Value *>(dob);
+         const cValue * val = static_cast<const Value *>(dob);
 
          if (val->is_marked())    continue;   // stale
 
@@ -197,7 +197,7 @@ XML_Saving_Archive::save()
    //
    loop(p, value_count)   // for every (parent-) value
       {
-        const Value & parent = *val_pars[p]._val;
+        const cValue & parent = *val_pars[p]._val;
         const ShapeItem ec = parent.nz_element_count();
         loop(e, ec)   // for every ravel cell of the (parent-) value
             {
@@ -213,7 +213,7 @@ XML_Saving_Archive::save()
 
               // from here on, cp is a PointerCell of the parent...
               //
-              const Value * sub = cP.get_pointer_value().get();
+              const cValue * sub = cP.get_pointer_value().get();
               Assert1(sub);
               const Vid sub_idx = find_vid(sub);
               Assert(sub_idx < value_count);
@@ -392,7 +392,7 @@ XML_Saving_Archive::save_Function(const Function & fun)
                " OPER-fid=\"" << HEX(dfn.get_OPER()) << "\"";
 
         const Function * ro = dfn.get_RO();
-        const Value * axis = dfn.get_AXIS();
+        const cValue * axis = dfn.get_AXIS();
         if (ro || axis)
            {
              outf << endl;
@@ -522,7 +522,7 @@ XML_Saving_Archive::save_Ravel(Vid vid)
 {
    Log(LOG_archive)   err << "save_Ravel(Vid " << vid << ")" << endl;
 
-const Value & v = *val_pars[vid]._val;
+const cValue & v = *val_pars[vid]._val;
 const APL_types::Depth depth = val_pars[vid]._depth;
 const ShapeItem len = v.nz_element_count();
 const Cell * C = &v.get_cfirst();
@@ -580,7 +580,7 @@ int space = do_indent();
 XML_Saving_Archive &
 XML_Saving_Archive::save_shape(Vid vid)
 {
-const Value & v = *val_pars[vid]._val;
+const cValue & v = *val_pars[vid]._val;
 const Vid parent_vid = val_pars[vid]._par;
 
    do_indent();
@@ -910,7 +910,7 @@ char cc[80];
              const LvalCell & lv = reinterpret_cast<const LvalCell &>(cell);
              if (lv.get_lval_value())   // lv has a valid target
                 {
-                  const Value * owner = lv.get_cell_owner();
+                  const cValue * owner = lv.get_cell_owner();
                   const long long offset = owner->get_offset(&lv);
                   const Vid vid = find_vid(owner);
                   SPRINTF(cc, "%d[%lld]", vid, offset);
@@ -982,7 +982,7 @@ XML_Saving_Archive::emit_token_val(const Token & tok)
                          loop(i, rank)
                              {
                                if (i)   outf << ",";
-                               const Value * val = idx.values[i].get();
+                               const cValue * val = idx.values[i].get();
                                if (val)   outf << "vid_" << find_vid(val);
                                else       outf << "-";
                                 outf << "\"";
@@ -1032,10 +1032,10 @@ XML_Saving_Archive::emit_unicode(Unicode uni, int & space)
 }
 //────────────────────────────────────────────────────────────────────────────
 XML_Saving_Archive::Vid
-XML_Saving_Archive::find_vid(const Value * value)
+XML_Saving_Archive::find_vid(const cValue * value)
 {
 const void * item = Heapsort<_val_par>
-                    ::search<const Value *>
+                    ::search<const cValue *>
                     (value, val_pars, _val_par::compare, 0);
    Assert(item);
    return Vid(reinterpret_cast<const _val_par *>(item) - val_pars.data());

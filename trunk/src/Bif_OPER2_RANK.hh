@@ -54,7 +54,7 @@ protected:
    /// @param LO  left operator function argument
    /// @param RO  right operator function argument (rank vector)
    /// @param B   right value argument
-   virtual Token eval_ALRB(Value_P A, Token & LO, Token & RO, Value_P B) const;
+   virtual Token eval_ALRB(cValue_R A, Token & LO, Token & RO, cValue_R B) const;
 
    /// overloaded Function::eval_ALRXB()
    /// @param A   left value argument
@@ -62,21 +62,21 @@ protected:
    /// @param RO  right operator function argument (rank vector)
    /// @param X   axis specification
    /// @param B   right value argument
-   virtual Token eval_ALRXB(Value_P A, Token & LO, Token & RO,
-                            Value_P X, Value_P B) const;
+   virtual Token eval_ALRXB(cValue_R A, Token & LO, Token & RO,
+                            cValue_R X, cValue_R B) const;
 
    /// overloaded Function::eval_LRB()
    /// @param LO  left operator function argument
    /// @param RO  right operator function argument (rank vector)
    /// @param B   right value argument
-   virtual Token eval_LRB(Token & LO, Token & RO, Value_P B) const;
+   virtual Token eval_LRB(Token & LO, Token & RO, cValue_R B) const;
 
    /// overloaded Function::eval_LRXB()
    /// @param LO  left operator function argument
    /// @param RO  right operator function argument (rank vector)
    /// @param X   axis specification
    /// @param B   right value argument
-   virtual Token eval_LRXB(Token & LO, Token & RO, Value_P X, Value_P B) const;
+   virtual Token eval_LRXB(Token & LO, Token & RO, cValue_R X, cValue_R B) const;
 
    /// is the workhorse of dyadic A ⍤ B.
    /// @param A          left value argument
@@ -99,13 +99,13 @@ protected:
    /// convert 1- 2- or 3-element vector y123 to chunk-rank of B
    /// @param y123  1-, 2-, or 3-element rank specification vector
    /// @param rk_B  actual rank of the right argument B
-   static sRank y123_to_chunk_B_rank(Value_P y123, sRank rk_B);
+   static sRank y123_to_chunk_B_rank(const cValue * y123, sRank rk_B);
 
    /// convert 1- 2- or 3-element vector y123 to chunk-ranks of A and B
    /// @param y123  1-, 2-, or 3-element rank specification vector
    /// @param rk_A  output: chunk rank for left argument A
    /// @param rk_B  output: chunk rank for right argument B
-   static void y123_to_AB(Value_P y123, sRank & rk_A, sRank & rk_B);
+   static void y123_to_AB(const cValue * y123, sRank & rk_A, sRank & rk_B);
 };
 //════════════════════════════════════════════════════════════════════════════
 

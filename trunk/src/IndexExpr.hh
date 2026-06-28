@@ -50,7 +50,7 @@ public:
 
    /// return axis rk (rk in shape order as opposed to index order)
    /// @param ax axis number in shape order
-   const Value * get_axis_value(uAxis ax) const
+   const cValue * get_axis_value(uAxis ax) const
       { return values[rank - ax - 1].get(); }
 
    /// return the number of values (= number of semicolons + 1),

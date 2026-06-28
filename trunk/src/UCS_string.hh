@@ -110,6 +110,9 @@ public:
    /// constructor: UCS_string from simple character vector value.
    UCS_string(const Value & value);
 
+   /// constructor: UCS_string from simple character vector (const cValue variant).
+   UCS_string(const cValue & value);
+
    /// constructor: UCS_string from a pointer Cell pointing to a
    /// character vector value (Asserts if not)
    UCS_string(const Cell & cell);
