@@ -101,7 +101,7 @@ const Cell & c0 = get_cfirst();
 bool
 cValue::is_simple() const
 {
-   if (flags & VF_packed)   return true;
+   if (flags.ravel_type)   return true;
 
 const ShapeItem count = element_count();
 const Cell * C = &get_cfirst();
@@ -522,32 +522,43 @@ ShapeItem count = ec;
 APL_types::Depth
 cValue::compute_depth() const
 {
+   // For depth 0 or 1, no PointerCells exist, so the cache is always reliable.
+   // For depth ≥ 2, sub-values may have been modified via selective assignment
+   // without the parent's cache being invalidated (stale-parent problem: no
+   // parent pointers available).  Always recompute for depth ≥ 2 to guarantee
+   // correctness.  Sub-values with depth ≤ 1 return instantly (O(1) cached),
+   // so the total cost is O(top-level element count), not O(total sub-tree).
+   if (flags.value_depth <= 1)   return flags.value_depth;
+
+   APL_types::Depth depth;
    if (is_scalar())
       {
         if (get_cfirst().is_pointer_cell())
-           {
-             APL_types::Depth d = get_cfirst().get_pointer_value()
-                                     ->compute_depth();
-             return 1 + d;
-           }
-
-        return 0;
+           depth = 1 + get_cfirst().get_pointer_value()->compute_depth();
+        else
+           { flags.value_depth = 0; return 0; }   // simple scalar: cache 0
+      }
+   else
+      {
+        APL_types::Depth sub_depth = 0;
+        const ShapeItem count = nz_element_count();
+        loop(c, count)
+            {
+              if (get_cravel(c).is_pointer_cell())
+                 {
+                   const APL_types::Depth d =
+                      get_cravel(c).get_pointer_value()->compute_depth();
+                   if (sub_depth < d)   sub_depth = d;
+                 }
+            }
+        depth = sub_depth + 1;
       }
 
-const ShapeItem count = nz_element_count();
-
-APL_types::Depth sub_depth = 0;
-   loop(c, count)
-       {
-         APL_types::Depth d = 0;
-         if (get_cravel(c).is_pointer_cell())
-            {
-              d = get_cravel(c).get_pointer_value()->compute_depth();
-            }
-         if (sub_depth < d)   sub_depth = d;
-       }
-
-   return sub_depth + 1;
+   if (depth <= 1)   flags.value_depth = uint8_t(depth);
+   // depth ≥ 2 intentionally not cached: sub-values may be modified later
+   // without invalidating this cache (no parent pointers); always recomputing
+   // keeps results correct at O(top-level count) per call.
+   return depth;
 }
 //────────────────────────────────────────────────────────────────────────────
 void
@@ -1297,8 +1308,9 @@ cValue::flag_info(const char * loc, ValueFlags flag, const char * flag_name,
                  bool set) const
 {
 const char * sc = set ? " SET " : " CLEAR ";
-const int new_flags = set ? flags | flag : flags & ~flag;
-const char * chg = flags == new_flags ? " (no change)" : " (changed)";
+const int cur_flags = get_flags();
+const int new_flags = set ? cur_flags | flag : cur_flags & ~flag;
+const char * chg = cur_flags == new_flags ? " (no change)" : " (changed)";
 
    CERR << "Value " << voidP(this)
         << sc << flag_name << " (" << HEX(flag) << ")"
@@ -1446,7 +1458,7 @@ const ShapeItem rows = ec/cols;
 ostream &
 cValue::list_one(ostream & out, bool show_owners) const
 {
-   if (flags)
+   if (get_flags())
       {
         out << "   Flags =";
         char sep = ' ';
@@ -1717,7 +1729,7 @@ const uint64_t start_1 = cycle_counter();
 #endif
 
 Value_P Z(get_shape(), loc);
-   Z->flags |= flags & VF_member;   // propagate member flag
+   if (flags.member)   Z->flags.member = 1;   // propagate member flag
 
    // NOTE: if something fails in the allocation of Z (⎕SYL etc.) then
    // Z->get_shape() may differ from this->get_shape(). We therefore use
@@ -1733,6 +1745,10 @@ Value_P Z(get_shape(), loc);
       }
 
    Z->check_value(LOC);
+
+   // Propagate cached depth: a clone has the same depth as the source.
+   if (flags.value_depth != VF_DEPTH_DIRTY)
+      Z->flags.value_depth = flags.value_depth;
 
 #ifdef cfg_PERFORMANCE_COUNTERS_WANTED
 const uint64_t end_1 = cycle_counter();

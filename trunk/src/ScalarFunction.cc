@@ -774,7 +774,7 @@ CELL_PERFORMANCE_END(job_AB->fun->get_statistics_AB(), start_2, z)
                       }
                    else               // empty A1 and simple B
                       {
-                        Value_P Z1 = job_AB->fun->eval_fill_AB(A1, B1)
+                        Value_P Z1 = job_AB->fun->eval_fill_AB(*A1, *B1)
                                                  .get_apl_val();
                         new (&cell_Z) PointerCell(Z1.get(), *job_AB->value_Z);
                       }
@@ -793,7 +793,7 @@ CELL_PERFORMANCE_END(job_AB->fun->get_statistics_AB(), start_2, z)
                      }
                    else            // simple A and empty B1
                       {
-                        Value_P Z1 = job_AB->fun->eval_fill_AB(A1, B1)
+                        Value_P Z1 = job_AB->fun->eval_fill_AB(*A1, *B1)
                                                  .get_apl_val();
                         new (&cell_Z)   PointerCell(Z1.get(), *job_AB->value_Z);
                       }
@@ -821,7 +821,7 @@ CELL_PERFORMANCE_END(job_AB->fun->get_statistics_AB(), start_2, z)
                       }
                    else   // empty B1/Z1
                       {
-                        Token result = job_AB->fun->eval_fill_AB(A1, B1);
+                        Token result = job_AB->fun->eval_fill_AB(*A1, *B1);
                         if (result.get_tag() == TOK_ERROR)
                            {
                              job_AB->error = ErrorCode(result.get_int_val());

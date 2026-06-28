@@ -119,7 +119,7 @@ Value::Value(const Shape & sh, uint64_t * bits, const char * loc)
 {
    shape = sh;
    fetcher = &packed_fetcher;
-   flags = VF_packed;
+   flags = {}; flags.ravel_type = RT_BOOL;
    valid_ravel_items = sh.get_nz_volume();
    ravel = reinterpret_cast<Cell *>(bits);
    ADD_EVENT(this, VHE_Create, 0, loc);
@@ -208,7 +208,7 @@ Value::~Value()
    ADD_EVENT(this, VHE_Destruct, 0, LOC);
    unlink();
 
-   if (flags & VF_packed)
+   if (flags.ravel_type == RT_BOOL)
       {
         uint8_t * bits = reinterpret_cast<uint8_t *>(ravel);
         delete[] bits;
@@ -347,6 +347,7 @@ const int src_incr  = (new_value->nz_element_count() == 1) ? 0 : 1;
         if (Cell * target = LVC0->get_lval_value())   // valid right Cell
            {
              Value & owner = *LVC0->get_cell_owner();
+             owner.depth_update_for_overwrite(target - owner.ravel, 0);
              target->release(LOC);   // free sub-values etc (if any)
              new (target)   PointerCell(new_value.get(), owner);
            }
@@ -407,14 +408,15 @@ const int src_incr  = (new_value->nz_element_count() == 1) ? 0 : 1;
                     Cell * target = LVC->get_lval_value();
                     if (target)   // target can be 0!
                        {
-                         target->release(LOC);   // free sub-values etc.
                          Value & owner = *LVC->get_cell_owner();
-
                          // if src is simple, then scalar extend it.
                          // Otherwise use item s of src.
                          //
                          const Cell & right_cell = +right_sub ?
                                      right_sub->get_cravel(s) : src;
+                         owner.depth_update_for_overwrite(target - owner.ravel,
+                                    right_cell.is_pointer_cell() ? 0 : -1);
+                         target->release(LOC);   // free sub-values etc.
                          target->init(right_cell, owner, LOC);
                        }
                   }
@@ -424,11 +426,10 @@ const int src_incr  = (new_value->nz_element_count() == 1) ? 0 : 1;
              const LvalCell & LVC = reinterpret_cast<const LvalCell &>(dest);
              if (Cell * target = dest.get_lval_value())   // target can be 0!
                 {
-                  target->release(LOC);   // free sub-values etc (if any)
-
-                  // erase the pointee when overriding a pointer-cell.
-                  //
                   Value & owner = *LVC.get_cell_owner();
+                  owner.depth_update_for_overwrite(target - owner.ravel,
+                                    src.is_pointer_cell() ? 0 : -1);
+                  target->release(LOC);   // free sub-values etc (if any)
                   target->init(src, owner, LOC);
                 }
            }
@@ -945,7 +946,7 @@ ShapeItem z = 0;
       {
         if (ravel != short_value)   std::allocator<Cell>{}.deallocate(ravel, nz_element_count());
         ravel = reinterpret_cast<Cell *>(bits);
-        flags |= VF_packed;
+        flags.ravel_type = RT_BOOL;
       }
 
    return error_reason;

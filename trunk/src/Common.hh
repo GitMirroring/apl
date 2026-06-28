@@ -60,6 +60,10 @@
 #  define cfg_MAX_RANK_WANTED 8
 #endif
 
+#ifndef cfg_MAX_DEPTH_WANTED
+#  define cfg_MAX_DEPTH_WANTED 254
+#endif
+
 // if someone (like curses on Solaris) has #defined erase() then
 // #undef it because class vector<> would complain about it
 #ifdef erase

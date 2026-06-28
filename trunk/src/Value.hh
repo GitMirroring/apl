@@ -58,11 +58,11 @@ class ValueBase
 {
 protected:
    ValueBase()
-   : flags(VF_NONE),
+   : flags{},
      valid_ravel_items(0),
      nz_subcell_count(0),
      ravel(0)
-   {}
+   { flags.value_depth = VF_DEPTH_DIRTY; }
 
    /// the shape of this value (only the first rank items are valid)
    Shape shape;
@@ -70,8 +70,8 @@ protected:
    /// mux between packed and non-packed ravel cells
    const Cell & (*fetcher)(ShapeItem offset, const Cell * ravel);
 
-   /// valueFlags for this value
-   mutable uint16_t flags;
+   /// flags and cached depth for this value
+   mutable VF_Flags flags;
 
    /// number of initialized cells in the ravel
    ShapeItem valid_ravel_items;
@@ -266,19 +266,23 @@ public:
 
    /// true if Value flag \b member is set
    bool is_member() const
-      { return (flags & VF_member) != 0; }
+      { return flags.member; }
 
-   /// true if Value flag \b packed is set
+   /// true if this value has a homogeneous (non-Cell) ravel
    bool is_packed() const
-      { return (flags & VF_packed) != 0; }
+      { return flags.ravel_type != 0; }
 
    /// true if Value flag \b marked is set
    bool is_marked() const
-      { return (flags & VF_marked) != 0; }
+      { return flags.marked; }
 
    /// true if Value flag \b complete is set
    bool is_complete() const
-      { return (flags & VF_complete) != 0; }
+      { return flags.complete; }
+
+   /// return the cached nesting depth (VF_DEPTH_DIRTY means cache is invalid)
+   uint8_t get_value_depth() const
+      { return flags.value_depth; }
 
    /// return true if this variable is is_member() and a N×2 matrix
    /// with proper keys
@@ -491,19 +495,19 @@ public:
 
    /// set the Value flag \b member
    void SET_member(_loc_type _loc) const
-      { FLAG_TRACE(member, true)   flags |=  VF_member;
+      { FLAG_TRACE(member, true)   flags.member = 1;
         ADD_EVENT(this, VHE_SetFlag, VF_member, _loc); }
 
 #define set_member() SET_member(_LOC)
 
-   /// set the Value flag \b packed
+   /// mark this value as boolean bit-packed
    void SET_packed(_loc_type _loc) const
-      { FLAG_TRACE(packed, true)   flags |=  VF_packed;
+      { FLAG_TRACE(packed, true)   flags.ravel_type = RT_BOOL;
         ADD_EVENT(this, VHE_SetFlag, VF_packed, _loc); }
 
-   /// clear the Value flag \b packed
+   /// reset ravel type to mixed (Cell) ravel
    void CLEAR_packed(_loc_type _loc) const
-      { FLAG_TRACE(packed, false)   flags &=  ~VF_packed;
+      { FLAG_TRACE(packed, false)   flags.ravel_type = RT_MIXED;
         ADD_EVENT(this, VHE_ClearFlag, VF_packed, _loc); }
 
 #define set_packed()   SET_packed(_LOC)
@@ -511,19 +515,19 @@ public:
 
    /// set the Value flag \b complete
    void SET_complete(_loc_type _loc) const
-      { FLAG_TRACE(complete, true)   flags |=  VF_complete;
+      { FLAG_TRACE(complete, true)   flags.complete = 1;
         ADD_EVENT(this, VHE_SetFlag, VF_complete, _loc); }
 
 #define set_complete() SET_complete(_LOC)
 
    /// set the Value flag \b marked
    void SET_marked(_loc_type _loc) const
-      { FLAG_TRACE(marked, true)   flags |=  VF_marked;
+      { FLAG_TRACE(marked, true)   flags.marked = 1;
         ADD_EVENT(this, VHE_SetFlag, VF_marked, _loc); }
 
    /// clear the Value flag \b marked
    void CLEAR_marked(_loc_type _loc) const
-      { FLAG_TRACE(marked, false)   flags &=  ~VF_marked;
+      { FLAG_TRACE(marked, false)   flags.marked = 0;
         ADD_EVENT(this, VHE_ClearFlag, VF_marked, _loc); }
 
 #define set_marked()   SET_marked(_LOC)
@@ -619,8 +623,13 @@ public:
    /// @param idx ravel index shown for nested context
    void print_structure(ostream & out, int indent, ShapeItem idx) const;
 
-   /// return the current flags
-   ValueFlags get_flags() const   { return ValueFlags(flags); }
+   /// return the current flags as a ValueFlags bitmask
+   ValueFlags get_flags() const
+      { return ValueFlags((flags.complete    ? VF_complete : 0) |
+                          (flags.marked      ? VF_marked   : 0) |
+                          (flags.temp        ? VF_temp     : 0) |
+                          (flags.member      ? VF_member   : 0) |
+                          (uint16_t(flags.ravel_type) << 4)); }
 
    /// print info related to a stale value
    /// @param out output stream to write to
@@ -981,6 +990,11 @@ public:
    /// @param offset ravel index (0-based)
    /// @param value pointer to the APL value to store
    inline void set_ravel_Value(ShapeItem offset, Value * value);
+
+   /// update the depth cache when ravel[offset] is about to be overwritten.
+   /// new_sub_depth: -1 = new cell is simple; ≥ 0 = new is PointerCell to a
+   /// sub-value of that depth.  Call BEFORE the actual write.
+   inline void depth_update_for_overwrite(ShapeItem offset, int new_sub_depth);
 
    /// returen \b true if \b sub == \b val or sub is contained in \b val
    /// @param val outer value to search within

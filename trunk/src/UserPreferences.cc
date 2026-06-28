@@ -1224,6 +1224,9 @@ UserPreferences::show_configure_options()
    "    MAX_RANK_WANTED="     << cfg_MAX_RANK_WANTED
         << is_default(cfg_MAX_RANK_WANTED == 8)
    << endl <<
+   "    MAX_DEPTH_WANTED="    << cfg_MAX_DEPTH_WANTED
+        << is_default(cfg_MAX_DEPTH_WANTED == 254)
+   << endl <<
 
 #ifdef cfg_RATIONAL_NUMBERS_WANTED
    "    RATIONAL_NUMBERS_WANTED=yes"

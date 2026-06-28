@@ -158,17 +158,33 @@ Value::next_ravel_Complex(APL_Float real, APL_Float imag)
 }
 //──────────────────────────────────────────────────────────────────────────
 void
+Value::depth_update_for_overwrite(ShapeItem offset, int new_sub_depth)
+// Update the depth cache when ravel[offset] is about to be overwritten.
+// new_sub_depth: -1 = new cell is simple; >=0 = PointerCell to sub of that depth.
+// Call BEFORE the actual write.
+// Only Simple→Simple is a safe no-op; any PointerCell involvement marks dirty,
+// because sub-value depth may change later (no parent pointers to propagate).
+{
+   if (flags.value_depth == VF_DEPTH_DIRTY)   return;   // already dirty
+   if (!get_cravel(offset).is_pointer_cell() && new_sub_depth < 0)
+      return;   // Simple → Simple: depth cannot change
+   flags.value_depth = VF_DEPTH_DIRTY;
+}
+//──────────────────────────────────────────────────────────────────────────
+void
 Value::next_ravel_Pointer(Value * value)
 {
-  Assert(!value->is_simple_scalar());
-  new (next_ravel()) PointerCell(value, *this);
+   flags.value_depth = VF_DEPTH_DIRTY;
+   Assert(!value->is_simple_scalar());
+   new (next_ravel()) PointerCell(value, *this);
 }
 //──────────────────────────────────────────────────────────────────────────
 void
 Value::next_ravel_Pointer(Value * value, uint32_t magic)
 {
-  Assert(!value->is_simple_scalar());
-  new (next_ravel()) PointerCell(value, *this, magic);
+   flags.value_depth = VF_DEPTH_DIRTY;
+   Assert(!value->is_simple_scalar());
+   new (next_ravel()) PointerCell(value, *this, magic);
 }
 //──────────────────────────────────────────────────────────────────────────
 void
@@ -177,7 +193,10 @@ Value::next_ravel_Value(Value * value)
    if (value->is_simple_scalar())
       next_ravel()->init(value->get_cfirst(), *this, LOC);
    else
-      new (next_ravel()) PointerCell(value, *this);
+      {
+        flags.value_depth = VF_DEPTH_DIRTY;
+        new (next_ravel()) PointerCell(value, *this);
+      }
 }
 //──────────────────────────────────────────────────────────────────────────
 void
@@ -189,7 +208,8 @@ Value::next_ravel_Lval(Cell * target, Value * target_owner)
 void
 Value::next_ravel_Cell(const Cell & other)
 {
-  other.init_other(next_ravel(), *this, LOC);
+   if (other.is_pointer_cell())   flags.value_depth = VF_DEPTH_DIRTY;
+   other.init_other(next_ravel(), *this, LOC);
 }
 //──────────────────────────────────────────────────────────────────────────
 void
@@ -202,37 +222,43 @@ Value::next_ravel_Proto(const Cell & cell)
 void
 Value::set_ravel_Char(ShapeItem offset, Unicode uni)
 {
+   depth_update_for_overwrite(offset, -1);
    new (&get_wravel(offset))   CharCell(uni);
 }
 //──────────────────────────────────────────────────────────────────────────
 void
 Value::set_ravel_Int(ShapeItem offset, APL_Integer aint)
 {
+   depth_update_for_overwrite(offset, -1);
    new (&get_wravel(offset))   IntCell(aint);
 }
 //──────────────────────────────────────────────────────────────────────────
 void
 Value::set_ravel_Float(ShapeItem offset, APL_Float flt)
 {
+   depth_update_for_overwrite(offset, -1);
    new (&get_wravel(offset))   FloatCell(flt);
 }
 //──────────────────────────────────────────────────────────────────────────
 void
 Value::set_ravel_Complex(ShapeItem offset, APL_Float real, APL_Float imag)
 {
+   depth_update_for_overwrite(offset, -1);
    new (&get_wravel(offset))   ComplexCell(real, imag);
 }
 //──────────────────────────────────────────────────────────────────────────
 void
 Value::set_ravel_Cell(ShapeItem offset, const Cell & cell)
 {
-  get_wravel(offset).init(cell, *this, LOC);
+   depth_update_for_overwrite(offset, cell.is_pointer_cell() ? 0 : -1);
+   get_wravel(offset).init(cell, *this, LOC);
 }
 //──────────────────────────────────────────────────────────────────────────
 void
 Value::set_ravel_Pointer(ShapeItem offset, Value * value)
 {
-  Assert(!value->is_simple_scalar());
+   Assert(!value->is_simple_scalar());
+   depth_update_for_overwrite(offset, 0);   // PointerCell → dirty
    new (&get_wravel(offset))   PointerCell(value, *this);
 }
 //──────────────────────────────────────────────────────────────────────────
@@ -240,9 +266,15 @@ void
 Value::set_ravel_Value(ShapeItem offset, Value * value)
 {
    if (value->is_simple_scalar())
-      get_wravel(offset).init(value->get_cfirst(), *this, LOC);
+      {
+        depth_update_for_overwrite(offset, -1);
+        get_wravel(offset).init(value->get_cfirst(), *this, LOC);
+      }
    else
-      new (&get_wravel(offset)) PointerCell(value, *this);
+      {
+        depth_update_for_overwrite(offset, 0);   // PointerCell → dirty
+        new (&get_wravel(offset)) PointerCell(value, *this);
+      }
 }
 //════════════════════════════════════════════════════════════════════════════
 #endif // __VALUE_ICC_DEFINED__

@@ -2367,7 +2367,9 @@ Value_P Z;
 
    if (at1().get_tag() == TOK_AXIS)   // [] or [IX]
       {
-        Z = A->index(*at1().get_apl_val());
+        Value_P axis = at1().get_apl_val();
+        if (!axis)   Z = CLONE(A.get(), LOC);   // A[] — empty index
+        else         Z = A->index(*axis);
       }
    else                               // [I1; I2...]
       {

@@ -34,10 +34,14 @@ enum
 {
   APL_PATH_MAX = 4096
 };
+#ifndef cfg_MAX_DEPTH_WANTED
+#  define cfg_MAX_DEPTH_WANTED 254
+#endif
 //────────────────────────────────────────────────────────────────────────────
 enum
 {
-   MAX_RANK = cfg_MAX_RANK_WANTED
+   MAX_RANK  = cfg_MAX_RANK_WANTED,
+   MAX_DEPTH = cfg_MAX_DEPTH_WANTED
 };
 //────────────────────────────────────────────────────────────────────────────
 /// Auxiliary processor numbers
@@ -514,12 +518,45 @@ enum TimeScale
 enum ValueFlags
 {
   VF_NONE     = 0x0000,   ///< no flags
-  VF_complete = 0x0400,   ///< CHECK called
-  VF_marked   = 0x0800,   ///< marked to detect stale
-  VF_temp     = 0x1000,   ///< computed value
-  VF_member   = 0x2000,   ///< used for member access
-  VF_packed   = 0x4000,   ///< packed homogenious ravel
+  VF_complete = 0x0001,   ///< CHECK called            (bit 0)
+  VF_marked   = 0x0002,   ///< marked to detect stale  (bit 1)
+  VF_temp     = 0x0004,   ///< computed value           (bit 2)
+  VF_member   = 0x0008,   ///< used for member access   (bit 3)
+  VF_packed   = 0x0010,   ///< ravel_type LSB (RT_BOOL=1 sets this bit)
 };
+
+/// Ravel type codes stored in VF_Flags::ravel_type (4 bits, bits 4-7).
+/// 0 = mixed Cells (status quo); non-zero = packed homogeneous data.
+enum RavelType
+{
+  RT_MIXED      =  0,   ///< status quo: mixed Cell ravel
+  RT_BOOL       =  1,   ///< 1-bit booleans (bit-packed uint64_t ravel)
+  RT_UNICODE16  =  2,   ///< 16-bit Unicode scalars (reserved, not yet used)
+  RT_UNICODE32  =  3,   ///< 32-bit Unicode scalars (reserved, not yet used)
+  RT_INT64      =  5,   ///< 64-bit signed integers
+  RT_FLOAT64    =  6,   ///< 64-bit IEEE 754 doubles
+  RT_COMPLEX    =  7,   ///< 2×64-bit complex (128 bits)
+  RT_UNKNOWN    = 15,   ///< construction sentinel: type not yet determined
+};
+
+/// minimum element count for automatic packing to be worthwhile
+enum { RAVEL_PACK_THRESHOLD = 1024 };
+
+/// C++ bitfield overlay for the flags + value_depth word in ValueBase.
+/// bits 0-3: the four VF_ flags; bits 4-7: ravel_type; bits 8-15: value_depth.
+struct VF_Flags
+{
+   uint16_t complete    :  1;   ///< CHECK called
+   uint16_t marked      :  1;   ///< marked to detect stale
+   uint16_t temp        :  1;   ///< computed value
+   uint16_t member      :  1;   ///< used for member access
+   uint16_t ravel_type  :  4;   ///< RavelType: 0=mixed, 1=bool, 5=int64, 6=float64, 7=complex
+   uint16_t value_depth :  8;   ///< cached ≡ depth: 0..254 = depth, 255 = dirty
+};
+/// sentinel stored in value_depth when the cached depth is invalid
+enum { VF_DEPTH_DIRTY = 255 };
+static_assert(cfg_MAX_DEPTH_WANTED <= 254,
+              "cfg_MAX_DEPTH_WANTED must be ≤ 254 (255 reserved as dirty sentinel)");
 
 /// @param out    output stream to write to
 /// @param flags  value flags bitmask to display

@@ -669,6 +669,7 @@ const int incr_B = (ec_B == 1) ? 0 : 1;
         if (offset_Z < 0)                     INDEX_ERROR;
         if (offset_Z >= Z->element_count())   INDEX_ERROR;
         Cell & dest = Z->get_wravel(offset_Z);
+        Z->depth_update_for_overwrite(offset_Z, cB->is_pointer_cell() ? 0 : -1);
         dest.release(LOC);   // free sub-values etc (if any)
         dest.init(*cB, *Z, LOC);
         cB += incr_B;
@@ -725,6 +726,8 @@ const ShapeItem max_idx = Z->element_count();
         if (idx >= 0 && idx < max_idx)   // idx is a valid index of Z
            {
              Cell & cell = Z->get_wravel(idx);
+             Z->depth_update_for_overwrite(idx,
+                                B->get_cfirst().is_pointer_cell() ? 0 : -1);
              cell.release(LOC);   // release the old value if Z[X]
              cell.init(B->get_cfirst(), *Z, LOC);   // Z[X] ← ↑B
              return;
@@ -740,6 +743,7 @@ const ShapeItem max_idx = Z->element_count();
         loop(a, max_idx)
             {
               Cell & dest = Z->get_wravel(a);
+              Z->depth_update_for_overwrite(a, src.is_pointer_cell() ? 0 : -1);
               dest.release(LOC);   // free sub-values etc (if any)
               dest.init(src, *Z, LOC);
             }
@@ -761,6 +765,7 @@ const Cell * cB = &B->get_cfirst();
         if (idx < 0)          INDEX_ERROR;
         if (idx >= max_idx)   INDEX_ERROR;
         Cell & dest = Z->get_wravel(idx);
+        Z->depth_update_for_overwrite(idx, cB->is_pointer_cell() ? 0 : -1);
         dest.release(LOC);   // free sub-values etc (if any)
         dest.init(*cB, *Z, LOC);
 

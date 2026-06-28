@@ -5,7 +5,7 @@
 #define ARCHIVE_SVN " 3317"
 
 /* How and when GNU APL was configured */
-#define BUILDTAG PACKAGE_NAME, PACKAGE_VERSION " / SVN: 3323", "2026-06-28 13:21:19 CEST", "Linux 5.15.0-177-generic x86_64", "default ./configure options"
+#define BUILDTAG PACKAGE_NAME, PACKAGE_VERSION " / SVN: 3335:3336M", "2026-06-28 20:46:43 CEST", "Linux 5.15.0-177-generic x86_64", "default ./configure options"
 
 /* Define to 1 iff pthread_setaffinity_np() is available */
 #define HAVE_AFFINITY_NP 1
@@ -601,10 +601,10 @@
 #define cfg_APSERVER_TRANSPORT 0
 
 /* the desired ASSERT() level (0=no, 1=some, 2=all assertions) */
-#define cfg_ASSERT_LEVEL_WANTED 1
+#define cfg_ASSERT_LEVEL_WANTED 0
 
 /* how ./configure was called */
-#define cfg_CONFIGURE_ARGS "./configure  '--disable-maintainer-mode'"
+#define cfg_CONFIGURE_ARGS "./configure  'ASSERT_LEVEL_WANTED=0'"
 
 /* core count */
 #define cfg_CORE_COUNT_WANTED 0
