@@ -5,7 +5,7 @@
 #define ARCHIVE_SVN " 3338"
 
 /* How and when GNU APL was configured */
-#define BUILDTAG PACKAGE_NAME, PACKAGE_VERSION " / SVN: 3335:3339M", "2026-06-29 13:01:15 CEST", "Linux 5.15.0-177-generic x86_64", "default ./configure options"
+#define BUILDTAG PACKAGE_NAME, PACKAGE_VERSION " / SVN: 3335:3339M", "2026-06-29 18:04:40 CEST", "Linux 5.15.0-177-generic x86_64", "default ./configure options"
 
 /* Define to 1 iff pthread_setaffinity_np() is available */
 #define HAVE_AFFINITY_NP 1
@@ -604,7 +604,7 @@
 #define cfg_ASSERT_LEVEL_WANTED 1
 
 /* how ./configure was called */
-#define cfg_CONFIGURE_ARGS "./configure "
+#define cfg_CONFIGURE_ARGS "./configure  'VALUE_HISTORY_WANTED=yes'"
 
 /* core count */
 #define cfg_CORE_COUNT_WANTED 0
@@ -640,7 +640,7 @@
 /* #undef cfg_VALUE_CHECK_WANTED */
 
 /* Define to enable value events */
-/* #undef cfg_VALUE_HISTORY_WANTED */
+#define cfg_VALUE_HISTORY_WANTED 1
 
 /* Define to enable tracing of value flags */
 /* #undef cfg_VF_TRACING_WANTED */

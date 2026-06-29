@@ -35,16 +35,28 @@ ErrorCode
 RealCell::bif_circle_fun(Cell * Z, const Cell * A) const
 {
    if (!A->is_near_int())   return E_DOMAIN_ERROR;
-   return NumericCell::bif_circle_fun_c(Z, A->get_checked_near_int(),
-                                           APL_Complex(get_real_value(), 0));
+   return do_bif_circle_fun(Z, A->get_checked_near_int());
 }
 //────────────────────────────────────────────────────────────────────────────
 ErrorCode
 RealCell::bif_circle_fun_inverse(Cell * Z, const Cell * A) const
 {
    if (!A->is_near_int())   return E_DOMAIN_ERROR;
-   return NumericCell::bif_circle_fun_inverse_c(Z, A->get_checked_near_int(),
-                                                   APL_Complex(get_real_value(), 0));
+const APL_Integer fun = A->get_checked_near_int();
+   switch (fun)
+      {
+        case  1: case -1:
+        case  2: case -2:
+        case  3: case -3:
+        case  4: case -4:
+        case  5: case -5:
+        case  6: case -6:
+        case  7: case -7:
+                 return do_bif_circle_fun(Z, -fun);
+        case -10:
+                 return do_bif_circle_fun(Z, fun);
+        default: return E_DOMAIN_ERROR;
+      }
 }
 //────────────────────────────────────────────────────────────────────────────
 ErrorCode
