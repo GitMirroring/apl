@@ -82,7 +82,7 @@ ErrorCode (Cell::*assoc_f2)(Cell *, const Cell *) const = LO->get_assoc();
       {
         // LO is an associative primitive scalar function.
         //
-        const Cell * cB = &B->get_cfirst();
+        ShapeItem bI = 0;
         ShapeItem z = 0;
         loop(h, shape_Z3.h())
         loop(m, shape_Z3.m())
@@ -90,14 +90,14 @@ ErrorCode (Cell::*assoc_f2)(Cell *, const Cell *) const = LO->get_assoc();
             {
               if (m == 0)   // first item in scanned vector
                  {
-                   Z->next_ravel_Cell(*cB++);
+                   Z->next_ravel_Cell(B->get_cravel(bI++));
                  }
               else          // subsequent item in scanned vector
                  {
                    const Cell & prev_Z = Z->get_cravel(z - shape_Z3.l());
 
-                   Value_P AA(prev_Z, LOC);   // AA is Z[h; m-1; l]
-                   Value_P BB(*cB++, LOC);    // BB is B[h; m  ; l]
+                   Value_P AA(prev_Z, LOC);              // AA is Z[h; m-1; l]
+                   Value_P BB(B->get_cravel(bI++), LOC); // BB is B[h; m  ; l]
 
                    Token tok = LO->eval_AB(*AA, *BB);
                    if (!tok.is_apl_val())   return tok;   // error in AA LO BB
@@ -175,8 +175,7 @@ Value_P Z(shape_Z, LOC);
 
 const Shape3 shape_Z3(shape_Z, axis);
 
-const Cell * cB = &B.get_cfirst();
-const bool lval = cB->is_lval_cell();
+const bool lval = B.get_cravel(0).is_lval_cell();
 
 ShapeItem inc_1 = shape_Z3.l();   // increment after result l items
 ShapeItem inc_2 = 0;              // increment after result m*l items
@@ -189,15 +188,16 @@ ShapeItem inc_2 = 0;              // increment after result m*l items
       }
    else if (ones_A != shape_B.get_shape_item(axis))   LENGTH_ERROR;
 
+ShapeItem bI = 0;
    loop(h, shape_Z3.h())
       {
-        const Cell * fill = cB;
+        const ShapeItem fillI = bI;
         loop(m, rep_counts.size())
            {
              if (rep_counts[m] == 1)   // copy items from B
                 {
-                  loop(l, shape_Z3.l())   Z->next_ravel_Cell(cB[l]);
-                  cB += inc_1;
+                  loop(l, shape_Z3.l())   Z->next_ravel_Cell(B.get_cravel(bI + l));
+                  bI += inc_1;
                 }
              else                      // init items
                 {
@@ -207,12 +207,12 @@ ShapeItem inc_2 = 0;              // increment after result m*l items
                      }
                   else
                      {
-                       loop(l, shape_Z3.l())   Z->next_ravel_Proto(fill[l]);
+                       loop(l, shape_Z3.l())   Z->next_ravel_Proto(B.get_cravel(fillI + l));
                      }
                 }
            }
 
-        cB += inc_2;
+        bI += inc_2;
       }
 
    Z->set_default(B, LOC);

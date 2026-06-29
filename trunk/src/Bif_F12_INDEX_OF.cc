@@ -82,8 +82,8 @@ Value_P Z(B.get_shape(), LOC);
       {
         loop(bz, len_BZ)
             {
-              const APL_Integer z = find_B_in_A(&A.get_cfirst(), len_A,
-                                                B.get_cravel(bz), qct);
+              const APL_Integer z = find_B_in_A(A, len_A,
+                                               B.get_cravel(bz), qct);
 
               if (simple_result)   Z->next_ravel_Int(qio + z);
               else if (z == len_A)   // not found: set result item to ⍬
@@ -180,8 +180,8 @@ int
 Bif_F12_INDEX_OF::bs_cmp(const Cell & cell, const ShapeItem & A,
                          const void * ctx)
 {
-const Cell * cells_A = reinterpret_cast<const Cell *>(ctx);
-const Cell & cell_A = cells_A[A];
+const cValue * VA = reinterpret_cast<const cValue *>(ctx);
+const Cell & cell_A = VA->get_cravel(A);
 
    if (cell_A.is_pointer_cell() && !cell.is_pointer_cell())   return COMP_LT;
 
@@ -194,16 +194,15 @@ Bif_F12_INDEX_OF::find_B_in_sorted_A(const cValue & A,
                                      const vector<ShapeItem> & Idx_A,
                                      const Cell & cell_B, double qct)
 {
-const Cell * ravel_A = &A.get_cfirst();
 const ShapeItem len_A = A.element_count();
    Assert(size_t(len_A) == Idx_A.size());
 const ShapeItem * const posp =
       Heapsort<ShapeItem>::search<const Cell &>(cell_B, Idx_A,
-                                                &bs_cmp, ravel_A);
+                                                &bs_cmp, &A);
    if (!posp)   return len_A;   // cell_B was not found in ravel A
 
 ShapeItem pos = Idx_A[posp - Idx_A.data()];   // A[pos] = cell_B within qct
-   Assert(cell_B.equal(ravel_A[pos], qct));
+   Assert(cell_B.equal(A.get_cravel(pos), qct));
 
    // A[pos] = cell_B, but there could be predecessors of pos that also
    // satisfy A[pos] = cell_B. Search neighbor with smallest index in A.
@@ -212,7 +211,7 @@ ShapeItem ret = pos;
    for (const ShapeItem * posp1 = posp - 1; posp1 >= Idx_A.data(); --posp1)
        {
          ShapeItem pos1 = Idx_A[posp1 - Idx_A.data()];
-         const Cell & C1 = ravel_A[pos1];
+         const Cell & C1 = A.get_cravel(pos1);
          if (!cell_B.equal(C1, qct))    break;
          if (ret > pos1)   ret = pos1;
        }
@@ -220,7 +219,7 @@ ShapeItem ret = pos;
    for (const ShapeItem * posp2 = posp + 1; posp2 < (Idx_A.data() + len_A); ++posp2)
        {
          ShapeItem pos2 = Idx_A[posp2 - Idx_A.data()];
-         const Cell & C2 = ravel_A[pos2];
+         const Cell & C2 = A.get_cravel(pos2);
          if (!cell_B.equal(C2, qct))    break;
          if (ret > pos2)   ret = pos2;
        }

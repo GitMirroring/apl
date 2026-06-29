@@ -216,14 +216,12 @@ const bool keep_indent = !UserPreferences::uprefs.discard_indentation;
       {
         const ShapeItem rows = B.get_rows();
         const ShapeItem cols = B.get_cols();
-        const Cell * cB = &B.get_cfirst();
-
         loop(row, rows)
            {
              bool skipping = false;
              loop(col, cols)
                  {
-                   const Unicode uni = cB++->get_char_value();
+                   const Unicode uni = B.get_cravel(row*cols + col).get_char_value();
                    if (col == 0 || skipping)
                       skipping = (uni <= UNI_SPACE && !keep_indent);
                    if (!skipping)   text << uni;

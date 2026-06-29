@@ -107,11 +107,14 @@ Value_P Z(shape_A1 + shape_B1, LOC);
    //
         if (len_A != len_B && job.incA && job.incB)   LENGTH_ERROR;
 
-        job.cZ     = &Z->get_wfirst();
-        job.cA     = &A.get_cfirst();
+        job.VZ     = Z.get();
+        job.idxZ   = 0;
+        job.VA     = &A;
+        job.idxA   = 0;
         job.ZAh    = items_A1;
         job.LO_len = A.is_scalar() ? len_B : len_A;
-        job.cB     = &B.get_cfirst();
+        job.VB     = &B;
+        job.idxB   = 0;
         job.ZBl    = items_B1;
         job.ec     = E_NO_ERROR;
 
@@ -270,8 +273,8 @@ ShapeItem end_z = z + slice_len;
        {
         const ShapeItem zah = z/job.ZBl;         // z row = A row
         const ShapeItem zbl = z - zah*job.ZBl;   // z column = B column
-        const Cell * row_A = job.cA + job.incA*((zah + 1) * job.LO_len);
-        const Cell * col_B = job.cB + job.incB*(zbl + job.LO_len*job.ZBl);
+        ShapeItem ridxA = job.idxA + job.incA*((zah + 1) * job.LO_len);
+        ShapeItem cidxB = job.idxB + job.incB*(zbl + job.LO_len*job.ZBl);
 
         // compute Z[z] ← LO / (row_A RO colB)
         //   e.g.  Z[z] ← +/ (row_A × colB)
@@ -280,21 +283,23 @@ ShapeItem end_z = z + slice_len;
         //
         // we use the terms sum and product as if Z←A LO.RO B were A +.* B
         //
-        Cell * sum = job.cZ + z;
+        Cell * sum = &job.VZ->get_wravel(job.idxZ + z);
         loop(l, job.LO_len)
            {
-             row_A -= job.incA;
-             col_B -= job.incB*job.ZBl;
+             ridxA -= job.incA;
+             cidxB -= job.incB*job.ZBl;
 
+             const Cell & cellA = job.VA->get_cravel(ridxA);
+             const Cell & cellB = job.VB->get_cravel(cidxB);
              if (l == 0)   // store first product in Z[z]
                 {
-                  job.ec = (col_B->*job.RO)(sum, row_A);
+                  job.ec = (cellB.*job.RO)(sum, &cellA);
                   if (job.ec != E_NO_ERROR)   return;
                 }
              else          // add subsequent product to Z[z]
                 {
                   Cell product;   // the result of RO, e.g. of × in +/×
-                  job.ec = (col_B->*job.RO)(&product, row_A);
+                  job.ec = (cellB.*job.RO)(&product, &cellA);
                   if (job.ec != E_NO_ERROR)   return;
 
                   job.ec = (sum->*job.LO)(sum, &product);

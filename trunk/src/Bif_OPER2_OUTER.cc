@@ -96,17 +96,15 @@ Value_P Z(shape_Z, LOC);
 
    loop(a, rows_A)
        {
-         const Cell * cA = &A.get_cravel(a * cols_A);   // start of row A[a;]
          loop(b, cols_B)
              {
-               const Cell * cB = &B.get_cravel(b);   // start of column B];b]
                APL_Float sum_real = 0;
                APL_Float sum_imag = 0;
                bool need_complex = false;
                loop(ab, len)   // column of A × row of B
                   {
-                    const Cell & aa = *(cA + ab);
-                    const Cell & bb = *(cB + ab*cols_B);
+                    const Cell & aa = A.get_cravel(a * cols_A + ab);
+                    const Cell & bb = B.get_cravel(b + ab*cols_B);
                     sum_real += aa.get_real_value() * bb.get_real_value();
                     if (aa.is_complex_cell())   // complex aa and any b
                        {
@@ -160,11 +158,14 @@ Value_P Z(A.get_shape() + B.get_shape(), LOC);
    //
    if (RO->get_scalar_f2() && A.is_simple() && B.is_simple())
       {
-        job.cZ     = &Z->get_wfirst();
-        job.cA     = &A.get_cfirst();
+        job.VZ     = Z.get();
+        job.idxZ   = 0;
+        job.VA     = &A;
+        job.idxA   = 0;
         job.ZAh    = A.element_count();
         job.RO     = RO->get_scalar_f2();
-        job.cB     = &B.get_cfirst();
+        job.VB     = &B;
+        job.idxB   = 0;
         job.ZBl    = B.element_count();
         job.ec     = E_NO_ERROR;
 
@@ -202,27 +203,27 @@ Value_P RO_B;
 
    loop(z, len_Z)
       {
-        const Cell * cA = &A.get_cravel(z / len_B);
-        const Cell * cB = &B.get_cravel(z % len_B);
+        const Cell & cA = A.get_cravel(z / len_B);
+        const Cell & cB = B.get_cravel(z % len_B);
 
-        if (cA->is_pointer_cell())
+        if (cA.is_pointer_cell())
            {
-             RO_A = cA->get_pointer_value();
+             RO_A = cA.get_pointer_value();
            }
         else
            {
              RO_A = Value_P(LOC);   // scalar RO_A
-             RO_A->set_ravel_Cell(0, *cA);
+             RO_A->set_ravel_Cell(0, cA);
            }
 
-        if (cB->is_pointer_cell())
+        if (cB.is_pointer_cell())
            {
-             RO_B = cB->get_pointer_value();
+             RO_B = cB.get_pointer_value();
            }
         else
            {
              RO_B = Value_P(LOC);   // scalar RO_B
-             RO_B->set_ravel_Cell(0, *cB);
+             RO_B->set_ravel_Cell(0, cB);
            }
 
         Token result = RO->eval_AB(*RO_A, *RO_B);
@@ -299,7 +300,9 @@ ShapeItem end_z = z + slice_len;
        {
         const ShapeItem zah = z/job.ZBl;
         const ShapeItem zbl = z - zah*job.ZBl;
-        job.ec = ((job.cB + zbl)->*job.RO)(job.cZ + z, job.cA + zah);
+        const Cell & cellA = job.VA->get_cravel(job.idxA + zah);
+        const Cell & cellB = job.VB->get_cravel(job.idxB + zbl);
+        job.ec = (cellB.*job.RO)(&job.VZ->get_wravel(job.idxZ + z), &cellA);
         if (job.ec != E_NO_ERROR)   return;
        }
 }

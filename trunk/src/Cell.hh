@@ -482,11 +482,6 @@ public:
    /// Release content pointed to (complex, APL value)
    virtual void release(const char * loc) {}
 
-   /// copy (deep) count cells from src to dest)
-   static void copy(Cell * & dst, const Cell * & src, ShapeItem count,
-                    Value & cell_owner)
-      { loop(c, count)   src++->init_other(dst++, cell_owner, LOC); }
-
    /// true iff value is close to 0 (within +- qct)
    static bool is_near_zero(APL_Float value)
       { return (value < INTEGER_TOLERANCE) && (value > -INTEGER_TOLERANCE); }
@@ -619,8 +614,10 @@ public:
    static bool compare_stable(const Cell * const & A, const Cell * const & B,
                        const void * comp_arg);
 
-   /// copy (deep) count cells from src to val (which is under construction))
-   static void copy(Value & val, const Cell * & src, ShapeItem count);
+   /// copy (deep) count cells from src[idx] to val (val is under construction);
+   /// idx is advanced by count
+   static void copy(Value & val, const cValue & src, ShapeItem & idx,
+                    ShapeItem count);
 
    /// the name of \b ct
    static const char * get_cell_type_name(CellType ct);

@@ -131,8 +131,8 @@ protected:
    /// @param cell_A left ravel cell (scalar-extended if PointerCell)
    /// @param cell_B right ravel cell (scalar-extended if PointerCell)
    /// @param fun cell-level dyadic function to apply
-   void expand_nested(Value * Z, const Cell * cell_A,
-                      const Cell * cell_B, prim_f2 fun) const;
+   void expand_nested(Value * Z, const Cell & cell_A,
+                      const Cell & cell_B, prim_f2 fun) const;
 
    /// overloaded Function::get_scalar_f2
    virtual prim_f2 get_scalar_f2() const = 0;
@@ -737,7 +737,7 @@ protected:
       { return 0; }
 
    /// Return true iff A is contained in B.
-   static bool contained(const Shape & shape_A, const Cell * cA,
+   static bool contained(const Shape & shape_A, cValue_R A,
                          Value_P B, const Shape & idx_B, double qct);
 };
 //────────────────────────────────────────────────────────────────────────────

@@ -383,28 +383,22 @@ protected:
    /// @param len_B  number of digit-vectors in B
    /// @param cB     pointer to the first cell of B
    /// @param dB     stride between successive digit-vectors in B
-   static void decode_complex(Value & Z, ShapeItem len_A, const Cell * cA,
-                              ShapeItem len_B, const Cell * cB, ShapeItem dB);
+   static void decode_complex(Value & Z, ShapeItem len_A,
+                              cValue_R VA, ShapeItem idxA,
+                              ShapeItem len_B, cValue_R VB, ShapeItem idxB,
+                              ShapeItem dB);
 
    /// decode B according to len_A and cA (integer A, B and Z)
-   /// @param Z      the output value receiving decoded integers
-   /// @param len_A  number of elements in the bases array
-   /// @param cA     pointer to the first cell of the bases array
-   /// @param len_B  number of digit-vectors in B
-   /// @param cB     pointer to the first cell of B
-   /// @param dB     stride between successive digit-vectors in B
-   static bool decode_int(Value & Z, ShapeItem len_A, const Cell * cA,
-                          ShapeItem len_B, const Cell * cB, ShapeItem dB);
+   static bool decode_int(Value & Z, ShapeItem len_A,
+                          cValue_R VA, ShapeItem idxA,
+                          ShapeItem len_B, cValue_R VB, ShapeItem idxB,
+                          ShapeItem dB);
 
    /// decode B according to len_A and cA (real A and B)
-   /// @param Z      the output value receiving decoded reals
-   /// @param len_A  number of elements in the bases array
-   /// @param cA     pointer to the first cell of the bases array
-   /// @param len_B  number of digit-vectors in B
-   /// @param cB     pointer to the first cell of B
-   /// @param dB     stride between successive digit-vectors in B
-   static void decode_real(Value & Z, ShapeItem len_A, const Cell * cA,
-                           ShapeItem len_B, const Cell * cB, ShapeItem dB);
+   static void decode_real(Value & Z, ShapeItem len_A,
+                           cValue_R VA, ShapeItem idxA,
+                           ShapeItem len_B, cValue_R VB, ShapeItem idxB,
+                           ShapeItem dB);
 };
 //════════════════════════════════════════════════════════════════════════════
 /** primitive functions rotate and reverse */

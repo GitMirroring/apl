@@ -447,31 +447,31 @@ const Crow M = A.get_row_count();
 }
 //────────────────────────────────────────────────────────────────────────────
 sRank LA_pack::divide_DD_matrix(Value & Z, Crow M,
-                                Ccol cols_A, const Cell * cA,
-                                Ccol cols_B, const Cell * cB)
+                                Ccol cols_A, cValue_R VA,
+                                Ccol cols_B, cValue_R VB)
 {
-   return divide_matrix<DD>(Z, M, cols_A, cA, cols_B, cB);
+   return divide_matrix<DD>(Z, M, cols_A, VA, cols_B, VB);
 }
 //────────────────────────────────────────────────────────────────────────────
 sRank LA_pack::divide_ZZ_matrix(Value & Z, Crow M,
-                                Ccol cols_A, const Cell * cA,
-                                Ccol cols_B, const Cell * cB)
+                                Ccol cols_A, cValue_R VA,
+                                Ccol cols_B, cValue_R VB)
 {
-   return divide_matrix<ZZ>(Z, M, cols_A, cA, cols_B, cB);
+   return divide_matrix<ZZ>(Z, M, cols_A, VA, cols_B, VB);
 }
 //────────────────────────────────────────────────────────────────────────────
 // instantiate factorize_matrix<DD>()
 void LA_pack::factorize_DD_matrix(Value & Z, Crow M, Ccol N,
-                                  const Cell * cB, APL_Float rcond)
+                                  cValue_R VB, APL_Float rcond)
 {
-   factorize_matrix<DD>(Z, M, N, cB, rcond);
+   factorize_matrix<DD>(Z, M, N, VB, rcond);
 }
 //────────────────────────────────────────────────────────────────────────────
 // instantiate factorize_matrix<ZZ>()
 void LA_pack::factorize_ZZ_matrix(Value & Z, Crow M, Ccol N,
-                                  const Cell * cB, APL_Float rcond)
+                                  cValue_R VB, APL_Float rcond)
 {
-   factorize_matrix<ZZ>(Z, M, N, cB, rcond);
+   factorize_matrix<ZZ>(Z, M, N, VB, rcond);
 }
 //────────────────────────────────────────────────────────────────────────────
 /// the implementation of Z←A⌹B, where
@@ -480,8 +480,8 @@ void LA_pack::factorize_ZZ_matrix(Value & Z, Crow M, Ccol N,
 template<typename T>
 sRank
 LA_pack::divide_matrix(Value & Z, Crow rows,
-                       Ccol cols_A, const Cell * cA,
-                       Ccol cols_B, const Cell * cB)
+                       Ccol cols_A, cValue_R VA,
+                       Ccol cols_B, cValue_R VB)
 {
    // the following has been checked by the caller:
    //
@@ -516,7 +516,7 @@ T * work_B = work_A + items_A;
 
         ALL_ROWS(rows)   // APL rows
            {
-             const Cell & src_A = cA[row * cols_A + col];
+             const Cell & src_A = VA.get_cravel(row * cols_A + col);
              set_real(a[row], src_A.get_real_value());
              set_imag(a[row], src_A.get_imag_value());
            }
@@ -530,7 +530,7 @@ T * work_B = work_A + items_A;
         ALL_COLS(cols_B)   // APL columns
         ALL_ROWS(rows)     // APL rows
            {
-             const Cell & src_B = cB[col + row*cols_B];
+             const Cell & src_B = VB.get_cravel(col + row*cols_B);
              set_real(*b,   src_B.get_real_value());
              set_imag(*b++, src_B.get_imag_value());
            }
@@ -710,7 +710,7 @@ const bool cplx = is_complex(UTM.diag(0));
 //
 template<typename T>
 sRank LA_pack::factorize_matrix(Value & Z, Crow M, Ccol N,
-                               const Cell * cB, APL_Float rcond)
+                               cValue_R VB, APL_Float rcond)
 {
    // work sizes...
    //
@@ -750,8 +750,8 @@ T * hr = &HR.diag(0);
    ALL_ROWS(M)   // FORTRAN rows (adjacent, top to bottom)
       {
         const ShapeItem APL_offset = col + N*row;
-        set_real(*bb,   cB[APL_offset].get_real_value());
-        set_imag(*bb,   cB[APL_offset].get_imag_value());
+        set_real(*bb,   VB.get_cravel(APL_offset).get_real_value());
+        set_imag(*bb,   VB.get_cravel(APL_offset).get_imag_value());
         *hr++ = *bb++;
       }
 

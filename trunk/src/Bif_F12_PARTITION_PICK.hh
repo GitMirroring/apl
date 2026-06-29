@@ -169,7 +169,7 @@ protected:
    /// @param len_A total number of index cells in A
    /// @param B right argument APL value
    /// @param qio current value of ⎕IO
-   static Value_P pick(const Cell * const A0, ShapeItem idx_A, ShapeItem len_A,
+   static Value_P pick(cValue_R A, ShapeItem idx_A, ShapeItem len_A,
                        cValue_R B, APL_Integer qio);
 
    /// compute the offset of the Cell in B that shall be picked.
@@ -178,7 +178,7 @@ protected:
    /// @param len_A total number of index cells in A
    /// @param B right argument APL value
    /// @param qio current value of ⎕IO
-   static ShapeItem pick_offset(const Cell * const A0, ShapeItem idx_A,
+   static ShapeItem pick_offset(cValue_R A, ShapeItem idx_A,
                                 ShapeItem len_A, cValue_R B,
                                 APL_Integer qio);
 };

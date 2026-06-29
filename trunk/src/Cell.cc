@@ -194,12 +194,12 @@ Cell::compare_stable(const Cell * const & A, const Cell * const & B,
 }
 //────────────────────────────────────────────────────────────────────────────
 void
-Cell::copy(Value & val, const Cell * & src, ShapeItem count)
+Cell::copy(Value & val, const cValue & src, ShapeItem & idx, ShapeItem count)
 {
    loop(c, count)
       {
         Assert1(val.more());
-        val.next_ravel_Cell(*src++);
+        val.next_ravel_Cell(src.get_cravel(idx++));
       }
 }
 //────────────────────────────────────────────────────────────────────────────
@@ -225,14 +225,14 @@ bool
 Cell::greater_cp(const ShapeItem &  A, const ShapeItem & B, const void * ctx)
 {
 const ravel_comp_len * rcl = reinterpret_cast<const ravel_comp_len *>(ctx);
-const Cell * cells = rcl->ravel;
 const ShapeItem comp_len = rcl->comp_len;
-const Cell * cell_A = cells + A * comp_len;
-const Cell * cell_B = cells + B * comp_len;
+ShapeItem idxA = A * comp_len;
+ShapeItem idxB = B * comp_len;
 
    loop(l, comp_len)
        {
-         if (const Comp_result cr = cell_A++->compare(*cell_B++))
+         if (const Comp_result cr = rcl->value->get_cravel(idxA++)
+                                        .compare(rcl->value->get_cravel(idxB++)))
             return cr == COMP_GT;
        }
 
@@ -292,14 +292,14 @@ bool
 Cell::smaller_cp(const ShapeItem &  A, const ShapeItem & B, const void * ctx)
 {
 const ravel_comp_len * rcl = reinterpret_cast<const ravel_comp_len *>(ctx);
-const Cell * cells = rcl->ravel;
 const ShapeItem comp_len = rcl->comp_len;
-const Cell * cell_A = cells + A * comp_len;
-const Cell * cell_B = cells + B * comp_len;
+ShapeItem idxA = A * comp_len;
+ShapeItem idxB = B * comp_len;
 
    loop(l, comp_len)
        {
-         if (const Comp_result cr = cell_A++->compare(*cell_B++))
+         if (const Comp_result cr = rcl->value->get_cravel(idxA++)
+                                        .compare(rcl->value->get_cravel(idxB++)))
             return cr == COMP_LT;
        }
 
@@ -336,7 +336,7 @@ const ShapeItem rows = value.get_shape_item(0);
    // value can be a vector (and then comp_len = 1) or a matrix with
    // comp_len columns.
    //
-const ravel_comp_len ctx = { &value.get_cfirst(), comp_len};
+const ravel_comp_len ctx = { &value, comp_len};
    if (order == SORT_ASCENDING)
       Heapsort<ShapeItem>::sort(indices, &Cell::greater_cp, &ctx);
    else

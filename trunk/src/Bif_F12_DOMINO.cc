@@ -217,7 +217,7 @@ Value_P Z(3, LOC);
       {
         LA_DEBUG && CERR <<
                     "QR factorization with Gary Helzer's algorithm...\n";
-        QR_Helzer(Z, need_complex, M, N, &B.get_cfirst(), EPS);
+        QR_Helzer(Z, need_complex, M, N, B, 0, EPS);
       }
 #if apl_GSL
    else if (algo == ALGO_QR_GSL)
@@ -225,11 +225,11 @@ Value_P Z(3, LOC);
         LA_DEBUG && CERR << "QR factorization with libgsl algorithm...\n";
         if (need_complex)
            {
-             GSL::QR_factorize_ZZ_matrix(*Z, M, N, &B.get_cfirst());
+             GSL::QR_factorize_ZZ_matrix(*Z, M, N, B, 0);
            }
         else   // real
            {
-             GSL::QR_factorize_DD_matrix(*Z, M, N, &B.get_cfirst());
+             GSL::QR_factorize_DD_matrix(*Z, M, N, B, 0);
            }
       }
    else if (algo == ALGO_RQ_GSL)
@@ -260,7 +260,7 @@ Value_P Z(3, LOC);
            }
         else   // real
            {
-             GSL::QL_factorize_DD_matrix(*Z, M, N, &B.get_cfirst());
+             GSL::QL_factorize_DD_matrix(*Z, M, N, B, 0);
            }
       }
    else if (algo == ALGO_LU_GSL)
@@ -268,11 +268,11 @@ Value_P Z(3, LOC);
         LA_DEBUG && CERR << "LU factorization with libgsl algorithm...\n";
         if (need_complex)
            {
-             GSL::LU_factorize_ZZ_matrix(*Z, M, N, &B.get_cfirst());
+             GSL::LU_factorize_ZZ_matrix(*Z, M, N, B, 0);
            }
         else
            {
-             GSL::LU_factorize_DD_matrix(*Z, M, N, &B.get_cfirst());
+             GSL::LU_factorize_DD_matrix(*Z, M, N, B, 0);
            }
       }
 #endif
@@ -360,11 +360,11 @@ Shape shape_Z;   // ⍴Z ←→ (¯1↓⍴A), (1↓⍴B)
 const bool need_complex = A.is_complex(true) || B.is_complex(true);
 Value_P Z(shape_Z, LOC);
 const sRank rank = need_complex ?  LA_pack::divide_ZZ_matrix(*Z, rows_A,
-                                          cols_A, &A.get_cfirst(),
-                                          cols_B, &B.get_cfirst())
+                                          cols_A, A,
+                                          cols_B, B)
                                 :  LA_pack::divide_DD_matrix(*Z, rows_A,
-                                          cols_A, &A.get_cfirst(),
-                                          cols_B, &B.get_cfirst());
+                                          cols_A, A,
+                                          cols_B, B);
 
    if (rank < cols_B)
       {
@@ -490,7 +490,7 @@ Value_P Z = Bif_F12_FORMAT::format_by_specification(A.get(), B.get());
 //════════════════════════════════════════════════════════════════════════════
 void
 Bif_F12_DOMINO::QR_Helzer(Value_P Z, bool need_complex, ShapeItem M,
-                          ShapeItem N, const Cell * cB, double EPS)
+                          ShapeItem N, cValue_R B, ShapeItem idx, double EPS)
 {
    /* We want to store all floating point variables (including complex ones)
       in a single double[]. Before and after each variable we leave one double
@@ -538,11 +538,11 @@ double * data = new double[end*CPLX];
    // ⍴R is M N  (since ⍴B ←→ ⍴Q+.×R) and upper triangular
    if (need_complex)   // complex B
       {
-        setup_complex_B(cB, data + base_B, len_B);
+        setup_complex_B(B, idx, data + base_B, len_B);
         double * Q = householder<true>(data + base_B, M, N, data + base_Q,
                           data + base_Qi, data + base_R, data + base_S, EPS);
 
-        setup_complex_B(cB, data + base_B, len_B);   // restore B
+        setup_complex_B(B, idx, data + base_B, len_B);   // restore B
         const Matrix<true> Bm(data + base_B, M, N);
         Matrix<true> Qm(Q, M, M);
         Qm.transpose(M);
@@ -554,12 +554,12 @@ double * data = new double[end*CPLX];
    else                // real B
       {
    Assert(data[base_B + CPLX*len_B]  == 43.0);
-        setup_real_B(cB, data + base_B, len_B);
+        setup_real_B(B, idx, data + base_B, len_B);
    Assert(data[base_B + CPLX*len_B]  == 43.0);
         double * Q = householder<false>(data + base_B, M,N, data + base_Q,
                            data + base_Qi, data + base_R, data + base_S, EPS);
 
-        setup_real_B(cB, data + base_B, len_B);   // restore B
+        setup_real_B(B, idx, data + base_B, len_B);   // restore B
         const Matrix<false> Bm(data + base_B, M, N);
         Matrix<false> Qm(Q, M, M);
         Qm.transpose(M);
@@ -1528,10 +1528,9 @@ Value_P order_A(shape_A, LOC);  // A[2;...]
           DOMAIN_ERROR;
         }
 
-     const Cell * cell = &A.get_cfirst();
-
-     loop(l, len)   poly_A->next_ravel_Cell(*cell++);
-     loop(l, len)   order_A->next_ravel_Cell(*cell++);
+     ShapeItem cellI = 0;
+     loop(l, len)   poly_A->next_ravel_Cell(A.get_cravel(cellI++));
+     loop(l, len)   order_A->next_ravel_Cell(A.get_cravel(cellI++));
 
      poly_A->check_value(LOC);
      order_A->check_value(LOC);
@@ -1551,10 +1550,9 @@ Value_P order_B(shape_B, LOC);  // B[2;...]
           DOMAIN_ERROR;
         }
 
-     const Cell * cell = &B.get_cfirst();
-
-     loop(l, len)   poly_B->next_ravel_Cell(*cell++);
-     loop(l, len)   order_B->next_ravel_Cell(*cell++);
+     ShapeItem cellI = 0;
+     loop(l, len)   poly_B->next_ravel_Cell(B.get_cravel(cellI++));
+     loop(l, len)   order_B->next_ravel_Cell(B.get_cravel(cellI++));
 
      poly_B->check_value(LOC);
      order_B->check_value(LOC);
@@ -1966,13 +1964,14 @@ Value_P Z(shape_Z, LOC);
 }
 //────────────────────────────────────────────────────────────────────────────
 void
-Bif_F12_DOMINO::setup_complex_B(const Cell * cB, double * D, ShapeItem count)
+Bif_F12_DOMINO::setup_complex_B(cValue_R V, ShapeItem idx, double * D,
+                                 ShapeItem count)
 {
-   // initialize the homogeneous complex vector D from the mixed APL ravel cB
+   // initialize the homogeneous complex vector D from the mixed APL ravel V
    //
    loop(b, count)
       {
-        const Cell & cell = *cB++;
+        const Cell & cell = V.get_cravel(idx + b);
         if (cell.is_float_cell())
            { *D++ = cell.get_real_value();   *D++ = 0.0; }
         else if (cell.is_integer_cell())
@@ -1984,13 +1983,14 @@ Bif_F12_DOMINO::setup_complex_B(const Cell * cB, double * D, ShapeItem count)
 }
 //────────────────────────────────────────────────────────────────────────────
 void
-Bif_F12_DOMINO::setup_real_B(const Cell * cB, double * D, ShapeItem count)
+Bif_F12_DOMINO::setup_real_B(cValue_R V, ShapeItem idx, double * D,
+                              ShapeItem count)
 {
-   // initialize the homogeneous real vector D from the mixed APL ravel cB
+   // initialize the homogeneous real vector D from the mixed APL ravel V
    //
    loop(b, count)
       {
-        const Cell & cell = *cB++;
+        const Cell & cell = V.get_cravel(idx + b);
         if (cell.is_float_cell())          *D++ = cell.get_real_value();
         else if (cell.is_integer_cell())   *D++ = cell.get_real_value();
         else                               DOMAIN_ERROR;

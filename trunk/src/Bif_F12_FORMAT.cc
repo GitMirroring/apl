@@ -633,7 +633,7 @@ PrintBuffer pb;
          // pb_col is the PrintBuffer for one numeric column.
          //
          PrintBuffer pb_col(format_one_col_by_spec(col_width, precision,
-                                                   &B.get_cravel(col),
+                                                   B, col,
                                                    cols_B, rows_B));
 
          bool insert_space_left = col_width == 0;   // automatic col width
@@ -1022,8 +1022,8 @@ UCS_string current_format;
 //────────────────────────────────────────────────────────────────────────────
 PrintBuffer
 Bif_F12_FORMAT::format_one_col_by_spec(int width, int precision,
-                                       const Cell * cB, ShapeItem cols,
-                                       ShapeItem rows)
+                                       cValue_R B, ShapeItem base,
+                                       ShapeItem cols, ShapeItem rows)
 {
 PrintBuffer ret;
 
@@ -1034,7 +1034,7 @@ bool has_complex = false;
    // determine the data types (character/numbers/complex) in B
    loop(r, rows)
       {
-        const Cell & cell = cB[r*cols];
+        const Cell & cell = B.get_cravel(base + r*cols);
         if (cell.is_numeric())
            {
              has_num = true;
@@ -1053,7 +1053,7 @@ bool has_complex = false;
          Value_P imag(rows, LOC);
          loop(r, rows)
             {
-              const Cell & cell = cB[r*cols];
+              const Cell & cell = B.get_cravel(base + r*cols);
               if (cell.is_complex_cell())
                  {
                    real->next_ravel_Float(cell.get_real_value());
@@ -1067,11 +1067,9 @@ bool has_complex = false;
             }
 
          PrintBuffer pb_real = format_one_col_by_spec(width, precision,
-                                                      &real->get_cfirst(), 1,
-                                                      rows);
+                                                      *real, 0, 1, rows);
          PrintBuffer pb_imag = format_one_col_by_spec(width, precision,
-                                                      &imag->get_cfirst(), 1,
-                                                      rows);
+                                                      *imag, 0, 1, rows);
 
          PrintBuffer pb_real_imag;
          loop(r,rows)
@@ -1093,7 +1091,7 @@ bool has_complex = false;
    //
    loop(r, rows)
       {
-        const Cell & cell = cB[r*cols];
+        const Cell & cell = B.get_cravel(base + r*cols);
         if (cell.is_character_cell())
            {
              UCS_string data = UCS_string(cell.get_char_value());
@@ -1120,7 +1118,7 @@ bool has_complex = false;
 
         if (!cell.is_real_cell())   DOMAIN_ERROR;
 
-        APL_Float value = cB[r*cols].get_real_value();
+        APL_Float value = B.get_cravel(base + r*cols).get_real_value();
         if (!isfinite(value))
            {
              MORE_ERROR() << "infinite number: "

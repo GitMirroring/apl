@@ -156,13 +156,12 @@ const ShapeItem var_count = B.get_rows();
    if (A.get_rank() > 0 && A.get_cols() != 4)   LENGTH_ERROR;
 const UCS_string_vector vars(B, false);
 
-const Cell * cA = &A.get_cfirst();
-
 Shape sh_Z;
    if (var_count > 1)   sh_Z.add_shape_item(var_count);
    sh_Z.add_shape_item(4);
 Value_P Z(sh_Z, LOC);
 
+ShapeItem aI = 0;
    loop(z, var_count)
       {
         // construct control value
@@ -182,10 +181,10 @@ Value_P Z(sh_Z, LOC);
            }
         else // matrix
            {
-             if (cA++->get_near_bool())   ctl |= SET_BY_1;
-             if (cA++->get_near_bool())   ctl |= SET_BY_2;
-             if (cA++->get_near_bool())   ctl |= USE_BY_1;
-             if (cA++->get_near_bool())   ctl |= USE_BY_2;
+             if (A.get_cravel(aI++).get_near_bool())   ctl |= SET_BY_1;
+             if (A.get_cravel(aI++).get_near_bool())   ctl |= SET_BY_2;
+             if (A.get_cravel(aI++).get_near_bool())   ctl |= USE_BY_1;
+             if (A.get_cravel(aI++).get_near_bool())   ctl |= USE_BY_2;
            }
 
         // set control.

@@ -111,6 +111,7 @@ typedef int64_t APL_time_us;
 
 class Symbol;
 class Value;
+class cValue;
 class Cell;
 
 //////////////////////////////////////////////////////////////
@@ -214,12 +215,12 @@ struct _ftwc : public _twc
    ShapeItem from;
 };
 //════════════════════════════════════════════════════════════════════════════
-/// the ravel (of an APL value) and a comparison lenght (= number of
+/// an APL value and a comparison length (= number of
 /// consecutive cells to be compared)
 struct ravel_comp_len
 {
-   /// the ravel (first Cell of some Value)
-   const Cell * ravel;
+   /// the APL value whose ravel is compared
+   const cValue * value;
 
    /// the number of consecutive Cells to be compared
    ShapeItem comp_len;

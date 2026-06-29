@@ -274,11 +274,11 @@ Shape shape_Z(B.get_shape());
    shape_Z.set_shape_item(B.get_rank() - 1, (B.get_cols() + 1)/ 2);
 
 Value_P Z(shape_Z, LOC);
-const Cell * cB = &B.get_cfirst();
+ShapeItem bI = 0;
    loop(z, Z->element_count())
        {
-         const int n1 = nibble(cB++->get_char_value());
-         const int n2 = nibble(cB++->get_char_value());
+         const int n1 = nibble(B.get_cravel(bI++).get_char_value());
+         const int n2 = nibble(B.get_cravel(bI++).get_char_value());
          if (n1 < 0 || n2 < 0)   DOMAIN_ERROR;
          Z->next_ravel_Char(Unicode(16*n1 + n2));
        }
@@ -562,10 +562,9 @@ Shape shape_Z(B.get_shape());
 
 Value_P Z(shape_Z, LOC);
 
-const Cell * cB = &B.get_cfirst();
    loop(b, B.element_count())
        {
-         const int val = cB++->get_byte_value() & 0x00FF;
+         const int val = B.get_cravel(b).get_byte_value() & 0x00FF;
          const int h = alpha[val >> 4];
          const int l = alpha[val & 0x0F];
          Z->next_ravel_Char(Unicode(h));
@@ -945,11 +944,11 @@ Quad_CR::do_CR15(cValue_R B)
 
 CDR_string cdr;
 const ShapeItem len = B.element_count()/2;
-const Cell * cB = &B.get_cfirst();
+ShapeItem bI = 0;
    loop(b, len)
        {
-         const int n1 = nibble(cB++->get_char_value());
-         const int n2 = nibble(cB++->get_char_value());
+         const int n1 = nibble(B.get_cravel(bI++).get_char_value());
+         const int n2 = nibble(B.get_cravel(bI++).get_char_value());
          if (n1 < 0 || n2 < 0)   DOMAIN_ERROR;
          cdr.push_back(16*n1 + n2);
        }
@@ -971,15 +970,15 @@ const char *alpha = "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
                     "abcdefghijklmnopqrstuvwxyz"
                     "0123456789+/";
 
-const Cell * cB = &B.get_cfirst();
+ShapeItem bI = 0;
    loop(b, full_quantums)   // encode full quantums
       {
         /*      -- b1 -- -- b2 -- -- b3 --
              z: 11111122 22223333 33444444
          */
-        const int b1 = cB++->get_char_value() & 0x00FF;
-        const int b2 = cB++->get_char_value() & 0x00FF;
-        const int b3 = cB++->get_char_value() & 0x00FF;
+        const int b1 = B.get_cravel(bI++).get_char_value() & 0x00FF;
+        const int b2 = B.get_cravel(bI++).get_char_value() & 0x00FF;
+        const int b3 = B.get_cravel(bI++).get_char_value() & 0x00FF;
 
         const int z1 = b1 >> 2;
         const int z2 = (b1 & 0x03) << 4 | (b2 & 0xF0) >> 4;
@@ -1000,7 +999,7 @@ const Cell * cB = &B.get_cfirst();
 
         case 1:          //  length of B is 3 * N + 1
                 {
-                  const int b1 = cB++->get_char_value() & 0x00FF;
+                  const int b1 = B.get_cravel(bI++).get_char_value() & 0x00FF;
                   const int b2 = 0;
 
                   const int z1 = b1 >> 2;
@@ -1015,8 +1014,8 @@ const Cell * cB = &B.get_cfirst();
 
         case 2:          // two bytes remaining
                 {
-                  const int b1 = cB++->get_char_value() & 0x00FF;
-                  const int b2 = cB++->get_char_value() & 0x00FF;
+                  const int b1 = B.get_cravel(bI++).get_char_value() & 0x00FF;
+                  const int b2 = B.get_cravel(bI++).get_char_value() & 0x00FF;
                   const int b3 = 0;
 
                   const int z1 = b1 >> 2;
@@ -1055,13 +1054,13 @@ const ShapeItem len_Z = 3 * (B.element_count() / 4) - missing;
 const ShapeItem quantums = B.element_count() / 4;
 
 Value_P Z(len_Z, LOC);
-const Cell * cB = &B.get_cfirst();
+ShapeItem bI = 0;
    loop(q, quantums)
        {
-         const int b1 = sixbit(cB++->get_char_value());
-         const int b2 = sixbit(cB++->get_char_value());
-         const int q3 = sixbit(cB++->get_char_value());
-         const int q4 = sixbit(cB++->get_char_value());
+         const int b1 = sixbit(B.get_cravel(bI++).get_char_value());
+         const int b2 = sixbit(B.get_cravel(bI++).get_char_value());
+         const int q3 = sixbit(B.get_cravel(bI++).get_char_value());
+         const int q4 = sixbit(B.get_cravel(bI++).get_char_value());
          const int b3 = q3 & 0x3F;
          const int b4 = q4 & 0x3F;
 
@@ -1334,9 +1333,8 @@ Quad_CR::do_CR33(cValue_R B)
 const ShapeItem len_B = B.element_count();
    if (len_B < 1)   LENGTH_ERROR;
 const ShapeItem len_B1 = len_B - 1;
-const Cell * cB = &B.get_cfirst();
-   if (!cB++->is_integer_cell())   DOMAIN_ERROR;
-   loop (b,  len_B1)   cB++->get_byte_value();   // DOMAIN ERROR if not byte
+   if (!B.get_cravel(0).is_integer_cell())   DOMAIN_ERROR;
+   loop (b,  len_B1)   B.get_cravel(b + 1).get_byte_value();   // DOMAIN ERROR if not byte
 
 Value_P Z(len_B + 7, LOC);
 const APL_Integer tag = B.get_cfirst().get_int_value();
@@ -1364,26 +1362,20 @@ Quad_CR::do_CR34(cValue_R B)
    if (B.get_rank() != 1)   RANK_ERROR;
 const ShapeItem len_B = B.element_count();
    if (len_B < 8)   LENGTH_ERROR;
-const Cell * cB = &B.get_cfirst();
+   // throw DOMAIN ERROR if one of the vector items is not a byte
+   loop(b, len_B)   B.get_cravel(b).get_byte_value();
 
-   // throwe DOMAIN ERROR if one of the vector items is not a byte
-   loop(b, len_B)
-       {
-         cB++->get_byte_value();
-       }
-
-   cB = &B.get_cfirst();
-
+ShapeItem bI = 0;
 int32_t tag = 0;
-   loop(bb, 4)   tag = tag << 8 | cB++->get_byte_value();
+   loop(bb, 4)   tag = tag << 8 | B.get_cravel(bI++).get_byte_value();
 
 uint32_t len = 0;
-   loop(bb, 4)   len = len << 8 | cB++->get_byte_value();
+   loop(bb, 4)   len = len << 8 | B.get_cravel(bI++).get_byte_value();
    if (len != (len_B - 8))   LENGTH_ERROR;
 
 Value_P Z(len_B - 7, LOC);
    Z->next_ravel_Int(tag);
-   loop(z, len_B - 8)   Z->next_ravel_Char(Unicode(cB++->get_byte_value()));
+   loop(z, len_B - 8)   Z->next_ravel_Char(Unicode(B.get_cravel(bI++).get_byte_value()));
 
    return Z;
 }

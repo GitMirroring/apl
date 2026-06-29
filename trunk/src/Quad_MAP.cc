@@ -83,7 +83,7 @@ vector<ShapeItem> indices;
 
    loop(m, map_len)   indices.push_back(m);
 
-const ravel_comp_len ctx = { &pA->get_cfirst(), 1};
+const ravel_comp_len ctx = { pA, 1};
    Heapsort<ShapeItem>::sort(indices, &Quad_MAP::greater_map, &ctx);
 
    // complain about duplicated keys
@@ -111,9 +111,8 @@ int
 compare_MAP(const Cell & key, const ShapeItem & item, const void * ctx)
 {
 const ravel_comp_len * rcl = reinterpret_cast<const ravel_comp_len *>(ctx);
-const Cell * cells_A = rcl->ravel;
 
-   return key.compare(cells_A[2*item]);
+   return key.compare(rcl->value->get_cravel(2*item));
 }
 //════════════════════════════════════════════════════════════════════════════
 
@@ -123,9 +122,7 @@ Quad_MAP::do_map(const cValue & A, const vector<ShapeItem> ordered_indices_A,
 {
 Value_P Z(B.get_shape(), LOC);         // the result, ⍴Z ←→ ⍴B
 
-const ravel_comp_len ctx = { &A.get_cfirst(),   // start of the ravel
-                             1                  // number of chars to compare
-                           };
+const ravel_comp_len ctx = { &A, 1};
 
 const ShapeItem len_B = B.element_count();
    if (len_B == 0)   // empty value
@@ -191,9 +188,9 @@ Quad_MAP::greater_map(const ShapeItem & a, const ShapeItem & b,
                       const void * ctx)
 {
 const ravel_comp_len * rcl = reinterpret_cast<const ravel_comp_len *>(ctx);
-const Cell * cells = rcl->ravel;
 
-   if (const Comp_result cr = cells[2*a].compare(cells[2*b]))   // A[1] ≠ B[1]
+   if (const Comp_result cr = rcl->value->get_cravel(2*a)
+                                  .compare(rcl->value->get_cravel(2*b)))
       return cr == COMP_GT;
 
    return a > b;

@@ -208,8 +208,8 @@ protected:
    /// @param cols total number of columns in the value
    /// @param rows total number of rows in the value
    static PrintBuffer format_one_col_by_spec(int width, int precision,
-                                             const Cell * cB, ShapeItem cols,
-                                             ShapeItem rows);
+                                             cValue_R B, ShapeItem base,
+                                             ShapeItem cols, ShapeItem rows);
 
    /// add a row (consisting of \b data) to \b PrintBuffer \b ret
    /// @param ret PrintBuffer to append the row to

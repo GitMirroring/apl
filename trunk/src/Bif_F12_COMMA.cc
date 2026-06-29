@@ -175,13 +175,13 @@ Bif_COMMA::catenate(const cValue & A, sAxis axis, const cValue & B)
         const ShapeItem slice_a = shape_B3.l();
         const ShapeItem slice_b = shape_B3.l() * B.get_shape_item(axis);
 
-        const Cell * cA = &A.get_cfirst();
-        const Cell * cB = &B.get_cfirst();
+        ShapeItem idxA = 0;
+        ShapeItem idxB = 0;
 
         loop(hz, shape_B3.h())
             {
-              Cell::copy(*Z.get(), cA, slice_a);
-              Cell::copy(*Z.get(), cB, slice_b);
+              Cell::copy(*Z.get(), A, idxA, slice_a);
+              Cell::copy(*Z.get(), B, idxB, slice_b);
             }
 
         Z->check_value(LOC);
@@ -224,13 +224,13 @@ Bif_COMMA::catenate(const cValue & A, sAxis axis, const cValue & B)
         const ShapeItem slice_a = shape_A3.l() * A.get_shape_item(axis);
         const ShapeItem slice_b = shape_A3.l();
 
-        const Cell * cA = &A.get_cfirst();
-        const Cell * cB = &B.get_cfirst();
+        ShapeItem idxA = 0;
+        ShapeItem idxB = 0;
 
         loop (hz, shape_A3.h())
             {
-              Cell::copy(*Z.get(), cA, slice_a);
-              Cell::copy(*Z.get(), cB, slice_b);
+              Cell::copy(*Z.get(), A, idxA, slice_a);
+              Cell::copy(*Z.get(), B, idxB, slice_b);
             }
 
         Z->set_default(B, LOC);
@@ -263,16 +263,16 @@ Shape shape_Z;
 
 const Shape3 shape_A3(A.get_shape(), axis);
 
-const Cell * cA = &A.get_cfirst();
-const Cell * cB = &B.get_cfirst();
 const ShapeItem slice_a = shape_A3.l() * A.get_shape_item(axis);
 const ShapeItem slice_b = shape_A3.l() * B.get_shape_item(axis);
+ShapeItem idxA = 0;
+ShapeItem idxB = 0;
 
 Value_P Z(shape_Z, LOC);
    loop(hz, shape_A3.h())
        {
-         Cell::copy(*Z.get(), cA, slice_a);
-         Cell::copy(*Z.get(), cB, slice_b);
+         Cell::copy(*Z.get(), A, idxA, slice_a);
+         Cell::copy(*Z.get(), B, idxB, slice_b);
        }
 
    Z->set_default(B, LOC);
@@ -297,22 +297,22 @@ Value_P Z(shape_Z, LOC);
 const Shape3 shape_Z3(shape_Z, axis);
    if (shape_Z3.m() != 2)   AXIS_ERROR;
 
-const Cell * cA = &A.get_cfirst();
-const Cell * cB = &B.get_cfirst();
+ShapeItem idxA = 0;
+ShapeItem idxB = 0;
    if (A.is_scalar())
       {
         if (B.is_scalar())
            {
-             Z->next_ravel_Cell(*cA);
-             Z->next_ravel_Cell(*cB);
+             Z->next_ravel_Cell(A.get_cfirst());
+             Z->next_ravel_Cell(B.get_cfirst());
            }
         else
            {
              loop(h, shape_Z3.h())
                  {
                    loop(l, shape_Z3.l())
-                       Z->next_ravel_Cell(*cA);
-                   Cell::copy(*Z.get(), cB, shape_Z3.l());
+                       Z->next_ravel_Cell(A.get_cfirst());
+                   Cell::copy(*Z.get(), B, idxB, shape_Z3.l());
                 }
            }
       }
@@ -322,16 +322,16 @@ const Cell * cB = &B.get_cfirst();
            {
              loop(h, shape_Z3.h())
                  {
-                   Cell::copy(*Z.get(), cA, shape_Z3.l());
-                   loop(l, shape_Z3.l())   Z->next_ravel_Cell(*cB);
+                   Cell::copy(*Z.get(), A, idxA, shape_Z3.l());
+                   loop(l, shape_Z3.l())   Z->next_ravel_Cell(B.get_cfirst());
                 }
            }
         else
            {
              loop(h, shape_Z3.h())
                  {
-                   Cell::copy(*Z.get(), cA, shape_Z3.l());
-                   Cell::copy(*Z.get(), cB, shape_Z3.l());
+                   Cell::copy(*Z.get(), A, idxA, shape_Z3.l());
+                   Cell::copy(*Z.get(), B, idxB, shape_Z3.l());
                 }
            }
       }
@@ -410,13 +410,13 @@ const Shape3 shape_B3(B.get_shape(), axis);
    const ShapeItem slice_a = shape_B3.l();
    const ShapeItem slice_b = shape_B3.l() * B.get_shape_item(axis);
 
-const Cell * cB = &B.get_cfirst();
+ShapeItem idxB = 0;
 
    loop(hz, shape_B3.h())
        {
          loop(lz, slice_a)   Z->next_ravel_Cell(cell_A);
 
-         Cell::copy(*Z.get(), cB, slice_b);
+         Cell::copy(*Z.get(), B, idxB, slice_b);
        }
 
    Z->check_value(LOC);
@@ -454,11 +454,11 @@ const Shape3 shape_A3(A.get_shape(), axis);
 const ShapeItem slice_a = shape_A3.l() * A.get_shape_item(axis);
 const ShapeItem slice_b = shape_A3.l();
 
-const Cell * cA = &A.get_cfirst();
+ShapeItem idxA = 0;
 
    loop(hz, shape_A3.h())
        {
-         Cell::copy(*Z.get(), cA, slice_a);
+         Cell::copy(*Z.get(), A, idxA, slice_a);
          loop(lz, slice_b)   Z->next_ravel_Cell(cell_B);
        }
 

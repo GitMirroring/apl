@@ -438,7 +438,7 @@ const ShapeItem ec = value.nz_element_count();
    // emit e.g. ( shape ⍴
    //
    tf2_shape(ucs, value.get_shape(), nesting);
-   if (value.NOTCHAR())   tf2_ravel(level, ucs, ec, &value.get_cfirst());
+   if (value.NOTCHAR())   tf2_ravel(level, ucs, ec, value, 0);
    else                   tf2_all_char_ravel(level, ucs, value);
    ucs << UNI_R_PARENT;   // close corresponding '(' from tf2_shape()
 
@@ -535,14 +535,14 @@ Quad_TF::tf2_shape(UCS_string & ucs, const Shape & shape, ShapeItem nesting)
 //────────────────────────────────────────────────────────────────────────────
 void
 Quad_TF::tf2_ravel(int level, UCS_string & ucs, const ShapeItem len,
-                   const Cell * cells)
+                   cValue_R V, ShapeItem idx)
 {
    Assert(len > 0);
 
    loop(e, len)
        {
          if (e)   ucs << UNI_SPACE;
-         const Cell & cell = *cells++;
+         const Cell & cell = V.get_cravel(idx++);
 
          if (cell.is_pointer_cell())
             {

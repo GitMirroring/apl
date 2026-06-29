@@ -602,32 +602,32 @@ public:
 
    /// compute Z←A⌹B (real A, B, and Z). Instatiation wrapper.
    static sRank divide_DD_matrix(Value & Z, Crow rows,
-                              Ccol cols_A, const Cell * cA,
-                              Ccol cols_B, const Cell * cB);
+                              Ccol cols_A, cValue_R VA,
+                              Ccol cols_B, cValue_R VB);
 
    /// compute Z←A⌹B (complex A or B, and Z). Instatiation wrapper.
    static sRank divide_ZZ_matrix(Value & Z, Crow rows,
-                              Ccol cols_A, const Cell * cA,
-                              Ccol cols_B, const Cell * cB);
+                              Ccol cols_A, cValue_R VA,
+                              Ccol cols_B, cValue_R VB);
 
    /// template instantiation wrapper. This wrapper forces the instantiation of
    /// factorize_matrix<DD>() which is defined in a different object file and
    /// may not be instantiated otherwise.
    static void factorize_DD_matrix(Value & Z, Crow M, Ccol N,
-                                   const Cell * cB, APL_Float rcond);
+                                   cValue_R VB, APL_Float rcond);
 
    /// template instantiation wrapper. This wrapper forces the instantiation of
    /// factorize_matrix<ZZ>() which is defined in a different object file and
    /// may not be instantiated otherwise.
    static void factorize_ZZ_matrix(Value & Z, Crow M, Ccol N,
-                                   const Cell * cB, APL_Float rcond);
+                                   cValue_R VB, APL_Float rcond);
 
 protected:   // class LA_pack
    /// compute Z←A⌹B
    template<typename T>
    static sRank divide_matrix(Value & Z, Crow M,
-                              Ccol cols_A, const Cell * cA,
-                              Ccol cols_B, const Cell * cB);
+                              Ccol cols_A, cValue_R VA,
+                              Ccol cols_B, cValue_R VB);
 
    /// store the orthogonal factor Q of some HR in Z[1]. On entry is Q a copy
    /// of HR, on exit is Q the reflectors in HR applied to the unit matrix.
@@ -657,7 +657,7 @@ protected:   // class LA_pack
    // factorize B
    template<typename T>
    static sRank factorize_matrix(Value & Z, Crow M, Ccol N,
-                                const Cell * cB, APL_Float rcond);
+                                cValue_R VB, APL_Float rcond);
 
    /// return the real part of dd (= dd)
    static DD get_real(const DD & dd)

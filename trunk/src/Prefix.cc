@@ -1574,10 +1574,10 @@ StateIndicator * top = Workspace::SI_top();
 const Token & si_pushed = top->get_prefix().at0();
    Assert(si_pushed.get_tag() == TOK_SI_PUSHED);
 
-const Cell * QES_arg = &result.get_apl_val()->get_cfirst();
-UCS_string statement_A(  *QES_arg[2].get_pointer_value());
-const APL_Integer major = QES_arg[3].get_int_value();
-const APL_Integer minor = QES_arg[4].get_int_value();
+const cValue & QES_val = *result.get_apl_val();
+UCS_string statement_A(  *QES_val.get_cravel(2).get_pointer_value());
+const APL_Integer major = QES_val.get_cravel(3).get_int_value();
+const APL_Integer minor = QES_val.get_cravel(4).get_int_value();
 const ErrorCode ec      = ErrorCode(major << 16 | minor);
 
 Token result_A = Bif_F1_EXECUTE::execute_statement(statement_A);

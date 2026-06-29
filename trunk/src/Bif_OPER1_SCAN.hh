@@ -50,14 +50,7 @@ protected:
    /// @param axis axis along which to expand
    static Token expand(cValue_R A, cValue_R B, uAxis axis);
 
-   /// Compute one scan item and store result in Z.
-   /// @param Z     result cell pointer
-   /// @param LO    left operand function
-   /// @param B     source cell pointer
-   /// @param m_len middle dimension length
-   /// @param l_len last dimension length
-   static void scan_item(Cell * Z, cFunction_P LO, const Cell * B,
-                         uint32_t m_len, uint32_t l_len);
+
 };
 //────────────────────────────────────────────────────────────────────────────
 /** Primitive operator \ (scan along last axis)

@@ -49,18 +49,21 @@ protected:
    /// the context for an inner product
    struct PJob_product
       {
-        Cell * cZ;          ///< result cell pointer
-        const Cell * cA;    ///< left value argument cell pointer
-        int incA;           ///< left argument increment (for scalar extension)
-        ShapeItem ZAh;      ///< high dimensions of result length
-        prim_f2 LO;         ///< left function argument
-        ShapeItem LO_len;   ///< left operator length
-        prim_f2 RO;         ///< right function argument
-        const Cell * cB;    ///< right value argument cell pointer
-        int incB;           ///< right argument increment (for scalar extension)
-        ShapeItem ZBl;      ///< low dimensions of result length
-        ErrorCode ec;       ///< error code
-        CoreCount cores;    ///< number of cores to be used
+        Value * VZ;              ///< result value
+        ShapeItem idxZ;          ///< result base index
+        const cValue * VA;       ///< left value argument
+        ShapeItem idxA;          ///< left argument base index
+        int incA;                ///< left argument increment (for scalar extension)
+        ShapeItem ZAh;           ///< high dimensions of result length
+        prim_f2 LO;              ///< left function argument
+        ShapeItem LO_len;        ///< left operator length
+        prim_f2 RO;              ///< right function argument
+        const cValue * VB;       ///< right value argument
+        ShapeItem idxB;          ///< right argument base index
+        int incB;                ///< right argument increment (for scalar extension)
+        ShapeItem ZBl;           ///< low dimensions of result length
+        ErrorCode ec;            ///< error code
+        CoreCount cores;         ///< number of cores to be used
       };
 
    /// overloaded Function::may_push_SI()

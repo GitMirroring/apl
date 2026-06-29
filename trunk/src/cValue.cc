@@ -71,9 +71,8 @@ cValue::is_apl_char_vector() const
 bool
 cValue::is_char_array() const
 {
-const Cell * C = &get_cfirst();
    loop(c, nz_element_count())   // also check prototype
-      if (!C++->is_character_cell())   return false;   // not char
+      if (!get_cravel(c).is_character_cell())   return false;   // not char
    return true;
 }
 //────────────────────────────────────────────────────────────────────────────
@@ -104,13 +103,11 @@ cValue::is_simple() const
    if (flags.ravel_type)   return true;
 
 const ShapeItem count = element_count();
-const Cell * C = &get_cfirst();
 
    loop(c, count)
        {
-         if (C->is_pointer_cell())   return false;
-         if (C->is_lval_cell())      return false;
-         ++C;
+         if (get_cravel(c).is_pointer_cell())   return false;
+         if (get_cravel(c).is_lval_cell())      return false;
        }
 
    return true;
@@ -125,17 +122,15 @@ cValue::is_one_dimensional() const
    if (get_rank() > 1)   return false;
 
 const ShapeItem count = nz_element_count();
-const Cell * C = &get_cfirst();
 
    loop(c, count)
        {
-         if (C->is_pointer_cell())
+         if (get_cravel(c).is_pointer_cell())
             {
-             Value_P sub_val = C->get_pointer_value();
+             Value_P sub_val = get_cravel(c).get_pointer_value();
              if (sub_val->get_rank() > 1)                return false;
              if (!sub_val->is_one_dimensional())         return false;
             }
-         ++C;
        }
 
    return true;   // all items are scalars or vectors
@@ -781,10 +776,10 @@ const size_t indent = member_prefix.size() + longest_name + 3;
 
    loop(r, rows)
        {
-         const Cell * cell = &get_cravel(2*r);   // (nested) member-name or 0
-         if (!cell->is_pointer_cell())       continue;
+         const Cell & cell_name = get_cravel(2*r);   // (nested) member-name or 0
+         if (!cell_name.is_pointer_cell())       continue;
 
-         Value_P cell_sub = cell->get_pointer_value();
+         Value_P cell_sub = cell_name.get_pointer_value();
          Assert(cell_sub->is_char_string());
 
          // print the member name
@@ -796,13 +791,13 @@ const size_t indent = member_prefix.size() + longest_name + 3;
          out << member << ": ";
          out << UCS_string(pad, UNI_SPACE);
 
-         // print the member value
+         // print the member value (at 2*r+1)
          //
-         ++cell;   // member value
-         if (cell->is_pointer_cell())   // sub-member or leaf
+         const Cell & cell_val = get_cravel(2*r + 1);
+         if (cell_val.is_pointer_cell())   // sub-member or leaf
             {
               bool printed = false;
-              Value_P sub = cell->get_pointer_value();
+              Value_P sub = cell_val.get_pointer_value();
               if (sub->is_member())
                  {
                    out << "□" << endl;
@@ -836,7 +831,7 @@ const size_t indent = member_prefix.size() + longest_name + 3;
             }
          else                           // simple member value
             {
-              Value_P sub(*cell, LOC);
+              Value_P sub(cell_val, LOC);
               sub->print_boxed(out, indent);
             }
        }
@@ -1174,11 +1169,11 @@ const APL_Integer qio = Workspace::get_IO();
    //
 Value_P Z(X.get_shape(), LOC);
 
-const Cell * cI = &X.get_cfirst();
+ShapeItem xI = 0;
 
    while (Z->more())
       {
-         const ShapeItem idx0 = cI++->get_near_int() - qio;
+         const ShapeItem idx0 = X.get_cravel(xI++).get_near_int() - qio;
          if (idx0 < 0 || idx0 >= max_idx)
             {
               MORE_ERROR() << "min index=⎕IO (=" << qio
@@ -1273,15 +1268,15 @@ cValue::get_lval_cellowner() const
     */
    loop(e, nz_element_count())
       {
-        const Cell * cell = &get_cravel(e);
-        if (cell->is_pointer_cell())   // case 1.
+        const Cell & cell = get_cravel(e);
+        if (cell.is_pointer_cell())   // case 1.
            {
-             return  cell->get_pointer_value()->get_lval_cellowner();
+             return  cell.get_pointer_value()->get_lval_cellowner();
            }
 
-        if (cell->is_lval_cell())      // case 2a. or 2b.
+        if (cell.is_lval_cell())      // case 2a. or 2b.
            {
-             const LvalCell * lval = reinterpret_cast<const LvalCell *>(cell);
+             const LvalCell * lval = reinterpret_cast<const LvalCell *>(&cell);
              if (lval->get_cell_owner())   return lval->get_cell_owner();
            }
       }
@@ -1351,11 +1346,10 @@ cValue::unmark() const
    if (is_packed())   return;
 
 const ShapeItem ec = nz_element_count();
-const Cell * C = &get_cfirst();
    loop(e, ec)
       {
-        if (C->is_pointer_cell())   C->get_pointer_value()->unmark();
-        ++C;
+        if (get_cravel(e).is_pointer_cell())
+           get_cravel(e).get_pointer_value()->unmark();
       }
 }
 //────────────────────────────────────────────────────────────────────────────
@@ -1654,12 +1648,10 @@ cValue::print_structure(ostream & out, int indent, ShapeItem idx) const
        << endl;
 
 const ShapeItem ec = nz_element_count();
-const Cell * c = &get_cfirst();
    loop(e, ec)
       {
-        if (c->is_pointer_cell())
-           c->get_pointer_value()->print_structure(out, indent + 1, e);
-        ++c;
+        if (get_cravel(e).is_pointer_cell())
+           get_cravel(e).get_pointer_value()->print_structure(out, indent + 1, e);
       }
 }
 //────────────────────────────────────────────────────────────────────────────

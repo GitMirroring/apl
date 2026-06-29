@@ -60,12 +60,11 @@ const ShapeItem ec_A = A.element_count();
    //
 Value_P Z(B.get_shape(), LOC);
 const ShapeItem ec_B = B.element_count();
-const Cell * cells_A = &A.get_cfirst();
 const APL_Integer qio = Workspace::get_IO();
 
    loop(b, ec_B)
       {
-        const ShapeItem z = find_range(B.get_cravel(b), cells_A, ec_A);
+        const ShapeItem z = find_range(B.get_cravel(b), A, ec_A);
         Z->next_ravel_Int(z + qio);
       }
 
@@ -147,16 +146,16 @@ const uRank rank = B.get_rank();
 }
 //════════════════════════════════════════════════════════════════════════════
 ShapeItem
-Bif_F12_INTERVAL_INDEX::find_range(const Cell & cell, const Cell * ranges,
+Bif_F12_INTERVAL_INDEX::find_range(const Cell & cell, cValue_R A,
                                    ShapeItem range_count)
 {
    // first check if cell is below or above it
    //
    {
-     const Comp_result c0 = cell.compare(ranges[0]);
+     const Comp_result c0 = cell.compare(A.get_cravel(0));
      if (c0 == COMP_LT)   return -1;   // == 0 with ⎕IO = 1
 
-     const Comp_result cN = cell.compare(ranges[range_count - 1]);
+     const Comp_result cN = cell.compare(A.get_cravel(range_count - 1));
      if (cN != COMP_LT)   return range_count-1;
    }
 
@@ -166,7 +165,7 @@ ShapeItem ret = 0;
    while (range_count > 1)
          {
            const ShapeItem middle = range_count >> 1;
-           const Comp_result cm = cell.compare(ranges[ret + middle]);
+           const Comp_result cm = cell.compare(A.get_cravel(ret + middle));
            if (cm == COMP_LT)   // cell is below the middle
               {
                 range_count = middle;

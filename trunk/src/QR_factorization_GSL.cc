@@ -52,9 +52,9 @@ const Shape shape_BT(N, M);
 Value_P BT = Bif_F12_TRANSPOSE::transpose(shape_BT, *B);   // BT←⍉B
 Value_P ZT(3, LOC);
   if (need_complex)
-     QR_factorize_ZZ_matrix(*ZT, N, M, &BT->get_cfirst());
+     QR_factorize_ZZ_matrix(*ZT, N, M, *BT, 0);
   else
-     QR_factorize_DD_matrix(*ZT, N, M, &BT->get_cfirst());
+     QR_factorize_DD_matrix(*ZT, N, M, *BT, 0);
 
 Value_P QT  = ZT->get_cravel(0).get_pointer_value();
 Value_P RT  = ZT->get_cravel(1).get_pointer_value();
@@ -76,13 +76,13 @@ Value_P Z2 = Bif_F12_TRANSPOSE::transpose(shape_Ri, *RiT);   // BT←⍉B
 }
 //════════════════════════════════════════════════════════════════════════════
 void
-GSL::LU_factorize_DD_matrix(Value & Z, int M, int N, const Cell * cB)
+GSL::LU_factorize_DD_matrix(Value & Z, int M, int N, cValue_R B_val, ShapeItem idx)
 {
-  // 0. Init GSL matrix B from APL ravel * cB
+  // 0. Init GSL matrix B from APL ravel starting at idx
   //
 gsl_matrix * B = gsl_matrix_alloc(M, N);   if (B == 0)   WS_FULL;
   loop(row, M)
-  loop(col, N)   gsl_matrix_set(B, row, col, cB++->get_real_value());
+  loop(col, N)   gsl_matrix_set(B, row, col, B_val.get_cravel(idx++).get_real_value());
 
 gsl_permutation * P = gsl_permutation_alloc(M);   if (P == 0)   WS_FULL;
 int signum = 0;
@@ -123,17 +123,17 @@ Value_P Z2(M, min_MN, LOC);   // Z2 is L
 }
 //════════════════════════════════════════════════════════════════════════════
 void
-GSL::LU_factorize_ZZ_matrix(Value & Z, int M, int N, const Cell * cB)
+GSL::LU_factorize_ZZ_matrix(Value & Z, int M, int N, cValue_R B_val, ShapeItem idx)
 {
-  // 0. Init GSL matrix B from APL ravel * cB
+  // 0. Init GSL matrix B from APL ravel starting at idx
   //
 gsl_matrix_complex * B = gsl_matrix_complex_alloc(M, N);   if (B == 0)   WS_FULL;
   loop(row, M)
   loop(col, N)
       {
-        const gsl_complex tmp = { cB->get_real_value(), cB->get_imag_value() };
+        const Cell & c = B_val.get_cravel(idx++);
+        const gsl_complex tmp = { c.get_real_value(), c.get_imag_value() };
         gsl_matrix_complex_set(B, row, col, tmp);
-        ++cB;
       }
 
 gsl_permutation * P = gsl_permutation_alloc(M);   if (P == 0)   WS_FULL;
@@ -192,15 +192,15 @@ Value_P Z2(M, min_MN, LOC);   // Z2 is L
 }
 //════════════════════════════════════════════════════════════════════════════
 void
-GSL::QL_factorize_DD_matrix(Value & Z, int M, int N, const Cell * cB)
+GSL::QL_factorize_DD_matrix(Value & Z, int M, int N, cValue_R B_val, ShapeItem idx)
 {
   set_GSL_error_handler();
 
-  // 0. Init GSL matrix B from APL ravel * cB
+  // 0. Init GSL matrix B from APL ravel starting at idx
   //
 gsl_matrix * B = gsl_matrix_alloc(M, N);   if (B == 0)   WS_FULL;
   loop(row, M)
-  loop(col, N)   gsl_matrix_set(B, row, col, cB++->get_real_value());
+  loop(col, N)   gsl_matrix_set(B, row, col, B_val.get_cravel(idx++).get_real_value());
 
   // 1. Compute Q, L, and TAU. Q and L are packed into B
   //
@@ -254,7 +254,7 @@ Value_P Z2(N, N, LOC);   // Z[2] is the inverse of L
 }
 //────────────────────────────────────────────────────────────────────────────
 void
-GSL::QR_factorize_DD_matrix(Value & Z, int M, int N, const Cell * cB)
+GSL::QR_factorize_DD_matrix(Value & Z, int M, int N, cValue_R B_val, ShapeItem idx)
 {
   set_GSL_error_handler();
 
@@ -265,11 +265,11 @@ GSL::QR_factorize_DD_matrix(Value & Z, int M, int N, const Cell * cB)
        LENGTH_ERROR;
      }
 
-  // 0. Init GSL matrix B from APL ravel * cB
+  // 0. Init GSL matrix B from APL ravel starting at idx
   //
 gsl_matrix * B = gsl_matrix_alloc(M, N);   if (B == 0)   WS_FULL;
   loop(row, M)
-  loop(col, N)   gsl_matrix_set(B, row, col, cB++->get_real_value());
+  loop(col, N)   gsl_matrix_set(B, row, col, B_val.get_cravel(idx++).get_real_value());
 
   // 1. Compute R and T. The diagonal of B and above is R ←→ Z1 = Z[1]
   //
@@ -334,7 +334,7 @@ Value_P Z0(M, M, LOC);   // Z[0] is the orthogonal M×M matrix Q
 }
 //────────────────────────────────────────────────────────────────────────────
 void
-GSL::QR_factorize_ZZ_matrix(Value & Z, int M, int N, const Cell * cB)
+GSL::QR_factorize_ZZ_matrix(Value & Z, int M, int N, cValue_R B_val, ShapeItem idx)
 {
   set_GSL_error_handler();
 
@@ -345,15 +345,15 @@ GSL::QR_factorize_ZZ_matrix(Value & Z, int M, int N, const Cell * cB)
        LENGTH_ERROR;
      }
 
-  // 0. Init GSL matric B from APL ravel * cB
+  // 0. Init GSL matrix B from APL ravel starting at idx
   //
 gsl_matrix_complex * B = gsl_matrix_complex_alloc(M, N);  if (B == 0)   WS_FULL;
   loop(row, M)
   loop(col, N)
      {
-       const gsl_complex tmp = { cB->get_real_value(), cB->get_imag_value() };
+       const Cell & c = B_val.get_cravel(idx++);
+       const gsl_complex tmp = { c.get_real_value(), c.get_imag_value() };
        gsl_matrix_complex_set(B, row, col, tmp);
-       ++cB;
      }
 
   // 1. Compute R and T. The diagonal of B and above is R ←→ Z1 = Z[1]
@@ -378,7 +378,6 @@ gsl_matrix_complex * R = gsl_matrix_complex_alloc(N, N);  if (R == 0)   WS_FULL;
              gsl_matrix_complex_set(R, row, col, tmp);
              Z1->next_ravel_Complex(tmp.dat[0], tmp.dat[1]);
            }
-        ++cB;
       }
   Z1->check_value(LOC);
 
@@ -442,7 +441,7 @@ GSL::RQ_factorize(Value & Z, int M, int N, Value_P B)
 const Shape shape_BT(N, M);
 Value_P BT = Bif_F12_TRANSPOSE::transpose(shape_BT, *B);   // BT←⍉B
 Value_P ZT(3, LOC);
-  QL_factorize_DD_matrix(*ZT, N, M, &BT->get_cfirst());
+  QL_factorize_DD_matrix(*ZT, N, M, *BT, 0);
 
 Value_P QT  = ZT->get_cravel(0).get_pointer_value();
 Value_P RT  = ZT->get_cravel(1).get_pointer_value();

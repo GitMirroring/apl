@@ -230,13 +230,10 @@ const ShapeItem B3_lm = shape_B3.l() * shape_B3.m();
          const ShapeItem partition_len   = partitions[m].length();
          const ShapeItem start_B =
                          l + partition_start * shape_B3.l() + h * B3_lm;
-         const Cell * src_B = &B.get_cravel(start_B);
-
          Value_P ZZ(partition_len, LOC);   // the m'th partition
          loop(p, partition_len)
              {
-               ZZ->next_ravel_Cell(*src_B);
-               src_B += shape_B3.l();
+               ZZ->next_ravel_Cell(B.get_cravel(start_B + p * shape_B3.l()));
              }
          ZZ->check_value(LOC);
          Z->next_ravel_Pointer(ZZ.get());
@@ -259,7 +256,7 @@ const ShapeItem ec_A = A.element_count();
 
 const APL_Integer qio = Workspace::get_IO();
 
-Value_P Z = pick(&A.get_cfirst(), 0, ec_A, B, qio);
+Value_P Z = pick(A, 0, ec_A, B, qio);
 
    Z->check_value(LOC);
    return Token(TOK_APL_VALUE1, Z);
@@ -537,31 +534,30 @@ ShapeItem ret[MAX_RANK];
 }
 //────────────────────────────────────────────────────────────────────────────
 Value_P
-Bif_F12_PICK::pick(const Cell * const A0, ShapeItem idx_A, ShapeItem len_A,
+Bif_F12_PICK::pick(cValue_R A, ShapeItem idx_A, ShapeItem len_A,
                    cValue_R B, APL_Integer qio)
 {
-   // A0 points to ↑A and we are at depth idx_A, which means that A0[idx_A] is
-   // the current index of B.
+   // A[idx_A] is the current index of B.
    //
-const ShapeItem offset = pick_offset(A0, idx_A, len_A, B, qio);
-const Cell * cB = &B.get_cravel(offset);
+const ShapeItem offset = pick_offset(A, idx_A, len_A, B, qio);
+const Cell & cB = B.get_cravel(offset);
 
    if (len_A > 1)   // more levels coming.
       {
-        if (cB->is_pointer_cell())
+        if (cB.is_pointer_cell())
            {
-             return pick(A0, idx_A+1, len_A-1,
-                         *cB->get_pointer_value(), qio);
+             return pick(A, idx_A+1, len_A-1,
+                         *cB.get_pointer_value(), qio);
            }
 
-        if (cB->is_lval_cell())
+        if (cB.is_lval_cell())
            {
              // Note: this is a little tricky...
 
              // first of all, we need a pointer cell. Therefore the target
              // of cB should be a PointerCell.
              //
-             Cell & target = *cB->get_lval_value();
+             Cell & target = *cB.get_lval_value();
              if (!target.is_pointer_cell())   DOMAIN_ERROR;
 
              // secondly, get_cellrefs() is not recursive, therefore target has
@@ -569,7 +565,7 @@ const Cell * cB = &B.get_cravel(offset);
              //
              Value_P subval = target.get_pointer_value();   // right-value
              Value_P subrefs = subval->get_cellrefs(LOC);   // left-value
-             return pick(A0, idx_A + 1, len_A - 1, *subrefs, qio);
+             return pick(A, idx_A + 1, len_A - 1, *subrefs, qio);
            }
 
         // simple cell. This means that the depth of B does not suffice to
@@ -582,15 +578,15 @@ const Cell * cB = &B.get_cravel(offset);
    // len_A == 1, means that the end of the iteration over A has been reached,
    // and that cB is the cell in B that was pick'ed by A⊃B.
    //
-   if (cB->is_pointer_cell())
+   if (cB.is_pointer_cell())
       {
-        Value_P Z = CLONE_P(cB->get_pointer_value(), LOC);
+        Value_P Z = CLONE_P(cB.get_pointer_value(), LOC);
         return Z;
       }
 
-   if (cB->is_lval_cell())   // selective assignment, e.g. (A⊃B) ← C
+   if (cB.is_lval_cell())   // selective assignment, e.g. (A⊃B) ← C
       {
-        Cell * target = cB->get_lval_value();
+        Cell * target = cB.get_lval_value();
         Assert(target);
 
 #if 1
@@ -623,16 +619,16 @@ const Cell * cB = &B.get_cravel(offset);
    else   // simple cell
       {
         Value_P Z(LOC);
-        Z->next_ravel_Cell(*cB);
+        Z->next_ravel_Cell(cB);
         return Z;
       }
 }
 //────────────────────────────────────────────────────────────────────────────
 ShapeItem
-Bif_F12_PICK::pick_offset(const Cell * const A0, ShapeItem idx_A,
+Bif_F12_PICK::pick_offset(cValue_R A, ShapeItem idx_A,
                           ShapeItem len_A, cValue_R B, APL_Integer qio)
 {
-const Cell & cA = A0[idx_A];
+const Cell & cA = A.get_cravel(idx_A);
 
    if (cA.is_pointer_cell())   // then B shall be a 1-dimensional array
       {

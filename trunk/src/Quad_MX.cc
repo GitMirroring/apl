@@ -742,11 +742,8 @@ const ShapeItem A_count = A->element_count();
         Value_P BB(2, A_count, LOC);
         Cell * cell_BB = &BB->get_wfirst();
 
-        const Cell * cell_A = &A->get_cfirst();
-        loop(a, A_count)   cell_A++->init_other(cell_BB++, *BB, LOC);
-
-        const Cell * cell_B = &B->get_cfirst();
-        loop(b, A_count)   cell_B++->init_other(cell_BB++, *BB, LOC);
+        loop(a, A_count)   A->get_cravel(a).init_other(cell_BB++, *BB, LOC);
+        loop(b, A_count)   B->get_cravel(b).init_other(cell_BB++, *BB, LOC);
 
         BB->check_value(LOC);
         return monadicCrossProduct(BB);

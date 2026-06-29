@@ -2080,17 +2080,16 @@ Quad_FIO::eval_AXB__59(Value_P A, Value_P B)
 {
 NOT_MINGW(
    {
-     const Cell * cA = &A->get_cfirst();
      const int fd = get_fd(*B.get());
      errno = 0;
      int result = -1;
      switch(A->element_count())
         {
-           case 1: result = fcntl(fd, cA[0].get_int_value());
+           case 1: result = fcntl(fd, A->get_cravel(0).get_int_value());
                    break;
 
-           case 2: result = fcntl(fd, cA[0].get_int_value(),
-                                      cA[1].get_int_value());
+           case 2: result = fcntl(fd, A->get_cravel(0).get_int_value(),
+                                      A->get_cravel(1).get_int_value());
                    break;
 
            default: LENGTH_ERROR;

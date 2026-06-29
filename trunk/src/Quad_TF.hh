@@ -107,7 +107,7 @@ protected:
    /// @param len number of cells to encode
    /// @param cells pointer to the first cell of the ravel
    static void tf2_ravel(int level, UCS_string & ucs, const ShapeItem len,
-                           const Cell * cells);
+                           cValue_R V, ShapeItem idx);
 
    /// append the ravel of a simple character array (of any rank)
    /// @param level current nesting depth for formatting

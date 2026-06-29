@@ -574,7 +574,7 @@ Shape weights_A = A->get_shape().get_weights();
 
 Value_P Z(B->get_shape(), LOC);
 
-const Cell * cB = &B->get_cfirst();
+ShapeItem bI = 0;
 
    for (ArrayIterator it_B(B->get_shape()); it_B.has_more(); ++it_B)
        {
@@ -589,12 +589,13 @@ const Cell * cB = &B->get_cfirst();
                   }
              }
 
-         const Cell * cA = &A->get_cravel(wA);
+         const Cell & cA = A->get_cravel(wA);
+         const Cell & cB = B->get_cravel(bI++);
 
          // restore the original order of A and B
          //
-         if (reversed)   expand_nested(Z.get(), cB++, cA, fun);
-         else            expand_nested(Z.get(), cA, cB++, fun);
+         if (reversed)   expand_nested(Z.get(), cB, cA, fun);
+         else            expand_nested(Z.get(), cA, cB, fun);
        }
 
    Z->set_default(*B, LOC);
@@ -628,32 +629,32 @@ PERFORMANCE_END(fs_SCALAR_B, start, Z->nz_element_count());
 }
 //────────────────────────────────────────────────────────────────────────────
 void
-ScalarFunction::expand_nested(Value * Z, const Cell * cell_A,
-                                         const Cell * cell_B, prim_f2 fun) const
+ScalarFunction::expand_nested(Value * Z, const Cell & cell_A,
+                                         const Cell & cell_B, prim_f2 fun) const
 {
-   if (cell_A->is_pointer_cell())
+   if (cell_A.is_pointer_cell())
       {
-        if (cell_B->is_pointer_cell())   // nested A and nested B
+        if (cell_B.is_pointer_cell())   // nested A and nested B
            {
-             Value_P value_A = cell_A->get_pointer_value();
-             Value_P value_B = cell_B->get_pointer_value();
+             Value_P value_A = cell_A.get_pointer_value();
+             Value_P value_B = cell_B.get_pointer_value();
              Token token = eval_scalar_AB(value_A, value_B, fun);
              Z->next_ravel_Pointer(token.get_apl_val().get());
            }
         else                             // nested A and simple B
            {
-             Value_P value_A = cell_A->get_pointer_value();
-             Value_P scalar_B(*cell_B, LOC);
+             Value_P value_A = cell_A.get_pointer_value();
+             Value_P scalar_B(cell_B, LOC);
              Token token = eval_scalar_AB(value_A, scalar_B, fun);
              Z->next_ravel_Pointer(token.get_apl_val().get());
            }
       }
    else                                  // A is simple
       {
-        if (cell_B->is_pointer_cell())   // simple A and nested B
+        if (cell_B.is_pointer_cell())   // simple A and nested B
            {
-             Value_P scalar_A(*cell_A, LOC);
-             Value_P value_B = cell_B->get_pointer_value();
+             Value_P scalar_A(cell_A, LOC);
+             Value_P value_B = cell_B.get_pointer_value();
              Token token = eval_scalar_AB(scalar_A, value_B, fun);
              Z->next_ravel_Pointer(token.get_apl_val().get());
            }
@@ -661,7 +662,7 @@ ScalarFunction::expand_nested(Value * Z, const Cell * cell_A,
           {
             const ShapeItem pos = Z->get_valid_item_count();
             Z->next_ravel_0();   // pre-init with 0
-            (cell_B->*fun)(&Z->get_wravel(pos), cell_A);
+            (cell_B.*fun)(&Z->get_wravel(pos), &cell_A);
           }
       }
 }
@@ -1007,7 +1008,7 @@ const ShapeItem len_Z = Z->element_count();
    for (ArrayIterator zi(B.get_shape()); zi.has_more(); ++zi)
        {
 PERFORMANCE_START(start_2)
-         if (contained(shape_A, &A.get_cfirst(),
+         if (contained(shape_A, A,
                        CLONE(&B, LOC), zi.get_shape_offsets(), qct))
             Z->next_ravel_1();
          else
@@ -1024,7 +1025,7 @@ PERFORMANCE_END(fs_SCALAR_AB, start_1, len_Z);
 }
 //════════════════════════════════════════════════════════════════════════════
 bool
-Bif_F2_FIND::contained(const Shape & shape_A, const Cell * cA,
+Bif_F2_FIND::contained(const Shape & shape_A, cValue_R A,
                        Value_P B, const Shape & idx_B, double qct)
 {
    /* quick check (along each  axis): before comparing any ravel elements,
@@ -1051,7 +1052,7 @@ const Shape weights_B = B->get_shape().get_weights();
                                          * (idx_B.get_shape_item(r)
                                          + pos_A.get_shape_item(r));
 
-         if (!cA[ai.get_ravel_offset()].equal(B->get_cravel(pos_B), qct))
+         if (!A.get_cravel(ai.get_ravel_offset()).equal(B->get_cravel(pos_B), qct))
             return false;
        }
 
@@ -1153,21 +1154,19 @@ bool
 Bif_F12_ROLL::check_B(const cValue & B, const double qct)
 {
 const ShapeItem count = B.nz_element_count();
-const Cell * C = &B.get_cfirst();
 
    loop(b, count)
       {
-       if (C->is_pointer_cell())
+       const Cell & C = B.get_cravel(b);
+       if (C.is_pointer_cell())
           {
-            Value_P sub_val = C->get_pointer_value();
+            Value_P sub_val = C.get_pointer_value();
             if (check_B(*sub_val, qct))   return true;   // check sub_val failed
             continue;
           }
 
-       if (!C->is_near_int())               return true;
-       if (C->get_checked_near_int() < 0)   return true;
-
-        ++C;
+       if (!C.is_near_int())               return true;
+       if (C.get_checked_near_int() < 0)   return true;
       }
 
    return false;

@@ -45,31 +45,31 @@ public:
    /// @param M number of rows in the input matrix
    /// @param N number of columns in the input matrix
    /// @param cB pointer to first cell of the input ravel (real matrix)
-   static void LU_factorize_DD_matrix(Value & Z, int M, int N, const Cell * cB);
+   static void LU_factorize_DD_matrix(Value & Z, int M, int N, cValue_R B, ShapeItem idx);
 
    /// @param Z output value receiving the factorization result
    /// @param M number of rows in the input matrix
    /// @param N number of columns in the input matrix
    /// @param cB pointer to first cell of the input ravel (complex matrix)
-   static void LU_factorize_ZZ_matrix(Value & Z, int M, int N, const Cell * cB);
+   static void LU_factorize_ZZ_matrix(Value & Z, int M, int N, cValue_R B, ShapeItem idx);
 
    /// @param Z output value receiving the factorization result
    /// @param M number of rows in the input matrix
    /// @param N number of columns in the input matrix
    /// @param cB pointer to first cell of the input ravel (real matrix)
-   static void QL_factorize_DD_matrix(Value & Z, int M, int N, const Cell * cB);
+   static void QL_factorize_DD_matrix(Value & Z, int M, int N, cValue_R B, ShapeItem idx);
 
    /// @param Z output value receiving the factorization result
    /// @param M number of rows in the input matrix
    /// @param N number of columns in the input matrix
    /// @param cB pointer to first cell of the input ravel (real matrix)
-   static void QR_factorize_DD_matrix(Value & Z, int M, int N, const Cell * cB);
+   static void QR_factorize_DD_matrix(Value & Z, int M, int N, cValue_R B, ShapeItem idx);
 
    /// @param Z output value receiving the factorization result
    /// @param M number of rows in the input matrix
    /// @param N number of columns in the input matrix
    /// @param cB pointer to first cell of the input ravel (complex matrix)
-   static void QR_factorize_ZZ_matrix(Value & Z, int M, int N, const Cell * cB);
+   static void QR_factorize_ZZ_matrix(Value & Z, int M, int N, cValue_R B, ShapeItem idx);
 
    /// @param Z output value receiving the factorization result
    /// @param M number of rows in the input matrix

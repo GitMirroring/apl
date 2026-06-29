@@ -266,7 +266,8 @@ public:
    void solve();
 
    /// do some dance steps with the constraints matrix
-   Token preset(const Cell * steps, ShapeItem count, const Cell * cB);
+   Token preset(cValue_R A_steps, ShapeItem stepsIdx, ShapeItem count,
+                cValue_R B_mat);
 
    /// return the number of solutions found
    ShapeItem get_solution_count() const   { return solution_count; }
@@ -337,10 +338,9 @@ DLX_Root_Node::DLX_Root_Node(ShapeItem rs, ShapeItem cs, ShapeItem max_sol,
 const ShapeItem ec_B = B.element_count();
 const int qio = Workspace::get_IO();
 ShapeItem ones = 0;
-const Cell * b = &B.get_cfirst();
    loop(e, ec_B)
       {
-        const Cell & cell = *b++;
+        const Cell & cell = B.get_cravel(e);
         const Col_Type ct = get_col_type(cell);
         if (ct == Col_INVALID)
            {
@@ -377,7 +377,6 @@ const Cell * b = &B.get_cfirst();
    // set up non-header nodes. std::vector.push_back() may move the headers so
    // we first append all nodes and initialize then.
    //
-   b = &B.get_cfirst();
    nodes.reserve(ones);
    loop(o, ones)   nodes.push_back(DLX_Node(false));
 
@@ -389,7 +388,7 @@ const Cell * b = &B.get_cfirst();
         loop (c, cols)
            {
              DLX_Header_Node & hdr = headers[c];
-             const Col_Type ct = get_col_type(*b++);
+             const Col_Type ct = get_col_type(B.get_cravel(r*cols + c));
              if (ct < Col_PRIMARY)   continue;   // most likely: not '1' or '2'
 
              if (hdr.col_type == Col_UNKNOWN)   // first '1' or '2' in this col
@@ -666,12 +665,13 @@ level_done:
 }
 //────────────────────────────────────────────────────────────────────────────
 Token
-DLX_Root_Node::preset(const Cell * steps, ShapeItem step_count, const Cell * cB)
+DLX_Root_Node::preset(cValue_R A_steps, ShapeItem stepsIdx, ShapeItem step_count,
+                      cValue_R B_mat)
 {
 const int qio = Workspace::get_IO();
    loop(a, step_count)
       {
-        const APL_Integer row = steps++->get_int_value() - qio;
+        const APL_Integer row = A_steps.get_cravel(stepsIdx++).get_int_value() - qio;
         if (row < 0 || row >= rows)
            {
              MORE_ERROR() << "bad row: " << row;
@@ -719,9 +719,9 @@ Value_P Z(shape_Z, LOC);
    //
    loop(z, (rows*cols_Z))
       {
-        if (first_0)                      Z->next_ravel_Cell(*first_0);
-        else if (cB->is_integer_cell())   Z->next_ravel_0();
-        else                              Z->next_ravel_Char(UNI_0);
+        if (first_0)                               Z->next_ravel_Cell(*first_0);
+        else if (B_mat.get_cravel(0).is_integer_cell())   Z->next_ravel_0();
+        else                                       Z->next_ravel_Char(UNI_0);
       }
 
    // then override those cells in the linked structure to whatever means 1
@@ -736,7 +736,7 @@ DLX_Node * h = right;
              {
                Assert(!v->is_header);
                Assert(h->col == v->col);
-               const Cell & src = cB[h->col + cols*v->row];
+               const Cell & src = B_mat.get_cravel(h->col + cols*v->row);
                Z->get_wravel(col + cols_Z*v->row).init(src, *Z, LOC);
              }
          h = h->right;
@@ -761,8 +761,7 @@ const APL_Integer a0 = A.get_cfirst().get_int_value();
         const ShapeItem rows = B.get_rows();
         const ShapeItem cols = B.get_cols();
         DLX_Root_Node root(rows, cols, 0, B);
-        return root.preset(&A.get_cravel(1), A.element_count() - 1,
-                           &B.get_cfirst());
+        return root.preset(A, 1, A.element_count() - 1, B);
       }
 
    if (A.element_count() != 1)   LENGTH_ERROR;

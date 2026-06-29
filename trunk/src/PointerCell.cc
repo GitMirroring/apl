@@ -225,11 +225,10 @@ Value_P v2 = other.get_pointer_value();
 
    // same rank and shape, compare ravel
    //
-const Cell * C1 = &v1->get_cfirst();
-const Cell * C2 = &v2->get_cfirst();
    loop(e, v1->nz_element_count())
       {
-        if (const Comp_result comp = C1++->compare(*C2++))   return  comp;
+        if (const Comp_result comp = v1->get_cravel(e).compare(v2->get_cravel(e)))
+           return  comp;
       }
 
    // everthing equal

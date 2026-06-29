@@ -525,12 +525,10 @@ XML_Saving_Archive::save_Ravel(Vid vid)
 const cValue & v = *val_pars[vid]._val;
 const APL_types::Depth depth = val_pars[vid]._depth;
 const ShapeItem len = v.nz_element_count();
-const Cell * C = &v.get_cfirst();
-
 int space = do_indent();
    if (v.is_packed())   // Value has a packed (non-Cell) ravel
       {
-        const uint8_t * bytes = reinterpret_cast<const uint8_t *>(C);
+        const uint8_t * bytes = reinterpret_cast<const uint8_t *>(&v.get_cfirst());
         const ShapeItem byte_count = (len + 7)/8;
 
         // print the start of the XML element
@@ -565,7 +563,7 @@ int space = do_indent();
 
         // print the data of the 'cells' attribute
         ++indent;
-        loop(l, len)   emit_cell(*C++, space);
+        loop(l, len)   emit_cell(v.get_cravel(l), space);
 
         space -= leave_char_mode();
         space -= 2;

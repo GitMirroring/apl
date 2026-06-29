@@ -225,14 +225,14 @@ Value_P Z;
 
    loop(z, len_Z)
       {
-        const Cell * cA = &A.get_cravel(inc_A * z);
-        const Cell * cB = &B.get_cravel(inc_B * z);
-        const bool left_val = cB->is_lval_cell();
-        Value_P LO_A = cA->to_value(LOC);     // left argument of LO
-        Value_P LO_B = cB->to_value(LOC);     // right argument of LO;
+        const Cell & cA = A.get_cravel(inc_A * z);
+        const Cell & cB = B.get_cravel(inc_B * z);
+        const bool left_val = cB.is_lval_cell();
+        Value_P LO_A = cA.to_value(LOC);     // left argument of LO
+        Value_P LO_B = cB.to_value(LOC);     // right argument of LO;
         if (left_val)
            {
-             Cell * dest = cB->get_lval_value();
+             Cell * dest = cB.get_lval_value();
              if (dest->is_pointer_cell())
                 {
                   Value_P sub = dest->get_pointer_value();
@@ -387,13 +387,13 @@ Value_P Z;
            }
         else
            {
-             const Cell * cB = &B.get_cravel(z);
-             const bool is_left_val = cB->is_lval_cell();
-             Value_P LO_B = cB->to_value(LOC);      // right argument of LO
+             const Cell & cB = B.get_cravel(z);
+             const bool is_left_val = cB.is_lval_cell();
+             Value_P LO_B = cB.to_value(LOC);      // right argument of LO
 
              if (is_left_val)
                 {
-                  Cell * dest = cB->get_lval_value();
+                  Cell * dest = cB.get_lval_value();
                   if (dest->is_pointer_cell())
                      {
                        Value_P sub = dest->get_pointer_value();

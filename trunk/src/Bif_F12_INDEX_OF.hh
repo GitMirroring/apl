@@ -55,11 +55,11 @@ protected:
    /// @param len_A number of cells in the ravel
    /// @param cell_B cell value to search for
    /// @param qct comparison tolerance (⎕CT)
-   static ShapeItem find_B_in_A(const Cell * A, ShapeItem len_A,
+   static ShapeItem find_B_in_A(cValue_R A, ShapeItem len_A,
                          const Cell & cell_B, double qct)
       {
-        loop(a, len_A)   if (cell_B.equal(A[a], qct))   return a;   // found
-        return len_A;                                               // not found
+        loop(a, len_A)   if (cell_B.equal(A.get_cravel(a), qct))   return a;   // found
+        return len_A;                                                            // not found
       }
 
    /// compare function for Heapsort<ShapeItem>::search<const Cell &>

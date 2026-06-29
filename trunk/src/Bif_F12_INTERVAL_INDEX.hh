@@ -52,7 +52,7 @@ protected:
    /// @param cell the cell value to locate
    /// @param ranges pointer to the sorted array of interval-boundary cells
    /// @param range_count number of elements in ranges
-   static ShapeItem find_range(const Cell & cell, const Cell * ranges,
+   static ShapeItem find_range(const Cell & cell, cValue_R A,
                                ShapeItem range_count);
 };
 //════════════════════════════════════════════════════════════════════════════

@@ -919,12 +919,11 @@ Quad_XML::split_name(Unicode * category, ShapeItem * position,
 
 const ShapeItem len = value.element_count();
    Assert(len >= 1);
-const Cell * src = &value.get_cfirst();
-const Cell * end = src + len;
+ShapeItem srcI = 0;
 
    // decode the category...
    //
-const Unicode val0 = src++->get_char_value();
+const Unicode val0 = value.get_cravel(srcI++).get_char_value();
 int ret = -1;
    if (val0 == UNI_DELTA_UNDERBAR)        ret = 0;
    else if (val0 == UNI_DELTA)            ret = 1;
@@ -940,9 +939,9 @@ int ret = -1;
    // decode the position...
    //
 ShapeItem pos = 0;
-   for (;src < end; ++src)
+   for (; srcI < len; ++srcI)
        {
-         const Unicode digit = src->get_char_value();
+         const Unicode digit = value.get_cravel(srcI).get_char_value();
          if (digit >= UNI_0 && digit <= UNI_9)
             {
               pos = 10 * pos + digit - UNI_0;
@@ -954,7 +953,7 @@ ShapeItem pos = 0;
    //
    if (category)   *category = val0;
    if (position)   *position = pos;
-   if (name)   { while (src < end)   (*name) << src++->get_char_value(); }
+   if (name)   { while (srcI < len)   (*name) << value.get_cravel(srcI++).get_char_value(); }
    return ret;
 }
 //────────────────────────────────────────────────────────────────────────────
@@ -1649,14 +1648,14 @@ std::vector<const Cell *>member_values;
 
    loop(m, member_indices.size())
       {
-        const Cell * cB = &B.get_cravel(2*member_indices[m]);
-        Assert(cB->is_pointer_cell());
+        const Cell & cBname = B.get_cravel(2*member_indices[m]);
+        Assert(cBname.is_pointer_cell());
         if (flags & tf_with_pos)
-           member_names.push_back(cB->get_pointer_value()->get_UCS_ravel());
+           member_names.push_back(cBname.get_pointer_value()->get_UCS_ravel());
         else
-           member_names.push_back(skip_pos_prefix(cB->get_pointer_value()
-                                                    ->get_UCS_ravel()));
-        member_values.push_back(cB + 1);
+           member_names.push_back(skip_pos_prefix(cBname.get_pointer_value()
+                                                         ->get_UCS_ravel()));
+        member_values.push_back(&B.get_cravel(2*member_indices[m] + 1));
       }
 
    // add an "empty" line to make z look nicer
@@ -1736,11 +1735,11 @@ UCS_string_vector member_names;
 std::vector<const Cell *>member_values;
    loop(m, member_indices.size())
       {
-        const Cell & cB = B.get_cravel(2*member_indices[m]);
-        Assert(cB.is_pointer_cell());
-        const UCS_string member_name = cB.get_pointer_value()->get_UCS_ravel();
+        const Cell & cBname = B.get_cravel(2*member_indices[m]);
+        Assert(cBname.is_pointer_cell());
+        const UCS_string member_name = cBname.get_pointer_value()->get_UCS_ravel();
         member_names.push_back(member_name);
-        member_values.push_back(&cB + 1);
+        member_values.push_back(&B.get_cravel(2*member_indices[m] + 1));
       }
 
    loop(m, member_names.size())

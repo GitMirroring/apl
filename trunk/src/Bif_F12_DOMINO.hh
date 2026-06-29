@@ -91,10 +91,11 @@ protected:
    /// @param need_complex true if complex arithmetic is required
    /// @param rows number of matrix rows
    /// @param cols number of matrix columns
-   /// @param cB pointer to the input ravel cells of B
+   /// @param B source value containing the input ravel
+   /// @param idx starting index into B's ravel
    /// @param EPS epsilon tolerance for near-zero detection
    static void QR_Helzer(Value_P Z, bool need_complex, ShapeItem rows,
-                         ShapeItem cols, const Cell * cB, double EPS);
+                         ShapeItem cols, cValue_R B, ShapeItem idx, double EPS);
 
    /// compute the householder transformation Q of B = QR
    /// @param B input/output matrix data buffer
@@ -176,17 +177,21 @@ protected:
    /// @param B polynomial coefficient array to integrate
    static Value_P integral(const cValue * A, const cValue & B);
 
-   /// initialize complex D with Cells cB
-   /// @param cB pointer to source ravel cells
+   /// initialize complex D from V.get_cravel(idx..idx+count-1)
+   /// @param V source value
+   /// @param idx starting index into V's ravel
    /// @param D destination double buffer (interleaved real/imag pairs)
    /// @param count number of cells to copy
-   static void setup_complex_B(const Cell * cB, double * D, ShapeItem count);
+   static void setup_complex_B(cValue_R V, ShapeItem idx, double * D,
+                                ShapeItem count);
 
-   /// initialize real D with Cells cB
-   /// @param cB pointer to source ravel cells
+   /// initialize real D from V.get_cravel(idx..idx+count-1)
+   /// @param V source value
+   /// @param idx starting index into V's ravel
    /// @param D destination double buffer
    /// @param count number of cells to copy
-   static void setup_real_B(const Cell * cB, double * D, ShapeItem count);
+   static void setup_real_B(cValue_R V, ShapeItem idx, double * D,
+                             ShapeItem count);
 
    /** a real or complex matrix. Unlike "normal" matrices where the matrix rows
        are adjacent, this matrix class separates the number of columns and the

@@ -660,19 +660,20 @@ Value_P Z = get_apl_value();
 MultiIndexIterator mult(Z->get_shape(), IX);
 
 const ShapeItem ec_B = B->element_count();
-const Cell * cB = &B->get_cfirst();
 const int incr_B = (ec_B == 1) ? 0 : 1;
+ShapeItem idxB = 0;
 
    while (mult.has_more())
       {
         const ShapeItem offset_Z = mult++;
         if (offset_Z < 0)                     INDEX_ERROR;
         if (offset_Z >= Z->element_count())   INDEX_ERROR;
+        const Cell & cB = B->get_cravel(idxB);
         Cell & dest = Z->get_wravel(offset_Z);
-        Z->depth_update_for_overwrite(offset_Z, cB->is_pointer_cell() ? 0 : -1);
+        Z->depth_update_for_overwrite(offset_Z, cB.is_pointer_cell() ? 0 : -1);
         dest.release(LOC);   // free sub-values etc (if any)
-        dest.init(*cB, *Z, LOC);
-        cB += incr_B;
+        dest.init(cB, *Z, LOC);
+        idxB += incr_B;
      }
 
    if (monitor_callback)   monitor_callback(*this, SEV_ASSIGNED);
@@ -754,22 +755,23 @@ const ShapeItem max_idx = Z->element_count();
 const ShapeItem ec_B = B->element_count();
 const ShapeItem ec_X = X->element_count();
 const int incr_B = (ec_B == 1) ? 0 : 1;   // maybe scalar extend B
-const Cell * cX = &X->get_cfirst();
-const Cell * cB = &B->get_cfirst();
+ShapeItem idxX = 0;
+ShapeItem idxB = 0;
 
    if (ec_B != 1 && ec_B != ec_X)   LENGTH_ERROR;
 
    loop(x, ec_X)
       {
-        const ShapeItem idx = cX++->get_near_int() - qio;
+        const ShapeItem idx = X->get_cravel(idxX++).get_near_int() - qio;
         if (idx < 0)          INDEX_ERROR;
         if (idx >= max_idx)   INDEX_ERROR;
+        const Cell & cB = B->get_cravel(idxB);
         Cell & dest = Z->get_wravel(idx);
-        Z->depth_update_for_overwrite(idx, cB->is_pointer_cell() ? 0 : -1);
+        Z->depth_update_for_overwrite(idx, cB.is_pointer_cell() ? 0 : -1);
         dest.release(LOC);   // free sub-values etc (if any)
-        dest.init(*cB, *Z, LOC);
+        dest.init(cB, *Z, LOC);
 
-         cB += incr_B;
+        idxB += incr_B;
       }
 
    if (monitor_callback)   monitor_callback(*this, SEV_ASSIGNED);
@@ -1574,23 +1576,24 @@ Symbol::vector_assignment(std::vector<Symbol *> & symbols, Value_P values)
        size_t(values->element_count()) != symbols.size())   LENGTH_ERROR;
 
 const int incr = values->is_scalar() ? 0 : 1;
-const Cell * cV = &values->get_cfirst();
+ShapeItem idxV = 0;
    loop(s, symbols.size())
       {
         Symbol * sym = symbols[symbols.size() - s - 1];
-        if (cV->is_pointer_cell())
+        const Cell & cV = values->get_cravel(idxV);
+        if (cV.is_pointer_cell())
            {
-             sym->assign(cV->get_pointer_value(), true, LOC);
+             sym->assign(cV.get_pointer_value(), true, LOC);
            }
         else
            {
              Value_P val(LOC);
-             val->next_ravel_Cell(*cV);
+             val->next_ravel_Cell(cV);
              val->check_value(LOC);
              sym->assign(val, true, LOC);
            }
 
-        cV += incr;   // scalar extend values
+        idxV += incr;   // scalar extend values
       }
 }
 //════════════════════════════════════════════════════════════════════════════

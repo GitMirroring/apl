@@ -419,8 +419,8 @@ Bif_F12_ELEMENT::do_eval_B(cValue_R B)
    //
    if (B.element_count() == 0)   // empty argument
       {
-        const Cell * C0 = &B.get_cproto();
-        if (C0->is_numeric())
+        const Cell & C0 = B.get_cproto();
+        if (C0.is_numeric())
            {
              Value_P Z(1, LOC);
              Z->next_ravel_Int(0);
@@ -428,7 +428,7 @@ Bif_F12_ELEMENT::do_eval_B(cValue_R B)
              return Z;
            }
 
-        if (C0->is_character_cell())
+        if (C0.is_character_cell())
            {
              Value_P Z(1, LOC);
              Z->next_ravel_Char(UNI_SPACE);
@@ -436,7 +436,7 @@ Bif_F12_ELEMENT::do_eval_B(cValue_R B)
              return Z;
            }
 
-        if (C0->is_lval_cell())
+        if (C0.is_lval_cell())
            {
              // (∈⍬)←value is a noop
              //
@@ -446,9 +446,9 @@ Bif_F12_ELEMENT::do_eval_B(cValue_R B)
              return Z;
            }
 
-        if (C0->is_pointer_cell())
+        if (C0.is_pointer_cell())
             {
-             return do_eval_B(*C0->get_pointer_value());
+             return do_eval_B(*C0.get_pointer_value());
             }
 
 
@@ -567,8 +567,6 @@ const double qct = Workspace::get_CT();
 ConstRavel_P iA(A, true);
    loop(a, aH)
       {
-        const Cell * cB = &B.get_cfirst();
-
         // find largest Celltype in A, starting with CT_INT and maybe
         // "increasing" it to CT_FLOAT or CT_COMPLEX as needed.
         //
@@ -585,7 +583,7 @@ ConstRavel_P iA(A, true);
         for (ConstRavel_P iB(B, true); +iB; ++iB)
             {
               CellType ct = ct_a;
-              const CellType ct_b = cB->get_cell_type();
+              const CellType ct_b = B.get_cfirst().get_cell_type();
               if (ct_b == CT_INT)            ;
               else if (ct_b == CT_FLOAT)     { if (ct == CT_INT)  ct = ct_b; }
               else if (ct_b == CT_COMPLEX)   ct = CT_COMPLEX;
@@ -642,25 +640,26 @@ Cell * cZ = &Z.get_wravel(iB()
 
    // work downwards from the higher indices (see encode_Int())...
    //
-const Cell * cA = &*iA + iA.get_length();      // the end of A (+1)
+ShapeItem idxA = iA() + iA.get_length();      // the end of A (+1)
 
 APL_Complex bc = iB->get_complex_value();   // the value being decoded
    loop(a, aL)
        {
-         cA -= aH;
+         idxA -= aH;
          cZ -= dZ;
 
+        const Cell & cellA = iA.get_owner().get_cravel(idxA);
         const ComplexCell cC(bc);
-        cC.bif_residue(cZ, cA);
+        cC.bif_residue(cZ, &cellA);
 
-        if (cA->is_near_zero())
+        if (cellA.is_near_zero())
            {
              bc = APL_Complex(0, 0);
            }
          else
            {
              bc -= cZ->get_complex_value();
-             bc /= cA->get_complex_value();
+             bc /= cellA.get_complex_value();
            }
        }
 }
@@ -675,27 +674,28 @@ Cell * cZ = &Z.get_wravel(iB()
           + iA()*iB.get_length())   // = the current Z
           + aL*dZ;                  // + the size of Z
 
-const Cell * cA = &*iA + iA.get_length();      // the end of A (+1)
+ShapeItem idxA = iA() + iA.get_length();      // the end of A (+1)
 
    // work downwards from the higher indices (see encode_Int())...
    //
 APL_Float bf = iB->get_real_value();   // the value being decoded
    loop(a, aL)
        {
-         cA -= aH;
+         idxA -= aH;
          cZ -= dZ;
 
+        const Cell & cellA = iA.get_owner().get_cravel(idxA);
         const FloatCell cC(bf);
-        cC.bif_residue(cZ, cA);
+        cC.bif_residue(cZ, &cellA);
 
-        if (cA->is_near_zero())
+        if (cellA.is_near_zero())
            {
              bf = 0.0;
            }
          else
            {
              bf -= cZ->get_real_value();
-             bf /= cA->get_real_value();
+             bf /= cellA.get_real_value();
            }
        }
 }
@@ -709,7 +709,7 @@ Cell * cZ = &Z.get_wravel(iB()
           + iA()*iB.get_length())   // = the current Z (near bottom)
           + aL*dZ;                  // + the size of Z (above top)
 
-const Cell * cA = &*iA + iA.get_length();      // the end of A (+aH)
+ShapeItem idxA = iA() + iA.get_length();      // the end of A (+aH)
 
    /* unfortunately the less significant weights of the number system base A
       are located at higher indices of A. We therefore work downwards from
@@ -733,20 +733,21 @@ const Cell * cA = &*iA + iA.get_length();      // the end of A (+aH)
 APL_Integer bi = iB->get_int_value();   // the value being decoded
    loop(a, aL)
        {
-         cA -= aH;
+         idxA -= aH;
          cZ -= dZ;
 
+        const Cell & cellA = iA.get_owner().get_cravel(idxA);
         const IntCell cC(bi);
-        cC.bif_residue(cZ, cA);
+        cC.bif_residue(cZ, &cellA);
 
-        if (cA->get_int_value() == 0)
+        if (cellA.get_int_value() == 0)
            {
              bi = 0;
            }
          else
            {
              bi -= cZ->get_int_value();
-             bi /= cA->get_int_value();
+             bi /= cellA.get_int_value();
            }
        }
 }
@@ -860,29 +861,29 @@ const Shape shape_Z = shape_A1 + shape_B1;
 
 Value_P Z(shape_Z, LOC);
 
-const Cell * cA = &A.get_cfirst();
+ShapeItem idxA = 0;
 
    loop(h, h_len_A)
        {
-         // cA ... cA + len_A are used. See if they are complex.
+         // A[idxA..idxA+l_len_A-1] are used. See if they are complex.
          //
          bool complex_A = false;
          bool integer_A = true;
          loop(aa, l_len_A)
              {
-                if (!cA[aa].is_near_real())
+                if (!A.get_cravel(idxA + aa).is_near_real())
                    {
                      complex_A = true;
                      integer_A = false;
                      break;
                    }
 
-                if (!cA[aa].is_near_int())   integer_A = false;
+                if (!A.get_cravel(idxA + aa).is_near_int())   integer_A = false;
              }
 
          loop(l, l_len_B)
              {
-                // cB, cB + l_len_B, ... are used. See if they are complex
+                // B[l], B[l + l_len_B], ... are used. See if they are complex
                 //
                 bool complex_B = false;
                 bool integer_B = true;
@@ -899,24 +900,23 @@ const Cell * cA = &A.get_cfirst();
                          integer_B = false;
                     }
 
-               const Cell * cB = &B.get_cravel(l);
                if (integer_A && integer_B)
                   {
-                    const bool overflow = decode_int(*Z, l_len_A, cA,
-                                                     h_len_B, cB, l_len_B);
+                    const bool overflow = decode_int(*Z, l_len_A, A, idxA,
+                                                     h_len_B, B, l, l_len_B);
                      if (!overflow)   continue;
 
                      // otherwise: compute as float
                   }
 
                if (complex_A || complex_B)
-                  decode_complex(*Z, l_len_A, cA,
-                                             h_len_B, cB, l_len_B);
+                  decode_complex(*Z, l_len_A, A, idxA,
+                                             h_len_B, B, l, l_len_B);
                else
-                  decode_real(*Z, l_len_A, cA,
-                                          h_len_B, cB, l_len_B);
+                  decode_real(*Z, l_len_A, A, idxA,
+                                          h_len_B, B, l, l_len_B);
              }
-         cA += l_len_A;
+         idxA += l_len_A;
        }
 
    Z->set_default(B, LOC);
@@ -925,32 +925,36 @@ const Cell * cA = &A.get_cfirst();
 }
 //────────────────────────────────────────────────────────────────────────────
 void
-Bif_F12_DECODE::decode_complex(Value & Z, ShapeItem len_A, const Cell * cA,
-                       ShapeItem len_B, const Cell * cB, ShapeItem dB)
+Bif_F12_DECODE::decode_complex(Value & Z, ShapeItem len_A,
+                       cValue_R VA, ShapeItem idxA,
+                       ShapeItem len_B, cValue_R VB, ShapeItem idxB,
+                       ShapeItem dB)
 {
 const ShapeItem dec_A = len_A == 1 ? 0 : 1;
 const ShapeItem dec_B = len_B == 1 ? 0 : dB;
 const ShapeItem len = dec_A ? len_A : len_B;
 
-   cA += dec_A*len_A;    // let cA point past the lowest weight item in A
-   cB += dec_B*len_B;    // let cB point past the lowest weight item in B
+   idxA += dec_A*len_A;    // let idxA point past the lowest weight item in A
+   idxB += dec_B*len_B;    // let idxB point past the lowest weight item in B
 
 APL_Complex accu(0.0, 0.0);
 APL_Complex weight(1.0, 0.0);
    loop(l, len)
       {
-        cA -= dec_A;
-        cB -= dec_B;
-        accu += weight*cB->get_complex_value();
-        weight *= cA->get_complex_value();
+        idxA -= dec_A;
+        idxB -= dec_B;
+        accu += weight*VB.get_cravel(idxB).get_complex_value();
+        weight *= VA.get_cravel(idxA).get_complex_value();
       }
 
    Z.next_ravel_Number(accu);
 }
 //────────────────────────────────────────────────────────────────────────────
 bool
-Bif_F12_DECODE::decode_int(Value & Z, ShapeItem len_A, const Cell * cA,
-                       ShapeItem len_B, const Cell * cB, ShapeItem dB)
+Bif_F12_DECODE::decode_int(Value & Z, ShapeItem len_A,
+                       cValue_R VA, ShapeItem idxA,
+                       ShapeItem len_B, cValue_R VB, ShapeItem idxB,
+                       ShapeItem dB)
 {
    // decode_int() can easily produce an integer overflow. We keep track
    // of that by also computing the final result as double and return
@@ -961,8 +965,8 @@ const ShapeItem dec_A = len_A == 1 ? 0 : 1;
 const ShapeItem dec_B = len_B == 1 ? 0 : dB;
 const ShapeItem len = dec_A ? len_A : len_B;
 
-   cA += dec_A*len_A;    // let cA point past the lowest weight item in A
-   cB += dec_B*len_B;    // let cB point past the lowest weight item in B
+   idxA += dec_A*len_A;    // let idxA point past the lowest weight item in A
+   idxB += dec_B*len_B;    // let idxB point past the lowest weight item in B
 
 APL_Integer value = 0;
 APL_Float value_f = 0.0;
@@ -972,20 +976,20 @@ APL_Float weight_f = 1.0;
 
    loop(l, len)
       {
-        cA -= dec_A;
-        cB -= dec_B;
+        idxA -= dec_A;
+        idxB -= dec_B;
 
         if (weight_f > LARGE_INT)   return true;
         if (weight_f < SMALL_INT)   return true;
 
-        const APL_Integer vB = cB[0].get_near_int();
+        const APL_Integer vB = VB.get_cravel(idxB).get_near_int();
         value   = value   + weight   * vB;
         value_f = value_f + weight_f * vB;
         if (value_f > LARGE_INT)   return true;
         if (value_f < SMALL_INT)   return true;
 
-        weight   = weight   * cA[0].get_near_int();
-        weight_f = weight_f * cA[0].get_near_int();
+        weight   = weight   * VA.get_cravel(idxA).get_near_int();
+        weight_f = weight_f * VA.get_cravel(idxA).get_near_int();
       }
 
    Z.next_ravel_Int(value);
@@ -994,24 +998,26 @@ APL_Float weight_f = 1.0;
 }
 //────────────────────────────────────────────────────────────────────────────
 void
-Bif_F12_DECODE::decode_real(Value & Z, ShapeItem len_A, const Cell * cA,
-                       ShapeItem len_B, const Cell * cB, ShapeItem dB)
+Bif_F12_DECODE::decode_real(Value & Z, ShapeItem len_A,
+                       cValue_R VA, ShapeItem idxA,
+                       ShapeItem len_B, cValue_R VB, ShapeItem idxB,
+                       ShapeItem dB)
 {
 const ShapeItem dec_A = len_A == 1 ? 0 : 1;
 const ShapeItem dec_B = len_B == 1 ? 0 : dB;
 const ShapeItem len = dec_A ? len_A : len_B;
 
-   cA += dec_A*len_A;    // let cA point past the lowest weight item in A
-   cB += dec_B*len_B;    // let cB point past the lowest weight item in B
+   idxA += dec_A*len_A;    // let idxA point past the lowest weight item in A
+   idxB += dec_B*len_B;    // let idxB point past the lowest weight item in B
 
 APL_Float accu   = 0.0;
 APL_Float weight = 1.0;
    loop(l, len)
       {
-        cA -= dec_A;
-        cB -= dec_B;
-        accu += weight * cB->get_real_value();
-        weight *= cA->get_real_value();
+        idxA -= dec_A;
+        idxB -= dec_B;
+        accu += weight * VB.get_cravel(idxB).get_real_value();
+        weight *= VA.get_cravel(idxA).get_real_value();
       }
 
    Z.next_ravel_Number(accu);
@@ -1422,9 +1428,9 @@ Value_P Z(shape_Z, LOC);
 
    for (ArrayIterator iZ(shape_Z); iZ.has_more(); ++iZ)
        {
-         const Cell * cB = &B.get_cfirst();
-         loop(z, rank_Z)   cB += iZ.get_shape_offset(z) * weight_Z[z];
-         Z->next_ravel_Cell(*cB);
+         ShapeItem idxB = 0;
+         loop(z, rank_Z)   idxB += iZ.get_shape_offset(z) * weight_Z[z];
+         Z->next_ravel_Cell(B.get_cravel(idxB));
        }
 
    Z->check_value(LOC);
