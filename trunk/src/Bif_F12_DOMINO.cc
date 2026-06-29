@@ -1870,7 +1870,7 @@ int printer = 1;
       {
         if (A->get_rank() > 1)        RANK_ERROR;
         if (A->element_count() > 1)   LENGTH_ERROR;
-        printer = A->get_cravel(0).get_int_value();
+        printer = A->get_cfirst().get_int_value();
       }
 
    // B shall be a character string with the expression to be integrated

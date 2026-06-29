@@ -2085,10 +2085,10 @@ NOT_MINGW(
      int result = -1;
      switch(A->element_count())
         {
-           case 1: result = fcntl(fd, A->get_cravel(0).get_int_value());
+           case 1: result = fcntl(fd, A->get_cfirst().get_int_value());
                    break;
 
-           case 2: result = fcntl(fd, A->get_cravel(0).get_int_value(),
+           case 2: result = fcntl(fd, A->get_cfirst().get_int_value(),
                                       A->get_cravel(1).get_int_value());
                    break;
 

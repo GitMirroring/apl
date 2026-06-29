@@ -127,7 +127,7 @@ int modifier = 0;
    else if (X.is_vector())                         // op and modifier
       {
         const ShapeItem X_count = X.element_count();
-        op = MX_ops(X.get_cravel(0).get_int_value());
+        op = MX_ops(X.get_cfirst().get_int_value());
         if (X_count > 1)   modifier = X.get_cravel(1).get_int_value();
       }
    else
@@ -178,7 +178,7 @@ int modifier = 0;
   else if (X.is_vector())                         // op and modifier
      {
        const ShapeItem X_count = X.element_count();
-       op = MX_ops(X.get_cravel(0).get_int_value());
+       op = MX_ops(X.get_cfirst().get_int_value());
         if (X_count > 1)   modifier = X.get_cravel(1).get_int_value();
       }
    else
@@ -1140,7 +1140,7 @@ Quad_MX::monadicRotation(Value_P B)
         RANK_ERROR;
       }
 
-const Cell & B0 = B->get_cravel(0);
+const Cell & B0 = B->get_cscalar();
 const APL_Float xr = B0.get_real_value();
 const APL_Float xi = B0.get_imag_value();
 const Dcomplex theta(xr, xi);
@@ -1237,7 +1237,7 @@ const Dcomplex t22 =  cosb * cosg;
         Z->next_ravel_Complex(t22.real(), t22.imag());
         Z->next_ravel_Complex(0.0,        0.0);
 
-        Z->next_ravel_Cell(A->get_cravel(0));
+        Z->next_ravel_Cell(A->get_cfirst());
         Z->next_ravel_Cell(A->get_cravel(1));
         Z->next_ravel_Cell(A->get_cravel(2));
         Z->next_ravel_Complex(1.0, 0.0);

@@ -250,10 +250,10 @@ am__lib_gnu_apl_la_SOURCES_DIST = Plot_ascii.cc Plot_gtk.cc \
 	Unicode.hh UserFunction.cc UserFunction.hh \
 	UserFunction_header.cc UserFunction_header.hh \
 	UserPreferences.cc UserPreferences.hh UTF8_string.cc \
-	UTF8_string.hh Value.cc Value.icc Value.hh cValue.cc \
-	Value_P.icc Value_P.hh ValueHistory.cc ValueHistory.hh \
-	Workspace.cc Workspace.icc Workspace.hh static_Objects.cc \
-	static_Objects.hh Regexp.cc Regexp.hh \
+	UTF8_string.hh Ravel.cc Ravel.hh Value.cc Value.icc Value.hh \
+	cValue.cc Value_P.icc Value_P.hh ValueHistory.cc \
+	ValueHistory.hh Workspace.cc Workspace.icc Workspace.hh \
+	static_Objects.cc static_Objects.hh Regexp.cc Regexp.hh \
 	sql/SqliteArgListBuilder.cc sql/SqliteArgListBuilder.hh \
 	sql/SqliteConnection.cc sql/SqliteConnection.hh \
 	sql/SqliteResultValue.cc sql/SqliteResultValue.hh \
@@ -348,11 +348,11 @@ am__objects_8 = $(am__objects_3) lib_gnu_apl_la-Archive.lo \
 	lib_gnu_apl_la-UserFunction.lo \
 	lib_gnu_apl_la-UserFunction_header.lo \
 	lib_gnu_apl_la-UserPreferences.lo \
-	lib_gnu_apl_la-UTF8_string.lo lib_gnu_apl_la-Value.lo \
-	lib_gnu_apl_la-cValue.lo lib_gnu_apl_la-ValueHistory.lo \
-	lib_gnu_apl_la-Workspace.lo lib_gnu_apl_la-static_Objects.lo \
-	$(am__objects_4) $(am__objects_5) $(am__objects_6) \
-	$(am__objects_7)
+	lib_gnu_apl_la-UTF8_string.lo lib_gnu_apl_la-Ravel.lo \
+	lib_gnu_apl_la-Value.lo lib_gnu_apl_la-cValue.lo \
+	lib_gnu_apl_la-ValueHistory.lo lib_gnu_apl_la-Workspace.lo \
+	lib_gnu_apl_la-static_Objects.lo $(am__objects_4) \
+	$(am__objects_5) $(am__objects_6) $(am__objects_7)
 @apl_TARGET_LIBAPL_FALSE@@apl_TARGET_PYTHON_TRUE@am_lib_gnu_apl_la_OBJECTS = $(am__objects_8) \
 @apl_TARGET_LIBAPL_FALSE@@apl_TARGET_PYTHON_TRUE@	lib_gnu_apl_la-python_apl.lo
 lib_gnu_apl_la_OBJECTS = $(am_lib_gnu_apl_la_OBJECTS)
@@ -435,10 +435,10 @@ am__libapl_la_SOURCES_DIST = Plot_ascii.cc Plot_gtk.cc Plot_xcb.cc \
 	Unicode.hh UserFunction.cc UserFunction.hh \
 	UserFunction_header.cc UserFunction_header.hh \
 	UserPreferences.cc UserPreferences.hh UTF8_string.cc \
-	UTF8_string.hh Value.cc Value.icc Value.hh cValue.cc \
-	Value_P.icc Value_P.hh ValueHistory.cc ValueHistory.hh \
-	Workspace.cc Workspace.icc Workspace.hh static_Objects.cc \
-	static_Objects.hh Regexp.cc Regexp.hh \
+	UTF8_string.hh Ravel.cc Ravel.hh Value.cc Value.icc Value.hh \
+	cValue.cc Value_P.icc Value_P.hh ValueHistory.cc \
+	ValueHistory.hh Workspace.cc Workspace.icc Workspace.hh \
+	static_Objects.cc static_Objects.hh Regexp.cc Regexp.hh \
 	sql/SqliteArgListBuilder.cc sql/SqliteArgListBuilder.hh \
 	sql/SqliteConnection.cc sql/SqliteConnection.hh \
 	sql/SqliteResultValue.cc sql/SqliteResultValue.hh \
@@ -518,7 +518,7 @@ am__objects_16 = $(am__objects_11) libapl_la-Archive.lo \
 	libapl_la-UCS_string.lo libapl_la-UCS_string_vector.lo \
 	libapl_la-UserFunction.lo libapl_la-UserFunction_header.lo \
 	libapl_la-UserPreferences.lo libapl_la-UTF8_string.lo \
-	libapl_la-Value.lo libapl_la-cValue.lo \
+	libapl_la-Ravel.lo libapl_la-Value.lo libapl_la-cValue.lo \
 	libapl_la-ValueHistory.lo libapl_la-Workspace.lo \
 	libapl_la-static_Objects.lo $(am__objects_12) \
 	$(am__objects_13) $(am__objects_14) $(am__objects_15)
@@ -596,10 +596,10 @@ am__apl_SOURCES_DIST = main.cc Plot_ascii.cc Plot_gtk.cc Plot_xcb.cc \
 	Unicode.hh UserFunction.cc UserFunction.hh \
 	UserFunction_header.cc UserFunction_header.hh \
 	UserPreferences.cc UserPreferences.hh UTF8_string.cc \
-	UTF8_string.hh Value.cc Value.icc Value.hh cValue.cc \
-	Value_P.icc Value_P.hh ValueHistory.cc ValueHistory.hh \
-	Workspace.cc Workspace.icc Workspace.hh static_Objects.cc \
-	static_Objects.hh Regexp.cc Regexp.hh \
+	UTF8_string.hh Ravel.cc Ravel.hh Value.cc Value.icc Value.hh \
+	cValue.cc Value_P.icc Value_P.hh ValueHistory.cc \
+	ValueHistory.hh Workspace.cc Workspace.icc Workspace.hh \
+	static_Objects.cc static_Objects.hh Regexp.cc Regexp.hh \
 	sql/SqliteArgListBuilder.cc sql/SqliteArgListBuilder.hh \
 	sql/SqliteConnection.cc sql/SqliteConnection.hh \
 	sql/SqliteResultValue.cc sql/SqliteResultValue.hh \
@@ -681,7 +681,7 @@ am__objects_24 = $(am__objects_19) apl-Archive.$(OBJEXT) \
 	apl-UCS_string.$(OBJEXT) apl-UCS_string_vector.$(OBJEXT) \
 	apl-UserFunction.$(OBJEXT) apl-UserFunction_header.$(OBJEXT) \
 	apl-UserPreferences.$(OBJEXT) apl-UTF8_string.$(OBJEXT) \
-	apl-Value.$(OBJEXT) apl-cValue.$(OBJEXT) \
+	apl-Ravel.$(OBJEXT) apl-Value.$(OBJEXT) apl-cValue.$(OBJEXT) \
 	apl-ValueHistory.$(OBJEXT) apl-Workspace.$(OBJEXT) \
 	apl-static_Objects.$(OBJEXT) $(am__objects_20) \
 	$(am__objects_21) $(am__objects_22) $(am__objects_23)
@@ -767,13 +767,13 @@ am__depfiles_remade = ./$(DEPDIR)/apl-Archive.Po \
 	./$(DEPDIR)/apl-Quad_RL.Po ./$(DEPDIR)/apl-Quad_RVAL.Po \
 	./$(DEPDIR)/apl-Quad_SQL.Po ./$(DEPDIR)/apl-Quad_SVx.Po \
 	./$(DEPDIR)/apl-Quad_TF.Po ./$(DEPDIR)/apl-Quad_WA.Po \
-	./$(DEPDIR)/apl-Quad_XML.Po ./$(DEPDIR)/apl-RealCell.Po \
-	./$(DEPDIR)/apl-Regexp.Po ./$(DEPDIR)/apl-ScalarFunction.Po \
-	./$(DEPDIR)/apl-Security.Po ./$(DEPDIR)/apl-Shape.Po \
-	./$(DEPDIR)/apl-StateIndicator.Po ./$(DEPDIR)/apl-Svar_DB.Po \
-	./$(DEPDIR)/apl-Svar_record.Po ./$(DEPDIR)/apl-Symbol.Po \
-	./$(DEPDIR)/apl-SymbolTable.Po ./$(DEPDIR)/apl-Sys.Po \
-	./$(DEPDIR)/apl-SystemVariable.Po \
+	./$(DEPDIR)/apl-Quad_XML.Po ./$(DEPDIR)/apl-Ravel.Po \
+	./$(DEPDIR)/apl-RealCell.Po ./$(DEPDIR)/apl-Regexp.Po \
+	./$(DEPDIR)/apl-ScalarFunction.Po ./$(DEPDIR)/apl-Security.Po \
+	./$(DEPDIR)/apl-Shape.Po ./$(DEPDIR)/apl-StateIndicator.Po \
+	./$(DEPDIR)/apl-Svar_DB.Po ./$(DEPDIR)/apl-Svar_record.Po \
+	./$(DEPDIR)/apl-Symbol.Po ./$(DEPDIR)/apl-SymbolTable.Po \
+	./$(DEPDIR)/apl-Sys.Po ./$(DEPDIR)/apl-SystemVariable.Po \
 	./$(DEPDIR)/apl-TabExpansion.Po \
 	./$(DEPDIR)/apl-Thread_context.Po ./$(DEPDIR)/apl-Token.Po \
 	./$(DEPDIR)/apl-Token_string.Po ./$(DEPDIR)/apl-Tokenizer.Po \
@@ -879,6 +879,7 @@ am__depfiles_remade = ./$(DEPDIR)/apl-Archive.Po \
 	./$(DEPDIR)/lib_gnu_apl_la-Quad_TF.Plo \
 	./$(DEPDIR)/lib_gnu_apl_la-Quad_WA.Plo \
 	./$(DEPDIR)/lib_gnu_apl_la-Quad_XML.Plo \
+	./$(DEPDIR)/lib_gnu_apl_la-Ravel.Plo \
 	./$(DEPDIR)/lib_gnu_apl_la-RealCell.Plo \
 	./$(DEPDIR)/lib_gnu_apl_la-Regexp.Plo \
 	./$(DEPDIR)/lib_gnu_apl_la-ScalarFunction.Plo \
@@ -1002,6 +1003,7 @@ am__depfiles_remade = ./$(DEPDIR)/apl-Archive.Po \
 	./$(DEPDIR)/libapl_la-Quad_TF.Plo \
 	./$(DEPDIR)/libapl_la-Quad_WA.Plo \
 	./$(DEPDIR)/libapl_la-Quad_XML.Plo \
+	./$(DEPDIR)/libapl_la-Ravel.Plo \
 	./$(DEPDIR)/libapl_la-RealCell.Plo \
 	./$(DEPDIR)/libapl_la-Regexp.Plo \
 	./$(DEPDIR)/libapl_la-ScalarFunction.Plo \
@@ -1416,11 +1418,11 @@ common_SOURCES = $(plot_SOURCES) ../config.h APL_Float_as_class.hh \
 	Unicode.hh UserFunction.cc UserFunction.hh \
 	UserFunction_header.cc UserFunction_header.hh \
 	UserPreferences.cc UserPreferences.hh UTF8_string.cc \
-	UTF8_string.hh Value.cc Value.icc Value.hh cValue.cc \
-	Value_P.icc Value_P.hh ValueHistory.cc ValueHistory.hh \
-	Workspace.cc Workspace.icc Workspace.hh static_Objects.cc \
-	static_Objects.hh $(am__append_7) $(am__append_10) \
-	$(am__append_11) $(am__append_14)
+	UTF8_string.hh Ravel.cc Ravel.hh Value.cc Value.icc Value.hh \
+	cValue.cc Value_P.icc Value_P.hh ValueHistory.cc \
+	ValueHistory.hh Workspace.cc Workspace.icc Workspace.hh \
+	static_Objects.cc static_Objects.hh $(am__append_7) \
+	$(am__append_10) $(am__append_11) $(am__append_14)
 pkglib_LTLIBRARIES = $(am__append_15) $(am__append_16)
 @apl_TARGET_LIBAPL_TRUE@pkginclude_HEADERS = libapl.h Error.def
 @apl_TARGET_LIBAPL_TRUE@libapl_la_SOURCES = $(common_SOURCES) libapl.h libapl.cc
@@ -1740,6 +1742,7 @@ distclean-compile:
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/apl-Quad_TF.Po@am__quote@ # am--include-marker
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/apl-Quad_WA.Po@am__quote@ # am--include-marker
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/apl-Quad_XML.Po@am__quote@ # am--include-marker
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/apl-Ravel.Po@am__quote@ # am--include-marker
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/apl-RealCell.Po@am__quote@ # am--include-marker
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/apl-Regexp.Po@am__quote@ # am--include-marker
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/apl-ScalarFunction.Po@am__quote@ # am--include-marker
@@ -1864,6 +1867,7 @@ distclean-compile:
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/lib_gnu_apl_la-Quad_TF.Plo@am__quote@ # am--include-marker
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/lib_gnu_apl_la-Quad_WA.Plo@am__quote@ # am--include-marker
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/lib_gnu_apl_la-Quad_XML.Plo@am__quote@ # am--include-marker
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/lib_gnu_apl_la-Ravel.Plo@am__quote@ # am--include-marker
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/lib_gnu_apl_la-RealCell.Plo@am__quote@ # am--include-marker
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/lib_gnu_apl_la-Regexp.Plo@am__quote@ # am--include-marker
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/lib_gnu_apl_la-ScalarFunction.Plo@am__quote@ # am--include-marker
@@ -1988,6 +1992,7 @@ distclean-compile:
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libapl_la-Quad_TF.Plo@am__quote@ # am--include-marker
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libapl_la-Quad_WA.Plo@am__quote@ # am--include-marker
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libapl_la-Quad_XML.Plo@am__quote@ # am--include-marker
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libapl_la-Ravel.Plo@am__quote@ # am--include-marker
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libapl_la-RealCell.Plo@am__quote@ # am--include-marker
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libapl_la-Regexp.Plo@am__quote@ # am--include-marker
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libapl_la-ScalarFunction.Plo@am__quote@ # am--include-marker
@@ -2891,6 +2896,13 @@ lib_gnu_apl_la-UTF8_string.lo: UTF8_string.cc
 @AMDEP_TRUE@@am__fastdepCXX_FALSE@	$(AM_V_CXX)source='UTF8_string.cc' object='lib_gnu_apl_la-UTF8_string.lo' libtool=yes @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
 @am__fastdepCXX_FALSE@	$(AM_V_CXX@am__nodep@)$(LIBTOOL) $(AM_V_lt) --tag=CXX $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(lib_gnu_apl_la_CXXFLAGS) $(CXXFLAGS) -c -o lib_gnu_apl_la-UTF8_string.lo `test -f 'UTF8_string.cc' || echo '$(srcdir)/'`UTF8_string.cc
+
+lib_gnu_apl_la-Ravel.lo: Ravel.cc
+@am__fastdepCXX_TRUE@	$(AM_V_CXX)$(LIBTOOL) $(AM_V_lt) --tag=CXX $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(lib_gnu_apl_la_CXXFLAGS) $(CXXFLAGS) -MT lib_gnu_apl_la-Ravel.lo -MD -MP -MF $(DEPDIR)/lib_gnu_apl_la-Ravel.Tpo -c -o lib_gnu_apl_la-Ravel.lo `test -f 'Ravel.cc' || echo '$(srcdir)/'`Ravel.cc
+@am__fastdepCXX_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/lib_gnu_apl_la-Ravel.Tpo $(DEPDIR)/lib_gnu_apl_la-Ravel.Plo
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	$(AM_V_CXX)source='Ravel.cc' object='lib_gnu_apl_la-Ravel.lo' libtool=yes @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCXX_FALSE@	$(AM_V_CXX@am__nodep@)$(LIBTOOL) $(AM_V_lt) --tag=CXX $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(lib_gnu_apl_la_CXXFLAGS) $(CXXFLAGS) -c -o lib_gnu_apl_la-Ravel.lo `test -f 'Ravel.cc' || echo '$(srcdir)/'`Ravel.cc
 
 lib_gnu_apl_la-Value.lo: Value.cc
 @am__fastdepCXX_TRUE@	$(AM_V_CXX)$(LIBTOOL) $(AM_V_lt) --tag=CXX $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(lib_gnu_apl_la_CXXFLAGS) $(CXXFLAGS) -MT lib_gnu_apl_la-Value.lo -MD -MP -MF $(DEPDIR)/lib_gnu_apl_la-Value.Tpo -c -o lib_gnu_apl_la-Value.lo `test -f 'Value.cc' || echo '$(srcdir)/'`Value.cc
@@ -3815,6 +3827,13 @@ libapl_la-UTF8_string.lo: UTF8_string.cc
 @AMDEP_TRUE@@am__fastdepCXX_FALSE@	$(AM_V_CXX)source='UTF8_string.cc' object='libapl_la-UTF8_string.lo' libtool=yes @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
 @am__fastdepCXX_FALSE@	$(AM_V_CXX@am__nodep@)$(LIBTOOL) $(AM_V_lt) --tag=CXX $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libapl_la_CXXFLAGS) $(CXXFLAGS) -c -o libapl_la-UTF8_string.lo `test -f 'UTF8_string.cc' || echo '$(srcdir)/'`UTF8_string.cc
+
+libapl_la-Ravel.lo: Ravel.cc
+@am__fastdepCXX_TRUE@	$(AM_V_CXX)$(LIBTOOL) $(AM_V_lt) --tag=CXX $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libapl_la_CXXFLAGS) $(CXXFLAGS) -MT libapl_la-Ravel.lo -MD -MP -MF $(DEPDIR)/libapl_la-Ravel.Tpo -c -o libapl_la-Ravel.lo `test -f 'Ravel.cc' || echo '$(srcdir)/'`Ravel.cc
+@am__fastdepCXX_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/libapl_la-Ravel.Tpo $(DEPDIR)/libapl_la-Ravel.Plo
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	$(AM_V_CXX)source='Ravel.cc' object='libapl_la-Ravel.lo' libtool=yes @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCXX_FALSE@	$(AM_V_CXX@am__nodep@)$(LIBTOOL) $(AM_V_lt) --tag=CXX $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libapl_la_CXXFLAGS) $(CXXFLAGS) -c -o libapl_la-Ravel.lo `test -f 'Ravel.cc' || echo '$(srcdir)/'`Ravel.cc
 
 libapl_la-Value.lo: Value.cc
 @am__fastdepCXX_TRUE@	$(AM_V_CXX)$(LIBTOOL) $(AM_V_lt) --tag=CXX $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libapl_la_CXXFLAGS) $(CXXFLAGS) -MT libapl_la-Value.lo -MD -MP -MF $(DEPDIR)/libapl_la-Value.Tpo -c -o libapl_la-Value.lo `test -f 'Value.cc' || echo '$(srcdir)/'`Value.cc
@@ -5573,6 +5592,20 @@ apl-UTF8_string.obj: UTF8_string.cc
 @AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
 @am__fastdepCXX_FALSE@	$(AM_V_CXX@am__nodep@)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(apl_CXXFLAGS) $(CXXFLAGS) -c -o apl-UTF8_string.obj `if test -f 'UTF8_string.cc'; then $(CYGPATH_W) 'UTF8_string.cc'; else $(CYGPATH_W) '$(srcdir)/UTF8_string.cc'; fi`
 
+apl-Ravel.o: Ravel.cc
+@am__fastdepCXX_TRUE@	$(AM_V_CXX)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(apl_CXXFLAGS) $(CXXFLAGS) -MT apl-Ravel.o -MD -MP -MF $(DEPDIR)/apl-Ravel.Tpo -c -o apl-Ravel.o `test -f 'Ravel.cc' || echo '$(srcdir)/'`Ravel.cc
+@am__fastdepCXX_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/apl-Ravel.Tpo $(DEPDIR)/apl-Ravel.Po
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	$(AM_V_CXX)source='Ravel.cc' object='apl-Ravel.o' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCXX_FALSE@	$(AM_V_CXX@am__nodep@)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(apl_CXXFLAGS) $(CXXFLAGS) -c -o apl-Ravel.o `test -f 'Ravel.cc' || echo '$(srcdir)/'`Ravel.cc
+
+apl-Ravel.obj: Ravel.cc
+@am__fastdepCXX_TRUE@	$(AM_V_CXX)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(apl_CXXFLAGS) $(CXXFLAGS) -MT apl-Ravel.obj -MD -MP -MF $(DEPDIR)/apl-Ravel.Tpo -c -o apl-Ravel.obj `if test -f 'Ravel.cc'; then $(CYGPATH_W) 'Ravel.cc'; else $(CYGPATH_W) '$(srcdir)/Ravel.cc'; fi`
+@am__fastdepCXX_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/apl-Ravel.Tpo $(DEPDIR)/apl-Ravel.Po
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	$(AM_V_CXX)source='Ravel.cc' object='apl-Ravel.obj' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCXX_FALSE@	$(AM_V_CXX@am__nodep@)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(apl_CXXFLAGS) $(CXXFLAGS) -c -o apl-Ravel.obj `if test -f 'Ravel.cc'; then $(CYGPATH_W) 'Ravel.cc'; else $(CYGPATH_W) '$(srcdir)/Ravel.cc'; fi`
+
 apl-Value.o: Value.cc
 @am__fastdepCXX_TRUE@	$(AM_V_CXX)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(apl_CXXFLAGS) $(CXXFLAGS) -MT apl-Value.o -MD -MP -MF $(DEPDIR)/apl-Value.Tpo -c -o apl-Value.o `test -f 'Value.cc' || echo '$(srcdir)/'`Value.cc
 @am__fastdepCXX_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/apl-Value.Tpo $(DEPDIR)/apl-Value.Po
@@ -6117,6 +6150,7 @@ distclean: distclean-recursive
 	-rm -f ./$(DEPDIR)/apl-Quad_TF.Po
 	-rm -f ./$(DEPDIR)/apl-Quad_WA.Po
 	-rm -f ./$(DEPDIR)/apl-Quad_XML.Po
+	-rm -f ./$(DEPDIR)/apl-Ravel.Po
 	-rm -f ./$(DEPDIR)/apl-RealCell.Po
 	-rm -f ./$(DEPDIR)/apl-Regexp.Po
 	-rm -f ./$(DEPDIR)/apl-ScalarFunction.Po
@@ -6241,6 +6275,7 @@ distclean: distclean-recursive
 	-rm -f ./$(DEPDIR)/lib_gnu_apl_la-Quad_TF.Plo
 	-rm -f ./$(DEPDIR)/lib_gnu_apl_la-Quad_WA.Plo
 	-rm -f ./$(DEPDIR)/lib_gnu_apl_la-Quad_XML.Plo
+	-rm -f ./$(DEPDIR)/lib_gnu_apl_la-Ravel.Plo
 	-rm -f ./$(DEPDIR)/lib_gnu_apl_la-RealCell.Plo
 	-rm -f ./$(DEPDIR)/lib_gnu_apl_la-Regexp.Plo
 	-rm -f ./$(DEPDIR)/lib_gnu_apl_la-ScalarFunction.Plo
@@ -6365,6 +6400,7 @@ distclean: distclean-recursive
 	-rm -f ./$(DEPDIR)/libapl_la-Quad_TF.Plo
 	-rm -f ./$(DEPDIR)/libapl_la-Quad_WA.Plo
 	-rm -f ./$(DEPDIR)/libapl_la-Quad_XML.Plo
+	-rm -f ./$(DEPDIR)/libapl_la-Ravel.Plo
 	-rm -f ./$(DEPDIR)/libapl_la-RealCell.Plo
 	-rm -f ./$(DEPDIR)/libapl_la-Regexp.Plo
 	-rm -f ./$(DEPDIR)/libapl_la-ScalarFunction.Plo
@@ -6558,6 +6594,7 @@ maintainer-clean: maintainer-clean-recursive
 	-rm -f ./$(DEPDIR)/apl-Quad_TF.Po
 	-rm -f ./$(DEPDIR)/apl-Quad_WA.Po
 	-rm -f ./$(DEPDIR)/apl-Quad_XML.Po
+	-rm -f ./$(DEPDIR)/apl-Ravel.Po
 	-rm -f ./$(DEPDIR)/apl-RealCell.Po
 	-rm -f ./$(DEPDIR)/apl-Regexp.Po
 	-rm -f ./$(DEPDIR)/apl-ScalarFunction.Po
@@ -6682,6 +6719,7 @@ maintainer-clean: maintainer-clean-recursive
 	-rm -f ./$(DEPDIR)/lib_gnu_apl_la-Quad_TF.Plo
 	-rm -f ./$(DEPDIR)/lib_gnu_apl_la-Quad_WA.Plo
 	-rm -f ./$(DEPDIR)/lib_gnu_apl_la-Quad_XML.Plo
+	-rm -f ./$(DEPDIR)/lib_gnu_apl_la-Ravel.Plo
 	-rm -f ./$(DEPDIR)/lib_gnu_apl_la-RealCell.Plo
 	-rm -f ./$(DEPDIR)/lib_gnu_apl_la-Regexp.Plo
 	-rm -f ./$(DEPDIR)/lib_gnu_apl_la-ScalarFunction.Plo
@@ -6806,6 +6844,7 @@ maintainer-clean: maintainer-clean-recursive
 	-rm -f ./$(DEPDIR)/libapl_la-Quad_TF.Plo
 	-rm -f ./$(DEPDIR)/libapl_la-Quad_WA.Plo
 	-rm -f ./$(DEPDIR)/libapl_la-Quad_XML.Plo
+	-rm -f ./$(DEPDIR)/libapl_la-Ravel.Plo
 	-rm -f ./$(DEPDIR)/libapl_la-RealCell.Plo
 	-rm -f ./$(DEPDIR)/libapl_la-Regexp.Plo
 	-rm -f ./$(DEPDIR)/libapl_la-ScalarFunction.Plo

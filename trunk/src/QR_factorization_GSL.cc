@@ -56,7 +56,7 @@ Value_P ZT(3, LOC);
   else
      QR_factorize_DD_matrix(*ZT, N, M, *BT, 0);
 
-Value_P QT  = ZT->get_cravel(0).get_pointer_value();
+Value_P QT  = ZT->get_cfirst().get_pointer_value();
 Value_P RT  = ZT->get_cravel(1).get_pointer_value();
 Value_P RiT = ZT->get_cravel(2).get_pointer_value();
 
@@ -443,7 +443,7 @@ Value_P BT = Bif_F12_TRANSPOSE::transpose(shape_BT, *B);   // BT←⍉B
 Value_P ZT(3, LOC);
   QL_factorize_DD_matrix(*ZT, N, M, *BT, 0);
 
-Value_P QT  = ZT->get_cravel(0).get_pointer_value();
+Value_P QT  = ZT->get_cfirst().get_pointer_value();
 Value_P RT  = ZT->get_cravel(1).get_pointer_value();
 Value_P RiT = ZT->get_cravel(2).get_pointer_value();
 

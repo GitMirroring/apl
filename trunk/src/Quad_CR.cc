@@ -1333,7 +1333,7 @@ Quad_CR::do_CR33(cValue_R B)
 const ShapeItem len_B = B.element_count();
    if (len_B < 1)   LENGTH_ERROR;
 const ShapeItem len_B1 = len_B - 1;
-   if (!B.get_cravel(0).is_integer_cell())   DOMAIN_ERROR;
+   if (!B.get_cfirst().is_integer_cell())   DOMAIN_ERROR;
    loop (b,  len_B1)   B.get_cravel(b + 1).get_byte_value();   // DOMAIN ERROR if not byte
 
 Value_P Z(len_B + 7, LOC);
@@ -1739,7 +1739,7 @@ Quad_CR::decode_CR44(UCS_string & result, const Cell & cB)
         if (B2->element_count() != 2)   LENGTH_ERROR;
 
         const Cell & cVal        = B2->get_cravel(1);
-        const Cell & cTag        = B2->get_cravel(0);   // the tag
+        const Cell & cTag        = B2->get_cfirst();   // the tag
         const TokenTag tag       = TokenTag(cTag.get_int_value());
         const TokenClass cls     = TokenClass(tag & TC_MASK);
         const TokenValueType typ = TokenValueType(tag & TV_MASK);

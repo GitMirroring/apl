@@ -175,7 +175,7 @@ Value_P Z(shape_Z, LOC);
 
 const Shape3 shape_Z3(shape_Z, axis);
 
-const bool lval = B.get_cravel(0).is_lval_cell();
+const bool lval = B.get_cfirst().is_lval_cell();
 
 ShapeItem inc_1 = shape_Z3.l();   // increment after result l items
 ShapeItem inc_2 = 0;              // increment after result m*l items

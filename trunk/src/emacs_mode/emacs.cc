@@ -93,7 +93,7 @@ Token eval_AB(Value_P A, Value_P B)
 
 Token eval_XB(const Value * X, const Value * B)
 {
-    const int function_number = X->get_cravel(0).get_near_int();
+    const int function_number = X->get_cfirst().get_near_int();
 
     switch( function_number ) {
     case 0:

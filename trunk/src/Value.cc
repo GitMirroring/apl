@@ -118,20 +118,20 @@ Value::Value(const Shape & sh, uint64_t * bits, const char * loc)
      pointer_cell_count(0)
 {
    shape = sh;
-   fetcher = &packed_fetcher;
+   ravel.fetcher = &Ravel::packed_fetcher;
    flags = {}; flags.ravel_type = RT_BOOL;
-   valid_ravel_items = sh.get_nz_volume();
-   ravel = reinterpret_cast<Cell *>(bits);
+   ravel.valid_ravel_items = sh.get_nz_volume();
+   ravel.cells = reinterpret_cast<Cell *>(bits);
    ADD_EVENT(this, VHE_Create, 0, loc);
    check_ptr = charP(this) + 7;
 
-   if (ravel)   return;   // caller has allocated
+   if (ravel.cells)   return;   // caller has allocated
 
    // round the size up to the next 64 bit boundary.
 const size_t uint64_count = (sh.get_nz_volume() + 63) >> 6;
    bits = new uint64_t[uint64_count];
    loop(u, uint64_count)   bits[u] = 0;
-   ravel = reinterpret_cast<Cell *>(bits);
+   ravel.cells = reinterpret_cast<Cell *>(bits);
    set_complete();
 }
 //────────────────────────────────────────────────────────────────────────────
@@ -210,9 +210,9 @@ Value::~Value()
 
    if (flags.ravel_type == RT_BOOL)
       {
-        uint8_t * bits = reinterpret_cast<uint8_t *>(ravel);
+        uint8_t * bits = reinterpret_cast<uint8_t *>(ravel.cells);
         delete[] bits;
-        ravel = 0;
+        ravel.cells = 0;
         Assert(check_ptr == charP(this) + 7);
         check_ptr = 0;
         return;
@@ -243,12 +243,12 @@ const ShapeItem length = nz_element_count();
 
    --value_count;
 
-   if (ravel == 0)   return;   // new() failed
+   if (ravel.cells == 0)   return;   // new() failed
 
-   if (ravel != short_value)   // long value
+   if (ravel.cells != ravel.short_value)   // long value
       {
         total_ravel_count -= length;
-        std::allocator<Cell>{}.deallocate(ravel, length);
+        std::allocator<Cell>{}.deallocate(ravel.cells, length);
       }
 
    Assert(check_ptr == charP(this) + 7);
@@ -347,7 +347,7 @@ const int src_incr  = (new_value->nz_element_count() == 1) ? 0 : 1;
         if (Cell * target = LVC0->get_lval_value())   // valid right Cell
            {
              Value & owner = *LVC0->get_cell_owner();
-             owner.depth_update_for_overwrite(target - owner.ravel, 0);
+             owner.depth_update_for_overwrite(target - owner.ravel.cells, 0);
              target->release(LOC);   // free sub-values etc (if any)
              new (target)   PointerCell(new_value.get(), owner);
            }
@@ -414,7 +414,7 @@ const int src_incr  = (new_value->nz_element_count() == 1) ? 0 : 1;
                          //
                          const Cell & right_cell = +right_sub ?
                                      right_sub->get_cravel(s) : src;
-                         owner.depth_update_for_overwrite(target - owner.ravel,
+                         owner.depth_update_for_overwrite(target - owner.ravel.cells,
                                     right_cell.is_pointer_cell() ? 0 : -1);
                          target->release(LOC);   // free sub-values etc.
                          target->init(right_cell, owner, LOC);
@@ -427,7 +427,7 @@ const int src_incr  = (new_value->nz_element_count() == 1) ? 0 : 1;
              if (Cell * target = dest.get_lval_value())   // target can be 0!
                 {
                   Value & owner = *LVC.get_cell_owner();
-                  owner.depth_update_for_overwrite(target - owner.ravel,
+                  owner.depth_update_for_overwrite(target - owner.ravel.cells,
                                     src.is_pointer_cell() ? 0 : -1);
                   target->release(LOC);   // free sub-values etc (if any)
                   target->init(src, owner, LOC);
@@ -600,11 +600,11 @@ Value::get_new_member(const UCS_string & new_member_name)
 void
 Value::double_ravel(const char * loc)
 {
-Cell * const old_ravel = ravel;
+Cell * const old_ravel = ravel.cells;
 
    Assert(is_member());
 const char * del = 0;
-   if (ravel != short_value)   del = reinterpret_cast<char *>(ravel);
+   if (ravel.cells != ravel.short_value)   del = reinterpret_cast<char *>(ravel.cells);
 
    Assert(get_rank() == 2);
    Assert(get_cols() == 2);
@@ -615,9 +615,9 @@ const ShapeItem new_cells = 2*new_rows;
 
 Cell * doubled = new Cell[new_cells];
    loop(n, new_cells)   IntCell::z0(doubled + n);
-   valid_ravel_items = new_cells;
+   ravel.valid_ravel_items = new_cells;
    shape.set_shape_item(0, new_rows);
-   ravel = doubled;
+   ravel.cells = doubled;
 
    loop(r, old_rows)
        {
@@ -715,7 +715,7 @@ Value::check_value(const char * loc)
    // if value was initialized by means of a next_ravel_XXX() mechanism,
    // then all cells are supposed to be OK.
    //
-   if (valid_ravel_items && valid_ravel_items >= element_count())
+   if (ravel.valid_ravel_items && ravel.valid_ravel_items >= element_count())
       {
         set_complete();
         return;
@@ -879,7 +879,7 @@ void
 Value::explode()
 {
    Assert(is_packed());
-const uint8_t * bits = reinterpret_cast<const uint8_t *>(ravel);
+const uint8_t * bits = reinterpret_cast<const uint8_t *>(ravel.cells);
 
 IntCell * new_ravel = 0;
    try           { new_ravel = new IntCell[element_count()]; }
@@ -890,9 +890,9 @@ IntCell * new_ravel = 0;
       if (bits[b >> 3] & (1 << (b & 7)))   new_ravel[b].set_int_value(1);
 
    delete [] bits;
-   ravel = new_ravel;
+   ravel.cells = new_ravel;
    clear_packed();
-   fetcher = &cell_fetcher;
+   ravel.fetcher = &Ravel::cell_fetcher;
 }
 //────────────────────────────────────────────────────────────────────────────
 const char *
@@ -944,8 +944,8 @@ ShapeItem z = 0;
       }
    else
       {
-        if (ravel != short_value)   std::allocator<Cell>{}.deallocate(ravel, nz_element_count());
-        ravel = reinterpret_cast<Cell *>(bits);
+        if (ravel.cells != ravel.short_value)   std::allocator<Cell>{}.deallocate(ravel.cells, nz_element_count());
+        ravel.cells = reinterpret_cast<Cell *>(bits);
         flags.ravel_type = RT_BOOL;
       }
 
@@ -1261,12 +1261,12 @@ void
 Value::init_ravel()
 {
    owner_count = 0;
-   fetcher = &cell_fetcher;
+   ravel.fetcher = &Ravel::cell_fetcher;
    pointer_cell_count = 0;
-   nz_subcell_count = 0;
+   ravel.nz_subcell_count = 0;
    check_ptr = 0;
-   IntCell::z0(short_value);
-   ravel = short_value;
+   IntCell::z0(ravel.short_value);
+   ravel.cells = ravel.short_value;
 
    ++value_count;
    if (Quad_SYL::value_count_limit &&
@@ -1311,8 +1311,8 @@ CERR << "*** Quad_SYL::ravel_count_limit hit ***" << endl;
         // make sure that the value is properly initialized
         //
         new (&shape) Shape();
-        ravel = short_value;
-        IntCell::zI(ravel, 42);
+        ravel.cells = ravel.short_value;
+        IntCell::zI(ravel.cells, 42);
 
         MORE_ERROR() <<
 "the system limit on the total ravel size (as set in ⎕SYL["
@@ -1327,7 +1327,7 @@ CERR << "*** Quad_SYL::ravel_count_limit hit ***" << endl;
       }
 
    alloc_size = length * sizeof(Cell);
-   ravel = std::allocator<Cell>{}.allocate(length);
+   ravel.cells = std::allocator<Cell>{}.allocate(length);
 
 /*
    ravel = 0;   // assume new() fails

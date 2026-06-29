@@ -178,9 +178,9 @@ Quad_PNG::eval_AB(cValue_R A, cValue_R B) const
    else if (A.element_count() == 2)   // case 2: PNG file A[1] depth A[2]
       {
         const APL_Integer A1 = A.get_cravel(1).get_int_value();   // bit depth
-        if (A.get_cravel(0).is_pointer_cell())   // probably file name
+        if (A.get_cfirst().is_pointer_cell())   // probably file name
            {
-             const Value_P A0 = A.get_cravel(0).get_pointer_value();
+             const Value_P A0 = A.get_cfirst().get_pointer_value();
              UCS_string filename_ucs(*A0);
              UTF8_string filename_utf8(filename_ucs);
              write_PNG_file(filename_utf8.c_str(), A1, B);

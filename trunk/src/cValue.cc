@@ -1180,7 +1180,7 @@ ShapeItem xI = 0;
                            <<  "), offending index=" << (idx0 + qio)
                            << ", max index=⎕IO+" << (max_idx - 1)
                            << " (=" << (max_idx + qio - 1) << ")";
-              Z->rollback(Z->valid_ravel_items, LOC);
+              Z->rollback(Z->get_valid_item_count(), LOC);
               INDEX_ERROR;
             }
 

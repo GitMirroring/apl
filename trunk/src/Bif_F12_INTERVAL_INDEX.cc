@@ -152,7 +152,7 @@ Bif_F12_INTERVAL_INDEX::find_range(const Cell & cell, cValue_R A,
    // first check if cell is below or above it
    //
    {
-     const Comp_result c0 = cell.compare(A.get_cravel(0));
+     const Comp_result c0 = cell.compare(A.get_cfirst());
      if (c0 == COMP_LT)   return -1;   // == 0 with ⎕IO = 1
 
      const Comp_result cN = cell.compare(A.get_cravel(range_count - 1));

@@ -720,7 +720,7 @@ Value_P Z(shape_Z, LOC);
    loop(z, (rows*cols_Z))
       {
         if (first_0)                               Z->next_ravel_Cell(*first_0);
-        else if (B_mat.get_cravel(0).is_integer_cell())   Z->next_ravel_0();
+        else if (B_mat.get_cfirst().is_integer_cell())   Z->next_ravel_0();
         else                                       Z->next_ravel_Char(UNI_0);
       }
 

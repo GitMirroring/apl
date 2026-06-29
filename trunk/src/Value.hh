@@ -32,6 +32,7 @@
 #include "LvalCell.hh"
 #include "NumericCell.hh"
 #include "PointerCell.hh"
+#include "Ravel.hh"
 #include "Shape.hh"
 
 using namespace std;
@@ -58,32 +59,17 @@ class ValueBase
 {
 protected:
    ValueBase()
-   : flags{},
-     valid_ravel_items(0),
-     nz_subcell_count(0),
-     ravel(0)
+   : flags{}
    { flags.value_depth = VF_DEPTH_DIRTY; }
 
    /// the shape of this value (only the first rank items are valid)
    Shape shape;
 
-   /// mux between packed and non-packed ravel cells
-   const Cell & (*fetcher)(ShapeItem offset, const Cell * ravel);
-
    /// flags and cached depth for this value
    mutable VF_Flags flags;
 
-   /// number of initialized cells in the ravel
-   ShapeItem valid_ravel_items;
-
-   /// the number of cells in nested sub-values
-   ShapeItem nz_subcell_count;
-
-   /// the ravel of this value
-   Cell * ravel;
-
-   /// the cells of a short (i.e. ⍴,value ≤ cfg_SHORT_VALUE_LENGTH_WANTED) value
-   Cell short_value[cfg_SHORT_VALUE_LENGTH_WANTED];
+   /// the ravel of this value (cells, fetch function, and bookkeeping)
+   Ravel ravel;
 };
 //════════════════════════════════════════════════════════════════════════════
 class cValue;
@@ -225,7 +211,7 @@ public:
 
    /// return the next byte after the ravel
    const Cell * get_ravel_end() const
-      { return &ravel[nz_element_count()]; }
+      { return ravel.cells + nz_element_count(); }
 
    /// return the integer of a value that is supposed to have (exactly) one
    APL_Integer get_sole_integer() const
@@ -236,7 +222,7 @@ public:
 
    /// return the first integer of a value (the line number of →Value).
    Function_Line get_line_number() const
-      { const APL_Integer line(ravel[0].get_near_int());
+      { const APL_Integer line(ravel.get_cravel(0).get_near_int());
         Log(LOG_execute_goto)   CERR << "goto line " << line << endl;
         return Function_Line(line); }
 
@@ -332,28 +318,28 @@ public:
    const Cell & get_cravel(ShapeItem idx) const
       {
         Assert1(idx < nz_element_count());
-        return fetcher(idx, ravel);
+        return ravel.get_cravel(idx);
       }
 
    /// return the first element of the ravel (which is always present).
    /// same as get_cproto(), but named differently to indicate its context.
    const Cell & get_cfirst() const
-      { return get_cravel(0); }
+      { return ravel.get_cfirst(); }
 
    /// return the first element of the ravel (which is always present)
    /// same as get_first(), but named differently to indicate its context.
    const Cell & get_cproto() const
-      { return get_cravel(0); }
+      { return ravel.get_cproto(); }
 
    /// return the first element of the ravel of a scalar
    /// same as get_cfirst(), but named differently to indicate its context.
    const Cell & get_cscalar() const
-      { return get_cravel(0); }
+      { return ravel.get_cscalar(); }
 
    /// return \b true iff more ravel items (as per shape) need to be initialized.
    /// (the prototype of empty values may still be missing)
    bool more() const
-      { return valid_ravel_items < element_count(); }
+      { return ravel.valid_ravel_items < element_count(); }
 
    /// return \b true iff \b this value has the same rank as \b other.
    /// @param other value to compare rank against
@@ -804,23 +790,23 @@ public:
    /// return the (writable) idx'th element of the ravel.
    /// @param idx ravel index (0-based)
    Cell & get_wravel(ShapeItem idx)
-      { Assert1(idx < nz_element_count());   return ravel[idx]; }
+      { Assert1(idx < nz_element_count());   return ravel.get_wravel(idx); }
 
    /// return the first element of the ravel (which is always present)
    /// Same as get_wproto() and get_wscalar(), but named differently
    /// to indicate its context.
    Cell & get_wfirst()
-      { return get_wravel(0); }
+      { return ravel.get_wfirst(); }
 
    /// return the first element of the ravel of a scalar value.
    /// Same as get_wfirst(), but named differently to indicate its context.
    Cell & get_wscalar()
-      { return get_wravel(0); }
+      { return ravel.get_wscalar(); }
 
    /// return the first element of the ravel (which is always present)
    /// same as wfirst(), but named differently to indicate its context.
    Cell & get_wproto()
-      { return get_wravel(0); }
+      { return ravel.get_wproto(); }
 
    /// return the number of Value_P pointing to \b this value
    int get_owner_count() const
@@ -828,11 +814,11 @@ public:
 
    /// return the number of (so far) initialized items
    ShapeItem get_valid_item_count()
-      { return valid_ravel_items; }
+      { return ravel.valid_ravel_items; }
 
    /// return the current ravel cell to be initialized (excluding prototype)
    Cell * current_ravel()
-      { return more() ? ravel + valid_ravel_items : 0; }
+      { return more() ? ravel.cells + ravel.valid_ravel_items : 0; }
 
    /// set the prototype (according to B) if this value is empty.
    /// @param B value whose prototype is copied
@@ -1033,20 +1019,17 @@ public:
    /// @param val value whose ravel is interpreted as a shape vector
    static Shape to_shape(const cValue * val);
 
-   /// return the offset'th ravel cell (of an unpack'ed ravel)
+   /// return the offset'th ravel cell (of an unpacked ravel); delegates to Ravel.
    /// @param offset ravel index (0-based)
-   /// @param ravel pointer to the start of the ravel array
-   static const Cell & cell_fetcher(ShapeItem offset, const Cell * ravel)
-      { return ravel[offset]; }
+   /// @param cells pointer to the start of the Cell array
+   static const Cell & cell_fetcher(ShapeItem offset, const Cell * cells)
+      { return Ravel::cell_fetcher(offset, cells); }
 
-   /// return the offset'th ravel cell (of an pack'ed ravel)
+   /// return the offset'th ravel cell (of a packed boolean ravel); delegates to Ravel.
    /// @param offset ravel index (0-based)
-   /// @param ravel pointer to the start of the packed bit ravel
-   static const Cell & packed_fetcher(ShapeItem offset, const Cell * ravel)
-      { return 1 << (offset & 7) &
-               reinterpret_cast<const uint8_t *>(ravel)[offset >> 3]
-             ? IntCell::boolean_TRUE : IntCell::boolean_FALSE;
-      }
+   /// @param cells pointer to the start of the packed bit array
+   static const Cell & packed_fetcher(ShapeItem offset, const Cell * cells)
+      { return Ravel::packed_fetcher(offset, cells); }
 
    /// glue two values.
    /// @param token_A token holding the left value to glue
@@ -1116,7 +1099,7 @@ public:
    /// increase \b nz_subcell_count by \b count
    /// @param count number of sub-cells to add
    void add_subcount(ShapeItem count)
-      { nz_subcell_count += count; }
+      { ravel.nz_subcell_count += count; }
 
    /// increment the number of (smart-) pointers to this value
    /// @param loc caller location for diagnostics
@@ -1211,7 +1194,7 @@ protected:
 
    /// return the next ravel cell to be initialized (excluding prototype)
    Cell * next_ravel()
-      { return more() ? ravel + valid_ravel_items++ : 0; }
+      { return more() ? ravel.cells + ravel.valid_ravel_items++ : 0; }
 
    /// init the ravel of an APL value, return the ravel length
    inline void init_ravel();
