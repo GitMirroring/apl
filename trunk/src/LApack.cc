@@ -490,19 +490,23 @@ LA_pack::divide_matrix(Value & Z, Crow rows,
    //
 const T t0(0.0);
 const APL_Float rcond = Workspace::get_CT();
-const size_t items_A = rows;
-const size_t items_B = rows * cols_B;
+const size_t items_A      = rows;
+const size_t items_B      = rows * cols_B;
+const size_t items_result = cols_A * cols_B;
 
-const size_t bytes_A = items_A * sizeof(t0);
-const size_t bytes_B = items_B * sizeof(t0);
+const size_t bytes_A      = items_A      * sizeof(t0);
+const size_t bytes_B      = items_B      * sizeof(t0);
+const size_t bytes_result = items_result * sizeof(t0);
 
-   // allocate storage for A and B
+   // allocate storage for A, B, and result buffer
    //
-if (bytes_A > SIZE_MAX - bytes_B)   WS_FULL;
-T * work_AB = std::allocator<T>{}.allocate(items_A + items_B);
+if (bytes_A > SIZE_MAX - bytes_B)              WS_FULL;
+if (bytes_result > SIZE_MAX - bytes_A - bytes_B)   WS_FULL;
+T * work_AB = std::allocator<T>{}.allocate(items_A + items_B + items_result);
 
 T * work_A = work_AB;
 T * work_B = work_A + items_A;
+T * result = work_B + items_B;
 
    ALL_COLS(cols_A)   // APL columns
       {
@@ -538,23 +542,22 @@ T * work_B = work_A + items_A;
         const sRank rank = gelsy<T>(A, B, rcond);
         if (rank < cols_B)
            {
-             std::allocator<T>{}.deallocate(work_AB, items_A + items_B);
+             std::allocator<T>{}.deallocate(work_AB, items_A + items_B + items_result);
              return rank;
            }
 
-        // cols_A = rows_Z. We have computed the result for col c of A
-        // which is row c of Z.
+        // cols_A = rows_Z. Store result for column col in row-major layout.
         //
-        if (is_complex(t0))
-           ALL_ROWS(cols_B)   // row ←→ col since ⍉
-              Z.set_ravel_Complex(row*cols_A + col, get_real(a[row]),
-                                                    get_imag(a[row]));
-        else
-           ALL_ROWS(cols_B)   // row ←→ col since ⍉
-              Z.set_ravel_Float(row*cols_A + col, get_real(a[row]));
+        ALL_ROWS(cols_B)
+           result[row * cols_A + col] = a[row];
       }
 
-   std::allocator<T>{}.deallocate(work_AB, items_A + items_B);
+   // write Z in row-major order from the result buffer
+   ALL_ROWS(cols_B)
+   ALL_COLS(cols_A)
+      next_Cell(Z, result[row * cols_A + col]);
+
+   std::allocator<T>{}.deallocate(work_AB, items_A + items_B + items_result);
    return cols_B;
 }
 //════════════════════════════════════════════════════════════════════════════
