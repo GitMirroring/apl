@@ -35,77 +35,27 @@ ErrorCode
 RealCell::bif_circle_fun(Cell * Z, const Cell * A) const
 {
    if (!A->is_near_int())   return E_DOMAIN_ERROR;
-const APL_Integer fun = A->get_checked_near_int();
-
-   IntCell::z0(Z);   // prepare for DOMAIN ERROR
-
-const ErrorCode ret = do_bif_circle_fun(Z, fun);
-   if (!Z->is_finite())   return E_DOMAIN_ERROR;
-   return ret;
+   return NumericCell::bif_circle_fun_c(Z, A->get_checked_near_int(),
+                                           APL_Complex(get_real_value(), 0));
 }
 //────────────────────────────────────────────────────────────────────────────
 ErrorCode
 RealCell::bif_circle_fun_inverse(Cell * Z, const Cell * A) const
 {
    if (!A->is_near_int())   return E_DOMAIN_ERROR;
-const APL_Integer fun = A->get_checked_near_int();
-
-   IntCell::z0(Z);   // prepare for DOMAIN ERROR
-
-ErrorCode ret = E_DOMAIN_ERROR;
-   switch(fun)
-      {
-        case 1: case -1:
-        case 2: case -2:
-        case 3: case -3:
-        case 4: case -4:
-        case 5: case -5:
-        case 6: case -6:
-        case 7: case -7:
-                ret = do_bif_circle_fun(Z, -fun);
-                if (!Z->is_finite())   return E_DOMAIN_ERROR;
-                return ret;
-
-        case -10:  // +A (conjugate) is self-inverse
-                 ret = do_bif_circle_fun(Z, fun);
-                if (!Z->is_finite())   return E_DOMAIN_ERROR;
-                return ret;
-
-        default: return E_DOMAIN_ERROR;
-      }
-
-   // not reached
-   return E_DOMAIN_ERROR;
+   return NumericCell::bif_circle_fun_inverse_c(Z, A->get_checked_near_int(),
+                                                   APL_Complex(get_real_value(), 0));
 }
 //────────────────────────────────────────────────────────────────────────────
 ErrorCode
 RealCell::bif_logarithm(Cell * Z, const Cell * A) const
 {
-   // ISO p. 88
-   //
    if (!A->is_numeric())   return E_DOMAIN_ERROR;
-
-   if (get_real_value() == A->get_real_value() &&
-       A->get_imag_value() == 0.0)   return IntCell::z1(Z);
-
-   if (get_real_value() == 0.0)   return E_DOMAIN_ERROR;
-   if (A->is_near_one())          return E_DOMAIN_ERROR;
-
-   if (A->is_real_cell()          &&
-       A->get_real_value() >= 0.0 &&
-          get_real_value() >= 0.0)
-      {
-        const APL_Float z = log(get_real_value()) / log(A->get_real_value());
-        if (!isfinite(z))   return E_DOMAIN_ERROR;
-        return FloatCell::zF(Z, z);
-      }
-
-   // complex result (complex B or negative A)
-   //
-const APL_Complex z = log(get_complex_value()) / log(A->get_complex_value());
-   if (!isfinite(z.real()))   return E_DOMAIN_ERROR;
-   if (!isfinite(z.imag()))   return E_DOMAIN_ERROR;
-   return ComplexCell::zC(Z, z);
+   if (A->is_complex_cell())
+      return NumericCell::bif_logarithm_cc(Z, A->get_complex_value(),
+                                              get_complex_value());
+   return NumericCell::bif_logarithm_ff(Z, A->get_real_value(),
+                                           get_real_value());
 }
 //────────────────────────────────────────────────────────────────────────────
 ErrorCode
