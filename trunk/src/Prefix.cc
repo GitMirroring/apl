@@ -653,7 +653,7 @@ const bool reverse  = which & 4;   // print ahead in APL order
                    if (sepa++)   out << " ";
                    const TokenTag tag = body[pc].get_tag();
                    out << Token::short_class_name(tag);
-                   if ((tag & TC_MASK) == TC_END)   break;   // end of statement
+                   if ((int(tag) & int(TC_MASK)) == TC_END)   break;   // end of statement
                  }
            }
       }

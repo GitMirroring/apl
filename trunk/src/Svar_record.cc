@@ -369,10 +369,10 @@ const Svar_state st = get_state();
    out << "║" << setw(5) << (key & 0xFFFF) << "│" << get_coupling() << "║";
    offering.print(out)  << "║";
    accepting.print(out) << "║";
-   if (st & SET_BY_OFF)   out << "1";    else   out << "0";
-   if (st & SET_BY_ACC)   out << "1";    else   out << "0";
-   if (st & USE_BY_OFF)   out << "1";    else   out << "0";
-   if (st & USE_BY_ACC)   out << "1│";   else   out << "0│";
+   if (int(st) & int(SET_BY_OFF))   out << "1";    else   out << "0";
+   if (int(st) & int(SET_BY_ACC))   out << "1";    else   out << "0";
+   if (int(st) & int(USE_BY_OFF))   out << "1";    else   out << "0";
+   if (int(st) & int(USE_BY_ACC))   out << "1│";   else   out << "0│";
    print_name(out, varname, 10) << "║" << endl;
 }
 //────────────────────────────────────────────────────────────────────────────

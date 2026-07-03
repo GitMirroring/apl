@@ -713,7 +713,7 @@ Token::value_use_count() const
 void
 Token::ChangeTag(TokenTag new_tag)
 {
-   Assert((tag & TV_MASK) == (new_tag & TV_MASK));
+   Assert((int(tag) & int(TV_MASK)) == (int(new_tag) & int(TV_MASK)));
    // tag is ia const TokenTag, so we cheat a little here.
    const_cast<TokenTag &>(tag) = new_tag;
 }
@@ -745,7 +745,7 @@ Token::class_name(TokenTag tag)
 {
 #define tcn(x) case x: return #x;
 
-const TokenClass tc = TokenClass(tag & TC_MASK);
+const TokenClass tc = TokenClass(int(tag) & int(TC_MASK));
    switch(tc)
       {
         tcn(TC_ASSIGN)
@@ -788,7 +788,7 @@ const TokenClass tc = TokenClass(tag & TC_MASK);
 const char * 
 Token::short_class_name(TokenTag tag)
 {
-const TokenClass tc = TokenClass(tag & TC_MASK);
+const TokenClass tc = TokenClass(int(tag) & int(TC_MASK));
    switch(tc)
       {
         case TC_ASSIGN:    return "←";

@@ -1722,8 +1722,8 @@ Quad_CR::decode_CR44(UCS_string & result, const Cell & cB)
       {
         const APL_Integer b      = cB.get_int_value();
         const TokenTag tag       = TokenTag(b);
-        const TokenClass cls     = TokenClass(tag & TC_MASK);
-        const TokenValueType typ = TokenValueType(tag & TV_MASK);
+        const TokenClass cls     = TokenClass(int(tag) & int(TC_MASK));
+        const TokenValueType typ = TokenValueType(int(tag) & int(TV_MASK));
 
         const UCS_ASCII_string tag_name(tag);
         const UCS_ASCII_string class_name(cls);
@@ -1741,8 +1741,8 @@ Quad_CR::decode_CR44(UCS_string & result, const Cell & cB)
         const Cell & cVal        = B2.get_cravel(1);
         const Cell & cTag        = B2.get_cfirst();   // the tag
         const TokenTag tag       = TokenTag(cTag.get_int_value());
-        const TokenClass cls     = TokenClass(tag & TC_MASK);
-        const TokenValueType typ = TokenValueType(tag & TV_MASK);
+        const TokenClass cls     = TokenClass(int(tag) & int(TC_MASK));
+        const TokenValueType typ = TokenValueType(int(tag) & int(TV_MASK));
 
         const UCS_ASCII_string tag_name(tag);
         result << (tag_name) << UNI_L_PARENT << UNI_SPACE;

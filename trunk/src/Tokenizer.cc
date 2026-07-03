@@ -577,7 +577,7 @@ Unicode_source src(input);
 
                         Unicode uni_1 = src[1];
                         const Token tok_1 = Avec::uni_to_token(uni_1, LOC);
-                        if ((tok_1.get_tag() & TC_MASK) == TC_NUMERIC)
+                        if ((int(tok_1.get_tag()) & int(TC_MASK)) == TC_NUMERIC)
                            tokenize_number(src, tos, rest_2);
                         else
                            tokenize_function(src, tos);

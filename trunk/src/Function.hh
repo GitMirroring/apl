@@ -285,7 +285,7 @@ public:
    /// function, For non-user defined functions, throw DOMAIN_ERROR.
    virtual int get_fun_valence() const
       {
-        const TokenClass tc = TokenClass(tag & TC_MASK);
+        const TokenClass tc = TokenClass(int(tag) & int(TC_MASK));
         if (tc == TC_FUN2)   return 2;
         if (tc == TC_FUN1)   return 1;
         return 0;

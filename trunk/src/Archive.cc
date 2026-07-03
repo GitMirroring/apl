@@ -2758,7 +2758,7 @@ XML_Loading_Archive::read_Token(Token_loc & tloc)
 
 const TokenTag tag = TokenTag(find_int_attr("tag", false, 16));
 
-   switch(tag & TV_MASK)   // cannot call get_ValueType() yet
+   switch(TokenValueType(int(tag) & int(TV_MASK)))   // cannot call get_ValueType() yet
       {
         case TV_NONE: 
                new (&tloc.get_token()) Token(tag);

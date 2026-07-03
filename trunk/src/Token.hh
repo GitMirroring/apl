@@ -204,7 +204,7 @@ public:
 
    /// return the TokenClass of this token.
    TokenClass get_Class() const
-      { return TokenClass(tag & TC_MASK); }
+      { return TokenClass(int(tag) & int(TC_MASK)); }
 
    /// return the complex imag value of this token
    APL_Float get_cpx_imag() const
@@ -258,7 +258,7 @@ public:
 
    /// return the TokenValueType of this token.
    TokenValueType get_ValueType() const
-      { return TokenValueType(tag & TV_MASK); }
+      { return TokenValueType(int(tag) & int(TV_MASK)); }
 
    /// return true iff \b this token is an apl value
    bool is_apl_val() const
