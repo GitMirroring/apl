@@ -903,7 +903,8 @@ Value::try_implode()
 
    // at this point we are optimistic that all B-items are boolean.
    //
-const ShapeItem Z_len = (nz_element_count() + 63) >> 6;
+const ShapeItem N = nz_element_count();
+const ShapeItem Z_len = (N + 63) >> 6;
 uint64_t * bits = new uint64_t[Z_len];
 const char * error_reason = 0;
 
@@ -934,6 +935,7 @@ ShapeItem z = 0;
          if (zbit)   continue;           // more bits in same chunk
          bits[z++] = zchunk;
          zchunk = 0;
+         zbit = 1;                       // start the next chunk
        }
 
    if (zchunk)   bits[Z_len - 1] = zchunk;   // rest bits
@@ -944,12 +946,242 @@ ShapeItem z = 0;
       }
    else
       {
-        if (ravel.cells != ravel.short_value)   std::allocator<Cell>{}.deallocate(ravel.cells, nz_element_count());
-        ravel.cells = reinterpret_cast<Cell *>(bits);
-        flags.ravel_type = RT_BOOL;
+        const ShapeItem Ndel = nz_element_count();
+        if (ravel.cells != ravel.short_value)   std::allocator<Cell>{}.deallocate(ravel.cells, Ndel);
+        ravel.cells             = reinterpret_cast<Cell *>(bits);
+        ravel.fetcher           = &Ravel::packed_fetcher;
+        ravel.valid_ravel_items = N;   // more() must return false on packed value
+        flags.ravel_type        = RT_BOOL;
       }
 
    return error_reason;
+}
+//────────────────────────────────────────────────────────────────────────────
+void
+Value::try_pack()
+{
+   if (is_packed())          return;   // already packed
+   if (pointer_cell_count)   return;   // nested sub-values → cannot pack
+
+const ShapeItem N = nz_element_count();
+   if (N < RAVEL_PACK_THRESHOLD)   return;
+
+   // determine packing type from the first cell
+   //
+const Cell & c0 = ravel.cells[0];
+RavelType t;
+   if (c0.is_integer_cell())
+      { const APL_Integer v = c0.get_int_value();
+        t = (v == 0 || v == 1) ? RT_BOOL : RT_INT64;
+      }
+   else if (c0.is_float_cell())      t = RT_FLOAT64;
+   else if (c0.is_complex_cell())    t = RT_COMPLEX;
+   else if (c0.is_character_cell())
+      t = c0.get_char_value() <= Unicode(0xFFFF) ? RT_UNICODE16 : RT_UNICODE32;
+   else return;   // LvalCell or unknown → stay mixed
+
+   // scan remaining cells; escalate t as needed
+   //
+   for (ShapeItem i = 1; i < N; ++i)
+       {
+         const Cell & c = ravel.cells[i];
+         if (c.is_integer_cell())
+            { const APL_Integer v = c.get_int_value();
+              const RavelType item_t = (v == 0 || v == 1) ? RT_BOOL : RT_INT64;
+              if (t == RT_BOOL && item_t == RT_INT64)   t = RT_INT64;
+              else if (t != RT_BOOL && t != RT_INT64 && t != RT_FLOAT64 && t != RT_COMPLEX)
+                 return;   // numeric + char → mixed
+            }
+         else if (c.is_float_cell())
+            { if      (t == RT_BOOL || t == RT_INT64)   t = RT_FLOAT64;
+              else if (t != RT_FLOAT64 && t != RT_COMPLEX)   return;
+            }
+         else if (c.is_complex_cell())
+            { if (t == RT_BOOL || t == RT_INT64 || t == RT_FLOAT64)   t = RT_COMPLEX;
+              else if (t != RT_COMPLEX)   return;   // char + complex → mixed
+            }
+         else if (c.is_character_cell())
+            { const Unicode u = c.get_char_value();
+              if      (t == RT_UNICODE16 && u > Unicode(0xFFFF))   t = RT_UNICODE32;
+              else if (t != RT_UNICODE16 && t != RT_UNICODE32)     return;
+            }
+         else return;   // LvalCell → stay mixed
+       }
+
+   // pack in place (front-to-back is safe: dst offset 8i < src offset 24i for all i≥0)
+   //
+   switch (t)
+      {
+        case RT_BOOL:
+             try_implode();   // uses a separate allocation; flags.ravel_type set inside
+             return;
+
+        case RT_INT64:
+             { int64_t * dst = reinterpret_cast<int64_t *>(ravel.cells);
+               loop(i, N)   dst[i] = ravel.cells[i].get_int_value();
+               ravel.fetcher           = &Ravel::int64_fetcher;
+               ravel.valid_ravel_items = N;
+               flags.ravel_type        = RT_INT64;
+             }
+             return;
+
+        case RT_FLOAT64:
+             { double * dst = reinterpret_cast<double *>(ravel.cells);
+               loop(i, N)   dst[i] = ravel.cells[i].get_real_value();
+               ravel.fetcher           = &Ravel::float64_fetcher;
+               ravel.valid_ravel_items = N;
+               flags.ravel_type        = RT_FLOAT64;
+             }
+             return;
+
+        case RT_COMPLEX:
+             { double * dst = reinterpret_cast<double *>(ravel.cells);
+               loop(i, N)
+                  { const double r = ravel.cells[i].get_real_value();
+                    const double m = ravel.cells[i].get_imag_value();
+                    dst[2*i]   = r;
+                    dst[2*i+1] = m;
+                  }
+               ravel.fetcher           = &Ravel::complex_fetcher;
+               ravel.valid_ravel_items = N;
+               flags.ravel_type        = RT_COMPLEX;
+             }
+             return;
+
+        case RT_UNICODE32:
+             { Unicode * dst = reinterpret_cast<Unicode *>(ravel.cells);
+               loop(i, N)   dst[i] = ravel.cells[i].get_char_value();
+               ravel.fetcher           = &Ravel::char32_fetcher;
+               ravel.valid_ravel_items = N;
+               flags.ravel_type        = RT_UNICODE32;
+             }
+             return;
+
+        case RT_UNICODE16:
+             { uint16_t * dst = reinterpret_cast<uint16_t *>(ravel.cells);
+               loop(i, N)   dst[i] = uint16_t(ravel.cells[i].get_char_value());
+               ravel.fetcher           = &Ravel::char16_fetcher;
+               ravel.valid_ravel_items = N;
+               flags.ravel_type        = RT_UNICODE16;
+             }
+             return;
+
+        default: return;
+      }
+}
+//────────────────────────────────────────────────────────────────────────────
+ShapeItem
+cValue::packed_bytes_per_item() const
+{
+   switch (RavelType(flags.ravel_type))
+      {
+        case RT_INT64:      return 8;
+        case RT_FLOAT64:    return 8;
+        case RT_COMPLEX:    return 16;
+        case RT_UNICODE32:  return 4;
+        case RT_UNICODE16:  return 2;
+        default:            return 0;   // RT_MIXED or RT_BOOL
+      }
+}
+//────────────────────────────────────────────────────────────────────────────
+void
+Value::commit_ravel_like(const cValue & B, ShapeItem n)
+{
+   Assert(ravel.valid_ravel_items == 0);
+   switch (B.get_ravel_type())
+      {
+        case RT_INT64:
+             ravel.fetcher    = &Ravel::int64_fetcher;
+             flags.ravel_type = RT_INT64;
+             break;
+        case RT_FLOAT64:
+             ravel.fetcher    = &Ravel::float64_fetcher;
+             flags.ravel_type = RT_FLOAT64;
+             break;
+        case RT_COMPLEX:
+             ravel.fetcher    = &Ravel::complex_fetcher;
+             flags.ravel_type = RT_COMPLEX;
+             break;
+        case RT_UNICODE32:
+             ravel.fetcher    = &Ravel::char32_fetcher;
+             flags.ravel_type = RT_UNICODE32;
+             break;
+        case RT_UNICODE16:
+             ravel.fetcher    = &Ravel::char16_fetcher;
+             flags.ravel_type = RT_UNICODE16;
+             break;
+        default: return;
+      }
+   ravel.valid_ravel_items = n;
+}
+//────────────────────────────────────────────────────────────────────────────
+void
+Value::pack_like(const cValue & B)
+{
+   if (is_packed())          return;
+   if (pointer_cell_count)   return;
+
+const ShapeItem N = nz_element_count();
+   if (N < RAVEL_PACK_THRESHOLD)   return;
+
+   switch (B.get_ravel_type())
+      {
+        case RT_BOOL:
+             try_implode();
+             return;
+
+        case RT_INT64:
+             { int64_t * dst = reinterpret_cast<int64_t *>(ravel.cells);
+               loop(i, N)   dst[i] = ravel.cells[i].get_int_value();
+               ravel.fetcher           = &Ravel::int64_fetcher;
+               ravel.valid_ravel_items = N;
+               flags.ravel_type        = RT_INT64;
+             }
+             return;
+
+        case RT_FLOAT64:
+             { double * dst = reinterpret_cast<double *>(ravel.cells);
+               loop(i, N)   dst[i] = ravel.cells[i].get_real_value();
+               ravel.fetcher           = &Ravel::float64_fetcher;
+               ravel.valid_ravel_items = N;
+               flags.ravel_type        = RT_FLOAT64;
+             }
+             return;
+
+        case RT_COMPLEX:
+             { double * dst = reinterpret_cast<double *>(ravel.cells);
+               loop(i, N)
+                  { dst[2*i]   = ravel.cells[i].get_real_value();
+                    dst[2*i+1] = ravel.cells[i].get_imag_value();
+                  }
+               ravel.fetcher           = &Ravel::complex_fetcher;
+               ravel.valid_ravel_items = N;
+               flags.ravel_type        = RT_COMPLEX;
+             }
+             return;
+
+        case RT_UNICODE32:
+             { Unicode * dst = reinterpret_cast<Unicode *>(ravel.cells);
+               loop(i, N)   dst[i] = ravel.cells[i].get_char_value();
+               ravel.fetcher           = &Ravel::char32_fetcher;
+               ravel.valid_ravel_items = N;
+               flags.ravel_type        = RT_UNICODE32;
+             }
+             return;
+
+        case RT_UNICODE16:
+             { uint16_t * dst = reinterpret_cast<uint16_t *>(ravel.cells);
+               loop(i, N)   dst[i] = uint16_t(ravel.cells[i].get_char_value());
+               ravel.fetcher           = &Ravel::char16_fetcher;
+               ravel.valid_ravel_items = N;
+               flags.ravel_type        = RT_UNICODE16;
+             }
+             return;
+
+        default:   // RT_MIXED: B not packed, fall back to type-scanning try_pack
+             try_pack();
+             return;
+      }
 }
 //────────────────────────────────────────────────────────────────────────────
 int

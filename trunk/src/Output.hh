@@ -96,7 +96,7 @@ public:
    static int get_column()
        { return output_column; }
 
-   /// initialize curses library
+   /// initialize terminal output (ANSI sequences)
    /// @param logit true to log initialization steps to the startup log
    static void  init(bool logit);
 

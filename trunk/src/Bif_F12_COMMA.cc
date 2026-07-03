@@ -21,6 +21,7 @@
 /** @file
 */
 
+#include <string.h>
 #include "Bif_F12_COMMA.hh"
 #include "StateIndicator.hh"
 #include "Workspace.hh"
@@ -113,7 +114,18 @@ Value_P Z(new_shape, LOC);
 const ShapeItem count = B.element_count();
    Assert(count == Z->element_count());
 
-   loop(c, count)   Z->next_ravel_Cell(B.get_cravel(c));
+const ShapeItem ebytes = B.packed_bytes_per_item();
+   if (ebytes > 0)   // packed non-bool: ravel order is preserved, copy directly
+      {
+        uint8_t * pZ = reinterpret_cast<uint8_t *>(&Z->get_wfirst());
+        memcpy(pZ, B.cravel_packed(), count * ebytes);
+        Z->commit_ravel_like(B, count);
+      }
+   else
+      {
+        loop(c, count)   Z->next_ravel_Cell(B.get_cravel(c));
+        Z->pack_like(B);
+      }
 
    Z->set_default(B, LOC);
    Z->check_value(LOC);

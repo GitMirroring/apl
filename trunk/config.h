@@ -2,19 +2,16 @@
 /* config.h.in.  Generated from configure.ac by autoheader.  */
 
 /* the SVN version of Archive.cc */
-#define ARCHIVE_SVN " 3338"
+#define ARCHIVE_SVN " 3343"
 
 /* How and when GNU APL was configured */
-#define BUILDTAG PACKAGE_NAME, PACKAGE_VERSION " / SVN: 3335:3339M", "2026-06-29 18:04:40 CEST", "Linux 5.15.0-177-generic x86_64", "default ./configure options"
+#define BUILDTAG PACKAGE_NAME, PACKAGE_VERSION " / SVN: 3349", "2026-07-03 15:32:52 CEST", "Linux 5.15.0-177-generic x86_64", "default ./configure options"
 
 /* Define to 1 iff pthread_setaffinity_np() is available */
 #define HAVE_AFFINITY_NP 1
 
 /* Define to 1 if you have the `alarm' function. */
 #define HAVE_ALARM 1
-
-/* Define to 1 iff <curses.h> is present */
-/* #undef HAVE_CURSES_H */
 
 /* Define to 1 if you have the <dirent.h> header file. */
 #define HAVE_DIRENT_H 1
@@ -73,9 +70,6 @@
 /* Define to 1 if you have the `cairo' library (-lcairo). */
 #define HAVE_LIBCAIRO 1
 
-/* Define to 1 if you have the `curses' library (-lcurses). */
-#define HAVE_LIBCURSES 1
-
 /* Define to 1 if you have the `dl' library (-ldl). */
 #define HAVE_LIBDL 1
 
@@ -97,9 +91,6 @@
 /* Define to 1 if you have the `m' library (-lm). */
 #define HAVE_LIBM 1
 
-/* Define to 1 if you have the `ncurses' library (-lncurses). */
-#define HAVE_LIBNCURSES 1
-
 /* Define to 1 if you have the `nsl' library (-lnsl). */
 #define HAVE_LIBNSL 1
 
@@ -117,9 +108,6 @@
 
 /* Define to 1 if you have the `socket' library (-lsocket). */
 /* #undef HAVE_LIBSOCKET */
-
-/* Define to 1 if you have the `tinfo' library (-ltinfo). */
-#define HAVE_LIBTINFO 1
 
 /* Define to 1 if you have the `X11' library (-lX11). */
 #define HAVE_LIBX11 1
@@ -163,9 +151,6 @@
 
 /* Define to 1 if you have the `munmap' function. */
 #define HAVE_MUNMAP 1
-
-/* Define to 1 iff <ncurses.h> is present */
-#define HAVE_NCURSES_H 1
 
 /* Define to 1 if you have the <netdb.h> header file. */
 #define HAVE_NETDB_H 1
@@ -317,9 +302,6 @@
 
 /* Define to 1 if you have the <termios.h> header file. */
 #define HAVE_TERMIOS_H 1
-
-/* Define to 1 iff <term.h> is present */
-#define HAVE_TERM_H 1
 
 /* Define to 1 if you have the `uname' function. */
 #define HAVE_UNAME 1
@@ -604,7 +586,7 @@
 #define cfg_ASSERT_LEVEL_WANTED 1
 
 /* how ./configure was called */
-#define cfg_CONFIGURE_ARGS "./configure  'VALUE_HISTORY_WANTED=yes'"
+#define cfg_CONFIGURE_ARGS "./configure  '--disable-maintainer-mode'"
 
 /* core count */
 #define cfg_CORE_COUNT_WANTED 0
@@ -640,7 +622,7 @@
 /* #undef cfg_VALUE_CHECK_WANTED */
 
 /* Define to enable value events */
-#define cfg_VALUE_HISTORY_WANTED 1
+/* #undef cfg_VALUE_HISTORY_WANTED */
 
 /* Define to enable tracing of value flags */
 /* #undef cfg_VF_TRACING_WANTED */

@@ -377,10 +377,9 @@ const char * pkgs[] = { "libfftw3-dev", 0 };
 
    return missing_files("⎕FFT", libs, hdrs, pkgs);
 }
-
 //────────────────────────────────────────────────────────────────────────────
 
-Token Quad_FFT::eval_XB(Value_P A, Value_P B) const 
+Token Quad_FFT::eval_XB(cValue_R A, cValue_R B) const 
 {
    return eval_B(B);
 }

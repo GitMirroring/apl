@@ -526,7 +526,7 @@ const cValue & v = *val_pars[vid]._val;
 const APL_types::Depth depth = val_pars[vid]._depth;
 const ShapeItem len = v.nz_element_count();
 int space = do_indent();
-   if (v.is_packed())   // Value has a packed (non-Cell) ravel
+   if (v.is_bool_packed())   // Value has a bool-packed ravel
       {
         const uint8_t * bytes = reinterpret_cast<const uint8_t *>(&v.get_cfirst());
         const ShapeItem byte_count = (len + 7)/8;
@@ -2022,7 +2022,7 @@ UTF8 * end = 0;
              return input;
 
         case UNI_PAD_U9: // packed boolean,         e.g. ⁹
-             Assert(Z.is_packed());
+             Assert(Z.is_bool_packed());
              for (;;)
                  {
                    const uint8_t c0 = input[0];
@@ -2393,7 +2393,7 @@ Value_P Z = values[vid];
         return;   // )COPY with vids_COPY or static value
       }
 
-   if (Z->is_packed())   // so it can't be short and ravel is a utf8_t *
+   if (Z->is_bool_packed())   // so it can't be short and ravel is a utf8_t *
       {
         read_Cells(*Z, cells_utf);
         Log(LOG_archive)   err << "YES (packed)" << endl;

@@ -221,11 +221,22 @@ const bool maybe_parallel = Parallel::run_parallel &&
               //
               job_AB->fun = this;
               job_AB->fun2 = fun;
+              { const vv_f2f_t fvv = get_vv_f2f();
+                job_AB->float64_fvv =
+                   (fvv &&
+                    !job_AB->value_A->get_pointer_cell_count() &&
+                    !job_AB->value_B->get_pointer_cell_count() &&
+                    job_AB->value_A->get_ravel_type() == RT_FLOAT64 &&
+                    job_AB->value_B->get_ravel_type() == RT_FLOAT64)
+                   ? fvv : nullptr;
+              }
               Thread_context::do_work = PF_scalar_AB;
               Thread_context::M_fork("eval_scalar_AB");   // start pool
               PF_scalar_AB(Thread_context::get_master());
 PERFORMANCE_START(start_M_join)
               Thread_context::M_join();
+              if (job_AB->float64_fvv)
+                 job_AB->value_Z->commit_ravel_Float64(job_AB->len_Z);
               ec = job_AB->error;
               if (ec != E_NO_ERROR)   return Value_P();
 PERFORMANCE_END(fs_M_join_AB, start_M_join, 1);
@@ -233,10 +244,30 @@ PERFORMANCE_END(fs_M_join_AB, start_M_join, 1);
          else
 #endif // PARALLEL_ENABLED
             {
-              // sequential execution...
+              // sequential execution — try packed float64 fast path first
               //
-              loop(z, job_AB->len_Z)
-                 {
+              bool fast_path_done = false;
+              {
+                const vv_f2f_t fvv = get_vv_f2f();
+                if (fvv &&
+                    !job_AB->value_A->get_pointer_cell_count() &&
+                    !job_AB->value_B->get_pointer_cell_count() &&
+                    job_AB->value_A->get_ravel_type() == RT_FLOAT64 &&
+                    job_AB->value_B->get_ravel_type() == RT_FLOAT64)
+                   {
+                     double * pZ = reinterpret_cast<double *>(
+                                       &job_AB->value_Z->get_wfirst());
+                     const double * pA = job_AB->value_A->cravel_float64();
+                     const double * pB = job_AB->value_B->cravel_float64();
+                     fvv(pZ, pA, job_AB->inc_A, pB, job_AB->inc_B,
+                         job_AB->len_Z);
+                     job_AB->value_Z->commit_ravel_Float64(job_AB->len_Z);
+                     fast_path_done = true;
+                   }
+              }
+              if (!fast_path_done)
+                 loop(z, job_AB->len_Z)
+                    {
                    const Cell & cell_A = job_AB->A_at(z);
                    const Cell & cell_B = job_AB->B_at(z);
                    Cell & cell_Z       = job_AB->Z_at(z);
@@ -349,6 +380,7 @@ CELL_PERFORMANCE_END(get_statistics_AB(), start_2, z)
                       }
                  }
            }
+        job_AB->value_Z->try_pack();
         job_AB->value_Z->check_value(LOC);
         *job_AB = PJob_scalar_AB();   // give up ownership of A, B, and Z.
         job_AB = 0;
@@ -397,11 +429,20 @@ const bool maybe_parallel = Parallel::run_parallel &&
               //
               job_B->fun = this;
               job_B->fun1 = fun;
+              { const v_f2f_t fv = get_v_f2f();
+                job_B->float64_fv =
+                   (fv &&
+                    !job_B->value_B->get_pointer_cell_count() &&
+                    job_B->value_B->get_ravel_type() == RT_FLOAT64)
+                   ? fv : nullptr;
+              }
               Thread_context::do_work = PF_scalar_B;
               Thread_context::M_fork("eval_scalar_B");   // start pool
               PF_scalar_B(Thread_context::get_master());
 PERFORMANCE_START(start_M_join)
               Thread_context::M_join();
+              if (job_B->float64_fv)
+                 job_B->value_Z->commit_ravel_Float64(job_B->len_Z);
               if (job_B->error != E_NO_ERROR)
                  {
                    ec = job_B->error;
@@ -412,10 +453,26 @@ PERFORMANCE_END(fs_M_join_B, start_M_join, 1);
          else
 #endif // PARALLEL_ENABLED
             {
-              // sequential execution...
+              // sequential execution — try packed float64 fast path first
               //
-              loop(z, job_B->len_Z)
-                 {
+              bool fast_path_done = false;
+              {
+                const v_f2f_t fv = get_v_f2f();
+                if (fv &&
+                    !job_B->value_B->get_pointer_cell_count() &&
+                    job_B->value_B->get_ravel_type() == RT_FLOAT64)
+                   {
+                     double * pZ = reinterpret_cast<double *>(
+                                       &job_B->value_Z->get_wfirst());
+                     const double * pB = job_B->value_B->cravel_float64();
+                     fv(pZ, pB, job_B->len_Z);
+                     job_B->value_Z->commit_ravel_Float64(job_B->len_Z);
+                     fast_path_done = true;
+                   }
+              }
+              if (!fast_path_done)
+                 loop(z, job_B->len_Z)
+                    {
                    const Cell & cell_B = job_B->B_at(z);
                    Cell & cell_Z       = job_B->Z_at(z);
 
@@ -443,6 +500,7 @@ CELL_PERFORMANCE_END(get_statistics_B(), start_2, z)
                       }
                  }
            }
+        job_B->value_Z->try_pack();
         job_B->value_Z->check_value(LOC);
         *job_B = PJob_scalar_B();   // give up ownership of B, and Z.
         job_B = 0;
@@ -740,6 +798,22 @@ ShapeItem z = tctx.get_N() * slice_len;
 ShapeItem end_z = z + slice_len;
    if (end_z > job_AB->len_Z)   end_z = job_AB->len_Z;
 
+   if (job_AB->float64_fvv)   // parallel float64 fast path
+      {
+        if (z < end_z)
+           {
+             double       * pZ = reinterpret_cast<double *>(
+                                     &job_AB->value_Z->get_wfirst()) + z;
+             const double * pA = job_AB->value_A->cravel_float64()
+                                 + z * job_AB->inc_A;
+             const double * pB = job_AB->value_B->cravel_float64()
+                                 + z * job_AB->inc_B;
+             job_AB->float64_fvv(pZ, pA, job_AB->inc_A,
+                                 pB, job_AB->inc_B, end_z - z);
+           }
+        return;
+      }
+
    for (; z < end_z; ++z)
        {
          const Cell & cell_A = job_AB->A_at(z);
@@ -859,6 +933,18 @@ const ShapeItem slice_len = (job_B->len_Z + cores - 1) / cores;
 ShapeItem z = tctx.get_N() * slice_len;
 ShapeItem end_z = z + slice_len;
    if (end_z > job_B->len_Z)   end_z = job_B->len_Z;
+
+   if (job_B->float64_fv)   // parallel float64 fast path
+      {
+        if (z < end_z)
+           {
+             double       * pZ = reinterpret_cast<double *>(
+                                     &job_B->value_Z->get_wfirst()) + z;
+             const double * pB = job_B->value_B->cravel_float64() + z;
+             job_B->float64_fv(pZ, pB, end_z - z);
+           }
+        return;
+      }
 
    for (; z < end_z; ++z)
        {

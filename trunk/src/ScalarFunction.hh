@@ -170,6 +170,24 @@ protected:
 
    /// parallel eval_scalar_B
    static Thread_context::PoolFunction PF_scalar_B;
+
+   // ── Packed fast-path hooks ──────────────────────────────────────────────
+
+   /// Dyadic worker: packed float64 × float64 → float64.
+   /// incA/incB are 0 (scalar extension) or 1 (full vector).
+   typedef void (*vv_f2f_t)(double * pZ,
+                             const double * pA, int incA,
+                             const double * pB, int incB,
+                             ShapeItem N);
+
+   /// Monadic worker: packed float64 → float64.
+   typedef void (*v_f2f_t)(double * pZ, const double * pB, ShapeItem N);
+
+   /// return dyadic float64→float64 worker, or 0 if not implemented
+   virtual vv_f2f_t get_vv_f2f() const { return 0; }
+
+   /// return monadic float64→float64 worker, or 0 if not implemented
+   virtual v_f2f_t  get_v_f2f()  const { return 0; }
 };
 
 #define PERF_A(x)   TOK_F2_ ## x,                           \
@@ -932,6 +950,15 @@ public:
    static Bif_F12_PLUS  fun;           ///< Built-in function.
    static Bif_F12_PLUS  fun_inverse;   ///< Built-in function.
 
+   static void vv_plus(double * pZ, const double * pA, int incA,
+                                    const double * pB, int incB, ShapeItem N)
+      { loop(i, N) pZ[i] = pA[i * incA] + pB[i * incB]; }
+   static void v_conjugate(double * pZ, const double * pB, ShapeItem N)
+      { loop(i, N) pZ[i] = pB[i]; }
+
+   virtual vv_f2f_t get_vv_f2f() const { return &vv_plus; }
+   virtual v_f2f_t  get_v_f2f()  const { return &v_conjugate; }
+
 protected:
    /// overloaded Function::eval_identity_fun();
    virtual Token eval_identity_fun(cValue_R B, sAxis axis) const
@@ -962,6 +989,15 @@ public:
    {}
 
    static Bif_F12_MINUS  fun;       ///< Built-in function.
+
+   static void vv_minus(double * pZ, const double * pA, int incA,
+                                     const double * pB, int incB, ShapeItem N)
+      { loop(i, N) pZ[i] = pA[i * incA] - pB[i * incB]; }
+   static void v_negate(double * pZ, const double * pB, ShapeItem N)
+      { loop(i, N) pZ[i] = -pB[i]; }
+
+   virtual vv_f2f_t get_vv_f2f() const { return &vv_minus; }
+   virtual v_f2f_t  get_v_f2f()  const { return &v_negate; }
 
 protected:
    /// overloaded Function::eval_AB()
@@ -1076,6 +1112,12 @@ public:
 
    static Bif_F12_TIMES  fun;           ///< Built-in function.
    static Bif_F12_TIMES  fun_inverse;   ///< Built-in function.
+
+   static void vv_times(double * pZ, const double * pA, int incA,
+                                     const double * pB, int incB, ShapeItem N)
+      { loop(i, N) pZ[i] = pA[i * incA] * pB[i * incB]; }
+
+   virtual vv_f2f_t get_vv_f2f() const { return &vv_times; }
 
    /// overloaded Function::eval_AB().
    virtual Token eval_AB(cValue_R A, cValue_R B) const
@@ -1288,6 +1330,11 @@ public:
    {}
 
    static Bif_F12_STILE  fun;       ///< Built-in function.
+
+   static void v_abs(double * pZ, const double * pB, ShapeItem N)
+      { loop(i, N) pZ[i] = pB[i] < 0 ? -pB[i] : pB[i]; }
+
+   virtual v_f2f_t get_v_f2f() const { return &v_abs; }
 
    /// overloaded Function::eval_AB().
    virtual Token eval_AB(cValue_R A, cValue_R B) const

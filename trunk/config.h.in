@@ -12,9 +12,6 @@
 /* Define to 1 if you have the `alarm' function. */
 #undef HAVE_ALARM
 
-/* Define to 1 iff <curses.h> is present */
-#undef HAVE_CURSES_H
-
 /* Define to 1 if you have the <dirent.h> header file. */
 #undef HAVE_DIRENT_H
 
@@ -72,9 +69,6 @@
 /* Define to 1 if you have the `cairo' library (-lcairo). */
 #undef HAVE_LIBCAIRO
 
-/* Define to 1 if you have the `curses' library (-lcurses). */
-#undef HAVE_LIBCURSES
-
 /* Define to 1 if you have the `dl' library (-ldl). */
 #undef HAVE_LIBDL
 
@@ -96,9 +90,6 @@
 /* Define to 1 if you have the `m' library (-lm). */
 #undef HAVE_LIBM
 
-/* Define to 1 if you have the `ncurses' library (-lncurses). */
-#undef HAVE_LIBNCURSES
-
 /* Define to 1 if you have the `nsl' library (-lnsl). */
 #undef HAVE_LIBNSL
 
@@ -116,9 +107,6 @@
 
 /* Define to 1 if you have the `socket' library (-lsocket). */
 #undef HAVE_LIBSOCKET
-
-/* Define to 1 if you have the `tinfo' library (-ltinfo). */
-#undef HAVE_LIBTINFO
 
 /* Define to 1 if you have the `X11' library (-lX11). */
 #undef HAVE_LIBX11
@@ -162,9 +150,6 @@
 
 /* Define to 1 if you have the `munmap' function. */
 #undef HAVE_MUNMAP
-
-/* Define to 1 iff <ncurses.h> is present */
-#undef HAVE_NCURSES_H
 
 /* Define to 1 if you have the <netdb.h> header file. */
 #undef HAVE_NETDB_H
@@ -316,9 +301,6 @@
 
 /* Define to 1 if you have the <termios.h> header file. */
 #undef HAVE_TERMIOS_H
-
-/* Define to 1 iff <term.h> is present */
-#undef HAVE_TERM_H
 
 /* Define to 1 if you have the `uname' function. */
 #undef HAVE_UNAME

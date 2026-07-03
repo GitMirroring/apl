@@ -24,6 +24,9 @@
 #ifndef __RAVEL_HH_DEFINED__
 #define __RAVEL_HH_DEFINED__
 
+#include "CharCell.hh"
+#include "ComplexCell.hh"
+#include "FloatCell.hh"
 #include "IntCell.hh"
 
 class ValueBase;
@@ -46,7 +49,8 @@ public:
    : fetcher(0),
      valid_ravel_items(0),
      nz_subcell_count(0),
-     cells(0)
+     cells(0),
+     fetch_cache(0)
    {}
 
    //══════════════════════════════════════════════════════════════════════════
@@ -56,7 +60,7 @@ public:
    /// return the idx'th cell of the ravel (no bounds check).
    /// @param idx ravel index (0-based)
    const Cell & get_cravel(ShapeItem idx) const
-      { return fetcher(idx, cells); }
+      { return fetcher(idx, cells, cell_fetch_cache); }
 
    /// return the first ravel cell (for non-empty ravels).
    const Cell & get_cfirst() const   { return get_cravel(0); }
@@ -70,17 +74,45 @@ public:
    /// fetch function for unpacked (Cell-array) ravels.
    /// @param offset ravel index (0-based)
    /// @param cells pointer to the Cell array
-   static const Cell & cell_fetcher(ShapeItem offset, const Cell * cells)
+   /// @param cache unused (required by fetcher signature)
+   static const Cell & cell_fetcher(ShapeItem offset, const Cell * cells, Cell &)
       { return cells[offset]; }
 
    /// fetch function for packed (bit-array) boolean ravels.
    /// @param offset ravel index (0-based)
    /// @param cells pointer to the packed bit array cast to Cell *
-   static const Cell & packed_fetcher(ShapeItem offset, const Cell * cells)
+   /// @param cache unused (required by fetcher signature)
+   static const Cell & packed_fetcher(ShapeItem offset, const Cell * cells, Cell &)
       { return 1 << (offset & 7) &
                reinterpret_cast<const uint8_t *>(cells)[offset >> 3]
              ? IntCell::boolean_TRUE : IntCell::boolean_FALSE;
       }
+
+   /// fetch function for packed int64_t ravels.
+   static const Cell & int64_fetcher(ShapeItem offset, const Cell * cells, Cell & cache)
+      { new (&cache) IntCell(reinterpret_cast<const int64_t *>(cells)[offset]);
+        return cache; }
+
+   /// fetch function for packed double ravels.
+   static const Cell & float64_fetcher(ShapeItem offset, const Cell * cells, Cell & cache)
+      { new (&cache) FloatCell(reinterpret_cast<const double *>(cells)[offset]);
+        return cache; }
+
+   /// fetch function for packed complex (2×double) ravels.
+   static const Cell & complex_fetcher(ShapeItem offset, const Cell * cells, Cell & cache)
+      { const double * p = reinterpret_cast<const double *>(cells) + 2*offset;
+        new (&cache) ComplexCell(p[0], p[1]);
+        return cache; }
+
+   /// fetch function for packed 16-bit Unicode ravels.
+   static const Cell & char16_fetcher(ShapeItem offset, const Cell * cells, Cell & cache)
+      { new (&cache) CharCell(Unicode(reinterpret_cast<const uint16_t *>(cells)[offset]));
+        return cache; }
+
+   /// fetch function for packed 32-bit Unicode ravels.
+   static const Cell & char32_fetcher(ShapeItem offset, const Cell * cells, Cell & cache)
+      { new (&cache) CharCell(reinterpret_cast<const Unicode *>(cells)[offset]);
+        return cache; }
 
    //══════════════════════════════════════════════════════════════════════════
    // Read-write methods
@@ -105,7 +137,7 @@ protected:
    //══════════════════════════════════════════════════════════════════════════
 
    /// function that fetches one cell; differs for packed vs. unpacked ravels.
-   const Cell & (*fetcher)(ShapeItem offset, const Cell * cells);
+   const Cell & (*fetcher)(ShapeItem offset, const Cell * cells, Cell & cache);
 
    /// number of initialized cells in the ravel (excluding prototype).
    ShapeItem valid_ravel_items;
@@ -119,6 +151,13 @@ protected:
 
    /// inline storage for short (≤ cfg_SHORT_VALUE_LENGTH_WANTED) ravels.
    Cell short_value[cfg_SHORT_VALUE_LENGTH_WANTED];
+
+   /// per-ravel scratch int64 used by fetch_ravel_i64() for sub-word types
+   /// (RT_BOOL, RT_UNICODE16, RT_UNICODE32) that cannot return a direct pointer.
+   mutable int64_t fetch_cache;
+
+   /// per-ravel Cell cache for get_cravel() on packed (non-Cell) ravels.
+   mutable Cell cell_fetch_cache;
 };
 //════════════════════════════════════════════════════════════════════════════
 

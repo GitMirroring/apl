@@ -719,8 +719,6 @@ apl_XCB_TRUE
 apl_X11_FALSE
 apl_X11_TRUE
 XMKMF
-BUILD_NCURSES_EMUL_FALSE
-BUILD_NCURSES_EMUL_TRUE
 POW_LIB
 LIBOBJS
 CXXCPP
@@ -18455,42 +18453,6 @@ CXXFLAGS="$CXXFLAGS -I `pwd`"
 #
  { printf "%s\n" ; printf "%s\n" "    *** checks for the presence and usablility of header files... ***"; printf "%s\n" ; }
 
-# check for ncurses.h first and for curses.h only if ncurses.h was not found.
-
-ac_fn_cxx_check_header_compile "$LINENO" "ncurses.h" "ac_cv_header_ncurses_h" "$ac_includes_default"
-if test "x$ac_cv_header_ncurses_h" = xyes
-then :
-
-printf "%s\n" "#define HAVE_NCURSES_H 1" >>confdefs.h
-
-else $as_nop
-  ac_fn_cxx_check_header_compile "$LINENO" "curses.h" "ac_cv_header_curses_h" "$ac_includes_default"
-if test "x$ac_cv_header_curses_h" = xyes
-then :
-
-printf "%s\n" "#define HAVE_CURSES_H 1" >>confdefs.h
-
-fi
-
-
-fi
-
-
-ac_fn_cxx_check_header_compile "$LINENO" "term.h" "ac_cv_header_term_h" "  #if HAVE_NCURSES_H
-       # include <ncurses.h>
-       #elif HAVE_CURSES_H
-       # include <curses.h>
-       #endif
-
-"
-if test "x$ac_cv_header_term_h" = xyes
-then :
-
-printf "%s\n" "#define HAVE_TERM_H 1" >>confdefs.h
-
-fi
-
-
 # keep headers in roughy alphabetical order as to find them more easily
 #
 apl_missing_headers=-1 # since either sys/socket,h or winsock2.h will be missing
@@ -19754,48 +19716,6 @@ done
 # keep libraries in inverse-alphabetic order so ./configure prints them
 # in alphabetic order
 #
-{ printf "%s\n" "$as_me:${as_lineno-$LINENO}: checking for tparm in -ltinfo" >&5
-printf %s "checking for tparm in -ltinfo... " >&6; }
-if test ${ac_cv_lib_tinfo_tparm+y}
-then :
-  printf %s "(cached) " >&6
-else $as_nop
-  ac_check_lib_save_LIBS=$LIBS
-LIBS="-ltinfo  $LIBS"
-cat confdefs.h - <<_ACEOF >conftest.$ac_ext
-/* end confdefs.h.  */
-
-namespace conftest {
-  extern "C" int tparm ();
-}
-int
-main (void)
-{
-return conftest::tparm ();
-  ;
-  return 0;
-}
-_ACEOF
-if ac_fn_cxx_try_link "$LINENO"
-then :
-  ac_cv_lib_tinfo_tparm=yes
-else $as_nop
-  ac_cv_lib_tinfo_tparm=no
-fi
-rm -f core conftest.err conftest.$ac_objext conftest.beam \
-    conftest$ac_exeext conftest.$ac_ext
-LIBS=$ac_check_lib_save_LIBS
-fi
-{ printf "%s\n" "$as_me:${as_lineno-$LINENO}: result: $ac_cv_lib_tinfo_tparm" >&5
-printf "%s\n" "$ac_cv_lib_tinfo_tparm" >&6; }
-if test "x$ac_cv_lib_tinfo_tparm" = xyes
-then :
-  printf "%s\n" "#define HAVE_LIBTINFO 1" >>confdefs.h
-
-  LIBS="-ltinfo $LIBS"
-
-fi
-
 { printf "%s\n" "$as_me:${as_lineno-$LINENO}: checking for socket in -lsocket" >&5
 printf %s "checking for socket in -lsocket... " >&6; }
 if test ${ac_cv_lib_socket_socket+y}
@@ -19922,99 +19842,6 @@ then :
 
 fi
    # for Solaris
-{ printf "%s\n" "$as_me:${as_lineno-$LINENO}: checking for setupterm in -lcurses" >&5
-printf %s "checking for setupterm in -lcurses... " >&6; }
-if test ${ac_cv_lib_curses_setupterm+y}
-then :
-  printf %s "(cached) " >&6
-else $as_nop
-  ac_check_lib_save_LIBS=$LIBS
-LIBS="-lcurses  $LIBS"
-cat confdefs.h - <<_ACEOF >conftest.$ac_ext
-/* end confdefs.h.  */
-
-namespace conftest {
-  extern "C" int setupterm ();
-}
-int
-main (void)
-{
-return conftest::setupterm ();
-  ;
-  return 0;
-}
-_ACEOF
-if ac_fn_cxx_try_link "$LINENO"
-then :
-  ac_cv_lib_curses_setupterm=yes
-else $as_nop
-  ac_cv_lib_curses_setupterm=no
-fi
-rm -f core conftest.err conftest.$ac_objext conftest.beam \
-    conftest$ac_exeext conftest.$ac_ext
-LIBS=$ac_check_lib_save_LIBS
-fi
-{ printf "%s\n" "$as_me:${as_lineno-$LINENO}: result: $ac_cv_lib_curses_setupterm" >&5
-printf "%s\n" "$ac_cv_lib_curses_setupterm" >&6; }
-if test "x$ac_cv_lib_curses_setupterm" = xyes
-then :
-  printf "%s\n" "#define HAVE_LIBCURSES 1" >>confdefs.h
-
-  LIBS="-lcurses $LIBS"
-
-fi
-
-{ printf "%s\n" "$as_me:${as_lineno-$LINENO}: checking for setupterm in -lncurses" >&5
-printf %s "checking for setupterm in -lncurses... " >&6; }
-if test ${ac_cv_lib_ncurses_setupterm+y}
-then :
-  printf %s "(cached) " >&6
-else $as_nop
-  ac_check_lib_save_LIBS=$LIBS
-LIBS="-lncurses  $LIBS"
-cat confdefs.h - <<_ACEOF >conftest.$ac_ext
-/* end confdefs.h.  */
-
-namespace conftest {
-  extern "C" int setupterm ();
-}
-int
-main (void)
-{
-return conftest::setupterm ();
-  ;
-  return 0;
-}
-_ACEOF
-if ac_fn_cxx_try_link "$LINENO"
-then :
-  ac_cv_lib_ncurses_setupterm=yes
-else $as_nop
-  ac_cv_lib_ncurses_setupterm=no
-fi
-rm -f core conftest.err conftest.$ac_objext conftest.beam \
-    conftest$ac_exeext conftest.$ac_ext
-LIBS=$ac_check_lib_save_LIBS
-fi
-{ printf "%s\n" "$as_me:${as_lineno-$LINENO}: result: $ac_cv_lib_ncurses_setupterm" >&5
-printf "%s\n" "$ac_cv_lib_ncurses_setupterm" >&6; }
-if test "x$ac_cv_lib_ncurses_setupterm" = xyes
-then :
-  printf "%s\n" "#define HAVE_LIBNCURSES 1" >>confdefs.h
-
-  LIBS="-lncurses $LIBS"
-
-fi
-
- if test "x$ac_cv_lib_tinfo_tparm" = "xyes" ||
-    test "x$ac_cv_lib_ncurses_setupterm" = "xyes"; then
-  BUILD_NCURSES_EMUL_TRUE=
-  BUILD_NCURSES_EMUL_FALSE='#'
-else
-  BUILD_NCURSES_EMUL_TRUE='#'
-  BUILD_NCURSES_EMUL_FALSE=
-fi
-
 { printf "%s\n" "$as_me:${as_lineno-$LINENO}: checking for acosh in -lm" >&5
 printf %s "checking for acosh in -lm... " >&6; }
 if test ${ac_cv_lib_m_acosh+y}
@@ -23072,10 +22899,6 @@ Usually this means the macro was only invoked conditionally." "$LINENO" 5
 fi
 if test -z "${am__fastdepCXX_TRUE}" && test -z "${am__fastdepCXX_FALSE}"; then
   as_fn_error $? "conditional \"am__fastdepCXX\" was never defined.
-Usually this means the macro was only invoked conditionally." "$LINENO" 5
-fi
-if test -z "${BUILD_NCURSES_EMUL_TRUE}" && test -z "${BUILD_NCURSES_EMUL_FALSE}"; then
-  as_fn_error $? "conditional \"BUILD_NCURSES_EMUL\" was never defined.
 Usually this means the macro was only invoked conditionally." "$LINENO" 5
 fi
 if test -z "${apl_X11_TRUE}" && test -z "${apl_X11_FALSE}"; then

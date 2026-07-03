@@ -258,6 +258,10 @@ public:
    bool is_packed() const
       { return flags.ravel_type != 0; }
 
+   /// true if this value has a bool-packed (bit-array) ravel
+   bool is_bool_packed() const
+      { return flags.ravel_type == RT_BOOL; }
+
    /// true if Value flag \b marked is set
    bool is_marked() const
       { return flags.marked; }
@@ -319,6 +323,32 @@ public:
       {
         Assert1(idx < nz_element_count());
         return ravel.get_cravel(idx);
+      }
+
+   /// current ravel packing type (RT_MIXED = unpacked Cell array)
+   RavelType get_ravel_type() const
+      { return RavelType(flags.ravel_type); }
+
+   /// raw read pointer for RT_FLOAT64 ravels; call only when ravel_type==RT_FLOAT64
+   const double * cravel_float64() const
+      { return reinterpret_cast<const double *>(ravel.cells); }
+
+   /// raw read pointer to packed data for any non-BOOL packed ravel
+   const void * cravel_packed() const
+      { return ravel.cells; }
+
+   /// packed element size in bytes: 8/8/16/4/2 for INT64/FLOAT64/COMPLEX/U32/U16;
+   /// returns 0 for RT_MIXED (not packed) and RT_BOOL (bit-packed, needs special handling)
+   ShapeItem packed_bytes_per_item() const;
+
+   /// like get_cravel(), but materialises packed cells into caller-supplied
+   /// \b cache instead of the shared ravel.cell_fetch_cache.  Use this when
+   /// two references from the same value must be live simultaneously (e.g.
+   /// inside a comparator).
+   const Cell & get_cravel(ShapeItem idx, Cell & cache) const
+      {
+        Assert1(idx < nz_element_count());
+        return ravel.fetcher(idx, ravel.cells, cache);
       }
 
    /// return the first element of the ravel (which is always present).
@@ -808,6 +838,30 @@ public:
    Cell & get_wproto()
       { return ravel.get_wproto(); }
 
+   /// finalize a ravel that was written directly as int64_t* via get_wfirst().
+   /// Call after writing N int64_t values into
+   ///   reinterpret_cast<int64_t *>(&get_wfirst()).
+   void commit_ravel_Int64(ShapeItem n)
+      { Assert(ravel.valid_ravel_items == 0);
+        ravel.valid_ravel_items = n;
+        ravel.fetcher    = &Ravel::int64_fetcher;
+        flags.ravel_type = RT_INT64; }
+
+   /// finalize a ravel that was written directly as double* via get_wfirst().
+   /// Call after writing N double values into
+   ///   reinterpret_cast<double *>(&get_wfirst()).
+   void commit_ravel_Float64(ShapeItem n)
+      { Assert(ravel.valid_ravel_items == 0);
+        ravel.valid_ravel_items = n;
+        ravel.fetcher    = &Ravel::float64_fetcher;
+        flags.ravel_type = RT_FLOAT64; }
+
+   /// finalize Z as the same packed type as B (for permutation functions)
+   void commit_ravel_like(const cValue & B, ShapeItem n);
+
+   /// pack Z using B's ravel_type directly, without scanning Z[0] (for permutations)
+   void pack_like(const cValue & B);
+
    /// return the number of Value_P pointing to \b this value
    int get_owner_count() const
       { return owner_count; }
@@ -982,6 +1036,25 @@ public:
    /// sub-value of that depth.  Call BEFORE the actual write.
    inline void depth_update_for_overwrite(ShapeItem offset, int new_sub_depth);
 
+   /// return a read-only int64_t pointer to ravel[i] for any ravel type.
+   /// For sub-word types (RT_BOOL, RT_UNICODE16, RT_UNICODE32) the value is
+   /// materialized into ravel.fetch_cache and a pointer to that cache is
+   /// returned; the caller must not hold the pointer past the next call.
+   /// For RT_INT64/RT_FLOAT64 a direct pointer into the ravel is returned.
+   /// For RT_COMPLEX a pointer to the real part (imag follows) is returned.
+   /// For RT_MIXED a pointer past the vtable to the Cell value field is returned.
+   /// @param i ravel index (0-based)
+   inline const int64_t * fetch_ravel_i64(ShapeItem i) const;
+
+   /// return a write int64_t pointer to ravel[i] for any ravel type.
+   /// For sub-word types the returned pointer is int64_t-aligned and the
+   /// caller uses the lower bits of i to locate the item within the word:
+   ///   RT_BOOL:      lower 6 bits of i give the bit position (0-63)
+   ///   RT_UNICODE16: lower 2 bits of i give the slot  (0-3, each 16 bits)
+   ///   RT_UNICODE32: lower 1 bit  of i gives the slot (0-1, each 32 bits)
+   /// @param i ravel index (0-based)
+   inline int64_t * wfetch_ravel_i64(ShapeItem i);
+
    /// returen \b true if \b sub == \b val or sub is contained in \b val
    /// @param val outer value to search within
    /// @param sub candidate sub-value to look for
@@ -1019,18 +1092,6 @@ public:
    /// @param val value whose ravel is interpreted as a shape vector
    static Shape to_shape(const cValue * val);
 
-   /// return the offset'th ravel cell (of an unpacked ravel); delegates to Ravel.
-   /// @param offset ravel index (0-based)
-   /// @param cells pointer to the start of the Cell array
-   static const Cell & cell_fetcher(ShapeItem offset, const Cell * cells)
-      { return Ravel::cell_fetcher(offset, cells); }
-
-   /// return the offset'th ravel cell (of a packed boolean ravel); delegates to Ravel.
-   /// @param offset ravel index (0-based)
-   /// @param cells pointer to the start of the packed bit array
-   static const Cell & packed_fetcher(ShapeItem offset, const Cell * cells)
-      { return Ravel::packed_fetcher(offset, cells); }
-
    /// glue two values.
    /// @param token_A token holding the left value to glue
    /// @param token_B token holding the right value to glue
@@ -1062,6 +1123,12 @@ public:
    /// try to implode (pack) this unpacked value. Return 0 on success or
    /// reason on error;
    const char * try_implode();
+
+   /// try to pack this value into the tightest homogeneous ravel format
+   /// (RT_BOOL, RT_INT64, RT_FLOAT64, RT_COMPLEX, RT_UNICODE16, or RT_UNICODE32).
+   /// Does nothing if the value is already packed, has PointerCells, or has
+   /// fewer than RAVEL_PACK_THRESHOLD elements.  Safe to call multiple times.
+   void try_pack();
 
    /// print incomplete Values, and return the number of incomplete Values.
    /// @param out output stream to write to

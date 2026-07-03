@@ -205,7 +205,7 @@ am__define_uniq_tagged_files = \
 am__DIST_COMMON = $(srcdir)/Makefile.in $(srcdir)/Makefile.incl \
 	$(srcdir)/config.h.in AUTHORS COPYING ChangeLog INSTALL NEWS \
 	README TODO compile config.guess config.rpath config.sub \
-	depcomp install-sh ltmain.sh missing texinfo.tex
+	install-sh ltmain.sh missing texinfo.tex
 DISTFILES = $(DIST_COMMON) $(DIST_SOURCES) $(TEXINFOS) $(EXTRA_DIST)
 distdir = $(PACKAGE)-$(VERSION)
 top_distdir = $(distdir)
@@ -1039,6 +1039,19 @@ develop:
                      DEVELOP_WANTED=yes              \
                      CXX_WERROR=yes
 	make all
+
+###############################################################################
+# a shortcut to ./configure for developing and troubleshooting, but with all
+# optional libraries disabled (to compile #else sections in the source code).
+#
+.PHONY: nolibs
+nolibs:
+	CXXFLAGS="-fstrict-aliasing -rdynamic -gdwarf-2" \
+        ./configure	--enable-maintainer-mode         \
+                    DEVELOP_WANTED=yes               \
+                     CXX_WERROR=yes                  \
+                    --without-optional_libs
+	make -j 10 all
 
 ###############################################################################
 # a shortcut to ./configure for compiling the python library

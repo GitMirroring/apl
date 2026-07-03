@@ -17,9 +17,6 @@ noinst_PROGRAMS = APL_keyboard       \
                   TLV_server         \
                   unicodes_used
 
-if BUILD_NCURSES_EMUL
-noinst_PROGRAMS += ncurses_emul
-endif
 endif
 
 
@@ -44,8 +41,6 @@ check_command_def_SOURCES  = check_command_def.cc
 filter_apl_lines_SOURCES   = filter_apl_lines.cc
 filter_apl_lines2_SOURCES  = filter_apl_lines2.cc
 lines_SOURCES              = lines.cc
-ncurses_emul_SOURCES       = ncurses_emul.cc
-ncurses_emul_LDADD         = -lncurses -ltinfo
 TLV_server_SOURCES         = TLV_server.c
 unicodes_used_SOURCES      = unicodes_used.cc
 

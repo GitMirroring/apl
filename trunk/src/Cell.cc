@@ -231,8 +231,9 @@ ShapeItem idxB = B * comp_len;
 
    loop(l, comp_len)
        {
-         if (const Comp_result cr = rcl->value->get_cravel(idxA++)
-                                        .compare(rcl->value->get_cravel(idxB++)))
+         Cell cA, cB;
+         if (const Comp_result cr = rcl->value->get_cravel(idxA++, cA)
+                                        .compare(rcl->value->get_cravel(idxB++, cB)))
             return cr == COMP_GT;
        }
 
@@ -298,8 +299,9 @@ ShapeItem idxB = B * comp_len;
 
    loop(l, comp_len)
        {
-         if (const Comp_result cr = rcl->value->get_cravel(idxA++)
-                                        .compare(rcl->value->get_cravel(idxB++)))
+         Cell cA, cB;
+         if (const Comp_result cr = rcl->value->get_cravel(idxA++, cA)
+                                        .compare(rcl->value->get_cravel(idxB++, cB)))
             return cr == COMP_LT;
        }
 

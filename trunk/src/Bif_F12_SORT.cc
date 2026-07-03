@@ -167,7 +167,9 @@ vector<ShapeItem> ordered_indices_B;
 Value_P Z(len_BZ, LOC);
 const int qio = Workspace::get_IO();
 
-   loop(b, len_BZ)   Z->next_ravel_Int(ordered_indices_B[b] + qio);
+int64_t * dst = reinterpret_cast<int64_t *>(&Z->get_wfirst());
+   loop(b, len_BZ)   dst[b] = ordered_indices_B[b] + qio;
+   Z->commit_ravel_Int64(len_BZ);
 
    Z->check_value(LOC);
    return Token(TOK_APL_VALUE1, Z);
@@ -218,7 +220,9 @@ vector<ShapeItem> vZ;
       Heapsort<ShapeItem>::sort(vZ, &CollatingCache::smaller_vec, &cache);
 
 Value_P Z(len_BZ, LOC);
-   loop(z, len_BZ)   Z->next_ravel_Int(vZ[z] + qio);
+int64_t * dst = reinterpret_cast<int64_t *>(&Z->get_wfirst());
+   loop(z, len_BZ)   dst[z] = vZ[z] + qio;
+   Z->commit_ravel_Int64(len_BZ);
    Z->check_value(LOC);
    return Token(TOK_APL_VALUE1, Z);
 }

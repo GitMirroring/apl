@@ -151,30 +151,6 @@ CXXFLAGS="$CXXFLAGS -I `pwd`"
 #
 apl_TOPIC([checks for the presence and usablility of header files])
 
-# check for ncurses.h first and for curses.h only if ncurses.h was not found.
-
-AC_CHECK_HEADER(
-    [ncurses.h],
-    [AC_DEFINE(HAVE_NCURSES_H, 1,
-               [Define to 1 iff <ncurses.h> is present])],
-    [AC_CHECK_HEADER(
-        [curses.h],
-        [AC_DEFINE(HAVE_CURSES_H, 1,
-                    [Define to 1 iff <curses.h> is present])])
-    ])
-
-AC_CHECK_HEADER(
-    [term.h],
-    [AC_DEFINE( [HAVE_TERM_H], 1,
-                [Define to 1 iff <term.h> is present])],
-    [],
-    [ [ #if HAVE_NCURSES_H   ]
-      [ # include <ncurses.h> ]
-      [ #elif HAVE_CURSES_H  ]
-      [ # include <curses.h>  ]
-      [ #endif ]
-    ])
-
 # keep headers in roughy alphabetical order as to find them more easily
 #
 apl_missing_headers=-1 # since either sys/socket,h or winsock2.h will be missing
@@ -279,15 +255,9 @@ AC_CHECK_FUNCS([                                             \
 # keep libraries in inverse-alphabetic order so ./configure prints them
 # in alphabetic order
 #
-AC_CHECK_LIB([tinfo],     [tparm])
 AC_CHECK_LIB([socket],    [socket])   # for Solaris
 AC_CHECK_LIB([pthread],   [sem_init])
 AC_CHECK_LIB([nsl],       [yp_all])   # for Solaris
-AC_CHECK_LIB([curses],    [setupterm])
-AC_CHECK_LIB([ncurses],   [setupterm])
-AM_CONDITIONAL([BUILD_NCURSES_EMUL],
-   [test "x$ac_cv_lib_tinfo_tparm" = "xyes" ||
-    test "x$ac_cv_lib_ncurses_setupterm" = "xyes"])
 AC_CHECK_LIB([m],         [acosh])
 AC_CHECK_LIB([dl],        [dlopen])
 AC_CHECK_LIB([c],         [initstate_r])

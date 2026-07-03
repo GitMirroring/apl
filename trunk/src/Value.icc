@@ -277,4 +277,55 @@ Value::set_ravel_Value(ShapeItem offset, Value * value)
       }
 }
 //════════════════════════════════════════════════════════════════════════════
+const int64_t *
+Value::fetch_ravel_i64(ShapeItem i) const
+{
+   switch (flags.ravel_type)
+      {
+        case RT_BOOL:
+             ravel.fetch_cache =
+                  (reinterpret_cast<const int64_t *>(ravel.cells)[i >> 6]
+                      >> (i & 63)) & 1;
+             return &ravel.fetch_cache;
+        case RT_UNICODE16:
+             ravel.fetch_cache =
+                  reinterpret_cast<const uint16_t *>(ravel.cells)[i];
+             return &ravel.fetch_cache;
+        case RT_UNICODE32:
+             ravel.fetch_cache =
+                  reinterpret_cast<const Unicode *>(ravel.cells)[i];
+             return &ravel.fetch_cache;
+        case RT_INT64:
+        case RT_FLOAT64:
+             return reinterpret_cast<const int64_t *>(ravel.cells) + i;
+        case RT_COMPLEX:
+             return reinterpret_cast<const int64_t *>(ravel.cells) + (i << 1);
+        default:   // RT_MIXED
+             return reinterpret_cast<const int64_t *>(
+                        reinterpret_cast<const char *>(&ravel.cells[i]) + 8);
+      }
+}
+//──────────────────────────────────────────────────────────────────────────
+int64_t *
+Value::wfetch_ravel_i64(ShapeItem i)
+{
+   switch (flags.ravel_type)
+      {
+        case RT_BOOL:
+             return reinterpret_cast<int64_t *>(ravel.cells) + (i >> 6);
+        case RT_UNICODE16:
+             return reinterpret_cast<int64_t *>(ravel.cells) + (i >> 2);
+        case RT_UNICODE32:
+             return reinterpret_cast<int64_t *>(ravel.cells) + (i >> 1);
+        case RT_INT64:
+        case RT_FLOAT64:
+             return reinterpret_cast<int64_t *>(ravel.cells) + i;
+        case RT_COMPLEX:
+             return reinterpret_cast<int64_t *>(ravel.cells) + (i << 1);
+        default:   // RT_MIXED
+             return reinterpret_cast<int64_t *>(
+                        reinterpret_cast<char *>(&ravel.cells[i]) + 8);
+      }
+}
+//════════════════════════════════════════════════════════════════════════════
 #endif // __VALUE_ICC_DEFINED__

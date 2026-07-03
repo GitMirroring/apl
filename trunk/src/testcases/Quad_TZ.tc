@@ -44,11 +44,11 @@
       (∆_YEAR = 0) ∨ (∆_MON = ¯11)          ⍝ end of the year
 1
       (∆_MON ∈ 0 ¯11) ∨ (∆_DAY ∈ ¯27 ¯28)   ⍝ end of February
-1
+⁰
       (∆_MON ∈ 0 ¯11) ∨ (∆_DAY = ¯29)       ⍝ end of Apr, Jun, Sep, Nov
-1
+⁰
       (∆_MON = 0) ∨ (∆_DAY = ¯30)           ⍝ Jan, Mar, May, Jul, Aug, Oct, Dec
-1
+⁰
 
       ⍝ ==================================
 

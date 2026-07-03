@@ -1036,22 +1036,40 @@ const Shape3 shape_B3(B.get_shape(), axis);
 
 Value_P Z(B.get_shape(), LOC);
 
-   loop(h, shape_B3.h())
-       {
-         // plane h is the first element in B[h;;]
-         //
-         const ShapeItem plane_h = h * shape_B3.m() * shape_B3.l();
-         loop(m, shape_B3.m())
-             {
-               // col_m is the source column in B for Z[h;m;0]
-               const ShapeItem col_m = plane_h
-                                     + (shape_B3.l() * (shape_B3.m() - m - 1));
-               loop(l, shape_B3.l())
-                   {
-                     Z->next_ravel_Cell(B.get_cravel(col_m + l));
-                   }
-             }
-       }
+const ShapeItem ebytes = B.packed_bytes_per_item();
+   if (ebytes > 0)   // packed non-bool: permute elements directly
+      {
+              uint8_t * pZ = reinterpret_cast<uint8_t *>(&Z->get_wfirst());
+        const uint8_t * pB = reinterpret_cast<const uint8_t *>(B.cravel_packed());
+        loop(h, shape_B3.h())
+            {
+              const ShapeItem plane = h * shape_B3.m() * shape_B3.l();
+              loop(m, shape_B3.m())
+                  {
+                    const ShapeItem src = plane + (shape_B3.m() - m - 1) * shape_B3.l();
+                    const ShapeItem dst = plane + m * shape_B3.l();
+                    loop(l, shape_B3.l())
+                        memcpy(pZ + (dst + l) * ebytes,
+                               pB + (src + l) * ebytes, ebytes);
+                  }
+            }
+        Z->commit_ravel_like(B, B.element_count());
+      }
+   else
+      {
+        loop(h, shape_B3.h())
+            {
+              const ShapeItem plane_h = h * shape_B3.m() * shape_B3.l();
+              loop(m, shape_B3.m())
+                  {
+                    const ShapeItem col_m = plane_h
+                                         + (shape_B3.l() * (shape_B3.m() - m - 1));
+                    loop(l, shape_B3.l())
+                        Z->next_ravel_Cell(B.get_cravel(col_m + l));
+                  }
+            }
+        Z->pack_like(B);
+      }
 
    Z->set_default(B, LOC);
    Z->check_value(LOC);
@@ -1084,17 +1102,42 @@ const Shape shape_A2(shape_B3.h(), shape_B3.l());
 
 Value_P Z(B.get_shape(), LOC);
 
-   loop(h, shape_B3.h())
-   loop(m, shape_B3.m())
-   loop(l, shape_B3.l())
-       {
-         ShapeItem src = gsh;
-         if (!src)   src = A.get_cravel(l + h*shape_B3.l()).get_near_int();
-         src += shape_B3.m() + m;
-         while (src < 0)               src += shape_B3.m();
-         while (src >= shape_B3.m())   src -= shape_B3.m();
-         Z->next_ravel_Cell(B.get_cravel(shape_B3.hml(h, src, l)));
-       }
+const ShapeItem ebytes = B.packed_bytes_per_item();
+   if (ebytes > 0)   // packed non-bool: permute elements directly
+      {
+              uint8_t * pZ = reinterpret_cast<uint8_t *>(&Z->get_wfirst());
+        const uint8_t * pB = reinterpret_cast<const uint8_t *>(B.cravel_packed());
+        loop(h, shape_B3.h())
+        loop(m, shape_B3.m())
+        loop(l, shape_B3.l())
+            {
+              ShapeItem src = gsh;
+              if (!src)   src = A.get_cravel(l + h*shape_B3.l()).get_near_int();
+              src += shape_B3.m() + m;
+              while (src < 0)               src += shape_B3.m();
+              while (src >= shape_B3.m())   src -= shape_B3.m();
+              const ShapeItem dst = h * shape_B3.m() * shape_B3.l()
+                                  + m * shape_B3.l() + l;
+              memcpy(pZ + dst * ebytes,
+                     pB + shape_B3.hml(h, src, l) * ebytes, ebytes);
+            }
+        Z->commit_ravel_like(B, B.element_count());
+      }
+   else
+      {
+        loop(h, shape_B3.h())
+        loop(m, shape_B3.m())
+        loop(l, shape_B3.l())
+            {
+              ShapeItem src = gsh;
+              if (!src)   src = A.get_cravel(l + h*shape_B3.l()).get_near_int();
+              src += shape_B3.m() + m;
+              while (src < 0)               src += shape_B3.m();
+              while (src >= shape_B3.m())   src -= shape_B3.m();
+              Z->next_ravel_Cell(B.get_cravel(shape_B3.hml(h, src, l)));
+            }
+        Z->pack_like(B);
+      }
 
    Z->set_default(B, LOC);
 

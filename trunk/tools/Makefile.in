@@ -98,8 +98,7 @@ host_triplet = @host@
 @apl_TARGET_MINGW_FALSE@	filter_apl_lines2$(EXEEXT) \
 @apl_TARGET_MINGW_FALSE@	lines$(EXEEXT) phrase_gen$(EXEEXT) \
 @apl_TARGET_MINGW_FALSE@	sockconst$(EXEEXT) TLV_server$(EXEEXT) \
-@apl_TARGET_MINGW_FALSE@	unicodes_used$(EXEEXT) $(am__EXEEXT_1)
-@BUILD_NCURSES_EMUL_TRUE@@apl_TARGET_MINGW_FALSE@am__append_1 = ncurses_emul
+@apl_TARGET_MINGW_FALSE@	unicodes_used$(EXEEXT)
 subdir = tools
 ACLOCAL_M4 = $(top_srcdir)/aclocal.m4
 am__aclocal_m4_deps = $(top_srcdir)/m4/depend.m4 \
@@ -124,7 +123,6 @@ mkinstalldirs = $(install_sh) -d
 CONFIG_HEADER = $(top_builddir)/config.h
 CONFIG_CLEAN_FILES =
 CONFIG_CLEAN_VPATH_FILES =
-@BUILD_NCURSES_EMUL_TRUE@@apl_TARGET_MINGW_FALSE@am__EXEEXT_1 = ncurses_emul$(EXEEXT)
 PROGRAMS = $(noinst_PROGRAMS)
 am_APL_keyboard_OBJECTS = APL_keyboard.$(OBJEXT)
 APL_keyboard_OBJECTS = $(am_APL_keyboard_OBJECTS)
@@ -157,9 +155,6 @@ filter_apl_lines2_LDADD = $(LDADD)
 am_lines_OBJECTS = lines.$(OBJEXT)
 lines_OBJECTS = $(am_lines_OBJECTS)
 lines_LDADD = $(LDADD)
-am_ncurses_emul_OBJECTS = ncurses_emul.$(OBJEXT)
-ncurses_emul_OBJECTS = $(am_ncurses_emul_OBJECTS)
-ncurses_emul_DEPENDENCIES =
 am_phrase_gen_OBJECTS = phrase_gen.$(OBJEXT)
 phrase_gen_OBJECTS = $(am_phrase_gen_OBJECTS)
 phrase_gen_LDADD = $(LDADD)
@@ -191,8 +186,8 @@ am__depfiles_remade = ./$(DEPDIR)/APL_keyboard.Po \
 	./$(DEPDIR)/apl2html.Po ./$(DEPDIR)/check_command_def.Po \
 	./$(DEPDIR)/filter_apl_lines.Po \
 	./$(DEPDIR)/filter_apl_lines2.Po ./$(DEPDIR)/lines.Po \
-	./$(DEPDIR)/ncurses_emul.Po ./$(DEPDIR)/phrase_gen.Po \
-	./$(DEPDIR)/sockconst.Po ./$(DEPDIR)/unicodes_used.Po
+	./$(DEPDIR)/phrase_gen.Po ./$(DEPDIR)/sockconst.Po \
+	./$(DEPDIR)/unicodes_used.Po
 am__mv = mv -f
 COMPILE = $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) \
 	$(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS)
@@ -234,14 +229,14 @@ SOURCES = $(APL_keyboard_SOURCES) $(APL_keyboard_learn_SOURCES) \
 	$(APL_keyboard_show_SOURCES) $(TLV_server_SOURCES) \
 	$(apl2html_SOURCES) $(check_command_def_SOURCES) \
 	$(filter_apl_lines_SOURCES) $(filter_apl_lines2_SOURCES) \
-	$(lines_SOURCES) $(ncurses_emul_SOURCES) $(phrase_gen_SOURCES) \
-	sockconst.c $(unicodes_used_SOURCES)
+	$(lines_SOURCES) $(phrase_gen_SOURCES) sockconst.c \
+	$(unicodes_used_SOURCES)
 DIST_SOURCES = $(APL_keyboard_SOURCES) $(APL_keyboard_learn_SOURCES) \
 	$(APL_keyboard_show_SOURCES) $(TLV_server_SOURCES) \
 	$(apl2html_SOURCES) $(check_command_def_SOURCES) \
 	$(filter_apl_lines_SOURCES) $(filter_apl_lines2_SOURCES) \
-	$(lines_SOURCES) $(ncurses_emul_SOURCES) $(phrase_gen_SOURCES) \
-	sockconst.c $(unicodes_used_SOURCES)
+	$(lines_SOURCES) $(phrase_gen_SOURCES) sockconst.c \
+	$(unicodes_used_SOURCES)
 am__can_run_installinfo = \
   case $$AM_UPDATE_INFO_DIR in \
     n|no|NO) false;; \
@@ -447,8 +442,6 @@ check_command_def_SOURCES = check_command_def.cc
 filter_apl_lines_SOURCES = filter_apl_lines.cc
 filter_apl_lines2_SOURCES = filter_apl_lines2.cc
 lines_SOURCES = lines.cc
-ncurses_emul_SOURCES = ncurses_emul.cc
-ncurses_emul_LDADD = -lncurses -ltinfo
 TLV_server_SOURCES = TLV_server.c
 unicodes_used_SOURCES = unicodes_used.cc
 phrase_gen_SOURCES = phrase_gen.cc phrase_gen.def
@@ -531,10 +524,6 @@ lines$(EXEEXT): $(lines_OBJECTS) $(lines_DEPENDENCIES) $(EXTRA_lines_DEPENDENCIE
 	@rm -f lines$(EXEEXT)
 	$(AM_V_CXXLD)$(CXXLINK) $(lines_OBJECTS) $(lines_LDADD) $(LIBS)
 
-ncurses_emul$(EXEEXT): $(ncurses_emul_OBJECTS) $(ncurses_emul_DEPENDENCIES) $(EXTRA_ncurses_emul_DEPENDENCIES) 
-	@rm -f ncurses_emul$(EXEEXT)
-	$(AM_V_CXXLD)$(CXXLINK) $(ncurses_emul_OBJECTS) $(ncurses_emul_LDADD) $(LIBS)
-
 phrase_gen$(EXEEXT): $(phrase_gen_OBJECTS) $(phrase_gen_DEPENDENCIES) $(EXTRA_phrase_gen_DEPENDENCIES) 
 	@rm -f phrase_gen$(EXEEXT)
 	$(AM_V_CXXLD)$(CXXLINK) $(phrase_gen_OBJECTS) $(phrase_gen_LDADD) $(LIBS)
@@ -562,7 +551,6 @@ distclean-compile:
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/filter_apl_lines.Po@am__quote@ # am--include-marker
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/filter_apl_lines2.Po@am__quote@ # am--include-marker
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/lines.Po@am__quote@ # am--include-marker
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/ncurses_emul.Po@am__quote@ # am--include-marker
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/phrase_gen.Po@am__quote@ # am--include-marker
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/sockconst.Po@am__quote@ # am--include-marker
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/unicodes_used.Po@am__quote@ # am--include-marker
@@ -760,7 +748,6 @@ distclean: distclean-am
 	-rm -f ./$(DEPDIR)/filter_apl_lines.Po
 	-rm -f ./$(DEPDIR)/filter_apl_lines2.Po
 	-rm -f ./$(DEPDIR)/lines.Po
-	-rm -f ./$(DEPDIR)/ncurses_emul.Po
 	-rm -f ./$(DEPDIR)/phrase_gen.Po
 	-rm -f ./$(DEPDIR)/sockconst.Po
 	-rm -f ./$(DEPDIR)/unicodes_used.Po
@@ -818,7 +805,6 @@ maintainer-clean: maintainer-clean-am
 	-rm -f ./$(DEPDIR)/filter_apl_lines.Po
 	-rm -f ./$(DEPDIR)/filter_apl_lines2.Po
 	-rm -f ./$(DEPDIR)/lines.Po
-	-rm -f ./$(DEPDIR)/ncurses_emul.Po
 	-rm -f ./$(DEPDIR)/phrase_gen.Po
 	-rm -f ./$(DEPDIR)/sockconst.Po
 	-rm -f ./$(DEPDIR)/unicodes_used.Po
