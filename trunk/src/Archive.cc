@@ -526,51 +526,23 @@ const cValue & v = *val_pars[vid]._val;
 const APL_types::Depth depth = val_pars[vid]._depth;
 const ShapeItem len = v.nz_element_count();
 int space = do_indent();
-   if (v.is_bool_packed())   // Value has a bool-packed ravel
-      {
-        const uint8_t * bytes = reinterpret_cast<const uint8_t *>(&v.get_cfirst());
-        const ShapeItem byte_count = (len + 7)/8;
+   {
+     // print the start of the XML element
+     char cc[80];
+     SPRINTF(cc, "<Ravel vid=\"%d\" depth=\"%d\" cells=\"", vid, depth);
+     outf << decr(space, cc);
+   }
 
-        // print the start of the XML element
-        {
-          char cc[80];   // output line buffer
-          SPRINTF(cc, "<Ravel vid=\"%d\" bytes=\"", vid);
-          outf << cc;
-        }
+   // print the data of the 'cells' attribute
+   // get_cravel() materialises packed elements (any RPT_) via the fetcher
+   ++indent;
+   loop(l, len)   emit_cell(v.get_cravel(l), space);
 
-        // print the data of the bytes attribute
-        //
-        ++indent;
-        outf << uhex << UNI_PAD_U9;   // emit the following bytes in hex
-        if (space < byte_count)   outf << endl;
+   space -= leave_char_mode();
+   space -= 2;
 
-        loop(b, byte_count)   // print with max. 64 bytes per line
-            {
-              if (b && (b & 0x3F) == 0)   outf << "\n    " << UNI_PAD_U9;
-              outf << (bytes[b] & 0xFF);
-            }
-        outf << nohex << "\"/>" << endl;
-        --indent;
-      }
-   else   // normal ravel
-      {
-        // print the start of the XML element
-        {
-          char cc[80];   // output line buffer
-          SPRINTF(cc, "<Ravel vid=\"%d\" depth=\"%d\" cells=\"", vid, depth);
-          outf << decr(space, cc);
-        }
-
-        // print the data of the 'cells' attribute
-        ++indent;
-        loop(l, len)   emit_cell(v.get_cravel(l), space);
-
-        space -= leave_char_mode();
-        space -= 2;
-
-        outf << "\"/>" << endl;
-        --indent;
-      }
+   outf << "\"/>" << endl;
+   --indent;
 
    return *this;
 }
@@ -2418,6 +2390,7 @@ Value_P Z = values[vid];
                               << " items)" << endl;
          }
    Z->check_value(LOC);
+   Z->try_pack();
 }
 //────────────────────────────────────────────────────────────────────────────
 void

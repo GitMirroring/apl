@@ -599,6 +599,9 @@
 /* max. rank of APL values */
 #undef cfg_MAX_RANK_WANTED
 
+/* minimum element count for automatic ravel packing */
+#undef cfg_PACKED_MINIMUM_LENGTH_WANTED
+
 /* Define to enable performance counters */
 #undef cfg_PERFORMANCE_COUNTERS_WANTED
 

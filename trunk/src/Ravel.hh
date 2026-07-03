@@ -153,7 +153,7 @@ protected:
    Cell short_value[cfg_SHORT_VALUE_LENGTH_WANTED];
 
    /// per-ravel scratch int64 used by fetch_ravel_i64() for sub-word types
-   /// (RT_BOOL, RT_UNICODE16, RT_UNICODE32) that cannot return a direct pointer.
+   /// (RPT_BOOL, RPT_UNICODE16, RPT_UNICODE32) that cannot return a direct pointer.
    mutable int64_t fetch_cache;
 
    /// per-ravel Cell cache for get_cravel() on packed (non-Cell) ravels.

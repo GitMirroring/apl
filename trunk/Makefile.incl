@@ -58,6 +58,10 @@ nolibs:
                     --without-optional_libs
 	make -j 10 all
 
+.PHONY: test3
+test3:
+	make -j 10 -C src test3
+
 ###############################################################################
 # a shortcut to ./configure for compiling the python library
 #

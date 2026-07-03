@@ -739,6 +739,15 @@ AC_DEFINE_UNQUOTED(cfg_SHORT_VALUE_LENGTH_WANTED, $SHORT_VALUE_LENGTH_WANTED,
           [short value cellcount])
 AC_MSG_RESULT([$SHORT_VALUE_LENGTH_WANTED])
 
+# APL: minimum element count for automatic ravel packing ?
+AC_MSG_CHECKING([minimum element count for automatic ravel packing])
+AC_ARG_VAR(PACKED_MINIMUM_LENGTH_WANTED,
+    [ Minimum element count for automatic ravel packing (default: 12) ])
+if apl_EQ($PACKED_MINIMUM_LENGTH_WANTED, ); then PACKED_MINIMUM_LENGTH_WANTED=12; fi
+AC_DEFINE_UNQUOTED(cfg_PACKED_MINIMUM_LENGTH_WANTED, $PACKED_MINIMUM_LENGTH_WANTED,
+          [minimum element count for automatic ravel packing])
+AC_MSG_RESULT([$PACKED_MINIMUM_LENGTH_WANTED])
+
 
 # APL: visible markers (debug only option) ?
 AC_MSG_CHECKING([whether visible markers shall be used])

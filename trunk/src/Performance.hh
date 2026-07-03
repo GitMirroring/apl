@@ -401,8 +401,8 @@ enum Optimization_ID
 /// Individual optimiizations can be enabled/disabled in Performance.def
 enum Do_Optimization
 {
-  FT_ANY = 1,   ///< all ⎕FX time optimizations
-  RT_ANY = 1,   ///< all run time optimizations
+  OFT_ANY = 1,   ///< all ⎕FX time optimizations
+  ORT_ANY = 1,   ///< all run time optimizations
 
 #define optim(enabled, tag, __text)  \
    DO_ ## tag = enabled, DONT_ ## tag = 1 - enabled,

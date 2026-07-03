@@ -327,6 +327,7 @@ PACKAGE_STRING = @PACKAGE_STRING@
 PACKAGE_TARNAME = @PACKAGE_TARNAME@
 PACKAGE_URL = @PACKAGE_URL@
 PACKAGE_VERSION = @PACKAGE_VERSION@
+PACKED_MINIMUM_LENGTH_WANTED = @PACKED_MINIMUM_LENGTH_WANTED@
 PATH_SEPARATOR = @PATH_SEPARATOR@
 PCRE_CFLAGS = @PCRE_CFLAGS@
 PCRE_LIBS = @PCRE_LIBS@
@@ -1052,6 +1053,10 @@ nolibs:
                      CXX_WERROR=yes                  \
                     --without-optional_libs
 	make -j 10 all
+
+.PHONY: test3
+test3:
+	make -j 10 -C src test3
 
 ###############################################################################
 # a shortcut to ./configure for compiling the python library

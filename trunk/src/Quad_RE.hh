@@ -44,10 +44,10 @@ protected:
    /// the type of result
    enum Result_type
       {
-        RT_string    = 0,   ///< matched string
-        RT_partition = 1,   ///< dito.
-        RT_pos_len   = 2,   ///< position and length
-        RT_reduce    = 3,   ///< dito.
+        RST_string    = 0,   ///< matched string
+        RST_partition = 1,   ///< dito.
+        RST_pos_len   = 2,   ///< position and length
+        RST_reduce    = 3,   ///< dito.
       } result_type;    ///< the type of result
 
    /// overloaded Function::eval_AB().

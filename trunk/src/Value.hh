@@ -260,7 +260,7 @@ public:
 
    /// true if this value has a bool-packed (bit-array) ravel
    bool is_bool_packed() const
-      { return flags.ravel_type == RT_BOOL; }
+      { return flags.ravel_type == RPT_BOOL; }
 
    /// true if Value flag \b marked is set
    bool is_marked() const
@@ -325,11 +325,11 @@ public:
         return ravel.get_cravel(idx);
       }
 
-   /// current ravel packing type (RT_MIXED = unpacked Cell array)
+   /// current ravel packing type (RPT_CELLS = unpacked Cell array)
    RavelType get_ravel_type() const
       { return RavelType(flags.ravel_type); }
 
-   /// raw read pointer for RT_FLOAT64 ravels; call only when ravel_type==RT_FLOAT64
+   /// raw read pointer for RPT_FLOAT64 ravels; call only when ravel_type==RPT_FLOAT64
    const double * cravel_float64() const
       { return reinterpret_cast<const double *>(ravel.cells); }
 
@@ -338,7 +338,7 @@ public:
       { return ravel.cells; }
 
    /// packed element size in bytes: 8/8/16/4/2 for INT64/FLOAT64/COMPLEX/U32/U16;
-   /// returns 0 for RT_MIXED (not packed) and RT_BOOL (bit-packed, needs special handling)
+   /// returns 0 for RPT_CELLS (not packed) and RPT_BOOL (bit-packed, needs special handling)
    ShapeItem packed_bytes_per_item() const;
 
    /// like get_cravel(), but materialises packed cells into caller-supplied
@@ -516,18 +516,6 @@ public:
 
 #define set_member() SET_member(_LOC)
 
-   /// mark this value as boolean bit-packed
-   void SET_packed(_loc_type _loc) const
-      { FLAG_TRACE(packed, true)   flags.ravel_type = RT_BOOL;
-        ADD_EVENT(this, VHE_SetFlag, VF_packed, _loc); }
-
-   /// reset ravel type to mixed (Cell) ravel
-   void CLEAR_packed(_loc_type _loc) const
-      { FLAG_TRACE(packed, false)   flags.ravel_type = RT_MIXED;
-        ADD_EVENT(this, VHE_ClearFlag, VF_packed, _loc); }
-
-#define set_packed()   SET_packed(_LOC)
-#define clear_packed() CLEAR_packed(_LOC)
 
    /// set the Value flag \b complete
    void SET_complete(_loc_type _loc) const
@@ -645,7 +633,7 @@ public:
                           (flags.marked      ? VF_marked   : 0) |
                           (flags.temp        ? VF_temp     : 0) |
                           (flags.member      ? VF_member   : 0) |
-                          (uint16_t(flags.ravel_type) << 4)); }
+                          0); }
 
    /// print info related to a stale value
    /// @param out output stream to write to
@@ -751,8 +739,8 @@ public:
    /// destructor
    virtual ~Value();
 
-   /// packing makes no sense for short booleans
-   enum { PACKED_MINIMUM_LENGHT = cfg_SHORT_VALUE_LENGTH_WANTED };
+   /// minimum element count for automatic ravel packing (cache-density threshold)
+   enum { PACKED_MINIMUM_LENGHT = cfg_PACKED_MINIMUM_LENGTH_WANTED };
 
    // DynamicObject also has print(ostream&) const; select the cValue one
    // for unqualified ->print() calls.  DynamicObject::print() remains
@@ -845,7 +833,7 @@ public:
       { Assert(ravel.valid_ravel_items == 0);
         ravel.valid_ravel_items = n;
         ravel.fetcher    = &Ravel::int64_fetcher;
-        flags.ravel_type = RT_INT64; }
+        flags.ravel_type = RPT_INT64; }
 
    /// finalize a ravel that was written directly as double* via get_wfirst().
    /// Call after writing N double values into
@@ -854,7 +842,7 @@ public:
       { Assert(ravel.valid_ravel_items == 0);
         ravel.valid_ravel_items = n;
         ravel.fetcher    = &Ravel::float64_fetcher;
-        flags.ravel_type = RT_FLOAT64; }
+        flags.ravel_type = RPT_FLOAT64; }
 
    /// finalize Z as the same packed type as B (for permutation functions)
    void commit_ravel_like(const cValue & B, ShapeItem n);
@@ -1037,21 +1025,21 @@ public:
    inline void depth_update_for_overwrite(ShapeItem offset, int new_sub_depth);
 
    /// return a read-only int64_t pointer to ravel[i] for any ravel type.
-   /// For sub-word types (RT_BOOL, RT_UNICODE16, RT_UNICODE32) the value is
+   /// For sub-word types (RPT_BOOL, RPT_UNICODE16, RPT_UNICODE32) the value is
    /// materialized into ravel.fetch_cache and a pointer to that cache is
    /// returned; the caller must not hold the pointer past the next call.
-   /// For RT_INT64/RT_FLOAT64 a direct pointer into the ravel is returned.
-   /// For RT_COMPLEX a pointer to the real part (imag follows) is returned.
-   /// For RT_MIXED a pointer past the vtable to the Cell value field is returned.
+   /// For RPT_INT64/RPT_FLOAT64 a direct pointer into the ravel is returned.
+   /// For RPT_COMPLEX a pointer to the real part (imag follows) is returned.
+   /// For RPT_CELLS a pointer past the vtable to the Cell value field is returned.
    /// @param i ravel index (0-based)
    inline const int64_t * fetch_ravel_i64(ShapeItem i) const;
 
    /// return a write int64_t pointer to ravel[i] for any ravel type.
    /// For sub-word types the returned pointer is int64_t-aligned and the
    /// caller uses the lower bits of i to locate the item within the word:
-   ///   RT_BOOL:      lower 6 bits of i give the bit position (0-63)
-   ///   RT_UNICODE16: lower 2 bits of i give the slot  (0-3, each 16 bits)
-   ///   RT_UNICODE32: lower 1 bit  of i gives the slot (0-1, each 32 bits)
+   ///   RPT_BOOL:      lower 6 bits of i give the bit position (0-63)
+   ///   RPT_UNICODE16: lower 2 bits of i give the slot  (0-3, each 16 bits)
+   ///   RPT_UNICODE32: lower 1 bit  of i gives the slot (0-1, each 32 bits)
    /// @param i ravel index (0-based)
    inline int64_t * wfetch_ravel_i64(ShapeItem i);
 
@@ -1117,18 +1105,22 @@ public:
    /// @param force_numeric if true, prototype is forced to numeric even for char arrays
    void to_type(bool force_numeric);
 
-   /// expand this (packed) Boolean value (in place)
+   /// expand this (packed) ravel to Cell format (in place)
    void explode();
+
+   /// assign cell C to packed or unpacked ravel at offset; explodes only when
+   /// the cell type is incompatible with the current packing
+   void assign_cell(ShapeItem offset, const Cell & C, const char * loc);
 
    /// try to implode (pack) this unpacked value. Return 0 on success or
    /// reason on error;
    const char * try_implode();
 
    /// try to pack this value into the tightest homogeneous ravel format
-   /// (RT_BOOL, RT_INT64, RT_FLOAT64, RT_COMPLEX, RT_UNICODE16, or RT_UNICODE32).
+   /// (RPT_BOOL, RPT_INT64, RPT_FLOAT64, RPT_COMPLEX, RPT_UNICODE16, or RPT_UNICODE32).
    /// Does nothing if the value is already packed, has PointerCells, or has
-   /// fewer than RAVEL_PACK_THRESHOLD elements.  Safe to call multiple times.
-   void try_pack();
+   /// fewer than PACKED_MINIMUM_LENGHT elements.  Safe to call multiple times.
+   void try_pack(bool force = false);
 
    /// print incomplete Values, and return the number of incomplete Values.
    /// @param out output stream to write to

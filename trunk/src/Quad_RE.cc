@@ -83,7 +83,7 @@ Quad_RE::Flags::Flags(const UCS_string & flags_string)
    : flags(0),
      error_on_no_match(false),
      global(false),
-     result_type(RT_string)
+     result_type(RST_string)
 {
 int ofcnt = 0;
    loop (f, flags_string.size())
@@ -91,9 +91,9 @@ int ofcnt = 0;
         const Unicode uni = flags_string[f];
         switch(uni)
            {
-             case UNI_SUBSET:     result_type = RT_partition;  ++ofcnt;  break;
-             case UNI_DOWN_ARROW: result_type = RT_pos_len;    ++ofcnt;  break;
-             case UNI_SLASH:      result_type = RT_reduce;     ++ofcnt;  break;
+             case UNI_SUBSET:     result_type = RST_partition;  ++ofcnt;  break;
+             case UNI_DOWN_ARROW: result_type = RST_pos_len;    ++ofcnt;  break;
+             case UNI_SLASH:      result_type = RST_reduce;     ++ofcnt;  break;
              case UNI_g:          global = true;                         break;
              case UNI_E:          error_on_no_match = true;              break;
              case UNI_i:          flags |= PCRE2_CASELESS;               break;
@@ -175,19 +175,19 @@ ShapeItem B_offset = 0;   // updated by XXX_result() functions
 
    switch(X.get_result_type())
       {
-        case RT_reduce:
-        case RT_partition: return partition_result(A, X, B);
+        case RST_reduce:
+        case RST_partition: return partition_result(A, X, B);
 
-        case RT_string:    if (X.get_global())   break;   // continue below
+        case RST_string:    if (X.get_global())   break;   // continue below
                                 return string_result(A, X, B, B_offset);
 
-        case RT_pos_len:   if (X.get_global())   break;   // continue below
+        case RST_pos_len:   if (X.get_global())   break;   // continue below
                                 return index_result (A, X, B, B_offset);
 
         default:           FIXME;
       }
 
-   /* At this point the result type is RT_string or RT_pos_len, and the global
+   /* At this point the result type is RST_string or RST_pos_len, and the global
       flag is set (which means that all matches shall be returned).
 
       We have not yet called the corresponding string_result() or index_result()
@@ -208,11 +208,11 @@ Value_P Z(cfg_SHORT_VALUE_LENGTH_WANTED, LOC);
          Value_P ZZ;
          switch(X.get_result_type())
             {
-              case RT_string:
+              case RST_string:
                    ZZ = string_result(A, X, B, B_offset);
                    break;
 
-              case RT_pos_len:
+              case RST_pos_len:
                    ZZ = index_result(A, X, B, B_offset);
                    break;
 
@@ -259,7 +259,7 @@ PCRE2_SIZE B_offset = 0;
 ShapeItem match_id_partition = 1;
 ShapeItem match_id_compress  = 1;
 
-ShapeItem & match_id = X.get_result_type() == RT_partition
+ShapeItem & match_id = X.get_result_type() == RST_partition
                      ? match_id_partition : match_id_compress;
 
    // compress needs a numeric vector like  1 1 1 0 0 0 0 0 1 1 1...

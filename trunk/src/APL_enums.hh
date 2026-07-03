@@ -522,36 +522,51 @@ enum ValueFlags
   VF_marked   = 0x0002,   ///< marked to detect stale  (bit 1)
   VF_temp     = 0x0004,   ///< computed value           (bit 2)
   VF_member   = 0x0008,   ///< used for member access   (bit 3)
-  VF_packed   = 0x0010,   ///< ravel_type LSB (RT_BOOL=1 sets this bit)
+  VF_packed   = 0x0010,   ///< legacy: bool-packed archive format (read-only; never written by get_flags())
 };
 
-/// Ravel type codes stored in VF_Flags::ravel_type (4 bits, bits 4-7).
-/// 0 = mixed Cells (status quo); non-zero = packed homogeneous data.
+/// Ravel packing type stored in VF_Flags::ravel_type (16 bits, full enum value).
+/// RPT_CELLS (= 0) is the default "unpacked" sentinel; packed atoms encode their
+/// ordinal in the low byte and 1<<ordinal in the high byte (like enum NameClass).
+/// Group membership test: (rt & RPT_xxx) != 0.
 enum RavelType
 {
-  RT_MIXED      =  0,   ///< status quo: mixed Cell ravel
-  RT_BOOL       =  1,   ///< 1-bit booleans (bit-packed uint64_t ravel)
-  RT_UNICODE16  =  2,   ///< 16-bit Unicode scalars (reserved, not yet used)
-  RT_UNICODE32  =  3,   ///< 32-bit Unicode scalars (reserved, not yet used)
-  RT_INT64      =  5,   ///< 64-bit signed integers
-  RT_FLOAT64    =  6,   ///< 64-bit IEEE 754 doubles
-  RT_COMPLEX    =  7,   ///< 2×64-bit complex (128 bits)
-  RT_UNKNOWN    = 15,   ///< construction sentinel: type not yet determined
+  // atoms — RPT_CELLS = 0 (unpacked, default); others: low byte = ordinal, high byte = 1<<ordinal
+  RPT_CELLS      = 0,        ///< unpacked Cell ravel (zero = default/not-packed sentinel)
+  RPT_BOOL       = 0x0201,   ///< 1-bit booleans               (ordinal 1)
+  RPT_UNICODE16  = 0x0402,   ///< 16-bit Unicode scalars       (ordinal 2)
+  RPT_UNICODE32  = 0x0803,   ///< 32-bit Unicode scalars       (ordinal 3)
+  RPT_INT64      = 0x1004,   ///< 64-bit signed integers       (ordinal 4)
+  RPT_FLOAT64    = 0x2005,   ///< 64-bit IEEE 754 doubles      (ordinal 5)
+  RPT_COMPLEX    = 0x4006,   ///< 2×64-bit complex (128 bits)  (ordinal 6)
+  RPT_UNKNOWN    = 0x00FF,   ///< construction sentinel
+
+  RPT_case_mask  = 0x00FF,   ///< ordinal field (low byte)
+  RPT_bool_mask  = 0xFF00,   ///< one-hot bits field (high byte)
+
+  // group bitmasks — membership test: (rt & RT_xxx) != 0
+  RPT_packed     = RPT_bool_mask & (RPT_BOOL    | RPT_UNICODE16 | RPT_UNICODE32 |
+                                  RPT_INT64   | RPT_FLOAT64   | RPT_COMPLEX),
+  RPT_numeric    = RPT_bool_mask & (RPT_INT64   | RPT_FLOAT64   | RPT_COMPLEX),
+  RPT_real       = RPT_bool_mask & (RPT_INT64   | RPT_FLOAT64),
+  RPT_char       = RPT_bool_mask & (RPT_UNICODE16 | RPT_UNICODE32),
+  RPT_subword    = RPT_bool_mask & (RPT_BOOL    | RPT_UNICODE16 | RPT_UNICODE32),
+  RPT_copyable   = RPT_bool_mask & (RPT_UNICODE16 | RPT_UNICODE32 |
+                                  RPT_INT64   | RPT_FLOAT64   | RPT_COMPLEX),
 };
 
-/// minimum element count for automatic packing to be worthwhile
-enum { RAVEL_PACK_THRESHOLD = 1024 };
 
 /// C++ bitfield overlay for the flags + value_depth word in ValueBase.
-/// bits 0-3: the four VF_ flags; bits 4-7: ravel_type; bits 8-15: value_depth.
+/// bits 0-3: the four VF_ flags; bits 4-19: ravel_type; bits 20-27: value_depth; bits 28-31: spare.
 struct VF_Flags
 {
-   uint16_t complete    :  1;   ///< CHECK called
-   uint16_t marked      :  1;   ///< marked to detect stale
-   uint16_t temp        :  1;   ///< computed value
-   uint16_t member      :  1;   ///< used for member access
-   uint16_t ravel_type  :  4;   ///< RavelType: 0=mixed, 1=bool, 5=int64, 6=float64, 7=complex
-   uint16_t value_depth :  8;   ///< cached ≡ depth: 0..254 = depth, 255 = dirty
+   uint32_t complete    :  1;   ///< CHECK called
+   uint32_t marked      :  1;   ///< marked to detect stale
+   uint32_t temp        :  1;   ///< computed value
+   uint32_t member      :  1;   ///< used for member access
+   uint32_t ravel_type  : 16;   ///< full RavelType enum value (RPT_CELLS = 0 means unpacked)
+   uint32_t value_depth :  8;   ///< cached ≡ depth: 0..254 = depth, 255 = dirty
+   uint32_t             :  4;   ///< spare
 };
 /// sentinel stored in value_depth when the cached depth is invalid
 enum { VF_DEPTH_DIRTY = 255 };

@@ -226,8 +226,8 @@ const bool maybe_parallel = Parallel::run_parallel &&
                    (fvv &&
                     !job_AB->value_A->get_pointer_cell_count() &&
                     !job_AB->value_B->get_pointer_cell_count() &&
-                    job_AB->value_A->get_ravel_type() == RT_FLOAT64 &&
-                    job_AB->value_B->get_ravel_type() == RT_FLOAT64)
+                    job_AB->value_A->get_ravel_type() == RPT_FLOAT64 &&
+                    job_AB->value_B->get_ravel_type() == RPT_FLOAT64)
                    ? fvv : nullptr;
               }
               Thread_context::do_work = PF_scalar_AB;
@@ -252,8 +252,8 @@ PERFORMANCE_END(fs_M_join_AB, start_M_join, 1);
                 if (fvv &&
                     !job_AB->value_A->get_pointer_cell_count() &&
                     !job_AB->value_B->get_pointer_cell_count() &&
-                    job_AB->value_A->get_ravel_type() == RT_FLOAT64 &&
-                    job_AB->value_B->get_ravel_type() == RT_FLOAT64)
+                    job_AB->value_A->get_ravel_type() == RPT_FLOAT64 &&
+                    job_AB->value_B->get_ravel_type() == RPT_FLOAT64)
                    {
                      double * pZ = reinterpret_cast<double *>(
                                        &job_AB->value_Z->get_wfirst());
@@ -433,7 +433,7 @@ const bool maybe_parallel = Parallel::run_parallel &&
                 job_B->float64_fv =
                    (fv &&
                     !job_B->value_B->get_pointer_cell_count() &&
-                    job_B->value_B->get_ravel_type() == RT_FLOAT64)
+                    job_B->value_B->get_ravel_type() == RPT_FLOAT64)
                    ? fv : nullptr;
               }
               Thread_context::do_work = PF_scalar_B;
@@ -460,7 +460,7 @@ PERFORMANCE_END(fs_M_join_B, start_M_join, 1);
                 const v_f2f_t fv = get_v_f2f();
                 if (fv &&
                     !job_B->value_B->get_pointer_cell_count() &&
-                    job_B->value_B->get_ravel_type() == RT_FLOAT64)
+                    job_B->value_B->get_ravel_type() == RPT_FLOAT64)
                    {
                      double * pZ = reinterpret_cast<double *>(
                                        &job_B->value_Z->get_wfirst());
@@ -1343,16 +1343,35 @@ const ShapeItem len_B = B.element_count();
 vector<const Cell *> cells_A;
 vector<const Cell *> cells_Z;
 vector<const Cell *> cells_B;
+
+   // For packed ravels get_cravel() materialises into a shared fetch_cache,
+   // so all pointers would alias the same address.  Use per-element stable
+   // storage for packed operands so that the pointers remain valid after the
+   // loop and the final compare_ptr sort reconstructs A's original order.
+   //
+vector<char> stable_A_mem, stable_B_mem;
+
    try {
          cells_A.reserve(len_A);
          cells_B.reserve(len_B);
          cells_Z.reserve(len_A);
+         if (A.is_packed())   stable_A_mem.resize(len_A * sizeof(Cell));
+         if (B.is_packed())   stable_B_mem.resize(len_B * sizeof(Cell));
 
        }   catch (std::bad_alloc &) { WS_FULL; }
            catch (...)              { FIXME; }
 
-   loop(a, len_A)   cells_A.push_back(&A.get_cravel(a));
-   loop(b, len_B)   cells_B.push_back(&B.get_cravel(b));
+   if (A.is_packed())
+      { Cell * p = reinterpret_cast<Cell *>(stable_A_mem.data());
+        loop(a, len_A)   { A.get_cravel(a, p[a]);   cells_A.push_back(p + a); } }
+   else
+      { loop(a, len_A)   cells_A.push_back(&A.get_cravel(a)); }
+
+   if (B.is_packed())
+      { Cell * p = reinterpret_cast<Cell *>(stable_B_mem.data());
+        loop(b, len_B)   { B.get_cravel(b, p[b]);   cells_B.push_back(p + b); } }
+   else
+      { loop(b, len_B)   cells_B.push_back(&B.get_cravel(b)); }
 
    // sort the A-cells and the B-cells ascendingly
    //

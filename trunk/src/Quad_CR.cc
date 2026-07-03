@@ -854,7 +854,7 @@ int zero_count  = 0;
             {
               const Cell & cell = value.get_cravel(v);
               if (!cell.is_pointer_cell())   continue;
-              const Value & sub_val = *cell.get_pointer_value();
+              const cValue & sub_val = *cell.get_pointer_value();
               do_CR10_level(result, level + 1, sub_val);
 
               text << indent << var_level << "[" << v << "]←⊂"
@@ -1136,8 +1136,8 @@ Value_P Z(B.get_shape(), LOC);
         const Cell & cB = B.get_cravel(l);
         if (cB.is_pointer_cell())
            {
-             Value_P B_sub = cB.get_pointer_value();
-             Value_P Z_sub = do_CR26(*B_sub);
+             const cValue & B_sub = *cB.get_pointer_value();
+             Value_P Z_sub = do_CR26(B_sub);
              Z->next_ravel_Pointer(Z_sub.get());
            }
         else
@@ -1160,8 +1160,8 @@ Value_P Z(B.get_shape(), LOC);
          const Cell & cB = B.get_cravel(z);
          if (cB.is_pointer_cell())
             {
-              Value_P B_sub = cB.get_pointer_value();
-              Value_P Z_sub = do_CR27_28(A_27_28, *B_sub);
+              const cValue & B_sub = *cB.get_pointer_value();
+              Value_P Z_sub = do_CR27_28(A_27_28, B_sub);
               Z->next_ravel_Pointer(Z_sub.get());
             }
          else
@@ -1286,20 +1286,20 @@ PrintContext pctx = Workspace::get_PrintContext(PR_APL);
 
    loop(b, len)
       {
-        Value_P row = B.get_cravel(b).get_pointer_value();
+        const cValue & row = *B.get_cravel(b).get_pointer_value();
 
-        if (row->element_count() == 1)   // single item
+        if (row.element_count() == 1)   // single item
            {
-             Value_P Zrow = CLONE_P(row->get_cfirst().get_pointer_value(), LOC);
+             Value_P Zrow = CLONE_P(row.get_cfirst().get_pointer_value(), LOC);
              Z->next_ravel_Pointer(Zrow.get());
              continue;
            }
 
         PrintBuffer pb;
-        loop(col, row->element_count())
+        loop(col, row.element_count())
             {
-              Value_P item = row->get_cravel(col).get_pointer_value();
-              PrintBuffer pb_item(*item, pctx, 0);
+              const cValue & item = *row.get_cravel(col).get_pointer_value();
+              PrintBuffer pb_item(item, pctx, 0);
               pb.pad_height(UNI_SPACE, pb_item.get_row_count());
               if (A_31_32 == 31)   // align bottoms
                  pb_item.pad_height_above(UNI_SPACE, pb.get_row_count());
@@ -1389,7 +1389,7 @@ const ShapeItem len_B = B.element_count();
 ShapeItem len_Z = B.element_count();
    loop(b, len_B)
        {
-         const Value & Bb = *B.get_cravel(b).get_pointer_value();
+         const cValue & Bb = *B.get_cravel(b).get_pointer_value();
          if (Bb.get_rank() > 1)   RANK_ERROR;
          len_Z += 1 + Bb.element_count();
        }
@@ -1398,7 +1398,7 @@ UCS_string UZ;
    UZ.reserve(len_Z);
    loop(b, len_B)
        {
-         const Value & Bb = *B.get_cravel(b).get_pointer_value();
+         const cValue & Bb = *B.get_cravel(b).get_pointer_value();
          UCS_string Ub(Bb);
          UZ << Ub << UNI_LF;
        }
@@ -1579,7 +1579,7 @@ Value_P Z(B.get_shape(), bits, LOC);
 Value_P
 Quad_CR::do_CR41(cValue_R B)
 {
-   if (!(B.get_flags() & VF_packed))
+   if (!B.is_packed())
       {
         MORE_ERROR() << "B is not packed in 41 ⎕CR B";
         DOMAIN_ERROR;
@@ -1733,13 +1733,13 @@ Quad_CR::decode_CR44(UCS_string & result, const Cell & cB)
       }
    else if (cB.is_pointer_cell())    // token ←→ (tag, value)
       {
-        Value_P B2 = cB.get_pointer_value();
-        if (B2->get_rank() > 1)   RANK_ERROR;
+        const cValue & B2 = *cB.get_pointer_value();
+        if (B2.get_rank() > 1)   RANK_ERROR;
 
-        if (B2->element_count() != 2)   LENGTH_ERROR;
+        if (B2.element_count() != 2)   LENGTH_ERROR;
 
-        const Cell & cVal        = B2->get_cravel(1);
-        const Cell & cTag        = B2->get_cfirst();   // the tag
+        const Cell & cVal        = B2.get_cravel(1);
+        const Cell & cTag        = B2.get_cfirst();   // the tag
         const TokenTag tag       = TokenTag(cTag.get_int_value());
         const TokenClass cls     = TokenClass(tag & TC_MASK);
         const TokenValueType typ = TokenValueType(tag & TV_MASK);
@@ -1773,8 +1773,8 @@ Quad_CR::decode_CR44(UCS_string & result, const Cell & cB)
                case TV_FUN:   
                case TV_SYM:   if (!cVal.is_pointer_cell())   DOMAIN_ERROR;
                               {
-                                Value_P symbol = cVal.get_pointer_value();
-                                result << UCS_string(*symbol);
+                                const cValue & symbol = *cVal.get_pointer_value();
+                                result << UCS_string(symbol);
                               }
                               break;
 
@@ -1804,7 +1804,7 @@ Quad_CR::decode_CR44(UCS_string & result, const Cell & cB)
 }
 //────────────────────────────────────────────────────────────────────────────
 void
-Quad_CR::value_CR44(UCS_string & result, const Value & value)
+Quad_CR::value_CR44(UCS_string & result, cValue_R value)
 {
    // 1. shape prefix (unless scalar or vector)
    //

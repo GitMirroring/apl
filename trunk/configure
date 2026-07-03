@@ -671,6 +671,7 @@ apl_BUILD_OS
 apl_BUILD_DATE
 RATIONAL_NUMBERS_WANTED
 VISIBLE_MARKERS_WANTED
+PACKED_MINIMUM_LENGTH_WANTED
 SHORT_VALUE_LENGTH_WANTED
 APSERVER_PATH
 APSERVER_PORT
@@ -916,6 +917,7 @@ APSERVER_TRANSPORT
 APSERVER_PORT
 APSERVER_PATH
 SHORT_VALUE_LENGTH_WANTED
+PACKED_MINIMUM_LENGTH_WANTED
 VISIBLE_MARKERS_WANTED
 RATIONAL_NUMBERS_WANTED'
 
@@ -1645,6 +1647,8 @@ Some influential environment variables:
               /tmp/GNU-APL/APserver)
   SHORT_VALUE_LENGTH_WANTED
               Cellcount of short values (see README-2-configure) default: 12)
+  PACKED_MINIMUM_LENGTH_WANTED
+              Minimum element count for automatic ravel packing (default: 12)
   VISIBLE_MARKERS_WANTED
               enable visible formatting markers (debug facility, see
               README-2-configure) default: no
@@ -22396,6 +22400,17 @@ printf "%s\n" "#define cfg_SHORT_VALUE_LENGTH_WANTED $SHORT_VALUE_LENGTH_WANTED"
 
 { printf "%s\n" "$as_me:${as_lineno-$LINENO}: result: $SHORT_VALUE_LENGTH_WANTED" >&5
 printf "%s\n" "$SHORT_VALUE_LENGTH_WANTED" >&6; }
+
+# APL: minimum element count for automatic ravel packing ?
+{ printf "%s\n" "$as_me:${as_lineno-$LINENO}: checking minimum element count for automatic ravel packing" >&5
+printf %s "checking minimum element count for automatic ravel packing... " >&6; }
+
+if test "x$PACKED_MINIMUM_LENGTH_WANTED" = "x"; then PACKED_MINIMUM_LENGTH_WANTED=12; fi
+
+printf "%s\n" "#define cfg_PACKED_MINIMUM_LENGTH_WANTED $PACKED_MINIMUM_LENGTH_WANTED" >>confdefs.h
+
+{ printf "%s\n" "$as_me:${as_lineno-$LINENO}: result: $PACKED_MINIMUM_LENGTH_WANTED" >&5
+printf "%s\n" "$PACKED_MINIMUM_LENGTH_WANTED" >&6; }
 
 
 # APL: visible markers (debug only option) ?

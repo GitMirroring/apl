@@ -249,7 +249,7 @@ protected:
    /// append \b value to result
    /// @param result UCS string to append to
    /// @param value APL value whose representation is appended
-   static void value_CR44(UCS_string & result, const Value & value);
+   static void value_CR44(UCS_string & result, cValue_R value);
 
    /// print value addresses in B
    /// @param B right argument APL value

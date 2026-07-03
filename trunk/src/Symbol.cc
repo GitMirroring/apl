@@ -669,10 +669,7 @@ ShapeItem idxB = 0;
         if (offset_Z < 0)                     INDEX_ERROR;
         if (offset_Z >= Z->element_count())   INDEX_ERROR;
         const Cell & cB = B->get_cravel(idxB);
-        Cell & dest = Z->get_wravel(offset_Z);
-        Z->depth_update_for_overwrite(offset_Z, cB.is_pointer_cell() ? 0 : -1);
-        dest.release(LOC);   // free sub-values etc (if any)
-        dest.init(cB, *Z, LOC);
+        Z->assign_cell(offset_Z, cB, LOC);
         idxB += incr_B;
      }
 
@@ -726,11 +723,7 @@ const ShapeItem max_idx = Z->element_count();
         const APL_Integer idx = X->get_cfirst().get_near_int() - qio;
         if (idx >= 0 && idx < max_idx)   // idx is a valid index of Z
            {
-             Cell & cell = Z->get_wravel(idx);
-             Z->depth_update_for_overwrite(idx,
-                                B->get_cfirst().is_pointer_cell() ? 0 : -1);
-             cell.release(LOC);   // release the old value if Z[X]
-             cell.init(B->get_cfirst(), *Z, LOC);   // Z[X] ← ↑B
+             Z->assign_cell(idx, B->get_cfirst(), LOC);
              return;
            }
       }
@@ -742,12 +735,7 @@ const ShapeItem max_idx = Z->element_count();
         // scalar B is scalar extended according to ⍴Z
         const Cell & src = B->get_cfirst();
         loop(a, max_idx)
-            {
-              Cell & dest = Z->get_wravel(a);
-              Z->depth_update_for_overwrite(a, src.is_pointer_cell() ? 0 : -1);
-              dest.release(LOC);   // free sub-values etc (if any)
-              dest.init(src, *Z, LOC);
-            }
+            Z->assign_cell(a, src, LOC);
         if (monitor_callback)   monitor_callback(*this, SEV_ASSIGNED);
         return;
       }
@@ -766,10 +754,7 @@ ShapeItem idxB = 0;
         if (idx < 0)          INDEX_ERROR;
         if (idx >= max_idx)   INDEX_ERROR;
         const Cell & cB = B->get_cravel(idxB);
-        Cell & dest = Z->get_wravel(idx);
-        Z->depth_update_for_overwrite(idx, cB.is_pointer_cell() ? 0 : -1);
-        dest.release(LOC);   // free sub-values etc (if any)
-        dest.init(cB, *Z, LOC);
+        Z->assign_cell(idx, cB, LOC);
 
         idxB += incr_B;
       }

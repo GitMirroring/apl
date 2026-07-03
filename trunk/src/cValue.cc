@@ -100,7 +100,7 @@ const Cell & c0 = get_cfirst();
 bool
 cValue::is_simple() const
 {
-   if (flags.ravel_type)   return true;
+   if (flags.ravel_type)   return true;   // packed ravel → no PointerCells → simple
 
 const ShapeItem count = element_count();
 

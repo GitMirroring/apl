@@ -457,6 +457,23 @@ Bif_F12_ELEMENT::do_eval_B(cValue_R B)
         FIXME;
       }
 
+   // fast path: B is already packed (no PointerCells); ∊B is a packed vector
+   // with the same packing as B — just memcpy the raw packed bytes.
+   //
+   if (B.is_packed())
+      {
+        const ShapeItem count = B.element_count();
+        Value_P Z(count, LOC);
+        uint8_t * pZ = reinterpret_cast<uint8_t *>(&Z->get_wfirst());
+        const ShapeItem ebytes = B.packed_bytes_per_item();
+        const ShapeItem nbytes = ebytes > 0 ? count * ebytes
+                                            : (count + 7) / 8;   // bool: bits
+        memcpy(pZ, B.cravel_packed(), nbytes);
+        Z->commit_ravel_like(B, count);
+        Z->check_value(LOC);
+        return Z;
+      }
+
 const ShapeItem len_Z = B.get_enlist_count();
 
    // B contains no simple scalars (e.g. ∊⊂''): recurse into the first
@@ -475,8 +492,15 @@ const ShapeItem len_Z = B.get_enlist_count();
 
 Value_P Z(len_Z, LOC);
 
-   if (B.get_lval_cellowner())   B.enlist_left(*Z);
-   else                           B.enlist_right(*Z);
+   if (B.get_lval_cellowner())
+      {
+        B.enlist_left(*Z);
+      }
+   else
+      {
+        B.enlist_right(*Z);
+        Z->try_pack(true);   // result has no PointerCells; pack regardless of size
+      }
 
    Assert(len_Z);   // cannot be empty
    Z->check_value(LOC);

@@ -129,7 +129,6 @@ UCS_string ret;
 
   if (flags & VF_marked)     ret << UNI_M;
   if (flags & VF_complete)   ret << UNI_C;
-  if (flags & VF_packed)     ret << UNI_P;
   if (flags & VF_member)     ret << UNI_m;
 
    while (ret.size() < 4)   ret << UNI_SPACE;
