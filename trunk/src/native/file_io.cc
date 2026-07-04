@@ -37,7 +37,7 @@ extern "C" void * get_function_mux(const char * function_name);
 static Fun_signature get_signature();
 static bool close_fun(Cause cause,          const NativeFunction * caller);
 static Token eval_B  (const cValue * B,                           const NativeFunction * caller);
-static Token eval_AB (Value_P A, Value_P B,                      const NativeFunction * caller);
+static Token eval_AB (const cValue * A, const cValue * B,          const NativeFunction * caller);
 static Token eval_XB (const cValue * X, const cValue * B,          const NativeFunction * caller);
 static Token eval_AXB(const cValue * A, const cValue * X, const cValue * B,            const NativeFunction * caller);
 
@@ -182,7 +182,7 @@ eval_B(const cValue * B, const NativeFunction * caller)
 }
 //════════════════════════════════════════════════════════════════════════════
 Token
-eval_AB(Value_P A, Value_P B, const NativeFunction * caller)
+eval_AB(const cValue * A, const cValue * B, const NativeFunction * caller)
 {
    return Quad_FIO::fun.eval_AB(*A, *B);
 }

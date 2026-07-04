@@ -232,7 +232,7 @@ protected:
    /// all native functions currently active
    static std::vector<NativeFunction *> valid_functions;
 
-   typedef Value_P Vr;   ///< shortcut for Value_P
+   typedef const cValue * Vr;   ///< shortcut for const cValue *
 
    typedef const Function & Fr;   ///< shortcut for const Function &
 

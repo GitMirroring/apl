@@ -472,7 +472,7 @@ NativeFunction::eval_() const
 Token
 NativeFunction::eval_B(cValue_R B) const
 {
-   if (f_eval_B)   return (*f_eval_B)(CLONE(&B, LOC), this);
+   if (f_eval_B)   return (*f_eval_B)(&B, this);
 
    SYNTAX_ERROR;
 }
@@ -480,9 +480,7 @@ NativeFunction::eval_B(cValue_R B) const
 Token
 NativeFunction::eval_AB(cValue_R A, cValue_R B) const
 {
-   if (f_eval_AB)   return (*f_eval_AB)(CLONE(&A, LOC),
-                                        CLONE(&B, LOC),
-                                        this);
+   if (f_eval_AB)   return (*f_eval_AB)(&A, &B, this);
 
    SYNTAX_ERROR;
 }
@@ -490,7 +488,7 @@ NativeFunction::eval_AB(cValue_R A, cValue_R B) const
 Token
 NativeFunction::eval_LB(Token & LO, cValue_R B) const
 {
-   if (f_eval_LB)   return (*f_eval_LB)(*LO.get_function(), CLONE(&B, LOC), this);
+   if (f_eval_LB)   return (*f_eval_LB)(*LO.get_function(), &B, this);
 
    SYNTAX_ERROR;
 }
@@ -498,7 +496,7 @@ NativeFunction::eval_LB(Token & LO, cValue_R B) const
 Token
 NativeFunction::eval_ALB(cValue_R A, Token & LO, cValue_R B) const
 {
-   if (f_eval_ALB)   return (*f_eval_ALB)(CLONE(&A, LOC), *LO.get_function(), CLONE(&B, LOC), this);
+   if (f_eval_ALB)   return (*f_eval_ALB)(&A, *LO.get_function(), &B, this);
 
    SYNTAX_ERROR;
 }
@@ -506,8 +504,7 @@ NativeFunction::eval_ALB(cValue_R A, Token & LO, cValue_R B) const
 Token
 NativeFunction::eval_LRB(Token & LO, Token & RO, cValue_R B) const
 {
-   if (f_eval_LRB)   return (*f_eval_LRB)(*LO.get_function(),
-                                          *RO.get_function(), CLONE(&B, LOC), this);
+   if (f_eval_LRB)   return (*f_eval_LRB)(*LO.get_function(), *RO.get_function(), &B, this);
 
    SYNTAX_ERROR;
 }
@@ -515,8 +512,7 @@ NativeFunction::eval_LRB(Token & LO, Token & RO, cValue_R B) const
 Token
 NativeFunction::eval_ALRB(cValue_R A, Token & LO, Token & RO, cValue_R B) const
 {
-   if (f_eval_ALRB)   return (*f_eval_ALRB)(CLONE(&A, LOC), *LO.get_function(),
-                                               *RO.get_function(), CLONE(&B, LOC), this);
+   if (f_eval_ALRB)   return (*f_eval_ALRB)(&A, *LO.get_function(), *RO.get_function(), &B, this);
 
    SYNTAX_ERROR;
 }
@@ -526,7 +522,7 @@ NativeFunction::eval_XB(cValue_R X, cValue_R B) const
 {
    // call axis variant if present, or else the non-axis variant.
    //
-   if (f_eval_XB)   return (*f_eval_XB)(CLONE(&X, LOC), CLONE(&B, LOC), this);
+   if (f_eval_XB)   return (*f_eval_XB)(&X, &B, this);
    else             return eval_B(B);
 }
 //────────────────────────────────────────────────────────────────────────────
@@ -535,7 +531,7 @@ NativeFunction::eval_AXB(cValue_R A, cValue_R X, cValue_R B) const
 {
    // call axis variant if present, or else the non-axis variant.
    //
-   if (f_eval_AXB)   return (*f_eval_AXB)(CLONE(&A, LOC), CLONE(&X, LOC), CLONE(&B, LOC), this);
+   if (f_eval_AXB)   return (*f_eval_AXB)(&A, &X, &B, this);
    else              return eval_AB(A, B);
 }
 //────────────────────────────────────────────────────────────────────────────
@@ -544,7 +540,7 @@ NativeFunction::eval_LXB(Token & LO, cValue_R X, cValue_R B) const
 {
    // call axis variant if present, or else the non-axis variant.
    //
-   if (f_eval_LXB)   return (*f_eval_LXB)(*LO.get_function(), CLONE(&X, LOC), CLONE(&B, LOC), this);
+   if (f_eval_LXB)   return (*f_eval_LXB)(*LO.get_function(), &X, &B, this);
    else              return eval_LB(LO, B);
 }
 //────────────────────────────────────────────────────────────────────────────
@@ -553,7 +549,7 @@ NativeFunction::eval_ALXB(cValue_R A, Token & LO, cValue_R X, cValue_R B) const
 {
    // call axis variant if present, or else the non-axis variant.
    //
-   if (f_eval_ALXB)   return (*f_eval_ALXB)(CLONE(&A, LOC), *LO.get_function(), CLONE(&X, LOC), CLONE(&B, LOC), this);
+   if (f_eval_ALXB)   return (*f_eval_ALXB)(&A, *LO.get_function(), &X, &B, this);
    else               return eval_ALB(A, LO, B);
 }
 //────────────────────────────────────────────────────────────────────────────
@@ -562,8 +558,7 @@ NativeFunction::eval_LRXB(Token & LO, Token & RO, cValue_R X, cValue_R B) const
 {
    // call axis variant if present, or else the non-axis variant.
    //
-   if (f_eval_LRXB)   return (*f_eval_LRXB)(*LO.get_function(),
-                                            *RO.get_function(), CLONE(&X, LOC), CLONE(&B, LOC), this);
+   if (f_eval_LRXB)   return (*f_eval_LRXB)(*LO.get_function(), *RO.get_function(), &X, &B, this);
    else                return eval_LRB(LO, RO, B);
 }
 //────────────────────────────────────────────────────────────────────────────
@@ -573,15 +568,14 @@ NativeFunction::eval_ALRXB(cValue_R A, Token & LO, Token & RO, cValue_R X, cValu
    // call axis variant if present, or else the non-axis variant.
    //
    if (f_eval_ALRXB)
-      return (*f_eval_ALRXB)(CLONE(&A, LOC), *LO.get_function(), *RO.get_function(),
-                             CLONE(&X, LOC), CLONE(&B, LOC), this);
+      return (*f_eval_ALRXB)(&A, *LO.get_function(), *RO.get_function(), &X, &B, this);
    return eval_ALRB(A, LO, RO, B);
 }
 //────────────────────────────────────────────────────────────────────────────
 Token
 NativeFunction::eval_fill_B(cValue_R B) const
 {
-   if (f_eval_fill_B)   return (*f_eval_fill_B)(CLONE(&B, LOC), this);
+   if (f_eval_fill_B)   return (*f_eval_fill_B)(&B, this);
 
    SYNTAX_ERROR;
 }
@@ -589,7 +583,7 @@ NativeFunction::eval_fill_B(cValue_R B) const
 Token
 NativeFunction::eval_fill_AB(cValue_R A, cValue_R B) const
 {
-   if (f_eval_fill_AB)   return (*f_eval_fill_AB)(CLONE(&A, LOC), CLONE(&B, LOC), this);
+   if (f_eval_fill_AB)   return (*f_eval_fill_AB)(&A, &B, this);
 
    SYNTAX_ERROR;
 }
@@ -597,7 +591,7 @@ NativeFunction::eval_fill_AB(cValue_R A, cValue_R B) const
 Token
 NativeFunction::eval_identity_fun(cValue_R B, sAxis axis) const
 {
-   if (f_eval_ident_Bx)   return (*f_eval_ident_Bx)(CLONE(&B, LOC), axis, this);
+   if (f_eval_ident_Bx)   return (*f_eval_ident_Bx)(&B, axis, this);
 
    SYNTAX_ERROR;
 }
