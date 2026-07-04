@@ -39,6 +39,15 @@ using pf_vv_f64 = void (*)(double * pZ,
 /// float64 monadic vector fast-path function pointer
 using pf_v_f64 = void (*)(double * pZ, const double * pB, ShapeItem N);
 
+/// int64 dyadic vector-vector fast-path function pointer
+using pf_vv_i64 = void (*)(int64_t * pZ,
+                            const int64_t * pA, int incA,
+                            const int64_t * pB, int incB,
+                            ShapeItem N);
+
+/// int64 monadic vector fast-path function pointer
+using pf_v_i64 = void (*)(int64_t * pZ, const int64_t * pB, ShapeItem N);
+
 /**
  A PJob is a computation that can be carried out in parallel on different
  cores. The PJob_XXX structs defined in this file contain the essential
@@ -59,7 +68,8 @@ public:
      error(E_NO_ERROR),
      fun(0),
      fun1(0),
-     float64_fv(nullptr)
+     float64_fv(nullptr),
+     int64_fv(nullptr)
    {}
 
    /// constructor
@@ -72,7 +82,8 @@ public:
      error(E_NO_ERROR),
      fun(0),
      fun1(0),
-     float64_fv(nullptr)
+     float64_fv(nullptr),
+     int64_fv(nullptr)
    {}
 
    /// destructor
@@ -103,6 +114,9 @@ public:
    /// non-null when the parallel float64 fast path is in use
    pf_v_f64 float64_fv;
 
+   /// non-null when the parallel int64 fast path is in use
+   pf_v_i64 int64_fv;
+
    /// return Bbz]
    /// @param b ravel index into the right argument
    const Cell & B_at(ShapeItem b) const
@@ -126,7 +140,8 @@ public:
      error(E_NO_ERROR),
      fun(0),
      fun2(0),
-     float64_fvv(nullptr)
+     float64_fvv(nullptr),
+     int64_fvv(nullptr)
    {}
 
    /// constructor
@@ -143,7 +158,8 @@ public:
      error(E_NO_ERROR),
      fun(0),
      fun2(0),
-     float64_fvv(nullptr)
+     float64_fvv(nullptr),
+     int64_fvv(nullptr)
    {}
 
    /// destructor
@@ -183,6 +199,9 @@ public:
 
    /// non-null when the parallel float64 fast path is in use
    pf_vv_f64 float64_fvv;
+
+   /// non-null when the parallel int64 fast path is in use
+   pf_vv_i64 int64_fvv;
 
    /// return A[z]
    /// @param a ravel index into the left argument

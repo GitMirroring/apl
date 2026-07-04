@@ -188,6 +188,54 @@ protected:
 
    /// return monadic float64→float64 worker, or 0 if not implemented
    virtual v_f2f_t  get_v_f2f()  const { return 0; }
+
+   /// Dyadic worker: packed int64 × int64 → int64.
+   /// incA/incB are 0 (scalar extension) or 1 (full vector).
+   typedef void (*vv_i2i_t)(int64_t * pZ,
+                             const int64_t * pA, int incA,
+                             const int64_t * pB, int incB,
+                             ShapeItem N);
+
+   /// Monadic worker: packed int64 → int64.
+   typedef void (*v_i2i_t)(int64_t * pZ, const int64_t * pB, ShapeItem N);
+
+   /// return dyadic int64→int64 worker, or 0 if not implemented
+   virtual vv_i2i_t get_vv_i2i() const { return 0; }
+
+   /// return monadic int64→int64 worker, or 0 if not implemented
+   virtual v_i2i_t  get_v_i2i()  const { return 0; }
+
+   /// Dyadic worker: packed int64 × int64 → bit-packed bool ravel.
+   /// incA/incB are 0 (scalar extension) or 1 (full vector).
+   typedef void (*vv_i2b_t)(uint64_t * pZ,
+                              const int64_t * pA, int incA,
+                              const int64_t * pB, int incB,
+                              ShapeItem N);
+
+   /// Dyadic worker: packed float64 × float64 → bit-packed bool ravel.
+   /// ct is ⎕CT, read once by the caller to avoid pulling in Workspace.hh here.
+   typedef void (*vv_f2b_t)(uint64_t * pZ,
+                              const double  * pA, int incA,
+                              const double  * pB, int incB,
+                              ShapeItem N, double ct);
+
+   /// return dyadic int64→bool worker, or 0 if not implemented
+   virtual vv_i2b_t get_vv_i2b() const { return 0; }
+
+   /// return dyadic float64→bool worker, or 0 if not implemented
+   virtual vv_f2b_t get_vv_f2b() const { return 0; }
+
+   /// ISO tolerance comparison (mirrors Cell::tolerantly_equal).
+   /// Kept here so DEF_VV_F2B workers are independent of Cell.icc linkage.
+   static bool tol_eq(double A, double B, double ct)
+      { if (A == B)                   return true;
+        if (A < 0.0 && B > 0.0)       return false;
+        if (A > 0.0 && B < 0.0)       return false;
+        const double ma = A < 0.0 ? -A : A;
+        const double mb = B < 0.0 ? -B : B;
+        const double mm = ma > mb ? ma : mb;
+        const double d  = A > B  ? A - B : B - A;
+        return d < ct * mm; }
 };
 
 #define PERF_A(x)   TOK_F2_ ## x,                           \
@@ -205,6 +253,35 @@ protected:
                   -1,  Performance::thresh_F12_ ## x ## _B
 
 //════════════════════════════════════════════════════════════════════════════
+// Helpers for bit-packed BOOL worker functions used by comparison primitives.
+// DEF_VV_I2B: int64×int64 → BOOL, OP is a C++ comparison operator.
+// DEF_VV_F2B: double×double → BOOL, PRED uses _av/_bv (values) and _ct (⎕CT).
+#define DEF_VV_I2B(NAME, OP)                                               \
+   static void NAME(uint64_t * pZ, const int64_t * pA, int incA,           \
+                    const int64_t * pB, int incB, ShapeItem N)             \
+   { const ShapeItem _nz = (N + 63) >> 6;                                  \
+     loop(_c, _nz)                                                          \
+        { uint64_t _w = 0;                                                  \
+          const ShapeItem _b0 = _c << 6,                                    \
+                          _b1 = _b0 + 64 > N ? N : _b0 + 64;              \
+          for (ShapeItem _j = _b0; _j < _b1; ++_j)                         \
+              if (pA[_j * incA] OP pB[_j * incB])                          \
+                 _w |= uint64_t(1) << (_j - _b0);                          \
+          pZ[_c] = _w; } }
+
+#define DEF_VV_F2B(NAME, PRED)                                             \
+   static void NAME(uint64_t * pZ, const double * pA, int incA,            \
+                    const double * pB, int incB, ShapeItem N, double _ct)  \
+   { const ShapeItem _nz = (N + 63) >> 6;                                  \
+     loop(_c, _nz)                                                          \
+        { uint64_t _w = 0;                                                  \
+          const ShapeItem _b0 = _c << 6,                                    \
+                          _b1 = _b0 + 64 > N ? N : _b0 + 64;              \
+          for (ShapeItem _j = _b0; _j < _b1; ++_j)                         \
+              { const double _av = pA[_j * incA], _bv = pB[_j * incB];    \
+                if (PRED)   _w |= uint64_t(1) << (_j - _b0); }             \
+          pZ[_c] = _w; } }
+
 /** Scalar functions binomial and factorial.
  */
 /// The class implementing !
@@ -286,6 +363,11 @@ protected:
    /// @param B right argument APL value
    virtual Token eval_AXB(cValue_R A, cValue_R X, cValue_R B) const
       { return eval_scalar_AXB(CLONE(&A, LOC), CLONE(&X, LOC), CLONE(&B, LOC), &Cell::bif_less_than); }
+
+   DEF_VV_I2B(vv_lt_i, <)
+   DEF_VV_F2B(vv_lt_f, !tol_eq(_av, _bv, _ct) && _av < _bv)
+   virtual vv_i2b_t get_vv_i2b() const { return &vv_lt_i; }
+   virtual vv_f2b_t get_vv_f2b() const { return &vv_lt_f; }
 };
 //────────────────────────────────────────────────────────────────────────────
 /** Scalar function equal.
@@ -325,6 +407,11 @@ protected:
    /// @param B right argument APL value
    virtual Token eval_AXB(cValue_R A, cValue_R X, cValue_R B) const
       { return eval_scalar_AXB(CLONE(&A, LOC), CLONE(&X, LOC), CLONE(&B, LOC), &Cell::bif_equal); }
+
+   DEF_VV_I2B(vv_eq_i, ==)
+   DEF_VV_F2B(vv_eq_f, tol_eq(_av, _bv, _ct))
+   virtual vv_i2b_t get_vv_i2b() const { return &vv_eq_i; }
+   virtual vv_f2b_t get_vv_f2b() const { return &vv_eq_f; }
 };
 //────────────────────────────────────────────────────────────────────────────
 /** Scalar function EQ bitwise (i.e. bitwise not A xor B)
@@ -443,6 +530,11 @@ protected:
    /// @param B right argument APL value
    virtual Token eval_AXB(cValue_R A, cValue_R X, cValue_R B) const
       { return eval_scalar_AXB(CLONE(&A, LOC), CLONE(&X, LOC), CLONE(&B, LOC), &Cell::bif_greater_than); }
+
+   DEF_VV_I2B(vv_gt_i, >)
+   DEF_VV_F2B(vv_gt_f, !tol_eq(_av, _bv, _ct) && _av > _bv)
+   virtual vv_i2b_t get_vv_i2b() const { return &vv_gt_i; }
+   virtual vv_f2b_t get_vv_f2b() const { return &vv_gt_f; }
 };
 //────────────────────────────────────────────────────────────────────────────
 /** Scalar function AND/LCM
@@ -661,6 +753,11 @@ protected:
    /// @param B right argument APL value
    virtual Token eval_AXB(cValue_R A, cValue_R X, cValue_R B) const
       { return eval_scalar_AXB(CLONE(&A, LOC), CLONE(&X, LOC), CLONE(&B, LOC), &Cell::bif_less_eq); }
+
+   DEF_VV_I2B(vv_le_i, <=)
+   DEF_VV_F2B(vv_le_f, tol_eq(_av, _bv, _ct) || _av <= _bv)
+   virtual vv_i2b_t get_vv_i2b() const { return &vv_le_i; }
+   virtual vv_f2b_t get_vv_f2b() const { return &vv_le_f; }
 };
 //────────────────────────────────────────────────────────────────────────────
 /** Scalar function greater or equal.
@@ -693,6 +790,11 @@ protected:
    /// overloaded Function::eval_AXB().
    virtual Token eval_AXB(cValue_R A, cValue_R X, cValue_R B) const
       { return eval_scalar_AXB(CLONE(&A, LOC), CLONE(&X, LOC), CLONE(&B, LOC), &Cell::bif_greater_eq); }
+
+   DEF_VV_I2B(vv_ge_i, >=)
+   DEF_VV_F2B(vv_ge_f, tol_eq(_av, _bv, _ct) || _av >= _bv)
+   virtual vv_i2b_t get_vv_i2b() const { return &vv_ge_i; }
+   virtual vv_f2b_t get_vv_f2b() const { return &vv_ge_f; }
 };
 //────────────────────────────────────────────────────────────────────────────
 /** Scalar function not equal
@@ -728,7 +830,14 @@ protected:
    /// overloaded Function::eval_AXB().
    virtual Token eval_AXB(cValue_R A, cValue_R X, cValue_R B) const
       { return eval_scalar_AXB(CLONE(&A, LOC), CLONE(&X, LOC), CLONE(&B, LOC), &Cell::bif_not_equal); }
+
+   DEF_VV_I2B(vv_ne_i, !=)
+   DEF_VV_F2B(vv_ne_f, !tol_eq(_av, _bv, _ct))
+   virtual vv_i2b_t get_vv_i2b() const { return &vv_ne_i; }
+   virtual vv_f2b_t get_vv_f2b() const { return &vv_ne_f; }
 };
+#undef DEF_VV_I2B
+#undef DEF_VV_F2B
 //────────────────────────────────────────────────────────────────────────────
 /** Scalar function find.
  */
@@ -956,8 +1065,12 @@ public:
    static void v_conjugate(double * pZ, const double * pB, ShapeItem N)
       { loop(i, N) pZ[i] = pB[i]; }
 
+   static void v_conj_i(int64_t * pZ, const int64_t * pB, ShapeItem N)
+      { loop(i, N) pZ[i] = pB[i]; }
+
    virtual vv_f2f_t get_vv_f2f() const { return &vv_plus; }
    virtual v_f2f_t  get_v_f2f()  const { return &v_conjugate; }
+   virtual v_i2i_t  get_v_i2i()  const { return &v_conj_i; }
 
 protected:
    /// overloaded Function::eval_identity_fun();
@@ -996,8 +1109,12 @@ public:
    static void v_negate(double * pZ, const double * pB, ShapeItem N)
       { loop(i, N) pZ[i] = -pB[i]; }
 
+   static void v_negate_i(int64_t * pZ, const int64_t * pB, ShapeItem N)
+      { loop(i, N) pZ[i] = -pB[i]; }
+
    virtual vv_f2f_t get_vv_f2f() const { return &vv_minus; }
    virtual v_f2f_t  get_v_f2f()  const { return &v_negate; }
+   virtual v_i2i_t  get_v_i2i()  const { return &v_negate_i; }
 
 protected:
    /// overloaded Function::eval_AB()
@@ -1117,7 +1234,11 @@ public:
                                      const double * pB, int incB, ShapeItem N)
       { loop(i, N) pZ[i] = pA[i * incA] * pB[i * incB]; }
 
+   static void v_signum_i(int64_t * pZ, const int64_t * pB, ShapeItem N)
+      { loop(i, N) pZ[i] = (0 < pB[i]) - (pB[i] < 0); }
+
    virtual vv_f2f_t get_vv_f2f() const { return &vv_times; }
+   virtual v_i2i_t  get_v_i2i()  const { return &v_signum_i; }
 
    /// overloaded Function::eval_AB().
    virtual Token eval_AB(cValue_R A, cValue_R B) const
@@ -1253,6 +1374,15 @@ public:
 
    static Bif_F12_RND_UP  fun;      ///< Built-in function.
 
+   static void vv_max_i(int64_t * pZ, const int64_t * pA, int incA,
+                                      const int64_t * pB, int incB, ShapeItem N)
+      { loop(i, N) pZ[i] = pA[i*incA] > pB[i*incB] ? pA[i*incA] : pB[i*incB]; }
+   static void v_ceil_i(int64_t * pZ, const int64_t * pB, ShapeItem N)
+      { loop(i, N) pZ[i] = pB[i]; }
+
+   virtual vv_i2i_t get_vv_i2i() const { return &vv_max_i; }
+   virtual v_i2i_t  get_v_i2i()  const { return &v_ceil_i; }
+
 protected:
    /// overloaded Function::eval_B().
    virtual Token eval_B(cValue_R B) const
@@ -1291,6 +1421,15 @@ public:
    {}
 
    static Bif_F12_RND_DN  fun;      ///< Built-in function.
+
+   static void vv_min_i(int64_t * pZ, const int64_t * pA, int incA,
+                                      const int64_t * pB, int incB, ShapeItem N)
+      { loop(i, N) pZ[i] = pA[i*incA] < pB[i*incB] ? pA[i*incA] : pB[i*incB]; }
+   static void v_floor_i(int64_t * pZ, const int64_t * pB, ShapeItem N)
+      { loop(i, N) pZ[i] = pB[i]; }
+
+   virtual vv_i2i_t get_vv_i2i() const { return &vv_min_i; }
+   virtual v_i2i_t  get_v_i2i()  const { return &v_floor_i; }
 
 protected:
    /// overloaded Function::eval_B().
@@ -1333,8 +1472,11 @@ public:
 
    static void v_abs(double * pZ, const double * pB, ShapeItem N)
       { loop(i, N) pZ[i] = pB[i] < 0 ? -pB[i] : pB[i]; }
+   static void v_abs_i(int64_t * pZ, const int64_t * pB, ShapeItem N)
+      { loop(i, N) pZ[i] = pB[i] < 0 ? -pB[i] : pB[i]; }
 
    virtual v_f2f_t get_v_f2f() const { return &v_abs; }
+   virtual v_i2i_t get_v_i2i() const { return &v_abs_i; }
 
    /// overloaded Function::eval_AB().
    virtual Token eval_AB(cValue_R A, cValue_R B) const

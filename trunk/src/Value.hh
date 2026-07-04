@@ -329,6 +329,10 @@ public:
    RavelType get_ravel_type() const
       { return RavelType(flags.ravel_type); }
 
+   /// raw read pointer for RPT_INT64 ravels; call only when ravel_type==RPT_INT64
+   const int64_t * cravel_int64() const
+      { return reinterpret_cast<const int64_t *>(ravel.cells); }
+
    /// raw read pointer for RPT_FLOAT64 ravels; call only when ravel_type==RPT_FLOAT64
    const double * cravel_float64() const
       { return reinterpret_cast<const double *>(ravel.cells); }
@@ -843,6 +847,14 @@ public:
         ravel.valid_ravel_items = n;
         ravel.fetcher    = &Ravel::float64_fetcher;
         flags.ravel_type = RPT_FLOAT64; }
+
+   /// finalize Z as a bit-packed BOOL ravel after writing uint64_t chunks via
+   ///   reinterpret_cast<uint64_t *>(&get_wfirst()).
+   void commit_ravel_Bool(ShapeItem n)
+      { Assert(ravel.valid_ravel_items == 0);
+        ravel.valid_ravel_items = n;
+        ravel.fetcher    = &Ravel::packed_fetcher;
+        flags.ravel_type = RPT_BOOL; }
 
    /// finalize Z as the same packed type as B (for permutation functions)
    void commit_ravel_like(const cValue & B, ShapeItem n);
