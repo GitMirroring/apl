@@ -55,7 +55,7 @@ const IntCell IntCell::boolean_TRUE(1);
 ErrorCode
 IntCell::bif_near_int64_t(Cell * Z) const
 {
-   return NumericCell::bif_near_int64_t_i(Z, value.ival);
+   return IntCell::bif_near_int64_t_i(Z, value.ival);
 }
 
 //────────────────────────────────────────────────────────────────────────────
@@ -63,7 +63,7 @@ IntCell::bif_near_int64_t(Cell * Z) const
 ErrorCode
 IntCell::bif_within_quad_CT(Cell * Z) const
 {
-   return NumericCell::bif_within_quad_CT_i(Z, value.ival);
+   return IntCell::bif_within_quad_CT_i(Z, value.ival);
 }
 //────────────────────────────────────────────────────────────────────────────
 bool
@@ -85,11 +85,11 @@ ErrorCode
 IntCell::bif_add(Cell * Z, const Cell * A) const
 {
    if (A->is_integer_cell())
-      return NumericCell::bif_add_ii(Z, A->get_int_value(), value.ival);
+      return IntCell::bif_add_ii(Z, A->get_int_value(), value.ival);
    if (A->is_real_cell())
-      return NumericCell::bif_add_ff(Z, A->get_real_value(), APL_Float(value.ival));
+      return FloatCell::bif_add_ff(Z, A->get_real_value(), APL_Float(value.ival));
    if (A->is_complex_cell())
-      return NumericCell::bif_add_cc(Z, A->get_complex_value(),
+      return ComplexCell::bif_add_cc(Z, A->get_complex_value(),
                                        APL_Complex(value.ival, 0));
    return E_DOMAIN_ERROR;
 }
@@ -97,19 +97,19 @@ IntCell::bif_add(Cell * Z, const Cell * A) const
 ErrorCode
 IntCell::bif_ceiling(Cell * Z) const
 {
-   return NumericCell::bif_ceiling_i(Z, value.ival);
+   return IntCell::bif_ceiling_i(Z, value.ival);
 }
 //────────────────────────────────────────────────────────────────────────────
 ErrorCode
 IntCell::bif_conjugate(Cell * Z) const
 {
-   return NumericCell::bif_conjugate_i(Z, value.ival);
+   return IntCell::bif_conjugate_i(Z, value.ival);
 }
 //────────────────────────────────────────────────────────────────────────────
 ErrorCode
 IntCell::bif_direction(Cell * Z) const
 {
-   return NumericCell::bif_direction_i(Z, value.ival);
+   return IntCell::bif_direction_i(Z, value.ival);
 }
 ErrorCode
 IntCell::bif_divide(Cell * Z, const Cell * A) const
@@ -131,14 +131,14 @@ IntCell::bif_divide(Cell * Z, const Cell * A) const
         if (b == g)   return IntCell::zI(Z, a/g);
         return FloatCell::zR(Z, a/g, b/g);
 #else
-        return NumericCell::bif_divide_ii(Z, A->get_int_value(), value.ival);
+        return IntCell::bif_divide_ii(Z, A->get_int_value(), value.ival);
 #endif
       }
    if (A->is_real_cell())
-      return NumericCell::bif_divide_ff(Z, A->get_real_value(),
+      return FloatCell::bif_divide_ff(Z, A->get_real_value(),
                                           APL_Float(value.ival));
    if (A->is_complex_cell())
-      return NumericCell::bif_divide_cc(Z, A->get_complex_value(),
+      return ComplexCell::bif_divide_cc(Z, A->get_complex_value(),
                                           APL_Complex(value.ival, 0));
    return E_DOMAIN_ERROR;
 }
@@ -146,7 +146,7 @@ IntCell::bif_divide(Cell * Z, const Cell * A) const
 ErrorCode
 IntCell::bif_exponential(Cell * Z) const
 {
-   return NumericCell::bif_exponential_i(Z, value.ival);
+   return IntCell::bif_exponential_i(Z, value.ival);
 }
 extern const APL_Integer int_factorials[] =
 {
@@ -356,31 +356,31 @@ enum
 ErrorCode
 IntCell::bif_factorial(Cell * Z) const
 {
-   return NumericCell::bif_factorial_i(Z, value.ival);
+   return IntCell::bif_factorial_i(Z, value.ival);
 }
 //────────────────────────────────────────────────────────────────────────────
 ErrorCode
 IntCell::bif_floor(Cell * Z) const
 {
-   return NumericCell::bif_floor_i(Z, value.ival);
+   return IntCell::bif_floor_i(Z, value.ival);
 }
 //────────────────────────────────────────────────────────────────────────────
 ErrorCode
 IntCell::bif_magnitude(Cell * Z) const
 {
-   return NumericCell::bif_magnitude_i(Z, value.ival);
+   return IntCell::bif_magnitude_i(Z, value.ival);
 }
 //────────────────────────────────────────────────────────────────────────────
 ErrorCode
 IntCell::bif_multiply(Cell * Z, const Cell * A) const
 {
    if (A->is_integer_cell())
-      return NumericCell::bif_multiply_ii(Z, A->get_int_value(), value.ival);
+      return IntCell::bif_multiply_ii(Z, A->get_int_value(), value.ival);
    if (A->is_real_cell())
-      return NumericCell::bif_multiply_ff(Z, A->get_real_value(),
+      return FloatCell::bif_multiply_ff(Z, A->get_real_value(),
                                             APL_Float(value.ival));
    if (A->is_complex_cell())
-      return NumericCell::bif_multiply_cc(Z, A->get_complex_value(),
+      return ComplexCell::bif_multiply_cc(Z, A->get_complex_value(),
                                             APL_Complex(value.ival, 0));
    return E_DOMAIN_ERROR;
 }
@@ -391,33 +391,33 @@ IntCell::bif_power(Cell * Z, const Cell * A) const
 {
    if (!A->is_numeric())   return E_DOMAIN_ERROR;
    if (A->is_integer_cell())
-      return NumericCell::bif_power_ii(Z, A->get_int_value(), value.ival);
+      return IntCell::bif_power_ii(Z, A->get_int_value(), value.ival);
    if (A->is_real_cell())
-      return NumericCell::bif_power_fi(Z, A->get_real_value(), value.ival);
-   return NumericCell::bif_power_ci(Z, A->get_complex_value(), value.ival);
+      return FloatCell::bif_power_fi(Z, A->get_real_value(), value.ival);
+   return ComplexCell::bif_power_ci(Z, A->get_complex_value(), value.ival);
 }
 //────────────────────────────────────────────────────────────────────────────
 ErrorCode
 IntCell::bif_nat_log(Cell * Z) const
 {
-   return NumericCell::bif_nat_log_i(Z, value.ival);
+   return IntCell::bif_nat_log_i(Z, value.ival);
 }
 //────────────────────────────────────────────────────────────────────────────
 ErrorCode
 IntCell::bif_negative(Cell * Z) const
 {
-   return NumericCell::bif_negative_i(Z, value.ival);
+   return IntCell::bif_negative_i(Z, value.ival);
 }
 ErrorCode
 IntCell::bif_pi_times(Cell * Z) const
 {
-   return NumericCell::bif_pi_times_i(Z, value.ival);
+   return IntCell::bif_pi_times_i(Z, value.ival);
 }
 //────────────────────────────────────────────────────────────────────────────
 ErrorCode
 IntCell::bif_pi_times_inverse(Cell * Z) const
 {
-   return NumericCell::bif_pi_times_inverse_i(Z, value.ival);
+   return IntCell::bif_pi_times_inverse_i(Z, value.ival);
 }
 //────────────────────────────────────────────────────────────────────────────
 ErrorCode
@@ -433,13 +433,13 @@ IntCell::bif_reciprocal(Cell * Z) const
    if (value.ival < 0)   return FloatCell::zR(Z, -1, -value.ival);
    else                  return FloatCell::zR(Z,  1,  value.ival);
 #endif
-   return NumericCell::bif_reciprocal_i(Z, value.ival);
+   return IntCell::bif_reciprocal_i(Z, value.ival);
 }
 //────────────────────────────────────────────────────────────────────────────
 ErrorCode
 IntCell::bif_roll(Cell * Z) const
 {
-   return NumericCell::bif_roll_i(Z, value.ival);
+   return IntCell::bif_roll_i(Z, value.ival);
 }
 //════════════════════════════════════════════════════════════════════════════
 //════════════════════════════════════════════════════════════════════════════
@@ -447,12 +447,12 @@ ErrorCode
 IntCell::bif_subtract(Cell * Z, const Cell * A) const
 {
    if (A->is_integer_cell())
-      return NumericCell::bif_subtract_ii(Z, A->get_int_value(), value.ival);
+      return IntCell::bif_subtract_ii(Z, A->get_int_value(), value.ival);
    if (A->is_real_cell())
-      return NumericCell::bif_subtract_ff(Z, A->get_real_value(),
+      return FloatCell::bif_subtract_ff(Z, A->get_real_value(),
                                             APL_Float(value.ival));
    if (A->is_complex_cell())
-      return NumericCell::bif_subtract_cc(Z, A->get_complex_value(),
+      return ComplexCell::bif_subtract_cc(Z, A->get_complex_value(),
                                             APL_Complex(value.ival, 0));
    return E_DOMAIN_ERROR;
 }
@@ -461,12 +461,12 @@ ErrorCode
 IntCell::bif_maximum(Cell * Z, const Cell * A) const
 {
    if (A->is_integer_cell())
-      return NumericCell::bif_maximum_ii(Z, A->get_int_value(), value.ival);
+      return IntCell::bif_maximum_ii(Z, A->get_int_value(), value.ival);
    if (A->is_real_cell())
-      return NumericCell::bif_maximum_ff(Z, A->get_real_value(),
+      return FloatCell::bif_maximum_ff(Z, A->get_real_value(),
                                            APL_Float(value.ival));
    if (A->is_complex_cell())
-      return NumericCell::bif_maximum_cc(Z, A->get_complex_value(),
+      return ComplexCell::bif_maximum_cc(Z, A->get_complex_value(),
                                            APL_Complex(value.ival, 0));
    return E_DOMAIN_ERROR;
 }
@@ -475,12 +475,12 @@ ErrorCode
 IntCell::bif_minimum(Cell * Z, const Cell * A) const
 {
    if (A->is_integer_cell())
-      return NumericCell::bif_minimum_ii(Z, A->get_int_value(), value.ival);
+      return IntCell::bif_minimum_ii(Z, A->get_int_value(), value.ival);
    if (A->is_real_cell())
-      return NumericCell::bif_minimum_ff(Z, A->get_real_value(),
+      return FloatCell::bif_minimum_ff(Z, A->get_real_value(),
                                            APL_Float(value.ival));
    if (A->is_complex_cell())
-      return NumericCell::bif_minimum_cc(Z, A->get_complex_value(),
+      return ComplexCell::bif_minimum_cc(Z, A->get_complex_value(),
                                            APL_Complex(value.ival, 0));
    return E_DOMAIN_ERROR;
 }
@@ -491,16 +491,16 @@ IntCell::bif_residue(Cell * Z, const Cell * A) const
    if (!A->is_numeric())   return E_DOMAIN_ERROR;
 
    if (A->get_imag_value() != 0.0)
-      return NumericCell::bif_residue_cc(Z, A->get_complex_value(),
+      return ComplexCell::bif_residue_cc(Z, A->get_complex_value(),
                                            APL_Complex(value.ival, 0));
 
 const APL_Float a = A->get_real_value();
    // for a near INT64 limit, use float arithmetic
    if (a > (BIG_INT64_F - 1E10) || a < (1E10 - BIG_INT64_F))
-      return NumericCell::bif_residue_ff(Z, a, APL_Float(value.ival));
+      return FloatCell::bif_residue_ff(Z, a, APL_Float(value.ival));
 
    if (A->is_integer_cell())
-      return NumericCell::bif_residue_ii(Z, A->get_int_value(), value.ival);
+      return IntCell::bif_residue_ii(Z, A->get_int_value(), value.ival);
 
    // non-integer float A: use CT tolerance check and near-zero guard
    // (mirrors the original IntCell::bif_residue for float A)
@@ -723,3 +723,259 @@ const APL_Integer val = get_int_value();
    return 8;
 }
 //════════════════════════════════════════════════════════════════════════════
+//────────────────────────────────────────────────────────────────────────────
+ErrorCode
+IntCell::bif_add_ii(Cell * Z, APL_Integer a, APL_Integer b)
+{
+const APL_Integer z = a + b;
+   if (Cell::sum_overflow(z, a, b))
+      return FloatCell::zF(Z, APL_Float(a) + APL_Float(b));
+   return IntCell::zI(Z, z);
+}
+//────────────────────────────────────────────────────────────────────────────
+ErrorCode
+IntCell::bif_subtract_ii(Cell * Z, APL_Integer a, APL_Integer b)
+{
+const APL_Integer z = a - b;
+   if (Cell::diff_overflow(z, a, b))
+      return FloatCell::zF(Z, APL_Float(a) - APL_Float(b));
+   return IntCell::zI(Z, z);
+}
+//────────────────────────────────────────────────────────────────────────────
+ErrorCode
+IntCell::bif_multiply_ii(Cell * Z, APL_Integer a, APL_Integer b)
+{
+const APL_Float prod = APL_Float(a) * APL_Float(b);
+   if (prod > LARGE_INT || prod < SMALL_INT)   return FloatCell::zF(Z, prod);
+   return IntCell::zI(Z, a * b);
+}
+//────────────────────────────────────────────────────────────────────────────
+ErrorCode
+IntCell::bif_divide_ii(Cell * Z, APL_Integer a, APL_Integer b)
+{
+   if (b == 0)
+      {
+        if (a == 0)   return IntCell::z1(Z);
+        return E_DOMAIN_ERROR;
+      }
+const APL_Integer i_quot = a / b;
+   if (a != i_quot * b)   return FloatCell::zF(Z, a / APL_Float(b));
+   return IntCell::zI(Z, i_quot);
+}
+//────────────────────────────────────────────────────────────────────────────
+ErrorCode
+IntCell::bif_power_ii(Cell * Z, APL_Integer a, APL_Integer b)
+{
+const bool invert_Z = b < 0;
+   if (invert_Z)   b = -b;
+
+   if (b == 0)   return IntCell::z1(Z);   // A⋆0 = 1
+
+   if (b == 1)
+      {
+        if (invert_Z)
+           {
+             switch(a)
+                {
+                  case  0: return E_DOMAIN_ERROR;
+                  case  1: return IntCell::z1(Z);
+                  case -1: return IntCell::z_1(Z);
+                  default: return FloatCell::zF(Z, 1.0 / a);
+                }
+           }
+        return IntCell::zI(Z, a);
+      }
+
+   // b >= 2
+   //
+   if (a == 0)
+      {
+        if (invert_Z)   return E_DOMAIN_ERROR;
+        return IntCell::z0(Z);
+      }
+   if (a == 1)    return IntCell::z1(Z);
+   if (a == -1)   return (b & 1) ? IntCell::z_1(Z) : IntCell::z1(Z);
+
+const bool negate_Z = (a < 0) && (b & 1);
+   if (a < 0)   a = -a;
+
+bool overflow = false;
+APL_Integer a_2_n = a;
+APL_Integer zi = 1;
+   for (int b1 = b; b1; b1 >>= 1)
+      {
+        if (b1 & 1)
+           {
+             if (uint64_t(zi) >= 0x7FFFFFFFFFFFFFFFULL / a_2_n)
+                {
+                  overflow = true;
+                  break;
+                }
+             zi *= a_2_n;
+             if (b1 == 1)   break;
+           }
+
+        if (a_2_n >= 100000000LL)
+           {
+             overflow = true;
+             break;
+           }
+        a_2_n *= a_2_n;
+      }
+
+   if (!overflow)
+      {
+        if (negate_Z)    zi = -zi;
+        if (!invert_Z)   return IntCell::zI(Z, zi);
+        if (zi != 0)     return FloatCell::zF(Z, 1.0 / zi);
+        return E_DOMAIN_ERROR;
+      }
+
+   // overflow: use float
+   //
+APL_Float z = pow(APL_Float(a), APL_Float(b));
+   if (negate_Z)   z = -z;
+   if (invert_Z)   z = 1.0 / z;
+   return FloatCell::zF(Z, z);
+}
+//────────────────────────────────────────────────────────────────────────────
+ErrorCode
+IntCell::bif_maximum_ii(Cell * Z, APL_Integer a, APL_Integer b)
+{
+   return IntCell::zI(Z, a >= b ? a : b);
+}
+//────────────────────────────────────────────────────────────────────────────
+ErrorCode
+IntCell::bif_minimum_ii(Cell * Z, APL_Integer a, APL_Integer b)
+{
+   return IntCell::zI(Z, a <= b ? a : b);
+}
+//────────────────────────────────────────────────────────────────────────────
+ErrorCode
+IntCell::bif_residue_ii(Cell * Z, APL_Integer a, APL_Integer b)
+{
+   if (a == 0)   return IntCell::zI(Z, b);
+   if (b == 0)   return IntCell::z0(Z);
+
+APL_Integer rest = b % a;
+   if (a < 0)
+      {
+        if (rest > 0)   rest += a;
+      }
+   else
+      {
+        if (rest < 0)   rest += a;
+      }
+   return IntCell::zI(Z, rest);
+}
+//────────────────────────────────────────────────────────────────────────────
+ErrorCode
+IntCell::bif_ceiling_i(Cell * Z, APL_Integer b)
+{
+   return IntCell::zI(Z, b);
+}
+//────────────────────────────────────────────────────────────────────────────
+ErrorCode
+IntCell::bif_floor_i(Cell * Z, APL_Integer b)
+{
+   return IntCell::zI(Z, b);
+}
+//────────────────────────────────────────────────────────────────────────────
+ErrorCode
+IntCell::bif_conjugate_i(Cell * Z, APL_Integer b)
+{
+   return IntCell::zI(Z, b);
+}
+//────────────────────────────────────────────────────────────────────────────
+ErrorCode
+IntCell::bif_direction_i(Cell * Z, APL_Integer b)
+{
+APL_Integer result = 0;
+   if      (b > 0)   result =  1;
+   else if (b < 0)   result = -1;
+   return IntCell::zI(Z, result);
+}
+//────────────────────────────────────────────────────────────────────────────
+ErrorCode
+IntCell::bif_exponential_i(Cell * Z, APL_Integer b)
+{
+   return FloatCell::zF(Z, exp(APL_Float(b)));
+}
+//────────────────────────────────────────────────────────────────────────────
+ErrorCode
+IntCell::bif_factorial_i(Cell * Z, APL_Integer b)
+{
+   if (b < 0)                    return E_DOMAIN_ERROR;
+   if (b < int_fact_max)       return IntCell::zI(Z, int_factorials[b]);
+   if (b < float_fact_max)     return FloatCell::zF(Z, float_factorials[b]);
+   return E_DOMAIN_ERROR;
+}
+//────────────────────────────────────────────────────────────────────────────
+ErrorCode
+IntCell::bif_magnitude_i(Cell * Z, APL_Integer b)
+{
+   if (b >= 0)   return IntCell::zI(Z, b);
+   if (uint64_t(b) == 0x8000000000000000ULL)
+      return FloatCell::zF(Z, -APL_Float(b));
+   return IntCell::zI(Z, -b);
+}
+//────────────────────────────────────────────────────────────────────────────
+ErrorCode
+IntCell::bif_nat_log_i(Cell * Z, APL_Integer b)
+{
+   if (b == 0)   return E_DOMAIN_ERROR;
+   if (b > 0)    return FloatCell::zF(Z, log(APL_Float(b)));
+   return ComplexCell::zC(Z, log(APL_Complex(b, 0)));
+}
+//────────────────────────────────────────────────────────────────────────────
+ErrorCode
+IntCell::bif_negative_i(Cell * Z, APL_Integer b)
+{
+   if (uint64_t(b) == 0x8000000000000000ULL)
+      return FloatCell::zF(Z, -APL_Float(b));
+   return IntCell::zI(Z, -b);
+}
+//────────────────────────────────────────────────────────────────────────────
+ErrorCode
+IntCell::bif_pi_times_i(Cell * Z, APL_Integer b)
+{
+   return FloatCell::zF(Z, M_PI * b);
+}
+//────────────────────────────────────────────────────────────────────────────
+ErrorCode
+IntCell::bif_pi_times_inverse_i(Cell * Z, APL_Integer b)
+{
+   return FloatCell::zF(Z, b / M_PI);
+}
+//────────────────────────────────────────────────────────────────────────────
+ErrorCode
+IntCell::bif_reciprocal_i(Cell * Z, APL_Integer b)
+{
+   switch(b)
+      {
+        case  0: return E_DOMAIN_ERROR;
+        case  1: return IntCell::z1(Z);
+        case -1: return IntCell::z_1(Z);
+      }
+   return FloatCell::zF(Z, 1.0 / b);
+}
+//────────────────────────────────────────────────────────────────────────────
+ErrorCode
+IntCell::bif_roll_i(Cell * Z, APL_Integer b)
+{
+   if (b <= 0)   return E_DOMAIN_ERROR;
+const uint64_t rnd = Workspace::get_RL(b);
+   return IntCell::zI(Z, Workspace::get_IO() + APL_Integer(rnd % b));
+}
+//────────────────────────────────────────────────────────────────────────────
+ErrorCode
+IntCell::bif_near_int64_t_i(Cell * Z, APL_Integer b)
+{
+   return IntCell::zI(Z, b);
+}
+//────────────────────────────────────────────────────────────────────────────
+ErrorCode
+IntCell::bif_within_quad_CT_i(Cell * Z, APL_Integer b)
+{
+   return IntCell::zI(Z, b);
+}

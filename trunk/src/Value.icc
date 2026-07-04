@@ -122,19 +122,19 @@ Value::next_ravel_Float(APL_Float f)
 void
 Value::next_ravel_Number(APL_Float f)
 {
-  NumericCell::zV(next_ravel(), f);
+  ComplexCell::zV(next_ravel(), f);
 }
 //──────────────────────────────────────────────────────────────────────────
 void
 Value::next_ravel_Number(APL_Complex cpx)
 {
-  NumericCell::zV(next_ravel(), cpx);
+  ComplexCell::zV(next_ravel(), cpx);
 }
 //──────────────────────────────────────────────────────────────────────────
 void
 Value::next_ravel_Number(APL_Float real, APL_Float imag)
 {
-  NumericCell::zV(next_ravel(), real, imag);
+  ComplexCell::zV(next_ravel(), real, imag);
 }
 //──────────────────────────────────────────────────────────────────────────
 #ifdef cfg_RATIONAL_NUMBERS_WANTED

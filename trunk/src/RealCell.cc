@@ -64,9 +64,9 @@ RealCell::bif_logarithm(Cell * Z, const Cell * A) const
 {
    if (!A->is_numeric())   return E_DOMAIN_ERROR;
    if (A->is_complex_cell())
-      return NumericCell::bif_logarithm_cc(Z, A->get_complex_value(),
+      return ComplexCell::bif_logarithm_cc(Z, A->get_complex_value(),
                                               get_complex_value());
-   return NumericCell::bif_logarithm_ff(Z, A->get_real_value(),
+   return FloatCell::bif_logarithm_ff(Z, A->get_real_value(),
                                            get_real_value());
 }
 //────────────────────────────────────────────────────────────────────────────

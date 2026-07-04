@@ -310,6 +310,42 @@ protected:
    /// overloaded Cell::CDR_size()
    virtual int CDR_size() const
       { return 16; }
+
+   // ── bif_XXX_cc / _ci / _c workers (moved from NumericCell) ──────────────
+   static ErrorCode bif_add_cc(Cell * Z, APL_Complex a, APL_Complex b);
+   static ErrorCode bif_subtract_cc(Cell * Z, APL_Complex a, APL_Complex b);
+   static ErrorCode bif_multiply_cc(Cell * Z, APL_Complex a, APL_Complex b);
+   static ErrorCode bif_divide_cc(Cell * Z, APL_Complex a, APL_Complex b);
+   static ErrorCode bif_power_ci(Cell * Z, APL_Complex a, APL_Integer b);
+   static ErrorCode bif_power_cc(Cell * Z, APL_Complex a, APL_Complex b);
+   static ErrorCode bif_logarithm_cc(Cell * Z, APL_Complex a, APL_Complex b);
+   static ErrorCode bif_maximum_cc(Cell * Z, APL_Complex a, APL_Complex b);
+   static ErrorCode bif_minimum_cc(Cell * Z, APL_Complex a, APL_Complex b);
+   static ErrorCode bif_residue_cc(Cell * Z, APL_Complex a, APL_Complex b);
+   static ErrorCode bif_circle_fun_c(Cell * Z, APL_Integer fun, APL_Complex b);
+   static ErrorCode bif_circle_fun_inverse_c(Cell * Z, APL_Integer fun,
+                                             APL_Complex b);
+
+   static ErrorCode bif_ceiling_c(Cell * Z, APL_Complex b);
+   static ErrorCode bif_floor_c(Cell * Z, APL_Complex b);
+   static ErrorCode bif_conjugate_c(Cell * Z, APL_Complex b);
+   static ErrorCode bif_direction_c(Cell * Z, APL_Complex b);
+   static ErrorCode bif_exponential_c(Cell * Z, APL_Complex b);
+   static ErrorCode bif_factorial_c(Cell * Z, APL_Complex b);
+   static ErrorCode bif_magnitude_c(Cell * Z, APL_Complex b);
+   static ErrorCode bif_nat_log_c(Cell * Z, APL_Complex b);
+   static ErrorCode bif_negative_c(Cell * Z, APL_Complex b);
+   static ErrorCode bif_pi_times_c(Cell * Z, APL_Complex b);
+   static ErrorCode bif_pi_times_inverse_c(Cell * Z, APL_Complex b);
+   static ErrorCode bif_reciprocal_c(Cell * Z, APL_Complex b);
+   static ErrorCode bif_roll_c(Cell * Z, APL_Complex b);
+   static ErrorCode bif_near_int64_t_c(Cell * Z, APL_Complex b);
+   static ErrorCode bif_within_quad_CT_c(Cell * Z, APL_Complex b);
+
+   // ── zV factory: create best-fit cell (int/float/complex) ────────────────
+   static ErrorCode zV(Cell * Z, APL_Float flt);
+   static ErrorCode zV(Cell * Z, APL_Complex cpx);
+   static ErrorCode zV(Cell * Z, APL_Float real, APL_Float imag);
 };
 //════════════════════════════════════════════════════════════════════════════
 

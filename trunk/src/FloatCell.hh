@@ -402,6 +402,34 @@ protected:
 
    /// downcast to FloatCell
    virtual FloatCell & vFloatCell()   { return *this; }
+
+   // ── bif_XXX_ff / _fi / _f workers (moved from NumericCell) ──────────────
+   static ErrorCode bif_add_ff(Cell * Z, APL_Float a, APL_Float b);
+   static ErrorCode bif_subtract_ff(Cell * Z, APL_Float a, APL_Float b);
+   static ErrorCode bif_multiply_ff(Cell * Z, APL_Float a, APL_Float b);
+   static ErrorCode bif_divide_ff(Cell * Z, APL_Float a, APL_Float b);
+   static ErrorCode bif_power_fi(Cell * Z, APL_Float a, APL_Integer b);
+   static ErrorCode bif_power_ff(Cell * Z, APL_Float a, APL_Float b);
+   static ErrorCode bif_logarithm_ff(Cell * Z, APL_Float a, APL_Float b);
+   static ErrorCode bif_maximum_ff(Cell * Z, APL_Float a, APL_Float b);
+   static ErrorCode bif_minimum_ff(Cell * Z, APL_Float a, APL_Float b);
+   static ErrorCode bif_residue_ff(Cell * Z, APL_Float a, APL_Float b);
+
+   static ErrorCode bif_ceiling_f(Cell * Z, APL_Float b);
+   static ErrorCode bif_floor_f(Cell * Z, APL_Float b);
+   static ErrorCode bif_conjugate_f(Cell * Z, APL_Float b);
+   static ErrorCode bif_direction_f(Cell * Z, APL_Float b);
+   static ErrorCode bif_exponential_f(Cell * Z, APL_Float b);
+   static ErrorCode bif_factorial_f(Cell * Z, APL_Float b);
+   static ErrorCode bif_magnitude_f(Cell * Z, APL_Float b);
+   static ErrorCode bif_nat_log_f(Cell * Z, APL_Float b);
+   static ErrorCode bif_negative_f(Cell * Z, APL_Float b);
+   static ErrorCode bif_pi_times_f(Cell * Z, APL_Float b);
+   static ErrorCode bif_pi_times_inverse_f(Cell * Z, APL_Float b);
+   static ErrorCode bif_reciprocal_f(Cell * Z, APL_Float b);
+   static ErrorCode bif_roll_f(Cell * Z, APL_Float b);
+   static ErrorCode bif_near_int64_t_f(Cell * Z, APL_Float b);
+   static ErrorCode bif_within_quad_CT_f(Cell * Z, APL_Float b);
 };
 //════════════════════════════════════════════════════════════════════════════
 

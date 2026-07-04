@@ -325,6 +325,32 @@ protected:
 
    /// overloaded Cell::CDR_size()
    virtual int CDR_size() const;
+
+   // ── bif_XXX_ii / _i workers (moved from NumericCell) ────────────────────
+   static ErrorCode bif_add_ii(Cell * Z, APL_Integer a, APL_Integer b);
+   static ErrorCode bif_subtract_ii(Cell * Z, APL_Integer a, APL_Integer b);
+   static ErrorCode bif_multiply_ii(Cell * Z, APL_Integer a, APL_Integer b);
+   static ErrorCode bif_divide_ii(Cell * Z, APL_Integer a, APL_Integer b);
+   static ErrorCode bif_power_ii(Cell * Z, APL_Integer a, APL_Integer b);
+   static ErrorCode bif_maximum_ii(Cell * Z, APL_Integer a, APL_Integer b);
+   static ErrorCode bif_minimum_ii(Cell * Z, APL_Integer a, APL_Integer b);
+   static ErrorCode bif_residue_ii(Cell * Z, APL_Integer a, APL_Integer b);
+
+   static ErrorCode bif_ceiling_i(Cell * Z, APL_Integer b);
+   static ErrorCode bif_floor_i(Cell * Z, APL_Integer b);
+   static ErrorCode bif_conjugate_i(Cell * Z, APL_Integer b);
+   static ErrorCode bif_direction_i(Cell * Z, APL_Integer b);
+   static ErrorCode bif_exponential_i(Cell * Z, APL_Integer b);
+   static ErrorCode bif_factorial_i(Cell * Z, APL_Integer b);
+   static ErrorCode bif_magnitude_i(Cell * Z, APL_Integer b);
+   static ErrorCode bif_nat_log_i(Cell * Z, APL_Integer b);
+   static ErrorCode bif_negative_i(Cell * Z, APL_Integer b);
+   static ErrorCode bif_pi_times_i(Cell * Z, APL_Integer b);
+   static ErrorCode bif_pi_times_inverse_i(Cell * Z, APL_Integer b);
+   static ErrorCode bif_reciprocal_i(Cell * Z, APL_Integer b);
+   static ErrorCode bif_roll_i(Cell * Z, APL_Integer b);
+   static ErrorCode bif_near_int64_t_i(Cell * Z, APL_Integer b);
+   static ErrorCode bif_within_quad_CT_i(Cell * Z, APL_Integer b);
 };
 //════════════════════════════════════════════════════════════════════════════
 
