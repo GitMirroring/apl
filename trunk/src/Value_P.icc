@@ -317,7 +317,10 @@ Value_P_Base::isolate_deep(const char * loc)
 #ifdef NEW_CLONE
    isolate(LOC);
 
-   if (value_p)
+   // Packed ravels contain no PointerCells, so there is nothing to recurse
+   // into.  Also, get_wravel(j) indexes 24-byte Cell slots which goes out of
+   // bounds for sub-Cell packings (uint16_t, uint32_t, …).  Skip the loop.
+   if (value_p && !value_p->is_packed())
       {
         loop(j, value_p->nz_element_count())
             {

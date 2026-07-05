@@ -294,15 +294,16 @@ PointerCell::isolate_deep(const char * loc)
 {
    isolate(loc);
 Value * val = value.pval.valp.get();
-   loop(j, val->nz_element_count())
-       {
-         Cell & cell = val->get_wravel(j);
-         if (cell.is_pointer_cell())
-            {
-              PointerCell & ptr = reinterpret_cast<PointerCell &>(cell);
-              ptr.isolate_deep(loc);
-            }
-       }
+   if (val && !val->is_packed())
+      loop(j, val->nz_element_count())
+          {
+            Cell & cell = val->get_wravel(j);
+            if (cell.is_pointer_cell())
+               {
+                 PointerCell & ptr = reinterpret_cast<PointerCell &>(cell);
+                 ptr.isolate_deep(loc);
+               }
+          }
 }
 //────────────────────────────────────────────────────────────────────────────
 void

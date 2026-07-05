@@ -1544,11 +1544,14 @@ const ShapeItem B_len = B.element_count() ;
         LENGTH_ERROR;
       }
 
+   // Create Z with a full Cell-sized buffer so that explode() is always safe.
+   //
+Value_P Z(B.get_shape(), LOC);
+uint64_t * bits = reinterpret_cast<uint64_t *>(&Z->get_wfirst());
+
    // round B_len up to the next multiple of 64
    //
 const ShapeItem Z_len = (B_len + 63) >> 6;   // length in units of uint64_t
-uint64_t * bits = new uint64_t[Z_len];
-   if (bits == 0)   WS_FULL;
 
    // set all bits to 0, then some to 1...
    //
@@ -1572,7 +1575,7 @@ uint64_t bit  = 1;
 
     if (chunk)   bits[Z_len - 1] = chunk;   // rest bits
 
-Value_P Z(B.get_shape(), bits, LOC);
+   Z->commit_ravel_Bool(B_len);
    return Z;
 }
 //────────────────────────────────────────────────────────────────────────────

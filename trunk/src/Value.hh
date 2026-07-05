@@ -318,12 +318,10 @@ public:
    ShapeItem get_member_count() const;
 
    /// return the (constant) idx'th element of the ravel.
+   /// Automatically explodes packed ravels on first call so callers may
+   /// safely store the returned reference or pointer.
    /// @param idx ravel index (0-based)
-   const Cell & get_cravel(ShapeItem idx) const
-      {
-        Assert1(idx < nz_element_count());
-        return ravel.get_cravel(idx);
-      }
+   const Cell & get_cravel(ShapeItem idx) const;
 
    /// current ravel packing type (RPT_CELLS = unpacked Cell array)
    RavelType get_ravel_type() const
@@ -336,6 +334,10 @@ public:
    /// raw read pointer for RPT_FLOAT64 ravels; call only when ravel_type==RPT_FLOAT64
    const double * cravel_float64() const
       { return reinterpret_cast<const double *>(ravel.cells); }
+
+   /// raw read pointer for RPT_UNICODE16 ravels; call only when ravel_type==RPT_UNICODE16
+   const uint16_t * cravel_unicode16() const
+      { return reinterpret_cast<const uint16_t *>(ravel.cells); }
 
    /// raw read pointer to packed data for any non-BOOL packed ravel
    const void * cravel_packed() const

@@ -335,6 +335,25 @@ PERFORMANCE_END(fs_M_join_AB, start_M_join, 1);
                    }
               }
               if (!fast_path_done)
+              {
+                const vv_c16_2b_t fc16b = get_vv_c16_2b();
+                if (fc16b &&
+                    !job_AB->value_A->get_pointer_cell_count() &&
+                    !job_AB->value_B->get_pointer_cell_count() &&
+                    job_AB->value_A->get_ravel_type() == RPT_UNICODE16 &&
+                    job_AB->value_B->get_ravel_type() == RPT_UNICODE16)
+                   {
+                     uint64_t * pZ = reinterpret_cast<uint64_t *>(
+                                         &job_AB->value_Z->get_wfirst());
+                     const uint16_t * pA = job_AB->value_A->cravel_unicode16();
+                     const uint16_t * pB = job_AB->value_B->cravel_unicode16();
+                     fc16b(pZ, pA, job_AB->inc_A, pB, job_AB->inc_B,
+                           job_AB->len_Z);
+                     job_AB->value_Z->commit_ravel_Bool(job_AB->len_Z);
+                     fast_path_done = true;
+                   }
+              }
+              if (!fast_path_done)
                  loop(z, job_AB->len_Z)
                     {
                    const Cell & cell_A = job_AB->A_at(z);

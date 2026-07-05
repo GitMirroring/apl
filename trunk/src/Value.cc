@@ -145,6 +145,7 @@ Value::Value(const UCS_string & ucs, const char * loc)
    set_proto_Spc();                          // prototype
    loop(l, ucs.size())   next_ravel_Char(ucs[l]);
    set_complete();
+   try_pack();
 }
 //────────────────────────────────────────────────────────────────────────────
 Value::Value(const UTF8_string & utf, const char * loc)
@@ -157,6 +158,7 @@ Value::Value(const UTF8_string & utf, const char * loc)
    set_proto_Spc();                          // prototype
    loop(l, utf.size())   next_ravel_Char(Unicode(utf[l] & 0xFF));
    set_complete();
+   try_pack();
 }
 //────────────────────────────────────────────────────────────────────────────
 Value::Value(const CDR_string & ui8, const char * loc)
@@ -169,6 +171,7 @@ Value::Value(const CDR_string & ui8, const char * loc)
    set_proto_Spc();                          // prototype
    loop(l, ui8.size())   next_ravel_Char(Unicode(ui8[l]));
    set_complete();
+   try_pack();
 }
 //────────────────────────────────────────────────────────────────────────────
 Value::Value(const PrintBuffer & pb, const char * loc)
@@ -261,6 +264,12 @@ const ShapeItem length = nz_element_count();
 Value_P
 Value::get_cellrefs(const char * loc)
 {
+   // LvalCell stores a Cell * address; that requires an unpacked (Cell-array)
+   // ravel.  Explode here so that every get_wravel() below returns a valid
+   // Cell reference regardless of how the value was constructed.
+   //
+   explode();
+
    /* Create a non-nested (!) (left-) value left_Z from this (right-) value.
       left_Z has the same shape and consists entirely of LvalCells that point
       to the corresponding cells of this value.

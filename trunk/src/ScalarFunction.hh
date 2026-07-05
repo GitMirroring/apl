@@ -225,6 +225,16 @@ protected:
    /// return dyadic float64→bool worker, or 0 if not implemented
    virtual vv_f2b_t get_vv_f2b() const { return 0; }
 
+   /// Dyadic worker: packed unicode16 × unicode16 → bit-packed bool ravel.
+   /// incA/incB are 0 (scalar extension) or 1 (full vector).
+   typedef void (*vv_c16_2b_t)(uint64_t * pZ,
+                                const uint16_t * pA, int incA,
+                                const uint16_t * pB, int incB,
+                                ShapeItem N);
+
+   /// return dyadic unicode16→bool worker, or 0 if not implemented
+   virtual vv_c16_2b_t get_vv_c16_2b() const { return 0; }
+
    /// ISO tolerance comparison (mirrors Cell::tolerantly_equal).
    /// Kept here so DEF_VV_F2B workers are independent of Cell.icc linkage.
    static bool tol_eq(double A, double B, double ct)
@@ -280,6 +290,20 @@ protected:
           for (ShapeItem _j = _b0; _j < _b1; ++_j)                         \
               { const double _av = pA[_j * incA], _bv = pB[_j * incB];    \
                 if (PRED)   _w |= uint64_t(1) << (_j - _b0); }             \
+          pZ[_c] = _w; } }
+
+// DEF_VV_C16_2B: uint16×uint16 → BOOL, OP is a C++ comparison operator.
+#define DEF_VV_C16_2B(NAME, OP)                                            \
+   static void NAME(uint64_t * pZ, const uint16_t * pA, int incA,          \
+                    const uint16_t * pB, int incB, ShapeItem N)            \
+   { const ShapeItem _nz = (N + 63) >> 6;                                  \
+     loop(_c, _nz)                                                          \
+        { uint64_t _w = 0;                                                  \
+          const ShapeItem _b0 = _c << 6,                                    \
+                          _b1 = _b0 + 64 > N ? N : _b0 + 64;              \
+          for (ShapeItem _j = _b0; _j < _b1; ++_j)                         \
+              if (pA[_j * incA] OP pB[_j * incB])                          \
+                 _w |= uint64_t(1) << (_j - _b0);                          \
           pZ[_c] = _w; } }
 
 /** Scalar functions binomial and factorial.
@@ -366,8 +390,10 @@ protected:
 
    DEF_VV_I2B(vv_lt_i, <)
    DEF_VV_F2B(vv_lt_f, !tol_eq(_av, _bv, _ct) && _av < _bv)
-   virtual vv_i2b_t get_vv_i2b() const { return &vv_lt_i; }
-   virtual vv_f2b_t get_vv_f2b() const { return &vv_lt_f; }
+   DEF_VV_C16_2B(vv_lt_c16, <)
+   virtual vv_i2b_t   get_vv_i2b()   const { return &vv_lt_i; }
+   virtual vv_f2b_t   get_vv_f2b()   const { return &vv_lt_f; }
+   virtual vv_c16_2b_t get_vv_c16_2b() const { return &vv_lt_c16; }
 };
 //────────────────────────────────────────────────────────────────────────────
 /** Scalar function equal.
@@ -410,8 +436,10 @@ protected:
 
    DEF_VV_I2B(vv_eq_i, ==)
    DEF_VV_F2B(vv_eq_f, tol_eq(_av, _bv, _ct))
-   virtual vv_i2b_t get_vv_i2b() const { return &vv_eq_i; }
-   virtual vv_f2b_t get_vv_f2b() const { return &vv_eq_f; }
+   DEF_VV_C16_2B(vv_eq_c16, ==)
+   virtual vv_i2b_t   get_vv_i2b()   const { return &vv_eq_i; }
+   virtual vv_f2b_t   get_vv_f2b()   const { return &vv_eq_f; }
+   virtual vv_c16_2b_t get_vv_c16_2b() const { return &vv_eq_c16; }
 };
 //────────────────────────────────────────────────────────────────────────────
 /** Scalar function EQ bitwise (i.e. bitwise not A xor B)
@@ -533,8 +561,10 @@ protected:
 
    DEF_VV_I2B(vv_gt_i, >)
    DEF_VV_F2B(vv_gt_f, !tol_eq(_av, _bv, _ct) && _av > _bv)
-   virtual vv_i2b_t get_vv_i2b() const { return &vv_gt_i; }
-   virtual vv_f2b_t get_vv_f2b() const { return &vv_gt_f; }
+   DEF_VV_C16_2B(vv_gt_c16, >)
+   virtual vv_i2b_t   get_vv_i2b()   const { return &vv_gt_i; }
+   virtual vv_f2b_t   get_vv_f2b()   const { return &vv_gt_f; }
+   virtual vv_c16_2b_t get_vv_c16_2b() const { return &vv_gt_c16; }
 };
 //────────────────────────────────────────────────────────────────────────────
 /** Scalar function AND/LCM
@@ -756,8 +786,10 @@ protected:
 
    DEF_VV_I2B(vv_le_i, <=)
    DEF_VV_F2B(vv_le_f, tol_eq(_av, _bv, _ct) || _av <= _bv)
-   virtual vv_i2b_t get_vv_i2b() const { return &vv_le_i; }
-   virtual vv_f2b_t get_vv_f2b() const { return &vv_le_f; }
+   DEF_VV_C16_2B(vv_le_c16, <=)
+   virtual vv_i2b_t   get_vv_i2b()   const { return &vv_le_i; }
+   virtual vv_f2b_t   get_vv_f2b()   const { return &vv_le_f; }
+   virtual vv_c16_2b_t get_vv_c16_2b() const { return &vv_le_c16; }
 };
 //────────────────────────────────────────────────────────────────────────────
 /** Scalar function greater or equal.
@@ -793,8 +825,10 @@ protected:
 
    DEF_VV_I2B(vv_ge_i, >=)
    DEF_VV_F2B(vv_ge_f, tol_eq(_av, _bv, _ct) || _av >= _bv)
-   virtual vv_i2b_t get_vv_i2b() const { return &vv_ge_i; }
-   virtual vv_f2b_t get_vv_f2b() const { return &vv_ge_f; }
+   DEF_VV_C16_2B(vv_ge_c16, >=)
+   virtual vv_i2b_t   get_vv_i2b()   const { return &vv_ge_i; }
+   virtual vv_f2b_t   get_vv_f2b()   const { return &vv_ge_f; }
+   virtual vv_c16_2b_t get_vv_c16_2b() const { return &vv_ge_c16; }
 };
 //────────────────────────────────────────────────────────────────────────────
 /** Scalar function not equal
@@ -833,11 +867,14 @@ protected:
 
    DEF_VV_I2B(vv_ne_i, !=)
    DEF_VV_F2B(vv_ne_f, !tol_eq(_av, _bv, _ct))
-   virtual vv_i2b_t get_vv_i2b() const { return &vv_ne_i; }
-   virtual vv_f2b_t get_vv_f2b() const { return &vv_ne_f; }
+   DEF_VV_C16_2B(vv_ne_c16, !=)
+   virtual vv_i2b_t   get_vv_i2b()   const { return &vv_ne_i; }
+   virtual vv_f2b_t   get_vv_f2b()   const { return &vv_ne_f; }
+   virtual vv_c16_2b_t get_vv_c16_2b() const { return &vv_ne_c16; }
 };
 #undef DEF_VV_I2B
 #undef DEF_VV_F2B
+#undef DEF_VV_C16_2B
 //────────────────────────────────────────────────────────────────────────────
 /** Scalar function find.
  */

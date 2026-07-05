@@ -51,6 +51,15 @@
 #include "Workspace.icc"
 
 //────────────────────────────────────────────────────────────────────────────
+const Cell &
+cValue::get_cravel(ShapeItem idx) const
+{
+   Assert1(idx < nz_element_count());
+   if (is_packed())
+      const_cast<Value *>(static_cast<const Value *>(this))->explode();
+   return ravel.get_cravel(idx);
+}
+//────────────────────────────────────────────────────────────────────────────
 bool
 cValue::is_apl_char_vector() const
 {
