@@ -28,7 +28,9 @@
 #include "ComplexCell.hh"
 #include "FloatCell.hh"
 #include "IntCell.hh"
+#include "ScalarOps.hh"
 
+class ScalarFunction;
 class ValueBase;
 class cValue;
 class Value;
@@ -45,6 +47,11 @@ class Ravel
    friend class Value;
 
 public:
+   /// Tag for vtable-only upgrade via placement-new.
+   /// IntRavel()/FloatRavel() constructors use this to leave all data
+   /// members untouched while installing the subclass vtable.
+   struct upgrade_tag {};
+
    Ravel()
    : fetcher(0),
      valid_ravel_items(0),
@@ -52,6 +59,10 @@ public:
      cells(0),
      fetch_cache(0)
    {}
+
+   /// No-op constructor used by subclass placement-new upgrades.
+   /// Preserves every data member; only the vtable pointer changes.
+   explicit Ravel(upgrade_tag) {}
 
    //══════════════════════════════════════════════════════════════════════════
    // Read-only (const) methods
@@ -131,6 +142,21 @@ public:
    /// return the first ravel cell (the prototype of an empty value).
    Cell & get_wproto()    { return get_wravel(0); }
 
+   // ── Packed fast-path dispatch ─────────────────────────────────────────────
+
+   /// Apply dyadic packed fast path if A's ravel type allows it.
+   /// Returns true (and writes result into Z) if a fast path ran.
+   /// Returns false when cell-by-cell fallback is needed.
+   virtual bool apply_fast_dyadic(const ScalarFunction & sf,
+                                   const Value & A, int inc_A,
+                                   const Value & B, int inc_B,
+                                   Value & Z, ShapeItem len_Z) const;
+
+   /// Apply monadic packed fast path if B's ravel type allows it.
+   virtual bool apply_fast_monadic(const ScalarFunction & sf,
+                                    const Value & B,
+                                    Value & Z, ShapeItem len_Z) const;
+
 protected:
    //══════════════════════════════════════════════════════════════════════════
    // Data members
@@ -158,6 +184,111 @@ protected:
 
    /// per-ravel Cell cache for get_cravel() on packed (non-Cell) ravels.
    mutable Cell cell_fetch_cache;
+};
+//════════════════════════════════════════════════════════════════════════════
+/// A Ravel whose storage holds a packed int64_t array (RPT_INT64).
+/// Installed via placement-new only for heap ravels (ravel.cells != ravel.short_value).
+/// Short ravels (N == cfg_SHORT_VALUE_LENGTH_WANTED) stay as base Ravel because
+/// Ravel(upgrade_tag{}) calls Cell() on short_value[], which aliases the packed storage.
+/// Base Ravel::apply_fast_dyadic/monadic handle RPT_INT64 for those short ravels.
+class IntRavel : public Ravel
+{
+public:
+   IntRavel() : Ravel(upgrade_tag{}) {}
+
+   virtual bool apply_fast_dyadic(const ScalarFunction & sf,
+                                   const Value & A, int inc_A,
+                                   const Value & B, int inc_B,
+                                   Value & Z, ShapeItem len_Z) const override;
+
+   virtual bool apply_fast_monadic(const ScalarFunction & sf,
+                                    const Value & B,
+                                    Value & Z, ShapeItem len_Z) const override;
+};
+//════════════════════════════════════════════════════════════════════════════
+/// A Ravel whose storage holds a packed double array (RPT_FLOAT64).
+/// Same placement-new guard as IntRavel: only installed for heap ravels.
+class FloatRavel : public Ravel
+{
+public:
+   FloatRavel() : Ravel(upgrade_tag{}) {}
+
+   virtual bool apply_fast_dyadic(const ScalarFunction & sf,
+                                   const Value & A, int inc_A,
+                                   const Value & B, int inc_B,
+                                   Value & Z, ShapeItem len_Z) const override;
+
+   virtual bool apply_fast_monadic(const ScalarFunction & sf,
+                                    const Value & B,
+                                    Value & Z, ShapeItem len_Z) const override;
+};
+//════════════════════════════════════════════════════════════════════════════
+/// A Ravel whose storage holds a packed uint16_t array (RPT_UNICODE16).
+/// Same placement-new guard: only installed for heap ravels.
+class Char16Ravel : public Ravel
+{
+public:
+   Char16Ravel() : Ravel(upgrade_tag{}) {}
+
+   virtual bool apply_fast_dyadic(const ScalarFunction & sf,
+                                   const Value & A, int inc_A,
+                                   const Value & B, int inc_B,
+                                   Value & Z, ShapeItem len_Z) const override;
+
+   virtual bool apply_fast_monadic(const ScalarFunction & sf,
+                                    const Value & B,
+                                    Value & Z, ShapeItem len_Z) const override;
+};
+//════════════════════════════════════════════════════════════════════════════
+/// A Ravel whose storage holds a packed Unicode array (RPT_UNICODE32).
+/// Same placement-new guard: only installed for heap ravels.
+class Char32Ravel : public Ravel
+{
+public:
+   Char32Ravel() : Ravel(upgrade_tag{}) {}
+
+   virtual bool apply_fast_dyadic(const ScalarFunction & sf,
+                                   const Value & A, int inc_A,
+                                   const Value & B, int inc_B,
+                                   Value & Z, ShapeItem len_Z) const override;
+
+   virtual bool apply_fast_monadic(const ScalarFunction & sf,
+                                    const Value & B,
+                                    Value & Z, ShapeItem len_Z) const override;
+};
+//════════════════════════════════════════════════════════════════════════════
+/// A Ravel whose storage holds a bit-packed boolean array (RPT_BOOL).
+/// Same placement-new guard: only installed for heap ravels.
+class BoolRavel : public Ravel
+{
+public:
+   BoolRavel() : Ravel(upgrade_tag{}) {}
+
+   virtual bool apply_fast_dyadic(const ScalarFunction & sf,
+                                   const Value & A, int inc_A,
+                                   const Value & B, int inc_B,
+                                   Value & Z, ShapeItem len_Z) const override;
+
+   virtual bool apply_fast_monadic(const ScalarFunction & sf,
+                                    const Value & B,
+                                    Value & Z, ShapeItem len_Z) const override;
+};
+//════════════════════════════════════════════════════════════════════════════
+/// A Ravel whose storage holds a packed complex array (RPT_COMPLEX): pairs of
+/// doubles [re, im, re, im, ...].  Same placement-new guard: heap ravels only.
+class ComplexRavel : public Ravel
+{
+public:
+   ComplexRavel() : Ravel(upgrade_tag{}) {}
+
+   virtual bool apply_fast_dyadic(const ScalarFunction & sf,
+                                   const Value & A, int inc_A,
+                                   const Value & B, int inc_B,
+                                   Value & Z, ShapeItem len_Z) const override;
+
+   virtual bool apply_fast_monadic(const ScalarFunction & sf,
+                                    const Value & B,
+                                    Value & Z, ShapeItem len_Z) const override;
 };
 //════════════════════════════════════════════════════════════════════════════
 

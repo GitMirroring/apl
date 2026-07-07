@@ -277,6 +277,30 @@ const Shape3 shape_A3(A.get_shape(), axis);
 
 const ShapeItem slice_a = shape_A3.l() * A.get_shape_item(axis);
 const ShapeItem slice_b = shape_A3.l() * B.get_shape_item(axis);
+
+const RavelType rtype = A.get_ravel_type();
+const ShapeItem bpi   = A.packed_bytes_per_item();   // 0 for CELLS or BOOL
+if (bpi > 0 && rtype == B.get_ravel_type())
+   {
+     // same packed type: replace Cell::copy loop with memcpy slices
+     const char * pA = static_cast<const char *>(A.cravel_packed());
+     const char * pB = static_cast<const char *>(B.cravel_packed());
+     Value_P Z(shape_Z, LOC);
+     char * pZ = reinterpret_cast<char *>(&Z->get_wfirst());
+     ShapeItem offZ = 0;
+     const ShapeItem bytes_a = slice_a * bpi;
+     const ShapeItem bytes_b = slice_b * bpi;
+     loop(hz, shape_A3.h())
+         {
+           memcpy(pZ + offZ, pA + hz * bytes_a, bytes_a);   offZ += bytes_a;
+           memcpy(pZ + offZ, pB + hz * bytes_b, bytes_b);   offZ += bytes_b;
+         }
+     Z->commit_ravel_like(A, shape_A3.h() * (slice_a + slice_b));
+     Z->set_default(B, LOC);
+     Z->check_value(LOC);
+     return Z;
+   }
+
 ShapeItem idxA = 0;
 ShapeItem idxB = 0;
 

@@ -23,6 +23,7 @@
 
 #include <string.h>
 #include <stdio.h>
+#include <unordered_set>
 
 #include "ArrayIterator.hh"
 #include "Avec.hh"
@@ -385,9 +386,36 @@ Bif_F12_ELEMENT::eval_AB(cValue_R A, cValue_R B) const
 const double qct = Workspace::get_CT();
 Value_P Z(A.get_shape(), LOC);
 
-   if (A.element_count() == 0)
+const ShapeItem len_A = A.element_count();
+   if (len_A == 0)
       {
         Z->set_default(B, LOC);
+        Z->check_value(LOC);
+        return Token(TOK_APL_VALUE1, Z);
+      }
+
+   // INT64 × INT64 fast path: hash set lookup, BOOL result
+   if (A.get_ravel_type() == RPT_INT64 && B.get_ravel_type() == RPT_INT64)
+      {
+        const int64_t * pA = A.cravel_int64();
+        const int64_t * pB = B.cravel_int64();
+        const ShapeItem len_B = B.element_count();
+
+        std::unordered_set<int64_t> set_B;
+        set_B.reserve(len_B * 2);
+        loop(b, len_B)   set_B.insert(pB[b]);
+
+        uint64_t * pZ = reinterpret_cast<uint64_t *>(&Z->get_wfirst());
+        const ShapeItem words = (len_A + 63) / 64;
+        loop(w, words)   pZ[w] = 0;
+
+        loop(a, len_A)
+            {
+              if (set_B.count(pA[a]))
+                 pZ[a >> 6] |= uint64_t(1) << (a & 63);
+            }
+
+        Z->commit_ravel_Bool(len_A);
         Z->check_value(LOC);
         return Token(TOK_APL_VALUE1, Z);
       }
@@ -1276,9 +1304,24 @@ Bif_F12_TRANSPOSE::transpose(const Shape & sh_A, cValue_R B)
         const ShapeItem cols_B = B.get_shape_item(1);
         const Shape shape_Z(cols_B, rows_B);
         Value_P Z(shape_Z, LOC);
-        loop(rZ, cols_B)   // the rows of B are columns of Z
-        loop(cZ, rows_B)   // the columns of B are rows of Z
-            Z->next_ravel_Cell(B.get_cravel(rZ + cZ*cols_B));
+
+        const ShapeItem bpi = B.packed_bytes_per_item();
+        if (bpi > 0)   // packed non-bool: stride copy
+           {
+             const uint8_t * pB = static_cast<const uint8_t *>(B.cravel_packed());
+             uint8_t * pZ = reinterpret_cast<uint8_t *>(&Z->get_wfirst());
+             loop(rZ, cols_B)
+             loop(cZ, rows_B)
+                 memcpy(pZ + (rZ * rows_B + cZ) * bpi,
+                        pB + (cZ * cols_B + rZ) * bpi, bpi);
+             Z->commit_ravel_like(B, cols_B * rows_B);
+           }
+        else
+           {
+             loop(rZ, cols_B)   // the rows of B are columns of Z
+             loop(cZ, rows_B)   // the columns of B are rows of Z
+                 Z->next_ravel_Cell(B.get_cravel(rZ + cZ*cols_B));
+           }
         Z->check_value(LOC);
         return Z;
       }
@@ -1522,10 +1565,11 @@ const Shape shape_Z(A, 0);
 
 const ShapeItem len_Z = shape_Z.get_volume();
 
-   if (DO_RT_A_RHO_B               &&
-       len_Z <= B.element_count() &&   // 1.   Z is not longer than B
-       B.get_owner_count() == 1   &&   // 2.   B is a temporary value
-       this == Workspace::SI_top()->get_prefix().get_dyadic_fun())   // 3. below
+   if (DO_RT_A_RHO_B                      &&
+       len_Z <= B.element_count()         &&   // 1.   Z is not longer than B
+       B.get_owner_count() == 1           &&   // 2.   B is a temporary value
+       (len_Z > 0 || !B.is_packed())      &&   // 3.   empty+packed: init_type would corrupt proto slot
+       this == Workspace::SI_top()->get_prefix().get_dyadic_fun())   // 4. below
       {
         /* Optimization of Z←A⍴B. At this point:
 
@@ -1568,8 +1612,9 @@ Value * vB = static_cast<Value *>(const_cast<cValue *>(&B));
                 }
            }
 
-        // release the Cells after Z
-        while (rest < len_B)   vB->release(rest++, LOC);
+        // release the Cells after Z (packed ravels have no per-cell heap allocations)
+        if (!B.is_packed())
+           while (rest < len_B)   vB->release(rest++, LOC);
 
         vB->set_shape(shape_Z);
 
@@ -1597,9 +1642,14 @@ const uint64_t end_1 = cycle_counter();
 Token
 Bif_F12_RHO::eval_B(cValue_R B) const
 {
-Value_P Z(B.get_rank(), LOC);
+const sRank rank = B.get_rank();
+Value_P Z(rank, LOC);
 
-   loop(r, B.get_rank())   Z->next_ravel_Int(B.get_shape_item(r));
+   {
+     int64_t * pZ = reinterpret_cast<int64_t *>(&Z->get_wfirst());
+     loop(r, rank)   pZ[r] = B.get_shape_item(r);
+     Z->commit_ravel_Int64(rank);
+   }
 
    Z->check_value(LOC);
    return Token(TOK_APL_VALUE1, Z);
@@ -1619,10 +1669,28 @@ const ShapeItem len_Z = Z->element_count();
       }
    else
       {
-        loop(z, len_Z)
-          {
-            Z->next_ravel_Cell(B.get_cravel(z % len_B));
-          }
+        const ShapeItem bpi = B.packed_bytes_per_item();   // 0 for CELLS or BOOL
+        if (bpi > 0 && len_Z > 0)
+           {
+             // packed ravel: copy B cycling over Z with memcpy
+             const char * pB = static_cast<const char *>(B.cravel_packed());
+             char * pZ = reinterpret_cast<char *>(&Z->get_wfirst());
+             ShapeItem done = 0;
+             while (done < len_Z)
+                 {
+                   const ShapeItem chunk = len_Z - done < len_B ? len_Z - done : len_B;
+                   memcpy(pZ + done * bpi, pB, chunk * bpi);
+                   done += chunk;
+                 }
+             Z->commit_ravel_like(B, len_Z);
+           }
+        else
+           {
+             loop(z, len_Z)
+               {
+                 Z->next_ravel_Cell(B.get_cravel(z % len_B));
+               }
+           }
       }
 
    Z->set_default(B, LOC);

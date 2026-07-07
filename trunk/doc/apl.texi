@@ -7502,8 +7502,8 @@ system limit for the depth of the random value being produced. This can be
 prevented by setting a maximum depth for every value generated. ⎕RVAL sets
 the probability of the deepest allowed depth to 0.
 
-4 ⎕RVAL B expects B to be a non-negative integer which is the deepest allowed depth
-(0 suppresses nesting entirely regardless of the type distribution);
+4 ⎕RVAL B expects B to be a non-negative integer which is the deepest allowed
+depth (0 suppresses nesting entirely regardless of the type distribution);
 
 An empty B, e.g. 4 ⎕RVAL ⍬, will not change anything and can be used to
 query the current setting for 4 ⎕RVAL.
@@ -7540,28 +7540,33 @@ the properties have the following defaults:
 4
 @end example
 
-That is, by default, ⎕RVAL ⍬ produces random integer scalars.
+That is, by default, @b{⎕RVAL ⍬} produces random integer scalars.
 
 It is sometimes convenient to be able to change the properties of the next
 random value without modifying (and later restoring) the properties with
-dyadic ⎕RVAL. This can be achieved with monadic ⎕RVAL with non-empty B.
+dyadic @b{⎕RVAL}. This can be achieved with monadic @b{⎕RVAL} with non-empty
+@b{B}.
 
-Let 4=⍴B. Then
+Let 4 = ⍴B. Then
 
 @example
-   Z←⎕RVAL B does essentially:
+      Z←⎕RVAL B does essentially:
 
-   B[1]←1 ⎕RVAL B[1]
-   B[2]←2 ⎕RVAL B[2]
-   B[3]←3 ⎕RVAL B[3]
-   B[4]←4 ⎕RVAL B[4]
+      ⍝ set new ⎕RVAL properties B and remember the current ones in B
+      ⍝
+      B[1]←1 ⎕RVAL B[1]
+      B[2]←2 ⎕RVAL B[2]
+      B[3]←3 ⎕RVAL B[3]
+      B[4]←4 ⎕RVAL B[4]
 
-   Z←⎕RVAL 0
+      Z←⎕RVAL 0   ⍝ produce one random value according to the new properties
 
-   B[1]←1 ⎕RVAL B[1]
-   B[2]←2 ⎕RVAL B[2]
-   B[3]←3 ⎕RVAL B[3]
-   B[4]←4 ⎕RVAL B[4]
+      ⍝ restore the current parameters. After that, B is as it was before
+      ⍝
+      B[1]←1 ⎕RVAL B[1]
+      B[2]←2 ⎕RVAL B[2]
+      B[3]←3 ⎕RVAL B[3]
+      B[4]←4 ⎕RVAL B[4]
 @end example
 
 If 4 > ⍴B then the missing properties are not changed.

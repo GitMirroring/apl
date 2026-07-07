@@ -964,6 +964,7 @@ Value::try_implode()
 {
    if (is_packed())          return "value already packed";
    if (pointer_cell_count)   return "value not simple";
+   if (element_count() == 0) return "empty value — prototype only";
 
    // Pack boolean bits in-place into the existing Cell buffer (front-to-back,
    // 64 bits per chunk).  The Cell buffer is always large enough: one uint64
@@ -993,6 +994,8 @@ uint64_t * dst = reinterpret_cast<uint64_t *>(ravel.cells);
    ravel.fetcher           = &Ravel::packed_fetcher;
    ravel.valid_ravel_items = N;
    flags.ravel_type        = RPT_BOOL;
+   if (ravel.cells != ravel.short_value)
+      new (&ravel) BoolRavel();
    return 0;
 }
 //────────────────────────────────────────────────────────────────────────────
@@ -1001,6 +1004,7 @@ Value::try_pack(bool force)
 {
    if (is_packed())          return;   // already packed
    if (pointer_cell_count)   return;   // nested sub-values → cannot pack
+   if (element_count() == 0) return;   // empty arrays have only a prototype — don't pack
 
 const ShapeItem N = nz_element_count();
    if (!force && N < PACKED_MINIMUM_LENGHT)   return;
@@ -1061,6 +1065,8 @@ RavelType t;
                ravel.fetcher           = &Ravel::int64_fetcher;
                ravel.valid_ravel_items = N;
                flags.ravel_type = RPT_INT64;
+               if (ravel.cells != ravel.short_value)
+                  new (&ravel) IntRavel();   // heap ravel: Cell() doesn't touch packed data
              }
              return;
 
@@ -1070,6 +1076,8 @@ RavelType t;
                ravel.fetcher           = &Ravel::float64_fetcher;
                ravel.valid_ravel_items = N;
                flags.ravel_type = RPT_FLOAT64;
+               if (ravel.cells != ravel.short_value)
+                  new (&ravel) FloatRavel();
              }
              return;
 
@@ -1084,6 +1092,8 @@ RavelType t;
                ravel.fetcher           = &Ravel::complex_fetcher;
                ravel.valid_ravel_items = N;
                flags.ravel_type = RPT_COMPLEX;
+               if (ravel.cells != ravel.short_value)
+                  new (&ravel) ComplexRavel();
              }
              return;
 
@@ -1093,6 +1103,8 @@ RavelType t;
                ravel.fetcher           = &Ravel::char32_fetcher;
                ravel.valid_ravel_items = N;
                flags.ravel_type = RPT_UNICODE32;
+               if (ravel.cells != ravel.short_value)
+                  new (&ravel) Char32Ravel();
              }
              return;
 
@@ -1102,6 +1114,8 @@ RavelType t;
                ravel.fetcher           = &Ravel::char16_fetcher;
                ravel.valid_ravel_items = N;
                flags.ravel_type = RPT_UNICODE16;
+               if (ravel.cells != ravel.short_value)
+                  new (&ravel) Char16Ravel();
              }
              return;
 
@@ -1127,26 +1141,38 @@ Value::commit_ravel_like(const cValue & B, ShapeItem n)
    switch (B.get_ravel_type())
       {
         case RPT_INT64:
+             if (ravel.cells != ravel.short_value)
+                new (&ravel) IntRavel();   // heap ravel: safe; short ravel: base Ravel handles RPT_INT64
              ravel.fetcher    = &Ravel::int64_fetcher;
              flags.ravel_type = RPT_INT64;
              break;
         case RPT_FLOAT64:
+             if (ravel.cells != ravel.short_value)
+                new (&ravel) FloatRavel();
              ravel.fetcher    = &Ravel::float64_fetcher;
              flags.ravel_type = RPT_FLOAT64;
              break;
         case RPT_COMPLEX:
+             if (ravel.cells != ravel.short_value)
+                new (&ravel) ComplexRavel();
              ravel.fetcher    = &Ravel::complex_fetcher;
              flags.ravel_type = RPT_COMPLEX;
              break;
         case RPT_UNICODE32:
+             if (ravel.cells != ravel.short_value)
+                new (&ravel) Char32Ravel();
              ravel.fetcher    = &Ravel::char32_fetcher;
              flags.ravel_type = RPT_UNICODE32;
              break;
         case RPT_UNICODE16:
+             if (ravel.cells != ravel.short_value)
+                new (&ravel) Char16Ravel();
              ravel.fetcher    = &Ravel::char16_fetcher;
              flags.ravel_type = RPT_UNICODE16;
              break;
         case RPT_BOOL:
+             if (ravel.cells != ravel.short_value)
+                new (&ravel) BoolRavel();
              ravel.fetcher    = &Ravel::packed_fetcher;
              flags.ravel_type = RPT_BOOL;
              break;
@@ -1176,6 +1202,8 @@ const ShapeItem N = nz_element_count();
                ravel.fetcher           = &Ravel::int64_fetcher;
                ravel.valid_ravel_items = N;
                flags.ravel_type = RPT_INT64;
+               if (ravel.cells != ravel.short_value)
+                  new (&ravel) IntRavel();   // heap ravel: Cell() doesn't touch packed data
              }
              return;
 
@@ -1185,6 +1213,8 @@ const ShapeItem N = nz_element_count();
                ravel.fetcher           = &Ravel::float64_fetcher;
                ravel.valid_ravel_items = N;
                flags.ravel_type = RPT_FLOAT64;
+               if (ravel.cells != ravel.short_value)
+                  new (&ravel) FloatRavel();
              }
              return;
 
@@ -1197,6 +1227,8 @@ const ShapeItem N = nz_element_count();
                ravel.fetcher           = &Ravel::complex_fetcher;
                ravel.valid_ravel_items = N;
                flags.ravel_type = RPT_COMPLEX;
+               if (ravel.cells != ravel.short_value)
+                  new (&ravel) ComplexRavel();
              }
              return;
 
@@ -1206,6 +1238,8 @@ const ShapeItem N = nz_element_count();
                ravel.fetcher           = &Ravel::char32_fetcher;
                ravel.valid_ravel_items = N;
                flags.ravel_type = RPT_UNICODE32;
+               if (ravel.cells != ravel.short_value)
+                  new (&ravel) Char32Ravel();
              }
              return;
 
@@ -1215,6 +1249,8 @@ const ShapeItem N = nz_element_count();
                ravel.fetcher           = &Ravel::char16_fetcher;
                ravel.valid_ravel_items = N;
                flags.ravel_type = RPT_UNICODE16;
+               if (ravel.cells != ravel.short_value)
+                  new (&ravel) Char16Ravel();
              }
              return;
 

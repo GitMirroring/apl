@@ -223,6 +223,13 @@ am--refresh:
 
 EXTRA_DIST = config.rpath m4/ChangeLog
 
+
+# create a tarball and push it to server72 (the nightly build server)
+#
+.PHONY: server72
+server72: DIST
+	scp apl-$(VERSION).tar.gz eedjsa@server72:
+
 .PHONY: git-pull
 git-pull:
 	$(MAKE) -C src $@

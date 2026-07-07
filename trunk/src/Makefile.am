@@ -46,7 +46,7 @@ host_os = @host_os@
 
 # common means common to the apl and libapl builds
 #
-common_CXXFLAGS = -Wall $(plot_CXXFLAGS) -I $(srcdir)/sql -I $(abs_top_srcdir) $(CXX_WERROR)
+common_CXXFLAGS = -Wall -O2 $(plot_CXXFLAGS) -I $(srcdir)/sql -I $(abs_top_srcdir) $(CXX_WERROR)
 common_CXXFLAGS += $(GTK_CFLAGS) $(GTK_LIBS)
 common_CXXFLAGS += $(PYTHON_CFLAGS)
 common_LDFLAGS  = -L/usr/local/lib -export-dynamic $(GTK_LDFLAGS)
@@ -165,6 +165,7 @@ common_SOURCES += RealCell.cc							RealCell.hh
 common_SOURCES += sbrk.cc
 common_SOURCES += Shape.cc					    		Shape.hh
 common_SOURCES += ScalarFunction.cc						ScalarFunction.hh
+common_SOURCES +=									ScalarOps.hh
 common_SOURCES += Security.cc		Security.def		Security.hh
 common_SOURCES += StateIndicator.cc						StateIndicator.hh
 common_SOURCES += Svar_DB.cc							Svar_DB.hh
@@ -315,8 +316,16 @@ testGTK: all
 
 # run all testcases, except slow ones
 test3: all
-	./apl --id 1010 -T testcases_3/*tc || true
-	stty sane
+	./apl --id 1010 -T testcases_3/*tc; \
+	RC=$$?; stty sane; \
+	if [ $$RC -ne 0 ]; then \
+	  D=/tmp/apl-test3-$$(date +%Y%m%d_%H%M%S); \
+	  mkdir "$$D"; \
+	  cp testcases_3/summary.log "$$D/"; \
+	  awk '$$1+0>0 && NF==4 {print $$4 ".log"}' testcases_3/summary.log \
+	    | xargs -r cp -t "$$D"; \
+	  echo "$(MAKE): $$RC failure(s) -- logs saved to $$D"; \
+	fi
 
 # run only invariant testcases
 test4: all

@@ -258,101 +258,13 @@ PERFORMANCE_END(fs_M_join_AB, start_M_join, 1);
             {
               // sequential execution — try packed fast paths first
               //
-              bool fast_path_done = false;
-              {
-                const vv_f2f_t fvv = get_vv_f2f();
-                if (fvv &&
-                    !job_AB->value_A->get_pointer_cell_count() &&
-                    !job_AB->value_B->get_pointer_cell_count() &&
-                    job_AB->value_A->get_ravel_type() == RPT_FLOAT64 &&
-                    job_AB->value_B->get_ravel_type() == RPT_FLOAT64)
-                   {
-                     double * pZ = reinterpret_cast<double *>(
-                                       &job_AB->value_Z->get_wfirst());
-                     const double * pA = job_AB->value_A->cravel_float64();
-                     const double * pB = job_AB->value_B->cravel_float64();
-                     fvv(pZ, pA, job_AB->inc_A, pB, job_AB->inc_B,
-                         job_AB->len_Z);
-                     job_AB->value_Z->commit_ravel_Float64(job_AB->len_Z);
-                     fast_path_done = true;
-                   }
-              }
-              if (!fast_path_done)
-              {
-                const vv_i2i_t fii = get_vv_i2i();
-                if (fii &&
-                    !job_AB->value_A->get_pointer_cell_count() &&
-                    !job_AB->value_B->get_pointer_cell_count() &&
-                    job_AB->value_A->get_ravel_type() == RPT_INT64 &&
-                    job_AB->value_B->get_ravel_type() == RPT_INT64)
-                   {
-                     int64_t * pZ = reinterpret_cast<int64_t *>(
-                                        &job_AB->value_Z->get_wfirst());
-                     const int64_t * pA = job_AB->value_A->cravel_int64();
-                     const int64_t * pB = job_AB->value_B->cravel_int64();
-                     fii(pZ, pA, job_AB->inc_A, pB, job_AB->inc_B,
-                         job_AB->len_Z);
-                     job_AB->value_Z->commit_ravel_Int64(job_AB->len_Z);
-                     fast_path_done = true;
-                   }
-              }
-              if (!fast_path_done)
-              {
-                const vv_i2b_t fib = get_vv_i2b();
-                if (fib &&
-                    !job_AB->value_A->get_pointer_cell_count() &&
-                    !job_AB->value_B->get_pointer_cell_count() &&
-                    job_AB->value_A->get_ravel_type() == RPT_INT64 &&
-                    job_AB->value_B->get_ravel_type() == RPT_INT64)
-                   {
-                     uint64_t * pZ = reinterpret_cast<uint64_t *>(
-                                         &job_AB->value_Z->get_wfirst());
-                     const int64_t * pA = job_AB->value_A->cravel_int64();
-                     const int64_t * pB = job_AB->value_B->cravel_int64();
-                     fib(pZ, pA, job_AB->inc_A, pB, job_AB->inc_B,
-                         job_AB->len_Z);
-                     job_AB->value_Z->commit_ravel_Bool(job_AB->len_Z);
-                     fast_path_done = true;
-                   }
-              }
-              if (!fast_path_done)
-              {
-                const vv_f2b_t ffb = get_vv_f2b();
-                if (ffb &&
-                    !job_AB->value_A->get_pointer_cell_count() &&
-                    !job_AB->value_B->get_pointer_cell_count() &&
-                    job_AB->value_A->get_ravel_type() == RPT_FLOAT64 &&
-                    job_AB->value_B->get_ravel_type() == RPT_FLOAT64)
-                   {
-                     uint64_t * pZ = reinterpret_cast<uint64_t *>(
-                                         &job_AB->value_Z->get_wfirst());
-                     const double * pA = job_AB->value_A->cravel_float64();
-                     const double * pB = job_AB->value_B->cravel_float64();
-                     ffb(pZ, pA, job_AB->inc_A, pB, job_AB->inc_B,
-                         job_AB->len_Z, Workspace::get_CT());
-                     job_AB->value_Z->commit_ravel_Bool(job_AB->len_Z);
-                     fast_path_done = true;
-                   }
-              }
-              if (!fast_path_done)
-              {
-                const vv_c16_2b_t fc16b = get_vv_c16_2b();
-                if (fc16b &&
-                    !job_AB->value_A->get_pointer_cell_count() &&
-                    !job_AB->value_B->get_pointer_cell_count() &&
-                    job_AB->value_A->get_ravel_type() == RPT_UNICODE16 &&
-                    job_AB->value_B->get_ravel_type() == RPT_UNICODE16)
-                   {
-                     uint64_t * pZ = reinterpret_cast<uint64_t *>(
-                                         &job_AB->value_Z->get_wfirst());
-                     const uint16_t * pA = job_AB->value_A->cravel_unicode16();
-                     const uint16_t * pB = job_AB->value_B->cravel_unicode16();
-                     fc16b(pZ, pA, job_AB->inc_A, pB, job_AB->inc_B,
-                           job_AB->len_Z);
-                     job_AB->value_Z->commit_ravel_Bool(job_AB->len_Z);
-                     fast_path_done = true;
-                   }
-              }
+              const bool fast_path_done =
+                 job_AB->value_A->apply_fast_dyadic(*this,
+                                                    *job_AB->value_B,
+                                                    job_AB->inc_A,
+                                                    job_AB->inc_B,
+                                                    *job_AB->value_Z,
+                                                    job_AB->len_Z);
               if (!fast_path_done)
                  loop(z, job_AB->len_Z)
                     {
@@ -553,36 +465,10 @@ PERFORMANCE_END(fs_M_join_B, start_M_join, 1);
             {
               // sequential execution — try packed fast paths first
               //
-              bool fast_path_done = false;
-              {
-                const v_f2f_t fv = get_v_f2f();
-                if (fv &&
-                    !job_B->value_B->get_pointer_cell_count() &&
-                    job_B->value_B->get_ravel_type() == RPT_FLOAT64)
-                   {
-                     double * pZ = reinterpret_cast<double *>(
-                                       &job_B->value_Z->get_wfirst());
-                     const double * pB = job_B->value_B->cravel_float64();
-                     fv(pZ, pB, job_B->len_Z);
-                     job_B->value_Z->commit_ravel_Float64(job_B->len_Z);
-                     fast_path_done = true;
-                   }
-              }
-              if (!fast_path_done)
-              {
-                const v_i2i_t fi = get_v_i2i();
-                if (fi &&
-                    !job_B->value_B->get_pointer_cell_count() &&
-                    job_B->value_B->get_ravel_type() == RPT_INT64)
-                   {
-                     int64_t * pZ = reinterpret_cast<int64_t *>(
-                                        &job_B->value_Z->get_wfirst());
-                     const int64_t * pB = job_B->value_B->cravel_int64();
-                     fi(pZ, pB, job_B->len_Z);
-                     job_B->value_Z->commit_ravel_Int64(job_B->len_Z);
-                     fast_path_done = true;
-                   }
-              }
+              const bool fast_path_done =
+                 job_B->value_B->apply_fast_monadic(*this,
+                                                    *job_B->value_Z,
+                                                    job_B->len_Z);
               if (!fast_path_done)
                  loop(z, job_B->len_Z)
                     {

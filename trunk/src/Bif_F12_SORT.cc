@@ -21,6 +21,7 @@
 /** @file
 */
 
+#include <algorithm>
 #include "Assert.hh"
 #include "Bif_F12_SORT.hh"
 #include "Cell.hh"
@@ -161,13 +162,53 @@ const ShapeItem len_BZ = B.get_shape_item(0);
    if (len_BZ == 0)   return Token(TOK_APL_VALUE1, Idx0(LOC));
 const ShapeItem comp_len = B.element_count()/len_BZ;
 
+const int qio = Workspace::get_IO();
+Value_P Z(len_BZ, LOC);
+int64_t * dst = reinterpret_cast<int64_t *>(&Z->get_wfirst());
+
+   // fast path for 1D INT64/FLOAT64: std::stable_sort avoids Cell dispatch
+   if (comp_len == 1)
+      {
+        loop(b, len_BZ)   dst[b] = b;
+
+        if (B.get_ravel_type() == RPT_INT64)
+           {
+             const int64_t * pB = B.cravel_int64();
+             if (order == SORT_ASCENDING)
+                std::stable_sort(dst, dst + len_BZ,
+                                 [pB](ShapeItem a, ShapeItem b)
+                                 { return pB[a] < pB[b]; });
+             else
+                std::stable_sort(dst, dst + len_BZ,
+                                 [pB](ShapeItem a, ShapeItem b)
+                                 { return pB[a] > pB[b]; });
+             loop(b, len_BZ)   dst[b] += qio;
+             Z->commit_ravel_Int64(len_BZ);
+             Z->check_value(LOC);
+             return Token(TOK_APL_VALUE1, Z);
+           }
+
+        if (B.get_ravel_type() == RPT_FLOAT64)
+           {
+             const double * pB = B.cravel_float64();
+             if (order == SORT_ASCENDING)
+                std::stable_sort(dst, dst + len_BZ,
+                                 [pB](ShapeItem a, ShapeItem b)
+                                 { return pB[a] < pB[b]; });
+             else
+                std::stable_sort(dst, dst + len_BZ,
+                                 [pB](ShapeItem a, ShapeItem b)
+                                 { return pB[a] > pB[b]; });
+             loop(b, len_BZ)   dst[b] += qio;
+             Z->commit_ravel_Int64(len_BZ);
+             Z->check_value(LOC);
+             return Token(TOK_APL_VALUE1, Z);
+           }
+      }
+
 vector<ShapeItem> ordered_indices_B;
    Cell::sorted_indices(ordered_indices_B, B, order, comp_len);
 
-Value_P Z(len_BZ, LOC);
-const int qio = Workspace::get_IO();
-
-int64_t * dst = reinterpret_cast<int64_t *>(&Z->get_wfirst());
    loop(b, len_BZ)   dst[b] = ordered_indices_B[b] + qio;
    Z->commit_ravel_Int64(len_BZ);
 

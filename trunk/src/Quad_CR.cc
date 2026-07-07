@@ -187,6 +187,8 @@ bool extra_frame = false;
         case 44: return do_CR44(B);            // decode token tags
         case 46: FRAME(PR_BOXED_GRAPHIC4)
         case 47: FRAME(PR_BOXED_GRAPHIC5)
+        case 48: return do_CR48(B);            // ravel packing type as scalar
+        case 49: return do_CR49(B);            // packing threshold as scalar
 
         default: MORE_ERROR() << "A ⎕CR B with invalid A (=" << a << ")";
                  DOMAIN_ERROR;
@@ -1155,57 +1157,138 @@ Quad_CR::do_CR27_28(int A_27_28, cValue_R B)
 {
 const ShapeItem len = B.element_count();
 Value_P Z(B.get_shape(), LOC);
+
+   if (A_27_28 == 28)
+      {
+        // 28 ⎕CR B: secondary value of each Cell (imaginary part for complex,
+        // denominator for rational, 0 for all other types incl. packed int/char).
+        loop(z, len)
+            {
+              const Cell & cB = B.get_cravel(z);
+              APL_Integer data = 0;
+              if (cB.is_pointer_cell())
+                 {
+                   Value_P Z_sub = do_CR27_28(28, *cB.get_pointer_value());
+                   Z->next_ravel_Pointer(Z_sub.get());
+                   continue;
+                 }
+              if (cB.get_cell_type() == CT_COMPLEX)
+                 memcpy(&data, cB.get_u1(), sizeof(data));
+              else if (cB.get_cell_type() == CT_CELLREF)
+                 {
+                   const LvalCell & cB_lval =
+                                  reinterpret_cast<const LvalCell &>(cB);
+                   data = APL_Integer(cB_lval.get_cell_owner());
+                 }
+#ifdef cfg_RATIONAL_NUMBERS_WANTED
+              else if (cB.get_cell_type() == CT_FLOAT)
+                 memcpy(&data, cB.get_u1(), sizeof(data));
+              else if (cB.get_cell_type() == CT_INT)
+                 data = 1;
+#endif
+              Z->next_ravel_Int(data);
+            }
+        Z->check_value(LOC);
+        return Z;
+      }
+
+   // 27 ⎕CR B: primary value of each item.
+   // For packed ravels, read directly from packed storage (bypasses Cell fetchers).
+   switch (B.get_ravel_type())
+      {
+        case RPT_INT64:
+           { const int64_t * pB = B.cravel_int64();
+             loop(z, len)   Z->next_ravel_Int(pB[z]);
+             Z->check_value(LOC);
+             return Z;
+           }
+
+        case RPT_FLOAT64:
+           { const double * pB = B.cravel_float64();
+             loop(z, len)
+                 {
+                   APL_Integer bits = 0;
+                   memcpy(&bits, pB + z, sizeof(bits));
+                   Z->next_ravel_Int(bits);
+                 }
+             Z->check_value(LOC);
+             return Z;
+           }
+
+        case RPT_COMPLEX:
+           { const double * pB = B.cravel_complex();   // re0 im0 re1 im1 ...
+             loop(z, len)
+                 {
+                   APL_Integer bits = 0;
+                   memcpy(&bits, pB + 2*z, sizeof(bits));   // real part
+                   Z->next_ravel_Int(bits);
+                 }
+             Z->check_value(LOC);
+             return Z;
+           }
+
+        case RPT_BOOL:
+           { const uint64_t * pB = B.cravel_bool();
+             loop(z, len)
+                 Z->next_ravel_Int((pB[z >> 6] >> (z & 63)) & 1);
+             Z->check_value(LOC);
+             return Z;
+           }
+
+        case RPT_UNICODE16:
+           { const uint16_t * pB = B.cravel_unicode16();
+             loop(z, len)   Z->next_ravel_Int(pB[z]);
+             Z->check_value(LOC);
+             return Z;
+           }
+
+        case RPT_UNICODE32:
+           { const Unicode * pB = B.cravel_unicode32();
+             loop(z, len)   Z->next_ravel_Int(pB[z]);
+             Z->check_value(LOC);
+             return Z;
+           }
+
+        default:   // RPT_CELLS: use the Cell-by-Cell path
+           break;
+      }
+
    loop(z, len)
        {
          const Cell & cB = B.get_cravel(z);
          if (cB.is_pointer_cell())
             {
               const cValue & B_sub = *cB.get_pointer_value();
-              Value_P Z_sub = do_CR27_28(A_27_28, B_sub);
+              Value_P Z_sub = do_CR27_28(27, B_sub);
               Z->next_ravel_Pointer(Z_sub.get());
             }
          else
             {
               APL_Integer data = 0;
-              if (A_27_28 == 27)   // 27 ⎕CR B: primary value
-                 {
-                   if (cB.get_cell_type() == CT_CHAR)
-                      data = cB.get_char_value();
-                   else if (cB.get_cell_type() == CT_CELLREF)
-                      data = APL_Integer(cB.get_lval_value());
-                   else
-                      memcpy(&data, cB.get_u0(), sizeof(data));
-                 }
-              else               // 28 ⎕CR B: additional value
-                 {
-                   if (cB.get_cell_type() == CT_COMPLEX)
-                      {
-                        memcpy(&data, cB.get_u1(), sizeof(data));
-                      }
-                   else if (cB.get_cell_type() == CT_CELLREF)
-                      {
-                        const LvalCell & cB_lval =
-                                       reinterpret_cast<const LvalCell &>(cB);
-                        data = APL_Integer(cB_lval.get_cell_owner());
-                      }
-#ifdef cfg_RATIONAL_NUMBERS_WANTED
-                   else if (cB.get_cell_type() == CT_FLOAT)
-                      {
-                        memcpy(&data, cB.get_u1(), sizeof(data));
-                      }
-                   else if (cB.get_cell_type() == CT_INT)
-                      {
-                        data = 1;
-                      }
-#endif
-                 }
-
+              if (cB.get_cell_type() == CT_CHAR)
+                 data = cB.get_char_value();
+              else if (cB.get_cell_type() == CT_CELLREF)
+                 data = APL_Integer(cB.get_lval_value());
+              else
+                 memcpy(&data, cB.get_u0(), sizeof(data));
               Z->next_ravel_Int(data);
             }
        }
 
    Z->check_value(LOC);
    return Z;
+}
+//────────────────────────────────────────────────────────────────────────────
+Value_P
+Quad_CR::do_CR48(cValue_R B)
+{
+   return IntScalar(B.get_ravel_type(), LOC);
+}
+//────────────────────────────────────────────────────────────────────────────
+Value_P
+Quad_CR::do_CR49(cValue_R B)
+{
+   return IntScalar(Value::PACKED_MINIMUM_LENGHT, LOC);
 }
 //────────────────────────────────────────────────────────────────────────────
 Value_P

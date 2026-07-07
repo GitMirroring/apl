@@ -599,17 +599,28 @@ Z←2 2⍴5 6.6 7J8
 ┃               ┗━━━━━━━━━┛┃
 ┗━━━━━━━━━━━━━━━━━━━━━━━━━━┛
 
+      48 ⎕CR +⍳20
+4100
+
+      'packet_type' ⎕CR +⍳20
+4100
+
+      49 ⎕CR B
+12
+
+      'pack_threshold' ⎕CR B
+12
 
       ⍝ trigger a domain error if new left arguments were implemented
       ⍝ without adding a testcase for them above
       ⍝
-      48 ⎕CR B
+      50 ⎕CR B
 DOMAIN ERROR+
-      48 ⎕CR B
+      50 ⎕CR B
       ^      ^
 
       )MORE
-A ⎕CR B with invalid A (=48)
+A ⎕CR B with invalid A (=50)
       →
 
       ⍝ regression

@@ -1035,7 +1035,7 @@ help:
 #
 .PHONY: develop
 develop:
-	CXXFLAGS="-fstrict-aliasing -rdynamic -gdwarf-2" \
+	CXXFLAGS="-O2 -fstrict-aliasing -rdynamic -gdwarf-2" \
         ./configure  --enable-maintainer-mode        \
                      DEVELOP_WANTED=yes              \
                      CXX_WERROR=yes
@@ -1047,7 +1047,7 @@ develop:
 #
 .PHONY: nolibs
 nolibs:
-	CXXFLAGS="-fstrict-aliasing -rdynamic -gdwarf-2" \
+	CXXFLAGS="-O2 -fstrict-aliasing -rdynamic -gdwarf-2" \
         ./configure	--enable-maintainer-mode         \
                     DEVELOP_WANTED=yes               \
                      CXX_WERROR=yes                  \
@@ -1295,6 +1295,12 @@ DIST: check_sources
 
 am--refresh:
 	echo "making am--refresh"
+
+# create a tarball and push it to server72 (the nightly build server)
+#
+.PHONY: server72
+server72: DIST
+	scp apl-$(VERSION).tar.gz eedjsa@server72:
 
 .PHONY: git-pull
 git-pull:

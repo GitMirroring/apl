@@ -91,7 +91,7 @@ public:
    void PF_join()
       {
         atomic_add(busy_worker_count, -1);   // we are ready
-        ++job_number;            // we reached master job_number
+        job_number = job_number + 1;   // we reached master job_number
 
         // wait until all workers finished or new job from master
         while (atomic_read(busy_worker_count) != 0 &&
@@ -132,7 +132,7 @@ public:
       {
         get_master().job_name = jname;
         atomic_add(busy_worker_count, active_core_count - 1);
-        ++get_master().job_number;
+        get_master().job_number = get_master().job_number + 1;
       }
 
    /// end parallel execution of work at the master

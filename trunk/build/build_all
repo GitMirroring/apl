@@ -310,7 +310,7 @@ build_tar()
   echo "building configuration 'standard' from the GNU APL tar file"
   echo "the APL_VERSION is: $APL_VERSION"
   cd $TOP_BUILD_dir
-  tar xf $ROOT_dir/$APL_VERSION.tar.gz
+  tar xf $(dirname $ROOT_dir)/$APL_VERSION.tar.gz
   mv $APL_VERSION builddir_tar
   cd builddir_tar
   ./configure

@@ -21,6 +21,7 @@
 /** @file
 */
 
+#include <string.h>
 #include "Bif_F12_PARTITION_PICK.hh"
 #include "Bif_OPER1_EACH.hh"
 #include "Bif_F12_TAKE_DROP.hh"
@@ -112,8 +113,47 @@ Bif_F12_TAKE::do_take(const Shape & ravel_A1, const cValue & B,
    //
 Value_P Z(ravel_A1.abs(), LOC);
 
-   if (ravel_A1.is_empty())   Z->set_default(B, LOC);
-   else                       fill(ravel_A1, *Z, B, axes);
+   if (ravel_A1.is_empty())
+      {
+        Z->set_default(B, LOC);
+      }
+   else
+      {
+        // 1D packed fast path for numeric types (fill element is 0)
+        const ShapeItem bpi   = B.packed_bytes_per_item();
+        const RavelType rtype = B.get_ravel_type();
+        const bool zero_fill  = rtype == RPT_INT64
+                             || rtype == RPT_FLOAT64
+                             || rtype == RPT_COMPLEX;
+        if (ravel_A1.get_rank() == 1 && B.get_rank() == 1
+            && bpi > 0 && zero_fill && axes == 0)
+           {
+             const ShapeItem take_n = ravel_A1.get_shape_item(0);  // signed
+             const ShapeItem len_Z  = Z->element_count();           // |take_n|
+             const ShapeItem len_B  = B.element_count();
+             const ShapeItem copy_n = len_Z < len_B ? len_Z : len_B;
+             const ShapeItem fill_n = len_Z - copy_n;
+             const char * pB = static_cast<const char *>(B.cravel_packed());
+             char * pZ = reinterpret_cast<char *>(&Z->get_wfirst());
+             if (take_n >= 0)
+                {
+                  if (copy_n > 0) memcpy(pZ,                   pB, copy_n * bpi);
+                  if (fill_n > 0) memset(pZ + copy_n * bpi, 0, fill_n * bpi);
+                }
+             else
+                {
+                  const ShapeItem start = len_B - copy_n;
+                  if (fill_n > 0) memset(pZ,                   0,  fill_n * bpi);
+                  if (copy_n > 0) memcpy(pZ + fill_n * bpi, pB + start * bpi,
+                                         copy_n * bpi);
+                }
+             Z->commit_ravel_like(B, len_Z);
+           }
+        else
+           {
+             fill(ravel_A1, *Z, B, axes);
+           }
+      }
    Z->check_value(LOC);
    return Z;
 }
@@ -234,6 +274,21 @@ Value_P Z(shape_Z, LOC);
       {
         Value_P Z(shape_Z, LOC);
         Z->set_default(B, LOC);
+        Z->check_value(LOC);
+        return Token(TOK_APL_VALUE1, Z);
+      }
+
+   // 1D packed fast path: result is a contiguous slice of B's ravel
+   const ShapeItem bpi = B.packed_bytes_per_item();
+   if (B.get_rank() == 1 && bpi > 0)
+      {
+        const ShapeItem sA    = ravel_A.get_shape_item(0);
+        const ShapeItem start = sA > 0 ? sA : 0;
+        const ShapeItem len_Z = shape_Z.get_shape_item(0);
+        const char * pB = static_cast<const char *>(B.cravel_packed());
+        char * pZ = reinterpret_cast<char *>(&Z->get_wfirst());
+        memcpy(pZ, pB + start * bpi, len_Z * bpi);
+        Z->commit_ravel_like(B, len_Z);
         Z->check_value(LOC);
         return Token(TOK_APL_VALUE1, Z);
       }

@@ -21,6 +21,7 @@
 /** @file
 */
 
+#include <algorithm>
 #include "Bif_F12_INTERVAL_INDEX.hh"
 #include "Workspace.hh"
 
@@ -43,7 +44,41 @@ const ShapeItem ec_A = A.element_count();
         LENGTH_ERROR;
       }
 
-   for(ShapeItem a = 1; a < ec_A; ++a)
+   // from here on nothing can fail.
+   //
+const ShapeItem ec_B = B.element_count();
+const APL_Integer qio = Workspace::get_IO();
+
+   // INT64 × INT64 fast path: std::upper_bound avoids Cell dispatch.
+   // Sort check uses cravel_int64() to avoid exploding a packed ravel.
+   if (A.get_ravel_type() == RPT_INT64 && B.get_ravel_type() == RPT_INT64)
+      {
+        const int64_t * pA = A.cravel_int64();
+        for (ShapeItem a = 1; a < ec_A; ++a)
+            {
+              if (pA[a-1] >= pA[a])
+                 {
+                   MORE_ERROR() << "the left argument of A ⍸ B "
+                                   "is not sorted ascendingly";
+                   DOMAIN_ERROR;
+                 }
+            }
+        const int64_t * pB = B.cravel_int64();
+        Value_P Z(B.get_shape(), LOC);
+        int64_t * pZ = reinterpret_cast<int64_t *>(&Z->get_wfirst());
+        loop(b, ec_B)
+            {
+              const int64_t * pos = std::upper_bound(pA, pA + ec_A, pB[b]);
+              pZ[b] = (pos - pA) - 1 + qio;
+            }
+        Z->commit_ravel_Int64(ec_B);
+        Z->set_proto_Int();
+        Z->check_value(LOC);
+        return Token(TOK_APL_VALUE1, Z);
+      }
+
+   // generic sort check (Cell-level, may explode packed ravels)
+   for (ShapeItem a = 1; a < ec_A; ++a)
        {
          const Cell & c1 = A.get_cravel(a-1);
          const Cell & c2 = A.get_cravel(a);
@@ -56,11 +91,7 @@ const ShapeItem ec_A = A.element_count();
             }
        }
 
-   // from here on nothing can fail.
-   //
 Value_P Z(B.get_shape(), LOC);
-const ShapeItem ec_B = B.element_count();
-const APL_Integer qio = Workspace::get_IO();
 
    loop(b, ec_B)
       {
@@ -88,6 +119,44 @@ Bif_F12_INTERVAL_INDEX::eval_B(cValue_R B) const
    //
 const APL_Integer qio = Workspace::get_IO();
 const ShapeItem ec_B = B.element_count();
+
+   // BOOL 1D fast path: __builtin_popcountll + __builtin_ctzll per word
+   if (B.get_ravel_type() == RPT_BOOL && B.get_rank() == 1)
+      {
+        const uint64_t * pB = B.cravel_bool();
+        const ShapeItem words = (ec_B + 63) / 64;
+
+        // count set bits; mask last word to ignore tail bits beyond ec_B
+        ShapeItem count = 0;
+        loop(w, words - 1)   count += __builtin_popcountll(pB[w]);
+        { const uint64_t _tm = (ec_B & 63) ? ((uint64_t(1) << (ec_B & 63)) - 1)
+                                           : UINT64_MAX;
+          count += __builtin_popcountll(pB[words - 1] & _tm); }
+
+        Value_P Z(count, LOC);
+        int64_t * pZ = reinterpret_cast<int64_t *>(&Z->get_wfirst());
+        ShapeItem z = 0;
+
+        // extract positions of set bits
+        for (ShapeItem w = 0; w < words; ++w)
+            {
+              uint64_t word = pB[w];
+              const ShapeItem base = w * 64;
+              while (word)
+                  {
+                    const int bit = __builtin_ctzll(word);
+                    const ShapeItem pos = base + bit;
+                    if (pos < ec_B)   pZ[z++] = pos + qio;
+                    word &= word - 1;   // clear lowest set bit
+                  }
+            }
+
+        Z->commit_ravel_Int64(count);
+        Z->set_proto_Int();
+        Z->check_value(LOC);
+        return Token(TOK_APL_VALUE1, Z);
+      }
+
 ShapeItem count = 0;
    loop(b, ec_B)
        {

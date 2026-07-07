@@ -39,7 +39,7 @@ help:
 #
 .PHONY: develop
 develop:
-	CXXFLAGS="-fstrict-aliasing -rdynamic -gdwarf-2" \
+	CXXFLAGS="-O2 -fstrict-aliasing -rdynamic -gdwarf-2" \
         ./configure  --enable-maintainer-mode        \
                      DEVELOP_WANTED=yes              \
                      CXX_WERROR=yes
@@ -51,7 +51,7 @@ develop:
 #
 .PHONY: nolibs
 nolibs:
-	CXXFLAGS="-fstrict-aliasing -rdynamic -gdwarf-2" \
+	CXXFLAGS="-O2 -fstrict-aliasing -rdynamic -gdwarf-2" \
         ./configure	--enable-maintainer-mode         \
                     DEVELOP_WANTED=yes               \
                      CXX_WERROR=yes                  \

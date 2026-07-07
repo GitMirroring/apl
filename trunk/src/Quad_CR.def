@@ -67,6 +67,8 @@
   crdef(45, value_address          , "Z  ← 45 ⎕CR B   ⍝ print value addresses, return B"                      )
   crdef(46, style_boxed_7          , "Z  ← 46 ⎕CR B   ⍝ 4 ⎕CR without frame decorators"                       )
   crdef(47, style_boxed_8          , "Z  ← 47 ⎕CR B   ⍝ 8 ⎕CR without frame decorators"                       )
+  crdef(48, packet_type            , "Zi ← 'packet_type' ⎕CR B  ⍝ ravel packing type of B as integer scalar"  )
+  crdef(49, pack_threshold         , "Zi ← 'pack_threshold' ⎕CR B  ⍝ minimum ravel length for automatic packing" )
 #else
  #error "macro crdef() was not #define'd"
 #endif

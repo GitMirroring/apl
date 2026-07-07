@@ -255,6 +255,14 @@ protected:
    /// @param B right argument APL value
    static void do_CR45(cValue_R B);
 
+   /// return the ravel packing type of B as an integer scalar (RPT_XXX)
+   /// @param B right argument APL value
+   static Value_P do_CR48(cValue_R B);
+
+   /// return the configured packing threshold (PACKED_MINIMUM_LENGHT) as scalar
+   /// @param B right argument APL value (ignored)
+   static Value_P do_CR49(cValue_R B);
+
    /// @param prefix indentation prefix string for this nesting level
    /// @param B APL value whose internal addresses are to be printed
    static void do_CR45_value(const UCS_string prefix, cValue_R B);

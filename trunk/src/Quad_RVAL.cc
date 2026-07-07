@@ -268,6 +268,7 @@ const ShapeItem ec = Z->element_count();
    if (ec == 0)   Z->set_proto_Int();
 
    Z->check_value(LOC);
+   Z->try_pack(true);   // force-pack even below threshold (stresses packed-ravel paths)
    return Z;
 }
 //────────────────────────────────────────────────────────────────────────────

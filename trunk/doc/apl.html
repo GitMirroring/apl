@@ -73,7 +73,7 @@ Next: <a href="#Installing-and-Starting-GNU-APL" accesskey="n" rel="next">Instal
 </div>
 <span id="GNU-APL-Reference-Manual"></span><h1 class="top">GNU APL Reference Manual</h1>
 
-<p>June 10, 2026.
+<p>July 6, 2026.
 This manual briefly documents GNU APL, an interpreter for APL as described
 in ISO standard 13751, aka. &quot;Programming Language APL, Extended&quot;.
 </p>
@@ -8756,8 +8756,8 @@ system limit for the depth of the random value being produced. This can be
 prevented by setting a maximum depth for every value generated. ⎕RVAL sets
 the probability of the deepest allowed depth to 0.
 </p>
-<p>4 ⎕RVAL B expects B to be a non-negative integer which is the deepest allowed depth
-(0 suppresses nesting entirely regardless of the type distribution);
+<p>4 ⎕RVAL B expects B to be a non-negative integer which is the deepest allowed
+depth (0 suppresses nesting entirely regardless of the type distribution);
 </p>
 <p>An empty B, e.g. 4 ⎕RVAL ⍬, will not change anything and can be used to
 query the current setting for 4 ⎕RVAL.
@@ -8800,28 +8800,33 @@ the properties have the following defaults:
 4
 </pre></div>
 
-<p>That is, by default, ⎕RVAL ⍬ produces random integer scalars.
+<p>That is, by default, <b>⎕RVAL ⍬</b> produces random integer scalars.
 </p>
 <p>It is sometimes convenient to be able to change the properties of the next
 random value without modifying (and later restoring) the properties with
-dyadic ⎕RVAL. This can be achieved with monadic ⎕RVAL with non-empty B.
+dyadic <b>⎕RVAL</b>. This can be achieved with monadic <b>⎕RVAL</b> with non-empty
+<b>B</b>.
 </p>
-<p>Let 4=⍴B. Then
+<p>Let 4 = ⍴B. Then
 </p>
 <div class="example">
-<pre class="example">   Z←⎕RVAL B does essentially:
+<pre class="example">      Z←⎕RVAL B does essentially:
 
-   B[1]←1 ⎕RVAL B[1]
-   B[2]←2 ⎕RVAL B[2]
-   B[3]←3 ⎕RVAL B[3]
-   B[4]←4 ⎕RVAL B[4]
+      ⍝ set new ⎕RVAL properties B and remember the current ones in B
+      ⍝
+      B[1]←1 ⎕RVAL B[1]
+      B[2]←2 ⎕RVAL B[2]
+      B[3]←3 ⎕RVAL B[3]
+      B[4]←4 ⎕RVAL B[4]
 
-   Z←⎕RVAL 0
+      Z←⎕RVAL 0   ⍝ produce one random value according to the new properties
 
-   B[1]←1 ⎕RVAL B[1]
-   B[2]←2 ⎕RVAL B[2]
-   B[3]←3 ⎕RVAL B[3]
-   B[4]←4 ⎕RVAL B[4]
+      ⍝ restore the current parameters. After that, B is as it was before
+      ⍝
+      B[1]←1 ⎕RVAL B[1]
+      B[2]←2 ⎕RVAL B[2]
+      B[3]←3 ⎕RVAL B[3]
+      B[4]←4 ⎕RVAL B[4]
 </pre></div>
 
 <p>If 4 &gt; ⍴B then the missing properties are not changed.

@@ -41,6 +41,7 @@ class CDR_string;
 class Error;
 class IndexExpr;
 class PrintBuffer;
+class ScalarFunction;
 class Value_P;
 class Thread_context;
 class Value;   // forward declaration for cValue parameter types
@@ -338,6 +339,18 @@ public:
    /// raw read pointer for RPT_UNICODE16 ravels; call only when ravel_type==RPT_UNICODE16
    const uint16_t * cravel_unicode16() const
       { return reinterpret_cast<const uint16_t *>(ravel.cells); }
+
+   /// raw read pointer for RPT_UNICODE32 ravels; call only when ravel_type==RPT_UNICODE32
+   const Unicode * cravel_unicode32() const
+      { return reinterpret_cast<const Unicode *>(ravel.cells); }
+
+   /// raw read pointer for RPT_BOOL ravels; call only when ravel_type==RPT_BOOL
+   const uint64_t * cravel_bool() const
+      { return reinterpret_cast<const uint64_t *>(ravel.cells); }
+
+   /// raw read pointer for RPT_COMPLEX ravels (re,im pairs); call only when ravel_type==RPT_COMPLEX
+   const double * cravel_complex() const
+      { return reinterpret_cast<const double *>(ravel.cells); }
 
    /// raw read pointer to packed data for any non-BOOL packed ravel
    const void * cravel_packed() const
@@ -837,6 +850,11 @@ public:
    ///   reinterpret_cast<int64_t *>(&get_wfirst()).
    void commit_ravel_Int64(ShapeItem n)
       { Assert(ravel.valid_ravel_items == 0);
+        // Install IntRavel vtable only for heap ravels: Cell() called by Ravel(upgrade_tag{})
+        // writes vtable pointers into short_value[], which aliases the packed int64 storage
+        // for short ravels (ravel.cells == ravel.short_value). Heap ravels are unaffected.
+        if (ravel.cells != ravel.short_value)
+           new (&ravel) IntRavel();
         ravel.valid_ravel_items = n;
         ravel.fetcher    = &Ravel::int64_fetcher;
         flags.ravel_type = RPT_INT64; }
@@ -846,6 +864,8 @@ public:
    ///   reinterpret_cast<double *>(&get_wfirst()).
    void commit_ravel_Float64(ShapeItem n)
       { Assert(ravel.valid_ravel_items == 0);
+        if (ravel.cells != ravel.short_value)
+           new (&ravel) FloatRavel();
         ravel.valid_ravel_items = n;
         ravel.fetcher    = &Ravel::float64_fetcher;
         flags.ravel_type = RPT_FLOAT64; }
@@ -854,9 +874,34 @@ public:
    ///   reinterpret_cast<uint64_t *>(&get_wfirst()).
    void commit_ravel_Bool(ShapeItem n)
       { Assert(ravel.valid_ravel_items == 0);
+        if (ravel.cells != ravel.short_value)
+           new (&ravel) BoolRavel();
         ravel.valid_ravel_items = n;
         ravel.fetcher    = &Ravel::packed_fetcher;
         flags.ravel_type = RPT_BOOL; }
+
+   /// finalize Z as a packed complex ravel after writing N double pairs via
+   ///   reinterpret_cast<double *>(&get_wfirst()).
+   void commit_ravel_Complex(ShapeItem n)
+      { Assert(ravel.valid_ravel_items == 0);
+        if (ravel.cells != ravel.short_value)
+           new (&ravel) ComplexRavel();
+        ravel.valid_ravel_items = n;
+        ravel.fetcher    = &Ravel::complex_fetcher;
+        flags.ravel_type = RPT_COMPLEX; }
+
+   /// Apply dyadic packed fast path: dispatches on A's ravel type (this).
+   /// Returns true (result written into Z) if a fast path ran.
+   bool apply_fast_dyadic(const ScalarFunction & sf,
+                           const Value & B, int inc_A, int inc_B,
+                           Value & Z, ShapeItem len_Z) const
+      { return ravel.apply_fast_dyadic(sf, *this, inc_A, B, inc_B, Z, len_Z); }
+
+   /// Apply monadic packed fast path: dispatches on B's ravel type (this).
+   /// Returns true (result written into Z) if a fast path ran.
+   bool apply_fast_monadic(const ScalarFunction & sf,
+                            Value & Z, ShapeItem len_Z) const
+      { return ravel.apply_fast_monadic(sf, *this, Z, len_Z); }
 
    /// finalize Z as the same packed type as B (for permutation functions)
    void commit_ravel_like(const cValue & B, ShapeItem n);

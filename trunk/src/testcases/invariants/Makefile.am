@@ -25,6 +25,7 @@ dist_noinst_DATA =              \
         DropAxis.tc             \
         EachDyadic.tc           \
         EachMonadic.tc          \
+        FastPath.tc             \
         Enclose.tc              \
         EncloseAxis.tc          \
         Encode.tc               \

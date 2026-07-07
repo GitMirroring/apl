@@ -21,6 +21,9 @@
 /** @file
 */
 
+#include <algorithm>
+#include <utility>
+#include <vector>
 #include "Bif_F12_INDEX_OF.hh"
 #include "Workspace.hh"
 
@@ -40,6 +43,65 @@ const APL_Integer qio = Workspace::get_IO();
 
 const ShapeItem len_A  = A.element_count();
 const ShapeItem len_BZ = B.element_count();
+
+   // INT × INT linear fast path: exact comparison (no ⎕CT), direct int64_t I/O.
+   // Only taken when the linear search branch would run anyway (small A or B).
+   if (simple_result
+       && A.get_ravel_type() == RPT_INT64
+       && B.get_ravel_type() == RPT_INT64
+       && !(len_A >= 64 && len_BZ > 5))
+      {
+        const int64_t * pA = A.cravel_int64();
+        const int64_t * pB = B.cravel_int64();
+
+        Value_P Z(B.get_shape(), LOC);
+        int64_t * pZ = reinterpret_cast<int64_t *>(&Z->get_wfirst());
+
+        loop(bz, len_BZ)
+            {
+              ShapeItem z = len_A;
+              const int64_t b = pB[bz];
+              loop(a, len_A)   if (pA[a] == b) { z = a; break; }
+              pZ[bz] = qio + z;
+            }
+
+        Z->commit_ravel_Int64(len_BZ);
+        Z->check_value(LOC);
+        return Token(TOK_APL_VALUE1, Z);
+      }
+
+   // INT64 × INT64 sorted fast path: O(N log N) build + O(M log N) lookups.
+   // Only applicable when A is a vector (simple_result=true).
+   if (simple_result
+       && A.get_ravel_type() == RPT_INT64
+       && B.get_ravel_type() == RPT_INT64
+       && len_A >= 64 && len_BZ > 5)
+      {
+        const int64_t * pA = A.cravel_int64();
+        const int64_t * pB = B.cravel_int64();
+
+        // sort (value, original-index) pairs; equal values sort by index so
+        // lower_bound finds the minimum (first) index for each value
+        vector<pair<int64_t, ShapeItem>> sa(len_A);
+        loop(a, len_A)   sa[a] = {pA[a], a};
+        std::sort(sa.begin(), sa.end());
+
+        Value_P Z(B.get_shape(), LOC);
+        int64_t * pZ = reinterpret_cast<int64_t *>(&Z->get_wfirst());
+        loop(bz, len_BZ)
+            {
+              const int64_t b = pB[bz];
+              auto it = std::lower_bound(sa.begin(), sa.end(),
+                                         make_pair(b, ShapeItem(-1)));
+              pZ[bz] = (it != sa.end() && it->first == b)
+                       ? it->second + qio
+                       : len_A   + qio;
+            }
+
+        Z->commit_ravel_Int64(len_BZ);
+        Z->check_value(LOC);
+        return Token(TOK_APL_VALUE1, Z);
+      }
 
 Value_P Z(B.get_shape(), LOC);
 
@@ -121,7 +183,11 @@ const ShapeItem ec = B.element_count();
 
         Value_P Z(len, LOC);
 
-        loop(z, len)   Z->next_ravel_Int(qio + z);
+        {
+          int64_t * pZ = reinterpret_cast<int64_t *>(&Z->get_wfirst());
+          loop(z, len)   pZ[z] = qio + z;
+          Z->commit_ravel_Int64(len);
+        }
 
         Z->check_value(LOC);
         return Token(TOK_APL_VALUE1, Z);

@@ -173,7 +173,7 @@ Value_P Z(A.get_shape() + B.get_shape(), LOC);
         if (job.ec != E_NO_ERROR)   throw_apl_error(job.ec, LOC);
 
         Z->set_default(B, LOC);
- 
+        Z->try_pack();   // result type matches RO's output for homogeneous inputs
         Z->check_value(LOC);
         return Token(TOK_APL_VALUE1, Z);
       }
