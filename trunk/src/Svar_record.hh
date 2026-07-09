@@ -60,9 +60,9 @@ enum Svar_Control
    NO_SVAR_CONTROL    = 0,      ///< 0 0 0 0: everything allowed
    ALL_SVAR_CONTROLS  = SET_BY_OFF | SET_BY_ACC | USE_BY_OFF | USE_BY_ACC,
    SET_BY_1           = SET_BY_OFF,   ///< if 1 is the offering partner
-   SET_BY_2           = SET_BY_ACC,   ///< if 1 is the offering partner
+   SET_BY_2           = SET_BY_ACC,   ///< if 2 is the accepting partner
    USE_BY_1           = USE_BY_OFF,   ///< if 1 is the offering partner
-   USE_BY_2           = USE_BY_ACC,   ///< if 1 is the offering partner
+   USE_BY_2           = USE_BY_ACC,   ///< if 2 is the accepting partner
 };
 
 /// the state of the shared variable

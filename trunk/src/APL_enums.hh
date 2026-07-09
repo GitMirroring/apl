@@ -545,14 +545,14 @@ enum RavelType
   RPT_bool_mask  = 0xFF00,   ///< one-hot bits field (high byte)
 
   // group bitmasks — membership test: (rt & RT_xxx) != 0
-  RPT_packed     = RPT_bool_mask & (RPT_BOOL    | RPT_UNICODE16 | RPT_UNICODE32 |
-                                  RPT_INT64   | RPT_FLOAT64   | RPT_COMPLEX),
-  RPT_numeric    = RPT_bool_mask & (RPT_INT64   | RPT_FLOAT64   | RPT_COMPLEX),
-  RPT_real       = RPT_bool_mask & (RPT_INT64   | RPT_FLOAT64),
-  RPT_char       = RPT_bool_mask & (RPT_UNICODE16 | RPT_UNICODE32),
-  RPT_subword    = RPT_bool_mask & (RPT_BOOL    | RPT_UNICODE16 | RPT_UNICODE32),
-  RPT_copyable   = RPT_bool_mask & (RPT_UNICODE16 | RPT_UNICODE32 |
-                                  RPT_INT64   | RPT_FLOAT64   | RPT_COMPLEX),
+  //
+  RPT_char       = (RPT_UNICODE16 | RPT_UNICODE32) & RPT_bool_mask,
+  RPT_integer    = (RPT_INT64     | RPT_BOOL     ) & RPT_bool_mask,
+  RPT_real       = (RPT_integer   | RPT_FLOAT64  ) & RPT_bool_mask,
+  RPT_numeric    = (RPT_real      | RPT_COMPLEX  ) & RPT_bool_mask,
+  RPT_subword    = (RPT_numeric   | RPT_char     ) & RPT_bool_mask,
+  RPT_packed     = (RPT_char      | RPT_numeric  ) & RPT_bool_mask,
+  RPT_copyable   = (RPT_char      | RPT_numeric  ) & RPT_bool_mask,
 };
 
 

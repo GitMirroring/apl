@@ -56,7 +56,7 @@ cValue::get_cravel(ShapeItem idx) const
 {
    Assert1(idx < nz_element_count());
    if (is_packed())
-      const_cast<Value *>(static_cast<const Value *>(this))->explode();
+      const_cast<Value *>(static_cast<const Value *>(this))->explode_to_Cells();
    return ravel.get_cravel(idx);
 }
 //────────────────────────────────────────────────────────────────────────────

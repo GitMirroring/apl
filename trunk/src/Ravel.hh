@@ -86,44 +86,64 @@ public:
    /// @param offset ravel index (0-based)
    /// @param cells pointer to the Cell array
    /// @param cache unused (required by fetcher signature)
-   static const Cell & cell_fetcher(ShapeItem offset, const Cell * cells, Cell &)
+   static const Cell & cell_fetcher(ShapeItem offset, const Cell * cells,
+                                    Cell & not_used)
       { return cells[offset]; }
 
    /// fetch function for packed (bit-array) boolean ravels.
    /// @param offset ravel index (0-based)
    /// @param cells pointer to the packed bit array cast to Cell *
    /// @param cache unused (required by fetcher signature)
-   static const Cell & packed_fetcher(ShapeItem offset, const Cell * cells, Cell &)
-      { return 1 << (offset & 7) &
+   static const Cell & bool_fetcher(ShapeItem offset, const Cell * cells,
+                                    Cell & not_iused)
+      {
+        return 1 << (offset & 7) &
                reinterpret_cast<const uint8_t *>(cells)[offset >> 3]
              ? IntCell::boolean_TRUE : IntCell::boolean_FALSE;
       }
 
    /// fetch function for packed int64_t ravels.
-   static const Cell & int64_fetcher(ShapeItem offset, const Cell * cells, Cell & cache)
+   static const Cell & int64_fetcher(ShapeItem offset, const Cell * cells,
+                                     Cell & cache)
       { new (&cache) IntCell(reinterpret_cast<const int64_t *>(cells)[offset]);
-        return cache; }
+        return cache;
+      }
 
    /// fetch function for packed double ravels.
-   static const Cell & float64_fetcher(ShapeItem offset, const Cell * cells, Cell & cache)
-      { new (&cache) FloatCell(reinterpret_cast<const double *>(cells)[offset]);
-        return cache; }
+   static const Cell & float64_fetcher(ShapeItem offset, const Cell * cells,
+                                       Cell & cache)
+      {
+        new (&cache) FloatCell(reinterpret_cast<const double *>
+                                               (cells)[offset]);
+        return cache;
+      }
 
    /// fetch function for packed complex (2×double) ravels.
-   static const Cell & complex_fetcher(ShapeItem offset, const Cell * cells, Cell & cache)
-      { const double * p = reinterpret_cast<const double *>(cells) + 2*offset;
+   static const Cell & complex_fetcher(ShapeItem offset, const Cell * cells,
+                                       Cell & cache)
+      {
+        const double * p = reinterpret_cast<const double *>(cells) + 2*offset;
         new (&cache) ComplexCell(p[0], p[1]);
-        return cache; }
+        return cache;
+      }
 
    /// fetch function for packed 16-bit Unicode ravels.
-   static const Cell & char16_fetcher(ShapeItem offset, const Cell * cells, Cell & cache)
-      { new (&cache) CharCell(Unicode(reinterpret_cast<const uint16_t *>(cells)[offset]));
-        return cache; }
+   static const Cell & char16_fetcher(ShapeItem offset, const Cell * cells,
+                                      Cell & cache)
+      {
+        new (&cache) CharCell(Unicode(reinterpret_cast<const uint16_t *>
+                                                      (cells)[offset]));
+        return cache;
+      }
 
    /// fetch function for packed 32-bit Unicode ravels.
-   static const Cell & char32_fetcher(ShapeItem offset, const Cell * cells, Cell & cache)
-      { new (&cache) CharCell(reinterpret_cast<const Unicode *>(cells)[offset]);
-        return cache; }
+   static const Cell & char32_fetcher(ShapeItem offset, const Cell * cells,
+                                      Cell & cache)
+      {
+        new (&cache) CharCell(reinterpret_cast<const Unicode *>
+                                              (cells)[offset]);
+        return cache;
+      }
 
    //══════════════════════════════════════════════════════════════════════════
    // Read-write methods
@@ -179,7 +199,8 @@ protected:
    Cell short_value[cfg_SHORT_VALUE_LENGTH_WANTED];
 
    /// per-ravel scratch int64 used by fetch_ravel_i64() for sub-word types
-   /// (RPT_BOOL, RPT_UNICODE16, RPT_UNICODE32) that cannot return a direct pointer.
+   /// (RPT_BOOL, RPT_UNICODE16, RPT_UNICODE32) that cannot return a direct
+   /// pointer.
    mutable int64_t fetch_cache;
 
    /// per-ravel Cell cache for get_cravel() on packed (non-Cell) ravels.
@@ -188,9 +209,10 @@ protected:
 //════════════════════════════════════════════════════════════════════════════
 /// A Ravel whose storage holds a packed int64_t array (RPT_INT64).
 /// Installed via placement-new only for heap ravels (ravel.cells != ravel.short_value).
-/// Short ravels (N == cfg_SHORT_VALUE_LENGTH_WANTED) stay as base Ravel because
-/// Ravel(upgrade_tag{}) calls Cell() on short_value[], which aliases the packed storage.
-/// Base Ravel::apply_fast_dyadic/monadic handle RPT_INT64 for those short ravels.
+/// Short ravels (N == cfg_SHORT_VALUE_LENGTH_WANTED) stay as base Ravel
+/// because Ravel(upgrade_tag{}) calls Cell() on short_value[], which aliases
+/// the packed storage. Base Ravel::apply_fast_dyadic/monadic handle
+/// RPT_INT64 for those short ravels.
 class IntRavel : public Ravel
 {
 public:

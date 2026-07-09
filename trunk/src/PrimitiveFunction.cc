@@ -1684,6 +1684,21 @@ const ShapeItem len_Z = Z->element_count();
                  }
              Z->commit_ravel_like(B, len_Z);
            }
+        else if (B.is_bool_packed() && len_Z > 0)
+           {
+             // BOOL fast path: cyclic bit copy without exploding B
+             const uint64_t * pB = B.cravel_bool();
+             uint64_t * pZ = reinterpret_cast<uint64_t *>(&Z->get_wfirst());
+             const ShapeItem words_Z = (len_Z + 63) / 64;
+             memset(pZ, 0, words_Z * sizeof(uint64_t));
+             ShapeItem sb = 0;
+             for (ShapeItem i = 0; i < len_Z; ++i)
+                {
+                  pZ[i >> 6] |= ((pB[sb >> 6] >> (sb & 63)) & 1) << (i & 63);
+                  if (++sb == len_B) sb = 0;
+                }
+             Z->commit_ravel_Bool(len_Z);
+           }
         else
            {
              loop(z, len_Z)

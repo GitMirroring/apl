@@ -877,7 +877,7 @@ public:
         if (ravel.cells != ravel.short_value)
            new (&ravel) BoolRavel();
         ravel.valid_ravel_items = n;
-        ravel.fetcher    = &Ravel::packed_fetcher;
+        ravel.fetcher    = &Ravel::bool_fetcher;
         flags.ravel_type = RPT_BOOL; }
 
    /// finalize Z as a packed complex ravel after writing N double pairs via
@@ -1164,8 +1164,26 @@ public:
    /// @param force_numeric if true, prototype is forced to numeric even for char arrays
    void to_type(bool force_numeric);
 
-   /// expand this (packed) ravel to Cell format (in place)
-   void explode();
+   /// expand this (packed) ravel to Cell format (in place). Valid for all
+   /// packed ravels.
+   void explode_to_Cells();
+
+   /// expand this UNICODE16 ravel to Cell format (in place). Only valid
+   /// for packed UNICODE16 ravels. Called before appending a uint32_t..
+   inline void explode_to_UNICODE32();
+
+   /// expand this ravel to packed complex format (in place). Only valid
+   /// for packed bool, int, and double ravels. Called before appending
+   /// a complex<double>.
+   inline void explode_to_COMPLEX();
+
+   /// expand this ravel to packed double format (in place). Only valid
+   /// for packed bool and int ravels. Called before appending a double.
+   inline void explode_to_FLOAT64();
+
+   /// expand this ravel to packed int64_t format (in place). Only valid
+   /// for packed bool ravels. Called before appending an int64_t.
+   inline void explode_to_INT64();
 
    /// assign cell C to packed or unpacked ravel at offset; explodes only when
    /// the cell type is incompatible with the current packing

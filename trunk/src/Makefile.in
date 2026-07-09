@@ -1448,8 +1448,8 @@ pkglib_LTLIBRARIES = $(am__append_15) $(am__append_16)
 @apl_TARGET_LIBAPL_FALSE@@apl_TARGET_PYTHON_TRUE@	-fstack-protector \
 @apl_TARGET_LIBAPL_FALSE@@apl_TARGET_PYTHON_TRUE@	--param=ssp-buffer-size=4 \
 @apl_TARGET_LIBAPL_FALSE@@apl_TARGET_PYTHON_TRUE@	-I/usr/include/python3.6m \
-@apl_TARGET_LIBAPL_FALSE@@apl_TARGET_PYTHON_TRUE@	-I/usr/include/python3.8 \
-@apl_TARGET_LIBAPL_FALSE@@apl_TARGET_PYTHON_TRUE@	# server58
+@apl_TARGET_LIBAPL_FALSE@@apl_TARGET_PYTHON_TRUE@	-I/usr/include/python3.12 \
+@apl_TARGET_LIBAPL_FALSE@@apl_TARGET_PYTHON_TRUE@	# server72
 @apl_TARGET_LIBAPL_FALSE@@apl_TARGET_PYTHON_FALSE@apl_SOURCES = main.cc $(common_SOURCES)
 @apl_TARGET_LIBAPL_FALSE@@apl_TARGET_PYTHON_FALSE@apl_CXXFLAGS = $(common_CXXFLAGS) \
 @apl_TARGET_LIBAPL_FALSE@@apl_TARGET_PYTHON_FALSE@	$(GCOV_WANTED) \

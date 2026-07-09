@@ -1171,7 +1171,7 @@ const UCS_string wsname(args.front());
 
    // lib_wsname is the name in the copy_once_table
    //
-UCS_string lib_wsname(Unicode(libref + UNI_0));
+UCS_string lib_wsname(Unicode('0' + char(libref)));
    lib_wsname << UNI_UNDERSCORE;
    lib_wsname << wsname;
 

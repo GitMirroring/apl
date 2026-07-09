@@ -254,7 +254,7 @@ lib_gnu_apl_la_CXXFLAGS += -fPIC
 lib_gnu_apl_la_CXXFLAGS += -fstack-protector
 lib_gnu_apl_la_CXXFLAGS += --param=ssp-buffer-size=4
 lib_gnu_apl_la_CXXFLAGS += -I/usr/include/python3.6m   # server68
-lib_gnu_apl_la_CXXFLAGS += -I/usr/include/python3.8    # server58
+lib_gnu_apl_la_CXXFLAGS += -I/usr/include/python3.12   # server72
 
 else
 

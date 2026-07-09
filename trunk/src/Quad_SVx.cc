@@ -707,10 +707,10 @@ Value_P Z(sh_Z, LOC);
         const SV_key key = sym->get_SV_key();
         const Svar_state state = Svar_DB::get_state(key);
 
-        Z->next_ravel_Int(state & SET_BY_1 ? 1 : 0);
-        Z->next_ravel_Int(state & SET_BY_2 ? 1 : 0);
-        Z->next_ravel_Int(state & USE_BY_1 ? 1 : 0);
-        Z->next_ravel_Int(state & USE_BY_2 ? 1 : 0);
+        Z->next_ravel_Int(int(state) & int(SET_BY_1) ? 1 : 0);
+        Z->next_ravel_Int(int(state) & int(SET_BY_2) ? 1 : 0);
+        Z->next_ravel_Int(int(state) & int(USE_BY_1) ? 1 : 0);
+        Z->next_ravel_Int(int(state) & int(USE_BY_2) ? 1 : 0);
       }
 
    Z->check_value(LOC);
