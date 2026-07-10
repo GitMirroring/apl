@@ -1,6 +1,8 @@
 ⍝ ReduceNWise.tc
 ⍝ ══════════════
 
+⍝@ test4.
+
       ⎕IO←1
 
       ⍝ Precond: LO dyadic; A simple scalar or one-item integer

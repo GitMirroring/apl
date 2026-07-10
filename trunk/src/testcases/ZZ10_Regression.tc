@@ -1,6 +1,8 @@
 ⍝ ZZZ10_Regression.tc
 ⍝ ----------------------------------
 
+⍝@ test3.
+
       ⍝ indexed assignment
       ⍝ 
       4⎕CR (4 5⍴⍳9),(4 1⍴⊂"foo") ⍝ Works

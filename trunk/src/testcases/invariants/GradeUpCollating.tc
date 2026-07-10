@@ -1,6 +1,8 @@
 ⍝ GradeUpCollating.tc
 ⍝ ═══════════════════
 
+⍝@ test4.
+
       ⎕IO←1
 
       ⍝ Precond: A nonempty nonscalar char; B nonscalar char; implicit ⎕IO

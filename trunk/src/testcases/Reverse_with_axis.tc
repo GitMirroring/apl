@@ -1,6 +1,8 @@
 ⍝ Reverse_with_axis.tc
 ⍝ ----------------------------------
 
+⍝@ test3.
+
       A←2 3 1ρ'IN' 'OUT' 'UP' 'RIGHT' 'LEFT' 'DOWN'
       A
  IN    

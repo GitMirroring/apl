@@ -177,10 +177,10 @@ Quad_PNG::eval_AB(cValue_R A, cValue_R B) const
       }
    else if (A.element_count() == 2)   // case 2: PNG file A[1] depth A[2]
       {
-        const APL_Integer A1 = A.get_cravel(1).get_int_value();   // bit depth
-        if (A.get_cfirst().is_pointer_cell())   // probably file name
+        const APL_Integer A1 = A.get_int_value(1);   // bit depth
+        if (A.is_pointer_cell(0))   // probably file name
            {
-             const Value_P A0 = A.get_cfirst().get_pointer_value();
+             const Value_P A0 = A.get_pointer_value(0);
              UCS_string filename_ucs(*A0);
              UTF8_string filename_utf8(filename_ucs);
              write_PNG_file(filename_utf8.c_str(), A1, B);
@@ -213,7 +213,7 @@ Quad_PNG::eval_AB(cValue_R A, cValue_R B) const
 Token
 Quad_PNG::eval_B(cValue_R B) const
 {
-   if (B.get_rank() == 0 && !B.get_cfirst().is_pointer_cell())
+   if (B.get_rank() == 0 && !B.is_pointer_cell(0))
       {
         // scalar (integer) argument: window control and logging
         //
@@ -650,7 +650,7 @@ UTF8 * scanline = RGB;
          loop(c, planes)
              {
                const ShapeItem APL_offset = x + (y + c*height)*width;
-               const double val = B.get_cravel(APL_offset).get_real_value();
+               const double val = B.get_real_value(APL_offset);
                if (val < 0.0)
                   {
                     MORE_ERROR() << "negative color component " << val
@@ -804,20 +804,20 @@ const int stride = cairo_image_surface_get_stride(ret);   // = row size (bytes)
                const ShapeItem xy3 = xy2 + plane;   // ⍺
 
                // the GNU APL color values are 0.0 - 1.0
-               double red = B->get_cravel(xy0).get_real_value();
+               double red = B->get_real_value(xy0);
                double green = red;
                double blue  = red;
                double alpha = 1.0;
 
                if (has_colors)   // RGB
                   {
-                    green = B->get_cravel(xy1).get_real_value();
-                    blue  = B->get_cravel(xy2).get_real_value();
-                    if (has_alpha) alpha = B->get_cravel(xy3).get_real_value();
+                    green = B->get_real_value(xy1);
+                    blue  = B->get_real_value(xy2);
+                    if (has_alpha) alpha = B->get_real_value(xy3);
                   }
                else              // grey
                   {
-                    if (has_alpha) alpha = B->get_cravel(xy1).get_real_value();
+                    if (has_alpha) alpha = B->get_real_value(xy1);
                   }
 
                /* row[x] is a pixel which, according to enum cairo_format_t:

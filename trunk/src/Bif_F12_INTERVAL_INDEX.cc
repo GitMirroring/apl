@@ -77,10 +77,11 @@ const APL_Integer qio = Workspace::get_IO();
         return Token(TOK_APL_VALUE1, Z);
       }
 
-   // generic sort check (Cell-level, may explode packed ravels)
+   // generic sort check
    for (ShapeItem a = 1; a < ec_A; ++a)
        {
-         const Cell & c1 = A.get_cravel(a-1);
+         Cell c1_cache;
+         const Cell & c1 = A.get_cravel(a-1, c1_cache);
          const Cell & c2 = A.get_cravel(a);
          const Comp_result c1_c2 = c1.compare(c2);
          if (c1_c2 != COMP_LT)
@@ -167,7 +168,7 @@ ShapeItem count = 0;
               DOMAIN_ERROR;
             }
 
-          const APL_Integer Bi = B.get_cravel(b).get_near_int();
+          const APL_Integer Bi = B.get_near_int(b);
           if (Bi < 0)
             {
               MORE_ERROR() << "negative item in the argument of monadic ⍸";

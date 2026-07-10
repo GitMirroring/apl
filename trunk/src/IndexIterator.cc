@@ -71,7 +71,7 @@ TrueIndexIterator::TrueIndexIterator(ShapeItem w, Value_P value,
    indices = new ShapeItem[count];
    loop(v, count)
       {
-        const ShapeItem idx = value->get_cravel(v).get_near_int() - qio;
+        const ShapeItem idx = value->get_near_int(v) - qio;
 
         // instead of testing signed < 0 and >= max, we test unsigned >= max.
         //

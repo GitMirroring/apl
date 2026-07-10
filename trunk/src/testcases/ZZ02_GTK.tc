@@ -1,6 +1,8 @@
 ⍝ ZZ02_GTK.tc
 ⍝ ----------------------------------
 
+⍝@ test3.
+
       ]NEXTFILE no-GTK   ⍝ skip if ⎕GTK was not compiled in
 
       ⍝ Regression test for ⎕GTK TLV round-trip (set_title + get_title).

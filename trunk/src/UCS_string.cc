@@ -339,7 +339,7 @@ UCS_string::UCS_string(const Value & value)
 const ShapeItem ec = value.element_count();
    reserve(ec);
 
-   loop(e, ec)   *this << value.get_cravel(e).get_char_value();
+   loop(e, ec)   *this << value.get_char_value(e);
 }
 //────────────────────────────────────────────────────────────────────────────
 UCS_string::UCS_string(const cValue & value)
@@ -351,7 +351,7 @@ UCS_string::UCS_string(const cValue & value)
 const ShapeItem ec = value.element_count();
    reserve(ec);
 
-   loop(e, ec)   *this << value.get_cravel(e).get_char_value();
+   loop(e, ec)   *this << value.get_char_value(e);
 }
 //────────────────────────────────────────────────────────────────────────────
 /// constructor
@@ -396,7 +396,7 @@ const Value & value = *cell.get_pointer_value().get();
 const ShapeItem ec = value.element_count();
    reserve(ec);
 
-   loop(e, ec)   *this << value.get_cravel(e).get_char_value();
+   loop(e, ec)   *this << value.get_char_value(e);
 }
 //────────────────────────────────────────────────────────────────────────────
 #if UCS_tracking

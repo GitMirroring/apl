@@ -84,8 +84,8 @@ Bif_F12_DOMINO::eval_B(cValue_R B) const
       {
         if (B.element_count() == 0)   // '' or ⍬: help
            {
-             if (B.get_cfirst().is_character_cell())      list_functions(CERR);
-             else if (B.get_cfirst().is_integer_cell())   list_mappings(CERR);
+             if (B.is_character_cell(0))      list_functions(CERR);
+             else if (B.is_integer_cell(0))   list_mappings(CERR);
              else                                          DOMAIN_ERROR;
              return Token(TOK_APL_VALUE1, Idx0_0(LOC));
            }
@@ -95,7 +95,7 @@ Bif_F12_DOMINO::eval_B(cValue_R B) const
         APL_Complex r2(0.0);
         loop(l, len)
             {
-              const APL_Complex b = B.get_cravel(l).get_complex_value();
+              const APL_Complex b = B.get_complex_value(l);
               r2 += b*b;
             }
 
@@ -109,7 +109,7 @@ Bif_F12_DOMINO::eval_B(cValue_R B) const
            {
              loop(l, len)
                  {
-                   const APL_Float b = B.get_cravel(l).get_real_value();
+                   const APL_Float b = B.get_real_value(l);
                    Z->next_ravel_Float(b / r2.real());
                  }
            }
@@ -117,7 +117,7 @@ Bif_F12_DOMINO::eval_B(cValue_R B) const
            {
              loop(l, len)
                  {
-                   const APL_Complex b = B.get_cravel(l).get_complex_value();
+                   const APL_Complex b = B.get_complex_value(l);
                    Z->next_ravel_Complex(b / r2);
                  }
            }
@@ -906,7 +906,7 @@ UCS_string_vector vars;
              if (ec_A != B.get_rank())   LENGTH_ERROR;
              loop(a, ec_A)
                  {
-                   const UCS_string x(A.get_cravel(a).get_char_value());
+                   const UCS_string x(A.get_char_value(a));
                    vars.push_back(x);
                  }
            }
@@ -1116,8 +1116,8 @@ const ShapeItem ec_B = B.element_count();
    if (ec_A == 0)   LENGTH_ERROR;   // at least a₀ is required
    if (ec_B == 0)   LENGTH_ERROR;   // at least b₀ is required
 
-   loop(a, ec_A)   if (!A.get_cravel(a).is_numeric())   DOMAIN_ERROR;
-   loop(b, ec_B)   if (!B.get_cravel(b).is_numeric())   DOMAIN_ERROR;
+   loop(a, ec_A)   if (!A.is_numeric(a))   DOMAIN_ERROR;
+   loop(b, ec_B)   if (!B.is_numeric(b))   DOMAIN_ERROR;
 
 Shape shape_Z;
    loop(r, rank)
@@ -1239,7 +1239,7 @@ vector<size_t> powers_B;   powers_B.reserve(ec_B);
 bool need_complex = false;
    loop(a, ec_A)
        {
-          if (A.get_cravel(a).is_complex_cell())
+          if (A.is_complex_cell(a))
              {
                need_complex = true;
                break;
@@ -1591,7 +1591,7 @@ UCS_string_vector vars;
              if (ec_A != B.get_rank())   LENGTH_ERROR;
              loop(a, ec_A)
                  {
-                   const UCS_string x(A.get_cravel(a).get_char_value());
+                   const UCS_string x(A.get_char_value(a));
                    vars.push_back(x);
                  }
            }
@@ -1870,7 +1870,7 @@ int printer = 1;
       {
         if (A->get_rank() > 1)        RANK_ERROR;
         if (A->element_count() > 1)   LENGTH_ERROR;
-        printer = A->get_cfirst().get_int_value();
+        printer = A->get_int_value(0);
       }
 
    // B shall be a character string with the expression to be integrated
@@ -1969,17 +1969,26 @@ Bif_F12_DOMINO::setup_complex_B(cValue_R V, ShapeItem idx, double * D,
 {
    // initialize the homogeneous complex vector D from the mixed APL ravel V
    //
-   loop(b, count)
-      {
-        const Cell & cell = V.get_cravel(idx + b);
-        if (cell.is_float_cell())
-           { *D++ = cell.get_real_value();   *D++ = 0.0; }
-        else if (cell.is_integer_cell())
-           { *D++ = cell.get_real_value();   *D++ = 0.0; }
-        else if (cell.is_complex_cell())
-           { *D++ = cell.get_real_value(); *D++ = cell.get_imag_value(); }
-        else   DOMAIN_ERROR;
+const RavelType rt = V.get_ravel_type();
+   if (rt == RPT_CELLS)
+      { loop(b, count)
+           {
+             const Cell & cell = V.get_cravel(idx + b);
+             if (cell.is_float_cell())
+                { *D++ = cell.get_real_value();   *D++ = 0.0; }
+             else if (cell.is_integer_cell())
+                { *D++ = cell.get_real_value();   *D++ = 0.0; }
+             else if (cell.is_complex_cell())
+                { *D++ = cell.get_real_value(); *D++ = cell.get_imag_value(); }
+             else   DOMAIN_ERROR;
+           }
       }
+   else if (rt & RPT_real)    // RPT_BOOL, RPT_INT64, RPT_FLOAT64
+      { loop(b, count)   { *D++ = V.get_real_value(idx + b); *D++ = 0.0; } }
+   else if (rt == RPT_COMPLEX)
+      { loop(b, count)   { *D++ = V.get_real_value(idx + b);
+                           *D++ = V.get_imag_value(idx + b); } }
+   else   DOMAIN_ERROR;
 }
 //────────────────────────────────────────────────────────────────────────────
 void
@@ -1988,13 +1997,19 @@ Bif_F12_DOMINO::setup_real_B(cValue_R V, ShapeItem idx, double * D,
 {
    // initialize the homogeneous real vector D from the mixed APL ravel V
    //
-   loop(b, count)
-      {
-        const Cell & cell = V.get_cravel(idx + b);
-        if (cell.is_float_cell())          *D++ = cell.get_real_value();
-        else if (cell.is_integer_cell())   *D++ = cell.get_real_value();
-        else                               DOMAIN_ERROR;
+const RavelType rt = V.get_ravel_type();
+   if (rt == RPT_CELLS)
+      { loop(b, count)
+           {
+             const Cell & cell = V.get_cravel(idx + b);
+             if (cell.is_float_cell())          *D++ = cell.get_real_value();
+             else if (cell.is_integer_cell())   *D++ = cell.get_real_value();
+             else                               DOMAIN_ERROR;
+           }
       }
+   else if (rt & RPT_real)    // RPT_BOOL, RPT_INT64, RPT_FLOAT64
+      { loop(b, count)   { *D++ = V.get_real_value(idx + b); } }
+   else   DOMAIN_ERROR;
 }
 //════════════════════════════════════════════════════════════════════════════
 

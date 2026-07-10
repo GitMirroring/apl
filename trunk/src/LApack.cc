@@ -753,8 +753,8 @@ T * hr = &HR.diag(0);
    ALL_ROWS(M)   // FORTRAN rows (adjacent, top to bottom)
       {
         const ShapeItem APL_offset = col + N*row;
-        set_real(*bb,   VB.get_cravel(APL_offset).get_real_value());
-        set_imag(*bb,   VB.get_cravel(APL_offset).get_imag_value());
+        set_real(*bb,   VB.get_real_value(APL_offset));
+        set_imag(*bb,   VB.get_imag_value(APL_offset));
         *hr++ = *bb++;
       }
 

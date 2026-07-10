@@ -129,7 +129,7 @@ FunctionGroup::value_to_subfun(const cValue & A_or_X) const
       {
         // we do not check (here) if the number is valid. The caller will.
         //
-        return A_or_X.get_cfirst().get_int_value();   // but possibly invalid
+        return A_or_X.get_int_value(0);   // but possibly invalid
       }
 
    if (A_or_X.is_char_string())   // function name

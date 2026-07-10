@@ -492,7 +492,7 @@ bool progress = false;
               if (src > 0 && tos[src - 1].is_function())   // function axis
                  {
                    const sAxis function_axis = T1.get_apl_val()
-                                             ->get_cfirst().get_int_value();
+                                             ->get_int_value(0);
 
                    Token tok_axis(TOK_FAXIS, function_axis);
                    new (&tos[src++]) Token(TOK_VOID);   // invalidate [

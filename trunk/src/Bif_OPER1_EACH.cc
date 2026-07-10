@@ -308,7 +308,7 @@ cFunction_P LO = _LO.get_function();
            {
              // fake Z1←⎕EC ''  ←→  3 (0 0) (0 0⍴0)
              //
-             if (!B.get_cfirst().is_character_cell())   DOMAIN_ERROR;
+             if (!B.is_character_cell(0))   DOMAIN_ERROR;
              Z1 = Value_P(3, LOC);
              Z1->next_ravel_Number(3);
              {

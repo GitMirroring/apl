@@ -1,6 +1,8 @@
 ⍝ UserCommand.tc
 ⍝ ----------------------------------
 
+⍝@ test3.
+
       ]USERCMD ]FOO BAR 1
 
 ∇ A BAR B

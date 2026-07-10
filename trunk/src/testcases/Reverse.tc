@@ -1,6 +1,8 @@
 ⍝ Reverse.tc
 ⍝ ----------------------------------
 
+⍝@ test3.
+
       A←'DESSERTS'
       ⌽A
 STRESSED

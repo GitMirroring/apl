@@ -50,7 +50,7 @@ Bif_JOT::eval_AB(cValue_R A, cValue_R B) const
    //
    loop(a, A.nz_element_count())
        {
-         if (!A.get_cravel(a).is_numeric())
+         if (!A.is_numeric(a))
             {
               MORE_ERROR() << "A∘B: non-numeric item in A";
               DOMAIN_ERROR;
@@ -59,7 +59,7 @@ Bif_JOT::eval_AB(cValue_R A, cValue_R B) const
 
    loop(b, B.nz_element_count())
        {
-         if (!B.get_cravel(b).is_numeric())
+         if (!B.is_numeric(b))
             {
               MORE_ERROR() << "A∘B: non-numeric item in B";
               DOMAIN_ERROR;
@@ -94,46 +94,64 @@ const ShapeItem len = min(cols_A, rows_B);
 Shape shape_Z(rows_A, cols_B);
 Value_P Z(shape_Z, LOC);
 
-   loop(a, rows_A)
-       {
-         loop(b, cols_B)
-             {
-               APL_Float sum_real = 0;
-               APL_Float sum_imag = 0;
-               bool need_complex = false;
-               loop(ab, len)   // column of A × row of B
+   const RavelType rt_A = A.get_ravel_type();
+   const RavelType rt_B = B.get_ravel_type();
+
+   if ((rt_A & RPT_real) && (rt_B & RPT_real))   // both real-only — no complex checks needed
+      {
+        loop(a, rows_A)
+            loop(b, cols_B)
+               {
+                 APL_Float sum = 0;
+                 loop(ab, len)
+                    sum += A.get_real_value(a*cols_A+ab) * B.get_real_value(b+ab*cols_B);
+                 Z->next_ravel_Number(sum);
+               }
+      }
+   else
+      {
+        loop(a, rows_A)
+            {
+              loop(b, cols_B)
                   {
-                    const Cell & aa = A.get_cravel(a * cols_A + ab);
-                    const Cell & bb = B.get_cravel(b + ab*cols_B);
-                    sum_real += aa.get_real_value() * bb.get_real_value();
-                    if (aa.is_complex_cell())   // complex aa and any b
+                    APL_Float sum_real = 0;
+                    APL_Float sum_imag = 0;
+                    bool need_complex = false;
+                    Cell aa_cache;
+                    loop(ab, len)   // column of A × row of B
                        {
-                         need_complex = true;
-                         if (bb.is_complex_cell())   // complex aa and bb
+                         const Cell & aa = A.get_cravel(a * cols_A + ab, aa_cache);
+                         const Cell & bb = B.get_cravel(b + ab*cols_B);
+                         sum_real += aa.get_real_value() * bb.get_real_value();
+                         if (aa.is_complex_cell())   // complex aa and any b
                             {
-                              sum_real -= aa.get_imag_value() *
-                                          bb.get_imag_value();
-                              sum_imag += aa.get_real_value() *
-                                          bb.get_imag_value();
-                              sum_imag += aa.get_imag_value() *
-                                          bb.get_real_value();
+                              need_complex = true;
+                              if (bb.is_complex_cell())   // complex aa and bb
+                                 {
+                                   sum_real -= aa.get_imag_value() *
+                                               bb.get_imag_value();
+                                   sum_imag += aa.get_real_value() *
+                                               bb.get_imag_value();
+                                   sum_imag += aa.get_imag_value() *
+                                               bb.get_real_value();
+                                 }
+                              else                        // complex aa and real bb
+                                 {
+                                   sum_imag += aa.get_imag_value() *
+                                               bb.get_real_value();
+                                 }
                             }
-                         else                        // complex aa and real bb
+                         else if (bb.is_complex_cell())   // real aa and complex bb
                             {
-                              sum_imag += aa.get_imag_value() *
-                                          bb.get_real_value();
+                              need_complex = true;
+                              sum_imag += aa.get_real_value() * bb.get_imag_value();
                             }
                        }
-                    else if (bb.is_complex_cell())   // real aa and complex bb
-                       {
-                         need_complex = true;
-                         sum_imag += aa.get_real_value() * bb.get_imag_value();
-                       }
+                    if (need_complex)   Z->next_ravel_Complex(sum_real, sum_imag);
+                    else                Z->next_ravel_Number(sum_real);
                   }
-               if (need_complex)   Z->next_ravel_Complex(sum_real, sum_imag);
-               else                Z->next_ravel_Number(sum_real);
-             }
-       }
+            }
+      }
 
    Z->set_default(B, LOC);
    Z->check_value(LOC);
@@ -201,9 +219,10 @@ const ShapeItem len_Z = A.element_count() * len_B;
 Value_P RO_A;
 Value_P RO_B;
 
+   Cell cA_cache;
    loop(z, len_Z)
       {
-        const Cell & cA = A.get_cravel(z / len_B);
+        const Cell & cA = A.get_cravel(z / len_B, cA_cache);
         const Cell & cB = B.get_cravel(z % len_B);
 
         if (cA.is_pointer_cell())
@@ -296,11 +315,12 @@ ShapeItem z = tctx.get_N() * slice_len;
 ShapeItem end_z = z + slice_len;
    if (end_z > Z_len)   end_z = Z_len;
 
+   Cell cacheA;
    for (; z < end_z; ++z)
        {
         const ShapeItem zah = z/job.ZBl;
         const ShapeItem zbl = z - zah*job.ZBl;
-        const Cell & cellA = job.VA->get_cravel(job.idxA + zah);
+        const Cell & cellA = job.VA->get_cravel(job.idxA + zah, cacheA);
         const Cell & cellB = job.VB->get_cravel(job.idxB + zbl);
         job.ec = (cellB.*job.RO)(&job.VZ->get_wravel(job.idxZ + z), &cellA);
         if (job.ec != E_NO_ERROR)   return;

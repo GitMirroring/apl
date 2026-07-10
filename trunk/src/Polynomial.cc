@@ -36,7 +36,7 @@ Shape index;
    loop(e, expos.size())   index.add_shape_item(expos[e]);
 
 const ShapeItem offset = order.get_shape().ravel_pos(index);
-   return order.get_cravel(offset).get_int_value();
+   return order.get_int_value(offset);
 }
 //────────────────────────────────────────────────────────────────────────────
 ostream &

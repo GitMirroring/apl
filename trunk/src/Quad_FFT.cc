@@ -249,18 +249,27 @@ const ShapeItem N = B->element_count();
    if (N < 2)   LENGTH_ERROR;
 
 Value_P Z(B->get_shape(), LOC);
+const RavelType rt = B->get_ravel_type();
    if (B->get_rank() == 1)
       {
-        loop(n, N)
-           {
-             const double w = win(n, N);
-             const Cell & cell_B = B->get_cravel(n);
-             if (cell_B.is_complex_cell())
-                Z->next_ravel_Complex(w*cell_B.get_real_value(),
-                                      w*cell_B.get_imag_value());
-             else
-                Z->next_ravel_Float(w * cell_B.get_real_value());
+        if (rt == RPT_CELLS)
+           { loop(n, N)
+                {
+                  const double w = win(n, N);
+                  const Cell & cell_B = B->get_cravel(n);
+                  if (cell_B.is_complex_cell())
+                     Z->next_ravel_Complex(w*cell_B.get_real_value(),
+                                           w*cell_B.get_imag_value());
+                  else
+                     Z->next_ravel_Float(w * cell_B.get_real_value());
+                }
            }
+        else if (rt == RPT_COMPLEX)
+           { loop(n, N)   { const double w = win(n, N);
+                            Z->next_ravel_Complex(w*B->get_real_value(n),
+                                                  w*B->get_imag_value(n)); } }
+        else   // RPT_integer or RPT_FLOAT64
+           { loop(n, N)   { Z->next_ravel_Float(win(n, N) * B->get_real_value(n)); } }
       }
    else
       {
@@ -268,16 +277,23 @@ Value_P Z(B->get_shape(), LOC);
         if (wp == 0)   WS_FULL;
         fill_window(wp, B->get_shape(), win);
 
-        loop(n, N)
-           {
-             const double w = wp[n];
-             const Cell & cell_B = B->get_cravel(n);
-             if (cell_B.is_complex_cell())
-                Z->next_ravel_Complex(w*cell_B.get_real_value(),
-                                      w*cell_B.get_imag_value());
-             else
-                Z->next_ravel_Float(w*cell_B.get_real_value());
+        if (rt == RPT_CELLS)
+           { loop(n, N)
+                {
+                  const double w = wp[n];
+                  const Cell & cell_B = B->get_cravel(n);
+                  if (cell_B.is_complex_cell())
+                     Z->next_ravel_Complex(w*cell_B.get_real_value(),
+                                           w*cell_B.get_imag_value());
+                  else
+                     Z->next_ravel_Float(w*cell_B.get_real_value());
+                }
            }
+        else if (rt == RPT_COMPLEX)
+           { loop(n, N)   { Z->next_ravel_Complex(wp[n]*B->get_real_value(n),
+                                                   wp[n]*B->get_imag_value(n)); } }
+        else   // RPT_integer or RPT_FLOAT64
+           { loop(n, N)   { Z->next_ravel_Float(wp[n] * B->get_real_value(n)); } }
         delete [] wp;
       }
 
@@ -318,16 +334,16 @@ const APL_Integer N = B->element_count();
 
    if (N < 2)
       {
-        in[0][0] = B->get_cfirst().get_real_value();
-        in[0][1] = B->get_cfirst().get_imag_value();
+        in[0][0] = B->get_real_value(0);
+        in[0][1] = B->get_imag_value(0);
       }
 
    if (win == 0)
       {
         loop(n, N)
            {
-             in[n][0] = B->get_cravel(n).get_real_value();
-             in[n][1] = B->get_cravel(n).get_imag_value();
+             in[n][0] = B->get_real_value(n);
+             in[n][1] = B->get_imag_value(n);
            }
       }
    else if (B->get_rank() == 1)
@@ -335,8 +351,8 @@ const APL_Integer N = B->element_count();
         loop(n, N)
            {
              const double w = win(n, N);
-             in[n][0] = w * B->get_cravel(n).get_real_value();
-             in[n][1] = w * B->get_cravel(n).get_imag_value();
+             in[n][0] = w * B->get_real_value(n);
+             in[n][1] = w * B->get_imag_value(n);
            }
       }
    else
@@ -347,8 +363,8 @@ const APL_Integer N = B->element_count();
         loop(n, N)
            {
              const double w = wp[n];
-             in[n][0] = w * B->get_cravel(n).get_real_value();
-             in[n][1] = w * B->get_cravel(n).get_imag_value();
+             in[n][0] = w * B->get_real_value(n);
+             in[n][1] = w * B->get_imag_value(n);
            }
         delete [] wp;
       }

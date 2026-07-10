@@ -1,6 +1,8 @@
 ⍝ Replicate.tc
 ⍝ ════════════
 
+⍝@ test4.
+
       ⎕IO←1
 
       ⍝ Precond: LO simple scalar/vector integer; Z nonscalar

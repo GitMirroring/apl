@@ -1,6 +1,8 @@
 ⍝ Transpose.tc
 ⍝ ════════════
 
+⍝@ test4.
+
       ⎕IO←1
 
       ⍝ Precond: A simple scalar/vector nonneg integer; implicit ⎕IO

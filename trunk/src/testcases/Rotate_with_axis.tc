@@ -1,6 +1,8 @@
 ⍝ Rotate_with_axis.tc
 ⍝ ----------------------------------
 
+⍝@ test3.
+
       ⎕IO←1 ⍝ for proper axis
 
       A←'BETTA' 'CARP' 'EEL' 'LOACH'

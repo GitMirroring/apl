@@ -1,6 +1,8 @@
 ⍝ Match.tc
 ⍝ ════════
 
+⍝@ test4.
+
       ⎕IO←1
 
       ⍝ Precond: Z Boolean; implicit ⎕CT

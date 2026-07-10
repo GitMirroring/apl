@@ -59,12 +59,12 @@ Quad_CR::eval_B(cValue_R B) const
         return do_eval_B(B, discard);
       }
 
-   if (B.get_cfirst().is_character_cell())   // ⎕CR ''
+   if (B.is_character_cell(0))   // ⎕CR ''
       {
         return list_functions(CERR);
       }
 
-   if (B.get_cfirst().is_integer_cell())     // ⎕CR ⍬
+   if (B.is_integer_cell(0))     // ⎕CR ⍬
       {
         return list_mappings(CERR);
       }
@@ -258,7 +258,7 @@ Quad_CR::do_CR12(cValue_R B)
 
 CDR_string cdr;
    loop(b, B.element_count())
-       cdr.push_back(B.get_cravel(b).get_byte_value());
+       cdr.push_back(B.get_byte_value(b));
 
 Value_P Z = CDR::from_CDR(cdr, LOC);
    return Z;
@@ -279,8 +279,8 @@ Value_P Z(shape_Z, LOC);
 ShapeItem bI = 0;
    loop(z, Z->element_count())
        {
-         const int n1 = nibble(B.get_cravel(bI++).get_char_value());
-         const int n2 = nibble(B.get_cravel(bI++).get_char_value());
+         const int n1 = nibble(B.get_char_value(bI++));
+         const int n2 = nibble(B.get_char_value(bI++));
          if (n1 < 0 || n2 < 0)   DOMAIN_ERROR;
          Z->next_ravel_Char(Unicode(16*n1 + n2));
        }
@@ -311,17 +311,17 @@ const ShapeItem len_B = B.element_count();
 ShapeItem lf_count = 0;
    loop(b, len_B)
        {
-         if (B.get_cravel(b).get_char_value() == UNI_LF)   ++lf_count;
+         if (B.get_char_value(b) == UNI_LF)   ++lf_count;
        }
 
-   if (B.get_cravel(len_B - 1).get_char_value() != UNI_LF)   ++lf_count;
+   if (B.get_char_value(len_B - 1) != UNI_LF)   ++lf_count;
 
 Value_P Z(lf_count, LOC);
 UCS_string line;
 
    loop(b, len_B)
        {
-         const Unicode uni = B.get_cravel(b).get_char_value();
+         const Unicode uni = B.get_char_value(b);
          if (uni == UNI_LF)
             {
               Value_P Zb(line, LOC);
@@ -382,7 +382,7 @@ const ShapeItem ec = value->element_count();
    if (ec < 60 && is_plain_string(value))
       {
         text << var_name << "←\"";
-        loop(e, ec)   text << value->get_cravel(e).get_char_value();
+        loop(e, ec)   text << value->get_char_value(e);
         text << "\"";
         PUSH_TEXT
         Workspace::pop_FC();   // restore ⎕FC
@@ -407,7 +407,7 @@ const APL_types::Depth depth = value->compute_depth();
            }
         else                         // empty vector
            {
-             if (value->get_cfirst().is_character_cell())   text << "''";
+             if (value->is_character_cell(0))   text << "''";
              else                                           text << "⍬";
            }
         PUSH_TEXT
@@ -566,7 +566,7 @@ Value_P Z(shape_Z, LOC);
 
    loop(b, B.element_count())
        {
-         const int val = B.get_cravel(b).get_byte_value() & 0x00FF;
+         const int val = B.get_byte_value(b) & 0x00FF;
          const int h = alpha[val >> 4];
          const int l = alpha[val & 0x0F];
          Z->next_ravel_Char(Unicode(h));
@@ -738,7 +738,7 @@ UCS_string ind_var_level = indent;   ind_var_level << var_level;
       {
         text << "\"";
         loop(e, value.element_count())
-            text << value.get_cravel(e).get_char_value();
+            text << value.get_char_value(e);
         text << "\"";                                                PUSH_TEXT
         return;
       }
@@ -949,8 +949,8 @@ const ShapeItem len = B.element_count()/2;
 ShapeItem bI = 0;
    loop(b, len)
        {
-         const int n1 = nibble(B.get_cravel(bI++).get_char_value());
-         const int n2 = nibble(B.get_cravel(bI++).get_char_value());
+         const int n1 = nibble(B.get_char_value(bI++));
+         const int n2 = nibble(B.get_char_value(bI++));
          if (n1 < 0 || n2 < 0)   DOMAIN_ERROR;
          cdr.push_back(16*n1 + n2);
        }
@@ -978,9 +978,9 @@ ShapeItem bI = 0;
         /*      -- b1 -- -- b2 -- -- b3 --
              z: 11111122 22223333 33444444
          */
-        const int b1 = B.get_cravel(bI++).get_char_value() & 0x00FF;
-        const int b2 = B.get_cravel(bI++).get_char_value() & 0x00FF;
-        const int b3 = B.get_cravel(bI++).get_char_value() & 0x00FF;
+        const int b1 = B.get_char_value(bI++) & 0x00FF;
+        const int b2 = B.get_char_value(bI++) & 0x00FF;
+        const int b3 = B.get_char_value(bI++) & 0x00FF;
 
         const int z1 = b1 >> 2;
         const int z2 = (b1 & 0x03) << 4 | (b2 & 0xF0) >> 4;
@@ -1001,7 +1001,7 @@ ShapeItem bI = 0;
 
         case 1:          //  length of B is 3 * N + 1
                 {
-                  const int b1 = B.get_cravel(bI++).get_char_value() & 0x00FF;
+                  const int b1 = B.get_char_value(bI++) & 0x00FF;
                   const int b2 = 0;
 
                   const int z1 = b1 >> 2;
@@ -1016,8 +1016,8 @@ ShapeItem bI = 0;
 
         case 2:          // two bytes remaining
                 {
-                  const int b1 = B.get_cravel(bI++).get_char_value() & 0x00FF;
-                  const int b2 = B.get_cravel(bI++).get_char_value() & 0x00FF;
+                  const int b1 = B.get_char_value(bI++) & 0x00FF;
+                  const int b2 = B.get_char_value(bI++) & 0x00FF;
                   const int b3 = 0;
 
                   const int z1 = b1 >> 2;
@@ -1049,8 +1049,8 @@ const int cols = B.get_cols();
    // figure number of missing chars in final quantum
    //
 int missing = 0;
-   if      (B.get_cravel(cols - 2).get_char_value() == '=')   missing = 2;
-   else if (B.get_cravel(cols - 1).get_char_value() == '=')   missing = 1;
+   if      (B.get_char_value(cols - 2) == '=')   missing = 2;
+   else if (B.get_char_value(cols - 1) == '=')   missing = 1;
 
 const ShapeItem len_Z = 3 * (B.element_count() / 4) - missing;
 const ShapeItem quantums = B.element_count() / 4;
@@ -1059,10 +1059,10 @@ Value_P Z(len_Z, LOC);
 ShapeItem bI = 0;
    loop(q, quantums)
        {
-         const int b1 = sixbit(B.get_cravel(bI++).get_char_value());
-         const int b2 = sixbit(B.get_cravel(bI++).get_char_value());
-         const int q3 = sixbit(B.get_cravel(bI++).get_char_value());
-         const int q4 = sixbit(B.get_cravel(bI++).get_char_value());
+         const int b1 = sixbit(B.get_char_value(bI++));
+         const int b2 = sixbit(B.get_char_value(bI++));
+         const int q3 = sixbit(B.get_char_value(bI++));
+         const int q4 = sixbit(B.get_char_value(bI++));
          const int b3 = q3 & 0x3F;
          const int b4 = q4 & 0x3F;
 
@@ -1119,7 +1119,7 @@ Quad_CR::do_CR19(cValue_R B)
 const ShapeItem len_B = B.element_count();
 
 UTF8 * bytes_utf = ALLOCA(UTF8, len_B + 10);
-   loop(b, len_B)   bytes_utf[b] = B.get_cravel(b).get_byte_value();
+   loop(b, len_B)   bytes_utf[b] = B.get_byte_value(b);
    bytes_utf[len_B] = 0;
 
 const UTF8_string utf(bytes_utf, len_B);
@@ -1369,11 +1369,11 @@ PrintContext pctx = Workspace::get_PrintContext(PR_APL);
 
    loop(b, len)
       {
-        const cValue & row = *B.get_cravel(b).get_pointer_value();
+        const cValue & row = *B.get_pointer_value(b);
 
         if (row.element_count() == 1)   // single item
            {
-             Value_P Zrow = CLONE_P(row.get_cfirst().get_pointer_value(), LOC);
+             Value_P Zrow = CLONE_P(row.get_pointer_value(0), LOC);
              Z->next_ravel_Pointer(Zrow.get());
              continue;
            }
@@ -1381,7 +1381,7 @@ PrintContext pctx = Workspace::get_PrintContext(PR_APL);
         PrintBuffer pb;
         loop(col, row.element_count())
             {
-              const cValue & item = *row.get_cravel(col).get_pointer_value();
+              const cValue & item = *row.get_pointer_value(col);
               PrintBuffer pb_item(item, pctx, 0);
               pb.pad_height(UNI_SPACE, pb_item.get_row_count());
               if (A_31_32 == 31)   // align bottoms
@@ -1416,11 +1416,11 @@ Quad_CR::do_CR33(cValue_R B)
 const ShapeItem len_B = B.element_count();
    if (len_B < 1)   LENGTH_ERROR;
 const ShapeItem len_B1 = len_B - 1;
-   if (!B.get_cfirst().is_integer_cell())   DOMAIN_ERROR;
-   loop (b,  len_B1)   B.get_cravel(b + 1).get_byte_value();   // DOMAIN ERROR if not byte
+   if (!B.is_integer_cell(0))   DOMAIN_ERROR;
+   loop (b,  len_B1)   B.get_byte_value(b + 1);   // DOMAIN ERROR if not byte
 
 Value_P Z(len_B + 7, LOC);
-const APL_Integer tag = B.get_cfirst().get_int_value();
+const APL_Integer tag = B.get_int_value(0);
     Z->next_ravel_Char(Unicode(tag >> 24 & 0xFF));
     Z->next_ravel_Char(Unicode(tag >> 16 & 0xFF));
     Z->next_ravel_Char(Unicode(tag >>  8 & 0xFF));
@@ -1430,7 +1430,7 @@ const APL_Integer tag = B.get_cfirst().get_int_value();
     Z->next_ravel_Char(Unicode(len_B1 >>  8 & 0xFF));
     Z->next_ravel_Char(Unicode(len_B1       & 0xFF));
     loop(z, len_B1)
-        Z->next_ravel_Char(Unicode(B.get_cravel(z+1).get_byte_value()));
+        Z->next_ravel_Char(Unicode(B.get_byte_value(z+1)));
 
    return Z;
 }
@@ -1446,19 +1446,19 @@ Quad_CR::do_CR34(cValue_R B)
 const ShapeItem len_B = B.element_count();
    if (len_B < 8)   LENGTH_ERROR;
    // throw DOMAIN ERROR if one of the vector items is not a byte
-   loop(b, len_B)   B.get_cravel(b).get_byte_value();
+   loop(b, len_B)   B.get_byte_value(b);
 
 ShapeItem bI = 0;
 int32_t tag = 0;
-   loop(bb, 4)   tag = tag << 8 | B.get_cravel(bI++).get_byte_value();
+   loop(bb, 4)   tag = tag << 8 | B.get_byte_value(bI++);
 
 uint32_t len = 0;
-   loop(bb, 4)   len = len << 8 | B.get_cravel(bI++).get_byte_value();
+   loop(bb, 4)   len = len << 8 | B.get_byte_value(bI++);
    if (len != (len_B - 8))   LENGTH_ERROR;
 
 Value_P Z(len_B - 7, LOC);
    Z->next_ravel_Int(tag);
-   loop(z, len_B - 8)   Z->next_ravel_Char(Unicode(B.get_cravel(bI++).get_byte_value()));
+   loop(z, len_B - 8)   Z->next_ravel_Char(Unicode(B.get_byte_value(bI++)));
 
    return Z;
 }
@@ -1472,7 +1472,7 @@ const ShapeItem len_B = B.element_count();
 ShapeItem len_Z = B.element_count();
    loop(b, len_B)
        {
-         const cValue & Bb = *B.get_cravel(b).get_pointer_value();
+         const cValue & Bb = *B.get_pointer_value(b);
          if (Bb.get_rank() > 1)   RANK_ERROR;
          len_Z += 1 + Bb.element_count();
        }
@@ -1481,7 +1481,7 @@ UCS_string UZ;
    UZ.reserve(len_Z);
    loop(b, len_B)
        {
-         const cValue & Bb = *B.get_cravel(b).get_pointer_value();
+         const cValue & Bb = *B.get_pointer_value(b);
          UCS_string Ub(Bb);
          UZ << Ub << UNI_LF;
        }
@@ -1502,7 +1502,7 @@ Quad_CR::do_CR38(cValue_R B)
 
    if (B.is_scalar())   // return a structured value with B unused rows
       {
-        APL_Integer capacity = B.get_cfirst().get_near_int();
+        APL_Integer capacity = B.get_near_int(0);
         if (capacity < 0)   DOMAIN_ERROR;
         if (capacity < 8)   return EmptyStruct(LOC);
 
@@ -1676,7 +1676,7 @@ Value_P Z(B.get_shape(), LOC);
 const ShapeItem B_len = B.element_count();
 
    loop(b, B_len)
-      Z->next_ravel_Int(B.get_cravel(b).get_int_value());
+      Z->next_ravel_Int(B.get_int_value(b));
 
    return Z;
 }
@@ -1929,8 +1929,20 @@ const ShapeItem ec = value.element_count();
              }
           else if (cell.is_complex_cell())
              {
-               result << cell.get_real_value() << UNI_J
-                      << cell.get_imag_value();
+               const APL_Float cr = cell.get_real_value();
+               const APL_Float ci = cell.get_imag_value();
+               if (ci == 0.0)
+                  {
+                    const APL_Float fl = floor(cr);
+                    if (fl == cr && fl >= -9.0e18 && fl <= 9.0e18)
+                       result << APL_Integer(fl);
+                    else
+                       result << cr;
+                  }
+               else
+                  {
+                    result << cr << UNI_J << ci;
+                  }
              }
           else if (cell.is_pointer_cell())
              {
@@ -2012,9 +2024,9 @@ int ascii_len = 0;
          //
          if (ascii_len >= 3)   return true;
 
-         if (!value->get_cravel(pos).is_character_cell())   break;
+         if (!value->is_character_cell(pos))   break;
          ++char_len;
-         const Unicode uni = value->get_cravel(pos).get_char_value();
+         const Unicode uni = value->get_char_value(pos);
          if (uni >= ' ' && uni <= 0x7E)   ++ascii_len;
          else                             break;
        }

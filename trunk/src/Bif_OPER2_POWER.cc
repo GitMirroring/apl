@@ -111,7 +111,7 @@ cFunction_P LO = _LO.get_function();
         else                     LENGTH_ERROR;
       }
 
-   if (!N->get_cfirst().is_near_int())   DOMAIN_ERROR;
+   if (!N->is_near_int(0))   DOMAIN_ERROR;
 ShapeItem repeat_cnt = N->get_cfirst().get_checked_near_int();
 
    // special cases: 0, negative, and 1
@@ -201,8 +201,8 @@ cFunction_P RO = _RO.get_function();   Assert(RO);
          Assert(result_RO.get_Class() == TC_VALUE);
          Value_P condition = result_RO.get_apl_val();
          if (condition->is_scalar_extensible() &&
-             condition->get_cfirst().is_near_bool() &&
-             condition->get_cfirst().get_near_int() == 1)
+             condition->is_near_bool(0) &&
+             condition->get_near_int(0) == 1)
             return Token(TOK_APL_VALUE1, LO_Z);
 
          if (InterruptContext::interrupt_is_raised())

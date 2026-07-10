@@ -1,6 +1,8 @@
 ⍝ Logarithm.tc
 ⍝ ════════════
 
+⍝@ test4.
+
       ⎕IO←1
 
       ⍝ Precond: A and B numeric nonzero; Z numeric

@@ -1,6 +1,8 @@
 ⍝ Quad_DLX.tc
 ⍝ ----------------------------------
 
+⍝@ test3.
+
       ⍝ ]log 43
 
       ⍝ Knuth's example

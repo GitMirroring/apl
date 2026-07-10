@@ -37,7 +37,7 @@ const ShapeItem len_A = A.element_count();
 
    loop(a, len_A)
       {
-        add_shape_item(A.get_cravel(a).get_near_int() - qio_A);
+        add_shape_item(A.get_near_int(a) - qio_A);
       }
 }
 //────────────────────────────────────────────────────────────────────────────
@@ -51,7 +51,7 @@ const ShapeItem len_A = A.element_count();
 
    loop(a, len_A)
       {
-        add_shape_item(A.get_cravel(a).get_near_int() - qio_A);
+        add_shape_item(A.get_near_int(a) - qio_A);
       }
 }
 //────────────────────────────────────────────────────────────────────────────

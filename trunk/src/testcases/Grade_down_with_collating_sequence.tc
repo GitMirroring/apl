@@ -1,6 +1,8 @@
 ⍝ Grade_down_with_collating_sequence
 ⍝ ----------------------------------
 
+⍝@ test3.
+
       ⎕IO←1
       'ABCDE'⍒'BEAD'
 2 4 1 3

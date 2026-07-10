@@ -1,6 +1,8 @@
 ⍝ Member.tc
 ⍝ ----------------------------------
 
+⍝@ test3.
+
       ⍝ character compatibility
       1ϵ1 2 3   ⍝ ⎕UCS 1013   U+03F5
 1

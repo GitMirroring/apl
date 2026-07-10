@@ -1,6 +1,8 @@
 ⍝ GradeDown.tc
 ⍝ ════════════
 
+⍝@ test4.
+
       ⎕IO←1
 
       ⍝ Precond: B simple nonscalar numeric; implicit ⎕IO

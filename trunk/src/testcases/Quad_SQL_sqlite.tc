@@ -1,6 +1,8 @@
 ⍝ Quad_SQL.tc
 ⍝ ----------------------------------
 
+⍝@ test3.
+
       ]NEXTFILE no-SQLITE3   ⍝ done if SQLITE3 is not available
 
       Filename ← "testcases/test_Quad_SQL.db"

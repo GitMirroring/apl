@@ -870,23 +870,37 @@ int num = 0;
 void
 Value::to_type(bool force_numeric)
 {
-   loop(e, nz_element_count())
+const ShapeItem ec = nz_element_count();
+const RavelType rt = get_ravel_type();
+
+   if (rt == RPT_CELLS)   // only RPT_CELLS can have pointer or mixed cells
       {
-        Cell & cell = get_wravel(e);
-        if (cell.is_pointer_cell())
+        loop(e, ec)
            {
-             PointerCell & ptr_cell = reinterpret_cast<PointerCell &>(cell);
-             ptr_cell.isolate(LOC);
-             ptr_cell.get_pointer_value()->to_type(force_numeric);
+             Cell & cell = get_wravel(e);
+             if (cell.is_pointer_cell())
+                {
+                  PointerCell & ptr_cell = reinterpret_cast<PointerCell &>(cell);
+                  ptr_cell.isolate(LOC);
+                  ptr_cell.get_pointer_value()->to_type(force_numeric);
+                }
+             else if (cell.is_character_cell() && ! force_numeric)
+                {
+                  set_ravel_Char(e, UNI_SPACE);
+                }
+             else
+                {
+                  set_ravel_Int(e, 0);
+                }
            }
-        else if (cell.is_character_cell() && ! force_numeric)
-           {
-             set_ravel_Char(e, UNI_SPACE);
-           }
-        else
-           {
-             set_ravel_Int(e, 0);
-           }
+      }
+   else if ((rt & RPT_char) && !force_numeric)
+      {
+        loop(e, ec)   set_ravel_Char(e, UNI_SPACE);
+      }
+   else
+      {
+        loop(e, ec)   set_ravel_Int(e, 0);
       }
 }
 //────────────────────────────────────────────────────────────────────────────
@@ -972,7 +986,7 @@ Cell * dst = ravel.cells + N;
    ravel.valid_ravel_items = N;
 }
 //────────────────────────────────────────────────────────────────────────────
-void
+RavelType
 Value::explode_to_UNICODE32()
 {
    Assert(get_ravel_type() == RPT_UNICODE16);
@@ -993,9 +1007,10 @@ auto src = reinterpret_cast<const uint16_t *>(ravel.cells) + N;
    flags.ravel_type        = RPT_UNICODE32;
    ravel.fetcher           = &Ravel::cell_fetcher;
    ravel.valid_ravel_items = N;
+   return RPT_UNICODE32;
 }
 //────────────────────────────────────────────────────────────────────────────
-void
+RavelType
 Value::explode_to_COMPLEX()
 {
    /*
@@ -1007,7 +1022,7 @@ Value::explode_to_COMPLEX()
     */
 
 const ShapeItem N = nz_element_count();
-auto dst = reinterpret_cast<uint32_t *>(ravel.cells) + 2 * N;
+auto dst = reinterpret_cast<double *>(ravel.cells) + 2 * N;
 
    switch(get_ravel_type())
       {
@@ -1052,9 +1067,10 @@ auto dst = reinterpret_cast<uint32_t *>(ravel.cells) + 2 * N;
    flags.ravel_type        = RPT_COMPLEX;
    ravel.fetcher           = &Ravel::complex_fetcher;
    ravel.valid_ravel_items = N;
+   return RPT_COMPLEX;
 }
 //────────────────────────────────────────────────────────────────────────────
-void
+RavelType
 Value::explode_to_FLOAT64()
 {
    /*
@@ -1095,9 +1111,10 @@ auto dst = reinterpret_cast<double *>(ravel.cells) + N;
    flags.ravel_type        = RPT_FLOAT64;
    ravel.fetcher           = &Ravel::float64_fetcher;
    ravel.valid_ravel_items = N;
+   return RPT_FLOAT64;
 }
 //────────────────────────────────────────────────────────────────────────────
-void
+RavelType
 Value::explode_to_INT64()
 {
    /*
@@ -1121,6 +1138,7 @@ auto dst = reinterpret_cast<int64_t *>(ravel.cells) + N;
    flags.ravel_type        = RPT_INT64;
    ravel.fetcher           = &Ravel::int64_fetcher;
    ravel.valid_ravel_items = N;
+   return RPT_INT64;
 }
 //────────────────────────────────────────────────────────────────────────────
 const char *
@@ -1171,7 +1189,7 @@ Value::try_pack(bool force)
    if (pointer_cell_count)   return;   // nested sub-values → cannot pack
 
 const ShapeItem N = element_count();
-   if (N < PACKED_MINIMUM_LENGHT)
+   if (N < Quad_SYL::pack_min_length)
       {
         if (N == 0)   return;   // empty arrays have only a prototype — don't pack
         if (!force)   return;
@@ -1182,9 +1200,11 @@ const ShapeItem N = element_count();
    //
 const Cell & c0 = ravel.cells[0];
 RavelType t;
+bool has_inexact_int = false;   // any seen INT64 not exactly representable as double
    if (c0.is_integer_cell())
       { const APL_Integer v = c0.get_int_value();
         t = (v == 0 || v == 1) ? RPT_BOOL : RPT_INT64;
+        if (v > (1LL << 53) || v < -(1LL << 53))   has_inexact_int = true;
       }
    else if (c0.is_float_cell())      t = RPT_FLOAT64;
    else if (c0.is_complex_cell())    t = RPT_COMPLEX;
@@ -1203,13 +1223,22 @@ RavelType t;
                    { const APL_Integer v = c.get_int_value();
                      const RavelType item_t = (v == 0 || v == 1) ? RPT_BOOL : RPT_INT64;
                      if (t == RPT_BOOL && item_t == RPT_INT64)   t = RPT_INT64;
-                     else if (t != RPT_BOOL && t != RPT_INT64 && t != RPT_FLOAT64 && t != RPT_COMPLEX)
-                     return;   // numeric + char → mixed
+                     else if (t == RPT_FLOAT64 || t == RPT_COMPLEX)
+                        { if (v > (1LL << 53) || v < -(1LL << 53))   return; }
+                     else if (t != RPT_BOOL && t != RPT_INT64)
+                        return;   // numeric + char → mixed
+                     if ((t == RPT_BOOL || t == RPT_INT64)
+                         && (v > (1LL << 53) || v < -(1LL << 53)))
+                        has_inexact_int = true;
                    }
                    break;
 
               case CT_FLOAT:
-                   if      (t == RPT_BOOL || t == RPT_INT64)   t = RPT_FLOAT64;
+                   if (t == RPT_BOOL || t == RPT_INT64)
+                      {
+                        if (has_inexact_int)   return;   // would lose int precision
+                        t = RPT_FLOAT64;
+                      }
                    else if (t != RPT_FLOAT64 && t != RPT_COMPLEX)   return;
                    break;
 
@@ -1369,7 +1398,7 @@ Value::pack_like(const cValue & B)
    if (pointer_cell_count)   return;
 
 const ShapeItem N = nz_element_count();
-   if (N < PACKED_MINIMUM_LENGHT)   return;
+   if (N < Quad_SYL::pack_min_length)   return;
 
    switch (B.get_ravel_type())
       {
@@ -1470,12 +1499,12 @@ Value::assign_cell(ShapeItem offset, const Cell & C, const char * loc)
 
    if (is_packed())
       {
-        const RavelType rt = get_ravel_type();   // current packing
+        RavelType rt = get_ravel_type();   // current packing
         switch(C.get_cell_type())                // next Cell
            {
              case CT_INT:
                   {
-                    if (rt == RPT_BOOL)   explode_to_INT64();   // B. → A.
+                    if (rt == RPT_BOOL)   rt = explode_to_INT64();   // B→A
 
                     const APL_Integer v = C.get_int_value();
                     if (rt == RPT_INT64)   // A.
@@ -1483,13 +1512,13 @@ Value::assign_cell(ShapeItem offset, const Cell & C, const char * loc)
                          reinterpret_cast<int64_t *>(ravel.cells)[offset] = v;
                          return;   // compatible
                        }
-                    else if (rt == RPT_FLOAT64)   // C.
+                    else if (rt == RPT_FLOAT64)   // C
                        {
                          reinterpret_cast<double *>
                                          (ravel.cells)[offset] = double(v);
                          return;   // compatible
                        }
-                    else if (rt == RPT_COMPLEX)   // C.
+                    else if (rt == RPT_COMPLEX)   // C
                        {
                          auto p = reinterpret_cast<double *>
                                                   (ravel.cells) + 2*offset;
@@ -1503,7 +1532,7 @@ Value::assign_cell(ShapeItem offset, const Cell & C, const char * loc)
 
              case CT_FLOAT:
                   {
-                    if (rt & RPT_integer)   explode_to_FLOAT64();   // B. → A.
+                    if (rt & RPT_integer)   rt = explode_to_FLOAT64();   // B→A
 
                     const APL_Float f = C.get_real_value();
                     if (rt == RPT_FLOAT64)   // A.
@@ -1525,7 +1554,7 @@ Value::assign_cell(ShapeItem offset, const Cell & C, const char * loc)
                   break;
 
              case CT_COMPLEX:
-                  if (rt & RPT_real)   explode_to_COMPLEX();   // B. → A.
+                  if (rt & RPT_real)   rt = explode_to_COMPLEX();   // B→A
                   if (rt == RPT_COMPLEX)   // A.
                      {
                        auto p = reinterpret_cast<double *>
@@ -1541,7 +1570,7 @@ Value::assign_cell(ShapeItem offset, const Cell & C, const char * loc)
                   {
                     const Unicode u = C.get_char_value();
                     if (rt == RPT_UNICODE16 && u > Unicode(0xFFFF))
-                       explode_to_UNICODE32();   // B. → A.
+                       rt = explode_to_UNICODE32();   // B. → A.
 
                     if (rt == RPT_UNICODE16)   // most likely
                        {

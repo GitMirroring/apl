@@ -720,7 +720,7 @@ const ShapeItem max_idx = Z->element_count();
        B->is_scalar() &&     // B is a scalar, and
        Z->get_rank() == 1)   // Z is a vector
       {
-        const APL_Integer idx = X->get_cfirst().get_near_int() - qio;
+        const APL_Integer idx = X->get_near_int(0) - qio;
         if (idx >= 0 && idx < max_idx)   // idx is a valid index of Z
            {
              Z->assign_cell(idx, B->get_cfirst(), LOC);
@@ -750,7 +750,7 @@ ShapeItem idxB = 0;
 
    loop(x, ec_X)
       {
-        const ShapeItem idx = X->get_cravel(idxX++).get_near_int() - qio;
+        const ShapeItem idx = X->get_near_int(idxX++) - qio;
         if (idx < 0)          INDEX_ERROR;
         if (idx >= max_idx)   INDEX_ERROR;
         const Cell & cB = B->get_cravel(idxB);

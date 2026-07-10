@@ -1,6 +1,8 @@
 ⍝ Bracket_Index.tc
 ⍝ ----------------------------------
 
+⍝@ test3.
+
       LANG←'APPLE PIE'
       LANG[1 7 4]
 APL

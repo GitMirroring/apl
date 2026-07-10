@@ -1,6 +1,8 @@
 ⍝ Index.tc
 ⍝ ════════
 
+⍝@ test4.
+
       ⎕IO←1
 
       ⍝ Precond: A scalar/vector nonneg int depth≤2; B any; implicit ⎕IO

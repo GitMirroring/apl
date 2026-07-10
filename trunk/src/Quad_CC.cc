@@ -164,12 +164,12 @@ Value_P Z(A.get_shape(), LOC);
  
    loop(a, A.element_count())
        {
-         const Unicode uni_a = A.get_cravel(a).get_char_value();
+         const Unicode uni_a = A.get_char_value(a);
          bool found = false;
          loop(b, B.element_count())
              {
                const CC_base::CharClass cc =
-                     CC_base::CharClass(B.get_cravel(b).get_int_value());
+                     CC_base::CharClass(B.get_int_value(b));
                if (contained_in(uni_a, cc))
                   {
                     found = true;
@@ -197,7 +197,7 @@ Quad_CC::eval_B(cValue_R B) const
    if (B.is_scalar())
       {
         const CC_base::CharClass b =
-              CC_base::CharClass(B.get_cfirst().get_int_value());
+              CC_base::CharClass(B.get_int_value(0));
         Value_P Z = get_character_class(b);
         return Token(TOK_APL_VALUE1, Z);
       }
@@ -206,7 +206,7 @@ Value_P Z(B.get_shape(), LOC);
    loop(b, B.element_count())
        {
          const CC_base::CharClass bb =
-               CC_base::CharClass(B.get_cravel(b).get_int_value());
+               CC_base::CharClass(B.get_int_value(b));
         Value_P ZZ = get_character_class(bb);
         Z->next_ravel_Pointer(ZZ.get());
        }

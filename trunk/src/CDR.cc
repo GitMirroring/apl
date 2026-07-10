@@ -326,7 +326,7 @@ const uint32_t nelm = val.element_count();
         loop(e, nelm)
            {
              const int bit = e%8;
-             const APL_Integer i = val.get_cravel(e).get_int_value();
+             const APL_Integer i = val.get_int_value(e);
              Assert(i == 0 || i == 1);
              if (i)   accu |= 0x80 >> bit;
              if (bit == 7)
@@ -346,7 +346,7 @@ const uint32_t nelm = val.element_count();
       {
         loop(e, nelm)
            {
-             uint64_t i = val.get_cravel(e).get_int_value();
+             uint64_t i = val.get_int_value(e);
              result.push_back(Unicode(i & 0xFF));   i >>= 8;
              result.push_back(Unicode(i & 0xFF));   i >>= 8;
              result.push_back(Unicode(i & 0xFF));   i >>= 8;
@@ -358,7 +358,7 @@ const uint32_t nelm = val.element_count();
       {
         loop(e, nelm)
            {
-             const APL_Float v = val.get_cravel(e).get_real_value();
+             const APL_Float v = val.get_real_value(e);
              const APL_Float * dv = &v;
              uint64_t i = *reinterpret_cast<const uint64_t *>(dv);
              result.push_back(Unicode(i & 0xFF));   i >>= 8;
@@ -375,7 +375,7 @@ const uint32_t nelm = val.element_count();
       {
         loop(e, nelm)
            {
-             APL_Float v = val.get_cravel(e).get_real_value();
+             APL_Float v = val.get_real_value(e);
              const APL_Float * dv = &v;
              uint64_t i = *reinterpret_cast<const uint64_t *>(dv);
              result.push_back(Unicode(i & 0xFF));   i >>= 8;
@@ -387,7 +387,7 @@ const uint32_t nelm = val.element_count();
              result.push_back(Unicode(i & 0xFF));   i >>= 8;
              result.push_back(Unicode(i & 0xFF));   i >>= 8;
 
-             v = val.get_cravel(e).get_imag_value();
+             v = val.get_imag_value(e);
              dv = &v;
              i = *reinterpret_cast<const uint64_t *>(dv);
              result.push_back(Unicode(i & 0xFF));   i >>= 8;
@@ -404,7 +404,7 @@ const uint32_t nelm = val.element_count();
       {
         loop(e, nelm)
            {
-             const Unicode uni = val.get_cravel(e).get_char_value();
+             const Unicode uni = val.get_char_value(e);
              Assert(uni >= 0);
              Assert(uni < 256);
              result.push_back(uni);
@@ -414,7 +414,7 @@ const uint32_t nelm = val.element_count();
       {
         loop(e, nelm)
            {
-             uint32_t i = val.get_cravel(e).get_char_value();
+             uint32_t i = val.get_char_value(e);
              result.push_back(Unicode(i & 0xFF));   i >>= 8;
              result.push_back(Unicode(i & 0xFF));   i >>= 8;
              result.push_back(Unicode(i & 0xFF));   i >>= 8;

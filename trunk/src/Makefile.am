@@ -332,6 +332,30 @@ test4: all
 	./apl --id 1010 -T testcases/invariants/*tc || true
 	stty sane
 
+# Create/refresh testcases_3/ and testcases_4/ symlink directories from ⍝@ markers.
+# install-data-hook calls this so 'make install' (typically run as root) sets them up;
+# chown restores ownership to match the src directory.
+.PHONY:	install-testlinks
+install-data-hook: install-testlinks
+install-testlinks:
+	$(MKDIR_P) testcases_3 testcases_4
+	chown -R "$$(stat -c '%u:%g' .)" testcases_3 testcases_4
+	for f in testcases/*.tc; do \
+	  name=$$(basename "$$f"); \
+	  if head -10 "$$f" | grep -q '@ test3\.'; then \
+	    ln -sf "../testcases/$$name" "testcases_3/$$name"; \
+	  fi; \
+	  if head -10 "$$f" | grep -q '@ test4\.'; then \
+	    ln -sf "../testcases/$$name" "testcases_4/$$name"; \
+	  fi; \
+	done
+	for f in testcases/invariants/*.tc; do \
+	  name=$$(basename "$$f"); \
+	  if head -10 "$$f" | grep -q '@ test4\.'; then \
+	    ln -sf "../testcases/invariants/$$name" "testcases_4/$$name"; \
+	  fi; \
+	done
+
 perf: apl
 	./apl --id 1010 --TM 3 -T testcases/Performance.pt
 

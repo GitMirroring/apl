@@ -35,6 +35,7 @@
 #include "Output.hh"
 #include "ScalarFunction.hh"
 #include "Sys.hh"
+#include "SystemVariable.hh"
 #include "UserPreferences.hh"
 #include "Workspace.hh"
 
@@ -234,6 +235,7 @@ UserPreferences::usage(const char * prog)
 "    --OFF                automatically )OFF after last input file\n"
 "    -p N                 use profile N in preferences files\n"
 "    --par proc           use processor parent ID proc (default: no parent)\n"
+"    --pack_min N         min. element count for packed ravels (sets ⎕SYL[34;2])\n"
 "    --PW value           initial value of ⎕PW\n"
 "    -q, --silent         do not print the welcome banner\n"
 "    -s, --script         shortcut for --silent --noCIN --noCONT --noColor\n"
@@ -946,6 +948,26 @@ UserPreferences::parse_args_2(bool logit)
                    exit(a);
                  }
               wait_ms = atoi(val);
+              continue;
+            }
+
+         IFOPT( --pack_min )
+            {
+              ++a;
+              if (!val)
+                {
+                  CERR << "--pack_min without element count" << endl;
+                  exit(a);
+                }
+              const int n = atoi(val);
+              if (n < 1)
+                {
+                  CERR << "--pack_min value must be ≥ 1 (ignored)" << endl;
+                }
+              else
+                {
+                  Quad_SYL::pack_min_length = n;
+                }
               continue;
             }
 

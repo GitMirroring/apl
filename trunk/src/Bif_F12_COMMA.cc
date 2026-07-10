@@ -60,11 +60,11 @@ const APL_Integer qio = Workspace::get_IO();
 
    // case 2:   ,[x.y]B : insert axis before axis x+1
    //
-   if (!X.get_cfirst().is_near_int())  // fraction: insert an axis
+   if (!X.is_near_int(0))  // fraction: insert an axis
       {
         if (B.get_rank() == MAX_RANK)   INDEX_ERROR;
 
-        const APL_Float new_axis = X.get_cfirst().get_real_value() - qio;
+        const APL_Float new_axis = X.get_real_value(0) - qio;
         sAxis axis = new_axis;   if (new_axis < 0.0)   axis = -1;
         const Shape shape_Z = B.get_shape().insert_axis(axis + 1, 1);
         return ravel(shape_Z, B);

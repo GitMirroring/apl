@@ -1,6 +1,8 @@
 ⍝ Compress.tc
 ⍝ ═══════════
 
+⍝@ test4.
+
       ⎕IO←1
 
       ⍝ Precond: LO Boolean scalar or vector; B nonscalar

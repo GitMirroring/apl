@@ -1,6 +1,8 @@
 ⍝ Quad_CR.tc
 ⍝ monadic ----------------------------------
 
+⍝@ test3.
+
       )ERASE TOTAL
 ∇Z←TOTAL R
 Z←+/R

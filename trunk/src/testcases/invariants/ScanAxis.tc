@@ -1,6 +1,8 @@
 ⍝ ScanAxis.tc
 ⍝ ═══════════
 
+⍝@ test4.
+
       ⎕IO←1
 
       ⍝ Precond: LO dyadic; X∊⍳⍴⍴B; implicit ⎕IO

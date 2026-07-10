@@ -625,7 +625,7 @@ ConstRavel_P iA(A, true);
         CellType ct_a = CT_INT;
         loop(h, aL)
             {
-              const CellType ct = A.get_cravel(a + h*aH).get_cell_type();
+              const CellType ct = A.get_cell_type(a + h*aH);
               if (ct == CT_INT)            ;
               else if (ct == CT_FLOAT)     { if (ct_a == CT_INT)  ct_a = ct; }
               else if (ct == CT_COMPLEX)   ct_a = CT_COMPLEX;
@@ -635,7 +635,7 @@ ConstRavel_P iA(A, true);
         for (ConstRavel_P iB(B, true); +iB; ++iB)
             {
               CellType ct = ct_a;
-              const CellType ct_b = B.get_cfirst().get_cell_type();
+              const CellType ct_b = B.get_cell_type(0);
               if (ct_b == CT_INT)            ;
               else if (ct_b == CT_FLOAT)     { if (ct == CT_INT)  ct = ct_b; }
               else if (ct_b == CT_COMPLEX)   ct = CT_COMPLEX;
@@ -811,47 +811,63 @@ Bif_F12_ENCODE::get_X0(APL_Integer A0, const cValue & B)
    //
 int64_t min_B = 0x7FFFFFFFFFFFFFFF;   // smallest item in B
 int64_t max_B = 0x8000000000000000;   // largest item in B
-   loop(b, B.element_count())
-      {
-        const Cell & cell = B.get_cravel(b);
-        if (cell.is_integer_cell())
+const RavelType rt = B.get_ravel_type();
+   if (rt == RPT_CELLS)
+      { loop(b, B.element_count())
            {
-             const APL_Integer value = cell.get_int_value();
-             if (min_B > value)   min_B = value;
-             if (max_B < value)   max_B = value;
-           }
-        else if (cell.is_float_cell())
-           {
-             const APL_Integer value = cell.get_near_int();
-             if (min_B > value)   min_B = value;
-             if (max_B < value)   max_B = value;
-           }
-        else if (cell.is_complex_cell())
-           {
-             // there is no irect way to get the near-int values of ComplexCell, s owe
-             // split it into two FloatCells.
-             const FloatCell real_cell(cell.get_real_value());
-             const FloatCell imag_cell(cell.get_imag_value());
-             if (!(real_cell.is_near_int64_t() && imag_cell.is_near_int64_t()))
+             const Cell & cell = B.get_cravel(b);
+             if (cell.is_integer_cell())
                 {
-                  MORE_ERROR() << "A ⊤[X] B: complex number " << cell
-                               << " in B is not near int.";
-                  DOMAIN_ERROR;
+                  const APL_Integer value = cell.get_int_value();
+                  if (min_B > value)   min_B = value;
+                  if (max_B < value)   max_B = value;
                 }
-
-             const APL_Integer real_value = real_cell.get_near_int();
-             if (min_B > real_value)   min_B = real_value;
-             if (max_B < real_value)   max_B = real_value;
-             const APL_Integer imag_value = imag_cell.get_near_int();
-             if (min_B > imag_value)   min_B = imag_value;
-             if (max_B < imag_value)   max_B = imag_value;
-           }
-        else
-           {
-             MORE_ERROR() << "A ⊤[X] B: invalid Cell type in B";
-             DOMAIN_ERROR;
+             else if (cell.is_float_cell())
+                {
+                  const APL_Integer value = cell.get_near_int();
+                  if (min_B > value)   min_B = value;
+                  if (max_B < value)   max_B = value;
+                }
+             else if (cell.is_complex_cell())
+                {
+                  const FloatCell real_cell(cell.get_real_value());
+                  const FloatCell imag_cell(cell.get_imag_value());
+                  if (!(real_cell.is_near_int64_t() && imag_cell.is_near_int64_t()))
+                     {
+                       MORE_ERROR() << "A ⊤[X] B: complex number " << cell
+                                    << " in B is not near int.";
+                       DOMAIN_ERROR;
+                     }
+                  const APL_Integer real_value = real_cell.get_near_int();
+                  if (min_B > real_value)   min_B = real_value;
+                  if (max_B < real_value)   max_B = real_value;
+                  const APL_Integer imag_value = imag_cell.get_near_int();
+                  if (min_B > imag_value)   min_B = imag_value;
+                  if (max_B < imag_value)   max_B = imag_value;
+                }
+             else
+                { MORE_ERROR() << "A ⊤[X] B: invalid Cell type in B";
+                  DOMAIN_ERROR; }
            }
       }
+   else if (rt & RPT_integer)   // RPT_INT64 or RPT_BOOL
+      { loop(b, B.element_count())
+           {
+             const APL_Integer value = B.get_int_value(b);
+             if (min_B > value)   min_B = value;
+             if (max_B < value)   max_B = value;
+           }
+      }
+   else if (rt == RPT_FLOAT64)
+      { loop(b, B.element_count())
+           {
+             const APL_Integer value = B.get_near_int(b);
+             if (min_B > value)   min_B = value;
+             if (max_B < value)   max_B = value;
+           }
+      }
+   else
+      { MORE_ERROR() << "A ⊤[X] B: invalid Cell type in B"; DOMAIN_ERROR; }
 
 const uint64_t abs_A0 = A0 < 0 ? -A0 : A0;
 const uint64_t log_A0 = 0x8000000000000000 / abs_A0;
@@ -923,14 +939,14 @@ ShapeItem idxA = 0;
          bool integer_A = true;
          loop(aa, l_len_A)
              {
-                if (!A.get_cravel(idxA + aa).is_near_real())
+                if (!A.is_near_real(idxA + aa))
                    {
                      complex_A = true;
                      integer_A = false;
                      break;
                    }
 
-                if (!A.get_cravel(idxA + aa).is_near_int())   integer_A = false;
+                if (!A.is_near_int(idxA + aa))   integer_A = false;
              }
 
          loop(l, l_len_B)
@@ -941,14 +957,14 @@ ShapeItem idxA = 0;
                 bool integer_B = true;
                 loop(bb, h_len_B)
                     {
-                      if (!B.get_cravel(l + bb*l_len_B).is_near_real())
+                      if (!B.is_near_real(l + bb*l_len_B))
                          {
                            complex_B = true;
                            integer_B = false;
                            break;
                          }
 
-                      if (!B.get_cravel(l + bb*l_len_B).is_near_int())
+                      if (!B.is_near_int(l + bb*l_len_B))
                          integer_B = false;
                     }
 
@@ -995,8 +1011,8 @@ APL_Complex weight(1.0, 0.0);
       {
         idxA -= dec_A;
         idxB -= dec_B;
-        accu += weight*VB.get_cravel(idxB).get_complex_value();
-        weight *= VA.get_cravel(idxA).get_complex_value();
+        accu += weight*VB.get_complex_value(idxB);
+        weight *= VA.get_complex_value(idxA);
       }
 
    Z.next_ravel_Number(accu);
@@ -1034,14 +1050,14 @@ APL_Float weight_f = 1.0;
         if (weight_f > LARGE_INT)   return true;
         if (weight_f < SMALL_INT)   return true;
 
-        const APL_Integer vB = VB.get_cravel(idxB).get_near_int();
+        const APL_Integer vB = VB.get_near_int(idxB);
         value   = value   + weight   * vB;
         value_f = value_f + weight_f * vB;
         if (value_f > LARGE_INT)   return true;
         if (value_f < SMALL_INT)   return true;
 
-        weight   = weight   * VA.get_cravel(idxA).get_near_int();
-        weight_f = weight_f * VA.get_cravel(idxA).get_near_int();
+        weight   = weight   * VA.get_near_int(idxA);
+        weight_f = weight_f * VA.get_near_int(idxA);
       }
 
    Z.next_ravel_Int(value);
@@ -1068,8 +1084,8 @@ APL_Float weight = 1.0;
       {
         idxA -= dec_A;
         idxB -= dec_B;
-        accu += weight * VB.get_cravel(idxB).get_real_value();
-        weight *= VA.get_cravel(idxA).get_real_value();
+        accu += weight * VB.get_real_value(idxB);
+        weight *= VA.get_real_value(idxA);
       }
 
    Z.next_ravel_Number(accu);
@@ -1138,7 +1154,7 @@ const Shape shape_A2(shape_B3.h(), shape_B3.l());
 
    if (A.is_scalar_or_len1_vector())
       {
-        gsh = A.get_cfirst().get_near_int();
+        gsh = A.get_near_int(0);
         if (gsh == 0)   // nothing to do.
            {
              Token result(TOK_APL_VALUE1, CLONE(&B, LOC));
@@ -1164,7 +1180,7 @@ const ShapeItem ebytes = B.packed_bytes_per_item();
         loop(l, shape_B3.l())
             {
               ShapeItem src = gsh;
-              if (!src)   src = A.get_cravel(l + h*shape_B3.l()).get_near_int();
+              if (!src)   src = A.get_near_int(l + h*shape_B3.l());
               src += shape_B3.m() + m;
               while (src < 0)               src += shape_B3.m();
               while (src >= shape_B3.m())   src -= shape_B3.m();
@@ -1182,7 +1198,7 @@ const ShapeItem ebytes = B.packed_bytes_per_item();
         loop(l, shape_B3.l())
             {
               ShapeItem src = gsh;
-              if (!src)   src = A.get_cravel(l + h*shape_B3.l()).get_near_int();
+              if (!src)   src = A.get_near_int(l + h*shape_B3.l());
               src += shape_B3.m() + m;
               while (src < 0)               src += shape_B3.m();
               while (src >= shape_B3.m())   src -= shape_B3.m();
@@ -1602,9 +1618,9 @@ Value * vB = static_cast<Value *>(const_cast<cValue *>(&B));
         if (rest == 0)   // Z is empty
            {
              rest = 1;
-             if (B.get_cproto().is_pointer_cell())
+             if (B.is_pointer_cell(0))
                 {
-                  B.get_cproto().get_pointer_value()->to_type(false);
+                  B.get_pointer_value(0)->to_type(false);
                 }
              else
                 {
@@ -1764,8 +1780,18 @@ const ShapeItem len_B = B.element_count();
    //
 vector<const Cell *> cells_B;
    cells_B.reserve(len_B);
+vector<uint8_t> stable_B_mem;
 
-   loop(b, len_B)   cells_B.push_back(&B.get_cravel(b));
+   if (B.is_packed())
+      {
+        stable_B_mem.resize(len_B * sizeof(Cell));
+        Cell * p = reinterpret_cast<Cell *>(stable_B_mem.data());
+        loop(b, len_B)   { B.get_cravel(b, p[b]);   cells_B.push_back(p + b); }
+      }
+   else
+      {
+        loop(b, len_B)   cells_B.push_back(&B.get_cravel(b));
+      }
    Heapsort<const Cell *>::sort(cells_B, Cell::compare_stable, 0);
 
    // 2. remove duplicates
@@ -1809,15 +1835,27 @@ const double qct = Workspace::get_CT();
         vector<const Cell *> cells_A;
         vector<const Cell *> cells_B;
         vector<const Cell *> cells_Z;
+        vector<uint8_t> stable_A_mem, stable_B_mem;
         try {
               cells_A.reserve(len_A);
               cells_B.reserve(len_B);
               cells_Z.reserve(len_A + len_B);   // worst case
+              if (A.is_packed())   stable_A_mem.resize(len_A * sizeof(Cell));
+              if (B.is_packed())   stable_B_mem.resize(len_B * sizeof(Cell));
             } catch (std::bad_alloc &) { WS_FULL; }
               catch (...)              { FIXME; }
 
-        loop(a, len_A)   cells_A.push_back(&A.get_cravel(a));
-        loop(b, len_B)   cells_B.push_back(&B.get_cravel(b));
+        if (A.is_packed())
+           { Cell * p = reinterpret_cast<Cell *>(stable_A_mem.data());
+             loop(a, len_A)   { A.get_cravel(a, p[a]);   cells_A.push_back(p + a); } }
+        else
+           { loop(a, len_A)   cells_A.push_back(&A.get_cravel(a)); }
+
+        if (B.is_packed())
+           { Cell * p = reinterpret_cast<Cell *>(stable_B_mem.data());
+             loop(b, len_B)   { B.get_cravel(b, p[b]);   cells_B.push_back(p + b); } }
+        else
+           { loop(b, len_B)   cells_B.push_back(&B.get_cravel(b)); }
 
         Heapsort<const Cell *>::sort(cells_A, Cell::compare_stable, 0);
         Heapsort<const Cell *>::sort(cells_B, Cell::compare_stable, 0);
@@ -1855,22 +1893,31 @@ const double qct = Workspace::get_CT();
     else
       {
         // small A and B: use quadratic time algorithm.
+        // Collect matching A indices rather than Cell pointers: get_cravel()
+        // on a packed Value returns a reference to its shared cell_fetch_cache,
+        // which is overwritten by each subsequent call.
         //
-        vector<const Cell *> cells_Z;
-        cells_Z.reserve(len_A);
+        vector<ShapeItem> indices_Z;
+        indices_Z.reserve(len_A);
 
-        for (ConstRavel_P a(A, true); +a; ++a)
-        for (ConstRavel_P b(B, true); +b; ++b)
+        Cell a_cache;
+        for (ShapeItem a = 0; a < len_A; ++a)
             {
-              if (a->equal(*b, qct))
-                 {
-                   cells_Z.push_back(&*a);
-                   break;   // loop(b)
-                 }
+              const Cell & ca = A.get_cravel(a, a_cache);
+              loop(b, len_B)
+                  {
+                    if (ca.equal(B.get_cravel(b), qct))
+                       {
+                         indices_Z.push_back(a);
+                         break;
+                       }
+                  }
             }
 
-        Value_P Z(cells_Z.size(), LOC);
-        loop(z, cells_Z.size())   Z->next_ravel_Cell(*cells_Z[z]);
+        Value_P Z(indices_Z.size(), LOC);
+        Cell iz_cache;
+        loop(z, indices_Z.size())
+            Z->next_ravel_Cell(A.get_cravel(indices_Z[z], iz_cache));
 
         Z->set_default(B, LOC);
         Z->check_value(LOC);
@@ -1890,7 +1937,7 @@ const int inc_X = X.is_scalar_extensible() ? 0 : 1;
 
    if (inc_X == 0)   // single item X: pick entire A or B according to X
       {
-        const APL_Integer x0 = X.get_cfirst().get_int_value();
+        const APL_Integer x0 = X.get_int_value(0);
         if (x0 == 0)   return Token(TOK_APL_VALUE1, CLONE(&A, LOC));
         if (x0 == 1)   return Token(TOK_APL_VALUE1, CLONE(&B, LOC));
         DOMAIN_ERROR;
@@ -1917,7 +1964,7 @@ const Shape * shape_Z = &A.get_shape();   // last resort if X and B are scalar
 Value_P Z(*shape_Z, LOC);
    loop(z, shape_Z->get_volume())
        {
-        const APL_Integer xz = X.get_cravel(z*inc_X).get_int_value();   // X[z]
+        const APL_Integer xz = X.get_int_value(z*inc_X);   // X[z]
         if (xz == 0)        // take A[z]
            Z->next_ravel_Cell(A.get_cravel(z*inc_A));
         else if (xz == 1)   // take B[z]

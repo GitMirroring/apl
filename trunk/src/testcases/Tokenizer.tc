@@ -1,6 +1,8 @@
 ⍝ Tokenizer.tc
 ⍝ ════════════
 
+⍝@ test3.
+
       ]LOG 6
 
       3E3=3000

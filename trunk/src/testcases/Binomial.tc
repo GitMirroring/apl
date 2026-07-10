@@ -1,5 +1,7 @@
 ⍝ Binomial.tc
 
+⍝@ test3.
+
       2!8
 28
 

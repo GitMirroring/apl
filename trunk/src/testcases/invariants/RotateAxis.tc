@@ -1,6 +1,8 @@
 ⍝ RotateAxis.tc
 ⍝ ═════════════
 
+⍝@ test4.
+
       ⎕IO←1
 
       ⍝ Precond: A simple integer; X∊⍳⍴⍴B; implicit ⎕IO

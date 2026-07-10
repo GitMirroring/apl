@@ -1,6 +1,8 @@
 ⍝ ZZZ9_Regression.tc
 ⍝ ----------------------------------
 
+⍝@ test3.
+
       ⍝ indexed assignment
       ⍝ 
       V←2 2⍴1 2 3 4

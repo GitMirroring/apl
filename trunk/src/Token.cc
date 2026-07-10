@@ -330,7 +330,7 @@ UCS_string ucs;
                   //
                   if (const cValue * axis = get_apl_val().get())
                      {
-                      ret << ShapeItem(axis->get_cfirst().get_int_value());
+                      ret << ShapeItem(axis->get_int_value(0));
                      }
                   ret << "]";
                   return ret;
@@ -661,7 +661,7 @@ const Value & val = *get_apl_val();
    else if (val.get_rank() == 1)   // vector
       {
         if (val.element_count() == 0 &&   // empty vector
-            val.get_cfirst().is_simple_cell())
+            val.is_simple_cell(0))
            {
              out << endl;
              return;

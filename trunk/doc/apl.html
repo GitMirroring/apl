@@ -73,7 +73,7 @@ Next: <a href="#Installing-and-Starting-GNU-APL" accesskey="n" rel="next">Instal
 </div>
 <span id="GNU-APL-Reference-Manual"></span><h1 class="top">GNU APL Reference Manual</h1>
 
-<p>July 6, 2026.
+<p>July 10, 2026.
 This manual briefly documents GNU APL, an interpreter for APL as described
 in ISO standard 13751, aka. &quot;Programming Language APL, Extended&quot;.
 </p>
@@ -736,6 +736,14 @@ which has its stdin, stdout, and stderr redirected to the TCP connection.
 
 <p>This option causes GNU APL to perform an automatic )OFF command after the
 last line of the last input file (as per -f option) was executed.
+</p>
+</li><li> <code>--pack_min N</code>
+
+<p>Set the minimum element count for packed ravels to N (N &ge; 1).  Arrays
+shorter than N elements are kept in unpacked (Cell-array) form.  The same
+setting is accessible at run time via <code>⎕SYL[34;2]</code>.  The default value
+is determined at <code>./configure</code> time
+(<code>cfg_PACKED_MINIMUM_LENGTH_WANTED</code>, default 12).
 </p>
 </li><li> <code>--PW COLS</code>
 

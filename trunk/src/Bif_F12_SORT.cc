@@ -54,7 +54,7 @@ CollatingCache::CollatingCache(const cValue & A,
 const ShapeItem ec_A = A.element_count();
 UCS_string UA;
    UA.reserve(ec_A);
-   loop(a, ec_A)   UA << A.get_cravel(a).get_char_value();
+   loop(a, ec_A)   UA << A.get_char_value(a);
 
 UCS_string UA1 = UA.unique();
 
@@ -74,7 +74,7 @@ UCS_string UA1 = UA.unique();
    //
    loop(a, ec_A)
       {
-        const Unicode uni = A.get_cravel(a).get_char_value();
+        const Unicode uni = A.get_char_value(a);
         CollatingCacheEntry & entry = at(get_significance(uni));
 
         ShapeItem aq = a;
@@ -246,7 +246,7 @@ vector<ShapeItem> B1;
 CollatingCache cache(A, B1, comp_len);
    loop(b, ec_B)
       {
-        const Unicode uni = B.get_cravel(b).get_char_value();
+        const Unicode uni = B.get_char_value(b);
         const ShapeItem b1 = cache.get_significance(uni);
         B1.push_back(b1);
       }

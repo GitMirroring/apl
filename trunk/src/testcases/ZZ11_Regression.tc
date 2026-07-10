@@ -1,6 +1,8 @@
 ⍝ ZZ11_Regression.tc
 ⍝ ----------------------------------
 
+⍝@ test3.
+
       ⍝ binding of [] versus vector notation
       ⍝ 
       ⍝ 

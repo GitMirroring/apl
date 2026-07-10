@@ -1,6 +1,8 @@
 ⍝ IfElse.tc
 
       ⍝   ]log 9  ON   ⍝ fix logging
+⍝@ test3.
+
       ⍝   ]log 48 ON   ⍝ IfElse logging
 
       ⍝ test various COND →→ THEN ←→ ELSE ←← cases

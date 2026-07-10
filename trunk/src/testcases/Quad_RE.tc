@@ -1,6 +1,8 @@
 ⍝ Quad_RE.tc
 ⍝ ----------------------------------
 
+⍝@ test3.
+
       ]NEXTFILE not-⎕RE   ⍝ done if ⎕RE is not available
 
 ⍝ simple match (no axis = first/string)

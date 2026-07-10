@@ -86,28 +86,44 @@ Quad_AF::eval_B(cValue_R B) const
 const ShapeItem ec = B.element_count();
 Value_P Z(B.get_shape(), LOC);
 
-   loop(v, ec)
-       {
-         const Cell & cell_B = B.get_cravel(v);
-
-         if (cell_B.is_character_cell())   // Unicode to AV index
-            {
-              const Unicode uni = cell_B.get_char_value();
-              int32_t pos = Avec::find_av_pos(uni);
-              if (pos < 0)   Z->next_ravel_Int(Avec::MAX_AV);
-              else           Z->next_ravel_Int(pos);
-              continue;
-            }
-
-         if (cell_B.is_integer_cell())
-            {
-              const APL_Integer idx = cell_B.get_near_int();
-              Z->next_ravel_Char(Quad_AV::indexed_at(idx));
-              continue;
-            }
-
-         DOMAIN_ERROR;
-       }
+   const RavelType rt = B.get_ravel_type();
+   if (rt & RPT_char)   // all character — Unicode to AV index
+      {
+        loop(v, ec)
+           {
+             const Unicode uni = B.get_char_value(v);
+             int32_t pos = Avec::find_av_pos(uni);
+             if (pos < 0)   Z->next_ravel_Int(Avec::MAX_AV);
+             else           Z->next_ravel_Int(pos);
+           }
+      }
+   else if (rt & RPT_integer)   // all integer — AV index to char
+      {
+        loop(v, ec)
+            Z->next_ravel_Char(Quad_AV::indexed_at(B.get_near_int(v)));
+      }
+   else
+      {
+        loop(v, ec)
+           {
+             const Cell & cell_B = B.get_cravel(v);
+             if (cell_B.is_character_cell())   // Unicode to AV index
+                {
+                  const Unicode uni = cell_B.get_char_value();
+                  int32_t pos = Avec::find_av_pos(uni);
+                  if (pos < 0)   Z->next_ravel_Int(Avec::MAX_AV);
+                  else           Z->next_ravel_Int(pos);
+                  continue;
+                }
+             if (cell_B.is_integer_cell())
+                {
+                  const APL_Integer idx = cell_B.get_near_int();
+                  Z->next_ravel_Char(Quad_AV::indexed_at(idx));
+                  continue;
+                }
+             DOMAIN_ERROR;
+           }
+      }
 
    Z->check_value(LOC);
    return Token(TOK_APL_VALUE1, Z);
@@ -121,7 +137,7 @@ Quad_AT::eval_AB(cValue_R A, cValue_R B) const
 
    if (A.get_rank() > 0)   RANK_ERROR;
 
-const APL_Integer mode = A.get_cfirst().get_near_int();
+const APL_Integer mode = A.get_near_int(0);
    if (mode < 1)   DOMAIN_ERROR;
    if (mode > 4)   DOMAIN_ERROR;
 
@@ -145,7 +161,7 @@ Value_P Z(shape_Z, LOC);
         UCS_string symbol_name;
         loop(c, cols)
            {
-            const Unicode uni = B.get_cravel(b + c).get_char_value();
+            const Unicode uni = B.get_char_value(b + c);
             if (uni == UNI_SPACE)   break;
             symbol_name << uni;
            }
@@ -208,9 +224,9 @@ const APL_time_us start = now();
    // B should be an integer or real scalar
    //
    if (B.get_rank() > 0)                 RANK_ERROR;
-   if (!B.get_cfirst().is_real_cell())   DOMAIN_ERROR;
+   if (!B.is_real_cell(0))   DOMAIN_ERROR;
 
-const APL_time_us end = start + 1000000 * B.get_cfirst().get_real_value();
+const APL_time_us end = start + 1000000 * B.get_real_value(0);
    if (end < start)                           DOMAIN_ERROR;
    if (end > start + 31*24*60*60*1000000LL)   DOMAIN_ERROR;   // > 1 month
 
@@ -464,7 +480,7 @@ std::vector<const char *> evars;
          bool match = true;
          loop(b, ec_B)
             {
-              if (B.get_cravel(b).get_char_value() != Unicode(env[b]))
+              if (B.get_char_value(b) != Unicode(env[b]))
                  {
                    match = false;
                    break;
@@ -628,8 +644,8 @@ Quad_ES::get_error_code(Value_P B)
    if (B->element_count() == 0)   return E_NO_ERROR;
    if (B->is_char_string())       return E_USER_DEFINED_ERROR;
 
-const APL_Integer err = (B->get_cfirst().get_near_int() << 16)
-                      | (B->get_cravel(1).get_near_int());
+const APL_Integer err = (B->get_near_int(0) << 16)
+                      | (B->get_near_int(1));
 
    if ((err >> 16) == (E_QUAD_ES_BRA >> 16))   // one of the ⎕EA or ⎕EB events
       {
@@ -876,7 +892,7 @@ Quad_INP::eval_XB(cValue_R X, cValue_R B) const
         else                     LENGTH_ERROR;
       }
 
-APL_Integer x = X.get_cfirst().get_near_int();
+APL_Integer x = X.get_near_int(0);
    if (x == 0)   return eval_B(B);
    if (x > 1)    DOMAIN_ERROR;
 
@@ -1199,7 +1215,7 @@ int requested_NCs = 0;
    {
      loop(b, B->element_count())
         {
-          const APL_Integer bb = B->get_cravel(b).get_near_int();
+          const APL_Integer bb = B->get_near_int(b);
           if (bb < 1)   DOMAIN_ERROR;
           if (bb > 6)   DOMAIN_ERROR;
           requested_NCs |= 1 << bb;
@@ -1306,7 +1322,7 @@ Quad_SI::eval_AB(cValue_R A, cValue_R B) const
         if (A.get_rank() > 1)   RANK_ERROR;
         else                     LENGTH_ERROR;
       }
-APL_Integer a = A.get_cfirst().get_near_int();
+APL_Integer a = A.get_near_int(0);
 const ShapeItem len = Workspace::SI_entry_count();
    if (a >= len)   DOMAIN_ERROR;
    if (a < -len)   DOMAIN_ERROR;
@@ -1334,7 +1350,7 @@ const Function_Line fun_line = exec->get_line(PC);
 
 Value_P Z;
 
-const APL_Integer b = B.get_cfirst().get_near_int();
+const APL_Integer b = B.get_near_int(0);
    switch(b)
       {
         case 1:  Z = Value_P(fun_name, LOC);
@@ -1388,7 +1404,7 @@ Quad_SI::eval_B(cValue_R B) const
         else                     LENGTH_ERROR;
       }
 
-const APL_Integer b = B.get_cfirst().get_near_int();
+const APL_Integer b = B.get_near_int(0);
 const ShapeItem len = Workspace::SI_entry_count();
 
    if (b < 1)   DOMAIN_ERROR;
@@ -1462,59 +1478,90 @@ const ShapeItem ec = B.element_count();
 
    if (ec == 0)   // prototype
       {
-        if (B.get_cfirst().is_character_cell())   // char to integer Unicode
+        if (B.is_character_cell(0))   // char to integer Unicode
            Z->set_proto_Int();
         else
            Z->set_proto_Spc();
       }
 
-   loop(v, ec)
-       {
-         const Cell & cell_B = B.get_cravel(v);
-
-         if (cell_B.is_character_cell())   // char to Unicode
-            {
-              const Unicode uni = cell_B.get_char_value();
-              Z->next_ravel_Int(uni);
-              continue;
-            }
-
-         if (cell_B.is_integer_cell())
-            {
-              const APL_Integer bint = cell_B.get_near_int();
-              if (bint < -0x80)        DOMAIN_ERROR;
-              if (bint > 0x7FFFFFFF)   DOMAIN_ERROR;
-
-              Z->next_ravel_Char(Unicode(bint));
-              continue;
-            }
-
-         if (cell_B.is_float_cell())
-            {
-              const APL_Integer bint = cell_B.get_near_int();
-              if (bint < -0x80)        DOMAIN_ERROR;
-              if (bint > 0x7FFFDFFF)   DOMAIN_ERROR;
-
-              Z->next_ravel_Char(Unicode(bint));
-              continue;
-            }
-
-         if (cell_B.is_complex_cell())
-            {
-              if (!Cell::is_near_zero(cell_B.get_imag_value()))   DOMAIN_ERROR;
-              const APL_Integer bint = cell_B.get_near_int();
-              if (bint < -0x80)        DOMAIN_ERROR;
-              if (bint > 0x7FFFFFFF)   DOMAIN_ERROR;
-
-              Z->next_ravel_Char(Unicode(bint));
-              continue;
-            }
-
-         MORE_ERROR() << "⎕UCS got unexpected Cell type "
-                      << cell_B.get_classname()
-                      << ". Expecting int or character";
-         DOMAIN_ERROR;
-       }
+   const RavelType rt = B.get_ravel_type();
+   if (rt & RPT_char)   // all character — char to Unicode integer
+      {
+        loop(v, ec)   Z->next_ravel_Int(B.get_char_value(v));
+      }
+   else if (rt & RPT_integer)   // all integer — integer to char
+      {
+        loop(v, ec)
+           {
+             const APL_Integer bint = B.get_near_int(v);
+             if (bint < -0x80)        DOMAIN_ERROR;
+             if (bint > 0x7FFFFFFF)   DOMAIN_ERROR;
+             Z->next_ravel_Char(Unicode(bint));
+           }
+      }
+   else if (rt == RPT_FLOAT64)   // all float — near-int to char
+      {
+        loop(v, ec)
+           {
+             const APL_Integer bint = B.get_near_int(v);
+             if (bint < -0x80)        DOMAIN_ERROR;
+             if (bint > 0x7FFFDFFF)   DOMAIN_ERROR;
+             Z->next_ravel_Char(Unicode(bint));
+           }
+      }
+   else if (rt == RPT_COMPLEX)   // all complex — check imag, near-int to char
+      {
+        loop(v, ec)
+           {
+             if (!Cell::is_near_zero(B.get_imag_value(v)))   DOMAIN_ERROR;
+             const APL_Integer bint = B.get_near_int(v);
+             if (bint < -0x80)        DOMAIN_ERROR;
+             if (bint > 0x7FFFFFFF)   DOMAIN_ERROR;
+             Z->next_ravel_Char(Unicode(bint));
+           }
+      }
+   else   // RPT_CELLS: mixed types
+      {
+        loop(v, ec)
+           {
+             const Cell & cell_B = B.get_cravel(v);
+             if (cell_B.is_character_cell())   // char to Unicode
+                {
+                  const Unicode uni = cell_B.get_char_value();
+                  Z->next_ravel_Int(uni);
+                  continue;
+                }
+             if (cell_B.is_integer_cell())
+                {
+                  const APL_Integer bint = cell_B.get_near_int();
+                  if (bint < -0x80)        DOMAIN_ERROR;
+                  if (bint > 0x7FFFFFFF)   DOMAIN_ERROR;
+                  Z->next_ravel_Char(Unicode(bint));
+                  continue;
+                }
+             if (cell_B.is_float_cell())
+                {
+                  const APL_Integer bint = cell_B.get_near_int();
+                  if (bint < -0x80)        DOMAIN_ERROR;
+                  if (bint > 0x7FFFDFFF)   DOMAIN_ERROR;
+                  Z->next_ravel_Char(Unicode(bint));
+                  continue;
+                }
+             if (cell_B.is_complex_cell())
+                {
+                  if (!Cell::is_near_zero(cell_B.get_imag_value()))   DOMAIN_ERROR;
+                  const APL_Integer bint = cell_B.get_near_int();
+                  if (bint < -0x80)        DOMAIN_ERROR;
+                  if (bint > 0x7FFFFFFF)   DOMAIN_ERROR;
+                  Z->next_ravel_Char(Unicode(bint));
+                  continue;
+                }
+             MORE_ERROR() << "⎕UCS got unexpected Cell type "
+                          << cell_B.get_classname()
+                          << ". Expecting int or character";
+             DOMAIN_ERROR;
+           }
+      }
 
    Z->check_value(LOC);
    return Token(TOK_APL_VALUE1, Z);
@@ -1528,7 +1575,7 @@ std::vector<Function_Line> lines;
 
    loop(l, new_value.element_count())
       {
-        APL_Integer line = new_value.get_cravel(l).get_near_int();
+        APL_Integer line = new_value.get_near_int(l);
         if (line < 1)   continue;
         lines.push_back(Function_Line(line));
       }

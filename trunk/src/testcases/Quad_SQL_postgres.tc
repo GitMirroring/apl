@@ -1,6 +1,8 @@
 ⍝ Quad_SQL_postgres.tc
 ⍝ ----------------------------------
 
+⍝@ test3.
+
       ]NEXTFILE no-POSTGRES   ⍝ done if POSTGRES is not available
 
       0 0⍴"""

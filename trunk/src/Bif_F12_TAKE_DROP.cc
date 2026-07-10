@@ -77,8 +77,8 @@ const AxesBitmap axes_X = X.to_bitmap("A ↑[X] B", B.get_rank());
 Shape sh_take = B.get_shape();   // start with ⍴B
    loop(x, len_X)                 // for exery axis X[x] in X
       {
-        const APL_Integer axis = X.get_cravel(x).get_near_int() - qio;
-        const APL_Integer alen = A.get_cravel(x).get_near_int();
+        const APL_Integer axis = X.get_near_int(x) - qio;
+        const APL_Integer alen = A.get_near_int(x);
         sh_take.set_shape_item(axis, alen);
       }
 
@@ -333,8 +333,8 @@ bool seen[MAX_RANK];
 
    loop(r, len_X)
        {
-         const APL_Integer a = A.get_cravel(r).get_near_int();
-         const APL_Integer x = X.get_cravel(r).get_near_int() - qio;
+         const APL_Integer a = A.get_near_int(r);
+         const APL_Integer x = X.get_near_int(r) - qio;
 
          if (x <  0)               INDEX_ERROR;
          if (x >= B.get_rank())   INDEX_ERROR;

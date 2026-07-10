@@ -1,6 +1,8 @@
 ⍝ Quad_LC.tc vim: syntax=apl
 ⍝ ----------------------------------
 
+⍝@ test3.
+
       )ERASE G
 ∇ G
  'G LINE 1'

@@ -1,6 +1,8 @@
 ⍝ ZZ46_Regression.tc
 ⍝ ------------------
 
+⍝@ test3.
+
       A←'abcdefg' 'bcdefgh'
       A0←A[⍳0]
       A1←A[⍳1]

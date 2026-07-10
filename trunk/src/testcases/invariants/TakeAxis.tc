@@ -1,6 +1,8 @@
 ⍝ TakeAxis.tc
 ⍝ ═══════════
 
+⍝@ test4.
+
       ⎕IO←1
 
       ⍝ Precond: A simple scalar/vector integer; X∊⍳⍴⍴B; implicit ⎕IO

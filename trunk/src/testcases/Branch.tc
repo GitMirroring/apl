@@ -1,6 +1,8 @@
 ⍝ Branch.tc
 ⍝ ----------------------------------
 
+⍝@ test3.
+
       ⍝ monadic → as expression (GNU APL extension).
       ⍝
       )ERASE FOO

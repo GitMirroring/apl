@@ -1,6 +1,8 @@
 ⍝ Encode.tc
 ⍝ ═════════
 
+⍝@ test4.
+
       ⎕IO←1
 
       ⍝ GNU APL: ⊤ is Encode (IBM APL2 calls this ⊥)

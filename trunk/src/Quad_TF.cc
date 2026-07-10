@@ -48,7 +48,7 @@ Quad_TF::eval_AB(cValue_R A, cValue_R B) const
    if (A.get_rank() > 0)         RANK_ERROR;
    if (A.element_count() != 1)   LENGTH_ERROR;
 
-const APL_Integer mode = A.get_cfirst().get_int_value();
+const APL_Integer mode = A.get_int_value(0);
 const UCS_string symbol_name(B);
 
 Value_P Z;
@@ -550,9 +550,9 @@ Quad_TF::tf2_ravel(int level, UCS_string & ucs, const ShapeItem len,
               ShapeItem nesting = 0;
               while (sub_val->is_scalar())
                     {
-                      Assert(sub_val->get_cfirst().is_pointer_cell());
+                      Assert(sub_val->is_pointer_cell(0));
                       ++nesting;
-                      sub_val = sub_val->get_cfirst().get_pointer_value();
+                      sub_val = sub_val->get_pointer_value(0);
                     }
 
               tf2_value(level + 1, ucs, *sub_val, nesting);
@@ -600,7 +600,7 @@ const ShapeItem ec = value.nz_element_count();
    bool use_UCS = false;
    loop(e, ec)
        {
-         const Unicode uni = value.get_cravel(e).get_char_value();
+         const Unicode uni = value.get_char_value(e);
          if (Avec::need_UCS(uni))   { use_UCS = true;   break; }
        }
 
@@ -609,7 +609,7 @@ const ShapeItem ec = value.nz_element_count();
         ucs << "⎕UCS";
         loop(e, ec)
             {
-              ucs << UNI_SPACE << int(value.get_cravel(e).get_char_value());
+              ucs << UNI_SPACE << int(value.get_char_value(e));
             }
       }
    else
@@ -617,7 +617,7 @@ const ShapeItem ec = value.nz_element_count();
         ucs << UNI_SINGLE_QUOTE;
         loop(e, ec)
             {
-              const Unicode uni = value.get_cravel(e).get_char_value();
+              const Unicode uni = value.get_char_value(e);
               ucs << uni;
               if (uni == UNI_SINGLE_QUOTE)   ucs << UNI_SINGLE_QUOTE;
             }
@@ -628,7 +628,7 @@ const ShapeItem ec = value.nz_element_count();
 Value_P
 Quad_TF::tf1(const UCS_string & var_name, Value_P val)
 {
-const bool is_char_array = val->get_cfirst().is_character_cell();
+const bool is_char_array = val->is_character_cell(0);
 UCS_string ucs(is_char_array ? UNI_C : UNI_N);
 
    ucs << var_name << UNI_SPACE << val->get_rank();               // rank
@@ -644,53 +644,97 @@ const ShapeItem ec = val->element_count();
       {
         ucs << UNI_SPACE;
 
-        loop(e, ec)
+        const RavelType rt = val->get_ravel_type();
+        if (rt & RPT_char)   // RPT_UNICODE16 / RPT_UNICODE32 — all cells guaranteed char
            {
-             const Cell & cell = val->get_cravel(e);
-             if (!cell.is_character_cell())
+             loop(e, ec)   ucs << val->get_char_value(e);
+           }
+        else
+           {
+             loop(e, ec)
                 {
-                  return  Str0(LOC);
+                  const Cell & cell = val->get_cravel(e);
+                  if (!cell.is_character_cell())   return  Str0(LOC);
+                  ucs << cell.get_char_value();
                 }
-
-             ucs << cell.get_char_value();
            }
       }
    else   // number
       {
-        loop(e, ec)
+        const RavelType rt = val->get_ravel_type();
+        if (rt == RPT_CELLS)
            {
-             ucs << UNI_SPACE;
-
-             const Cell & cell = val->get_cravel(e);
-             if (cell.is_integer_cell())
+             loop(e, ec)
                 {
+                  ucs << UNI_SPACE;
+                  const Cell & cell = val->get_cravel(e);
+                  if (cell.is_integer_cell())
+                     {
+                       const int sign_pos = ucs.size();
+                       ucs << cell.get_int_value();
+                       if (ucs[sign_pos] == '-')   ucs[sign_pos] = UNI_OVERBAR;
+                     }
+                  else if (cell.is_near_real())
+                     {
+                       PrintContext pctx(PR_APL_MIN, Quad_PP_TF, MAX_Quad_PW);
+                       bool scaled = true;
+                       UCS_string ucs1(cell.get_real_value(), scaled, pctx);
+                       ucs << ucs1;
+                     }
+                  else if (cell.is_numeric())
+                     {
+                       PrintContext pctx(PR_APL_MIN, Quad_PP_TF, MAX_Quad_PW);
+                       bool scaled = true;
+                       UCS_string ucs1(cell.get_real_value(), scaled, pctx);
+                       ucs << ucs1;
+                       ucs << UNI_J;
+                       ucs1 = UCS_string(cell.get_imag_value(), scaled, pctx);
+                       ucs << ucs1;
+                     }
+                  else
+                     {
+                       MORE_ERROR() << "Non-number in 1 ⎕TF N record";
+                       return Value_P();
+                     }
+                }
+           }
+        else if (rt & RPT_integer)
+           {
+             loop(e, ec)
+                {
+                  ucs << UNI_SPACE;
                   const int sign_pos = ucs.size();
-                  ucs << cell.get_int_value();
+                  ucs << val->get_int_value(e);
                   if (ucs[sign_pos] == '-')   ucs[sign_pos] = UNI_OVERBAR;
                 }
-             else if (cell.is_near_real())
+           }
+        else if (rt == RPT_FLOAT64)
+           {
+             PrintContext pctx(PR_APL_MIN, Quad_PP_TF, MAX_Quad_PW);
+             loop(e, ec)
                 {
-                  PrintContext pctx(PR_APL_MIN, Quad_PP_TF, MAX_Quad_PW);
+                  ucs << UNI_SPACE;
                   bool scaled = true;
-                  UCS_string ucs1(cell.get_real_value(), scaled, pctx);
+                  UCS_string ucs1(val->get_real_value(e), scaled, pctx);
                   ucs << ucs1;
                 }
-             else if (cell.is_numeric())
+           }
+        else   // RPT_COMPLEX — per-element near_real check still needed
+           {
+             PrintContext pctx(PR_APL_MIN, Quad_PP_TF, MAX_Quad_PW);
+             loop(e, ec)
                 {
-                  PrintContext pctx(PR_APL_MIN, Quad_PP_TF, MAX_Quad_PW);
+                  ucs << UNI_SPACE;
                   bool scaled = true;
-                  UCS_string ucs1(cell.get_real_value(), scaled, pctx);
+                  UCS_string ucs1(val->get_real_value(e), scaled, pctx);
                   ucs << ucs1;
-
-                  ucs << UNI_J;
-
-                  ucs1 = UCS_string(cell.get_imag_value(), scaled, pctx);
-                  ucs << ucs1;
-                }
-             else
-                {
-                  MORE_ERROR() << "Non-number in 1 ⎕TF N record";
-                  return Value_P();
+                  if (!val->is_near_real(e))
+                     {
+                       ucs << UNI_J;
+                       scaled = true;
+                       ucs1 = UCS_string(val->get_imag_value(e), scaled, pctx);
+                       ucs << ucs1;
+                     }
                 }
            }
       }
@@ -1459,25 +1503,38 @@ ShapeItem
 Quad_TF::tf2_toggle_UCS(Value & val)
 {
 ShapeItem error_count = 0;
+const ShapeItem ec = val.nz_element_count();
+const RavelType rt = val.get_ravel_type();
 
-   loop(e, val.nz_element_count())
-       {
-        const Cell & cell = val.get_cravel(e);
-        if (cell.is_character_cell())       // char → integer
+   if (rt & RPT_char)   // all character → convert to integer
+      {
+        loop(e, ec)   val.set_ravel_Int(e, val.get_char_value(e));
+      }
+   else if (rt & RPT_integer)   // all integer → convert to char
+      {
+        loop(e, ec)   val.set_ravel_Char(e, Unicode(val.get_int_value(e)));
+      }
+   else   // RPT_CELLS: may have pointers or mixed types
+      {
+        loop(e, ec)
            {
-             val.set_ravel_Int(e, cell.get_char_value());
-           }
-        else if (cell.is_integer_cell())   // integer → char
-           {
-             val.set_ravel_Char(e, Unicode(cell.get_int_value()));
-           }
-        else if (cell.is_pointer_cell())   // nested
-           {
-             error_count += tf2_toggle_UCS(*cell.get_pointer_value());
-           }
-        else
-           {
-             ++error_count;
+             const Cell & cell = val.get_cravel(e);
+             if (cell.is_character_cell())       // char → integer
+                {
+                  val.set_ravel_Int(e, cell.get_char_value());
+                }
+             else if (cell.is_integer_cell())   // integer → char
+                {
+                  val.set_ravel_Char(e, Unicode(cell.get_int_value()));
+                }
+             else if (cell.is_pointer_cell())   // nested
+                {
+                  error_count += tf2_toggle_UCS(*cell.get_pointer_value());
+                }
+             else
+                {
+                  ++error_count;
+                }
            }
       }
 

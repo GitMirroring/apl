@@ -1,6 +1,8 @@
 ⍝ Optimization.tc
 ⍝ ════════════════
 
+⍝@ test3.
+
       ]log 38 ON
 
       )ERASE FOO

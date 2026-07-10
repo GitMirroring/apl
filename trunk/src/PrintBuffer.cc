@@ -144,7 +144,7 @@ const ShapeItem ec = value.element_count();
            {
              UCS_string ucs;
              ucs << UNI_DOUBLE_QUOTE;
-             loop(v, ec)   ucs << value.get_cravel(v).get_char_value();
+             loop(v, ec)   ucs << value.get_char_value(v);
              ucs << UNI_DOUBLE_QUOTE;
              append_ucs(ucs);
              update_info();
@@ -508,7 +508,7 @@ UCS_string ucs;
         ucs << UNI_SINGLE_QUOTE;
         loop(e, ec)
            {
-             const Unicode uni = value.get_cravel(e).get_char_value();
+             const Unicode uni = value.get_char_value(e);
              ucs << uni;
              if (uni == UNI_SINGLE_QUOTE)   ucs << uni;   // ' -> ''
            }
@@ -538,7 +538,7 @@ PrintBuffer::pb_empty(const cValue & value, PrintContext pctx,
       {
         if (pctx.get_style() == PR_APL_FUN)
            {
-             if (value.get_cfirst().is_character_cell())   // ''
+             if (value.is_character_cell(0))   // ''
                 {
                   UCS_string ucs(U"''");
                   ColInfo ci;
@@ -547,7 +547,7 @@ PrintBuffer::pb_empty(const cValue & value, PrintContext pctx,
                   return;
                 }
 
-             if (value.get_cfirst().is_numeric())   // ⍬
+             if (value.is_numeric(0))   // ⍬
                 {
                   UTF8_string utf("⍬");
                   UCS_string ucs(utf);

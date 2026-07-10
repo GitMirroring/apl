@@ -55,7 +55,7 @@ IndexExpr::check_index_range(const Shape & shape) const
              const ShapeItem max_idx = shape.get_shape_item(r) + quad_io;
              loop(i, ival->element_count())
                 {
-                  const APL_Integer idx = ival->get_cravel(i).get_near_int();
+                  const APL_Integer idx = ival->get_near_int(i);
                   if (idx < quad_io || idx >= max_idx)   // invalid index
                      {
                        UCS_string & ucs = MORE_ERROR();
@@ -87,12 +87,12 @@ const APL_Integer qio = Workspace::get_IO();
 Value_P I = values[0];
    if (!I->is_scalar_or_len1_vector())     INDEX_ERROR;
 
-   if (!I->get_cfirst().is_near_int())   INDEX_ERROR;
+   if (!I->is_near_int(0))   INDEX_ERROR;
 
    // if axis becomes (signed) negative then it will be (unsigned) too big.
    // Therefore we need not test for < 0.
    //
-sRank axis = I->get_cfirst().get_near_int() - qio;
+sRank axis = I->get_near_int(0) - qio;
    if (axis >= max_axis)   INDEX_ERROR;
 
    return axis;

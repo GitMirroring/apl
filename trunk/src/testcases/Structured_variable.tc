@@ -1,6 +1,8 @@
 ⍝ Structured_variable.tc
 
       PERSON.firstname ← 'Jane'   ⍝ creates PERSON with member 'firstname'
+⍝@ test3.
+
       PERSON.lastname  ← 'Doe'    ⍝ add a second member 'lastname' to PERSON
 
       PERSON.address.city   ←  'Berkeley 94704'     ⍝ also does PERSON.address

@@ -1,6 +1,8 @@
 ⍝ Quad_EB.tc
 ⍝ ----------------------------------
 
+⍝@ test3.
+
       '"CLEAN-UP"' ⎕EB '⍳4.5'
 CLEAN-UP
 DOMAIN ERROR

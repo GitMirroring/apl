@@ -1,6 +1,8 @@
 ⍝ ZZZ5_Regression.tc
 ⍝ ----------------------------------
 
+⍝@ test3.
+
 
 ∇ r ← offset rot3 v
     r ← , offset ⌽ 3 3 ⍴ v

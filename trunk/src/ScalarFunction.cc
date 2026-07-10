@@ -154,7 +154,7 @@ ScalarFunction::do_eval_fill_B(cValue_R B) const
    // lrm p. 56: When the prototypes of the empty arguments are simple
    //            scalars, return a zero prototype
    //
-   if (B.get_cfirst().is_numeric() || B.get_cfirst().is_character_cell())
+   if (B.is_numeric(0) || B.is_character_cell(0))
       {
         Value_P Z(B.get_shape(), LOC);
         Z->set_ravel_Int(0, 0);
@@ -565,7 +565,7 @@ const ShapeItem len_X = X->element_count();
 
    loop(iX, len_X)
        {
-         APL_Integer i = X->get_cravel(iX).get_near_int() - qio;
+         APL_Integer i = X->get_near_int(iX) - qio;
          if (i < 0)                        AXIS_ERROR;   // axis i too small
          if (i >= rank_A && i >= rank_B)   AXIS_ERROR;   // axis i too large
          if (axes_X & 1 << i)              AXIS_ERROR;   // axis i used twice
@@ -1226,8 +1226,8 @@ Bif_F12_ROLL::eval_AB(cValue_R A, cValue_R B) const
    if (!A.is_scalar_extensible())   RANK_ERROR;
    if (!B.is_scalar_extensible())   RANK_ERROR;
 
-const ShapeItem zlen = A.get_cfirst().get_near_int();
-APL_Integer set_size = B.get_cfirst().get_near_int();
+const ShapeItem zlen = A.get_near_int(0);
+APL_Integer set_size = B.get_near_int(0);
    if (zlen > set_size)         DOMAIN_ERROR;
    if (zlen <  0)               DOMAIN_ERROR;
    if (set_size <  0)           DOMAIN_ERROR;

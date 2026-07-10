@@ -1,6 +1,8 @@
 ⍝ ZZ19_Regression
 ⍝ ----------------------------------
 
+⍝@ test3.
+
       ⍝ assertion is_rectangular() in PrintBuffer(const Value & value, ... )
       ⍝
       ⎕RL←1

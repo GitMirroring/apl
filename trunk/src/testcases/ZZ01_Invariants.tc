@@ -1,6 +1,8 @@
 ⍝ ZZ01_Invariants.tc
 
       ⍝ Test some (and in the long run all) APL2 invariants
+⍝@ test3.
+
       ⍝ Source references: lrm p. NNN means: IBM APL2 Language reference page NNN
       ⍝                    iso p. NNN means: ISO standard page NNN
       ⍝

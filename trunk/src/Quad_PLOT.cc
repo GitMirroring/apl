@@ -335,7 +335,7 @@ Quad_PLOT::eval_B(cValue_R B) const
 {
    CHECK_SECURITY(disable_Quad_PLOT);
 
-   if (B.get_rank() == 0 && !B.get_cfirst().is_pointer_cell())
+   if (B.get_rank() == 0 && !B.is_pointer_cell(0))
       {
         // scalar (integer) argument: window control and logging
         //
@@ -586,12 +586,12 @@ Quad_PLOT::setup_data(const cValue & B)
 const cValue * pB = &B;
    if (B.is_scalar())   // case 2a. → 1a. by disclosing scalar B
       {
-        if (!B.get_cfirst().is_pointer_cell())   DOMAIN_ERROR;
-        pB = B.get_cfirst().get_pointer_value().get();   // B ← ⊃ B
+        if (!B.is_pointer_cell(0))   DOMAIN_ERROR;
+        pB = B.get_pointer_value(0).get();   // B ← ⊃ B
       }
 
    if (pB->get_rank() == 3)                   return setup_data_3D(*pB);
-   if (!pB->get_cfirst().is_pointer_cell())   return setup_data_2D(*pB);
+   if (!pB->is_pointer_cell(0))   return setup_data_2D(*pB);
    return setup_data_2D_2b(*pB);
 }
 //────────────────────────────────────────────────────────────────────────────
@@ -769,7 +769,7 @@ const ShapeItem len_B = rows_B * cols_B;
    // all items of B shall be simple numbers (integer, real, or complex).
    loop(b, len_B)
        {
-         if (!B.get_cravel(b).is_numeric())   return 0;
+         if (!B.is_numeric(b))   return 0;
        }
 
    // split B into X=real B, Y=imag Y
@@ -823,13 +823,13 @@ ShapeItem data_points = 0;
 const ShapeItem rows = B.element_count();   // number of plot rows
    loop(r, rows)
        {
-         const cValue * vrow = B.get_cravel(r).get_pointer_value().get();
+         const cValue * vrow = B.get_pointer_value(r).get();
          if (vrow->get_rank() > 1)   RANK_ERROR;
          const ShapeItem row_len = vrow->element_count();
          data_points += row_len;
          loop(rb, row_len)
              {
-               if (!vrow->get_cravel(rb).is_numeric())   DOMAIN_ERROR;
+               if (!vrow->is_numeric(rb))   DOMAIN_ERROR;
              }
        }
 
@@ -843,7 +843,7 @@ const APL_Integer qio = Workspace::get_IO();
 
    loop(r, rows)
        {
-         const cValue * vrow = B.get_cravel(r).get_pointer_value().get();
+         const cValue * vrow = B.get_pointer_value(r).get();
          loop(v, vrow->element_count())
              {
                const Cell & cB = vrow->get_cravel(v);
@@ -868,7 +868,7 @@ Plot_data * data = new Plot_data(rows);
          const double * pX = X + idx;
          const double * pY = Y + idx;
          const double * pZ = Z + idx;
-         const cValue * vrow = B.get_cravel(r).get_pointer_value().get();
+         const cValue * vrow = B.get_pointer_value(r).get();
          const ShapeItem row_len = vrow->element_count();
          const Plot_data_row * pdr = new Plot_data_row(pX, pY, pZ, r,
                                                             row_len);

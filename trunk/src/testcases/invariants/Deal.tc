@@ -1,6 +1,8 @@
 ⍝ Deal.tc
 ⍝ ═══════
 
+⍝@ test4.
+
       ⎕IO←1
 
       ⍝ Precond: A and B simple scalar nonneg integer; A≤B

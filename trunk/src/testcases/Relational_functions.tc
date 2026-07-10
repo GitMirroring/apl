@@ -1,6 +1,8 @@
 ⍝ Relational_functions.tc
 ⍝ ----------------------------------
 
+⍝@ test3.
+
       'TRIAL'='TRAIL'
 1 1 0 0 1
 

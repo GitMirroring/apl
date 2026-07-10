@@ -173,7 +173,7 @@ vector<Partition> partitions;   // all partitions on the B-axis
      bool in_partition = false;
      loop(apos, len_A)
          {
-           const APL_Integer aval = A.get_cravel(apos).get_near_int();
+           const APL_Integer aval = A.get_near_int(apos);
            if (aval < 0)            DOMAIN_ERROR;
 
            if (aval > prev_A)   // new partition starting at apos

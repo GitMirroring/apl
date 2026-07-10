@@ -1,6 +1,8 @@
 ⍝ Transpose_reversed_axes.tc
 ⍝ ----------------------------------
 
+⍝@ test3.
+
       A←4 3ρ'RAMONEATENET'
       A
 RAM

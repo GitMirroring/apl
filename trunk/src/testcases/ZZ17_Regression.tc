@@ -1,6 +1,8 @@
 ⍝ ZZ17_Regression
 ⍝ ----------------------------------
 
+⍝@ test3.
+
       ⍝ Shared variable usability
       ⍝
       )ERASE X

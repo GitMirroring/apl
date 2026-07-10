@@ -1,6 +1,8 @@
 ⍝ Oper_userfun.tc
 ⍝ test Primitive operators with user defined functions.
 ⍝ ----------------------------------
+⍝@ test3.
+
 
       )ERASE PLUS
 ∇Z←A PLUS B

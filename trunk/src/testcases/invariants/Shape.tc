@@ -1,6 +1,8 @@
 ⍝ Shape.tc
 ⍝ ════════
 
+⍝@ test4.
+
       ⎕IO←1
 
       ⍝ Precond: Z simple nonneg integer vector

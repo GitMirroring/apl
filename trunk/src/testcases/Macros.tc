@@ -1,6 +1,8 @@
 ⍝ Macros.tc
 ⍝ ----------------------------------
 
+⍝@ test3.
+
       ⍝ Test the equivalence of:
       ⍝      1. the build-in dyadic EACH operator (A f ¨ B when f is primitive)
       ⍝      2. the build-in dyadic EACH macros   (A f ¨ B when f is defined)

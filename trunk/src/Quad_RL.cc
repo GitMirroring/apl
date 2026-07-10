@@ -76,7 +76,7 @@ void
 Quad_RL::pop()
 {
    Symbol::pop();
-   state = value_stack.back().get_val_cptr()->get_cfirst().get_near_int();
+   state = value_stack.back().get_val_cptr()->get_near_int(0);
 }
 //────────────────────────────────────────────────────────────────────────────
 //────────────────────────────────────────────────────────────────────────────

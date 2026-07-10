@@ -44,6 +44,7 @@ syl2("log₁₀(integer tolerance (aka. fuzz))"   , __LINTTOLERANCE   , int(log1
 syl2("log₁₀(real tolerance (aka. fuzz))"      , __LREALTOLERANCE  , int(log10(REAL_TOLERANCE) - 0.2))
 syl2("⎕WA safety margin (bytes)"              , WA_MARGIN         , Quad_WA::WA_margin  )
 syl2("⎕WA memory scale (%)"                   , WA_SCALE          , Quad_WA::WA_scale   )
+syl2("min. element count for packed ravels"   , PACK_MIN_LENGTH   , Quad_SYL::pack_min_length)
 
 #undef syl1
 #undef syl2

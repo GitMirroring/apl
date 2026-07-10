@@ -675,6 +675,9 @@ public:
    /// maximum number of ravel bytes in APL printout
    static ShapeItem print_length_limit;
 
+   /// minimum element count before a ravel is packed (runtime-settable)
+   static ShapeItem pack_min_length;
+
    /// the system limits
    enum SYL_INDEX
       {

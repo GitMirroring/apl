@@ -166,7 +166,7 @@ int
 get_type(const APL_value val, uint64_t idx)
 {
    if (idx >= uint64_t(val->nz_element_count()))   return 0;
-   return val->get_cravel(idx).get_cell_type();
+   return val->get_cell_type(idx);
 }
 //════════════════════════════════════════════════════════════════════════════
 /// return non-0 if val is a simple character vector.
@@ -181,7 +181,7 @@ is_string(const APL_value val)
 int
 get_char(const APL_value val, uint64_t idx)
 {
-   return val->get_cravel(idx).get_char_value();
+   return val->get_char_value(idx);
 }
 //════════════════════════════════════════════════════════════════════════════
 
@@ -189,7 +189,7 @@ get_char(const APL_value val, uint64_t idx)
 int64_t
 get_int(const APL_value val, uint64_t idx)
 {
-   return val->get_cravel(idx).get_int_value();
+   return val->get_int_value(idx);
 }
 //════════════════════════════════════════════════════════════════════════════
 
@@ -197,7 +197,7 @@ get_int(const APL_value val, uint64_t idx)
 APL_Float
 get_real(const APL_value val, uint64_t idx)
 {
-   return val->get_cravel(idx).get_real_value();
+   return val->get_real_value(idx);
 }
 //════════════════════════════════════════════════════════════════════════════
 
@@ -205,7 +205,7 @@ get_real(const APL_value val, uint64_t idx)
 APL_Float
 get_imag(const APL_value val, uint64_t idx)
 {
-   return val->get_cravel(idx).get_imag_value();
+   return val->get_imag_value(idx);
 }
 //════════════════════════════════════════════════════════════════════════════
 
@@ -215,7 +215,7 @@ get_imag(const APL_value val, uint64_t idx)
 APL_value
 get_value(const APL_value val, uint64_t idx)
 {
-Value_P sub = val->get_cravel(idx).get_pointer_value();
+Value_P sub = val->get_pointer_value(idx);
    sub.get()->increment_owner_count(LOC);   // keep value
    return sub.get();
 }

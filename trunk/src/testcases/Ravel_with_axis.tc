@@ -1,6 +1,8 @@
 ⍝ Ravel_with_axis.tc
 
       ⍝ X is a fraction ----------------------------------
+⍝@ test3.
+
 
       A←2 3ρ'TENSIX'
       A

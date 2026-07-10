@@ -1,6 +1,8 @@
 
       ]PSTAT SAVE
       ]PSTAT
+⍝@ test3.
+
 
       'APL expression lines:' ⎕AI[5]
  APL expression lines: ⁰ 

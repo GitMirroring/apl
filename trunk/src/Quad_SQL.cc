@@ -119,7 +119,7 @@ Quad_SQL::eval_AXB(cValue_R A, cValue_R X, cValue_R B) const
 {
    CHECK_SECURITY(disable_Quad_SQL);
 
-const APL_Integer function_number = X.get_cfirst().get_near_int();
+const APL_Integer function_number = X.get_near_int(0);
 
    switch(function_number)
       {
@@ -149,7 +149,7 @@ Quad_SQL::eval_B(cValue_R B) const
 
    if (B.get_rank() > 1)         RANK_ERROR;
 
-   if (B.is_int_scalar() && B.get_cfirst().get_int_value() == 0)
+   if (B.is_int_scalar() && B.get_int_value(0) == 0)
       {
         // ⎕SQL 0 : show open handles
         //
@@ -198,7 +198,7 @@ Quad_SQL::eval_XB(cValue_R X, cValue_R B) const
 
 const sAxis subfunction = value_to_subfun(X);
 
-const bool map = B.get_cfirst().is_character_cell();
+const bool map = B.is_character_cell(0);
 
     switch(subfunction)
        {
@@ -528,6 +528,16 @@ Value_P
 Quad_SQL::run_generic_one_query(ArgListBuilder * arg_list, const cValue & B,
                                 int start, int num_args)
 {
+const RavelType rt = B.get_ravel_type();
+   if (rt == RPT_CELLS)
+      {}   // fall through to cell dispatch below
+   else if (rt & RPT_integer)
+      { loop(i, num_args)   arg_list->append_long(B.get_int_value(start + i), i);
+        return arg_list->run_query(); }
+   else if (rt == RPT_FLOAT64)
+      { loop(i, num_args)   arg_list->append_double(B.get_real_value(start + i), i);
+        return arg_list->run_query(); }
+
     loop (i, num_args)
          {
            const Cell & cell = B.get_cravel(start + i);
@@ -618,7 +628,7 @@ Quad_SQL::value_to_db_id(const Value & B)
         DOMAIN_ERROR;
       }
 
-const APL_Integer db_id = B.get_cfirst().get_int_value();
+const APL_Integer db_id = B.get_int_value(0);
     return db_id_to_connection(db_id);
  }
 //────────────────────────────────────────────────────────────────────────────
@@ -632,7 +642,7 @@ Quad_SQL::close_database(Value_P B)
         DOMAIN_ERROR;
        }
 
-int db_id = B->get_cfirst().get_int_value();
+int db_id = B->get_int_value(0);
    if (db_id < 0 || db_id >= SQL_connections.size())
        {
          throw_illegal_db_handle(db_id);
@@ -712,7 +722,7 @@ const Shape & shape = X.get_shape();
         RANK_ERROR;
       }
 
-    return db_id_to_connection(X.get_cravel(1).get_near_int());
+    return db_id_to_connection(X.get_near_int(1));
 }
 //────────────────────────────────────────────────────────────────────────────
 void
@@ -751,7 +761,7 @@ Token
 Quad_SQL_3::eval_AXB(cValue_R A, cValue_R X, cValue_R B) const
 {
    /// convert integer scalar X to (3, X) or (4, X)
-const APL_Integer DB = X.get_cfirst().get_int_value();
+const APL_Integer DB = X.get_int_value(0);
 const APL_Integer subfun = 3;
 
 Value_P FUN_DB(2, LOC);
@@ -770,7 +780,7 @@ Token
 Quad_SQL_4::eval_AXB(cValue_R A, cValue_R X, cValue_R B) const
 {
    /// convert integer scalar X to (3, X) or (4, X)
-const APL_Integer DB = X.get_cfirst().get_int_value();
+const APL_Integer DB = X.get_int_value(0);
 const APL_Integer subfun = 4;
 
 Value_P FUN_DB(2, LOC);

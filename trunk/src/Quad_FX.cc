@@ -77,13 +77,13 @@ UTF8_string creator("⎕FX");
       {
         case 2:   // format 2b.
              {
-               const Value & C = *A.get_cravel(1).get_pointer_value();
+               const Value & C = *A.get_pointer_value(1);
                UCS_string creator_ucs(C);
                creator = UTF8_string(creator_ucs);
              }
              /* no break */
         case 1:   // format 2a.
-             eprops[0] = A.get_cfirst().get_int_value();
+             eprops[0] = A.get_int_value(0);
              if (eprops[0] < 0)   DOMAIN_ERROR;
              if (eprops[0] > 1)   DOMAIN_ERROR;
              eprops[3] = eprops[2] = eprops[1] = eprops[0];
@@ -91,7 +91,7 @@ UTF8_string creator("⎕FX");
 
         case 5:   // format 2d.
              {
-               const Value & C = *A.get_cravel(4).get_pointer_value();
+               const Value & C = *A.get_pointer_value(4);
                UCS_string creator_ucs(C);
                creator = UTF8_string(creator_ucs);
              }
@@ -99,7 +99,7 @@ UTF8_string creator("⎕FX");
         case 4:   // format 2c.
              loop(e, 4)
                 {
-                  eprops[e] = A.get_cravel(e).get_int_value();
+                  eprops[e] = A.get_int_value(e);
                   if (eprops[e] < 0)   DOMAIN_ERROR;
                   if (eprops[e] > 1)   DOMAIN_ERROR;
                 }
@@ -221,7 +221,7 @@ const bool keep_indent = !UserPreferences::uprefs.discard_indentation;
              bool skipping = false;
              loop(col, cols)
                  {
-                   const Unicode uni = B.get_cravel(row*cols + col).get_char_value();
+                   const Unicode uni = B.get_char_value(row*cols + col);
                    if (col == 0 || skipping)
                       skipping = (uni <= UNI_SPACE && !keep_indent);
                    if (!skipping)   text << uni;

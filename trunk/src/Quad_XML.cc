@@ -923,7 +923,7 @@ ShapeItem srcI = 0;
 
    // decode the category...
    //
-const Unicode val0 = value.get_cravel(srcI++).get_char_value();
+const Unicode val0 = value.get_char_value(srcI++);
 int ret = -1;
    if (val0 == UNI_DELTA_UNDERBAR)        ret = 0;
    else if (val0 == UNI_DELTA)            ret = 1;
@@ -941,7 +941,7 @@ int ret = -1;
 ShapeItem pos = 0;
    for (; srcI < len; ++srcI)
        {
-         const Unicode digit = value.get_cravel(srcI).get_char_value();
+         const Unicode digit = value.get_char_value(srcI);
          if (digit >= UNI_0 && digit <= UNI_9)
             {
               pos = 10 * pos + digit - UNI_0;
@@ -953,7 +953,7 @@ ShapeItem pos = 0;
    //
    if (category)   *category = val0;
    if (position)   *position = pos;
-   if (name)   { while (srcI < len)   (*name) << value.get_cravel(srcI++).get_char_value(); }
+   if (name)   { while (srcI < len)   (*name) << value.get_char_value(srcI++); }
    return ret;
 }
 //────────────────────────────────────────────────────────────────────────────
@@ -962,7 +962,7 @@ Quad_XML::eval_AB(cValue_R A, cValue_R B) const
 {
    if (A.get_rank() > 1)   RANK_ERROR;
 
-const int function_number = A.get_cfirst().get_int_value();
+const int function_number = A.get_int_value(0);
    switch(function_number)
       {
          case 0:   // same as monadic ⎕XML
@@ -1195,7 +1195,7 @@ UCS_string string_B(len_B, UNI_NUL);
 ShapeItem dest_B = 0;
    loop(src_B, len_B)
       {
-        const Unicode uni = B.get_cravel(src_B).get_char_value();
+        const Unicode uni = B.get_char_value(src_B);
         if (uni == UNI_CR)   // CR
            {
              // see XML standard "2.11 End-of-Line Handling"
@@ -1206,7 +1206,7 @@ ShapeItem dest_B = 0;
                   continue;
                 }
 
-             const Unicode uni_1 = B.get_cravel(src_B + 1).get_char_value();
+             const Unicode uni_1 = B.get_char_value(src_B + 1);
              if (uni_1 == UNI_LF)   // CR/LF
                 {
                   continue;   // discard CR (don't ++dest_B)
@@ -1251,7 +1251,7 @@ bool error = true;
    //
    loop(b, len_B)
        {
-         const Unicode uni_b = B.get_cravel(b).get_char_value();
+         const Unicode uni_b = B.get_char_value(b);
          if (uni_b == '<')
             {
               if (text_start != b)   // some text before the '<'
@@ -1471,7 +1471,7 @@ UCS_string UCS_Z;
            }
 
          const ShapeItem len_B2 = B2->element_count();
-         loop(bb, len_B2)   UCS_Z << B2->get_cravel(bb).get_char_value();
+         loop(bb, len_B2)   UCS_Z << B2->get_char_value(bb);
       }
 
 Value_P Z(UCS_Z, LOC);
@@ -1528,7 +1528,7 @@ const ShapeItem B_total = B.get_all_members_count();
         LENGTH_ERROR; 
       }
 
-const Value & A1 = *A.get_cravel(1).get_pointer_value();
+const Value & A1 = *A.get_pointer_value(1);
    if (A1.element_count() == 0)
       {
         // an empty A1 shall return the smallest element

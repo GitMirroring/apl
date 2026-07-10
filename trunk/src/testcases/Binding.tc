@@ -1,6 +1,8 @@
 ⍝ Binding.tc
 ⍝ ----------------------------------
 
+⍝@ test3.
+
       ⍝ Vector notation vs. left function arg
       ⍝
       A←1 2 3

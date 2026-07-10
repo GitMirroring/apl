@@ -56,9 +56,9 @@ Value_P ZT(3, LOC);
   else
      QR_factorize_DD_matrix(*ZT, N, M, *BT, 0);
 
-Value_P QT  = ZT->get_cfirst().get_pointer_value();
-Value_P RT  = ZT->get_cravel(1).get_pointer_value();
-Value_P RiT = ZT->get_cravel(2).get_pointer_value();
+Value_P QT  = ZT->get_pointer_value(0);
+Value_P RT  = ZT->get_pointer_value(1);
+Value_P RiT = ZT->get_pointer_value(2);
 
 const Shape shape_Q (N, N);
 Value_P Z0 = Bif_F12_TRANSPOSE::transpose(shape_Q, *QT);   // BT←⍉B
@@ -82,7 +82,7 @@ GSL::LU_factorize_DD_matrix(Value & Z, int M, int N, cValue_R B_val, ShapeItem i
   //
 gsl_matrix * B = gsl_matrix_alloc(M, N);   if (B == 0)   WS_FULL;
   loop(row, M)
-  loop(col, N)   gsl_matrix_set(B, row, col, B_val.get_cravel(idx++).get_real_value());
+  loop(col, N)   gsl_matrix_set(B, row, col, B_val.get_real_value(idx++));
 
 gsl_permutation * P = gsl_permutation_alloc(M);   if (P == 0)   WS_FULL;
 int signum = 0;
@@ -200,7 +200,7 @@ GSL::QL_factorize_DD_matrix(Value & Z, int M, int N, cValue_R B_val, ShapeItem i
   //
 gsl_matrix * B = gsl_matrix_alloc(M, N);   if (B == 0)   WS_FULL;
   loop(row, M)
-  loop(col, N)   gsl_matrix_set(B, row, col, B_val.get_cravel(idx++).get_real_value());
+  loop(col, N)   gsl_matrix_set(B, row, col, B_val.get_real_value(idx++));
 
   // 1. Compute Q, L, and TAU. Q and L are packed into B
   //
@@ -269,7 +269,7 @@ GSL::QR_factorize_DD_matrix(Value & Z, int M, int N, cValue_R B_val, ShapeItem i
   //
 gsl_matrix * B = gsl_matrix_alloc(M, N);   if (B == 0)   WS_FULL;
   loop(row, M)
-  loop(col, N)   gsl_matrix_set(B, row, col, B_val.get_cravel(idx++).get_real_value());
+  loop(col, N)   gsl_matrix_set(B, row, col, B_val.get_real_value(idx++));
 
   // 1. Compute R and T. The diagonal of B and above is R ←→ Z1 = Z[1]
   //
@@ -443,9 +443,9 @@ Value_P BT = Bif_F12_TRANSPOSE::transpose(shape_BT, *B);   // BT←⍉B
 Value_P ZT(3, LOC);
   QL_factorize_DD_matrix(*ZT, N, M, *BT, 0);
 
-Value_P QT  = ZT->get_cfirst().get_pointer_value();
-Value_P RT  = ZT->get_cravel(1).get_pointer_value();
-Value_P RiT = ZT->get_cravel(2).get_pointer_value();
+Value_P QT  = ZT->get_pointer_value(0);
+Value_P RT  = ZT->get_pointer_value(1);
+Value_P RiT = ZT->get_pointer_value(2);
 
 const Shape shape_Q (N, N);
 Value_P Z0 = Bif_F12_TRANSPOSE::transpose(shape_Q, *QT);   // BT←⍉B

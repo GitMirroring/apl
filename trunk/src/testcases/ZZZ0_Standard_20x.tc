@@ -1,6 +1,8 @@
 ⍝ ZZZ0_Standard_20x.tc
 ⍝ Examples from the APL standard 
 ⍝ ----------------------------------
+⍝@ test3.
+
 
       ⎕CT←1E¯10
       ⎕PP←6

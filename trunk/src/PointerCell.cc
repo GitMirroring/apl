@@ -77,7 +77,7 @@ Value_P val = get_pointer_value();
              ucs << UNI_SINGLE_QUOTE;
              loop(e, ec)
                 {
-                  const Unicode uni = val->get_cravel(e).get_char_value();
+                  const Unicode uni = val->get_char_value(e);
                   ucs << uni;
                   if (uni == UNI_SINGLE_QUOTE)   ucs << uni;   // ' -> ''
                 }
@@ -86,11 +86,11 @@ Value_P val = get_pointer_value();
         else if (ec == 0)   // empty
            {
              if (val->get_rank() > 1)   TODO;
-             if (val->get_cfirst().is_character_cell())
+             if (val->is_character_cell(0))
                 {
                   ucs << UNI_SINGLE_QUOTE << UNI_SINGLE_QUOTE;
                 }
-             else if (val->get_cfirst().is_integer_cell())
+             else if (val->is_integer_cell(0))
                 {
                   ucs << UNI_ZILDE;
                 }

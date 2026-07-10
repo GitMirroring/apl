@@ -1,6 +1,8 @@
 ⍝ DropAxis.tc
 ⍝ ═══════════
 
+⍝@ test4.
+
       ⎕IO←1
 
       ⍝ Precond: A integer; X∊⍳⍴⍴B

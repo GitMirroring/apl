@@ -1,6 +1,8 @@
 ⍝ Quad_CT.tc
 ⍝ ----------------------------------
 
+⍝@ test3.
+
       ⍝ check that assigned values > 1E¯9 are rounded down to 1E¯9
       ⍝
       ⎕PP←15

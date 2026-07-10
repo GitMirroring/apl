@@ -204,7 +204,7 @@ cFunction_P LO = tok_LO.get_function();
       }
 
    if (A->element_count() != 1)   LENGTH_ERROR;
-const APL_Integer A0 = A->get_cfirst().get_int_value();
+const APL_Integer A0 = A->get_int_value(0);
 const int n_wise = A0 < 0 ? -A0 : A0;   // the number of items (= M1 in ISO)
 
    if (B->is_scalar())
@@ -317,7 +317,7 @@ std::vector<ShapeItem> rep_counts;
    if (len_A == 1)   // single a -> a a ... a (len_B times)
       {
         len_A = len_B;
-        APL_Integer rep_A = A.get_cfirst().get_near_int();
+        APL_Integer rep_A = A.get_near_int(0);
         loop(a, len_A)   rep_counts.push_back(rep_A);
         if (rep_A < 0)   len_Z = -rep_A*len_B;   // replicate ↑B
         else             len_Z =  rep_A*len_B;   // replicat B[a]
@@ -327,7 +327,7 @@ std::vector<ShapeItem> rep_counts;
         ShapeItem nonneg_A = 0;   // number of items >= 0 in A
         loop(a, len_A)
            {
-             const APL_Integer rep_A = A.get_cravel(a).get_near_int();
+             const APL_Integer rep_A = A.get_near_int(a);
              rep_counts.push_back(rep_A);
              len_Z += rep_A;   ++nonneg_A;        // most likely:  rep_A >= 0
              if (rep_A < 0)    { len_Z -= 2*rep_A;  --nonneg_A; }   // rare

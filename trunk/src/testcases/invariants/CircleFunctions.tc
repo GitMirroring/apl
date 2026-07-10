@@ -1,6 +1,8 @@
 ⍝ CircleFunctions.tc
 ⍝ ══════════════════
 
+⍝@ test4.
+
       ⎕IO←1
 
       ⍝ Precond: A integer ¯12≤A≤12; B and Z numeric

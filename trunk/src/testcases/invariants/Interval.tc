@@ -1,6 +1,8 @@
 ⍝ Interval.tc
 ⍝ ═══════════
 
+⍝@ test4.
+
       ⎕IO←1
 
       ⍝ Precond: B simple scalar or one-item nonneg int; implicit ⎕IO

@@ -1,6 +1,8 @@
 ⍝ Rotate.tc
 ⍝ ═════════
 
+⍝@ test4.
+
       ⎕IO←1
 
       ⍝ Precond: A simple integer scalar or rank ¯1+⍴⍴B

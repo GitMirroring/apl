@@ -1,6 +1,8 @@
 ⍝ ZZZ6_Regression.tc
 ⍝ ----------------------------------
 
+⍝@ test3.
+
       ⍝ SYNTAX ERROR on IDX
       ⍝
       X ← ⍳10

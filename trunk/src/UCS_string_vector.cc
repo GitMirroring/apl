@@ -44,7 +44,7 @@ const ShapeItem name_len = val.get_cols();
         UCS_string name;   // name of the (left) variable
         loop(n, name_len)
            {
-             const Unicode uni = val.get_cravel(start++).get_char_value();
+             const Unicode uni = val.get_char_value(start++);
 
              if (n == 0)   // first char of the variable name
                 {
@@ -88,7 +88,7 @@ const ShapeItem name_len = val.get_cols();
              // skip spaces from start and subsequent spaces
              //
              while (start < end &&
-                    val.get_cravel(start).get_char_value() == UNI_SPACE)
+                    val.get_char_value(start) == UNI_SPACE)
                    ++start;
 
 
@@ -108,7 +108,7 @@ const ShapeItem name_len = val.get_cols();
              surrogate = false;
              while (start < end)
                 {
-                  const Unicode uni = val.get_cravel(start++).get_char_value();
+                  const Unicode uni = val.get_char_value(start++);
                   if (Avec::is_symbol_char(uni))   // valid symbol char
                      {
                        name << uni;

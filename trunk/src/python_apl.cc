@@ -83,35 +83,66 @@ PyObject * shape = PyList_New(value->get_rank());
 
 const ShapeItem ravel_len = value->nz_element_count();
 PyObject * ravel = PyList_New(ravel_len);
-   loop(i, ravel_len)
-       {
-         const Cell & cell = value->get_cravel(i);
-         if (cell.is_integer_cell())
-            PyList_SetItem(ravel, i, PyLong_FromLong(cell.get_int_value()));
-         else if (cell.is_float_cell())
-            PyList_SetItem(ravel, i, PyFloat_FromDouble(cell.get_real_value()));
-         else if (cell.is_complex_cell())
+const RavelType rt = value->get_ravel_type();
+   if (rt & RPT_integer)
+      {
+        loop(i, ravel_len)
+            PyList_SetItem(ravel, i, PyLong_FromLong(value->get_int_value(i)));
+      }
+   else if (rt == RPT_FLOAT64)
+      {
+        loop(i, ravel_len)
+            PyList_SetItem(ravel, i, PyFloat_FromDouble(value->get_real_value(i)));
+      }
+   else if (rt == RPT_COMPLEX)
+      {
+        loop(i, ravel_len)
             PyList_SetItem(ravel, i,
-                           PyComplex_FromDoubles(cell.get_real_value(),
-                                                 cell.get_imag_value()));
-         else if (cell.is_character_cell())
-            {
-              const UCS_string ucs(cell.get_char_value());   // 1-element string
-              UTF8_string utf(ucs);
-              PyList_SetItem(ravel, i, PyUnicode_FromStringAndSize(utf.c_str(),
-                                                                   utf.size()));
-            }
-         else if (cell.is_pointer_cell())
-            {
-              Value_P sub_val = cell.get_pointer_value();
-              PyList_SetItem(ravel, i, apl_to_python(sub_val.get()));
-            }
-         else
-            {
-               CERR << "*** Bad cell type at " LOC << endl;
-               return 0;
-            }
-       }
+                           PyComplex_FromDoubles(value->get_real_value(i),
+                                                 value->get_imag_value(i)));
+      }
+   else if (rt & RPT_char)
+      {
+        loop(i, ravel_len)
+           {
+             const UCS_string ucs(value->get_char_value(i));
+             UTF8_string utf(ucs);
+             PyList_SetItem(ravel, i, PyUnicode_FromStringAndSize(utf.c_str(),
+                                                                  utf.size()));
+           }
+      }
+   else   // RPT_CELLS: may have pointers or mixed types
+      {
+        loop(i, ravel_len)
+           {
+             const Cell & cell = value->get_cravel(i);
+             if (cell.is_integer_cell())
+                PyList_SetItem(ravel, i, PyLong_FromLong(cell.get_int_value()));
+             else if (cell.is_float_cell())
+                PyList_SetItem(ravel, i, PyFloat_FromDouble(cell.get_real_value()));
+             else if (cell.is_complex_cell())
+                PyList_SetItem(ravel, i,
+                               PyComplex_FromDoubles(cell.get_real_value(),
+                                                     cell.get_imag_value()));
+             else if (cell.is_character_cell())
+                {
+                  const UCS_string ucs(cell.get_char_value());
+                  UTF8_string utf(ucs);
+                  PyList_SetItem(ravel, i, PyUnicode_FromStringAndSize(utf.c_str(),
+                                                                       utf.size()));
+                }
+             else if (cell.is_pointer_cell())
+                {
+                  Value_P sub_val = cell.get_pointer_value();
+                  PyList_SetItem(ravel, i, apl_to_python(sub_val.get()));
+                }
+             else
+                {
+                   CERR << "*** Bad cell type at " LOC << endl;
+                   return 0;
+                }
+           }
+      }
 
    return PyTuple_Pack(2, shape, ravel);
 }
@@ -276,23 +307,37 @@ make_ravel(const cValue * value)
 const ShapeItem len = value->nz_element_count();
 PyObject * result = PyList_New(len);
 
-   loop(l, len)
+   const RavelType rt = value->get_ravel_type();
+   if (rt & RPT_integer)
       {
-        const Cell & cell = value->get_cravel(l);
-        PyObject * item = Py_None;
-        if (cell.is_integer_cell())
+        loop(l, len)
+            PyList_SetItem(result, l, PyLong_FromLong(value->get_int_value(l)));
+      }
+   else if (rt == RPT_FLOAT64)
+      {
+        loop(l, len)
+            PyList_SetItem(result, l, PyFloat_FromDouble(value->get_real_value(l)));
+      }
+   else
+      {
+        loop(l, len)
            {
-             item = PyLong_FromLong(cell.get_int_value());
+             const Cell & cell = value->get_cravel(l);
+             PyObject * item = Py_None;
+             if (cell.is_integer_cell())
+                {
+                  item = PyLong_FromLong(cell.get_int_value());
+                }
+             else if (cell.is_float_cell())
+                {
+                  item = PyFloat_FromDouble(cell.get_real_value());
+                }
+             else
+                {
+                  CERR << "*** Warning: unsupported Cell type" << endl;
+                }
+             PyList_SetItem(result, l, item);
            }
-        else if (cell.is_float_cell())
-           {
-             item = PyFloat_FromDouble(cell.get_real_value());
-           }
-        else
-           {
-             CERR << "*** Warning: unsupported Cell type" << endl;
-           }
-        PyList_SetItem(result, l, item);
       }
 
    return result;

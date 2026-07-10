@@ -593,8 +593,8 @@ const ShapeItem len_A = A.element_count();
         ShapeItem W = 0;
         loop(c, cols_B)
            {
-             if (len_A <= 2)   W += A.get_cfirst().get_near_int();
-             else              W += A.get_cravel(2*c).get_near_int();
+             if (len_A <= 2)   W += A.get_near_int(0);
+             else              W += A.get_near_int(2*c);
            }
 
         Shape shape_Z = shape_B.without_last_axis();
@@ -617,17 +617,17 @@ PrintBuffer pb;
          if (len_A == 1)
             {
               col_width = 0;
-              precision = A.get_cfirst().get_near_int();
+              precision = A.get_near_int(0);
             }
          else if (len_A == 2)
             {
-              col_width = A.get_cfirst().get_near_int();
-              precision = A.get_cravel(1).get_near_int();
+              col_width = A.get_near_int(0);
+              precision = A.get_near_int(1);
             }
          else
             {
-              col_width = A.get_cravel(2*col)    .get_near_int();
-              precision = A.get_cravel(2*col + 1).get_near_int();
+              col_width = A.get_near_int(2*col);
+              precision = A.get_near_int(2*col + 1);
             }
 
          // pb_col is the PrintBuffer for one numeric column.
@@ -1118,7 +1118,7 @@ bool has_complex = false;
 
         if (!cell.is_real_cell())   DOMAIN_ERROR;
 
-        APL_Float value = B.get_cravel(base + r*cols).get_real_value();
+        APL_Float value = B.get_real_value(base + r*cols);
         if (!isfinite(value))
            {
              MORE_ERROR() << "infinite number: "

@@ -315,8 +315,10 @@ protected:
    /// the total number of covr operations
    ShapeItem cover_count;
 
-   /// the first 0 in the matrix (for figuring the format)
-   const Cell * first_0;
+   /// the first 0 in the matrix (for figuring the format): true = char, false = int
+   bool  has_first_0;
+   bool  first_0_is_char;
+   Unicode first_0_char;
 };
 //════════════════════════════════════════════════════════════════════════════
 DLX_Root_Node::DLX_Root_Node(ShapeItem rs, ShapeItem cs, ShapeItem max_sol,
@@ -331,7 +333,9 @@ DLX_Root_Node::DLX_Root_Node(ShapeItem rs, ShapeItem cs, ShapeItem max_sol,
      level(0),
      pick_count(0),
      cover_count(0),
-     first_0(0)
+     has_first_0(false),
+     first_0_is_char(false),
+     first_0_char(Unicode_0)
 {
    // count the number of non-zero elements in the matrix
    //
@@ -358,7 +362,12 @@ ShapeItem ones = 0;
              DOMAIN_ERROR;
            }
         if (ct != Col_UNKNOWN)   ++ones;
-        else if (!first_0)   first_0 = &cell;
+        else if (!has_first_0)
+           {
+             first_0_is_char = cell.is_character_cell();
+             first_0_char    = first_0_is_char ? cell.get_char_value() : Unicode_0;
+             has_first_0 = true;
+           }
       }
 
    Log(LOG_Quad_DLX)   CERR << "Matrix has " << ones << " ones" << endl;
@@ -671,7 +680,7 @@ DLX_Root_Node::preset(cValue_R A_steps, ShapeItem stepsIdx, ShapeItem step_count
 const int qio = Workspace::get_IO();
    loop(a, step_count)
       {
-        const APL_Integer row = A_steps.get_cravel(stepsIdx++).get_int_value() - qio;
+        const APL_Integer row = A_steps.get_int_value(stepsIdx++) - qio;
         if (row < 0 || row >= rows)
            {
              MORE_ERROR() << "bad row: " << row;
@@ -719,8 +728,12 @@ Value_P Z(shape_Z, LOC);
    //
    loop(z, (rows*cols_Z))
       {
-        if (first_0)                               Z->next_ravel_Cell(*first_0);
-        else if (B_mat.get_cfirst().is_integer_cell())   Z->next_ravel_0();
+        if (has_first_0)
+           {
+             if (first_0_is_char)   Z->next_ravel_Char(first_0_char);
+             else                   Z->next_ravel_0();
+           }
+        else if (B_mat.is_integer_cell(0))   Z->next_ravel_0();
         else                                       Z->next_ravel_Char(UNI_0);
       }
 
@@ -753,7 +766,7 @@ Quad_DLX::eval_AB(cValue_R A, cValue_R B) const
    if (A.element_count() < 1)   LENGTH_ERROR;
 
    if (B.get_rank() != 2)   RANK_ERROR;
-const APL_Integer a0 = A.get_cfirst().get_int_value();
+const APL_Integer a0 = A.get_int_value(0);
 
    if (a0 < -4)   DOMAIN_ERROR;
    if (a0 == -4)   // perform some dance steps with the constraints matrix

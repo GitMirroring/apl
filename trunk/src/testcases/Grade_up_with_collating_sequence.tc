@@ -1,6 +1,8 @@
 ⍝ Grade_up_with_collating_sequence.tc
 ⍝ ----------------------------------
 
+⍝@ test3.
+
       ⎕IO←1
       'ABCDE'⍋'BEAD'
 3 1 4 2

@@ -127,8 +127,8 @@ int modifier = 0;
    else if (X.is_vector())                         // op and modifier
       {
         const ShapeItem X_count = X.element_count();
-        op = MX_ops(X.get_cfirst().get_int_value());
-        if (X_count > 1)   modifier = X.get_cravel(1).get_int_value();
+        op = MX_ops(X.get_int_value(0));
+        if (X_count > 1)   modifier = X.get_int_value(1);
       }
    else
       {
@@ -178,8 +178,8 @@ int modifier = 0;
   else if (X.is_vector())                         // op and modifier
      {
        const ShapeItem X_count = X.element_count();
-       op = MX_ops(X.get_cfirst().get_int_value());
-        if (X_count > 1)   modifier = X.get_cravel(1).get_int_value();
+       op = MX_ops(X.get_int_value(0));
+        if (X_count > 1)   modifier = X.get_int_value(1);
       }
    else
       {
@@ -446,22 +446,27 @@ FILE * ofile = open_file(*filename_A, close_A);
 FileWriter writer;
    if (close_A)   new (&writer) FileWriter(ofile);
 
+const RavelType rt = B->get_ravel_type();
    if (B_rank <= 1)   // scalar or vector
       {
-        loop(b, B_count)
-            {
-              const Cell & Bb = B->get_cravel(b);
-              const APL_Float Bbr = Bb.get_real_value();
-              if (Bb.is_complex_cell())
-                {
-                  const APL_Float Bbi = Bb.get_imag_value();
-                  fprintf(ofile, "%gj%g ", Bbr, Bbi);
-                }
-              else
-                {
-                  fprintf(ofile, "%g ", Bbr);
-                }
-            }
+        if (rt == RPT_CELLS)
+           { loop(b, B_count)
+                 {
+                   const Cell & Bb = B->get_cravel(b);
+                   const APL_Float Bbr = Bb.get_real_value();
+                   if (Bb.is_complex_cell())
+                      { const APL_Float Bbi = Bb.get_imag_value();
+                        fprintf(ofile, "%gj%g ", Bbr, Bbi); }
+                   else
+                      fprintf(ofile, "%g ", Bbr);
+                 }
+           }
+        else if (rt == RPT_COMPLEX)
+           { loop(b, B_count)   fprintf(ofile, "%gj%g ",
+                                         B->get_real_value(b),
+                                         B->get_imag_value(b)); }
+        else   // RPT_integer or RPT_FLOAT64
+           { loop(b, B_count)   fprintf(ofile, "%g ", B->get_real_value(b)); }
         fprintf(ofile, "\n");
       }
    else               // matrix or higher rank
@@ -472,20 +477,39 @@ FileWriter writer;
        char str[STR_LEN];
        bool is_cpx = false;
        int max_len = -1;
-       loop(a, B_count)
-           {
-             int len;
-             const Cell & cell_A = B->get_cravel(a);
-             const APL_Float Aa_real = cell_A.get_real_value();
-             if (cell_A.is_complex_cell())
-                {
-                  const APL_Float Aa_imag = cell_A.get_imag_value();
-                  len = snprintf(str, STR_LEN, "%gj%g", Aa_real, Aa_imag);
-                  if (Aa_imag != 0.0) is_cpx = true;
-                }
-             else
-                len = snprintf(str, STR_LEN, "%g", Aa_real);
-             if (max_len < len) max_len = len;
+        if (rt == RPT_CELLS)
+           { loop(a, B_count)
+                 {
+                   int len;
+                   const Cell & cell_A = B->get_cravel(a);
+                   const APL_Float Aa_real = cell_A.get_real_value();
+                   if (cell_A.is_complex_cell())
+                      {
+                        const APL_Float Aa_imag = cell_A.get_imag_value();
+                        len = snprintf(str, STR_LEN, "%gj%g", Aa_real, Aa_imag);
+                        if (Aa_imag != 0.0) is_cpx = true;
+                      }
+                   else
+                      len = snprintf(str, STR_LEN, "%g", Aa_real);
+                   if (max_len < len) max_len = len;
+                 }
+           }
+        else if (rt == RPT_COMPLEX)
+           { loop(a, B_count)
+                 {
+                   const APL_Float re = B->get_real_value(a);
+                   const APL_Float im = B->get_imag_value(a);
+                   if (im != 0.0) is_cpx = true;
+                   const int len = snprintf(str, STR_LEN, "%gj%g", re, im);
+                   if (max_len < len) max_len = len;
+                 }
+           }
+        else   // RPT_integer or RPT_FLOAT64
+           { loop(a, B_count)
+                 {
+                   const int len = snprintf(str, STR_LEN, "%g", B->get_real_value(a));
+                   if (max_len < len) max_len = len;
+                 }
            }
      
        std::vector<int> rho_v(B_rank, 0);

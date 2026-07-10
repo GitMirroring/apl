@@ -1,6 +1,8 @@
 ⍝ ZZZ0_Standard_08x.tc
 ⍝ Examples from the APL standard
 ⍝ page numbers in later version are ~ 4 less than indicated below
+⍝@ test3.
+
 ⍝ ----------------------------------
 
       ⎕CT←1E¯10

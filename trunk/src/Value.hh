@@ -95,15 +95,15 @@ public:
    /// return \b true iff \b this value is a simple (i.e. depth 0) scalar.
    bool is_simple_scalar() const
       { return is_scalar() &&
-              !(get_cfirst().is_pointer_cell() || get_lval_cellowner()); }
+              !(is_pointer_cell(0) || get_lval_cellowner()); }
 
    /// return \b true iff \b this value is a numeric scalar.
    bool is_numeric_scalar() const
-      { return  is_scalar() && get_cfirst().is_numeric(); }
+      { return  is_scalar() && is_numeric(0); }
 
    /// return \b true iff \b this value is a character scalar.
    bool is_character_scalar() const
-      { return  is_scalar() && get_cfirst().is_character_cell(); }
+      { return  is_scalar() && is_character_cell(0); }
 
    /// return \b true iff \b this value is empty (some dimension is 0).
    bool is_empty() const
@@ -113,14 +113,14 @@ public:
    bool is_zilde() const
       { return get_rank() == 1 &&
                get_cols() == 0 &&
-               get_cfirst().is_integer_cell();
+               is_integer_cell(0);
       }
 
    /// return \b true iff \b * \b this \b ≡ \b ''
    bool is_str0() const
       { return get_rank() == 1 &&
                get_cols() == 0 &&
-               get_cfirst().is_character_cell();
+               is_character_cell(0);
       }
 
    /// return \b true iff \b this value is a scalar or vector
@@ -162,11 +162,11 @@ public:
 
    /// return \b true iff \b this value is a simple character scalar.
    bool is_char_scalar() const
-      { return get_rank() == 0 && get_cfirst().is_character_cell(); }
+      { return get_rank() == 0 && is_character_cell(0); }
 
    /// return \b true iff \b this value is a simple integer scalar.
    bool is_int_scalar() const
-      { return get_rank() == 0 && get_cfirst().is_near_int(); }
+      { return get_rank() == 0 && is_near_int(0); }
 
    /// return the number of elements (the product of the shapes).
    ShapeItem element_count() const
@@ -216,14 +216,14 @@ public:
 
    /// return the integer of a value that is supposed to have (exactly) one
    APL_Integer get_sole_integer() const
-      { if (element_count() == 1)   return get_cfirst().get_near_int();
+      { if (element_count() == 1)   return get_near_int(0);
         if (get_rank() > 1)   RANK_ERROR;
         else                  LENGTH_ERROR;
       }
 
    /// return the first integer of a value (the line number of →Value).
    Function_Line get_line_number() const
-      { const APL_Integer line(ravel.get_cravel(0).get_near_int());
+      { const APL_Integer line(ravel.get_near_int(0));
         Log(LOG_execute_goto)   CERR << "goto line " << line << endl;
         return Function_Line(line); }
 
@@ -319,8 +319,10 @@ public:
    ShapeItem get_member_count() const;
 
    /// return the (constant) idx'th element of the ravel.
-   /// Automatically explodes packed ravels on first call so callers may
-   /// safely store the returned reference or pointer.
+   /// For packed ravels the cell is materialised into ravel.cell_fetch_cache;
+   /// the reference is valid until the next get_cravel() call on the same Value.
+   /// Use get_cravel(idx, cache) when two references from the same Value must
+   /// be live simultaneously.
    /// @param idx ravel index (0-based)
    const Cell & get_cravel(ShapeItem idx) const;
 
@@ -360,6 +362,64 @@ public:
    /// returns 0 for RPT_CELLS (not packed) and RPT_BOOL (bit-packed, needs special handling)
    ShapeItem packed_bytes_per_item() const;
 
+   /// Indexed scalar accessors — return native C++ values without
+   /// materialising a temporary Cell (no cell_fetch_cache aliasing hazard).
+   APL_Integer get_int_value(ShapeItem idx) const
+      { return ravel.get_int_value(idx); }
+
+   APL_Integer get_near_int(ShapeItem idx) const
+      { return ravel.get_near_int(idx); }
+
+   bool get_near_bool(ShapeItem idx) const
+      { return ravel.get_near_bool(idx); }
+
+   Unicode get_char_value(ShapeItem idx) const
+      { return ravel.get_char_value(idx); }
+
+   APL_Float get_real_value(ShapeItem idx) const
+      { return ravel.get_real_value(idx); }
+
+   APL_Float get_imag_value(ShapeItem idx) const
+      { return ravel.get_imag_value(idx); }
+
+   int get_byte_value(ShapeItem idx) const
+      { return ravel.get_byte_value(idx); }
+
+   APL_Complex get_complex_value(ShapeItem idx) const
+      { return ravel.get_complex_value(idx); }
+
+   CellType get_cell_type(ShapeItem idx) const
+      { return ravel.get_cell_type(idx); }
+
+   CellType get_cell_subtype(ShapeItem idx) const
+      { return ravel.get_cell_subtype(idx); }
+
+   Value_P get_pointer_value(ShapeItem idx) const
+      { return ravel.get_pointer_value(idx); }
+
+   bool is_pointer_cell(ShapeItem idx) const
+      { return ravel.is_pointer_cell(idx); }
+   bool is_lval_cell(ShapeItem idx) const
+      { return ravel.is_lval_cell(idx); }
+   bool is_simple_cell(ShapeItem idx) const
+      { return ravel.is_simple_cell(idx); }
+   bool is_character_cell(ShapeItem idx) const
+      { return ravel.is_character_cell(idx); }
+   bool is_integer_cell(ShapeItem idx) const
+      { return ravel.is_integer_cell(idx); }
+   bool is_numeric(ShapeItem idx) const
+      { return ravel.is_numeric(idx); }
+   bool is_complex_cell(ShapeItem idx) const
+      { return ravel.is_complex_cell(idx); }
+   bool is_near_int(ShapeItem idx) const
+      { return ravel.is_near_int(idx); }
+   bool is_near_bool(ShapeItem idx) const
+      { return ravel.is_near_bool(idx); }
+   bool is_near_real(ShapeItem idx) const
+      { return ravel.is_near_real(idx); }
+   bool is_real_cell(ShapeItem idx) const
+      { return ravel.is_real_cell(idx); }
+
    /// like get_cravel(), but materialises packed cells into caller-supplied
    /// \b cache instead of the shared ravel.cell_fetch_cache.  Use this when
    /// two references from the same value must be live simultaneously (e.g.
@@ -373,12 +433,22 @@ public:
    /// return the first element of the ravel (which is always present).
    /// same as get_cproto(), but named differently to indicate its context.
    const Cell & get_cfirst() const
-      { return ravel.get_cfirst(); }
+      {
+        // For packed empty values cells[0] holds a Cell vtable pointer, not a
+        // valid packed element.  Materialise the zero prototype into the cache.
+        if (is_packed() && is_empty())
+           { new (&ravel.cell_fetch_cache) IntCell(0); return ravel.cell_fetch_cache; }
+        return ravel.get_cfirst();
+      }
 
    /// return the first element of the ravel (which is always present)
    /// same as get_first(), but named differently to indicate its context.
    const Cell & get_cproto() const
-      { return ravel.get_cproto(); }
+      {
+        if (is_packed() && is_empty())
+           { new (&ravel.cell_fetch_cache) IntCell(0); return ravel.cell_fetch_cache; }
+        return ravel.get_cproto();
+      }
 
    /// return the first element of the ravel of a scalar
    /// same as get_cfirst(), but named differently to indicate its context.
@@ -758,7 +828,7 @@ public:
    /// destructor
    virtual ~Value();
 
-   /// minimum element count for automatic ravel packing (cache-density threshold)
+   /// compile-time default; runtime threshold is Quad_SYL::pack_min_length
    enum { PACKED_MINIMUM_LENGHT = cfg_PACKED_MINIMUM_LENGTH_WANTED };
 
    // DynamicObject also has print(ostream&) const; select the cValue one
@@ -1170,20 +1240,20 @@ public:
 
    /// expand this UNICODE16 ravel to Cell format (in place). Only valid
    /// for packed UNICODE16 ravels. Called before appending a uint32_t..
-   inline void explode_to_UNICODE32();
+   inline RavelType explode_to_UNICODE32();
 
    /// expand this ravel to packed complex format (in place). Only valid
    /// for packed bool, int, and double ravels. Called before appending
    /// a complex<double>.
-   inline void explode_to_COMPLEX();
+   inline RavelType explode_to_COMPLEX();
 
    /// expand this ravel to packed double format (in place). Only valid
    /// for packed bool and int ravels. Called before appending a double.
-   inline void explode_to_FLOAT64();
+   inline RavelType explode_to_FLOAT64();
 
    /// expand this ravel to packed int64_t format (in place). Only valid
    /// for packed bool ravels. Called before appending an int64_t.
-   inline void explode_to_INT64();
+   inline RavelType explode_to_INT64();
 
    /// assign cell C to packed or unpacked ravel at offset; explodes only when
    /// the cell type is incompatible with the current packing

@@ -92,6 +92,12 @@ do [not] start APserver (a shared variable server) on start-up. This
 disables communication with other workspaces or auxiliary
 processors through shared variables.
 .TP
+.B --pack_min N
+set the minimum element count for packed ravels to N (N \(>= 1).
+Arrays with fewer than N elements are stored in unpacked (Cell-array) form.
+The same setting is accessible at run time as \fB⎕SYL[34;2]\fP.
+The default value is set at \fB./configure\fP time (default: 12).
+.TP
 .B --par pproc
 use processor parent ID \fIpproc\fP (default: no parent ID).
 .TP

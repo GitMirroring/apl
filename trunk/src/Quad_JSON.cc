@@ -92,7 +92,7 @@ Quad_JSON::eval_AB(cValue_R A, cValue_R B) const
 {
    if (A.get_rank() > 0)   RANK_ERROR;
 
-const int function_number = A.get_cfirst().get_int_value();
+const int function_number = A.get_int_value(0);
    switch(function_number)
       {
         case 0:   // same as monadic ⎕JSON
@@ -314,13 +314,13 @@ Quad_JSON::APL_to_JSON_string(UCS_string & result, const Cell & cell,
    // at this point the cell should end up as char vector. Determint its depth.
    //
 const cValue * Z = cell.get_pointer_value().get();
-   if (!(Z->get_cfirst().is_pointer_cell() && Z->is_scalar()))
+   if (!(Z->is_pointer_cell(0) && Z->is_scalar()))
       {
         APL_to_JSON_string(result, *Z, level, sorted);
         return;
       }
 
-   Z = Z->get_cfirst().get_pointer_value().get();
+   Z = Z->get_pointer_value(0).get();
    if (!Z->is_char_vector())
       {
 FIXME;
@@ -479,7 +479,7 @@ const ShapeItem len_B = B.element_count();
 
 UCS_string ucs_B;
    ucs_B.reserve(len_B + 1);
-   loop(b, len_B)   ucs_B << B.get_cravel(b).get_char_value();
+   loop(b, len_B)   ucs_B << B.get_char_value(b);
    ucs_B << Unicode_0;   // 0-terminate ucs_B to avoid too many length checks
 
    // tokenize ucs_B
@@ -543,13 +543,13 @@ size_t token0 = 0;
 
    if (Z->is_simple_scalar())
       {
-        Assert(Z->get_cfirst().is_numeric());
+        Assert(Z->is_numeric(0));
         return Z;   // number
       }
 
    Assert(Z->is_scalar());
-   Assert(Z->get_cfirst().is_pointer_cell());
-   return Z->get_cfirst().get_pointer_value();
+   Assert(Z->is_pointer_cell(0));
+   return Z->get_pointer_value(0);
 }
 //────────────────────────────────────────────────────────────────────────────
 void

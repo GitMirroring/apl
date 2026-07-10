@@ -1,6 +1,8 @@
 ⍝ Magnitude.tc
 ⍝ ════════════
 
+⍝@ test4.
+
       ⎕IO←1
 
       ⍝ Precond: B numeric; Z numeric real

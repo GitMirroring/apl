@@ -1,6 +1,8 @@
 ⍝ First.tc
 ⍝ ════════
 
+⍝@ test4.
+
       ⎕IO←1
 
       ⍝ inv: B ←→ ↑⊂B   (first of enclosed B is B)

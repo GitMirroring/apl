@@ -394,6 +394,15 @@ This option causes GNU APL to perform an automatic )OFF command after the
 last line of the last input file (as per -f option) was executed.
 
 @item
+@code{--pack_min N}
+
+Set the minimum element count for packed ravels to N (N @geq{} 1).  Arrays
+shorter than N elements are kept in unpacked (Cell-array) form.  The same
+setting is accessible at run time via @code{⎕SYL[34;2]}.  The default value
+is determined at @command{./configure} time
+(@code{cfg_PACKED_MINIMUM_LENGTH_WANTED}, default 12).
+
+@item
 @code{--PW COLS}
 
 set the initial value of ⎕PW to COLS (min. 30, max. 10000)

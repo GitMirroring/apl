@@ -147,9 +147,9 @@ const ShapeItem length = y123_B->element_count();
 
    // check for case 1 (the only one with nested first element)
    //
-   if (y123_B->get_cfirst().is_pointer_cell())   // case 1: (y123)
+   if (y123_B->is_pointer_cell(0))   // case 1: (y123)
       {
-         y123 = y123_B->get_cfirst().get_pointer_value();
+         y123 = y123_B->get_pointer_value(0);
          if (length == 1)        // scalar y123 and empty B
             {
             }
@@ -203,11 +203,11 @@ int y123_len = 0;
       }
 
    if (length == (y123_len + 1) &&
-       y123_B->get_cravel(y123_len).is_pointer_cell())   // case 3. y123:⊂B
+       y123_B->is_pointer_cell(y123_len))   // case 3. y123:⊂B
       {
         y123 = Value_P(y123_len, LOC);
         loop(yy, y123_len)   y123->next_ravel_Cell(y123_B->get_cravel(yy));
-        B = y123_B->get_cravel(y123_len).get_pointer_value();
+        B = y123_B->get_pointer_value(y123_len);
         y123->check_value(LOC);
         B->check_value(LOC);
         return;
@@ -228,8 +228,8 @@ Token
 Bif_OPER2_RANK::eval_ALRB(cValue_R A, Token & LO, Token & y, cValue_R B) const
 {
 const cValue * pB = &B;
-   if (pB->element_count() == 1 && pB->get_cfirst().is_pointer_cell())
-   { Value_P B_hold_ = pB->get_cfirst().get_pointer_value(); pB = B_hold_.get(); }
+   if (pB->element_count() == 1 && pB->is_pointer_cell(0))
+   { Value_P B_hold_ = pB->get_pointer_value(0); pB = B_hold_.get(); }
 
 sRank rank_chunk_A = A.get_rank();
 sRank rank_chunk_B = pB->get_rank();
@@ -243,8 +243,8 @@ Bif_OPER2_RANK::eval_ALRXB(cValue_R A, Token & LO, Token & y,
                            cValue_R X, cValue_R B) const
 {
 const cValue * pB = &B;
-   if (pB->element_count() == 1 && pB->get_cfirst().is_pointer_cell())
-   { Value_P B_hold_ = pB->get_cfirst().get_pointer_value(); pB = B_hold_.get(); }
+   if (pB->element_count() == 1 && pB->is_pointer_cell(0))
+   { Value_P B_hold_ = pB->get_pointer_value(0); pB = B_hold_.get(); }
 
 sRank rank_chunk_A = A.get_rank();
 sRank rank_chunk_B = pB->get_rank();
@@ -258,8 +258,8 @@ Token
 Bif_OPER2_RANK::eval_LRB(Token & LO, Token & y, cValue_R B) const
 {
 const cValue * pB = &B;
-   if (pB->element_count() == 1 && pB->get_cfirst().is_pointer_cell())
-   { Value_P B_hold_ = pB->get_cfirst().get_pointer_value(); pB = B_hold_.get(); }
+   if (pB->element_count() == 1 && pB->is_pointer_cell(0))
+   { Value_P B_hold_ = pB->get_pointer_value(0); pB = B_hold_.get(); }
 
 const sRank rank_chunk_B = y123_to_chunk_B_rank(y.get_apl_val().get(), pB->get_rank());
    return do_LyXB(LO, Value_P(), CLONE(pB, LOC), rank_chunk_B);
@@ -269,8 +269,8 @@ Token
 Bif_OPER2_RANK::eval_LRXB(Token & LO, Token & y, cValue_R X, cValue_R B) const
 {
 const cValue * pB = &B;
-   if (pB->element_count() == 1 && pB->get_cfirst().is_pointer_cell())
-   { Value_P B_hold_ = pB->get_cfirst().get_pointer_value(); pB = B_hold_.get(); }
+   if (pB->element_count() == 1 && pB->is_pointer_cell(0))
+   { Value_P B_hold_ = pB->get_pointer_value(0); pB = B_hold_.get(); }
 
 const sRank rank_chunk_B = y123_to_chunk_B_rank(y.get_apl_val().get(), pB->get_rank());
 
@@ -314,7 +314,7 @@ const Shape shape_Z = frame_B_rank ? B->get_shape().frame_shape(frame_B_rank)
         //
         loop(x, X->element_count())
             {
-              const APL_Integer axis = X->get_cravel(x).get_int_value();
+              const APL_Integer axis = X->get_int_value(x);
               if (axis != B->get_rank())
                  {
                    MORE_ERROR() << "A f ⍤[X] B: invalid axis " << axis
@@ -428,7 +428,7 @@ const Shape shape_Z = B->get_shape().frame_shape(frame_B_rank);
       {
         loop(x, X->element_count())
             {
-              const APL_Integer axis = X->get_cravel(x).get_int_value();
+              const APL_Integer axis = X->get_int_value(x);
               if (axis != B->get_rank())
                  {
                    MORE_ERROR() << "f ⍤[X] B: invalid axis " << axis
@@ -465,7 +465,7 @@ Value_P X5(5, LOC);
    else if (X->is_simple_scalar())   // X → ,X
       {
         Value_P X1(1, LOC);
-        X1->next_ravel_Int(X->get_cfirst().get_int_value());
+        X1->next_ravel_Int(X->get_int_value(0));
         X1->check_value(LOC);
         X5->next_ravel_Pointer(X1.get());   // with X: f ⍤[X] y B
       }
@@ -528,16 +528,16 @@ sRank y3;
 
    switch(y123->element_count())
       {
-        case 1:  y3 = y123->get_cfirst().get_near_int();    // take
+        case 1:  y3 = y123->get_near_int(0);    // take
                  break;
 
-        case 2:       y123->get_cfirst().get_near_int();    // check
-                 y3 = y123->get_cravel(1).get_near_int();   // take
+        case 2:       y123->get_near_int(0);    // check
+                 y3 = y123->get_near_int(1);   // take
                  break;
 
-        case 3:  y3 = y123->get_cfirst().get_near_int();    // take
-                      y123->get_cravel(1).get_near_int();   // check
-                      y123->get_cravel(2).get_near_int();   // check
+        case 3:  y3 = y123->get_near_int(0);    // take
+                      y123->get_near_int(1);   // check
+                      y123->get_near_int(2);   // check
                       break;
 
         default: // ISO p. 124 (monadic) p. 125 (dyadic)
@@ -581,15 +581,15 @@ const sRank rk_B = rank_B;
 
    switch(y123->element_count())
       {
-        case 1:  rank_A = y123->get_cfirst().get_near_int();
+        case 1:  rank_A = y123->get_near_int(0);
                  rank_B = rank_A;                            break;
 
-        case 2:  rank_A = y123->get_cfirst().get_near_int();
-                 rank_B = y123->get_cravel(1).get_near_int();  break;
+        case 2:  rank_A = y123->get_near_int(0);
+                 rank_B = y123->get_near_int(1);  break;
 
-        case 3:           y123->get_cfirst().get_near_int();
-                 rank_A = y123->get_cravel(1).get_near_int();
-                 rank_B = y123->get_cravel(2).get_near_int();  break;
+        case 3:           y123->get_near_int(0);
+                 rank_A = y123->get_near_int(1);
+                 rank_B = y123->get_near_int(2);  break;
 
         default: LENGTH_ERROR;
       }

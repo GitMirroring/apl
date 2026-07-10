@@ -1,6 +1,8 @@
 ⍝ Rank
 ⍝ ----------------------------------
 
+⍝@ test3.
+
       )COPY ASSERT.apl ASSERT ASSERT_EQUIV
 DUMPED ³
 

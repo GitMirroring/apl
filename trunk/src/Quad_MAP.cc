@@ -46,10 +46,10 @@ bool recursive = false;
     */
 Value_P A_hold_;
 const cValue * pA = &A;
-   if (pA->get_rank() == 0 && pA->get_cfirst().is_pointer_cell())
+   if (pA->get_rank() == 0 && pA->is_pointer_cell(0))
       {
          recursive = true;
-         A_hold_ = pA->get_cfirst().get_pointer_value();
+         A_hold_ = pA->get_pointer_value(0);
          pA = A_hold_.get();
       }
 
@@ -91,8 +91,9 @@ const ravel_comp_len ctx = { pA, 1};
 const double qct = Workspace::get_CT();
    for (ShapeItem m = 1; m < map_len; ++m)
        {
-          const Cell & cm1 = pA->get_cravel(2*indices[m - 1]);
-          const Cell & cm  = pA->get_cravel(2*indices[m    ]);
+          Cell cache1, cache2;
+          const Cell & cm1 = pA->get_cravel(2*indices[m - 1], cache1);
+          const Cell & cm  = pA->get_cravel(2*indices[m    ], cache2);
           if (cm1.equal(cm, qct))
              {
                const int qio = Workspace::get_IO();
@@ -189,8 +190,9 @@ Quad_MAP::greater_map(const ShapeItem & a, const ShapeItem & b,
 {
 const ravel_comp_len * rcl = reinterpret_cast<const ravel_comp_len *>(ctx);
 
-   if (const Comp_result cr = rcl->value->get_cravel(2*a)
-                                  .compare(rcl->value->get_cravel(2*b)))
+Cell cache_a, cache_b;
+   if (const Comp_result cr = rcl->value->get_cravel(2*a, cache_a)
+                                  .compare(rcl->value->get_cravel(2*b, cache_b)))
       return cr == COMP_GT;
 
    return a > b;

@@ -1,6 +1,8 @@
 ⍝ ZZZ8_Regression.tc
 ⍝ ----------------------------------
 
+⍝@ test3.
+
       ⍝ glue problem with scalar
       ⍝ 
       S←1

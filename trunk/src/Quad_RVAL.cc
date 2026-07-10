@@ -176,13 +176,13 @@ bool need_restore = false;
 
          if (len_B >= 3)   // type: always enclosed vector (distribution)
             {
-              if (!B.get_cravel(2).is_pointer_cell())
+              if (!B.is_pointer_cell(2))
                  {
                    MORE_ERROR() << "⎕RVAL B: B[2] (type distribution) must be "
                                    "an enclosed vector";
                    DOMAIN_ERROR;
                  }
-              do_eval_AB(3, *B.get_cravel(2).get_pointer_value());
+              do_eval_AB(3, *B.get_pointer_value(2));
             }
 
          if (len_B >= 4)   // maxdepth: scalar or 1-element vector
@@ -368,7 +368,7 @@ Value_P Z(N, LOC);
         //
         loop(b, new_N)
             {
-              const APL_Integer byte = B.get_cravel(b).get_int_value();
+              const APL_Integer byte = B.get_int_value(b);
               if ((byte < -256) || (byte >  255))
                  {
                    MORE_ERROR() << "Bad right argument B in 0 ⎕RVAL B,"
@@ -379,7 +379,7 @@ Value_P Z(N, LOC);
         N = new_N;
         loop(b, N)
             {
-               state[b] = B.get_cravel(b).get_int_value();
+               state[b] = B.get_int_value(b);
             }
 #if ! MINGW_SRC
          setstate(state);
@@ -479,7 +479,7 @@ Value_P Z = IntScalar(desired_maxdepth, LOC);
 
    if (B.element_count())   // set the desired maxdepth
       {
-        const APL_Integer mxd = B.get_cfirst().get_int_value();
+        const APL_Integer mxd = B.get_int_value(0);
         if (mxd < 0)
            {
              MORE_ERROR() << "bad max.depth";
@@ -510,7 +510,7 @@ Value_P Z(desired_ranks.size(), LOC);
 
    if (B.is_scalar())   // single rank (fixed or equal distribution)
       {
-        ShapeItem rk = B.get_cfirst().get_int_value();
+        ShapeItem rk = B.get_int_value(0);
 
         if ((rk < -MAX_RANK) || (rk > MAX_RANK))
            {
@@ -528,7 +528,7 @@ Value_P Z(desired_ranks.size(), LOC);
         vector<int>new_ranks;
         loop(b, B.element_count())
             {
-              const int rank_b = B.get_cravel(b).get_int_value();
+              const int rank_b = B.get_int_value(b);
               if (rank_b < 0)
                  {
                    MORE_ERROR() << "a vector right argument B of 1 ⎕RVAL B "
@@ -572,7 +572,7 @@ Value_P Z(MAX_RANK, LOC);
 
         if (B.is_scalar())   // scalar-extend B
            {
-              const APL_Integer len = B.get_cfirst().get_int_value();
+              const APL_Integer len = B.get_int_value(0);
               loop(b, MAX_RANK)   new_shape.add_shape_item(len);
            }
         else                 // vector B: prepend 1s as needed
@@ -583,7 +583,7 @@ Value_P Z(MAX_RANK, LOC);
 
              // fill lower dimensions with B
               loop(b, len_B)
-                  new_shape.add_shape_item(B.get_cravel(b).get_int_value());
+                  new_shape.add_shape_item(B.get_int_value(b));
            }
 
         desired_shape = new_shape;
@@ -637,7 +637,7 @@ Value_P Z(desired_types.size(), LOC);
         bool B_has_simple = false;
         loop(b, B.element_count())
             {
-              const int type_b = B.get_cravel(b).get_int_value();
+              const int type_b = B.get_int_value(b);
               if (type_b < 0)
                  {
                    MORE_ERROR() << "the right argument B of 3 ⎕RVAL B "

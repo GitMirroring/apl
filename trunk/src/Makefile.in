@@ -6473,7 +6473,8 @@ info: info-recursive
 info-am:
 
 install-data-am: install-dist_pkgdataDATA install-pkgincludeHEADERS
-
+	@$(NORMAL_INSTALL)
+	$(MAKE) $(AM_MAKEFLAGS) install-data-hook
 install-dvi: install-dvi-recursive
 
 install-dvi-am:
@@ -6919,7 +6920,8 @@ ps-am:
 uninstall-am: uninstall-binPROGRAMS uninstall-dist_pkgdataDATA \
 	uninstall-pkgincludeHEADERS uninstall-pkglibLTLIBRARIES
 
-.MAKE: $(am__recursive_targets) install-am install-strip
+.MAKE: $(am__recursive_targets) install-am install-data-am \
+	install-strip
 
 .PHONY: $(am__recursive_targets) CTAGS GTAGS TAGS all all-am all-local \
 	am--depfiles check check-am clean clean-binPROGRAMS \
@@ -6928,10 +6930,10 @@ uninstall-am: uninstall-binPROGRAMS uninstall-dist_pkgdataDATA \
 	distclean-generic distclean-libtool distclean-tags distdir dvi \
 	dvi-am html html-am info info-am install install-am \
 	install-binPROGRAMS install-data install-data-am \
-	install-dist_pkgdataDATA install-dvi install-dvi-am \
-	install-exec install-exec-am install-html install-html-am \
-	install-info install-info-am install-man install-pdf \
-	install-pdf-am install-pkgincludeHEADERS \
+	install-data-hook install-dist_pkgdataDATA install-dvi \
+	install-dvi-am install-exec install-exec-am install-html \
+	install-html-am install-info install-info-am install-man \
+	install-pdf install-pdf-am install-pkgincludeHEADERS \
 	install-pkglibLTLIBRARIES install-ps install-ps-am \
 	install-strip installcheck installcheck-am installdirs \
 	installdirs-am maintainer-clean maintainer-clean-generic \
@@ -7000,6 +7002,30 @@ test3: all
 test4: all
 	./apl --id 1010 -T testcases/invariants/*tc || true
 	stty sane
+
+# Create/refresh testcases_3/ and testcases_4/ symlink directories from ⍝@ markers.
+# install-data-hook calls this so 'make install' (typically run as root) sets them up;
+# chown restores ownership to match the src directory.
+.PHONY:	install-testlinks
+install-data-hook: install-testlinks
+install-testlinks:
+	$(MKDIR_P) testcases_3 testcases_4
+	chown -R "$$(stat -c '%u:%g' .)" testcases_3 testcases_4
+	for f in testcases/*.tc; do \
+	  name=$$(basename "$$f"); \
+	  if head -10 "$$f" | grep -q '@ test3\.'; then \
+	    ln -sf "../testcases/$$name" "testcases_3/$$name"; \
+	  fi; \
+	  if head -10 "$$f" | grep -q '@ test4\.'; then \
+	    ln -sf "../testcases/$$name" "testcases_4/$$name"; \
+	  fi; \
+	done
+	for f in testcases/invariants/*.tc; do \
+	  name=$$(basename "$$f"); \
+	  if head -10 "$$f" | grep -q '@ test4\.'; then \
+	    ln -sf "../testcases/invariants/$$name" "testcases_4/$$name"; \
+	  fi; \
+	done
 
 perf: apl
 	./apl --id 1010 --TM 3 -T testcases/Performance.pt

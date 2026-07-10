@@ -1,6 +1,8 @@
 ⍝ AAA0.tc: set-up logging etc. for all testcases
 ⍝ ----------------------------------------------
 
+⍝@ test3.
+
       ⍝     ]LOG 2
       ⍝     ]XTERM OFF
 

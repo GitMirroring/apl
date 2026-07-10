@@ -158,10 +158,10 @@ const cValue * pB = &B;   // may be rebound if B_enclosed
    loop (b, items_B1)
       {
         Value_P RO_A = CLONE(pA, LOC);
-        if (A_enclosed)   RO_A = pA->get_cravel(a).get_pointer_value();
+        if (A_enclosed)   RO_A = pA->get_pointer_value(a);
 
         Value_P RO_B = CLONE(pB, LOC);
-        if (B_enclosed)   RO_B = pB->get_cravel(b).get_pointer_value();
+        if (B_enclosed)   RO_B = pB->get_pointer_value(b);
 
         const Token T1 = RO->eval_AB(*RO_A, *RO_B);
 
@@ -289,7 +289,8 @@ ShapeItem end_z = z + slice_len;
              ridxA -= job.incA;
              cidxB -= job.incB*job.ZBl;
 
-             const Cell & cellA = job.VA->get_cravel(ridxA);
+             Cell cacheA;
+             const Cell & cellA = job.VA->get_cravel(ridxA, cacheA);
              const Cell & cellB = job.VB->get_cravel(cidxB);
              if (l == 0)   // store first product in Z[z]
                 {

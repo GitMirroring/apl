@@ -157,7 +157,7 @@ Quad_FIO::eval_AB(cValue_R A, cValue_R B) const
    if (B.is_str0())    return list_functions(CERR);
    if (B.is_zilde())   return list_mappings(CERR);
 
-const APL_Integer function_number = B.get_cfirst().get_int_value();
+const APL_Integer function_number = B.get_int_value(0);
 Value_P B_vp = CLONE(&B, LOC);
    switch(function_number)
       {
@@ -299,7 +299,7 @@ Quad_FIO::eval_B(cValue_R B) const
         DOMAIN_ERROR;
       }
 
-const APL_Integer function_number = B.get_cfirst().get_int_value();
+const APL_Integer function_number = B.get_int_value(0);
 Value_P B_vp = CLONE(&B, LOC);
    switch(function_number)
       {
@@ -702,7 +702,7 @@ uint32_t uni = 0;
 Token
 Quad_FIO::eval_ALXB(cValue_R A, Token & LO, cValue_R X, cValue_R B) const
 {
-const APL_Integer function_number = X.get_cfirst().get_int_value();
+const APL_Integer function_number = X.get_int_value(0);
    switch(function_number)
       {
         case -1:   // benchmark monadic LO with argument B
@@ -732,7 +732,7 @@ Quad_FIO::eval_LXB(Token & LO, cValue_R X, cValue_R B) const
          return result;
       }
 
-const APL_Integer function_number = X.get_cfirst().get_int_value();
+const APL_Integer function_number = X.get_int_value(0);
    switch (function_number)
       {
         case -1:   // benchmark monadic LO with argument B
@@ -904,7 +904,7 @@ Quad_FIO::do_fprintf(FILE * outf, Value_P A)
    // is the number of characters (not bytes!) written to the file.
    //
 UCS_string UZ;
-const Value & A1 = *A->get_cfirst().get_pointer_value();
+const Value & A1 = *A->get_pointer_value(0);
 UCS_string A_format(A1);
    do_snprintf(UZ, A_format, *A, 1, "⎕FIO.fprintf B");
 UTF8_string utf(UZ);
@@ -1475,7 +1475,7 @@ int conversion_count_A = 0;   // the number of conversions (in A_format)
                           {
                             COUNT_ARG;
                             const APL_Float float_val =
-                                  B.get_cravel(off_B++).get_real_value();
+                                  B.get_real_value(off_B++);
                             fmt[fm++] = uni_1;   fmt[fm] = 0;
                             SPRINTF(numbuf, fmt, float_val);
                             if (thousands)
@@ -1497,14 +1497,14 @@ int conversion_count_A = 0;   // the number of conversions (in A_format)
 
                      case 's':   // string or char
                           COUNT_ARG;
-                          if (B.get_cravel(off_B).is_character_cell())
+                          if (B.is_character_cell(off_B))
                              {
-                               UZ << B.get_cravel(off_B++) .get_char_value();
+                               UZ << B.get_char_value(off_B++);
                                goto field_done;
                              }
                           {
                             Value_P str =
-                                    B.get_cravel(off_B++).get_pointer_value();
+                                    B.get_pointer_value(off_B++);
                             UCS_string ucs(*str.get());
                             UZ << ucs;
                           }
@@ -1512,7 +1512,7 @@ int conversion_count_A = 0;   // the number of conversions (in A_format)
 
                      case 'c':   // single char
                           COUNT_ARG;
-                          UZ << B.get_cravel(off_B++).get_char_value();
+                          UZ << B.get_char_value(off_B++);
                           goto field_done;
 
                      case 'm':
@@ -1561,7 +1561,7 @@ missing_arg:
 Token
 Quad_FIO::eval_AB___3(Value_P A)
 {
-APL_Integer probe = A->get_cfirst().get_int_value();
+APL_Integer probe = A->get_int_value(0);
    if (probe < 0)   probe = Probe::PROBE_COUNT + probe;
    if (probe >= Probe::PROBE_COUNT)
       return Token(TOK_APL_VALUE1, IntScalar(-1, LOC));
@@ -1611,7 +1611,7 @@ Quad_FIO::eval_AXB__13(Value_P A, Value_P B)
 {
    errno = 0;
 FILE * file = get_FILE(*B);
-const APL_Integer pos = A->get_cfirst().get_near_int();
+const APL_Integer pos = A->get_near_int(0);
    fseek(file, pos, SEEK_SET);
    return Token(TOK_APL_VALUE1, IntScalar(-errno, LOC));
 }
@@ -1621,7 +1621,7 @@ Quad_FIO::eval_AXB__14(Value_P A, Value_P B)
 {
    errno = 0;
 FILE * file = get_FILE(*B);
-const APL_Integer pos = A->get_cfirst().get_near_int();
+const APL_Integer pos = A->get_near_int(0);
    fseek(file, pos, SEEK_CUR);
    return Token(TOK_APL_VALUE1, IntScalar(-errno, LOC));
 }
@@ -1631,7 +1631,7 @@ Quad_FIO::eval_AXB__15(Value_P A, Value_P B)
 {
    errno = 0;
 FILE * file = get_FILE(*B);
-const APL_Integer pos = A->get_cfirst().get_near_int();
+const APL_Integer pos = A->get_near_int(0);
    fseek(file, pos, SEEK_END);
    return Token(TOK_APL_VALUE1, IntScalar(-errno, LOC));
 }
@@ -1645,7 +1645,7 @@ const UTF8_string path(path_ucs);
 #if MINGW_SRC
    mkdir(path.c_str());
 #else // ! MINGW_SRC
-const int mask = A->get_cfirst().get_near_int();
+const int mask = A->get_near_int(0);
    mkdir(path.c_str(), mask);
 #endif // ! MINGW_SRC
    if (errno == EEXIST)   errno = 0;   // frequent non-error
@@ -1655,17 +1655,17 @@ const int mask = A->get_cfirst().get_near_int();
 Token
 Quad_FIO::eval_AXB__202(Value_P A, Value_P B, APL_Integer function_number)
 {
-const APL_Integer threshold = A->get_cfirst().get_int_value();
+const APL_Integer threshold = A->get_int_value(0);
 cFunction_P fun = 0;
    if (B->element_count() == 3)   // dyadic operator
       {
-        const Unicode oper = B->get_cravel(1).get_char_value();
+        const Unicode oper = B->get_char_value(1);
         if (oper != UNI_FULLSTOP)   DOMAIN_ERROR;
         fun = &Bif_OPER2_INNER::fun;
       }
    else
       {
-        const Unicode prim = B->get_cfirst().get_char_value();
+        const Unicode prim = B->get_char_value(0);
         const Token tok = Tokenizer::tokenize_function(prim);
         if (!tok.is_function())   DOMAIN_ERROR;
         fun = tok.get_function();
@@ -1812,9 +1812,9 @@ Quad_FIO::eval_AXB__33(Value_P A, Value_P B)
 const int fd = get_fd(*B.get());
 SockAddr addr;
    memset(&addr, 0, sizeof(addr.inet));
-   addr.inet.sin_family      = A->get_cfirst().get_int_value();
-   addr.inet.sin_addr.s_addr = htonl(A->get_cravel(1).get_int_value());
-   addr.inet.sin_port        = htons(A->get_cravel(2).get_int_value());
+   addr.inet.sin_family      = A->get_int_value(0);
+   addr.inet.sin_addr.s_addr = htonl(A->get_int_value(1));
+   addr.inet.sin_port        = htons(A->get_int_value(2));
    errno = 0;
    bind(fd, &addr.addr, sizeof(addr.inet));
    return Token(TOK_APL_VALUE1, IntScalar(-errno, LOC));
@@ -1826,7 +1826,7 @@ Quad_FIO::eval_AXB__34(Value_P A, Value_P B)
 const int fd = get_fd(*B.get());
 APL_Integer backlog = 10;
    if (A->element_count() > 0)
-      backlog = A->get_cfirst().get_int_value();
+      backlog = A->get_int_value(0);
    errno = 0;
    listen(fd, backlog);
    return Token(TOK_APL_VALUE1, IntScalar(-errno, LOC));
@@ -1839,9 +1839,9 @@ const int fd = get_fd(*B.get());
    errno = 0;
 SockAddr addr;
    memset(&addr, 0, sizeof(addr.inet));
-   addr.inet.sin_family      = A->get_cfirst().get_int_value();
-   addr.inet.sin_addr.s_addr = htonl(A->get_cravel(1).get_int_value());
-   addr.inet.sin_port        = htons(A->get_cravel(2).get_int_value());
+   addr.inet.sin_family      = A->get_int_value(0);
+   addr.inet.sin_addr.s_addr = htonl(A->get_int_value(1));
+   addr.inet.sin_port        = htons(A->get_int_value(2));
    errno = 0;
    connect(fd, &addr.addr, sizeof(addr));
    return Token(TOK_APL_VALUE1, IntScalar(-errno, LOC));
@@ -1850,7 +1850,7 @@ SockAddr addr;
 Token
 Quad_FIO::eval_AXB__37(Value_P A, Value_P B)
 {
-const size_t bytes = A->get_cfirst().get_near_int();
+const size_t bytes = A->get_near_int(0);
 const int fd = get_fd(*B.get());
 char small_buffer[SMALL_BUF];
 char * buffer = small_buffer;
@@ -1882,7 +1882,7 @@ char * buffer = small_buffer;
 char * del = 0;
    if (bytes > sizeof(small_buffer))
       buffer = del = new char[bytes];
-   loop(z, bytes)   buffer[z] = A->get_cravel(z).get_near_int();
+   loop(z, bytes)   buffer[z] = A->get_near_int(z);
 const ssize_t len = send(fd, buffer, bytes, 0);
    if (len < 0)
       {
@@ -1908,7 +1908,7 @@ const ssize_t len = send(fd, utf.c_str(), utf.size(), 0);
 Token
 Quad_FIO::eval_AXB__41(Value_P A, Value_P B)
 {
-const size_t bytes = A->get_cfirst().get_near_int();
+const size_t bytes = A->get_near_int(0);
 const int fd = get_fd(*B.get());
 char small_buffer[SMALL_BUF];
 char * buffer = small_buffer;
@@ -1940,7 +1940,7 @@ char * buffer = small_buffer;
 char * del = 0;
    if (bytes > sizeof(small_buffer))
       buffer = del = new char[bytes];
-   loop(z, bytes)   buffer[z] = A->get_cravel(z).get_byte_value();
+   loop(z, bytes)   buffer[z] = A->get_byte_value(z);
    errno = 0;
 const ssize_t len = write(fd, buffer, bytes);
    delete [] del;
@@ -1964,8 +1964,8 @@ const ssize_t len = write(fd, utf.c_str(), utf.size());
 Token
 Quad_FIO::eval_AXB__46(Value_P A, Value_P B)
 {
-const APL_Integer level   = A->get_cfirst().get_int_value();
-const APL_Integer optname = A->get_cravel(1).get_int_value();
+const APL_Integer level   = A->get_int_value(0);
+const APL_Integer optname = A->get_int_value(1);
 const int fd = get_fd(*B.get());
 int optval = 0;
 socklen_t olen = sizeof(optval);
@@ -1978,9 +1978,9 @@ const int ret = sys_getsockopt(fd, level, optname, &optval, &olen);
 Token
 Quad_FIO::eval_AXB__47(Value_P A, Value_P B)
 {
-const APL_Integer level   = A->get_cfirst().get_int_value();
-const APL_Integer optname = A->get_cravel(1).get_int_value();
-const int optval          = A->get_cravel(2).get_int_value();
+const APL_Integer level   = A->get_int_value(0);
+const APL_Integer optname = A->get_int_value(1);
+const int optval          = A->get_int_value(2);
 const int fd = get_fd(*B.get());
    errno = 0;
    sys_setsockopt(fd, level, optname, &optval, sizeof(optval));
@@ -2085,11 +2085,11 @@ NOT_MINGW(
      int result = -1;
      switch(A->element_count())
         {
-           case 1: result = fcntl(fd, A->get_cfirst().get_int_value());
+           case 1: result = fcntl(fd, A->get_int_value(0));
                    break;
 
-           case 2: result = fcntl(fd, A->get_cfirst().get_int_value(),
-                                      A->get_cravel(1).get_int_value());
+           case 2: result = fcntl(fd, A->get_int_value(0),
+                                      A->get_int_value(1));
                    break;
 
            default: LENGTH_ERROR;
@@ -2106,7 +2106,7 @@ Token
 Quad_FIO::eval_AXB__6(Value_P A, Value_P B)
 {
    errno = 0;
-const size_t bytes = A->get_cfirst().get_near_int();
+const size_t bytes = A->get_near_int(0);
 FILE * file = get_FILE(*B);
    clearerr(file);
 char small_buffer[SMALL_BUF];
@@ -2133,8 +2133,8 @@ Quad_FIO::eval_AXB__60(Value_P A, Value_P B)
    errno = 0;
    if (!A->is_scalar())   RANK_ERROR;
    if (!B->is_scalar())   RANK_ERROR;
-const APL_Integer mode = A->get_cfirst().get_int_value();
-const APL_Integer len  = B->get_cfirst().get_int_value();
+const APL_Integer mode = A->get_int_value(0);
+const APL_Integer len  = B->get_int_value(0);
    if (len < 1)    LENGTH_ERROR;
    if (len > 32)   LENGTH_ERROR;
 Value_P Z = get_random(mode, len);
@@ -2153,7 +2153,7 @@ char * buffer = small_buffer;
 char * del = 0;
    if (bytes > sizeof(small_buffer))
       buffer = del = new char[bytes];
-   loop(z, bytes)   buffer[z] = A->get_cravel(z).get_near_int();
+   loop(z, bytes)   buffer[z] = A->get_near_int(z);
 const size_t len = fwrite(buffer, 1, bytes, file);
    delete [] del;
    return Token(TOK_APL_VALUE1, IntScalar(len, LOC));
@@ -2163,7 +2163,7 @@ Token
 Quad_FIO::eval_AXB__8(Value_P A, Value_P B)
 {
    errno = 0;
-const size_t bytes = A->get_cfirst().get_near_int();
+const size_t bytes = A->get_near_int(0);
 FILE * file = get_FILE(*B);
    clearerr(file);
 char small_buffer[SMALL_BUF];
@@ -2248,8 +2248,8 @@ Value_P Z(sh, LOC);
 Token
 Quad_FIO::eval_B___18(Value_P B)
 {
-const int64_t blocks = B->get_cravel(1).get_int_value();
-const int64_t verbo  = B->get_cravel(2).get_int_value();
+const int64_t blocks = B->get_int_value(1);
+const int64_t verbo  = B->get_int_value(2);
 uint64_t * p = 0;
    try { p = new uint64_t[blocks * 512]; }
    catch (std::bad_alloc &) { WS_FULL; }
@@ -2439,7 +2439,7 @@ const UTF8_string path(path_ucs);
 Token
 Quad_FIO::eval_XB__2(Value_P B)
 {
-int b = B->get_cfirst().get_near_int();
+int b = B->get_near_int(0);
    if (b < 0)   b = -b;
 const char * text = strerror(b);
 const int len = strlen(text);
@@ -2467,7 +2467,7 @@ const UTF8_string path(path_ucs);
 Token
 Quad_FIO::eval_XB__200(Value_P B, APL_Integer function_number)
 {
-const Pfstat_ID b = Pfstat_ID(B->get_cfirst().get_int_value());
+const Pfstat_ID b = Pfstat_ID(B->get_int_value(0));
 Statistics * stat = Performance::get_statistics(b);
    if (stat == 0)   DOMAIN_ERROR;   // bad statistics ID
 
@@ -2518,8 +2518,8 @@ Quad_FIO::eval_XB__202(Value_P B, APL_Integer function_number)
 const Function * fun = 0;
    if (B->element_count() == 3)   // dyadic operator
       {
-        const Unicode lfun = B->get_cfirst().get_char_value();
-        const Unicode oper = B->get_cravel(1).get_char_value();
+        const Unicode lfun = B->get_char_value(0);
+        const Unicode oper = B->get_char_value(1);
         if (oper == UNI_FULLSTOP)
            {
              if (lfun == UNI_RING_OPERATOR)   // ∘.g
@@ -2530,7 +2530,7 @@ const Function * fun = 0;
       }
    else
       {
-        const Unicode prim = B->get_cfirst().get_char_value();
+        const Unicode prim = B->get_char_value(0);
         const Token tok = Tokenizer::tokenize_function(prim);
         if (!tok.is_function())   DOMAIN_ERROR;
         fun = tok.get_function();
@@ -2730,9 +2730,9 @@ Quad_FIO::eval_XB__32(Value_P B)
 APL_Integer domain = AF_INET;
 APL_Integer type = SOCK_STREAM;
 APL_Integer protocol = 0;
-   if (B->element_count() > 0)   domain   = B->get_cfirst().get_int_value();
-   if (B->element_count() > 1)   type     = B->get_cravel(1).get_int_value();
-   if (B->element_count() > 2)   protocol = B->get_cravel(2).get_int_value();
+   if (B->element_count() > 0)   domain   = B->get_int_value(0);
+   if (B->element_count() > 1)   type     = B->get_int_value(1);
+   if (B->element_count() > 2)   protocol = B->get_int_value(2);
 const int sock = socket(domain, type, protocol);
    if (sock == -1)   return Token(TOK_APL_VALUE1, IntScalar(-errno, LOC));
 file_entry fe(0, sock);
@@ -2817,7 +2817,7 @@ APL_Integer max_fd = -1;
 
    if (B->element_count() >= 4)
       {
-        const APL_Integer milli = B->get_cravel(3).get_int_value();
+        const APL_Integer milli = B->get_int_value(3);
         if (milli < 0)   DOMAIN_ERROR;
         timeout.tv_sec = milli / 1000;
         timeout.tv_usec = (milli%1000) * 1000;
@@ -2830,7 +2830,7 @@ APL_Integer max_fd = -1;
         Value_P vex = b2.get_pointer_value();
         loop(l, vex->element_count())
             {
-              const int fd(vex->get_cravel(l).get_int_value());
+              const int fd(vex->get_int_value(l));
               if (fd < 0)                       DOMAIN_ERROR;
               if (fd > 8*int(sizeof(fd_set)))   DOMAIN_ERROR;
               FD_SET(SOCKET(fd), &exceptfds);
@@ -2846,7 +2846,7 @@ APL_Integer max_fd = -1;
         Value_P vwr = b1.get_pointer_value();
         loop(l, vwr->element_count())
             {
-              const APL_Integer fd = vwr->get_cravel(l).get_int_value();
+              const APL_Integer fd = vwr->get_int_value(l);
               if (fd < 0)                       DOMAIN_ERROR;
               if (fd > 8*int(sizeof(fd_set)))   DOMAIN_ERROR;
               FD_SET(SOCKET(fd), &writefds);
@@ -2862,7 +2862,7 @@ APL_Integer max_fd = -1;
         Value_P vrd = b0.get_pointer_value();
         loop(l, vrd->element_count())
             {
-              const APL_Integer fd = vrd->get_cravel(l).get_int_value();
+              const APL_Integer fd = vrd->get_int_value(l);
               if (fd < 0)                         DOMAIN_ERROR;
               if (fd > (8*int(sizeof(fd_set))))   DOMAIN_ERROR;
               FD_SET(SOCKET(fd), &readfds);
@@ -3010,7 +3010,7 @@ NOT_MINGW(
 Token
 Quad_FIO::eval_XB__50(Value_P B)
 {
-const APL_Integer unit = B->get_cfirst().get_near_int();
+const APL_Integer unit = B->get_near_int(0);
 timeval tv;
    gettimeofday(&tv, 0);
 int64_t usec = tv.tv_sec;
@@ -3034,14 +3034,14 @@ Quad_FIO::eval_XB__51(Value_P B)
 {
    if (B->element_count() < 6 || B->element_count() > 9)   LENGTH_ERROR;
 tm t;
-   t.tm_year = B->get_cfirst().get_int_value() - 1900;
-   t.tm_mon  = B->get_cravel(1).get_int_value() - 1;
-   t.tm_mday = B->get_cravel(2).get_int_value();
-   t.tm_hour = B->get_cravel(3).get_int_value();
-   t.tm_min  = B->get_cravel(4).get_int_value();
-   t.tm_sec  = B->get_cravel(5).get_int_value();
+   t.tm_year = B->get_int_value(0) - 1900;
+   t.tm_mon  = B->get_int_value(1) - 1;
+   t.tm_mday = B->get_int_value(2);
+   t.tm_hour = B->get_int_value(3);
+   t.tm_min  = B->get_int_value(4);
+   t.tm_sec  = B->get_int_value(5);
    if (B->element_count() > 6)   // dst provided
-      t.tm_isdst = B->get_cravel(6).get_int_value();
+      t.tm_isdst = B->get_int_value(6);
    else
       t.tm_isdst = -1;
 const time_t seconds = mktime(&t);
@@ -3059,7 +3059,7 @@ Token
 Quad_FIO::eval_XB__52(Value_P B, APL_Integer function_number)
 {
    if (B->element_count() != 1)   LENGTH_ERROR;
-const time_t t = B->get_cfirst().get_int_value();
+const time_t t = B->get_int_value(0);
 const tm * tmp = (function_number == 52) ? localtime(&t) : gmtime(&t);
    if (tmp == 0)   DOMAIN_ERROR;
 Value_P Z(9, LOC);
@@ -3114,7 +3114,7 @@ Token
 Quad_FIO::eval_XB__60(Value_P B)
 {
    if (!B->is_scalar())   RANK_ERROR;
-const APL_Integer len = B->get_cfirst().get_int_value();
+const APL_Integer len = B->get_int_value(0);
    if (len < 1)   LENGTH_ERROR;
    if (len > 8)   LENGTH_ERROR;
 Value_P Z = get_random(0, len);
@@ -3291,7 +3291,7 @@ int Bv[6];  // values as provided in B
    loop(b, 6)
        {
          if (len_B <= b)   Bv[b] = range[b].min_val;
-         else              Bv[b] = B.get_cravel(b).get_int_value();
+         else              Bv[b] = B.get_int_value(b);
          if (Bv[b] < range[b].min_val)
             {
               MORE_ERROR() << "In ⎕FX.secs_epoch : B["

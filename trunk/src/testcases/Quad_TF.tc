@@ -1,6 +1,8 @@
 ⍝ Quad_TF.tc
 ⍝ ----------------------------------
 
+⍝@ test3.
+
       )ERASE Z
 
       )ERASE ITEMS

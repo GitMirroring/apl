@@ -1,6 +1,8 @@
 ⍝ Decode.tc
 ⍝ ═════════
 
+⍝@ test4.
+
       ⎕IO←1
 
       ⍝ GNU APL: ⊥ is Decode (IBM APL2 calls this ⊤)

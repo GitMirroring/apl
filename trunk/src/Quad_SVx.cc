@@ -169,22 +169,22 @@ ShapeItem aI = 0;
         int ctl = 0;
         if (A.is_scalar())
            {
-             const bool val = A.get_cfirst().get_near_bool();
+             const bool val = A.get_near_bool(0);
               ctl = val ? ALL_SVAR_CONTROLS : NO_SVAR_CONTROL;
            }
         else if (A.is_vector())
            {
-             if (A.get_cfirst().get_near_bool())   ctl |= SET_BY_1;
-             if (A.get_cravel(1).get_near_bool())   ctl |= SET_BY_2;
-             if (A.get_cravel(2).get_near_bool())   ctl |= USE_BY_1;
-             if (A.get_cravel(3).get_near_bool())   ctl |= USE_BY_2;
+             if (A.get_near_bool(0))   ctl |= SET_BY_1;
+             if (A.get_near_bool(1))   ctl |= SET_BY_2;
+             if (A.get_near_bool(2))   ctl |= USE_BY_1;
+             if (A.get_near_bool(3))   ctl |= USE_BY_2;
            }
         else // matrix
            {
-             if (A.get_cravel(aI++).get_near_bool())   ctl |= SET_BY_1;
-             if (A.get_cravel(aI++).get_near_bool())   ctl |= SET_BY_2;
-             if (A.get_cravel(aI++).get_near_bool())   ctl |= USE_BY_1;
-             if (A.get_cravel(aI++).get_near_bool())   ctl |= USE_BY_2;
+             if (A.get_near_bool(aI++))   ctl |= SET_BY_1;
+             if (A.get_near_bool(aI++))   ctl |= SET_BY_2;
+             if (A.get_near_bool(aI++))   ctl |= USE_BY_1;
+             if (A.get_near_bool(aI++))   ctl |= USE_BY_2;
            }
 
         // set control.
@@ -251,7 +251,7 @@ Quad_SVE::assign(Value_P value, bool clone, const char * loc)
    //
    if (!value->is_scalar())   RANK_ERROR;
 
-const APL_time_us duration = 1000000 * value->get_cfirst().get_real_value();
+const APL_time_us duration = 1000000 * value->get_real_value(0);
    if (duration < 0)   DOMAIN_ERROR;
 
    if (duration == 0.0)
@@ -346,7 +346,7 @@ Value_P Z(sh_Z, LOC);
         Symbol * sym = Workspace::lookup_symbol(apl_vars[z]);
         assert(sym);
 
-        const AP_num proc = AP_num(A.get_cravel(a).get_int_value());
+        const AP_num proc = AP_num(A.get_int_value(a));
 
         ValueStackItem * vsp = sym->top_of_stack();
         Assert(vsp);
@@ -495,7 +495,7 @@ Value_P Z;
       }
    else                            // return variables offered by processor ↑B
       {
-        const AP_num proc = AP_num(B.get_cfirst().get_int_value());
+        const AP_num proc = AP_num(B.get_int_value(0));
         Z = get_variables(proc);
       }
 

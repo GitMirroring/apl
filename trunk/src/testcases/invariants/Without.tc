@@ -1,6 +1,8 @@
 ⍝ Without.tc
 ⍝ ══════════
 
+⍝@ test4.
+
       ⎕IO←1
 
       ⍝ Precond: A scalar/vector; Z vector; implicit ⎕CT

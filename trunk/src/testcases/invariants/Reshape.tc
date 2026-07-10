@@ -1,6 +1,8 @@
 ⍝ Reshape.tc
 ⍝ ══════════
 
+⍝@ test4.
+
       ⎕IO←1
 
       ⍝ Precond: A simple scalar/vector nonneg integers

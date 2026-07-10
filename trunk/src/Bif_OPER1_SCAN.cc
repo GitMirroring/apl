@@ -153,7 +153,7 @@ std::vector<ShapeItem> rep_counts;
    rep_counts.reserve(ec_A);
    loop(a, ec_A)
       {
-        APL_Integer rep_A = A.get_cravel(a).get_near_int();
+        APL_Integer rep_A = A.get_near_int(a);
         rep_counts.push_back(rep_A);
         if      (rep_A == 0)        ;
         else if (rep_A == 1)        ++ones_A;
@@ -175,7 +175,7 @@ Value_P Z(shape_Z, LOC);
 
 const Shape3 shape_Z3(shape_Z, axis);
 
-const bool lval = B.get_cfirst().is_lval_cell();
+const bool lval = B.is_lval_cell(0);
 
 ShapeItem inc_1 = shape_Z3.l();   // increment after result l items
 ShapeItem inc_2 = 0;              // increment after result m*l items

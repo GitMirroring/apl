@@ -1,6 +1,8 @@
 ⍝ Partition.tc
 ⍝ ════════════
 
+⍝@ test4.
+
       ⎕IO←1
 
       ⍝ Precond: A simple scalar/vector nonneg int; B nonscalar

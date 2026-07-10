@@ -55,8 +55,10 @@ const Cell &
 cValue::get_cravel(ShapeItem idx) const
 {
    Assert1(idx < nz_element_count());
-   if (is_packed())
-      const_cast<Value *>(static_cast<const Value *>(this))->explode_to_Cells();
+   // For packed empty values, cells[0] holds Cell vtable bits (not valid packed
+   // data): the prototype was never written in the packed format.  Materialise 0.
+   if (is_packed() && is_empty())
+      { new (&ravel.cell_fetch_cache) IntCell(0); return ravel.cell_fetch_cache; }
    return ravel.get_cravel(idx);
 }
 //────────────────────────────────────────────────────────────────────────────
@@ -67,9 +69,9 @@ cValue::is_apl_char_vector() const
 
    loop(c, get_shape_item(0))
       {
-        if (!get_cravel(c).is_character_cell())   return false;
+        if (!is_character_cell(c))   return false;
 
-        const Unicode uni = get_cravel(c).get_char_value();
+        const Unicode uni = get_char_value(c);
         if (Avec::find_char(uni) == Avec::Invalid_CHT)   // not in ⎕AV
            return false;
       }
@@ -81,7 +83,7 @@ bool
 cValue::is_char_array() const
 {
    loop(c, nz_element_count())   // also check prototype
-      if (!get_cravel(c).is_character_cell())   return false;   // not char
+      if (!is_character_cell(c))   return false;   // not char
    return true;
 }
 //────────────────────────────────────────────────────────────────────────────
@@ -115,8 +117,8 @@ const ShapeItem count = element_count();
 
    loop(c, count)
        {
-         if (get_cravel(c).is_pointer_cell())   return false;
-         if (get_cravel(c).is_lval_cell())      return false;
+         if (is_pointer_cell(c))   return false;
+         if (is_lval_cell(c))      return false;
        }
 
    return true;
@@ -134,9 +136,9 @@ const ShapeItem count = nz_element_count();
 
    loop(c, count)
        {
-         if (get_cravel(c).is_pointer_cell())
+         if (is_pointer_cell(c))
             {
-             Value_P sub_val = get_cravel(c).get_pointer_value();
+             Value_P sub_val = get_pointer_value(c);
              if (sub_val->get_rank() > 1)                return false;
              if (!sub_val->is_one_dimensional())         return false;
             }
@@ -151,7 +153,7 @@ cValue::is_int_array() const
 const ShapeItem ec = nz_element_count();
    loop(c, ec)
        {
-         if (!get_cravel(c).is_near_int())   return false;
+         if (!is_near_int(c))   return false;
        }
 
    return true;   // all ravel items are near-int
@@ -223,14 +225,14 @@ cValue::equal_string(const UCS_string & ucs) const
         const ShapeItem len = element_count();
         if (ucs.ssize() != len)   return false;   // wrong length
         loop(u, len)
-            if (ucs[u] != get_cravel(u).get_char_value())   // mismatch
+            if (ucs[u] != get_char_value(u))   // mismatch
                return false;
         return true;
       }
    else if (get_rank() == 0)   // rarely: char scalar
       {
         if (ucs.size() != 1)   return false;   // wrong length
-        return ucs[0] == get_cfirst().get_char_value();
+        return ucs[0] == get_char_value(0);
       }
 
    RANK_ERROR;            // never
@@ -537,8 +539,8 @@ cValue::compute_depth() const
    APL_types::Depth depth;
    if (is_scalar())
       {
-        if (get_cfirst().is_pointer_cell())
-           depth = 1 + get_cfirst().get_pointer_value()->compute_depth();
+        if (is_pointer_cell(0))
+           depth = 1 + get_pointer_value(0)->compute_depth();
         else
            { flags.value_depth = 0; return 0; }   // simple scalar: cache 0
       }
@@ -548,10 +550,10 @@ cValue::compute_depth() const
         const ShapeItem count = nz_element_count();
         loop(c, count)
             {
-              if (get_cravel(c).is_pointer_cell())
+              if (is_pointer_cell(c))
                  {
                    const APL_types::Depth d =
-                      get_cravel(c).get_pointer_value()->compute_depth();
+                      get_pointer_value(c)->compute_depth();
                    if (sub_depth < d)   sub_depth = d;
                  }
             }
@@ -571,6 +573,13 @@ cValue::enlist_left(Value & Z) const
    // Z is a new (un-initialized) Value that shall be (recursively)
    // initialized with the (non-pointer) items of this (left-) value
    //
+   // Packed ravels store elements in compact form (uint16_t, int64_t, …) rather
+   // than as Cell objects.  LvalCells must point to actual Cell objects so that
+   // the selective-assignment writer can reach the storage.  Explode to RPT_CELLS
+   // so that get_cravel() returns a reference into the real ravel, not the cache.
+   if (is_packed())
+      const_cast<Value *>(static_cast<const Value *>(this))->explode_to_Cells();
+
    loop(c, element_count())
        {
          const Cell & cell = get_cravel(c);
@@ -649,7 +658,7 @@ cValue::flat_cell_types() const
 int32_t ctypes = 0;
 
 const ShapeItem count = nz_element_count();
-   loop(c, count)   ctypes |= get_cravel(c).get_cell_type();
+   loop(c, count)   ctypes |= get_cell_type(c);
 
    return CellType(ctypes);
 }
@@ -660,7 +669,7 @@ cValue::flat_cell_subtypes() const
 int32_t ctypes = 0;
 
 const ShapeItem count = nz_element_count();
-   loop(c, count)   ctypes |= get_cravel(c).get_cell_subtype();
+   loop(c, count)   ctypes |= get_cell_subtype(c);
 
    return CellType(ctypes);
 }
@@ -712,7 +721,7 @@ PrintContext pctx = Workspace::get_PrintContext(PR_APL);
    else if (get_rank() == 1)   // vector
       {
         if (element_count() == 0 &&   // empty vector
-            (get_cfirst().is_simple_cell()))
+            (is_simple_cell(0)))
            {
              return out << endl;
            }
@@ -927,7 +936,7 @@ const ShapeItem cols = Z->get_cols();
    loop(r, rows)
        {
          if (indent && r)   out << UCS_string(indent, UNI_SPACE);
-         loop(c, cols)   out << Z->get_cravel(c + r*cols).get_char_value();
+         loop(c, cols)   out << Z->get_char_value(c + r*cols);
          out << endl;
        }
    out << endl;
@@ -959,7 +968,7 @@ cValue::index(const IndexExpr & IX) const
               LENGTH_ERROR;   // not 1 columns
             }
 
-         const APL_Integer col = IX.values[0]->get_cfirst().get_int_value();
+         const APL_Integer col = IX.values[0]->get_int_value(0);
          if (col != Workspace::get_IO())           INDEX_ERROR;
 
          // count the number of member names.
@@ -968,13 +977,13 @@ cValue::index(const IndexExpr & IX) const
          const ShapeItem rows = get_rows();
          loop(row, rows)
              {
-               if (get_cravel(2*row).is_pointer_cell())   ++member_count;
+               if (is_pointer_cell(2*row))   ++member_count;
              }
 
          Value_P Z(member_count, LOC);
          loop(row, rows)
              {
-               if (get_cravel(2*row).is_pointer_cell())
+               if (is_pointer_cell(2*row))
                   Z->next_ravel_Cell(get_cravel(2*row));
              }
 
@@ -1182,7 +1191,7 @@ ShapeItem xI = 0;
 
    while (Z->more())
       {
-         const ShapeItem idx0 = X.get_cravel(xI++).get_near_int() - qio;
+         const ShapeItem idx0 = X.get_near_int(xI++) - qio;
          if (idx0 < 0 || idx0 >= max_idx)
             {
               MORE_ERROR() << "min index=⎕IO (=" << qio
@@ -1208,12 +1217,12 @@ Value::get_single_axis(const cValue * val, sRank max_axis)
 
    if (!val->is_scalar_or_len1_vector())     AXIS_ERROR;
 
-   if (!val->get_cfirst().is_near_int())   AXIS_ERROR;
+   if (!val->is_near_int(0))   AXIS_ERROR;
 
    // if axis becomes (signed) negative then it will be (unsigned) too big.
    // Therefore we need not test for < 0.
    //
-const int axis = val->get_cfirst().get_near_int() - Workspace::get_IO();
+const int axis = val->get_near_int(0) - Workspace::get_IO();
    if (axis >= max_axis)   AXIS_ERROR;
 
    return axis;
@@ -1233,7 +1242,7 @@ const APL_Integer qio = Workspace::get_IO();
 
 Shape shape;
      loop(x, xlen)
-        shape.add_shape_item(val->get_cravel(x).get_near_int() - qio);
+        shape.add_shape_item(val->get_near_int(x) - qio);
 
    return shape;
 }
@@ -1297,11 +1306,11 @@ bool
 cValue::NOTCHAR() const
 {
    // always test element 0.
-   if (!get_cfirst().is_character_cell())   return true;
+   if (!is_character_cell(0))   return true;
 
 const ShapeItem ec = element_count();
    for (ShapeItem e = 1; e < ec; ++e)
-       if (!get_cravel(e).is_character_cell())   return true;
+       if (!is_character_cell(e))   return true;
 
    // all ravel items are (single) characters.
    return false;
@@ -1357,8 +1366,8 @@ cValue::unmark() const
 const ShapeItem ec = nz_element_count();
    loop(e, ec)
       {
-        if (get_cravel(e).is_pointer_cell())
-           get_cravel(e).get_pointer_value()->unmark();
+        if (is_pointer_cell(e))
+           get_pointer_value(e)->unmark();
       }
 }
 //────────────────────────────────────────────────────────────────────────────
@@ -1572,17 +1581,32 @@ int size = 0;
 CDR_type
 cValue::get_CDR_type() const
 {
-const ShapeItem ec = nz_element_count();
-const Cell & cell_0 = get_cfirst();
-
    // if all cells are characters (8 or 32 bit), then return 4 or 5.
    // if all cells are numeric (1, 32, 64, or 128 bit, then return  0 ... 3
-   // otherwise return 7 (nested) 
+   // otherwise return 7 (nested)
 
-   if (cell_0.is_character_cell())   // 8 or 32 bit characters.
+const ShapeItem nzec = nz_element_count();   // for Cell-ravel loops
+const ShapeItem ec   = element_count();       // for packed loops (packed[0] not
+                                              // valid for empty arrays)
+const Cell & cell_0 = get_cfirst();
+const RavelType rt = get_ravel_type();
+
+   if (rt & RPT_char)   // RPT_UNICODE16 or RPT_UNICODE32: all cells are chars
+      {
+        bool has_big = false;
+        loop(e, ec)   // ec=0 for empty: no packed element exists
+           {
+             const Unicode uni = get_char_value(e);
+             if (uni < 0)      has_big = true;
+             if (uni >= 256)   has_big = true;
+           }
+        return has_big ? CDR_CHAR32 : CDR_CHAR8;
+      }
+
+   if (cell_0.is_character_cell())   // 8 or 32 bit characters (Cell ravel)
       {
         bool has_big = false;   // assume 8-bit char
-        loop(e, ec)
+        loop(e, nzec)
            {
              const Cell & cell = get_cravel(e);
              if (!cell.is_character_cell())   return CDR_NEST32;
@@ -1594,13 +1618,37 @@ const Cell & cell_0 = get_cfirst();
         return has_big ? CDR_CHAR32 : CDR_CHAR8;   // 8-bit or 32-bit char
       }
 
+   if (rt == RPT_COMPLEX)
+      return CDR_CPLX128;
+
+   if (rt & RPT_integer)   // RPT_INT64 or RPT_BOOL
+      {
+        bool has_int = false;
+        bool has_float = false;
+        loop(e, ec)   // ec=0 for empty: prototype is 0, so CDR_BOOL1 is correct
+           {
+             const APL_Integer i = get_int_value(e);
+             if (i == 0)                   ;
+             else if (i == 1)              ;
+             else if (i >  0x7FFFFFFFLL)   has_float = true;
+             else if (i < -0x80000000LL)   has_float = true;
+             else                          has_int   = true;
+           }
+        if (has_float)   return CDR_FLT64;
+        if (has_int)     return CDR_INT32;
+        return CDR_BOOL1;
+      }
+
+   if (rt == RPT_FLOAT64)
+      return CDR_FLT64;
+
    if (cell_0.is_numeric())
       {
         bool has_int     = false;
         bool has_float   = false;
         bool has_complex = false;
 
-        loop(e, ec)
+        loop(e, nzec)
            {
              const Cell & cell = get_cravel(e);
              if (cell.is_integer_cell())
@@ -1638,7 +1686,7 @@ cValue::get_UCS_ravel() const
 UCS_string ucs;
 
 const ShapeItem ec = element_count();
-   loop(e, ec)   ucs << get_cravel(e).get_char_value();
+   loop(e, ec)   ucs << get_char_value(e);
 
    return ucs;
 }
@@ -1659,8 +1707,8 @@ cValue::print_structure(ostream & out, int indent, ShapeItem idx) const
 const ShapeItem ec = nz_element_count();
    loop(e, ec)
       {
-        if (get_cravel(e).is_pointer_cell())
-           get_cravel(e).get_pointer_value()->print_structure(out, indent + 1, e);
+        if (is_pointer_cell(e))
+           get_pointer_value(e)->print_structure(out, indent + 1, e);
       }
 }
 //────────────────────────────────────────────────────────────────────────────

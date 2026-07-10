@@ -76,18 +76,18 @@ Quad_GTK::eval_AB(cValue_R A, cValue_R B) const
         DOMAIN_ERROR;
       }
 
-const int function = B.get_cfirst().get_int_value();
+const int function = B.get_int_value(0);
 int fd = -1;
    switch(function)
       {
         case 0: // close window/GUI
              if (!A.is_int_scalar())   goto bad_fd;
-             fd = A.get_cfirst().get_int_value();
+             fd = A.get_int_value(0);
              return Token(TOK_APL_VALUE1, close_window(fd));
 
         case 3: // increase verbosity
              if (!A.is_int_scalar())   goto bad_fd;
-             fd = A.get_cfirst().get_int_value();
+             fd = A.get_int_value(0);
              if (write_TL0(fd, 7))
                 {
                   CERR << "write(Tag 7) failed in Ah ⎕GTK 3" << endl;
@@ -97,7 +97,7 @@ int fd = -1;
 
         case 4: // decrease verbosity
              if (!A.is_int_scalar())   goto bad_fd;
-             fd = A.get_cfirst().get_int_value();
+             fd = A.get_int_value(0);
              if (write_TL0(fd, 8))
                 {
                   CERR << "write(Tag 8) failed in Ah ⎕GTK 4" << endl;
@@ -168,7 +168,7 @@ const int fd = resolve_window(X, widget_id);
    write_TLV(fd, 6, widget_id);   // select widget
 
 Fnum fun = FNUM_INVALID;
-   if      (B.is_int_scalar())    fun = Fnum(B.get_cfirst().get_int_value());
+   if      (B.is_int_scalar())    fun = Fnum(B.get_int_value(0));
    else if (B.is_char_string())   fun = resolve_fun_name(widget_id, B);
    else
       {
@@ -285,7 +285,7 @@ Quad_GTK::eval_B(cValue_R B) const
         DOMAIN_ERROR;
       }
 
-const int function = B.get_cfirst().get_int_value();
+const int function = B.get_int_value(0);
    switch(function)
       {
         case 0:   // list of open fds
@@ -394,7 +394,7 @@ const int fd = resolve_window(X, widget_id);
    write_TLV(fd, 6, widget_id);   // select widget
 
 int fun = FNUM_INVALID;
-   if (B.is_int_scalar())         fun = B.get_cfirst().get_int_value();
+   if (B.is_int_scalar())         fun = B.get_int_value(0);
    else if (B.is_char_string())   fun = resolve_fun_name(widget_id, B);
    else                            DOMAIN_ERROR;
 
@@ -747,7 +747,7 @@ int
 Quad_GTK::resolve_window(cValue_R X, UTF8_string & widget_id)
 {
    if (X.get_rank() > 1)   RANK_ERROR;
-const int fd = X.get_cfirst().get_int_value();
+const int fd = X.get_int_value(0);
 
    // verify that the handle ↑X is an open window...
    //
@@ -771,7 +771,7 @@ bool window_valid = false;
    // copy string 1↓X into widget_id
    loop(i, X.element_count())
        {
-         if (i)   widget_id += X.get_cravel(i).get_char_value();
+         if (i)   widget_id += X.get_char_value(i);
        }
 
    return fd;

@@ -59,6 +59,7 @@ ShapeItem Quad_SYL::si_depth_limit = 0;
 ShapeItem Quad_SYL::value_count_limit = 0;
 ShapeItem Quad_SYL::ravel_count_limit = 0;
 ShapeItem Quad_SYL::print_length_limit = 0;
+ShapeItem Quad_SYL::pack_min_length = cfg_PACKED_MINIMUM_LENGTH_WANTED;
 
 Unicode Quad_AV::qav[Avec::MAX_AV];
 
@@ -349,7 +350,7 @@ ShapeItem value_len = B->element_count();
    if (value_len > 6)   value_len = 6;
 
    loop(c, value_len)
-       if (!B->get_cravel(c).is_character_cell())   DOMAIN_ERROR;
+       if (!B->is_character_cell(c))   DOMAIN_ERROR;
 
    // new value is correct. 
    //
@@ -357,7 +358,7 @@ Unicode fc[6] = { UNI_FULLSTOP, UNI_COMMA,      UNI_STAR_OPERATOR,
                   UNI_0,        UNI_UNDERSCORE, UNI_OVERBAR };
 
    loop(c, 6)   if (c < value_len)
-         fc[c] = B->get_cravel(c).get_char_value();
+         fc[c] = B->get_char_value(c);
 
    // 0123456789,. are forbidden for ⎕FC[4 + ⎕IO]
    //
@@ -385,16 +386,16 @@ const APL_Integer qio = Workspace::get_IO();
 Unicode fc[6];
    {
      Value_P old = get_apl_value();
-     loop(e, 6)   fc[e] = old->get_cravel(e).get_char_value();
+     loop(e, 6)   fc[e] = old->get_char_value(e);
    }
 
    loop(e, ec)
       {
-        const APL_Integer idx = X->get_cravel(e).get_near_int() - qio;
+        const APL_Integer idx = X->get_near_int(e) - qio;
         if (idx < 0)   continue;
         if (idx > 5)   continue;
 
-        fc[idx] = B->get_cravel(e).get_char_value();
+        fc[idx] = B->get_char_value(e);
       }
 
    // 0123456789,. are forbidden for ⎕FC[4 + ⎕IO]
@@ -435,7 +436,7 @@ Quad_IO::assign(Value_P B, bool clone, const char * loc)
         else                         LENGTH_ERROR;
       }
 
-   if (B->get_cfirst().get_near_bool())
+   if (B->get_near_bool(0))
       Symbol::assign(IntScalar(1, LOC), false, LOC);
    else
       Symbol::assign(IntScalar(0, LOC), false, LOC);
@@ -588,7 +589,7 @@ APL_Integer B_style = 0;
    if (B->element_count() < 1)   LENGTH_ERROR;
    if (B->element_count() > 2)   LENGTH_ERROR;
 
-   if (!B->get_cfirst().is_near_bool())
+   if (!B->is_near_bool(0))
       {
         MORE_ERROR() << "Bad quot in ⎕PS←quot style: quot is not near bool";
         DOMAIN_ERROR;
@@ -598,12 +599,12 @@ APL_Integer B_style = 0;
       {
         // for compatibility with old workspaces
         //
-        B_style = B->get_cfirst().get_near_int();
+        B_style = B->get_near_int(0);
       }
    else
       {
-        B_quot  = B->get_cfirst().get_near_bool();
-        B_style = B->get_cravel(1).get_near_int();
+        B_quot  = B->get_near_bool(0);
+        B_style = B->get_near_int(1);
       }
 
    switch(B_style) // boxing format
@@ -655,8 +656,8 @@ APL_Integer Z_quot = print_quotients;
 APL_Integer Z_style = style;
    loop(e, ec)
       {
-        const APL_Integer x = X->get_cravel(e).get_near_int() - qio;
-        const APL_Integer b = B->get_cravel(e).get_near_int();
+        const APL_Integer x = X->get_near_int(e) - qio;
+        const APL_Integer b = B->get_near_int(e);
 
         if (x == 0)   // display quotients
            {
@@ -935,8 +936,8 @@ const APL_Integer qio = Workspace::get_IO();
 
    loop(e, ec)
       {
-        const APL_Integer x = X->get_cravel(e).get_near_int() - qio;
-        const APL_Integer b = B->get_cravel(e).get_near_int();
+        const APL_Integer x = X->get_near_int(e) - qio;
+        const APL_Integer b = B->get_near_int(e);
 
         if (x == SYL_SI_DEPTH_LIMIT)   // SI depth limit
            {
@@ -989,6 +990,11 @@ const APL_Integer qio = Workspace::get_IO();
              if (b > 200)   DOMAIN_ERROR;
              Quad_WA::WA_scale = b;
            }
+        else if (x == SYL_PACK_MIN_LENGTH)   // min. element count for packed ravels
+           {
+             if (b < 1)   DOMAIN_ERROR;
+             pack_min_length = b;
+           }
         else
            {
              MORE_ERROR() << "Bad ⎕SYL index " << x;
@@ -1012,8 +1018,8 @@ const APL_Integer qio = Workspace::get_IO();
 
    if (!X2)                                          INDEX_ERROR;
    if (X2->element_count() != 1)                     INDEX_ERROR;
-   if (!X2->get_cfirst().is_near_int())              INDEX_ERROR;
-   if (X2->get_cfirst().get_near_int() != qio + 1)   INDEX_ERROR;
+   if (!X2->is_near_int(0))              INDEX_ERROR;
+   if (X2->get_near_int(0) != qio + 1)   INDEX_ERROR;
 
    if (const cValue * X1 = IDX.get_axis_value(0))   // normal index
       {

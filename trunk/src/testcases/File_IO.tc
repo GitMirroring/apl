@@ -1,6 +1,8 @@
 ⍝ File_IO.tc
 ⍝ ----------------------------------
 
+⍝@ test3.
+
       ⍝ same as File_IO_1.tc but using FILE_IO.apl library
       ⍝ This is the recommeded way to use file_io.so
       ⍝

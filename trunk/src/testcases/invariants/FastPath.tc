@@ -1,6 +1,8 @@
 ⍝ FastPath.tc
 ⍝ ═══════════
 ⍝ Check that packed-ravel fast paths produce packed output.
+⍝@ test4.
+
 ⍝ ⎕RVAL force-packs all results (try_pack(true)), so every input
 ⍝ variable is already packed.  A failing assertion (0 instead of 1)
 ⍝ means the fast path for that primitive is missing or broken.
@@ -199,7 +201,14 @@
       ⎕UCS Q
 72 101 100000 108 111
 
-      Q←20⍴1 ◊  48 ⎕CR Q
-513
+      Q←20⍴1 ◊ (48 ⎕CR Q) Q
+ 513  1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 
+      Q[2]←2 ◊ (48 ⎕CR Q) Q
+ 4100  1 2 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 
+      Q[3]←3.141 ◊ (48 ⎕CR Q) Q
+ 8197  1 2 3.141 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 
+      Q[4]←4J4 ◊ (48 ⎕CR Q) Q
+ 16390  1 2 3.141 4J4 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 
 
-   Q ← Q,2 ◊  48 ⎕CR Q
+      )CHECK BRIEF
+

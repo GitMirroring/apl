@@ -1,6 +1,8 @@
 ⍝ Depth.tc
 ⍝ ════════
 
+⍝@ test4.
+
       ⎕IO←1
 
       ⍝ Precond: Z is a simple scalar nonneg integer

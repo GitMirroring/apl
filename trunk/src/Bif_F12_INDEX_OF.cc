@@ -178,7 +178,7 @@ const ShapeItem ec = B.element_count();
       {
         // interval (standard ⍳B with scalar or 1-element B)
         //
-        const APL_Integer len = B.get_cfirst().get_near_int();
+        const APL_Integer len = B.get_near_int(0);
         if (len < 0)   DOMAIN_ERROR;
 
         Value_P Z(len, LOC);

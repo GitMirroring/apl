@@ -1,6 +1,8 @@
 ⍝ ReplicateAxis.tc
 ⍝ ════════════════
 
+⍝@ test4.
+
       ⎕IO←1
 
       ⍝ Precond: LO integer scalar/vector; X∊⍳⍴⍴B; implicit ⎕IO

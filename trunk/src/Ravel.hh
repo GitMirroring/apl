@@ -82,6 +82,69 @@ public:
    /// return the single ravel cell of a scalar.
    const Cell & get_cscalar() const  { return get_cravel(0); }
 
+   /// Indexed scalar accessors — return native C++ values without
+   /// materialising a temporary Cell.  The base class falls back through
+   /// the fetcher so short packed ravels (which keep the base Ravel vtable)
+   /// and RPT_CELLS ravels work correctly.  Only IntRavel and BoolRavel
+   /// override the integer accessors; CharXRavel overrides get_char_value();
+   /// other combinations propagate the DOMAIN_ERROR from the Cell subclass.
+
+   virtual APL_Integer get_int_value(ShapeItem idx) const
+      { return get_cravel(idx).get_int_value(); }
+
+   virtual APL_Integer get_near_int(ShapeItem idx) const
+      { return get_cravel(idx).get_near_int(); }
+
+   virtual bool get_near_bool(ShapeItem idx) const
+      { return get_cravel(idx).get_near_bool(); }
+
+   virtual Unicode get_char_value(ShapeItem idx) const
+      { return get_cravel(idx).get_char_value(); }
+
+   virtual APL_Float get_real_value(ShapeItem idx) const
+      { return get_cravel(idx).get_real_value(); }
+
+   virtual APL_Float get_imag_value(ShapeItem idx) const
+      { return get_cravel(idx).get_imag_value(); }
+
+   virtual int get_byte_value(ShapeItem idx) const
+      { return get_cravel(idx).get_byte_value(); }
+
+   virtual APL_Complex get_complex_value(ShapeItem idx) const
+      { return get_cravel(idx).get_complex_value(); }
+
+   virtual CellType get_cell_type(ShapeItem idx) const
+      { return get_cravel(idx).get_cell_type(); }
+
+   virtual CellType get_cell_subtype(ShapeItem idx) const
+      { return get_cravel(idx).get_cell_subtype(); }
+
+   virtual Value_P get_pointer_value(ShapeItem idx) const
+      { return get_cravel(idx).get_pointer_value(); }
+
+   virtual bool is_pointer_cell(ShapeItem idx) const
+      { return get_cravel(idx).is_pointer_cell(); }
+   virtual bool is_lval_cell(ShapeItem idx) const
+      { return get_cravel(idx).is_lval_cell(); }
+   virtual bool is_simple_cell(ShapeItem idx) const
+      { return get_cravel(idx).is_simple_cell(); }
+   virtual bool is_character_cell(ShapeItem idx) const
+      { return get_cravel(idx).is_character_cell(); }
+   virtual bool is_integer_cell(ShapeItem idx) const
+      { return get_cravel(idx).is_integer_cell(); }
+   virtual bool is_numeric(ShapeItem idx) const
+      { return get_cravel(idx).is_numeric(); }
+   virtual bool is_complex_cell(ShapeItem idx) const
+      { return get_cravel(idx).is_complex_cell(); }
+   virtual bool is_near_int(ShapeItem idx) const
+      { return get_cravel(idx).is_near_int(); }
+   virtual bool is_near_bool(ShapeItem idx) const
+      { return get_cravel(idx).is_near_bool(); }
+   virtual bool is_near_real(ShapeItem idx) const
+      { return get_cravel(idx).is_near_real(); }
+   virtual bool is_real_cell(ShapeItem idx) const
+      { return get_cravel(idx).is_real_cell(); }
+
    /// fetch function for unpacked (Cell-array) ravels.
    /// @param offset ravel index (0-based)
    /// @param cells pointer to the Cell array
@@ -218,6 +281,49 @@ class IntRavel : public Ravel
 public:
    IntRavel() : Ravel(upgrade_tag{}) {}
 
+   virtual APL_Integer get_int_value(ShapeItem idx) const override
+      { return reinterpret_cast<const int64_t *>(cells)[idx]; }
+
+   virtual APL_Integer get_near_int(ShapeItem idx) const override
+      { return reinterpret_cast<const int64_t *>(cells)[idx]; }
+
+   virtual bool get_near_bool(ShapeItem idx) const override
+      { const int64_t v = reinterpret_cast<const int64_t *>(cells)[idx];
+        if (v == 0)   return false;
+        if (v == 1)   return true;
+        DOMAIN_ERROR; }
+
+   virtual APL_Float get_real_value(ShapeItem idx) const override
+      { return APL_Float(reinterpret_cast<const int64_t *>(cells)[idx]); }
+
+   virtual APL_Float get_imag_value(ShapeItem idx) const override
+      { return 0.0; }
+
+   virtual int get_byte_value(ShapeItem idx) const override
+      { const int64_t v = reinterpret_cast<const int64_t *>(cells)[idx];
+        if (v >= 0 && v <= 255)   return int(v);
+        DOMAIN_ERROR; }
+
+   virtual APL_Complex get_complex_value(ShapeItem idx) const override
+      { return APL_Complex(reinterpret_cast<const int64_t *>(cells)[idx], 0.0); }
+
+   virtual CellType get_cell_type(ShapeItem idx) const override
+      { return CT_INT; }
+
+   virtual bool is_pointer_cell(ShapeItem idx) const override { return false; }
+   virtual bool is_lval_cell(ShapeItem idx) const override    { return false; }
+   virtual bool is_simple_cell(ShapeItem idx) const override  { return true; }
+   virtual bool is_character_cell(ShapeItem idx) const override { return false; }
+   virtual bool is_integer_cell(ShapeItem idx) const override { return true; }
+   virtual bool is_numeric(ShapeItem idx) const override      { return true; }
+   virtual bool is_complex_cell(ShapeItem idx) const override { return false; }
+   virtual bool is_near_int(ShapeItem idx) const override     { return true; }
+   virtual bool is_near_bool(ShapeItem idx) const override
+      { const int64_t v = reinterpret_cast<const int64_t *>(cells)[idx];
+        return v == 0 || v == 1; }
+   virtual bool is_near_real(ShapeItem idx) const override    { return true; }
+   virtual bool is_real_cell(ShapeItem idx) const override    { return true; }
+
    virtual bool apply_fast_dyadic(const ScalarFunction & sf,
                                    const Value & A, int inc_A,
                                    const Value & B, int inc_B,
@@ -234,6 +340,34 @@ class FloatRavel : public Ravel
 {
 public:
    FloatRavel() : Ravel(upgrade_tag{}) {}
+
+   virtual APL_Float get_real_value(ShapeItem idx) const override
+      { return reinterpret_cast<const double *>(cells)[idx]; }
+
+   virtual APL_Float get_imag_value(ShapeItem idx) const override
+      { return 0.0; }
+
+   virtual APL_Complex get_complex_value(ShapeItem idx) const override
+      { return APL_Complex(reinterpret_cast<const double *>(cells)[idx], 0.0); }
+
+   virtual CellType get_cell_type(ShapeItem idx) const override
+      { return CT_FLOAT; }
+
+   virtual bool is_pointer_cell(ShapeItem idx) const override { return false; }
+   virtual bool is_lval_cell(ShapeItem idx) const override    { return false; }
+   virtual bool is_simple_cell(ShapeItem idx) const override  { return true; }
+   virtual bool is_character_cell(ShapeItem idx) const override { return false; }
+   virtual bool is_integer_cell(ShapeItem idx) const override { return false; }
+   virtual bool is_numeric(ShapeItem idx) const override      { return true; }
+   virtual bool is_complex_cell(ShapeItem idx) const override { return false; }
+   virtual bool is_near_int(ShapeItem idx) const override
+      { return Cell::is_near_int(reinterpret_cast<const double *>(cells)[idx]); }
+   virtual bool is_near_bool(ShapeItem idx) const override
+      { const APL_Float v = reinterpret_cast<const double *>(cells)[idx];
+        return Cell::is_near_zero(v)
+            || (v >= (1.0 - INTEGER_TOLERANCE) && v < (1.0 + INTEGER_TOLERANCE)); }
+   virtual bool is_near_real(ShapeItem idx) const override    { return true; }
+   virtual bool is_real_cell(ShapeItem idx) const override    { return true; }
 
    virtual bool apply_fast_dyadic(const ScalarFunction & sf,
                                    const Value & A, int inc_A,
@@ -252,6 +386,24 @@ class Char16Ravel : public Ravel
 public:
    Char16Ravel() : Ravel(upgrade_tag{}) {}
 
+   virtual Unicode get_char_value(ShapeItem idx) const override
+      { return Unicode(reinterpret_cast<const uint16_t *>(cells)[idx]); }
+
+   virtual CellType get_cell_type(ShapeItem idx) const override
+      { return CT_CHAR; }
+
+   virtual bool is_pointer_cell(ShapeItem idx) const override  { return false; }
+   virtual bool is_lval_cell(ShapeItem idx) const override     { return false; }
+   virtual bool is_simple_cell(ShapeItem idx) const override   { return true; }
+   virtual bool is_character_cell(ShapeItem idx) const override { return true; }
+   virtual bool is_integer_cell(ShapeItem idx) const override  { return false; }
+   virtual bool is_numeric(ShapeItem idx) const override       { return false; }
+   virtual bool is_complex_cell(ShapeItem idx) const override  { return false; }
+   virtual bool is_near_int(ShapeItem idx) const override      { return false; }
+   virtual bool is_near_bool(ShapeItem idx) const override     { return false; }
+   virtual bool is_near_real(ShapeItem idx) const override     { return false; }
+   virtual bool is_real_cell(ShapeItem idx) const override     { return false; }
+
    virtual bool apply_fast_dyadic(const ScalarFunction & sf,
                                    const Value & A, int inc_A,
                                    const Value & B, int inc_B,
@@ -268,6 +420,24 @@ class Char32Ravel : public Ravel
 {
 public:
    Char32Ravel() : Ravel(upgrade_tag{}) {}
+
+   virtual Unicode get_char_value(ShapeItem idx) const override
+      { return reinterpret_cast<const Unicode *>(cells)[idx]; }
+
+   virtual CellType get_cell_type(ShapeItem idx) const override
+      { return CT_CHAR; }
+
+   virtual bool is_pointer_cell(ShapeItem idx) const override  { return false; }
+   virtual bool is_lval_cell(ShapeItem idx) const override     { return false; }
+   virtual bool is_simple_cell(ShapeItem idx) const override   { return true; }
+   virtual bool is_character_cell(ShapeItem idx) const override { return true; }
+   virtual bool is_integer_cell(ShapeItem idx) const override  { return false; }
+   virtual bool is_numeric(ShapeItem idx) const override       { return false; }
+   virtual bool is_complex_cell(ShapeItem idx) const override  { return false; }
+   virtual bool is_near_int(ShapeItem idx) const override      { return false; }
+   virtual bool is_near_bool(ShapeItem idx) const override     { return false; }
+   virtual bool is_near_real(ShapeItem idx) const override     { return false; }
+   virtual bool is_real_cell(ShapeItem idx) const override     { return false; }
 
    virtual bool apply_fast_dyadic(const ScalarFunction & sf,
                                    const Value & A, int inc_A,
@@ -286,6 +456,42 @@ class BoolRavel : public Ravel
 public:
    BoolRavel() : Ravel(upgrade_tag{}) {}
 
+   virtual APL_Integer get_int_value(ShapeItem idx) const override
+      { return (reinterpret_cast<const uint8_t *>(cells)[idx >> 3] >> (idx & 7)) & 1; }
+
+   virtual APL_Integer get_near_int(ShapeItem idx) const override
+      { return get_int_value(idx); }
+
+   virtual bool get_near_bool(ShapeItem idx) const override
+      { return (reinterpret_cast<const uint8_t *>(cells)[idx >> 3] >> (idx & 7)) & 1; }
+
+   virtual APL_Float get_real_value(ShapeItem idx) const override
+      { return APL_Float(get_int_value(idx)); }
+
+   virtual APL_Float get_imag_value(ShapeItem idx) const override
+      { return 0.0; }
+
+   virtual int get_byte_value(ShapeItem idx) const override
+      { return int(get_int_value(idx)); }
+
+   virtual APL_Complex get_complex_value(ShapeItem idx) const override
+      { return APL_Complex(APL_Float(get_int_value(idx)), 0.0); }
+
+   virtual CellType get_cell_type(ShapeItem idx) const override
+      { return CT_INT; }
+
+   virtual bool is_pointer_cell(ShapeItem idx) const override { return false; }
+   virtual bool is_lval_cell(ShapeItem idx) const override    { return false; }
+   virtual bool is_simple_cell(ShapeItem idx) const override  { return true; }
+   virtual bool is_character_cell(ShapeItem idx) const override { return false; }
+   virtual bool is_integer_cell(ShapeItem idx) const override { return true; }
+   virtual bool is_numeric(ShapeItem idx) const override      { return true; }
+   virtual bool is_complex_cell(ShapeItem idx) const override { return false; }
+   virtual bool is_near_int(ShapeItem idx) const override     { return true; }
+   virtual bool is_near_bool(ShapeItem idx) const override    { return true; }
+   virtual bool is_near_real(ShapeItem idx) const override    { return true; }
+   virtual bool is_real_cell(ShapeItem idx) const override    { return true; }
+
    virtual bool apply_fast_dyadic(const ScalarFunction & sf,
                                    const Value & A, int inc_A,
                                    const Value & B, int inc_B,
@@ -302,6 +508,41 @@ class ComplexRavel : public Ravel
 {
 public:
    ComplexRavel() : Ravel(upgrade_tag{}) {}
+
+   virtual APL_Float get_real_value(ShapeItem idx) const override
+      { return reinterpret_cast<const double *>(cells)[2*idx]; }
+
+   virtual APL_Float get_imag_value(ShapeItem idx) const override
+      { return reinterpret_cast<const double *>(cells)[2*idx + 1]; }
+
+   virtual APL_Complex get_complex_value(ShapeItem idx) const override
+      { const double * p = reinterpret_cast<const double *>(cells) + 2*idx;
+        return APL_Complex(p[0], p[1]); }
+
+   virtual CellType get_cell_type(ShapeItem idx) const override
+      { return CT_COMPLEX; }
+
+   virtual bool is_pointer_cell(ShapeItem idx) const override { return false; }
+   virtual bool is_lval_cell(ShapeItem idx) const override    { return false; }
+   virtual bool is_simple_cell(ShapeItem idx) const override  { return true; }
+   virtual bool is_character_cell(ShapeItem idx) const override { return false; }
+   virtual bool is_integer_cell(ShapeItem idx) const override { return false; }
+   virtual bool is_numeric(ShapeItem idx) const override      { return true; }
+   virtual bool is_complex_cell(ShapeItem idx) const override { return true; }
+   virtual bool is_near_int(ShapeItem idx) const override
+      { const double * p = reinterpret_cast<const double *>(cells) + 2*idx;
+        return Cell::is_near_int(p[0]) && Cell::is_near_int(p[1]); }
+   virtual bool is_near_bool(ShapeItem idx) const override
+      { const double * p = reinterpret_cast<const double *>(cells) + 2*idx;
+        return (Cell::is_near_zero(p[0]) || (p[0] >= (1.0 - INTEGER_TOLERANCE)
+                                          && p[0] <  (1.0 + INTEGER_TOLERANCE)))
+            && Cell::is_near_zero(p[1]); }
+   virtual bool is_near_real(ShapeItem idx) const override
+      { const double * p = reinterpret_cast<const double *>(cells) + 2*idx;
+        const APL_Float B2 = REAL_TOLERANCE*REAL_TOLERANCE;
+        const APL_Float I2 = p[1]*p[1];
+        return I2 < B2 || I2 < p[0]*p[0]*B2; }
+   virtual bool is_real_cell(ShapeItem idx) const override    { return false; }
 
    virtual bool apply_fast_dyadic(const ScalarFunction & sf,
                                    const Value & A, int inc_A,

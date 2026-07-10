@@ -1,6 +1,8 @@
 ⍝ ZZ26_Regression.tc
 ⍝ ----------------------------------
 
+⍝@ test3.
+
       ⍝ not a regression test but a check for too optimistic not-cloning
       ⍝
       A←10⍴10

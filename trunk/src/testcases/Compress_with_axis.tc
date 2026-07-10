@@ -1,6 +1,8 @@
 ⍝ Compress_with_axis.tc
 ⍝ ----------------------------------
 
+⍝@ test3.
+
       N←3 2 4ρ'HIGHLOW HOT COLD UP DOWN'
       N
 HIGH
