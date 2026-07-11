@@ -106,6 +106,12 @@ protected:
    /// set or return the desired max. depth of random numbers
    static Value_P result_maxdepth(const cValue & B);
 
+   /// set or return the max. element count (⍴Z) per random value (0 = unlimited)
+   static Value_P result_ecount(const cValue & B);
+
+   /// return the 113×5 nested character matrix of primitive arities/stimuli/constraints
+   static Value_P prim_table_value(const cValue & B);
+
    /// set or return the desired rank of random numbers
    static Value_P result_rank(const cValue & B);
 
@@ -130,8 +136,11 @@ protected:
    /// the desired types (or a distribution of types) of random values
    static vector<int> desired_types;
 
-   /// the desiredlimit on the depths of the random values
+   /// the desired limit on the depths of the random values
    static int desired_maxdepth;
+
+   /// max. element count (⍴Z) per value; 0 = unlimited
+   static ShapeItem desired_max_ecount;
 
    /// the state buffer of the random number generator
    static char state[256];

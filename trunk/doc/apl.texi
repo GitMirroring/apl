@@ -7309,6 +7309,7 @@ Rank:  0
 Shape: 1 1 1 1 1 1 1 1 (initially irrelevant since Rank = 0)
 Type:  0 1 0 0 0       (only integer random values)
 Max. Depth: 4          (initially irrelevant since type = 0 1 0 0 0)
+Max. Element Count: 0  (unlimited)
 @end example
 
 With these default properties, every call of monadic ⎕RVAL B returns an
@@ -7336,7 +7337,10 @@ A=3 controls the data types in the ravels of the subsequent random APL values,
 and
 
 @item
-A=4 controls a maximum depth of the subsequent random APL values.
+A=4 controls a maximum depth of the subsequent random APL values, and
+
+@item
+A=5 controls a maximum element count of the subsequent random APL values.
 
 @end itemize
 
@@ -7517,6 +7521,76 @@ depth (0 suppresses nesting entirely regardless of the type distribution);
 An empty B, e.g. 4 ⎕RVAL ⍬, will not change anything and can be used to
 query the current setting for 4 ⎕RVAL.
 
+@node Control of the element count: 5 ⎕RVAL B
+@subsubsection Control of the element count: 5 ⎕RVAL B
+
+Even with a bounded depth, the total number of elements (i.e. ⍴∈Z) of a
+randomly generated nested value can grow very large, which may make the
+testcases that process the generated values slow. The element count per
+random value can be capped with @b{5 ⎕RVAL B}:
+
+@b{5 ⎕RVAL B} expects B to be a non-negative integer scalar or one-element
+vector. A value of 0 means no limit (the default). Any other value N clips the
+last axis of the randomly chosen shape so that @code{×/⍴Z ≤ N}. Let @code{prefix}
+be the product of all axes except the last. If @code{prefix ≥ N} then the last
+axis is set to @code{0}; otherwise the last axis is set to @code{⌊N ÷ prefix}.
+
+The clipping is applied independently at each nesting level. In the worst case
+the total element count @code{⍴∈Z} can therefore reach
+@code{N@sup{desired_maxdepth+1}}, so setting a tight @b{ecount} together with
+a moderate @b{depth} keeps generated values comfortably small.
+
+An empty B, e.g. @b{5 ⎕RVAL ⍬}, will not change anything and can be used to
+query the current setting.
+
+Example:
+
+@example
+      1 ⎕RVAL ¯4       ⍝ random rank 0..4
+      2 ⎕RVAL ¯10      ⍝ each axis length 0..10
+      3 ⎕RVAL 0 1 0 0 1 ⍝ mix of integers and nested values
+      4 ⎕RVAL 2        ⍝ depth at most 2
+      5 ⎕RVAL 20       ⍝ at most 20 elements per value at each nesting level
+      Z←⎕RVAL 0        ⍝ generate one value; ⍴Z ≤ 20
+@end example
+
+@node The primitive table: 6 ⎕RVAL B
+@subsubsection The primitive table: 6 ⎕RVAL B
+
+@b{6 ⎕RVAL B} returns the built-in primitive table as a 5-column nested
+character matrix.  The argument B is ignored (pass @b{⍬} by convention).
+
+Each row describes one testable APL primitive or operator.  The five columns
+are:
+
+@enumerate
+@item @b{arity} — the APL expression being tested, e.g. @code{Z←A+B}
+@item @b{A_stim} — @b{⎕RVAL} argument for the left argument A (@code{⍬} when
+  the primitive is monadic)
+@item @b{B_stim} — @b{⎕RVAL} argument for the right / only argument B
+@item @b{X_stim} — @b{⎕RVAL} argument for the axis X (@code{⍬} when no axis
+  is used)
+@item @b{Z_constraint} — APL boolean expression (in terms of A, B, X, Z) that
+  the result Z must satisfy
+@end enumerate
+
+The stim strings are in the same format as the argument of monadic @b{⎕RVAL}:
+@example
+      rank  shape  (types)  depth  ecount
+@end example
+
+Because the matrix is nested, its elements must be disclosed with @b{⊃} to
+obtain a plain character vector:
+
+@example
+      T ← 6 ⎕RVAL ⍬    ⍝ 114 5 matrix
+      ⊃T[1;1]           ⍝ Z←+B   (arity of first row)
+      ⊃T[1;5]           ⍝ (⍴Z)≡⍴B  (constraint of first row)
+@end example
+
+The table is defined in @file{src/rval.def} and drives the randomised
+invariant testcases under @file{src/testcases/invariants/}.
+
 @node monadic ⎕RVAL B
 @subsubsection monadic ⎕RVAL B
 
@@ -7547,6 +7621,9 @@ the properties have the following defaults:
 
       4 ⎕RVAL ⍬    ⍝ max. depth (not used since probability of NESTED = 0)
 4
+
+      5 ⎕RVAL ⍬    ⍝ max. element count (0 = unlimited)
+0
 @end example
 
 That is, by default, @b{⎕RVAL ⍬} produces random integer scalars.
@@ -7556,7 +7633,7 @@ random value without modifying (and later restoring) the properties with
 dyadic @b{⎕RVAL}. This can be achieved with monadic @b{⎕RVAL} with non-empty
 @b{B}.
 
-Let 4 = ⍴B. Then
+Let 5 = ⍴B. Then
 
 @example
       Z←⎕RVAL B does essentially:
@@ -7567,6 +7644,7 @@ Let 4 = ⍴B. Then
       B[2]←2 ⎕RVAL B[2]
       B[3]←3 ⎕RVAL B[3]
       B[4]←4 ⎕RVAL B[4]
+      B[5]←5 ⎕RVAL B[5]
 
       Z←⎕RVAL 0   ⍝ produce one random value according to the new properties
 
@@ -7576,9 +7654,10 @@ Let 4 = ⍴B. Then
       B[2]←2 ⎕RVAL B[2]
       B[3]←3 ⎕RVAL B[3]
       B[4]←4 ⎕RVAL B[4]
+      B[5]←5 ⎕RVAL B[5]
 @end example
 
-If 4 > ⍴B then the missing properties are not changed.
+If 5 > ⍴B then the missing properties are not changed.
 
 Examples:
 
@@ -7594,11 +7673,13 @@ For an improved readability, ⎕RVAL also accepts string arguments for its left
 argument A and also the sub-function notation:
 
 @example
-      0 ⎕RVAL B  ←→  'state' ⎕RVAL B  ←→  ⎕RVAL.state B
-      1 ⎕RVAL B  ←→   'rank' ⎕RVAL B  ←→  ⎕RVAL.rank  B
-      2 ⎕RVAL B  ←→  'shape' ⎕RVAL B  ←→  ⎕RVAL.shape B
-      3 ⎕RVAL B  ←→   'type' ⎕RVAL B  ←→  ⎕RVAL.type  B
-      4 ⎕RVAL B  ←→  'depth' ⎕RVAL B  ←→  ⎕RVAL.depth B
+      0 ⎕RVAL B  ←→   'state' ⎕RVAL B  ←→  ⎕RVAL.state  B
+      1 ⎕RVAL B  ←→    'rank' ⎕RVAL B  ←→  ⎕RVAL.rank   B
+      2 ⎕RVAL B  ←→   'shape' ⎕RVAL B  ←→  ⎕RVAL.shape  B
+      3 ⎕RVAL B  ←→    'type' ⎕RVAL B  ←→  ⎕RVAL.type   B
+      4 ⎕RVAL B  ←→   'depth' ⎕RVAL B  ←→  ⎕RVAL.depth  B
+      5 ⎕RVAL B  ←→    'ecount' ⎕RVAL B  ←→  ⎕RVAL.ecount     B
+      6 ⎕RVAL B  ←→  'primitives' ⎕RVAL B  ←→  ⎕RVAL.primitives B
 @end example
 
 @c ----------------------------------------------------------------------------

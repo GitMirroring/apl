@@ -73,7 +73,7 @@ Next: <a href="#Installing-and-Starting-GNU-APL" accesskey="n" rel="next">Instal
 </div>
 <span id="GNU-APL-Reference-Manual"></span><h1 class="top">GNU APL Reference Manual</h1>
 
-<p>July 10, 2026.
+<p>July 11, 2026.
 This manual briefly documents GNU APL, an interpreter for APL as described
 in ISO standard 13751, aka. &quot;Programming Language APL, Extended&quot;.
 </p>
@@ -308,8 +308,10 @@ therefore it must be expanded with e.g. <b>gunzip</b> before it can be read.
         <li><a id="toc-Control-of-the-shapes_003a-2-_005b_003f_005dRVAL-B" href="#Control-of-the-shapes_003a-2-_2395RVAL-B">2.40.2.3 Control of the shapes: 2 ⎕RVAL B</a></li>
         <li><a id="toc-Control-of-the-data-types_003a-3-_005b_003f_005dRVAL-B" href="#Control-of-the-data-types_003a-3-_2395RVAL-B">2.40.2.4 Control of the data types: 3 ⎕RVAL B</a></li>
         <li><a id="toc-Control-of-a-maximum-depth_003a-4-_005b_003f_005dRVAL-B" href="#Control-of-a-maximum-depth_003a-4-_2395RVAL-B">2.40.2.5 Control of a maximum depth: 4 ⎕RVAL B</a></li>
-        <li><a id="toc-monadic-_005b_003f_005dRVAL-B" href="#monadic-_2395RVAL-B">2.40.2.6 monadic ⎕RVAL B</a></li>
-        <li><a id="toc-Syntax-Alternatives-1" href="#Syntax-Alternatives">2.40.2.7 Syntax Alternatives</a></li>
+        <li><a id="toc-Control-of-the-element-count_003a-5-_005b_003f_005dRVAL-B" href="#Control-of-the-element-count_003a-5-_2395RVAL-B">2.40.2.6 Control of the element count: 5 ⎕RVAL B</a></li>
+        <li><a id="toc-The-primitive-table_003a-6-_005b_003f_005dRVAL-B" href="#The-primitive-table_003a-6-_2395RVAL-B">2.40.2.7 The primitive table: 6 ⎕RVAL B</a></li>
+        <li><a id="toc-monadic-_005b_003f_005dRVAL-B" href="#monadic-_2395RVAL-B">2.40.2.8 monadic ⎕RVAL B</a></li>
+        <li><a id="toc-Syntax-Alternatives-1" href="#Syntax-Alternatives">2.40.2.9 Syntax Alternatives</a></li>
       </ul></li>
     </ul></li>
     <li><a id="toc-_005b_003f_005dSI-_002d-State-Indicator" href="#g_t_2395SI-_002d-State-Indicator">2.41 ⎕SI - State Indicator</a></li>
@@ -8535,6 +8537,7 @@ by dyadic A ⎕RVAL B, are:
 Shape: 1 1 1 1 1 1 1 1 (initially irrelevant since Rank = 0)
 Type:  0 1 0 0 0       (only integer random values)
 Max. Depth: 4          (initially irrelevant since type = 0 1 0 0 0)
+Max. Element Count: 0  (unlimited)
 </pre></div>
 
 <p>With these default properties, every call of monadic ⎕RVAL B returns an
@@ -8562,7 +8565,9 @@ subsequent random APL values shall be controlled. A is an integer scalar:
 </li><li> A=3 controls the data types in the ravels of the subsequent random APL values,
 and
 
-</li><li> A=4 controls a maximum depth of the subsequent random APL values.
+</li><li> A=4 controls a maximum depth of the subsequent random APL values, and
+
+</li><li> A=5 controls a maximum element count of the subsequent random APL values.
 
 </li></ul>
 
@@ -8572,8 +8577,10 @@ and
 <li><a href="#Control-of-the-shapes_003a-2-_2395RVAL-B" accesskey="3">Control of the shapes: 2 ⎕RVAL B</a></li>
 <li><a href="#Control-of-the-data-types_003a-3-_2395RVAL-B" accesskey="4">Control of the data types: 3 ⎕RVAL B</a></li>
 <li><a href="#Control-of-a-maximum-depth_003a-4-_2395RVAL-B" accesskey="5">Control of a maximum depth: 4 ⎕RVAL B</a></li>
-<li><a href="#monadic-_2395RVAL-B" accesskey="6">monadic ⎕RVAL B</a></li>
-<li><a href="#Syntax-Alternatives" accesskey="7">Syntax Alternatives</a></li>
+<li><a href="#Control-of-the-element-count_003a-5-_2395RVAL-B" accesskey="6">Control of the element count: 5 ⎕RVAL B</a></li>
+<li><a href="#The-primitive-table_003a-6-_2395RVAL-B" accesskey="7">The primitive table: 6 ⎕RVAL B</a></li>
+<li><a href="#monadic-_2395RVAL-B" accesskey="8">monadic ⎕RVAL B</a></li>
+<li><a href="#Syntax-Alternatives" accesskey="9">Syntax Alternatives</a></li>
 </ul>
 <hr>
 <div class="subsubsection" id="Control-of-the-underlying-random-number-generator_003a-0-_2395RVAL-B">
@@ -8754,7 +8761,7 @@ query the current setting for 3 ⎕RVAL.
 <div class="subsubsection" id="Control-of-a-maximum-depth_003a-4-_2395RVAL-B">
 <div class="header">
 <p>
-Next: <a href="#monadic-_2395RVAL-B" accesskey="n" rel="next">monadic ⎕RVAL B</a>, Previous: <a href="#Control-of-the-data-types_003a-3-_2395RVAL-B" accesskey="p" rel="prev">Control of the data types: 3 ⎕RVAL B</a>, Up: <a href="#Dyadic-_2395RVAL" accesskey="u" rel="up">Dyadic ⎕RVAL</a> &nbsp; [<a href="#SEC_Contents" title="Table of contents" rel="contents">Contents</a>]</p>
+Next: <a href="#Control-of-the-element-count_003a-5-_2395RVAL-B" accesskey="n" rel="next">Control of the element count: 5 ⎕RVAL B</a>, Previous: <a href="#Control-of-the-data-types_003a-3-_2395RVAL-B" accesskey="p" rel="prev">Control of the data types: 3 ⎕RVAL B</a>, Up: <a href="#Dyadic-_2395RVAL" accesskey="u" rel="up">Dyadic ⎕RVAL</a> &nbsp; [<a href="#SEC_Contents" title="Table of contents" rel="contents">Contents</a>]</p>
 </div>
 <span id="Control-of-a-maximum-depth_003a-4-_005b_003f_005dRVAL-B"></span><h4 class="subsubsection">2.40.2.5 Control of a maximum depth: 4 ⎕RVAL B</h4>
 
@@ -8772,12 +8779,94 @@ query the current setting for 4 ⎕RVAL.
 </p>
 <hr>
 </div>
+<div class="subsubsection" id="Control-of-the-element-count_003a-5-_2395RVAL-B">
+<div class="header">
+<p>
+Next: <a href="#The-primitive-table_003a-6-_2395RVAL-B" accesskey="n" rel="next">The primitive table: 6 ⎕RVAL B</a>, Previous: <a href="#Control-of-a-maximum-depth_003a-4-_2395RVAL-B" accesskey="p" rel="prev">Control of a maximum depth: 4 ⎕RVAL B</a>, Up: <a href="#Dyadic-_2395RVAL" accesskey="u" rel="up">Dyadic ⎕RVAL</a> &nbsp; [<a href="#SEC_Contents" title="Table of contents" rel="contents">Contents</a>]</p>
+</div>
+<span id="Control-of-the-element-count_003a-5-_005b_003f_005dRVAL-B"></span><h4 class="subsubsection">2.40.2.6 Control of the element count: 5 ⎕RVAL B</h4>
+
+<p>Even with a bounded depth, the total number of elements (i.e. ⍴∈Z) of a
+randomly generated nested value can grow very large, which may make the
+testcases that process the generated values slow. The element count per
+random value can be capped with <b>5 ⎕RVAL B</b>:
+</p>
+<p><b>5 ⎕RVAL B</b> expects B to be a non-negative integer scalar or one-element
+vector. A value of 0 means no limit (the default). Any other value N clips the
+last axis of the randomly chosen shape so that <code>×/⍴Z ≤ N</code>. Let <code>prefix</code>
+be the product of all axes except the last. If <code>prefix ≥ N</code> then the last
+axis is set to <code>0</code>; otherwise the last axis is set to <code>⌊N ÷ prefix</code>.
+</p>
+<p>The clipping is applied independently at each nesting level. In the worst case
+the total element count <code>⍴∈Z</code> can therefore reach
+<code>N<sup>desired_maxdepth+1</sup></code>, so setting a tight <b>ecount</b> together with
+a moderate <b>depth</b> keeps generated values comfortably small.
+</p>
+<p>An empty B, e.g. <b>5 ⎕RVAL ⍬</b>, will not change anything and can be used to
+query the current setting.
+</p>
+<p>Example:
+</p>
+<div class="example">
+<pre class="example">      1 ⎕RVAL ¯4       ⍝ random rank 0..4
+      2 ⎕RVAL ¯10      ⍝ each axis length 0..10
+      3 ⎕RVAL 0 1 0 0 1 ⍝ mix of integers and nested values
+      4 ⎕RVAL 2        ⍝ depth at most 2
+      5 ⎕RVAL 20       ⍝ at most 20 elements per value at each nesting level
+      Z←⎕RVAL 0        ⍝ generate one value; ⍴Z ≤ 20
+</pre></div>
+
+<hr>
+</div>
+<div class="subsubsection" id="The-primitive-table_003a-6-_2395RVAL-B">
+<div class="header">
+<p>
+Next: <a href="#monadic-_2395RVAL-B" accesskey="n" rel="next">monadic ⎕RVAL B</a>, Previous: <a href="#Control-of-the-element-count_003a-5-_2395RVAL-B" accesskey="p" rel="prev">Control of the element count: 5 ⎕RVAL B</a>, Up: <a href="#Dyadic-_2395RVAL" accesskey="u" rel="up">Dyadic ⎕RVAL</a> &nbsp; [<a href="#SEC_Contents" title="Table of contents" rel="contents">Contents</a>]</p>
+</div>
+<span id="The-primitive-table_003a-6-_005b_003f_005dRVAL-B"></span><h4 class="subsubsection">2.40.2.7 The primitive table: 6 ⎕RVAL B</h4>
+
+<p><b>6 ⎕RVAL B</b> returns the built-in primitive table as a 5-column nested
+character matrix.  The argument B is ignored (pass <b>⍬</b> by convention).
+</p>
+<p>Each row describes one testable APL primitive or operator.  The five columns
+are:
+</p>
+<ol>
+<li> <b>arity</b> — the APL expression being tested, e.g. <code>Z←A+B</code>
+</li><li> <b>A_stim</b> — <b>⎕RVAL</b> argument for the left argument A (<code>⍬</code> when
+  the primitive is monadic)
+</li><li> <b>B_stim</b> — <b>⎕RVAL</b> argument for the right / only argument B
+</li><li> <b>X_stim</b> — <b>⎕RVAL</b> argument for the axis X (<code>⍬</code> when no axis
+  is used)
+</li><li> <b>Z_constraint</b> — APL boolean expression (in terms of A, B, X, Z) that
+  the result Z must satisfy
+</li></ol>
+
+<p>The stim strings are in the same format as the argument of monadic <b>⎕RVAL</b>:
+</p><div class="example">
+<pre class="example">      rank  shape  (types)  depth  ecount
+</pre></div>
+
+<p>Because the matrix is nested, its elements must be disclosed with <b>⊃</b> to
+obtain a plain character vector:
+</p>
+<div class="example">
+<pre class="example">      T ← 6 ⎕RVAL ⍬    ⍝ 114 5 matrix
+      ⊃T[1;1]           ⍝ Z←+B   (arity of first row)
+      ⊃T[1;5]           ⍝ (⍴Z)≡⍴B  (constraint of first row)
+</pre></div>
+
+<p>The table is defined in <samp>src/rval.def</samp> and drives the randomised
+invariant testcases under <samp>src/testcases/invariants/</samp>.
+</p>
+<hr>
+</div>
 <div class="subsubsection" id="monadic-_2395RVAL-B">
 <div class="header">
 <p>
-Next: <a href="#Syntax-Alternatives" accesskey="n" rel="next">Syntax Alternatives</a>, Previous: <a href="#Control-of-a-maximum-depth_003a-4-_2395RVAL-B" accesskey="p" rel="prev">Control of a maximum depth: 4 ⎕RVAL B</a>, Up: <a href="#Dyadic-_2395RVAL" accesskey="u" rel="up">Dyadic ⎕RVAL</a> &nbsp; [<a href="#SEC_Contents" title="Table of contents" rel="contents">Contents</a>]</p>
+Next: <a href="#Syntax-Alternatives" accesskey="n" rel="next">Syntax Alternatives</a>, Previous: <a href="#The-primitive-table_003a-6-_2395RVAL-B" accesskey="p" rel="prev">The primitive table: 6 ⎕RVAL B</a>, Up: <a href="#Dyadic-_2395RVAL" accesskey="u" rel="up">Dyadic ⎕RVAL</a> &nbsp; [<a href="#SEC_Contents" title="Table of contents" rel="contents">Contents</a>]</p>
 </div>
-<span id="monadic-_005b_003f_005dRVAL-B"></span><h4 class="subsubsection">2.40.2.6 monadic ⎕RVAL B</h4>
+<span id="monadic-_005b_003f_005dRVAL-B"></span><h4 class="subsubsection">2.40.2.8 monadic ⎕RVAL B</h4>
 
 <p>Calling ⎕RVAL monadically either produces one new random APL value or displays
 a list of arguments for dyadic <b>⎕RVAL</b>:
@@ -8806,6 +8895,9 @@ the properties have the following defaults:
 
       4 ⎕RVAL ⍬    ⍝ max. depth (not used since probability of NESTED = 0)
 4
+
+      5 ⎕RVAL ⍬    ⍝ max. element count (0 = unlimited)
+0
 </pre></div>
 
 <p>That is, by default, <b>⎕RVAL ⍬</b> produces random integer scalars.
@@ -8815,7 +8907,7 @@ random value without modifying (and later restoring) the properties with
 dyadic <b>⎕RVAL</b>. This can be achieved with monadic <b>⎕RVAL</b> with non-empty
 <b>B</b>.
 </p>
-<p>Let 4 = ⍴B. Then
+<p>Let 5 = ⍴B. Then
 </p>
 <div class="example">
 <pre class="example">      Z←⎕RVAL B does essentially:
@@ -8826,6 +8918,7 @@ dyadic <b>⎕RVAL</b>. This can be achieved with monadic <b>⎕RVAL</b> with non
       B[2]←2 ⎕RVAL B[2]
       B[3]←3 ⎕RVAL B[3]
       B[4]←4 ⎕RVAL B[4]
+      B[5]←5 ⎕RVAL B[5]
 
       Z←⎕RVAL 0   ⍝ produce one random value according to the new properties
 
@@ -8835,9 +8928,10 @@ dyadic <b>⎕RVAL</b>. This can be achieved with monadic <b>⎕RVAL</b> with non
       B[2]←2 ⎕RVAL B[2]
       B[3]←3 ⎕RVAL B[3]
       B[4]←4 ⎕RVAL B[4]
+      B[5]←5 ⎕RVAL B[5]
 </pre></div>
 
-<p>If 4 &gt; ⍴B then the missing properties are not changed.
+<p>If 5 &gt; ⍴B then the missing properties are not changed.
 </p>
 <p>Examples:
 </p>
@@ -8853,17 +8947,19 @@ dyadic <b>⎕RVAL</b>. This can be achieved with monadic <b>⎕RVAL</b> with non
 <p>
 Previous: <a href="#monadic-_2395RVAL-B" accesskey="p" rel="prev">monadic ⎕RVAL B</a>, Up: <a href="#Dyadic-_2395RVAL" accesskey="u" rel="up">Dyadic ⎕RVAL</a> &nbsp; [<a href="#SEC_Contents" title="Table of contents" rel="contents">Contents</a>]</p>
 </div>
-<span id="Syntax-Alternatives-1"></span><h4 class="subsubsection">2.40.2.7 Syntax Alternatives</h4>
+<span id="Syntax-Alternatives-1"></span><h4 class="subsubsection">2.40.2.9 Syntax Alternatives</h4>
 
 <p>For an improved readability, ⎕RVAL also accepts string arguments for its left
 argument A and also the sub-function notation:
 </p>
 <div class="example">
-<pre class="example">      0 ⎕RVAL B  ←→  'state' ⎕RVAL B  ←→  ⎕RVAL.state B
-      1 ⎕RVAL B  ←→   'rank' ⎕RVAL B  ←→  ⎕RVAL.rank  B
-      2 ⎕RVAL B  ←→  'shape' ⎕RVAL B  ←→  ⎕RVAL.shape B
-      3 ⎕RVAL B  ←→   'type' ⎕RVAL B  ←→  ⎕RVAL.type  B
-      4 ⎕RVAL B  ←→  'depth' ⎕RVAL B  ←→  ⎕RVAL.depth B
+<pre class="example">      0 ⎕RVAL B  ←→   'state' ⎕RVAL B  ←→  ⎕RVAL.state  B
+      1 ⎕RVAL B  ←→    'rank' ⎕RVAL B  ←→  ⎕RVAL.rank   B
+      2 ⎕RVAL B  ←→   'shape' ⎕RVAL B  ←→  ⎕RVAL.shape  B
+      3 ⎕RVAL B  ←→    'type' ⎕RVAL B  ←→  ⎕RVAL.type   B
+      4 ⎕RVAL B  ←→   'depth' ⎕RVAL B  ←→  ⎕RVAL.depth  B
+      5 ⎕RVAL B  ←→    'ecount' ⎕RVAL B  ←→  ⎕RVAL.ecount     B
+      6 ⎕RVAL B  ←→  'primitives' ⎕RVAL B  ←→  ⎕RVAL.primitives B
 </pre></div>
 
 <hr>

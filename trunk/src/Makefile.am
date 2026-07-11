@@ -37,7 +37,7 @@ else
    EXTRA_apl_SOURCES += Plot_xcb.cc
 endif
 
-dist_noinst_DATA = valgrind.supp
+dist_noinst_DATA = valgrind.supp rval.def
 DIST_SUBDIRS = $(SUBDIRS) testcases
 
 datadir = @datadir@

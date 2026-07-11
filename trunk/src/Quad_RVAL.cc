@@ -32,17 +32,20 @@ vector<int> Quad_RVAL::desired_ranks;
 Shape       Quad_RVAL::desired_shape;
 vector<int> Quad_RVAL::desired_types;
 int         Quad_RVAL::desired_maxdepth;
+ShapeItem   Quad_RVAL::desired_max_ecount;
 char        Quad_RVAL::state[256];
 size_t      Quad_RVAL::N = 256;
 
 const FunctionGroup::function_info Quad_RVAL::subfunction_infos[] =
 {
 #define rvaldef(N, fun, comm_2) { N, #fun, "", comm_2, -1 },
-  rvaldef(0, state, "get (B=⍬) or set (B≠⍬) the random number generator state" )
-  rvaldef(1, rank,  "set the rank of subsequently returned random values"      )
-  rvaldef(2, shape, "set the shape of subsequently returned random values"      )
-  rvaldef(3, type,  "set the data type of subsequently returned random values" )
-  rvaldef(4, depth, "set the depth of subsequently returned random values"     )
+  rvaldef(0, state,  "get (B=⍬) or set (B≠⍬) the random number generator state" )
+  rvaldef(1, rank,   "set the rank of subsequently returned random values"       )
+  rvaldef(2, shape,  "set the shape of subsequently returned random values"      )
+  rvaldef(3, type,   "set the data type of subsequently returned random values"  )
+  rvaldef(4, depth,  "set the depth of subsequently returned random values"      )
+  rvaldef(5, ecount,     "set the max. element count (⍴Z) per random value (0=∞)"  )
+  rvaldef(6, primitives, "return the primitive arity/stimulus/constraint table"     )
 };
 
 Quad_RVAL  Quad_RVAL::fun;
@@ -58,6 +61,7 @@ enum { count = sizeof(subfunction_infos) / sizeof(*subfunction_infos) };
 
    N = 8;
    desired_maxdepth = 4;
+   desired_max_ecount = 0;   // 0 = unlimited
    memset(state, 0, sizeof(state));
 #if ! MINGW_SRC
    initstate(1, state, N);
@@ -126,10 +130,10 @@ Quad_RVAL::do_eval_B(const cValue & B, int depth) const
 {
 ShapeItem len_B = B.element_count();
 
-   if (len_B > 4)
+   if (len_B > 5)
       {
-        MORE_ERROR() << "monadic ⎕RVAL B expects at most 4 properties B←"
-                        "(rank, (shape), (type), and maxdepth)";
+        MORE_ERROR() << "monadic ⎕RVAL B expects at most 5 properties B←"
+                        "(rank, (shape), (type), maxdepth, and ecount)";
         LENGTH_ERROR;
       }
 
@@ -137,10 +141,11 @@ ShapeItem len_B = B.element_count();
 
    // save properties so that we can restore them
    //
-vector<int> old_desired_ranks    = desired_ranks;
-Shape       old_desired_shape    = desired_shape;
-vector<int> old_desired_types    = desired_types;
-int         old_desired_maxdepth = desired_maxdepth;
+vector<int> old_desired_ranks     = desired_ranks;
+Shape       old_desired_shape     = desired_shape;
+vector<int> old_desired_types     = desired_types;
+int         old_desired_maxdepth  = desired_maxdepth;
+ShapeItem   old_desired_max_ecount = desired_max_ecount;
 bool need_restore = false;
 
    try {
@@ -198,21 +203,37 @@ bool need_restore = false;
                    do_eval_AB(4, *rank);
                  }
             }
+
+         if (len_B >= 5)   // ecount: scalar or 1-element vector
+            {
+              const Cell & cell = B.get_cravel(4);
+              if (cell.is_pointer_cell())   // ecount as 1-element vector
+                 {
+                   do_eval_AB(5, *cell.get_pointer_value());
+                 }
+              else   // ecount as scalar
+                 {
+                   Value_P ec = IntScalar(cell.get_int_value(), LOC);
+                   do_eval_AB(5, *ec);
+                 }
+            }
        }
     catch (Error &)
       {
-        desired_ranks = old_desired_ranks;
-        desired_shape = old_desired_shape;
-        desired_types = old_desired_types;
-        desired_maxdepth = old_desired_maxdepth;
+        desired_ranks      = old_desired_ranks;
+        desired_shape      = old_desired_shape;
+        desired_types      = old_desired_types;
+        desired_maxdepth   = old_desired_maxdepth;
+        desired_max_ecount = old_desired_max_ecount;
         throw;
       }
     catch (std::bad_alloc &)
       {
-        desired_ranks = old_desired_ranks;
-        desired_shape = old_desired_shape;
-        desired_types = old_desired_types;
-        desired_maxdepth = old_desired_maxdepth;
+        desired_ranks      = old_desired_ranks;
+        desired_shape      = old_desired_shape;
+        desired_types      = old_desired_types;
+        desired_maxdepth   = old_desired_maxdepth;
+        desired_max_ecount = old_desired_max_ecount;
         throw;
       }
     catch (...)
@@ -238,6 +259,25 @@ Shape shape;
          shape.add_shape_item(sh_r);
        }
 
+   // Clip element count to desired_max_ecount (0 = no limit).
+   // If the randomly chosen shape exceeds the limit, shorten the last
+   // axis so that ×/shape ≤ desired_max_ecount.
+   if (desired_max_ecount > 0 && rank > 0)
+      {
+        ShapeItem ec_trial = 1;
+        loop(r, rank)   ec_trial *= shape.get_shape_item(r);
+        if (ec_trial > desired_max_ecount)
+           {
+             ShapeItem prefix = 1;
+             loop(r, rank - 1)   prefix *= shape.get_shape_item(r);
+             const ShapeItem last_ok = desired_max_ecount / prefix;
+             Shape clipped;
+             loop(r, rank - 1)   clipped.add_shape_item(shape.get_shape_item(r));
+             clipped.add_shape_item(last_ok);
+             shape = clipped;
+           }
+      }
+
 Value_P Z(shape, LOC);
 
 const ShapeItem ec = Z->element_count();
@@ -259,10 +299,11 @@ const ShapeItem ec = Z->element_count();
 
    if (need_restore)
       {
-        desired_ranks    = old_desired_ranks;
-        desired_shape    = old_desired_shape;
-        desired_types    = old_desired_types;
-        desired_maxdepth = old_desired_maxdepth;
+        desired_ranks      = old_desired_ranks;
+        desired_shape      = old_desired_shape;
+        desired_types      = old_desired_types;
+        desired_maxdepth   = old_desired_maxdepth;
+        desired_max_ecount = old_desired_max_ecount;
       }
 
    if (ec == 0)   Z->set_proto_Int();
@@ -336,6 +377,8 @@ Quad_RVAL::do_eval_AB(int subfunction, const cValue & B)
         case 2: return result_shape(B);
         case 3: return result_type(B);
         case 4: return result_maxdepth(B);
+        case 5: return result_ecount(B);
+        case 6: return prim_table_value(B);
       }
 
    fun.bad_subfun_number_ERROR(subfunction);
@@ -494,6 +537,33 @@ Value_P Z = IntScalar(desired_maxdepth, LOC);
       }
 
    return Z;   // previous desired_maxdepth
+}
+//────────────────────────────────────────────────────────────────────────────
+Value_P
+Quad_RVAL::result_ecount(const cValue & B)
+{
+   if (B.get_rank() > 1)        RANK_ERROR;
+   if (B.element_count() > 1)   LENGTH_ERROR;
+
+Value_P Z = IntScalar(desired_max_ecount, LOC);   // return previous value
+
+   if (B.element_count())   // set the limit
+      {
+        const APL_Integer ec = B.get_int_value(0);
+        if (ec < 0)
+           {
+             MORE_ERROR() << "5 ⎕RVAL B: B must be ≥ 0 (0 = unlimited)";
+             DOMAIN_ERROR;
+           }
+        desired_max_ecount = ec;
+
+        Log(LOG_Quad_RVAL)
+           {
+             CERR << "set desired_max_ecount to " << desired_max_ecount << endl;
+           }
+      }
+
+   return Z;   // previous desired_max_ecount
 }
 //────────────────────────────────────────────────────────────────────────────
 Value_P
@@ -678,3 +748,34 @@ Value_P Z(desired_types.size(), LOC);
 }
 //════════════════════════════════════════════════════════════════════════════
 // EOF
+
+
+// prim_rows[][5]: arity, A_stim, B_stim, X_stim, Z_constraint
+// rval.def stores (arity, B_stim, A_stim, X_stim, constraint), so
+// the macro swaps A_stim and B_stim to put A before B in the matrix.
+#define prim_def(arity, b_stim, a_stim, x_stim, constraint)    { arity, #a_stim, #b_stim, #x_stim, constraint },
+static const char * const prim_rows[][5] =
+{
+#include "rval.def"
+};
+#undef prim_def
+static const int prim_row_count = sizeof(prim_rows) / sizeof(*prim_rows);
+
+//────────────────────────────────────────────────────────────────────────────
+Value_P
+Quad_RVAL::prim_table_value(const cValue & B)
+{
+const Shape sh(prim_row_count, 5);
+Value_P Z(sh, LOC);
+   loop(r, prim_row_count)
+      loop(c, 5)
+         {
+           const char * src = prim_rows[r][c];
+           const UCS_string ucs(*src ? UTF8_string(src) : UTF8_string("⍬"));
+           Value_P cell(ucs, LOC);
+           Z->next_ravel_Pointer(cell.get());
+         }
+   Z->check_value(LOC);
+   return Z;
+}
+//════════════════════════════════════════════════════════════════════════════

@@ -1342,7 +1342,7 @@ EXTRA_DIRS = $(am__append_1)
 EXTRA_apl_SOURCES = $(am__append_4) $(am__append_6)
 plot_SOURCES = Plot_ascii.cc $(am__append_3) $(am__append_5)
 @apl_GTK3_TRUE@plot_CXXFLAGS = -Wno-parentheses
-dist_noinst_DATA = valgrind.supp
+dist_noinst_DATA = valgrind.supp rval.def
 DIST_SUBDIRS = $(SUBDIRS) testcases
 
 # common means common to the apl and libapl builds

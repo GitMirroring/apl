@@ -1,0 +1,310 @@
+// rval.def — ⎕RVAL parameters for invariant testcase generation
+//
+// Each non-comment, non-blank line is a prim_def() macro call with 5 arguments.
+// The first and last are quoted C strings (they may contain APL commas).
+// The middle three are unquoted; the macro uses # to stringify them.
+// An empty A_stim or X_stim argument stands for ⍬ (⍬ cannot appear unquoted
+// in GCC's preprocessor; prim_table_value() substitutes "" back to "⍬").
+//
+//   prim_def("arity", B_stim, A_stim, X_stim, "Z_constraint")
+//
+//   arity        APL expression, e.g. "Z←A⍴B"
+//   B_stim       ⎕RVAL argument that generates the right (or only) argument B
+//   A_stim       ⎕RVAL argument that generates the left argument A  (empty = ⍬)
+//   X_stim       ⎕RVAL argument that generates the axis X            (empty = ⍬)
+//   Z_constraint APL boolean expression (in terms of A B X Z) that must be 1
+//
+// ⎕RVAL B layout:  rank  shape  (types)  depth  ecount
+//   rank   ¯N          random 0..N
+//          (w0 w1 …)   weighted distribution over ranks 0,1,2,…
+//   shape  ¯N          each axis random 0..N (scalar-extended to MAX_RANK)
+//   types  (char int float complex nested)   boolean mask; 0 = type excluded
+//   depth  max nesting depth (0 = simple arrays only)
+//   ecount RE = run-time ravel-element limit (replaced by caller); 0 = unlimited
+//
+// Type masks use 0/1 only, so an external distribution DIST can be applied as
+//   DIST × (1 1 1 1 0)
+// to select both the per-type weights and the primitive's type constraints.
+// depth=3 is kept even when nested=0; it only limits recursion when
+// nested>0 is actually set.
+//
+// RE is a placeholder for the maximum ⍴∈ limit; the APL test runner
+// substitutes a concrete value (e.g. 10000) before calling ⎕RVAL.
+//
+// One blank line separates different primitives.
+//
+// 6 ⎕RVAL ⍬  returns this table as a 5-column nested character matrix.
+
+// ── + Conjugate / Plus ────────────────────────────────────────────────
+prim_def("Z←+B", ¯3 ¯100 (0 1 1 1 0) 3 RE, , , "(⍴Z)≡⍴B")
+prim_def("Z←A+B", ¯3 ¯100 (0 1 1 1 0) 3 RE, ¯3 ¯100 (0 1 1 1 0) 3 RE, , "(⍴Z)≡(⍴A)⌈⍴B")
+
+// ── - Negate / Minus ──────────────────────────────────────────────────
+prim_def("Z←-B", ¯3 ¯100 (0 1 1 1 0) 3 RE, , , "(⍴Z)≡⍴B")
+prim_def("Z←A-B", ¯3 ¯100 (0 1 1 1 0) 3 RE, ¯3 ¯100 (0 1 1 1 0) 3 RE, , "(⍴Z)≡(⍴A)⌈⍴B")
+
+// ── × Signum / Times ──────────────────────────────────────────────────
+prim_def("Z←×B", ¯3 ¯100 (0 1 1 1 0) 3 RE, , , "(⍴Z)≡⍴B")
+prim_def("Z←A×B", ¯3 ¯100 (0 1 1 1 0) 3 RE, ¯3 ¯100 (0 1 1 1 0) 3 RE, , "(⍴Z)≡(⍴A)⌈⍴B")
+
+// ── ÷ Reciprocal / Divide ─────────────────────────────────────────────
+prim_def("Z←÷B", ¯3 ¯100 (0 1 1 1 0) 3 RE, , , "(⍴Z)≡⍴B")
+prim_def("Z←A÷B", ¯3 ¯100 (0 1 1 1 0) 3 RE, ¯3 ¯100 (0 1 1 1 0) 3 RE, , "(⍴Z)≡(⍴A)⌈⍴B")
+
+// ── ⌈ Ceiling / Maximum ───────────────────────────────────────────────
+// complex not accepted
+prim_def("Z←⌈B", ¯3 ¯100 (0 1 1 0 0) 3 RE, , , "(⍴Z)≡⍴B")
+prim_def("Z←A⌈B", ¯3 ¯100 (0 1 1 0 0) 3 RE, ¯3 ¯100 (0 1 1 0 0) 3 RE, , "(⍴Z)≡(⍴A)⌈⍴B")
+
+// ── ⌊ Floor / Minimum ─────────────────────────────────────────────────
+prim_def("Z←⌊B", ¯3 ¯100 (0 1 1 0 0) 3 RE, , , "(⍴Z)≡⍴B")
+prim_def("Z←A⌊B", ¯3 ¯100 (0 1 1 0 0) 3 RE, ¯3 ¯100 (0 1 1 0 0) 3 RE, , "(⍴Z)≡(⍴A)⌈⍴B")
+
+// ── | Magnitude / Residue ─────────────────────────────────────────────
+// monadic accepts complex; dyadic A|B requires real
+prim_def("Z←|B", ¯3 ¯100 (0 1 1 1 0) 3 RE, , , "(⍴Z)≡⍴B")
+prim_def("Z←A|B", ¯3 ¯100 (0 1 1 0 0) 3 RE, ¯3 ¯100 (0 1 1 0 0) 3 RE, , "(⍴Z)≡(⍴A)⌈⍴B")
+
+// ── * Exponential / Power ─────────────────────────────────────────────
+prim_def("Z←*B", ¯3 ¯100 (0 1 1 1 0) 3 RE, , , "(⍴Z)≡⍴B")
+prim_def("Z←A*B", ¯3 ¯100 (0 1 1 1 0) 3 RE, ¯3 ¯100 (0 1 1 1 0) 3 RE, , "(⍴Z)≡(⍴A)⌈⍴B")
+
+// ── ⍟ Natural Log / Logarithm ─────────────────────────────────────────
+prim_def("Z←⍟B", ¯3 ¯100 (0 1 1 1 0) 3 RE, , , "(⍴Z)≡⍴B")
+prim_def("Z←A⍟B", ¯3 ¯100 (0 1 1 1 0) 3 RE, ¯3 ¯100 (0 1 1 1 0) 3 RE, , "(⍴Z)≡(⍴A)⌈⍴B")
+
+// ── ! Factorial / Binomial ────────────────────────────────────────────
+// integer only; factorial of large ints overflows intentionally
+prim_def("Z←!B", ¯3 ¯100 (0 1 0 0 0) 0 RE, , , "(⍴Z)≡⍴B")
+prim_def("Z←A!B", ¯3 ¯100 (0 1 0 0 0) 0 RE, ¯3 ¯100 (0 1 0 0 0) 0 RE, , "(⍴Z)≡(⍴A)⌈⍴B")
+
+// ── ○ Pi-Times / Circular Functions ───────────────────────────────────
+prim_def("Z←○B", ¯3 ¯100 (0 1 1 1 0) 3 RE, , , "(⍴Z)≡⍴B")
+prim_def("Z←A○B", ¯3 ¯100 (0 1 1 1 0) 3 RE, 0 (0 1 0 0 0) 0 RE, , "(⍴Z)≡⍴B")
+
+// ── < Less Than ───────────────────────────────────────────────────────
+// no complex (ordering undefined there)
+prim_def("Z←A<B", ¯3 ¯100 (0 1 1 0 0) 3 RE, ¯3 ¯100 (0 1 1 0 0) 3 RE, , "(⍴Z)≡(⍴A)⌈⍴B")
+
+// ── ≤ Less or Equal ───────────────────────────────────────────────────
+prim_def("Z←A≤B", ¯3 ¯100 (0 1 1 0 0) 3 RE, ¯3 ¯100 (0 1 1 0 0) 3 RE, , "(⍴Z)≡(⍴A)⌈⍴B")
+
+// ── = Equal ───────────────────────────────────────────────────────────
+// accepts any simple type; depth=0 to keep both A and B comparable
+prim_def("Z←A=B", ¯3 ¯100 (1 1 1 1 0) 0 RE, ¯3 ¯100 (1 1 1 1 0) 0 RE, , "(⍴Z)≡(⍴A)⌈⍴B")
+
+// ── ≥ Greater or Equal ────────────────────────────────────────────────
+prim_def("Z←A≥B", ¯3 ¯100 (0 1 1 0 0) 3 RE, ¯3 ¯100 (0 1 1 0 0) 3 RE, , "(⍴Z)≡(⍴A)⌈⍴B")
+
+// ── > Greater Than ────────────────────────────────────────────────────
+prim_def("Z←A>B", ¯3 ¯100 (0 1 1 0 0) 3 RE, ¯3 ¯100 (0 1 1 0 0) 3 RE, , "(⍴Z)≡(⍴A)⌈⍴B")
+
+// ── ≠ Not Equal ───────────────────────────────────────────────────────
+prim_def("Z←A≠B", ¯3 ¯100 (1 1 1 1 0) 0 RE, ¯3 ¯100 (1 1 1 1 0) 0 RE, , "(⍴Z)≡(⍴A)⌈⍴B")
+
+// ── ~ Logical Not / Without ───────────────────────────────────────────
+// ~B: B must be Boolean (0/1); tc applies 2∣ after generating
+prim_def("Z←~B", ¯3 ¯100 (0 1 0 0 0) 0 RE, , , "(⍴Z)≡⍴B")
+// A~B (Without): A and B simple, any type
+prim_def("Z←A~B", ¯3 ¯100 (1 1 1 1 0) 0 RE, ¯1 ¯100 (1 1 1 1 0) 0 RE, , "(⍴⍴Z)≡,1")
+
+// ── ∧ And ─────────────────────────────────────────────────────────────
+// Boolean (0/1); tc applies 2∣ after generating
+prim_def("Z←A∧B", ¯3 ¯100 (0 1 0 0 0) 0 RE, ¯3 ¯100 (0 1 0 0 0) 0 RE, , "(⍴Z)≡(⍴A)⌈⍴B")
+
+// ── ∨ Or ──────────────────────────────────────────────────────────────
+prim_def("Z←A∨B", ¯3 ¯100 (0 1 0 0 0) 0 RE, ¯3 ¯100 (0 1 0 0 0) 0 RE, , "(⍴Z)≡(⍴A)⌈⍴B")
+
+// ── ⍲ Nand ────────────────────────────────────────────────────────────
+prim_def("Z←A⍲B", ¯3 ¯100 (0 1 0 0 0) 0 RE, ¯3 ¯100 (0 1 0 0 0) 0 RE, , "(⍴Z)≡(⍴A)⌈⍴B")
+
+// ── ⍱ Nor ─────────────────────────────────────────────────────────────
+prim_def("Z←A⍱B", ¯3 ¯100 (0 1 0 0 0) 0 RE, ¯3 ¯100 (0 1 0 0 0) 0 RE, , "(⍴Z)≡(⍴A)⌈⍴B")
+
+// ── ? Roll / Deal ─────────────────────────────────────────────────────
+// ?B: B positive integer, any rank; tc takes |B to ensure ≥ 0
+prim_def("Z←?B", ¯3 ¯100 (0 1 0 0 0) 0 RE, , , "(⍴Z)≡⍴B")
+// A?B: A and B must be scalars (A ≤ B); fixed rank 0
+prim_def("Z←A?B", 0 (0 1 0 0 0) 0 RE, 0 (0 1 0 0 0) 0 RE, , "((⍴Z)≡,A)∧(⍴⍴Z)≡,1")
+
+// ── ⍴ Shape / Reshape ─────────────────────────────────────────────────
+// monadic: any argument including nested
+prim_def("Z←⍴B", ¯3 ¯100 (1 1 1 1 1) 3 RE, , , "((⍴Z)≡⍴⍴B)∧(⍴⍴Z)≡,1")
+// dyadic A⍴B: B is the data source; any type/shape
+prim_def("Z←A⍴B", ¯3 ¯100 (1 1 1 1 1) 3 RE, 1 ¯8 (0 1 0 0 0) 0 RE, , "((⍴Z)≡,A)∧(⍴⍴Z)≡⍴,A")
+
+// ── , Ravel / Catenate ────────────────────────────────────────────────
+prim_def("Z←,B", ¯3 ¯100 (1 1 1 1 1) 3 RE, , , "((⍴Z)≡,×/⍴B)∧(⍴⍴Z)≡,1")
+prim_def("Z←A,B", ¯3 ¯100 (1 1 1 1 1) 3 RE, ¯3 ¯100 (1 1 1 1 1) 3 RE, , "(⍴⍴Z)≡,⌈/(⍴⍴A),(⍴⍴B),1")
+prim_def("Z←,[X]B", (0 3 2 1) ¯100 (1 1 1 1 1) 3 RE, , 0 (0 1 0 0 0) 0 RE, "(⍴⍴Z)≡⍴⍴B")
+prim_def("Z←A,[X]B", (0 3 2 1) ¯100 (1 1 1 1 1) 3 RE, ¯3 ¯100 (1 1 1 1 1) 3 RE, 0 (0 1 0 0 0) 0 RE, "((⍴⍴Z)≡(⍴⍴A)⌈⍴⍴B)∧(⍴Z)[X]≡(⍴A)[X]+(⍴B)[X]")
+// Laminate: A and B same rank; K is fractional axis
+prim_def("Z←A,[X.5]B", (0 3 2 1) ¯100 (1 1 1 1 0) 0 RE, (0 3 2 1) ¯100 (1 1 1 1 0) 0 RE, 0 (0 0 1 0 0) 0 RE, "(⍴⍴Z)≡1+(⍴⍴A)⌈⍴⍴B")
+
+// ── ⍪ Table / Catenate First ──────────────────────────────────────────
+prim_def("Z←⍪B", ¯3 ¯100 (1 1 1 1 1) 3 RE, , , "(⍴⍴Z)≡,2⌈⍴⍴B")
+prim_def("Z←A⍪B", (0 3 2 1) ¯100 (1 1 1 1 1) 3 RE, (0 3 2 1) ¯100 (1 1 1 1 1) 3 RE, , "(⍴⍴Z)≡(⍴⍴A)⌈⍴⍴B")
+
+// ── ⌽ Reverse / Rotate ────────────────────────────────────────────────
+prim_def("Z←⌽B", (0 3 2 1) ¯100 (1 1 1 1 1) 3 RE, , , "((⍴Z)≡⍴B)∧(⍴⍴Z)≡⍴⍴B")
+prim_def("Z←A⌽B", (0 3 2 1) ¯100 (1 1 1 1 1) 3 RE, ¯2 ¯10 (0 1 0 0 0) 0 RE, , "((⍴Z)≡⍴B)∧(⍴⍴Z)≡⍴⍴B")
+prim_def("Z←⌽[X]B", (0 3 2 1) ¯100 (1 1 1 1 1) 3 RE, , 0 (0 1 0 0 0) 0 RE, "((⍴Z)≡⍴B)∧(⍴⍴Z)≡⍴⍴B")
+prim_def("Z←A⌽[X]B", (0 3 2 1) ¯100 (1 1 1 1 1) 3 RE, ¯1 ¯100 (0 1 0 0 0) 0 RE, 0 (0 1 0 0 0) 0 RE, "((⍴Z)≡⍴B)∧(⍴⍴Z)≡⍴⍴B")
+
+// ── ⊖ Reverse First / Rotate First ───────────────────────────────────
+prim_def("Z←⊖B", (0 3 2 1) ¯100 (1 1 1 1 1) 3 RE, , , "((⍴Z)≡⍴B)∧(⍴⍴Z)≡⍴⍴B")
+prim_def("Z←A⊖B", (0 3 2 1) ¯100 (1 1 1 1 1) 3 RE, ¯2 ¯10 (0 1 0 0 0) 0 RE, , "((⍴Z)≡⍴B)∧(⍴⍴Z)≡⍴⍴B")
+
+// ── ⍉ Transpose ───────────────────────────────────────────────────────
+// requires rank ≥ 1 for monadic; rank distribution skips scalars
+prim_def("Z←⍉B", (0 3 2 1) ¯100 (1 1 1 1 1) 3 RE, , , "((⍴Z)≡⌽⍴B)∧(⍴⍴Z)≡⍴⍴B")
+prim_def("Z←A⍉B", (0 3 2 1) ¯100 (1 1 1 1 1) 3 RE, 1 ¯8 (0 1 0 0 0) 0 RE, , "(⍴⍴Z)≡⍴⍴B")
+
+// ── ↑ Mix / Take ──────────────────────────────────────────────────────
+// monadic ↑B: benefits from nested input (Mix operation)
+prim_def("Z←↑B", ¯3 ¯100 (1 1 1 1 1) 3 RE, , , "(⍴⍴Z)≥⍴⍴B")
+// dyadic A↑B: B is the array to take from; any type/shape
+prim_def("Z←A↑B", ¯3 ¯100 (1 1 1 1 1) 3 RE, 1 ¯8 (0 1 0 0 0) 0 RE, , "((⍴Z)≡|,A)∧(⍴⍴Z)≡⍴,A")
+prim_def("Z←A↑[X]B", (0 3 2 1) ¯100 (1 1 1 1 1) 3 RE, 0 (0 1 0 0 0) 0 RE, ¯1 ¯3 (0 1 0 0 0) 0 RE, "(⍴⍴Z)≡⍴⍴B")
+
+// ── ↓ Split / Drop ────────────────────────────────────────────────────
+// monadic ↓B: rank ≥ 1 (Split); B any nonscalar
+prim_def("Z←↓B", (0 3 2 1) ¯100 (1 1 1 1 1) 3 RE, , , "((⍴Z)≡1↑⍴B)∧(⍴⍴Z)≡,1")
+prim_def("Z←A↓B", ¯3 ¯100 (1 1 1 1 1) 3 RE, 1 ¯8 (0 1 0 0 0) 0 RE, , "((⍴Z)≡0⌈(⍴B)-|A)∧(⍴⍴Z)≡(⍴,A)⌈⍴⍴B")
+prim_def("Z←A↓[X]B", (0 3 2 1) ¯100 (1 1 1 1 1) 3 RE, 0 (0 1 0 0 0) 0 RE, ¯1 ¯3 (0 1 0 0 0) 0 RE, "(⍴⍴Z)≡⍴⍴B")
+
+// ── ⍳ Interval Index / Index Of ──────────────────────────────────────
+// monadic ⍳B: B integer (scalar or vector); tc takes |B to ensure ≥ 0
+prim_def("Z←⍳B", ¯1 1 (0 1 0 0 0) 0 RE, , , "((⍴Z)≡,B)∧(⍴⍴Z)≡,1")
+// dyadic A⍳B: A simple array; B same type as A
+prim_def("Z←A⍳B", ¯3 ¯100 (1 1 1 1 0) 0 RE, 1 ¯100 (1 1 1 1 0) 0 RE, , "((⍴Z)≡⍴B)∧(⍴⍴Z)≡⍴⍴B")
+
+// ── ∊ Enlist / Member ─────────────────────────────────────────────────
+// monadic ∊B: any (especially useful nested); result always simple vector
+prim_def("Z←∊B", ¯3 ¯100 (1 1 1 1 1) 3 RE, , , "(⍴⍴Z)≡,1")
+// dyadic A∊B: both simple; membership test
+prim_def("Z←A∊B", ¯3 ¯100 (1 1 1 1 0) 0 RE, ¯3 ¯100 (1 1 1 1 0) 0 RE, , "((⍴Z)≡⍴A)∧(⍴⍴Z)≡⍴⍴A")
+
+// ── ⍷ Find ────────────────────────────────────────────────────────────
+// A⍷B: both same type, simple; B is the searched array
+prim_def("Z←A⍷B", (0 3 2 1) ¯100 (1 1 1 1 0) 0 RE, (0 3 2 1) ¯10 (1 1 1 1 0) 0 RE, , "((⍴Z)≡⍴B)∧(⍴⍴Z)≡⍴⍴B")
+
+// ── ⊂ Enclose / Partitioned Enclose ──────────────────────────────────
+prim_def("Z←⊂B", ¯3 ¯100 (1 1 1 1 1) 3 RE, , , "((⍴Z)≡⍳0)∧(⍴⍴Z)≡,0")
+// dyadic A⊂B (APL2 Partitioned Enclose): A is Boolean/integer vector, B simple nonscalar
+prim_def("Z←A⊂B", (0 3 2 1) ¯100 (1 1 1 1 0) 0 RE, 1 ¯100 (0 1 0 0 0) 0 RE, , "(⍴⍴Z)≡⍴⍴B")
+prim_def("Z←⊂[X]B", (0 3 2 1) ¯100 (1 1 1 1 0) 0 RE, , ¯1 ¯3 (0 1 0 0 0) 0 RE, "(⍴⍴Z)≡,(⍴⍴B)-⍴,X")
+prim_def("Z←A⊂[X]B", (0 3 2 1) ¯100 (1 1 1 1 0) 0 RE, 1 ¯100 (0 1 0 0 0) 0 RE, 0 (0 1 0 0 0) 0 RE, "(⍴⍴Z)≡⍴⍴B")
+
+// ── ⊃ First / Disclose / Pick ─────────────────────────────────────────
+// monadic ⊃B: benefits from nested input
+prim_def("Z←⊃B", ¯3 ¯100 (1 1 1 1 1) 3 RE, , , "1")
+// dyadic A⊃B (Pick): B is a nested array
+prim_def("Z←A⊃B", ¯3 ¯100 (1 1 1 1 1) 3 RE, 0 (0 1 0 0 0) 0 RE, , "1")
+prim_def("Z←⊃[X]B", (0 3 2 1) ¯100 (1 1 1 1 1) 3 RE, , ¯1 ¯3 (0 1 0 0 0) 0 RE, "1")
+
+// ── ≡ Depth / Match ───────────────────────────────────────────────────
+prim_def("Z←≡B", ¯3 ¯100 (1 1 1 1 1) 3 RE, , , "((⍴Z)≡⍳0)∧(⍴⍴Z)≡,0")
+prim_def("Z←A≡B", ¯3 ¯100 (1 1 1 1 1) 3 RE, ¯3 ¯100 (1 1 1 1 1) 3 RE, , "((⍴Z)≡⍳0)∧(⍴⍴Z)≡,0")
+
+// ── ≢ Tally / Mismatch ────────────────────────────────────────────────
+prim_def("Z←≢B", ¯3 ¯100 (1 1 1 1 1) 3 RE, , , "((⍴Z)≡⍳0)∧(⍴⍴Z)≡,0")
+prim_def("Z←A≢B", ¯3 ¯100 (1 1 1 1 1) 3 RE, ¯3 ¯100 (1 1 1 1 1) 3 RE, , "((⍴Z)≡⍳0)∧(⍴⍴Z)≡,0")
+
+// ── ⍋ Grade Up ────────────────────────────────────────────────────────
+// simple only (no complex, no nested); rank ≥ 1; char or real
+prim_def("Z←⍋B", (0 3 2 1) ¯100 (10 70 15 0 0) 0 RE, , , "((⍴Z)≡1↑⍴B)∧(⍴⍴Z)≡,1")
+// dyadic A⍋B (collating grade): B must be char
+prim_def("Z←A⍋B", (0 3 2 1) ¯100 (1 0 0 0 0) 0 RE, (0 3 2 1) ¯100 (1 0 0 0 0) 0 RE, , "((⍴Z)≡1↑⍴B)∧(⍴⍴Z)≡,1")
+
+// ── ⍒ Grade Down ──────────────────────────────────────────────────────
+prim_def("Z←⍒B", (0 3 2 1) ¯100 (10 70 15 0 0) 0 RE, , , "((⍴Z)≡1↑⍴B)∧(⍴⍴Z)≡,1")
+prim_def("Z←A⍒B", (0 3 2 1) ¯100 (1 0 0 0 0) 0 RE, (0 3 2 1) ¯100 (1 0 0 0 0) 0 RE, , "((⍴Z)≡1↑⍴B)∧(⍴⍴Z)≡,1")
+
+// ── ⊥ Decode ──────────────────────────────────────────────────────────
+// A⊥B: both numeric, no complex
+prim_def("Z←A⊥B", (0 3 2 1) ¯100 (0 1 1 0 0) 0 RE, (0 1 1 1) ¯16 (0 1 0 0 0) 0 RE, , "((⍴Z)≡(¯1↓⍴A),1↓⍴B)∧(⍴⍴Z)≡,(0⌈¯1+⍴⍴A)+(0⌈¯1+⍴⍴B")
+
+// ── ⊤ Encode ──────────────────────────────────────────────────────────
+prim_def("Z←A⊤B", (0 3 2 1) ¯100 (0 1 1 0 0) 0 RE, (0 1 1 1) ¯16 (0 1 1 0 0) 0 RE, , "((⍴Z)≡(⍴A),⍴B)∧(⍴⍴Z)≡,(⍴⍴A)+⍴⍴B")
+
+// ── ⌹ Matrix Inverse / Divide ─────────────────────────────────────────
+// requires matrix (rank 2); real numeric only
+prim_def("Z←⌹B", ¯2 ¯100 (0 1 1 0 0) 0 RE, , , "((⍴Z)≡⌽⍴B)∧(⍴⍴Z)≡⍴⍴B")
+prim_def("Z←A⌹B", 2 ¯100 (0 1 1 0 0) 0 RE, ¯2 ¯100 (0 1 1 0 0) 0 RE, , "((⍴Z)≡(1↓⍴B),1↓⍴A)∧(⍴⍴Z)≡,1⌈¯2+(⍴⍴A)+⍴⍴B")
+
+// ── ⍕ Format ──────────────────────────────────────────────────────────
+// monadic: any simple type
+prim_def("Z←⍕B", ¯3 ¯100 (1 1 1 1 0) 0 RE, , , "(⍴⍴Z)≡,1⌈⍴⍴B")
+// dyadic A⍕B: A is format spec (integer), B is numeric
+prim_def("Z←A⍕B", ¯3 ¯100 (0 1 1 0 0) 0 RE, 1 ¯10 (0 1 0 0 0) 0 RE, , "(⍴⍴Z)≡,1⌈⍴⍴B")
+
+// ── ⍎ Execute ─────────────────────────────────────────────────────────
+// B must be character; note: random chars rarely make valid APL
+prim_def("Z←⍎B", ¯3 ¯100 (1 0 0 0 0) 0 RE, , , "1")
+
+// ── ∪ Unique / Union ──────────────────────────────────────────────────
+// simple arrays only
+prim_def("Z←∪B", (0 3 2 1) ¯100 (1 1 1 1 0) 0 RE, , , "(⍴⍴Z)≡⍴⍴B")
+prim_def("Z←A∪B", (0 3 2 1) ¯100 (1 1 1 1 0) 0 RE, ¯3 ¯100 (1 1 1 1 0) 0 RE, , "(⍴⍴Z)≡⍴⍴A")
+
+// ── ∩ Intersection ────────────────────────────────────────────────────
+prim_def("Z←A∩B", (0 3 2 1) ¯100 (1 1 1 1 0) 0 RE, ¯3 ¯100 (1 1 1 1 0) 0 RE, , "(⍴⍴Z)≡⍴⍴A")
+
+// ── ⌷ Index (Squad) ───────────────────────────────────────────────────
+// B is the array being indexed; any type including nested
+prim_def("Z←A⌷B", ¯3 ¯100 (1 1 1 1 1) 3 RE, ¯1 ¯10 (0 1 0 0 0) 0 RE, , "1")
+
+// ── A[I] Bracket Indexing ─────────────────────────────────────────────
+// A is the array; indices are integer; only rank matters here
+prim_def("Z←A[B]",   ¯3 ¯100 (1 1 1 1 1) 3 RE, ¯3 ¯100 (0 1 0 0 0) 0 RE, , "(⍴Z)≡⍴B")
+prim_def("Z←A[I]",   ¯3 ¯100 (1 1 1 1 1) 3 RE, ¯1 ¯100 (0 1 0 0 0) 0 RE, , "(⍴Z)≡⍴I")
+prim_def("Z←A[I;J]", 2 ¯100 (1 1 1 1 1) 3 RE, ¯1 ¯100 (0 1 0 0 0) 0 RE, , "(⍴Z)≡(⍴I),⍴J")
+prim_def("Z←A[I;J;K]", 3 ¯100 (1 1 1 1 1) 3 RE, ¯1 ¯100 (0 1 0 0 0) 0 RE, , "(⍴Z)≡(⍴I),(⍴J),⍴K")
+
+// ── / Compress / Replicate (used as function) ─────────────────────────
+// B nonscalar; A Boolean for Compress, integer for Replicate
+prim_def("Z←A/B", (0 3 2 1) ¯100 (1 1 1 1 0) 0 RE, 1 ¯100 (0 1 0 0 0) 0 RE, , "((¯1↓⍴Z)≡¯1↓⍴B)∧(⍴⍴Z)≡⍴⍴B")
+prim_def("Z←A/[X]B", (0 3 2 1) ¯100 (1 1 1 1 0) 0 RE, 1 ¯100 (0 1 0 0 0) 0 RE, 0 (0 1 0 0 0) 0 RE, "(⍴⍴Z)≡⍴⍴B")
+prim_def("Z←A⌿B", (0 3 2 1) ¯100 (1 1 1 1 0) 0 RE, 1 ¯100 (0 1 0 0 0) 0 RE, , "((1↓⍴Z)≡1↓⍴B)∧(⍴⍴Z)≡⍴⍴B")
+
+// ── \ Expand (used as function) ───────────────────────────────────────
+prim_def("Z←A\\B", (0 3 2 1) ¯100 (1 1 1 1 0) 0 RE, 1 ¯100 (0 1 0 0 0) 0 RE, , "((¯1↓⍴Z)≡¯1↓⍴B)∧(⍴⍴Z)≡⍴⍴B")
+prim_def("Z←A\\[X]B", (0 3 2 1) ¯100 (1 1 1 1 0) 0 RE, 1 ¯100 (0 1 0 0 0) 0 RE, 0 (0 1 0 0 0) 0 RE, "(⍴⍴Z)≡⍴⍴B")
+prim_def("Z←A⍀B", (0 3 2 1) ¯100 (1 1 1 1 0) 0 RE, 1 ¯100 (0 1 0 0 0) 0 RE, , "((1↓⍴Z)≡1↓⍴B)∧(⍴⍴Z)≡⍴⍴B")
+
+// ── f/ Reduce ─────────────────────────────────────────────────────────
+// B nonscalar; f is an arbitrary scalar function
+prim_def("Z←f/B", (0 3 2 1) ¯100 (1 1 1 1 0) 0 RE, , , "((⍴Z)≡¯1↓⍴B)∧(⍴⍴Z)≡,0⌈¯1+⍴⍴B")
+prim_def("Z←f/[X]B", (0 3 2 1) ¯100 (1 1 1 1 0) 0 RE, , 0 (0 1 0 0 0) 0 RE, "(⍴⍴Z)≡,0⌈¯1+⍴⍴B")
+prim_def("Z←f⌿B", (0 3 2 1) ¯100 (1 1 1 1 0) 0 RE, , , "((⍴Z)≡1↓⍴B)∧(⍴⍴Z)≡,0⌈¯1+⍴⍴B")
+// N-Wise Reduce: A is window size (scalar integer), B is the array
+prim_def("Z←Af/B", (0 3 2 1) ¯100 (0 1 1 1 0) 0 RE, 0 (0 1 0 0 0) 0 RE, , "((⍴Z)≡(¯1↓⍴B),(1+(¯1↑⍴B)-|A))∧(⍴⍴Z)≡⍴⍴B")
+
+// ── f\ Scan ───────────────────────────────────────────────────────────
+prim_def("Z←f\\B", (0 3 2 1) ¯100 (1 1 1 1 0) 0 RE, , , "((⍴Z)≡⍴B)∧(⍴⍴Z)≡⍴⍴B")
+prim_def("Z←f\\[X]B", (0 3 2 1) ¯100 (1 1 1 1 0) 0 RE, , 0 (0 1 0 0 0) 0 RE, "((⍴Z)≡⍴B)∧(⍴⍴Z)≡⍴⍴B")
+prim_def("Z←f⍀B", (0 3 2 1) ¯100 (1 1 1 1 0) 0 RE, , , "((⍴Z)≡⍴B)∧(⍴⍴Z)≡⍴⍴B")
+
+// ── f¨ Each ───────────────────────────────────────────────────────────
+prim_def("Z←f¨B", ¯3 ¯100 (1 1 1 1 1) 3 RE, , , "((⍴Z)≡⍴B)∧(⍴⍴Z)≡⍴⍴B")
+prim_def("Z←Af¨B", ¯3 ¯100 (1 1 1 1 1) 3 RE, ¯3 ¯100 (1 1 1 1 1) 3 RE, , "((⍴Z)≡(⍴A)⌈⍴B)∧(⍴⍴Z)≡(⍴⍴A)⌈⍴⍴B")
+
+// ── Af.gB Inner Product ───────────────────────────────────────────────
+// A and B must be conformable; numeric only for typical f.g
+prim_def("Z←Af.gB", 2 ¯100 (0 1 1 1 0) 0 RE, 2 ¯100 (0 1 1 1 0) 0 RE, , "((⍴Z)≡(¯1↓⍴A),1↓⍴B)∧(⍴⍴Z)≡,0⌈¯2+(⍴⍴A)+⍴⍴B")
+
+// ── A∘.fB Outer Product ───────────────────────────────────────────────
+// A and B can be any shape/type; result is rank(A)+rank(B)
+prim_def("Z←A∘.fB", ¯3 ¯100 (1 1 1 1 0) 0 RE, ¯3 ¯100 (1 1 1 1 0) 0 RE, , "((⍴Z)≡(⍴A),⍴B)∧(⍴⍴Z)≡,(⍴⍴A)+⍴⍴B")
+
+// ── f⍣N Power Operator ────────────────────────────────────────────────
+// B is the starting value; N is the iteration count (non-negative integer)
+prim_def("Z←Bf⍣NB", ¯3 ¯100 (0 1 1 1 0) 0 RE, 0 (0 1 0 0 0) 0 RE, , "(⍴Z)≡⍴B")
+
+// ── f⍤[K] Rank Operator ───────────────────────────────────────────────
+prim_def("Z←Bf⍤[X]B", ¯3 ¯100 (1 1 1 1 0) 0 RE, , 0 (0 1 0 0 0) 0 RE, "(⍴Z)≡⍴B")
+prim_def("Z←Af⍤[X]B", ¯3 ¯100 (1 1 1 1 0) 0 RE, ¯3 ¯100 (1 1 1 1 0) 0 RE, 0 (0 1 0 0 0) 0 RE, "1")
+
+//undef prim_def
+
