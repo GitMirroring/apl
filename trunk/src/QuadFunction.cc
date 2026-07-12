@@ -404,25 +404,42 @@ Quad_EC::eval_B(cValue_R B) const
 const UCS_string statement_B(B);
 
 ExecuteList * fun = 0;
+Error fix_error(E_SYNTAX_ERROR, LOC);   // fallback if nothing better is caught
    try {
          fun = ExecuteList::fix(statement_B, LOC);
+         if (fun == 0)   // fix() caught the real error and stashed it away
+            {
+              if (const Error * werr = Workspace::get_error())
+                 fix_error = *werr;
+            }
        }
-     catch (Error &)          {}
+     catch (Error & err)      { fix_error = err; }
      catch (std::bad_alloc &) { WS_FULL; }
      catch (...)              { FIXME; }
 
    if (fun == 0)
       {
-        // syntax error in B
+        // B could not be parsed/compiled. Report the actual error caught
+        // above (rather than always hard-coding E_SYNTAX_ERROR, which
+        // discards the real reason, e.g. WS_FULL) and use the same
+        // 3-line ⎕EM-shaped matrix that Quad_EC::eoc() builds for
+        // run-time errors below (a bare, unshaped character vector here
+        // would make Z3 inconsistent in rank between fix-time and
+        // run-time errors).
         //
+        const ErrorCode ec = fix_error.get_error_code();
+
+        PrintBuffer pb;
+        pb.append_ucs(UTF8_string(Error::error_name(ec)));
+        pb.append_ucs(fix_error.get_error_line_2());
+        pb.append_ucs(fix_error.get_error_line_3());
+
         Value_P Z2(2, LOC);
-            Z2->next_ravel_Int(Error::error_major(E_SYNTAX_ERROR));
-            Z2->next_ravel_Int(Error::error_minor(E_SYNTAX_ERROR));
+            Z2->next_ravel_Int(Error::error_major(ec));
+            Z2->next_ravel_Int(Error::error_minor(ec));
             Z2->check_value(LOC);
 
-        UTF8_string Z3_utf(Error::error_name(E_SYNTAX_ERROR));
-        UCS_string Z3_ucs(Z3_utf);
-        Value_P Z3(Z3_ucs, LOC);
+        Value_P Z3(pb, LOC);   // 3 line message like ⎕EM
         Value_P Z(3, LOC);
         Z->next_ravel_0();              // return code = error
         Z->next_ravel_Pointer(Z2.get());   // ⎕ET value
@@ -536,9 +553,18 @@ Quad_ES::eval_B(cValue_R B) const
 {
 Error error(E_NO_ERROR, LOC);
 const Token ret = event_simulate(0, CLONE(&B, LOC), error);
-   if (error.get_error_code() == E_NO_ERROR)              return ret;
-   if (Workspace::SI_top()->get_safe_execution_depth())   return ret;
+   if (error.get_error_code() == E_NO_ERROR)   return ret;
 
+   // note: unlike the (undocumented, presumably historic) short-circuit
+   // that used to be here, a simulated error must always be thrown, even
+   // inside a safe execution context (e.g. ⎕EC 'foo'). Error::update_error_info()
+   // (called by event_simulate() above) already suppresses printing the
+   // error while a safe execution is in progress; throwing is what
+   // notifies the enclosing ⎕EC that an event occurred at all (it turns
+   // the throw into the caught, structured (rc ⎕ET ⎕EM) result). Silently
+   // swallowing it here instead makes ⎕ES B a no-op inside ⎕EC, i.e. the
+   // simulated error is lost and execution wrongly continues.
+   //
    throw error;
 }
 //────────────────────────────────────────────────────────────────────────────
@@ -643,6 +669,14 @@ Quad_ES::get_error_code(Value_P B)
 
    if (B->element_count() == 0)   return E_NO_ERROR;
    if (B->is_char_string())       return E_USER_DEFINED_ERROR;
+
+   // every remaining case (an ordinary 2-element error code, or one of
+   // the internal ⎕EA/⎕EB marker codes below) needs at least major and
+   // minor, i.e. 2 elements. get_near_int() does not bounds-check the
+   // ravel, so checking this first (rather than after computing err)
+   // avoids reading past the end of B for e.g. ⎕ES 5 (a lone element).
+   //
+   if (B->element_count() < 2)   LENGTH_ERROR;
 
 const APL_Integer err = (B->get_near_int(0) << 16)
                       | (B->get_near_int(1));

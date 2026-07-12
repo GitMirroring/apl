@@ -397,6 +397,13 @@ const APL_types::Depth depth = value->compute_depth();
         text << var_name << "←";
         if (value->element_count())   // non-empty value
            {
+             // a lone item (e.g. "V←5") parses back as a *scalar*, which
+             // would silently turn a genuine 1-element vector into a
+             // scalar. Force vector shape with a leading , (ravel) in
+             // that case.
+             //
+             if (value->get_rank() == 1 && ec == 1)   text << ",";
+
              loop(e, value->element_count())
                  {
                    if (e)   text << " ";
@@ -898,10 +905,42 @@ UCS_string text;
       }
 
    if (cell.is_integer_cell())   return text << cell.get_int_value();
-   if (cell.is_real_cell())      return text << cell.get_real_value();
-   if (cell.is_complex_cell()) return text << cell.get_real_value() << UNI_J
-                                           << cell.get_imag_value();
+   if (cell.is_real_cell())      return do_CR10_double(cell.get_real_value());
+   if (cell.is_complex_cell()) return do_CR10_double(cell.get_real_value())
+                                    << UNI_J
+                                    << do_CR10_double(cell.get_imag_value());
    FIXME;   // cell is not simple
+}
+//────────────────────────────────────────────────────────────────────────────
+UCS_string
+Quad_CR::do_CR10_double(double num)
+{
+   // 10 ⎕CR must reconstruct the exact value of num, therefore (unlike
+   // UCS_string::operator <<(double), which trims 'near-int' values to
+   // 2 significant digits for compact display) we never trade away
+   // precision. We do, however, use the shortest of %.15g/%.16g/%.17g
+   // that still round-trips exactly, so that 'nice' values like 3.1415
+   // are not needlessly spelled out to full (17 digit) double precision.
+   //
+char cc[40];
+   for (int prec = 15; prec <= 17; ++prec)
+       {
+         SPRINTF(cc, "%.*g", prec, num);
+         if (strtod(cc, 0) == num)   break;
+       }
+
+UCS_string result;
+   loop(c, sizeof(cc))
+       {
+         const char digit = cc[c];
+         if (digit == 0)           break;
+         if (digit == 'e')         result << UNI_E;
+         else if (digit == '-')    result << UNI_OVERBAR;
+         else if (digit == '+')    ;   // APL exponents have no '+' sign
+         else                      result << Unicode(digit);
+       }
+
+   return result;
 }
 //────────────────────────────────────────────────────────────────────────────
 UCS_string
@@ -2001,6 +2040,15 @@ Quad_CR::is_plain_string(const cValue * value)
          if (uni < UNI_SPACE)           return false;   // control character
          if (uni == UNI_SINGLE_QUOTE)   return false;
          if (uni == UNI_DELETE)         return false;
+
+         // the caller emits the string between " " without any escaping,
+         // so both the delimiter and the escape introducer of "..."
+         // strings (see Tokenizer::tokenize_string2()) must be excluded
+         // here; such strings then fall back to the (slower) '...' item
+         // by item encoding in do_CR10_level()/do_CR10_variable().
+         //
+         if (uni == UNI_DOUBLE_QUOTE)   return false;
+         if (uni == UNI_BACKSLASH)      return false;
        }
 
    return true;

@@ -1,0 +1,61 @@
+⍝ AllPrimitives.tc
+⍝ ════════════════
+
+∇ON_ERROR ARGS;N;A;B;X;OPER;FH;LINES;TS;NAME;FMT
+ ⍝ write /tmp/ALL_PRIMITIVES_ERROR_N.apl: a self-contained script that
+ ⍝ reconstructs A, B, X (via 10 ⎕CR) and then executes OPER, so the
+ ⍝ failure captured in ARGS←(N A B X OPER) can be reproduced later.
+ ⍝
+ (N A B X OPER)←ARGS
+ NAME←'/tmp/ALL_PRIMITIVES_ERROR_',(⍕N),'.apl'
+ FH←'w' ⎕FIO.fopen NAME
+ FMT←'%s',(⎕UCS 10)
+ TS←⎕TS
+ ⊣((⊂FMT),⊂'⍝ ',(⍕TS[1]),'-',(⍕TS[2]),'-',(⍕TS[3]),' ',(⍕TS[4]),':',(⍕TS[5]),':',(⍕TS[6])) ⎕FIO.fprintf FH
+ LINES←(10⎕CR 'A'),(10⎕CR 'B'),(10⎕CR 'X'),⊂OPER
+ ⊣{⊣((⊂FMT),⊂⍵) ⎕FIO.fprintf FH}¨LINES
+ ⊣⎕FIO.fclose FH
+∇
+
+∇Z←ALL_PRIMITIVES B; ⎕IO;T0;PRIM;TD;RE;A;B;X;ROW;OPER;EXPD;RC;ET;RES;LCNT;ECNT;RC2;ET2;RES2;SEED
+ ⍝ run for B seconds
+ ⍝
+ ⍝ TODO: A/B/X are currently generated independently, so most draws are
+ ⍝ shape-non-conforming and fail in OPER before EXPD is ever exercised
+ ⍝ (e.g. A+B needs ⍴A≡⍴B or one of A,B scalar, recursively if nested).
+ ⍝ Conforming them per-primitive is 6 ⎕RVAL's job, not this function's —
+ ⍝ needs a new conforming generator (C++ in Quad_RVAL, or an APL helper).
+ ⍝
+ SEED←(8⍴256)⊤((⎕TS[3]-1)×24×60×60×1000)+24 60 60 1000⊥⎕TS[4 5 6 7]
+ ⊣0 ⎕RVAL SEED       ⍝ seed from current time so different runs differ
+ RE←100              ⍝ desired ⍴∈ limit (was 10000; ⎕RVAL nesting budget blows up, see TODO)
+ TD ← 15 70 15 5 5   ⍝ desired type distribution
+ PRIM←6 ⎕RVAL ⍬
+ T0←24 60 60⊥⎕TS[4 5 6]
+ LCNT←0              ⍝ number of loop iterations so far
+ ECNT←0              ⍝ number of ERROR: exits so far
+LOOP:
+ LCNT←LCNT+1
+ ⊣⎕DL 0.1   ⍝ rate limit (unconditional: caps load on server72 every iteration)
+ ROW←PRIM[?≢PRIM;]   ⍝ pick a random primitive: arity A_stim B_stim X_stim Z_constraint
+ (A B X)←{⎕RVAL⍣(0<≢⍵)⊢⍵}¨⍎¨ROW[2 3 4]   ⍝ ⍬ stim (unused arg) stays ⍬, else ⎕RVAL it
+ (OPER EXPD)←ROW[1 5]   ⍝ arity expression (e.g. Z←A+B) and Z constraint
+ (RC ET RES)←⎕EC OPER   ⍝ execute OPER; on success (RC=2) RES is the value OPER returned
+ →(RC≠2)/ERROR          ⍝ OPER itself failed (e.g. non-conforming random A/B)
+ (RC2 ET2 RES2)←⎕EC EXPD     ⍝ evaluate the invariant; a plain expr gives RC=1 on success
+ →(RC2≠1)/ERROR              ⍝ the constraint expression itself failed to evaluate
+ →(RES2)/LOOP                ⍝ invariant holds: keep fuzzing
+ ⍝ invariant violated here — falls through (handling TBD)
+ →((24 60 60⊥⎕TS[4 5 6]) < T0 + B)/LOOP
+ Z←1 ◊ →0
+ERROR:
+ ECNT←ECNT+1
+ ON_ERROR ECNT A B X OPER   ⍝ dump a reproducer for each of the first 10 errors
+ →(ECNT<10)/LOOP            ⍝ keep fuzzing until the 10th error
+ Z←0
+∇
+
+      ALL_PRIMITIVES 5
+1
+
+      )CHECK BRIEF

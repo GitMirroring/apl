@@ -14,6 +14,7 @@ dist_noinst_DATA =                              \
         AAA3.tc                                 \
         AAA4_Function_headers.tc                \
         Add.tc                                  \
+        AllPrimitives.tc                        \
         And.tc                                  \
         AP100.tc                                \
         AP210.tc                                \

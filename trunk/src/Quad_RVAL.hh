@@ -67,12 +67,19 @@ protected:
                                  const function_info & info) const;
 
    /// do eval_B(B);
-   /// @param B     right argument APL value
-   /// @param depth remaining nesting depth for random values
-   Value_P do_eval_B(const cValue & B, int depth) const;
+   /// @param B      right argument APL value
+   /// @param depth  remaining nesting depth for random values
+   /// @param budget max. total (recursive) element count for this
+   ///               sub-value; negative means unlimited. Bounds the
+   ///               *whole* nested (sub-)tree, unlike desired_max_ecount
+   ///               which only bounds a single (top-level) ravel.
+   Value_P do_eval_B(const cValue & B, int depth, ShapeItem budget) const;
 
    /// initialize the next ravel cell of \b Z with a random nested value
-   void random_nested(Value & Z, const cValue & B, int depth) const;
+   /// @param budget max. total (recursive) element count for the nested
+   ///               sub-value; negative means unlimited
+   void random_nested(Value & Z, const cValue & B, int depth,
+                      ShapeItem budget) const;
 
    /// choose an integer value at random according to distribution \b dist
    static int choose_integer(const vector<int> & dist);

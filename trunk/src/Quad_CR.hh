@@ -141,6 +141,14 @@ protected:
    /// @param cell scalar cell to format as a UCS string
    static UCS_string do_CR10_simple_cell(const Cell & cell);
 
+   /// format a Float value with full (round-trip) precision, i.e. as
+   /// needed to reconstruct the exact value via 10 ⎕CR. Unlike
+   /// UCS_string::operator <<(double), which trims values that are
+   /// close to an integer to 2 significant digits for compact display,
+   /// this function never loses precision.
+   /// @param num the value to format
+   static UCS_string do_CR10_double(double num);
+
    /// emit a shaoe
    /// @param _shape APL shape to format as a UCS string
    static UCS_string do_CR10_shape(const Shape &_shape);

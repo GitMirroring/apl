@@ -128,8 +128,14 @@ Value_P Z(ucs, loc);
 void
 release_value(const APL_value val, const char * loc)
 {
-Value * v = static_cast<Value *>(const_cast<cValue *>(val));
-   if (val)   v->decrement_owner_count(loc);
+   // APL_value is Value*, so "const APL_value val" is Value* const (a
+   // const pointer to a non-const Value), not const Value*; val already
+   // points to a plain, mutable Value and needs no cast at all. The
+   // old const_cast<cValue*>(val) was invalid to begin with (Value and
+   // cValue are different classes, not the same type differently
+   // cv-qualified), but was accepted by older/looser compilers.
+   //
+   if (val)   val->decrement_owner_count(loc);
 }
 
 
@@ -571,7 +577,7 @@ Token_string tos;
 
    // resolve user defined names to user defined functions
    //
-   for (Function_PC PC = Function_PC_0; PC < tos.size(); ++PC)
+   for (Function_PC PC = Function_PC_0; PC < Function_PC(tos.size()); ++PC)
        {
         if (tos[PC].get_ValueType() == TV_SYM)   // user defined function
            {
@@ -828,7 +834,7 @@ eval__A_fun_B(APL_value vA, APL_function fun, APL_value vB)
 {
    try { Value_P A(vA, LOC);
          Value_P B(vB, LOC);
-         Token tZ = fun->eval_AB(A.get(), B.get());
+         Token tZ = fun->eval_AB(*A, *B);
          if (tZ.get_tag() != TOK_SI_PUSHED)   return tZ.extract_and_keep(LOC);
 
          Token result = Workspace::SI_top()->run();
@@ -845,7 +851,7 @@ eval__A_L_oper_B(APL_value vA, APL_function fL, APL_function fun, APL_value vB)
    try { Value_P A(vA, LOC);
          Token L(fL->get_token());
          Value_P B(vB, LOC);
-         Token tZ = fun->eval_ALB(A.get(), L, B.get());
+         Token tZ = fun->eval_ALB(*A, L, *B);
          if (tZ.get_tag() != TOK_SI_PUSHED)   return tZ.extract_and_keep(LOC);
 
          Token result = Workspace::SI_top()->run();
@@ -862,7 +868,7 @@ eval__A_fun_X_B(APL_value vA, APL_function fun, APL_value vX, APL_value vB)
    try { Value_P A(vA, LOC);
          Value_P X(vX, LOC);
          Value_P B(vB, LOC);
-         Token tZ = fun->eval_AXB(A.get(), X.get(), B.get());
+         Token tZ = fun->eval_AXB(*A, *X, *B);
          if (tZ.get_tag() != TOK_SI_PUSHED)   return tZ.extract_and_keep(LOC);
 
          Token result = Workspace::SI_top()->run();
@@ -881,7 +887,7 @@ eval__A_L_oper_R_B(APL_value vA, APL_function fL, APL_function fun,
          Token L(fL->get_token());
          Token R(fR->get_token());
          Value_P B(vB, LOC);
-         Token tZ = fun->eval_ALRB(A.get(), L, R, B.get());
+         Token tZ = fun->eval_ALRB(*A, L, R, *B);
          if (tZ.get_tag() != TOK_SI_PUSHED)   return tZ.extract_and_keep(LOC);
 
          Token result = Workspace::SI_top()->run();
@@ -900,7 +906,7 @@ eval__A_L_oper_X_B(APL_value vA, APL_function fL, APL_function fun,
          Token L(fL->get_token());
          Value_P X(vX, LOC);
          Value_P B(vB, LOC);
-         Token tZ = fun->eval_ALXB(A.get(), L, X.get(), B.get());
+         Token tZ = fun->eval_ALXB(*A, L, *X, *B);
          if (tZ.get_tag() != TOK_SI_PUSHED)   return tZ.extract_and_keep(LOC);
 
          Token result = Workspace::SI_top()->run();
@@ -920,7 +926,7 @@ eval__A_L_oper_R_X_B(APL_value vA, APL_function fL, APL_function fun,
          Token R(fR->get_token());
          Value_P X(vX, LOC);
          Value_P B(vB, LOC);
-         Token tZ = fun->eval_ALRXB(A.get(), L, R, X.get(), B.get());
+         Token tZ = fun->eval_ALRXB(*A, L, R, *X, *B);
          if (tZ.get_tag() != TOK_SI_PUSHED)   return tZ.extract_and_keep(LOC);
 
          Token result = Workspace::SI_top()->run();
@@ -935,7 +941,7 @@ APL_value
 eval__fun_B(APL_function fun, APL_value vB)
 {
    try { Value_P B(vB, LOC);
-         Token tZ = fun->eval_B(B.get());
+         Token tZ = fun->eval_B(*B);
          if (tZ.get_tag() != TOK_SI_PUSHED)   return tZ.extract_and_keep(LOC);
 
          Token result = Workspace::SI_top()->run();
@@ -951,7 +957,7 @@ eval__L_oper_B(APL_function L, APL_function oper, APL_value vB)
 {
    try { Value_P B(vB, LOC);
          Token tFUN(TOK_FUN2, L);
-         Token tZ = oper->eval_LB(tFUN, B.get());
+         Token tZ = oper->eval_LB(tFUN, *B);
          if (tZ.get_tag() != TOK_SI_PUSHED)   return tZ.extract_and_keep(LOC);
 
          Token result = Workspace::SI_top()->run();
@@ -967,7 +973,7 @@ eval__fun_X_B(APL_function fun, APL_value vX, APL_value vB)
 {
    try { Value_P X(vX, LOC);
          Value_P B(vB, LOC);
-         Token tZ = fun->eval_XB(X.get(), B.get());
+         Token tZ = fun->eval_XB(*X, *B);
          if (tZ.get_tag() != TOK_SI_PUSHED)   return tZ.extract_and_keep(LOC);
 
          Token result = Workspace::SI_top()->run();
@@ -985,7 +991,7 @@ eval__L_oper_R_B(APL_function fL, APL_function fun, APL_function fR,
    try { Token L(fL->get_token());
          Token R(fR->get_token());
          Value_P B(vB, LOC);
-         Token tZ = fun->eval_LRB(L, R, B.get());
+         Token tZ = fun->eval_LRB(L, R, *B);
          if (tZ.get_tag() != TOK_SI_PUSHED)   return tZ.extract_and_keep(LOC);
 
          Token result = Workspace::SI_top()->run();
@@ -1002,7 +1008,7 @@ eval__L_oper_X_B(APL_function fL, APL_function fun, APL_value vX, APL_value vB)
    try { Token L(fL->get_token());
          Value_P X(vX, LOC);
          Value_P B(vB, LOC);
-         Token tZ = fun->eval_LXB(L, X.get(), B.get());
+         Token tZ = fun->eval_LXB(L, *X, *B);
          if (tZ.get_tag() != TOK_SI_PUSHED)   return tZ.extract_and_keep(LOC);
 
          Token result = Workspace::SI_top()->run();
@@ -1021,7 +1027,7 @@ eval__L_oper_R_X_B(APL_function fL, APL_function fun, APL_function fR,
          Token R(fR->get_token());
          Value_P X(vX, LOC);
          Value_P B(vB, LOC);
-         Token tZ = fun->eval_LRXB(L, R, X.get(), B.get());
+         Token tZ = fun->eval_LRXB(L, R, *X, *B);
          if (tZ.get_tag() != TOK_SI_PUSHED)   return tZ.extract_and_keep(LOC);
 
          Token result = Workspace::SI_top()->run();

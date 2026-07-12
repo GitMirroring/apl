@@ -100,7 +100,7 @@ Quad_RVAL::eval_B(cValue_R B) const
         RANK_ERROR;
       }
 
-   return Token(TOK_APL_VALUE1, do_eval_B(B, 0));
+   return Token(TOK_APL_VALUE1, do_eval_B(B, 0, -1));
 }
 //────────────────────────────────────────────────────────────────────────────
 Token
@@ -126,7 +126,7 @@ const UCS_string blanks(max_function_name_length - strlen(name), UNI_SPACE);
 }
 //────────────────────────────────────────────────────────────────────────────
 Value_P
-Quad_RVAL::do_eval_B(const cValue & B, int depth) const
+Quad_RVAL::do_eval_B(const cValue & B, int depth, ShapeItem budget) const
 {
 ShapeItem len_B = B.element_count();
 
@@ -249,6 +249,15 @@ bool need_restore = false;
         CERR << endl << "desired_maxdepth: " << desired_maxdepth << endl;
       }
 
+   // At the top level (depth 0), the total recursive budget for the
+   // whole (sub-)tree is the ecount just parsed from B above. Recursive
+   // calls (depth > 0, from random_nested()) already receive their share
+   // of the parent's budget via the budget parameter, so they must not
+   // be overridden here.
+   //
+   if (depth == 0)
+      budget = (desired_max_ecount > 0) ? desired_max_ecount : -1;
+
 const sRank rank = choose_integer(desired_ranks);
 Shape shape;
    for (sRank r = MAX_RANK - rank; r < MAX_RANK; ++r)
@@ -259,18 +268,21 @@ Shape shape;
          shape.add_shape_item(sh_r);
        }
 
-   // Clip element count to desired_max_ecount (0 = no limit).
+   // Clip element count to budget (negative = no limit). Produce the
+   // top-level ravel as before, but bounded by this sub-value's own
+   // (possibly recursively divided) budget rather than the raw ecount.
    // If the randomly chosen shape exceeds the limit, shorten the last
-   // axis so that ×/shape ≤ desired_max_ecount.
-   if (desired_max_ecount > 0 && rank > 0)
+   // axis so that ×/shape ≤ budget.
+   //
+   if (budget >= 0 && rank > 0)
       {
         ShapeItem ec_trial = 1;
         loop(r, rank)   ec_trial *= shape.get_shape_item(r);
-        if (ec_trial > desired_max_ecount)
+        if (ec_trial > budget)
            {
              ShapeItem prefix = 1;
              loop(r, rank - 1)   prefix *= shape.get_shape_item(r);
-             const ShapeItem last_ok = desired_max_ecount / prefix;
+             const ShapeItem last_ok = budget / prefix;
              Shape clipped;
              loop(r, rank - 1)   clipped.add_shape_item(shape.get_shape_item(r));
              clipped.add_shape_item(last_ok);
@@ -282,17 +294,71 @@ Value_P Z(shape, LOC);
 
 const ShapeItem ec = Z->element_count();
 
+   // Pass 1: decide (but do not yet generate) the type of every cell, and
+   // virtually split the ravel into S simple and N nested cells. Every
+   // simple cell costs 1 unit of budget; every nested cell needs at
+   // least 1 unit for its own (recursive) sub-value. If there is not
+   // enough budget left for that (S + N > budget, i.e. N > budget - S),
+   // demote the excess nested cells to a simple type. This is what
+   // bounds the *total* (recursive) element count to budget, instead of
+   // every nested sub-value independently claiming up to the full
+   // budget again (which is what caused the exponential blow-up).
+   //
+vector<int> types(ec);
+ShapeItem S = 0;
+ShapeItem N = 0;
    loop(z, ec)
       {
-         int type_z;  do    { type_z = choose_integer(desired_types); }
+        int type_z;  do    { type_z = choose_integer(desired_types); }
                       while (depth == desired_maxdepth && type_z == 4);
-         switch(type_z)
+        types[z] = type_z;
+        if (type_z == 4)   ++N;   else   ++S;
+      }
+
+   if (budget >= 0 && N > (budget - S))
+      {
+        ShapeItem excess = N - (budget - S);
+        if (excess > N)   excess = N;   // budget < S: demote all nested cells
+
+        // a distribution over the simple types only (nested excluded)
+        vector<int> simple_types(desired_types.begin(),
+                                  desired_types.begin() + 4);
+        const bool any_simple = simple_types[0] || simple_types[1]
+                              || simple_types[2] || simple_types[3];
+
+        loop(z, ec)
+           {
+             if (excess == 0)      break;
+             if (types[z] != 4)    continue;
+             types[z] = any_simple ? choose_integer(simple_types) : 1;
+             --excess;   --N;   ++S;
+           }
+      }
+
+   // Pass 2: generate the cells. Nested cells fairly share what is left
+   // of the budget (after the S simple cells) among the still-
+   // unprocessed nested cells, and recurse with that sub-budget.
+   //
+ShapeItem remaining_budget = (budget >= 0) ? (budget - S) : -1;
+ShapeItem remaining_N = N;
+   loop(z, ec)
+      {
+         switch(types[z])
             {
                case 0:   random_character(*Z);          continue;
                case 1:   random_integer(*Z);            continue;
                case 2:   random_float(*Z);              continue;
                case 3:   random_complex(*Z);            continue;
-               case 4:   random_nested(*Z, B, depth);   continue;
+               case 4:
+                    {
+                      const ShapeItem SB = (remaining_budget >= 0)
+                                          ? remaining_budget / remaining_N
+                                          : -1;
+                      random_nested(*Z, B, depth, SB);
+                      if (remaining_budget >= 0)   remaining_budget -= SB;
+                      --remaining_N;
+                      continue;
+                    }
                default:  FIXME;
             }
       }
@@ -314,11 +380,12 @@ const ShapeItem ec = Z->element_count();
 }
 //────────────────────────────────────────────────────────────────────────────
 void
-Quad_RVAL::random_nested(Value & Z, const cValue & B, int depth) const
+Quad_RVAL::random_nested(Value & Z, const cValue & B, int depth,
+                         ShapeItem budget) const
 {
 Value_P Zsub;
 
-   do Zsub = do_eval_B(B, depth + 1);
+   do Zsub = do_eval_B(B, depth + 1, budget);
    while (Zsub->is_simple_scalar());
 
    Z.next_ravel_Pointer(Zsub.get());

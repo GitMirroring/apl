@@ -1253,6 +1253,7 @@ char cc[40];
            {
              if (digit == 'e')        push_back(UNI_E);
              else if (digit == '-')   push_back(UNI_OVERBAR);
+             else if (digit == '+')   ;   // APL exponents have no '+' sign
              else                     push_back(Unicode(digit));
            }
         else                            break;
