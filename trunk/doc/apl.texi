@@ -925,7 +925,7 @@ do not know in advance where the APL interpreter will be installed) then
 it must be in @b{$PATH} of the shell that runs the script.
 
 @c ............................................................................
-@node Starting GNU APL Scripts: a Conclusion
+@node Starting GNU APL Scripts - a Conclusion
 @subsection Starting GNU APL Scripts: a Conclusion
 
 The different methods for starting a GNU APL described above have emerged
@@ -2001,7 +2001,7 @@ The syntax for function groups has evolved in 3 phases as elucidated in the
 following.
 
 @c ............................................................................
-@node Phase 1: Numerical Axis Argument
+@node Phase 1 - Numerical Axis Argument
 @subsection Phase 1: Numerical Axis Argument
 
 In the first phase, the number of functions per function group (at that time
@@ -2030,7 +2030,7 @@ For example:
 In both cases the sub-function selector was an integer scalar.
 
 @c ............................................................................
-@node Phase 2: String Axis Argument
+@node Phase 2 - String Axis Argument
 @subsection Phase 2: String Axis Argument
 
 Shortly after introducing the syntax of phase 1, GNU APL users began to develop
@@ -2070,7 +2070,7 @@ The phase 1 example above would now become the slightly better readable:
 @end example
 
 @c ............................................................................
-@node Phase 3: Member Notation
+@node Phase 3 - Member Notation
 @subsection Phase 3: Member Notation
 
 The third phase aims at further improving the readability. It replaces the
@@ -3615,7 +3615,7 @@ a*c
 
 
 @c ----------------------------------------------------------------------------
-@node Bit-wise Logical Functions: ⊤∧ ⊤∨ ⊤⍲ ⊤⍱ ⊤≠ and ⊤=
+@node Bit-wise Logical Functions - ⊤∧ ⊤∨ ⊤⍲ ⊤⍱ ⊤≠ and ⊤=
 @section Bit-wise Logical Functions ⊤∧, ⊤∨, ⊤⍲, ⊤⍱, ⊤≠, and ⊤=
 
 The APL functions And (∧), Or (∨), Nand (⍲), and Nor (⍱) operate primarily on
@@ -4117,7 +4117,7 @@ matrix @b{B} then there are two possibilities:
       significant rounding errors in the result.
 @end enumerate
 
-@node ⌹[X] B: Various Factorizations of B
+@node ⌹[X] B - Various Factorizations of B
 @subsubsection ⌹[X] B: Various Factorizations of B
 
 The numeric scalar @b{X} chooses one of several algorithms that computes a 
@@ -4208,7 +4208,7 @@ computation of @b{⌹B} if @b{B} is large.
 
 
 @c ----------------------------------------------------------------------------
-@node ⌹[7] B: Print Polynomial B
+@node ⌹[7] B - Print Polynomial B
 @subsubsection ⌹[7] B: Print Polynomial B
 
 Let @b{B ← b₀ b₁ b₂ ... bₙ}. The standard interpretation of this vector
@@ -4288,7 +4288,7 @@ x² + 2x + 3
 @end example
  
 @c ----------------------------------------------------------------------------
-@node A ⌹[8] B: Multiply Polynomials A and B
+@node A ⌹[8] B - Multiply Polynomials A and B
 @subsubsection A ⌹[8] B: Multiply Polynomials A and B
 
 The scalar APL primitives @b{+} and @b{-} can be used for vectors
@@ -4324,7 +4324,7 @@ the product of two polynomials. For example:
 @end example
 
 @c ----------------------------------------------------------------------------
-@node A ⌹[9] B: Divide Polynomial A by Polynomial B (univariate)
+@node A ⌹[9] B - Divide Polynomial A by Polynomial B (univariate)
 @subsubsection A ⌹[9] B: Divide Polynomial A by Polynomial B (univariate)
 
 The scalar APL primitives @b{+} and @b{-} can be used for vectors
@@ -4343,7 +4343,7 @@ of polynomial @b{B}. That is, @b{⍴Remainder = ¯1+⍴B}.
 @b{NOTE:} @b{A ⌹[9] B} is limited to polynomials with 1 indeterminant.
 
 @c ----------------------------------------------------------------------------
-@node A ⌹[10] B: Divide Polynomial A by Polynomial B (multivariate)
+@node A ⌹[10] B - Divide Polynomial A by Polynomial B (multivariate)
 @subsubsection A ⌹[10] B: Divide Polynomial A by Polynomial B (multivariate)
 
 The limitation of @b{A ⌹[10] B} to handle only polynomials with one
@@ -4477,7 +4477,7 @@ dividing it by @b{LT(gᵢ)} if that is possible) or else to @b{r}
 @end itemize
 
 @c ----------------------------------------------------------------------------
-@node A ⌹[11] B: Divide Polynomial A by Polynomial B (with order)
+@node A ⌹[11] B - Divide Polynomial A by Polynomial B (with order)
 @subsubsection A ⌹[11] B: Divide Polynomial A by Polynomial B (with order)
 
 As explained above, different monomial orders of a polynomial can lead
@@ -4615,7 +4615,7 @@ but in this context all vectors compared have the same length (number of
 indeterminants).
 
 @c ----------------------------------------------------------------------------
-@node A ⌹[20] B: Integral B
+@node A ⌹[20] B - Integral B
 @subsubsection A ⌹[20] B: Integral B
 
 Function @b{A ⌹[20] B} aka. @b{A ⌹.integral B} computes the integral of
@@ -4691,7 +4691,7 @@ character classes, such as @b{⎕D} for digits 0..9 or @b{⎕A} for letters
 A..Z. GNU APL provides a single system function @b{⎕CC} for that
 purpose.
 
-@node monadic ⎕CC B: Return character class
+@node monadic ⎕CC B - Return character class
 @subsection  monadic ⎕CC B: Return character class
 
 @b{⎕CC B} returns all characters of character class(es) @b{B}. If @b{B} is an
@@ -4769,7 +4769,7 @@ In many cases is the character class number easy to remember because:
 @end itemize
 
 @c ----------------------------------------------------------------------------
-@node dyadic A ⎕CC B: Test character class
+@node dyadic A ⎕CC B - Test character class
 @subsection  dyadic A ⎕CC B: Test character class
 
 The dyadic @b{A ⎕CC B} returns, for every item in A, integer @b{1} if the item
@@ -7025,7 +7025,7 @@ The X argument of @b{A⎕RE[X] B} is a character vector where each character
 is a flag. Each flag is either understood by (and then passed unmodified to)
 libpcre2 or else understood by ⎕RE itself (and then not passed to libpcre2).
 
-@node The libpcre2 flags: i m s and x
+@node The libpcre2 flags - i m s and x
 @subsubsection The libpcre2 flags: i, m, s, and x
 
 The libpcre2 flags accepted by ⎕RE are: i, m, s, and x. They correspond to the
@@ -7324,27 +7324,31 @@ subsequent random APL values shall be controlled. A is an integer scalar:
 
 @itemize
 @item
-A=0 controls the state of the underlying random number generator,
+@b{A=0} controls the state of the underlying random number generator,
 
 @item
-A=1 controls the ranks of the subsequent random APL values,
+@b{A=1} controls the ranks of the subsequent random APL values,
 
 @item
-A=2 controls the shapes of the subsequent random APL values,
+@b{A=2} controls the shapes of the subsequent random APL values,
 
 @item
-A=3 controls the data types in the ravels of the subsequent random APL values,
+@b{A=3} controls the data types in the ravels of the subsequent random APL values,
 and
 
 @item
-A=4 controls a maximum depth of the subsequent random APL values, and
+@b{A=4} controls a maximum depth of the subsequent random APL values,
 
 @item
-A=5 controls a maximum element count of the subsequent random APL values.
+@b{A=5} controls a maximum element count of the subsequent random APL values, and
+
+@item
+@b{A=6} returns the primitive arity/stimulus/constraint table used to
+generate randomised invariant testcases.
 
 @end itemize
 
-@node Control of the underlying random number generator: 0 ⎕RVAL B
+@node Control of the underlying random number generator - 0 ⎕RVAL B
 @subsubsection Control of the underlying random number generator: 0 ⎕RVAL B
 
 Every random number generator has a state (similar to @b{⎕RL} for @b{'?'}).
@@ -7380,7 +7384,7 @@ When setting the state, B must be an integer vector whose length is one of
 @code{initstate}/@code{setstate} library functions). An empty B merely
 queries the current state without changing it.
 
-@node Control of the ranks: 1 ⎕RVAL B
+@node Control of the ranks - 1 ⎕RVAL B
 @subsubsection Control of the ranks: 1 ⎕RVAL B
 
 The rank of subsequently generated random values can be controlled with
@@ -7426,7 +7430,7 @@ with probability 30%, and matrices with probability 20%. The numbers
 need not add up to 100, but will be scaled accordingly.
 @end itemize
 
-@node Control of the shapes: 2 ⎕RVAL B
+@node Control of the shapes - 2 ⎕RVAL B
 @subsubsection Control of the shapes: 2 ⎕RVAL B
 
 The shapes of subsequently generated random values can be controlled with
@@ -7457,7 +7461,7 @@ Example:
 
 This will produce matrices with 3 rows and between 0 and 10 columns.
 
-@node Control of the data types: 3 ⎕RVAL B
+@node Control of the data types - 3 ⎕RVAL B
 @subsubsection Control of the data types: 3 ⎕RVAL B
 
 The types (i.e. CHARACTER, INTEGER, REAL, COMPLEX, or NESTED) of subsequently
@@ -7506,7 +7510,7 @@ Example:
 7677327503669503253 2152001972871424768
 @end example
 
-@node Control of a maximum depth: 4 ⎕RVAL B
+@node Control of a maximum depth - 4 ⎕RVAL B
 @subsubsection Control of a maximum depth: 4 ⎕RVAL B
 
 If the probability of generating a nested value is > 0 then the depth of
@@ -7521,7 +7525,7 @@ depth (0 suppresses nesting entirely regardless of the type distribution);
 An empty B, e.g. 4 ⎕RVAL ⍬, will not change anything and can be used to
 query the current setting for 4 ⎕RVAL.
 
-@node Control of the element count: 5 ⎕RVAL B
+@node Control of the element count - 5 ⎕RVAL B
 @subsubsection Control of the element count: 5 ⎕RVAL B
 
 Even with a bounded depth, the total number of elements (i.e. ⍴∈Z) of a
@@ -7554,7 +7558,7 @@ Example:
       Z←⎕RVAL 0        ⍝ generate one value; ⍴Z ≤ 20
 @end example
 
-@node The primitive table: 6 ⎕RVAL B
+@node The primitive table - 6 ⎕RVAL B
 @subsubsection The primitive table: 6 ⎕RVAL B
 
 @b{6 ⎕RVAL B} returns the built-in primitive table as a 5-column nested
@@ -7592,7 +7596,7 @@ The table is defined in @file{src/rval.def} and drives the randomised
 invariant testcases under @file{src/testcases/invariants/}.
 
 @node monadic ⎕RVAL B
-@subsubsection monadic ⎕RVAL B
+@subsection monadic ⎕RVAL B
 
 Calling ⎕RVAL monadically either produces one new random APL value or displays
 a list of arguments for dyadic @b{⎕RVAL}:
@@ -7667,7 +7671,7 @@ Examples:
 @end example
 
 @node Syntax Alternatives
-@subsubsection Syntax Alternatives
+@subsection Syntax Alternatives
 
 For an improved readability, ⎕RVAL also accepts string arguments for its left
 argument A and also the sub-function notation:
@@ -7771,7 +7775,7 @@ system function ⎕SQL, described below. ⎕SQL has an axis argument that
 selects a sub-function of ⎕SQL.
 
 @c ............................................................................
-@node ⎕SQL[0] ⍬ : display sub-function numbers
+@node ⎕SQL[0] ⍬ - display sub-function numbers
 @subsection ⎕SQL[0] ⍬ : display sub-function numbers
 
 The system function ⎕SQL is divided into a number of sub-functions. The
@@ -7806,7 +7810,7 @@ desired sub-function of ⎕SQL is selected by means of a numeric axis argument:
 
 The axis argument [0] is optional; one can also use @b{⎕SQL ⍬}.
 
-@node ⎕SQL[0] @code{''} : display sub-function names
+@node ⎕SQL[0] @code{''} - display sub-function names
 @subsection ⎕SQL[0] @code{''} : display sub-function names
 
 As of @b{SVN version 1901}, ⎕SQL has been promoted to be a function group.
@@ -7853,7 +7857,7 @@ Like for @b{⎕SQL[0] ⍬} above is the axis argument [0] optional; one can
 therefore also use @b{⎕SQL ''} instead of @b{⎕SQL[0] ''}.
 
 @c ............................................................................
-@node ref ← A ⎕SQL[1] B : open database
+@node ref ← A ⎕SQL[1] B - open database
 @subsection ref ← A ⎕SQL[1] B : open database
 
 @example
@@ -7881,7 +7885,7 @@ handle. It is, however, guaranteed that the handle is a scalar
 value.
 
 @c ............................................................................
-@node ⎕SQL[2] B : close database
+@node ⎕SQL[2] B - close database
 @subsection ⎕SQL[2] B : close database
 
 @example
@@ -7896,7 +7900,7 @@ on this handle. Future calls to ⎕SQL[1] may reuse previously
 disconnected handles.
 
 @c ............................................................................
-@node Z ← A ⎕SQL[3 ref] B : database query (with result)
+@node Z ← A ⎕SQL[3 ref] B - database query (with result)
 @subsection Z ← A ⎕SQL[3, ref] B : database query (with result)
 
 @example
@@ -7919,7 +7923,7 @@ select statement. Null values are returned as ⍬ and empty strings
 are returned as ''.
 
 @c ............................................................................
-@node Z ← A ⎕SQL[4 ref] B : database query (w/o result)
+@node Z ← A ⎕SQL[4 ref] B - database query (w/o result)
 @subsection Z ← A ⎕SQL[4, ref] B : database query (w/o result)
 
 @example
@@ -7932,7 +7936,7 @@ This function is identical to SQL∆Select with the exception that it
 is used on statements which do not return a result table.
 
 @c ............................................................................
-@node ⎕SQL[5] B : start transaction
+@node ⎕SQL[5] B - start transaction
 @subsection ⎕SQL[5] B : start transaction
 
 @example
@@ -7942,7 +7946,7 @@ is used on statements which do not return a result table.
 Begin a transaction.
 
 @c ............................................................................
-@node ⎕SQL[6] B : commit transaction
+@node ⎕SQL[6] B - commit transaction
 @subsection ⎕SQL[6] B : commit transaction
 
 @example
@@ -7952,7 +7956,7 @@ Begin a transaction.
 Commit a transaction.
 
 @c ............................................................................
-@node ⎕SQL[7] B : rollback transaction
+@node ⎕SQL[7] B - rollback transaction
 @subsection ⎕SQL[7] B : rollback transaction
 
 @example
@@ -7962,7 +7966,7 @@ Commit a transaction.
 Rolls back the current transaction.
 
 @c ............................................................................
-@node Z←⎕SQL[8] B : table names
+@node Z←⎕SQL[8] B - table names
 @subsection Z←⎕SQL[8] B : table names
 
 @example
@@ -7972,7 +7976,7 @@ Rolls back the current transaction.
 Return an array containing the name of all tables.
 
 @c ............................................................................
-@node Z←⎕SQL[9] B : column names
+@node Z←⎕SQL[9] B - column names
 @subsection Z←⎕SQL[9] B : column names
 
 @example
@@ -7990,7 +7994,7 @@ release.
 
 
 @c ............................................................................
-@node Z ← ⎕SQL[10] B : library version number
+@node Z ← ⎕SQL[10] B - library version number
 @subsection Z ← ⎕SQL[10] B : library version number
 
 Return the version number (integer scalar) of the library that was used
@@ -8000,7 +8004,7 @@ kind of SQL database type (the database type is sometimes refered to as
 "SQL provider).
 
 @c ............................................................................
-@node Z ← ⎕SQL[11] B : library version string
+@node Z ← ⎕SQL[11] B - library version string
 @subsection Z ← ⎕SQL[11] B : library version string
 
 Return the version string of the library that was used to implement the
@@ -8200,7 +8204,7 @@ therefore common practice (though not required) that the first column of a
 table is a unique integer ID that identifies the row and can later be used
 to quickly locate the row in a large database.
 
-@node Excursus: Dynamic Query Strings
+@node Excursus - Dynamic Query Strings
 @subsubsection Excursus: Dynamic Query Strings
 
 The SQL query strings @b{(Qs)} used so far were @b{static}, which means that
@@ -9776,7 +9780,7 @@ Before explaining the details of vector notation in GNU APL we would like
 to share the results of some tests performed with IBM APL2 (again the demo
 version for PCs).
 
-@node Test 1: Binding strength of []
+@node Test 1 - Binding strength of []
 @subsection Test 1: Binding strength of []
 
 @example
@@ -9810,7 +9814,7 @@ b
 @b{Test 1c}: no surprise for the binding strength. This test confirms
 the second quote on page 14 of the lrm.
 
-@node Test 2: Binding strength of the left operand
+@node Test 2 - Binding strength of the left operand
 @subsection Test 2: Binding strength of the left operand
 
 For this test we create a monadic defined function @b{SHOW_NC}, a monadic

@@ -81,6 +81,15 @@ protected:
    void random_nested(Value & Z, const cValue & B, int depth,
                       ShapeItem budget) const;
 
+   /// generate a value that conforms to \b Bref: either a scalar or a
+   /// value with exactly Bref's shape (chosen at random), using the
+   /// currently configured type/depth/ecount settings. This is what a
+   /// stim of "~B" in rval.def selects, so that A and B (or the axis X)
+   /// can be generated to actually fit each other instead of
+   /// independently, per SVN r2037 discussion.
+   /// @param Bref the value to conform to
+   Value_P conform_value(const cValue & Bref) const;
+
    /// choose an integer value at random according to distribution \b dist
    static int choose_integer(const vector<int> & dist);
 

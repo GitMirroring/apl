@@ -17,36 +17,71 @@
  ⊣⎕FIO.fclose FH
 ∇
 
-∇Z←ALL_PRIMITIVES B; ⎕IO;T0;PRIM;TD;RE;A;B;X;ROW;OPER;EXPD;RC;ET;RES;LCNT;ECNT;RC2;ET2;RES2;SEED
- ⍝ run for B seconds
+∇Z←ALL_PRIMITIVES SECONDS; ⎕IO;T0;PRIM;TD;RE;A;B;X;ROW;OPER;EXPD;RC;ET;RES;LCNT;ECNT;RC2;ET2;RES2;SEED;RCG;ETG;RESG;FPOOL
+ ⍝ run for SECONDS seconds
  ⍝
- ⍝ TODO: A/B/X are currently generated independently, so most draws are
- ⍝ shape-non-conforming and fail in OPER before EXPD is ever exercised
- ⍝ (e.g. A+B needs ⍴A≡⍴B or one of A,B scalar, recursively if nested).
- ⍝ Conforming them per-primitive is 6 ⎕RVAL's job, not this function's —
- ⍝ needs a new conforming generator (C++ in Quad_RVAL, or an APL helper).
+ ⍝ B is generated first; A_stim="~B" (set for rval.def rows whose Z
+ ⍝ constraint requires (⍴A)⌈⍴B, i.e. scalar-extension pairs like A+B)
+ ⍝ then calls 7 ⎕RVAL B to conform A to B (scalar or exactly ⍴B) instead
+ ⍝ of generating A independently and hoping it happens to fit.
+ ⍝ TODO: many other primitives (replicate A/B, reshape A⍴B, encode/decode
+ ⍝ A⊤B/A⊥B, catenate, ...) still need their own per-primitive conforming
+ ⍝ rule in ⎕RVAL; for now they keep generating A independently.
  ⍝
  SEED←(8⍴256)⊤((⎕TS[3]-1)×24×60×60×1000)+24 60 60 1000⊥⎕TS[4 5 6 7]
  ⊣0 ⎕RVAL SEED       ⍝ seed from current time so different runs differ
- RE←100              ⍝ desired ⍴∈ limit (was 10000; ⎕RVAL nesting budget blows up, see TODO)
+ RE←10000            ⍝ desired ⍴∈ limit (⎕RVAL nesting budget fixed, SVN r2037)
  TD ← 15 70 15 5 5   ⍝ desired type distribution
  PRIM←6 ⎕RVAL ⍬
+ FPOOL←'+-×⌈⌊'       ⍝ scalar dyadic (also valid monadic) functions for f/g placeholders
  T0←24 60 60⊥⎕TS[4 5 6]
  LCNT←0              ⍝ number of loop iterations so far
  ECNT←0              ⍝ number of ERROR: exits so far
+ A←⍬ ◊ B←⍬ ◊ X←⍬ ◊ OPER←''   ⍝ safe defaults so ON_ERROR never sees undefined names
 LOOP:
  LCNT←LCNT+1
  ⊣⎕DL 0.1   ⍝ rate limit (unconditional: caps load on server72 every iteration)
- ROW←PRIM[?≢PRIM;]   ⍝ pick a random primitive: arity A_stim B_stim X_stim Z_constraint
- (A B X)←{⎕RVAL⍣(0<≢⍵)⊢⍵}¨⍎¨ROW[2 3 4]   ⍝ ⍬ stim (unused arg) stays ⍬, else ⎕RVAL it
- (OPER EXPD)←ROW[1 5]   ⍝ arity expression (e.g. Z←A+B) and Z constraint
+ ROW←PRIM[?≢PRIM;]      ⍝ pick a random primitive: arity A_stim B_stim X_stim Z_constraint
+ (OPER EXPD)←ROW[1 5]   ⍝ arity expression (e.g. Z←A+B) and Z constraint, set first so
+                        ⍝ ON_ERROR always has a valid OPER even if generation fails below
+ OPER[⍸OPER='f']←FPOOL[?(+/OPER='f')⍴5]   ⍝ operator-taking primitives (f/,f¨,f.g,...):
+ OPER[⍸OPER='g']←FPOOL[?(+/OPER='g')⍴5]   ⍝ substitute a real function for the placeholder(s)
+                                          ⍝ (?N already respects ⎕IO — no +1 needed)
+ ⍝ B is generated first, so that A (and X) can conform to B's ACTUAL
+ ⍝ shape/rank instead of being generated independently and hoping they
+ ⍝ happen to fit (per SVN r2037 discussion: fix this inside ⎕RVAL, not
+ ⍝ by post-hoc patching in this function).
+ ⍝
+ (RCG ETG RESG)←⎕EC '{⎕RVAL⍣(0<≢⍵)⊢⍵}⍎3⊃ROW'
+ →(RCG≠1)/ERROR         ⍝ generation itself failed (e.g. a bad rval.def stim)
+ B←RESG
+ →(~(2⊃ROW)≡'~B')/NORMALA
+ (RCG ETG RESG)←⎕EC '7 ⎕RVAL B'   ⍝ A_stim="~B": conform to B (scalar or ⍴B)
+ →GOTA
+NORMALA:
+ (RCG ETG RESG)←⎕EC '{⎕RVAL⍣(0<≢⍵)⊢⍵}⍎2⊃ROW'   ⍝ still independent for other primitives
+GOTA:
+ →(RCG≠1)/ERROR
+ A←RESG
+ (RCG ETG RESG)←⎕EC '{⎕RVAL⍣(0<≢⍵)⊢⍵}⍎4⊃ROW'
+ →(RCG≠1)/ERROR
+ X←RESG
+ ⍝ X_stim is still generated independently of B, with no idea what B's
+ ⍝ actual rank turned out to be — that produced axis values with no
+ ⍝ relation to B at all (observed: values like 7509335927660159858,
+ ⍝ causing WS FULL in e.g. ⊃[X]B). Every axis-taking primitive in
+ ⍝ rval.def is [X]B, so derive a valid axis from B's real rank instead,
+ ⍝ when one is wanted (X_stim non-empty) and B actually has axes.
+ →((0=≢X)∨0=≢⍴B)/NOAXIS
+ X←?≢⍴B
+NOAXIS:
  (RC ET RES)←⎕EC OPER   ⍝ execute OPER; on success (RC=2) RES is the value OPER returned
  →(RC≠2)/ERROR          ⍝ OPER itself failed (e.g. non-conforming random A/B)
  (RC2 ET2 RES2)←⎕EC EXPD     ⍝ evaluate the invariant; a plain expr gives RC=1 on success
  →(RC2≠1)/ERROR              ⍝ the constraint expression itself failed to evaluate
  →(RES2)/LOOP                ⍝ invariant holds: keep fuzzing
  ⍝ invariant violated here — falls through (handling TBD)
- →((24 60 60⊥⎕TS[4 5 6]) < T0 + B)/LOOP
+ →((24 60 60⊥⎕TS[4 5 6]) < T0 + SECONDS)/LOOP
  Z←1 ◊ →0
 ERROR:
  ECNT←ECNT+1

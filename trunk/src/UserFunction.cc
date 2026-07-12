@@ -1085,6 +1085,15 @@ UserFunction::remove_TOK_VOID()
 size_t src_line    = Function_Line_1;
 Function_PC dst_PC = Function_PC_0;
 
+   // trailing empty lines (e.g. a label-only last line like "LABEL:" just
+   // before ∇) were recorded by parse_body() with start PC == body.ssize()
+   // at the time, i.e. one past every valid src_PC below. The src_PC scan
+   // loop below can therefore never reach them, so line_starts[] would be
+   // left holding this stale, pre-shrink sentinel for such lines unless we
+   // patch it up afterwards (see below).
+   //
+const Function_PC old_body_size = Function_PC(body.ssize());
+
    // be careful not to increment src_PC if a line is empty!
 
    loop(src_PC, body.ssize())
@@ -1127,6 +1136,17 @@ Function_PC dst_PC = Function_PC_0;
 
 const VoidCount ret = VoidCount(body.ssize() - dst_PC);
    body.resize(dst_PC);
+
+   // patch up trailing empty lines that the src_PC scan above could not
+   // reach (see comment at old_body_size above); they still hold their
+   // stale pre-shrink start PC and must be moved to the (shrunk) end of
+   // the body, same as line_starts[0] below.
+   //
+   for (size_t l = src_line + 1; l < line_starts.size(); ++l)
+       {
+         if (line_starts[l] == old_body_size)   line_starts[l] = Function_PC(dst_PC);
+       }
+
    line_starts[0] = dst_PC - 1;   // convention: line_starts[0] is the end of body
 
    return ret;

@@ -896,11 +896,20 @@ UCS_string text;
         // be careful with non-printable characters and quotes
         //
         const Unicode uni = cell.get_char_value();
-        if (uni < ' ' || uni == 127)
+        if (uni == UNI_SINGLE_QUOTE)   return text << "''''";
+
+        // Tokenizer::tokenize_string1() treats U+2018/U+2019 ('smart
+        // quotes') as equivalent to the ASCII quote when scanning for an
+        // escaped '' pair inside a '...' string, but always reconstructs
+        // that escape as plain U+0027 — so a literal U+2018/U+2019 can
+        // never round-trip through a '...' string at all (unlike U+0027,
+        // which the doubling above does handle). Fall back to (⎕UCS n)
+        // for those, same as for other characters that don't fit '...'.
+        //
+        if (uni < ' ' || uni == 127 || Avec::is_single_quote(uni))
            {
              return text << "(⎕UCS " << int(uni) << UNI_R_PARENT;
            }
-        if (uni == UNI_SINGLE_QUOTE)   return text << "''''";
         return text << "'" << uni << "'";
       }
 

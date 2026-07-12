@@ -46,6 +46,7 @@ const FunctionGroup::function_info Quad_RVAL::subfunction_infos[] =
   rvaldef(4, depth,  "set the depth of subsequently returned random values"      )
   rvaldef(5, ecount,     "set the max. element count (⍴Z) per random value (0=∞)"  )
   rvaldef(6, primitives, "return the primitive arity/stimulus/constraint table"     )
+  rvaldef(7, conform,    "generate a value conforming to B (scalar or ⍴B)"          )
 };
 
 Quad_RVAL  Quad_RVAL::fun;
@@ -391,6 +392,49 @@ Value_P Zsub;
    Z.next_ravel_Pointer(Zsub.get());
 }
 //────────────────────────────────────────────────────────────────────────────
+Value_P
+Quad_RVAL::conform_value(const cValue & Bref) const
+{
+   // temporarily force the rank/shape distributions to either scalar or
+   // exactly Bref's shape, then generate through the normal machinery
+   // (which keeps using the currently configured types/depth/ecount).
+   //
+vector<int> old_ranks = desired_ranks;
+Shape       old_shape = desired_shape;
+
+   if (rand17() & 1)   // 50%: scalar
+      {
+        desired_ranks.clear();
+        desired_ranks.push_back(0);
+      }
+   else                // 50%: exactly Bref's shape
+      {
+        desired_ranks.clear();
+        desired_ranks.push_back(Bref.get_rank());
+
+        // do_eval_B() reads shape items from the *trailing* 'rank'
+        // positions of desired_shape (see result_shape()), so leading
+        // positions must be padded with 1s, not trailing ones.
+        //
+        Shape new_shape;
+        loop(r, MAX_RANK - Bref.get_rank())   new_shape.add_shape_item(1);
+        loop(r, Bref.get_rank())
+            new_shape.add_shape_item(Bref.get_shape_item(r));
+        desired_shape = new_shape;
+      }
+
+   // Idx0() (⍬) has element_count() 0, so do_eval_B() parses none of its
+   // (rank, shape, type, depth, ecount) properties from it and instead
+   // uses the ranks/shape just forced above (together with whatever
+   // type/depth/ecount is already configured).
+   //
+Value_P Z = do_eval_B(*Idx0(LOC), 0, -1);
+
+   desired_ranks = old_ranks;
+   desired_shape = old_shape;
+   return Z;
+}
+//────────────────────────────────────────────────────────────────────────────
 int
 Quad_RVAL::choose_integer(const vector<int> & dist)
 {
@@ -446,6 +490,7 @@ Quad_RVAL::do_eval_AB(int subfunction, const cValue & B)
         case 4: return result_maxdepth(B);
         case 5: return result_ecount(B);
         case 6: return prim_table_value(B);
+        case 7: return fun.conform_value(B);
       }
 
    fun.bad_subfun_number_ERROR(subfunction);

@@ -73,7 +73,7 @@ Next: <a href="#Installing-and-Starting-GNU-APL" accesskey="n" rel="next">Instal
 </div>
 <span id="GNU-APL-Reference-Manual"></span><h1 class="top">GNU APL Reference Manual</h1>
 
-<p>July 11, 2026.
+<p>July 12, 2026.
 This manual briefly documents GNU APL, an interpreter for APL as described
 in ISO standard 13751, aka. &quot;Programming Language APL, Extended&quot;.
 </p>
@@ -116,7 +116,7 @@ therefore it must be expanded with e.g. <b>gunzip</b> before it can be read.
       <li><a id="toc-Introduction-and-Terminology-1" href="#Introduction-and-Terminology">2.1.1 Introduction and Terminology</a></li>
       <li><a id="toc-Redirect-the-script-file-to-the-stdin-of-the-GNU-APL-interpreter-1" href="#Redirect-the-script-file-to-the-stdin-of-the-GNU-APL-interpreter">2.1.2 Redirect the script file to the stdin of the GNU APL interpreter</a></li>
       <li><a id="toc-Make-the-script-file-executable-1" href="#Make-the-script-file-executable">2.1.3 Make the script file executable</a></li>
-      <li><a id="toc-Starting-GNU-APL-Scripts_003a-a-Conclusion-1" href="#Starting-GNU-APL-Scripts_003a-a-Conclusion">2.1.4 Starting GNU APL Scripts: a Conclusion</a></li>
+      <li><a id="toc-Starting-GNU-APL-Scripts_003a-a-Conclusion" href="#Starting-GNU-APL-Scripts-_002d-a-Conclusion">2.1.4 Starting GNU APL Scripts: a Conclusion</a></li>
       <li><a id="toc-How-command-line-arguments-are-handled-1" href="#How-command-line-arguments-are-handled">2.1.5 How command line arguments are handled</a></li>
       <li><a id="toc-Helpful-Features-for-Scripting-1" href="#Helpful-Features-for-Scripting">2.1.6 Helpful Features for Scripting</a>
       <ul class="no-bullet">
@@ -139,9 +139,9 @@ therefore it must be expanded with e.g. <b>gunzip</b> before it can be read.
     <li><a id="toc-Axis-argument-in-defined-functions-1" href="#Axis-argument-in-defined-functions">2.2 Axis argument in defined functions</a></li>
     <li><a id="toc-Function-Groups-1" href="#Function-Groups">2.3 Function Groups</a>
     <ul class="no-bullet">
-      <li><a id="toc-Phase-1_003a-Numerical-Axis-Argument-1" href="#Phase-1_003a-Numerical-Axis-Argument">2.3.1 Phase 1: Numerical Axis Argument</a></li>
-      <li><a id="toc-Phase-2_003a-String-Axis-Argument-1" href="#Phase-2_003a-String-Axis-Argument">2.3.2 Phase 2: String Axis Argument</a></li>
-      <li><a id="toc-Phase-3_003a-Member-Notation-1" href="#Phase-3_003a-Member-Notation">2.3.3 Phase 3: Member Notation</a></li>
+      <li><a id="toc-Phase-1_003a-Numerical-Axis-Argument" href="#Phase-1-_002d-Numerical-Axis-Argument">2.3.1 Phase 1: Numerical Axis Argument</a></li>
+      <li><a id="toc-Phase-2_003a-String-Axis-Argument" href="#Phase-2-_002d-String-Axis-Argument">2.3.2 Phase 2: String Axis Argument</a></li>
+      <li><a id="toc-Phase-3_003a-Member-Notation" href="#Phase-3-_002d-Member-Notation">2.3.3 Phase 3: Member Notation</a></li>
       <li><a id="toc-Subfunction-Lists-1" href="#Subfunction-Lists">2.3.4 Subfunction Lists</a></li>
     </ul></li>
     <li><a id="toc-Colored-Output-1" href="#Colored-Output">2.4 Colored Output</a></li>
@@ -195,7 +195,7 @@ therefore it must be expanded with e.g. <b>gunzip</b> before it can be read.
       <li><a id="toc-Associative-Arrays-1" href="#Associative-Arrays">2.18.2 Associative Arrays</a></li>
     </ul></li>
     <li><a id="toc-Monadic-_005b_003f_005d-and-_22a3_003b-dyadic-_005b_003f_005d-with-Axis" href="#Monadic-_22a2-and-_22a3_003b-dyadic-_22a2-with-Axis">2.19 Monadic ⊢ and ⊣; dyadic ⊢ with Axis</a></li>
-    <li><a id="toc-Bit_002dwise-Logical-Functions-_005b_003f_005d_005b_003f_005d_002c-_005b_003f_005d_005b_003f_005d_002c-_005b_003f_005d_005b_003f_005d_002c-_005b_003f_005d_005b_003f_005d_002c-_005b_003f_005d_005b_003f_005d_002c-and-_005b_003f_005d_003d" href="#Bit_002dwise-Logical-Functions_003a-_22a4_2227-_22a4_2228-_22a4_2372-_22a4_2371-_22a4_2260-and-_22a4_003d">2.20 Bit-wise Logical Functions ⊤∧, ⊤∨, ⊤⍲, ⊤⍱, ⊤≠, and ⊤=</a>
+    <li><a id="toc-Bit_002dwise-Logical-Functions-_005b_003f_005d_005b_003f_005d_002c-_005b_003f_005d_005b_003f_005d_002c-_005b_003f_005d_005b_003f_005d_002c-_005b_003f_005d_005b_003f_005d_002c-_005b_003f_005d_005b_003f_005d_002c-and-_005b_003f_005d_003d" href="#Bit_002dwise-Logical-Functions-_002d-_22a4_2227-_22a4_2228-_22a4_2372-_22a4_2371-_22a4_2260-and-_22a4_003d">2.20 Bit-wise Logical Functions ⊤∧, ⊤∨, ⊤⍲, ⊤⍱, ⊤≠, and ⊤=</a>
     <ul class="no-bullet">
       <li><a id="toc-Dyadic-_005b_003f_005d_005b_003f_005d_002c-_005b_003f_005d_005b_003f_005d_002c-_005b_003f_005d_005b_003f_005d_002c-_005b_003f_005d_005b_003f_005d_002c-_005b_003f_005d_003d_002c-and-_005b_003f_005d_005b_003f_005d" href="#Dyadic-_22a4_2227-_22a4_2228-_22a4_2372-_22a4_2371-_22a4_003d-and-_22a4_2260">2.20.1 Dyadic ⊤∧, ⊤∨, ⊤⍲, ⊤⍱, ⊤=, and ⊤≠</a></li>
       <li><a id="toc-Monadic-_005b_003f_005d_005b_003f_005d-and-_005b_003f_005d_005b_003f_005d" href="#Monadic-_22a4_2228-and-_22a4_2371">2.20.2 Monadic ⊤∨ and ⊤⍱</a></li>
@@ -214,21 +214,21 @@ therefore it must be expanded with e.g. <b>gunzip</b> before it can be read.
       <li><a id="toc-The-Impact-of-_005b_003f_005dCT-for-_005b_003f_005d" href="#The-Impact-of-_2395CT-for-_2339">2.23.2 The Impact of ⎕CT for ⌹</a>
       <ul class="no-bullet">
         <li><a id="toc-A_005b_003f_005dB-and-_005b_003f_005dB" href="#A_2339B-and-_2339B">2.23.2.1 A⌹B and ⌹B</a></li>
-        <li><a id="toc-_005b_003f_005d_005bX_005d-B_003a-Various-Factorizations-of-B" href="#g_t_2339_005bX_005d-B_003a-Various-Factorizations-of-B">2.23.2.2 ⌹[X] B: Various Factorizations of B</a></li>
+        <li><a id="toc-_005b_003f_005d_005bX_005d-B_003a-Various-Factorizations-of-B" href="#g_t_2339_005bX_005d-B-_002d-Various-Factorizations-of-B">2.23.2.2 ⌹[X] B: Various Factorizations of B</a></li>
         <li><a id="toc-Matrix-Inverse-1" href="#Matrix-Inverse">2.23.2.3 Matrix Inverse</a></li>
-        <li><a id="toc-_005b_003f_005d_005b7_005d-B_003a-Print-Polynomial-B" href="#g_t_2339_005b7_005d-B_003a-Print-Polynomial-B">2.23.2.4 ⌹[7] B: Print Polynomial B</a></li>
-        <li><a id="toc-A-_005b_003f_005d_005b8_005d-B_003a-Multiply-Polynomials-A-and-B" href="#A-_2339_005b8_005d-B_003a-Multiply-Polynomials-A-and-B">2.23.2.5 A ⌹[8] B: Multiply Polynomials A and B</a></li>
-        <li><a id="toc-A-_005b_003f_005d_005b9_005d-B_003a-Divide-Polynomial-A-by-Polynomial-B-_0028univariate_0029" href="#A-_2339_005b9_005d-B_003a-Divide-Polynomial-A-by-Polynomial-B-_0028univariate_0029">2.23.2.6 A ⌹[9] B: Divide Polynomial A by Polynomial B (univariate)</a></li>
-        <li><a id="toc-A-_005b_003f_005d_005b10_005d-B_003a-Divide-Polynomial-A-by-Polynomial-B-_0028multivariate_0029" href="#A-_2339_005b10_005d-B_003a-Divide-Polynomial-A-by-Polynomial-B-_0028multivariate_0029">2.23.2.7 A ⌹[10] B: Divide Polynomial A by Polynomial B (multivariate)</a></li>
-        <li><a id="toc-A-_005b_003f_005d_005b11_005d-B_003a-Divide-Polynomial-A-by-Polynomial-B-_0028with-order_0029" href="#A-_2339_005b11_005d-B_003a-Divide-Polynomial-A-by-Polynomial-B-_0028with-order_0029">2.23.2.8 A ⌹[11] B: Divide Polynomial A by Polynomial B (with order)</a></li>
+        <li><a id="toc-_005b_003f_005d_005b7_005d-B_003a-Print-Polynomial-B" href="#g_t_2339_005b7_005d-B-_002d-Print-Polynomial-B">2.23.2.4 ⌹[7] B: Print Polynomial B</a></li>
+        <li><a id="toc-A-_005b_003f_005d_005b8_005d-B_003a-Multiply-Polynomials-A-and-B" href="#A-_2339_005b8_005d-B-_002d-Multiply-Polynomials-A-and-B">2.23.2.5 A ⌹[8] B: Multiply Polynomials A and B</a></li>
+        <li><a id="toc-A-_005b_003f_005d_005b9_005d-B_003a-Divide-Polynomial-A-by-Polynomial-B-_0028univariate_0029" href="#A-_2339_005b9_005d-B-_002d-Divide-Polynomial-A-by-Polynomial-B-_0028univariate_0029">2.23.2.6 A ⌹[9] B: Divide Polynomial A by Polynomial B (univariate)</a></li>
+        <li><a id="toc-A-_005b_003f_005d_005b10_005d-B_003a-Divide-Polynomial-A-by-Polynomial-B-_0028multivariate_0029" href="#A-_2339_005b10_005d-B-_002d-Divide-Polynomial-A-by-Polynomial-B-_0028multivariate_0029">2.23.2.7 A ⌹[10] B: Divide Polynomial A by Polynomial B (multivariate)</a></li>
+        <li><a id="toc-A-_005b_003f_005d_005b11_005d-B_003a-Divide-Polynomial-A-by-Polynomial-B-_0028with-order_0029" href="#A-_2339_005b11_005d-B-_002d-Divide-Polynomial-A-by-Polynomial-B-_0028with-order_0029">2.23.2.8 A ⌹[11] B: Divide Polynomial A by Polynomial B (with order)</a></li>
         <li><a id="toc-_005b_003f_005d_005b11_005d-B_003a-Scan-Polynomial-B" href="#g_t_2339_005b11_005d-B-Scan-Polynomial-B">2.23.2.9 ⌹[11] B: Scan Polynomial B</a></li>
-        <li><a id="toc-A-_005b_003f_005d_005b20_005d-B_003a-Integral-B" href="#A-_2339_005b20_005d-B_003a-Integral-B">2.23.2.10 A ⌹[20] B: Integral B</a></li>
+        <li><a id="toc-A-_005b_003f_005d_005b20_005d-B_003a-Integral-B" href="#A-_2339_005b20_005d-B-_002d-Integral-B">2.23.2.10 A ⌹[20] B: Integral B</a></li>
       </ul></li>
     </ul></li>
     <li><a id="toc-_005b_003f_005dCC-_002d-Character-Classes" href="#g_t_2395CC-_002d-Character-Classes">2.24 ⎕CC - Character Classes</a>
     <ul class="no-bullet">
-      <li><a id="toc-monadic-_005b_003f_005dCC-B_003a-Return-character-class" href="#monadic-_2395CC-B_003a-Return-character-class">2.24.1 monadic ⎕CC B: Return character class</a></li>
-      <li><a id="toc-dyadic-A-_005b_003f_005dCC-B_003a-Test-character-class" href="#dyadic-A-_2395CC-B_003a-Test-character-class">2.24.2 dyadic A ⎕CC B: Test character class</a></li>
+      <li><a id="toc-monadic-_005b_003f_005dCC-B_003a-Return-character-class" href="#monadic-_2395CC-B-_002d-Return-character-class">2.24.1 monadic ⎕CC B: Return character class</a></li>
+      <li><a id="toc-dyadic-A-_005b_003f_005dCC-B_003a-Test-character-class" href="#dyadic-A-_2395CC-B-_002d-Test-character-class">2.24.2 dyadic A ⎕CC B: Test character class</a></li>
     </ul></li>
     <li><a id="toc-Dyadic-_005b_003f_005dCR" href="#Dyadic-_2395CR">2.25 Dyadic ⎕CR</a></li>
     <li><a id="toc-Dyadic-_005b_003f_005dFX-_0028Native-Functions_0029" href="#Dyadic-_2395FX-_0028Native-Functions_0029">2.26 Dyadic ⎕FX (Native Functions)</a></li>
@@ -291,7 +291,7 @@ therefore it must be expanded with e.g. <b>gunzip</b> before it can be read.
       <li><a id="toc-The-String_0028s_0029-B-Being-Matched-1" href="#The-String_0028s_0029-B-Being-Matched">2.39.4 The String(s) B Being Matched</a></li>
       <li><a id="toc-The-Flags-X-1" href="#The-Flags-X">2.39.5 The Flags X</a>
       <ul class="no-bullet">
-        <li><a id="toc-The-libpcre2-flags_003a-i_002c-m_002c-s_002c-and-x" href="#The-libpcre2-flags_003a-i-m-s-and-x">2.39.5.1 The libpcre2 flags: i, m, s, and x</a></li>
+        <li><a id="toc-The-libpcre2-flags_003a-i_002c-m_002c-s_002c-and-x" href="#The-libpcre2-flags-_002d-i-m-s-and-x">2.39.5.1 The libpcre2 flags: i, m, s, and x</a></li>
         <li><a id="toc-The-_005b_003f_005dRE-_0028APL-output-format_0029-flags-_007c_002c-_005b_003f_005d_002c-and-_002f" href="#The-_2395RE-_0028APL-output-format_0029-flags-_2193-_2282-and-_002f">2.39.5.2 The ⎕RE (APL output format) flags ↓, ⊂, and /</a></li>
         <li><a id="toc-the-_005b_003f_005dRE-global-flag-g" href="#the-_2395RE-global-flag-g">2.39.5.3 the ⎕RE global flag g</a></li>
         <li><a id="toc-the-_005b_003f_005dRE-error-flag-E" href="#the-_2395RE-error-flag-E">2.39.5.4 the ⎕RE error flag E</a></li>
@@ -303,39 +303,39 @@ therefore it must be expanded with e.g. <b>gunzip</b> before it can be read.
       <li><a id="toc-General-1" href="#General">2.40.1 General</a></li>
       <li><a id="toc-Dyadic-_005b_003f_005dRVAL" href="#Dyadic-_2395RVAL">2.40.2 Dyadic ⎕RVAL</a>
       <ul class="no-bullet">
-        <li><a id="toc-Control-of-the-underlying-random-number-generator_003a-0-_005b_003f_005dRVAL-B" href="#Control-of-the-underlying-random-number-generator_003a-0-_2395RVAL-B">2.40.2.1 Control of the underlying random number generator: 0 ⎕RVAL B</a></li>
-        <li><a id="toc-Control-of-the-ranks_003a-1-_005b_003f_005dRVAL-B" href="#Control-of-the-ranks_003a-1-_2395RVAL-B">2.40.2.2 Control of the ranks: 1 ⎕RVAL B</a></li>
-        <li><a id="toc-Control-of-the-shapes_003a-2-_005b_003f_005dRVAL-B" href="#Control-of-the-shapes_003a-2-_2395RVAL-B">2.40.2.3 Control of the shapes: 2 ⎕RVAL B</a></li>
-        <li><a id="toc-Control-of-the-data-types_003a-3-_005b_003f_005dRVAL-B" href="#Control-of-the-data-types_003a-3-_2395RVAL-B">2.40.2.4 Control of the data types: 3 ⎕RVAL B</a></li>
-        <li><a id="toc-Control-of-a-maximum-depth_003a-4-_005b_003f_005dRVAL-B" href="#Control-of-a-maximum-depth_003a-4-_2395RVAL-B">2.40.2.5 Control of a maximum depth: 4 ⎕RVAL B</a></li>
-        <li><a id="toc-Control-of-the-element-count_003a-5-_005b_003f_005dRVAL-B" href="#Control-of-the-element-count_003a-5-_2395RVAL-B">2.40.2.6 Control of the element count: 5 ⎕RVAL B</a></li>
-        <li><a id="toc-The-primitive-table_003a-6-_005b_003f_005dRVAL-B" href="#The-primitive-table_003a-6-_2395RVAL-B">2.40.2.7 The primitive table: 6 ⎕RVAL B</a></li>
-        <li><a id="toc-monadic-_005b_003f_005dRVAL-B" href="#monadic-_2395RVAL-B">2.40.2.8 monadic ⎕RVAL B</a></li>
-        <li><a id="toc-Syntax-Alternatives-1" href="#Syntax-Alternatives">2.40.2.9 Syntax Alternatives</a></li>
+        <li><a id="toc-Control-of-the-underlying-random-number-generator_003a-0-_005b_003f_005dRVAL-B" href="#Control-of-the-underlying-random-number-generator-_002d-0-_2395RVAL-B">2.40.2.1 Control of the underlying random number generator: 0 ⎕RVAL B</a></li>
+        <li><a id="toc-Control-of-the-ranks_003a-1-_005b_003f_005dRVAL-B" href="#Control-of-the-ranks-_002d-1-_2395RVAL-B">2.40.2.2 Control of the ranks: 1 ⎕RVAL B</a></li>
+        <li><a id="toc-Control-of-the-shapes_003a-2-_005b_003f_005dRVAL-B" href="#Control-of-the-shapes-_002d-2-_2395RVAL-B">2.40.2.3 Control of the shapes: 2 ⎕RVAL B</a></li>
+        <li><a id="toc-Control-of-the-data-types_003a-3-_005b_003f_005dRVAL-B" href="#Control-of-the-data-types-_002d-3-_2395RVAL-B">2.40.2.4 Control of the data types: 3 ⎕RVAL B</a></li>
+        <li><a id="toc-Control-of-a-maximum-depth_003a-4-_005b_003f_005dRVAL-B" href="#Control-of-a-maximum-depth-_002d-4-_2395RVAL-B">2.40.2.5 Control of a maximum depth: 4 ⎕RVAL B</a></li>
+        <li><a id="toc-Control-of-the-element-count_003a-5-_005b_003f_005dRVAL-B" href="#Control-of-the-element-count-_002d-5-_2395RVAL-B">2.40.2.6 Control of the element count: 5 ⎕RVAL B</a></li>
+        <li><a id="toc-The-primitive-table_003a-6-_005b_003f_005dRVAL-B" href="#The-primitive-table-_002d-6-_2395RVAL-B">2.40.2.7 The primitive table: 6 ⎕RVAL B</a></li>
       </ul></li>
+      <li><a id="toc-monadic-_005b_003f_005dRVAL-B" href="#monadic-_2395RVAL-B">2.40.3 monadic ⎕RVAL B</a></li>
+      <li><a id="toc-Syntax-Alternatives-1" href="#Syntax-Alternatives">2.40.4 Syntax Alternatives</a></li>
     </ul></li>
     <li><a id="toc-_005b_003f_005dSI-_002d-State-Indicator" href="#g_t_2395SI-_002d-State-Indicator">2.41 ⎕SI - State Indicator</a></li>
     <li><a id="toc-_005b_003f_005dSQL-_002d-SQL-Database-Interface" href="#g_t_2395SQL-_002d-SQL-Database-Interface">2.42 ⎕SQL - SQL Database Interface</a>
     <ul class="no-bullet">
-      <li><a id="toc-_005b_003f_005dSQL_005b0_005d-_005b_003f_005d-_003a-display-sub_002dfunction-numbers" href="#g_t_2395SQL_005b0_005d-_236c-_003a-display-sub_002dfunction-numbers">2.42.1 ⎕SQL[0] ⍬ : display sub-function numbers</a></li>
-      <li><a id="toc-_005b_003f_005dSQL_005b0_005d-_0027_0027-_003a-display-sub_002dfunction-names" href="#g_t_2395SQL_005b0_005d-_0027_0027-_003a-display-sub_002dfunction-names">2.42.2 ⎕SQL[0] <code>''</code> : display sub-function names</a></li>
-      <li><a id="toc-ref-_002d-A-_005b_003f_005dSQL_005b1_005d-B-_003a-open-database" href="#ref-_2190-A-_2395SQL_005b1_005d-B-_003a-open-database">2.42.3 ref ← A ⎕SQL[1] B : open database</a></li>
-      <li><a id="toc-_005b_003f_005dSQL_005b2_005d-B-_003a-close-database" href="#g_t_2395SQL_005b2_005d-B-_003a-close-database">2.42.4 ⎕SQL[2] B : close database</a></li>
-      <li><a id="toc-Z-_002d-A-_005b_003f_005dSQL_005b3_002c-ref_005d-B-_003a-database-query-_0028with-result_0029" href="#Z-_2190-A-_2395SQL_005b3-ref_005d-B-_003a-database-query-_0028with-result_0029">2.42.5 Z ← A ⎕SQL[3, ref] B : database query (with result)</a></li>
-      <li><a id="toc-Z-_002d-A-_005b_003f_005dSQL_005b4_002c-ref_005d-B-_003a-database-query-_0028w_002fo-result_0029" href="#Z-_2190-A-_2395SQL_005b4-ref_005d-B-_003a-database-query-_0028w_002fo-result_0029">2.42.6 Z ← A ⎕SQL[4, ref] B : database query (w/o result)</a></li>
-      <li><a id="toc-_005b_003f_005dSQL_005b5_005d-B-_003a-start-transaction" href="#g_t_2395SQL_005b5_005d-B-_003a-start-transaction">2.42.7 ⎕SQL[5] B : start transaction</a></li>
-      <li><a id="toc-_005b_003f_005dSQL_005b6_005d-B-_003a-commit-transaction" href="#g_t_2395SQL_005b6_005d-B-_003a-commit-transaction">2.42.8 ⎕SQL[6] B : commit transaction</a></li>
-      <li><a id="toc-_005b_003f_005dSQL_005b7_005d-B-_003a-rollback-transaction" href="#g_t_2395SQL_005b7_005d-B-_003a-rollback-transaction">2.42.9 ⎕SQL[7] B : rollback transaction</a></li>
-      <li><a id="toc-Z_002d_005b_003f_005dSQL_005b8_005d-B-_003a-table-names" href="#Z_2190_2395SQL_005b8_005d-B-_003a-table-names">2.42.10 Z←⎕SQL[8] B : table names</a></li>
-      <li><a id="toc-Z_002d_005b_003f_005dSQL_005b9_005d-B-_003a-column-names" href="#Z_2190_2395SQL_005b9_005d-B-_003a-column-names">2.42.11 Z←⎕SQL[9] B : column names</a></li>
-      <li><a id="toc-Z-_002d-_005b_003f_005dSQL_005b10_005d-B-_003a-library-version-number" href="#Z-_2190-_2395SQL_005b10_005d-B-_003a-library-version-number">2.42.12 Z ← ⎕SQL[10] B : library version number</a></li>
-      <li><a id="toc-Z-_002d-_005b_003f_005dSQL_005b11_005d-B-_003a-library-version-string" href="#Z-_2190-_2395SQL_005b11_005d-B-_003a-library-version-string">2.42.13 Z ← ⎕SQL[11] B : library version string</a></li>
+      <li><a id="toc-_005b_003f_005dSQL_005b0_005d-_005b_003f_005d-_003a-display-sub_002dfunction-numbers" href="#g_t_2395SQL_005b0_005d-_236c-_002d-display-sub_002dfunction-numbers">2.42.1 ⎕SQL[0] ⍬ : display sub-function numbers</a></li>
+      <li><a id="toc-_005b_003f_005dSQL_005b0_005d-_0027_0027-_003a-display-sub_002dfunction-names" href="#g_t_2395SQL_005b0_005d-_0027_0027-_002d-display-sub_002dfunction-names">2.42.2 ⎕SQL[0] <code>''</code> : display sub-function names</a></li>
+      <li><a id="toc-ref-_002d-A-_005b_003f_005dSQL_005b1_005d-B-_003a-open-database" href="#ref-_2190-A-_2395SQL_005b1_005d-B-_002d-open-database">2.42.3 ref ← A ⎕SQL[1] B : open database</a></li>
+      <li><a id="toc-_005b_003f_005dSQL_005b2_005d-B-_003a-close-database" href="#g_t_2395SQL_005b2_005d-B-_002d-close-database">2.42.4 ⎕SQL[2] B : close database</a></li>
+      <li><a id="toc-Z-_002d-A-_005b_003f_005dSQL_005b3_002c-ref_005d-B-_003a-database-query-_0028with-result_0029" href="#Z-_2190-A-_2395SQL_005b3-ref_005d-B-_002d-database-query-_0028with-result_0029">2.42.5 Z ← A ⎕SQL[3, ref] B : database query (with result)</a></li>
+      <li><a id="toc-Z-_002d-A-_005b_003f_005dSQL_005b4_002c-ref_005d-B-_003a-database-query-_0028w_002fo-result_0029" href="#Z-_2190-A-_2395SQL_005b4-ref_005d-B-_002d-database-query-_0028w_002fo-result_0029">2.42.6 Z ← A ⎕SQL[4, ref] B : database query (w/o result)</a></li>
+      <li><a id="toc-_005b_003f_005dSQL_005b5_005d-B-_003a-start-transaction" href="#g_t_2395SQL_005b5_005d-B-_002d-start-transaction">2.42.7 ⎕SQL[5] B : start transaction</a></li>
+      <li><a id="toc-_005b_003f_005dSQL_005b6_005d-B-_003a-commit-transaction" href="#g_t_2395SQL_005b6_005d-B-_002d-commit-transaction">2.42.8 ⎕SQL[6] B : commit transaction</a></li>
+      <li><a id="toc-_005b_003f_005dSQL_005b7_005d-B-_003a-rollback-transaction" href="#g_t_2395SQL_005b7_005d-B-_002d-rollback-transaction">2.42.9 ⎕SQL[7] B : rollback transaction</a></li>
+      <li><a id="toc-Z_002d_005b_003f_005dSQL_005b8_005d-B-_003a-table-names" href="#Z_2190_2395SQL_005b8_005d-B-_002d-table-names">2.42.10 Z←⎕SQL[8] B : table names</a></li>
+      <li><a id="toc-Z_002d_005b_003f_005dSQL_005b9_005d-B-_003a-column-names" href="#Z_2190_2395SQL_005b9_005d-B-_002d-column-names">2.42.11 Z←⎕SQL[9] B : column names</a></li>
+      <li><a id="toc-Z-_002d-_005b_003f_005dSQL_005b10_005d-B-_003a-library-version-number" href="#Z-_2190-_2395SQL_005b10_005d-B-_002d-library-version-number">2.42.12 Z ← ⎕SQL[10] B : library version number</a></li>
+      <li><a id="toc-Z-_002d-_005b_003f_005dSQL_005b11_005d-B-_003a-library-version-string" href="#Z-_2190-_2395SQL_005b11_005d-B-_002d-library-version-string">2.42.13 Z ← ⎕SQL[11] B : library version string</a></li>
       <li><a id="toc-SQLite-Quickstart-1" href="#SQLite-Quickstart">2.42.14 SQLite Quickstart</a>
       <ul class="no-bullet">
         <li><a id="toc-Deleting-a-Database-1" href="#Deleting-a-Database">2.42.14.1 Deleting a Database</a></li>
         <li><a id="toc-Creating-a-new-Database-1" href="#Creating-a-new-Database">2.42.14.2 Creating a new Database</a></li>
         <li><a id="toc-Creating-a-Database-Table-1" href="#Creating-a-Database-Table">2.42.14.3 Creating a Database Table</a></li>
-        <li><a id="toc-Excursus_003a-Dynamic-Query-Strings-1" href="#Excursus_003a-Dynamic-Query-Strings">2.42.14.4 Excursus: Dynamic Query Strings</a></li>
+        <li><a id="toc-Excursus_003a-Dynamic-Query-Strings" href="#Excursus-_002d-Dynamic-Query-Strings">2.42.14.4 Excursus: Dynamic Query Strings</a></li>
         <li><a id="toc-Writing-an-APL-matrix-into-a-Database-Table-1" href="#Writing-an-APL-matrix-into-a-Database-Table">2.42.14.5 Writing an APL matrix into a Database Table</a></li>
         <li><a id="toc-Reading-a-Database-Table-into-an-APL-Matrix-1" href="#Reading-a-Database-Table-into-an-APL-Matrix">2.42.14.6 Reading a Database Table into an APL Matrix</a></li>
         <li><a id="toc-Updating-a-Database-Table-1" href="#Updating-a-Database-Table">2.42.14.7 Updating a Database Table</a></li>
@@ -380,8 +380,8 @@ therefore it must be expanded with e.g. <b>gunzip</b> before it can be read.
     <li><a id="toc-Quotes-from-the-lrm-1" href="#Quotes-from-the-lrm">5.3 Quotes from the lrm</a></li>
     <li><a id="toc-Some-APL2-Tests-1" href="#Some-APL2-Tests">5.4 Some APL2 Tests</a>
     <ul class="no-bullet">
-      <li><a id="toc-Test-1_003a-Binding-strength-of-_005b_005d-1" href="#Test-1_003a-Binding-strength-of-_005b_005d">5.4.1 Test 1: Binding strength of []</a></li>
-      <li><a id="toc-Test-2_003a-Binding-strength-of-the-left-operand-1" href="#Test-2_003a-Binding-strength-of-the-left-operand">5.4.2 Test 2: Binding strength of the left operand</a></li>
+      <li><a id="toc-Test-1_003a-Binding-strength-of-_005b_005d" href="#Test-1-_002d-Binding-strength-of-_005b_005d">5.4.1 Test 1: Binding strength of []</a></li>
+      <li><a id="toc-Test-2_003a-Binding-strength-of-the-left-operand" href="#Test-2-_002d-Binding-strength-of-the-left-operand">5.4.2 Test 2: Binding strength of the left operand</a></li>
     </ul></li>
     <li><a id="toc-Definitions-1" href="#Definitions">5.5 Definitions</a></li>
     <li><a id="toc-Unexpected-Stranding-1" href="#Unexpected-Stranding">5.6 Unexpected Stranding</a>
@@ -1110,7 +1110,7 @@ Next: <a href="#Limitations-and-Missing-Features" accesskey="n" rel="next">Limit
 <li><a href="#User_002ddefined-Commands">User-defined Commands</a></li>
 <li><a href="#Structured-Variables-and-Associative-Arrays">Structured Variables and Associative Arrays</a></li>
 <li><a href="#Monadic-_22a2-and-_22a3_003b-dyadic-_22a2-with-Axis">Monadic ⊢ and ⊣; dyadic ⊢ with Axis</a></li>
-<li><a href="#Bit_002dwise-Logical-Functions_003a-_22a4_2227-_22a4_2228-_22a4_2372-_22a4_2371-_22a4_2260-and-_22a4_003d">Bit-wise Logical Functions ⊤∧, ⊤∨, ⊤⍲, ⊤⍱, ⊤≠, and ⊤=</a></li>
+<li><a href="#Bit_002dwise-Logical-Functions-_002d-_22a4_2227-_22a4_2228-_22a4_2372-_22a4_2371-_22a4_2260-and-_22a4_003d">Bit-wise Logical Functions ⊤∧, ⊤∨, ⊤⍲, ⊤⍱, ⊤≠, and ⊤=</a></li>
 <li><a href="#g_t_22a4-_0028Encode_0029-with-Axis">⊤ (Encode) with Axis</a></li>
 <li><a href="#Generalized-_2373">Generalized ⍳</a></li>
 <li><a href="#g_t_2339_005bX_005d-_002d-Miscellaneous-Matrix-and-Vector-Operations">⌹[X] - Miscellaneous Matrix and Vector Operations</a></li>
@@ -1151,7 +1151,7 @@ Next: <a href="#Axis-argument-in-defined-functions" accesskey="n" rel="next">Axi
 <li><a href="#Introduction-and-Terminology" accesskey="1">Introduction and Terminology</a></li>
 <li><a href="#Redirect-the-script-file-to-the-stdin-of-the-GNU-APL-interpreter" accesskey="2">Redirect the script file to the stdin of the GNU APL interpreter</a></li>
 <li><a href="#Make-the-script-file-executable" accesskey="3">Make the script file executable</a></li>
-<li><a href="#Starting-GNU-APL-Scripts_003a-a-Conclusion" accesskey="4">Starting GNU APL Scripts: a Conclusion</a></li>
+<li><a href="#Starting-GNU-APL-Scripts-_002d-a-Conclusion" accesskey="4">Starting GNU APL Scripts: a Conclusion</a></li>
 <li><a href="#How-command-line-arguments-are-handled" accesskey="5">How command line arguments are handled</a></li>
 <li><a href="#Helpful-Features-for-Scripting" accesskey="6">Helpful Features for Scripting</a></li>
 <li><a href="#Double_002dquoted-Strings" accesskey="7">Double-quoted Strings</a></li>
@@ -1323,7 +1323,7 @@ the redirecting of the file was performed by apl itself.
 <div class="subsection" id="Make-the-script-file-executable">
 <div class="header">
 <p>
-Next: <a href="#Starting-GNU-APL-Scripts_003a-a-Conclusion" accesskey="n" rel="next">Starting GNU APL Scripts: a Conclusion</a>, Previous: <a href="#Redirect-the-script-file-to-the-stdin-of-the-GNU-APL-interpreter" accesskey="p" rel="prev">Redirect the script file to the stdin of the GNU APL interpreter</a>, Up: <a href="#APL-Scripting" accesskey="u" rel="up">APL Scripting</a> &nbsp; [<a href="#SEC_Contents" title="Table of contents" rel="contents">Contents</a>]</p>
+Next: <a href="#Starting-GNU-APL-Scripts-_002d-a-Conclusion" accesskey="n" rel="next">Starting GNU APL Scripts: a Conclusion</a>, Previous: <a href="#Redirect-the-script-file-to-the-stdin-of-the-GNU-APL-interpreter" accesskey="p" rel="prev">Redirect the script file to the stdin of the GNU APL interpreter</a>, Up: <a href="#APL-Scripting" accesskey="u" rel="up">APL Scripting</a> &nbsp; [<a href="#SEC_Contents" title="Table of contents" rel="contents">Contents</a>]</p>
 </div>
 <span id="Make-the-script-file-executable-1"></span><h4 class="subsection">2.1.3 Make the script file executable</h4>
 
@@ -1345,12 +1345,12 @@ it must be in <b>$PATH</b> of the shell that runs the script.
 </p>
 <hr>
 </div>
-<div class="subsection" id="Starting-GNU-APL-Scripts_003a-a-Conclusion">
+<div class="subsection" id="Starting-GNU-APL-Scripts-_002d-a-Conclusion">
 <div class="header">
 <p>
 Next: <a href="#How-command-line-arguments-are-handled" accesskey="n" rel="next">How command line arguments are handled</a>, Previous: <a href="#Make-the-script-file-executable" accesskey="p" rel="prev">Make the script file executable</a>, Up: <a href="#APL-Scripting" accesskey="u" rel="up">APL Scripting</a> &nbsp; [<a href="#SEC_Contents" title="Table of contents" rel="contents">Contents</a>]</p>
 </div>
-<span id="Starting-GNU-APL-Scripts_003a-a-Conclusion-1"></span><h4 class="subsection">2.1.4 Starting GNU APL Scripts: a Conclusion</h4>
+<span id="Starting-GNU-APL-Scripts_003a-a-Conclusion"></span><h4 class="subsection">2.1.4 Starting GNU APL Scripts: a Conclusion</h4>
 
 <p>The different methods for starting a GNU APL described above have emerged
 over time. They can be seen as different front-ends to the GNU APL
@@ -1378,7 +1378,7 @@ best is left to the user.
 <div class="subsection" id="How-command-line-arguments-are-handled">
 <div class="header">
 <p>
-Next: <a href="#Helpful-Features-for-Scripting" accesskey="n" rel="next">Helpful Features for Scripting</a>, Previous: <a href="#Starting-GNU-APL-Scripts_003a-a-Conclusion" accesskey="p" rel="prev">Starting GNU APL Scripts: a Conclusion</a>, Up: <a href="#APL-Scripting" accesskey="u" rel="up">APL Scripting</a> &nbsp; [<a href="#SEC_Contents" title="Table of contents" rel="contents">Contents</a>]</p>
+Next: <a href="#Helpful-Features-for-Scripting" accesskey="n" rel="next">Helpful Features for Scripting</a>, Previous: <a href="#Starting-GNU-APL-Scripts-_002d-a-Conclusion" accesskey="p" rel="prev">Starting GNU APL Scripts: a Conclusion</a>, Up: <a href="#APL-Scripting" accesskey="u" rel="up">APL Scripting</a> &nbsp; [<a href="#SEC_Contents" title="Table of contents" rel="contents">Contents</a>]</p>
 </div>
 <span id="How-command-line-arguments-are-handled-1"></span><h4 class="subsection">2.1.5 How command line arguments are handled</h4>
 
@@ -2521,18 +2521,18 @@ purpose. The function groups of GNU APL are:
 following.
 </p>
 <ul class="section-toc">
-<li><a href="#Phase-1_003a-Numerical-Axis-Argument" accesskey="1">Phase 1: Numerical Axis Argument</a></li>
-<li><a href="#Phase-2_003a-String-Axis-Argument" accesskey="2">Phase 2: String Axis Argument</a></li>
-<li><a href="#Phase-3_003a-Member-Notation" accesskey="3">Phase 3: Member Notation</a></li>
+<li><a href="#Phase-1-_002d-Numerical-Axis-Argument" accesskey="1">Phase 1: Numerical Axis Argument</a></li>
+<li><a href="#Phase-2-_002d-String-Axis-Argument" accesskey="2">Phase 2: String Axis Argument</a></li>
+<li><a href="#Phase-3-_002d-Member-Notation" accesskey="3">Phase 3: Member Notation</a></li>
 <li><a href="#Subfunction-Lists" accesskey="4">Subfunction Lists</a></li>
 </ul>
 <hr>
-<div class="subsection" id="Phase-1_003a-Numerical-Axis-Argument">
+<div class="subsection" id="Phase-1-_002d-Numerical-Axis-Argument">
 <div class="header">
 <p>
-Next: <a href="#Phase-2_003a-String-Axis-Argument" accesskey="n" rel="next">Phase 2: String Axis Argument</a>, Up: <a href="#Function-Groups" accesskey="u" rel="up">Function Groups</a> &nbsp; [<a href="#SEC_Contents" title="Table of contents" rel="contents">Contents</a>]</p>
+Next: <a href="#Phase-2-_002d-String-Axis-Argument" accesskey="n" rel="next">Phase 2: String Axis Argument</a>, Up: <a href="#Function-Groups" accesskey="u" rel="up">Function Groups</a> &nbsp; [<a href="#SEC_Contents" title="Table of contents" rel="contents">Contents</a>]</p>
 </div>
-<span id="Phase-1_003a-Numerical-Axis-Argument-1"></span><h4 class="subsection">2.3.1 Phase 1: Numerical Axis Argument</h4>
+<span id="Phase-1_003a-Numerical-Axis-Argument"></span><h4 class="subsection">2.3.1 Phase 1: Numerical Axis Argument</h4>
 
 <p>In the first phase, the number of functions per function group (at that time
 <b>⎕CR</b> and <b>⎕FIO</b>) was fairly small. A sub-function of the function group
@@ -2561,12 +2561,12 @@ was selected as follows:
 </p>
 <hr>
 </div>
-<div class="subsection" id="Phase-2_003a-String-Axis-Argument">
+<div class="subsection" id="Phase-2-_002d-String-Axis-Argument">
 <div class="header">
 <p>
-Next: <a href="#Phase-3_003a-Member-Notation" accesskey="n" rel="next">Phase 3: Member Notation</a>, Previous: <a href="#Phase-1_003a-Numerical-Axis-Argument" accesskey="p" rel="prev">Phase 1: Numerical Axis Argument</a>, Up: <a href="#Function-Groups" accesskey="u" rel="up">Function Groups</a> &nbsp; [<a href="#SEC_Contents" title="Table of contents" rel="contents">Contents</a>]</p>
+Next: <a href="#Phase-3-_002d-Member-Notation" accesskey="n" rel="next">Phase 3: Member Notation</a>, Previous: <a href="#Phase-1-_002d-Numerical-Axis-Argument" accesskey="p" rel="prev">Phase 1: Numerical Axis Argument</a>, Up: <a href="#Function-Groups" accesskey="u" rel="up">Function Groups</a> &nbsp; [<a href="#SEC_Contents" title="Table of contents" rel="contents">Contents</a>]</p>
 </div>
-<span id="Phase-2_003a-String-Axis-Argument-1"></span><h4 class="subsection">2.3.2 Phase 2: String Axis Argument</h4>
+<span id="Phase-2_003a-String-Axis-Argument"></span><h4 class="subsection">2.3.2 Phase 2: String Axis Argument</h4>
 
 <p>Shortly after introducing the syntax of phase 1, GNU APL users began to develop
 an APL workspace named <b>FILE_IO</b>. This workspace contains one APL wrapper
@@ -2606,12 +2606,12 @@ function that implemented them.
 
 <hr>
 </div>
-<div class="subsection" id="Phase-3_003a-Member-Notation">
+<div class="subsection" id="Phase-3-_002d-Member-Notation">
 <div class="header">
 <p>
-Next: <a href="#Subfunction-Lists" accesskey="n" rel="next">Subfunction Lists</a>, Previous: <a href="#Phase-2_003a-String-Axis-Argument" accesskey="p" rel="prev">Phase 2: String Axis Argument</a>, Up: <a href="#Function-Groups" accesskey="u" rel="up">Function Groups</a> &nbsp; [<a href="#SEC_Contents" title="Table of contents" rel="contents">Contents</a>]</p>
+Next: <a href="#Subfunction-Lists" accesskey="n" rel="next">Subfunction Lists</a>, Previous: <a href="#Phase-2-_002d-String-Axis-Argument" accesskey="p" rel="prev">Phase 2: String Axis Argument</a>, Up: <a href="#Function-Groups" accesskey="u" rel="up">Function Groups</a> &nbsp; [<a href="#SEC_Contents" title="Table of contents" rel="contents">Contents</a>]</p>
 </div>
-<span id="Phase-3_003a-Member-Notation-1"></span><h4 class="subsection">2.3.3 Phase 3: Member Notation</h4>
+<span id="Phase-3_003a-Member-Notation"></span><h4 class="subsection">2.3.3 Phase 3: Member Notation</h4>
 
 <p>The third phase aims at further improving the readability. It replaces the
 axis argument with a member notation. The phase 1 and 2 examples above would
@@ -2630,7 +2630,7 @@ now become:
 <div class="subsection" id="Subfunction-Lists">
 <div class="header">
 <p>
-Previous: <a href="#Phase-3_003a-Member-Notation" accesskey="p" rel="prev">Phase 3: Member Notation</a>, Up: <a href="#Function-Groups" accesskey="u" rel="up">Function Groups</a> &nbsp; [<a href="#SEC_Contents" title="Table of contents" rel="contents">Contents</a>]</p>
+Previous: <a href="#Phase-3-_002d-Member-Notation" accesskey="p" rel="prev">Phase 3: Member Notation</a>, Up: <a href="#Function-Groups" accesskey="u" rel="up">Function Groups</a> &nbsp; [<a href="#SEC_Contents" title="Table of contents" rel="contents">Contents</a>]</p>
 </div>
 <span id="Subfunction-Lists-1"></span><h4 class="subsection">2.3.4 Subfunction Lists</h4>
 
@@ -4314,7 +4314,7 @@ is ⍴ASSOC_ARRAY[;1] and the capacity is ↑⍴ASSOC_ARRAY.
 <div class="section" id="Monadic-_22a2-and-_22a3_003b-dyadic-_22a2-with-Axis">
 <div class="header">
 <p>
-Next: <a href="#Bit_002dwise-Logical-Functions_003a-_22a4_2227-_22a4_2228-_22a4_2372-_22a4_2371-_22a4_2260-and-_22a4_003d" accesskey="n" rel="next">Bit-wise Logical Functions ⊤∧, ⊤∨, ⊤⍲, ⊤⍱, ⊤≠, and ⊤=</a>, Previous: <a href="#Structured-Variables-and-Associative-Arrays" accesskey="p" rel="prev">Structured Variables and Associative Arrays</a>, Up: <a href="#Non_002dstandard-GNU-APL-Features" accesskey="u" rel="up">Non-standard GNU APL Features</a> &nbsp; [<a href="#SEC_Contents" title="Table of contents" rel="contents">Contents</a>]</p>
+Next: <a href="#Bit_002dwise-Logical-Functions-_002d-_22a4_2227-_22a4_2228-_22a4_2372-_22a4_2371-_22a4_2260-and-_22a4_003d" accesskey="n" rel="next">Bit-wise Logical Functions ⊤∧, ⊤∨, ⊤⍲, ⊤⍱, ⊤≠, and ⊤=</a>, Previous: <a href="#Structured-Variables-and-Associative-Arrays" accesskey="p" rel="prev">Structured Variables and Associative Arrays</a>, Up: <a href="#Non_002dstandard-GNU-APL-Features" accesskey="u" rel="up">Non-standard GNU APL Features</a> &nbsp; [<a href="#SEC_Contents" title="Table of contents" rel="contents">Contents</a>]</p>
 </div>
 <span id="Monadic-_005b_003f_005d-and-_22a3_003b-dyadic-_005b_003f_005d-with-Axis"></span><h3 class="section">2.19 Monadic ⊢ and ⊣; dyadic ⊢ with Axis</h3>
 
@@ -4379,7 +4379,7 @@ a*c
 
 <hr>
 </div>
-<div class="section" id="Bit_002dwise-Logical-Functions_003a-_22a4_2227-_22a4_2228-_22a4_2372-_22a4_2371-_22a4_2260-and-_22a4_003d">
+<div class="section" id="Bit_002dwise-Logical-Functions-_002d-_22a4_2227-_22a4_2228-_22a4_2372-_22a4_2371-_22a4_2260-and-_22a4_003d">
 <div class="header">
 <p>
 Next: <a href="#g_t_22a4-_0028Encode_0029-with-Axis" accesskey="n" rel="next">⊤ (Encode) with Axis</a>, Previous: <a href="#Monadic-_22a2-and-_22a3_003b-dyadic-_22a2-with-Axis" accesskey="p" rel="prev">Monadic ⊢ and ⊣; dyadic ⊢ with Axis</a>, Up: <a href="#Non_002dstandard-GNU-APL-Features" accesskey="u" rel="up">Non-standard GNU APL Features</a> &nbsp; [<a href="#SEC_Contents" title="Table of contents" rel="contents">Contents</a>]</p>
@@ -4445,7 +4445,7 @@ ABBADEAD
 <div class="subsection" id="Dyadic-_22a4_2227-_22a4_2228-_22a4_2372-_22a4_2371-_22a4_003d-and-_22a4_2260">
 <div class="header">
 <p>
-Next: <a href="#Monadic-_22a4_2228-and-_22a4_2371" accesskey="n" rel="next">Monadic ⊤∨ and ⊤⍱</a>, Up: <a href="#Bit_002dwise-Logical-Functions_003a-_22a4_2227-_22a4_2228-_22a4_2372-_22a4_2371-_22a4_2260-and-_22a4_003d" accesskey="u" rel="up">Bit-wise Logical Functions ⊤∧, ⊤∨, ⊤⍲, ⊤⍱, ⊤≠, and ⊤=</a> &nbsp; [<a href="#SEC_Contents" title="Table of contents" rel="contents">Contents</a>]</p>
+Next: <a href="#Monadic-_22a4_2228-and-_22a4_2371" accesskey="n" rel="next">Monadic ⊤∨ and ⊤⍱</a>, Up: <a href="#Bit_002dwise-Logical-Functions-_002d-_22a4_2227-_22a4_2228-_22a4_2372-_22a4_2371-_22a4_2260-and-_22a4_003d" accesskey="u" rel="up">Bit-wise Logical Functions ⊤∧, ⊤∨, ⊤⍲, ⊤⍱, ⊤≠, and ⊤=</a> &nbsp; [<a href="#SEC_Contents" title="Table of contents" rel="contents">Contents</a>]</p>
 </div>
 <span id="Dyadic-_005b_003f_005d_005b_003f_005d_002c-_005b_003f_005d_005b_003f_005d_002c-_005b_003f_005d_005b_003f_005d_002c-_005b_003f_005d_005b_003f_005d_002c-_005b_003f_005d_003d_002c-and-_005b_003f_005d_005b_003f_005d"></span><h4 class="subsection">2.20.1 Dyadic ⊤∧, ⊤∨, ⊤⍲, ⊤⍱, ⊤=, and ⊤≠</h4>
 
@@ -4466,7 +4466,7 @@ variants of their Boolean counterparts:
 <div class="subsection" id="Monadic-_22a4_2228-and-_22a4_2371">
 <div class="header">
 <p>
-Next: <a href="#Monadic-_22a4_2227" accesskey="n" rel="next">Monadic ⊤∧</a>, Previous: <a href="#Dyadic-_22a4_2227-_22a4_2228-_22a4_2372-_22a4_2371-_22a4_003d-and-_22a4_2260" accesskey="p" rel="prev">Dyadic ⊤∧, ⊤∨, ⊤⍲, ⊤⍱, ⊤=, and ⊤≠</a>, Up: <a href="#Bit_002dwise-Logical-Functions_003a-_22a4_2227-_22a4_2228-_22a4_2372-_22a4_2371-_22a4_2260-and-_22a4_003d" accesskey="u" rel="up">Bit-wise Logical Functions ⊤∧, ⊤∨, ⊤⍲, ⊤⍱, ⊤≠, and ⊤=</a> &nbsp; [<a href="#SEC_Contents" title="Table of contents" rel="contents">Contents</a>]</p>
+Next: <a href="#Monadic-_22a4_2227" accesskey="n" rel="next">Monadic ⊤∧</a>, Previous: <a href="#Dyadic-_22a4_2227-_22a4_2228-_22a4_2372-_22a4_2371-_22a4_003d-and-_22a4_2260" accesskey="p" rel="prev">Dyadic ⊤∧, ⊤∨, ⊤⍲, ⊤⍱, ⊤=, and ⊤≠</a>, Up: <a href="#Bit_002dwise-Logical-Functions-_002d-_22a4_2227-_22a4_2228-_22a4_2372-_22a4_2371-_22a4_2260-and-_22a4_003d" accesskey="u" rel="up">Bit-wise Logical Functions ⊤∧, ⊤∨, ⊤⍲, ⊤⍱, ⊤≠, and ⊤=</a> &nbsp; [<a href="#SEC_Contents" title="Table of contents" rel="contents">Contents</a>]</p>
 </div>
 <span id="Monadic-_005b_003f_005d_005b_003f_005d-and-_005b_003f_005d_005b_003f_005d"></span><h4 class="subsection">2.20.2 Monadic ⊤∨ and ⊤⍱</h4>
 
@@ -4524,7 +4524,7 @@ complex numbers have the same cell type in GNU APL.
 <div class="subsection" id="Monadic-_22a4_2227">
 <div class="header">
 <p>
-Next: <a href="#Character-Arguments-for-Monadic-_22a4_2371-and-Dyadic-_22a4_2227-_22a4_2228-_003d_003d-and-_2260_2260" accesskey="n" rel="next">Character Arguments for Monadic ⊤⍱ and Dyadic ⊤∧, ⊤∨, ==, and ≠≠</a>, Previous: <a href="#Monadic-_22a4_2228-and-_22a4_2371" accesskey="p" rel="prev">Monadic ⊤∨ and ⊤⍱</a>, Up: <a href="#Bit_002dwise-Logical-Functions_003a-_22a4_2227-_22a4_2228-_22a4_2372-_22a4_2371-_22a4_2260-and-_22a4_003d" accesskey="u" rel="up">Bit-wise Logical Functions ⊤∧, ⊤∨, ⊤⍲, ⊤⍱, ⊤≠, and ⊤=</a> &nbsp; [<a href="#SEC_Contents" title="Table of contents" rel="contents">Contents</a>]</p>
+Next: <a href="#Character-Arguments-for-Monadic-_22a4_2371-and-Dyadic-_22a4_2227-_22a4_2228-_003d_003d-and-_2260_2260" accesskey="n" rel="next">Character Arguments for Monadic ⊤⍱ and Dyadic ⊤∧, ⊤∨, ==, and ≠≠</a>, Previous: <a href="#Monadic-_22a4_2228-and-_22a4_2371" accesskey="p" rel="prev">Monadic ⊤∨ and ⊤⍱</a>, Up: <a href="#Bit_002dwise-Logical-Functions-_002d-_22a4_2227-_22a4_2228-_22a4_2372-_22a4_2371-_22a4_2260-and-_22a4_003d" accesskey="u" rel="up">Bit-wise Logical Functions ⊤∧, ⊤∨, ⊤⍲, ⊤⍱, ⊤≠, and ⊤=</a> &nbsp; [<a href="#SEC_Contents" title="Table of contents" rel="contents">Contents</a>]</p>
 </div>
 <span id="Monadic-_005b_003f_005d_005b_003f_005d"></span><h4 class="subsection">2.20.3 Monadic ⊤∧</h4>
 
@@ -4563,7 +4563,7 @@ the permitted tolerance for real numbers in the neighborhood of integers.
 <div class="subsection" id="Character-Arguments-for-Monadic-_22a4_2371-and-Dyadic-_22a4_2227-_22a4_2228-_003d_003d-and-_2260_2260">
 <div class="header">
 <p>
-Previous: <a href="#Monadic-_22a4_2227" accesskey="p" rel="prev">Monadic ⊤∧</a>, Up: <a href="#Bit_002dwise-Logical-Functions_003a-_22a4_2227-_22a4_2228-_22a4_2372-_22a4_2371-_22a4_2260-and-_22a4_003d" accesskey="u" rel="up">Bit-wise Logical Functions ⊤∧, ⊤∨, ⊤⍲, ⊤⍱, ⊤≠, and ⊤=</a> &nbsp; [<a href="#SEC_Contents" title="Table of contents" rel="contents">Contents</a>]</p>
+Previous: <a href="#Monadic-_22a4_2227" accesskey="p" rel="prev">Monadic ⊤∧</a>, Up: <a href="#Bit_002dwise-Logical-Functions-_002d-_22a4_2227-_22a4_2228-_22a4_2372-_22a4_2371-_22a4_2260-and-_22a4_003d" accesskey="u" rel="up">Bit-wise Logical Functions ⊤∧, ⊤∨, ⊤⍲, ⊤⍱, ⊤≠, and ⊤=</a> &nbsp; [<a href="#SEC_Contents" title="Table of contents" rel="contents">Contents</a>]</p>
 </div>
 <span id="Character-Arguments-for-Monadic-_005b_003f_005d_005b_003f_005d-and-Dyadic-_005b_003f_005d_005b_003f_005d_002c-_005b_003f_005d_005b_003f_005d_002c-_003d_003d_002c-and-_005b_003f_005d_005b_003f_005d"></span><h4 class="subsection">2.20.4 Character Arguments for Monadic ⊤⍱ and Dyadic ⊤∧, ⊤∨, ==, and ≠≠</h4>
 
@@ -4593,7 +4593,7 @@ BE
 <div class="section" id="g_t_22a4-_0028Encode_0029-with-Axis">
 <div class="header">
 <p>
-Next: <a href="#Generalized-_2373" accesskey="n" rel="next">Generalized ⍳</a>, Previous: <a href="#Bit_002dwise-Logical-Functions_003a-_22a4_2227-_22a4_2228-_22a4_2372-_22a4_2371-_22a4_2260-and-_22a4_003d" accesskey="p" rel="prev">Bit-wise Logical Functions ⊤∧, ⊤∨, ⊤⍲, ⊤⍱, ⊤≠, and ⊤=</a>, Up: <a href="#Non_002dstandard-GNU-APL-Features" accesskey="u" rel="up">Non-standard GNU APL Features</a> &nbsp; [<a href="#SEC_Contents" title="Table of contents" rel="contents">Contents</a>]</p>
+Next: <a href="#Generalized-_2373" accesskey="n" rel="next">Generalized ⍳</a>, Previous: <a href="#Bit_002dwise-Logical-Functions-_002d-_22a4_2227-_22a4_2228-_22a4_2372-_22a4_2371-_22a4_2260-and-_22a4_003d" accesskey="p" rel="prev">Bit-wise Logical Functions ⊤∧, ⊤∨, ⊤⍲, ⊤⍱, ⊤≠, and ⊤=</a>, Up: <a href="#Non_002dstandard-GNU-APL-Features" accesskey="u" rel="up">Non-standard GNU APL Features</a> &nbsp; [<a href="#SEC_Contents" title="Table of contents" rel="contents">Contents</a>]</p>
 </div>
 <span id="g_t_005b_003f_005d-_0028Encode_0029-with-Axis"></span><h3 class="section">2.21 ⊤ (Encode) with Axis</h3>
 
@@ -4908,21 +4908,21 @@ in the various <b>⌹</b> functions.
 </p>
 <ul class="section-toc">
 <li><a href="#A_2339B-and-_2339B" accesskey="1">A⌹B and ⌹B</a></li>
-<li><a href="#g_t_2339_005bX_005d-B_003a-Various-Factorizations-of-B" accesskey="2">⌹[X] B: Various Factorizations of B</a></li>
+<li><a href="#g_t_2339_005bX_005d-B-_002d-Various-Factorizations-of-B" accesskey="2">⌹[X] B: Various Factorizations of B</a></li>
 <li><a href="#Matrix-Inverse" accesskey="3">Matrix Inverse</a></li>
-<li><a href="#g_t_2339_005b7_005d-B_003a-Print-Polynomial-B" accesskey="4">⌹[7] B: Print Polynomial B</a></li>
-<li><a href="#A-_2339_005b8_005d-B_003a-Multiply-Polynomials-A-and-B" accesskey="5">A ⌹[8] B: Multiply Polynomials A and B</a></li>
-<li><a href="#A-_2339_005b9_005d-B_003a-Divide-Polynomial-A-by-Polynomial-B-_0028univariate_0029" accesskey="6">A ⌹[9] B: Divide Polynomial A by Polynomial B (univariate)</a></li>
-<li><a href="#A-_2339_005b10_005d-B_003a-Divide-Polynomial-A-by-Polynomial-B-_0028multivariate_0029" accesskey="7">A ⌹[10] B: Divide Polynomial A by Polynomial B (multivariate)</a></li>
-<li><a href="#A-_2339_005b11_005d-B_003a-Divide-Polynomial-A-by-Polynomial-B-_0028with-order_0029" accesskey="8">A ⌹[11] B: Divide Polynomial A by Polynomial B (with order)</a></li>
+<li><a href="#g_t_2339_005b7_005d-B-_002d-Print-Polynomial-B" accesskey="4">⌹[7] B: Print Polynomial B</a></li>
+<li><a href="#A-_2339_005b8_005d-B-_002d-Multiply-Polynomials-A-and-B" accesskey="5">A ⌹[8] B: Multiply Polynomials A and B</a></li>
+<li><a href="#A-_2339_005b9_005d-B-_002d-Divide-Polynomial-A-by-Polynomial-B-_0028univariate_0029" accesskey="6">A ⌹[9] B: Divide Polynomial A by Polynomial B (univariate)</a></li>
+<li><a href="#A-_2339_005b10_005d-B-_002d-Divide-Polynomial-A-by-Polynomial-B-_0028multivariate_0029" accesskey="7">A ⌹[10] B: Divide Polynomial A by Polynomial B (multivariate)</a></li>
+<li><a href="#A-_2339_005b11_005d-B-_002d-Divide-Polynomial-A-by-Polynomial-B-_0028with-order_0029" accesskey="8">A ⌹[11] B: Divide Polynomial A by Polynomial B (with order)</a></li>
 <li><a href="#g_t_2339_005b11_005d-B-Scan-Polynomial-B" accesskey="9">⌹[11] B: Scan Polynomial B</a></li>
-<li><a href="#A-_2339_005b20_005d-B_003a-Integral-B">A ⌹[20] B: Integral B</a></li>
+<li><a href="#A-_2339_005b20_005d-B-_002d-Integral-B">A ⌹[20] B: Integral B</a></li>
 </ul>
 <hr>
 <div class="subsubsection" id="A_2339B-and-_2339B">
 <div class="header">
 <p>
-Next: <a href="#g_t_2339_005bX_005d-B_003a-Various-Factorizations-of-B" accesskey="n" rel="next">⌹[X] B: Various Factorizations of B</a>, Up: <a href="#The-Impact-of-_2395CT-for-_2339" accesskey="u" rel="up">The Impact of ⎕CT for ⌹</a> &nbsp; [<a href="#SEC_Contents" title="Table of contents" rel="contents">Contents</a>]</p>
+Next: <a href="#g_t_2339_005bX_005d-B-_002d-Various-Factorizations-of-B" accesskey="n" rel="next">⌹[X] B: Various Factorizations of B</a>, Up: <a href="#The-Impact-of-_2395CT-for-_2339" accesskey="u" rel="up">The Impact of ⎕CT for ⌹</a> &nbsp; [<a href="#SEC_Contents" title="Table of contents" rel="contents">Contents</a>]</p>
 </div>
 <span id="A_005b_003f_005dB-and-_005b_003f_005dB"></span><h4 class="subsubsection">2.23.2.1 A⌹B and ⌹B</h4>
 
@@ -4967,7 +4967,7 @@ matrix <b>B</b> then there are two possibilities:
 
 <hr>
 </div>
-<div class="subsubsection" id="g_t_2339_005bX_005d-B_003a-Various-Factorizations-of-B">
+<div class="subsubsection" id="g_t_2339_005bX_005d-B-_002d-Various-Factorizations-of-B">
 <div class="header">
 <p>
 Next: <a href="#Matrix-Inverse" accesskey="n" rel="next">Matrix Inverse</a>, Previous: <a href="#A_2339B-and-_2339B" accesskey="p" rel="prev">A⌹B and ⌹B</a>, Up: <a href="#The-Impact-of-_2395CT-for-_2339" accesskey="u" rel="up">The Impact of ⎕CT for ⌹</a> &nbsp; [<a href="#SEC_Contents" title="Table of contents" rel="contents">Contents</a>]</p>
@@ -5040,7 +5040,7 @@ factorization <b>⌹[6]</b> returns a nested vector <b>(P U L)</b> where:
 <div class="subsubsection" id="Matrix-Inverse">
 <div class="header">
 <p>
-Next: <a href="#g_t_2339_005b7_005d-B_003a-Print-Polynomial-B" accesskey="n" rel="next">⌹[7] B: Print Polynomial B</a>, Previous: <a href="#g_t_2339_005bX_005d-B_003a-Various-Factorizations-of-B" accesskey="p" rel="prev">⌹[X] B: Various Factorizations of B</a>, Up: <a href="#The-Impact-of-_2395CT-for-_2339" accesskey="u" rel="up">The Impact of ⎕CT for ⌹</a> &nbsp; [<a href="#SEC_Contents" title="Table of contents" rel="contents">Contents</a>]</p>
+Next: <a href="#g_t_2339_005b7_005d-B-_002d-Print-Polynomial-B" accesskey="n" rel="next">⌹[7] B: Print Polynomial B</a>, Previous: <a href="#g_t_2339_005bX_005d-B-_002d-Various-Factorizations-of-B" accesskey="p" rel="prev">⌹[X] B: Various Factorizations of B</a>, Up: <a href="#The-Impact-of-_2395CT-for-_2339" accesskey="u" rel="up">The Impact of ⎕CT for ⌹</a> &nbsp; [<a href="#SEC_Contents" title="Table of contents" rel="contents">Contents</a>]</p>
 </div>
 <span id="Matrix-Inverse-1"></span><h4 class="subsubsection">2.23.2.3 Matrix Inverse</h4>
 
@@ -5069,10 +5069,10 @@ computation of <b>⌹B</b> if <b>B</b> is large.
 
 <hr>
 </div>
-<div class="subsubsection" id="g_t_2339_005b7_005d-B_003a-Print-Polynomial-B">
+<div class="subsubsection" id="g_t_2339_005b7_005d-B-_002d-Print-Polynomial-B">
 <div class="header">
 <p>
-Next: <a href="#A-_2339_005b8_005d-B_003a-Multiply-Polynomials-A-and-B" accesskey="n" rel="next">A ⌹[8] B: Multiply Polynomials A and B</a>, Previous: <a href="#Matrix-Inverse" accesskey="p" rel="prev">Matrix Inverse</a>, Up: <a href="#The-Impact-of-_2395CT-for-_2339" accesskey="u" rel="up">The Impact of ⎕CT for ⌹</a> &nbsp; [<a href="#SEC_Contents" title="Table of contents" rel="contents">Contents</a>]</p>
+Next: <a href="#A-_2339_005b8_005d-B-_002d-Multiply-Polynomials-A-and-B" accesskey="n" rel="next">A ⌹[8] B: Multiply Polynomials A and B</a>, Previous: <a href="#Matrix-Inverse" accesskey="p" rel="prev">Matrix Inverse</a>, Up: <a href="#The-Impact-of-_2395CT-for-_2339" accesskey="u" rel="up">The Impact of ⎕CT for ⌹</a> &nbsp; [<a href="#SEC_Contents" title="Table of contents" rel="contents">Contents</a>]</p>
 </div>
 <span id="g_t_005b_003f_005d_005b7_005d-B_003a-Print-Polynomial-B"></span><h4 class="subsubsection">2.23.2.4 ⌹[7] B: Print Polynomial B</h4>
 
@@ -5154,10 +5154,10 @@ x² + 2x + 3
  
 <hr>
 </div>
-<div class="subsubsection" id="A-_2339_005b8_005d-B_003a-Multiply-Polynomials-A-and-B">
+<div class="subsubsection" id="A-_2339_005b8_005d-B-_002d-Multiply-Polynomials-A-and-B">
 <div class="header">
 <p>
-Next: <a href="#A-_2339_005b9_005d-B_003a-Divide-Polynomial-A-by-Polynomial-B-_0028univariate_0029" accesskey="n" rel="next">A ⌹[9] B: Divide Polynomial A by Polynomial B (univariate)</a>, Previous: <a href="#g_t_2339_005b7_005d-B_003a-Print-Polynomial-B" accesskey="p" rel="prev">⌹[7] B: Print Polynomial B</a>, Up: <a href="#The-Impact-of-_2395CT-for-_2339" accesskey="u" rel="up">The Impact of ⎕CT for ⌹</a> &nbsp; [<a href="#SEC_Contents" title="Table of contents" rel="contents">Contents</a>]</p>
+Next: <a href="#A-_2339_005b9_005d-B-_002d-Divide-Polynomial-A-by-Polynomial-B-_0028univariate_0029" accesskey="n" rel="next">A ⌹[9] B: Divide Polynomial A by Polynomial B (univariate)</a>, Previous: <a href="#g_t_2339_005b7_005d-B-_002d-Print-Polynomial-B" accesskey="p" rel="prev">⌹[7] B: Print Polynomial B</a>, Up: <a href="#The-Impact-of-_2395CT-for-_2339" accesskey="u" rel="up">The Impact of ⎕CT for ⌹</a> &nbsp; [<a href="#SEC_Contents" title="Table of contents" rel="contents">Contents</a>]</p>
 </div>
 <span id="A-_005b_003f_005d_005b8_005d-B_003a-Multiply-Polynomials-A-and-B"></span><h4 class="subsubsection">2.23.2.5 A ⌹[8] B: Multiply Polynomials A and B</h4>
 
@@ -5195,10 +5195,10 @@ the product of two polynomials. For example:
 
 <hr>
 </div>
-<div class="subsubsection" id="A-_2339_005b9_005d-B_003a-Divide-Polynomial-A-by-Polynomial-B-_0028univariate_0029">
+<div class="subsubsection" id="A-_2339_005b9_005d-B-_002d-Divide-Polynomial-A-by-Polynomial-B-_0028univariate_0029">
 <div class="header">
 <p>
-Next: <a href="#A-_2339_005b10_005d-B_003a-Divide-Polynomial-A-by-Polynomial-B-_0028multivariate_0029" accesskey="n" rel="next">A ⌹[10] B: Divide Polynomial A by Polynomial B (multivariate)</a>, Previous: <a href="#A-_2339_005b8_005d-B_003a-Multiply-Polynomials-A-and-B" accesskey="p" rel="prev">A ⌹[8] B: Multiply Polynomials A and B</a>, Up: <a href="#The-Impact-of-_2395CT-for-_2339" accesskey="u" rel="up">The Impact of ⎕CT for ⌹</a> &nbsp; [<a href="#SEC_Contents" title="Table of contents" rel="contents">Contents</a>]</p>
+Next: <a href="#A-_2339_005b10_005d-B-_002d-Divide-Polynomial-A-by-Polynomial-B-_0028multivariate_0029" accesskey="n" rel="next">A ⌹[10] B: Divide Polynomial A by Polynomial B (multivariate)</a>, Previous: <a href="#A-_2339_005b8_005d-B-_002d-Multiply-Polynomials-A-and-B" accesskey="p" rel="prev">A ⌹[8] B: Multiply Polynomials A and B</a>, Up: <a href="#The-Impact-of-_2395CT-for-_2339" accesskey="u" rel="up">The Impact of ⎕CT for ⌹</a> &nbsp; [<a href="#SEC_Contents" title="Table of contents" rel="contents">Contents</a>]</p>
 </div>
 <span id="A-_005b_003f_005d_005b9_005d-B_003a-Divide-Polynomial-A-by-Polynomial-B-_0028univariate_0029"></span><h4 class="subsubsection">2.23.2.6 A ⌹[9] B: Divide Polynomial A by Polynomial B (univariate)</h4>
 
@@ -5219,10 +5219,10 @@ of polynomial <b>B</b>. That is, <b>⍴Remainder = ¯1+⍴B</b>.
 </p>
 <hr>
 </div>
-<div class="subsubsection" id="A-_2339_005b10_005d-B_003a-Divide-Polynomial-A-by-Polynomial-B-_0028multivariate_0029">
+<div class="subsubsection" id="A-_2339_005b10_005d-B-_002d-Divide-Polynomial-A-by-Polynomial-B-_0028multivariate_0029">
 <div class="header">
 <p>
-Next: <a href="#A-_2339_005b11_005d-B_003a-Divide-Polynomial-A-by-Polynomial-B-_0028with-order_0029" accesskey="n" rel="next">A ⌹[11] B: Divide Polynomial A by Polynomial B (with order)</a>, Previous: <a href="#A-_2339_005b9_005d-B_003a-Divide-Polynomial-A-by-Polynomial-B-_0028univariate_0029" accesskey="p" rel="prev">A ⌹[9] B: Divide Polynomial A by Polynomial B (univariate)</a>, Up: <a href="#The-Impact-of-_2395CT-for-_2339" accesskey="u" rel="up">The Impact of ⎕CT for ⌹</a> &nbsp; [<a href="#SEC_Contents" title="Table of contents" rel="contents">Contents</a>]</p>
+Next: <a href="#A-_2339_005b11_005d-B-_002d-Divide-Polynomial-A-by-Polynomial-B-_0028with-order_0029" accesskey="n" rel="next">A ⌹[11] B: Divide Polynomial A by Polynomial B (with order)</a>, Previous: <a href="#A-_2339_005b9_005d-B-_002d-Divide-Polynomial-A-by-Polynomial-B-_0028univariate_0029" accesskey="p" rel="prev">A ⌹[9] B: Divide Polynomial A by Polynomial B (univariate)</a>, Up: <a href="#The-Impact-of-_2395CT-for-_2339" accesskey="u" rel="up">The Impact of ⎕CT for ⌹</a> &nbsp; [<a href="#SEC_Contents" title="Table of contents" rel="contents">Contents</a>]</p>
 </div>
 <span id="A-_005b_003f_005d_005b10_005d-B_003a-Divide-Polynomial-A-by-Polynomial-B-_0028multivariate_0029"></span><h4 class="subsubsection">2.23.2.7 A ⌹[10] B: Divide Polynomial A by Polynomial B (multivariate)</h4>
 
@@ -5358,10 +5358,10 @@ dividing it by <b>LT(gᵢ)</b> if that is possible) or else to <b>r</b>
 
 <hr>
 </div>
-<div class="subsubsection" id="A-_2339_005b11_005d-B_003a-Divide-Polynomial-A-by-Polynomial-B-_0028with-order_0029">
+<div class="subsubsection" id="A-_2339_005b11_005d-B-_002d-Divide-Polynomial-A-by-Polynomial-B-_0028with-order_0029">
 <div class="header">
 <p>
-Next: <a href="#g_t_2339_005b11_005d-B-Scan-Polynomial-B" accesskey="n" rel="next">⌹[11] B: Scan Polynomial B</a>, Previous: <a href="#A-_2339_005b10_005d-B_003a-Divide-Polynomial-A-by-Polynomial-B-_0028multivariate_0029" accesskey="p" rel="prev">A ⌹[10] B: Divide Polynomial A by Polynomial B (multivariate)</a>, Up: <a href="#The-Impact-of-_2395CT-for-_2339" accesskey="u" rel="up">The Impact of ⎕CT for ⌹</a> &nbsp; [<a href="#SEC_Contents" title="Table of contents" rel="contents">Contents</a>]</p>
+Next: <a href="#g_t_2339_005b11_005d-B-Scan-Polynomial-B" accesskey="n" rel="next">⌹[11] B: Scan Polynomial B</a>, Previous: <a href="#A-_2339_005b10_005d-B-_002d-Divide-Polynomial-A-by-Polynomial-B-_0028multivariate_0029" accesskey="p" rel="prev">A ⌹[10] B: Divide Polynomial A by Polynomial B (multivariate)</a>, Up: <a href="#The-Impact-of-_2395CT-for-_2339" accesskey="u" rel="up">The Impact of ⎕CT for ⌹</a> &nbsp; [<a href="#SEC_Contents" title="Table of contents" rel="contents">Contents</a>]</p>
 </div>
 <span id="A-_005b_003f_005d_005b11_005d-B_003a-Divide-Polynomial-A-by-Polynomial-B-_0028with-order_0029"></span><h4 class="subsubsection">2.23.2.8 A ⌹[11] B: Divide Polynomial A by Polynomial B (with order)</h4>
 
@@ -5448,7 +5448,7 @@ appended to create an argument for <b>A ⌹.poly_divideNO B</b>:
 <div class="subsubsection" id="g_t_2339_005b11_005d-B-Scan-Polynomial-B">
 <div class="header">
 <p>
-Next: <a href="#A-_2339_005b20_005d-B_003a-Integral-B" accesskey="n" rel="next">A ⌹[20] B: Integral B</a>, Previous: <a href="#A-_2339_005b11_005d-B_003a-Divide-Polynomial-A-by-Polynomial-B-_0028with-order_0029" accesskey="p" rel="prev">A ⌹[11] B: Divide Polynomial A by Polynomial B (with order)</a>, Up: <a href="#The-Impact-of-_2395CT-for-_2339" accesskey="u" rel="up">The Impact of ⎕CT for ⌹</a> &nbsp; [<a href="#SEC_Contents" title="Table of contents" rel="contents">Contents</a>]</p>
+Next: <a href="#A-_2339_005b20_005d-B-_002d-Integral-B" accesskey="n" rel="next">A ⌹[20] B: Integral B</a>, Previous: <a href="#A-_2339_005b11_005d-B-_002d-Divide-Polynomial-A-by-Polynomial-B-_0028with-order_0029" accesskey="p" rel="prev">A ⌹[11] B: Divide Polynomial A by Polynomial B (with order)</a>, Up: <a href="#The-Impact-of-_2395CT-for-_2339" accesskey="u" rel="up">The Impact of ⎕CT for ⌹</a> &nbsp; [<a href="#SEC_Contents" title="Table of contents" rel="contents">Contents</a>]</p>
 </div>
 <span id="g_t_005b_003f_005d_005b11_005d-B_003a-Scan-Polynomial-B"></span><h4 class="subsubsection">2.23.2.9 ⌹[11] B: Scan Polynomial B</h4>
 
@@ -5506,7 +5506,7 @@ indeterminants).
 </p>
 <hr>
 </div>
-<div class="subsubsection" id="A-_2339_005b20_005d-B_003a-Integral-B">
+<div class="subsubsection" id="A-_2339_005b20_005d-B-_002d-Integral-B">
 <div class="header">
 <p>
 Previous: <a href="#g_t_2339_005b11_005d-B-Scan-Polynomial-B" accesskey="p" rel="prev">⌹[11] B: Scan Polynomial B</a>, Up: <a href="#The-Impact-of-_2395CT-for-_2339" accesskey="u" rel="up">The Impact of ⎕CT for ⌹</a> &nbsp; [<a href="#SEC_Contents" title="Table of contents" rel="contents">Contents</a>]</p>
@@ -5594,14 +5594,14 @@ A..Z. GNU APL provides a single system function <b>⎕CC</b> for that
 purpose.
 </p>
 <ul class="section-toc">
-<li><a href="#monadic-_2395CC-B_003a-Return-character-class" accesskey="1">monadic ⎕CC B: Return character class</a></li>
-<li><a href="#dyadic-A-_2395CC-B_003a-Test-character-class" accesskey="2">dyadic A ⎕CC B: Test character class</a></li>
+<li><a href="#monadic-_2395CC-B-_002d-Return-character-class" accesskey="1">monadic ⎕CC B: Return character class</a></li>
+<li><a href="#dyadic-A-_2395CC-B-_002d-Test-character-class" accesskey="2">dyadic A ⎕CC B: Test character class</a></li>
 </ul>
 <hr>
-<div class="subsection" id="monadic-_2395CC-B_003a-Return-character-class">
+<div class="subsection" id="monadic-_2395CC-B-_002d-Return-character-class">
 <div class="header">
 <p>
-Next: <a href="#dyadic-A-_2395CC-B_003a-Test-character-class" accesskey="n" rel="next">dyadic A ⎕CC B: Test character class</a>, Up: <a href="#g_t_2395CC-_002d-Character-Classes" accesskey="u" rel="up">⎕CC - Character Classes</a> &nbsp; [<a href="#SEC_Contents" title="Table of contents" rel="contents">Contents</a>]</p>
+Next: <a href="#dyadic-A-_2395CC-B-_002d-Test-character-class" accesskey="n" rel="next">dyadic A ⎕CC B: Test character class</a>, Up: <a href="#g_t_2395CC-_002d-Character-Classes" accesskey="u" rel="up">⎕CC - Character Classes</a> &nbsp; [<a href="#SEC_Contents" title="Table of contents" rel="contents">Contents</a>]</p>
 </div>
 <span id="monadic-_005b_003f_005dCC-B_003a-Return-character-class"></span><h4 class="subsection">2.24.1 monadic ⎕CC B: Return character class</h4>
 
@@ -5681,10 +5681,10 @@ character classes for ⎕CC:
 
 <hr>
 </div>
-<div class="subsection" id="dyadic-A-_2395CC-B_003a-Test-character-class">
+<div class="subsection" id="dyadic-A-_2395CC-B-_002d-Test-character-class">
 <div class="header">
 <p>
-Previous: <a href="#monadic-_2395CC-B_003a-Return-character-class" accesskey="p" rel="prev">monadic ⎕CC B: Return character class</a>, Up: <a href="#g_t_2395CC-_002d-Character-Classes" accesskey="u" rel="up">⎕CC - Character Classes</a> &nbsp; [<a href="#SEC_Contents" title="Table of contents" rel="contents">Contents</a>]</p>
+Previous: <a href="#monadic-_2395CC-B-_002d-Return-character-class" accesskey="p" rel="prev">monadic ⎕CC B: Return character class</a>, Up: <a href="#g_t_2395CC-_002d-Character-Classes" accesskey="u" rel="up">⎕CC - Character Classes</a> &nbsp; [<a href="#SEC_Contents" title="Table of contents" rel="contents">Contents</a>]</p>
 </div>
 <span id="dyadic-A-_005b_003f_005dCC-B_003a-Test-character-class"></span><h4 class="subsection">2.24.2 dyadic A ⎕CC B: Test character class</h4>
 
@@ -8205,13 +8205,13 @@ is a flag. Each flag is either understood by (and then passed unmodified to)
 libpcre2 or else understood by ⎕RE itself (and then not passed to libpcre2).
 </p>
 <ul class="section-toc">
-<li><a href="#The-libpcre2-flags_003a-i-m-s-and-x" accesskey="1">The libpcre2 flags: i, m, s, and x</a></li>
+<li><a href="#The-libpcre2-flags-_002d-i-m-s-and-x" accesskey="1">The libpcre2 flags: i, m, s, and x</a></li>
 <li><a href="#The-_2395RE-_0028APL-output-format_0029-flags-_2193-_2282-and-_002f" accesskey="2">The ⎕RE (APL output format) flags ↓, ⊂, and /</a></li>
 <li><a href="#the-_2395RE-global-flag-g" accesskey="3">the ⎕RE global flag g</a></li>
 <li><a href="#the-_2395RE-error-flag-E" accesskey="4">the ⎕RE error flag E</a></li>
 </ul>
 <hr>
-<div class="subsubsection" id="The-libpcre2-flags_003a-i-m-s-and-x">
+<div class="subsubsection" id="The-libpcre2-flags-_002d-i-m-s-and-x">
 <div class="header">
 <p>
 Next: <a href="#The-_2395RE-_0028APL-output-format_0029-flags-_2193-_2282-and-_002f" accesskey="n" rel="next">The ⎕RE (APL output format) flags ↓, ⊂, and /</a>, Up: <a href="#The-Flags-X" accesskey="u" rel="up">The Flags X</a> &nbsp; [<a href="#SEC_Contents" title="Table of contents" rel="contents">Contents</a>]</p>
@@ -8236,7 +8236,7 @@ of these flags.
 <div class="subsubsection" id="The-_2395RE-_0028APL-output-format_0029-flags-_2193-_2282-and-_002f">
 <div class="header">
 <p>
-Next: <a href="#the-_2395RE-global-flag-g" accesskey="n" rel="next">the ⎕RE global flag g</a>, Previous: <a href="#The-libpcre2-flags_003a-i-m-s-and-x" accesskey="p" rel="prev">The libpcre2 flags: i, m, s, and x</a>, Up: <a href="#The-Flags-X" accesskey="u" rel="up">The Flags X</a> &nbsp; [<a href="#SEC_Contents" title="Table of contents" rel="contents">Contents</a>]</p>
+Next: <a href="#the-_2395RE-global-flag-g" accesskey="n" rel="next">the ⎕RE global flag g</a>, Previous: <a href="#The-libpcre2-flags-_002d-i-m-s-and-x" accesskey="p" rel="prev">The libpcre2 flags: i, m, s, and x</a>, Up: <a href="#The-Flags-X" accesskey="u" rel="up">The Flags X</a> &nbsp; [<a href="#SEC_Contents" title="Table of contents" rel="contents">Contents</a>]</p>
 </div>
 <span id="The-_005b_003f_005dRE-_0028APL-output-format_0029-flags-_007c_002c-_005b_003f_005d_002c-and-_002f"></span><h4 class="subsubsection">2.39.5.2 The ⎕RE (APL output format) flags ↓, ⊂, and /</h4>
 
@@ -8512,6 +8512,8 @@ useful for other purposes as well.
 <ul class="section-toc">
 <li><a href="#General" accesskey="1">General</a></li>
 <li><a href="#Dyadic-_2395RVAL" accesskey="2">Dyadic ⎕RVAL</a></li>
+<li><a href="#monadic-_2395RVAL-B" accesskey="3">monadic ⎕RVAL B</a></li>
+<li><a href="#Syntax-Alternatives" accesskey="4">Syntax Alternatives</a></li>
 </ul>
 <hr>
 <div class="subsection" id="General">
@@ -8548,7 +8550,7 @@ integer scalar.
 <div class="subsection" id="Dyadic-_2395RVAL">
 <div class="header">
 <p>
-Previous: <a href="#General" accesskey="p" rel="prev">General</a>, Up: <a href="#g_t_2395RVAL-_002d-Random-APL-value" accesskey="u" rel="up">⎕RVAL - Random APL value</a> &nbsp; [<a href="#SEC_Contents" title="Table of contents" rel="contents">Contents</a>]</p>
+Next: <a href="#monadic-_2395RVAL-B" accesskey="n" rel="next">monadic ⎕RVAL B</a>, Previous: <a href="#General" accesskey="p" rel="prev">General</a>, Up: <a href="#g_t_2395RVAL-_002d-Random-APL-value" accesskey="u" rel="up">⎕RVAL - Random APL value</a> &nbsp; [<a href="#SEC_Contents" title="Table of contents" rel="contents">Contents</a>]</p>
 </div>
 <span id="Dyadic-_005b_003f_005dRVAL"></span><h4 class="subsection">2.40.2 Dyadic ⎕RVAL</h4>
 
@@ -8556,37 +8558,38 @@ Previous: <a href="#General" accesskey="p" rel="prev">General</a>, Up: <a href="
 subsequent random APL values shall be controlled. A is an integer scalar:
 </p>
 <ul>
-<li> A=0 controls the state of the underlying random number generator,
+<li> <b>A=0</b> controls the state of the underlying random number generator,
 
-</li><li> A=1 controls the ranks of the subsequent random APL values,
+</li><li> <b>A=1</b> controls the ranks of the subsequent random APL values,
 
-</li><li> A=2 controls the shapes of the subsequent random APL values,
+</li><li> <b>A=2</b> controls the shapes of the subsequent random APL values,
 
-</li><li> A=3 controls the data types in the ravels of the subsequent random APL values,
+</li><li> <b>A=3</b> controls the data types in the ravels of the subsequent random APL values,
 and
 
-</li><li> A=4 controls a maximum depth of the subsequent random APL values, and
+</li><li> <b>A=4</b> controls a maximum depth of the subsequent random APL values,
 
-</li><li> A=5 controls a maximum element count of the subsequent random APL values.
+</li><li> <b>A=5</b> controls a maximum element count of the subsequent random APL values, and
+
+</li><li> <b>A=6</b> returns the primitive arity/stimulus/constraint table used to
+generate randomised invariant testcases.
 
 </li></ul>
 
 <ul class="section-toc">
-<li><a href="#Control-of-the-underlying-random-number-generator_003a-0-_2395RVAL-B" accesskey="1">Control of the underlying random number generator: 0 ⎕RVAL B</a></li>
-<li><a href="#Control-of-the-ranks_003a-1-_2395RVAL-B" accesskey="2">Control of the ranks: 1 ⎕RVAL B</a></li>
-<li><a href="#Control-of-the-shapes_003a-2-_2395RVAL-B" accesskey="3">Control of the shapes: 2 ⎕RVAL B</a></li>
-<li><a href="#Control-of-the-data-types_003a-3-_2395RVAL-B" accesskey="4">Control of the data types: 3 ⎕RVAL B</a></li>
-<li><a href="#Control-of-a-maximum-depth_003a-4-_2395RVAL-B" accesskey="5">Control of a maximum depth: 4 ⎕RVAL B</a></li>
-<li><a href="#Control-of-the-element-count_003a-5-_2395RVAL-B" accesskey="6">Control of the element count: 5 ⎕RVAL B</a></li>
-<li><a href="#The-primitive-table_003a-6-_2395RVAL-B" accesskey="7">The primitive table: 6 ⎕RVAL B</a></li>
-<li><a href="#monadic-_2395RVAL-B" accesskey="8">monadic ⎕RVAL B</a></li>
-<li><a href="#Syntax-Alternatives" accesskey="9">Syntax Alternatives</a></li>
+<li><a href="#Control-of-the-underlying-random-number-generator-_002d-0-_2395RVAL-B" accesskey="1">Control of the underlying random number generator: 0 ⎕RVAL B</a></li>
+<li><a href="#Control-of-the-ranks-_002d-1-_2395RVAL-B" accesskey="2">Control of the ranks: 1 ⎕RVAL B</a></li>
+<li><a href="#Control-of-the-shapes-_002d-2-_2395RVAL-B" accesskey="3">Control of the shapes: 2 ⎕RVAL B</a></li>
+<li><a href="#Control-of-the-data-types-_002d-3-_2395RVAL-B" accesskey="4">Control of the data types: 3 ⎕RVAL B</a></li>
+<li><a href="#Control-of-a-maximum-depth-_002d-4-_2395RVAL-B" accesskey="5">Control of a maximum depth: 4 ⎕RVAL B</a></li>
+<li><a href="#Control-of-the-element-count-_002d-5-_2395RVAL-B" accesskey="6">Control of the element count: 5 ⎕RVAL B</a></li>
+<li><a href="#The-primitive-table-_002d-6-_2395RVAL-B" accesskey="7">The primitive table: 6 ⎕RVAL B</a></li>
 </ul>
 <hr>
-<div class="subsubsection" id="Control-of-the-underlying-random-number-generator_003a-0-_2395RVAL-B">
+<div class="subsubsection" id="Control-of-the-underlying-random-number-generator-_002d-0-_2395RVAL-B">
 <div class="header">
 <p>
-Next: <a href="#Control-of-the-ranks_003a-1-_2395RVAL-B" accesskey="n" rel="next">Control of the ranks: 1 ⎕RVAL B</a>, Up: <a href="#Dyadic-_2395RVAL" accesskey="u" rel="up">Dyadic ⎕RVAL</a> &nbsp; [<a href="#SEC_Contents" title="Table of contents" rel="contents">Contents</a>]</p>
+Next: <a href="#Control-of-the-ranks-_002d-1-_2395RVAL-B" accesskey="n" rel="next">Control of the ranks: 1 ⎕RVAL B</a>, Up: <a href="#Dyadic-_2395RVAL" accesskey="u" rel="up">Dyadic ⎕RVAL</a> &nbsp; [<a href="#SEC_Contents" title="Table of contents" rel="contents">Contents</a>]</p>
 </div>
 <span id="Control-of-the-underlying-random-number-generator_003a-0-_005b_003f_005dRVAL-B"></span><h4 class="subsubsection">2.40.2.1 Control of the underlying random number generator: 0 ⎕RVAL B</h4>
 
@@ -8625,10 +8628,10 @@ queries the current state without changing it.
 </p>
 <hr>
 </div>
-<div class="subsubsection" id="Control-of-the-ranks_003a-1-_2395RVAL-B">
+<div class="subsubsection" id="Control-of-the-ranks-_002d-1-_2395RVAL-B">
 <div class="header">
 <p>
-Next: <a href="#Control-of-the-shapes_003a-2-_2395RVAL-B" accesskey="n" rel="next">Control of the shapes: 2 ⎕RVAL B</a>, Previous: <a href="#Control-of-the-underlying-random-number-generator_003a-0-_2395RVAL-B" accesskey="p" rel="prev">Control of the underlying random number generator: 0 ⎕RVAL B</a>, Up: <a href="#Dyadic-_2395RVAL" accesskey="u" rel="up">Dyadic ⎕RVAL</a> &nbsp; [<a href="#SEC_Contents" title="Table of contents" rel="contents">Contents</a>]</p>
+Next: <a href="#Control-of-the-shapes-_002d-2-_2395RVAL-B" accesskey="n" rel="next">Control of the shapes: 2 ⎕RVAL B</a>, Previous: <a href="#Control-of-the-underlying-random-number-generator-_002d-0-_2395RVAL-B" accesskey="p" rel="prev">Control of the underlying random number generator: 0 ⎕RVAL B</a>, Up: <a href="#Dyadic-_2395RVAL" accesskey="u" rel="up">Dyadic ⎕RVAL</a> &nbsp; [<a href="#SEC_Contents" title="Table of contents" rel="contents">Contents</a>]</p>
 </div>
 <span id="Control-of-the-ranks_003a-1-_005b_003f_005dRVAL-B"></span><h4 class="subsubsection">2.40.2.2 Control of the ranks: 1 ⎕RVAL B</h4>
 
@@ -8671,10 +8674,10 @@ need not add up to 100, but will be scaled accordingly.
 
 <hr>
 </div>
-<div class="subsubsection" id="Control-of-the-shapes_003a-2-_2395RVAL-B">
+<div class="subsubsection" id="Control-of-the-shapes-_002d-2-_2395RVAL-B">
 <div class="header">
 <p>
-Next: <a href="#Control-of-the-data-types_003a-3-_2395RVAL-B" accesskey="n" rel="next">Control of the data types: 3 ⎕RVAL B</a>, Previous: <a href="#Control-of-the-ranks_003a-1-_2395RVAL-B" accesskey="p" rel="prev">Control of the ranks: 1 ⎕RVAL B</a>, Up: <a href="#Dyadic-_2395RVAL" accesskey="u" rel="up">Dyadic ⎕RVAL</a> &nbsp; [<a href="#SEC_Contents" title="Table of contents" rel="contents">Contents</a>]</p>
+Next: <a href="#Control-of-the-data-types-_002d-3-_2395RVAL-B" accesskey="n" rel="next">Control of the data types: 3 ⎕RVAL B</a>, Previous: <a href="#Control-of-the-ranks-_002d-1-_2395RVAL-B" accesskey="p" rel="prev">Control of the ranks: 1 ⎕RVAL B</a>, Up: <a href="#Dyadic-_2395RVAL" accesskey="u" rel="up">Dyadic ⎕RVAL</a> &nbsp; [<a href="#SEC_Contents" title="Table of contents" rel="contents">Contents</a>]</p>
 </div>
 <span id="Control-of-the-shapes_003a-2-_005b_003f_005dRVAL-B"></span><h4 class="subsubsection">2.40.2.3 Control of the shapes: 2 ⎕RVAL B</h4>
 
@@ -8708,10 +8711,10 @@ query the current setting for 2 ⎕RVAL.
 </p>
 <hr>
 </div>
-<div class="subsubsection" id="Control-of-the-data-types_003a-3-_2395RVAL-B">
+<div class="subsubsection" id="Control-of-the-data-types-_002d-3-_2395RVAL-B">
 <div class="header">
 <p>
-Next: <a href="#Control-of-a-maximum-depth_003a-4-_2395RVAL-B" accesskey="n" rel="next">Control of a maximum depth: 4 ⎕RVAL B</a>, Previous: <a href="#Control-of-the-shapes_003a-2-_2395RVAL-B" accesskey="p" rel="prev">Control of the shapes: 2 ⎕RVAL B</a>, Up: <a href="#Dyadic-_2395RVAL" accesskey="u" rel="up">Dyadic ⎕RVAL</a> &nbsp; [<a href="#SEC_Contents" title="Table of contents" rel="contents">Contents</a>]</p>
+Next: <a href="#Control-of-a-maximum-depth-_002d-4-_2395RVAL-B" accesskey="n" rel="next">Control of a maximum depth: 4 ⎕RVAL B</a>, Previous: <a href="#Control-of-the-shapes-_002d-2-_2395RVAL-B" accesskey="p" rel="prev">Control of the shapes: 2 ⎕RVAL B</a>, Up: <a href="#Dyadic-_2395RVAL" accesskey="u" rel="up">Dyadic ⎕RVAL</a> &nbsp; [<a href="#SEC_Contents" title="Table of contents" rel="contents">Contents</a>]</p>
 </div>
 <span id="Control-of-the-data-types_003a-3-_005b_003f_005dRVAL-B"></span><h4 class="subsubsection">2.40.2.4 Control of the data types: 3 ⎕RVAL B</h4>
 
@@ -8758,10 +8761,10 @@ query the current setting for 3 ⎕RVAL.
 
 <hr>
 </div>
-<div class="subsubsection" id="Control-of-a-maximum-depth_003a-4-_2395RVAL-B">
+<div class="subsubsection" id="Control-of-a-maximum-depth-_002d-4-_2395RVAL-B">
 <div class="header">
 <p>
-Next: <a href="#Control-of-the-element-count_003a-5-_2395RVAL-B" accesskey="n" rel="next">Control of the element count: 5 ⎕RVAL B</a>, Previous: <a href="#Control-of-the-data-types_003a-3-_2395RVAL-B" accesskey="p" rel="prev">Control of the data types: 3 ⎕RVAL B</a>, Up: <a href="#Dyadic-_2395RVAL" accesskey="u" rel="up">Dyadic ⎕RVAL</a> &nbsp; [<a href="#SEC_Contents" title="Table of contents" rel="contents">Contents</a>]</p>
+Next: <a href="#Control-of-the-element-count-_002d-5-_2395RVAL-B" accesskey="n" rel="next">Control of the element count: 5 ⎕RVAL B</a>, Previous: <a href="#Control-of-the-data-types-_002d-3-_2395RVAL-B" accesskey="p" rel="prev">Control of the data types: 3 ⎕RVAL B</a>, Up: <a href="#Dyadic-_2395RVAL" accesskey="u" rel="up">Dyadic ⎕RVAL</a> &nbsp; [<a href="#SEC_Contents" title="Table of contents" rel="contents">Contents</a>]</p>
 </div>
 <span id="Control-of-a-maximum-depth_003a-4-_005b_003f_005dRVAL-B"></span><h4 class="subsubsection">2.40.2.5 Control of a maximum depth: 4 ⎕RVAL B</h4>
 
@@ -8779,10 +8782,10 @@ query the current setting for 4 ⎕RVAL.
 </p>
 <hr>
 </div>
-<div class="subsubsection" id="Control-of-the-element-count_003a-5-_2395RVAL-B">
+<div class="subsubsection" id="Control-of-the-element-count-_002d-5-_2395RVAL-B">
 <div class="header">
 <p>
-Next: <a href="#The-primitive-table_003a-6-_2395RVAL-B" accesskey="n" rel="next">The primitive table: 6 ⎕RVAL B</a>, Previous: <a href="#Control-of-a-maximum-depth_003a-4-_2395RVAL-B" accesskey="p" rel="prev">Control of a maximum depth: 4 ⎕RVAL B</a>, Up: <a href="#Dyadic-_2395RVAL" accesskey="u" rel="up">Dyadic ⎕RVAL</a> &nbsp; [<a href="#SEC_Contents" title="Table of contents" rel="contents">Contents</a>]</p>
+Next: <a href="#The-primitive-table-_002d-6-_2395RVAL-B" accesskey="n" rel="next">The primitive table: 6 ⎕RVAL B</a>, Previous: <a href="#Control-of-a-maximum-depth-_002d-4-_2395RVAL-B" accesskey="p" rel="prev">Control of a maximum depth: 4 ⎕RVAL B</a>, Up: <a href="#Dyadic-_2395RVAL" accesskey="u" rel="up">Dyadic ⎕RVAL</a> &nbsp; [<a href="#SEC_Contents" title="Table of contents" rel="contents">Contents</a>]</p>
 </div>
 <span id="Control-of-the-element-count_003a-5-_005b_003f_005dRVAL-B"></span><h4 class="subsubsection">2.40.2.6 Control of the element count: 5 ⎕RVAL B</h4>
 
@@ -8818,10 +8821,10 @@ query the current setting.
 
 <hr>
 </div>
-<div class="subsubsection" id="The-primitive-table_003a-6-_2395RVAL-B">
+<div class="subsubsection" id="The-primitive-table-_002d-6-_2395RVAL-B">
 <div class="header">
 <p>
-Next: <a href="#monadic-_2395RVAL-B" accesskey="n" rel="next">monadic ⎕RVAL B</a>, Previous: <a href="#Control-of-the-element-count_003a-5-_2395RVAL-B" accesskey="p" rel="prev">Control of the element count: 5 ⎕RVAL B</a>, Up: <a href="#Dyadic-_2395RVAL" accesskey="u" rel="up">Dyadic ⎕RVAL</a> &nbsp; [<a href="#SEC_Contents" title="Table of contents" rel="contents">Contents</a>]</p>
+Previous: <a href="#Control-of-the-element-count-_002d-5-_2395RVAL-B" accesskey="p" rel="prev">Control of the element count: 5 ⎕RVAL B</a>, Up: <a href="#Dyadic-_2395RVAL" accesskey="u" rel="up">Dyadic ⎕RVAL</a> &nbsp; [<a href="#SEC_Contents" title="Table of contents" rel="contents">Contents</a>]</p>
 </div>
 <span id="The-primitive-table_003a-6-_005b_003f_005dRVAL-B"></span><h4 class="subsubsection">2.40.2.7 The primitive table: 6 ⎕RVAL B</h4>
 
@@ -8861,12 +8864,13 @@ invariant testcases under <samp>src/testcases/invariants/</samp>.
 </p>
 <hr>
 </div>
-<div class="subsubsection" id="monadic-_2395RVAL-B">
+</div>
+<div class="subsection" id="monadic-_2395RVAL-B">
 <div class="header">
 <p>
-Next: <a href="#Syntax-Alternatives" accesskey="n" rel="next">Syntax Alternatives</a>, Previous: <a href="#The-primitive-table_003a-6-_2395RVAL-B" accesskey="p" rel="prev">The primitive table: 6 ⎕RVAL B</a>, Up: <a href="#Dyadic-_2395RVAL" accesskey="u" rel="up">Dyadic ⎕RVAL</a> &nbsp; [<a href="#SEC_Contents" title="Table of contents" rel="contents">Contents</a>]</p>
+Next: <a href="#Syntax-Alternatives" accesskey="n" rel="next">Syntax Alternatives</a>, Previous: <a href="#Dyadic-_2395RVAL" accesskey="p" rel="prev">Dyadic ⎕RVAL</a>, Up: <a href="#g_t_2395RVAL-_002d-Random-APL-value" accesskey="u" rel="up">⎕RVAL - Random APL value</a> &nbsp; [<a href="#SEC_Contents" title="Table of contents" rel="contents">Contents</a>]</p>
 </div>
-<span id="monadic-_005b_003f_005dRVAL-B"></span><h4 class="subsubsection">2.40.2.8 monadic ⎕RVAL B</h4>
+<span id="monadic-_005b_003f_005dRVAL-B"></span><h4 class="subsection">2.40.3 monadic ⎕RVAL B</h4>
 
 <p>Calling ⎕RVAL monadically either produces one new random APL value or displays
 a list of arguments for dyadic <b>⎕RVAL</b>:
@@ -8942,12 +8946,12 @@ dyadic <b>⎕RVAL</b>. This can be achieved with monadic <b>⎕RVAL</b> with non
 
 <hr>
 </div>
-<div class="subsubsection" id="Syntax-Alternatives">
+<div class="subsection" id="Syntax-Alternatives">
 <div class="header">
 <p>
-Previous: <a href="#monadic-_2395RVAL-B" accesskey="p" rel="prev">monadic ⎕RVAL B</a>, Up: <a href="#Dyadic-_2395RVAL" accesskey="u" rel="up">Dyadic ⎕RVAL</a> &nbsp; [<a href="#SEC_Contents" title="Table of contents" rel="contents">Contents</a>]</p>
+Previous: <a href="#monadic-_2395RVAL-B" accesskey="p" rel="prev">monadic ⎕RVAL B</a>, Up: <a href="#g_t_2395RVAL-_002d-Random-APL-value" accesskey="u" rel="up">⎕RVAL - Random APL value</a> &nbsp; [<a href="#SEC_Contents" title="Table of contents" rel="contents">Contents</a>]</p>
 </div>
-<span id="Syntax-Alternatives-1"></span><h4 class="subsubsection">2.40.2.9 Syntax Alternatives</h4>
+<span id="Syntax-Alternatives-1"></span><h4 class="subsection">2.40.4 Syntax Alternatives</h4>
 
 <p>For an improved readability, ⎕RVAL also accepts string arguments for its left
 argument A and also the sub-function notation:
@@ -8963,7 +8967,6 @@ argument A and also the sub-function notation:
 </pre></div>
 
 <hr>
-</div>
 </div>
 </div>
 <div class="section" id="g_t_2395SI-_002d-State-Indicator">
@@ -9056,27 +9059,27 @@ system function ⎕SQL, described below. ⎕SQL has an axis argument that
 selects a sub-function of ⎕SQL.
 </p>
 <ul class="section-toc">
-<li><a href="#g_t_2395SQL_005b0_005d-_236c-_003a-display-sub_002dfunction-numbers" accesskey="1">⎕SQL[0] ⍬ : display sub-function numbers</a></li>
-<li><a href="#g_t_2395SQL_005b0_005d-_0027_0027-_003a-display-sub_002dfunction-names" accesskey="2">⎕SQL[0] <code>''</code> : display sub-function names</a></li>
-<li><a href="#ref-_2190-A-_2395SQL_005b1_005d-B-_003a-open-database" accesskey="3">ref ← A ⎕SQL[1] B : open database</a></li>
-<li><a href="#g_t_2395SQL_005b2_005d-B-_003a-close-database" accesskey="4">⎕SQL[2] B : close database</a></li>
-<li><a href="#Z-_2190-A-_2395SQL_005b3-ref_005d-B-_003a-database-query-_0028with-result_0029" accesskey="5">Z ← A ⎕SQL[3, ref] B : database query (with result)</a></li>
-<li><a href="#Z-_2190-A-_2395SQL_005b4-ref_005d-B-_003a-database-query-_0028w_002fo-result_0029" accesskey="6">Z ← A ⎕SQL[4, ref] B : database query (w/o result)</a></li>
-<li><a href="#g_t_2395SQL_005b5_005d-B-_003a-start-transaction" accesskey="7">⎕SQL[5] B : start transaction</a></li>
-<li><a href="#g_t_2395SQL_005b6_005d-B-_003a-commit-transaction" accesskey="8">⎕SQL[6] B : commit transaction</a></li>
-<li><a href="#g_t_2395SQL_005b7_005d-B-_003a-rollback-transaction" accesskey="9">⎕SQL[7] B : rollback transaction</a></li>
-<li><a href="#Z_2190_2395SQL_005b8_005d-B-_003a-table-names">Z←⎕SQL[8] B : table names</a></li>
-<li><a href="#Z_2190_2395SQL_005b9_005d-B-_003a-column-names">Z←⎕SQL[9] B : column names</a></li>
-<li><a href="#Z-_2190-_2395SQL_005b10_005d-B-_003a-library-version-number">Z ← ⎕SQL[10] B : library version number</a></li>
-<li><a href="#Z-_2190-_2395SQL_005b11_005d-B-_003a-library-version-string">Z ← ⎕SQL[11] B : library version string</a></li>
+<li><a href="#g_t_2395SQL_005b0_005d-_236c-_002d-display-sub_002dfunction-numbers" accesskey="1">⎕SQL[0] ⍬ : display sub-function numbers</a></li>
+<li><a href="#g_t_2395SQL_005b0_005d-_0027_0027-_002d-display-sub_002dfunction-names" accesskey="2">⎕SQL[0] <code>''</code> : display sub-function names</a></li>
+<li><a href="#ref-_2190-A-_2395SQL_005b1_005d-B-_002d-open-database" accesskey="3">ref ← A ⎕SQL[1] B : open database</a></li>
+<li><a href="#g_t_2395SQL_005b2_005d-B-_002d-close-database" accesskey="4">⎕SQL[2] B : close database</a></li>
+<li><a href="#Z-_2190-A-_2395SQL_005b3-ref_005d-B-_002d-database-query-_0028with-result_0029" accesskey="5">Z ← A ⎕SQL[3, ref] B : database query (with result)</a></li>
+<li><a href="#Z-_2190-A-_2395SQL_005b4-ref_005d-B-_002d-database-query-_0028w_002fo-result_0029" accesskey="6">Z ← A ⎕SQL[4, ref] B : database query (w/o result)</a></li>
+<li><a href="#g_t_2395SQL_005b5_005d-B-_002d-start-transaction" accesskey="7">⎕SQL[5] B : start transaction</a></li>
+<li><a href="#g_t_2395SQL_005b6_005d-B-_002d-commit-transaction" accesskey="8">⎕SQL[6] B : commit transaction</a></li>
+<li><a href="#g_t_2395SQL_005b7_005d-B-_002d-rollback-transaction" accesskey="9">⎕SQL[7] B : rollback transaction</a></li>
+<li><a href="#Z_2190_2395SQL_005b8_005d-B-_002d-table-names">Z←⎕SQL[8] B : table names</a></li>
+<li><a href="#Z_2190_2395SQL_005b9_005d-B-_002d-column-names">Z←⎕SQL[9] B : column names</a></li>
+<li><a href="#Z-_2190-_2395SQL_005b10_005d-B-_002d-library-version-number">Z ← ⎕SQL[10] B : library version number</a></li>
+<li><a href="#Z-_2190-_2395SQL_005b11_005d-B-_002d-library-version-string">Z ← ⎕SQL[11] B : library version string</a></li>
 <li><a href="#SQLite-Quickstart">SQLite Quickstart</a></li>
 <li><a href="#Deleting-Rows-From-a-Database-Table">Deleting Rows From a Database Table</a></li>
 </ul>
 <hr>
-<div class="subsection" id="g_t_2395SQL_005b0_005d-_236c-_003a-display-sub_002dfunction-numbers">
+<div class="subsection" id="g_t_2395SQL_005b0_005d-_236c-_002d-display-sub_002dfunction-numbers">
 <div class="header">
 <p>
-Next: <a href="#g_t_2395SQL_005b0_005d-_0027_0027-_003a-display-sub_002dfunction-names" accesskey="n" rel="next">⎕SQL[0] <code>''</code> : display sub-function names</a>, Up: <a href="#g_t_2395SQL-_002d-SQL-Database-Interface" accesskey="u" rel="up">⎕SQL - SQL Database Interface</a> &nbsp; [<a href="#SEC_Contents" title="Table of contents" rel="contents">Contents</a>]</p>
+Next: <a href="#g_t_2395SQL_005b0_005d-_0027_0027-_002d-display-sub_002dfunction-names" accesskey="n" rel="next">⎕SQL[0] <code>''</code> : display sub-function names</a>, Up: <a href="#g_t_2395SQL-_002d-SQL-Database-Interface" accesskey="u" rel="up">⎕SQL - SQL Database Interface</a> &nbsp; [<a href="#SEC_Contents" title="Table of contents" rel="contents">Contents</a>]</p>
 </div>
 <span id="g_t_005b_003f_005dSQL_005b0_005d-_005b_003f_005d-_003a-display-sub_002dfunction-numbers"></span><h4 class="subsection">2.42.1 ⎕SQL[0] ⍬ : display sub-function numbers</h4>
 
@@ -9114,10 +9117,10 @@ desired sub-function of ⎕SQL is selected by means of a numeric axis argument:
 </p>
 <hr>
 </div>
-<div class="subsection" id="g_t_2395SQL_005b0_005d-_0027_0027-_003a-display-sub_002dfunction-names">
+<div class="subsection" id="g_t_2395SQL_005b0_005d-_0027_0027-_002d-display-sub_002dfunction-names">
 <div class="header">
 <p>
-Next: <a href="#ref-_2190-A-_2395SQL_005b1_005d-B-_003a-open-database" accesskey="n" rel="next">ref ← A ⎕SQL[1] B : open database</a>, Previous: <a href="#g_t_2395SQL_005b0_005d-_236c-_003a-display-sub_002dfunction-numbers" accesskey="p" rel="prev">⎕SQL[0] ⍬ : display sub-function numbers</a>, Up: <a href="#g_t_2395SQL-_002d-SQL-Database-Interface" accesskey="u" rel="up">⎕SQL - SQL Database Interface</a> &nbsp; [<a href="#SEC_Contents" title="Table of contents" rel="contents">Contents</a>]</p>
+Next: <a href="#ref-_2190-A-_2395SQL_005b1_005d-B-_002d-open-database" accesskey="n" rel="next">ref ← A ⎕SQL[1] B : open database</a>, Previous: <a href="#g_t_2395SQL_005b0_005d-_236c-_002d-display-sub_002dfunction-numbers" accesskey="p" rel="prev">⎕SQL[0] ⍬ : display sub-function numbers</a>, Up: <a href="#g_t_2395SQL-_002d-SQL-Database-Interface" accesskey="u" rel="up">⎕SQL - SQL Database Interface</a> &nbsp; [<a href="#SEC_Contents" title="Table of contents" rel="contents">Contents</a>]</p>
 </div>
 <span id="g_t_005b_003f_005dSQL_005b0_005d-_0027_0027-_003a-display-sub_002dfunction-names"></span><h4 class="subsection">2.42.2 ⎕SQL[0] <code>''</code> : display sub-function names</h4>
 
@@ -9166,10 +9169,10 @@ therefore also use <b>⎕SQL &rdquo;</b> instead of <b>⎕SQL[0] &rdquo;</b>.
 </p>
 <hr>
 </div>
-<div class="subsection" id="ref-_2190-A-_2395SQL_005b1_005d-B-_003a-open-database">
+<div class="subsection" id="ref-_2190-A-_2395SQL_005b1_005d-B-_002d-open-database">
 <div class="header">
 <p>
-Next: <a href="#g_t_2395SQL_005b2_005d-B-_003a-close-database" accesskey="n" rel="next">⎕SQL[2] B : close database</a>, Previous: <a href="#g_t_2395SQL_005b0_005d-_0027_0027-_003a-display-sub_002dfunction-names" accesskey="p" rel="prev">⎕SQL[0] <code>''</code> : display sub-function names</a>, Up: <a href="#g_t_2395SQL-_002d-SQL-Database-Interface" accesskey="u" rel="up">⎕SQL - SQL Database Interface</a> &nbsp; [<a href="#SEC_Contents" title="Table of contents" rel="contents">Contents</a>]</p>
+Next: <a href="#g_t_2395SQL_005b2_005d-B-_002d-close-database" accesskey="n" rel="next">⎕SQL[2] B : close database</a>, Previous: <a href="#g_t_2395SQL_005b0_005d-_0027_0027-_002d-display-sub_002dfunction-names" accesskey="p" rel="prev">⎕SQL[0] <code>''</code> : display sub-function names</a>, Up: <a href="#g_t_2395SQL-_002d-SQL-Database-Interface" accesskey="u" rel="up">⎕SQL - SQL Database Interface</a> &nbsp; [<a href="#SEC_Contents" title="Table of contents" rel="contents">Contents</a>]</p>
 </div>
 <span id="ref-_002d-A-_005b_003f_005dSQL_005b1_005d-B-_003a-open-database"></span><h4 class="subsection">2.42.3 ref ← A ⎕SQL[1] B : open database</h4>
 
@@ -9199,10 +9202,10 @@ value.
 </p>
 <hr>
 </div>
-<div class="subsection" id="g_t_2395SQL_005b2_005d-B-_003a-close-database">
+<div class="subsection" id="g_t_2395SQL_005b2_005d-B-_002d-close-database">
 <div class="header">
 <p>
-Next: <a href="#Z-_2190-A-_2395SQL_005b3-ref_005d-B-_003a-database-query-_0028with-result_0029" accesskey="n" rel="next">Z ← A ⎕SQL[3, ref] B : database query (with result)</a>, Previous: <a href="#ref-_2190-A-_2395SQL_005b1_005d-B-_003a-open-database" accesskey="p" rel="prev">ref ← A ⎕SQL[1] B : open database</a>, Up: <a href="#g_t_2395SQL-_002d-SQL-Database-Interface" accesskey="u" rel="up">⎕SQL - SQL Database Interface</a> &nbsp; [<a href="#SEC_Contents" title="Table of contents" rel="contents">Contents</a>]</p>
+Next: <a href="#Z-_2190-A-_2395SQL_005b3-ref_005d-B-_002d-database-query-_0028with-result_0029" accesskey="n" rel="next">Z ← A ⎕SQL[3, ref] B : database query (with result)</a>, Previous: <a href="#ref-_2190-A-_2395SQL_005b1_005d-B-_002d-open-database" accesskey="p" rel="prev">ref ← A ⎕SQL[1] B : open database</a>, Up: <a href="#g_t_2395SQL-_002d-SQL-Database-Interface" accesskey="u" rel="up">⎕SQL - SQL Database Interface</a> &nbsp; [<a href="#SEC_Contents" title="Table of contents" rel="contents">Contents</a>]</p>
 </div>
 <span id="g_t_005b_003f_005dSQL_005b2_005d-B-_003a-close-database"></span><h4 class="subsection">2.42.4 ⎕SQL[2] B : close database</h4>
 
@@ -9219,10 +9222,10 @@ disconnected handles.
 </p>
 <hr>
 </div>
-<div class="subsection" id="Z-_2190-A-_2395SQL_005b3-ref_005d-B-_003a-database-query-_0028with-result_0029">
+<div class="subsection" id="Z-_2190-A-_2395SQL_005b3-ref_005d-B-_002d-database-query-_0028with-result_0029">
 <div class="header">
 <p>
-Next: <a href="#Z-_2190-A-_2395SQL_005b4-ref_005d-B-_003a-database-query-_0028w_002fo-result_0029" accesskey="n" rel="next">Z ← A ⎕SQL[4, ref] B : database query (w/o result)</a>, Previous: <a href="#g_t_2395SQL_005b2_005d-B-_003a-close-database" accesskey="p" rel="prev">⎕SQL[2] B : close database</a>, Up: <a href="#g_t_2395SQL-_002d-SQL-Database-Interface" accesskey="u" rel="up">⎕SQL - SQL Database Interface</a> &nbsp; [<a href="#SEC_Contents" title="Table of contents" rel="contents">Contents</a>]</p>
+Next: <a href="#Z-_2190-A-_2395SQL_005b4-ref_005d-B-_002d-database-query-_0028w_002fo-result_0029" accesskey="n" rel="next">Z ← A ⎕SQL[4, ref] B : database query (w/o result)</a>, Previous: <a href="#g_t_2395SQL_005b2_005d-B-_002d-close-database" accesskey="p" rel="prev">⎕SQL[2] B : close database</a>, Up: <a href="#g_t_2395SQL-_002d-SQL-Database-Interface" accesskey="u" rel="up">⎕SQL - SQL Database Interface</a> &nbsp; [<a href="#SEC_Contents" title="Table of contents" rel="contents">Contents</a>]</p>
 </div>
 <span id="Z-_002d-A-_005b_003f_005dSQL_005b3_002c-ref_005d-B-_003a-database-query-_0028with-result_0029"></span><h4 class="subsection">2.42.5 Z ← A ⎕SQL[3, ref] B : database query (with result)</h4>
 
@@ -9247,10 +9250,10 @@ are returned as &rdquo;.
 </p>
 <hr>
 </div>
-<div class="subsection" id="Z-_2190-A-_2395SQL_005b4-ref_005d-B-_003a-database-query-_0028w_002fo-result_0029">
+<div class="subsection" id="Z-_2190-A-_2395SQL_005b4-ref_005d-B-_002d-database-query-_0028w_002fo-result_0029">
 <div class="header">
 <p>
-Next: <a href="#g_t_2395SQL_005b5_005d-B-_003a-start-transaction" accesskey="n" rel="next">⎕SQL[5] B : start transaction</a>, Previous: <a href="#Z-_2190-A-_2395SQL_005b3-ref_005d-B-_003a-database-query-_0028with-result_0029" accesskey="p" rel="prev">Z ← A ⎕SQL[3, ref] B : database query (with result)</a>, Up: <a href="#g_t_2395SQL-_002d-SQL-Database-Interface" accesskey="u" rel="up">⎕SQL - SQL Database Interface</a> &nbsp; [<a href="#SEC_Contents" title="Table of contents" rel="contents">Contents</a>]</p>
+Next: <a href="#g_t_2395SQL_005b5_005d-B-_002d-start-transaction" accesskey="n" rel="next">⎕SQL[5] B : start transaction</a>, Previous: <a href="#Z-_2190-A-_2395SQL_005b3-ref_005d-B-_002d-database-query-_0028with-result_0029" accesskey="p" rel="prev">Z ← A ⎕SQL[3, ref] B : database query (with result)</a>, Up: <a href="#g_t_2395SQL-_002d-SQL-Database-Interface" accesskey="u" rel="up">⎕SQL - SQL Database Interface</a> &nbsp; [<a href="#SEC_Contents" title="Table of contents" rel="contents">Contents</a>]</p>
 </div>
 <span id="Z-_002d-A-_005b_003f_005dSQL_005b4_002c-ref_005d-B-_003a-database-query-_0028w_002fo-result_0029"></span><h4 class="subsection">2.42.6 Z ← A ⎕SQL[4, ref] B : database query (w/o result)</h4>
 
@@ -9265,10 +9268,10 @@ is used on statements which do not return a result table.
 </p>
 <hr>
 </div>
-<div class="subsection" id="g_t_2395SQL_005b5_005d-B-_003a-start-transaction">
+<div class="subsection" id="g_t_2395SQL_005b5_005d-B-_002d-start-transaction">
 <div class="header">
 <p>
-Next: <a href="#g_t_2395SQL_005b6_005d-B-_003a-commit-transaction" accesskey="n" rel="next">⎕SQL[6] B : commit transaction</a>, Previous: <a href="#Z-_2190-A-_2395SQL_005b4-ref_005d-B-_003a-database-query-_0028w_002fo-result_0029" accesskey="p" rel="prev">Z ← A ⎕SQL[4, ref] B : database query (w/o result)</a>, Up: <a href="#g_t_2395SQL-_002d-SQL-Database-Interface" accesskey="u" rel="up">⎕SQL - SQL Database Interface</a> &nbsp; [<a href="#SEC_Contents" title="Table of contents" rel="contents">Contents</a>]</p>
+Next: <a href="#g_t_2395SQL_005b6_005d-B-_002d-commit-transaction" accesskey="n" rel="next">⎕SQL[6] B : commit transaction</a>, Previous: <a href="#Z-_2190-A-_2395SQL_005b4-ref_005d-B-_002d-database-query-_0028w_002fo-result_0029" accesskey="p" rel="prev">Z ← A ⎕SQL[4, ref] B : database query (w/o result)</a>, Up: <a href="#g_t_2395SQL-_002d-SQL-Database-Interface" accesskey="u" rel="up">⎕SQL - SQL Database Interface</a> &nbsp; [<a href="#SEC_Contents" title="Table of contents" rel="contents">Contents</a>]</p>
 </div>
 <span id="g_t_005b_003f_005dSQL_005b5_005d-B-_003a-start-transaction"></span><h4 class="subsection">2.42.7 ⎕SQL[5] B : start transaction</h4>
 
@@ -9280,10 +9283,10 @@ Next: <a href="#g_t_2395SQL_005b6_005d-B-_003a-commit-transaction" accesskey="n"
 </p>
 <hr>
 </div>
-<div class="subsection" id="g_t_2395SQL_005b6_005d-B-_003a-commit-transaction">
+<div class="subsection" id="g_t_2395SQL_005b6_005d-B-_002d-commit-transaction">
 <div class="header">
 <p>
-Next: <a href="#g_t_2395SQL_005b7_005d-B-_003a-rollback-transaction" accesskey="n" rel="next">⎕SQL[7] B : rollback transaction</a>, Previous: <a href="#g_t_2395SQL_005b5_005d-B-_003a-start-transaction" accesskey="p" rel="prev">⎕SQL[5] B : start transaction</a>, Up: <a href="#g_t_2395SQL-_002d-SQL-Database-Interface" accesskey="u" rel="up">⎕SQL - SQL Database Interface</a> &nbsp; [<a href="#SEC_Contents" title="Table of contents" rel="contents">Contents</a>]</p>
+Next: <a href="#g_t_2395SQL_005b7_005d-B-_002d-rollback-transaction" accesskey="n" rel="next">⎕SQL[7] B : rollback transaction</a>, Previous: <a href="#g_t_2395SQL_005b5_005d-B-_002d-start-transaction" accesskey="p" rel="prev">⎕SQL[5] B : start transaction</a>, Up: <a href="#g_t_2395SQL-_002d-SQL-Database-Interface" accesskey="u" rel="up">⎕SQL - SQL Database Interface</a> &nbsp; [<a href="#SEC_Contents" title="Table of contents" rel="contents">Contents</a>]</p>
 </div>
 <span id="g_t_005b_003f_005dSQL_005b6_005d-B-_003a-commit-transaction"></span><h4 class="subsection">2.42.8 ⎕SQL[6] B : commit transaction</h4>
 
@@ -9295,10 +9298,10 @@ Next: <a href="#g_t_2395SQL_005b7_005d-B-_003a-rollback-transaction" accesskey="
 </p>
 <hr>
 </div>
-<div class="subsection" id="g_t_2395SQL_005b7_005d-B-_003a-rollback-transaction">
+<div class="subsection" id="g_t_2395SQL_005b7_005d-B-_002d-rollback-transaction">
 <div class="header">
 <p>
-Next: <a href="#Z_2190_2395SQL_005b8_005d-B-_003a-table-names" accesskey="n" rel="next">Z←⎕SQL[8] B : table names</a>, Previous: <a href="#g_t_2395SQL_005b6_005d-B-_003a-commit-transaction" accesskey="p" rel="prev">⎕SQL[6] B : commit transaction</a>, Up: <a href="#g_t_2395SQL-_002d-SQL-Database-Interface" accesskey="u" rel="up">⎕SQL - SQL Database Interface</a> &nbsp; [<a href="#SEC_Contents" title="Table of contents" rel="contents">Contents</a>]</p>
+Next: <a href="#Z_2190_2395SQL_005b8_005d-B-_002d-table-names" accesskey="n" rel="next">Z←⎕SQL[8] B : table names</a>, Previous: <a href="#g_t_2395SQL_005b6_005d-B-_002d-commit-transaction" accesskey="p" rel="prev">⎕SQL[6] B : commit transaction</a>, Up: <a href="#g_t_2395SQL-_002d-SQL-Database-Interface" accesskey="u" rel="up">⎕SQL - SQL Database Interface</a> &nbsp; [<a href="#SEC_Contents" title="Table of contents" rel="contents">Contents</a>]</p>
 </div>
 <span id="g_t_005b_003f_005dSQL_005b7_005d-B-_003a-rollback-transaction"></span><h4 class="subsection">2.42.9 ⎕SQL[7] B : rollback transaction</h4>
 
@@ -9310,10 +9313,10 @@ Next: <a href="#Z_2190_2395SQL_005b8_005d-B-_003a-table-names" accesskey="n" rel
 </p>
 <hr>
 </div>
-<div class="subsection" id="Z_2190_2395SQL_005b8_005d-B-_003a-table-names">
+<div class="subsection" id="Z_2190_2395SQL_005b8_005d-B-_002d-table-names">
 <div class="header">
 <p>
-Next: <a href="#Z_2190_2395SQL_005b9_005d-B-_003a-column-names" accesskey="n" rel="next">Z←⎕SQL[9] B : column names</a>, Previous: <a href="#g_t_2395SQL_005b7_005d-B-_003a-rollback-transaction" accesskey="p" rel="prev">⎕SQL[7] B : rollback transaction</a>, Up: <a href="#g_t_2395SQL-_002d-SQL-Database-Interface" accesskey="u" rel="up">⎕SQL - SQL Database Interface</a> &nbsp; [<a href="#SEC_Contents" title="Table of contents" rel="contents">Contents</a>]</p>
+Next: <a href="#Z_2190_2395SQL_005b9_005d-B-_002d-column-names" accesskey="n" rel="next">Z←⎕SQL[9] B : column names</a>, Previous: <a href="#g_t_2395SQL_005b7_005d-B-_002d-rollback-transaction" accesskey="p" rel="prev">⎕SQL[7] B : rollback transaction</a>, Up: <a href="#g_t_2395SQL-_002d-SQL-Database-Interface" accesskey="u" rel="up">⎕SQL - SQL Database Interface</a> &nbsp; [<a href="#SEC_Contents" title="Table of contents" rel="contents">Contents</a>]</p>
 </div>
 <span id="Z_002d_005b_003f_005dSQL_005b8_005d-B-_003a-table-names"></span><h4 class="subsection">2.42.10 Z←⎕SQL[8] B : table names</h4>
 
@@ -9325,10 +9328,10 @@ Next: <a href="#Z_2190_2395SQL_005b9_005d-B-_003a-column-names" accesskey="n" re
 </p>
 <hr>
 </div>
-<div class="subsection" id="Z_2190_2395SQL_005b9_005d-B-_003a-column-names">
+<div class="subsection" id="Z_2190_2395SQL_005b9_005d-B-_002d-column-names">
 <div class="header">
 <p>
-Next: <a href="#Z-_2190-_2395SQL_005b10_005d-B-_003a-library-version-number" accesskey="n" rel="next">Z ← ⎕SQL[10] B : library version number</a>, Previous: <a href="#Z_2190_2395SQL_005b8_005d-B-_003a-table-names" accesskey="p" rel="prev">Z←⎕SQL[8] B : table names</a>, Up: <a href="#g_t_2395SQL-_002d-SQL-Database-Interface" accesskey="u" rel="up">⎕SQL - SQL Database Interface</a> &nbsp; [<a href="#SEC_Contents" title="Table of contents" rel="contents">Contents</a>]</p>
+Next: <a href="#Z-_2190-_2395SQL_005b10_005d-B-_002d-library-version-number" accesskey="n" rel="next">Z ← ⎕SQL[10] B : library version number</a>, Previous: <a href="#Z_2190_2395SQL_005b8_005d-B-_002d-table-names" accesskey="p" rel="prev">Z←⎕SQL[8] B : table names</a>, Up: <a href="#g_t_2395SQL-_002d-SQL-Database-Interface" accesskey="u" rel="up">⎕SQL - SQL Database Interface</a> &nbsp; [<a href="#SEC_Contents" title="Table of contents" rel="contents">Contents</a>]</p>
 </div>
 <span id="Z_002d_005b_003f_005dSQL_005b9_005d-B-_003a-column-names"></span><h4 class="subsection">2.42.11 Z←⎕SQL[9] B : column names</h4>
 
@@ -9348,10 +9351,10 @@ release.
 
 <hr>
 </div>
-<div class="subsection" id="Z-_2190-_2395SQL_005b10_005d-B-_003a-library-version-number">
+<div class="subsection" id="Z-_2190-_2395SQL_005b10_005d-B-_002d-library-version-number">
 <div class="header">
 <p>
-Next: <a href="#Z-_2190-_2395SQL_005b11_005d-B-_003a-library-version-string" accesskey="n" rel="next">Z ← ⎕SQL[11] B : library version string</a>, Previous: <a href="#Z_2190_2395SQL_005b9_005d-B-_003a-column-names" accesskey="p" rel="prev">Z←⎕SQL[9] B : column names</a>, Up: <a href="#g_t_2395SQL-_002d-SQL-Database-Interface" accesskey="u" rel="up">⎕SQL - SQL Database Interface</a> &nbsp; [<a href="#SEC_Contents" title="Table of contents" rel="contents">Contents</a>]</p>
+Next: <a href="#Z-_2190-_2395SQL_005b11_005d-B-_002d-library-version-string" accesskey="n" rel="next">Z ← ⎕SQL[11] B : library version string</a>, Previous: <a href="#Z_2190_2395SQL_005b9_005d-B-_002d-column-names" accesskey="p" rel="prev">Z←⎕SQL[9] B : column names</a>, Up: <a href="#g_t_2395SQL-_002d-SQL-Database-Interface" accesskey="u" rel="up">⎕SQL - SQL Database Interface</a> &nbsp; [<a href="#SEC_Contents" title="Table of contents" rel="contents">Contents</a>]</p>
 </div>
 <span id="Z-_002d-_005b_003f_005dSQL_005b10_005d-B-_003a-library-version-number"></span><h4 class="subsection">2.42.12 Z ← ⎕SQL[10] B : library version number</h4>
 
@@ -9363,10 +9366,10 @@ kind of SQL database type (the database type is sometimes refered to as
 </p>
 <hr>
 </div>
-<div class="subsection" id="Z-_2190-_2395SQL_005b11_005d-B-_003a-library-version-string">
+<div class="subsection" id="Z-_2190-_2395SQL_005b11_005d-B-_002d-library-version-string">
 <div class="header">
 <p>
-Next: <a href="#SQLite-Quickstart" accesskey="n" rel="next">SQLite Quickstart</a>, Previous: <a href="#Z-_2190-_2395SQL_005b10_005d-B-_003a-library-version-number" accesskey="p" rel="prev">Z ← ⎕SQL[10] B : library version number</a>, Up: <a href="#g_t_2395SQL-_002d-SQL-Database-Interface" accesskey="u" rel="up">⎕SQL - SQL Database Interface</a> &nbsp; [<a href="#SEC_Contents" title="Table of contents" rel="contents">Contents</a>]</p>
+Next: <a href="#SQLite-Quickstart" accesskey="n" rel="next">SQLite Quickstart</a>, Previous: <a href="#Z-_2190-_2395SQL_005b10_005d-B-_002d-library-version-number" accesskey="p" rel="prev">Z ← ⎕SQL[10] B : library version number</a>, Up: <a href="#g_t_2395SQL-_002d-SQL-Database-Interface" accesskey="u" rel="up">⎕SQL - SQL Database Interface</a> &nbsp; [<a href="#SEC_Contents" title="Table of contents" rel="contents">Contents</a>]</p>
 </div>
 <span id="Z-_002d-_005b_003f_005dSQL_005b11_005d-B-_003a-library-version-string"></span><h4 class="subsection">2.42.13 Z ← ⎕SQL[11] B : library version string</h4>
 
@@ -9381,7 +9384,7 @@ kind of SQL database type (the database type is sometimes refered to as
 <div class="subsection" id="SQLite-Quickstart">
 <div class="header">
 <p>
-Next: <a href="#Deleting-Rows-From-a-Database-Table" accesskey="n" rel="next">Deleting Rows From a Database Table</a>, Previous: <a href="#Z-_2190-_2395SQL_005b11_005d-B-_003a-library-version-string" accesskey="p" rel="prev">Z ← ⎕SQL[11] B : library version string</a>, Up: <a href="#g_t_2395SQL-_002d-SQL-Database-Interface" accesskey="u" rel="up">⎕SQL - SQL Database Interface</a> &nbsp; [<a href="#SEC_Contents" title="Table of contents" rel="contents">Contents</a>]</p>
+Next: <a href="#Deleting-Rows-From-a-Database-Table" accesskey="n" rel="next">Deleting Rows From a Database Table</a>, Previous: <a href="#Z-_2190-_2395SQL_005b11_005d-B-_002d-library-version-string" accesskey="p" rel="prev">Z ← ⎕SQL[11] B : library version string</a>, Up: <a href="#g_t_2395SQL-_002d-SQL-Database-Interface" accesskey="u" rel="up">⎕SQL - SQL Database Interface</a> &nbsp; [<a href="#SEC_Contents" title="Table of contents" rel="contents">Contents</a>]</p>
 </div>
 <span id="SQLite-Quickstart-1"></span><h4 class="subsection">2.42.14 SQLite Quickstart</h4>
 
@@ -9425,7 +9428,7 @@ explained in this Quickstart are:
 <li><a href="#Deleting-a-Database" accesskey="1">Deleting a Database</a></li>
 <li><a href="#Creating-a-new-Database" accesskey="2">Creating a new Database</a></li>
 <li><a href="#Creating-a-Database-Table" accesskey="3">Creating a Database Table</a></li>
-<li><a href="#Excursus_003a-Dynamic-Query-Strings" accesskey="4">Excursus: Dynamic Query Strings</a></li>
+<li><a href="#Excursus-_002d-Dynamic-Query-Strings" accesskey="4">Excursus: Dynamic Query Strings</a></li>
 <li><a href="#Writing-an-APL-matrix-into-a-Database-Table" accesskey="5">Writing an APL matrix into a Database Table</a></li>
 <li><a href="#Reading-a-Database-Table-into-an-APL-Matrix" accesskey="6">Reading a Database Table into an APL Matrix</a></li>
 <li><a href="#Updating-a-Database-Table" accesskey="7">Updating a Database Table</a></li>
@@ -9520,7 +9523,7 @@ the <b>)HOST</b> command or with <b>⎕FIO.fork_daemon</b>.
 <div class="subsubsection" id="Creating-a-Database-Table">
 <div class="header">
 <p>
-Next: <a href="#Excursus_003a-Dynamic-Query-Strings" accesskey="n" rel="next">Excursus: Dynamic Query Strings</a>, Previous: <a href="#Creating-a-new-Database" accesskey="p" rel="prev">Creating a new Database</a>, Up: <a href="#SQLite-Quickstart" accesskey="u" rel="up">SQLite Quickstart</a> &nbsp; [<a href="#SEC_Contents" title="Table of contents" rel="contents">Contents</a>]</p>
+Next: <a href="#Excursus-_002d-Dynamic-Query-Strings" accesskey="n" rel="next">Excursus: Dynamic Query Strings</a>, Previous: <a href="#Creating-a-new-Database" accesskey="p" rel="prev">Creating a new Database</a>, Up: <a href="#SQLite-Quickstart" accesskey="u" rel="up">SQLite Quickstart</a> &nbsp; [<a href="#SEC_Contents" title="Table of contents" rel="contents">Contents</a>]</p>
 </div>
 <span id="Creating-a-Database-Table-1"></span><h4 class="subsubsection">2.42.14.3 Creating a Database Table</h4>
 
@@ -9599,12 +9602,12 @@ to quickly locate the row in a large database.
 </p>
 <hr>
 </div>
-<div class="subsubsection" id="Excursus_003a-Dynamic-Query-Strings">
+<div class="subsubsection" id="Excursus-_002d-Dynamic-Query-Strings">
 <div class="header">
 <p>
 Next: <a href="#Writing-an-APL-matrix-into-a-Database-Table" accesskey="n" rel="next">Writing an APL matrix into a Database Table</a>, Previous: <a href="#Creating-a-Database-Table" accesskey="p" rel="prev">Creating a Database Table</a>, Up: <a href="#SQLite-Quickstart" accesskey="u" rel="up">SQLite Quickstart</a> &nbsp; [<a href="#SEC_Contents" title="Table of contents" rel="contents">Contents</a>]</p>
 </div>
-<span id="Excursus_003a-Dynamic-Query-Strings-1"></span><h4 class="subsubsection">2.42.14.4 Excursus: Dynamic Query Strings</h4>
+<span id="Excursus_003a-Dynamic-Query-Strings"></span><h4 class="subsubsection">2.42.14.4 Excursus: Dynamic Query Strings</h4>
 
 <p>The SQL query strings <b>(Qs)</b> used so far were <b>static</b>, which means that
 they are sent verbatim to the database machinery. In the following we will
@@ -9676,7 +9679,7 @@ then the parameters shall be ⍬ (aka. ⍳0).
 <div class="subsubsection" id="Writing-an-APL-matrix-into-a-Database-Table">
 <div class="header">
 <p>
-Next: <a href="#Reading-a-Database-Table-into-an-APL-Matrix" accesskey="n" rel="next">Reading a Database Table into an APL Matrix</a>, Previous: <a href="#Excursus_003a-Dynamic-Query-Strings" accesskey="p" rel="prev">Excursus: Dynamic Query Strings</a>, Up: <a href="#SQLite-Quickstart" accesskey="u" rel="up">SQLite Quickstart</a> &nbsp; [<a href="#SEC_Contents" title="Table of contents" rel="contents">Contents</a>]</p>
+Next: <a href="#Reading-a-Database-Table-into-an-APL-Matrix" accesskey="n" rel="next">Reading a Database Table into an APL Matrix</a>, Previous: <a href="#Excursus-_002d-Dynamic-Query-Strings" accesskey="p" rel="prev">Excursus: Dynamic Query Strings</a>, Up: <a href="#SQLite-Quickstart" accesskey="u" rel="up">SQLite Quickstart</a> &nbsp; [<a href="#SEC_Contents" title="Table of contents" rel="contents">Contents</a>]</p>
 </div>
 <span id="Writing-an-APL-matrix-into-a-Database-Table-1"></span><h4 class="subsubsection">2.42.14.5 Writing an APL matrix into a Database Table</h4>
 
@@ -11369,16 +11372,16 @@ to share the results of some tests performed with IBM APL2 (again the demo
 version for PCs).
 </p>
 <ul class="section-toc">
-<li><a href="#Test-1_003a-Binding-strength-of-_005b_005d" accesskey="1">Test 1: Binding strength of []</a></li>
-<li><a href="#Test-2_003a-Binding-strength-of-the-left-operand" accesskey="2">Test 2: Binding strength of the left operand</a></li>
+<li><a href="#Test-1-_002d-Binding-strength-of-_005b_005d" accesskey="1">Test 1: Binding strength of []</a></li>
+<li><a href="#Test-2-_002d-Binding-strength-of-the-left-operand" accesskey="2">Test 2: Binding strength of the left operand</a></li>
 </ul>
 <hr>
-<div class="subsection" id="Test-1_003a-Binding-strength-of-_005b_005d">
+<div class="subsection" id="Test-1-_002d-Binding-strength-of-_005b_005d">
 <div class="header">
 <p>
-Next: <a href="#Test-2_003a-Binding-strength-of-the-left-operand" accesskey="n" rel="next">Test 2: Binding strength of the left operand</a>, Up: <a href="#Some-APL2-Tests" accesskey="u" rel="up">Some APL2 Tests</a> &nbsp; [<a href="#SEC_Contents" title="Table of contents" rel="contents">Contents</a>]</p>
+Next: <a href="#Test-2-_002d-Binding-strength-of-the-left-operand" accesskey="n" rel="next">Test 2: Binding strength of the left operand</a>, Up: <a href="#Some-APL2-Tests" accesskey="u" rel="up">Some APL2 Tests</a> &nbsp; [<a href="#SEC_Contents" title="Table of contents" rel="contents">Contents</a>]</p>
 </div>
-<span id="Test-1_003a-Binding-strength-of-_005b_005d-1"></span><h4 class="subsection">5.4.1 Test 1: Binding strength of []</h4>
+<span id="Test-1_003a-Binding-strength-of-_005b_005d"></span><h4 class="subsection">5.4.1 Test 1: Binding strength of []</h4>
 
 <div class="example">
 <pre class="example">      ⍝ IBM APL2: Binding strength of []...
@@ -11413,12 +11416,12 @@ the second quote on page 14 of the lrm.
 </p>
 <hr>
 </div>
-<div class="subsection" id="Test-2_003a-Binding-strength-of-the-left-operand">
+<div class="subsection" id="Test-2-_002d-Binding-strength-of-the-left-operand">
 <div class="header">
 <p>
-Previous: <a href="#Test-1_003a-Binding-strength-of-_005b_005d" accesskey="p" rel="prev">Test 1: Binding strength of []</a>, Up: <a href="#Some-APL2-Tests" accesskey="u" rel="up">Some APL2 Tests</a> &nbsp; [<a href="#SEC_Contents" title="Table of contents" rel="contents">Contents</a>]</p>
+Previous: <a href="#Test-1-_002d-Binding-strength-of-_005b_005d" accesskey="p" rel="prev">Test 1: Binding strength of []</a>, Up: <a href="#Some-APL2-Tests" accesskey="u" rel="up">Some APL2 Tests</a> &nbsp; [<a href="#SEC_Contents" title="Table of contents" rel="contents">Contents</a>]</p>
 </div>
-<span id="Test-2_003a-Binding-strength-of-the-left-operand-1"></span><h4 class="subsection">5.4.2 Test 2: Binding strength of the left operand</h4>
+<span id="Test-2_003a-Binding-strength-of-the-left-operand"></span><h4 class="subsection">5.4.2 Test 2: Binding strength of the left operand</h4>
 
 <p>For this test we create a monadic defined function <b>SHOW_NC</b>, a monadic
 defined operator <b>OPER1</b>, and a dyadic defined operator <b>OPER2</b>:

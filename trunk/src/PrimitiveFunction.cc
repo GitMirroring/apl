@@ -1376,6 +1376,7 @@ Value_P Z(shape_Z, LOC);
    if (shape_Z.is_empty())
       {
          Z->set_default(B, LOC);
+         Z->check_value(LOC);
          return Z;
       }
 
