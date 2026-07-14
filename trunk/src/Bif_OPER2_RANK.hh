@@ -37,10 +37,12 @@ public:
    Bif_OPER2_RANK() : PrimitiveOperator(TOK_OPER2_RANK) {}
 
    /// split strand y_B into vector y and B
+   /// @param LO_name name of the left operand f (for error messages)
    /// @param RO_B  combined strand containing rank vector and right argument
    /// @param RO    output: extracted rank vector
    /// @param B     output: extracted right argument value
-   static void unstrand_RO_B(Value_P RO_B, Value_P & RO, Value_P & B);
+   static void unstrand_RO_B(const UCS_string & LO_name, Value_P RO_B,
+                              Value_P & RO, Value_P & B);
 
    static Bif_OPER2_RANK  fun;      ///< Built-in function
 
@@ -97,9 +99,11 @@ protected:
    static Token do_LyXB(Token & LO, Value_P X, Value_P B, sRank rk_chunkB);
 
    /// convert 1- 2- or 3-element vector y123 to chunk-rank of B
+   /// @param LO_name name of the left operand f (for error messages)
    /// @param y123  1-, 2-, or 3-element rank specification vector
    /// @param rk_B  actual rank of the right argument B
-   static sRank y123_to_chunk_B_rank(const cValue * y123, sRank rk_B);
+   static sRank y123_to_chunk_B_rank(const UCS_string & LO_name,
+                                      const cValue * y123, sRank rk_B);
 
    /// convert 1- 2- or 3-element vector y123 to chunk-ranks of A and B
    /// @param y123  1-, 2-, or 3-element rank specification vector

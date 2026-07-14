@@ -118,8 +118,8 @@ Bif_REDUCE::reduce(Token & tok_LO, Value_P B, uAxis axis)
 
    if (!tok_LO.is_function())
       {
-        MORE_ERROR()
-        << "The left argument of operator / resp. ⌿ is not a function";
+        MORE_ERROR() << "f/ B resp. f⌿ B : Bad left argument f"
+                        " (expecting a function)";
         DOMAIN_ERROR;
       }
 
@@ -127,15 +127,17 @@ cFunction_P LO = tok_LO.get_function();
    Assert1(LO);
    if (!LO->has_result())
       {
-        MORE_ERROR() << "The left argument of operator / resp. ⌿"
-                        " is a function that returns no result";
+        MORE_ERROR() << LO->get_name() << "/ B resp. "
+                     << LO->get_name() << "⌿ B : Bad function "
+                     << LO->get_name() << " (expecting a result)";
         DOMAIN_ERROR;
       }
 
    if (LO->get_fun_valence() != 2)
       {
-        MORE_ERROR() << "The left argument of operator / resp. ⌿"
-                     << " is a function that is not dyadic";
+        MORE_ERROR() << LO->get_name() << "/ B resp. "
+                     << LO->get_name() << "⌿ B : Bad function "
+                     << LO->get_name() << " (expecting a dyadic function)";
         SYNTAX_ERROR;
       }
 
@@ -183,23 +185,25 @@ Bif_REDUCE::reduce_n_wise(Value_P A, Token & tok_LO,
 {
    if (!tok_LO.is_function())
       {
-        MORE_ERROR() << "Function argument f of monadic operator A f/ B"
-                        " resp. A f⌿ B is not a function";
+        MORE_ERROR() << "A f/ B resp. A f⌿ B : Bad function argument f"
+                        " (expecting a function)";
         DOMAIN_ERROR;
       }
 
 cFunction_P LO = tok_LO.get_function();
    if (!LO->has_result())
       {
-        MORE_ERROR() << "In A " << LO->get_name() << get_name() << " B: "
-                     <<  LO->get_name() << " returns no result";
+        MORE_ERROR() << "A " << LO->get_name() << get_name() << " B : Bad"
+                        " function " << LO->get_name()
+                     << " (expecting a result)";
         DOMAIN_ERROR;
       }
 
    if (LO->get_fun_valence() != 2)
       {
-        MORE_ERROR() << "In A " << LO->get_name() << get_name() << " B: "
-                     <<  LO->get_name() << " is not a dyadic function";
+        MORE_ERROR() << "A " << LO->get_name() << get_name() << " B : Bad"
+                        " function " << LO->get_name()
+                     << " (expecting a dyadic function)";
         VALENCE_ERROR;
       }
 

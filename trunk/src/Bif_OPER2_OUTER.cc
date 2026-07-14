@@ -52,7 +52,8 @@ Bif_JOT::eval_AB(cValue_R A, cValue_R B) const
        {
          if (!A.is_numeric(a))
             {
-              MORE_ERROR() << "A∘B: non-numeric item in A";
+              MORE_ERROR() << "A∘B : Bad type of argument A"
+                              " (expecting numeric)";
               DOMAIN_ERROR;
             }
        }
@@ -61,7 +62,8 @@ Bif_JOT::eval_AB(cValue_R A, cValue_R B) const
        {
          if (!B.is_numeric(b))
             {
-              MORE_ERROR() << "A∘B: non-numeric item in B";
+              MORE_ERROR() << "A∘B : Bad type of argument B"
+                              " (expecting numeric)";
               DOMAIN_ERROR;
             }
        }

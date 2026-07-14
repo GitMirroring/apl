@@ -37,10 +37,12 @@ public:
    Bif_OPER2_POWER() : PrimitiveOperator(TOK_OPER2_POWER) {}
 
    /// split strand N_B into scalar N and B
+   /// @param LO_name name of the left operand f (for error messages)
    /// @param RO_B combined strand value containing N and B
    /// @param RO output: extracted scalar repetition count
    /// @param B output: extracted right argument value
-   static void unstrand_RO_B(Value_P RO_B, Value_P & RO, Value_P & B);
+   static void unstrand_RO_B(const UCS_string & LO_name, Value_P RO_B,
+                              Value_P & RO, Value_P & B);
 
    static Bif_OPER2_POWER  fun;      ///< Built-in function
 

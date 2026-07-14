@@ -40,7 +40,8 @@ Bif_F12_INTERVAL_INDEX::eval_AB(cValue_R A, cValue_R B) const
 const ShapeItem ec_A = A.element_count();
    if (ec_A < 1)
       {
-        MORE_ERROR() << "the left argument of A ⍸ B is empty";
+        MORE_ERROR() << "A⍸B : Bad length 0 of argument A"
+                        " (expecting ⍴A > 0)";
         LENGTH_ERROR;
       }
 
@@ -58,8 +59,8 @@ const APL_Integer qio = Workspace::get_IO();
             {
               if (pA[a-1] >= pA[a])
                  {
-                   MORE_ERROR() << "the left argument of A ⍸ B "
-                                   "is not sorted ascendingly";
+                   MORE_ERROR() << "A⍸B : Bad value of argument A"
+                                   " (expecting ascending order)";
                    DOMAIN_ERROR;
                  }
             }
@@ -86,8 +87,8 @@ const APL_Integer qio = Workspace::get_IO();
          const Comp_result c1_c2 = c1.compare(c2);
          if (c1_c2 != COMP_LT)
             {
-              MORE_ERROR() << "the left argument of A ⍸ B "
-                              "is not sorted ascendingly";
+              MORE_ERROR() << "A⍸B : Bad value of argument A"
+                              " (expecting ascending order)";
               DOMAIN_ERROR;
             }
        }
@@ -164,14 +165,15 @@ ShapeItem count = 0;
          const Cell & cell = B.get_cravel(b);
          if (!cell.is_near_int())
             {
-              MORE_ERROR() << "non-integer item in the argument of monadic ⍸";
+              MORE_ERROR() << "⍸B : Bad type of argument B"
+                              " (expecting integers)";
               DOMAIN_ERROR;
             }
 
           const APL_Integer Bi = B.get_near_int(b);
           if (Bi < 0)
             {
-              MORE_ERROR() << "negative item in the argument of monadic ⍸";
+              MORE_ERROR() << "⍸B : Bad value of argument B (expecting B ≥ 0)";
               DOMAIN_ERROR;
             }
 

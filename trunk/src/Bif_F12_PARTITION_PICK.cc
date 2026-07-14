@@ -160,9 +160,8 @@ const ShapeItem len_A = A.element_count();
    //
    if (len_A != 1 && len_A != B.get_shape_item(axis))
       {
-        MORE_ERROR() << "In A ⊂ B: partition length ⍴A is " << len_A
-                     << ", which does not match the B axis length "
-                     << B.get_shape_item(axis);
+        MORE_ERROR() << "A⊂B : Bad length " << len_A << " of argument A"
+                        " (expecting 1 or " << B.get_shape_item(axis) << ")";
         LENGTH_ERROR;
       }
 
@@ -403,14 +402,18 @@ Value_P cB = disclose(B, true);   // cB ← ⊃ B
 
 AxesBitmap axes_X = 0;   // axes in axes_X with ⎕IO←0
 
+const APL_Integer qio = Workspace::get_IO();
+   // ⎕IO=0 is unusual enough that the axis number below can look like
+   // an off-by-one mistake if the reader assumes the (far more common)
+   // ⎕IO=1; call that out explicitly rather than silently.
+const char * io_note = qio == 0 ? " Note: ⎕IO=0." : "";
    loop(x, sh_X.get_rank())   // rank(sh_X) is length(X)
        {
           const ShapeItem ax = sh_X.get_shape_item(x);
           if (axes_X & 1 << ax)
              {
-               MORE_ERROR() << "⊃[X]B: duplicated axis "
-                            << (ax + Workspace::get_IO())
-                            << " in X";
+               MORE_ERROR() << "⊃[" << (ax + qio) << "]B : Bad axis of X"
+                               " (expecting unique axes)." << io_note;
                 AXIS_ERROR;
              }
           axes_X |= 1 << ax;
@@ -436,11 +439,10 @@ Shape perm_cB;   // perm_cB is the permutation of cB, constructed from X
 
    if (perm_cB.get_rank() != cB->get_rank())
       {
-        MORE_ERROR() << "⊃[X] B: the number of disclosed axes ("
-                     << perm_cB.get_rank()
-                     << ") in X does not match the number of\n"
-                        " axes (" << cB->get_rank() << ") in B. That is, "
-                        "⍴⍴X ≠ ⌈/∈⍴¨⍴¨⍴¨B";
+        MORE_ERROR() << "⊃[X]B : Bad length " << perm_cB.get_rank()
+                     << " of argument X"
+                        " (expecting ⍴⍴X = ⌈/∈⍴¨⍴¨⍴¨B = " << cB->get_rank()
+                     << ")";
         RANK_ERROR;
       }
 
@@ -646,8 +648,8 @@ const Cell & cA = A.get_cravel(idx_A);
            {
              if (!A.is_char_string())
                 {
-                  MORE_ERROR() << "member name expected for A⊃B (nested A["
-                               << (idx_A + qio) << "])";
+                  MORE_ERROR() << "A⊃B : Bad type of A[" << (idx_A + qio)
+                               << "] (expecting a member name)";
                   DOMAIN_ERROR;
                 }
 
@@ -663,18 +665,18 @@ const Cell & cA = A.get_cravel(idx_A);
            {
              if (A.get_rank() > 1)
                 {
-                  MORE_ERROR() << "rank A ≤ 1 expected for A⊃B (nested A["
-                               << (idx_A + qio) << "])";
+                  MORE_ERROR() << "A⊃B : Bad rank " << A.get_rank()
+                               << " of A[" << (idx_A + qio)
+                               << "] (expecting ⍴⍴A ≤ 1)";
                   RANK_ERROR;
                 }
 
              const ShapeItem len_A = A.element_count();
              if (B.get_rank() != len_A)
                 {
-                  MORE_ERROR() << "⍴⍴B (" << B.get_rank()
-                               << ") = ⍴,A (" << len_A
-                               << ") expected for A⊃B (nested A["
-                               << (idx_A + qio) << "])";
+                  MORE_ERROR() << "A⊃B : Bad rank " << B.get_rank()
+                               << " of B (expecting ⍴⍴B = ⍴,A["
+                               << (idx_A + qio) << "] = " << len_A << ")";
                   RANK_ERROR;
                 }
 
@@ -696,8 +698,8 @@ const Cell & cA = A.get_cravel(idx_A);
       {
         if (B.get_rank() != 1)
            {
-             MORE_ERROR() << "⍴⍴B (" << B.get_rank()
-                          << ") = 1 expected for A⊃B (with scalar A)";
+             MORE_ERROR() << "A⊃B : Bad rank " << B.get_rank()
+                          << " of B (expecting ⍴⍴B = 1 for scalar A)";
              RANK_ERROR;
            }
         const APL_Integer a = cA.get_near_int() - qio;

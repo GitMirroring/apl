@@ -116,14 +116,88 @@ send_results_email()
       return
    fi
 
+   # ALL_PRIMITIVES_ERROR_N.apl reproducers (see run_all_primitives() and
+   # testcases/AllPrimitives.tc's ON_ERROR): attach them, if any, so the
+   # nightly email is self-contained for reproducing a fault.
+   #
+   local attachments=(/tmp/ALL_PRIMITIVES_ERROR_*.apl)
+   [ -e "${attachments[0]}" ] || attachments=()   # glob did not match
+
+   if [ ${#attachments[@]} -eq 0 ]
+   then
+      # no attachments: plain HTML email, as before
+      {
+         echo "From: build_all@$(hostname)"
+         echo "To: $RESULTS_EMAIL"
+         echo "Subject: GNU APL nightly build result (SVN $SVN_VERSION)"
+         echo "Content-Type: text/html; charset=\"UTF-8\""
+         echo ""
+         cat "$html_file"
+      } | sendmail -t
+      return
+   fi
+
+   # one or more AllPrimitives reproducers: multipart/mixed email with the
+   # HTML body plus each reproducer attached (base64, since they contain
+   # APL Unicode glyphs).
+   #
+   local boundary="APLNIGHTLY_$(date +%s)_$$"
    {
       echo "From: build_all@$(hostname)"
       echo "To: $RESULTS_EMAIL"
-      echo "Subject: GNU APL nightly build result (SVN $SVN_VERSION)"
+      echo "Subject: GNU APL nightly build result (SVN $SVN_VERSION) - ${#attachments[@]} AllPrimitives reproducer(s) attached"
+      echo "MIME-Version: 1.0"
+      echo "Content-Type: multipart/mixed; boundary=\"$boundary\""
+      echo ""
+      echo "--$boundary"
       echo "Content-Type: text/html; charset=\"UTF-8\""
       echo ""
       cat "$html_file"
+      echo ""
+      local f
+      for f in "${attachments[@]}"
+      do
+         echo "--$boundary"
+         echo "Content-Type: text/plain; charset=\"UTF-8\"; name=\"$(basename "$f")\""
+         echo "Content-Transfer-Encoding: base64"
+         echo "Content-Disposition: attachment; filename=\"$(basename "$f")\""
+         echo ""
+         base64 "$f"
+         echo ""
+      done
+      echo "--$boundary--"
    } | sendmail -t
+}
+
+# run the AllPrimitives.tc fuzzer testcase against the freshly built
+# "standard" apl binary, and record a short summary in
+# $ALL_PRIMITIVES_SUMMARY for write_nightly_build_results(). Clears stale
+# /tmp/ALL_PRIMITIVES_ERROR_*.apl reproducers first so that
+# send_results_email() only ever attaches ones from *this* run.
+#
+run_all_primitives()
+{
+   rm -f /tmp/ALL_PRIMITIVES_ERROR_*.apl
+
+   local apl_bin="$TOP_BUILD_dir/apl--standard"
+   ALL_PRIMITIVES_LOG="$TOP_LOG_dir/all_primitives.log"
+   ALL_PRIMITIVES_SUMMARY="(standard build missing or failed, AllPrimitives.tc skipped)"
+
+   if [ -x "$apl_bin" ]
+   then
+      ( cd "$ROOT_dir/src" && \
+        "$apl_bin" --id 1010 -T testcases/AllPrimitives.tc ) \
+           > "$ALL_PRIMITIVES_LOG" 2>&1
+
+      # the test runner colours its output unconditionally (even when not
+      # a tty); strip the ANSI/cursor escapes before extracting the
+      # human-readable summary line(s).
+      #
+      ALL_PRIMITIVES_SUMMARY=$(sed -r 's/\x1b\[[0-9;]*[A-Za-z]//g' "$ALL_PRIMITIVES_LOG" \
+                                | grep -E "errors in|Failed testcase")
+      [ -z "$ALL_PRIMITIVES_SUMMARY" ] && \
+         ALL_PRIMITIVES_SUMMARY="(no summary line found, see $ALL_PRIMITIVES_LOG)"
+   fi
 }
 
 write_nightly_build_results()
@@ -160,6 +234,10 @@ artifact "GNU APL interpreter" "apl" "apl"
 artifact "libapl.so (shared library)" "build/xxx" "libapl.so"
 artifact "libapl.a  (static library)" "build/xxx" "libapl.a"
 echo "</TABLE>"
+
+echo "<H3>AllPrimitives Fuzzer (testcases/AllPrimitives.tc)</H3>
+<PRE>${ALL_PRIMITIVES_SUMMARY:-(not run)}</PRE>"
+
 echo "<H3>Other</H3>"
 
 } > /var/www/html/nightly_build_results.html
@@ -385,6 +463,7 @@ echo "  ├─── autoreconf done (OK)."
 
 cat "$TOP_LOG_dir/summary.log"
 
+run_all_primitives
 write_nightly_build_results
 send_results_email
 

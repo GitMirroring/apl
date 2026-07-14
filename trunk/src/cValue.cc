@@ -1067,6 +1067,10 @@ AxesBitmap
 cValue::to_bitmap(const char * where, uRank rank_B) const
 {
 const APL_Integer qio = Workspace::get_IO();
+   // ⎕IO=0 is unusual enough that axis numbers below can look like
+   // off-by-one mistakes if the reader assumes the (far more common)
+   // ⎕IO=1; call that out explicitly rather than silently.
+const char * io_note = qio == 0 ? " Note: ⎕IO=0." : "";
 AxesBitmap ret = 0;
 
    if (get_rank() > 1)
@@ -1085,7 +1089,7 @@ AxesBitmap ret = 0;
          if (!cX.is_near_int())
             {
               MORE_ERROR() << "In " << where << ": X[" << (e + qio)
-                           << "] is not integral.";
+                           << "] is not integral." << io_note;
               AXIS_ERROR;
             }
 
@@ -1094,7 +1098,7 @@ AxesBitmap ret = 0;
             {
               MORE_ERROR() << "In " << where << " : X[" << (e + qio)
                            << "] = " << (axis + qio)
-                           << " is too small (note: ⎕IO is " << qio << ").";
+                           << " is too small." << io_note;
               AXIS_ERROR;
             }
 
@@ -1102,14 +1106,15 @@ AxesBitmap ret = 0;
             {
               MORE_ERROR() << "In " << where << " : X[" << (e + qio)
                            << "] = " << (axis + qio)
-                           << " is too large (note: ⍴⍴B is " << rank_B << ").";
+                           << " is too large (note: ⍴⍴B is " << rank_B << ")."
+                           << io_note;
               AXIS_ERROR;
             }
 
          if (ret & 1 << axis)   // aready set
             {
               MORE_ERROR() << "In " << where << " : duplicate axis X["
-                           << (e + qio) << "] = " << (axis + qio);
+                           << (e + qio) << "] = " << (axis + qio) << io_note;
               AXIS_ERROR;
             }
 

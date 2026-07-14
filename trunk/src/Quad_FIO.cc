@@ -268,7 +268,7 @@ const sAxis function_number = value_to_subfun(X);
          case 56:   // write nested lines As to file Bs
               return eval_AXB__56(A_vp, B_vp);
 
-         case 58:   // snprintf(Af, B...)
+         case 58:   // sprintf(Af, B...)
               return eval_AXB__58(A_vp, B_vp);
 
          case 59:   // fcntl(Bh, Ai...)
@@ -1388,6 +1388,13 @@ int conversion_count_A = 0;   // the number of conversions (in A_format)
          char fmt[40];             // the naked format for one printf() item
          unsigned int fm = 0;      // an index into fmt;
          fmt[fm++] = '%';          // copy the % into fmt
+         fmt[fm] = 0;              // ... and NUL-terminate: fmt is on the
+                                   // stack and uninitialized, so without
+                                   // this a dangling '%' at the very end
+                                   // of A_format (caught below) would
+                                   // print garbage left over from a
+                                   // previous iteration's fmt instead of
+                                   // just "%".
          bool thousands = false;   // print thousands separator (',')
          for (;;)
              {

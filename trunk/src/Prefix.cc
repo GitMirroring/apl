@@ -2188,10 +2188,11 @@ Value_P value_B;   // the original B (before stranding RO and B).
 DerivedFunction * derived = get_fun_oper_slot(LOC);
    {
      Value_P value_RO;   // j123 (for ⍤) or N (for ⍣)
+     const UCS_string LO_name = LO_F.get_function()->get_name();
      if (id_D == ID_OPER2_RANK)
-        Bif_OPER2_RANK::unstrand_RO_B(RO_B, value_RO, value_B);
+        Bif_OPER2_RANK::unstrand_RO_B(LO_name, RO_B, value_RO, value_B);
      else
-        Bif_OPER2_POWER::unstrand_RO_B(RO_B, value_RO, value_B);
+        Bif_OPER2_POWER::unstrand_RO_B(LO_name, RO_B, value_RO, value_B);
 
      Token tok_RO(TOK_APL_VALUE1, value_RO);
      new (derived) Derived_LO_D_RO(LO_F, D, tok_RO, LOC);
@@ -2314,7 +2315,8 @@ Value_P value_B;   // the original B (before stranding j and B).
 DerivedFunction * derived = get_fun_oper_slot(LOC);
    {
      Value_P y123;
-     Bif_OPER2_RANK::unstrand_RO_B(RO_B, y123, value_B);
+     Bif_OPER2_RANK::unstrand_RO_B(LO_F.get_function()->get_name(),
+                                    RO_B, y123, value_B);
      Token T_y123_orig_RO(TOK_APL_VALUE1, y123);
 
      new (derived) Derived_LO_D_X_RO(LO_F, D, X_C, T_y123_orig_RO, LOC);

@@ -30,7 +30,8 @@ Bif_OPER2_POWER   Bif_OPER2_POWER::fun;
 
 //════════════════════════════════════════════════════════════════════════════
 void
-Bif_OPER2_POWER::unstrand_RO_B(Value_P N_B, Value_P & N, Value_P & B)
+Bif_OPER2_POWER::unstrand_RO_B(const UCS_string & LO_name, Value_P N_B,
+                                Value_P & N, Value_P & B)
 {
    /* Dyalog defines the reduction patterns for the POWER OPERATOR (Form 1) as:
 `
@@ -43,8 +44,8 @@ Bif_OPER2_POWER::unstrand_RO_B(Value_P N_B, Value_P & N, Value_P & B)
 
    if (N_B->get_rank() > 1)
       {
-        MORE_ERROR() << "f⍣N B: ⍴⍴B = " << N_B->get_rank()
-                     << " (expecting ⍴⍴N ≤ 1)";
+        MORE_ERROR() << LO_name << "⍣N B : Bad rank " << N_B->get_rank()
+                     << " (expecting ⍴⍴N B ≤ 1)";
         RANK_ERROR;
       }
 
@@ -56,15 +57,16 @@ Bif_OPER2_POWER::unstrand_RO_B(Value_P N_B, Value_P & N, Value_P & B)
 
    if (N_B->element_count() != 2)
       {
-        MORE_ERROR() << "f⍣N B: ⍴⍴B = " << N_B->get_rank()
-                     << " (expecting ⍴N = 1)";
+        MORE_ERROR() << LO_name << "⍣N B : Bad length " << N_B->element_count()
+                     << " (expecting ⍴N B = 2)";
         LENGTH_ERROR;
       }
 
 const Cell & first = N_B->get_cfirst();
    if (!(first.is_numeric() && first.is_near_int()))
       {
-        MORE_ERROR() << "f⍣N B: N is not an integer scalar";
+        MORE_ERROR() << LO_name << "⍣N B : Bad type of argument N"
+                        " (expecting an integer scalar)";
         DOMAIN_ERROR;
       }
 

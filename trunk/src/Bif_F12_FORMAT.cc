@@ -420,7 +420,8 @@ char * fract_end = 0;
            {
              if (Workspace::get_FC(3) == UNI_0)
                 {
-                  MORE_ERROR() << "Overflow in integer part";
+                  MORE_ERROR() << "A⍕B : Bad value " << value
+                               << " (integer part exceeds A specification)";
                   DOMAIN_ERROR;
                 }
              overflow = true;
@@ -860,7 +861,8 @@ Value_P Z;
    else if (A.is_int_array())    Z = format_by_specification(A, B);
    else
       {
-        MORE_ERROR() << "Bad left argument of ⍕";
+        MORE_ERROR() << "A⍕B : Bad type of argument A"
+                        " (expecting characters or integers)";
         DOMAIN_ERROR;
       }
 
@@ -1121,8 +1123,8 @@ bool has_complex = false;
         APL_Float value = B.get_real_value(base + r*cols);
         if (!isfinite(value))
            {
-             MORE_ERROR() << "infinite number: "
-                          << value << " in A⍕B (by specification)";
+             MORE_ERROR() << "A⍕B : Bad value " << value
+                          << " (expecting a finite number)";
              DOMAIN_ERROR;
            }
 

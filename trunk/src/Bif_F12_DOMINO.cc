@@ -133,8 +133,8 @@ const ShapeItem rows = B.get_shape_item(0);
 const ShapeItem cols = B.get_shape_item(1);
    if (cols > rows)
       {
-        MORE_ERROR() <<
-        "⌹B : B is under-specified (B has more columns than rows)";
+        MORE_ERROR() << "⌹B : Bad shape " << rows << UNI_SPACE << cols
+                     << " of argument B (expecting rows ≥ columns)";
         LENGTH_ERROR;
       }
 
@@ -197,7 +197,8 @@ double EPS = Workspace::get_CT();
 
    if (algo == ALGO_BAD)   // none of the above
       {
-        MORE_ERROR() << "⌹[X]B: Invalid algorithm X";
+        MORE_ERROR() << "⌹[" << X0 << "]B : Bad value of argument X"
+                        " (expecting a valid algorithm number)";
         DOMAIN_ERROR;
       }
 
@@ -236,8 +237,8 @@ Value_P Z(3, LOC);
       {
         if (need_complex)
            {
-             MORE_ERROR() << "RQ factorization is only available "
-                             "for real matrices.";
+             MORE_ERROR() << "⌹[X]B : Bad type of argument B"
+                             " (expecting a real matrix for RQ factorization)";
              DOMAIN_ERROR;
            }
 
@@ -254,8 +255,8 @@ Value_P Z(3, LOC);
         LA_DEBUG && CERR << "QL factorization with libgsl algorithm...\n";
         if (need_complex)
            {
-             MORE_ERROR() << "LQ factorization is only available "
-                             "for real matrices.";
+             MORE_ERROR() << "⌹[X]B : Bad type of argument B"
+                             " (expecting a real matrix for QL factorization)";
              DOMAIN_ERROR;
            }
         else   // real
@@ -298,7 +299,8 @@ const APL_Integer X0 = X.get_sole_integer();
         case 20: return Token(TOK_APL_VALUE1, integral(&A, B));
       }
 
-   MORE_ERROR() << "A ⌹[X] B: invalid function number X (=" << X0 << ").";
+   MORE_ERROR() << "A⌹[" << X0 << "]B : Bad value of argument X"
+                   " (expecting a valid function number)";
    DOMAIN_ERROR;
 }
 //────────────────────────────────────────────────────────────────────────────
@@ -346,14 +348,15 @@ Shape shape_Z;   // ⍴Z ←→ (¯1↓⍴A), (1↓⍴B)
 
    if (rows_B < cols_B)
       {
-        MORE_ERROR() <<
-        "A⌹B : B is under-specified (B has more columns than rows)";
+        MORE_ERROR() << "A⌹B : Bad shape " << rows_B << UNI_SPACE << cols_B
+                     << " of argument B (expecting rows ≥ columns)";
         LENGTH_ERROR;
        }
 
    if (rows_A != rows_B)
       {
-        MORE_ERROR() << "A÷B : number of rows in A ≠ number of rows in B";
+        MORE_ERROR() << "A⌹B : Bad rows " << rows_A << " of argument A"
+                        " (expecting rows A = rows B = " << rows_B << ")";
         LENGTH_ERROR;
       }
 
@@ -369,11 +372,11 @@ const sRank rank = need_complex ?  LA_pack::divide_ZZ_matrix(*Z, rows_A,
    if (rank < cols_B)
       {
         const char * type = need_complex ? "complex" : "real";
-        MORE_ERROR() << "A⌹B : linearly dependent (" << type << ") B?"
-                        " ⍴B is " << rows_A << " " << cols_B
-                     << ", but the estimated rank is " << rank << ".\n"
-                     << "      NOTE that the estimated rank "
-                        "is controlled by ⎕CT.";
+        MORE_ERROR() << "A⌹B : Bad rank " << rank << " of " << type
+                     << " argument B (expecting rank ≥ " << cols_B
+                     << " for ⍴B = " << rows_A << UNI_SPACE << cols_B
+                     << "; is B linearly dependent? the estimated rank"
+                        " is controlled by ⎕CT)";
         DOMAIN_ERROR;
       }
 
@@ -922,8 +925,8 @@ UCS_string_vector vars;
               const cValue & x = *cell.get_pointer_value();
               if (!x.is_char_array())
                  {
-                    MORE_ERROR() << "A ⌹.print_poly B: Bad variable name A["
-                                 << a << "]";
+                    MORE_ERROR() << "A ⌹.print_poly B : Bad type of A["
+                                 << a << "] (expecting a variable name)";
                     DOMAIN_ERROR;
                  }
               const UCS_string var(x);
@@ -1028,7 +1031,8 @@ int term = 0;
            }
         else
            {
-             MORE_ERROR() << "A ⌹.poly_print B: non-numeric coefficient in B";
+             MORE_ERROR() << "A ⌹.poly_print B : Bad type of argument B"
+                             " (expecting numeric coefficients)";
              DOMAIN_ERROR;
            }
 
@@ -1419,11 +1423,10 @@ const int rank = A.get_rank();
    if (rank != sRank(B.get_rank()))
       {
         const char * sub_fun = order_A ? "poly_divideNO" : "poly_divideN";
-        MORE_ERROR() << "A ⌹." << sub_fun << " B: ⍴⍴A="
-                     << rank << " (= number of indeterminants in A; ⍴⍴B="
-                     << B.get_rank() << " (= number of\n"
-                        "    indeterminants in B. Omitted indeterminants "
-                        "count.";
+        MORE_ERROR() << "A ⌹." << sub_fun << " B : Bad rank "
+                     << B.get_rank() << " of argument B (expecting"
+                        " ⍴⍴B = ⍴⍴A = " << rank
+                     << "; omitted indeterminants count)";
         RANK_ERROR;
       }
 
@@ -1509,8 +1512,9 @@ Bif_F12_DOMINO::poly_quotient_N(const cValue & A, const cValue & B)
 
    if (A.get_shape_item(0) != 2)
       {
-        MORE_ERROR() << "A ⌹.poly_divideNO B: ↑⍴A must be 2 (polynomial "
-                        "A[1;...] and\nmonomial order A[2;...])";
+        MORE_ERROR() << "A ⌹.poly_divideN B : Bad shape of argument A"
+                        " (expecting ↑⍴A = 2, for A[1;...]=polynomial and"
+                        " A[2;...]=monomial order)";
         LENGTH_ERROR;
       }
 
@@ -1523,8 +1527,8 @@ Value_P order_A(shape_A, LOC);  // A[2;...]
      const Cell & order0 = A.get_cravel(len);
      if (!order0.is_near_zero())
         {
-          MORE_ERROR() << "A ⌹.poly_divideNO B: the order value ("
-                       << order0 << ") of the constant term is ≠ 0.";
+          MORE_ERROR() << "A ⌹.poly_divideN B : Bad order " << order0
+                       << " of the constant term in A (expecting 0)";
           DOMAIN_ERROR;
         }
 
@@ -1545,8 +1549,8 @@ Value_P order_B(shape_B, LOC);  // B[2;...]
      const Cell & order0 = B.get_cravel(len);
      if (!order0.is_near_zero())
         {
-          MORE_ERROR() << "B ⌹.poly_divideNO B: the order value ("
-                       << order0 << ") of the constant term is ≠ 0.";
+          MORE_ERROR() << "A ⌹.poly_divideN B : Bad order " << order0
+                       << " of the constant term in B (expecting 0)";
           DOMAIN_ERROR;
         }
 
@@ -1607,8 +1611,8 @@ UCS_string_vector vars;
               const cValue & x = *cell.get_pointer_value();
               if (!x.is_char_array())
                  {
-                    MORE_ERROR() << "A ⌹.print_poly B: Bad variable name A["
-                                 << a << "]";
+                    MORE_ERROR() << "A ⌹.print_poly B : Bad type of A["
+                                 << a << "] (expecting a variable name)";
                     DOMAIN_ERROR;
                  }
               const UCS_string var(x);
@@ -1701,7 +1705,7 @@ Monomial T;
          const Monomial & term = terms[t1];
 
          UCS_string & more = MORE_ERROR();
-         more << "⌹[11] B: duplicate term: ";
+         more << "⌹[11]B : Bad term ";
          loop(var, term.expos.size())
              {
                if (const int expo = term.expos[var])
@@ -1710,6 +1714,7 @@ Monomial T;
                     if (expo > 1) more << UCS_string::power(expo);
                   }
              }
+         more << " of argument B (expecting unique terms)";
 
          DOMAIN_ERROR;
        }
@@ -1896,9 +1901,9 @@ PythonPipe p(script);
            const UCS_string message = p.read();
            if (message != expected)
               {
-                MORE_ERROR() << "Error starting python script '" << script<< "'.\n"
-                                "Expected '" << expected <<
-                                "' but got '" << message << "'.";
+                MORE_ERROR() << "⌹[20]B : Bad startup message '" << message
+                             << "' from " << script
+                             << " (expecting '" << expected << "')";
                 DOMAIN_ERROR;
               }
          }

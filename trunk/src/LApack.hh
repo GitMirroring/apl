@@ -610,6 +610,14 @@ public:
                               Ccol cols_A, cValue_R VA,
                               Ccol cols_B, cValue_R VB);
 
+   // DEAD CODE: factorize_DD_matrix()/factorize_ZZ_matrix() (and the
+   // grab_Q()/grab_R()/factorize_matrix() they depend on, declared
+   // further below) are unreachable from any APL-level primitive; their
+   // definitions in LApack.cc are disabled with #if 0. See the comments
+   // there for why they are kept (rather than deleted) and disabled
+   // (rather than left compiled). Declarations kept here too, disabled
+   // the same way, so the two files stay consistent.
+#if 0
    /// template instantiation wrapper. This wrapper forces the instantiation of
    /// factorize_matrix<DD>() which is defined in a different object file and
    /// may not be instantiated otherwise.
@@ -621,6 +629,7 @@ public:
    /// may not be instantiated otherwise.
    static void factorize_ZZ_matrix(Value & Z, Crow M, Ccol N,
                                    cValue_R VB, APL_Float rcond);
+#endif // 0 - factorize_DD_matrix/factorize_ZZ_matrix are dead code
 
 protected:   // class LA_pack
    /// compute Z←A⌹B
@@ -629,6 +638,8 @@ protected:   // class LA_pack
                               Ccol cols_A, cValue_R VA,
                               Ccol cols_B, cValue_R VB);
 
+   // DEAD CODE (see the #if 0 note on factorize_DD_matrix() above).
+#if 0
    /// store the orthogonal factor Q of some HR in Z[1]. On entry is Q a copy
    /// of HR, on exit is Q the reflectors in HR applied to the unit matrix.
    template<typename T>
@@ -637,6 +648,7 @@ protected:   // class LA_pack
    /// store the upper triangle matrix UTM of HR in Z[2] and UTM⁻¹ in Z[3]
    template<typename T>
    static void grab_R(fMatrix<T> & HR, Value & Z, fMatrix<T> & Rinv);
+#endif // 0 - grab_Q/grab_R are dead code
 
    /// compute the inverse of the upper triangular matrix \b utm.
    /// On return: the inverse of qutm is stored in qaug and utm was destroyed.
@@ -654,10 +666,13 @@ protected:   // class LA_pack
    static Value_P invert_UTM(Crow M, Ccol N,
                              fMatrix<T> & UTM, fMatrix<T> & AUG);
 
-   // factorize B
+   // factorize B. DEAD CODE (see the #if 0 note on factorize_DD_matrix()
+   // above).
+#if 0
    template<typename T>
    static sRank factorize_matrix(Value & Z, Crow M, Ccol N,
                                 cValue_R VB, APL_Float rcond);
+#endif // 0 - factorize_matrix is dead code
 
    /// return the real part of dd (= dd)
    static DD get_real(const DD & dd)

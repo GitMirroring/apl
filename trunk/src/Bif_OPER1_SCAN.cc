@@ -40,8 +40,8 @@ Bif_SCAN::scan(Token & tok_LO, Value_P B, uAxis axis) const
 
    if (!tok_LO.is_function())
       {
-        MORE_ERROR() << "The left argument of operator A /"
-                     << get_name() << " is not a function";
+        MORE_ERROR() << "f" << get_name() << " B : Bad left argument f"
+                        " (expecting a function)";
         DOMAIN_ERROR;
       }
 
@@ -49,15 +49,15 @@ cFunction_P LO = tok_LO.get_function();
 
    if (!LO->has_result())
       {
-        MORE_ERROR() << "The left argument of operator "
-                     << get_name() << " is a function that returns no result";
+        MORE_ERROR() << LO->get_name() << get_name() << " B : Bad function "
+                     << LO->get_name() << " (expecting a result)";
         DOMAIN_ERROR;
       }
 
    if (LO->get_fun_valence() != 2)
       {
-        MORE_ERROR() << "The left argument of operator "
-                     << get_name() << " is a function that is not dyadic";
+        MORE_ERROR() << LO->get_name() << get_name() << " B : Bad function "
+                     << LO->get_name() << " (expecting a dyadic function)";
         SYNTAX_ERROR;
       }
 

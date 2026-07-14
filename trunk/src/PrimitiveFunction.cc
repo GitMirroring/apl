@@ -1539,7 +1539,8 @@ ShapeItem * weight_Z = ALLOCA(ShapeItem, rank_Z);
                    MORE_ERROR() << "A⍉B: axis " << (qio + z)
                                 << " is missing in A; "
                                    "A should contain only integers " << qio
-                                << "..." << (qio + rank_Z) << ".";
+                                << "..." << (qio + rank_Z) << "."
+                                << (qio == 0 ? " Note: ⎕IO=0." : "");
                    DOMAIN_ERROR;
                  }
             }
