@@ -1065,7 +1065,13 @@ vector<Multiline_status> status;
          prefix << " " << suffix;
          text.erase(li);
          status.erase(status.begin() + li);
-         ++li;
+         // NOTE: no ++li here: erase() already shifted the line that
+         // follows the just-processed block into position li, so li
+         // already refers to the next unprocessed line. An extra ++li
+         // here used to skip that line -- harmless when it was a blank
+         // separator line, but a mis-parse (Assert1 failure below) when
+         // a block was immediately followed by another block's opening
+         // ⊣«««/""" with no separating line at all.
 
          // create value Z for content
          //

@@ -107,6 +107,16 @@ RESTORE:
  ⍝ pick a random primitive: arity A_stim B_stim X_stim Z_constraint
 
  ROW←(CONTEXT.PRIM)[?≢CONTEXT.PRIM;]
+ ⊣««« ⍝ rval.def's ecount column is the literal placeholder token "RE"
+  (see rval.def's own header comment: "the APL test runner substitutes
+  a concrete value... before calling ⎕RVAL"); replace it here with
+  CONTEXT.BUDGET before ⍎'ing A_stim/B_stim/X_stim below, or every
+  single generation call fails with VALUE ERROR (RE is not an APL
+  name) -- which is exactly what happened before this fix: 100% of
+  fuzz iterations silently counted as "violations".
+ »»»
+
+ ROW[2 3 4]←{c←('RE'≡¯2↑⍵)∧2≤≢⍵ ⋄ (1+c)⊃⍵((¯2↓⍵),⍕CONTEXT.BUDGET)}¨ROW[2 3 4]
  ⍝ arity expression (e.g. Z←A+B) and Z constraint, set first so
  ⍝ the caller always has a valid OPER even if generation fails below
 

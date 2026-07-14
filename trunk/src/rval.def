@@ -136,7 +136,10 @@ prim_def("Z←A⍴B", ¯3 ¯100 (1 1 1 1 1) 3 RE, 1 ¯8 (0 1 0 0 0) 0 RE, , "((�
 // ── , Ravel / Catenate ────────────────────────────────────────────────
 prim_def("Z←,B", ¯3 ¯100 (1 1 1 1 1) 3 RE, , , "((⍴Z)≡,×/⍴B)∧(⍴⍴Z)≡,1")
 prim_def("Z←A,B", ¯3 ¯100 (1 1 1 1 1) 3 RE, ¯3 ¯100 (1 1 1 1 1) 3 RE, , "(⍴⍴Z)≡,⌈/(⍴⍴A),(⍴⍴B),1")
-prim_def("Z←,[X]B", (0 3 2 1) ¯100 (1 1 1 1 1) 3 RE, , 0 (0 1 0 0 0) 0 RE, "(⍴⍴Z)≡⍴⍴B")
+// monadic ,[X]B with integer X is the identity (only ,[X.5]B, the
+// laminate case below, actually changes anything); X_stim is integer
+// only here, so Z must equal B exactly, for every valid X
+prim_def("Z←,[X]B", (0 3 2 1) ¯100 (1 1 1 1 1) 3 RE, , 0 (0 1 0 0 0) 0 RE, "Z≡B")
 prim_def("Z←A,[X]B", (0 3 2 1) ¯100 (1 1 1 1 1) 3 RE, ¯3 ¯100 (1 1 1 1 1) 3 RE, 0 (0 1 0 0 0) 0 RE, "((⍴⍴Z)≡(⍴⍴A)⌈⍴⍴B)∧(⍴Z)[X]≡(⍴A)[X]+(⍴B)[X]")
 // Laminate: A and B same rank; K is fractional axis
 prim_def("Z←A,[X.5]B", (0 3 2 1) ¯100 (1 1 1 1 0) 0 RE, (0 3 2 1) ¯100 (1 1 1 1 0) 0 RE, 0 (0 0 1 0 0) 0 RE, "(⍴⍴Z)≡1+(⍴⍴A)⌈⍴⍴B")
@@ -148,8 +151,13 @@ prim_def("Z←A⍪B", (0 3 2 1) ¯100 (1 1 1 1 1) 3 RE, (0 3 2 1) ¯100 (1 1 1 1
 // ── ⌽ Reverse / Rotate ────────────────────────────────────────────────
 prim_def("Z←⌽B", (0 3 2 1) ¯100 (1 1 1 1 1) 3 RE, , , "((⍴Z)≡⍴B)∧(⍴⍴Z)≡⍴⍴B")
 prim_def("Z←A⌽B", (0 3 2 1) ¯100 (1 1 1 1 1) 3 RE, ¯2 ¯10 (0 1 0 0 0) 0 RE, , "((⍴Z)≡⍴B)∧(⍴⍴Z)≡⍴⍴B")
-prim_def("Z←⌽[X]B", (0 3 2 1) ¯100 (1 1 1 1 1) 3 RE, , 0 (0 1 0 0 0) 0 RE, "((⍴Z)≡⍴B)∧(⍴⍴Z)≡⍴⍴B")
-prim_def("Z←A⌽[X]B", (0 3 2 1) ¯100 (1 1 1 1 1) 3 RE, ¯1 ¯100 (0 1 0 0 0) 0 RE, 0 (0 1 0 0 0) 0 RE, "((⍴Z)≡⍴B)∧(⍴⍴Z)≡⍴⍴B")
+// verified via: transpose axis X to the last position (forward perm =
+// grade-up of "other axes in order, then X"; the un-transposed "other
+// axes in order, then X" itself is the inverse perm to transpose back),
+// reverse/rotate along that now-last axis with plain ⌽/A⌽, transpose
+// back — this reduces the axis-X case to the well-known no-axis case
+prim_def("Z←⌽[X]B", (0 3 2 1) ¯100 (1 1 1 1 1) 3 RE, , 0 (0 1 0 0 0) 0 RE, "Z≡(((⍳⍴⍴B)~X),X)⍉⌽(⍋((⍳⍴⍴B)~X),X)⍉B")
+prim_def("Z←A⌽[X]B", (0 3 2 1) ¯100 (1 1 1 1 1) 3 RE, ¯1 ¯100 (0 1 0 0 0) 0 RE, 0 (0 1 0 0 0) 0 RE, "Z≡(((⍳⍴⍴B)~X),X)⍉A⌽(⍋((⍳⍴⍴B)~X),X)⍉B")
 
 // ── ⊖ Reverse First / Rotate First ───────────────────────────────────
 prim_def("Z←⊖B", (0 3 2 1) ¯100 (1 1 1 1 1) 3 RE, , , "((⍴Z)≡⍴B)∧(⍴⍴Z)≡⍴⍴B")
@@ -165,13 +173,19 @@ prim_def("Z←A⍉B", (0 3 2 1) ¯100 (1 1 1 1 1) 3 RE, 1 ¯8 (0 1 0 0 0) 0 RE, 
 prim_def("Z←↑B", ¯3 ¯100 (1 1 1 1 1) 3 RE, , , "(⍴⍴Z)≥⍴⍴B")
 // dyadic A↑B: B is the array to take from; any type/shape
 prim_def("Z←A↑B", ¯3 ¯100 (1 1 1 1 1) 3 RE, 1 ¯8 (0 1 0 0 0) 0 RE, , "((⍴Z)≡|,A)∧(⍴⍴Z)≡⍴,A")
-prim_def("Z←A↑[X]B", (0 3 2 1) ¯100 (1 1 1 1 1) 3 RE, 0 (0 1 0 0 0) 0 RE, ¯1 ¯3 (0 1 0 0 0) 0 RE, "(⍴⍴Z)≡⍴⍴B")
+// verified: transpose axis X to last (same forward/inverse perm pair as
+// ⌽[X]B above), take A along that now-last axis via a vector left arg
+// that leaves every other (transposed) axis at its current full size
+// (no padding/truncation there), transpose back
+prim_def("Z←A↑[X]B", (0 3 2 1) ¯100 (1 1 1 1 1) 3 RE, 0 (0 1 0 0 0) 0 RE, ¯1 ¯3 (0 1 0 0 0) 0 RE, "Z≡(((⍳⍴⍴B)~X),X)⍉((¯1↓⍴(⍋((⍳⍴⍴B)~X),X)⍉B),A)↑(⍋((⍳⍴⍴B)~X),X)⍉B")
 
 // ── ↓ Split / Drop ────────────────────────────────────────────────────
 // monadic ↓B: rank ≥ 1 (Split); B any nonscalar
 prim_def("Z←↓B", (0 3 2 1) ¯100 (1 1 1 1 1) 3 RE, , , "((⍴Z)≡1↑⍴B)∧(⍴⍴Z)≡,1")
 prim_def("Z←A↓B", ¯3 ¯100 (1 1 1 1 1) 3 RE, 1 ¯8 (0 1 0 0 0) 0 RE, , "((⍴Z)≡0⌈(⍴B)-|A)∧(⍴⍴Z)≡(⍴,A)⌈⍴⍴B")
-prim_def("Z←A↓[X]B", (0 3 2 1) ¯100 (1 1 1 1 1) 3 RE, 0 (0 1 0 0 0) 0 RE, ¯1 ¯3 (0 1 0 0 0) 0 RE, "(⍴⍴Z)≡⍴⍴B")
+// same transpose trick as A↑[X]B above, but drop (0 = drop nothing) on
+// every other (transposed) axis instead of take-full
+prim_def("Z←A↓[X]B", (0 3 2 1) ¯100 (1 1 1 1 1) 3 RE, 0 (0 1 0 0 0) 0 RE, ¯1 ¯3 (0 1 0 0 0) 0 RE, "Z≡(((⍳⍴⍴B)~X),X)⍉((0×¯1↓⍴(⍋((⍳⍴⍴B)~X),X)⍉B),A)↓(⍋((⍳⍴⍴B)~X),X)⍉B")
 
 // ── ⍳ Interval Index / Index Of ──────────────────────────────────────
 // monadic ⍳B: B integer (scalar or vector); tc takes |B to ensure ≥ 0
@@ -194,14 +208,22 @@ prim_def("Z←⊂B", ¯3 ¯100 (1 1 1 1 1) 3 RE, , , "((⍴Z)≡⍳0)∧(⍴⍴Z
 // dyadic A⊂B (APL2 Partitioned Enclose): A is Boolean/integer vector, B simple nonscalar
 prim_def("Z←A⊂B", (0 3 2 1) ¯100 (1 1 1 1 0) 0 RE, 1 ¯100 (0 1 0 0 0) 0 RE, , "(⍴⍴Z)≡⍴⍴B")
 prim_def("Z←⊂[X]B", (0 3 2 1) ¯100 (1 1 1 1 0) 0 RE, , ¯1 ¯3 (0 1 0 0 0) 0 RE, "(⍴⍴Z)≡,(⍴⍴B)-⍴,X")
-prim_def("Z←A⊂[X]B", (0 3 2 1) ¯100 (1 1 1 1 0) 0 RE, 1 ¯100 (0 1 0 0 0) 0 RE, 0 (0 1 0 0 0) 0 RE, "(⍴⍴Z)≡⍴⍴B")
+// A⊂B (no axis) partitions along the LAST axis and, unlike ⊂[X] alone,
+// preserves rank (the partitioned axis's length becomes the group
+// count); same transpose trick as above, no rank adjustment needed
+prim_def("Z←A⊂[X]B", (0 3 2 1) ¯100 (1 1 1 1 0) 0 RE, 1 ¯100 (0 1 0 0 0) 0 RE, 0 (0 1 0 0 0) 0 RE, "Z≡(((⍳⍴⍴B)~X),X)⍉A⊂(⍋((⍳⍴⍴B)~X),X)⍉B")
 
 // ── ⊃ First / Disclose / Pick ─────────────────────────────────────────
 // monadic ⊃B: benefits from nested input
 prim_def("Z←⊃B", ¯3 ¯100 (1 1 1 1 1) 3 RE, , , "1")
 // dyadic A⊃B (Pick): B is a nested array
 prim_def("Z←A⊃B", ¯3 ¯100 (1 1 1 1 1) 3 RE, 0 (0 1 0 0 0) 0 RE, , "1")
-prim_def("Z←⊃[X]B", (0 3 2 1) ¯100 (1 1 1 1 1) 3 RE, , ¯1 ¯3 (0 1 0 0 0) 0 RE, "1")
+// per Bif_F12_PARTITION_PICK.cc's disclose_with_axis(): Z←⊃[X]B is
+// defined as cB←⊃B (plain disclose, no axis) then cB transposed by the
+// permutation "cB's axes not in X, in order, followed by X" — verified
+// against that source both algebraically and empirically (all 3 axis
+// positions on a rank1-of-rank2 nested B)
+prim_def("Z←⊃[X]B", (0 3 2 1) ¯100 (1 1 1 1 1) 3 RE, , ¯1 ¯3 (0 1 0 0 0) 0 RE, "Z≡(((⍳⍴⍴⊃B)~X),X)⍉⊃B")
 
 // ── ≡ Depth / Match ───────────────────────────────────────────────────
 prim_def("Z←≡B", ¯3 ¯100 (1 1 1 1 1) 3 RE, , , "((⍴Z)≡⍳0)∧(⍴⍴Z)≡,0")
@@ -265,25 +287,40 @@ prim_def("Z←A[I;J;K]", 3 ¯100 (1 1 1 1 1) 3 RE, ¯1 ¯100 (0 1 0 0 0) 0 RE, ,
 // ── / Compress / Replicate (used as function) ─────────────────────────
 // B nonscalar; A Boolean for Compress, integer for Replicate
 prim_def("Z←A/B", (0 3 2 1) ¯100 (1 1 1 1 0) 0 RE, 1 ¯100 (0 1 0 0 0) 0 RE, , "((¯1↓⍴Z)≡¯1↓⍴B)∧(⍴⍴Z)≡⍴⍴B")
-prim_def("Z←A/[X]B", (0 3 2 1) ¯100 (1 1 1 1 0) 0 RE, 1 ¯100 (0 1 0 0 0) 0 RE, 0 (0 1 0 0 0) 0 RE, "(⍴⍴Z)≡⍴⍴B")
+// same transpose trick as ⌽[X]B above: A/B (no axis) already operates
+// along the last axis, so move axis X there, apply plain /, move back
+prim_def("Z←A/[X]B", (0 3 2 1) ¯100 (1 1 1 1 0) 0 RE, 1 ¯100 (0 1 0 0 0) 0 RE, 0 (0 1 0 0 0) 0 RE, "Z≡(((⍳⍴⍴B)~X),X)⍉A/(⍋((⍳⍴⍴B)~X),X)⍉B")
 prim_def("Z←A⌿B", (0 3 2 1) ¯100 (1 1 1 1 0) 0 RE, 1 ¯100 (0 1 0 0 0) 0 RE, , "((1↓⍴Z)≡1↓⍴B)∧(⍴⍴Z)≡⍴⍴B")
 
 // ── \ Expand (used as function) ───────────────────────────────────────
 prim_def("Z←A\\B", (0 3 2 1) ¯100 (1 1 1 1 0) 0 RE, 1 ¯100 (0 1 0 0 0) 0 RE, , "((¯1↓⍴Z)≡¯1↓⍴B)∧(⍴⍴Z)≡⍴⍴B")
-prim_def("Z←A\\[X]B", (0 3 2 1) ¯100 (1 1 1 1 0) 0 RE, 1 ¯100 (0 1 0 0 0) 0 RE, 0 (0 1 0 0 0) 0 RE, "(⍴⍴Z)≡⍴⍴B")
+// same transpose trick as A/[X]B above
+prim_def("Z←A\\[X]B", (0 3 2 1) ¯100 (1 1 1 1 0) 0 RE, 1 ¯100 (0 1 0 0 0) 0 RE, 0 (0 1 0 0 0) 0 RE, "Z≡(((⍳⍴⍴B)~X),X)⍉A\\(⍋((⍳⍴⍴B)~X),X)⍉B")
 prim_def("Z←A⍀B", (0 3 2 1) ¯100 (1 1 1 1 0) 0 RE, 1 ¯100 (0 1 0 0 0) 0 RE, , "((1↓⍴Z)≡1↓⍴B)∧(⍴⍴Z)≡⍴⍴B")
 
 // ── f/ Reduce ─────────────────────────────────────────────────────────
 // B nonscalar; f is an arbitrary scalar function
 prim_def("Z←f/B", (0 3 2 1) ¯100 (1 1 1 1 0) 0 RE, , , "((⍴Z)≡¯1↓⍴B)∧(⍴⍴Z)≡,0⌈¯1+⍴⍴B")
-prim_def("Z←f/[X]B", (0 3 2 1) ¯100 (1 1 1 1 0) 0 RE, , 0 (0 1 0 0 0) 0 RE, "(⍴⍴Z)≡,0⌈¯1+⍴⍴B")
+// NOTE: 'f' is substituted (to a concrete function from CONTEXT.FPOOL)
+// only in OPER, never in this constraint (ONE_PRIMITIVE in
+// AllPrimitives.tc), so the constraint cannot invoke f itself and the
+// full value-checking transpose trick used for e.g. ⌽[X]B/A/[X]B above
+// does not apply here. This is the strongest f-independent check
+// possible: unlike the old rank-only check, it confirms axis X
+// specifically (not just some axis) was the one removed, with every
+// other axis's length preserved in its original relative order
+prim_def("Z←f/[X]B", (0 3 2 1) ¯100 (1 1 1 1 0) 0 RE, , 0 (0 1 0 0 0) 0 RE, "(⍴Z)≡(⍴B)[(⍳⍴⍴B)~X]")
 prim_def("Z←f⌿B", (0 3 2 1) ¯100 (1 1 1 1 0) 0 RE, , , "((⍴Z)≡1↓⍴B)∧(⍴⍴Z)≡,0⌈¯1+⍴⍴B")
 // N-Wise Reduce: A is window size (scalar integer), B is the array
 prim_def("Z←Af/B", (0 3 2 1) ¯100 (0 1 1 1 0) 0 RE, 0 (0 1 0 0 0) 0 RE, , "((⍴Z)≡(¯1↓⍴B),(1+(¯1↑⍴B)-|A))∧(⍴⍴Z)≡⍴⍴B")
 
 // ── f\ Scan ───────────────────────────────────────────────────────────
 prim_def("Z←f\\B", (0 3 2 1) ¯100 (1 1 1 1 0) 0 RE, , , "((⍴Z)≡⍴B)∧(⍴⍴Z)≡⍴⍴B")
-prim_def("Z←f\\[X]B", (0 3 2 1) ¯100 (1 1 1 1 0) 0 RE, , 0 (0 1 0 0 0) 0 RE, "((⍴Z)≡⍴B)∧(⍴⍴Z)≡⍴⍴B")
+// NOTE: same f-not-available-in-constraints limitation as f/[X]B above.
+// Unlike reduce, scan never changes any axis's length (only values), so
+// there is no axis-specific shape fact left to add here beyond full
+// shape equality — already the strongest check possible without f.
+prim_def("Z←f\\[X]B", (0 3 2 1) ¯100 (1 1 1 1 0) 0 RE, , 0 (0 1 0 0 0) 0 RE, "(⍴Z)≡⍴B")
 prim_def("Z←f⍀B", (0 3 2 1) ¯100 (1 1 1 1 0) 0 RE, , , "((⍴Z)≡⍴B)∧(⍴⍴Z)≡⍴⍴B")
 
 // ── f¨ Each ───────────────────────────────────────────────────────────
@@ -303,8 +340,28 @@ prim_def("Z←A∘.fB", ¯3 ¯100 (1 1 1 1 0) 0 RE, ¯3 ¯100 (1 1 1 1 0) 0 RE, 
 prim_def("Z←Bf⍣NB", ¯3 ¯100 (0 1 1 1 0) 0 RE, 0 (0 1 0 0 0) 0 RE, , "(⍴Z)≡⍴B")
 
 // ── f⍤[K] Rank Operator ───────────────────────────────────────────────
-prim_def("Z←Bf⍤[X]B", ¯3 ¯100 (1 1 1 1 0) 0 RE, , 0 (0 1 0 0 0) 0 RE, "(⍴Z)≡⍴B")
-prim_def("Z←Af⍤[X]B", ¯3 ¯100 (1 1 1 1 0) 0 RE, ¯3 ¯100 (1 1 1 1 0) 0 RE, 0 (0 1 0 0 0) 0 RE, "1")
+// FIX: the rank operator ⍤ takes its rank as a plain value right
+// operand (f⍤K, per apl.texi's own documented examples, e.g.
+// "0 1 2(⌽⍤0 1) 'ABC'") -- NOT bracket-axis notation f⍤[K]. The old
+// arity strings ("Bf⍤[X]B" / "Af⍤[X]B") used bracket-axis syntax, which
+// is invalid for ⍤ and always raised RANK ERROR on every attempt, so
+// this row could never previously execute far enough to reach its
+// constraint at all (⎕EC OPER always failed, going straight to
+// ONE_PRIMITIVE's FAIL path). Also dropped a spurious leading "B" from
+// the monadic row's arity, which combined with the caller having no
+// left argument would itself have been wrong.
+//
+// Constraints: f is always one of CONTEXT.FPOOL's scalar functions
+// (+-×⌈⌊), and scalar functions distribute over any rank/cell
+// decomposition -- i.e. f⍤K B ≡ f B and A f⍤K B ≡ A f B for EVERY valid
+// K (verified empirically for several K per rank, including K=0). So
+// the rank actually chosen for X does not change the result at all;
+// the strongest fact checkable without invoking f (not available in
+// this constraint - see the f/[X]B note above) is the shape a plain
+// (unranked) scalar function call would have: unchanged shape for the
+// monadic case, and normal scalar-extension shape for the dyadic case
+prim_def("Z←f⍤X B", ¯3 ¯100 (1 1 1 1 0) 0 RE, , 0 (0 1 0 0 0) 0 RE, "(⍴Z)≡⍴B")
+prim_def("Z←A f⍤X B", ¯3 ¯100 (1 1 1 1 0) 0 RE, ¯3 ¯100 (1 1 1 1 0) 0 RE, 0 (0 1 0 0 0) 0 RE, "((⍴Z)≡⍴A)∨(⍴Z)≡⍴B")
 
 //undef prim_def
 
