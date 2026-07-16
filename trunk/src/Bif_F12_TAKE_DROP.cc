@@ -364,14 +364,42 @@ TakeDropIterator::axis_proto(AxesBitmap axes) const
       weighted offsets of the axes in X. Interestingly we get the output
       shown in the language reference only if we use the sum of the weighted
       offsets of the axes NOT in X.
-      0
+
+      The code below implements exactly that (axes NOT in X) -- it used to
+      sum the axes IN X instead, contradicting this comment. For any axis
+      a in X, ftwc[a].current walks 0..sA-1 as the overtake proceeds, i.e.
+      unboundedly past B's real extent along that axis; summing it in still
+      produced *a* number (so simple/homogeneous B silently got the right
+      answer regardless, since their prototype is a constant 0/space that
+      doesn't depend on which offset was read), but that offset was then
+      used to index B's own ravel (B.get_cravel(offset) in fill(), a few
+      lines above) -- valid while it happened to fall inside whatever
+      memory backs B (e.g. its short_value[] inline buffer), and a
+      use-after-the-end read (crash observed via the fuzzer, confirmed with
+      SHORT_VALUE_LENGTH_WANTED-sized short values) once it didn't.
+
+      Second, independent bug found alongside the above: axes (the bitmap
+      passed in) numbers axes the ordinary/natural way (bit 0 = first/
+      highest axis, per cValue::to_bitmap()), but ftwc[] is indexed the
+      *transposed* way used throughout this class (index 0 = last/lowest
+      axis, per Shape::get_transposed_shape_item()) -- e.g. for a rank-2 B,
+      natural axis 0 (rows) is ftwc[1], and natural axis 1 (columns) is
+      ftwc[0]. Using the loop variable as both a bit position into axes
+      and an index into ftwc[] without converting between the two
+      conventions reads the wrong axis's current/weight entirely (verified
+      directly: for a 2x3 B overtaken along axis 1/rows past row 2, this
+      produced offsets 6, 9, 12 -- multiples of 3, i.e. ftwc[1]'s (the
+      *row* axis's, the one being overtaken, not excluded) weight -- while
+      B only has 6 elements, so every one of those was already an
+      out-of-bounds read into B's ravel).
     */
 ShapeItem ret = 0;
-   loop(a, ref_B.get_rank())
+   loop(nat, ref_B.get_rank())
       {
-        if (axes & 1 << a)   // axis a in X
+        if (!(axes & 1 << nat))   // natural axis nat NOT in X
            {
-             const _ftwc & ftwc_a = ftwc[a];
+             const sAxis transposed = ref_B.get_rank() - 1 - nat;
+             const _ftwc & ftwc_a = ftwc[transposed];
              ret += ftwc_a.current * ftwc_a.weight;
            }
       }

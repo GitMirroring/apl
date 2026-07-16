@@ -154,9 +154,48 @@ const APL_Integer K = A->get_checked_near_int();
 const APL_Integer N =    get_checked_near_int();
    switch(row)
       {
-        case 0:  return K33_binomial(Z, N,           K,         false);
-        case 3:  return K33_binomial(Z, K - (N + 1), K,         K & 1);
-        case 6:  return K33_binomial(Z, -(K + 1),    -(N + 1),  (N - K) & 1);
+        case 0:  return K33_binomial(Z, N, K, false);
+
+        case 3:
+           {
+             // row 3 (A=K≥0, B=N<0) uses the identity
+             //   (N over K) = (-1)^K × (K-N-1 over K)
+             // i.e. calls K33_binomial with N' = K-(N+1). N and K are
+             // themselves resonable int64 values (get_checked_near_int()
+             // already bounds them), but N+1 and K-(N+1) can each
+             // overflow int64 for extreme N/K (e.g. K=int64 max,
+             // N=int64 min) -- the true (N over K) is astronomically
+             // large in that regime regardless (K33_binomial's own
+             // Assert(N'>=K') relies on this subtraction NOT
+             // overflowing, so check first rather than let a wrapped,
+             // wrong N' reach it and trip the assertion).
+             //
+             const APL_Integer N1 = N + 1;
+             if (Cell::sum_overflow(N1, N, 1))    return E_DOMAIN_ERROR;
+             const APL_Integer NK = K - N1;
+             if (Cell::diff_overflow(NK, K, N1))  return E_DOMAIN_ERROR;
+             return K33_binomial(Z, NK, K, K & 1);
+           }
+
+        case 6:
+           {
+             // row 6 (A=K<0, B=N<0, N≥K) uses the identity
+             //   (N over K) = (-1)^(N-K) × (-K-1 over -N-1)
+             // Same overflow risk as row 3, this time in the two
+             // negations -K-1 and -N-1 (K+1/N+1 can themselves
+             // overflow, and even when they don't, negating int64 min
+             // has no representable result).
+             //
+             const APL_Integer K1 = K + 1;
+             if (Cell::sum_overflow(K1, K, 1))           return E_DOMAIN_ERROR;
+             const APL_Integer neg_K1 = -K1;
+             if (Cell::diff_overflow(neg_K1, 0, K1))     return E_DOMAIN_ERROR;
+             const APL_Integer N1 = N + 1;
+             if (Cell::sum_overflow(N1, N, 1))           return E_DOMAIN_ERROR;
+             const APL_Integer neg_N1 = -N1;
+             if (Cell::diff_overflow(neg_N1, 0, N1))     return E_DOMAIN_ERROR;
+             return K33_binomial(Z, neg_K1, neg_N1, (N - K) & 1);
+           }
       }
 
    FIXME;

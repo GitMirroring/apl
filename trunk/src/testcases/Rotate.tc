@@ -99,5 +99,24 @@ RIPEST
       W
 MOTHER
 
+      ⍝ huge rotate amount regression ----------------------------------
+      ⍝ A⌽B normalized the rotate amount into [0, axis-length) with a
+      ⍝ while-loop that added/subtracted the axis length one step at a
+      ⍝ time -- O(|A|/axis-length) iterations instead of O(1), hanging
+      ⍝ for huge A (observed: A in the 10^11-10^18 range never
+      ⍝ returned). Fixed to use %. Any of these hanging is a
+      ⍝ regression; the exact numbers below are otherwise arbitrary.
+
+      B←2 3ρ⍳6
+      7023828131934356245 ¯2726503875690172446⌽B
+2 3 1
+4 5 6
+
+      100000000000⌽5
+5
+
+      ¯99999999999⌽1 2 3 4 5
+5 1 2 3 4
+
       ⍝ ==================================
 

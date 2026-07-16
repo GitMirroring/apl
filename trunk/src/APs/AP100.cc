@@ -19,7 +19,9 @@
 */
 
 #include <cassert>
+#include <fstream>
 #include <iostream>
+#include <sstream>
 
 #include <signal.h>
 #include <stdio.h>
@@ -33,6 +35,76 @@
 #include "Svar_signals.hh"
 
 using namespace std;
+
+//════════════════════════════════════════════════════════════════════════════
+/** true iff popen()/execve()-like command execution is disabled by the
+    preferences file. AP100's whole job is to run a shell command received
+    from a coupled variable and return its output (a documented, intentional
+    capability -- see doc/apl.texi, "Shared Variables"), not a bug in itself;
+    but that means AP100 should respect the same
+    CHECK_SECURITY(disable_Quad_FIO__exec) (see Security.hh/Security.def)
+    that gates execve()/popen() inside the main interpreter (⎕FIO.exec etc.),
+    so an installation that has disabled shell execution for the interpreter
+    does not still expose it via this AP.
+
+    AP100 is a separate, minimal executable (see APs/Makefile.am:
+    AP100_SOURCES only pulls in APmain/Backtrace/Svar_DB/Svar_record) that
+    does not link UserPreferences/Workspace, so the full CHECK_SECURITY
+    macro (which throws an APL DOMAIN_ERROR via Workspace) is not usable
+    here -- this re-implements just enough of the same preferences-file
+    lookup (same two file locations, same flag name, same
+    cfg_SECURITY_LEVEL_WANTED semantics) instead of linking in the entire
+    interpreter core for one flag.
+
+    Only the "matches all profiles" section of the preferences file (file
+    Profile 0, i.e. before any "Profile N" line, or after an explicit
+    "Profile 0" line) is honored: AP100 has no -p N profile selection of
+    its own, unlike the main interpreter.
+**/
+static bool
+exec_disabled()
+{
+#if !defined(cfg_SECURITY_LEVEL_WANTED) || cfg_SECURITY_LEVEL_WANTED == 0
+   return false;
+#elif cfg_SECURITY_LEVEL_WANTED == 2
+   return true;
+#else
+   string paths[2];
+   paths[0] = string(apl_DIR__sysconf) + "/gnu-apl.d/preferences";
+   if (const char * home = getenv("HOME"))
+      paths[1] = string(home) + "/.gnu_apl/preferences";
+
+   for (int p = 0; p < 2; ++p)
+       {
+         if (paths[p].empty())   continue;
+         ifstream in(paths[p].c_str());
+         if (!in.is_open())   continue;
+
+         int file_profile = 0;
+         string line;
+         while (getline(in, line))
+             {
+               istringstream iss(line);
+               string opt, arg;
+               iss >> opt >> arg;
+               if (opt.empty() || opt[0] == '#')   continue;
+
+               if (opt == "Profile")
+                  {
+                    file_profile = atoi(arg.c_str());
+                    continue;
+                  }
+
+               if (file_profile != 0)   continue;   // not our (default) profile
+
+               if (opt == "disable_Quad_FIO__exec")
+                  return arg == "yes" || arg == "Yes" || arg == "YES";
+             }
+       }
+
+   return false;   // no preferences file, or flag not set: allowed
+#endif
+}
 
 //════════════════════════════════════════════════════════════════════════════
 const char * prog_name()
@@ -102,6 +174,14 @@ const string cmd(reinterpret_cast<const char *> (cdr.get_items()) + 20,
 
    if (verbose)   get_CERR() << pref << " got command[" << cmd.size() << "] '"
                              << cmd << "'" << endl;
+
+   if (exec_disabled())
+      {
+        get_CERR() << pref << " popen() refused: disabled by preferences"
+                      " (disable_Quad_FIO__exec)" << endl;
+        set_ACK(var, 2);  // 2 := DISABLED (distinct from 1 := INVALID COMMAND)
+        return;
+      }
 
    fp = popen(cmd.c_str(), "r");
    if (fp == 0)   // bad command

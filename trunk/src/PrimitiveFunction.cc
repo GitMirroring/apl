@@ -1182,8 +1182,14 @@ const ShapeItem ebytes = B.packed_bytes_per_item();
               ShapeItem src = gsh;
               if (!src)   src = A.get_near_int(l + h*shape_B3.l());
               src += shape_B3.m() + m;
-              while (src < 0)               src += shape_B3.m();
-              while (src >= shape_B3.m())   src -= shape_B3.m();
+              // normalize src into [0, shape_B3.m()) in O(1). A naive
+              // while-loop here (adding/subtracting shape_B3.m() one
+              // step at a time) hangs for huge rotate amounts (e.g.
+              // A in the 10^11 range): O(|src|/m) iterations instead
+              // of O(1). shape_B3.m() > 0 is guaranteed here since
+              // this code only runs inside loop(m, shape_B3.m()).
+              src %= shape_B3.m();
+              if (src < 0)   src += shape_B3.m();
               const ShapeItem dst = h * shape_B3.m() * shape_B3.l()
                                   + m * shape_B3.l() + l;
               memcpy(pZ + dst * ebytes,
@@ -1200,8 +1206,14 @@ const ShapeItem ebytes = B.packed_bytes_per_item();
               ShapeItem src = gsh;
               if (!src)   src = A.get_near_int(l + h*shape_B3.l());
               src += shape_B3.m() + m;
-              while (src < 0)               src += shape_B3.m();
-              while (src >= shape_B3.m())   src -= shape_B3.m();
+              // normalize src into [0, shape_B3.m()) in O(1). A naive
+              // while-loop here (adding/subtracting shape_B3.m() one
+              // step at a time) hangs for huge rotate amounts (e.g.
+              // A in the 10^11 range): O(|src|/m) iterations instead
+              // of O(1). shape_B3.m() > 0 is guaranteed here since
+              // this code only runs inside loop(m, shape_B3.m()).
+              src %= shape_B3.m();
+              if (src < 0)   src += shape_B3.m();
               Z->next_ravel_Cell(B.get_cravel(shape_B3.hml(h, src, l)));
             }
         Z->pack_like(B);

@@ -1,5 +1,42 @@
 #!/bin/bash
 
+# ── self-refresh from the last manually-pushed tarball ──────────────────────
+# The maintainer's local machine periodically runs "make server72", which
+# builds a fresh source tarball and scp's it to $HOME/apl-VERSION.tar.gz.
+# That push is manual and deliberate (the maintainer's machine is often
+# offline overnight, and server72 cannot reach it even knowing its IP), but
+# everything from there on -- picking up the pushed tarball and building it
+# -- must happen automatically on server72's own nightly schedule. So this
+# script re-extracts the newest such tarball over its own containing tree
+# (overwriting tracked source files, including this script itself; leaving
+# build/builddir_* alone since those aren't part of the distributed tarball)
+# before doing anything else, then re-execs itself so the rest of this run
+# reads the freshly extracted script/config from disk instead of whatever
+# was already parsed into memory -- the standard safe pattern for a script
+# that overwrites itself while running (safe to overwrite/delete a script
+# after the OS has started it -- the running process keeps reading the old
+# inode; exec then restarts clean from the new one).
+#
+# --refreshed marks "already done, don't refresh again" across the exec, the
+# way $1 is normally used for config names ("", "clean", "nightly", or an
+# explicit config list) -- shifted off below so the rest of the script never
+# sees it.
+#
+if [ "x$1" != "x--refreshed" ]
+then
+   SELF_dir=$(cd "$(dirname "$0")/.." && pwd)   # .../apl-2.0, two levels up
+   TARBALL=$(ls -t "$HOME"/apl-*.tar.gz 2>/dev/null | head -1)
+   if [ -n "$TARBALL" ]
+   then
+      echo "refreshing $SELF_dir from $TARBALL before building..."
+      tar xzf "$TARBALL" --strip-components=1 -C "$SELF_dir"
+   else
+      echo "*** no apl-*.tar.gz found in $HOME -- building with the tree as-is"
+   fi
+   exec "$0" --refreshed "$@"
+fi
+shift   # drop the --refreshed marker; "$@" is now the caller's real args
+
 # Source build target definitions (configure options, artifacts, test flags,
 # and DEFAULT_CONFIGS).  The file lives next to this script.
 #
@@ -318,20 +355,24 @@ build_one()
    local secs=$(( $time_TO - $time_FROM ))
    local summ="$TOP_LOG_dir/summary.log"
    local OK_failed="OK"
+   local this_build_ok=1   # 0 once an expected artifact is actually found
    if [ $make_result -eq 0 ] ; then   # make succeeded
       echo "    make OK for configuration: $1" >> $summ
       if [ -f "$VSRC_dir/apl" ] ; then
          cp -f "$VSRC_dir/apl" "/var/www/html/apl--$1"
          mv -f "$VSRC_dir/apl" "$TOP_BUILD_dir/apl--$1"
          configs_good=$((configs_good+1))
+         this_build_ok=0
       elif [ -f "$VSRC_dir/.libs/libapl.so" ] ; then
          cp -f "$VSRC_dir/.libs/libapl.so" "/var/www/html/libapl.so"
          mv -f "$VSRC_dir/.libs/libapl.so" "$TOP_BUILD_dir/"
          configs_good=$((configs_good+1))
+         this_build_ok=0
       elif [ -f "$VSRC_dir/.libs/lib_gnu_apl.so" ] ; then
          cp -f "$VSRC_dir/.libs/lib_gnu_apl.so" "/var/www/html/lib_gnu_apl.so"
          mv -f "$VSRC_dir/.libs/lib_gnu_apl.so" "$TOP_BUILD_dir/"
          configs_good=$((configs_good+1))
+         this_build_ok=0
       elif [ ! -f $3 ] ; then
          echo "**** no file $3 after building $1" >> $summ
          missing_files=$((missing_files+1))
@@ -351,6 +392,7 @@ build_one()
    fi
    echo "    configuration: \"$1\" done." >> $summ
    echo "  configuration: \"$1\" done ($OK_failed)"
+   return $this_build_ok
 }
 
 ###################################################################
@@ -376,6 +418,7 @@ test_one()
       echo "*** test $1: FAILED ($secs seconds)" >> $summ
       test_errors=$((1+$test_errors))
    fi
+   return $make_result
 }
 
 ###################################################################
@@ -438,7 +481,20 @@ echo "  ├─── autoreconf done (OK)."
         # config defined in build_all.cfg: use the generic path
         VSRC_dir="$TOP_BUILD_dir/builddir_${config}/src"
         build_one "$config" "${!cfg_var}" "$VSRC_dir/${!art_var}"
-        [ "${!tst_var}" = "yes" ] && test_one "$config"
+        cfg_ok=$?
+        if [ "${!tst_var}" = "yes" ]
+        then
+           test_one "$config"
+           [ $? -eq 0 ] || cfg_ok=1
+        fi
+        # A config that built (and, if applicable, tested) cleanly is no
+        # longer interesting -- remove its builddir now instead of
+        # waiting for the next nightly run's blanket "rm -Rf builddir_*"
+        # at the top of this script, so a good run doesn't sit around at
+        # full size (object files, .libs/, copied testcases, ...) all
+        # day. A failed config's builddir is left in place for
+        # investigation (source, config.log, .o files, test output).
+        [ $cfg_ok -eq 0 ] && rm -Rf "$TOP_BUILD_dir/builddir_${config}"
 
      elif declare -f "build_${config}" > /dev/null
      then

@@ -138,8 +138,16 @@ RESTORE:
  (RCG ETG RESG)←⎕EC '{⎕RVAL⍣(0<≢⍵)⊢⍵}⍎3⊃ROW'
  →(RCG≠1)/FAIL          ⍝ generation itself failed (e.g. a bad rval.def stim)
  B←RESG
- →(~(2⊃ROW)≡'~B')/NORMALA
+ →(~(2⊃ROW)≡'~B')/NOTPLAINB
  (RCG ETG RESG)←⎕EC '7 ⎕RVAL B'   ⍝ A_stim="~B": conform to B (scalar or ⍴B)
+ →GOTA
+NOTPLAINB:
+ ⍝ any other ~xxx marker (~BL, ~BF, ~S, ...; see CONFORM_A) also
+ ⍝ conforms A to B, just with a different rule than plain ~B. Checked
+ ⍝ by leading '~' rather than requiring the CONFORM_A-marker name to
+ ⍝ start with "~B" specifically -- ~S (always scalar) doesn't.
+ →(~(0<≢2⊃ROW)∧((,'~')≡1↑2⊃ROW))/NORMALA
+ (RCG ETG RESG)←⎕EC '(2⊃ROW) CONFORM_A B'
  →GOTA
 NORMALA:
  ⍝ still independent for other primitives
@@ -180,6 +188,268 @@ FAIL:
  ZZ.A←A ◊ ZZ.B←B ◊ ZZ.X←X ◊ ZZ.OPER←OPER
 ∇
 
+⊣««« ⍝ Function Z←MARKER CONFORM_A B: generate a value A that structurally
+ conforms to B per the rule named by MARKER, one of:
+   ~BL  same rank as B, all axes but the Last one matching B, or scalar
+   ~BF  same rank as B, all axes but the First one matching B, or scalar
+   ~BC  rank-1 non-negative-int vector, length = B's last axis (for
+        A/B, A⊂B: the Count/boundary vector must match B's last axis
+        exactly, or LENGTH ERROR). Approximation for the [X] variants
+        too: X is derived from B's rank only *after* A is generated
+        (see ONE_PRIMITIVE), so the actual axis isn't known yet --
+        conforming to the last axis is right whenever X turns out to
+        be the last axis, and wrong (LENGTH ERROR, same as before this
+        fix) otherwise.
+   ~BE  boolean vector for A\B (expand): unlike A/B, values must be
+        strictly 0/1 (DOMAIN ERROR otherwise) and it's the *count* of
+        1s, not the total length, that must equal B's last axis; the
+        rest are zero-fill positions, so total length is >= that.
+   ~BR  rank-1 int vector, length = ⍴⍴B exactly (A↓B: one drop-count
+        per axis of B; magnitude is irrelevant -- drop clamps, so any
+        int works), or scalar.
+   ~BD  same rank as B minus 1, shape = B's leading axes (i.e. ⍴B with
+        the last axis dropped entirely, not just varied -- unlike
+        ~BL); or scalar. For A⌽B: one rotate-amount per row, magnitude
+        irrelevant since rotate wraps around.
+   ~BDF same as ~BD but drops B's *first* axis instead (for A⊖B, which
+        rotates along the first axis: one amount per column).
+   ~S   always scalar (int). For A⌽[X]B: a vector A would need to match
+        B's shape minus axis X specifically, but X is derived only
+        *after* A is generated (see ONE_PRIMITIVE) -- scalar A always
+        works regardless of which axis X turns out to be, so it's used
+        unconditionally here rather than only as one of two outcomes.
+   ~BP  permutation-like: length ⍴⍴B, each value independently 1..⍴⍴B
+        (for A⍉B: repeats are legal -- generalized/diagonal transpose
+        -- so this isn't a strict permutation, just right-length and
+        in-range). ⍬ if B is scalar.
+   ~BI  index vector for A⌷B: length ⍴⍴B, element i independently
+        1..(⍴B)[i] (a valid index into B's i-th axis specifically, not
+        just any value 1..⍴⍴B like ~BP). ⍬ if B is scalar.
+   ~BCF like ~BC but conforms to B's *first* axis instead of last (for
+        A⌿B, replicate-along-first-axis).
+   ~BEF like ~BE but conforms to B's *first* axis instead of last (for
+        A⍀B, expand-along-first-axis).
+   ~BDEC decode (A⊥B): A's *last* axis must equal B's *first* axis (or
+        A scalar); generates A as a vector of exactly that length
+        (under-tests the general case where A has other leading axes
+        too, but is always structurally valid).
+   ~BMM  matrix-multiply-style (Af.gB, inner product): A and B are
+        both rank-2 (per B_stim/A_stim already fixing rank=2); A's
+        column count (last axis) must equal B's row count (first
+        axis). Generates A with a fresh random row count and column
+        count = B's row count.
+   ~BDOM matrix divide (A⌹B, DOMINO): B is rank-2 (per B_stim already
+        fixing rank=2); A's *first* axis (row count) must equal B's
+        first axis, A itself rank 1 (vector) or rank 2 (matrix), with
+        any column count when rank 2.
+   ~FMT  dyadic format (A⍕B): A must have length 1 or 2 and be
+        non-negative (LENGTH/DOMAIN ERROR otherwise); generates a
+        1-or-2-element vector of small non-negative ints.
+   ~BIDX bracket index (A[B]): B (generated first, the array) must be
+        rank 1 (RANK ERROR on a matrix); A (the index) can be any
+        shape, values must be valid indices 1..≢B.
+   ~BPICK pick (A⊃B): B rank 0 (scalar) needs A=⍬; B rank 1 needs A a
+        plain scalar index 1..≢B; B rank≥2 needs A=⊂ of an
+        (⍴⍴B)-element vector, element i forced into 1..(⍴B)[i]
+        (confirmed directly: a flat, non-enclosed multi-element A into
+        a matrix B is RANK ERROR, must be enclosed as one index-path).
+   ~BIJ  multi-axis bracket index (B[I;J], B[I;J;K]): B's rank fixes
+        the number of semicolon-separated axes (2 or 3, via B_stim).
+        rval.def's arity string decomposes A itself into per-axis
+        index vectors -- "Z←B[⊃A[1];⊃A[2]]" etc -- rather than
+        needing ONE_PRIMITIVE to generate separate I/J/K variables
+        (it only ever generates A/B/X). A is generated here as an
+        (⍴⍴B)-element NESTED vector; element i is itself a vector of
+        random length 0..10 (an empty index vector is legal -- B[⍬;J]
+        selects a 0-row slice, confirmed directly), values forced into
+        1..(⍴B)[i]. Z_constraint then checks ⍴Z against (≢⊃A[1]),
+        (≢⊃A[2]) etc, matching B[I;J]'s real shape rule (confirmed
+        directly: ⍴(B[I;J]) ≡ (≢I),(≢J), independent per-axis lengths,
+        not requiring ≢I=≢J or any relation to B's own shape).
+   ~SC  shape/take-count vector for A⍴B and A↑B: rank-1, independent of
+        B, length 0..8 (matching the original raw spec these rows used
+        before this marker existed). Generated by asking ⎕RVAL for a
+        THROWAWAY array's shape rather than 8 independent magnitude-
+        capped ints: ⎕RVAL already clips a generated array's own shape
+        internally so ×/shape ≤ CONTEXT.BUDGET (Quad_RVAL.cc's
+        do_eval_B), and since ×/R ≥ ⌈/R for non-negative R, that
+        product bound also bounds every individual axis length -- no
+        separate per-element cap needed, and the guarantee is tied to
+        the same budget the rest of the fuzzer already respects rather
+        than an arbitrary extra constant.
+        Found via the fuzzer: A↑B with 8 independently huge-magnitude
+        (near int64_max) int elements in A crashed the interpreter
+        outright (SEGV in Bif_F12_TAKE::fill, via a wrapped-negative
+        volume that slipped past Value::init_ravel()'s "small value"
+        fast path and got a too-small buffer); A⍴B with the same shape
+        of input didn't crash but silently produced a corrupted Value
+        (⍴ and ≢ report the bogus huge shape, but indexing it throws
+        INDEX ERROR -- worse than a crash, since it looks like it
+        worked). Both rows used the exact same unbounded raw A_stim
+        before this fix. Root cause: Shape::add_shape_item()'s
+        "volume *= len" has no overflow check, by design -- it's on a
+        hot path, and the maintainer's call was that generators must
+        never hand it values whose product can overflow, rather than
+        paying for a check there.
+ rval.def's A_stim field is preprocessor-tokenized (unquoted), so it
+ cannot hold an arbitrary APL expression -- MARKER is a bare ASCII
+ string instead, and this function does the real work in real APL.
+»»»
+
+∇Z←MARKER CONFORM_A B;RB;OV;LASTAX;N;EXTRA;I
+ RB←⍴⍴B
+ →(MARKER≡'~BL')/LASTVARY
+ →(MARKER≡'~BF')/FIRSTVARY
+ →(MARKER≡'~BC')/COUNTVARY
+ →(MARKER≡'~BE')/EXPANDVARY
+ →(MARKER≡'~BR')/RANKVARY
+ →(MARKER≡'~BD')/DROPVARY
+ →(MARKER≡'~BDF')/DROPVARYFIRST
+ →(MARKER≡'~S')/INTSCALAR
+ →(MARKER≡'~BP')/PERMVARY
+ →(MARKER≡'~BI')/INDEXVARY
+ →(MARKER≡'~BCF')/COUNTVARYFIRST
+ →(MARKER≡'~BEF')/EXPANDVARYFIRST
+ →(MARKER≡'~BDEC')/DECODEVARY
+ →(MARKER≡'~BMM')/MATMULVARY
+ →(MARKER≡'~BDOM')/DOMINOVARY
+ →(MARKER≡'~FMT')/FMTVARY
+ →(MARKER≡'~BIDX')/BIDXVARY
+ →(MARKER≡'~BPICK')/PICKVARY
+ →(MARKER≡'~BIJ')/BIJVARY
+ →(MARKER≡'~SC')/SHAPECNTVARY
+ Z←⍬ ◊ →0                     ⍝ unknown marker (shouldn't happen)
+LASTVARY:
+ →(0=RB)/SCALARFORM
+ OV←RB((¯1↓⍴B),¯1+?101)(1 1 1 1 1)3 CONTEXT.BUDGET
+ →DONE
+FIRSTVARY:
+ →(0=RB)/SCALARFORM
+ OV←RB((¯1+?101),1↓⍴B)(1 1 1 1 1)3 CONTEXT.BUDGET
+ →DONE
+COUNTVARY:
+ LASTAX←1⌈¯1↑⍴B                ⍝ B's last axis size, or 1 if B scalar (¯1↑⍬ fills 0)
+ OV←1 LASTAX (0 1 0 0 0) 0 CONTEXT.BUDGET
+ Z←4|⎕RVAL OV                  ⍝ ⎕RVAL ints are unbounded magnitude and
+ →0                            ⍝ signed; 4| forces 0..3, non-negative
+EXPANDVARY:
+ LASTAX←1⌈¯1↑⍴B
+ EXTRA←(?11)-1                 ⍝ 0..10 extra zero-fill slots
+ N←LASTAX+EXTRA
+ Z←(LASTAX⍴1),EXTRA⍴0
+ Z←Z[N?N]                      ⍝ shuffle so the 1s land at random spots
+ →0
+RANKVARY:
+ →(0=RB)/SCALARFORM
+ OV←1 RB (0 1 0 0 0) 0 CONTEXT.BUDGET
+ Z←⎕RVAL OV
+ →0
+DROPVARY:
+ →(RB≤1)/INTSCALAR              ⍝ RB=0: scalar; RB=1: no leading axes left
+ OV←(RB-1)((¯1↓⍴B))(0 1 0 0 0) 0 CONTEXT.BUDGET
+ Z←1000|⎕RVAL OV                ⍝ cap magnitude: GNU APL's ⌽/⊖ are O(N)
+ →0                             ⍝ in the rotate amount, huge values hang
+DROPVARYFIRST:
+ →(RB≤1)/INTSCALAR              ⍝ RB=0: scalar; RB=1: no trailing axes left
+ OV←(RB-1)((1↓⍴B))(0 1 0 0 0) 0 CONTEXT.BUDGET
+ Z←1000|⎕RVAL OV
+ →0
+INTSCALAR:
+ OV←0 ⍬ (0 1 0 0 0) 0 CONTEXT.BUDGET
+ Z←1000|⎕RVAL OV
+ →0
+PERMVARY:
+ →(0=RB)/EMPTYFORM
+ OV←1 RB (0 1 0 0 0) 0 CONTEXT.BUDGET
+ Z←1+(RB⍴RB)|(⎕RVAL OV)-1        ⍝ 1..RB regardless of ⎕RVAL's own sign
+ →0
+INDEXVARY:
+ →(0=RB)/EMPTYFORM
+ OV←1 RB (0 1 0 0 0) 0 CONTEXT.BUDGET
+ Z←1+(⍴B)|(⎕RVAL OV)-1           ⍝ element i forced into 1..(⍴B)[i]
+ →0
+EMPTYFORM:
+ Z←⍬
+ →0
+COUNTVARYFIRST:
+ LASTAX←1⌈1↑⍴B,1                ⍝ B's first axis size, or 1 if B scalar
+ OV←1 LASTAX (0 1 0 0 0) 0 CONTEXT.BUDGET
+ Z←4|⎕RVAL OV
+ →0
+EXPANDVARYFIRST:
+ LASTAX←1⌈1↑⍴B,1
+ EXTRA←(?11)-1
+ N←LASTAX+EXTRA
+ Z←(LASTAX⍴1),EXTRA⍴0
+ Z←Z[N?N]
+ →0
+DECODEVARY:
+ LASTAX←1⌈1↑⍴B,1                ⍝ B's first axis size, or 1 if B scalar
+ OV←1 LASTAX (0 1 1 0 0) 0 CONTEXT.BUDGET
+ Z←⎕RVAL OV
+ →0
+MATMULVARY:
+ LASTAX←1⌈1↑⍴B,1                ⍝ B's row count (first axis)
+ OV←2((¯1+?101),LASTAX)(0 1 1 1 0) 0 CONTEXT.BUDGET
+ Z←⎕RVAL OV
+ →0
+DOMINOVARY:
+ LASTAX←1⌈1↑⍴B,1                ⍝ B's row count (first axis)
+ →((?2)=1)/DOMINOVEC
+ OV←2(LASTAX,¯1+?101)(0 1 1 0 0) 0 CONTEXT.BUDGET
+ Z←⎕RVAL OV
+ →0
+DOMINOVEC:
+ OV←1(,LASTAX)(0 1 1 0 0) 0 CONTEXT.BUDGET
+ Z←⎕RVAL OV
+ →0
+FMTVARY:
+ N←?2                          ⍝ length 1 or 2 (⎕IO=1: ?2 is already 1 or 2)
+ OV←1(,N)(0 1 0 0 0) 0 CONTEXT.BUDGET
+ Z←21|⎕RVAL OV                 ⍝ non-negative, small (0..20)
+ →0
+BIDXVARY:
+ N←1⌈≢B                        ⍝ ≢B is B's own tally (works for scalar too)
+ OV←¯2 ¯5 (0 1 0 0 0) 0 CONTEXT.BUDGET
+ Z←1+N|(⎕RVAL OV)-1            ⍝ every element forced into 1..≢B
+ →0
+PICKVARY:
+ →(0=RB)/EMPTYFORM             ⍝ scalar B: A must be ⍬
+ →(1=RB)/PICKSCALAR            ⍝ vector B: A is a plain scalar index
+ OV←1 RB (0 1 0 0 0) 0 CONTEXT.BUDGET
+ Z←⊂1+(⍴B)|(⎕RVAL OV)-1        ⍝ rank≥2: one enclosed RB-element index
+ →0                            ⍝ path, element i forced into 1..(⍴B)[i]
+PICKSCALAR:
+ OV←0 ⍬ (0 1 0 0 0) 0 CONTEXT.BUDGET
+ Z←1+(≢B)|(⎕RVAL OV)-1         ⍝ scalar index forced into 1..≢B
+ →0
+BIJVARY:
+ Z←⍬ ◊ I←0
+BIJLOOP:
+ I←I+1
+ →(I>RB)/0                     ⍝ Z now has RB nested per-axis index vectors
+ N←(?11)-1                     ⍝ this axis's index-vector length, 0..10
+ OV←1(,N)(0 1 0 0 0) 0 CONTEXT.BUDGET
+ Z←Z,⊂1+((⍴B)[I])|(⎕RVAL OV)-1 ⍝ values forced into 1..(⍴B)[I]
+ →BIJLOOP
+SHAPECNTVARY:
+ ⍝ generate a THROWAWAY array and take its OWN shape as Z, instead of
+ ⍝ generating up to 8 magnitude-capped ints independently: ⎕RVAL already
+ ⍝ clips a generated array's shape internally so ×/(that shape) ≤
+ ⍝ CONTEXT.BUDGET (see Quad_RVAL.cc's do_eval_B), and since ×/R ≥ ⌈/R
+ ⍝ for non-negative R, that ×/⍴Z≤budget bound also bounds every
+ ⍝ individual axis length in Z -- no separate per-element cap needed,
+ ⍝ and unlike the discarded 100| cap this ties the guarantee to the
+ ⍝ same budget the rest of the fuzzer already respects.
+ OV←¯8 ¯1000 (0 1 0 0 0) 0 CONTEXT.BUDGET
+ Z←⍴⎕RVAL OV
+ →0
+SCALARFORM:
+ OV←0 ⍬ (1 1 1 1 0) 0 CONTEXT.BUDGET
+DONE:
+ Z←⎕RVAL OV
+∇
+
       ⊣««« ⍝ CONTEXT is a set of parameters that govern the testcase
        execution in all sub-functions. To be adapted by the user
        as needed. Uses structured variables (a GNU APL extension).
@@ -203,3 +473,4 @@ FAIL:
       )ERASE CONTEXT
 
       )CHECK BRIEF
+

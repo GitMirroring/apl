@@ -209,7 +209,23 @@ cFunction_P LO = tok_LO.get_function();
 
    if (A->element_count() != 1)   LENGTH_ERROR;
 const APL_Integer A0 = A->get_int_value(0);
-const int n_wise = A0 < 0 ? -A0 : A0;   // the number of items (= M1 in ISO)
+
+   // the number of items (= M1 in ISO). Was 'const int n_wise = ...': A0 is
+   // a full APL_Integer (64 bit), so a huge A (e.g. left argument of A f/B
+   // with |A| far beyond B's own axis length) silently truncated down to
+   // whatever 32 bits n_wise happened to land on -- occasionally even
+   // negative, which then sailed past the "n_wise > B's axis length"
+   // DOMAIN ERROR check below (a negative number is never > a small
+   // positive one), while do_reduce() further down still received the
+   // untruncated, huge, unchecked A0 and used it to compute an out-of-
+   // bounds ravel offset into B -- a real SEGV, found via the fuzzer.
+   // n_wise must stay the same width as A0 for that check to mean
+   // anything, and the negation itself needs its own overflow guard
+   // (negating APL_Integer's own most negative value overflows the same
+   // way).
+const APL_Integer neg_A0 = -A0;
+   if (A0 < 0 && Cell::diff_overflow(neg_A0, 0, A0))   DOMAIN_ERROR;
+const APL_Integer n_wise = A0 < 0 ? neg_A0 : A0;
 
    if (B->is_scalar())
       {

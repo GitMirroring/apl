@@ -43,17 +43,29 @@ syn region aplMLString    start='"""\s*$' end='^\s*"""' keepend
 " as, a comment. Coloured the same as aplComment below rather than as a
 " string. The optional trailing ⍝⍝⍝ on the ⊣«««/»»» lines is purely
 " decorative (see apl.texi) and has no effect either way, so it is
-" allowed but not required. Defined before aplMLString2 below: since
-" this pattern starts one token earlier (at the ⊣), Vim's leftmost-match
-" rule would already prefer it over aplMLString2 for the same «««, but
-" defining it first also documents that ordering intent explicitly.
-syn region aplMLComment   start='⊣\s*«««\%(\s*⍝⍝⍝\)\=\s*$' end='^\s*»»»\%(\s*⍝⍝⍝\)\=' keepend
+" allowed but not required -- and so is ordinary explanatory text
+" directly after «««, e.g. "⊣««« ⍝ Function FOO: does X.", which is
+" this project's actual, universal convention throughout its own .tc
+" files (found the hard way: an earlier version of this pattern only
+" allowed *exactly* an optional bare ⍝⍝⍝ before end-of-line, so it
+" never matched real content there at all -- the region silently never
+" started, and every ⊣«««...»»» block in every .tc file rendered with
+" no comment colouring whatsoever, not even in the html2tex pipeline
+" used for the journal article's appendix). '.*$' accepts any trailing
+" text on the opening line, decorative or explanatory alike. Defined
+" before aplMLString2 below: since this pattern starts one token
+" earlier (at the ⊣), Vim's leftmost-match rule would already prefer
+" it over aplMLString2 for the same «««, but defining it first also
+" documents that ordering intent explicitly.
+syn region aplMLComment   start='⊣\s*«««.*$' end='^\s*»»»\%(\s*⍝⍝⍝\)\=' keepend
 
 " « » string: the multi-line form ««« ... »»» (optionally followed by
-" the recommended, purely decorative ⍝⍝⍝ marker) and the single-line
-" « ... » form. « ... » is an alternative to "..." that avoids the
-" "forgotten closing quote swallows the rest of the script" problem.
-syn region aplMLString2   start='«««\%(\s*⍝⍝⍝\)\=\s*$' end='^\s*»»»' keepend
+" the recommended, purely decorative ⍝⍝⍝ marker, or by ordinary
+" explanatory text -- see the aplMLComment note above, same fix
+" applies here) and the single-line « ... » form. « ... » is an
+" alternative to "..." that avoids the "forgotten closing quote
+" swallows the rest of the script" problem.
+syn region aplMLString2   start='«««.*$' end='^\s*»»»' keepend
 syn region aplString2     oneline start='«\%(««\)\@!' end='»\%(»»\)\@!'
 
 " Multi-line literal: <<< ... >>>, e.g.
