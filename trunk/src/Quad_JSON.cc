@@ -174,7 +174,7 @@ Value_P Z(ucs_Z, LOC);
 //────────────────────────────────────────────────────────────────────────────
 void
 Quad_JSON::APL_to_JSON_string(UCS_string & result, const cValue & B,
-                              bool level, bool sorted)
+                              int level, bool sorted)
 {
    if (B.is_scalar())   // number or literal
       {
@@ -278,7 +278,7 @@ Quad_JSON::APL_to_JSON_string(UCS_string & result, const cValue & B,
 //────────────────────────────────────────────────────────────────────────────
 void
 Quad_JSON::APL_to_JSON_string(UCS_string & result, const Cell & cell,
-                              bool level, bool sorted)
+                              int level, bool sorted)
 {
    if (cell.is_integer_cell())
       {
@@ -451,7 +451,7 @@ bool expect_colon = true;
        }
 
    MORE_ERROR() << "⎕JSON B: No matching " << end << " for " << start
-                << " at " << tokens_B[token0] << "↓B ";
+                << " at end of B";
    DOMAIN_ERROR;
 }
 //────────────────────────────────────────────────────────────────────────────
@@ -459,6 +459,9 @@ bool expect_colon = true;
 Unicode
 Quad_JSON::decode_UUUU(const UCS_string & ucs_B, ShapeItem b)
 {
+   // need 6 chars: \, u, and 4 hex digits.
+   //
+   if (b < 0 || b + 6 > ucs_B.ssize())   return Unicode_0;
    if (ucs_B[b++] != UNI_BACKSLASH)   return Unicode_0;
    if (ucs_B[b++] != UNI_u)           return Unicode_0;
 

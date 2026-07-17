@@ -120,9 +120,9 @@ int modifier = 0;
         op = MX_ops(value_to_subfun(X));
         if (op >= 100 && op <= 104)
            {
-             op = OP_RANDOMS;
              modifier = op - 100;
-           } 
+             op = OP_RANDOMS;
+           }
       }
    else if (X.is_vector())                         // op and modifier
       {
@@ -318,7 +318,7 @@ void
 Quad_MX::normalise(vector<double> &v)
 {
 const double mean = gsl_stats_mean(v.data(), 1, v.size());
-const double sdev = gsl_stats_sd_m(v.data(), 2, v.size(), mean);
+const double sdev = gsl_stats_sd_m(v.data(), 1, v.size(), mean);
    loop(c, v.size())   v[c] = (v[c] - mean) / sdev;
 }
 //────────────────────────────────────────────────────────────────────────────
@@ -385,15 +385,17 @@ gsl_matrix_complex * evec = gsl_matrix_complex_alloc(mtx->rows(), mtx->cols());
 
 gsl_eigen_nonsymmv_workspace * w = gsl_eigen_nonsymmv_alloc(mtx->rows());
 int erc = gsl_eigen_nonsymmv(&m.matrix, eval, evec, w);
+   gsl_eigen_nonsymmv_free(w);
    if (erc == GSL_SUCCESS)
       {
-        gsl_eigen_nonsymmv_free(w);
         erc = gsl_eigen_nonsymmv_sort(eval, evec, GSL_EIGEN_SORT_ABS_DESC);
       }
 
    if (erc != GSL_SUCCESS)
      {
        delete mtx;
+       gsl_vector_complex_free(eval);
+       gsl_matrix_complex_free(evec);
        MORE_ERROR() << "Eigensystem computation error.";
        INTERNAL_ERROR;
      }
@@ -409,6 +411,8 @@ Value_P Z(rows, cols, LOC);
              }
        }
   delete mtx;
+  gsl_vector_complex_free(eval);
+  gsl_matrix_complex_free(evec);
 
   return Z;
 }
@@ -555,7 +559,8 @@ const RavelType rt = B->get_ravel_type();
            }
       }
 
-   if (close_A)   fclose(ofile);
+   // ofile is closed by writer's destructor (if close_A); calling
+   // fclose(ofile) here as well would double-close the same FILE*.
    return Idx0_0(LOC);
 }
 //────────────────────────────────────────────────────────────────────────────
@@ -630,15 +635,17 @@ gsl_matrix_complex * evec = gsl_matrix_complex_alloc(mtx->rows(), mtx->cols());
 
 gsl_eigen_nonsymmv_workspace * w = gsl_eigen_nonsymmv_alloc(mtx->rows());
 int erc = gsl_eigen_nonsymmv(&m.matrix, eval, evec, w);
+   gsl_eigen_nonsymmv_free(w);
    if (erc == GSL_SUCCESS)
       {
-        gsl_eigen_nonsymmv_free(w);
         erc = gsl_eigen_nonsymmv_sort(eval, evec, GSL_EIGEN_SORT_ABS_DESC);
       }
 
    if (erc != GSL_SUCCESS)
       {
         delete mtx;
+        gsl_vector_complex_free(eval);
+        gsl_matrix_complex_free(evec);
         MORE_ERROR() << "Eigensystem computation error.";
         INTERNAL_ERROR;
       }
@@ -653,6 +660,8 @@ Value_P Z(cols, LOC);
        }
 
   delete mtx;
+  gsl_vector_complex_free(eval);
+  gsl_matrix_complex_free(evec);
   Z->check_value(LOC);
 
   return Z;
@@ -885,8 +894,8 @@ vector<vector<double> > Breals(rows);
 vector<vector<double> > Bimags(rows);
    loop(r, rows)
        {
-         Breals[r].reserve(cols);
-         Bimags[r].reserve(cols);
+         Breals[r].resize(cols);
+         Bimags[r].resize(cols);
          const int offset = r * cols;
          loop(c, cols)
              {

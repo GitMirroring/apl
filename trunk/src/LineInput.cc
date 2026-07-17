@@ -244,8 +244,9 @@ char buffer[4000];
 void
 LineHistory::replace_line(const UCS_string & line)
 {
-   if (put > 0)   hist_lines[put - 1] = line;
-   else           hist_lines.back() = line;
+   if (put > 0)                    hist_lines[put - 1] = line;
+   else if (!hist_lines.empty())   hist_lines.back() = line;
+   // else: no history line to replace (e.g. history disabled)
 }
 //────────────────────────────────────────────────────────────────────────────
 void

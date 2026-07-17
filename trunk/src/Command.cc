@@ -2170,7 +2170,7 @@ void
 Command::cmd_XTERM(ostream & out, const UCS_string & arg)
 {
 const char * term = getenv("TERM");
-   if (!strncmp(term, "dumb", 4) && arg.starts_iwith("ON"))
+   if (term && !strncmp(term, "dumb", 4) && arg.starts_iwith("ON"))
       {
         out << "impossible on dumb terminal" << endl;
       }

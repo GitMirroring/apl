@@ -299,15 +299,11 @@ bool dot_seen = false;      // the decimal . was seen
         Q1(expo_digits);
       }
 
-   // construct a C string according to the APL string
+   // resolve very big mantissas (including any carry from rounding up
+   // int_digits[]) *before* constructing the C string below, so that the
+   // buffer is filled from the final digits rather than the pre-rounding
+   // ones.
    //
-char * buffer = ALLOCA(char, int_digits.size() +
-                             fract_digits.size() +
-                             expo_digits.size() + 20);
-char * b = buffer;
-   if (mant_negative)   *b++ = '-';
-   loop(i, int_digits.size())   *b++ = int_digits[i];
-
    if (int_digits.size() > MAX_TOKENIZE_DIGITS)   // very big mantissa
       {
         need_float = true;
@@ -358,6 +354,15 @@ char * b = buffer;
                  }
             }
       }
+
+   // construct a C string according to the APL string
+   //
+char * buffer = ALLOCA(char, int_digits.size() +
+                             fract_digits.size() +
+                             expo_digits.size() + 20);
+char * b = buffer;
+   if (mant_negative)   *b++ = '-';
+   loop(i, int_digits.size())   *b++ = int_digits[i];
 
    if (fract_digits.size())
       {

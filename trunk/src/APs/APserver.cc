@@ -533,9 +533,14 @@ AP3_fd * ap_fd = 0;
         case sid_MATCH_OR_MAKE:
              {
                uint32_t varname[MAX_SVAR_NAMELEN];
-               memcpy(varname,
-                      request->get__MATCH_OR_MAKE__varname().data(),
-                      sizeof(varname));
+               memset(varname, 0, sizeof(varname));
+               {
+                 const string vn_str =
+                             request->get__MATCH_OR_MAKE__varname();
+                 const size_t vn_len = vn_str.size() < sizeof(varname)
+                                     ? vn_str.size() : sizeof(varname);
+                 memcpy(varname, vn_str.data(), vn_len);
+               }
                const int to_proc   = request->get__MATCH_OR_MAKE__to_proc();
                const int to_parent = request->get__MATCH_OR_MAKE__to_parent();
                const int to_grand  = request->get__MATCH_OR_MAKE__to_grand();

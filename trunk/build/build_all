@@ -25,13 +25,18 @@
 if [ "x$1" != "x--refreshed" ]
 then
    SELF_dir=$(cd "$(dirname "$0")/.." && pwd)   # .../apl-2.0, two levels up
-   TARBALL=$(ls -t "$HOME"/apl-*.tar.gz 2>/dev/null | head -1)
+   # "make server72" always scp's to eedjsa@server72:~ regardless of which
+   # user later runs this script (the nightly cron runs as root, whose
+   # $HOME is /root -- not eedjsa's home -- so this must not depend on
+   # $HOME).
+   PUSH_dir=/home/eedjsa
+   TARBALL=$(ls -t "$PUSH_dir"/apl-*.tar.gz 2>/dev/null | head -1)
    if [ -n "$TARBALL" ]
    then
       echo "refreshing $SELF_dir from $TARBALL before building..."
       tar xzf "$TARBALL" --strip-components=1 -C "$SELF_dir"
    else
-      echo "*** no apl-*.tar.gz found in $HOME -- building with the tree as-is"
+      echo "*** no apl-*.tar.gz found in $PUSH_dir -- building with the tree as-is"
    fi
    exec "$0" --refreshed "$@"
 fi
@@ -222,16 +227,50 @@ run_all_primitives()
 
    if [ -x "$apl_bin" ]
    then
+      # AllPrimitives.tc limits its own fuzz loop to CONTEXT.SECONDS (5s,
+      # see testcases/AllPrimitives.tc) but only checks the clock *between*
+      # fuzz iterations; a single iteration that hangs (e.g. an interpreter
+      # bug causing an infinite loop inside one primitive call) is never
+      # caught by that internal check and can wedge the whole nightly
+      # build indefinitely. Run the test in the background and enforce an
+      # external watchdog well beyond its own budget as a backstop.
+      #
+      # "exec" (rather than a plain subshell) replaces the backgrounded
+      # subshell's process image with $apl_bin itself, so $! below is the
+      # actual apl PID and not an intermediate shell that a kill would
+      # miss.
+      #
+      local watchdog_seconds=60   # generous multiple of CONTEXT.SECONDS=5
+
       ( cd "$ROOT_dir/src" && \
-        "$apl_bin" --id 1010 -T testcases/AllPrimitives.tc ) \
-           > "$ALL_PRIMITIVES_LOG" 2>&1
+        exec "$apl_bin" --id 1010 -T testcases/AllPrimitives.tc ) \
+           > "$ALL_PRIMITIVES_LOG" 2>&1 &
+      local apl_pid=$!
+
+      local waited=0
+      while [ "$waited" -lt "$watchdog_seconds" ] && kill -0 "$apl_pid" 2>/dev/null
+      do
+         sleep 1
+         waited=$((waited + 1))
+      done
+
+      if kill -0 "$apl_pid" 2>/dev/null
+      then
+         kill -9 "$apl_pid" 2>/dev/null
+         wait "$apl_pid" 2>/dev/null
+         echo "*** AllPrimitives.tc did not finish within ${watchdog_seconds}s" \
+              "(own budget: CONTEXT.SECONDS=5s) - killed by watchdog ***" \
+              >> "$ALL_PRIMITIVES_LOG"
+      else
+         wait "$apl_pid" 2>/dev/null
+      fi
 
       # the test runner colours its output unconditionally (even when not
       # a tty); strip the ANSI/cursor escapes before extracting the
       # human-readable summary line(s).
       #
       ALL_PRIMITIVES_SUMMARY=$(sed -r 's/\x1b\[[0-9;]*[A-Za-z]//g' "$ALL_PRIMITIVES_LOG" \
-                                | grep -E "errors in|Failed testcase")
+                                | grep -E "errors in|Failed testcase|killed by watchdog")
       [ -z "$ALL_PRIMITIVES_SUMMARY" ] && \
          ALL_PRIMITIVES_SUMMARY="(no summary line found, see $ALL_PRIMITIVES_LOG)"
    fi
@@ -274,6 +313,12 @@ echo "</TABLE>"
 
 echo "<H3>AllPrimitives Fuzzer (testcases/AllPrimitives.tc)</H3>
 <PRE>${ALL_PRIMITIVES_SUMMARY:-(not run)}</PRE>"
+
+echo "<H3>Per-Configuration Timing</H3>
+<PRE>"
+grep -E '(build|test) [^:]+: (OK|FAILED) \([0-9]+ seconds\)' "$TOP_LOG_dir/summary.log" 2>/dev/null \
+   || echo "(no timing data available)"
+echo "</PRE>"
 
 echo "<H3>Other</H3>"
 

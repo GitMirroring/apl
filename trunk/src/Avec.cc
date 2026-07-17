@@ -84,9 +84,9 @@ int errors = 0;
    for (int i = 1; i < MAX_AV; ++i)
        {
          errors += show_error_pos(i, __LINE__,
-                                   character_table[i].def_line,
                                    character_table[i].unicode >
-                                   character_table[i - 1].unicode);
+                                   character_table[i - 1].unicode,
+                                   character_table[i].def_line);
        }
 
    // check that ASCII chars map to themselves.
@@ -94,8 +94,8 @@ int errors = 0;
    loop(i, 0x80)
        {
          errors += show_error_pos(i, __LINE__,
-                                  character_table[i].def_line,
-                                  character_table[i].unicode == i);
+                                  character_table[i].unicode == i,
+                                  character_table[i].def_line);
        }
 
    // check for holes and duplicate AV positions
@@ -130,8 +130,9 @@ int errors = 0;
    //
    loop(i, MAX_AV)
        {
-         errors += show_error_pos(i, __LINE__, character_table[i].def_line,
-                                   i == find_char(character_table[i].unicode));
+         errors += show_error_pos(i, __LINE__,
+                                   i == find_char(character_table[i].unicode),
+                                   character_table[i].def_line);
        }
 
    Log(LOG_SHOW_AV)

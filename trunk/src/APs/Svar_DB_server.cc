@@ -371,7 +371,11 @@ SV_key key  = from.id.proc;   key <<= 16;
        key |= ++seq;
 
    svar->key = key;
-   for (int v = 0; v < (MAX_SVAR_NAMELEN + 1); ++v)
+   // UCS_varname (the caller's buffer) has MAX_SVAR_NAMELEN elements, so
+   // read at most that many; svar->varname has one extra slot (below) to
+   // guarantee NUL-termination regardless of how many were copied.
+   //
+   for (int v = 0; v < MAX_SVAR_NAMELEN; ++v)
        {
          svar->varname[v] = UCS_varname[v];
          if (UCS_varname[v] == 0)   break;

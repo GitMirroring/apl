@@ -167,7 +167,12 @@ public:
    /// @param string pointer to the start of a UTF-8 encoded byte sequence
    /// @param len output: number of bytes consumed by the first character
    /// @param verbose true to print diagnostics for malformed sequences
-   static Unicode toUni(const UTF8 * string, int & len, bool verbose);
+   /// @param end optional: one past the last valid byte at \b string; if
+   ///        given, the returned char's encoding is guaranteed to not
+   ///        read at or past \b end (a truncated sequence is treated as
+   ///        malformed instead of reading out of bounds)
+   static Unicode toUni(const UTF8 * string, int & len, bool verbose,
+                       const UTF8 * end = 0);
 
 };
 //════════════════════════════════════════════════════════════════════════════

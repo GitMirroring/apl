@@ -635,7 +635,7 @@ ConstRavel_P iA(A, true);
         for (ConstRavel_P iB(B, true); +iB; ++iB)
             {
               CellType ct = ct_a;
-              const CellType ct_b = B.get_cell_type(0);
+              const CellType ct_b = B.get_cell_type(iB());
               if (ct_b == CT_INT)            ;
               else if (ct_b == CT_FLOAT)     { if (ct == CT_INT)  ct = ct_b; }
               else if (ct_b == CT_COMPLEX)   ct = CT_COMPLEX;

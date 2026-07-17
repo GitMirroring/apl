@@ -1029,11 +1029,23 @@ Bif_F2_UNEQU::eval_B(cValue_R B) const
    // Z[i] is 1 iff B[i] is the first occurrence in B. Aka.(B⍳B)=(⍳⍴B).
    //
 const double qct = Workspace::get_CT();
+const ShapeItem len_B = B.element_count();
 vector<const Cell *> firsts;
+
+   // for a packed B, get_cravel(idx) materializes the element into B's
+   // single shared ravel.cell_fetch_cache, so a raw pointer into it is
+   // invalidated by the very next get_cravel() call. Give every element
+   // its own stable slot in this caller-owned buffer instead.
+   //
+vector<uint8_t> stable_B_mem;
+   if (B.is_packed())   stable_B_mem.resize(len_B * sizeof(Cell));
+Cell * stable_B = reinterpret_cast<Cell *>(stable_B_mem.data());
+
 Value_P Z(B.get_shape(), LOC);
-   loop(b, B.element_count())
+   loop(b, len_B)
        {
-         const Cell & cell_B = B.get_cravel(b);
+         const Cell & cell_B = B.is_packed() ? B.get_cravel(b, stable_B[b])
+                                              : B.get_cravel(b);
 
          // sequentially search cell_B in firsts...
          //

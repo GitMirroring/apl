@@ -116,7 +116,8 @@ UTF8_string::dump_hex(ostream & out, const UTF8 * utf, int size, int max_bytes)
 }
 //────────────────────────────────────────────────────────────────────────────
 Unicode
-UTF8_string::toUni(const UTF8 * string, int & len, bool verbose)
+UTF8_string::toUni(const UTF8 * string, int & len, bool verbose,
+                  const UTF8 * end)
 {
 const uint32_t b0 = *string++;
    if (b0 < 0x80)                  { len = 1;   return Unicode(b0); }
@@ -132,6 +133,7 @@ uint32_t bx = b0;   // the "significant" bits in b0
         CERR << "Bad UTF8 sequence: " << HEX(b0);
         loop(j, 6)
            {
+             if (end && string + j >= end)   break;
              const uint32_t bx = string[j];
              if (bx & 0x80)   CERR << " " << HEX(bx);
              else              break;
@@ -143,6 +145,16 @@ uint32_t bx = b0;   // the "significant" bits in b0
         Assert(0 && "Internal error in UTF8_string::toUni()");
       }
    else
+      {
+        len = 0;
+        return Invalid_Unicode;
+      }
+
+   // string already advanced past b0; len-1 continuation bytes remain
+   // to be read at string[0]..string[len-2]. Reject a sequence that
+   // would read at or past end instead of reading out of bounds.
+   //
+   if (end && string + (len - 1) > end)
       {
         len = 0;
         return Invalid_Unicode;
@@ -288,7 +300,7 @@ bool got_tag = false;
         //
         const int rest = size() - src;
         if (rest > 3 && at(src + 1) == '#' &&
-            strchr("0123456789", at(src + 2)))
+            (strchr("0123456789", at(src + 2)) || at(src + 2) == 'x'))
            {
              src += 2;   // skip "&#"
              int val = 0;
@@ -320,7 +332,7 @@ bool got_tag = false;
              at(dest++) = '<';
              src += 3;   // skip "lt;"
            }
-        else if (rest > 4 && at(src + 1) == 'n' &&
+        else if (rest > 5 && at(src + 1) == 'n' &&
                              at(src + 2) == 'b' &&
                              at(src + 3) == 's' &&
                              at(src + 4) == 'p' &&

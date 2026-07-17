@@ -1530,7 +1530,8 @@ bool progress = false;
 
          int pos_B = pos_RO + len_N;
 
-         if (tos[pos_B].get_Class() == TC_R_PARENT)   // ( LO ⍤ RO )
+         if (pos_B >= int(tos.size()) ||
+             tos[pos_B].get_Class() == TC_R_PARENT)   // ( LO ⍤ RO ) or EOS
             {
               continue;
             }
@@ -1542,6 +1543,8 @@ bool progress = false;
          // insert a left parenthesis
          {
            int pos_LO = pos_POWER - 1;
+           if (pos_LO < 0)   continue;   // ⍣ at the very start of the
+                                          // statement: no LO to parenthesize
            if (tos[pos_LO].get_Class() == TC_R_PARENT)   // ( LO )
               {
                 pos_LO = tos.find_opening_parent(pos_LO);
@@ -1638,7 +1641,8 @@ bool progress = false;
 
          int pos_B = pos_RO + len_y;
 
-         if (tos[pos_B].get_Class() == TC_R_PARENT)   // ( LO ⍤ RO )
+         if (pos_B >= int(tos.size()) ||
+             tos[pos_B].get_Class() == TC_R_PARENT)   // ( LO ⍤ RO ) or EOS
             {
               continue;
             }
@@ -1650,6 +1654,8 @@ bool progress = false;
          // insert a left parenthesis
          {
            int pos_LO = pos_RANK - 1;
+           if (pos_LO < 0)   continue;   // ⍤ at the very start of the
+                                          // statement: no LO to parenthesize
            if (tos[pos_LO].get_Class() == TC_R_PARENT)   // ( LO )
               {
                 pos_LO = tos.find_opening_parent(pos_LO);
@@ -1700,19 +1706,20 @@ int len = 0;
                         new (&tos[t]) Token(TOK_INTEGER, Cell::near_int(val));
                       }
                  }
-         else if (tag == TOK_COMPLEX)   // even more stupid ?
-                 {
-                   const APL_Float imag = T.get_cpx_imag();
-                   if (!(Cell::is_near_zero(imag)))   break;
-                   const APL_Float real = T.get_cpx_real();
-                   if (!(Cell::is_near_int(real)))   break;
-
-                   if (len <= 3)   // replace float with integer
-                      {
-                        new (&tos[t]) Token(TOK_INTEGER, Cell::near_int(real));
-                      }
-                 }
               else break;   // not literal
+            }
+         else if (tag == TOK_COMPLEX)   // even more stupid ?
+            {
+              const APL_Float imag = T.get_cpx_imag();
+              if (!(Cell::is_near_zero(imag)))   break;
+              const APL_Float real = T.get_cpx_real();
+              if (!(Cell::is_near_int(real)))   break;
+
+              ++len;
+              if (len <= 3)   // replace float with integer
+                 {
+                   new (&tos[t]) Token(TOK_INTEGER, Cell::near_int(real));
+                 }
             }
          else break;
        }

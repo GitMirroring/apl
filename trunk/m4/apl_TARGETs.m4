@@ -41,6 +41,30 @@ fi
 AM_CONDITIONAL(apl_TARGET_ERLANG, apl_YES($apl_TARGET_ERLANG))
 AC_MSG_RESULT([$apl_TARGET_ERLANG])
 
+# --with-erlang only says the user *wants* the Erlang interface; it says
+# nothing about whether an Erlang toolchain is actually installed (e.g. a
+# machine that intentionally omits Erlang to save memory, per its own
+# nightly-build policy). Check separately for erlc itself -- AC_PATH_PROG
+# searches $PATH for an executable (not merely present) file named erlc,
+# which is normally a symlink to erlang's own installation, e.g.
+# /usr/lib/erlang/bin/erlc -- and record the result so that
+# erlang/Makefile.am can skip the actual build (rather than fail it) when
+# --with-erlang was requested but no working erlc was found.
+#
+if apl_YES($apl_TARGET_ERLANG); then
+   AC_PATH_PROG([ERLC], [erlc], [no])
+   if test "x$ERLC" = xno; then
+      AC_MSG_WARN([--with-erlang was given but erlc was not found in \$PATH;
+the Erlang interface will be skipped, not built, this configure run])
+      apl_HAVE_ERLC=no
+   else
+      apl_HAVE_ERLC=yes
+   fi
+else
+   apl_HAVE_ERLC=no
+fi
+AM_CONDITIONAL(apl_HAVE_ERLC, apl_YES($apl_HAVE_ERLC))
+
 
 ###############################################################################
 # check if the user wants to build libapl.so

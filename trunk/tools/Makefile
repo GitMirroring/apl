@@ -87,30 +87,34 @@ POST_INSTALL = :
 NORMAL_UNINSTALL = :
 PRE_UNINSTALL = :
 POST_UNINSTALL = :
-build_triplet = x86_64-unknown-linux-gnu
-host_triplet = x86_64-unknown-linux-gnu
-noinst_PROGRAMS = APL_keyboard$(EXEEXT) APL_keyboard_learn$(EXEEXT) \
-	APL_keyboard_show$(EXEEXT) apl2html$(EXEEXT) \
-	check_command_def$(EXEEXT) filter_apl_lines$(EXEEXT) \
-	filter_apl_lines2$(EXEEXT) lines$(EXEEXT) \
-	ncurses_emul$(EXEEXT) phrase_gen$(EXEEXT) sockconst$(EXEEXT) \
-	TLV_server$(EXEEXT)
+build_triplet = x86_64-pc-linux-gnu
+host_triplet = x86_64-pc-linux-gnu
+noinst_PROGRAMS = APL_keyboard$(EXEEXT) \
+	APL_keyboard_learn$(EXEEXT) \
+	APL_keyboard_show$(EXEEXT) \
+	apl2html$(EXEEXT) \
+	check_command_def$(EXEEXT) \
+	filter_apl_lines$(EXEEXT) \
+	filter_apl_lines2$(EXEEXT) \
+	lines$(EXEEXT) phrase_gen$(EXEEXT) \
+	sockconst$(EXEEXT) TLV_server$(EXEEXT) \
+	unicodes_used$(EXEEXT)
 subdir = tools
 ACLOCAL_M4 = $(top_srcdir)/aclocal.m4
 am__aclocal_m4_deps = $(top_srcdir)/m4/depend.m4 \
 	$(top_srcdir)/m4/libtool.m4 $(top_srcdir)/m4/ltoptions.m4 \
 	$(top_srcdir)/m4/ltsugar.m4 $(top_srcdir)/m4/ltversion.m4 \
 	$(top_srcdir)/m4/lt~obsolete.m4 $(top_srcdir)/m4/apl_sugar.m4 \
-	$(top_srcdir)/m4/check_X11.m4 $(top_srcdir)/m4/check_FFT.m4 \
-	$(top_srcdir)/m4/check_PNG.m4 $(top_srcdir)/m4/check_SQLITE.m4 \
+	$(top_srcdir)/m4/apl_TARGETs.m4 $(top_srcdir)/m4/check_X11.m4 \
+	$(top_srcdir)/m4/check_FFT.m4 $(top_srcdir)/m4/check_PNG.m4 \
+	$(top_srcdir)/m4/check_SQLITE.m4 \
 	$(top_srcdir)/m4/ax_lib_sqlite3.m4 \
 	$(top_srcdir)/m4/check_POSTGRES.m4 \
 	$(top_srcdir)/m4/ax_lib_postgresql.m4 \
 	$(top_srcdir)/m4/check_PCRE.m4 \
 	$(top_srcdir)/m4/ax_path_lib_pcre.m4 \
 	$(top_srcdir)/m4/check_GSL.m4 $(top_srcdir)/m4/check_GTK.m4 \
-	$(top_srcdir)/m4/apl_TARGETs.m4 $(top_srcdir)/m4/build_date.m4 \
-	$(top_srcdir)/configure.ac
+	$(top_srcdir)/m4/build_date.m4 $(top_srcdir)/configure.ac
 am__configure_deps = $(am__aclocal_m4_deps) $(CONFIGURE_DEPENDENCIES) \
 	$(ACLOCAL_M4)
 DIST_COMMON = $(srcdir)/Makefile.am $(dist_noinst_SCRIPTS) \
@@ -151,15 +155,15 @@ filter_apl_lines2_LDADD = $(LDADD)
 am_lines_OBJECTS = lines.$(OBJEXT)
 lines_OBJECTS = $(am_lines_OBJECTS)
 lines_LDADD = $(LDADD)
-am_ncurses_emul_OBJECTS = ncurses_emul.$(OBJEXT)
-ncurses_emul_OBJECTS = $(am_ncurses_emul_OBJECTS)
-ncurses_emul_LDADD = $(LDADD)
 am_phrase_gen_OBJECTS = phrase_gen.$(OBJEXT)
 phrase_gen_OBJECTS = $(am_phrase_gen_OBJECTS)
 phrase_gen_LDADD = $(LDADD)
 sockconst_SOURCES = sockconst.c
 sockconst_OBJECTS = sockconst.$(OBJEXT)
 sockconst_LDADD = $(LDADD)
+am_unicodes_used_OBJECTS = unicodes_used.$(OBJEXT)
+unicodes_used_OBJECTS = $(am_unicodes_used_OBJECTS)
+unicodes_used_LDADD = $(LDADD)
 SCRIPTS = $(dist_noinst_SCRIPTS)
 AM_V_P = $(am__v_P_$(V))
 am__v_P_ = $(am__v_P_$(AM_DEFAULT_VERBOSITY))
@@ -182,8 +186,8 @@ am__depfiles_remade = ./$(DEPDIR)/APL_keyboard.Po \
 	./$(DEPDIR)/apl2html.Po ./$(DEPDIR)/check_command_def.Po \
 	./$(DEPDIR)/filter_apl_lines.Po \
 	./$(DEPDIR)/filter_apl_lines2.Po ./$(DEPDIR)/lines.Po \
-	./$(DEPDIR)/ncurses_emul.Po ./$(DEPDIR)/phrase_gen.Po \
-	./$(DEPDIR)/sockconst.Po
+	./$(DEPDIR)/phrase_gen.Po ./$(DEPDIR)/sockconst.Po \
+	./$(DEPDIR)/unicodes_used.Po
 am__mv = mv -f
 COMPILE = $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) \
 	$(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS)
@@ -225,14 +229,14 @@ SOURCES = $(APL_keyboard_SOURCES) $(APL_keyboard_learn_SOURCES) \
 	$(APL_keyboard_show_SOURCES) $(TLV_server_SOURCES) \
 	$(apl2html_SOURCES) $(check_command_def_SOURCES) \
 	$(filter_apl_lines_SOURCES) $(filter_apl_lines2_SOURCES) \
-	$(lines_SOURCES) $(ncurses_emul_SOURCES) $(phrase_gen_SOURCES) \
-	sockconst.c
+	$(lines_SOURCES) $(phrase_gen_SOURCES) sockconst.c \
+	$(unicodes_used_SOURCES)
 DIST_SOURCES = $(APL_keyboard_SOURCES) $(APL_keyboard_learn_SOURCES) \
 	$(APL_keyboard_show_SOURCES) $(TLV_server_SOURCES) \
 	$(apl2html_SOURCES) $(check_command_def_SOURCES) \
 	$(filter_apl_lines_SOURCES) $(filter_apl_lines2_SOURCES) \
-	$(lines_SOURCES) $(ncurses_emul_SOURCES) $(phrase_gen_SOURCES) \
-	sockconst.c
+	$(lines_SOURCES) $(phrase_gen_SOURCES) sockconst.c \
+	$(unicodes_used_SOURCES)
 am__can_run_installinfo = \
   case $$AM_UPDATE_INFO_DIR in \
     n|no|NO) false;; \
@@ -258,6 +262,7 @@ am__define_uniq_tagged_files = \
 am__DIST_COMMON = $(srcdir)/Makefile.in $(top_srcdir)/depcomp
 DISTFILES = $(DIST_COMMON) $(DIST_SOURCES) $(TEXINFOS) $(EXTRA_DIST)
 ACLOCAL = ${SHELL} '/home/eedjsa/savannah-repo-apl/trunk/missing' aclocal-1.16
+ALT_MAP_WANTED = 0
 AMTAR = $${TAR-tar}
 AM_DEFAULT_VERBOSITY = 1
 APSERVER_PATH = /tmp/GNU-APL/APserver
@@ -309,7 +314,7 @@ INSTALL_STRIP_PROGRAM = $(install_sh) -c -s
 LD = /usr/bin/ld -m elf_x86_64
 LDFLAGS = 
 LIBOBJS = 
-LIBS = -lcairo -lgdk-3 -lgtk-3 -lgsl -lgslcblas -lpcre2-32 -lz -lpng -lfftw3 -lX11-xcb -lxcb -lX11 -lc -ldl -lm -lncurses -lcurses -lnsl -lpthread -ltinfo 
+LIBS = -lcairo -lgdk-3 -lgtk-3 -lgsl -lgslcblas -lpcre2-32 -lpng -lz -lfftw3 -lX11-xcb -lxcb -lX11 -lc -ldl -lm -lnsl -lpthread 
 LIBTOOL = $(SHELL) $(top_builddir)/libtool
 LIPO = 
 LN_S = ln -s
@@ -329,10 +334,11 @@ OTOOL64 =
 PACKAGE = apl
 PACKAGE_BUGREPORT = bug-apl@gnu.org
 PACKAGE_NAME = GNU APL
-PACKAGE_STRING = GNU APL 1.9
+PACKAGE_STRING = GNU APL 2.0
 PACKAGE_TARNAME = apl
 PACKAGE_URL = https://www.gnu.org/software/apl/
-PACKAGE_VERSION = 1.9
+PACKAGE_VERSION = 2.0
+PACKED_MINIMUM_LENGTH_WANTED = 12
 PATH_SEPARATOR = :
 PCRE_CFLAGS = 
 PCRE_LIBS = -lpcre2-32
@@ -341,7 +347,7 @@ PG_CONFIG = /usr/bin/pg_config
 PKG_CONFIG = /usr/bin/pkg-config
 POSTGRESQL_CFLAGS = -I/usr/include/postgresql
 POSTGRESQL_LDFLAGS = -L/usr/lib/x86_64-linux-gnu -lpq
-POSTGRESQL_VERSION = 14.19 (Ubuntu 14.19-0ubuntu0.22.04.1)
+POSTGRESQL_VERSION = 14.22 (Ubuntu 14.22-0ubuntu0.22.04.1)
 POW_LIB = 
 PYTHON_CFLAGS = 
 RANLIB = ranlib
@@ -357,7 +363,7 @@ SQLITE3_VERSION = 3.37.2
 STRIP = strip
 VALUE_CHECK_WANTED = no
 VALUE_HISTORY_WANTED = no
-VERSION = 1.9
+VERSION = 2.0
 VF_TRACING_WANTED = no
 VISIBLE_MARKERS_WANTED = no
 XMKMF = 
@@ -374,25 +380,25 @@ am__leading_dot = .
 am__quote = 
 am__tar = $${TAR-tar} chof - "$$tardir"
 am__untar = $${TAR-tar} xf -
-apl_BUILD_DATE = 2025-12-31 16:12:02 CET
-apl_BUILD_OS = Linux 5.15.0-161-generic x86_64
+apl_BUILD_DATE = 2026-07-17 13:17:05 CEST
+apl_BUILD_OS = Linux 5.15.0-177-generic x86_64
 bindir = ${exec_prefix}/bin
-build = x86_64-unknown-linux-gnu
+build = x86_64-pc-linux-gnu
 build_alias = 
 build_cpu = x86_64
 build_os = linux-gnu
-build_vendor = unknown
+build_vendor = pc
 builddir = .
 datadir = ${datarootdir}
 datarootdir = ${prefix}/share
 docdir = ${datarootdir}/doc/${PACKAGE_TARNAME}
 dvidir = ${docdir}
 exec_prefix = ${prefix}
-host = x86_64-unknown-linux-gnu
+host = x86_64-pc-linux-gnu
 host_alias = 
 host_cpu = x86_64
 host_os = linux-gnu
-host_vendor = unknown
+host_vendor = pc
 htmldir = ${docdir}
 includedir = ${prefix}/include
 infodir = ${datarootdir}/info
@@ -437,10 +443,8 @@ check_command_def_SOURCES = check_command_def.cc
 filter_apl_lines_SOURCES = filter_apl_lines.cc
 filter_apl_lines2_SOURCES = filter_apl_lines2.cc
 lines_SOURCES = lines.cc
-ncurses_emul_SOURCES = ncurses_emul.cc
-ncurses_emul_LIBS = -lncurses -ltinfo
 TLV_server_SOURCES = TLV_server.c
-unicodes_used_DOURCES = unicodes_used.cc
+unicodes_used_SOURCES = unicodes_used.cc
 phrase_gen_SOURCES = phrase_gen.cc phrase_gen.def
 all: all-am
 
@@ -521,10 +525,6 @@ lines$(EXEEXT): $(lines_OBJECTS) $(lines_DEPENDENCIES) $(EXTRA_lines_DEPENDENCIE
 	@rm -f lines$(EXEEXT)
 	$(AM_V_CXXLD)$(CXXLINK) $(lines_OBJECTS) $(lines_LDADD) $(LIBS)
 
-ncurses_emul$(EXEEXT): $(ncurses_emul_OBJECTS) $(ncurses_emul_DEPENDENCIES) $(EXTRA_ncurses_emul_DEPENDENCIES) 
-	@rm -f ncurses_emul$(EXEEXT)
-	$(AM_V_CXXLD)$(CXXLINK) $(ncurses_emul_OBJECTS) $(ncurses_emul_LDADD) $(LIBS)
-
 phrase_gen$(EXEEXT): $(phrase_gen_OBJECTS) $(phrase_gen_DEPENDENCIES) $(EXTRA_phrase_gen_DEPENDENCIES) 
 	@rm -f phrase_gen$(EXEEXT)
 	$(AM_V_CXXLD)$(CXXLINK) $(phrase_gen_OBJECTS) $(phrase_gen_LDADD) $(LIBS)
@@ -532,6 +532,10 @@ phrase_gen$(EXEEXT): $(phrase_gen_OBJECTS) $(phrase_gen_DEPENDENCIES) $(EXTRA_ph
 sockconst$(EXEEXT): $(sockconst_OBJECTS) $(sockconst_DEPENDENCIES) $(EXTRA_sockconst_DEPENDENCIES) 
 	@rm -f sockconst$(EXEEXT)
 	$(AM_V_CCLD)$(LINK) $(sockconst_OBJECTS) $(sockconst_LDADD) $(LIBS)
+
+unicodes_used$(EXEEXT): $(unicodes_used_OBJECTS) $(unicodes_used_DEPENDENCIES) $(EXTRA_unicodes_used_DEPENDENCIES) 
+	@rm -f unicodes_used$(EXEEXT)
+	$(AM_V_CXXLD)$(CXXLINK) $(unicodes_used_OBJECTS) $(unicodes_used_LDADD) $(LIBS)
 
 mostlyclean-compile:
 	-rm -f *.$(OBJEXT)
@@ -548,9 +552,9 @@ include ./$(DEPDIR)/check_command_def.Po # am--include-marker
 include ./$(DEPDIR)/filter_apl_lines.Po # am--include-marker
 include ./$(DEPDIR)/filter_apl_lines2.Po # am--include-marker
 include ./$(DEPDIR)/lines.Po # am--include-marker
-include ./$(DEPDIR)/ncurses_emul.Po # am--include-marker
 include ./$(DEPDIR)/phrase_gen.Po # am--include-marker
 include ./$(DEPDIR)/sockconst.Po # am--include-marker
+include ./$(DEPDIR)/unicodes_used.Po # am--include-marker
 
 $(am__depfiles_remade):
 	@$(MKDIR_P) $(@D)
@@ -745,9 +749,9 @@ distclean: distclean-am
 	-rm -f ./$(DEPDIR)/filter_apl_lines.Po
 	-rm -f ./$(DEPDIR)/filter_apl_lines2.Po
 	-rm -f ./$(DEPDIR)/lines.Po
-	-rm -f ./$(DEPDIR)/ncurses_emul.Po
 	-rm -f ./$(DEPDIR)/phrase_gen.Po
 	-rm -f ./$(DEPDIR)/sockconst.Po
+	-rm -f ./$(DEPDIR)/unicodes_used.Po
 	-rm -f Makefile
 distclean-am: clean-am distclean-compile distclean-generic \
 	distclean-tags
@@ -802,9 +806,9 @@ maintainer-clean: maintainer-clean-am
 	-rm -f ./$(DEPDIR)/filter_apl_lines.Po
 	-rm -f ./$(DEPDIR)/filter_apl_lines2.Po
 	-rm -f ./$(DEPDIR)/lines.Po
-	-rm -f ./$(DEPDIR)/ncurses_emul.Po
 	-rm -f ./$(DEPDIR)/phrase_gen.Po
 	-rm -f ./$(DEPDIR)/sockconst.Po
+	-rm -f ./$(DEPDIR)/unicodes_used.Po
 	-rm -f Makefile
 maintainer-clean-am: distclean-am maintainer-clean-generic
 

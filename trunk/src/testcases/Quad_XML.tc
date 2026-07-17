@@ -41,7 +41,7 @@ DOMAIN ERROR+
       ⎕XML '<root><sub '
       ^
 )MORE
-⎕XML: No tag end: <sub 
+No tag end found in: <sub 
 )SIC
 
 ⍝ tag too short---------------------------------------------------------------
@@ -51,9 +51,9 @@ DOMAIN ERROR+
       ⎕XML '<root><s'
       ^
 )MORE
-⎕XML: Tag too short: <s
+No tag end found in: <s
 )MORE
-⎕XML: Tag too short: <s
+No tag end found in: <s
 )SIC
 ⍝ comment too short-----------------------------------------------------------
 ⎕XML "<root><!--->"

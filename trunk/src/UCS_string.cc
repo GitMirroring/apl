@@ -1677,6 +1677,13 @@ int from = 0;
       {
 start_of_sequence:
 
+        // the goto's below jump here directly, bypassing the loop's own
+        // i < size check above, so it must be repeated here too (a
+        // truncated trailing sequence must not decode utf's NUL
+        // terminator into a spurious trailing U+0000).
+        //
+        if (i >= size)   break;
+
         const uint32_t b0 = utf[i++];
         uint32_t bx = b0;
         uint32_t more;

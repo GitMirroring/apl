@@ -21,7 +21,6 @@
 
 
 
-
 am__is_gnu_make = { \
   if test -z '$(MAKELEVEL)'; then \
     false; \
@@ -93,9 +92,9 @@ POST_INSTALL = :
 NORMAL_UNINSTALL = :
 PRE_UNINSTALL = :
 POST_UNINSTALL = :
-build_triplet = x86_64-unknown-linux-gnu
-host_triplet = x86_64-unknown-linux-gnu
-am__append_1 = APs emacs_mode sql workspaces
+build_triplet = x86_64-pc-linux-gnu
+host_triplet = x86_64-pc-linux-gnu
+am__append_1 = APs sql workspaces emacs_mode
 am__append_2 = Gtk	# for ⎕GTK
 am__append_3 = Plot_gtk.cc
 #am__append_4 = Plot_gtk.cc
@@ -124,33 +123,36 @@ am__append_14 = sql/PostgresArgListBuilder.cc \
 #am__append_15 = libapl.la
 #am__append_16 = lib_gnu_apl.la
 bin_PROGRAMS = apl$(EXEEXT)
+# Cross-compiled Windows binary: suppress libtool's lt-apl.c wrapper, which
+# uses _spawnv/_P_WAIT without including <process.h> and fails to compile.
+#am__append_17 = -no-install
 subdir = src
 ACLOCAL_M4 = $(top_srcdir)/aclocal.m4
 am__aclocal_m4_deps = $(top_srcdir)/m4/depend.m4 \
 	$(top_srcdir)/m4/libtool.m4 $(top_srcdir)/m4/ltoptions.m4 \
 	$(top_srcdir)/m4/ltsugar.m4 $(top_srcdir)/m4/ltversion.m4 \
 	$(top_srcdir)/m4/lt~obsolete.m4 $(top_srcdir)/m4/apl_sugar.m4 \
-	$(top_srcdir)/m4/check_X11.m4 $(top_srcdir)/m4/check_FFT.m4 \
-	$(top_srcdir)/m4/check_PNG.m4 $(top_srcdir)/m4/check_SQLITE.m4 \
+	$(top_srcdir)/m4/apl_TARGETs.m4 $(top_srcdir)/m4/check_X11.m4 \
+	$(top_srcdir)/m4/check_FFT.m4 $(top_srcdir)/m4/check_PNG.m4 \
+	$(top_srcdir)/m4/check_SQLITE.m4 \
 	$(top_srcdir)/m4/ax_lib_sqlite3.m4 \
 	$(top_srcdir)/m4/check_POSTGRES.m4 \
 	$(top_srcdir)/m4/ax_lib_postgresql.m4 \
 	$(top_srcdir)/m4/check_PCRE.m4 \
 	$(top_srcdir)/m4/ax_path_lib_pcre.m4 \
 	$(top_srcdir)/m4/check_GSL.m4 $(top_srcdir)/m4/check_GTK.m4 \
-	$(top_srcdir)/m4/apl_TARGETs.m4 $(top_srcdir)/m4/build_date.m4 \
-	$(top_srcdir)/configure.ac
+	$(top_srcdir)/m4/build_date.m4 $(top_srcdir)/configure.ac
 am__configure_deps = $(am__aclocal_m4_deps) $(CONFIGURE_DEPENDENCIES) \
 	$(ACLOCAL_M4)
-DIST_COMMON = $(srcdir)/Makefile.am $(dist_noinst_SCRIPTS) \
-	$(dist_noinst_DATA) $(am__pkginclude_HEADERS_DIST) \
+DIST_COMMON = $(srcdir)/Makefile.am $(dist_noinst_DATA) \
+	$(dist_pkgdata_DATA) $(am__pkginclude_HEADERS_DIST) \
 	$(am__DIST_COMMON)
 mkinstalldirs = $(install_sh) -d
 CONFIG_HEADER = $(top_builddir)/config.h
 CONFIG_CLEAN_FILES =
 CONFIG_CLEAN_VPATH_FILES =
 am__installdirs = "$(DESTDIR)$(bindir)" "$(DESTDIR)$(pkglibdir)" \
-	"$(DESTDIR)$(distdir)" "$(DESTDIR)$(pkgincludedir)"
+	"$(DESTDIR)$(pkgdatadir)" "$(DESTDIR)$(pkgincludedir)"
 PROGRAMS = $(bin_PROGRAMS)
 am__vpath_adj_setup = srcdirstrip=`echo "$(srcdir)" | sed 's|.|.|g'`;
 am__vpath_adj = case $$p in \
@@ -196,14 +198,15 @@ am__lib_gnu_apl_la_SOURCES_DIST = Plot_ascii.cc Plot_gtk.cc \
 	Bif_OPER2_INNER.hh Bif_OPER2_OUTER.cc Bif_OPER2_OUTER.hh \
 	Bif_OPER2_RANK.cc Bif_OPER2_RANK.hh Bif_OPER1_REDUCE.cc \
 	Bif_OPER1_REDUCE.hh Bif_OPER1_SCAN.cc Bif_OPER1_SCAN.hh CDR.cc \
-	CDR.hh Cell.cc Cell.icc Cell.hh Doxy.cc Doxy.hh CharCell.cc \
-	CharCell.hh Command.cc Command.def Command.hh Common.cc \
-	Common.hh ComplexCell.cc ComplexCell.hh ConstCell_P.hh \
-	DerivedFunction.cc DerivedFunction.hh DiffOut.cc \
-	DynamicObject.cc DynamicObject.hh Error.cc Error.def Error.hh \
-	Error_macros.hh ErrorCode.hh Executable.cc Executable.hh \
-	FileBuffers.hh FloatCell.cc FloatCell.hh Focus.icc Function.cc \
-	Function.hh Help.def Heapsort.hh Id.cc Id.def Id.hh IdEnums.hh \
+	CDR.hh Cell.cc Cell.icc Cell.hh Cmd_KEYB.cc Cmd_LIB.cc \
+	Cmd_IN.cc Doxy.cc Doxy.hh CharCell.cc CharCell.hh Command.cc \
+	Command.def Command.hh Common.cc Common.hh ComplexCell.cc \
+	ComplexCell.hh ConstCell_P.hh DerivedFunction.cc \
+	DerivedFunction.hh DiffOut.cc DiffOut.hh DynamicObject.cc \
+	DynamicObject.hh Error.cc Error.def Error.hh Error_macros.hh \
+	ErrorCode.hh Executable.cc Executable.hh FileBuffers.hh \
+	FloatCell.cc FloatCell.hh Focus.icc Function.cc Function.hh \
+	Help.def Heapsort.hh Id.cc Id.def Id.hh IdEnums.hh \
 	IndexExpr.cc IndexExpr.hh IndexIterator.cc IndexIterator.hh \
 	InputFile.cc InputFile.hh IntCell.cc IntCell.hh IO_Files.cc \
 	IO_Files.hh LApack.cc LAdebug.icc LApack.hh LibPaths.cc \
@@ -223,32 +226,34 @@ am__lib_gnu_apl_la_SOURCES_DIST = Plot_ascii.cc Plot_gtk.cc \
 	Polynomial.hh PrintOperator.hh PythonPipe.cc PythonPipe.hh \
 	QR_factorization_GSL.cc QR_factorization_GSL.hh \
 	QuadFunction.cc QuadFunction.hh ProcessorID.cc ProcessorID.hh \
-	Quad_CR.cc Quad_CR.def Quad_CR.hh Quad_DLX.cc Quad_DLX.hh \
-	Quad_FFT.cc Quad_FFT.hh Quad_FIO.cc Quad_FIO.def Quad_FIO.hh \
-	Quad_FX.cc Quad_FX.hh Quad_GTK.cc Quad_GTK.hh Quad_JSON.cc \
-	Quad_JSON.hh Quad_MAP.cc Quad_MAP.hh Quad_MX.cc Quad_MX.def \
-	Quad_MX.hh Quad_PLOT.cc Quad_PLOT.def Quad_PLOT.hh Quad_PNG.cc \
-	Quad_PNG.hh Quad_RE.cc Quad_RE.hh Quad_RL.cc Quad_RL.hh \
-	Quad_RVAL.cc Quad_RVAL.hh Quad_SQL.cc Quad_SQL.hh Quad_SVx.cc \
-	Quad_SVx.hh Quad_TF.cc Quad_TF.hh Quad_WA.cc Quad_WA.hh \
-	Quad_XML.cc Quad_XML.hh RealCell.cc RealCell.hh sbrk.cc \
-	Shape.cc Shape.hh ScalarFunction.cc ScalarFunction.hh \
-	Security.cc Security.def Security.hh StateIndicator.cc \
-	StateIndicator.hh Svar_DB.cc Svar_DB.hh Svar_record.cc \
-	Svar_record.hh tcp_signal.m4 Svar_signals.def Svar_signals.hh \
-	Symbol.cc Symbol.hh Simple_string.hh SymbolTable.cc \
-	SymbolTable.hh SystemLimits.def SystemLimits.hh \
+	Quad_CC.cc Quad_CC.hh Quad_CR.cc Quad_CR.def Quad_CR.hh \
+	Quad_DLX.cc Quad_DLX.hh Quad_FFT.cc Quad_FFT.hh Quad_FIO.cc \
+	Quad_FIO.def Quad_FIO.hh Quad_FX.cc Quad_FX.hh Quad_GTK.cc \
+	Quad_GTK.hh Quad_JSON.cc Quad_JSON.hh Quad_MAP.cc Quad_MAP.hh \
+	Quad_MX.cc Quad_MX.def Quad_MX.hh Quad_PLOT.cc Quad_PLOT.def \
+	Quad_PLOT.hh Quad_PNG.cc Quad_PNG.hh Quad_RE.cc Quad_RE.hh \
+	Quad_RL.cc Quad_RL.hh Quad_RVAL.cc Quad_RVAL.hh Quad_SQL.cc \
+	Quad_SQL.hh Quad_SVx.cc Quad_SVx.hh Quad_TF.cc Quad_TF.hh \
+	Quad_WA.cc Quad_WA.hh Quad_XML.cc Quad_XML.hh RealCell.cc \
+	RealCell.hh sbrk.cc Shape.cc Shape.hh ScalarFunction.cc \
+	ScalarFunction.hh ScalarOps.hh Security.cc Security.def \
+	Security.hh StateIndicator.cc StateIndicator.hh Svar_DB.cc \
+	Svar_DB.hh Svar_record.cc Svar_record.hh tcp_signal.m4 \
+	Svar_signals.def Svar_signals.hh Symbol.cc Symbol.hh \
+	Simple_string.hh SymbolTable.cc SymbolTable.hh \
+	SystemLimits.def SystemLimits.hh Sys.cc Sys.hh \
 	SystemVariable.cc SystemVariable.def SystemVariable.hh \
 	TabExpansion.cc TabExpansion.hh Thread_context.cc \
-	Thread_context.hh Token.cc Token.def Token.hh TokenEnums.hh \
-	Tokenizer.cc Tokenizer.hh UCS_string.cc UCS_string.hh \
-	UCS_string_vector.cc UCS_string_vector.hh Unicode.hh \
-	UserFunction.cc UserFunction.hh UserFunction_header.cc \
-	UserFunction_header.hh UserPreferences.cc UserPreferences.hh \
-	UTF8_string.cc UTF8_string.hh Value.cc Value.icc Value.hh \
-	Value_P.icc Value_P.hh ValueHistory.cc ValueHistory.hh \
-	Workspace.cc Workspace.icc Workspace.hh static_Objects.cc \
-	static_Objects.hh Regexp.cc Regexp.hh \
+	Thread_context.hh Token.cc Token.def Token.hh Token_string.cc \
+	Token_string.hh TokenEnums.hh Tokenizer.cc Tokenizer.hh \
+	u8_string.hh UCS_string.cc UCS_string.hh UCS_string_vector.cc \
+	UCS_string_vector.hh Unicode.hh UserFunction.cc \
+	UserFunction.hh UserFunction_header.cc UserFunction_header.hh \
+	UserPreferences.cc UserPreferences.hh UTF8_string.cc \
+	UTF8_string.hh Ravel.cc Ravel.hh Value.cc Value.icc Value.hh \
+	cValue.cc Value_P.icc Value_P.hh ValueHistory.cc \
+	ValueHistory.hh Workspace.cc Workspace.icc Workspace.hh \
+	static_Objects.cc static_Objects.hh Regexp.cc Regexp.hh \
 	sql/SqliteArgListBuilder.cc sql/SqliteArgListBuilder.hh \
 	sql/SqliteConnection.cc sql/SqliteConnection.hh \
 	sql/SqliteResultValue.cc sql/SqliteResultValue.hh \
@@ -290,9 +295,11 @@ am__objects_8 = $(am__objects_3) lib_gnu_apl_la-Archive.lo \
 	lib_gnu_apl_la-Bif_OPER2_RANK.lo \
 	lib_gnu_apl_la-Bif_OPER1_REDUCE.lo \
 	lib_gnu_apl_la-Bif_OPER1_SCAN.lo lib_gnu_apl_la-CDR.lo \
-	lib_gnu_apl_la-Cell.lo lib_gnu_apl_la-Doxy.lo \
-	lib_gnu_apl_la-CharCell.lo lib_gnu_apl_la-Command.lo \
-	lib_gnu_apl_la-Common.lo lib_gnu_apl_la-ComplexCell.lo \
+	lib_gnu_apl_la-Cell.lo lib_gnu_apl_la-Cmd_KEYB.lo \
+	lib_gnu_apl_la-Cmd_LIB.lo lib_gnu_apl_la-Cmd_IN.lo \
+	lib_gnu_apl_la-Doxy.lo lib_gnu_apl_la-CharCell.lo \
+	lib_gnu_apl_la-Command.lo lib_gnu_apl_la-Common.lo \
+	lib_gnu_apl_la-ComplexCell.lo \
 	lib_gnu_apl_la-DerivedFunction.lo lib_gnu_apl_la-DiffOut.lo \
 	lib_gnu_apl_la-DynamicObject.lo lib_gnu_apl_la-Error.lo \
 	lib_gnu_apl_la-Executable.lo lib_gnu_apl_la-FloatCell.lo \
@@ -317,29 +324,32 @@ am__objects_8 = $(am__objects_3) lib_gnu_apl_la-Archive.lo \
 	lib_gnu_apl_la-PythonPipe.lo \
 	lib_gnu_apl_la-QR_factorization_GSL.lo \
 	lib_gnu_apl_la-QuadFunction.lo lib_gnu_apl_la-ProcessorID.lo \
-	lib_gnu_apl_la-Quad_CR.lo lib_gnu_apl_la-Quad_DLX.lo \
-	lib_gnu_apl_la-Quad_FFT.lo lib_gnu_apl_la-Quad_FIO.lo \
-	lib_gnu_apl_la-Quad_FX.lo lib_gnu_apl_la-Quad_GTK.lo \
-	lib_gnu_apl_la-Quad_JSON.lo lib_gnu_apl_la-Quad_MAP.lo \
-	lib_gnu_apl_la-Quad_MX.lo lib_gnu_apl_la-Quad_PLOT.lo \
-	lib_gnu_apl_la-Quad_PNG.lo lib_gnu_apl_la-Quad_RE.lo \
-	lib_gnu_apl_la-Quad_RL.lo lib_gnu_apl_la-Quad_RVAL.lo \
-	lib_gnu_apl_la-Quad_SQL.lo lib_gnu_apl_la-Quad_SVx.lo \
-	lib_gnu_apl_la-Quad_TF.lo lib_gnu_apl_la-Quad_WA.lo \
-	lib_gnu_apl_la-Quad_XML.lo lib_gnu_apl_la-RealCell.lo \
-	lib_gnu_apl_la-sbrk.lo lib_gnu_apl_la-Shape.lo \
-	lib_gnu_apl_la-ScalarFunction.lo lib_gnu_apl_la-Security.lo \
-	lib_gnu_apl_la-StateIndicator.lo lib_gnu_apl_la-Svar_DB.lo \
-	lib_gnu_apl_la-Svar_record.lo lib_gnu_apl_la-Symbol.lo \
-	lib_gnu_apl_la-SymbolTable.lo lib_gnu_apl_la-SystemVariable.lo \
+	lib_gnu_apl_la-Quad_CC.lo lib_gnu_apl_la-Quad_CR.lo \
+	lib_gnu_apl_la-Quad_DLX.lo lib_gnu_apl_la-Quad_FFT.lo \
+	lib_gnu_apl_la-Quad_FIO.lo lib_gnu_apl_la-Quad_FX.lo \
+	lib_gnu_apl_la-Quad_GTK.lo lib_gnu_apl_la-Quad_JSON.lo \
+	lib_gnu_apl_la-Quad_MAP.lo lib_gnu_apl_la-Quad_MX.lo \
+	lib_gnu_apl_la-Quad_PLOT.lo lib_gnu_apl_la-Quad_PNG.lo \
+	lib_gnu_apl_la-Quad_RE.lo lib_gnu_apl_la-Quad_RL.lo \
+	lib_gnu_apl_la-Quad_RVAL.lo lib_gnu_apl_la-Quad_SQL.lo \
+	lib_gnu_apl_la-Quad_SVx.lo lib_gnu_apl_la-Quad_TF.lo \
+	lib_gnu_apl_la-Quad_WA.lo lib_gnu_apl_la-Quad_XML.lo \
+	lib_gnu_apl_la-RealCell.lo lib_gnu_apl_la-sbrk.lo \
+	lib_gnu_apl_la-Shape.lo lib_gnu_apl_la-ScalarFunction.lo \
+	lib_gnu_apl_la-Security.lo lib_gnu_apl_la-StateIndicator.lo \
+	lib_gnu_apl_la-Svar_DB.lo lib_gnu_apl_la-Svar_record.lo \
+	lib_gnu_apl_la-Symbol.lo lib_gnu_apl_la-SymbolTable.lo \
+	lib_gnu_apl_la-Sys.lo lib_gnu_apl_la-SystemVariable.lo \
 	lib_gnu_apl_la-TabExpansion.lo \
 	lib_gnu_apl_la-Thread_context.lo lib_gnu_apl_la-Token.lo \
-	lib_gnu_apl_la-Tokenizer.lo lib_gnu_apl_la-UCS_string.lo \
+	lib_gnu_apl_la-Token_string.lo lib_gnu_apl_la-Tokenizer.lo \
+	lib_gnu_apl_la-UCS_string.lo \
 	lib_gnu_apl_la-UCS_string_vector.lo \
 	lib_gnu_apl_la-UserFunction.lo \
 	lib_gnu_apl_la-UserFunction_header.lo \
 	lib_gnu_apl_la-UserPreferences.lo \
-	lib_gnu_apl_la-UTF8_string.lo lib_gnu_apl_la-Value.lo \
+	lib_gnu_apl_la-UTF8_string.lo lib_gnu_apl_la-Ravel.lo \
+	lib_gnu_apl_la-Value.lo lib_gnu_apl_la-cValue.lo \
 	lib_gnu_apl_la-ValueHistory.lo lib_gnu_apl_la-Workspace.lo \
 	lib_gnu_apl_la-static_Objects.lo $(am__objects_4) \
 	$(am__objects_5) $(am__objects_6) $(am__objects_7)
@@ -373,14 +383,15 @@ am__libapl_la_SOURCES_DIST = Plot_ascii.cc Plot_gtk.cc Plot_xcb.cc \
 	Bif_OPER2_INNER.hh Bif_OPER2_OUTER.cc Bif_OPER2_OUTER.hh \
 	Bif_OPER2_RANK.cc Bif_OPER2_RANK.hh Bif_OPER1_REDUCE.cc \
 	Bif_OPER1_REDUCE.hh Bif_OPER1_SCAN.cc Bif_OPER1_SCAN.hh CDR.cc \
-	CDR.hh Cell.cc Cell.icc Cell.hh Doxy.cc Doxy.hh CharCell.cc \
-	CharCell.hh Command.cc Command.def Command.hh Common.cc \
-	Common.hh ComplexCell.cc ComplexCell.hh ConstCell_P.hh \
-	DerivedFunction.cc DerivedFunction.hh DiffOut.cc \
-	DynamicObject.cc DynamicObject.hh Error.cc Error.def Error.hh \
-	Error_macros.hh ErrorCode.hh Executable.cc Executable.hh \
-	FileBuffers.hh FloatCell.cc FloatCell.hh Focus.icc Function.cc \
-	Function.hh Help.def Heapsort.hh Id.cc Id.def Id.hh IdEnums.hh \
+	CDR.hh Cell.cc Cell.icc Cell.hh Cmd_KEYB.cc Cmd_LIB.cc \
+	Cmd_IN.cc Doxy.cc Doxy.hh CharCell.cc CharCell.hh Command.cc \
+	Command.def Command.hh Common.cc Common.hh ComplexCell.cc \
+	ComplexCell.hh ConstCell_P.hh DerivedFunction.cc \
+	DerivedFunction.hh DiffOut.cc DiffOut.hh DynamicObject.cc \
+	DynamicObject.hh Error.cc Error.def Error.hh Error_macros.hh \
+	ErrorCode.hh Executable.cc Executable.hh FileBuffers.hh \
+	FloatCell.cc FloatCell.hh Focus.icc Function.cc Function.hh \
+	Help.def Heapsort.hh Id.cc Id.def Id.hh IdEnums.hh \
 	IndexExpr.cc IndexExpr.hh IndexIterator.cc IndexIterator.hh \
 	InputFile.cc InputFile.hh IntCell.cc IntCell.hh IO_Files.cc \
 	IO_Files.hh LApack.cc LAdebug.icc LApack.hh LibPaths.cc \
@@ -400,32 +411,34 @@ am__libapl_la_SOURCES_DIST = Plot_ascii.cc Plot_gtk.cc Plot_xcb.cc \
 	Polynomial.hh PrintOperator.hh PythonPipe.cc PythonPipe.hh \
 	QR_factorization_GSL.cc QR_factorization_GSL.hh \
 	QuadFunction.cc QuadFunction.hh ProcessorID.cc ProcessorID.hh \
-	Quad_CR.cc Quad_CR.def Quad_CR.hh Quad_DLX.cc Quad_DLX.hh \
-	Quad_FFT.cc Quad_FFT.hh Quad_FIO.cc Quad_FIO.def Quad_FIO.hh \
-	Quad_FX.cc Quad_FX.hh Quad_GTK.cc Quad_GTK.hh Quad_JSON.cc \
-	Quad_JSON.hh Quad_MAP.cc Quad_MAP.hh Quad_MX.cc Quad_MX.def \
-	Quad_MX.hh Quad_PLOT.cc Quad_PLOT.def Quad_PLOT.hh Quad_PNG.cc \
-	Quad_PNG.hh Quad_RE.cc Quad_RE.hh Quad_RL.cc Quad_RL.hh \
-	Quad_RVAL.cc Quad_RVAL.hh Quad_SQL.cc Quad_SQL.hh Quad_SVx.cc \
-	Quad_SVx.hh Quad_TF.cc Quad_TF.hh Quad_WA.cc Quad_WA.hh \
-	Quad_XML.cc Quad_XML.hh RealCell.cc RealCell.hh sbrk.cc \
-	Shape.cc Shape.hh ScalarFunction.cc ScalarFunction.hh \
-	Security.cc Security.def Security.hh StateIndicator.cc \
-	StateIndicator.hh Svar_DB.cc Svar_DB.hh Svar_record.cc \
-	Svar_record.hh tcp_signal.m4 Svar_signals.def Svar_signals.hh \
-	Symbol.cc Symbol.hh Simple_string.hh SymbolTable.cc \
-	SymbolTable.hh SystemLimits.def SystemLimits.hh \
+	Quad_CC.cc Quad_CC.hh Quad_CR.cc Quad_CR.def Quad_CR.hh \
+	Quad_DLX.cc Quad_DLX.hh Quad_FFT.cc Quad_FFT.hh Quad_FIO.cc \
+	Quad_FIO.def Quad_FIO.hh Quad_FX.cc Quad_FX.hh Quad_GTK.cc \
+	Quad_GTK.hh Quad_JSON.cc Quad_JSON.hh Quad_MAP.cc Quad_MAP.hh \
+	Quad_MX.cc Quad_MX.def Quad_MX.hh Quad_PLOT.cc Quad_PLOT.def \
+	Quad_PLOT.hh Quad_PNG.cc Quad_PNG.hh Quad_RE.cc Quad_RE.hh \
+	Quad_RL.cc Quad_RL.hh Quad_RVAL.cc Quad_RVAL.hh Quad_SQL.cc \
+	Quad_SQL.hh Quad_SVx.cc Quad_SVx.hh Quad_TF.cc Quad_TF.hh \
+	Quad_WA.cc Quad_WA.hh Quad_XML.cc Quad_XML.hh RealCell.cc \
+	RealCell.hh sbrk.cc Shape.cc Shape.hh ScalarFunction.cc \
+	ScalarFunction.hh ScalarOps.hh Security.cc Security.def \
+	Security.hh StateIndicator.cc StateIndicator.hh Svar_DB.cc \
+	Svar_DB.hh Svar_record.cc Svar_record.hh tcp_signal.m4 \
+	Svar_signals.def Svar_signals.hh Symbol.cc Symbol.hh \
+	Simple_string.hh SymbolTable.cc SymbolTable.hh \
+	SystemLimits.def SystemLimits.hh Sys.cc Sys.hh \
 	SystemVariable.cc SystemVariable.def SystemVariable.hh \
 	TabExpansion.cc TabExpansion.hh Thread_context.cc \
-	Thread_context.hh Token.cc Token.def Token.hh TokenEnums.hh \
-	Tokenizer.cc Tokenizer.hh UCS_string.cc UCS_string.hh \
-	UCS_string_vector.cc UCS_string_vector.hh Unicode.hh \
-	UserFunction.cc UserFunction.hh UserFunction_header.cc \
-	UserFunction_header.hh UserPreferences.cc UserPreferences.hh \
-	UTF8_string.cc UTF8_string.hh Value.cc Value.icc Value.hh \
-	Value_P.icc Value_P.hh ValueHistory.cc ValueHistory.hh \
-	Workspace.cc Workspace.icc Workspace.hh static_Objects.cc \
-	static_Objects.hh Regexp.cc Regexp.hh \
+	Thread_context.hh Token.cc Token.def Token.hh Token_string.cc \
+	Token_string.hh TokenEnums.hh Tokenizer.cc Tokenizer.hh \
+	u8_string.hh UCS_string.cc UCS_string.hh UCS_string_vector.cc \
+	UCS_string_vector.hh Unicode.hh UserFunction.cc \
+	UserFunction.hh UserFunction_header.cc UserFunction_header.hh \
+	UserPreferences.cc UserPreferences.hh UTF8_string.cc \
+	UTF8_string.hh Ravel.cc Ravel.hh Value.cc Value.icc Value.hh \
+	cValue.cc Value_P.icc Value_P.hh ValueHistory.cc \
+	ValueHistory.hh Workspace.cc Workspace.icc Workspace.hh \
+	static_Objects.cc static_Objects.hh Regexp.cc Regexp.hh \
 	sql/SqliteArgListBuilder.cc sql/SqliteArgListBuilder.hh \
 	sql/SqliteConnection.cc sql/SqliteConnection.hh \
 	sql/SqliteResultValue.cc sql/SqliteResultValue.hh \
@@ -462,6 +475,7 @@ am__objects_16 = $(am__objects_11) libapl_la-Archive.lo \
 	libapl_la-Bif_OPER2_INNER.lo libapl_la-Bif_OPER2_OUTER.lo \
 	libapl_la-Bif_OPER2_RANK.lo libapl_la-Bif_OPER1_REDUCE.lo \
 	libapl_la-Bif_OPER1_SCAN.lo libapl_la-CDR.lo libapl_la-Cell.lo \
+	libapl_la-Cmd_KEYB.lo libapl_la-Cmd_LIB.lo libapl_la-Cmd_IN.lo \
 	libapl_la-Doxy.lo libapl_la-CharCell.lo libapl_la-Command.lo \
 	libapl_la-Common.lo libapl_la-ComplexCell.lo \
 	libapl_la-DerivedFunction.lo libapl_la-DiffOut.lo \
@@ -483,30 +497,31 @@ am__objects_16 = $(am__objects_11) libapl_la-Archive.lo \
 	libapl_la-PrimitiveFunction.lo libapl_la-PrintBuffer.lo \
 	libapl_la-Polynomial.lo libapl_la-PythonPipe.lo \
 	libapl_la-QR_factorization_GSL.lo libapl_la-QuadFunction.lo \
-	libapl_la-ProcessorID.lo libapl_la-Quad_CR.lo \
-	libapl_la-Quad_DLX.lo libapl_la-Quad_FFT.lo \
-	libapl_la-Quad_FIO.lo libapl_la-Quad_FX.lo \
-	libapl_la-Quad_GTK.lo libapl_la-Quad_JSON.lo \
-	libapl_la-Quad_MAP.lo libapl_la-Quad_MX.lo \
-	libapl_la-Quad_PLOT.lo libapl_la-Quad_PNG.lo \
-	libapl_la-Quad_RE.lo libapl_la-Quad_RL.lo \
-	libapl_la-Quad_RVAL.lo libapl_la-Quad_SQL.lo \
-	libapl_la-Quad_SVx.lo libapl_la-Quad_TF.lo \
-	libapl_la-Quad_WA.lo libapl_la-Quad_XML.lo \
-	libapl_la-RealCell.lo libapl_la-sbrk.lo libapl_la-Shape.lo \
-	libapl_la-ScalarFunction.lo libapl_la-Security.lo \
-	libapl_la-StateIndicator.lo libapl_la-Svar_DB.lo \
-	libapl_la-Svar_record.lo libapl_la-Symbol.lo \
-	libapl_la-SymbolTable.lo libapl_la-SystemVariable.lo \
-	libapl_la-TabExpansion.lo libapl_la-Thread_context.lo \
-	libapl_la-Token.lo libapl_la-Tokenizer.lo \
+	libapl_la-ProcessorID.lo libapl_la-Quad_CC.lo \
+	libapl_la-Quad_CR.lo libapl_la-Quad_DLX.lo \
+	libapl_la-Quad_FFT.lo libapl_la-Quad_FIO.lo \
+	libapl_la-Quad_FX.lo libapl_la-Quad_GTK.lo \
+	libapl_la-Quad_JSON.lo libapl_la-Quad_MAP.lo \
+	libapl_la-Quad_MX.lo libapl_la-Quad_PLOT.lo \
+	libapl_la-Quad_PNG.lo libapl_la-Quad_RE.lo \
+	libapl_la-Quad_RL.lo libapl_la-Quad_RVAL.lo \
+	libapl_la-Quad_SQL.lo libapl_la-Quad_SVx.lo \
+	libapl_la-Quad_TF.lo libapl_la-Quad_WA.lo \
+	libapl_la-Quad_XML.lo libapl_la-RealCell.lo libapl_la-sbrk.lo \
+	libapl_la-Shape.lo libapl_la-ScalarFunction.lo \
+	libapl_la-Security.lo libapl_la-StateIndicator.lo \
+	libapl_la-Svar_DB.lo libapl_la-Svar_record.lo \
+	libapl_la-Symbol.lo libapl_la-SymbolTable.lo libapl_la-Sys.lo \
+	libapl_la-SystemVariable.lo libapl_la-TabExpansion.lo \
+	libapl_la-Thread_context.lo libapl_la-Token.lo \
+	libapl_la-Token_string.lo libapl_la-Tokenizer.lo \
 	libapl_la-UCS_string.lo libapl_la-UCS_string_vector.lo \
 	libapl_la-UserFunction.lo libapl_la-UserFunction_header.lo \
 	libapl_la-UserPreferences.lo libapl_la-UTF8_string.lo \
-	libapl_la-Value.lo libapl_la-ValueHistory.lo \
-	libapl_la-Workspace.lo libapl_la-static_Objects.lo \
-	$(am__objects_12) $(am__objects_13) $(am__objects_14) \
-	$(am__objects_15)
+	libapl_la-Ravel.lo libapl_la-Value.lo libapl_la-cValue.lo \
+	libapl_la-ValueHistory.lo libapl_la-Workspace.lo \
+	libapl_la-static_Objects.lo $(am__objects_12) \
+	$(am__objects_13) $(am__objects_14) $(am__objects_15)
 #am_libapl_la_OBJECTS = $(am__objects_16) \
 #	libapl_la-libapl.lo
 libapl_la_OBJECTS = $(am_libapl_la_OBJECTS)
@@ -529,14 +544,15 @@ am__apl_SOURCES_DIST = main.cc Plot_ascii.cc Plot_gtk.cc Plot_xcb.cc \
 	Bif_OPER2_INNER.hh Bif_OPER2_OUTER.cc Bif_OPER2_OUTER.hh \
 	Bif_OPER2_RANK.cc Bif_OPER2_RANK.hh Bif_OPER1_REDUCE.cc \
 	Bif_OPER1_REDUCE.hh Bif_OPER1_SCAN.cc Bif_OPER1_SCAN.hh CDR.cc \
-	CDR.hh Cell.cc Cell.icc Cell.hh Doxy.cc Doxy.hh CharCell.cc \
-	CharCell.hh Command.cc Command.def Command.hh Common.cc \
-	Common.hh ComplexCell.cc ComplexCell.hh ConstCell_P.hh \
-	DerivedFunction.cc DerivedFunction.hh DiffOut.cc \
-	DynamicObject.cc DynamicObject.hh Error.cc Error.def Error.hh \
-	Error_macros.hh ErrorCode.hh Executable.cc Executable.hh \
-	FileBuffers.hh FloatCell.cc FloatCell.hh Focus.icc Function.cc \
-	Function.hh Help.def Heapsort.hh Id.cc Id.def Id.hh IdEnums.hh \
+	CDR.hh Cell.cc Cell.icc Cell.hh Cmd_KEYB.cc Cmd_LIB.cc \
+	Cmd_IN.cc Doxy.cc Doxy.hh CharCell.cc CharCell.hh Command.cc \
+	Command.def Command.hh Common.cc Common.hh ComplexCell.cc \
+	ComplexCell.hh ConstCell_P.hh DerivedFunction.cc \
+	DerivedFunction.hh DiffOut.cc DiffOut.hh DynamicObject.cc \
+	DynamicObject.hh Error.cc Error.def Error.hh Error_macros.hh \
+	ErrorCode.hh Executable.cc Executable.hh FileBuffers.hh \
+	FloatCell.cc FloatCell.hh Focus.icc Function.cc Function.hh \
+	Help.def Heapsort.hh Id.cc Id.def Id.hh IdEnums.hh \
 	IndexExpr.cc IndexExpr.hh IndexIterator.cc IndexIterator.hh \
 	InputFile.cc InputFile.hh IntCell.cc IntCell.hh IO_Files.cc \
 	IO_Files.hh LApack.cc LAdebug.icc LApack.hh LibPaths.cc \
@@ -556,32 +572,34 @@ am__apl_SOURCES_DIST = main.cc Plot_ascii.cc Plot_gtk.cc Plot_xcb.cc \
 	Polynomial.hh PrintOperator.hh PythonPipe.cc PythonPipe.hh \
 	QR_factorization_GSL.cc QR_factorization_GSL.hh \
 	QuadFunction.cc QuadFunction.hh ProcessorID.cc ProcessorID.hh \
-	Quad_CR.cc Quad_CR.def Quad_CR.hh Quad_DLX.cc Quad_DLX.hh \
-	Quad_FFT.cc Quad_FFT.hh Quad_FIO.cc Quad_FIO.def Quad_FIO.hh \
-	Quad_FX.cc Quad_FX.hh Quad_GTK.cc Quad_GTK.hh Quad_JSON.cc \
-	Quad_JSON.hh Quad_MAP.cc Quad_MAP.hh Quad_MX.cc Quad_MX.def \
-	Quad_MX.hh Quad_PLOT.cc Quad_PLOT.def Quad_PLOT.hh Quad_PNG.cc \
-	Quad_PNG.hh Quad_RE.cc Quad_RE.hh Quad_RL.cc Quad_RL.hh \
-	Quad_RVAL.cc Quad_RVAL.hh Quad_SQL.cc Quad_SQL.hh Quad_SVx.cc \
-	Quad_SVx.hh Quad_TF.cc Quad_TF.hh Quad_WA.cc Quad_WA.hh \
-	Quad_XML.cc Quad_XML.hh RealCell.cc RealCell.hh sbrk.cc \
-	Shape.cc Shape.hh ScalarFunction.cc ScalarFunction.hh \
-	Security.cc Security.def Security.hh StateIndicator.cc \
-	StateIndicator.hh Svar_DB.cc Svar_DB.hh Svar_record.cc \
-	Svar_record.hh tcp_signal.m4 Svar_signals.def Svar_signals.hh \
-	Symbol.cc Symbol.hh Simple_string.hh SymbolTable.cc \
-	SymbolTable.hh SystemLimits.def SystemLimits.hh \
+	Quad_CC.cc Quad_CC.hh Quad_CR.cc Quad_CR.def Quad_CR.hh \
+	Quad_DLX.cc Quad_DLX.hh Quad_FFT.cc Quad_FFT.hh Quad_FIO.cc \
+	Quad_FIO.def Quad_FIO.hh Quad_FX.cc Quad_FX.hh Quad_GTK.cc \
+	Quad_GTK.hh Quad_JSON.cc Quad_JSON.hh Quad_MAP.cc Quad_MAP.hh \
+	Quad_MX.cc Quad_MX.def Quad_MX.hh Quad_PLOT.cc Quad_PLOT.def \
+	Quad_PLOT.hh Quad_PNG.cc Quad_PNG.hh Quad_RE.cc Quad_RE.hh \
+	Quad_RL.cc Quad_RL.hh Quad_RVAL.cc Quad_RVAL.hh Quad_SQL.cc \
+	Quad_SQL.hh Quad_SVx.cc Quad_SVx.hh Quad_TF.cc Quad_TF.hh \
+	Quad_WA.cc Quad_WA.hh Quad_XML.cc Quad_XML.hh RealCell.cc \
+	RealCell.hh sbrk.cc Shape.cc Shape.hh ScalarFunction.cc \
+	ScalarFunction.hh ScalarOps.hh Security.cc Security.def \
+	Security.hh StateIndicator.cc StateIndicator.hh Svar_DB.cc \
+	Svar_DB.hh Svar_record.cc Svar_record.hh tcp_signal.m4 \
+	Svar_signals.def Svar_signals.hh Symbol.cc Symbol.hh \
+	Simple_string.hh SymbolTable.cc SymbolTable.hh \
+	SystemLimits.def SystemLimits.hh Sys.cc Sys.hh \
 	SystemVariable.cc SystemVariable.def SystemVariable.hh \
 	TabExpansion.cc TabExpansion.hh Thread_context.cc \
-	Thread_context.hh Token.cc Token.def Token.hh TokenEnums.hh \
-	Tokenizer.cc Tokenizer.hh UCS_string.cc UCS_string.hh \
-	UCS_string_vector.cc UCS_string_vector.hh Unicode.hh \
-	UserFunction.cc UserFunction.hh UserFunction_header.cc \
-	UserFunction_header.hh UserPreferences.cc UserPreferences.hh \
-	UTF8_string.cc UTF8_string.hh Value.cc Value.icc Value.hh \
-	Value_P.icc Value_P.hh ValueHistory.cc ValueHistory.hh \
-	Workspace.cc Workspace.icc Workspace.hh static_Objects.cc \
-	static_Objects.hh Regexp.cc Regexp.hh \
+	Thread_context.hh Token.cc Token.def Token.hh Token_string.cc \
+	Token_string.hh TokenEnums.hh Tokenizer.cc Tokenizer.hh \
+	u8_string.hh UCS_string.cc UCS_string.hh UCS_string_vector.cc \
+	UCS_string_vector.hh Unicode.hh UserFunction.cc \
+	UserFunction.hh UserFunction_header.cc UserFunction_header.hh \
+	UserPreferences.cc UserPreferences.hh UTF8_string.cc \
+	UTF8_string.hh Ravel.cc Ravel.hh Value.cc Value.icc Value.hh \
+	cValue.cc Value_P.icc Value_P.hh ValueHistory.cc \
+	ValueHistory.hh Workspace.cc Workspace.icc Workspace.hh \
+	static_Objects.cc static_Objects.hh Regexp.cc Regexp.hh \
 	sql/SqliteArgListBuilder.cc sql/SqliteArgListBuilder.hh \
 	sql/SqliteConnection.cc sql/SqliteConnection.hh \
 	sql/SqliteResultValue.cc sql/SqliteResultValue.hh \
@@ -617,7 +635,8 @@ am__objects_24 = $(am__objects_19) apl-Archive.$(OBJEXT) \
 	apl-Bif_OPER2_POWER.$(OBJEXT) apl-Bif_OPER2_INNER.$(OBJEXT) \
 	apl-Bif_OPER2_OUTER.$(OBJEXT) apl-Bif_OPER2_RANK.$(OBJEXT) \
 	apl-Bif_OPER1_REDUCE.$(OBJEXT) apl-Bif_OPER1_SCAN.$(OBJEXT) \
-	apl-CDR.$(OBJEXT) apl-Cell.$(OBJEXT) apl-Doxy.$(OBJEXT) \
+	apl-CDR.$(OBJEXT) apl-Cell.$(OBJEXT) apl-Cmd_KEYB.$(OBJEXT) \
+	apl-Cmd_LIB.$(OBJEXT) apl-Cmd_IN.$(OBJEXT) apl-Doxy.$(OBJEXT) \
 	apl-CharCell.$(OBJEXT) apl-Command.$(OBJEXT) \
 	apl-Common.$(OBJEXT) apl-ComplexCell.$(OBJEXT) \
 	apl-DerivedFunction.$(OBJEXT) apl-DiffOut.$(OBJEXT) \
@@ -640,30 +659,32 @@ am__objects_24 = $(am__objects_19) apl-Archive.$(OBJEXT) \
 	apl-PrimitiveFunction.$(OBJEXT) apl-PrintBuffer.$(OBJEXT) \
 	apl-Polynomial.$(OBJEXT) apl-PythonPipe.$(OBJEXT) \
 	apl-QR_factorization_GSL.$(OBJEXT) apl-QuadFunction.$(OBJEXT) \
-	apl-ProcessorID.$(OBJEXT) apl-Quad_CR.$(OBJEXT) \
-	apl-Quad_DLX.$(OBJEXT) apl-Quad_FFT.$(OBJEXT) \
-	apl-Quad_FIO.$(OBJEXT) apl-Quad_FX.$(OBJEXT) \
-	apl-Quad_GTK.$(OBJEXT) apl-Quad_JSON.$(OBJEXT) \
-	apl-Quad_MAP.$(OBJEXT) apl-Quad_MX.$(OBJEXT) \
-	apl-Quad_PLOT.$(OBJEXT) apl-Quad_PNG.$(OBJEXT) \
-	apl-Quad_RE.$(OBJEXT) apl-Quad_RL.$(OBJEXT) \
-	apl-Quad_RVAL.$(OBJEXT) apl-Quad_SQL.$(OBJEXT) \
-	apl-Quad_SVx.$(OBJEXT) apl-Quad_TF.$(OBJEXT) \
-	apl-Quad_WA.$(OBJEXT) apl-Quad_XML.$(OBJEXT) \
-	apl-RealCell.$(OBJEXT) apl-sbrk.$(OBJEXT) apl-Shape.$(OBJEXT) \
+	apl-ProcessorID.$(OBJEXT) apl-Quad_CC.$(OBJEXT) \
+	apl-Quad_CR.$(OBJEXT) apl-Quad_DLX.$(OBJEXT) \
+	apl-Quad_FFT.$(OBJEXT) apl-Quad_FIO.$(OBJEXT) \
+	apl-Quad_FX.$(OBJEXT) apl-Quad_GTK.$(OBJEXT) \
+	apl-Quad_JSON.$(OBJEXT) apl-Quad_MAP.$(OBJEXT) \
+	apl-Quad_MX.$(OBJEXT) apl-Quad_PLOT.$(OBJEXT) \
+	apl-Quad_PNG.$(OBJEXT) apl-Quad_RE.$(OBJEXT) \
+	apl-Quad_RL.$(OBJEXT) apl-Quad_RVAL.$(OBJEXT) \
+	apl-Quad_SQL.$(OBJEXT) apl-Quad_SVx.$(OBJEXT) \
+	apl-Quad_TF.$(OBJEXT) apl-Quad_WA.$(OBJEXT) \
+	apl-Quad_XML.$(OBJEXT) apl-RealCell.$(OBJEXT) \
+	apl-sbrk.$(OBJEXT) apl-Shape.$(OBJEXT) \
 	apl-ScalarFunction.$(OBJEXT) apl-Security.$(OBJEXT) \
 	apl-StateIndicator.$(OBJEXT) apl-Svar_DB.$(OBJEXT) \
 	apl-Svar_record.$(OBJEXT) apl-Symbol.$(OBJEXT) \
-	apl-SymbolTable.$(OBJEXT) apl-SystemVariable.$(OBJEXT) \
-	apl-TabExpansion.$(OBJEXT) apl-Thread_context.$(OBJEXT) \
-	apl-Token.$(OBJEXT) apl-Tokenizer.$(OBJEXT) \
+	apl-SymbolTable.$(OBJEXT) apl-Sys.$(OBJEXT) \
+	apl-SystemVariable.$(OBJEXT) apl-TabExpansion.$(OBJEXT) \
+	apl-Thread_context.$(OBJEXT) apl-Token.$(OBJEXT) \
+	apl-Token_string.$(OBJEXT) apl-Tokenizer.$(OBJEXT) \
 	apl-UCS_string.$(OBJEXT) apl-UCS_string_vector.$(OBJEXT) \
 	apl-UserFunction.$(OBJEXT) apl-UserFunction_header.$(OBJEXT) \
 	apl-UserPreferences.$(OBJEXT) apl-UTF8_string.$(OBJEXT) \
-	apl-Value.$(OBJEXT) apl-ValueHistory.$(OBJEXT) \
-	apl-Workspace.$(OBJEXT) apl-static_Objects.$(OBJEXT) \
-	$(am__objects_20) $(am__objects_21) $(am__objects_22) \
-	$(am__objects_23)
+	apl-Ravel.$(OBJEXT) apl-Value.$(OBJEXT) apl-cValue.$(OBJEXT) \
+	apl-ValueHistory.$(OBJEXT) apl-Workspace.$(OBJEXT) \
+	apl-static_Objects.$(OBJEXT) $(am__objects_20) \
+	$(am__objects_21) $(am__objects_22) $(am__objects_23)
 am_apl_OBJECTS = apl-main.$(OBJEXT) \
 	$(am__objects_24)
 am__EXTRA_apl_SOURCES_DIST = Plot_gtk.cc Plot_xcb.cc
@@ -673,7 +694,6 @@ apl_DEPENDENCIES = $(am__DEPENDENCIES_1)
 apl_LINK = $(LIBTOOL) $(AM_V_lt) --tag=CXX $(AM_LIBTOOLFLAGS) \
 	$(LIBTOOLFLAGS) --mode=link $(CXXLD) $(apl_CXXFLAGS) \
 	$(CXXFLAGS) $(apl_LDFLAGS) $(LDFLAGS) -o $@
-SCRIPTS = $(dist_SCRIPTS) $(dist_noinst_SCRIPTS)
 AM_V_P = $(am__v_P_$(V))
 am__v_P_ = $(am__v_P_$(AM_DEFAULT_VERBOSITY))
 am__v_P_0 = false
@@ -708,8 +728,9 @@ am__depfiles_remade = ./$(DEPDIR)/apl-Archive.Po \
 	./$(DEPDIR)/apl-Bif_OPER2_POWER.Po \
 	./$(DEPDIR)/apl-Bif_OPER2_RANK.Po ./$(DEPDIR)/apl-CDR.Po \
 	./$(DEPDIR)/apl-Cell.Po ./$(DEPDIR)/apl-CharCell.Po \
-	./$(DEPDIR)/apl-Command.Po ./$(DEPDIR)/apl-Common.Po \
-	./$(DEPDIR)/apl-ComplexCell.Po \
+	./$(DEPDIR)/apl-Cmd_IN.Po ./$(DEPDIR)/apl-Cmd_KEYB.Po \
+	./$(DEPDIR)/apl-Cmd_LIB.Po ./$(DEPDIR)/apl-Command.Po \
+	./$(DEPDIR)/apl-Common.Po ./$(DEPDIR)/apl-ComplexCell.Po \
 	./$(DEPDIR)/apl-DerivedFunction.Po ./$(DEPDIR)/apl-DiffOut.Po \
 	./$(DEPDIR)/apl-Doxy.Po ./$(DEPDIR)/apl-DynamicObject.Po \
 	./$(DEPDIR)/apl-Error.Po ./$(DEPDIR)/apl-Executable.Po \
@@ -736,32 +757,34 @@ am__depfiles_remade = ./$(DEPDIR)/apl-Archive.Po \
 	./$(DEPDIR)/apl-PrintBuffer.Po ./$(DEPDIR)/apl-ProcessorID.Po \
 	./$(DEPDIR)/apl-PythonPipe.Po \
 	./$(DEPDIR)/apl-QR_factorization_GSL.Po \
-	./$(DEPDIR)/apl-QuadFunction.Po ./$(DEPDIR)/apl-Quad_CR.Po \
-	./$(DEPDIR)/apl-Quad_DLX.Po ./$(DEPDIR)/apl-Quad_FFT.Po \
-	./$(DEPDIR)/apl-Quad_FIO.Po ./$(DEPDIR)/apl-Quad_FX.Po \
-	./$(DEPDIR)/apl-Quad_GTK.Po ./$(DEPDIR)/apl-Quad_JSON.Po \
-	./$(DEPDIR)/apl-Quad_MAP.Po ./$(DEPDIR)/apl-Quad_MX.Po \
-	./$(DEPDIR)/apl-Quad_PLOT.Po ./$(DEPDIR)/apl-Quad_PNG.Po \
-	./$(DEPDIR)/apl-Quad_RE.Po ./$(DEPDIR)/apl-Quad_RL.Po \
-	./$(DEPDIR)/apl-Quad_RVAL.Po ./$(DEPDIR)/apl-Quad_SQL.Po \
-	./$(DEPDIR)/apl-Quad_SVx.Po ./$(DEPDIR)/apl-Quad_TF.Po \
-	./$(DEPDIR)/apl-Quad_WA.Po ./$(DEPDIR)/apl-Quad_XML.Po \
+	./$(DEPDIR)/apl-QuadFunction.Po ./$(DEPDIR)/apl-Quad_CC.Po \
+	./$(DEPDIR)/apl-Quad_CR.Po ./$(DEPDIR)/apl-Quad_DLX.Po \
+	./$(DEPDIR)/apl-Quad_FFT.Po ./$(DEPDIR)/apl-Quad_FIO.Po \
+	./$(DEPDIR)/apl-Quad_FX.Po ./$(DEPDIR)/apl-Quad_GTK.Po \
+	./$(DEPDIR)/apl-Quad_JSON.Po ./$(DEPDIR)/apl-Quad_MAP.Po \
+	./$(DEPDIR)/apl-Quad_MX.Po ./$(DEPDIR)/apl-Quad_PLOT.Po \
+	./$(DEPDIR)/apl-Quad_PNG.Po ./$(DEPDIR)/apl-Quad_RE.Po \
+	./$(DEPDIR)/apl-Quad_RL.Po ./$(DEPDIR)/apl-Quad_RVAL.Po \
+	./$(DEPDIR)/apl-Quad_SQL.Po ./$(DEPDIR)/apl-Quad_SVx.Po \
+	./$(DEPDIR)/apl-Quad_TF.Po ./$(DEPDIR)/apl-Quad_WA.Po \
+	./$(DEPDIR)/apl-Quad_XML.Po ./$(DEPDIR)/apl-Ravel.Po \
 	./$(DEPDIR)/apl-RealCell.Po ./$(DEPDIR)/apl-Regexp.Po \
 	./$(DEPDIR)/apl-ScalarFunction.Po ./$(DEPDIR)/apl-Security.Po \
 	./$(DEPDIR)/apl-Shape.Po ./$(DEPDIR)/apl-StateIndicator.Po \
 	./$(DEPDIR)/apl-Svar_DB.Po ./$(DEPDIR)/apl-Svar_record.Po \
 	./$(DEPDIR)/apl-Symbol.Po ./$(DEPDIR)/apl-SymbolTable.Po \
-	./$(DEPDIR)/apl-SystemVariable.Po \
+	./$(DEPDIR)/apl-Sys.Po ./$(DEPDIR)/apl-SystemVariable.Po \
 	./$(DEPDIR)/apl-TabExpansion.Po \
 	./$(DEPDIR)/apl-Thread_context.Po ./$(DEPDIR)/apl-Token.Po \
-	./$(DEPDIR)/apl-Tokenizer.Po ./$(DEPDIR)/apl-UCS_string.Po \
+	./$(DEPDIR)/apl-Token_string.Po ./$(DEPDIR)/apl-Tokenizer.Po \
+	./$(DEPDIR)/apl-UCS_string.Po \
 	./$(DEPDIR)/apl-UCS_string_vector.Po \
 	./$(DEPDIR)/apl-UTF8_string.Po ./$(DEPDIR)/apl-UserFunction.Po \
 	./$(DEPDIR)/apl-UserFunction_header.Po \
 	./$(DEPDIR)/apl-UserPreferences.Po ./$(DEPDIR)/apl-Value.Po \
 	./$(DEPDIR)/apl-ValueHistory.Po ./$(DEPDIR)/apl-Workspace.Po \
-	./$(DEPDIR)/apl-main.Po ./$(DEPDIR)/apl-sbrk.Po \
-	./$(DEPDIR)/apl-static_Objects.Po \
+	./$(DEPDIR)/apl-cValue.Po ./$(DEPDIR)/apl-main.Po \
+	./$(DEPDIR)/apl-sbrk.Po ./$(DEPDIR)/apl-static_Objects.Po \
 	./$(DEPDIR)/lib_gnu_apl_la-Archive.Plo \
 	./$(DEPDIR)/lib_gnu_apl_la-Assert.Plo \
 	./$(DEPDIR)/lib_gnu_apl_la-Avec.Plo \
@@ -785,6 +808,9 @@ am__depfiles_remade = ./$(DEPDIR)/apl-Archive.Po \
 	./$(DEPDIR)/lib_gnu_apl_la-CDR.Plo \
 	./$(DEPDIR)/lib_gnu_apl_la-Cell.Plo \
 	./$(DEPDIR)/lib_gnu_apl_la-CharCell.Plo \
+	./$(DEPDIR)/lib_gnu_apl_la-Cmd_IN.Plo \
+	./$(DEPDIR)/lib_gnu_apl_la-Cmd_KEYB.Plo \
+	./$(DEPDIR)/lib_gnu_apl_la-Cmd_LIB.Plo \
 	./$(DEPDIR)/lib_gnu_apl_la-Command.Plo \
 	./$(DEPDIR)/lib_gnu_apl_la-Common.Plo \
 	./$(DEPDIR)/lib_gnu_apl_la-ComplexCell.Plo \
@@ -833,6 +859,7 @@ am__depfiles_remade = ./$(DEPDIR)/apl-Archive.Po \
 	./$(DEPDIR)/lib_gnu_apl_la-PythonPipe.Plo \
 	./$(DEPDIR)/lib_gnu_apl_la-QR_factorization_GSL.Plo \
 	./$(DEPDIR)/lib_gnu_apl_la-QuadFunction.Plo \
+	./$(DEPDIR)/lib_gnu_apl_la-Quad_CC.Plo \
 	./$(DEPDIR)/lib_gnu_apl_la-Quad_CR.Plo \
 	./$(DEPDIR)/lib_gnu_apl_la-Quad_DLX.Plo \
 	./$(DEPDIR)/lib_gnu_apl_la-Quad_FFT.Plo \
@@ -852,6 +879,7 @@ am__depfiles_remade = ./$(DEPDIR)/apl-Archive.Po \
 	./$(DEPDIR)/lib_gnu_apl_la-Quad_TF.Plo \
 	./$(DEPDIR)/lib_gnu_apl_la-Quad_WA.Plo \
 	./$(DEPDIR)/lib_gnu_apl_la-Quad_XML.Plo \
+	./$(DEPDIR)/lib_gnu_apl_la-Ravel.Plo \
 	./$(DEPDIR)/lib_gnu_apl_la-RealCell.Plo \
 	./$(DEPDIR)/lib_gnu_apl_la-Regexp.Plo \
 	./$(DEPDIR)/lib_gnu_apl_la-ScalarFunction.Plo \
@@ -862,10 +890,12 @@ am__depfiles_remade = ./$(DEPDIR)/apl-Archive.Po \
 	./$(DEPDIR)/lib_gnu_apl_la-Svar_record.Plo \
 	./$(DEPDIR)/lib_gnu_apl_la-Symbol.Plo \
 	./$(DEPDIR)/lib_gnu_apl_la-SymbolTable.Plo \
+	./$(DEPDIR)/lib_gnu_apl_la-Sys.Plo \
 	./$(DEPDIR)/lib_gnu_apl_la-SystemVariable.Plo \
 	./$(DEPDIR)/lib_gnu_apl_la-TabExpansion.Plo \
 	./$(DEPDIR)/lib_gnu_apl_la-Thread_context.Plo \
 	./$(DEPDIR)/lib_gnu_apl_la-Token.Plo \
+	./$(DEPDIR)/lib_gnu_apl_la-Token_string.Plo \
 	./$(DEPDIR)/lib_gnu_apl_la-Tokenizer.Plo \
 	./$(DEPDIR)/lib_gnu_apl_la-UCS_string.Plo \
 	./$(DEPDIR)/lib_gnu_apl_la-UCS_string_vector.Plo \
@@ -876,6 +906,7 @@ am__depfiles_remade = ./$(DEPDIR)/apl-Archive.Po \
 	./$(DEPDIR)/lib_gnu_apl_la-Value.Plo \
 	./$(DEPDIR)/lib_gnu_apl_la-ValueHistory.Plo \
 	./$(DEPDIR)/lib_gnu_apl_la-Workspace.Plo \
+	./$(DEPDIR)/lib_gnu_apl_la-cValue.Plo \
 	./$(DEPDIR)/lib_gnu_apl_la-python_apl.Plo \
 	./$(DEPDIR)/lib_gnu_apl_la-sbrk.Plo \
 	./$(DEPDIR)/lib_gnu_apl_la-static_Objects.Plo \
@@ -901,6 +932,9 @@ am__depfiles_remade = ./$(DEPDIR)/apl-Archive.Po \
 	./$(DEPDIR)/libapl_la-Bif_OPER2_RANK.Plo \
 	./$(DEPDIR)/libapl_la-CDR.Plo ./$(DEPDIR)/libapl_la-Cell.Plo \
 	./$(DEPDIR)/libapl_la-CharCell.Plo \
+	./$(DEPDIR)/libapl_la-Cmd_IN.Plo \
+	./$(DEPDIR)/libapl_la-Cmd_KEYB.Plo \
+	./$(DEPDIR)/libapl_la-Cmd_LIB.Plo \
 	./$(DEPDIR)/libapl_la-Command.Plo \
 	./$(DEPDIR)/libapl_la-Common.Plo \
 	./$(DEPDIR)/libapl_la-ComplexCell.Plo \
@@ -949,6 +983,7 @@ am__depfiles_remade = ./$(DEPDIR)/apl-Archive.Po \
 	./$(DEPDIR)/libapl_la-PythonPipe.Plo \
 	./$(DEPDIR)/libapl_la-QR_factorization_GSL.Plo \
 	./$(DEPDIR)/libapl_la-QuadFunction.Plo \
+	./$(DEPDIR)/libapl_la-Quad_CC.Plo \
 	./$(DEPDIR)/libapl_la-Quad_CR.Plo \
 	./$(DEPDIR)/libapl_la-Quad_DLX.Plo \
 	./$(DEPDIR)/libapl_la-Quad_FFT.Plo \
@@ -968,6 +1003,7 @@ am__depfiles_remade = ./$(DEPDIR)/apl-Archive.Po \
 	./$(DEPDIR)/libapl_la-Quad_TF.Plo \
 	./$(DEPDIR)/libapl_la-Quad_WA.Plo \
 	./$(DEPDIR)/libapl_la-Quad_XML.Plo \
+	./$(DEPDIR)/libapl_la-Ravel.Plo \
 	./$(DEPDIR)/libapl_la-RealCell.Plo \
 	./$(DEPDIR)/libapl_la-Regexp.Plo \
 	./$(DEPDIR)/libapl_la-ScalarFunction.Plo \
@@ -978,10 +1014,12 @@ am__depfiles_remade = ./$(DEPDIR)/apl-Archive.Po \
 	./$(DEPDIR)/libapl_la-Svar_record.Plo \
 	./$(DEPDIR)/libapl_la-Symbol.Plo \
 	./$(DEPDIR)/libapl_la-SymbolTable.Plo \
+	./$(DEPDIR)/libapl_la-Sys.Plo \
 	./$(DEPDIR)/libapl_la-SystemVariable.Plo \
 	./$(DEPDIR)/libapl_la-TabExpansion.Plo \
 	./$(DEPDIR)/libapl_la-Thread_context.Plo \
 	./$(DEPDIR)/libapl_la-Token.Plo \
+	./$(DEPDIR)/libapl_la-Token_string.Plo \
 	./$(DEPDIR)/libapl_la-Tokenizer.Plo \
 	./$(DEPDIR)/libapl_la-UCS_string.Plo \
 	./$(DEPDIR)/libapl_la-UCS_string_vector.Plo \
@@ -992,6 +1030,7 @@ am__depfiles_remade = ./$(DEPDIR)/apl-Archive.Po \
 	./$(DEPDIR)/libapl_la-Value.Plo \
 	./$(DEPDIR)/libapl_la-ValueHistory.Plo \
 	./$(DEPDIR)/libapl_la-Workspace.Plo \
+	./$(DEPDIR)/libapl_la-cValue.Plo \
 	./$(DEPDIR)/libapl_la-libapl.Plo \
 	./$(DEPDIR)/libapl_la-sbrk.Plo \
 	./$(DEPDIR)/libapl_la-static_Objects.Plo \
@@ -1074,7 +1113,7 @@ am__can_run_installinfo = \
     n|no|NO) false;; \
     *) (install-info --version) >/dev/null 2>&1;; \
   esac
-DATA = $(dist_noinst_DATA)
+DATA = $(dist_noinst_DATA) $(dist_pkgdata_DATA)
 am__pkginclude_HEADERS_DIST = libapl.h Error.def
 HEADERS = $(pkginclude_HEADERS)
 RECURSIVE_CLEAN_TARGETS = mostlyclean-recursive clean-recursive	\
@@ -1130,6 +1169,7 @@ am__relativize = \
   done; \
   reldir="$$dir2"
 ACLOCAL = ${SHELL} '/home/eedjsa/savannah-repo-apl/trunk/missing' aclocal-1.16
+ALT_MAP_WANTED = 0
 AMTAR = $${TAR-tar}
 AM_DEFAULT_VERBOSITY = 1
 APSERVER_PATH = /tmp/GNU-APL/APserver
@@ -1181,7 +1221,7 @@ INSTALL_STRIP_PROGRAM = $(install_sh) -c -s
 LD = /usr/bin/ld -m elf_x86_64
 LDFLAGS = 
 LIBOBJS = 
-LIBS = -lcairo -lgdk-3 -lgtk-3 -lgsl -lgslcblas -lpcre2-32 -lz -lpng -lfftw3 -lX11-xcb -lxcb -lX11 -lc -ldl -lm -lncurses -lcurses -lnsl -lpthread -ltinfo 
+LIBS = -lcairo -lgdk-3 -lgtk-3 -lgsl -lgslcblas -lpcre2-32 -lpng -lz -lfftw3 -lX11-xcb -lxcb -lX11 -lc -ldl -lm -lnsl -lpthread 
 LIBTOOL = $(SHELL) $(top_builddir)/libtool
 LIPO = 
 LN_S = ln -s
@@ -1201,10 +1241,11 @@ OTOOL64 =
 PACKAGE = apl
 PACKAGE_BUGREPORT = bug-apl@gnu.org
 PACKAGE_NAME = GNU APL
-PACKAGE_STRING = GNU APL 1.9
+PACKAGE_STRING = GNU APL 2.0
 PACKAGE_TARNAME = apl
 PACKAGE_URL = https://www.gnu.org/software/apl/
-PACKAGE_VERSION = 1.9
+PACKAGE_VERSION = 2.0
+PACKED_MINIMUM_LENGTH_WANTED = 12
 PATH_SEPARATOR = :
 PCRE_CFLAGS = 
 PCRE_LIBS = -lpcre2-32
@@ -1213,7 +1254,7 @@ PG_CONFIG = /usr/bin/pg_config
 PKG_CONFIG = /usr/bin/pkg-config
 POSTGRESQL_CFLAGS = -I/usr/include/postgresql
 POSTGRESQL_LDFLAGS = -L/usr/lib/x86_64-linux-gnu -lpq
-POSTGRESQL_VERSION = 14.19 (Ubuntu 14.19-0ubuntu0.22.04.1)
+POSTGRESQL_VERSION = 14.22 (Ubuntu 14.22-0ubuntu0.22.04.1)
 POW_LIB = 
 PYTHON_CFLAGS = 
 RANLIB = ranlib
@@ -1229,7 +1270,7 @@ SQLITE3_VERSION = 3.37.2
 STRIP = strip
 VALUE_CHECK_WANTED = no
 VALUE_HISTORY_WANTED = no
-VERSION = 1.9
+VERSION = 2.0
 VF_TRACING_WANTED = no
 VISIBLE_MARKERS_WANTED = no
 XMKMF = 
@@ -1246,25 +1287,25 @@ am__leading_dot = .
 am__quote = 
 am__tar = $${TAR-tar} chof - "$$tardir"
 am__untar = $${TAR-tar} xf -
-apl_BUILD_DATE = 2025-12-31 16:12:02 CET
-apl_BUILD_OS = Linux 5.15.0-161-generic x86_64
+apl_BUILD_DATE = 2026-07-17 13:17:05 CEST
+apl_BUILD_OS = Linux 5.15.0-177-generic x86_64
 bindir = ${exec_prefix}/bin
-build = x86_64-unknown-linux-gnu
+build = x86_64-pc-linux-gnu
 build_alias = 
 build_cpu = x86_64
 build_os = linux-gnu
-build_vendor = unknown
+build_vendor = pc
 builddir = .
 datadir = ${datarootdir}
 datarootdir = ${prefix}/share
 docdir = ${datarootdir}/doc/${PACKAGE_TARNAME}
 dvidir = ${docdir}
 exec_prefix = ${prefix}
-host = x86_64-unknown-linux-gnu
+host = x86_64-pc-linux-gnu
 host_alias = 
 host_cpu = x86_64
 host_os = linux-gnu
-host_vendor = unknown
+host_vendor = pc
 htmldir = ${docdir}
 includedir = ${prefix}/include
 infodir = ${datarootdir}/info
@@ -1289,22 +1330,26 @@ target_alias =
 top_build_prefix = ../
 top_builddir = ..
 top_srcdir = ..
-dist_noinst_SCRIPTS = integral.py
-dist_SCRIPTS = integral.py
-distdir = ${bindir}
+
+# integral.py is a support script that ⌹ (matrix divide, see Bif_F12_DOMINO.cc)
+# pipes through python3.  It is data, not an executable, so it is installed
+# below $(pkgdatadir) rather than in $(bindir).  PythonPipe.cc locates it via
+# apl_DIR__pkgdata (from config.h, i.e. ./configure --datarootdir).
+dist_pkgdata_DATA = integral.py
 EXTRA_DIRS = $(am__append_1)
 SUBDIRS = native $(EXTRA_DIRS) $(am__append_2)
+#SUBDIRS = $(EXTRA_DIRS) $(am__append_2)
 EXTRA_apl_SOURCES = $(am__append_4) $(am__append_6)
 plot_SOURCES = Plot_ascii.cc $(am__append_3) $(am__append_5)
 plot_CXXFLAGS = -Wno-parentheses
-dist_noinst_DATA = valgrind.supp
+dist_noinst_DATA = valgrind.supp rval.def
 DIST_SUBDIRS = $(SUBDIRS) testcases
 
 # common means common to the apl and libapl builds
 #
-common_CXXFLAGS = -Wall $(plot_CXXFLAGS) -I sql -I $(abs_top_srcdir) \
-	$(CXX_WERROR) $(GTK_CFLAGS) $(GTK_LIBS) $(PYTHON_CFLAGS) \
-	$(am__append_8) $(am__append_12)
+common_CXXFLAGS = -Wall -O2 $(plot_CXXFLAGS) -I $(srcdir)/sql -I \
+	$(abs_top_srcdir) $(CXX_WERROR) $(GTK_CFLAGS) $(GTK_LIBS) \
+	$(PYTHON_CFLAGS) $(am__append_8) $(am__append_12)
 common_LDFLAGS = -L/usr/local/lib -export-dynamic $(GTK_LDFLAGS) \
 	$(am__append_9) $(am__append_13)
 common_SOURCES = $(plot_SOURCES) ../config.h APL_Float_as_class.hh \
@@ -1322,20 +1367,21 @@ common_SOURCES = $(plot_SOURCES) ../config.h APL_Float_as_class.hh \
 	Bif_OPER2_OUTER.cc Bif_OPER2_OUTER.hh Bif_OPER2_RANK.cc \
 	Bif_OPER2_RANK.hh Bif_OPER1_REDUCE.cc Bif_OPER1_REDUCE.hh \
 	Bif_OPER1_SCAN.cc Bif_OPER1_SCAN.hh CDR.cc CDR.hh Cell.cc \
-	Cell.icc Cell.hh Doxy.cc Doxy.hh CharCell.cc CharCell.hh \
-	Command.cc Command.def Command.hh Common.cc Common.hh \
-	ComplexCell.cc ComplexCell.hh ConstCell_P.hh \
-	DerivedFunction.cc DerivedFunction.hh DiffOut.cc \
-	DynamicObject.cc DynamicObject.hh Error.cc Error.def Error.hh \
-	Error_macros.hh ErrorCode.hh Executable.cc Executable.hh \
-	FileBuffers.hh FloatCell.cc FloatCell.hh Focus.icc Function.cc \
-	Function.hh Help.def Heapsort.hh Id.cc Id.def Id.hh IdEnums.hh \
-	IndexExpr.cc IndexExpr.hh IndexIterator.cc IndexIterator.hh \
-	InputFile.cc InputFile.hh IntCell.cc IntCell.hh IO_Files.cc \
-	IO_Files.hh LApack.cc LAdebug.icc LApack.hh LibPaths.cc \
-	LibPaths.hh LineInput.cc LineInput.hh Logging.cc Logging.def \
-	Logging.hh LvalCell.cc LvalCell.hh Malloc_hooks.cc Nabla.cc \
-	Nabla.hh Macro.cc Macro.def Macro.hh Missing_Libraries.cc \
+	Cell.icc Cell.hh Cmd_KEYB.cc Cmd_LIB.cc Cmd_IN.cc Doxy.cc \
+	Doxy.hh CharCell.cc CharCell.hh Command.cc Command.def \
+	Command.hh Common.cc Common.hh ComplexCell.cc ComplexCell.hh \
+	ConstCell_P.hh DerivedFunction.cc DerivedFunction.hh \
+	DiffOut.cc DiffOut.hh DynamicObject.cc DynamicObject.hh \
+	Error.cc Error.def Error.hh Error_macros.hh ErrorCode.hh \
+	Executable.cc Executable.hh FileBuffers.hh FloatCell.cc \
+	FloatCell.hh Focus.icc Function.cc Function.hh Help.def \
+	Heapsort.hh Id.cc Id.def Id.hh IdEnums.hh IndexExpr.cc \
+	IndexExpr.hh IndexIterator.cc IndexIterator.hh InputFile.cc \
+	InputFile.hh IntCell.cc IntCell.hh IO_Files.cc IO_Files.hh \
+	LApack.cc LAdebug.icc LApack.hh LibPaths.cc LibPaths.hh \
+	LineInput.cc LineInput.hh Logging.cc Logging.def Logging.hh \
+	LvalCell.cc LvalCell.hh Malloc_hooks.cc Nabla.cc Nabla.hh \
+	Macro.cc Macro.def Macro.hh Missing_Libraries.cc \
 	NamedObject.cc NamedObject.hh NativeFunction.cc \
 	NativeFunction.hh Native_interface.hh NumericCell.cc \
 	NumericCell.icc NumericCell.hh Output.cc Output.hh PJob.hh \
@@ -1349,33 +1395,35 @@ common_SOURCES = $(plot_SOURCES) ../config.h APL_Float_as_class.hh \
 	Polynomial.hh PrintOperator.hh PythonPipe.cc PythonPipe.hh \
 	QR_factorization_GSL.cc QR_factorization_GSL.hh \
 	QuadFunction.cc QuadFunction.hh ProcessorID.cc ProcessorID.hh \
-	Quad_CR.cc Quad_CR.def Quad_CR.hh Quad_DLX.cc Quad_DLX.hh \
-	Quad_FFT.cc Quad_FFT.hh Quad_FIO.cc Quad_FIO.def Quad_FIO.hh \
-	Quad_FX.cc Quad_FX.hh Quad_GTK.cc Quad_GTK.hh Quad_JSON.cc \
-	Quad_JSON.hh Quad_MAP.cc Quad_MAP.hh Quad_MX.cc Quad_MX.def \
-	Quad_MX.hh Quad_PLOT.cc Quad_PLOT.def Quad_PLOT.hh Quad_PNG.cc \
-	Quad_PNG.hh Quad_RE.cc Quad_RE.hh Quad_RL.cc Quad_RL.hh \
-	Quad_RVAL.cc Quad_RVAL.hh Quad_SQL.cc Quad_SQL.hh Quad_SVx.cc \
-	Quad_SVx.hh Quad_TF.cc Quad_TF.hh Quad_WA.cc Quad_WA.hh \
-	Quad_XML.cc Quad_XML.hh RealCell.cc RealCell.hh sbrk.cc \
-	Shape.cc Shape.hh ScalarFunction.cc ScalarFunction.hh \
-	Security.cc Security.def Security.hh StateIndicator.cc \
-	StateIndicator.hh Svar_DB.cc Svar_DB.hh Svar_record.cc \
-	Svar_record.hh tcp_signal.m4 Svar_signals.def Svar_signals.hh \
-	Symbol.cc Symbol.hh Simple_string.hh SymbolTable.cc \
-	SymbolTable.hh SystemLimits.def SystemLimits.hh \
+	Quad_CC.cc Quad_CC.hh Quad_CR.cc Quad_CR.def Quad_CR.hh \
+	Quad_DLX.cc Quad_DLX.hh Quad_FFT.cc Quad_FFT.hh Quad_FIO.cc \
+	Quad_FIO.def Quad_FIO.hh Quad_FX.cc Quad_FX.hh Quad_GTK.cc \
+	Quad_GTK.hh Quad_JSON.cc Quad_JSON.hh Quad_MAP.cc Quad_MAP.hh \
+	Quad_MX.cc Quad_MX.def Quad_MX.hh Quad_PLOT.cc Quad_PLOT.def \
+	Quad_PLOT.hh Quad_PNG.cc Quad_PNG.hh Quad_RE.cc Quad_RE.hh \
+	Quad_RL.cc Quad_RL.hh Quad_RVAL.cc Quad_RVAL.hh Quad_SQL.cc \
+	Quad_SQL.hh Quad_SVx.cc Quad_SVx.hh Quad_TF.cc Quad_TF.hh \
+	Quad_WA.cc Quad_WA.hh Quad_XML.cc Quad_XML.hh RealCell.cc \
+	RealCell.hh sbrk.cc Shape.cc Shape.hh ScalarFunction.cc \
+	ScalarFunction.hh ScalarOps.hh Security.cc Security.def \
+	Security.hh StateIndicator.cc StateIndicator.hh Svar_DB.cc \
+	Svar_DB.hh Svar_record.cc Svar_record.hh tcp_signal.m4 \
+	Svar_signals.def Svar_signals.hh Symbol.cc Symbol.hh \
+	Simple_string.hh SymbolTable.cc SymbolTable.hh \
+	SystemLimits.def SystemLimits.hh Sys.cc Sys.hh \
 	SystemVariable.cc SystemVariable.def SystemVariable.hh \
 	TabExpansion.cc TabExpansion.hh Thread_context.cc \
-	Thread_context.hh Token.cc Token.def Token.hh TokenEnums.hh \
-	Tokenizer.cc Tokenizer.hh UCS_string.cc UCS_string.hh \
-	UCS_string_vector.cc UCS_string_vector.hh Unicode.hh \
-	UserFunction.cc UserFunction.hh UserFunction_header.cc \
-	UserFunction_header.hh UserPreferences.cc UserPreferences.hh \
-	UTF8_string.cc UTF8_string.hh Value.cc Value.icc Value.hh \
-	Value_P.icc Value_P.hh ValueHistory.cc ValueHistory.hh \
-	Workspace.cc Workspace.icc Workspace.hh static_Objects.cc \
-	static_Objects.hh $(am__append_7) $(am__append_10) \
-	$(am__append_11) $(am__append_14)
+	Thread_context.hh Token.cc Token.def Token.hh Token_string.cc \
+	Token_string.hh TokenEnums.hh Tokenizer.cc Tokenizer.hh \
+	u8_string.hh UCS_string.cc UCS_string.hh UCS_string_vector.cc \
+	UCS_string_vector.hh Unicode.hh UserFunction.cc \
+	UserFunction.hh UserFunction_header.cc UserFunction_header.hh \
+	UserPreferences.cc UserPreferences.hh UTF8_string.cc \
+	UTF8_string.hh Ravel.cc Ravel.hh Value.cc Value.icc Value.hh \
+	cValue.cc Value_P.icc Value_P.hh ValueHistory.cc \
+	ValueHistory.hh Workspace.cc Workspace.icc Workspace.hh \
+	static_Objects.cc static_Objects.hh $(am__append_7) \
+	$(am__append_10) $(am__append_11) $(am__append_14)
 pkglib_LTLIBRARIES = $(am__append_15) $(am__append_16)
 #pkginclude_HEADERS = libapl.h Error.def
 #libapl_la_SOURCES = $(common_SOURCES) libapl.h libapl.cc
@@ -1400,15 +1448,17 @@ pkglib_LTLIBRARIES = $(am__append_15) $(am__append_16)
 #	-fstack-protector \
 #	--param=ssp-buffer-size=4 \
 #	-I/usr/include/python3.6m \
-#	-I/usr/include/python3.8 \
-#	# server58
+#	-I/usr/include/python3.12 \
+#	# server72
 apl_SOURCES = main.cc $(common_SOURCES)
 apl_CXXFLAGS = $(common_CXXFLAGS) \
 	$(GCOV_WANTED) \
 	$(GPROF_WANTED) \
 	$(CXX_RDYNAMIC)
-apl_LDFLAGS = $(common_LDFLAGS)
+apl_LDFLAGS = $(common_LDFLAGS) \
+	$(am__append_17)
 apl_LDADD = $(LIBS)
+#CLEANFILES = apl-$(VERSION).exe
 all: all-recursive
 
 .SUFFIXES:
@@ -1590,41 +1640,6 @@ sql/apl-PostgresProvider.$(OBJEXT): sql/$(am__dirstamp) \
 apl$(EXEEXT): $(apl_OBJECTS) $(apl_DEPENDENCIES) $(EXTRA_apl_DEPENDENCIES) 
 	@rm -f apl$(EXEEXT)
 	$(AM_V_CXXLD)$(apl_LINK) $(apl_OBJECTS) $(apl_LDADD) $(LIBS)
-install-distSCRIPTS: $(dist_SCRIPTS)
-	@$(NORMAL_INSTALL)
-	@list='$(dist_SCRIPTS)'; test -n "$(distdir)" || list=; \
-	if test -n "$$list"; then \
-	  echo " $(MKDIR_P) '$(DESTDIR)$(distdir)'"; \
-	  $(MKDIR_P) "$(DESTDIR)$(distdir)" || exit 1; \
-	fi; \
-	for p in $$list; do \
-	  if test -f "$$p"; then d=; else d="$(srcdir)/"; fi; \
-	  if test -f "$$d$$p"; then echo "$$d$$p"; echo "$$p"; else :; fi; \
-	done | \
-	sed -e 'p;s,.*/,,;n' \
-	    -e 'h;s|.*|.|' \
-	    -e 'p;x;s,.*/,,;$(transform)' | sed 'N;N;N;s,\n, ,g' | \
-	$(AWK) 'BEGIN { files["."] = ""; dirs["."] = 1; } \
-	  { d=$$3; if (dirs[d] != 1) { print "d", d; dirs[d] = 1 } \
-	    if ($$2 == $$4) { files[d] = files[d] " " $$1; \
-	      if (++n[d] == $(am__install_max)) { \
-		print "f", d, files[d]; n[d] = 0; files[d] = "" } } \
-	    else { print "f", d "/" $$4, $$1 } } \
-	  END { for (d in files) print "f", d, files[d] }' | \
-	while read type dir files; do \
-	     if test "$$dir" = .; then dir=; else dir=/$$dir; fi; \
-	     test -z "$$files" || { \
-	       echo " $(INSTALL_SCRIPT) $$files '$(DESTDIR)$(distdir)$$dir'"; \
-	       $(INSTALL_SCRIPT) $$files "$(DESTDIR)$(distdir)$$dir" || exit $$?; \
-	     } \
-	; done
-
-uninstall-distSCRIPTS:
-	@$(NORMAL_UNINSTALL)
-	@list='$(dist_SCRIPTS)'; test -n "$(distdir)" || exit 0; \
-	files=`for p in $$list; do echo "$$p"; done | \
-	       sed -e 's,.*/,,;$(transform)'`; \
-	dir='$(DESTDIR)$(distdir)'; $(am__uninstall_files_from_dir)
 
 mostlyclean-compile:
 	-rm -f *.$(OBJEXT)
@@ -1657,6 +1672,9 @@ include ./$(DEPDIR)/apl-Bif_OPER2_RANK.Po # am--include-marker
 include ./$(DEPDIR)/apl-CDR.Po # am--include-marker
 include ./$(DEPDIR)/apl-Cell.Po # am--include-marker
 include ./$(DEPDIR)/apl-CharCell.Po # am--include-marker
+include ./$(DEPDIR)/apl-Cmd_IN.Po # am--include-marker
+include ./$(DEPDIR)/apl-Cmd_KEYB.Po # am--include-marker
+include ./$(DEPDIR)/apl-Cmd_LIB.Po # am--include-marker
 include ./$(DEPDIR)/apl-Command.Po # am--include-marker
 include ./$(DEPDIR)/apl-Common.Po # am--include-marker
 include ./$(DEPDIR)/apl-ComplexCell.Po # am--include-marker
@@ -1705,6 +1723,7 @@ include ./$(DEPDIR)/apl-ProcessorID.Po # am--include-marker
 include ./$(DEPDIR)/apl-PythonPipe.Po # am--include-marker
 include ./$(DEPDIR)/apl-QR_factorization_GSL.Po # am--include-marker
 include ./$(DEPDIR)/apl-QuadFunction.Po # am--include-marker
+include ./$(DEPDIR)/apl-Quad_CC.Po # am--include-marker
 include ./$(DEPDIR)/apl-Quad_CR.Po # am--include-marker
 include ./$(DEPDIR)/apl-Quad_DLX.Po # am--include-marker
 include ./$(DEPDIR)/apl-Quad_FFT.Po # am--include-marker
@@ -1724,6 +1743,7 @@ include ./$(DEPDIR)/apl-Quad_SVx.Po # am--include-marker
 include ./$(DEPDIR)/apl-Quad_TF.Po # am--include-marker
 include ./$(DEPDIR)/apl-Quad_WA.Po # am--include-marker
 include ./$(DEPDIR)/apl-Quad_XML.Po # am--include-marker
+include ./$(DEPDIR)/apl-Ravel.Po # am--include-marker
 include ./$(DEPDIR)/apl-RealCell.Po # am--include-marker
 include ./$(DEPDIR)/apl-Regexp.Po # am--include-marker
 include ./$(DEPDIR)/apl-ScalarFunction.Po # am--include-marker
@@ -1734,10 +1754,12 @@ include ./$(DEPDIR)/apl-Svar_DB.Po # am--include-marker
 include ./$(DEPDIR)/apl-Svar_record.Po # am--include-marker
 include ./$(DEPDIR)/apl-Symbol.Po # am--include-marker
 include ./$(DEPDIR)/apl-SymbolTable.Po # am--include-marker
+include ./$(DEPDIR)/apl-Sys.Po # am--include-marker
 include ./$(DEPDIR)/apl-SystemVariable.Po # am--include-marker
 include ./$(DEPDIR)/apl-TabExpansion.Po # am--include-marker
 include ./$(DEPDIR)/apl-Thread_context.Po # am--include-marker
 include ./$(DEPDIR)/apl-Token.Po # am--include-marker
+include ./$(DEPDIR)/apl-Token_string.Po # am--include-marker
 include ./$(DEPDIR)/apl-Tokenizer.Po # am--include-marker
 include ./$(DEPDIR)/apl-UCS_string.Po # am--include-marker
 include ./$(DEPDIR)/apl-UCS_string_vector.Po # am--include-marker
@@ -1748,6 +1770,7 @@ include ./$(DEPDIR)/apl-UserPreferences.Po # am--include-marker
 include ./$(DEPDIR)/apl-Value.Po # am--include-marker
 include ./$(DEPDIR)/apl-ValueHistory.Po # am--include-marker
 include ./$(DEPDIR)/apl-Workspace.Po # am--include-marker
+include ./$(DEPDIR)/apl-cValue.Po # am--include-marker
 include ./$(DEPDIR)/apl-main.Po # am--include-marker
 include ./$(DEPDIR)/apl-sbrk.Po # am--include-marker
 include ./$(DEPDIR)/apl-static_Objects.Po # am--include-marker
@@ -1774,6 +1797,9 @@ include ./$(DEPDIR)/lib_gnu_apl_la-Bif_OPER2_RANK.Plo # am--include-marker
 include ./$(DEPDIR)/lib_gnu_apl_la-CDR.Plo # am--include-marker
 include ./$(DEPDIR)/lib_gnu_apl_la-Cell.Plo # am--include-marker
 include ./$(DEPDIR)/lib_gnu_apl_la-CharCell.Plo # am--include-marker
+include ./$(DEPDIR)/lib_gnu_apl_la-Cmd_IN.Plo # am--include-marker
+include ./$(DEPDIR)/lib_gnu_apl_la-Cmd_KEYB.Plo # am--include-marker
+include ./$(DEPDIR)/lib_gnu_apl_la-Cmd_LIB.Plo # am--include-marker
 include ./$(DEPDIR)/lib_gnu_apl_la-Command.Plo # am--include-marker
 include ./$(DEPDIR)/lib_gnu_apl_la-Common.Plo # am--include-marker
 include ./$(DEPDIR)/lib_gnu_apl_la-ComplexCell.Plo # am--include-marker
@@ -1822,6 +1848,7 @@ include ./$(DEPDIR)/lib_gnu_apl_la-ProcessorID.Plo # am--include-marker
 include ./$(DEPDIR)/lib_gnu_apl_la-PythonPipe.Plo # am--include-marker
 include ./$(DEPDIR)/lib_gnu_apl_la-QR_factorization_GSL.Plo # am--include-marker
 include ./$(DEPDIR)/lib_gnu_apl_la-QuadFunction.Plo # am--include-marker
+include ./$(DEPDIR)/lib_gnu_apl_la-Quad_CC.Plo # am--include-marker
 include ./$(DEPDIR)/lib_gnu_apl_la-Quad_CR.Plo # am--include-marker
 include ./$(DEPDIR)/lib_gnu_apl_la-Quad_DLX.Plo # am--include-marker
 include ./$(DEPDIR)/lib_gnu_apl_la-Quad_FFT.Plo # am--include-marker
@@ -1841,6 +1868,7 @@ include ./$(DEPDIR)/lib_gnu_apl_la-Quad_SVx.Plo # am--include-marker
 include ./$(DEPDIR)/lib_gnu_apl_la-Quad_TF.Plo # am--include-marker
 include ./$(DEPDIR)/lib_gnu_apl_la-Quad_WA.Plo # am--include-marker
 include ./$(DEPDIR)/lib_gnu_apl_la-Quad_XML.Plo # am--include-marker
+include ./$(DEPDIR)/lib_gnu_apl_la-Ravel.Plo # am--include-marker
 include ./$(DEPDIR)/lib_gnu_apl_la-RealCell.Plo # am--include-marker
 include ./$(DEPDIR)/lib_gnu_apl_la-Regexp.Plo # am--include-marker
 include ./$(DEPDIR)/lib_gnu_apl_la-ScalarFunction.Plo # am--include-marker
@@ -1851,10 +1879,12 @@ include ./$(DEPDIR)/lib_gnu_apl_la-Svar_DB.Plo # am--include-marker
 include ./$(DEPDIR)/lib_gnu_apl_la-Svar_record.Plo # am--include-marker
 include ./$(DEPDIR)/lib_gnu_apl_la-Symbol.Plo # am--include-marker
 include ./$(DEPDIR)/lib_gnu_apl_la-SymbolTable.Plo # am--include-marker
+include ./$(DEPDIR)/lib_gnu_apl_la-Sys.Plo # am--include-marker
 include ./$(DEPDIR)/lib_gnu_apl_la-SystemVariable.Plo # am--include-marker
 include ./$(DEPDIR)/lib_gnu_apl_la-TabExpansion.Plo # am--include-marker
 include ./$(DEPDIR)/lib_gnu_apl_la-Thread_context.Plo # am--include-marker
 include ./$(DEPDIR)/lib_gnu_apl_la-Token.Plo # am--include-marker
+include ./$(DEPDIR)/lib_gnu_apl_la-Token_string.Plo # am--include-marker
 include ./$(DEPDIR)/lib_gnu_apl_la-Tokenizer.Plo # am--include-marker
 include ./$(DEPDIR)/lib_gnu_apl_la-UCS_string.Plo # am--include-marker
 include ./$(DEPDIR)/lib_gnu_apl_la-UCS_string_vector.Plo # am--include-marker
@@ -1865,6 +1895,7 @@ include ./$(DEPDIR)/lib_gnu_apl_la-UserPreferences.Plo # am--include-marker
 include ./$(DEPDIR)/lib_gnu_apl_la-Value.Plo # am--include-marker
 include ./$(DEPDIR)/lib_gnu_apl_la-ValueHistory.Plo # am--include-marker
 include ./$(DEPDIR)/lib_gnu_apl_la-Workspace.Plo # am--include-marker
+include ./$(DEPDIR)/lib_gnu_apl_la-cValue.Plo # am--include-marker
 include ./$(DEPDIR)/lib_gnu_apl_la-python_apl.Plo # am--include-marker
 include ./$(DEPDIR)/lib_gnu_apl_la-sbrk.Plo # am--include-marker
 include ./$(DEPDIR)/lib_gnu_apl_la-static_Objects.Plo # am--include-marker
@@ -1891,6 +1922,9 @@ include ./$(DEPDIR)/libapl_la-Bif_OPER2_RANK.Plo # am--include-marker
 include ./$(DEPDIR)/libapl_la-CDR.Plo # am--include-marker
 include ./$(DEPDIR)/libapl_la-Cell.Plo # am--include-marker
 include ./$(DEPDIR)/libapl_la-CharCell.Plo # am--include-marker
+include ./$(DEPDIR)/libapl_la-Cmd_IN.Plo # am--include-marker
+include ./$(DEPDIR)/libapl_la-Cmd_KEYB.Plo # am--include-marker
+include ./$(DEPDIR)/libapl_la-Cmd_LIB.Plo # am--include-marker
 include ./$(DEPDIR)/libapl_la-Command.Plo # am--include-marker
 include ./$(DEPDIR)/libapl_la-Common.Plo # am--include-marker
 include ./$(DEPDIR)/libapl_la-ComplexCell.Plo # am--include-marker
@@ -1939,6 +1973,7 @@ include ./$(DEPDIR)/libapl_la-ProcessorID.Plo # am--include-marker
 include ./$(DEPDIR)/libapl_la-PythonPipe.Plo # am--include-marker
 include ./$(DEPDIR)/libapl_la-QR_factorization_GSL.Plo # am--include-marker
 include ./$(DEPDIR)/libapl_la-QuadFunction.Plo # am--include-marker
+include ./$(DEPDIR)/libapl_la-Quad_CC.Plo # am--include-marker
 include ./$(DEPDIR)/libapl_la-Quad_CR.Plo # am--include-marker
 include ./$(DEPDIR)/libapl_la-Quad_DLX.Plo # am--include-marker
 include ./$(DEPDIR)/libapl_la-Quad_FFT.Plo # am--include-marker
@@ -1958,6 +1993,7 @@ include ./$(DEPDIR)/libapl_la-Quad_SVx.Plo # am--include-marker
 include ./$(DEPDIR)/libapl_la-Quad_TF.Plo # am--include-marker
 include ./$(DEPDIR)/libapl_la-Quad_WA.Plo # am--include-marker
 include ./$(DEPDIR)/libapl_la-Quad_XML.Plo # am--include-marker
+include ./$(DEPDIR)/libapl_la-Ravel.Plo # am--include-marker
 include ./$(DEPDIR)/libapl_la-RealCell.Plo # am--include-marker
 include ./$(DEPDIR)/libapl_la-Regexp.Plo # am--include-marker
 include ./$(DEPDIR)/libapl_la-ScalarFunction.Plo # am--include-marker
@@ -1968,10 +2004,12 @@ include ./$(DEPDIR)/libapl_la-Svar_DB.Plo # am--include-marker
 include ./$(DEPDIR)/libapl_la-Svar_record.Plo # am--include-marker
 include ./$(DEPDIR)/libapl_la-Symbol.Plo # am--include-marker
 include ./$(DEPDIR)/libapl_la-SymbolTable.Plo # am--include-marker
+include ./$(DEPDIR)/libapl_la-Sys.Plo # am--include-marker
 include ./$(DEPDIR)/libapl_la-SystemVariable.Plo # am--include-marker
 include ./$(DEPDIR)/libapl_la-TabExpansion.Plo # am--include-marker
 include ./$(DEPDIR)/libapl_la-Thread_context.Plo # am--include-marker
 include ./$(DEPDIR)/libapl_la-Token.Plo # am--include-marker
+include ./$(DEPDIR)/libapl_la-Token_string.Plo # am--include-marker
 include ./$(DEPDIR)/libapl_la-Tokenizer.Plo # am--include-marker
 include ./$(DEPDIR)/libapl_la-UCS_string.Plo # am--include-marker
 include ./$(DEPDIR)/libapl_la-UCS_string_vector.Plo # am--include-marker
@@ -1982,6 +2020,7 @@ include ./$(DEPDIR)/libapl_la-UserPreferences.Plo # am--include-marker
 include ./$(DEPDIR)/libapl_la-Value.Plo # am--include-marker
 include ./$(DEPDIR)/libapl_la-ValueHistory.Plo # am--include-marker
 include ./$(DEPDIR)/libapl_la-Workspace.Plo # am--include-marker
+include ./$(DEPDIR)/libapl_la-cValue.Plo # am--include-marker
 include ./$(DEPDIR)/libapl_la-libapl.Plo # am--include-marker
 include ./$(DEPDIR)/libapl_la-sbrk.Plo # am--include-marker
 include ./$(DEPDIR)/libapl_la-static_Objects.Plo # am--include-marker
@@ -2214,6 +2253,27 @@ lib_gnu_apl_la-Cell.lo: Cell.cc
 #	$(AM_V_CXX)source='Cell.cc' object='lib_gnu_apl_la-Cell.lo' libtool=yes \
 #	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) \
 #	$(AM_V_CXX_no)$(LIBTOOL) $(AM_V_lt) --tag=CXX $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(lib_gnu_apl_la_CXXFLAGS) $(CXXFLAGS) -c -o lib_gnu_apl_la-Cell.lo `test -f 'Cell.cc' || echo '$(srcdir)/'`Cell.cc
+
+lib_gnu_apl_la-Cmd_KEYB.lo: Cmd_KEYB.cc
+	$(AM_V_CXX)$(LIBTOOL) $(AM_V_lt) --tag=CXX $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(lib_gnu_apl_la_CXXFLAGS) $(CXXFLAGS) -MT lib_gnu_apl_la-Cmd_KEYB.lo -MD -MP -MF $(DEPDIR)/lib_gnu_apl_la-Cmd_KEYB.Tpo -c -o lib_gnu_apl_la-Cmd_KEYB.lo `test -f 'Cmd_KEYB.cc' || echo '$(srcdir)/'`Cmd_KEYB.cc
+	$(AM_V_at)$(am__mv) $(DEPDIR)/lib_gnu_apl_la-Cmd_KEYB.Tpo $(DEPDIR)/lib_gnu_apl_la-Cmd_KEYB.Plo
+#	$(AM_V_CXX)source='Cmd_KEYB.cc' object='lib_gnu_apl_la-Cmd_KEYB.lo' libtool=yes \
+#	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) \
+#	$(AM_V_CXX_no)$(LIBTOOL) $(AM_V_lt) --tag=CXX $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(lib_gnu_apl_la_CXXFLAGS) $(CXXFLAGS) -c -o lib_gnu_apl_la-Cmd_KEYB.lo `test -f 'Cmd_KEYB.cc' || echo '$(srcdir)/'`Cmd_KEYB.cc
+
+lib_gnu_apl_la-Cmd_LIB.lo: Cmd_LIB.cc
+	$(AM_V_CXX)$(LIBTOOL) $(AM_V_lt) --tag=CXX $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(lib_gnu_apl_la_CXXFLAGS) $(CXXFLAGS) -MT lib_gnu_apl_la-Cmd_LIB.lo -MD -MP -MF $(DEPDIR)/lib_gnu_apl_la-Cmd_LIB.Tpo -c -o lib_gnu_apl_la-Cmd_LIB.lo `test -f 'Cmd_LIB.cc' || echo '$(srcdir)/'`Cmd_LIB.cc
+	$(AM_V_at)$(am__mv) $(DEPDIR)/lib_gnu_apl_la-Cmd_LIB.Tpo $(DEPDIR)/lib_gnu_apl_la-Cmd_LIB.Plo
+#	$(AM_V_CXX)source='Cmd_LIB.cc' object='lib_gnu_apl_la-Cmd_LIB.lo' libtool=yes \
+#	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) \
+#	$(AM_V_CXX_no)$(LIBTOOL) $(AM_V_lt) --tag=CXX $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(lib_gnu_apl_la_CXXFLAGS) $(CXXFLAGS) -c -o lib_gnu_apl_la-Cmd_LIB.lo `test -f 'Cmd_LIB.cc' || echo '$(srcdir)/'`Cmd_LIB.cc
+
+lib_gnu_apl_la-Cmd_IN.lo: Cmd_IN.cc
+	$(AM_V_CXX)$(LIBTOOL) $(AM_V_lt) --tag=CXX $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(lib_gnu_apl_la_CXXFLAGS) $(CXXFLAGS) -MT lib_gnu_apl_la-Cmd_IN.lo -MD -MP -MF $(DEPDIR)/lib_gnu_apl_la-Cmd_IN.Tpo -c -o lib_gnu_apl_la-Cmd_IN.lo `test -f 'Cmd_IN.cc' || echo '$(srcdir)/'`Cmd_IN.cc
+	$(AM_V_at)$(am__mv) $(DEPDIR)/lib_gnu_apl_la-Cmd_IN.Tpo $(DEPDIR)/lib_gnu_apl_la-Cmd_IN.Plo
+#	$(AM_V_CXX)source='Cmd_IN.cc' object='lib_gnu_apl_la-Cmd_IN.lo' libtool=yes \
+#	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) \
+#	$(AM_V_CXX_no)$(LIBTOOL) $(AM_V_lt) --tag=CXX $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(lib_gnu_apl_la_CXXFLAGS) $(CXXFLAGS) -c -o lib_gnu_apl_la-Cmd_IN.lo `test -f 'Cmd_IN.cc' || echo '$(srcdir)/'`Cmd_IN.cc
 
 lib_gnu_apl_la-Doxy.lo: Doxy.cc
 	$(AM_V_CXX)$(LIBTOOL) $(AM_V_lt) --tag=CXX $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(lib_gnu_apl_la_CXXFLAGS) $(CXXFLAGS) -MT lib_gnu_apl_la-Doxy.lo -MD -MP -MF $(DEPDIR)/lib_gnu_apl_la-Doxy.Tpo -c -o lib_gnu_apl_la-Doxy.lo `test -f 'Doxy.cc' || echo '$(srcdir)/'`Doxy.cc
@@ -2537,6 +2597,13 @@ lib_gnu_apl_la-ProcessorID.lo: ProcessorID.cc
 #	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) \
 #	$(AM_V_CXX_no)$(LIBTOOL) $(AM_V_lt) --tag=CXX $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(lib_gnu_apl_la_CXXFLAGS) $(CXXFLAGS) -c -o lib_gnu_apl_la-ProcessorID.lo `test -f 'ProcessorID.cc' || echo '$(srcdir)/'`ProcessorID.cc
 
+lib_gnu_apl_la-Quad_CC.lo: Quad_CC.cc
+	$(AM_V_CXX)$(LIBTOOL) $(AM_V_lt) --tag=CXX $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(lib_gnu_apl_la_CXXFLAGS) $(CXXFLAGS) -MT lib_gnu_apl_la-Quad_CC.lo -MD -MP -MF $(DEPDIR)/lib_gnu_apl_la-Quad_CC.Tpo -c -o lib_gnu_apl_la-Quad_CC.lo `test -f 'Quad_CC.cc' || echo '$(srcdir)/'`Quad_CC.cc
+	$(AM_V_at)$(am__mv) $(DEPDIR)/lib_gnu_apl_la-Quad_CC.Tpo $(DEPDIR)/lib_gnu_apl_la-Quad_CC.Plo
+#	$(AM_V_CXX)source='Quad_CC.cc' object='lib_gnu_apl_la-Quad_CC.lo' libtool=yes \
+#	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) \
+#	$(AM_V_CXX_no)$(LIBTOOL) $(AM_V_lt) --tag=CXX $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(lib_gnu_apl_la_CXXFLAGS) $(CXXFLAGS) -c -o lib_gnu_apl_la-Quad_CC.lo `test -f 'Quad_CC.cc' || echo '$(srcdir)/'`Quad_CC.cc
+
 lib_gnu_apl_la-Quad_CR.lo: Quad_CR.cc
 	$(AM_V_CXX)$(LIBTOOL) $(AM_V_lt) --tag=CXX $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(lib_gnu_apl_la_CXXFLAGS) $(CXXFLAGS) -MT lib_gnu_apl_la-Quad_CR.lo -MD -MP -MF $(DEPDIR)/lib_gnu_apl_la-Quad_CR.Tpo -c -o lib_gnu_apl_la-Quad_CR.lo `test -f 'Quad_CR.cc' || echo '$(srcdir)/'`Quad_CR.cc
 	$(AM_V_at)$(am__mv) $(DEPDIR)/lib_gnu_apl_la-Quad_CR.Tpo $(DEPDIR)/lib_gnu_apl_la-Quad_CR.Plo
@@ -2740,6 +2807,13 @@ lib_gnu_apl_la-SymbolTable.lo: SymbolTable.cc
 #	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) \
 #	$(AM_V_CXX_no)$(LIBTOOL) $(AM_V_lt) --tag=CXX $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(lib_gnu_apl_la_CXXFLAGS) $(CXXFLAGS) -c -o lib_gnu_apl_la-SymbolTable.lo `test -f 'SymbolTable.cc' || echo '$(srcdir)/'`SymbolTable.cc
 
+lib_gnu_apl_la-Sys.lo: Sys.cc
+	$(AM_V_CXX)$(LIBTOOL) $(AM_V_lt) --tag=CXX $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(lib_gnu_apl_la_CXXFLAGS) $(CXXFLAGS) -MT lib_gnu_apl_la-Sys.lo -MD -MP -MF $(DEPDIR)/lib_gnu_apl_la-Sys.Tpo -c -o lib_gnu_apl_la-Sys.lo `test -f 'Sys.cc' || echo '$(srcdir)/'`Sys.cc
+	$(AM_V_at)$(am__mv) $(DEPDIR)/lib_gnu_apl_la-Sys.Tpo $(DEPDIR)/lib_gnu_apl_la-Sys.Plo
+#	$(AM_V_CXX)source='Sys.cc' object='lib_gnu_apl_la-Sys.lo' libtool=yes \
+#	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) \
+#	$(AM_V_CXX_no)$(LIBTOOL) $(AM_V_lt) --tag=CXX $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(lib_gnu_apl_la_CXXFLAGS) $(CXXFLAGS) -c -o lib_gnu_apl_la-Sys.lo `test -f 'Sys.cc' || echo '$(srcdir)/'`Sys.cc
+
 lib_gnu_apl_la-SystemVariable.lo: SystemVariable.cc
 	$(AM_V_CXX)$(LIBTOOL) $(AM_V_lt) --tag=CXX $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(lib_gnu_apl_la_CXXFLAGS) $(CXXFLAGS) -MT lib_gnu_apl_la-SystemVariable.lo -MD -MP -MF $(DEPDIR)/lib_gnu_apl_la-SystemVariable.Tpo -c -o lib_gnu_apl_la-SystemVariable.lo `test -f 'SystemVariable.cc' || echo '$(srcdir)/'`SystemVariable.cc
 	$(AM_V_at)$(am__mv) $(DEPDIR)/lib_gnu_apl_la-SystemVariable.Tpo $(DEPDIR)/lib_gnu_apl_la-SystemVariable.Plo
@@ -2767,6 +2841,13 @@ lib_gnu_apl_la-Token.lo: Token.cc
 #	$(AM_V_CXX)source='Token.cc' object='lib_gnu_apl_la-Token.lo' libtool=yes \
 #	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) \
 #	$(AM_V_CXX_no)$(LIBTOOL) $(AM_V_lt) --tag=CXX $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(lib_gnu_apl_la_CXXFLAGS) $(CXXFLAGS) -c -o lib_gnu_apl_la-Token.lo `test -f 'Token.cc' || echo '$(srcdir)/'`Token.cc
+
+lib_gnu_apl_la-Token_string.lo: Token_string.cc
+	$(AM_V_CXX)$(LIBTOOL) $(AM_V_lt) --tag=CXX $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(lib_gnu_apl_la_CXXFLAGS) $(CXXFLAGS) -MT lib_gnu_apl_la-Token_string.lo -MD -MP -MF $(DEPDIR)/lib_gnu_apl_la-Token_string.Tpo -c -o lib_gnu_apl_la-Token_string.lo `test -f 'Token_string.cc' || echo '$(srcdir)/'`Token_string.cc
+	$(AM_V_at)$(am__mv) $(DEPDIR)/lib_gnu_apl_la-Token_string.Tpo $(DEPDIR)/lib_gnu_apl_la-Token_string.Plo
+#	$(AM_V_CXX)source='Token_string.cc' object='lib_gnu_apl_la-Token_string.lo' libtool=yes \
+#	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) \
+#	$(AM_V_CXX_no)$(LIBTOOL) $(AM_V_lt) --tag=CXX $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(lib_gnu_apl_la_CXXFLAGS) $(CXXFLAGS) -c -o lib_gnu_apl_la-Token_string.lo `test -f 'Token_string.cc' || echo '$(srcdir)/'`Token_string.cc
 
 lib_gnu_apl_la-Tokenizer.lo: Tokenizer.cc
 	$(AM_V_CXX)$(LIBTOOL) $(AM_V_lt) --tag=CXX $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(lib_gnu_apl_la_CXXFLAGS) $(CXXFLAGS) -MT lib_gnu_apl_la-Tokenizer.lo -MD -MP -MF $(DEPDIR)/lib_gnu_apl_la-Tokenizer.Tpo -c -o lib_gnu_apl_la-Tokenizer.lo `test -f 'Tokenizer.cc' || echo '$(srcdir)/'`Tokenizer.cc
@@ -2817,12 +2898,26 @@ lib_gnu_apl_la-UTF8_string.lo: UTF8_string.cc
 #	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) \
 #	$(AM_V_CXX_no)$(LIBTOOL) $(AM_V_lt) --tag=CXX $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(lib_gnu_apl_la_CXXFLAGS) $(CXXFLAGS) -c -o lib_gnu_apl_la-UTF8_string.lo `test -f 'UTF8_string.cc' || echo '$(srcdir)/'`UTF8_string.cc
 
+lib_gnu_apl_la-Ravel.lo: Ravel.cc
+	$(AM_V_CXX)$(LIBTOOL) $(AM_V_lt) --tag=CXX $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(lib_gnu_apl_la_CXXFLAGS) $(CXXFLAGS) -MT lib_gnu_apl_la-Ravel.lo -MD -MP -MF $(DEPDIR)/lib_gnu_apl_la-Ravel.Tpo -c -o lib_gnu_apl_la-Ravel.lo `test -f 'Ravel.cc' || echo '$(srcdir)/'`Ravel.cc
+	$(AM_V_at)$(am__mv) $(DEPDIR)/lib_gnu_apl_la-Ravel.Tpo $(DEPDIR)/lib_gnu_apl_la-Ravel.Plo
+#	$(AM_V_CXX)source='Ravel.cc' object='lib_gnu_apl_la-Ravel.lo' libtool=yes \
+#	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) \
+#	$(AM_V_CXX_no)$(LIBTOOL) $(AM_V_lt) --tag=CXX $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(lib_gnu_apl_la_CXXFLAGS) $(CXXFLAGS) -c -o lib_gnu_apl_la-Ravel.lo `test -f 'Ravel.cc' || echo '$(srcdir)/'`Ravel.cc
+
 lib_gnu_apl_la-Value.lo: Value.cc
 	$(AM_V_CXX)$(LIBTOOL) $(AM_V_lt) --tag=CXX $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(lib_gnu_apl_la_CXXFLAGS) $(CXXFLAGS) -MT lib_gnu_apl_la-Value.lo -MD -MP -MF $(DEPDIR)/lib_gnu_apl_la-Value.Tpo -c -o lib_gnu_apl_la-Value.lo `test -f 'Value.cc' || echo '$(srcdir)/'`Value.cc
 	$(AM_V_at)$(am__mv) $(DEPDIR)/lib_gnu_apl_la-Value.Tpo $(DEPDIR)/lib_gnu_apl_la-Value.Plo
 #	$(AM_V_CXX)source='Value.cc' object='lib_gnu_apl_la-Value.lo' libtool=yes \
 #	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) \
 #	$(AM_V_CXX_no)$(LIBTOOL) $(AM_V_lt) --tag=CXX $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(lib_gnu_apl_la_CXXFLAGS) $(CXXFLAGS) -c -o lib_gnu_apl_la-Value.lo `test -f 'Value.cc' || echo '$(srcdir)/'`Value.cc
+
+lib_gnu_apl_la-cValue.lo: cValue.cc
+	$(AM_V_CXX)$(LIBTOOL) $(AM_V_lt) --tag=CXX $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(lib_gnu_apl_la_CXXFLAGS) $(CXXFLAGS) -MT lib_gnu_apl_la-cValue.lo -MD -MP -MF $(DEPDIR)/lib_gnu_apl_la-cValue.Tpo -c -o lib_gnu_apl_la-cValue.lo `test -f 'cValue.cc' || echo '$(srcdir)/'`cValue.cc
+	$(AM_V_at)$(am__mv) $(DEPDIR)/lib_gnu_apl_la-cValue.Tpo $(DEPDIR)/lib_gnu_apl_la-cValue.Plo
+#	$(AM_V_CXX)source='cValue.cc' object='lib_gnu_apl_la-cValue.lo' libtool=yes \
+#	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) \
+#	$(AM_V_CXX_no)$(LIBTOOL) $(AM_V_lt) --tag=CXX $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(lib_gnu_apl_la_CXXFLAGS) $(CXXFLAGS) -c -o lib_gnu_apl_la-cValue.lo `test -f 'cValue.cc' || echo '$(srcdir)/'`cValue.cc
 
 lib_gnu_apl_la-ValueHistory.lo: ValueHistory.cc
 	$(AM_V_CXX)$(LIBTOOL) $(AM_V_lt) --tag=CXX $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(lib_gnu_apl_la_CXXFLAGS) $(CXXFLAGS) -MT lib_gnu_apl_la-ValueHistory.lo -MD -MP -MF $(DEPDIR)/lib_gnu_apl_la-ValueHistory.Tpo -c -o lib_gnu_apl_la-ValueHistory.lo `test -f 'ValueHistory.cc' || echo '$(srcdir)/'`ValueHistory.cc
@@ -3089,6 +3184,27 @@ libapl_la-Cell.lo: Cell.cc
 #	$(AM_V_CXX)source='Cell.cc' object='libapl_la-Cell.lo' libtool=yes \
 #	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) \
 #	$(AM_V_CXX_no)$(LIBTOOL) $(AM_V_lt) --tag=CXX $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libapl_la_CXXFLAGS) $(CXXFLAGS) -c -o libapl_la-Cell.lo `test -f 'Cell.cc' || echo '$(srcdir)/'`Cell.cc
+
+libapl_la-Cmd_KEYB.lo: Cmd_KEYB.cc
+	$(AM_V_CXX)$(LIBTOOL) $(AM_V_lt) --tag=CXX $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libapl_la_CXXFLAGS) $(CXXFLAGS) -MT libapl_la-Cmd_KEYB.lo -MD -MP -MF $(DEPDIR)/libapl_la-Cmd_KEYB.Tpo -c -o libapl_la-Cmd_KEYB.lo `test -f 'Cmd_KEYB.cc' || echo '$(srcdir)/'`Cmd_KEYB.cc
+	$(AM_V_at)$(am__mv) $(DEPDIR)/libapl_la-Cmd_KEYB.Tpo $(DEPDIR)/libapl_la-Cmd_KEYB.Plo
+#	$(AM_V_CXX)source='Cmd_KEYB.cc' object='libapl_la-Cmd_KEYB.lo' libtool=yes \
+#	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) \
+#	$(AM_V_CXX_no)$(LIBTOOL) $(AM_V_lt) --tag=CXX $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libapl_la_CXXFLAGS) $(CXXFLAGS) -c -o libapl_la-Cmd_KEYB.lo `test -f 'Cmd_KEYB.cc' || echo '$(srcdir)/'`Cmd_KEYB.cc
+
+libapl_la-Cmd_LIB.lo: Cmd_LIB.cc
+	$(AM_V_CXX)$(LIBTOOL) $(AM_V_lt) --tag=CXX $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libapl_la_CXXFLAGS) $(CXXFLAGS) -MT libapl_la-Cmd_LIB.lo -MD -MP -MF $(DEPDIR)/libapl_la-Cmd_LIB.Tpo -c -o libapl_la-Cmd_LIB.lo `test -f 'Cmd_LIB.cc' || echo '$(srcdir)/'`Cmd_LIB.cc
+	$(AM_V_at)$(am__mv) $(DEPDIR)/libapl_la-Cmd_LIB.Tpo $(DEPDIR)/libapl_la-Cmd_LIB.Plo
+#	$(AM_V_CXX)source='Cmd_LIB.cc' object='libapl_la-Cmd_LIB.lo' libtool=yes \
+#	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) \
+#	$(AM_V_CXX_no)$(LIBTOOL) $(AM_V_lt) --tag=CXX $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libapl_la_CXXFLAGS) $(CXXFLAGS) -c -o libapl_la-Cmd_LIB.lo `test -f 'Cmd_LIB.cc' || echo '$(srcdir)/'`Cmd_LIB.cc
+
+libapl_la-Cmd_IN.lo: Cmd_IN.cc
+	$(AM_V_CXX)$(LIBTOOL) $(AM_V_lt) --tag=CXX $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libapl_la_CXXFLAGS) $(CXXFLAGS) -MT libapl_la-Cmd_IN.lo -MD -MP -MF $(DEPDIR)/libapl_la-Cmd_IN.Tpo -c -o libapl_la-Cmd_IN.lo `test -f 'Cmd_IN.cc' || echo '$(srcdir)/'`Cmd_IN.cc
+	$(AM_V_at)$(am__mv) $(DEPDIR)/libapl_la-Cmd_IN.Tpo $(DEPDIR)/libapl_la-Cmd_IN.Plo
+#	$(AM_V_CXX)source='Cmd_IN.cc' object='libapl_la-Cmd_IN.lo' libtool=yes \
+#	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) \
+#	$(AM_V_CXX_no)$(LIBTOOL) $(AM_V_lt) --tag=CXX $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libapl_la_CXXFLAGS) $(CXXFLAGS) -c -o libapl_la-Cmd_IN.lo `test -f 'Cmd_IN.cc' || echo '$(srcdir)/'`Cmd_IN.cc
 
 libapl_la-Doxy.lo: Doxy.cc
 	$(AM_V_CXX)$(LIBTOOL) $(AM_V_lt) --tag=CXX $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libapl_la_CXXFLAGS) $(CXXFLAGS) -MT libapl_la-Doxy.lo -MD -MP -MF $(DEPDIR)/libapl_la-Doxy.Tpo -c -o libapl_la-Doxy.lo `test -f 'Doxy.cc' || echo '$(srcdir)/'`Doxy.cc
@@ -3412,6 +3528,13 @@ libapl_la-ProcessorID.lo: ProcessorID.cc
 #	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) \
 #	$(AM_V_CXX_no)$(LIBTOOL) $(AM_V_lt) --tag=CXX $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libapl_la_CXXFLAGS) $(CXXFLAGS) -c -o libapl_la-ProcessorID.lo `test -f 'ProcessorID.cc' || echo '$(srcdir)/'`ProcessorID.cc
 
+libapl_la-Quad_CC.lo: Quad_CC.cc
+	$(AM_V_CXX)$(LIBTOOL) $(AM_V_lt) --tag=CXX $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libapl_la_CXXFLAGS) $(CXXFLAGS) -MT libapl_la-Quad_CC.lo -MD -MP -MF $(DEPDIR)/libapl_la-Quad_CC.Tpo -c -o libapl_la-Quad_CC.lo `test -f 'Quad_CC.cc' || echo '$(srcdir)/'`Quad_CC.cc
+	$(AM_V_at)$(am__mv) $(DEPDIR)/libapl_la-Quad_CC.Tpo $(DEPDIR)/libapl_la-Quad_CC.Plo
+#	$(AM_V_CXX)source='Quad_CC.cc' object='libapl_la-Quad_CC.lo' libtool=yes \
+#	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) \
+#	$(AM_V_CXX_no)$(LIBTOOL) $(AM_V_lt) --tag=CXX $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libapl_la_CXXFLAGS) $(CXXFLAGS) -c -o libapl_la-Quad_CC.lo `test -f 'Quad_CC.cc' || echo '$(srcdir)/'`Quad_CC.cc
+
 libapl_la-Quad_CR.lo: Quad_CR.cc
 	$(AM_V_CXX)$(LIBTOOL) $(AM_V_lt) --tag=CXX $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libapl_la_CXXFLAGS) $(CXXFLAGS) -MT libapl_la-Quad_CR.lo -MD -MP -MF $(DEPDIR)/libapl_la-Quad_CR.Tpo -c -o libapl_la-Quad_CR.lo `test -f 'Quad_CR.cc' || echo '$(srcdir)/'`Quad_CR.cc
 	$(AM_V_at)$(am__mv) $(DEPDIR)/libapl_la-Quad_CR.Tpo $(DEPDIR)/libapl_la-Quad_CR.Plo
@@ -3615,6 +3738,13 @@ libapl_la-SymbolTable.lo: SymbolTable.cc
 #	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) \
 #	$(AM_V_CXX_no)$(LIBTOOL) $(AM_V_lt) --tag=CXX $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libapl_la_CXXFLAGS) $(CXXFLAGS) -c -o libapl_la-SymbolTable.lo `test -f 'SymbolTable.cc' || echo '$(srcdir)/'`SymbolTable.cc
 
+libapl_la-Sys.lo: Sys.cc
+	$(AM_V_CXX)$(LIBTOOL) $(AM_V_lt) --tag=CXX $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libapl_la_CXXFLAGS) $(CXXFLAGS) -MT libapl_la-Sys.lo -MD -MP -MF $(DEPDIR)/libapl_la-Sys.Tpo -c -o libapl_la-Sys.lo `test -f 'Sys.cc' || echo '$(srcdir)/'`Sys.cc
+	$(AM_V_at)$(am__mv) $(DEPDIR)/libapl_la-Sys.Tpo $(DEPDIR)/libapl_la-Sys.Plo
+#	$(AM_V_CXX)source='Sys.cc' object='libapl_la-Sys.lo' libtool=yes \
+#	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) \
+#	$(AM_V_CXX_no)$(LIBTOOL) $(AM_V_lt) --tag=CXX $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libapl_la_CXXFLAGS) $(CXXFLAGS) -c -o libapl_la-Sys.lo `test -f 'Sys.cc' || echo '$(srcdir)/'`Sys.cc
+
 libapl_la-SystemVariable.lo: SystemVariable.cc
 	$(AM_V_CXX)$(LIBTOOL) $(AM_V_lt) --tag=CXX $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libapl_la_CXXFLAGS) $(CXXFLAGS) -MT libapl_la-SystemVariable.lo -MD -MP -MF $(DEPDIR)/libapl_la-SystemVariable.Tpo -c -o libapl_la-SystemVariable.lo `test -f 'SystemVariable.cc' || echo '$(srcdir)/'`SystemVariable.cc
 	$(AM_V_at)$(am__mv) $(DEPDIR)/libapl_la-SystemVariable.Tpo $(DEPDIR)/libapl_la-SystemVariable.Plo
@@ -3642,6 +3772,13 @@ libapl_la-Token.lo: Token.cc
 #	$(AM_V_CXX)source='Token.cc' object='libapl_la-Token.lo' libtool=yes \
 #	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) \
 #	$(AM_V_CXX_no)$(LIBTOOL) $(AM_V_lt) --tag=CXX $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libapl_la_CXXFLAGS) $(CXXFLAGS) -c -o libapl_la-Token.lo `test -f 'Token.cc' || echo '$(srcdir)/'`Token.cc
+
+libapl_la-Token_string.lo: Token_string.cc
+	$(AM_V_CXX)$(LIBTOOL) $(AM_V_lt) --tag=CXX $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libapl_la_CXXFLAGS) $(CXXFLAGS) -MT libapl_la-Token_string.lo -MD -MP -MF $(DEPDIR)/libapl_la-Token_string.Tpo -c -o libapl_la-Token_string.lo `test -f 'Token_string.cc' || echo '$(srcdir)/'`Token_string.cc
+	$(AM_V_at)$(am__mv) $(DEPDIR)/libapl_la-Token_string.Tpo $(DEPDIR)/libapl_la-Token_string.Plo
+#	$(AM_V_CXX)source='Token_string.cc' object='libapl_la-Token_string.lo' libtool=yes \
+#	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) \
+#	$(AM_V_CXX_no)$(LIBTOOL) $(AM_V_lt) --tag=CXX $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libapl_la_CXXFLAGS) $(CXXFLAGS) -c -o libapl_la-Token_string.lo `test -f 'Token_string.cc' || echo '$(srcdir)/'`Token_string.cc
 
 libapl_la-Tokenizer.lo: Tokenizer.cc
 	$(AM_V_CXX)$(LIBTOOL) $(AM_V_lt) --tag=CXX $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libapl_la_CXXFLAGS) $(CXXFLAGS) -MT libapl_la-Tokenizer.lo -MD -MP -MF $(DEPDIR)/libapl_la-Tokenizer.Tpo -c -o libapl_la-Tokenizer.lo `test -f 'Tokenizer.cc' || echo '$(srcdir)/'`Tokenizer.cc
@@ -3692,12 +3829,26 @@ libapl_la-UTF8_string.lo: UTF8_string.cc
 #	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) \
 #	$(AM_V_CXX_no)$(LIBTOOL) $(AM_V_lt) --tag=CXX $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libapl_la_CXXFLAGS) $(CXXFLAGS) -c -o libapl_la-UTF8_string.lo `test -f 'UTF8_string.cc' || echo '$(srcdir)/'`UTF8_string.cc
 
+libapl_la-Ravel.lo: Ravel.cc
+	$(AM_V_CXX)$(LIBTOOL) $(AM_V_lt) --tag=CXX $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libapl_la_CXXFLAGS) $(CXXFLAGS) -MT libapl_la-Ravel.lo -MD -MP -MF $(DEPDIR)/libapl_la-Ravel.Tpo -c -o libapl_la-Ravel.lo `test -f 'Ravel.cc' || echo '$(srcdir)/'`Ravel.cc
+	$(AM_V_at)$(am__mv) $(DEPDIR)/libapl_la-Ravel.Tpo $(DEPDIR)/libapl_la-Ravel.Plo
+#	$(AM_V_CXX)source='Ravel.cc' object='libapl_la-Ravel.lo' libtool=yes \
+#	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) \
+#	$(AM_V_CXX_no)$(LIBTOOL) $(AM_V_lt) --tag=CXX $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libapl_la_CXXFLAGS) $(CXXFLAGS) -c -o libapl_la-Ravel.lo `test -f 'Ravel.cc' || echo '$(srcdir)/'`Ravel.cc
+
 libapl_la-Value.lo: Value.cc
 	$(AM_V_CXX)$(LIBTOOL) $(AM_V_lt) --tag=CXX $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libapl_la_CXXFLAGS) $(CXXFLAGS) -MT libapl_la-Value.lo -MD -MP -MF $(DEPDIR)/libapl_la-Value.Tpo -c -o libapl_la-Value.lo `test -f 'Value.cc' || echo '$(srcdir)/'`Value.cc
 	$(AM_V_at)$(am__mv) $(DEPDIR)/libapl_la-Value.Tpo $(DEPDIR)/libapl_la-Value.Plo
 #	$(AM_V_CXX)source='Value.cc' object='libapl_la-Value.lo' libtool=yes \
 #	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) \
 #	$(AM_V_CXX_no)$(LIBTOOL) $(AM_V_lt) --tag=CXX $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libapl_la_CXXFLAGS) $(CXXFLAGS) -c -o libapl_la-Value.lo `test -f 'Value.cc' || echo '$(srcdir)/'`Value.cc
+
+libapl_la-cValue.lo: cValue.cc
+	$(AM_V_CXX)$(LIBTOOL) $(AM_V_lt) --tag=CXX $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libapl_la_CXXFLAGS) $(CXXFLAGS) -MT libapl_la-cValue.lo -MD -MP -MF $(DEPDIR)/libapl_la-cValue.Tpo -c -o libapl_la-cValue.lo `test -f 'cValue.cc' || echo '$(srcdir)/'`cValue.cc
+	$(AM_V_at)$(am__mv) $(DEPDIR)/libapl_la-cValue.Tpo $(DEPDIR)/libapl_la-cValue.Plo
+#	$(AM_V_CXX)source='cValue.cc' object='libapl_la-cValue.lo' libtool=yes \
+#	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) \
+#	$(AM_V_CXX_no)$(LIBTOOL) $(AM_V_lt) --tag=CXX $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libapl_la_CXXFLAGS) $(CXXFLAGS) -c -o libapl_la-cValue.lo `test -f 'cValue.cc' || echo '$(srcdir)/'`cValue.cc
 
 libapl_la-ValueHistory.lo: ValueHistory.cc
 	$(AM_V_CXX)$(LIBTOOL) $(AM_V_lt) --tag=CXX $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libapl_la_CXXFLAGS) $(CXXFLAGS) -MT libapl_la-ValueHistory.lo -MD -MP -MF $(DEPDIR)/libapl_la-ValueHistory.Tpo -c -o libapl_la-ValueHistory.lo `test -f 'ValueHistory.cc' || echo '$(srcdir)/'`ValueHistory.cc
@@ -4153,6 +4304,48 @@ apl-Cell.obj: Cell.cc
 #	$(AM_V_CXX)source='Cell.cc' object='apl-Cell.obj' libtool=no \
 #	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) \
 #	$(AM_V_CXX_no)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(apl_CXXFLAGS) $(CXXFLAGS) -c -o apl-Cell.obj `if test -f 'Cell.cc'; then $(CYGPATH_W) 'Cell.cc'; else $(CYGPATH_W) '$(srcdir)/Cell.cc'; fi`
+
+apl-Cmd_KEYB.o: Cmd_KEYB.cc
+	$(AM_V_CXX)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(apl_CXXFLAGS) $(CXXFLAGS) -MT apl-Cmd_KEYB.o -MD -MP -MF $(DEPDIR)/apl-Cmd_KEYB.Tpo -c -o apl-Cmd_KEYB.o `test -f 'Cmd_KEYB.cc' || echo '$(srcdir)/'`Cmd_KEYB.cc
+	$(AM_V_at)$(am__mv) $(DEPDIR)/apl-Cmd_KEYB.Tpo $(DEPDIR)/apl-Cmd_KEYB.Po
+#	$(AM_V_CXX)source='Cmd_KEYB.cc' object='apl-Cmd_KEYB.o' libtool=no \
+#	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) \
+#	$(AM_V_CXX_no)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(apl_CXXFLAGS) $(CXXFLAGS) -c -o apl-Cmd_KEYB.o `test -f 'Cmd_KEYB.cc' || echo '$(srcdir)/'`Cmd_KEYB.cc
+
+apl-Cmd_KEYB.obj: Cmd_KEYB.cc
+	$(AM_V_CXX)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(apl_CXXFLAGS) $(CXXFLAGS) -MT apl-Cmd_KEYB.obj -MD -MP -MF $(DEPDIR)/apl-Cmd_KEYB.Tpo -c -o apl-Cmd_KEYB.obj `if test -f 'Cmd_KEYB.cc'; then $(CYGPATH_W) 'Cmd_KEYB.cc'; else $(CYGPATH_W) '$(srcdir)/Cmd_KEYB.cc'; fi`
+	$(AM_V_at)$(am__mv) $(DEPDIR)/apl-Cmd_KEYB.Tpo $(DEPDIR)/apl-Cmd_KEYB.Po
+#	$(AM_V_CXX)source='Cmd_KEYB.cc' object='apl-Cmd_KEYB.obj' libtool=no \
+#	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) \
+#	$(AM_V_CXX_no)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(apl_CXXFLAGS) $(CXXFLAGS) -c -o apl-Cmd_KEYB.obj `if test -f 'Cmd_KEYB.cc'; then $(CYGPATH_W) 'Cmd_KEYB.cc'; else $(CYGPATH_W) '$(srcdir)/Cmd_KEYB.cc'; fi`
+
+apl-Cmd_LIB.o: Cmd_LIB.cc
+	$(AM_V_CXX)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(apl_CXXFLAGS) $(CXXFLAGS) -MT apl-Cmd_LIB.o -MD -MP -MF $(DEPDIR)/apl-Cmd_LIB.Tpo -c -o apl-Cmd_LIB.o `test -f 'Cmd_LIB.cc' || echo '$(srcdir)/'`Cmd_LIB.cc
+	$(AM_V_at)$(am__mv) $(DEPDIR)/apl-Cmd_LIB.Tpo $(DEPDIR)/apl-Cmd_LIB.Po
+#	$(AM_V_CXX)source='Cmd_LIB.cc' object='apl-Cmd_LIB.o' libtool=no \
+#	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) \
+#	$(AM_V_CXX_no)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(apl_CXXFLAGS) $(CXXFLAGS) -c -o apl-Cmd_LIB.o `test -f 'Cmd_LIB.cc' || echo '$(srcdir)/'`Cmd_LIB.cc
+
+apl-Cmd_LIB.obj: Cmd_LIB.cc
+	$(AM_V_CXX)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(apl_CXXFLAGS) $(CXXFLAGS) -MT apl-Cmd_LIB.obj -MD -MP -MF $(DEPDIR)/apl-Cmd_LIB.Tpo -c -o apl-Cmd_LIB.obj `if test -f 'Cmd_LIB.cc'; then $(CYGPATH_W) 'Cmd_LIB.cc'; else $(CYGPATH_W) '$(srcdir)/Cmd_LIB.cc'; fi`
+	$(AM_V_at)$(am__mv) $(DEPDIR)/apl-Cmd_LIB.Tpo $(DEPDIR)/apl-Cmd_LIB.Po
+#	$(AM_V_CXX)source='Cmd_LIB.cc' object='apl-Cmd_LIB.obj' libtool=no \
+#	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) \
+#	$(AM_V_CXX_no)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(apl_CXXFLAGS) $(CXXFLAGS) -c -o apl-Cmd_LIB.obj `if test -f 'Cmd_LIB.cc'; then $(CYGPATH_W) 'Cmd_LIB.cc'; else $(CYGPATH_W) '$(srcdir)/Cmd_LIB.cc'; fi`
+
+apl-Cmd_IN.o: Cmd_IN.cc
+	$(AM_V_CXX)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(apl_CXXFLAGS) $(CXXFLAGS) -MT apl-Cmd_IN.o -MD -MP -MF $(DEPDIR)/apl-Cmd_IN.Tpo -c -o apl-Cmd_IN.o `test -f 'Cmd_IN.cc' || echo '$(srcdir)/'`Cmd_IN.cc
+	$(AM_V_at)$(am__mv) $(DEPDIR)/apl-Cmd_IN.Tpo $(DEPDIR)/apl-Cmd_IN.Po
+#	$(AM_V_CXX)source='Cmd_IN.cc' object='apl-Cmd_IN.o' libtool=no \
+#	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) \
+#	$(AM_V_CXX_no)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(apl_CXXFLAGS) $(CXXFLAGS) -c -o apl-Cmd_IN.o `test -f 'Cmd_IN.cc' || echo '$(srcdir)/'`Cmd_IN.cc
+
+apl-Cmd_IN.obj: Cmd_IN.cc
+	$(AM_V_CXX)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(apl_CXXFLAGS) $(CXXFLAGS) -MT apl-Cmd_IN.obj -MD -MP -MF $(DEPDIR)/apl-Cmd_IN.Tpo -c -o apl-Cmd_IN.obj `if test -f 'Cmd_IN.cc'; then $(CYGPATH_W) 'Cmd_IN.cc'; else $(CYGPATH_W) '$(srcdir)/Cmd_IN.cc'; fi`
+	$(AM_V_at)$(am__mv) $(DEPDIR)/apl-Cmd_IN.Tpo $(DEPDIR)/apl-Cmd_IN.Po
+#	$(AM_V_CXX)source='Cmd_IN.cc' object='apl-Cmd_IN.obj' libtool=no \
+#	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) \
+#	$(AM_V_CXX_no)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(apl_CXXFLAGS) $(CXXFLAGS) -c -o apl-Cmd_IN.obj `if test -f 'Cmd_IN.cc'; then $(CYGPATH_W) 'Cmd_IN.cc'; else $(CYGPATH_W) '$(srcdir)/Cmd_IN.cc'; fi`
 
 apl-Doxy.o: Doxy.cc
 	$(AM_V_CXX)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(apl_CXXFLAGS) $(CXXFLAGS) -MT apl-Doxy.o -MD -MP -MF $(DEPDIR)/apl-Doxy.Tpo -c -o apl-Doxy.o `test -f 'Doxy.cc' || echo '$(srcdir)/'`Doxy.cc
@@ -4798,6 +4991,20 @@ apl-ProcessorID.obj: ProcessorID.cc
 #	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) \
 #	$(AM_V_CXX_no)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(apl_CXXFLAGS) $(CXXFLAGS) -c -o apl-ProcessorID.obj `if test -f 'ProcessorID.cc'; then $(CYGPATH_W) 'ProcessorID.cc'; else $(CYGPATH_W) '$(srcdir)/ProcessorID.cc'; fi`
 
+apl-Quad_CC.o: Quad_CC.cc
+	$(AM_V_CXX)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(apl_CXXFLAGS) $(CXXFLAGS) -MT apl-Quad_CC.o -MD -MP -MF $(DEPDIR)/apl-Quad_CC.Tpo -c -o apl-Quad_CC.o `test -f 'Quad_CC.cc' || echo '$(srcdir)/'`Quad_CC.cc
+	$(AM_V_at)$(am__mv) $(DEPDIR)/apl-Quad_CC.Tpo $(DEPDIR)/apl-Quad_CC.Po
+#	$(AM_V_CXX)source='Quad_CC.cc' object='apl-Quad_CC.o' libtool=no \
+#	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) \
+#	$(AM_V_CXX_no)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(apl_CXXFLAGS) $(CXXFLAGS) -c -o apl-Quad_CC.o `test -f 'Quad_CC.cc' || echo '$(srcdir)/'`Quad_CC.cc
+
+apl-Quad_CC.obj: Quad_CC.cc
+	$(AM_V_CXX)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(apl_CXXFLAGS) $(CXXFLAGS) -MT apl-Quad_CC.obj -MD -MP -MF $(DEPDIR)/apl-Quad_CC.Tpo -c -o apl-Quad_CC.obj `if test -f 'Quad_CC.cc'; then $(CYGPATH_W) 'Quad_CC.cc'; else $(CYGPATH_W) '$(srcdir)/Quad_CC.cc'; fi`
+	$(AM_V_at)$(am__mv) $(DEPDIR)/apl-Quad_CC.Tpo $(DEPDIR)/apl-Quad_CC.Po
+#	$(AM_V_CXX)source='Quad_CC.cc' object='apl-Quad_CC.obj' libtool=no \
+#	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) \
+#	$(AM_V_CXX_no)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(apl_CXXFLAGS) $(CXXFLAGS) -c -o apl-Quad_CC.obj `if test -f 'Quad_CC.cc'; then $(CYGPATH_W) 'Quad_CC.cc'; else $(CYGPATH_W) '$(srcdir)/Quad_CC.cc'; fi`
+
 apl-Quad_CR.o: Quad_CR.cc
 	$(AM_V_CXX)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(apl_CXXFLAGS) $(CXXFLAGS) -MT apl-Quad_CR.o -MD -MP -MF $(DEPDIR)/apl-Quad_CR.Tpo -c -o apl-Quad_CR.o `test -f 'Quad_CR.cc' || echo '$(srcdir)/'`Quad_CR.cc
 	$(AM_V_at)$(am__mv) $(DEPDIR)/apl-Quad_CR.Tpo $(DEPDIR)/apl-Quad_CR.Po
@@ -5204,6 +5411,20 @@ apl-SymbolTable.obj: SymbolTable.cc
 #	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) \
 #	$(AM_V_CXX_no)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(apl_CXXFLAGS) $(CXXFLAGS) -c -o apl-SymbolTable.obj `if test -f 'SymbolTable.cc'; then $(CYGPATH_W) 'SymbolTable.cc'; else $(CYGPATH_W) '$(srcdir)/SymbolTable.cc'; fi`
 
+apl-Sys.o: Sys.cc
+	$(AM_V_CXX)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(apl_CXXFLAGS) $(CXXFLAGS) -MT apl-Sys.o -MD -MP -MF $(DEPDIR)/apl-Sys.Tpo -c -o apl-Sys.o `test -f 'Sys.cc' || echo '$(srcdir)/'`Sys.cc
+	$(AM_V_at)$(am__mv) $(DEPDIR)/apl-Sys.Tpo $(DEPDIR)/apl-Sys.Po
+#	$(AM_V_CXX)source='Sys.cc' object='apl-Sys.o' libtool=no \
+#	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) \
+#	$(AM_V_CXX_no)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(apl_CXXFLAGS) $(CXXFLAGS) -c -o apl-Sys.o `test -f 'Sys.cc' || echo '$(srcdir)/'`Sys.cc
+
+apl-Sys.obj: Sys.cc
+	$(AM_V_CXX)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(apl_CXXFLAGS) $(CXXFLAGS) -MT apl-Sys.obj -MD -MP -MF $(DEPDIR)/apl-Sys.Tpo -c -o apl-Sys.obj `if test -f 'Sys.cc'; then $(CYGPATH_W) 'Sys.cc'; else $(CYGPATH_W) '$(srcdir)/Sys.cc'; fi`
+	$(AM_V_at)$(am__mv) $(DEPDIR)/apl-Sys.Tpo $(DEPDIR)/apl-Sys.Po
+#	$(AM_V_CXX)source='Sys.cc' object='apl-Sys.obj' libtool=no \
+#	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) \
+#	$(AM_V_CXX_no)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(apl_CXXFLAGS) $(CXXFLAGS) -c -o apl-Sys.obj `if test -f 'Sys.cc'; then $(CYGPATH_W) 'Sys.cc'; else $(CYGPATH_W) '$(srcdir)/Sys.cc'; fi`
+
 apl-SystemVariable.o: SystemVariable.cc
 	$(AM_V_CXX)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(apl_CXXFLAGS) $(CXXFLAGS) -MT apl-SystemVariable.o -MD -MP -MF $(DEPDIR)/apl-SystemVariable.Tpo -c -o apl-SystemVariable.o `test -f 'SystemVariable.cc' || echo '$(srcdir)/'`SystemVariable.cc
 	$(AM_V_at)$(am__mv) $(DEPDIR)/apl-SystemVariable.Tpo $(DEPDIR)/apl-SystemVariable.Po
@@ -5259,6 +5480,20 @@ apl-Token.obj: Token.cc
 #	$(AM_V_CXX)source='Token.cc' object='apl-Token.obj' libtool=no \
 #	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) \
 #	$(AM_V_CXX_no)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(apl_CXXFLAGS) $(CXXFLAGS) -c -o apl-Token.obj `if test -f 'Token.cc'; then $(CYGPATH_W) 'Token.cc'; else $(CYGPATH_W) '$(srcdir)/Token.cc'; fi`
+
+apl-Token_string.o: Token_string.cc
+	$(AM_V_CXX)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(apl_CXXFLAGS) $(CXXFLAGS) -MT apl-Token_string.o -MD -MP -MF $(DEPDIR)/apl-Token_string.Tpo -c -o apl-Token_string.o `test -f 'Token_string.cc' || echo '$(srcdir)/'`Token_string.cc
+	$(AM_V_at)$(am__mv) $(DEPDIR)/apl-Token_string.Tpo $(DEPDIR)/apl-Token_string.Po
+#	$(AM_V_CXX)source='Token_string.cc' object='apl-Token_string.o' libtool=no \
+#	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) \
+#	$(AM_V_CXX_no)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(apl_CXXFLAGS) $(CXXFLAGS) -c -o apl-Token_string.o `test -f 'Token_string.cc' || echo '$(srcdir)/'`Token_string.cc
+
+apl-Token_string.obj: Token_string.cc
+	$(AM_V_CXX)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(apl_CXXFLAGS) $(CXXFLAGS) -MT apl-Token_string.obj -MD -MP -MF $(DEPDIR)/apl-Token_string.Tpo -c -o apl-Token_string.obj `if test -f 'Token_string.cc'; then $(CYGPATH_W) 'Token_string.cc'; else $(CYGPATH_W) '$(srcdir)/Token_string.cc'; fi`
+	$(AM_V_at)$(am__mv) $(DEPDIR)/apl-Token_string.Tpo $(DEPDIR)/apl-Token_string.Po
+#	$(AM_V_CXX)source='Token_string.cc' object='apl-Token_string.obj' libtool=no \
+#	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) \
+#	$(AM_V_CXX_no)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(apl_CXXFLAGS) $(CXXFLAGS) -c -o apl-Token_string.obj `if test -f 'Token_string.cc'; then $(CYGPATH_W) 'Token_string.cc'; else $(CYGPATH_W) '$(srcdir)/Token_string.cc'; fi`
 
 apl-Tokenizer.o: Tokenizer.cc
 	$(AM_V_CXX)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(apl_CXXFLAGS) $(CXXFLAGS) -MT apl-Tokenizer.o -MD -MP -MF $(DEPDIR)/apl-Tokenizer.Tpo -c -o apl-Tokenizer.o `test -f 'Tokenizer.cc' || echo '$(srcdir)/'`Tokenizer.cc
@@ -5358,6 +5593,20 @@ apl-UTF8_string.obj: UTF8_string.cc
 #	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) \
 #	$(AM_V_CXX_no)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(apl_CXXFLAGS) $(CXXFLAGS) -c -o apl-UTF8_string.obj `if test -f 'UTF8_string.cc'; then $(CYGPATH_W) 'UTF8_string.cc'; else $(CYGPATH_W) '$(srcdir)/UTF8_string.cc'; fi`
 
+apl-Ravel.o: Ravel.cc
+	$(AM_V_CXX)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(apl_CXXFLAGS) $(CXXFLAGS) -MT apl-Ravel.o -MD -MP -MF $(DEPDIR)/apl-Ravel.Tpo -c -o apl-Ravel.o `test -f 'Ravel.cc' || echo '$(srcdir)/'`Ravel.cc
+	$(AM_V_at)$(am__mv) $(DEPDIR)/apl-Ravel.Tpo $(DEPDIR)/apl-Ravel.Po
+#	$(AM_V_CXX)source='Ravel.cc' object='apl-Ravel.o' libtool=no \
+#	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) \
+#	$(AM_V_CXX_no)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(apl_CXXFLAGS) $(CXXFLAGS) -c -o apl-Ravel.o `test -f 'Ravel.cc' || echo '$(srcdir)/'`Ravel.cc
+
+apl-Ravel.obj: Ravel.cc
+	$(AM_V_CXX)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(apl_CXXFLAGS) $(CXXFLAGS) -MT apl-Ravel.obj -MD -MP -MF $(DEPDIR)/apl-Ravel.Tpo -c -o apl-Ravel.obj `if test -f 'Ravel.cc'; then $(CYGPATH_W) 'Ravel.cc'; else $(CYGPATH_W) '$(srcdir)/Ravel.cc'; fi`
+	$(AM_V_at)$(am__mv) $(DEPDIR)/apl-Ravel.Tpo $(DEPDIR)/apl-Ravel.Po
+#	$(AM_V_CXX)source='Ravel.cc' object='apl-Ravel.obj' libtool=no \
+#	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) \
+#	$(AM_V_CXX_no)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(apl_CXXFLAGS) $(CXXFLAGS) -c -o apl-Ravel.obj `if test -f 'Ravel.cc'; then $(CYGPATH_W) 'Ravel.cc'; else $(CYGPATH_W) '$(srcdir)/Ravel.cc'; fi`
+
 apl-Value.o: Value.cc
 	$(AM_V_CXX)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(apl_CXXFLAGS) $(CXXFLAGS) -MT apl-Value.o -MD -MP -MF $(DEPDIR)/apl-Value.Tpo -c -o apl-Value.o `test -f 'Value.cc' || echo '$(srcdir)/'`Value.cc
 	$(AM_V_at)$(am__mv) $(DEPDIR)/apl-Value.Tpo $(DEPDIR)/apl-Value.Po
@@ -5371,6 +5620,20 @@ apl-Value.obj: Value.cc
 #	$(AM_V_CXX)source='Value.cc' object='apl-Value.obj' libtool=no \
 #	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) \
 #	$(AM_V_CXX_no)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(apl_CXXFLAGS) $(CXXFLAGS) -c -o apl-Value.obj `if test -f 'Value.cc'; then $(CYGPATH_W) 'Value.cc'; else $(CYGPATH_W) '$(srcdir)/Value.cc'; fi`
+
+apl-cValue.o: cValue.cc
+	$(AM_V_CXX)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(apl_CXXFLAGS) $(CXXFLAGS) -MT apl-cValue.o -MD -MP -MF $(DEPDIR)/apl-cValue.Tpo -c -o apl-cValue.o `test -f 'cValue.cc' || echo '$(srcdir)/'`cValue.cc
+	$(AM_V_at)$(am__mv) $(DEPDIR)/apl-cValue.Tpo $(DEPDIR)/apl-cValue.Po
+#	$(AM_V_CXX)source='cValue.cc' object='apl-cValue.o' libtool=no \
+#	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) \
+#	$(AM_V_CXX_no)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(apl_CXXFLAGS) $(CXXFLAGS) -c -o apl-cValue.o `test -f 'cValue.cc' || echo '$(srcdir)/'`cValue.cc
+
+apl-cValue.obj: cValue.cc
+	$(AM_V_CXX)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(apl_CXXFLAGS) $(CXXFLAGS) -MT apl-cValue.obj -MD -MP -MF $(DEPDIR)/apl-cValue.Tpo -c -o apl-cValue.obj `if test -f 'cValue.cc'; then $(CYGPATH_W) 'cValue.cc'; else $(CYGPATH_W) '$(srcdir)/cValue.cc'; fi`
+	$(AM_V_at)$(am__mv) $(DEPDIR)/apl-cValue.Tpo $(DEPDIR)/apl-cValue.Po
+#	$(AM_V_CXX)source='cValue.cc' object='apl-cValue.obj' libtool=no \
+#	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) \
+#	$(AM_V_CXX_no)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(apl_CXXFLAGS) $(CXXFLAGS) -c -o apl-cValue.obj `if test -f 'cValue.cc'; then $(CYGPATH_W) 'cValue.cc'; else $(CYGPATH_W) '$(srcdir)/cValue.cc'; fi`
 
 apl-ValueHistory.o: ValueHistory.cc
 	$(AM_V_CXX)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(apl_CXXFLAGS) $(CXXFLAGS) -MT apl-ValueHistory.o -MD -MP -MF $(DEPDIR)/apl-ValueHistory.Tpo -c -o apl-ValueHistory.o `test -f 'ValueHistory.cc' || echo '$(srcdir)/'`ValueHistory.cc
@@ -5546,6 +5809,27 @@ mostlyclean-libtool:
 clean-libtool:
 	-rm -rf .libs _libs
 	-rm -rf sql/.libs sql/_libs
+install-dist_pkgdataDATA: $(dist_pkgdata_DATA)
+	@$(NORMAL_INSTALL)
+	@list='$(dist_pkgdata_DATA)'; test -n "$(pkgdatadir)" || list=; \
+	if test -n "$$list"; then \
+	  echo " $(MKDIR_P) '$(DESTDIR)$(pkgdatadir)'"; \
+	  $(MKDIR_P) "$(DESTDIR)$(pkgdatadir)" || exit 1; \
+	fi; \
+	for p in $$list; do \
+	  if test -f "$$p"; then d=; else d="$(srcdir)/"; fi; \
+	  echo "$$d$$p"; \
+	done | $(am__base_list) | \
+	while read files; do \
+	  echo " $(INSTALL_DATA) $$files '$(DESTDIR)$(pkgdatadir)'"; \
+	  $(INSTALL_DATA) $$files "$(DESTDIR)$(pkgdatadir)" || exit $$?; \
+	done
+
+uninstall-dist_pkgdataDATA:
+	@$(NORMAL_UNINSTALL)
+	@list='$(dist_pkgdata_DATA)'; test -n "$(pkgdatadir)" || list=; \
+	files=`for p in $$list; do echo $$p; done | sed -e 's|^.*/||'`; \
+	dir='$(DESTDIR)$(pkgdatadir)'; $(am__uninstall_files_from_dir)
 install-pkgincludeHEADERS: $(pkginclude_HEADERS)
 	@$(NORMAL_INSTALL)
 	@list='$(pkginclude_HEADERS)'; test -n "$(pkgincludedir)" || list=; \
@@ -5726,11 +6010,12 @@ distdir-am: $(DISTFILES)
 	done
 check-am: all-am
 check: check-recursive
-all-am: Makefile $(PROGRAMS) $(LTLIBRARIES) $(SCRIPTS) $(DATA) \
-		$(HEADERS)
+all-local:
+all-am: Makefile $(PROGRAMS) $(LTLIBRARIES) $(DATA) $(HEADERS) \
+		all-local
 installdirs: installdirs-recursive
 installdirs-am:
-	for dir in "$(DESTDIR)$(bindir)" "$(DESTDIR)$(pkglibdir)" "$(DESTDIR)$(distdir)" "$(DESTDIR)$(pkgincludedir)"; do \
+	for dir in "$(DESTDIR)$(bindir)" "$(DESTDIR)$(pkglibdir)" "$(DESTDIR)$(pkgdatadir)" "$(DESTDIR)$(pkgincludedir)"; do \
 	  test -z "$$dir" || $(MKDIR_P) "$$dir"; \
 	done
 install: install-recursive
@@ -5755,6 +6040,7 @@ install-strip:
 mostlyclean-generic:
 
 clean-generic:
+	-test -z "$(CLEANFILES)" || rm -f $(CLEANFILES)
 
 distclean-generic:
 	-test -z "$(CONFIG_CLEAN_FILES)" || rm -f $(CONFIG_CLEAN_FILES)
@@ -5794,6 +6080,9 @@ distclean: distclean-recursive
 	-rm -f ./$(DEPDIR)/apl-CDR.Po
 	-rm -f ./$(DEPDIR)/apl-Cell.Po
 	-rm -f ./$(DEPDIR)/apl-CharCell.Po
+	-rm -f ./$(DEPDIR)/apl-Cmd_IN.Po
+	-rm -f ./$(DEPDIR)/apl-Cmd_KEYB.Po
+	-rm -f ./$(DEPDIR)/apl-Cmd_LIB.Po
 	-rm -f ./$(DEPDIR)/apl-Command.Po
 	-rm -f ./$(DEPDIR)/apl-Common.Po
 	-rm -f ./$(DEPDIR)/apl-ComplexCell.Po
@@ -5842,6 +6131,7 @@ distclean: distclean-recursive
 	-rm -f ./$(DEPDIR)/apl-PythonPipe.Po
 	-rm -f ./$(DEPDIR)/apl-QR_factorization_GSL.Po
 	-rm -f ./$(DEPDIR)/apl-QuadFunction.Po
+	-rm -f ./$(DEPDIR)/apl-Quad_CC.Po
 	-rm -f ./$(DEPDIR)/apl-Quad_CR.Po
 	-rm -f ./$(DEPDIR)/apl-Quad_DLX.Po
 	-rm -f ./$(DEPDIR)/apl-Quad_FFT.Po
@@ -5861,6 +6151,7 @@ distclean: distclean-recursive
 	-rm -f ./$(DEPDIR)/apl-Quad_TF.Po
 	-rm -f ./$(DEPDIR)/apl-Quad_WA.Po
 	-rm -f ./$(DEPDIR)/apl-Quad_XML.Po
+	-rm -f ./$(DEPDIR)/apl-Ravel.Po
 	-rm -f ./$(DEPDIR)/apl-RealCell.Po
 	-rm -f ./$(DEPDIR)/apl-Regexp.Po
 	-rm -f ./$(DEPDIR)/apl-ScalarFunction.Po
@@ -5871,10 +6162,12 @@ distclean: distclean-recursive
 	-rm -f ./$(DEPDIR)/apl-Svar_record.Po
 	-rm -f ./$(DEPDIR)/apl-Symbol.Po
 	-rm -f ./$(DEPDIR)/apl-SymbolTable.Po
+	-rm -f ./$(DEPDIR)/apl-Sys.Po
 	-rm -f ./$(DEPDIR)/apl-SystemVariable.Po
 	-rm -f ./$(DEPDIR)/apl-TabExpansion.Po
 	-rm -f ./$(DEPDIR)/apl-Thread_context.Po
 	-rm -f ./$(DEPDIR)/apl-Token.Po
+	-rm -f ./$(DEPDIR)/apl-Token_string.Po
 	-rm -f ./$(DEPDIR)/apl-Tokenizer.Po
 	-rm -f ./$(DEPDIR)/apl-UCS_string.Po
 	-rm -f ./$(DEPDIR)/apl-UCS_string_vector.Po
@@ -5885,6 +6178,7 @@ distclean: distclean-recursive
 	-rm -f ./$(DEPDIR)/apl-Value.Po
 	-rm -f ./$(DEPDIR)/apl-ValueHistory.Po
 	-rm -f ./$(DEPDIR)/apl-Workspace.Po
+	-rm -f ./$(DEPDIR)/apl-cValue.Po
 	-rm -f ./$(DEPDIR)/apl-main.Po
 	-rm -f ./$(DEPDIR)/apl-sbrk.Po
 	-rm -f ./$(DEPDIR)/apl-static_Objects.Po
@@ -5911,6 +6205,9 @@ distclean: distclean-recursive
 	-rm -f ./$(DEPDIR)/lib_gnu_apl_la-CDR.Plo
 	-rm -f ./$(DEPDIR)/lib_gnu_apl_la-Cell.Plo
 	-rm -f ./$(DEPDIR)/lib_gnu_apl_la-CharCell.Plo
+	-rm -f ./$(DEPDIR)/lib_gnu_apl_la-Cmd_IN.Plo
+	-rm -f ./$(DEPDIR)/lib_gnu_apl_la-Cmd_KEYB.Plo
+	-rm -f ./$(DEPDIR)/lib_gnu_apl_la-Cmd_LIB.Plo
 	-rm -f ./$(DEPDIR)/lib_gnu_apl_la-Command.Plo
 	-rm -f ./$(DEPDIR)/lib_gnu_apl_la-Common.Plo
 	-rm -f ./$(DEPDIR)/lib_gnu_apl_la-ComplexCell.Plo
@@ -5959,6 +6256,7 @@ distclean: distclean-recursive
 	-rm -f ./$(DEPDIR)/lib_gnu_apl_la-PythonPipe.Plo
 	-rm -f ./$(DEPDIR)/lib_gnu_apl_la-QR_factorization_GSL.Plo
 	-rm -f ./$(DEPDIR)/lib_gnu_apl_la-QuadFunction.Plo
+	-rm -f ./$(DEPDIR)/lib_gnu_apl_la-Quad_CC.Plo
 	-rm -f ./$(DEPDIR)/lib_gnu_apl_la-Quad_CR.Plo
 	-rm -f ./$(DEPDIR)/lib_gnu_apl_la-Quad_DLX.Plo
 	-rm -f ./$(DEPDIR)/lib_gnu_apl_la-Quad_FFT.Plo
@@ -5978,6 +6276,7 @@ distclean: distclean-recursive
 	-rm -f ./$(DEPDIR)/lib_gnu_apl_la-Quad_TF.Plo
 	-rm -f ./$(DEPDIR)/lib_gnu_apl_la-Quad_WA.Plo
 	-rm -f ./$(DEPDIR)/lib_gnu_apl_la-Quad_XML.Plo
+	-rm -f ./$(DEPDIR)/lib_gnu_apl_la-Ravel.Plo
 	-rm -f ./$(DEPDIR)/lib_gnu_apl_la-RealCell.Plo
 	-rm -f ./$(DEPDIR)/lib_gnu_apl_la-Regexp.Plo
 	-rm -f ./$(DEPDIR)/lib_gnu_apl_la-ScalarFunction.Plo
@@ -5988,10 +6287,12 @@ distclean: distclean-recursive
 	-rm -f ./$(DEPDIR)/lib_gnu_apl_la-Svar_record.Plo
 	-rm -f ./$(DEPDIR)/lib_gnu_apl_la-Symbol.Plo
 	-rm -f ./$(DEPDIR)/lib_gnu_apl_la-SymbolTable.Plo
+	-rm -f ./$(DEPDIR)/lib_gnu_apl_la-Sys.Plo
 	-rm -f ./$(DEPDIR)/lib_gnu_apl_la-SystemVariable.Plo
 	-rm -f ./$(DEPDIR)/lib_gnu_apl_la-TabExpansion.Plo
 	-rm -f ./$(DEPDIR)/lib_gnu_apl_la-Thread_context.Plo
 	-rm -f ./$(DEPDIR)/lib_gnu_apl_la-Token.Plo
+	-rm -f ./$(DEPDIR)/lib_gnu_apl_la-Token_string.Plo
 	-rm -f ./$(DEPDIR)/lib_gnu_apl_la-Tokenizer.Plo
 	-rm -f ./$(DEPDIR)/lib_gnu_apl_la-UCS_string.Plo
 	-rm -f ./$(DEPDIR)/lib_gnu_apl_la-UCS_string_vector.Plo
@@ -6002,6 +6303,7 @@ distclean: distclean-recursive
 	-rm -f ./$(DEPDIR)/lib_gnu_apl_la-Value.Plo
 	-rm -f ./$(DEPDIR)/lib_gnu_apl_la-ValueHistory.Plo
 	-rm -f ./$(DEPDIR)/lib_gnu_apl_la-Workspace.Plo
+	-rm -f ./$(DEPDIR)/lib_gnu_apl_la-cValue.Plo
 	-rm -f ./$(DEPDIR)/lib_gnu_apl_la-python_apl.Plo
 	-rm -f ./$(DEPDIR)/lib_gnu_apl_la-sbrk.Plo
 	-rm -f ./$(DEPDIR)/lib_gnu_apl_la-static_Objects.Plo
@@ -6028,6 +6330,9 @@ distclean: distclean-recursive
 	-rm -f ./$(DEPDIR)/libapl_la-CDR.Plo
 	-rm -f ./$(DEPDIR)/libapl_la-Cell.Plo
 	-rm -f ./$(DEPDIR)/libapl_la-CharCell.Plo
+	-rm -f ./$(DEPDIR)/libapl_la-Cmd_IN.Plo
+	-rm -f ./$(DEPDIR)/libapl_la-Cmd_KEYB.Plo
+	-rm -f ./$(DEPDIR)/libapl_la-Cmd_LIB.Plo
 	-rm -f ./$(DEPDIR)/libapl_la-Command.Plo
 	-rm -f ./$(DEPDIR)/libapl_la-Common.Plo
 	-rm -f ./$(DEPDIR)/libapl_la-ComplexCell.Plo
@@ -6076,6 +6381,7 @@ distclean: distclean-recursive
 	-rm -f ./$(DEPDIR)/libapl_la-PythonPipe.Plo
 	-rm -f ./$(DEPDIR)/libapl_la-QR_factorization_GSL.Plo
 	-rm -f ./$(DEPDIR)/libapl_la-QuadFunction.Plo
+	-rm -f ./$(DEPDIR)/libapl_la-Quad_CC.Plo
 	-rm -f ./$(DEPDIR)/libapl_la-Quad_CR.Plo
 	-rm -f ./$(DEPDIR)/libapl_la-Quad_DLX.Plo
 	-rm -f ./$(DEPDIR)/libapl_la-Quad_FFT.Plo
@@ -6095,6 +6401,7 @@ distclean: distclean-recursive
 	-rm -f ./$(DEPDIR)/libapl_la-Quad_TF.Plo
 	-rm -f ./$(DEPDIR)/libapl_la-Quad_WA.Plo
 	-rm -f ./$(DEPDIR)/libapl_la-Quad_XML.Plo
+	-rm -f ./$(DEPDIR)/libapl_la-Ravel.Plo
 	-rm -f ./$(DEPDIR)/libapl_la-RealCell.Plo
 	-rm -f ./$(DEPDIR)/libapl_la-Regexp.Plo
 	-rm -f ./$(DEPDIR)/libapl_la-ScalarFunction.Plo
@@ -6105,10 +6412,12 @@ distclean: distclean-recursive
 	-rm -f ./$(DEPDIR)/libapl_la-Svar_record.Plo
 	-rm -f ./$(DEPDIR)/libapl_la-Symbol.Plo
 	-rm -f ./$(DEPDIR)/libapl_la-SymbolTable.Plo
+	-rm -f ./$(DEPDIR)/libapl_la-Sys.Plo
 	-rm -f ./$(DEPDIR)/libapl_la-SystemVariable.Plo
 	-rm -f ./$(DEPDIR)/libapl_la-TabExpansion.Plo
 	-rm -f ./$(DEPDIR)/libapl_la-Thread_context.Plo
 	-rm -f ./$(DEPDIR)/libapl_la-Token.Plo
+	-rm -f ./$(DEPDIR)/libapl_la-Token_string.Plo
 	-rm -f ./$(DEPDIR)/libapl_la-Tokenizer.Plo
 	-rm -f ./$(DEPDIR)/libapl_la-UCS_string.Plo
 	-rm -f ./$(DEPDIR)/libapl_la-UCS_string_vector.Plo
@@ -6119,6 +6428,7 @@ distclean: distclean-recursive
 	-rm -f ./$(DEPDIR)/libapl_la-Value.Plo
 	-rm -f ./$(DEPDIR)/libapl_la-ValueHistory.Plo
 	-rm -f ./$(DEPDIR)/libapl_la-Workspace.Plo
+	-rm -f ./$(DEPDIR)/libapl_la-cValue.Plo
 	-rm -f ./$(DEPDIR)/libapl_la-libapl.Plo
 	-rm -f ./$(DEPDIR)/libapl_la-sbrk.Plo
 	-rm -f ./$(DEPDIR)/libapl_la-static_Objects.Plo
@@ -6162,8 +6472,9 @@ info: info-recursive
 
 info-am:
 
-install-data-am: install-distSCRIPTS install-pkgincludeHEADERS
-
+install-data-am: install-dist_pkgdataDATA install-pkgincludeHEADERS
+	@$(NORMAL_INSTALL)
+	$(MAKE) $(AM_MAKEFLAGS) install-data-hook
 install-dvi: install-dvi-recursive
 
 install-dvi-am:
@@ -6214,6 +6525,9 @@ maintainer-clean: maintainer-clean-recursive
 	-rm -f ./$(DEPDIR)/apl-CDR.Po
 	-rm -f ./$(DEPDIR)/apl-Cell.Po
 	-rm -f ./$(DEPDIR)/apl-CharCell.Po
+	-rm -f ./$(DEPDIR)/apl-Cmd_IN.Po
+	-rm -f ./$(DEPDIR)/apl-Cmd_KEYB.Po
+	-rm -f ./$(DEPDIR)/apl-Cmd_LIB.Po
 	-rm -f ./$(DEPDIR)/apl-Command.Po
 	-rm -f ./$(DEPDIR)/apl-Common.Po
 	-rm -f ./$(DEPDIR)/apl-ComplexCell.Po
@@ -6262,6 +6576,7 @@ maintainer-clean: maintainer-clean-recursive
 	-rm -f ./$(DEPDIR)/apl-PythonPipe.Po
 	-rm -f ./$(DEPDIR)/apl-QR_factorization_GSL.Po
 	-rm -f ./$(DEPDIR)/apl-QuadFunction.Po
+	-rm -f ./$(DEPDIR)/apl-Quad_CC.Po
 	-rm -f ./$(DEPDIR)/apl-Quad_CR.Po
 	-rm -f ./$(DEPDIR)/apl-Quad_DLX.Po
 	-rm -f ./$(DEPDIR)/apl-Quad_FFT.Po
@@ -6281,6 +6596,7 @@ maintainer-clean: maintainer-clean-recursive
 	-rm -f ./$(DEPDIR)/apl-Quad_TF.Po
 	-rm -f ./$(DEPDIR)/apl-Quad_WA.Po
 	-rm -f ./$(DEPDIR)/apl-Quad_XML.Po
+	-rm -f ./$(DEPDIR)/apl-Ravel.Po
 	-rm -f ./$(DEPDIR)/apl-RealCell.Po
 	-rm -f ./$(DEPDIR)/apl-Regexp.Po
 	-rm -f ./$(DEPDIR)/apl-ScalarFunction.Po
@@ -6291,10 +6607,12 @@ maintainer-clean: maintainer-clean-recursive
 	-rm -f ./$(DEPDIR)/apl-Svar_record.Po
 	-rm -f ./$(DEPDIR)/apl-Symbol.Po
 	-rm -f ./$(DEPDIR)/apl-SymbolTable.Po
+	-rm -f ./$(DEPDIR)/apl-Sys.Po
 	-rm -f ./$(DEPDIR)/apl-SystemVariable.Po
 	-rm -f ./$(DEPDIR)/apl-TabExpansion.Po
 	-rm -f ./$(DEPDIR)/apl-Thread_context.Po
 	-rm -f ./$(DEPDIR)/apl-Token.Po
+	-rm -f ./$(DEPDIR)/apl-Token_string.Po
 	-rm -f ./$(DEPDIR)/apl-Tokenizer.Po
 	-rm -f ./$(DEPDIR)/apl-UCS_string.Po
 	-rm -f ./$(DEPDIR)/apl-UCS_string_vector.Po
@@ -6305,6 +6623,7 @@ maintainer-clean: maintainer-clean-recursive
 	-rm -f ./$(DEPDIR)/apl-Value.Po
 	-rm -f ./$(DEPDIR)/apl-ValueHistory.Po
 	-rm -f ./$(DEPDIR)/apl-Workspace.Po
+	-rm -f ./$(DEPDIR)/apl-cValue.Po
 	-rm -f ./$(DEPDIR)/apl-main.Po
 	-rm -f ./$(DEPDIR)/apl-sbrk.Po
 	-rm -f ./$(DEPDIR)/apl-static_Objects.Po
@@ -6331,6 +6650,9 @@ maintainer-clean: maintainer-clean-recursive
 	-rm -f ./$(DEPDIR)/lib_gnu_apl_la-CDR.Plo
 	-rm -f ./$(DEPDIR)/lib_gnu_apl_la-Cell.Plo
 	-rm -f ./$(DEPDIR)/lib_gnu_apl_la-CharCell.Plo
+	-rm -f ./$(DEPDIR)/lib_gnu_apl_la-Cmd_IN.Plo
+	-rm -f ./$(DEPDIR)/lib_gnu_apl_la-Cmd_KEYB.Plo
+	-rm -f ./$(DEPDIR)/lib_gnu_apl_la-Cmd_LIB.Plo
 	-rm -f ./$(DEPDIR)/lib_gnu_apl_la-Command.Plo
 	-rm -f ./$(DEPDIR)/lib_gnu_apl_la-Common.Plo
 	-rm -f ./$(DEPDIR)/lib_gnu_apl_la-ComplexCell.Plo
@@ -6379,6 +6701,7 @@ maintainer-clean: maintainer-clean-recursive
 	-rm -f ./$(DEPDIR)/lib_gnu_apl_la-PythonPipe.Plo
 	-rm -f ./$(DEPDIR)/lib_gnu_apl_la-QR_factorization_GSL.Plo
 	-rm -f ./$(DEPDIR)/lib_gnu_apl_la-QuadFunction.Plo
+	-rm -f ./$(DEPDIR)/lib_gnu_apl_la-Quad_CC.Plo
 	-rm -f ./$(DEPDIR)/lib_gnu_apl_la-Quad_CR.Plo
 	-rm -f ./$(DEPDIR)/lib_gnu_apl_la-Quad_DLX.Plo
 	-rm -f ./$(DEPDIR)/lib_gnu_apl_la-Quad_FFT.Plo
@@ -6398,6 +6721,7 @@ maintainer-clean: maintainer-clean-recursive
 	-rm -f ./$(DEPDIR)/lib_gnu_apl_la-Quad_TF.Plo
 	-rm -f ./$(DEPDIR)/lib_gnu_apl_la-Quad_WA.Plo
 	-rm -f ./$(DEPDIR)/lib_gnu_apl_la-Quad_XML.Plo
+	-rm -f ./$(DEPDIR)/lib_gnu_apl_la-Ravel.Plo
 	-rm -f ./$(DEPDIR)/lib_gnu_apl_la-RealCell.Plo
 	-rm -f ./$(DEPDIR)/lib_gnu_apl_la-Regexp.Plo
 	-rm -f ./$(DEPDIR)/lib_gnu_apl_la-ScalarFunction.Plo
@@ -6408,10 +6732,12 @@ maintainer-clean: maintainer-clean-recursive
 	-rm -f ./$(DEPDIR)/lib_gnu_apl_la-Svar_record.Plo
 	-rm -f ./$(DEPDIR)/lib_gnu_apl_la-Symbol.Plo
 	-rm -f ./$(DEPDIR)/lib_gnu_apl_la-SymbolTable.Plo
+	-rm -f ./$(DEPDIR)/lib_gnu_apl_la-Sys.Plo
 	-rm -f ./$(DEPDIR)/lib_gnu_apl_la-SystemVariable.Plo
 	-rm -f ./$(DEPDIR)/lib_gnu_apl_la-TabExpansion.Plo
 	-rm -f ./$(DEPDIR)/lib_gnu_apl_la-Thread_context.Plo
 	-rm -f ./$(DEPDIR)/lib_gnu_apl_la-Token.Plo
+	-rm -f ./$(DEPDIR)/lib_gnu_apl_la-Token_string.Plo
 	-rm -f ./$(DEPDIR)/lib_gnu_apl_la-Tokenizer.Plo
 	-rm -f ./$(DEPDIR)/lib_gnu_apl_la-UCS_string.Plo
 	-rm -f ./$(DEPDIR)/lib_gnu_apl_la-UCS_string_vector.Plo
@@ -6422,6 +6748,7 @@ maintainer-clean: maintainer-clean-recursive
 	-rm -f ./$(DEPDIR)/lib_gnu_apl_la-Value.Plo
 	-rm -f ./$(DEPDIR)/lib_gnu_apl_la-ValueHistory.Plo
 	-rm -f ./$(DEPDIR)/lib_gnu_apl_la-Workspace.Plo
+	-rm -f ./$(DEPDIR)/lib_gnu_apl_la-cValue.Plo
 	-rm -f ./$(DEPDIR)/lib_gnu_apl_la-python_apl.Plo
 	-rm -f ./$(DEPDIR)/lib_gnu_apl_la-sbrk.Plo
 	-rm -f ./$(DEPDIR)/lib_gnu_apl_la-static_Objects.Plo
@@ -6448,6 +6775,9 @@ maintainer-clean: maintainer-clean-recursive
 	-rm -f ./$(DEPDIR)/libapl_la-CDR.Plo
 	-rm -f ./$(DEPDIR)/libapl_la-Cell.Plo
 	-rm -f ./$(DEPDIR)/libapl_la-CharCell.Plo
+	-rm -f ./$(DEPDIR)/libapl_la-Cmd_IN.Plo
+	-rm -f ./$(DEPDIR)/libapl_la-Cmd_KEYB.Plo
+	-rm -f ./$(DEPDIR)/libapl_la-Cmd_LIB.Plo
 	-rm -f ./$(DEPDIR)/libapl_la-Command.Plo
 	-rm -f ./$(DEPDIR)/libapl_la-Common.Plo
 	-rm -f ./$(DEPDIR)/libapl_la-ComplexCell.Plo
@@ -6496,6 +6826,7 @@ maintainer-clean: maintainer-clean-recursive
 	-rm -f ./$(DEPDIR)/libapl_la-PythonPipe.Plo
 	-rm -f ./$(DEPDIR)/libapl_la-QR_factorization_GSL.Plo
 	-rm -f ./$(DEPDIR)/libapl_la-QuadFunction.Plo
+	-rm -f ./$(DEPDIR)/libapl_la-Quad_CC.Plo
 	-rm -f ./$(DEPDIR)/libapl_la-Quad_CR.Plo
 	-rm -f ./$(DEPDIR)/libapl_la-Quad_DLX.Plo
 	-rm -f ./$(DEPDIR)/libapl_la-Quad_FFT.Plo
@@ -6515,6 +6846,7 @@ maintainer-clean: maintainer-clean-recursive
 	-rm -f ./$(DEPDIR)/libapl_la-Quad_TF.Plo
 	-rm -f ./$(DEPDIR)/libapl_la-Quad_WA.Plo
 	-rm -f ./$(DEPDIR)/libapl_la-Quad_XML.Plo
+	-rm -f ./$(DEPDIR)/libapl_la-Ravel.Plo
 	-rm -f ./$(DEPDIR)/libapl_la-RealCell.Plo
 	-rm -f ./$(DEPDIR)/libapl_la-Regexp.Plo
 	-rm -f ./$(DEPDIR)/libapl_la-ScalarFunction.Plo
@@ -6525,10 +6857,12 @@ maintainer-clean: maintainer-clean-recursive
 	-rm -f ./$(DEPDIR)/libapl_la-Svar_record.Plo
 	-rm -f ./$(DEPDIR)/libapl_la-Symbol.Plo
 	-rm -f ./$(DEPDIR)/libapl_la-SymbolTable.Plo
+	-rm -f ./$(DEPDIR)/libapl_la-Sys.Plo
 	-rm -f ./$(DEPDIR)/libapl_la-SystemVariable.Plo
 	-rm -f ./$(DEPDIR)/libapl_la-TabExpansion.Plo
 	-rm -f ./$(DEPDIR)/libapl_la-Thread_context.Plo
 	-rm -f ./$(DEPDIR)/libapl_la-Token.Plo
+	-rm -f ./$(DEPDIR)/libapl_la-Token_string.Plo
 	-rm -f ./$(DEPDIR)/libapl_la-Tokenizer.Plo
 	-rm -f ./$(DEPDIR)/libapl_la-UCS_string.Plo
 	-rm -f ./$(DEPDIR)/libapl_la-UCS_string_vector.Plo
@@ -6539,6 +6873,7 @@ maintainer-clean: maintainer-clean-recursive
 	-rm -f ./$(DEPDIR)/libapl_la-Value.Plo
 	-rm -f ./$(DEPDIR)/libapl_la-ValueHistory.Plo
 	-rm -f ./$(DEPDIR)/libapl_la-Workspace.Plo
+	-rm -f ./$(DEPDIR)/libapl_la-cValue.Plo
 	-rm -f ./$(DEPDIR)/libapl_la-libapl.Plo
 	-rm -f ./$(DEPDIR)/libapl_la-sbrk.Plo
 	-rm -f ./$(DEPDIR)/libapl_la-static_Objects.Plo
@@ -6582,29 +6917,30 @@ ps: ps-recursive
 
 ps-am:
 
-uninstall-am: uninstall-binPROGRAMS uninstall-distSCRIPTS \
+uninstall-am: uninstall-binPROGRAMS uninstall-dist_pkgdataDATA \
 	uninstall-pkgincludeHEADERS uninstall-pkglibLTLIBRARIES
 
-.MAKE: $(am__recursive_targets) install-am install-strip
+.MAKE: $(am__recursive_targets) install-am install-data-am \
+	install-strip
 
-.PHONY: $(am__recursive_targets) CTAGS GTAGS TAGS all all-am \
+.PHONY: $(am__recursive_targets) CTAGS GTAGS TAGS all all-am all-local \
 	am--depfiles check check-am clean clean-binPROGRAMS \
 	clean-generic clean-libtool clean-pkglibLTLIBRARIES \
 	cscopelist-am ctags ctags-am distclean distclean-compile \
 	distclean-generic distclean-libtool distclean-tags distdir dvi \
 	dvi-am html html-am info info-am install install-am \
 	install-binPROGRAMS install-data install-data-am \
-	install-distSCRIPTS install-dvi install-dvi-am install-exec \
-	install-exec-am install-html install-html-am install-info \
-	install-info-am install-man install-pdf install-pdf-am \
-	install-pkgincludeHEADERS install-pkglibLTLIBRARIES install-ps \
-	install-ps-am install-strip installcheck installcheck-am \
-	installdirs installdirs-am maintainer-clean \
-	maintainer-clean-generic mostlyclean mostlyclean-compile \
-	mostlyclean-generic mostlyclean-libtool pdf pdf-am ps ps-am \
-	tags tags-am uninstall uninstall-am uninstall-binPROGRAMS \
-	uninstall-distSCRIPTS uninstall-pkgincludeHEADERS \
-	uninstall-pkglibLTLIBRARIES
+	install-data-hook install-dist_pkgdataDATA install-dvi \
+	install-dvi-am install-exec install-exec-am install-html \
+	install-html-am install-info install-info-am install-man \
+	install-pdf install-pdf-am install-pkgincludeHEADERS \
+	install-pkglibLTLIBRARIES install-ps install-ps-am \
+	install-strip installcheck installcheck-am installdirs \
+	installdirs-am maintainer-clean maintainer-clean-generic \
+	mostlyclean mostlyclean-compile mostlyclean-generic \
+	mostlyclean-libtool pdf pdf-am ps ps-am tags tags-am uninstall \
+	uninstall-am uninstall-binPROGRAMS uninstall-dist_pkgdataDATA \
+	uninstall-pkgincludeHEADERS uninstall-pkglibLTLIBRARIES
 
 .PRECIOUS: Makefile
 
@@ -6645,23 +6981,77 @@ test2: all
 testAP: all
 	./apl --id 1010 -T testcases/AP*tc
 
+# run the ⎕GTK TLV round-trip regression test (requires X display and GTK support)
+testGTK: all
+	./apl --id 1010 -T testcases/ZZ02_GTK.tc
+
 # run all testcases, except slow ones
 test3: all
-	./apl --id 1010 -T testcases_3/*tc
+	./apl --id 1010 -T testcases_3/*tc; \
+	RC=$$?; stty sane; \
+	if [ $$RC -ne 0 ]; then \
+	  D=/tmp/apl-test3-$$(date +%Y%m%d_%H%M%S); \
+	  mkdir "$$D"; \
+	  cp testcases_3/summary.log "$$D/"; \
+	  awk '$$1+0>0 && NF==4 {print $$4 ".log"}' testcases_3/summary.log \
+	    | xargs -r cp -t "$$D"; \
+	  echo "$(MAKE): $$RC failure(s) -- logs saved to $$D"; \
+	fi
+
+# run only invariant testcases
+test4: all
+	./apl --id 1010 -T testcases/invariants/*tc || true
 	stty sane
+
+# Create/refresh testcases_3/ and testcases_4/ symlink directories from ⍝@ markers.
+# install-data-hook calls this so 'make install' (typically run as root) sets them up;
+# chown restores ownership to match the src directory.
+.PHONY:	install-testlinks
+install-data-hook: install-testlinks
+install-testlinks:
+	$(MKDIR_P) testcases_3 testcases_4
+	chown -R "$$(stat -c '%u:%g' .)" testcases_3 testcases_4
+	for f in testcases/*.tc; do \
+	  name=$$(basename "$$f"); \
+	  if head -10 "$$f" | grep -q '@ test3\.'; then \
+	    ln -sf "../testcases/$$name" "testcases_3/$$name"; \
+	  fi; \
+	  if head -10 "$$f" | grep -q '@ test4\.'; then \
+	    ln -sf "../testcases/$$name" "testcases_4/$$name"; \
+	  fi; \
+	done
+	for f in testcases/invariants/*.tc; do \
+	  name=$$(basename "$$f"); \
+	  if head -10 "$$f" | grep -q '@ test4\.'; then \
+	    ln -sf "../testcases/invariants/$$name" "testcases_4/$$name"; \
+	  fi; \
+	done
 
 perf: apl
 	./apl --id 1010 --TM 3 -T testcases/Performance.pt
+
+# On MinGW builds apl-VERSION.exe is the primary deliverable.  Build it
+# automatically as part of 'make all'.
+# Libtool places the real binary in .libs/apl.exe; apl.exe in the build
+# directory is a libtool wrapper that spawns .libs/apl.exe and is only
+# useful for in-tree testing.  Copy the real binary for the installer.
+#
+#all-local: $(bin_PROGRAMS)
+#	cp .libs/apl.exe apl-$(VERSION).exe
+
+#apl-$(VERSION).exe: $(bin_PROGRAMS)
+#	cp .libs/apl.exe apl-$(VERSION).exe
+
+#windows-release: apl-$(VERSION).exe
+#	cp apl-$(VERSION).exe ../support-files/windows-installer/
+#	cp APs/.libs/APserver.exe ../support-files/windows-installer/
+#	cp APs/.libs/AP100.exe    ../support-files/windows-installer/
+#	cp APs/.libs/AP210.exe    ../support-files/windows-installer/
 
 .PHONY:	patch
 patch:
 	mkdir -p patches
 	svn diff > patches/`date +patch_%F-%R.diff`
-
-.PHONY:	git-pull
-git-pull:
-	make -C emacs_mode $@
-#	make -C sql $@   ══ possibly not up-to-dat e══
 
 .PHONY:	help
 help:

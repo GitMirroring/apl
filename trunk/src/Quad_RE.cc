@@ -286,7 +286,11 @@ PCRE2_SIZE last_end = 0;
          loop (b, end - start)  Z->next_ravel_Int(match_id);
 
          if (!X.get_global())   break;
-         B_offset = end;
+
+         // a zero-width match does not advance end/start; force progress
+         // to avoid an infinite loop (standard PCRE2 NOTEMPTY_ATSTART idiom).
+         //
+         B_offset = (end == start) ? end + 1 : end;
        }
 
    while (Z->more())   Z->next_ravel_0();
@@ -325,8 +329,12 @@ const PCRE2_SIZE * ovector = rem.get_ovector();
         return Z;
       }
 
+   // a zero-width match does not advance ovector[1]; force progress to
+   // avoid an infinite loop (standard PCRE2 NOTEMPTY_ATSTART idiom).
+   //
+   if (ovector[1] == ovector[0])   ++B_offset;
+
 const uint32_t ovector_count = rem.get_ovector_count();
-   B_offset = ovector[1];
 vector<int> parents(ovector_count, -1);   // no parents
 vector<int> ccount(ovector_count, 0);     // 0 children
 
@@ -366,6 +374,12 @@ RegexpMatch rem(A.get_code(), B, B_offset);
    //
 const PCRE2_SIZE * ovector = rem.get_ovector();
    B_offset = ovector[1];
+
+   // a zero-width match does not advance ovector[1]; force progress to
+   // avoid an infinite loop (standard PCRE2 NOTEMPTY_ATSTART idiom).
+   //
+   if (ovector[1] == ovector[0])   ++B_offset;
+
    if (rem.num_matches() == 1)   // simple match
       {
         // single string
@@ -382,7 +396,6 @@ const PCRE2_SIZE * ovector = rem.get_ovector();
 const uint32_t ovector_count = rem.get_ovector_count();
 vector<int> parents(ovector_count, -1);   // no parent
 vector<int> ccount(ovector_count,   0);   // 0 children
-   B_offset = ovector[1];
 
    for (int o = ovector_count - 1; o >= 0; --o)
        {

@@ -735,7 +735,9 @@ int
 UTF8_to_Unicode(const char * utf, int * length)
 {
 int len = 0;
-const Unicode uni = UTF8_string::toUni(utf8P(utf), len, false);
+const UTF8 * u8 = utf8P(utf);
+const UTF8 * end = u8 + strlen(utf) + 1;   // +1: include the NUL
+const Unicode uni = UTF8_string::toUni(u8, len, false, end);
    if (length)   *length = len;
    return uni;
 }

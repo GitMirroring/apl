@@ -221,7 +221,7 @@ ShapeItem zeroes = 0;
 ShapeItem blanks = 0;
    loop(v, value->nz_element_count())
       {
-        const Cell & cell = value->get_cfirst();
+        const Cell & cell = value->get_cravel(v);
         if (cell.is_integer_cell())
            {
              if (cell.get_int_value() == 0)   ++zeroes;
@@ -1166,7 +1166,11 @@ Quad_CR::do_CR19(cValue_R B)
    if (B.get_rank() > 1)   RANK_ERROR;
 const ShapeItem len_B = B.element_count();
 
-UTF8 * bytes_utf = ALLOCA(UTF8, len_B + 10);
+   // len_B is user-controlled and can be huge, so the byte buffer is
+   // heap-allocated (not ALLOCA()'d on the stack).
+   //
+std::vector<UTF8> bytes_utf_vec(len_B + 10);
+UTF8 * bytes_utf = bytes_utf_vec.data();
    loop(b, len_B)   bytes_utf[b] = B.get_byte_value(b);
    bytes_utf[len_B] = 0;
 

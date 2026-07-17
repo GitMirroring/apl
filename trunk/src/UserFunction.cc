@@ -766,7 +766,7 @@ bool VOID_inserted = false;
                     items_B.push_back(Function_PC(pos));
                   }
                else if (tag_pos == TOK_F12_COMMA ||
-                        tag_pos == TOK_F12_COMMA)
+                        tag_pos == TOK_F12_COMMA1)
                   {
                     // skip , or ⍪
                   }
@@ -873,8 +873,8 @@ const size_t labels_declared = header.get_label_count();
                    const Cell & cell_N = val_N->get_cfirst();
                    if (val_N->is_int_scalar())
                       {
-                        const unsigned int N = cell_N.get_int_value();
-                        if (N < line_starts.size())
+                        const APL_Integer N = cell_N.get_int_value();
+                        if (N >= 0 && size_t(N) < line_starts.size())
                            {
                              const int64_t target_pc = line_starts[N];
                              body[pc + 1].clear(LOC);

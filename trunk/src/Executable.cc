@@ -137,8 +137,14 @@ StateIndicator & si = *Workspace::SI_top();
 Function_PC
 Executable::get_statement_end(Function_PC pc) const
 {
-   while (body[pc].get_Class() != TC_END &&
+   // bounded scan: without the pc < body.size() check, a body that (for
+   // whatever reason) has no TC_END/TOK_RETURN_EXEC at or after pc would
+   // make this loop walk off the end of body[] indefinitely.
+   //
+   while (pc < Function_PC(body.size())   &&
+          body[pc].get_Class() != TC_END  &&
           body[pc].get_tag() != TOK_RETURN_EXEC)   ++pc;
+   if (pc >= Function_PC(body.size()))   pc = Function_PC(body.size() - 1);
    return pc;
 }
 //────────────────────────────────────────────────────────────────────────────
@@ -340,6 +346,14 @@ Executable::set_error_info(Error & error, Function_PC2 body_from_to) const
         if (body.size())   Q1(body[0])
       }
 
+   // resolve the -1 ("unset") sentinels to sensible defaults *before*
+   // indexing body[] or calling get_statement_end() with them (both of
+   // which are unchecked and would underflow on -1, e.g. when an error
+   // is raised with an empty prefix FIFO).
+   //
+   if (body_from_to.low == -1)    body_from_to.low = Function_PC_0;
+   if (body_from_to.high == -1)   body_from_to.high = Function_PC(body.size() - 1);
+
    // decrement body_from_to.high if it points to the end of
    // the function.
    //
@@ -348,9 +362,6 @@ Executable::set_error_info(Error & error, Function_PC2 body_from_to) const
 
 Function_PC start = get_statement_start(body_from_to.low);
 Function_PC end = get_statement_end(body_from_to.high);
-
-   if (body_from_to.low == -1)    body_from_to.low = start;
-   if (body_from_to.high == -1)   body_from_to.high = end;
 
    Assert(start   <= body_from_to.low);
    Assert(body_from_to.low  <= body_from_to.high);

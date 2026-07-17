@@ -126,7 +126,18 @@ const Shape3 Z3(B->get_shape(), axis);
                                 ->eval_LXB(tok_LO, *X4, *B);
       }
 
-   if (B->get_shape().is_empty())   return LO->eval_identity_fun(*B, axis);
+   if (B->get_shape().is_empty())
+      {
+        // scan preserves B's shape (unlike reduce, which removes the
+        // axis), and B being empty means there are no cells to compute
+        // -- so unlike the reduce identity-fun path, there's no need to
+        // consult LO's identity element (and no risk of a spurious
+        // DOMAIN_ERROR for an LO that doesn't have one).
+        //
+        Value_P Z(B->get_shape(), LOC);
+        Z->check_value(LOC);
+        return Token(TOK_APL_VALUE1, Z);
+      }
 
    return Bif_REDUCE::do_reduce(B->get_shape(), Z3, -1, LO, B, m_len);
 }

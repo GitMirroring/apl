@@ -334,8 +334,13 @@ const APL_Integer N = B->element_count();
 
    if (N < 2)
       {
+        // a window is undefined for fewer than 2 samples (win(0, N-1) would
+        // divide by zero); the win argument is therefore ignored here, same
+        // as do_window()'s LENGTH_ERROR for N < 2 in the standalone case.
+        //
         in[0][0] = B->get_real_value(0);
         in[0][1] = B->get_imag_value(0);
+        return;
       }
 
    if (win == 0)

@@ -558,7 +558,9 @@ sRank y3;
       }
 
 const sRank y5 = y3 > rank_B ? rank_B : y3;
-sRank y6 = y5;   if (y5 < 0)   y6 = y5 > 0 ? y5 : 0;
+sRank y6 = y5;
+   if (y6 < 0)   y6 += rank_B;   // e.g. y123_to_AB's rank_A += rk_A
+   if (y6 < 0)   y6 = 0;
    return y6;
 }
 //────────────────────────────────────────────────────────────────────────────

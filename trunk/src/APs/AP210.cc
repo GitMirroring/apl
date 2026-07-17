@@ -197,13 +197,20 @@ read_variable(FILE * file, int code, Coupled_var & var_D,
         const int hlen = fread(&header, 1, sizeof(header), file);
         if (hlen != sizeof(CDR_header))   return -44;   // delimiter not found
 
-        const int nb = header.get_nb();
-        const int rest = nb - sizeof(CDR_header);
+        const uint32_t nb = header.get_nb();
+        if (nb < sizeof(CDR_header))   return -44;   // header claims to be
+                                                       // shorter than itself
+
+        const size_t rest = nb - sizeof(CDR_header);
         uint8_t * buffer = new uint8_t[nb];
         Assert(buffer);
         memcpy(buffer, &header, sizeof(CDR_header));
-        const int rlen = fread(&buffer[sizeof(CDR_header)], 1, rest, file);
-        if (rlen != rest)   return -44;   // delimiter not found
+        const size_t rlen = fread(&buffer[sizeof(CDR_header)], 1, rest, file);
+        if (rlen != rest)
+           {
+             delete[] buffer;
+             return -44;   // delimiter not found
+           }
 
         delete var_D.data;
         var_D.data = new CDR_string(buffer, nb);

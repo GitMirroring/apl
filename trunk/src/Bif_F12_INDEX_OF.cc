@@ -120,10 +120,25 @@ Value_P Z(B.get_shape(), LOC);
         //
         vector<ShapeItem> sorted_idx_A;
         Cell::sorted_indices(sorted_idx_A, A, SORT_ASCENDING, 1);
+
+        // for a packed B, get_cravel(idx) materializes the element into
+        // B's single shared ravel.cell_fetch_cache; find_B_in_sorted_A()
+        // keeps the cell_B reference alive while also fetching from A
+        // (and for X⍳X, A and B are the very same Value), so a raw
+        // reference into the shared cache would be clobbered mid-search.
+        // Materialize into caller-owned stable storage instead.
+        //
+        vector<uint8_t> stable_B_mem;
+        if (B.is_packed())   stable_B_mem.resize(len_BZ * sizeof(Cell));
+        Cell * stable_B = reinterpret_cast<Cell *>(stable_B_mem.data());
+
         loop(bz, len_BZ)
             {
+              const Cell & key_B = B.is_packed()
+                                  ? B.get_cravel(bz, stable_B[bz])
+                                  : B.get_cravel(bz);
               const APL_Integer z = find_B_in_sorted_A(A, sorted_idx_A,
-                                                       B.get_cravel(bz), qct);
+                                                       key_B, qct);
 
               if (simple_result)   Z->next_ravel_Int(qio + z);
               else if (z == len_A)   // not found: set result item to ⍬

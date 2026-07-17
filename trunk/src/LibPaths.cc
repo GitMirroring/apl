@@ -358,14 +358,19 @@ LibPaths::compute_bin_path(const char * argv0, bool logit)
         logit && CERR << "initializing paths from  $PWD = " << PWD << endl;
         const int PWD_len = strlen(PWD);
         const int bin_len = strlen(APL_bin_path);
-        const char s0 = APL_bin_path[PWD_len];   // first char of suffix
-        if (!strncmp(PWD, APL_bin_path, PWD_len) && (s0 == '/' || s0 == 0))
+        if (PWD_len <= bin_len)   // otherwise PWD cannot be a prefix
            {
-             const char * src = APL_bin_path + PWD_len;
-             char * dest = APL_bin_path;
-             *dest++ = '.';
-             memmove(dest, src, bin_len);
-             dest[bin_len] = 0;
+             const char s0 = APL_bin_path[PWD_len];   // first char of suffix
+             if (!strncmp(PWD, APL_bin_path, PWD_len) &&
+                 (s0 == '/' || s0 == 0))
+                {
+                  const char * src = APL_bin_path + PWD_len;
+                  char * dest = APL_bin_path;
+                  const int suffix_len = bin_len - PWD_len;
+                  *dest++ = '.';
+                  memmove(dest, src, suffix_len);
+                  dest[suffix_len] = 0;
+                }
            }
       }
    else

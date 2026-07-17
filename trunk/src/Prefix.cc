@@ -66,7 +66,7 @@ Prefix::clean_up()
            }
         else if (tok.get_ValueType() == TV_INDEX)
            {
-             tok.get_index_val().~IndexExpr();
+             delete &tok.get_index_val();
            }
       }
 

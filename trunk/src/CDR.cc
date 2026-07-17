@@ -75,6 +75,49 @@ Shape shape;
         shape.add_shape_item(sh);
       }
 
+   // Guard: nelm must match the shape volume (otherwise next_ravel() would
+   // either run out of cells or leave cells uninitialized), and the ravel
+   // data (whose per-element size depends on vtype) must actually fit in
+   // the buffer (otherwise we would read past cdr's end).
+   //
+   if (ShapeItem(nelm) != shape.get_volume())
+      {
+        MORE_ERROR() << "CDR nelm " << nelm << " does not match shape "
+                        "volume " << shape.get_volume();
+        LENGTH_ERROR;
+      }
+
+const size_t header_len = size_t(16 + 4*rank);
+size_t elem_size = 0;   // 0 means: checked separately below (or unsupported)
+   switch (vtype)
+      {
+        case CDR_INT32:    elem_size = 4;    break;
+        case CDR_FLT64:    elem_size = 8;    break;
+        case CDR_CPLX128:  elem_size = 16;   break;
+        case CDR_CHAR8:    elem_size = 1;    break;
+        case CDR_CHAR32:   elem_size = 4;    break;
+        case CDR_NEST32:   elem_size = 4;    break;   // offset table
+        default:           break;
+      }
+
+   if (vtype == CDR_BOOL1)
+      {
+        const size_t bit_bytes = (size_t(nelm) + 7) / 8;
+        if (header_len + bit_bytes > cdr.size())
+           {
+             MORE_ERROR() << "CDR BOOL1 data (" << bit_bytes
+                          << " bytes) exceeds buffer";
+             LENGTH_ERROR;
+           }
+      }
+   else if (elem_size
+         && (header_len + elem_size*size_t(nelm) > cdr.size()))
+      {
+        MORE_ERROR() << "CDR nelm " << nelm << " × " << elem_size
+                     << " bytes exceeds buffer";
+        LENGTH_ERROR;
+      }
+
 Value_P Z(shape, loc);
 
 const uint8_t * ravel = data + 16 + 4*rank;

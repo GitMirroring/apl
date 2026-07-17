@@ -1966,6 +1966,12 @@ UTF8 * end = 0;
                   const ShapeItem offset = u8::strtoll(end, &end, 16);
                   Assert(*end == ']');   ++end;
                   Value * target = values[vid].get();
+                  // get_wravel()'s own bounds check is Assert1(), a no-op
+                  // at the default assert level, so validate offset here
+                  // (with the real Assert()) against attacker-controlled
+                  // workspace XML.
+                  //
+                  Assert(offset >= 0 && offset < target->nz_element_count());
                   Z.next_ravel_Lval(&target->get_wravel(offset), target);
                   input = end;
                 }
@@ -2356,7 +2362,7 @@ const UTF8 * cells_utf = find_optional_attr("cells");
       err << "    read_Ravel() vid=" << vid
            << ", XML line " << line_no << " - ";
 
-   Assert(vid < int(values.size()));
+   Assert(vid >= 0 && vid < int(values.size()));
 Value_P Z = values[vid];
 
    if (!Z)
@@ -2818,7 +2824,7 @@ const TokenTag tag = TokenTag(find_int_attr("tag", false, 16));
         case TV_VAL:   
              {
                const int vid = find_int_attr("vid", false, 10);
-               Assert(vid < int(values.size()));
+               Assert(vid >= 0 && vid < int(values.size()));
                new (&tloc.get_token()) Token(tag, values[vid]);
              }
              break;
@@ -2842,7 +2848,7 @@ const TokenTag tag = TokenTag(find_int_attr("tag", false, 16));
                          Assert1(*vids == 'd');   ++vids;
                          Assert1(*vids == '_');   ++vids;
                          const int vid = u8::strtoll(vids, &end, 10);
-                         Assert(vid < int(values.size()));
+                         Assert(vid >= 0 && vid < int(values.size()));
                          idx.add_index(values[vid]);
                          vids = end;
                        }
@@ -2931,7 +2937,7 @@ bool no_copy = false;   // assume the value is needed
         int parent = vid;
         for (;;)
             {
-              Assert(parent < int(parents.size()));
+              Assert(parent >= 0 && parent < int(parents.size()));
               if (parents[parent] == -1)   break;   // topmost owner found
               parent = parents[parent];
             }
@@ -2972,7 +2978,7 @@ void
 XML_Loading_Archive::read_Variable(int d, Symbol & symbol)
 {
 const int vid = find_int_attr("vid", false, 10);
-   Assert(vid < int(values.size()));
+   Assert(vid >= 0 && vid < int(values.size()));
 
    Log(LOG_archive)   err << "      [" << d << "] read_Variable() vid=" << vid
                            << " name=" << symbol.get_name() << endl;

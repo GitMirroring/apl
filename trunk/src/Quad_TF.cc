@@ -119,7 +119,21 @@ UCS_string ret;
              for (;;)
                  {
                   while (u < ucs.ssize() && ucs[u] == ' ')   ++u;
+
+                  if (u >= ucs.ssize())
+                     {
+                       MORE_ERROR() << "Truncated (⎕UCS ...) in ⎕TF record";
+                       DOMAIN_ERROR;
+                     }
+
                   if (ucs[u] == ')')   { u += 2;   break; }
+
+                  if (ucs[u] < '0' || ucs[u] > '9')
+                     {
+                       MORE_ERROR() << "Bad character in (⎕UCS ...) of "
+                                       "⎕TF record";
+                       DOMAIN_ERROR;
+                     }
 
                   int num = 0;
                   while (u < ucs.ssize() && ucs[u] >= '0' && ucs[u] <= '9')
@@ -801,7 +815,7 @@ ShapeItem idx = 2;
         return Value_P();
       }
 
-   if (ravel[idx++] != UNI_SPACE)
+   if (idx >= len || ravel[idx++] != UNI_SPACE)
       {
         MORE_ERROR() << "missing space (before rank) in 1 ⎕TF record";
         return Value_P();
@@ -818,7 +832,7 @@ sRank rank = 0;
         return Value_P();
       }
 
-   if (ravel[idx++] != UNI_SPACE)
+   if (idx >= len || ravel[idx++] != UNI_SPACE)
       {
         MORE_ERROR() << "missing space (after rank) in 1 ⎕TF record";
         return Value_P();
@@ -843,7 +857,7 @@ Shape shape;
              return Value_P();
            }
 
-        if (ravel[idx++] != UNI_SPACE)
+        if (idx >= len || ravel[idx++] != UNI_SPACE)
            {
              MORE_ERROR() << "missing space (in shape) in 1 ⎕TF record";
              return Value_P();

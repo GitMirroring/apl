@@ -213,8 +213,23 @@ Value::~Value()
 
    if (flags.ravel_type == (RPT_BOOL))
       {
+        --value_count;
         if (ravel.cells != ravel.short_value)   // don't free embedded buffer
            {
+             // mirror the value_count/total_ravel_count bookkeeping of the
+             // long-value branch below so that they do not leak on every
+             // packed boolean value. total_ravel_count is decremented using
+             // the count that was live at allocation time (nz_element_count
+             // (), since try_implode() packs in place without reallocating)
+             // -- NOT necessarily the value's *current* shape if it was
+             // ever shrunk via set_shape() after allocation, which is why
+             // the buffer itself is still released via delete[] (matching
+             // how it was allocated relative to that original count) rather
+             // than std::allocator<Cell>::deallocate(ptr, n): passing a
+             // mismatched n there is undefined behavior and can silently
+             // corrupt the heap allocator's free-list bookkeeping.
+             //
+             total_ravel_count -= nz_element_count();
              auto bits = reinterpret_cast<uint8_t *>(ravel.cells);
              delete[] bits;
            }
@@ -627,12 +642,20 @@ const char * del = 0;
 const ShapeItem old_rows  = get_rows();
 const ShapeItem new_rows  = 2*old_rows;
 const ShapeItem new_cells = 2*new_rows;
+const ShapeItem old_cells = 2*old_rows;
 
 Cell * doubled = new Cell[new_cells];
    loop(n, new_cells)   IntCell::z0(doubled + n);
    ravel.valid_ravel_items = new_cells;
    shape.set_shape_item(0, new_rows);
    ravel.cells = doubled;
+
+   // keep total_ravel_count in sync with the grown ravel so that ~Value()
+   // (which subtracts based on the *current*, now larger, element count)
+   // does not under-subtract and drift/underflow total_ravel_count.
+   //
+   if (del)   total_ravel_count += new_cells - old_cells;   // was long already
+   else       total_ravel_count += new_cells;               // was short, now long
 
    loop(r, old_rows)
        {

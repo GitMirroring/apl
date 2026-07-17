@@ -169,6 +169,15 @@ const CDR_header & header = cdr.header();
         return;
       }
 
+   if (header.get_nelm() > cdr.size() - 20)   // element count exceeds buffer
+      {
+        get_CERR() << "Bad CDR nelm (" << header.get_nelm()
+             << " exceeds " << (cdr.size() - 20) << " available bytes)"
+             << endl;
+        set_ACK(var, 447);
+        return;
+      }
+
 const string cmd(reinterpret_cast<const char *> (cdr.get_items()) + 20,
                  header.get_nelm());
 

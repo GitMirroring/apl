@@ -86,8 +86,8 @@ POST_INSTALL = :
 NORMAL_UNINSTALL = :
 PRE_UNINSTALL = :
 POST_UNINSTALL = :
-build_triplet = x86_64-unknown-linux-gnu
-host_triplet = x86_64-unknown-linux-gnu
+build_triplet = x86_64-pc-linux-gnu
+host_triplet = x86_64-pc-linux-gnu
 ##am__append_1 = $(WERROR) -Wall -Wno-strict-aliasing
 subdir = erlang
 ACLOCAL_M4 = $(top_srcdir)/aclocal.m4
@@ -95,16 +95,16 @@ am__aclocal_m4_deps = $(top_srcdir)/m4/depend.m4 \
 	$(top_srcdir)/m4/libtool.m4 $(top_srcdir)/m4/ltoptions.m4 \
 	$(top_srcdir)/m4/ltsugar.m4 $(top_srcdir)/m4/ltversion.m4 \
 	$(top_srcdir)/m4/lt~obsolete.m4 $(top_srcdir)/m4/apl_sugar.m4 \
-	$(top_srcdir)/m4/check_X11.m4 $(top_srcdir)/m4/check_FFT.m4 \
-	$(top_srcdir)/m4/check_PNG.m4 $(top_srcdir)/m4/check_SQLITE.m4 \
+	$(top_srcdir)/m4/apl_TARGETs.m4 $(top_srcdir)/m4/check_X11.m4 \
+	$(top_srcdir)/m4/check_FFT.m4 $(top_srcdir)/m4/check_PNG.m4 \
+	$(top_srcdir)/m4/check_SQLITE.m4 \
 	$(top_srcdir)/m4/ax_lib_sqlite3.m4 \
 	$(top_srcdir)/m4/check_POSTGRES.m4 \
 	$(top_srcdir)/m4/ax_lib_postgresql.m4 \
 	$(top_srcdir)/m4/check_PCRE.m4 \
 	$(top_srcdir)/m4/ax_path_lib_pcre.m4 \
 	$(top_srcdir)/m4/check_GSL.m4 $(top_srcdir)/m4/check_GTK.m4 \
-	$(top_srcdir)/m4/apl_TARGETs.m4 $(top_srcdir)/m4/build_date.m4 \
-	$(top_srcdir)/configure.ac
+	$(top_srcdir)/m4/build_date.m4 $(top_srcdir)/configure.ac
 am__configure_deps = $(am__aclocal_m4_deps) $(CONFIGURE_DEPENDENCIES) \
 	$(ACLOCAL_M4)
 DIST_COMMON = $(srcdir)/Makefile.am $(am__DIST_COMMON)
@@ -223,6 +223,7 @@ am__DIST_COMMON = $(srcdir)/Makefile.in $(srcdir)/apl.erl.in \
 	$(top_srcdir)/depcomp README
 DISTFILES = $(DIST_COMMON) $(DIST_SOURCES) $(TEXINFOS) $(EXTRA_DIST)
 ACLOCAL = ${SHELL} '/home/eedjsa/savannah-repo-apl/trunk/missing' aclocal-1.16
+ALT_MAP_WANTED = 0
 AMTAR = $${TAR-tar}
 AM_DEFAULT_VERBOSITY = 1
 APSERVER_PATH = /tmp/GNU-APL/APserver
@@ -274,7 +275,7 @@ INSTALL_STRIP_PROGRAM = $(install_sh) -c -s
 LD = /usr/bin/ld -m elf_x86_64
 LDFLAGS = 
 LIBOBJS = 
-LIBS = -lcairo -lgdk-3 -lgtk-3 -lgsl -lgslcblas -lpcre2-32 -lz -lpng -lfftw3 -lX11-xcb -lxcb -lX11 -lc -ldl -lm -lncurses -lcurses -lnsl -lpthread -ltinfo 
+LIBS = -lcairo -lgdk-3 -lgtk-3 -lgsl -lgslcblas -lpcre2-32 -lpng -lz -lfftw3 -lX11-xcb -lxcb -lX11 -lc -ldl -lm -lnsl -lpthread 
 LIBTOOL = $(SHELL) $(top_builddir)/libtool
 LIPO = 
 LN_S = ln -s
@@ -294,10 +295,11 @@ OTOOL64 =
 PACKAGE = apl
 PACKAGE_BUGREPORT = bug-apl@gnu.org
 PACKAGE_NAME = GNU APL
-PACKAGE_STRING = GNU APL 1.9
+PACKAGE_STRING = GNU APL 2.0
 PACKAGE_TARNAME = apl
 PACKAGE_URL = https://www.gnu.org/software/apl/
-PACKAGE_VERSION = 1.9
+PACKAGE_VERSION = 2.0
+PACKED_MINIMUM_LENGTH_WANTED = 12
 PATH_SEPARATOR = :
 PCRE_CFLAGS = 
 PCRE_LIBS = -lpcre2-32
@@ -306,7 +308,7 @@ PG_CONFIG = /usr/bin/pg_config
 PKG_CONFIG = /usr/bin/pkg-config
 POSTGRESQL_CFLAGS = -I/usr/include/postgresql
 POSTGRESQL_LDFLAGS = -L/usr/lib/x86_64-linux-gnu -lpq
-POSTGRESQL_VERSION = 14.19 (Ubuntu 14.19-0ubuntu0.22.04.1)
+POSTGRESQL_VERSION = 14.22 (Ubuntu 14.22-0ubuntu0.22.04.1)
 POW_LIB = 
 PYTHON_CFLAGS = 
 RANLIB = ranlib
@@ -322,7 +324,7 @@ SQLITE3_VERSION = 3.37.2
 STRIP = strip
 VALUE_CHECK_WANTED = no
 VALUE_HISTORY_WANTED = no
-VERSION = 1.9
+VERSION = 2.0
 VF_TRACING_WANTED = no
 VISIBLE_MARKERS_WANTED = no
 XMKMF = 
@@ -339,25 +341,25 @@ am__leading_dot = .
 am__quote = 
 am__tar = $${TAR-tar} chof - "$$tardir"
 am__untar = $${TAR-tar} xf -
-apl_BUILD_DATE = 2025-12-31 16:12:02 CET
-apl_BUILD_OS = Linux 5.15.0-161-generic x86_64
+apl_BUILD_DATE = 2026-07-17 13:17:05 CEST
+apl_BUILD_OS = Linux 5.15.0-177-generic x86_64
 bindir = ${exec_prefix}/bin
-build = x86_64-unknown-linux-gnu
+build = x86_64-pc-linux-gnu
 build_alias = 
 build_cpu = x86_64
 build_os = linux-gnu
-build_vendor = unknown
+build_vendor = pc
 builddir = .
 datadir = ${datarootdir}
 datarootdir = ${prefix}/share
 docdir = ${datarootdir}/doc/${PACKAGE_TARNAME}
 dvidir = ${docdir}
 exec_prefix = ${prefix}
-host = x86_64-unknown-linux-gnu
+host = x86_64-pc-linux-gnu
 host_alias = 
 host_cpu = x86_64
 host_os = linux-gnu
-host_vendor = unknown
+host_vendor = pc
 htmldir = ${docdir}
 includedir = ${prefix}/include
 infodir = ${datarootdir}/info
@@ -741,7 +743,8 @@ uninstall-am: uninstall-pkglibLTLIBRARIES
 
 #all: apl.beam apl_example.beam
 #.erl.beam:
-#	erlc $<
+#	@if erlc -version >/dev/null 2>&1; then erlc $<; \
+#	else echo "NOTE: erlc not working, skipping $< (Erlang byte-code not built)"; touch $@; fi
 
 .PHONY:	all
 all:

@@ -1,4 +1,5 @@
 if apl_TARGET_ERLANG
+if apl_HAVE_ERLC
 
 AM_CFLAGS = $(CXX_RDYNAMIC) -g -O2
 if apl_DEVELOP
@@ -26,6 +27,15 @@ all: apl.beam apl_example.beam
 .erl.beam:
 	@if erlc -version >/dev/null 2>&1; then erlc $<; \
 	else echo "NOTE: erlc not working, skipping $< (Erlang byte-code not built)"; touch $@; fi
+
+else   # apl_TARGET_ERLANG requested, but no working erlc found
+
+.PHONY:	all
+all:
+	@echo "NOTE: --with-erlang was configured but erlc was not found (or is" \
+	      "not executable); skipping the Erlang interface build."
+
+endif   # apl_HAVE_ERLC
 
 else   # not WANT_ERLANG
 

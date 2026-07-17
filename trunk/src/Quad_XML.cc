@@ -807,6 +807,7 @@ enum { PREDEFINED_COUNT = sizeof(predefined_entities)
                    return true;
                  }
               attval[dest++] = Unicode(number);
+              --src;   // compensate the ++src done by the enclosing loop()
               continue;
             }
 
@@ -887,11 +888,18 @@ XML_node::matches(const XML_node * end_tag) const
    Assert(node_type == NT_start_tag);
    Assert(end_tag->node_type == NT_end_tag);
 
-ShapeItem d = end_tag->src_pos + 2;   
+ShapeItem d = end_tag->src_pos + 2;
    for (ShapeItem s = src_pos + 1;;)
        {
           const Unicode uni = src[s++];
-          if (!is_name_char(uni))         return true;
+          if (!is_name_char(uni))
+             {
+               // the start tag name ended here; it is a match only if the
+               // end tag name also ends here (rather than continuing with
+               // more name characters, e.g. start tag <ab>, end tag </abcd>)
+               //
+               return !is_name_char(end_tag->src[d]);
+             }
           if (uni != end_tag->src[d++])   return false;
        }
 }
@@ -1264,8 +1272,15 @@ bool error = true;
               if (taglen == -1)   goto cleanup;
 
               new XML_node(&anchor, string_B, b, taglen);
-              b += taglen;
-              text_start = b;
+
+              // taglen already includes the tag's closing '>', so b would
+              // point one past it; but the enclosing loop(b, len_B) also
+              // does ++b at the end of this iteration, which would skip
+              // one extra character (e.g. the '<' of an immediately
+              // following tag). Compensate by stopping one short.
+              //
+              text_start = b + taglen;
+              b = text_start - 1;
             }
        }
 
@@ -1345,9 +1360,8 @@ const ssize_t bytes_read = read(fd, buffer, st.st_size);
         MORE_ERROR() << "1 ⎕XML B: error in reading " << B
                      << "): " << strerror(errno);
         ::close(fd);
-        DOMAIN_ERROR;
-        ::close(fd);
         delete [] buffer;
+        DOMAIN_ERROR;
       }
 
 const UTF8_string xml_document_utf8(buffer, bytes_read);

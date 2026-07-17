@@ -88,7 +88,7 @@ PRE_UNINSTALL = :
 POST_UNINSTALL = :
 build_triplet = @build@
 host_triplet = @host@
-@apl_DEVELOP_TRUE@@apl_TARGET_ERLANG_TRUE@am__append_1 = $(WERROR) -Wall -Wno-strict-aliasing
+@apl_DEVELOP_TRUE@@apl_HAVE_ERLC_TRUE@@apl_TARGET_ERLANG_TRUE@am__append_1 = $(WERROR) -Wall -Wno-strict-aliasing
 subdir = erlang
 ACLOCAL_M4 = $(top_srcdir)/aclocal.m4
 am__aclocal_m4_deps = $(top_srcdir)/m4/depend.m4 \
@@ -144,7 +144,7 @@ LTLIBRARIES = $(pkglib_LTLIBRARIES)
 liberlang_APL_nif_la_LIBADD =
 am__liberlang_APL_nif_la_SOURCES_DIST = erlang_APL_nif.c README \
 	apl_example.erl
-@apl_TARGET_ERLANG_TRUE@am_liberlang_APL_nif_la_OBJECTS = liberlang_APL_nif_la-erlang_APL_nif.lo
+@apl_HAVE_ERLC_TRUE@@apl_TARGET_ERLANG_TRUE@am_liberlang_APL_nif_la_OBJECTS = liberlang_APL_nif_la-erlang_APL_nif.lo
 am__EXTRA_liberlang_APL_nif_la_SOURCES_DIST = apl.erl apl_example.erl
 liberlang_APL_nif_la_OBJECTS = $(am_liberlang_APL_nif_la_OBJECTS)
 AM_V_lt = $(am__v_lt_@AM_V@)
@@ -155,8 +155,9 @@ liberlang_APL_nif_la_LINK = $(LIBTOOL) $(AM_V_lt) --tag=CC \
 	$(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=link $(CCLD) \
 	$(liberlang_APL_nif_la_CFLAGS) $(CFLAGS) \
 	$(liberlang_APL_nif_la_LDFLAGS) $(LDFLAGS) -o $@
-@apl_TARGET_ERLANG_TRUE@am_liberlang_APL_nif_la_rpath = -rpath \
-@apl_TARGET_ERLANG_TRUE@	$(pkglibdir)
+@apl_HAVE_ERLC_TRUE@@apl_TARGET_ERLANG_TRUE@am_liberlang_APL_nif_la_rpath =  \
+@apl_HAVE_ERLC_TRUE@@apl_TARGET_ERLANG_TRUE@	-rpath \
+@apl_HAVE_ERLC_TRUE@@apl_TARGET_ERLANG_TRUE@	$(pkglibdir)
 AM_V_P = $(am__v_P_@AM_V@)
 am__v_P_ = $(am__v_P_@AM_DEFAULT_V@)
 am__v_P_0 = false
@@ -259,6 +260,7 @@ ECHO_C = @ECHO_C@
 ECHO_N = @ECHO_N@
 ECHO_T = @ECHO_T@
 EGREP = @EGREP@
+ERLC = @ERLC@
 ETAGS = @ETAGS@
 EXEEXT = @EXEEXT@
 FGREP = @FGREP@
@@ -384,25 +386,31 @@ target_alias = @target_alias@
 top_build_prefix = @top_build_prefix@
 top_builddir = @top_builddir@
 top_srcdir = @top_srcdir@
-@apl_TARGET_ERLANG_TRUE@AM_CFLAGS = $(CXX_RDYNAMIC) -g -O2 \
-@apl_TARGET_ERLANG_TRUE@	$(am__append_1)
-@apl_TARGET_ERLANG_TRUE@pkglib_LTLIBRARIES = liberlang_APL_nif.la
-@apl_TARGET_ERLANG_TRUE@liberlang_APL_nif_la_SOURCES = erlang_APL_nif.c README apl_example.erl
-@apl_TARGET_ERLANG_TRUE@EXTRA_liberlang_APL_nif_la_SOURCES = apl.erl apl_example.erl
-@apl_TARGET_ERLANG_TRUE@liberlang_APL_nif_la_CFLAGS = $(AM_CFLAGS) -I \
-@apl_TARGET_ERLANG_TRUE@	$(abs_top_srcdir) -fpic -shared -I \
-@apl_TARGET_ERLANG_TRUE@	$(pkgincludedir) -I \
-@apl_TARGET_ERLANG_TRUE@	$(pkgincludedir)/.. # e.g. \
-@apl_TARGET_ERLANG_TRUE@	/usr/local/include
-@apl_TARGET_ERLANG_TRUE@liberlang_APL_nif_la_LDFLAGS = -avoid-version -export-dynamic -E
+@apl_HAVE_ERLC_TRUE@@apl_TARGET_ERLANG_TRUE@AM_CFLAGS =  \
+@apl_HAVE_ERLC_TRUE@@apl_TARGET_ERLANG_TRUE@	$(CXX_RDYNAMIC) -g \
+@apl_HAVE_ERLC_TRUE@@apl_TARGET_ERLANG_TRUE@	-O2 \
+@apl_HAVE_ERLC_TRUE@@apl_TARGET_ERLANG_TRUE@	$(am__append_1)
+@apl_HAVE_ERLC_TRUE@@apl_TARGET_ERLANG_TRUE@pkglib_LTLIBRARIES = liberlang_APL_nif.la
+@apl_HAVE_ERLC_TRUE@@apl_TARGET_ERLANG_TRUE@liberlang_APL_nif_la_SOURCES = erlang_APL_nif.c README apl_example.erl
+@apl_HAVE_ERLC_TRUE@@apl_TARGET_ERLANG_TRUE@EXTRA_liberlang_APL_nif_la_SOURCES = apl.erl apl_example.erl
+@apl_HAVE_ERLC_TRUE@@apl_TARGET_ERLANG_TRUE@liberlang_APL_nif_la_CFLAGS =  \
+@apl_HAVE_ERLC_TRUE@@apl_TARGET_ERLANG_TRUE@	$(AM_CFLAGS) -I \
+@apl_HAVE_ERLC_TRUE@@apl_TARGET_ERLANG_TRUE@	$(abs_top_srcdir) \
+@apl_HAVE_ERLC_TRUE@@apl_TARGET_ERLANG_TRUE@	-fpic -shared -I \
+@apl_HAVE_ERLC_TRUE@@apl_TARGET_ERLANG_TRUE@	$(pkgincludedir) \
+@apl_HAVE_ERLC_TRUE@@apl_TARGET_ERLANG_TRUE@	-I \
+@apl_HAVE_ERLC_TRUE@@apl_TARGET_ERLANG_TRUE@	$(pkgincludedir)/.. \
+@apl_HAVE_ERLC_TRUE@@apl_TARGET_ERLANG_TRUE@	# e.g. \
+@apl_HAVE_ERLC_TRUE@@apl_TARGET_ERLANG_TRUE@	/usr/local/include
+@apl_HAVE_ERLC_TRUE@@apl_TARGET_ERLANG_TRUE@liberlang_APL_nif_la_LDFLAGS = -avoid-version -export-dynamic -E
 
 # for some reason, using libtool causes Erlang to try to load the file
 # erlang_APL_nif.so.so instead of erlang_APL_nif.so. We therefore do not
 # use libtool but create the make targets manually. This seems to work on
 # Ubuntu but may require manual fixes on other platforms.
 #
-@apl_TARGET_ERLANG_TRUE@FILES = apl.beam apl_example.beam
-@apl_TARGET_ERLANG_TRUE@CLEANFILES = ${FILES}
+@apl_HAVE_ERLC_TRUE@@apl_TARGET_ERLANG_TRUE@FILES = apl.beam apl_example.beam
+@apl_HAVE_ERLC_TRUE@@apl_TARGET_ERLANG_TRUE@CLEANFILES = ${FILES}
 all: all-am
 
 .SUFFIXES:
@@ -741,10 +749,15 @@ uninstall-am: uninstall-pkglibLTLIBRARIES
 .PRECIOUS: Makefile
 
 
-@apl_TARGET_ERLANG_TRUE@all: apl.beam apl_example.beam
-@apl_TARGET_ERLANG_TRUE@.erl.beam:
-@apl_TARGET_ERLANG_TRUE@	@if erlc -version >/dev/null 2>&1; then erlc $<; \
-@apl_TARGET_ERLANG_TRUE@	else echo "NOTE: erlc not working, skipping $< (Erlang byte-code not built)"; touch $@; fi
+@apl_HAVE_ERLC_TRUE@@apl_TARGET_ERLANG_TRUE@all: apl.beam apl_example.beam
+@apl_HAVE_ERLC_TRUE@@apl_TARGET_ERLANG_TRUE@.erl.beam:
+@apl_HAVE_ERLC_TRUE@@apl_TARGET_ERLANG_TRUE@	@if erlc -version >/dev/null 2>&1; then erlc $<; \
+@apl_HAVE_ERLC_TRUE@@apl_TARGET_ERLANG_TRUE@	else echo "NOTE: erlc not working, skipping $< (Erlang byte-code not built)"; touch $@; fi
+
+@apl_HAVE_ERLC_FALSE@@apl_TARGET_ERLANG_TRUE@.PHONY:	all
+@apl_HAVE_ERLC_FALSE@@apl_TARGET_ERLANG_TRUE@all:
+@apl_HAVE_ERLC_FALSE@@apl_TARGET_ERLANG_TRUE@	@echo "NOTE: --with-erlang was configured but erlc was not found (or is" \
+@apl_HAVE_ERLC_FALSE@@apl_TARGET_ERLANG_TRUE@	      "not executable); skipping the Erlang interface build."
 
 @apl_TARGET_ERLANG_FALSE@.PHONY:	all
 @apl_TARGET_ERLANG_FALSE@all:

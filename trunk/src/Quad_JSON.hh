@@ -79,7 +79,7 @@ protected:
    /// @param level current nesting level (for indentation)
    /// @param sorted true to emit object keys in sorted order
    static void APL_to_JSON_string(UCS_string & result, const cValue & B,
-                                  bool level, bool sorted);
+                                  int level, bool sorted);
 
    /// append Cell value to JSON string \b result
    /// @param result output UCS string being built
@@ -87,7 +87,7 @@ protected:
    /// @param level current nesting level (for indentation)
    /// @param sorted true to emit object keys in sorted order
    static void APL_to_JSON_string(UCS_string & result, const Cell & B,
-                                  bool level, bool sorted);
+                                  int level, bool sorted);
 
    /// return the number of name-separators or value-separators at the
    /// top-level of the object or array starting at token0 and increment token0

@@ -1724,7 +1724,13 @@ Monomial T;
 
    // A. figure the largestindefinite
    //
-vector<int> max_powers(8, -1);
+   // max_powers is sized to vars.size() rather than a fixed 8: the dyadic
+   // A ⌹[11] B allows an arbitrary number of named indeterminants in A, and
+   // term.expos can grow up to that many entries (Monomial::
+   // scan_indeterminants), so a fixed-size-8 vector would be written out
+   // of bounds for more than 8 named indeterminants.
+   //
+vector<int> max_powers(vars.size(), -1);
    loop(t, terms.size())
        {
          const Monomial & term = terms[t];
@@ -1739,7 +1745,7 @@ vector<int> max_powers(8, -1);
    // This largest indeterminant determines the rabk of Z.
    //
 int max_var = -1;
-   loop(r, 8)   if (max_powers[r] != -1)   max_var = r;
+   loop(r, max_powers.size())   if (max_powers[r] != -1)   max_var = r;
 
    // construct the shape of Z. Each max_powers[r] determines the corresponding
    // axis length of Z (+1 for the constant term).
@@ -1784,7 +1790,7 @@ Value_P Z(shape_Z, LOC);
             }
          else                                         // real coefficient
             {
-              new (&dest) FloatCell(term.get_real());
+              new (dest) FloatCell(term.get_real());
             }
        }
 

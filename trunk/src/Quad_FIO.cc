@@ -680,9 +680,9 @@ const int b0 = fgetc(file);
 int len,bx;
    if      ((b0 & 0xE0) == 0xC0)   { len = 2;   bx = b0 & 0x1F; }
    else if ((b0 & 0xF0) == 0xE0)   { len = 3;   bx = b0 & 0x0F; }
-   else if ((b0 & 0xF8) == 0xF0)   { len = 4;   bx = b0 & 0x0E; }
-   else if ((b0 & 0xFC) == 0xF8)   { len = 5;   bx = b0 & 0x0E; }
-   else if ((b0 & 0xFE) == 0xFC)   { len = 6;   bx = b0 & 0x0E; }
+   else if ((b0 & 0xF8) == 0xF0)   { len = 4;   bx = b0 & 0x07; }
+   else if ((b0 & 0xFC) == 0xF8)   { len = 5;   bx = b0 & 0x03; }
+   else if ((b0 & 0xFE) == 0xFC)   { len = 6;   bx = b0 & 0x01; }
    else return UNI_EOF;
 
 uint32_t uni = 0;
@@ -1131,6 +1131,11 @@ Unicode lookahead = input.get_next();
            }
 
         ++f;   // skip (first) %
+        if (f >= format.ssize())
+           {
+             MORE_ERROR() << "trailing '%' in scanf format string";
+             DOMAIN_ERROR;
+           }
         const Unicode fmt_ch1 = format[f];
         if (fmt_ch1 == UNI_PERCENT)   goto match;   // double % is %
 
@@ -1280,6 +1285,7 @@ Unicode lookahead = input.get_next();
 
                   Unicode funi = format[f];
                   if ( funi == UNI_MINUS            // maybe a character range
+                    && f + 1 < format.ssize()
                     && format[f+1] != UNI_R_BRACK   // otherwise its not
                     && range.size())                // otherwise its not
                      {
@@ -1412,12 +1418,15 @@ int conversion_count_A = 0;   // the number of conversions (in A_format)
                     return;
                   }
 
-               if (fm >= sizeof(fmt))
+               if (fm >= sizeof(fmt) - 1)
                   {
                     // After seeing a %, no conversion specifier was seen
                     // within 40 characters. Most likely the user has
                     // forgotten it. In theory the format string could be
                     // proper, but we assumt it is mal-formed.
+                    // (- 1 above: every write below is fmt[fm++]=uni_1;
+                    // fmt[fm]=0; i.e. 2 bytes, so fm==sizeof(fmt)-1 must
+                    // also be rejected to avoid a 1-byte overflow.)
                     //
                     UTF8_string utf(fmt);
                     UCS_string ufmt(utf);
@@ -2589,13 +2598,22 @@ Quad_FIO::eval_XB__25(Value_P B)
 {
    errno = 0;
 file_entry & fe = get_file_entry(*B);
+
+   // never pclose() stdin, stdout, or stderr (matches close_handle()'s
+   // guard for fclose())
+   //
+   if (fe.fe_fd <= STDERR_FILENO)   DOMAIN_ERROR;
+
 int err = EBADF;   /* Bad file number */
    if (fe.fe_FILE)
       {
         err = sys_pclose(fe.fe_FILE);
+
+        // erase fe's own entry (not necessarily the last one)
+        //
+        const size_t h = &fe - &open_files[0];
+        open_files.erase(open_files.begin() + h);
       }
-   fe = open_files.back();       // move last file to fe
-   open_files.pop_back();        // erase last file
    if (err == -1)   return Token(TOK_APL_VALUE1, IntScalar(-errno, LOC));
    return Token(TOK_APL_VALUE1, IntScalar(err, LOC));
 }

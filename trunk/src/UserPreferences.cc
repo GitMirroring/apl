@@ -1452,6 +1452,9 @@ int file_profile = 0;   // the current profile in the preferences file
 
               if (p[0] == '/' && p[1] == '/')   break;   // comment
 
+              // leave room for the "NUL" terminator stored below
+              if (sargs_idx >= int(sizeof(sargs)/sizeof(*sargs)) - 1)   break;
+
               const char * arg = p;
               sargs[sargs_idx++] = arg;         // store start of argument
               while (*p > ' ')   ++p;           // skip non-whitespaces
