@@ -1101,7 +1101,7 @@ Quad_TZ::Quad_TZ()
    if (offset_seconds % 3600 == 0)   // full hour
       Symbol::assign(IntScalar(offset_seconds/3600, LOC), false, LOC);
    else
-      Symbol::assign(FloatScalar(offset_seconds/3600, LOC), false, LOC);
+      Symbol::assign(FloatScalar(offset_seconds/3600.0, LOC), false, LOC);
 }
 //────────────────────────────────────────────────────────────────────────────
 int

@@ -70,7 +70,13 @@ UTF8_string::UTF8_string(const UCS_string & ucs)
            }
         else                       // N-byte unicode
            {
-             char sixbits[5];
+             // sixbits must hold up to 6 continuation bytes: for
+             // uni == 0xFFFFFFFF the loop below writes indices 0..5
+             // (confirmed with ASan -- sixbits[5] overflowed by one
+             // byte). Reachable via a negative near-int Unicode (e.g.
+             // ⎕UCS ¯1), which ⎕UCS's own range check (-0x80..0x7FFFFFFF)
+             // allows, converted to uint32_t here.
+             char sixbits[6];
              char * s = sixbits;
              while (uni >= 0x40U >> (s - sixbits))  
                    { *s++ = 0x80 | (uni & 0x3F);   uni >>= 6; }
@@ -133,7 +139,11 @@ uint32_t bx = b0;   // the "significant" bits in b0
         CERR << "Bad UTF8 sequence: " << HEX(b0);
         loop(j, 6)
            {
-             if (end && string + j >= end)   break;
+             // most callers pass no end, in which case we must not read
+             // any further bytes at all (rather than only bounding the
+             // read when end happens to be supplied): confirmed OOB read
+             // of up to 6 bytes past string with end == 0.
+             if (end == 0 || string + j >= end)   break;
              const uint32_t bx = string[j];
              if (bx & 0x80)   CERR << " " << HEX(bx);
              else              break;

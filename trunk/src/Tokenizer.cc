@@ -189,6 +189,18 @@ Tokenizer::tokenize_real(Unicode_source & src)
 
 enum { MAX_TOKENIZE_DIGITS = 19 };   // == atrlen("9223372036854775807")
 
+   // hard cap on how many digit characters we accumulate per part. This
+   // is far more than any double could ever use (usable magnitude and
+   // precision top out around MAX_TOKENIZE_DIGITS), so it does not
+   // affect any real numeric literal -- it only stops a pathological
+   // literal with millions of digits from growing the ALLOCA() buffer
+   // below without bound: a plain digit run had no length cap before
+   // reaching that ALLOCA(), so it sized a stack allocation proportional
+   // to the (attacker/paste-controlled) literal length (confirmed stack
+   // overflow via inspection).
+   //
+enum { MAX_ACCUM_DIGITS = 1024 };
+
 UTF8_string int_digits;     // the digits left of . (if any)
 UTF8_string fract_digits;   // the digits right of . (if any)
 UTF8_string expo_digits;    // the digits  right of E (if any)
@@ -221,7 +233,11 @@ bool dot_seen = false;      // the decimal . was seen
 
    // integer part
    //
-   while (src.has_more() && Avec::is_digit(*src))   int_digits += src.get();
+   while (src.has_more() && Avec::is_digit(*src))
+      {
+        const Unicode digit = src.get();
+        if (int_digits.size() < MAX_ACCUM_DIGITS)   int_digits += digit;
+      }
 
    // fractional part...
    //
@@ -230,7 +246,8 @@ bool dot_seen = false;      // the decimal . was seen
         dot_seen = true;
         while (src.has_more() && Avec::is_digit(*src))
            {
-             fract_digits += src.get();
+             const Unicode digit = src.get();
+             if (fract_digits.size() < MAX_ACCUM_DIGITS)   fract_digits += digit;
            }
 
         while (fract_digits.size() && fract_digits.back() == UNI_0)   // 1d.
@@ -270,14 +287,20 @@ bool dot_seen = false;      // the decimal . was seen
              ++src;                        // skip e/E
              ++src;                        // skip ¯
              while (src.has_more() && Avec::is_digit(*src))
-                  expo_digits += src.get();
+                {
+                  const Unicode digit = src.get();
+                  if (expo_digits.size() < MAX_ACCUM_DIGITS)   expo_digits += digit;
+                }
            }
         else if (Avec::is_digit(src[1]))               // Ennn
            {
              need_float = true;
              ++src;                        // skip e/E
              while (src.has_more() && Avec::is_digit(*src))
-                  expo_digits += src.get();
+                {
+                  const Unicode digit = src.get();
+                  if (expo_digits.size() < MAX_ACCUM_DIGITS)   expo_digits += digit;
+                }
            }
       }
 
@@ -466,7 +489,18 @@ Unicode_source src(input);
                         int64_t idx = 0;
                         while (src.has_more() && Avec::is_digit(*src))
                               {
-                                idx = 10 * idx + src.get() - '0';
+                                const int64_t digit = src.get() - '0';
+                                // detect overflow *before* it happens
+                                // (signed overflow is UB): an arbitrarily
+                                // long digit run (e.g. @999...9@) would
+                                // otherwise overflow idx.
+                                if (idx > (INT64_MAX - digit) / 10)
+                                   {
+                                     MORE_ERROR() << "marker index too large.";
+                                     Error::throw_parse_error(E_SYNTAX_ERROR,
+                                                              LOC, loc);
+                                   }
+                                idx = 10 * idx + digit;
                               }
                         if (!src.has_more() || src.get() != UNI_AT_SIGN)
                            {
@@ -898,6 +932,15 @@ bool got_end = false;
             }
          else if (uni == UNI_BACKSLASH)   // backslash
             {
+              // A backslash as the very last character before the source
+              // is exhausted (no closing quote at all) must not fall
+              // through to src.get(): that only self-protects with
+              // Assert(), a no-op at the default (production) assert
+              // level, so an untrusted trailing backslash would read
+              // one past the end of the underlying UCS_string.
+              if (!src.has_more())
+                 Error::throw_parse_error(E_NO_STRING_END, LOC, loc);
+
               const Unicode uni1 = src.get();
               switch(uni1)
                  {
@@ -1164,7 +1207,14 @@ Tokenizer::tokenize_hex(Unicode_source & src)
    src.get();   // skip $
    if (!Avec::is_hex_digit(*src))   return Int_or_Double();   // no hex after $
 
-APL_Integer hex_val = 0;
+   // accumulate in an unsigned type: shifting a signed APL_Integer once
+   // it already occupies the sign bit (e.g. digit 16 of a literal such
+   // as $8000000000000000, used deliberately to construct INT64_MIN) is
+   // UB for a signed type pre-C++20. uint64_t shifting/overflow is
+   // always well-defined, and the final cast back to APL_Integer gives
+   // the same wrapped 2's-complement bit pattern that callers rely on.
+   //
+uint64_t hex_val = 0;
    while (src.has_more())
          {
            int digit;
@@ -1175,7 +1225,7 @@ APL_Integer hex_val = 0;
            else if (*src <  UNI_a)   break;
            else if (*src <= UNI_f)   digit = 10 + src.get() - UNI_a;
            else                            break;
-           hex_val = hex_val << 4 | digit;
+           hex_val = hex_val << 4 | uint64_t(digit);
          }
 
    return Int_or_Double(APL_Integer(hex_val));

@@ -67,11 +67,10 @@ const ShapeItem m_len = B->get_shape_item(axis);
 
    if (m_len == 0)      return Token(TOK_APL_VALUE1, CLONE_P(B, LOC));
 
-   if (m_len == 1)
-      {
-        const Shape shape_Z = B->get_shape().without_axis(axis);
-        return Bif_F12_RHO::do_reshape(shape_Z, *B);
-      }
+   // scanning a single item is the identity: it must keep B's shape
+   // (including the scanned axis, which stays at length 1) rather than
+   // dropping the scanned axis as without_axis() would do.
+   if (m_len == 1)      return Token(TOK_APL_VALUE1, CLONE_P(B, LOC));
 
 const Shape3 shape_Z3(B->get_shape(), axis);
 
@@ -215,6 +214,14 @@ ShapeItem bI = 0;
                   if (lval)
                      {
                        loop(l, shape_Z3.l())   Z->next_ravel_Lval(0, 0);
+                     }
+                  else if (shape_B.get_shape_item(axis) == 0)
+                     {
+                       // B has no row at all along the expand axis, so
+                       // there is no real B item at fillI+l to copy the
+                       // type from -- use B's prototype cell instead.
+                       const Cell & proto = B.get_cproto();
+                       loop(l, shape_Z3.l())   Z->next_ravel_Proto(proto);
                      }
                   else
                      {

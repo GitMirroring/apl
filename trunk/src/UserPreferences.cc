@@ -890,7 +890,14 @@ UserPreferences::parse_args_2(bool logit)
                    CERR << "--TM without test mode" << endl;
                    exit(a);
                  }
-              const int mode = 1 << atoi(val);
+              const int shift = atoi(val);
+              if (shift < 0 || shift > 6)
+                 {
+                   CERR << "--TM " << val << ": test mode number must be "
+                           "between 0 and 6" << endl;
+                   exit(a);
+                 }
+              const int mode = 1 << shift;
               IO_Files::test_mode = IO_Files::TestMode(mode);
               continue;
             }

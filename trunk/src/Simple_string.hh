@@ -97,6 +97,9 @@ public:
    /// @param other the source Simple_string to copy
    void operator =(const Simple_string & other)
       {
+        if (&other == this)   return;   // self-assignment: deallocate()
+                                         // below would wipe other's data
+                                         // (== this) before copying it
         deallocate();
         new (this) Simple_string(other);
       }
@@ -244,6 +247,14 @@ protected:
         items_allocated = items_valid + ADD_ALLOC;   // and a few more
         if (items_allocated < MIN_ALLOC)   items_allocated = MIN_ALLOC;
         items = new T[items_allocated];
+
+        // every caller of allocate() immediately placement-news real
+        // values into [0, items_valid) right after this call (without
+        // first destroying the default-constructed T that new T[] just
+        // put there), which leaks any resource held by that default T
+        // for a non-trivial T. Destroy them here so the placement-new
+        // that follows does not double-construct over a live object.
+        loop(l, items_valid)   items[l].~T();
       }
 
    /// increase the allocated size to at least \b new_size items
@@ -254,6 +265,7 @@ protected:
         T * old_items = items;
         items_allocated = new_size + ADD_ALLOC;
         items = new T[items_allocated];
+        loop(c, items_valid)   items[c].~T();   // see allocate() above
         loop(c, items_valid)
            {
               new (items + c) T(old_items[c]);

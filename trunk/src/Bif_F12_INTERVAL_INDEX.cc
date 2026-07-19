@@ -123,7 +123,7 @@ const APL_Integer qio = Workspace::get_IO();
 const ShapeItem ec_B = B.element_count();
 
    // BOOL 1D fast path: __builtin_popcountll + __builtin_ctzll per word
-   if (B.get_ravel_type() == RPT_BOOL && B.get_rank() == 1)
+   if (B.get_ravel_type() == RPT_BOOL && B.get_rank() == 1 && ec_B > 0)
       {
         const uint64_t * pB = B.cravel_bool();
         const ShapeItem words = (ec_B + 63) / 64;

@@ -144,57 +144,14 @@ public:
         return 0;   // not found
       }
 
-   /// initialize the (initially empty) vector \b sorted with pointers to the
-   /// items of \b array in such a way that *sorted[N] < *sorted[N+1] according
-   /// to the comparison function \b gf.
-   /// @param sorted initially-empty output vector of const pointers in order
-   /// @param array source vector whose items are pointed to
-   /// @param gf comparison function returning true when item_a > item_b
-   /// @param comp_arg additional context passed to the comparison function
-   static void sorted_pointers(vector<const T *> & sorted,
-                               const vector<T> & array,
-                               greater_fun gf, const void * comp_arg)
-      {
-        Assert(sorted.size() == 0);   // fresh vector
-        sorted.reserve(array.size());
-        loop(a, array.size())   sorted.push_back(&array[a]);
-        sort(sorted, comp_arg, gf);
-      }
-
-   /// initialize the (initially empty) vector \b sorted with pointers to the
-   /// items of \b array in such a way that *sorted[N] < *sorted[N+1] according
-   /// to the comparison function \b gf.
-   /// @param sorted initially-empty output vector of mutable pointers in order
-   /// @param array source vector whose items are pointed to
-   /// @param gf comparison function returning true when item_a > item_b
-   /// @param comp_arg additional context passed to the comparison function
-   static void sorted_pointers(vector<T *> & sorted,
-                                      vector<T> & array,
-                                      greater_fun gf,
-                                      const void * comp_arg)
-      {
-        Assert(sorted.size() == 0);   // fresh vector
-        sorted.reserve(array.size());
-        loop(a, array.size())   sorted.push_back(&array[a]);
-        sort(sorted, comp_arg, gf);
-      }
-
-   /// initialize the (initially empty) vector \b sorted with indices of the
-   /// array in such a way that arrat[sorted[N]] < array[sorted[N+1]] according
-   /// to the comparison function \b gf.
-   /// @param sorted initially-empty output vector of indices in sorted order
-   /// @param array source vector to sort by index
-   /// @param gf comparison function returning true when item_a > item_b
-   /// @param comp_arg additional context passed to the comparison function
-   static void sorted_indices(vector<ShapeItem> & sorted,
-                              const vector<T> & array,
-                              greater_fun gf, const void * comp_arg)
-      {
-        Assert(sorted.size() == 0);   // fresh vector
-        sorted.reserve(array.size());
-        loop(a, array.size())   sorted.push_back(a);
-        sort(sorted, comp_arg, gf);
-      }
+   // sorted_pointers()/sorted_indices() helpers were removed here: they
+   // called sort(sorted, comp_arg, gf) with the wrong argument order
+   // (sort() takes (array, gf, comp_arg)) and the wrong container type
+   // (sort() sorts a vector<T> in place; sorted was vector<const T*>,
+   // vector<T*>, or vector<ShapeItem> -- an indirection sort() does not
+   // support). They had no callers (live code uses Heapsort<T>::sort()
+   // directly, or the separate Cell::sorted_indices()), so this was
+   // latent dead code that would only fail to compile if ever used.
 
 protected:
    /// establish the heap property of the subtree with root a[parent]

@@ -1037,9 +1037,13 @@ int has_result = 0;   // no result
                 Z.next_ravel_0();
                 break;
 
-        case 2: // creation time
-        case 3: // execution properties
-                loop(j, Z.element_count())   Z.next_ravel_0();
+        case 2: // creation time (mode_len == 7, see QuadFunction.cc's
+                // mode_vec)
+                loop(j, 7)   Z.next_ravel_0();
+                break;
+
+        case 3: // execution properties (mode_len == 4)
+                loop(j, 4)   Z.next_ravel_0();
                 break;
 
         case 4: {

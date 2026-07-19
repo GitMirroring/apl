@@ -393,12 +393,17 @@ public:
             const double diff2 = diff * diff;   // square diff since abs2 is
             for (ShapeItem y = 1; y < M; ++y)
                 {
-                  const double abs = abs2(y, 1);
-                  if (abs < diff2)   return true;   // non-zero
-                  if (abs > diff2)   return true;   // non-zero
+                  // column 0, matching col1_norm() above (also "column 1"
+                  // in 1-based terms); the old "abs2(y,1)" read column 1
+                  // instead. The old two-sided check (abs<diff2 OR
+                  // abs>diff2) was true for any abs != diff2, including
+                  // abs==0 (i.e. "non-zero" for an actually-zero item) --
+                  // only a value close to bmax's own scale is genuinely
+                  // insignificant, so this must be one-sided.
+                  if (abs2(y, 0) > diff2)   return true;   // non-zero
                 }
 
-            return false;   // all items below A[0;1] are (close to) 0
+            return false;   // all items below A[0;0] are (close to) 0
           }
 
        /// return the square of the length of the item at row x column y

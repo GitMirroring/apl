@@ -444,7 +444,7 @@ cerr << "APnnn got " << signal->get_sigName() << endl;
                           << signal->get_sigName() << ")" << endl;
           }
 
-         if (del)   delete del;
+         if (del)   delete[] del;
        }
 
    return 0;

@@ -32,8 +32,24 @@
 
 //════════════════════════════════════════════════════════════════════════════
 Value_P
-CDR::from_CDR(const CDR_string & cdr, const char * loc)
+CDR::from_CDR(const CDR_string & cdr, const char * loc, int nest_level)
 {
+   // a CDR_NEST32 sub-record's offset can point anywhere in the buffer,
+   // including back at (or into) an enclosing record, e.g. a nested
+   // sub-item whose offset resolves to itself: from_CDR() would then
+   // recurse into an identical copy of the same bytes forever, exhausting
+   // the stack (confirmed via a real SIGSEGV/stack-overflow crash with a
+   // self-referential offset). Cap the nesting depth generously above any
+   // real-world use.
+   //
+enum { MAX_CDR_NEST_LEVEL = 100 };
+   if (nest_level > MAX_CDR_NEST_LEVEL)
+      {
+        MORE_ERROR() << "CDR nested nesting level exceeds "
+                     << int(MAX_CDR_NEST_LEVEL);
+        LENGTH_ERROR;
+      }
+
    // read header...
    //
 /*
@@ -198,6 +214,29 @@ const uint8_t * ravel = data + 16 + 4*rank;
               //
               if (sub_rank == 0)   // scalar
                  {
+                   // The offset+14 guard above validates only sub_data's
+                   // first 14 bytes, but sub_ravel starts at sub_data+16
+                   // -- every scalar branch below reads at or past that,
+                   // up to 16 bytes for a complex value (up to 17 bytes
+                   // past a buffer whose last valid offset is exactly
+                   // offset+14, confirmed by inspection). Validate the
+                   // full per-type size before dereferencing sub_ravel.
+                   size_t sub_size = 0;
+                   switch (sub_vtype)
+                      {
+                        case 0: case 4: sub_size = 17; break;   // bit, char8
+                        case 1: case 5: sub_size = 20; break;   // int, char32
+                        case 2:         sub_size = 24; break;   // float
+                        case 3:         sub_size = 32; break;   // complex
+                      }
+                   if (sub_size && size_t(offset) + sub_size > cdr.size())
+                      {
+                        MORE_ERROR() << "CDR nested scalar (type "
+                                     << sub_vtype << ") at offset " << offset
+                                     << " exceeds buffer";
+                        LENGTH_ERROR;
+                      }
+
                    if (sub_vtype == 0)        // bit
                       {
                         Z->next_ravel_Int((*sub_ravel & 0x80) ? 1 : 0);
@@ -261,7 +300,7 @@ const uint8_t * ravel = data + 16 + 4*rank;
                    //
                    Shape sh;
                    loop(r, sub_rank)
-                      sh.add_shape_item(get_4_be(sub_data + 16));
+                      sh.add_shape_item(get_4_be(sub_data + 16 + 4*r));
 
                    Value_P sub_val(sh, LOC);
                    const APL_Integer qio = Workspace::get_IO();
@@ -270,12 +309,32 @@ const uint8_t * ravel = data + 16 + 4*rank;
                          sub_val->next_ravel_Int(v + qio);
                        }
 
+                   sub_val->check_value(LOC);
+                   Z->next_ravel_Pointer(sub_val.get());
                    continue;   // next n
                  }
 
               const uint32_t sub_cdr_len = get_4_be(sub_data + 4);
+
+              // sub_cdr_len is attacker-controlled and was, until this
+              // check, never validated against the bytes actually
+              // remaining: CDR_string's constructor copies sub_cdr_len
+              // bytes one at a time starting at sub_data, so an
+              // oversized sub_cdr_len read far past the buffer (crash +
+              // information leak, confirmed via a real SIGSEGV). 20 is
+              // the same minimum header size from_CDR() itself requires
+              // a few lines below (once sub_cdr is actually parsed).
+              if (sub_cdr_len < 20 ||
+                  size_t(offset) + sub_cdr_len > cdr.size())
+                 {
+                   MORE_ERROR() << "CDR nested sub-record length "
+                                << sub_cdr_len << " at offset " << offset
+                                << " exceeds buffer";
+                   LENGTH_ERROR;
+                 }
+
               CDR_string sub_cdr(sub_data, sub_cdr_len);
-              Value_P sub_val = from_CDR(sub_cdr, LOC);
+              Value_P sub_val = from_CDR(sub_cdr, LOC, nest_level + 1);
               Assert(+sub_val);
               Z->next_ravel_Pointer(sub_val.get());
             }

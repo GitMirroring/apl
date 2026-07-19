@@ -760,13 +760,14 @@ protected:
         if (offset_seconds % 3600 == 0)   // full hour
            Symbol::assign(IntScalar(offset_seconds/3600, LOC), false, LOC);
         else
-           Symbol::assign(FloatScalar(offset_seconds/3600, LOC), false, LOC);
+           Symbol::assign(FloatScalar(offset_seconds/3600.0, LOC), false, LOC);
       }
 
    virtual void pop()
       {
         Symbol::pop();
-        offset_seconds = 3600 * get_apl_value()->get_cscalar().get_int_value();
+        offset_seconds = int(0.5 + 3600
+                          * get_apl_value()->get_cscalar().get_real_value());
       }
 
    /// the offset from GMT of the current timezone (in seconds)

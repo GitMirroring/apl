@@ -272,22 +272,43 @@ Shape shape;
    // Clip element count to budget (negative = no limit). Produce the
    // top-level ravel as before, but bounded by this sub-value's own
    // (possibly recursively divided) budget rather than the raw ecount.
-   // If the randomly chosen shape exceeds the limit, shorten the last
-   // axis so that ×/shape ≤ budget.
+   // If the randomly chosen shape exceeds the limit, shrink axes
+   // (largest first) until ×/shape ≤ budget or every axis is 1.
+   //
+   // Shrinking only the *last* axis (as this used to do) truncates via
+   // integer division, which silently rounds to 0 whenever the product
+   // of the OTHER axes alone already exceeds budget (common for rank
+   // ≥ 2 shapes at small budgets) -- a much bigger, more surprising
+   // change than "cap the size" was ever meant to make (confirmed via
+   // a real fuzzer sweep: this alone was responsible for the bulk of
+   // A⍋B/A⍒B/A⌷B's remaining DOMAIN/INDEX ERRORs, since downstream
+   // code generally isn't prepared for a zero-length axis appearing
+   // out of nowhere). Simply flooring that one axis at 1 instead (an
+   // earlier version of this fix) creates a different problem: the
+   // *other* axes are left at their full, un-shrunk random draw, so
+   // the shape can end up enormously over budget (confirmed: this
+   // alone was enough to blow AllPrimitives.tc's self-timed 5-second
+   // fuzz budget out to 20+ seconds). Shrinking the largest axis
+   // repeatedly instead keeps every axis budget-aware, the same
+   // guarantee the "last axis only" approach was trying to give,
+   // without either failure mode.
    //
    if (budget >= 0 && rank > 0)
       {
         ShapeItem ec_trial = 1;
         loop(r, rank)   ec_trial *= shape.get_shape_item(r);
-        if (ec_trial > budget)
+        while (ec_trial > budget)
            {
-             ShapeItem prefix = 1;
-             loop(r, rank - 1)   prefix *= shape.get_shape_item(r);
-             const ShapeItem last_ok = budget / prefix;
-             Shape clipped;
-             loop(r, rank - 1)   clipped.add_shape_item(shape.get_shape_item(r));
-             clipped.add_shape_item(last_ok);
-             shape = clipped;
+             sRank biggest = 0;
+             loop(r, rank)
+                if (shape.get_shape_item(r) > shape.get_shape_item(biggest))
+                   biggest = r;
+
+             if (shape.get_shape_item(biggest) <= 1)   break;   // every axis is 1
+
+             ec_trial /= shape.get_shape_item(biggest);
+             shape.set_shape_item(biggest, shape.get_shape_item(biggest) - 1);
+             ec_trial *= shape.get_shape_item(biggest);
            }
       }
 
@@ -386,21 +407,70 @@ Quad_RVAL::random_nested(Value & Z, const cValue & B, int depth,
 {
 Value_P Zsub;
 
+   // do_eval_B() can legitimately be forced to produce a simple scalar
+   // no matter how many times it's retried: once the recursive budget is
+   // small enough, Pass 1's demotion (see do_eval_B, "if there is not
+   // enough budget left for that... demote the excess nested cells to a
+   // simple type") downgrades every candidate nested cell to simple on
+   // every attempt. This retry-until-nested loop then never terminates
+   // (found via a real, reproducible hang, not a hypothetical). Bound
+   // the retries and accept whatever was generated on the last attempt.
+   // next_ravel_Value (unlike next_ravel_Pointer) handles a still-simple
+   // Zsub safely by writing it as a plain cell instead of asserting.
+   //
+enum { MAX_RETRIES = 20 };
+int retries = 0;
    do Zsub = do_eval_B(B, depth + 1, budget);
-   while (Zsub->is_simple_scalar());
+   while (Zsub->is_simple_scalar() && ++retries < MAX_RETRIES);
 
-   Z.next_ravel_Pointer(Zsub.get());
+   Z.next_ravel_Value(Zsub.get());
 }
 //────────────────────────────────────────────────────────────────────────────
 Value_P
 Quad_RVAL::conform_value(const cValue & Bref) const
 {
    // temporarily force the rank/shape distributions to either scalar or
-   // exactly Bref's shape, then generate through the normal machinery
-   // (which keeps using the currently configured types/depth/ecount).
+   // exactly Bref's shape, then generate through the normal machinery.
+   //
+   // Also force the type distribution to the types actually present in
+   // Bref's own (top-level) ravel: do_eval_B() below always reverts
+   // desired_types to whatever it was *before* this call once it is
+   // done (see the unconditional restore at the end of do_eval_B) --
+   // including after the very call that generated Bref in the first
+   // place. So by the time we get here, desired_types no longer
+   // reflects Bref's type mask at all; it holds leftover state from
+   // whatever unrelated ⎕RVAL call last ran (found via a real fuzzer
+   // sweep: A_stim="~B" rows like A+B were generating A with char/
+   // nested cells even though B's own type mask excluded them,
+   // producing spurious DOMAIN ERRORs). Deriving the mask straight
+   // from Bref's actual cells is self-sufficient and matches "conform
+   // to B" regardless of what ⎕RVAL call preceded this one.
    //
 vector<int> old_ranks = desired_ranks;
 Shape       old_shape = desired_shape;
+vector<int> old_types = desired_types;
+
+   {
+     vector<int> types_seen(5, 0);
+     const ShapeItem ec = Bref.nz_element_count();
+     loop(b, ec)
+        {
+          const Cell & cell = Bref.get_cravel(b);
+          if      (cell.is_pointer_cell())     types_seen[4] = 1;
+          else if (cell.is_character_cell())   types_seen[0] = 1;
+          else if (cell.is_complex_cell())     types_seen[3] = 1;
+          else if (cell.is_float_cell())       types_seen[2] = 1;
+          else if (cell.is_integer_cell())     types_seen[1] = 1;
+          else                                 types_seen[1] = 1;
+        }
+
+     const bool any_simple = types_seen[0] || types_seen[1]
+                           || types_seen[2] || types_seen[3];
+     if (any_simple)   desired_types = types_seen;
+     // else: Bref was all-nested or empty -- leave desired_types as-is
+     // rather than pass result_type() a nested-only (or all-0) mask,
+     // both of which it rejects with DOMAIN_ERROR.
+   }
 
    if (rand17() & 1)   // 50%: scalar
       {
@@ -432,6 +502,7 @@ Value_P Z = do_eval_B(*Idx0(LOC), 0, -1);
 
    desired_ranks = old_ranks;
    desired_shape = old_shape;
+   desired_types = old_types;
    return Z;
 }
 //────────────────────────────────────────────────────────────────────────────
@@ -461,6 +532,18 @@ const int dist_len = dist.size();
    //
 int sum = 0;
    for (size_t d = 0; d < dist.size(); ++d)   sum += dist[d];
+
+   // an all-zero distribution (every weight 0, e.g. ⎕RVAL (⊂0 0)) makes
+   // sum == 0, and "% sum" below is then a division by zero (SIGFPE),
+   // confirmed directly. There is no meaningful weighted choice among
+   // all-zero weights, so DOMAIN_ERROR rather than silently picking
+   // index 0.
+   if (sum <= 0)
+      {
+        MORE_ERROR() << "⎕RVAL: a weight distribution must have a "
+                        "positive sum (all weights were 0 or negative)";
+        DOMAIN_ERROR;
+      }
 
    // 2. pick a random number 0...sum
    //

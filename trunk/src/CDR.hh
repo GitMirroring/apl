@@ -62,7 +62,10 @@ public:
    /// DOMAIN ERROR if cdr is ill-formed
    /// @param cdr CDR byte string to deserialise
    /// @param loc caller location for diagnostics
-   static Value_P from_CDR(const CDR_string & cdr, const char * loc);
+   /// @param nest_level current CDR_NEST32 recursion depth (bounded to
+   ///        avoid stack exhaustion from a self-referential/cyclic offset)
+   static Value_P from_CDR(const CDR_string & cdr, const char * loc,
+                           int nest_level = 0);
 
    /// convert \b value into a CDR_string
    /// @param result output CDR byte string

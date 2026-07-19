@@ -144,7 +144,10 @@ const RavelType rt = value->get_ravel_type();
            }
       }
 
-   return PyTuple_Pack(2, shape, ravel);
+PyObject * ret = PyTuple_Pack(2, shape, ravel);
+   Py_DECREF(shape);
+   Py_DECREF(ravel);
+   return ret;
 }
 //════════════════════════════════════════════════════════════════════════════
 static PyObject * exec_result = 0;
@@ -158,33 +161,47 @@ bool do_display = false;
    if (tag == TOK_APL_VALUE2)                       // committed value
       {
         do_display = display_mode > 1;
-        exec_result = PyTuple_Pack(2, PyLong_FromLong(2),
-                                   apl_to_python(result.get_apl_val().get()));
+        PyObject * code = PyLong_FromLong(2);
+        PyObject * val = apl_to_python(result.get_apl_val().get());
+        exec_result = PyTuple_Pack(2, code, val);
+        Py_DECREF(code);
+        Py_DECREF(val);
       }
    else if (result.get_Class() == TC_VALUE)   // non-committed value
       {
         do_display = display_mode > 0;
-        exec_result = PyTuple_Pack(2, PyLong_FromLong(1),
-                                   apl_to_python(result.get_apl_val().get()));
-
+        PyObject * code = PyLong_FromLong(1);
+        PyObject * val = apl_to_python(result.get_apl_val().get());
+        exec_result = PyTuple_Pack(2, code, val);
+        Py_DECREF(code);
+        Py_DECREF(val);
       }
    else if (tag == TOK_VOID)                            // void
       {
-        exec_result = PyTuple_Pack(2, PyLong_FromLong(3), Py_None);
+        PyObject * code = PyLong_FromLong(3);
+        exec_result = PyTuple_Pack(2, code, Py_None);
+        Py_DECREF(code);
       }
    else if (tag == TOK_BRANCH)                           // →N
       {
-        exec_result = PyTuple_Pack(2, PyLong_FromLong(4),
-                                   PyLong_FromLong(result.get_int_val()));
+        PyObject * code = PyLong_FromLong(4);
+        PyObject * val = PyLong_FromLong(result.get_int_val());
+        exec_result = PyTuple_Pack(2, code, val);
+        Py_DECREF(code);
+        Py_DECREF(val);
       }
    else if (tag == TOK_NOBRANCH)                         // →''
       {
         // never called because TOK_NOBRANCH is a NOOP
-        exec_result = PyTuple_Pack(2, PyLong_FromLong(4), Py_None);
+        PyObject * code = PyLong_FromLong(4);
+        exec_result = PyTuple_Pack(2, code, Py_None);
+        Py_DECREF(code);
       }
    else if (tag == TOK_ESCAPE)                           // →
       {
-        exec_result = PyTuple_Pack(2, PyLong_FromLong(5), Py_None);
+        PyObject * code = PyLong_FromLong(5);
+        exec_result = PyTuple_Pack(2, code, Py_None);
+        Py_DECREF(code);
       }
    else
       {
@@ -237,12 +254,20 @@ UCS_string line_ucs(line_utf8);
            {
              const Error & err = StateIndicator::get_error(si);
              const ErrorCode ec = err.get_error_code();
-             return PyTuple_Pack(2, PyLong_FromLong(0), PyLong_FromLong(ec));
+             PyObject * code = PyLong_FromLong(0);
+             PyObject * val = PyLong_FromLong(ec);
+             PyObject * ret = PyTuple_Pack(2, code, val);
+             Py_DECREF(code);
+             Py_DECREF(val);
+             return ret;
            }
 
         // defined function without result
         //
-        return PyTuple_Pack(2, PyLong_FromLong(3), Py_None);
+        PyObject * code = PyLong_FromLong(3);
+        PyObject * ret = PyTuple_Pack(2, code, Py_None);
+        Py_DECREF(code);
+        return ret;
       }
 
 PyObject * ret = exec_result;
@@ -359,7 +384,10 @@ const cValue * value = apl_get_var_value(args);
 
 PyObject * shape = make_shape(value->get_shape());
 PyObject * ravel = make_ravel(value);
-   return PyTuple_Pack(2, shape, ravel);
+PyObject * ret = PyTuple_Pack(2, shape, ravel);
+   Py_DECREF(shape);
+   Py_DECREF(ravel);
+   return ret;
 }
 //────────────────────────────────────────────────────────────────────────────
 static Shape
@@ -433,7 +461,13 @@ const ShapeItem len_Z = Z->nz_element_count();
                                 (PyUnicode_AsUTF8AndSize(ravel, &len));
         UTF8_string utf(data, len);
         UCS_string ucs(utf);
-        loop(z, len_Z)   Z->next_ravel_Char(ucs[z % ucs.size()]);
+        // len_Z (nz_element_count()) is always >= 1 (the prototype
+        // element), so this loop runs at least once even for an empty
+        // shape/source -- "z % ucs.size()" then divides by zero (SIGFPE)
+        // for an empty string.
+        if (ucs.size() == 0)   loop(z, len_Z)   Z->next_ravel_Char(UNI_SPACE);
+        else                   loop(z, len_Z)
+                                   Z->next_ravel_Char(ucs[z % ucs.size()]);
       }
    else if (PyTuple_Check(ravel))   // item is a tuple (val, shape)
       {
@@ -445,12 +479,17 @@ const ShapeItem len_Z = Z->nz_element_count();
    else if (PyList_Check(ravel))   // ravel is a list
       {
         const ShapeItem src_len = PyList_Size(ravel);
-        loop(z, len_Z)
-            {
-              PyObject * src = PyList_GetItem(ravel, z % src_len);
-              Value_P sub = python_to_apl(src, 0);
-              Z->next_ravel_Value(sub.get());
-            }
+        // same len_Z >= 1 vs. empty-source issue as the string case
+        // above: "z % src_len" divides by zero (SIGFPE) for an empty
+        // list.
+        if (src_len == 0)   loop(z, len_Z)   Z->next_ravel_Int(0);
+        else
+           loop(z, len_Z)
+               {
+                 PyObject * src = PyList_GetItem(ravel, z % src_len);
+                 Value_P sub = python_to_apl(src, 0);
+                 Z->next_ravel_Value(sub.get());
+               }
       }
    else
       {
@@ -490,7 +529,7 @@ const int arg_count = PyTuple_Size(args);
       }
    else if (arg_count == 3)   // set_value(varname, ravel, shape)
       {
-        if (!PyArg_ParseTuple(args, "sOO", &varname, &ravel, shape))
+        if (!PyArg_ParseTuple(args, "sOO", &varname, &ravel, &shape))
            {
               CERR << "*** Bad arguments in set_value(varname, ravel, shape) ."
                    << endl;
@@ -529,7 +568,7 @@ Value_P value = python_to_apl(ravel, shape);
       }
 
    sym->assign(value, true, LOC);
-   return Py_None;
+   Py_RETURN_NONE;
 }
 //════════════════════════════════════════════════════════════════════════════
 static PyObject *
@@ -552,7 +591,7 @@ const UTF8_string creator("python");
 UserFunction * fun = UserFunction::fix(text_ucs, error_line, false, LOC,
                                        creator);
 
-   if (fun)   return Py_None;
+   if (fun)   Py_RETURN_NONE;
 
    CERR << "*** invalid string argument of fix_function()" << endl
         << "*** offending function line: " << error_line << endl;
@@ -821,7 +860,7 @@ const char * topic = 0;
                    << DESCR_set_value    << sep
                    << DESCR_set_display  << sep
                    << DESCR_values       << sep << endl;
-              return Py_None;
+              Py_RETURN_NONE;
             }
 
          if (help == 0)
@@ -838,7 +877,7 @@ const char * topic = 0;
          CERR << DESCR_help << endl;
        }
 
-   return Py_None;
+   Py_RETURN_NONE;
 }
 //════════════════════════════════════════════════════════════════════════════
 static PyMethodDef AplMethods[] =

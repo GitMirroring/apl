@@ -1210,7 +1210,7 @@ ShapeItem skipped = 0;
         const APL_Integer K = tos[s + 7].get_apl_val()->get_cfirst()
                                         .get_int_value();
 
-        loop(j, 6)   tos[s + j].clear(LOC);
+        loop(j, 8)   tos[s + j].clear(LOC);
 
         Value_P sequence(K, LOC);
         loop(k, K)   sequence->next_ravel_Int(M * (N + k));

@@ -230,7 +230,7 @@ const sRank rank_Z = Z->get_rank();
       {
         Value_P ZZ(rank_Z, LOC);
         ShapeItem N = z;
-        ShapeItem * zz = ALLOCA(ShapeItem, rank_Z);
+        ShapeItem zz[MAX_RANK];   // rank_Z <= MAX_RANK
         loop(r, rank_Z)
             {
               const ShapeItem q = sh_Z.get_shape_item(ec - r - 1);

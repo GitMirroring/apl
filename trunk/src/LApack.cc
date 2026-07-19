@@ -624,6 +624,13 @@ LA_pack::divide_matrix(Value & Z, Crow rows,
    // rows_B >= cols_B and
    // rows_A == rows_B  (aka. rows)
    //
+
+   // degenerate case: B has no columns (and, per the precondition above,
+   // no rows either). Z has shape (cols_B, cols_A) and is therefore
+   // trivially empty regardless of cols_A -- skip gelsy() entirely since
+   // it asserts on empty (M==0 or N==0) input and there is nothing to solve.
+   if (cols_B == 0 || rows == 0)   return cols_B;
+
 const T t0(0.0);
 const APL_Float rcond = Workspace::get_CT();
 const size_t items_A      = rows;

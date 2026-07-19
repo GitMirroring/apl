@@ -127,7 +127,8 @@ public:
    /// @param shape the array shape to iterate over
    ArrayIterator(const Shape & shape)
    : rank(shape.get_rank()),
-     total_ravel_offset(0)
+     total_ravel_offset(0),
+     empty(rank > 0 && shape.get_volume() == 0)
       {
         if (rank == 0)   // scalar
            {
@@ -140,7 +141,7 @@ public:
             {
               // axis_iterators[0] is the one with the highest weight, and
               // axis_iterators[rank - 1 the one with the lowest weight (1).
-              // 
+              //
               const ShapeItem len = shape.get_shape_item(a);
               new (&get_iterator(a)) AxisIterator(len, weight, a > 0);
               weight *= len;
@@ -152,7 +153,8 @@ public:
    /// @param perm axis permutation to apply during iteration
    ArrayIterator(const Shape & shape,  const Shape & perm)
    : rank(shape.get_rank()),
-     total_ravel_offset(0)
+     total_ravel_offset(0),
+     empty(rank > 0 && shape.get_volume() == 0)
       {
         if (rank == 0)   // scalar
            {
@@ -167,7 +169,7 @@ public:
 
               // axis_iterators[0] is the one with the highest weight, and
               // axis_iterators[rank - 1 the one with the lowest weight (1).
-              // 
+              //
               const ShapeItem len = shape.get_shape_item(perm_a);
               new (&get_iterator(perm_a)) AxisIterator(len, weight, perm_a);
               weight *= len;
@@ -177,11 +179,26 @@ public:
    // Note: The axis_iterators[a] for a > 0 wrap at the end and therefore
    // axis_iterators[a].more() is always true for a > 0.
    // As a consequence we only need to check axis_iterators[0].more() to see
-   // if the entire iteration is done.
+   // if the entire iteration is done -- EXCEPT when the shape's volume is 0
+   // because some axis other than axis 0 has length 0 (e.g. shape 3 0 5).
+   // In that case axis_iterators[0]'s cumulative weight is itself 0 (the
+   // zero length of the inner axis propagates outward through the
+   // running product in the constructor), which makes AxisIterator
+   // mistake it for is_scalar_iterator() (weight == 0 is otherwise only
+   // true for the genuine rank-0/scalar case) and its has_more() then
+   // checks "shape_offset == 0" instead of "shape_offset < axis_length" --
+   // so it reports true up front and the loop body runs a bogus nonzero
+   // number of times (found via a real fuzzer crash: Bif_F2_FIND::eval_AB
+   // overran its result Value's ravel capacity by iterating an empty B's
+   // shape as if nonempty). The empty flag, computed once from the
+   // shape's own volume at construction, sidesteps that AxisIterator
+   // ambiguity entirely instead of trying to special-case every affected
+   // axis.
    //
    /// return true iff this iterator has more items to come.
    bool has_more() const
       {
+        if (empty)   return false;
         return get_iterator(0).has_more();
       }
 
@@ -237,6 +254,11 @@ protected:
 
    /// the sum of the ravel offsets of all iterators
    ShapeItem total_ravel_offset;
+
+   /// true iff rank > 0 and the shape's volume is 0 (some axis other than
+   /// axis 0 has length 0); see has_more() for why this needs its own flag
+   /// rather than being derived from the per-axis iterators.
+   const bool empty;
 
    /** axis iterators.                   Shape:  ⊏sh0:sh1:..:shN⊐
                                                     │   │      │

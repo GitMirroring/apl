@@ -449,7 +449,15 @@ const int bytes_per_pixel = planes * bytes_per_color;
    // 2. allocate the pixel memory and scanline pointers...
    //
 if ((size_t)planes * height > SIZE_MAX / 2 / (unsigned)width)   WS_FULL;
-UTF8 * RGB = new UTF8[planes*height*width*2];
+   // The guard above is computed in size_t, but width/height/planes are
+   // all plain int, so "planes*height*width*2" here used to multiply
+   // entirely in 32-bit int -- silently wrapping (UB) for a large,
+   // highly compressible image (e.g. ~26000x26000 RGB) that passes the
+   // size_t guard but overflows INT_MAX, under-allocating RGB while
+   // png_read_image() still writes the full (large) decoded image into
+   // it. Force the same size_t arithmetic used by the guard.
+const size_t rgb_bytes = size_t(planes) * height * width * 2;
+UTF8 * RGB = new UTF8[rgb_bytes];
 UTF8 ** row_pointers = new UTF8 *[height];
 
 UTF8 * scanline = RGB;
@@ -705,6 +713,14 @@ UTF8 * scanline = RGB;
                     DOMAIN_ERROR;
                   }
              }
+
+         // sub-byte bit depths (1/2/4) only advance scanline every
+         // 8/bit_depth pixels; if width is not a multiple of that, the
+         // last byte of this row is left half-written and libpng (which
+         // expects exactly ceil(width*bit_depth/8) bytes per row) would
+         // read the next row starting mid-byte, shifting every row after
+         // it. Pad to the next byte boundary before starting the next row.
+         if (bit_depth < 8 && (width % (8 / bit_depth)))   ++scanline;
        }
 
    png_set_IHDR(png_ptr, info_ptr, width, height,

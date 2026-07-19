@@ -94,7 +94,9 @@ Value_P Z(expos.size() + 1, LOC);
       {
         Z->next_ravel_Number(coefficient.real());
       }
-   else if (!Cell::is_near_int(coefficient.imag()))   // complex coefficient
+   else   // complex coefficient (including a nonzero integer imaginary
+          // part, e.g. 2J2, which the old !is_near_int() condition
+          // missed, leaving this cell uninitialized)
       {
         Z->next_ravel_Complex(coefficient.real(), coefficient.imag());
       }
@@ -240,14 +242,15 @@ size_t pos = 0;
             }
       }
 
-   /// no user defined order, use lexicographical order
-   ///
-   for (size_t t = 1; t < size(); ++t)
-       {
-         if (at(pos) < at(t))   pos = t;
-       }
-   return pos;
+   else   // no user defined order, use lexicographical order
+      {
+        for (size_t t = 1; t < size(); ++t)
+            {
+              if (at(pos) < at(t))   pos = t;
+            }
+      }
 
+   return pos;
 }
 //────────────────────────────────────────────────────────────────────────────
 ostream &

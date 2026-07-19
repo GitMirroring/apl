@@ -433,6 +433,21 @@ repl(char * input_buffer,  int * input_bufsize,
      char * output_buffer, int * output_bufsize,
      LIBAPL_error * error)
 {
+  // *input_bufsize/*output_bufsize are in/out parameters: on entry they
+  // are the caller's buffer capacity, on exit the actual length
+  // written. Capture the capacities BEFORE the "init sizes" block
+  // below zeroes them -- doing it the other way around (as this code
+  // used to) destroys the capacity before it is ever read, so every
+  // later "capacity - 1" computation underflows (size_t), permanently
+  // defeating the overflow checks and writing past the caller's real
+  // buffer (confirmed: with *input_bufsize == 0, "*input_bufsize - 1"
+  // as size_t is SIZE_MAX). A capacity <= 0 is treated as "no buffer".
+  //
+  const int input_capacity  = (input_buffer  && input_bufsize
+                                && *input_bufsize  > 0) ? *input_bufsize  : 0;
+  const int output_capacity = (output_buffer && output_bufsize
+                                && *output_bufsize > 0) ? *output_bufsize : 0;
+
   // init sizes
   //
   if (input_bufsize)   *input_bufsize  = 0;
@@ -452,21 +467,25 @@ UTF8_string file_line;
     bool file_eof = false;
     IO_Files::get_file_line(file_line, file_eof);
     // cerr << "inp: '" << file_line.data() << "'" << endl;
-    if (input_buffer && input_bufsize)   // caller requests a copy of the input
+    if (input_capacity > 0)   // caller requests a copy of the input
        {
-         const size_t max_len = *input_bufsize - 1;   // 1 for trailing 0.
+         const size_t max_len = size_t(input_capacity) - 1;  // 1 for trailing 0.
          const size_t inp_len = file_line.size();
          if (inp_len > max_len)   // overflow
             {
               if (error)   *error = LAE_IN_BUFFER_OVERFLOW;
               strncpy(input_buffer, "--input buffer overflow--", max_len);
-              input_buffer[max_len - 1] = 0;
+              input_buffer[max_len] = 0;
+              *input_bufsize = max_len;
             }
-
-         const char * bytes = reinterpret_cast<const char *>(file_line.data());
-         strncpy(input_buffer, bytes, *input_bufsize);
-         input_buffer[*input_bufsize - 1] = 0;   // just in case
-         *input_bufsize = inp_len;               // may increase input_bufsize
+         else
+            {
+              const char * bytes =
+                       reinterpret_cast<const char *>(file_line.data());
+              strncpy(input_buffer, bytes, max_len);
+              input_buffer[inp_len] = 0;
+              *input_bufsize = inp_len;
+            }
        }
   }
 
@@ -478,18 +497,23 @@ ostringstream out;
 
   // maybe store one output line
   //
-  if (output_buffer && output_bufsize)   // caller requests a copy of the output
+  if (output_capacity > 0)   // caller requests a copy of the output
      {
-       const size_t max_len = *output_bufsize - 1;   // 1 for trailing 0.
+       const size_t max_len = size_t(output_capacity) - 1;  // 1 for trailing 0.
        const size_t out_len = out.str().size();
-       if (out_len > max_len)
-            {
-              if (error)   *error = LAE_OUT_BUFFER_OVERFLOW;
-              strncpy(input_buffer, "--output buffer overflow--", max_len);
-            }
-       strncpy(output_buffer, out.str().data(), out_len);
-       output_buffer[max_len - 1] = 0;   // just in case
-       *output_bufsize = out_len;        // may increase input_bufsize
+       if (out_len > max_len)   // overflow
+          {
+            if (error)   *error = LAE_OUT_BUFFER_OVERFLOW;
+            strncpy(output_buffer, "--output buffer overflow--", max_len);
+            output_buffer[max_len] = 0;
+            *output_bufsize = max_len;
+          }
+       else
+          {
+            strncpy(output_buffer, out.str().data(), max_len);
+            output_buffer[out_len] = 0;
+            *output_bufsize = out_len;
+          }
      }
 
    return ret;
@@ -618,7 +642,7 @@ Token_string tos;
              default:       return 0;
            }
       }
-   else if (tos.size() == 2)   // got left and right functions and operator
+   else if (tos.size() == 3)   // got left and right functions and operator
       {
         if (!L)   return 0;   // but only fun was requested
         if (!R)   return 0;   // but only fun was requested
@@ -626,14 +650,14 @@ Token_string tos;
         switch(tos[0].get_Class())
            {
              case TC_FUN12:
-             case TC_OPER1: *R = tos[0].get_function();   break;
+             case TC_OPER1: *L = tos[0].get_function();   break;
              default:       return 0;   // error
            }
 
         switch(tos[2].get_Class())
            {
              case TC_FUN12:
-             case TC_OPER1: *L = tos[0].get_function();   break;
+             case TC_OPER1: *R = tos[2].get_function();   break;
              default:       return 0;   // error
            }
 
@@ -683,6 +707,8 @@ UCS_string var_name_ucs(var_name_utf8);
 
    // check name...
    //
+   if (var_name_ucs.size() == 0)   return 1;   // empty name
+
    if (!Avec::is_quad(var_name_ucs[0]) &&
        !Avec::is_first_symbol_char(var_name_ucs[0]))   return 1;
 

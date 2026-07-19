@@ -808,9 +808,15 @@ UCS_string member_name;
      while (name_len && ucs_B[ucs_B_name + name_len - 1] != UNI_DOUBLE_QUOTE)
            --name_len;
      --name_len;   // skip the trailing "
-     if (name_len < 1)
+     if (name_len < 0)
         {
-          FIXME;   // since skip_string() should have failed
+          // name_len == 0 is a legitimate empty member name (e.g. the
+          // "" in {"":1}, valid JSON); only a negative name_len means no
+          // closing " was found at all (confirmed: with the old "< 1"
+          // check, {"":1} itself crashed the interpreter via FIXME/exit).
+          MORE_ERROR() << "⎕JSON B: missing closing '\"' of object "
+                          "member name at " << int(B_start) << "↓B";
+          DOMAIN_ERROR;
         }
 
      member_name = UCS_string(ucs_B, ucs_B_name, name_len);

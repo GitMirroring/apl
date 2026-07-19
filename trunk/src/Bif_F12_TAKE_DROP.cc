@@ -169,8 +169,11 @@ Bif_F12_TAKE::fill(const Shape & shape_Zi, Value & Z,
             {
               Z.next_ravel_Cell(B.get_cravel(offset));
             }
-         else if (axes)                             // overtake from axis
+         else if (axes && B.element_count())         // overtake from axis
             {
+              // (only when B actually has data -- if B is completely
+              // empty then axis_proto()'s offset does not point to any
+              // real item and falls through to the ↑B case below)
               const ShapeItem offset = i.axis_proto(axes);
               Z.next_ravel_Proto(B.get_cravel(offset));
             }

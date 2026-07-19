@@ -910,7 +910,8 @@ Quad_XML::skip_pos_prefix(const UCS_string & ucs)
 ShapeItem pos = 1;
 UCS_string ret;
 
-   while (ucs[pos] >= UNI_0 && ucs[pos] <= UNI_9)   ++pos;   // skip digits
+   while (pos < ucs.ssize() && ucs[pos] >= UNI_0
+                             && ucs[pos] <= UNI_9)   ++pos;   // skip digits
    while (pos < ucs.ssize())   ret << ucs[pos++];
    return ret;
 }
@@ -1418,7 +1419,7 @@ ShapeItem from = 0;
 
    if (from < path.ssize())
       {
-        const UCS_string member(path, from, len_Z - from);
+        const UCS_string member(path, from, path.ssize() - from);
         Value_P Zp(member, LOC);
         Z->next_ravel_Pointer(Zp.get());
       }
@@ -1549,6 +1550,15 @@ const Value & A1 = *A.get_pointer_value(1);
         //
         std::vector<ShapeItem> member_indices;
         B.sorted_members(member_indices, /* filters */ 0);
+
+        if (member_indices.size() == 0)
+           {
+             // B is structured but has no real (non-placeholder) members
+             // at all (e.g. B←⎕JSON '{}'); confirmed: member_indices[0]
+             // below then reads past the empty vector and crashes.
+             MORE_ERROR() << "(14 A) ⎕XML B: B has no members";
+             DOMAIN_ERROR;
+           }
 
         const Cell & cell = B.get_cravel(2*member_indices[0]);
         Value * name =  cell.get_pointer_value().get();

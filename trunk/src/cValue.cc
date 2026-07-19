@@ -1224,11 +1224,15 @@ Value::get_single_axis(const cValue * val, sRank max_axis)
 
    if (!val->is_near_int(0))   AXIS_ERROR;
 
-   // if axis becomes (signed) negative then it will be (unsigned) too big.
-   // Therefore we need not test for < 0.
-   //
 const int axis = val->get_near_int(0) - Workspace::get_IO();
-   if (axis >= max_axis)   AXIS_ERROR;
+
+   // axis is a plain (32-bit) signed int here while max_axis is the
+   // (16-bit) signed sRank, so "axis >= max_axis" alone is a signed
+   // comparison and does NOT catch a negative axis (confirmed: ⌽[0]
+   // with ⎕IO←1 silently returned B unreversed instead of raising an
+   // error). Test both bounds explicitly.
+   //
+   if (axis < 0 || axis >= max_axis)   AXIS_ERROR;
 
    return axis;
 }

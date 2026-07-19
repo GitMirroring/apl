@@ -912,9 +912,10 @@ const ShapeItem h_len_B = B.get_rank() ? B.get_shape_item(0)     : 1;
 const ShapeItem h_len_A = shape_A1.get_volume();
 const ShapeItem l_len_B = shape_B1.get_volume();
 
-   if (l_len_A == 0 || h_len_B == 0)   // empty result
-      {
-        const Shape shape_Z(shape_A1 + shape_B1);
+const Shape shape_Z = shape_A1 + shape_B1;
+
+   if (shape_Z.get_volume() == 0)   // empty result: shape mismatches don't
+      {                             // matter since there is nothing to fill
         Value_P Z(shape_Z, LOC);
         Z->check_value(LOC);
         return Token(TOK_APL_VALUE1, Z);
@@ -924,8 +925,6 @@ const ShapeItem l_len_B = shape_B1.get_volume();
        (h_len_B != 1) &&       // cannot scalar-extend B, and
        (l_len_A != h_len_B))   // the lengths of A and B differ
        LENGTH_ERROR;
-
-const Shape shape_Z = shape_A1 + shape_B1;
 
 Value_P Z(shape_Z, LOC);
 
@@ -1291,7 +1290,20 @@ Value_P Z = shape_A.get_rank() == B.get_rank() && shape_A.is_permutation()
           ? transpose(shape_A, B)
           : transpose_diag(shape_A, B);
 
-   Z->set_default(B, LOC);
+   // Z is not always a freshly constructed (still default-prototyped)
+   // Value here: transpose()'s rank<=1 and identity-matrix fast paths
+   // return CLONE(&B, LOC), which already carries B's own (possibly
+   // non-integer) prototype, and both transpose()'s and
+   // transpose_diag()'s empty-result branches already call set_default()
+   // themselves before returning. Calling set_default() unconditionally
+   // on such an already-prototyped Z violates its "by constructor"
+   // precondition (found via a real fuzzer crash on an empty B: the
+   // assertion this->get_cproto().is_integer_cell() failed because Z,
+   // a clone of an already char/nested-prototyped empty B, was no
+   // longer in its fresh int-prototype state). Only call it when Z is
+   // both empty and still genuinely unprototyped.
+   if (Z->is_empty() && Z->get_cproto().is_integer_cell())
+      Z->set_default(B, LOC);
 
    Z->check_value(LOC);
    return Token(TOK_APL_VALUE1, Z);

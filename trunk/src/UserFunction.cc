@@ -1299,6 +1299,15 @@ const bool bad_function = info || err_line != -1;
 
 const Symbol * symbol = Workspace::lookup_symbol(ufun->header.get_name());
 
+   // old_ufun (if any) must not be deleted until ufun has passed every
+   // remaining validation step below and is about to be bound to the
+   // symbol: deleting it early (as this code used to, right here)
+   // leaves the symbol pointing at freed memory on every error path
+   // between here and the final set_NC() -- e.g. compute_if_else_targets()
+   // failing just below -- confirmed via a real UAF SIGSEGV (redefine an
+   // existing function with a malformed →→/←→ body, then call it).
+   //
+const UserFunction * old_ufun = 0;
    if (cFunction_P old_function = symbol->get_function())
       {
         if (keep_existing)
@@ -1337,9 +1346,8 @@ const Symbol * symbol = Workspace::lookup_symbol(ufun->header.get_name());
              DEFN_ERROR;
            }
 
-        const UserFunction * old_ufun = old_function->get_func_ufun();
+        old_ufun = old_function->get_func_ufun();
         Assert(old_ufun);
-        delete old_ufun;
       }
 
    ufun->optimize_labels();
@@ -1349,6 +1357,10 @@ const Symbol * symbol = Workspace::lookup_symbol(ufun->header.get_name());
         delete ufun;
         return 0;
       }
+
+   // only now -- past every remaining error path -- is it safe to free
+   // the old function.
+   delete old_ufun;
 
    // finally: bind function to symbol
    //

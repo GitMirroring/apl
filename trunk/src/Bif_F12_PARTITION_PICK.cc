@@ -292,8 +292,22 @@ const ShapeItem item_len = item_shape.get_volume();
         const Cell & B0 = B.get_cproto();
         if (B0.is_pointer_cell())
            {
+             // B0's own value has shape item_shape (item_len == 0 can only
+             // happen if every nested cell examined by compute_item_shape()
+             // has exactly item_shape -- any smaller/larger shape would
+             // have changed the running max). Returning it unchanged here
+             // used to silently drop B's own (possibly non-scalar) shape:
+             // ⍴Z should be (⍴B),item_shape (see the invariant documented
+             // above), not just item_shape -- confirmed directly (⊃5⍴⊂⍬
+             // gave shape 0 instead of the correct shape 5 0). Clone
+             // (B0's value may be shared with other cells) and reshape to
+             // shape_Z, which -- like B0's own value -- always has volume
+             // 0 here, so this is a safe, allocation-free reshape.
+             //
              Value_P vB = B0.get_pointer_value();
-             return vB;
+             Value_P result = CLONE_P(vB, LOC);
+             result->set_shape(shape_Z);
+             return result;
            }
         else   // simple B0
            {

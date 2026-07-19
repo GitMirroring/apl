@@ -307,6 +307,7 @@ public:
    /// @param order APL value defining the monomial ordering (may be null)
    Monomial extract_LT(const cValue * order)
       {
+        Assert(size() > 0);
         const size_t pos = LT_pos(order);
         Monomial result = at(pos);
         erase(begin() + pos);
@@ -317,6 +318,7 @@ public:
    /// @param order APL value defining the monomial ordering (may be null)
    Monomial get_LT(const cValue * order)
       {
+        Assert(size() > 0);
         return at(LT_pos(order));
       }
 

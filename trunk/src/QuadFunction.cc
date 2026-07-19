@@ -316,7 +316,19 @@ Quad_EC::eoc(Token & result)
 Value_P Z(3, LOC);
    if (result.get_tag() == TOK_ERROR)
       {
-        /// clear any )MORE info that may have been produced in the ⎕EC context
+        // Capture any )MORE info produced while evaluating the ⎕EC
+        // argument BEFORE clearing it below. Previously this detail was
+        // simply discarded: a caller using ⎕EC to catch an error had no
+        // way to retrieve the same )MORE text an interactive session
+        // would show, since more_error() is unconditionally cleared here
+        // so that ⎕EC-internal errors don't leak into an outer session's
+        // stale )MORE state. Now it is folded into Z3 as an extra line
+        // (added only when non-empty, so existing 3-line "like ⎕EM"
+        // consumers of Z3 are unaffected), matching the interactive
+        // convention of a trailing '+' on the primary error line when
+        // )MORE has content.
+        //
+        const UCS_string more_info = Workspace::more_error();
         Workspace::more_error().clear();
         StateIndicator * si = Workspace::SI_top();
         si->clear_safe_execution();
@@ -324,10 +336,14 @@ Value_P Z(3, LOC);
         const Error & err = StateIndicator::get_error(si);
         const ErrorCode ec = ErrorCode(result.get_int_val());
 
+        UCS_string line_1(UTF8_string(Error::error_name(ec)));
+        if (more_info.size())   line_1 << UNI_PLUS;
+
         PrintBuffer pb;
-        pb.append_ucs(UTF8_string(Error::error_name(ec)));
+        pb.append_ucs(line_1);
         pb.append_ucs(err.get_error_line_2());
         pb.append_ucs(err.get_error_line_3());
+        if (more_info.size())   pb.append_ucs(more_info);
 
         Value_P Z2(2, LOC);
             Z2->next_ravel_Int(Error::error_major(ec));
@@ -1176,7 +1192,7 @@ const Unicode uni = ucs[0];
      else if (uni == UNI_LAMBDA)          sys = &Workspace::get_v_LAMBDA();
      else if (uni == UNI_CHI)             sys = &Workspace::get_v_CHI();
      else if (uni == UNI_OMEGA)           sys = &Workspace::get_v_OMEGA();
-     else if (uni == UNI_ALPHA_UNDERBAR)  sys = &Workspace::get_v_OMEGA_U();
+     else if (uni == UNI_ALPHA_UNDERBAR)  sys = &Workspace::get_v_ALPHA_U();
      else if (uni == UNI_OMEGA_UNDERBAR)  sys = &Workspace::get_v_OMEGA_U();
 
      // the caller may ask for e.g. ⍺123 but we accept ⍺ and friends only if

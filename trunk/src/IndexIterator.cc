@@ -73,9 +73,14 @@ TrueIndexIterator::TrueIndexIterator(ShapeItem w, Value_P value,
       {
         const ShapeItem idx = value->get_near_int(v) - qio;
 
-        // instead of testing signed < 0 and >= max, we test unsigned >= max.
+        // idx and max_idx are both (signed) ShapeItem, so "idx >= max_idx"
+        // alone is a signed comparison and does NOT catch a negative idx.
+        // The sole caller (cValue::index()) already validates via
+        // IndexExpr::check_index_range() before constructing this
+        // iterator, so this is currently unreachable in practice -- but
+        // test both bounds explicitly rather than relying on that.
         //
-        if (idx >= max_idx)   INDEX_ERROR;
+        if (idx < 0 || idx >= max_idx)   INDEX_ERROR;
 
         indices[v] = idx * w;
       }

@@ -147,8 +147,7 @@ cFunction_P LO = _LO.get_function();
                  {
                    macro = Macro::get_macro(Macro::MAC_sA_LO_EACH_sB);
                  }
-
-              if (extend_B)
+              else if (extend_B)
                  {
                    macro = Macro::get_macro(Macro::MAC_vA_LO_EACH_sB);
                  }

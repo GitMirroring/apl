@@ -426,36 +426,50 @@ const string statement = conn->replace_bind_args(
 ArgListBuilder * builder = query ? conn->make_prepared_query(statement)
                                  : conn->make_prepared_update(statement);
 
-    if (rank_B < 2)
-       {
-         const int num_args = B.element_count();
-         Value_P Z = run_generic_one_query(builder, B, 0, num_args);
-         delete builder;
-         return Z;
-       }
-
-    if (rank_B == 2)   // matrix B
-       {
-         if (const int rows = B.get_rows())
-            {
-              const int cols = B.get_cols();
-              Assert_fatal(rows > 0);
-              Value_P Z;
-              loop (row, rows)
-                   {
-                    const bool more = row < rows - 1;
-                    Z = run_generic_one_query(builder, B, row * cols, cols);
-                    if (more)   builder->clear_args();
-                   }
+   // run_generic_one_query() can throw (e.g. VALUE_ERROR for an illegal
+   // bind type, or a DOMAIN error in to_value()); without this try/catch
+   // that unwinds past every delete builder below and leaks builder
+   // (and its prepared statement).
+   try
+      {
+        if (rank_B < 2)
+           {
+             const int num_args = B.element_count();
+             Value_P Z = run_generic_one_query(builder, B, 0, num_args);
              delete builder;
              return Z;
-            }
-         else
-            {
-              delete builder;
-              return Idx0(LOC);
            }
-       }
+
+        if (rank_B == 2)   // matrix B
+           {
+             if (const int rows = B.get_rows())
+                {
+                  const int cols = B.get_cols();
+                  Assert_fatal(rows > 0);
+                  Value_P Z;
+                  loop (row, rows)
+                       {
+                        const bool more = row < rows - 1;
+                        Z = run_generic_one_query(builder, B, row * cols, cols);
+                        if (more)   builder->clear_args();
+                       }
+                 delete builder;
+                 return Z;
+                }
+             else
+                {
+                  delete builder;
+                  return Idx0(LOC);
+               }
+           }
+      }
+   catch (...)
+      {
+        delete builder;
+        throw;
+      }
+
+   return Value_P();
 }
 //────────────────────────────────────────────────────────────────────────────
 Value_P 

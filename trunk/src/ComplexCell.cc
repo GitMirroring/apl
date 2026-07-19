@@ -1025,8 +1025,8 @@ const double val_i = b.imag();
    if (val_i > LARGE_INT)   return E_DOMAIN_ERROR;
    if (val_i < SMALL_INT)   return E_DOMAIN_ERROR;
 
-const double max_diff_r = Workspace::get_CT() * val_r;
-const double max_diff_i = Workspace::get_CT() * val_i;
+const double max_diff_r = Workspace::get_CT() * fabs(val_r);
+const double max_diff_i = Workspace::get_CT() * fabs(val_i);
 
 const APL_Float val_dn_r = floor(val_r);
 const APL_Float val_up_r = ceil(val_r);

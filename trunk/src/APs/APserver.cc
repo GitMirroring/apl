@@ -870,7 +870,7 @@ AP3_fd * ap_fd = 0;
                                   response->get__VALUE_IS__error_loc(),
                                   response->get__VALUE_IS__cdr_value());
 
-               if (del)   delete del;
+               if (del)   delete[] del;
              }
              return;
 
@@ -928,7 +928,7 @@ Signal_base * request = Signal_base::recv_TCP(fd, buffer, sizeof(buffer),
 
    do_signal(fd, request);
 
-   if (del)   delete del;
+   if (del)   delete[] del;
 }
 //════════════════════════════════════════════════════════════════════════════
 #ifdef HAVE_SYS_UN_H

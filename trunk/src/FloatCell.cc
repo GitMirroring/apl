@@ -833,7 +833,9 @@ ErrorCode
 FloatCell::bif_factorial_f(Cell * Z, APL_Float b)
 {
    if (b > 170.0)   return E_DOMAIN_ERROR;
-   return FloatCell::zF(Z, tgamma(b + 1.0));
+const APL_Float z = tgamma(b + 1.0);
+   if (!isfinite(z))   return E_DOMAIN_ERROR;
+   return FloatCell::zF(Z, z);
 }
 //────────────────────────────────────────────────────────────────────────────
 ErrorCode

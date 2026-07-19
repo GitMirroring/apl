@@ -87,7 +87,8 @@ Unicode maxi = Unicode(0x0000);
 bool
 CC_base::contains(Unicode uni) const
 {
-const UCS_string ucs(uni);
+const UTF8_string utf(get_ravel());
+const UCS_string ucs(utf);
    loop(u, ucs.size())   if (uni == ucs[u])   return true;
    return false;   // not found
 }

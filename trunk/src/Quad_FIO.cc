@@ -1538,7 +1538,8 @@ int conversion_count_A = 0;   // the number of conversions (in A_format)
                           goto field_done;
 
                      case '%':
-                          if (fm == 0)   // %% is %
+                          if (fm == 1)   // %% is % (fm==1: only the
+                                         // leading '%' copied so far)
                              {
                                UZ << UNI_PERCENT;
                                goto field_done;
@@ -2185,7 +2186,7 @@ FILE * file = get_FILE(*B);
 char small_buffer[SMALL_BUF];
 char * buffer = small_buffer;
 char * del = 0;
-   if (bytes > sizeof(buffer))
+   if (bytes > sizeof(small_buffer))
       buffer = del = new char[bytes + 1];
 const char * s = fgets(buffer, bytes, file);
 const int len = s ? strlen(s) : 0;

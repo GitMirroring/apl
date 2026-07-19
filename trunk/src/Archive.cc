@@ -1328,7 +1328,8 @@ UCS_string saving_SVN;   // from the XML file
 UCS_string current_SVN(UTF8_string(ARCHIVE_SVN));
    {
      const UTF8 * saving = find_optional_attr("saving_SVN");
-     while (saving && *saving != '"')   saving_SVN << Unicode(*saving++);
+     while (saving && saving < file_end && *saving != '"')
+        saving_SVN << Unicode(*saving++);
    }
 
    if (saving_SVN.size() == 0)   // saved with very old version
@@ -1596,8 +1597,7 @@ const char * tz_sign = (offset < 0) ? "" : "+";
 
    if (!copying)
       {
-        const UTF8 * end = wsid;
-        while (*end != '"')   ++end;
+        const UTF8 * end = scan_for(wsid, '"');
 
         const UTF8_string wsname_utf(wsid, end - wsid);
         const UCS_string wsname_ucs(wsname_utf);
@@ -1721,6 +1721,20 @@ const int att_len = strlen(att_name);
    return 0;   // not found
 }
 //────────────────────────────────────────────────────────────────────────────
+const UTF8 *
+XML_Loading_Archive::scan_for(const UTF8 * from, char stop)
+{
+const UTF8 * p = from;
+   while (p < file_end && *p != stop)   ++p;
+   if (p >= file_end)
+      {
+        MORE_ERROR() << "unterminated attribute value (missing '" << stop
+                     << "') in line " << line_no << " of file " << filename;
+        DOMAIN_ERROR;
+      }
+   return p;
+}
+//────────────────────────────────────────────────────────────────────────────
 APL_Float
 XML_Loading_Archive::find_float_attr(const char * attrib)
 {
@@ -1803,7 +1817,7 @@ const Token_string & body = exec.get_body();
 bool
 XML_Loading_Archive::get_uni()
 {
-   if (data > file_end)   return true;   // EOF
+   if (data >= file_end)   return true;   // EOF
 
 int len = 0;
    current_char = UTF8_string::toUni(data, len, true);
@@ -2029,14 +2043,12 @@ XML_Loading_Archive::read_Command()
    expect_tag("Command", LOC);
 
 const UTF8 * name = find_mandatory_attr("name");
-const UTF8 * name_end = name;
-   while (*name_end != '"')   ++name_end;
+const UTF8 * name_end = scan_for(name, '"');
 UTF8_string name_UTF(name, name_end - name);
 UCS_string  name_UCS(name_UTF);
 
 const UTF8 * fun = find_mandatory_attr("fun");
-const UTF8 * fun_end = fun;
-   while (*fun_end != '"')   ++fun_end;
+const UTF8 * fun_end = scan_for(fun, '"');
 UTF8_string fun_UTF(fun, fun_end - fun);
 UCS_string  fun_UCS(fun_UTF);
 
@@ -2235,8 +2247,7 @@ const UTF8 * fun_name = find_optional_attr("ufun-name");
    if (fun_name)   // user defined function
       {
         const int level = find_int_attr("symbol-level", false, 10);
-        const UTF8 * end = fun_name;
-        while (*end != '"')   ++end;
+        const UTF8 * end = scan_for(fun_name, '"');
         UTF8_string name_UTF(fun_name, end - fun_name);
         UCS_string name_UCS(name_UTF);
         if (name_UCS == ID::get_name_UCS(ID_LAMBDA))
@@ -2491,8 +2502,7 @@ const UTF8 * lambda_name = find_optional_attr("lambda-name");
 
 const int level     = find_int_attr("symbol-level", false, 10);
 const UTF8 * name   = find_mandatory_attr("ufun-name");
-const UTF8 * n  = name;
-   while (*n != '"')   ++n;
+const UTF8 * n  = scan_for(name, '"');
 UTF8_string name_UTF(name, n - name);
 UCS_string name_UCS(name_UTF);
 
@@ -2579,8 +2589,7 @@ XML_Loading_Archive::read_Symbol()
    expect_tag("Symbol", LOC);
 
 const UTF8 * name = find_mandatory_attr("name");
-const UTF8 * name_end = name;
-   while (*name_end != '"')   ++name_end;
+const UTF8 * name_end = scan_for(name, '"');
 const int name_len = name_end - name;
 
 UTF8_string name_UTF(name, name_len);
@@ -2802,8 +2811,7 @@ const TokenTag tag = TokenTag(find_int_attr("tag", false, 16));
         case TV_SYM:   
              {
                const UTF8 * sym_name = find_mandatory_attr("sym");
-               const UTF8 * end = sym_name;
-               while (*end != '"')   ++end;
+               const UTF8 * end = scan_for(sym_name, '"');
                UTF8_string name_UTF(sym_name, end - sym_name);
                UCS_string name_UCS(name_UTF);
 
@@ -2833,7 +2841,7 @@ const TokenTag tag = TokenTag(find_int_attr("tag", false, 16));
              {
                const UTF8 * vids = find_mandatory_attr("index");
                IndexExpr & idx = *new IndexExpr(ASS_none, LOC);
-               while (*vids != '"')
+               while (vids < file_end && *vids != '"')
                   {
                     if (*vids == ',')   ++vids;
                     if (*vids == '-')   // elided index

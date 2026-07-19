@@ -284,7 +284,19 @@ const APL_Integer n_wise = A0 < 0 ? neg_A0 : A0;
 
 Shape shape_Z(B->get_shape());
    shape_Z.set_shape_item(axis, shape_Z.get_shape_item(axis) - n_wise + 1);
-   if (shape_Z.is_empty())   return LO->eval_identity_fun(*B, axis);
+   if (shape_Z.is_empty())
+      {
+        // eval_identity_fun() removes the reduction axis and therefore
+        // is only valid when B's axis itself has length 0. If some
+        // *other* axis of B is empty instead, the windowed axis length
+        // computed above (shape_Z) is still correct and must be kept.
+        if (B->get_shape_item(axis) == 0)   return LO->eval_identity_fun(*B, axis);
+
+        Value_P Z(shape_Z, LOC);
+        Z->set_default(*B, LOC);
+        Z->check_value(LOC);
+        return Token(TOK_APL_VALUE1, Z);
+      }
 
    if (n_wise == 1)   return Bif_F12_RHO::do_reshape(shape_Z, *B);
 
@@ -383,11 +395,27 @@ const Shape3 shape_B3(shape_B, axis);
                 }
              else  // init l*-rep items with the fill item
                 {
-                  loop(r, -rep)
-                  loop(l, shape_B3.l())
+                  if (shape_B3.m() == 0)
                      {
-                       const ShapeItem src = shape_B3.hml(h, 0, l);
-                       Z->next_ravel_Proto(B.get_cravel(src));
+                       // B has no row at all along the replicate axis
+                       // (e.g. ¯1 ¯1 ⌿ (0 3⍴7)), so there is no real B
+                       // item at row 0 to copy the type from -- use B's
+                       // prototype cell instead (confirmed: without this,
+                       // shape_B3.hml(h,0,l) reads an out-of-bounds row
+                       // and crashes).
+                       const Cell & proto = B.get_cproto();
+                       loop(r, -rep)
+                       loop(l, shape_B3.l())
+                          Z->next_ravel_Proto(proto);
+                     }
+                  else
+                     {
+                       loop(r, -rep)
+                       loop(l, shape_B3.l())
+                          {
+                            const ShapeItem src = shape_B3.hml(h, 0, l);
+                            Z->next_ravel_Proto(B.get_cravel(src));
+                          }
                      }
 
                   // cB is not incremented when fill item is used.

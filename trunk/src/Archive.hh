@@ -430,6 +430,14 @@ protected:
    /// @param optional true if the attribute may be absent
    const UTF8 * find_attr(const char * att_name, bool optional);
 
+   /// scan forward from \b from for the next occurrence of \b stop,
+   /// bounded by file_end; throw DOMAIN ERROR if not found (an attribute
+   /// value with no closing quote would otherwise scan past the mmap'd
+   /// file into unmapped memory).
+   /// @param from position to start scanning from
+   /// @param stop character to scan for
+   const UTF8 * scan_for(const UTF8 * from, char stop);
+
    /// return floating point value of attribute \b att_name
    /// @param att_name XML attribute name to look up
    APL_Float find_float_attr(const char * att_name);

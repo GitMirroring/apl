@@ -190,8 +190,22 @@ Value::next_ravel_Pointer(Value * value, uint32_t magic)
 void
 Value::next_ravel_Value(Value * value)
 {
-   if (value->is_simple_scalar())
-      next_ravel()->init(value->get_cfirst(), *this, LOC);
+   // A *scalar* value (simple OR nested, e.g. ⊂1 2 3) already fits into a
+   // single ravel cell as-is -- reuse its own sole cell (next_ravel_Cell
+   // handles both the copy and the depth-dirty marking for a nested cell).
+   // Only a genuine non-scalar (rank >= 1) needs a fresh PointerCell to be
+   // boxed into one cell. The previous is_simple_scalar() check missed the
+   // nested-scalar case, wrapping it in a *second*, redundant PointerCell:
+   // confirmed directly (1 (⊂1 2 3) 2 stored position 2 as pointer→(⊂1 2 3)
+   // instead of pointer→(1 2 3), so 2⊃(1 (⊂1 2 3) 2) came back still boxed
+   // -- depth 2 instead of 1 -- while 1 (1 2 3) 2, without the explicit ⊂,
+   // was unaffected). This is the vector/strand-literal construction path
+   // (Parser::create_vector_value), so the bug affects any "A (⊂X) B"
+   // strand with non-scalar X -- a common way to explicitly box a value
+   // for a nested array literal.
+   //
+   if (value->is_scalar())
+      next_ravel_Cell(value->get_cfirst());
    else
       {
         flags.value_depth = VF_DEPTH_DIRTY;

@@ -524,8 +524,15 @@ const ShapeItem end     = 1 + base_S  + CPLX*len_QR + 1;
 #define base_AUG  base_Q   /* reuse Q */
 
 if ((size_t)end > SIZE_MAX / CPLX)   WS_FULL;
-double * data = new double[end*CPLX];
-   memset(data, 0, end*sizeof(double));
+
+   // owned by a vector (not a raw new[]/delete[] pair) so that a
+   // DOMAIN_ERROR thrown below (a non-finite Q/R element, which does
+   // happen for an ill-conditioned matrix) unwinds the stack without
+   // leaking this buffer -- confirmed leak: the matching delete[] was
+   // only reached via the normal, non-throwing return path.
+   //
+std::vector<double> data_vec(end*CPLX, 0.0);
+double * const data = data_vec.data();
    data[base_B - 1]  = 42.0;   data[base_B  + CPLX*len_B] = 43.0;
    data[base_Q - 1]  = 44.0;   data[base_Q  + CPLX*len_QR]   = 45.0;
    data[base_Qi - 1] = 46.0;   data[base_Qi + CPLX*len_QR]   = 47.0;
@@ -716,7 +723,6 @@ const ShapeItem D = M < N ? M : N;   // length of the diagonal
         Z->next_ravel_Pointer(Z3.get());
       }
 
-   delete[] data;
 #undef base_AUG
 }
 //────────────────────────────────────────────────────────────────────────────

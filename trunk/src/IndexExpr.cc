@@ -89,11 +89,19 @@ Value_P I = values[0];
 
    if (!I->is_near_int(0))   INDEX_ERROR;
 
-   // if axis becomes (signed) negative then it will be (unsigned) too big.
-   // Therefore we need not test for < 0.
+const APL_Integer wide_axis = I->get_near_int(0) - qio;
+
+   // axis and max_axis are both signed, so "axis >= max_axis" alone does
+   // not catch a negative axis (same class of bug as cValue.cc's
+   // get_single_axis, see H17). This function currently has no callers,
+   // but fix it to match the validated pattern used elsewhere. Bounds
+   // are checked on the wide (APL_Integer) value *before* narrowing to
+   // sRank (int16_t), so a huge out-of-range index cannot wrap into a
+   // small in-range sRank first.
    //
-sRank axis = I->get_near_int(0) - qio;
-   if (axis >= max_axis)   INDEX_ERROR;
+   if (wide_axis < 0 || wide_axis >= max_axis)   INDEX_ERROR;
+
+const sRank axis = sRank(wide_axis);
 
    return axis;
 }

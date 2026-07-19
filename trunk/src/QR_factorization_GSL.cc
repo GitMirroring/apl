@@ -196,24 +196,36 @@ GSL::QL_factorize_DD_matrix(Value & Z, int M, int N, cValue_R B_val, ShapeItem i
 {
   set_GSL_error_handler();
 
+gsl_matrix * B  = 0;
+gsl_vector * TAU = 0;
+gsl_matrix * Q  = 0;
+gsl_matrix * L  = 0;
+gsl_matrix * Li = 0;
+
+  // set_GSL_error_handler() makes a GSL failure (e.g. inside
+  // gsl_linalg_tri_invert on a singular matrix) throw DOMAIN_ERROR; free
+  // whatever of B/TAU/Q/L/Li has been allocated so far before it
+  // unwinds past their normal free() calls below (confirmed leak).
+  try
+     {
   // 0. Init GSL matrix B from APL ravel starting at idx
   //
-gsl_matrix * B = gsl_matrix_alloc(M, N);   if (B == 0)   WS_FULL;
+  B = gsl_matrix_alloc(M, N);   if (B == 0)   WS_FULL;
   loop(row, M)
   loop(col, N)   gsl_matrix_set(B, row, col, B_val.get_real_value(idx++));
 
   // 1. Compute Q, L, and TAU. Q and L are packed into B
   //
-gsl_vector * TAU = gsl_vector_alloc(N);   if (TAU == 0)   WS_FULL;
+  TAU = gsl_vector_alloc(N);   if (TAU == 0)   WS_FULL;
   gsl_linalg_QL_decomp(B, TAU);
 
   // 2. unpack Q and L
   //
-gsl_matrix * Q = gsl_matrix_alloc(M, M);   if (Q == 0)   WS_FULL;
-gsl_matrix * L = gsl_matrix_alloc(M, N);   if (L == 0)   WS_FULL;
+  Q = gsl_matrix_alloc(M, M);   if (Q == 0)   WS_FULL;
+  L = gsl_matrix_alloc(M, N);   if (L == 0)   WS_FULL;
   gsl_linalg_QL_unpack(B, TAU, Q, L);
-  gsl_vector_free(TAU);
-  gsl_matrix_free(B);
+  gsl_vector_free(TAU);   TAU = 0;
+  gsl_matrix_free(B);     B = 0;
 
 Value_P Z1(M, N, LOC);   // Z[1] lower triangular matrix L
   loop(row, M)
@@ -233,24 +245,35 @@ Value_P Z0(M, M, LOC);   // Z[0] is the orthogonal M×M matrix Q
   // 2. Invert Z1 to get Z2. L is inverted in place. The non-zero triangle
   //    of L aka. Z1 sits at the bottom of L, i.e. it starts at row (M - N).
   //
-gsl_matrix * Li = gsl_matrix_alloc(M, M);   if (Li == 0)   WS_FULL;
+  Li = gsl_matrix_alloc(M, M);   if (Li == 0)   WS_FULL;
   loop(row, N)
   loop(col, N)   gsl_matrix_set(Li, row, col,
                                 gsl_matrix_get(L, row + M - N, col));
 
   gsl_linalg_tri_invert(CblasLower, CblasNonUnit, Li);
-  gsl_matrix_free(L);
-  gsl_matrix_free(Q);
+  gsl_matrix_free(L);   L = 0;
+  gsl_matrix_free(Q);   Q = 0;
 
 Value_P Z2(N, N, LOC);   // Z[2] is the inverse of L
   loop(row, N)
   loop(col, N)    Z2->next_ravel_Number(gsl_matrix_get(Li, row, col));
   Z2->check_value(LOC);
+  gsl_matrix_free(Li);   Li = 0;
 
   Z.next_ravel_Pointer(Z0.get());
   Z.next_ravel_Pointer(Z1.get());
   Z.next_ravel_Pointer(Z2.get());
   Z1->check_value(LOC);
+     }
+  catch (...)
+     {
+       if (B)     gsl_matrix_free(B);
+       if (TAU)   gsl_vector_free(TAU);
+       if (Q)     gsl_matrix_free(Q);
+       if (L)     gsl_matrix_free(L);
+       if (Li)    gsl_matrix_free(Li);
+       throw;
+     }
 }
 //────────────────────────────────────────────────────────────────────────────
 void
@@ -265,19 +288,27 @@ GSL::QR_factorize_DD_matrix(Value & Z, int M, int N, cValue_R B_val, ShapeItem i
        LENGTH_ERROR;
      }
 
+gsl_matrix * B = 0;
+gsl_matrix * T = 0;
+gsl_matrix * R = 0;
+gsl_matrix * Q = 0;
+
+  // see QL_factorize_DD_matrix() above for why this try/catch is needed.
+  try
+     {
   // 0. Init GSL matrix B from APL ravel starting at idx
   //
-gsl_matrix * B = gsl_matrix_alloc(M, N);   if (B == 0)   WS_FULL;
+  B = gsl_matrix_alloc(M, N);   if (B == 0)   WS_FULL;
   loop(row, M)
   loop(col, N)   gsl_matrix_set(B, row, col, B_val.get_real_value(idx++));
 
   // 1. Compute R and T. The diagonal of B and above is R ←→ Z1 = Z[1]
   //
-gsl_matrix * T = gsl_matrix_alloc(N, N);   if (T == 0)   WS_FULL;
+  T = gsl_matrix_alloc(N, N);   if (T == 0)   WS_FULL;
   gsl_linalg_QR_decomp_r(B, T);
 
 Value_P Z1(N, N, LOC);   // Z2 is the upper triangle N×N matrix R
-gsl_matrix * R = gsl_matrix_alloc(N, N);   if (R == 0)   WS_FULL;
+  R = gsl_matrix_alloc(N, N);   if (R == 0)   WS_FULL;
   loop(row, N)
   loop(col, N)
       {
@@ -315,22 +346,31 @@ Value_P Z2(N, N, LOC);   // Z[2] is the N×N matrix Ri
 
   // 3. unpack T into Q and R
   //
-gsl_matrix * Q = gsl_matrix_alloc(M, M);   if (Q == 0)   WS_FULL;
+  Q = gsl_matrix_alloc(M, M);   if (Q == 0)   WS_FULL;
   gsl_linalg_QR_unpack_r(B, T, Q, R);
-  gsl_matrix_free(T);
-  gsl_matrix_free(B);
-  gsl_matrix_free(R);
+  gsl_matrix_free(T);   T = 0;
+  gsl_matrix_free(B);   B = 0;
+  gsl_matrix_free(R);   R = 0;
 
 Value_P Z0(M, M, LOC);   // Z[0] is the orthogonal M×M matrix Q
   loop(row, M)
   loop(col, M)   Z0->next_ravel_Number(gsl_matrix_get(Q, row, col));
   Z0->check_value(LOC);
-  gsl_matrix_free(Q);
+  gsl_matrix_free(Q);   Q = 0;
 
   Z.next_ravel_Pointer(Z0.get());
   Z.next_ravel_Pointer(Z1.get());
   Z.next_ravel_Pointer(Z2.get());
   Z.check_value(LOC);
+     }
+  catch (...)
+     {
+       if (B)   gsl_matrix_free(B);
+       if (T)   gsl_matrix_free(T);
+       if (R)   gsl_matrix_free(R);
+       if (Q)   gsl_matrix_free(Q);
+       throw;
+     }
 }
 //────────────────────────────────────────────────────────────────────────────
 void
@@ -345,9 +385,17 @@ GSL::QR_factorize_ZZ_matrix(Value & Z, int M, int N, cValue_R B_val, ShapeItem i
        LENGTH_ERROR;
      }
 
+gsl_matrix_complex * B = 0;
+gsl_matrix_complex * T = 0;
+gsl_matrix_complex * R = 0;
+gsl_matrix_complex * Q = 0;
+
+  // see QL_factorize_DD_matrix() above for why this try/catch is needed.
+  try
+     {
   // 0. Init GSL matrix B from APL ravel starting at idx
   //
-gsl_matrix_complex * B = gsl_matrix_complex_alloc(M, N);  if (B == 0)   WS_FULL;
+  B = gsl_matrix_complex_alloc(M, N);  if (B == 0)   WS_FULL;
   loop(row, M)
   loop(col, N)
      {
@@ -358,12 +406,12 @@ gsl_matrix_complex * B = gsl_matrix_complex_alloc(M, N);  if (B == 0)   WS_FULL;
 
   // 1. Compute R and T. The diagonal of B and above is R ←→ Z1 = Z[1]
   //
-gsl_matrix_complex * T = gsl_matrix_complex_alloc(N, N);  if (T == 0)   WS_FULL;
+  T = gsl_matrix_complex_alloc(N, N);  if (T == 0)   WS_FULL;
   gsl_linalg_complex_QR_decomp_r(B, T);
 
 const gsl_complex zero = { 0, 0 };
 Value_P Z1(N, N, LOC);   // Z2 is the upper triangle N×N matrix R
-gsl_matrix_complex * R = gsl_matrix_complex_alloc(N, N);  if (R == 0)   WS_FULL;
+  R = gsl_matrix_complex_alloc(N, N);  if (R == 0)   WS_FULL;
   loop(row, N)
   loop(col, N)
       {
@@ -402,11 +450,11 @@ Value_P Z2(N, N, LOC);   // Z[2] is the N×N matrix Ri
 
   // 3. unpack T into Q and R
   //
-gsl_matrix_complex * Q = gsl_matrix_complex_alloc(M, M);  if (Q == 0)   WS_FULL;
+  Q = gsl_matrix_complex_alloc(M, M);  if (Q == 0)   WS_FULL;
   gsl_linalg_complex_QR_unpack_r(B, T, Q, R);
-  gsl_matrix_complex_free(T);
-  gsl_matrix_complex_free(B);
-  gsl_matrix_complex_free(R);
+  gsl_matrix_complex_free(T);   T = 0;
+  gsl_matrix_complex_free(B);   B = 0;
+  gsl_matrix_complex_free(R);   R = 0;
 
 Value_P Z0(M, M, LOC);   // Z[0] is the orthogonal M×M matrix Q
   loop(row, M)
@@ -416,12 +464,21 @@ Value_P Z0(M, M, LOC);   // Z[0] is the orthogonal M×M matrix Q
        Z0->next_ravel_Complex(tmp.dat[0], tmp.dat[1]);
      }
   Z0->check_value(LOC);
-  gsl_matrix_complex_free(Q);
+  gsl_matrix_complex_free(Q);   Q = 0;
 
   Z.next_ravel_Pointer(Z0.get());
   Z.next_ravel_Pointer(Z1.get());
   Z.next_ravel_Pointer(Z2.get());
   Z.check_value(LOC);
+     }
+  catch (...)
+     {
+       if (B)   gsl_matrix_complex_free(B);
+       if (T)   gsl_matrix_complex_free(T);
+       if (R)   gsl_matrix_complex_free(R);
+       if (Q)   gsl_matrix_complex_free(Q);
+       throw;
+     }
 }
 //────────────────────────────────────────────────────────────────────────────
 void

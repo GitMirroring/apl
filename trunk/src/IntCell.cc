@@ -758,6 +758,19 @@ IntCell::bif_divide_ii(Cell * Z, APL_Integer a, APL_Integer b)
         if (a == 0)   return IntCell::z1(Z);
         return E_DOMAIN_ERROR;
       }
+
+   // a / b overflows (hardware #DE / SIGFPE) for the single combination
+   // b == -1 && a == INT64_MIN, since -INT64_MIN is not representable
+   // as APL_Integer. Confirmed directly: ¯9223372036854775808 ÷ ¯1
+   // crashes the interpreter. Handle b == -1 up front (negation, with
+   // the INT64_MIN sub-case promoted to float) instead of dividing.
+   if (b == -1)
+      {
+        if (a == APL_Integer(0x8000000000000000ULL))   // INT64_MIN
+           return FloatCell::zF(Z, -APL_Float(a));
+        return IntCell::zI(Z, -a);
+      }
+
 const APL_Integer i_quot = a / b;
    if (a != i_quot * b)   return FloatCell::zF(Z, a / APL_Float(b));
    return IntCell::zI(Z, i_quot);
@@ -802,7 +815,7 @@ const bool negate_Z = (a < 0) && (b & 1);
 bool overflow = false;
 APL_Integer a_2_n = a;
 APL_Integer zi = 1;
-   for (int b1 = b; b1; b1 >>= 1)
+   for (APL_Integer b1 = b; b1; b1 >>= 1)
       {
         if (b1 & 1)
            {
@@ -856,6 +869,13 @@ IntCell::bif_residue_ii(Cell * Z, APL_Integer a, APL_Integer b)
 {
    if (a == 0)   return IntCell::zI(Z, b);
    if (b == 0)   return IntCell::z0(Z);
+
+   // b % a overflows (hardware #DE / SIGFPE) for a == -1 && b ==
+   // INT64_MIN, the same INT64_MIN/-1 overflow as bif_divide_ii above.
+   // Confirmed directly: ¯1 | ¯9223372036854775808 crashes the
+   // interpreter. Residue by +-1 is always 0, so this is a cheap
+   // early-out rather than a special divide.
+   if (a == 1 || a == -1)   return IntCell::z0(Z);
 
 APL_Integer rest = b % a;
    if (a < 0)

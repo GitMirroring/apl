@@ -313,7 +313,12 @@ ShapeItem rlen = 1;
          double * e = result + rlen * axis_len;
          for (ShapeItem a = axis_len - 1; a >= 0; --a)
              {
-               const double wa = win(a, axis_len);
+               // every window function divides by (axis_len - 1); for a
+               // length-1 axis that is a division by 0 (NaN), poisoning
+               // the whole transform. A single sample has no window
+               // shape to apply, so use weight 1.0 (confirmed via
+               // 10 ⎕FFT (1 4⍴1 2 3 4)).
+               const double wa = (axis_len < 2) ? 1.0 : win(a, axis_len);
                for (ShapeItem r = rlen - 1; r >= 0; --r)
                    {
                      *--e = wa * result[r];

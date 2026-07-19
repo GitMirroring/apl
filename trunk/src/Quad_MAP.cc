@@ -69,6 +69,17 @@ ShapeItem map_len = pA->get_rows();               // the number of mappings
         map_len = map_len >> 1;
       }
    else if (pA->get_rank() > 2)   RANK_ERROR;
+   else if (pA->get_cols() != 2)
+      {
+        // rank 2: every key/value access below hard-codes a 2-column
+        // layout (get_cravel(2*item) etc.); a matrix with a different
+        // column count desyncs map_len (= rows) from the real element
+        // count, reading past the ravel (confirmed: (3 1⍴'abc')⎕MAP'a'
+        // hits an out-of-bounds get_cravel()).
+        MORE_ERROR() << "A in A ⎕MAP B must have exactly 2 columns "
+                        "(has " << pA->get_cols() << ")";
+        LENGTH_ERROR;
+      }
 
    if (map_len == 0)
            {

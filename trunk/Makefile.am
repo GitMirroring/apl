@@ -77,10 +77,9 @@ DEB:	DIST
            debian_tmp/$(PACKAGE)_$(PACKAGE_VERSION).orig.tar.gz
 	cd debian_tmp ; tar xf $(PACKAGE)_$(PACKAGE_VERSION).orig.tar.gz
 	cp doc/apl.1 debian_tmp/$(distdir)/debian/manpage.1
-	cd debian_tmp/$(distdir) ; MAKEFLAGS="" dpkg-buildpackage -j10
+	cd debian_tmp/$(distdir) ; MAKEFLAGS="" dpkg-buildpackage -b -j10
 	mkdir -p ftp-upload
 	cp debian_tmp/$(PACKAGE)_$(PACKAGE_VERSION)-1_*.deb          ftp-upload/
-	cp debian_tmp/$(PACKAGE)_$(PACKAGE_VERSION)-1.debian.tar.xz  ftp-upload/
 
 # update from SVN repository and ./configure
 #

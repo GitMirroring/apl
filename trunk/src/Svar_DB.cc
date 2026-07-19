@@ -101,7 +101,7 @@ Signal_base * response = Signal_base::recv_TCP(sock, buffer, sizeof(buffer),
         delete response;
       }
    else   get_CERR() << "Svar_record_P() failed at " << LOC << endl;
-   if (del)   delete del;
+   if (del)   delete[] del;
 }
 //════════════════════════════════════════════════════════════════════════════
 void
@@ -134,10 +134,12 @@ Signal_base * response = Signal_base::recv_TCP(tcp, buffer, sizeof(buffer),
       {
         const Svar_event ret = Svar_event(response->get__EVENTS_ARE__events());
         delete response;
+        if (del)   delete[] del;
         return ret;
       }
    else
       {
+        if (del)   delete[] del;
         return SVE_NO_EVENTS;
       }
 }
@@ -374,6 +376,7 @@ Signal_base * response = Signal_base::recv_TCP(tcp, buffer, sizeof(buffer),
         delete response;
       }
 
+   if (del)   delete[] del;
    return offering_id;
 }
 //════════════════════════════════════════════════════════════════════════════
@@ -395,9 +398,11 @@ Signal_base * response = Signal_base::recv_TCP(tcp, buffer, sizeof(buffer),
       {
         const SV_key ret = response->get__PAIRING_KEY_IS__pairing_key();
         delete response;
+        if (del)   delete[] del;
         return ret;
      }
 
+   if (del)   delete[] del;
    return 0;
 }
 //════════════════════════════════════════════════════════════════════════════
@@ -424,11 +429,13 @@ Signal_base * response =
         events = Svar_event(response->get__EVENTS_ARE__events());
         const SV_key ret = response->get__EVENTS_ARE__key();
         delete response;
+        if (del)   delete[] del;
         return ret;
       }
    else
       {
         events = SVE_NO_EVENTS;
+        if (del)   delete[] del;
         return 0;
       }
 }
@@ -455,8 +462,9 @@ Signal_base * response = Signal_base::recv_TCP(tcp, buffer, sizeof(buffer),
         const size_t count = ov.size() / sizeof(uint32_t);
 
         loop(c, count)   varnames.push_back(*names++);
-        delete response; 
+        delete response;
       }
+   if (del)   delete[] del;
 }
 //════════════════════════════════════════════════════════════════════════════
 void
@@ -481,8 +489,9 @@ Signal_base * response = Signal_base::recv_TCP(tcp, buffer, sizeof(buffer),
         const size_t count = op.size() / sizeof(AP_num);
 
         loop(c, count)   processors.push_back(*procs++);
-        delete response; 
+        delete response;
       }
+   if (del)   delete[] del;
 }
 //════════════════════════════════════════════════════════════════════════════
 TCP_socket
@@ -543,9 +552,11 @@ Signal_base * response = Signal_base::recv_TCP(tcp, buffer, sizeof(buffer),
       {
         const bool ret = response->get__YES_NO__yes();
         delete response;
+        if (del)   delete[] del;
         return ret;
      }
 
+   if (del)   delete[] del;
    return false;
 }
 //════════════════════════════════════════════════════════════════════════════
@@ -581,10 +592,12 @@ Signal_base * response = Signal_base::recv_TCP(tcp, buffer, sizeof(buffer),
       {
         const SV_key ret = response->get__MATCH_OR_MAKE_RESULT__key();
         delete response;
+        if (del)   delete[] del;
         return ret;
      }
 
-   else            return 0;
+   if (del)   delete[] del;
+   return 0;
 }
 //════════════════════════════════════════════════════════════════════════════
 bool
@@ -605,9 +618,11 @@ Signal_base * response = Signal_base::recv_TCP(tcp, buffer, sizeof(buffer),
       {
         const bool ret = response->get__YES_NO__yes();
         delete response;
+        if (del)   delete[] del;
         return ret;
      }
 
+   if (del)   delete[] del;
    return true;
 }
 //════════════════════════════════════════════════════════════════════════════
@@ -629,8 +644,10 @@ Signal_base * response = Signal_base::recv_TCP(tcp, buffer, sizeof(buffer),
       {
         const bool ret = response->get__YES_NO__yes();
         delete response;
+        if (del)   delete[] del;
         return ret;
      }
+   if (del)   delete[] del;
    return true;
 }
 //════════════════════════════════════════════════════════════════════════════
@@ -652,6 +669,7 @@ const char * err_loc = 0;
         out << response->get__SVAR_DB_PRINTED__printout();
         delete response;
       }
+   if (del)   delete[] del;
 }
 //────────────────────────────────────────────────────────────────────────────
 void
