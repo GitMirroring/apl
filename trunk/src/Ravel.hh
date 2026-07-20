@@ -33,6 +33,7 @@
 class ScalarFunction;
 class ValueBase;
 class cValue;
+typedef const cValue & cValue_R;
 class Value;
 
 //════════════════════════════════════════════════════════════════════════════
@@ -231,13 +232,13 @@ public:
    /// Returns true (and writes result into Z) if a fast path ran.
    /// Returns false when cell-by-cell fallback is needed.
    virtual bool apply_fast_dyadic(const ScalarFunction & sf,
-                                   const Value & A, int inc_A,
-                                   const Value & B, int inc_B,
+                                   cValue_R A, int inc_A,
+                                   cValue_R B, int inc_B,
                                    Value & Z, ShapeItem len_Z) const;
 
    /// Apply monadic packed fast path if B's ravel type allows it.
    virtual bool apply_fast_monadic(const ScalarFunction & sf,
-                                    const Value & B,
+                                    cValue_R B,
                                     Value & Z, ShapeItem len_Z) const;
 
 protected:
@@ -325,12 +326,12 @@ public:
    virtual bool is_real_cell(ShapeItem idx) const override    { return true; }
 
    virtual bool apply_fast_dyadic(const ScalarFunction & sf,
-                                   const Value & A, int inc_A,
-                                   const Value & B, int inc_B,
+                                   cValue_R A, int inc_A,
+                                   cValue_R B, int inc_B,
                                    Value & Z, ShapeItem len_Z) const override;
 
    virtual bool apply_fast_monadic(const ScalarFunction & sf,
-                                    const Value & B,
+                                    cValue_R B,
                                     Value & Z, ShapeItem len_Z) const override;
 };
 //════════════════════════════════════════════════════════════════════════════
@@ -370,12 +371,12 @@ public:
    virtual bool is_real_cell(ShapeItem idx) const override    { return true; }
 
    virtual bool apply_fast_dyadic(const ScalarFunction & sf,
-                                   const Value & A, int inc_A,
-                                   const Value & B, int inc_B,
+                                   cValue_R A, int inc_A,
+                                   cValue_R B, int inc_B,
                                    Value & Z, ShapeItem len_Z) const override;
 
    virtual bool apply_fast_monadic(const ScalarFunction & sf,
-                                    const Value & B,
+                                    cValue_R B,
                                     Value & Z, ShapeItem len_Z) const override;
 };
 //════════════════════════════════════════════════════════════════════════════
@@ -405,12 +406,12 @@ public:
    virtual bool is_real_cell(ShapeItem idx) const override     { return false; }
 
    virtual bool apply_fast_dyadic(const ScalarFunction & sf,
-                                   const Value & A, int inc_A,
-                                   const Value & B, int inc_B,
+                                   cValue_R A, int inc_A,
+                                   cValue_R B, int inc_B,
                                    Value & Z, ShapeItem len_Z) const override;
 
    virtual bool apply_fast_monadic(const ScalarFunction & sf,
-                                    const Value & B,
+                                    cValue_R B,
                                     Value & Z, ShapeItem len_Z) const override;
 };
 //════════════════════════════════════════════════════════════════════════════
@@ -440,12 +441,12 @@ public:
    virtual bool is_real_cell(ShapeItem idx) const override     { return false; }
 
    virtual bool apply_fast_dyadic(const ScalarFunction & sf,
-                                   const Value & A, int inc_A,
-                                   const Value & B, int inc_B,
+                                   cValue_R A, int inc_A,
+                                   cValue_R B, int inc_B,
                                    Value & Z, ShapeItem len_Z) const override;
 
    virtual bool apply_fast_monadic(const ScalarFunction & sf,
-                                    const Value & B,
+                                    cValue_R B,
                                     Value & Z, ShapeItem len_Z) const override;
 };
 //════════════════════════════════════════════════════════════════════════════
@@ -493,12 +494,12 @@ public:
    virtual bool is_real_cell(ShapeItem idx) const override    { return true; }
 
    virtual bool apply_fast_dyadic(const ScalarFunction & sf,
-                                   const Value & A, int inc_A,
-                                   const Value & B, int inc_B,
+                                   cValue_R A, int inc_A,
+                                   cValue_R B, int inc_B,
                                    Value & Z, ShapeItem len_Z) const override;
 
    virtual bool apply_fast_monadic(const ScalarFunction & sf,
-                                    const Value & B,
+                                    cValue_R B,
                                     Value & Z, ShapeItem len_Z) const override;
 };
 //════════════════════════════════════════════════════════════════════════════
@@ -545,12 +546,12 @@ public:
    virtual bool is_real_cell(ShapeItem idx) const override    { return false; }
 
    virtual bool apply_fast_dyadic(const ScalarFunction & sf,
-                                   const Value & A, int inc_A,
-                                   const Value & B, int inc_B,
+                                   cValue_R A, int inc_A,
+                                   cValue_R B, int inc_B,
                                    Value & Z, ShapeItem len_Z) const override;
 
    virtual bool apply_fast_monadic(const ScalarFunction & sf,
-                                    const Value & B,
+                                    cValue_R B,
                                     Value & Z, ShapeItem len_Z) const override;
 };
 //════════════════════════════════════════════════════════════════════════════

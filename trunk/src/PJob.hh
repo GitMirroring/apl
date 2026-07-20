@@ -74,9 +74,16 @@ public:
 
    /// constructor
    /// @param Z the result APL value (pre-allocated)
-   /// @param B the right APL argument value
-   PJob_scalar_B(Value_P Z, Value_P B)
-   : value_B(B, LOC),
+   /// @param B the right APL argument value. B is read-only here (every
+   ///        scalar function only ever writes into the freshly-allocated
+   ///        Z, never into A/B). Jobs for nested sub-values can sit in
+   ///        the parallel worklist across several outer loop iterations,
+   ///        outliving the caller's local (possibly freshly synthesized,
+   ///        sole-owner) Value_P/cValue_R that named B -- so the job
+   ///        takes its own cheap owner-count-bump share (not a deep
+   ///        copy, see CLONE/NEW_CLONE) rather than a bare pointer.
+   PJob_scalar_B(Value_P Z, cValue_R B)
+   : value_B(const_cast<Value *>(static_cast<const Value *>(&B)), LOC),
      value_Z(Z, LOC),
      len_Z(Z->nz_element_count()),
      error(E_NO_ERROR),
@@ -89,11 +96,12 @@ public:
    /// destructor
    ~PJob_scalar_B()
       {
-        value_Z.clear(LOC);
         value_B.clear(LOC);
+        value_Z.clear(LOC);
       }
 
-   /// the left argument for the value being computed
+   /// the left argument for the value being computed (owned, see
+   /// the constructor comment)
    Value_P value_B;
 
    /// the value being computed
@@ -122,6 +130,21 @@ public:
    const Cell & B_at(ShapeItem b) const
       { return value_B->get_cravel(b); }
 
+   /// return B[b], materialising a packed cell into the caller-supplied
+   /// \b cache instead of the shared (per-Value, not per-thread)
+   /// ravel.cell_fetch_cache. Use this from a parallel worker thread's
+   /// per-cell loop: value_B is a single Value shared by every worker
+   /// thread of this job, so B_at(b) (which fetches via that shared
+   /// cache) races when two threads materialise different packed
+   /// elements concurrently -- confirmed live as a SEGFAULT inside
+   /// ScalarFunction::PF_scalar_B/PF_scalar_AB's cell-by-cell fallback
+   /// for a primitive without a packed fast path (e.g. A⍟B on packed
+   /// int64 operands under CORE_COUNT_WANTED>1).
+   /// @param b ravel index into the right argument
+   /// @param cache caller-owned (e.g. per-thread stack) Cell to fetch into
+   const Cell & B_at(ShapeItem b, Cell & cache) const
+      { return value_B->get_cravel(b, cache); }
+
    /// return Z[z]
    /// @param z ravel index into the result
    Cell & Z_at(ShapeItem z)
@@ -146,15 +169,22 @@ public:
 
    /// constructor
    /// @param Z the result APL value (pre-allocated)
-   /// @param A the left APL argument value
+   /// @param A the left APL argument value. A and B are read-only here
+   ///        (every scalar function only ever writes into the freshly-
+   ///        allocated Z, never into A/B). Jobs for nested sub-values can
+   ///        sit in the parallel worklist across several outer loop
+   ///        iterations, outliving the caller's local (possibly freshly
+   ///        synthesized, sole-owner) Value_P/cValue_R that named A/B --
+   ///        so the job takes its own cheap owner-count-bump share (not
+   ///        a deep copy, see CLONE/NEW_CLONE) rather than bare pointers.
    /// @param B the right APL argument value
-   PJob_scalar_AB(Value_P Z, Value_P A, Value_P B)
-   : value_A(A, LOC),
-     value_B(B, LOC),
+   PJob_scalar_AB(Value_P Z, cValue_R A, cValue_R B)
+   : value_A(const_cast<Value *>(static_cast<const Value *>(&A)), LOC),
+     value_B(const_cast<Value *>(static_cast<const Value *>(&B)), LOC),
      value_Z(Z, LOC),
      len_Z(Z->nz_element_count()),
-     inc_A(A->get_increment()),
-     inc_B(B->get_increment()),
+     inc_A(A.get_increment()),
+     inc_B(B.get_increment()),
      error(E_NO_ERROR),
      fun(0),
      fun2(0),
@@ -165,15 +195,17 @@ public:
    /// destructor
    ~PJob_scalar_AB()
       {
-        value_Z.clear(LOC);
-        value_B.clear(LOC);
         value_A.clear(LOC);
+        value_B.clear(LOC);
+        value_Z.clear(LOC);
       }
 
-   /// the left argument for the value being computed
+   /// the left argument for the value being computed (owned, see
+   /// the constructor comment)
    Value_P value_A;
 
-   /// the right argument for the value being computed
+   /// the right argument for the value being computed (owned, see
+   /// the constructor comment)
    Value_P value_B;
 
    /// the value being computed
@@ -208,10 +240,26 @@ public:
    const Cell & A_at(ShapeItem a) const
       { return value_A->get_cravel(a * inc_A); }
 
+   /// return A[a], materialising a packed cell into the caller-supplied
+   /// \b cache instead of the shared (per-Value, not per-thread)
+   /// ravel.cell_fetch_cache -- see PJob_scalar_B::B_at(b, cache) for why
+   /// this matters for a parallel worker thread's per-cell loop.
+   /// @param a ravel index into the left argument
+   /// @param cache caller-owned (e.g. per-thread stack) Cell to fetch into
+   const Cell & A_at(ShapeItem a, Cell & cache) const
+      { return value_A->get_cravel(a * inc_A, cache); }
+
    /// return B[z]
    /// @param b ravel index into the right argument
    const Cell & B_at(ShapeItem b) const
       { return value_B->get_cravel(b * inc_B); }
+
+   /// return B[b], materialising a packed cell into the caller-supplied
+   /// \b cache -- see PJob_scalar_B::B_at(b, cache).
+   /// @param b ravel index into the right argument
+   /// @param cache caller-owned (e.g. per-thread stack) Cell to fetch into
+   const Cell & B_at(ShapeItem b, Cell & cache) const
+      { return value_B->get_cravel(b * inc_B, cache); }
 
    /// return Z[z]
    /// @param z ravel index into the result

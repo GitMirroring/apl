@@ -1795,7 +1795,25 @@ Value_P Z(get_shape(), loc);
    //
    if (const ShapeItem count = Z->element_count())   // non-empty
       {
-        loop(c, count)   Z->next_ravel_Cell(get_cravel(c));
+        if (is_packed())
+           {
+             // Fast path: packed ravels (RPT_BOOL/INT64/FLOAT64/COMPLEX/
+             // UNICODE16/UNICODE32) hold homogeneous, non-nested data with
+             // no PointerCells, so the per-element ownership bookkeeping
+             // that next_ravel_Cell()/init_other() performs is unneeded.
+             // Give Z the same packed layout as this and bulk-memcpy the
+             // raw bytes instead of materialising and re-storing one Cell
+             // at a time.
+             Z->commit_ravel_like(*this, count);
+             const size_t nbytes = (get_ravel_type() == RPT_BOOL)
+                                  ? (size_t(count) + 7) / 8
+                                  : size_t(count) * packed_bytes_per_item();
+             memcpy(&Z->get_wfirst(), cravel_packed(), nbytes);
+           }
+        else
+           {
+             loop(c, count)   Z->next_ravel_Cell(get_cravel(c));
+           }
       }
    else                                              // empty
       {

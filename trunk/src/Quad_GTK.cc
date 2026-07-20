@@ -802,7 +802,17 @@ const int TLV_tag = (TLV[0] & 0xFF) << 24 | (TLV[1] & 0xFF) << 16
 const uint32_t V_len = (TLV[4] & 0xFF) << 24 | (TLV[5] & 0xFF) << 16
                      | (TLV[6] & 0xFF) <<  8 | (TLV[7] & 0xFF);
 
-   Assert(rx_len == ssize_t(V_len + 8));
+   // V_len comes from the peer (Gtk_server) and Assert() is a no-op in the
+   // default build, so it must be bounded by a real check: V[V_len] below
+   // must stay inside TLV, and TLV_len (V_len+8) must not exceed what was
+   // actually read into TLV, or a buggy/rogue Gtk_server can drive a wild
+   // stack write / OOB read via an oversized declared length.
+   if (V_len > sizeof(TLV) - 9 || ssize_t(V_len + 8) != rx_len)
+      {
+        MORE_ERROR() << "⎕GTK: bad V_len " << V_len
+                     << " in Quad_GTK::read_fd()";
+        DOMAIN_ERROR;
+      }
 
 char * V = TLV + 8;
    V[V_len] = 0;   // avoid trouble

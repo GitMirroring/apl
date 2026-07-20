@@ -898,14 +898,27 @@ UserFunction::parse_body(const char * loc, bool macro)
    line_starts.clear();
    line_starts.push_back(Function_PC_0);   // will be set later.
 
-UCS_string_vector original_text;
-
    // The function text is modified for parsing it, but restored afterwards
    // so that e.g. ∇FUN[⎕]∇ shows the text entered by the user.
    //
-   // original_text is only set if text was modified in one of the
-   // multi-line transformations below.
+   // Captured once, here, before any of the three multi-line
+   // transformation blocks below run -- NOT re-captured by each block
+   // right before its own transform (as it used to be). When more than
+   // one block fires (e.g. a function body has both a """ string and a
+   // <<<>>> literal), each block's own snapshot overwrote the previous
+   // one, so by the end this held only the *post-first-transform*
+   // state, not the true original; the final restore below then left
+   // an orphaned @N@ marker (from the already-applied, "forgotten"
+   // transform) permanently baked into the stored text -- which a
+   // later re-parse (UserFunction::set_trace_stop() unconditionally
+   // re-parses every function right after Nabla defines it) cannot
+   // resolve, since it starts with a fresh, empty Lit_DB. Capturing
+   // once up front means every block's failure path (and the final
+   // restore) always reaches the *actual* original source, so no
+   // half-transformed text is ever kept.
    //
+UCS_string_vector original_text = text;
+
    clear_body();
 
 Lit_DB literals;
@@ -922,7 +935,6 @@ Lit_DB literals;
 
               // the first (!) multi-line literal starts at line li
               //
-              original_text = text;   // precaution for errors
               if (Parser::replace_multi_line_strings(text, literals, true))
                  {
                    text = original_text;   // restore function text
@@ -948,7 +960,6 @@ Lit_DB literals;
 
               // the first (!) multi-line literal starts at li
               //
-              original_text = text;   // precaution for errors
               if (Parser::replace_multi_line_literals(text, literals, true))
                  {
                    text = original_text;   // restore function text
@@ -967,7 +978,6 @@ Lit_DB literals;
               const UCS_string & line = get_text(li);
               if (!(line.double_quote_count(false) & 1))   continue;
 
-              original_text = text;   // precaution for errors.
               if (Parser::transform_old_multi_line_strings(text))
                  {
                    text = original_text;   // restore function text

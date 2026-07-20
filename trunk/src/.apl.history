@@ -1,0 +1,5 @@
+'./native/.libs/lib_template_OP2.so' ⎕FX 'NATIVE_OP2'
+NATIVE_OP2
+A←B←X←1
++ NATIVE_OP2 × B
+)OFF

@@ -21,8 +21,10 @@
 /** @file
 */
 
+#include <cstdio>
 #include <sched.h>
 #include <signal.h>
+#include <vector>
 
 #include "Common.hh"
 #include "Parallel.hh"
@@ -33,6 +35,30 @@
 #if !PARALLEL_ENABLED
 # define sem_init(x, y, z)   /* NO-OP */
 #endif // PARALLEL_ENABLED
+
+namespace {
+/// read an integer from /sys/devices/system/cpu/cpu<cpu>/topology/<file>,
+/// returning -1 if the file does not exist or cannot be parsed. Used by
+/// CPU_pool::init() to group hardware threads by physical core so that
+/// distinct physical cores are exhausted before their hyperthread
+/// siblings -- see the caller for why an even-CPUs-are-primary /
+/// odd-CPUs-are-secondary numbering is not a reliable proxy for this on
+/// every system.
+int
+read_topology_int(size_t cpu, const char * file)
+{
+   char path[128];
+   snprintf(path, sizeof(path),
+            "/sys/devices/system/cpu/cpu%zu/topology/%s", cpu, file);
+FILE * f = fopen(path, "r");
+   if (f == 0)   return -1;
+
+int value = -1;
+const int count = fscanf(f, "%d", &value);
+   fclose(f);
+   return count == 1 ? value : -1;
+}
+}   // anonymous namespace
 
 const char * Parallel_job_list_base::started_loc = 0;
 
@@ -179,27 +205,69 @@ const int err = pthread_getaffinity_np(pthread_self(), sizeof(CPUs), &CPUs);
 
    {
      const CoreCount CPU_count = CoreCount(CPU_COUNT(&CPUs));
-     // start with even CPUs followed by odd CPUs. This is to avoid that
-     // a secondart CPU thread is used before all primary threads have been
-     // exhausted.
+
+     // Rank CPUs by actual hardware topology (distinct physical cores
+     // before their hyperthread siblings), read from
+     // /sys/devices/system/cpu/cpu*/topology/, rather than assuming an
+     // even-CPUs-are-primary / odd-CPUs-are-secondary numbering. That
+     // assumption does not hold on every system: e.g. on an i7-8700
+     // (6 physical cores, 12 threads via hyperthreading) Linux enumerates
+     // siblings as CPU N and CPU N+6 (a second sequential block), not
+     // interleaved even/odd -- confirmed live via /proc/cpuinfo's
+     // "core id" field, where the old even-first scheme picked only 3
+     // distinct physical cores (0, 2, 4, each double-booked with its
+     // sibling 6, 8, or 10) for the first 6 "cores" instead of 6 distinct
+     // ones, measurably capping parallel speedup (a compute-bound
+     // primitive that should scale well across 6 real cores instead
+     // plateaued after 3).
      //
-     for (size_t c = 0; c < 8*sizeof(cpu_set_t); c += 2)   //even
+     std::vector<CPU_Number> primary, secondary;
+     std::vector<ShapeItem> seen_cores;   // encoded (package_id, core_id)
+     bool topology_known = true;
+
+     for (size_t c = 0; c < 8*sizeof(cpu_set_t); ++c)
          {
-           if (CPU_ISSET(c, &CPUs))
-              {
-                add_CPU(CPU_Number(c));
-                if (get_count() == CPU_count)   break;   // all CPUs found
-              }
+           if (!CPU_ISSET(c, &CPUs))   continue;
+
+           const int core_id = read_topology_int(c, "core_id");
+           const int pkg_id  = read_topology_int(c, "physical_package_id");
+           if (core_id < 0 || pkg_id < 0)   { topology_known = false; break; }
+
+           const ShapeItem key = ShapeItem(pkg_id)*10000 + core_id;
+           bool is_new = true;
+           loop(s, seen_cores.size())
+              if (seen_cores[s] == key)   { is_new = false; break; }
+
+           if (is_new)   { seen_cores.push_back(key); primary.push_back(CPU_Number(c)); }
+           else          secondary.push_back(CPU_Number(c));
          }
 
-     for (size_t c = 1; c < 8*sizeof(cpu_set_t); c += 2)   //odd
-         {
-           if (CPU_ISSET(c, &CPUs))
+     if (topology_known)
+        {
+          loop(p, primary.size())     add_CPU(primary[p]);
+          loop(s, secondary.size())   add_CPU(secondary[s]);
+        }
+     else   // /sys topology unavailable (e.g. non-Linux): fall back to the
+            // old even-CPUs-then-odd-CPUs heuristic
+        {
+          for (size_t c = 0; c < 8*sizeof(cpu_set_t); c += 2)   //even
               {
-                add_CPU(CPU_Number(c));
-                if (get_count() == CPU_count)   break;   // all CPUs found
+                if (CPU_ISSET(c, &CPUs))
+                   {
+                     add_CPU(CPU_Number(c));
+                     if (get_count() == CPU_count)   break;   // all CPUs found
+                   }
               }
-         }
+
+          for (size_t c = 1; c < 8*sizeof(cpu_set_t); c += 2)   //odd
+              {
+                if (CPU_ISSET(c, &CPUs))
+                   {
+                     add_CPU(CPU_Number(c));
+                     if (get_count() == CPU_count)   break;   // all CPUs found
+                   }
+              }
+        }
    }
 
    if (get_count() == 0)

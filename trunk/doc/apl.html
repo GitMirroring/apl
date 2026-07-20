@@ -73,7 +73,7 @@ Next: <a href="#Installing-and-Starting-GNU-APL" accesskey="n" rel="next">Instal
 </div>
 <span id="GNU-APL-Reference-Manual"></span><h1 class="top">GNU APL Reference Manual</h1>
 
-<p>July 12, 2026.
+<p>July 19, 2026.
 This manual briefly documents GNU APL, an interpreter for APL as described
 in ISO standard 13751, aka. &quot;Programming Language APL, Extended&quot;.
 </p>
@@ -107,7 +107,8 @@ therefore it must be expanded with e.g. <b>gunzip</b> before it can be read.
     <li><a id="toc-Starting-APL-1" href="#Starting-APL">1.2 Starting APL</a></li>
     <li><a id="toc-Command-Line-Options-1" href="#Command-Line-Options">1.3 Command Line Options</a></li>
     <li><a id="toc-Configuration-File-for-GNU-APL-1" href="#Configuration-File-for-GNU-APL">1.4 Configuration File for GNU APL</a></li>
-    <li><a id="toc-File-Names-and-Paths-1" href="#File-Names-and-Paths">1.5 File Names and Paths</a></li>
+    <li><a id="toc-Tuning-Parallel-Execution-Thresholds-1" href="#Tuning-Parallel-Execution-Thresholds">1.5 Tuning Parallel Execution Thresholds</a></li>
+    <li><a id="toc-File-Names-and-Paths-1" href="#File-Names-and-Paths">1.6 File Names and Paths</a></li>
   </ul></li>
   <li><a id="toc-Non_002dstandard-GNU-APL-Features-1" href="#Non_002dstandard-GNU-APL-Features">2 Non-standard GNU APL Features</a>
   <ul class="no-bullet">
@@ -430,7 +431,8 @@ Next: <a href="#Non_002dstandard-GNU-APL-Features" accesskey="n" rel="next">Non-
 <li><a href="#Starting-APL" accesskey="2">Starting APL</a></li>
 <li><a href="#Command-Line-Options" accesskey="3">Command Line Options</a></li>
 <li><a href="#Configuration-File-for-GNU-APL" accesskey="4">Configuration File for GNU APL</a></li>
-<li><a href="#File-Names-and-Paths" accesskey="5">File Names and Paths</a></li>
+<li><a href="#Tuning-Parallel-Execution-Thresholds" accesskey="5">Tuning Parallel Execution Thresholds</a></li>
+<li><a href="#File-Names-and-Paths" accesskey="6">File Names and Paths</a></li>
 </ul>
 <hr>
 <div class="section" id="Installing-APL">
@@ -913,7 +915,7 @@ applications.
 <div class="section" id="Configuration-File-for-GNU-APL">
 <div class="header">
 <p>
-Next: <a href="#File-Names-and-Paths" accesskey="n" rel="next">File Names and Paths</a>, Previous: <a href="#Command-Line-Options" accesskey="p" rel="prev">Command Line Options</a>, Up: <a href="#Installing-and-Starting-GNU-APL" accesskey="u" rel="up">Installing and Starting GNU APL</a> &nbsp; [<a href="#SEC_Contents" title="Table of contents" rel="contents">Contents</a>]</p>
+Next: <a href="#Tuning-Parallel-Execution-Thresholds" accesskey="n" rel="next">Tuning Parallel Execution Thresholds</a>, Previous: <a href="#Command-Line-Options" accesskey="p" rel="prev">Command Line Options</a>, Up: <a href="#Installing-and-Starting-GNU-APL" accesskey="u" rel="up">Installing and Starting GNU APL</a> &nbsp; [<a href="#SEC_Contents" title="Table of contents" rel="contents">Contents</a>]</p>
 </div>
 <span id="Configuration-File-for-GNU-APL-1"></span><h3 class="section">1.4 Configuration File for GNU APL</h3>
 
@@ -944,12 +946,103 @@ $HOME/.config/gnu-apl/preferences override settings in, for example,
 </p>
 <hr>
 </div>
+<div class="section" id="Tuning-Parallel-Execution-Thresholds">
+<div class="header">
+<p>
+Next: <a href="#File-Names-and-Paths" accesskey="n" rel="next">File Names and Paths</a>, Previous: <a href="#Configuration-File-for-GNU-APL" accesskey="p" rel="prev">Configuration File for GNU APL</a>, Up: <a href="#Installing-and-Starting-GNU-APL" accesskey="u" rel="up">Installing and Starting GNU APL</a> &nbsp; [<a href="#SEC_Contents" title="Table of contents" rel="contents">Contents</a>]</p>
+</div>
+<span id="Tuning-Parallel-Execution-Thresholds-1"></span><h3 class="section">1.5 Tuning Parallel Execution Thresholds</h3>
+
+<p>GNU APL can execute scalar functions (and the inner and outer products of
+dyadic scalar functions) on several CPU cores in parallel, but doing so is
+only worthwhile once the vector is long enough: starting and joining the
+worker threads costs a fixed number of CPU cycles per call, and for short
+vectors that fixed cost outweighs whatever is saved by splitting the work
+across cores. GNU APL therefore keeps, for every scalar function, a
+<i>break-even</i> vector length: below it a call is executed sequentially,
+at or above it the call is executed in parallel.
+</p>
+<p>The break-even lengths shipped with GNU APL were measured on the machine
+of a GNU APL developer and can be very different on your own machine: the
+relative cost of starting threads versus doing the actual work depends
+heavily on the CPU, the number of cores, and the operating system. For
+that reason GNU APL lets you re-measure and re-tune these break-even
+lengths for your own machine.
+</p>
+<span id="Building-GNU-APL-with-parallel-support"></span><h4 class="subheading">Building GNU APL with parallel support</h4>
+
+<p>Parallel execution is experimental and is not enabled in a default build.
+It requires <samp>./configure</samp> options <samp>CORE_COUNT_WANTED</samp> (how
+many cores to use) and, for the measurements below, also
+<samp>PERFORMANCE_COUNTERS_WANTED=yes</samp> (which adds the CPU-cycle
+counters needed to time individual primitives). Two top-level <b>make</b>
+targets set these for you:
+</p>
+<div class="example">
+<pre class="example">make parallel     <span class="roman">(configures with CORE_COUNT_WANTED=-3)</span>
+make parallel1    <span class="roman">(same, plus PERFORMANCE_COUNTERS_WANTED=yes)</span>
+</pre></div>
+
+<p><b>make parallel1</b> is what you need in order to re-measure the break-even
+lengths; <b>make parallel</b> is enough to simply run with parallel execution
+using thresholds you already have. See file <b>README-8-parallel</b> in the
+top-level source directory for the underlying theory (start-up cost versus
+per-item cost) and for worked examples on real hardware.
+</p>
+<span id="Measuring-new-thresholds"></span><h4 class="subheading">Measuring new thresholds</h4>
+
+<p>Workspace <b>ScalarBenchmark.apl</b>, shipped in the <b>workspaces</b>
+directory, measures the break-even length of every scalar function it is
+configured to test and writes the result as a file named
+<b>parallel_thresholds</b> in the <i>current</i> directory:
+</p>
+<div class="example">
+<pre class="example">src/apl -f workspaces/ScalarBenchmark.apl
+</pre></div>
+
+<p>Some parameters near the top of the workspace (e.g. <b>CORES</b>, the number
+of cores to measure with, and <b>TIME_LIMIT</b>/<b>ILRC</b>, which bound how
+long each measurement pass may run) can be adjusted before running it. A
+full run takes on the order of a few minutes; expect the numbers to vary
+somewhat between runs, so consider re-running it if a result looks
+implausible.
+</p>
+<span id="Installing-the-measured-thresholds"></span><h4 class="subheading">Installing the measured thresholds</h4>
+
+<p>The <b>parallel_thresholds</b> file written by <b>ScalarBenchmark.apl</b> uses
+the same <b>perfo_1</b>/<b>perfo_2</b>/<b>perfo_3</b> line format GNU APL already
+ships in its own <b>parallel_thresholds</b> file, and it is read from
+<i>exactly</i> the two directories (and with the same precedence) described
+above for the <b>preferences</b> file: the <b>gnu-apl.d</b> sub-directory of the
+system configuration directory, and, overriding that, the
+<b>.config/gnu-apl</b> sub-directory of your home directory. GNU APL reads
+whichever of the two it finds at start-up and applies the break-even
+lengths found there.
+</p>
+<p>Note that <b>ScalarBenchmark.apl</b> only <i>writes</i> the file to your
+current directory &ndash; it does not install it anywhere, and <b>make
+install</b> does <i>not</i> pick up a freshly written
+<b><i>current-directory</i>/parallel_thresholds</b> automatically (it installs
+whatever <b>parallel_thresholds</b> file already sits in the source tree&rsquo;s
+own <b>gnu-apl.d</b> directory). To make freshly measured thresholds take
+effect you therefore need one extra, manual step: either copy the file to
+<b>$HOME/.config/gnu-apl/parallel_thresholds</b> for a personal override that
+needs no rebuild and no root privileges, or, if you are packaging GNU APL
+for others, copy it to <b>gnu-apl.d/parallel_thresholds</b> in the source
+tree before running <b>make install</b> so that it is installed system-wide.
+</p>
+<p>Individual thresholds can also be inspected and overridden at run time,
+without editing any file, via <b>⎕FIO[200]</b> to <b>⎕FIO[203]</b>; see
+<a href="#g_t_2395FIO-_002d-File-I_002fO-Functions">⎕FIO - File I/O Functions</a>.
+</p>
+<hr>
+</div>
 <div class="section" id="File-Names-and-Paths">
 <div class="header">
 <p>
-Previous: <a href="#Configuration-File-for-GNU-APL" accesskey="p" rel="prev">Configuration File for GNU APL</a>, Up: <a href="#Installing-and-Starting-GNU-APL" accesskey="u" rel="up">Installing and Starting GNU APL</a> &nbsp; [<a href="#SEC_Contents" title="Table of contents" rel="contents">Contents</a>]</p>
+Previous: <a href="#Tuning-Parallel-Execution-Thresholds" accesskey="p" rel="prev">Tuning Parallel Execution Thresholds</a>, Up: <a href="#Installing-and-Starting-GNU-APL" accesskey="u" rel="up">Installing and Starting GNU APL</a> &nbsp; [<a href="#SEC_Contents" title="Table of contents" rel="contents">Contents</a>]</p>
 </div>
-<span id="File-Names-and-Paths-1"></span><h3 class="section">1.5 File Names and Paths</h3>
+<span id="File-Names-and-Paths-1"></span><h3 class="section">1.6 File Names and Paths</h3>
 
 <p>The GNU APL interpreter is a binary file named <b>apl</b>. It is usually
 installed in directory <b>/usr/bin/</b> or in <b>/usr/local/bin/</b>. The location

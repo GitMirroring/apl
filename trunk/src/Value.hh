@@ -71,6 +71,9 @@ protected:
 
    /// the ravel of this value (cells, fetch function, and bookkeeping)
    Ravel ravel;
+
+   /// the number of PointerCells pointing to sub-values of \b this value
+   ShapeItem pointer_cell_count;
 };
 //════════════════════════════════════════════════════════════════════════════
 class cValue;
@@ -740,6 +743,25 @@ public:
    /// return the number of Value_P pointing to \b this value.
    inline int get_owner_count() const;
 
+   /// return the PointerCell count
+   ShapeItem get_pointer_cell_count() const
+      { return pointer_cell_count; }
+
+   /// Apply dyadic packed fast path: dispatches on A's ravel type (this).
+   /// Returns true (result written into Z) if a fast path ran. A and B
+   /// are read-only; only Z is mutated.
+   bool apply_fast_dyadic(const ScalarFunction & sf,
+                           cValue_R B, int inc_A, int inc_B,
+                           Value & Z, ShapeItem len_Z) const
+      { return ravel.apply_fast_dyadic(sf, *this, inc_A, B, inc_B, Z, len_Z); }
+
+   /// Apply monadic packed fast path: dispatches on B's ravel type (this).
+   /// Returns true (result written into Z) if a fast path ran. B is
+   /// read-only; only Z is mutated.
+   bool apply_fast_monadic(const ScalarFunction & sf,
+                            Value & Z, ShapeItem len_Z) const
+      { return ravel.apply_fast_monadic(sf, *this, Z, len_Z); }
+
 protected:
    /// check that this left-value is consistent.
    void check_lval_consistency() const;
@@ -960,19 +982,6 @@ public:
         ravel.fetcher    = &Ravel::complex_fetcher;
         flags.ravel_type = RPT_COMPLEX; }
 
-   /// Apply dyadic packed fast path: dispatches on A's ravel type (this).
-   /// Returns true (result written into Z) if a fast path ran.
-   bool apply_fast_dyadic(const ScalarFunction & sf,
-                           const Value & B, int inc_A, int inc_B,
-                           Value & Z, ShapeItem len_Z) const
-      { return ravel.apply_fast_dyadic(sf, *this, inc_A, B, inc_B, Z, len_Z); }
-
-   /// Apply monadic packed fast path: dispatches on B's ravel type (this).
-   /// Returns true (result written into Z) if a fast path ran.
-   bool apply_fast_monadic(const ScalarFunction & sf,
-                            Value & Z, ShapeItem len_Z) const
-      { return ravel.apply_fast_monadic(sf, *this, Z, len_Z); }
-
    /// finalize Z as the same packed type as B (for permutation functions)
    void commit_ravel_like(const cValue & B, ShapeItem n);
 
@@ -1086,11 +1095,6 @@ public:
 
    /// initialize the next ravel cell with integer 1
    inline void next_ravel_1();
-
-   /// initialize the next ravel position with \b byte. NOTE that in this
-   /// case ravel is a uint8_t * and not a Cell * !!!
-   /// @param byte packed boolean byte to store
-   inline void next_ravel_Byte(uint8_t byte);
 
    /// initialize the next ravel cell with a pointer to another Cell
    /// @param target pointer to the target cell being referenced
@@ -1298,10 +1302,6 @@ public:
    void decrement_pointer_cell_count()
       { --pointer_cell_count; }
 
-   /// return the PointerCell count
-   ShapeItem get_pointer_cell_count() const
-      { return pointer_cell_count; }
-
    /// increase \b nz_subcell_count by \b count
    /// @param count number of sub-cells to add
    void add_subcount(ShapeItem count)
@@ -1407,9 +1407,6 @@ protected:
 
    /// number of Value_P objects pointing to this value
    int owner_count;
-
-   /// the value that has a PointerCell pointing to \b this value (if any)
-   ShapeItem pointer_cell_count;
 
    /// a linked list of values that have been deleted
    static _deleted_value * deleted_values;

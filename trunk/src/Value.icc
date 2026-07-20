@@ -90,12 +90,6 @@ Value::next_ravel_Char(Unicode u)
 }
 //──────────────────────────────────────────────────────────────────────────
 void
-Value::next_ravel_Byte(uint8_t byte)
-{
-  reinterpret_cast<uint8_t *>(ravel.cells)[ravel.valid_ravel_items++] = byte;
-}
-//──────────────────────────────────────────────────────────────────────────
-void
 Value::next_ravel_Int(APL_Integer i)
 {
   IntCell::zI(next_ravel(), i);

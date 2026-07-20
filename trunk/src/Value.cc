@@ -114,10 +114,10 @@ Value::Value(const Shape & sh, const char * loc)
 //────────────────────────────────────────────────────────────────────────────
 Value::Value(const Shape & sh, uint64_t * bits, const char * loc)
    : DynamicObject(loc, &all_values),
-     owner_count(0),
-     pointer_cell_count(0)
+     owner_count(0)
 {
    shape = sh;
+   pointer_cell_count = 0;
    ravel.fetcher = &Ravel::bool_fetcher;
    flags = {}; flags.ravel_type = RPT_BOOL;
    ravel.valid_ravel_items = sh.get_nz_volume();

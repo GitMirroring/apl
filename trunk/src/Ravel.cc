@@ -42,8 +42,8 @@ static_assert(sizeof(ComplexRavel) == sizeof(Ravel),
 //────────────────────────────────────────────────────────────────────────────
 bool
 Ravel::apply_fast_dyadic(const ScalarFunction & sf,
-                          const Value & A, int inc_A,
-                          const Value & B, int inc_B,
+                          cValue_R A, int inc_A,
+                          cValue_R B, int inc_B,
                           Value & Z, ShapeItem len_Z) const
 {
    if (A.get_pointer_cell_count() || B.get_pointer_cell_count())
@@ -153,7 +153,7 @@ Ravel::apply_fast_dyadic(const ScalarFunction & sf,
 //────────────────────────────────────────────────────────────────────────────
 bool
 Ravel::apply_fast_monadic(const ScalarFunction & sf,
-                           const Value & B,
+                           cValue_R B,
                            Value & Z, ShapeItem len_Z) const
 {
    if (B.get_pointer_cell_count())
@@ -214,8 +214,8 @@ Ravel::apply_fast_monadic(const ScalarFunction & sf,
 //────────────────────────────────────────────────────────────────────────────
 bool
 IntRavel::apply_fast_dyadic(const ScalarFunction & sf,
-                             const Value & A, int inc_A,
-                             const Value & B, int inc_B,
+                             cValue_R A, int inc_A,
+                             cValue_R B, int inc_B,
                              Value & Z, ShapeItem len_Z) const
 {
    Assert(A.get_ravel_type() == RPT_INT64);
@@ -243,7 +243,7 @@ IntRavel::apply_fast_dyadic(const ScalarFunction & sf,
 //────────────────────────────────────────────────────────────────────────────
 bool
 IntRavel::apply_fast_monadic(const ScalarFunction & sf,
-                              const Value & B,
+                              cValue_R B,
                               Value & Z, ShapeItem len_Z) const
 {
    Assert(B.get_ravel_type() == RPT_INT64);
@@ -261,8 +261,8 @@ IntRavel::apply_fast_monadic(const ScalarFunction & sf,
 //────────────────────────────────────────────────────────────────────────────
 bool
 FloatRavel::apply_fast_dyadic(const ScalarFunction & sf,
-                               const Value & A, int inc_A,
-                               const Value & B, int inc_B,
+                               cValue_R A, int inc_A,
+                               cValue_R B, int inc_B,
                                Value & Z, ShapeItem len_Z) const
 {
    Assert(A.get_ravel_type() == RPT_FLOAT64);
@@ -290,7 +290,7 @@ FloatRavel::apply_fast_dyadic(const ScalarFunction & sf,
 //────────────────────────────────────────────────────────────────────────────
 bool
 FloatRavel::apply_fast_monadic(const ScalarFunction & sf,
-                                const Value & B,
+                                cValue_R B,
                                 Value & Z, ShapeItem len_Z) const
 {
    Assert(B.get_ravel_type() == RPT_FLOAT64);
@@ -308,8 +308,8 @@ FloatRavel::apply_fast_monadic(const ScalarFunction & sf,
 //────────────────────────────────────────────────────────────────────────────
 bool
 Char16Ravel::apply_fast_dyadic(const ScalarFunction & sf,
-                                const Value & A, int inc_A,
-                                const Value & B, int inc_B,
+                                cValue_R A, int inc_A,
+                                cValue_R B, int inc_B,
                                 Value & Z, ShapeItem len_Z) const
 {
    Assert(A.get_ravel_type() == RPT_UNICODE16);
@@ -329,7 +329,7 @@ Char16Ravel::apply_fast_dyadic(const ScalarFunction & sf,
 //────────────────────────────────────────────────────────────────────────────
 bool
 Char16Ravel::apply_fast_monadic(const ScalarFunction & sf,
-                                 const Value & B,
+                                 cValue_R B,
                                  Value & Z, ShapeItem len_Z) const
 {
    return false;   // no monadic scalar function produces a char16 result
@@ -337,8 +337,8 @@ Char16Ravel::apply_fast_monadic(const ScalarFunction & sf,
 //────────────────────────────────────────────────────────────────────────────
 bool
 Char32Ravel::apply_fast_dyadic(const ScalarFunction & sf,
-                                const Value & A, int inc_A,
-                                const Value & B, int inc_B,
+                                cValue_R A, int inc_A,
+                                cValue_R B, int inc_B,
                                 Value & Z, ShapeItem len_Z) const
 {
    Assert(A.get_ravel_type() == RPT_UNICODE32);
@@ -358,7 +358,7 @@ Char32Ravel::apply_fast_dyadic(const ScalarFunction & sf,
 //────────────────────────────────────────────────────────────────────────────
 bool
 Char32Ravel::apply_fast_monadic(const ScalarFunction & sf,
-                                 const Value & B,
+                                 cValue_R B,
                                  Value & Z, ShapeItem len_Z) const
 {
    return false;   // no monadic scalar function produces a char32 result
@@ -366,8 +366,8 @@ Char32Ravel::apply_fast_monadic(const ScalarFunction & sf,
 //────────────────────────────────────────────────────────────────────────────
 bool
 BoolRavel::apply_fast_dyadic(const ScalarFunction & sf,
-                              const Value & A, int inc_A,
-                              const Value & B, int inc_B,
+                              cValue_R A, int inc_A,
+                              cValue_R B, int inc_B,
                               Value & Z, ShapeItem len_Z) const
 {
    Assert(A.get_ravel_type() == RPT_BOOL);
@@ -387,7 +387,7 @@ BoolRavel::apply_fast_dyadic(const ScalarFunction & sf,
 //────────────────────────────────────────────────────────────────────────────
 bool
 BoolRavel::apply_fast_monadic(const ScalarFunction & sf,
-                               const Value & B,
+                               cValue_R B,
                                Value & Z, ShapeItem len_Z) const
 {
    Assert(B.get_ravel_type() == RPT_BOOL);
@@ -405,8 +405,8 @@ BoolRavel::apply_fast_monadic(const ScalarFunction & sf,
 //────────────────────────────────────────────────────────────────────────────
 bool
 ComplexRavel::apply_fast_dyadic(const ScalarFunction & sf,
-                                 const Value & A, int inc_A,
-                                 const Value & B, int inc_B,
+                                 cValue_R A, int inc_A,
+                                 cValue_R B, int inc_B,
                                  Value & Z, ShapeItem len_Z) const
 {
    Assert(A.get_ravel_type() == RPT_COMPLEX);
@@ -426,7 +426,7 @@ ComplexRavel::apply_fast_dyadic(const ScalarFunction & sf,
 //────────────────────────────────────────────────────────────────────────────
 bool
 ComplexRavel::apply_fast_monadic(const ScalarFunction & sf,
-                                  const Value & B,
+                                  cValue_R B,
                                   Value & Z, ShapeItem len_Z) const
 {
    Assert(B.get_ravel_type() == RPT_COMPLEX);

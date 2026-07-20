@@ -298,6 +298,19 @@ const uint8_t * ravel = data + 16 + 4*rank;
                    // assume that element-count == nelm so that the two
                    // integers are initial-value and increment.
                    //
+                   // sub_rank (an unvalidated attacker byte, 0-255) drives
+                   // the shape-item loop below; the offset+14 guard above
+                   // only validates 14 bytes, but this loop reads up to
+                   // offset+16+4*sub_rank -- validate that full extent
+                   // first (mirroring the scalar-branch guard above).
+                   if (size_t(offset) + 16 + 4*size_t(sub_rank) > cdr.size())
+                      {
+                        MORE_ERROR() << "CDR nested APV (sub_rank "
+                                     << sub_rank << ") at offset " << offset
+                                     << " exceeds buffer";
+                        LENGTH_ERROR;
+                      }
+
                    Shape sh;
                    loop(r, sub_rank)
                       sh.add_shape_item(get_4_be(sub_data + 16 + 4*r));

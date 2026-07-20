@@ -616,6 +616,91 @@ $HOME/.config/gnu-apl/preferences override settings in, for example,
 
 Command line options in turn override settings in 'preferences' files.
 
+@node Tuning Parallel Execution Thresholds
+@section Tuning Parallel Execution Thresholds
+
+GNU APL can execute scalar functions (and the inner and outer products of
+dyadic scalar functions) on several CPU cores in parallel, but doing so is
+only worthwhile once the vector is long enough: starting and joining the
+worker threads costs a fixed number of CPU cycles per call, and for short
+vectors that fixed cost outweighs whatever is saved by splitting the work
+across cores. GNU APL therefore keeps, for every scalar function, a
+@i{break-even} vector length: below it a call is executed sequentially,
+at or above it the call is executed in parallel.
+
+The break-even lengths shipped with GNU APL were measured on the machine
+of a GNU APL developer and can be very different on your own machine: the
+relative cost of starting threads versus doing the actual work depends
+heavily on the CPU, the number of cores, and the operating system. For
+that reason GNU APL lets you re-measure and re-tune these break-even
+lengths for your own machine.
+
+@subheading Building GNU APL with parallel support
+
+Parallel execution is experimental and is not enabled in a default build.
+It requires @option{./configure} options @option{CORE_COUNT_WANTED} (how
+many cores to use) and, for the measurements below, also
+@option{PERFORMANCE_COUNTERS_WANTED=yes} (which adds the CPU-cycle
+counters needed to time individual primitives). Two top-level @b{make}
+targets set these for you:
+
+@example
+make parallel     @r{(configures with CORE_COUNT_WANTED=-3)}
+make parallel1    @r{(same, plus PERFORMANCE_COUNTERS_WANTED=yes)}
+@end example
+
+@b{make parallel1} is what you need in order to re-measure the break-even
+lengths; @b{make parallel} is enough to simply run with parallel execution
+using thresholds you already have. See file @b{README-8-parallel} in the
+top-level source directory for the underlying theory (start-up cost versus
+per-item cost) and for worked examples on real hardware.
+
+@subheading Measuring new thresholds
+
+Workspace @b{ScalarBenchmark.apl}, shipped in the @b{workspaces}
+directory, measures the break-even length of every scalar function it is
+configured to test and writes the result as a file named
+@b{parallel_thresholds} in the @i{current} directory:
+
+@example
+src/apl -f workspaces/ScalarBenchmark.apl
+@end example
+
+Some parameters near the top of the workspace (e.g. @b{CORES}, the number
+of cores to measure with, and @b{TIME_LIMIT}/@b{ILRC}, which bound how
+long each measurement pass may run) can be adjusted before running it. A
+full run takes on the order of a few minutes; expect the numbers to vary
+somewhat between runs, so consider re-running it if a result looks
+implausible.
+
+@subheading Installing the measured thresholds
+
+The @b{parallel_thresholds} file written by @b{ScalarBenchmark.apl} uses
+the same @b{perfo_1}/@b{perfo_2}/@b{perfo_3} line format GNU APL already
+ships in its own @b{parallel_thresholds} file, and it is read from
+@i{exactly} the two directories (and with the same precedence) described
+above for the @b{preferences} file: the @b{gnu-apl.d} sub-directory of the
+system configuration directory, and, overriding that, the
+@b{.config/gnu-apl} sub-directory of your home directory. GNU APL reads
+whichever of the two it finds at start-up and applies the break-even
+lengths found there.
+
+Note that @b{ScalarBenchmark.apl} only @i{writes} the file to your
+current directory -- it does not install it anywhere, and @b{make
+install} does @i{not} pick up a freshly written
+@b{@i{current-directory}/parallel_thresholds} automatically (it installs
+whatever @b{parallel_thresholds} file already sits in the source tree's
+own @b{gnu-apl.d} directory). To make freshly measured thresholds take
+effect you therefore need one extra, manual step: either copy the file to
+@b{$HOME/.config/gnu-apl/parallel_thresholds} for a personal override that
+needs no rebuild and no root privileges, or, if you are packaging GNU APL
+for others, copy it to @b{gnu-apl.d/parallel_thresholds} in the source
+tree before running @b{make install} so that it is installed system-wide.
+
+Individual thresholds can also be inspected and overridden at run time,
+without editing any file, via @b{⎕FIO[200]} to @b{⎕FIO[203]}; see
+@ref{⎕FIO - File I/O Functions}.
+
 @node File Names and Paths
 @section File Names and Paths
 

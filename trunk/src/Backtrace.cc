@@ -1376,13 +1376,22 @@ char obuf[200] = "@@@@";
        strncpy(obuf, fun, sizeof(obuf) - 1);
        obuf[sizeof(obuf) - 1] = '\0';
 
-       size_t obuflen = sizeof(obuf) - 1;
        int status = 0;
 //     cerr << "mangled fun is: " << fun << endl;
-       __cxxabiv1::__cxa_demangle(fun, obuf, &obuflen, &status);
+       // __cxa_demangle's ABI contract requires the output buffer to have
+       // come from malloc() -- it may realloc() it when undersized, and
+       // realloc() on a stack array (obuf) is UB (typically a "realloc():
+       // invalid pointer" abort, or worse). Any demangled name over 199
+       // chars hits this, which is routine for this codebase's templated/
+       // namespaced symbols (Heapsort<...>::sort, std::__...). Let
+       // __cxa_demangle allocate instead, then copy into obuf (used below
+       // and sized for the common case) and free the malloc'd result.
+       char * dm = __cxxabiv1::__cxa_demangle(fun, 0, 0, &status);
        switch(status)
           {
             case 0: // demangling succeeded
+                 strncpy(obuf, dm, sizeof(obuf) - 1);
+                 obuf[sizeof(obuf) - 1] = '\0';
                  break;
 
             case -2: // not a valid name under the C++ ABI mangling rules.
@@ -1392,6 +1401,7 @@ char obuf[200] = "@@@@";
                  cerr << "__cxa_demangle() returned " << status << endl;
                  break;
           }
+       free(dm);
       }
 
 // cerr << setw(2) << idx << ": ";

@@ -2014,24 +2014,43 @@ UTF8 * end = 0;
              return input;
 
         case UNI_PAD_U9: // packed boolean,         e.g. ⁹
-             Assert(Z.is_bool_packed());
-             for (;;)
-                 {
-                   const uint8_t c0 = input[0];
-                   const uint8_t c1 = input[1];
-                   if (c0 <= ' ')    { ++input;   continue; }   // whitespace
-                   if (c0 == '"')   return input + 1;   // end of ravel
+             {
+               Assert(Z.is_bool_packed());
 
-                   const char cc[3] = { char(c0), char(c1), 0 };
-                   char * end = 0;
-                   const uint8_t byte = strtoll(cc, &end, 16);
-                   input += end - cc;
+               // Z's packed ravel was allocated (by its constructor) to hold
+               // exactly ⌈element_count()/64⌉ 64-bit words == max_bytes
+               // bytes. The loop below writes at most that many bytes,
+               // regardless of how many hex pairs a (possibly hand-crafted)
+               // workspace file supplies -- without this bound, an
+               // over-long cells="..." attribute would walk past the
+               // allocation (a heap buffer overflow reachable via a
+               // crafted )LOAD/)COPY, since this branch, unlike the
+               // per-element cases above, is not bounded by Z.more()).
+               //
+               const ShapeItem max_bytes = ((Z.element_count() + 63) >> 6) << 3;
+               uint8_t * const dst = reinterpret_cast<uint8_t *>(&Z.get_wfirst());
+               ShapeItem count = 0;
 
-                   const int converted = end - cc;
-                   if (converted == 0)   return input;   // nothing converted
-                   Z.next_ravel_Byte(byte);         // > 0 bytes converted
-                   if (converted == 1)   return input + 1;
-                 }
+               for (;;)
+                   {
+                     if (input >= file_end)   break;   // truncated file
+                     const uint8_t c0 = input[0];
+                     if (c0 <= ' ')    { ++input;   continue; }   // whitespace
+                     if (c0 == '"')   { ++input;   break; }   // end of ravel
+
+                     const uint8_t c1 = (input + 1 < file_end) ? input[1] : 0;
+                     const char cc[3] = { char(c0), char(c1), 0 };
+                     char * end = 0;
+                     const uint8_t byte = strtoll(cc, &end, 16);
+                     input += end - cc;
+
+                     const int converted = end - cc;
+                     if (converted == 0)   break;   // nothing converted
+                     if (count < max_bytes)   dst[count++] = byte;   // bounded
+                     if (converted == 1)   { ++input;   break; }
+                   }
+               return input;
+             }
 
         default: Q1(type) Q1(line_no) DOMAIN_ERROR;
       }

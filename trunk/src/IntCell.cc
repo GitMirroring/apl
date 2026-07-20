@@ -808,6 +808,16 @@ const bool invert_Z = b < 0;
       }
    if (a == 1)    return IntCell::z1(Z);
    if (a == -1)   return (b & 1) ? IntCell::z_1(Z) : IntCell::z1(Z);
+   if (a == APL_Integer(0x8000000000000000ULL))   // INT64_MIN
+      {
+        // -a below would overflow right back to INT64_MIN (UB, and stays
+        // negative), which later makes a_2_n wrap to 0 and SIGFPEs on the
+        // division at line ~822. pow() handles a negative base directly
+        // (correct sign for odd/even b), so go straight to the float path.
+        APL_Float z = pow(APL_Float(a), APL_Float(b));
+        if (invert_Z)   z = 1.0 / z;
+        return FloatCell::zF(Z, z);
+      }
 
 const bool negate_Z = (a < 0) && (b & 1);
    if (a < 0)   a = -a;

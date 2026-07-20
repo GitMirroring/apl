@@ -334,12 +334,13 @@ ShapeItem end_z = z + slice_len;
    if (end_z > Z_len)   end_z = Z_len;
 
    Cell cacheA;
+   Cell cacheB;
    for (; z < end_z; ++z)
        {
         const ShapeItem zah = z/job.ZBl;
         const ShapeItem zbl = z - zah*job.ZBl;
         const Cell & cellA = job.VA->get_cravel(job.idxA + zah, cacheA);
-        const Cell & cellB = job.VB->get_cravel(job.idxB + zbl);
+        const Cell & cellB = job.VB->get_cravel(job.idxB + zbl, cacheB);
         job.ec = (cellB.*job.RO)(&job.VZ->get_wravel(job.idxZ + z), &cellA);
         if (job.ec != E_NO_ERROR)   return;
        }

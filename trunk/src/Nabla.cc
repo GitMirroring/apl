@@ -887,6 +887,10 @@ const int idx_to = find_line(LineLabel(edit_to));
 
    if (edit_from == -1)   // [∆N] : delete single line
       {
+        // lines[0] is the header line; nothing upstream stops N from
+        // resolving to it, and deleting it would desync every later
+        // line index from its label. Reject rather than corrupt.
+        if (idx_to == 0)   return "cannot delete the header line [0]";
         lines.erase(lines.begin() + idx_to);
         return 0;
       }
@@ -896,9 +900,11 @@ const int idx_to = find_line(LineLabel(edit_to));
 const int idx_from = find_line(LineLabel(edit_from));
    if (idx_from == -1)       return "Bad line number M in [M∆N] ";
    if (idx_from >= idx_to)   return "M ≥ N in [M∆N] ";
+   if (idx_from == 0)        return "cannot delete the header line [0]";
 
    loop(j, 1 + idx_to - idx_from)   lines.erase(lines.begin() + idx_from);
-   current_line = lines.back().label;
+   // guard defensively: were lines ever emptied above, .back() is UB.
+   if (lines.size())   current_line = lines.back().label;
    return 0;
 }
 //────────────────────────────────────────────────────────────────────────────

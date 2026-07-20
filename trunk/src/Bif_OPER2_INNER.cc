@@ -290,8 +290,9 @@ ShapeItem end_z = z + slice_len;
              cidxB -= job.incB*job.ZBl;
 
              Cell cacheA;
+             Cell cacheB;
              const Cell & cellA = job.VA->get_cravel(ridxA, cacheA);
-             const Cell & cellB = job.VB->get_cravel(cidxB);
+             const Cell & cellB = job.VB->get_cravel(cidxB, cacheB);
              if (l == 0)   // store first product in Z[z]
                 {
                   job.ec = (cellB.*job.RO)(sum, &cellA);
