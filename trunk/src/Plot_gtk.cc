@@ -489,6 +489,33 @@ bool round = false;
         if (cc == 'u')  { round = true;   break; }   // %u
       }
 
+   // format is the FULL user-supplied string, used as-is below as a
+   // printf format with exactly one argument (val, or a rounded
+   // int(val)). Extra or mismatched conversions in format are otherwise
+   // honored against a nonexistent/wrong-typed vararg: %n is a write
+   // primitive, and %s/%p (or any other non-numeric conversion) reads a
+   // nonexistent vararg as a pointer -- validate that format has
+   // exactly one, numeric, conversion before using it.
+   {
+     int conversions = 0;
+     bool safe = true;
+     for (const char * p = format; *p; ++p)
+         {
+           if (*p != '%')   continue;
+           ++p;
+           if (*p == '%')   continue;   // %% is a literal percent
+           ++conversions;
+           while (*p && strchr("-+ #0123456789.", *p))   ++p;   // flags/width/precision
+           if (!*p || !strchr("diouxXeEfFgGaA", *p))   safe = false;
+         }
+     if (conversions != 1 || !safe)
+        {
+          CERR << "⎕PLOT: bad tick format '" << format << "'" << endl;
+          SPRINTF(cc, "%g", val);
+          return cc;
+        }
+   }
+
    if (!round)         SPRINTF(cc, format, val)
    else if (val > 0)   SPRINTF(cc, format, int(rint(val) + 0.5))
    else                SPRINTF(cc, format, int(rint(val) - 0.5))

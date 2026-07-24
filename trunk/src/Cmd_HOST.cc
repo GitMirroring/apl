@@ -108,6 +108,7 @@ bool
 Cmd_HOST::have_capability(const UCS_string & capa)
 {
 const int len = capa.size();
+   if (len == 0)   return false;   // e.g. bare "]NEXTFILE HAVE-"/"NO-"
    if (capa.front() == UNI_Quad_Quad)   // ⎕xx
       {
         const UCS_string capa1 = capa.drop(1);

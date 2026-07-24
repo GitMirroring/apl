@@ -1058,6 +1058,16 @@ Bif_F12_FORMAT::format_one_col_by_spec(int width, int precision,
    // this many digits.
    if (precision > 1000 || precision < -1000)   DOMAIN_ERROR;
 
+   // width comes straight from the left argument too, with no
+   // non-negativity check otherwise: on overflow (data.ssize() > width)
+   // below, a negative width makes that comparison always true (any
+   // non-negative ssize() is > any negative int) and then
+   // UCS_string(width, ...) sign-extends the negative int to a
+   // near-SIZE_MAX count, whose internal reserve() throws
+   // std::length_error. (A positive width of 2^31 truncates to INT_MIN
+   // at the int parameter and reaches the same path.)
+   if (width < 0)   DOMAIN_ERROR;
+
 PrintBuffer ret;
 
 bool has_char    = false;

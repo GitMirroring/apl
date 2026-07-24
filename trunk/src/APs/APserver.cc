@@ -870,6 +870,7 @@ AP3_fd * ap_fd = 0;
                                   response->get__VALUE_IS__error_loc(),
                                   response->get__VALUE_IS__cdr_value());
 
+               delete response;
                if (del)   delete[] del;
              }
              return;
@@ -923,11 +924,15 @@ Signal_base * request = Signal_base::recv_TCP(fd, buffer, sizeof(buffer),
                   << ", loc=" << loc << endl;
            }
          close_fd(fd);
+         if (del)   delete[] del;   // recv_TCP() may have allocated del
+                                    // before failing to receive the full
+                                    // signal; don't leak it here too.
          return;
       }
 
    do_signal(fd, request);
 
+   delete request;
    if (del)   delete[] del;
 }
 //════════════════════════════════════════════════════════════════════════════

@@ -78,6 +78,14 @@ Value_P Z2 = Bif_F12_TRANSPOSE::transpose(shape_Ri, *RiT);   // BT←⍉B
 void
 GSL::LU_factorize_DD_matrix(Value & Z, int M, int N, cValue_R B_val, ShapeItem idx)
 {
+  // gsl_linalg_LU_decomp() below requires a square matrix; without this,
+  // calling it on a non-square one (or any other GSL-detected error)
+  // reaches GSL's default error handler, which calls abort() and kills
+  // the whole process -- every other QR/QL path in this file already
+  // installs this handler first (it makes a GSL error a catchable
+  // DOMAIN_ERROR instead).
+  set_GSL_error_handler();
+
   // 0. Init GSL matrix B from APL ravel starting at idx
   //
 gsl_matrix * B = gsl_matrix_alloc(M, N);   if (B == 0)   WS_FULL;
@@ -120,11 +128,17 @@ Value_P Z2(M, min_MN, LOC);   // Z2 is L
   Z.next_ravel_Pointer(Z1.get());
   Z.next_ravel_Pointer(Z2.get());
   Z.check_value(LOC);
+
+  gsl_matrix_free(B);
+  gsl_permutation_free(P);
 }
 //════════════════════════════════════════════════════════════════════════════
 void
 GSL::LU_factorize_ZZ_matrix(Value & Z, int M, int N, cValue_R B_val, ShapeItem idx)
 {
+  // see LU_factorize_DD_matrix() above for why this is needed.
+  set_GSL_error_handler();
+
   // 0. Init GSL matrix B from APL ravel starting at idx
   //
 gsl_matrix_complex * B = gsl_matrix_complex_alloc(M, N);   if (B == 0)   WS_FULL;
@@ -189,6 +203,9 @@ Value_P Z2(M, min_MN, LOC);   // Z2 is L
   Z.next_ravel_Pointer(Z1.get());
   Z.next_ravel_Pointer(Z2.get());
   Z.check_value(LOC);
+
+  gsl_matrix_complex_free(B);
+  gsl_permutation_free(P);
 }
 //════════════════════════════════════════════════════════════════════════════
 void

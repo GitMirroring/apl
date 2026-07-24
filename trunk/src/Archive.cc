@@ -1717,16 +1717,25 @@ const int att_len = strlen(att_name);
        {
          if (u8::strncmp(att_name, d, att_len))   continue;
          const UTF8 * dd = d + att_len;
-         while (*dd <= ' ')   ++dd;   // skip whitespaces
+         // Bounded by file_end: for a tag truncated right at/after this
+         // attribute name, the expected '='/'"' sequence may never
+         // appear, and *x <= ' ' is true for NUL too, so an unbounded
+         // scan here would run past end_attr (itself possibly stale,
+         // see below) and past the mmap'd (exactly file_length bytes,
+         // not NUL-terminated) file buffer.
+         while (dd < file_end && *dd <= ' ')   ++dd;   // skip whitespaces
+         if (dd >= file_end)   break;
          if (*dd++ != '=')   continue;
 
          // attribute= found. find value.
-         while (*dd <= ' ')   ++dd;   // skip whitespaces
+         while (dd < file_end && *dd <= ' ')   ++dd;   // skip whitespaces
+         if (dd >= file_end)   break;
          Assert(*dd == '"');
          return dd + 1;
        }
 
-   // not found
+   // not found (including a truncated attribute value that ran into
+   // file_end above)
    //
    if (!optional)
       {
@@ -1838,7 +1847,22 @@ XML_Loading_Archive::get_uni()
    if (data >= file_end)   return true;   // EOF
 
 int len = 0;
-   current_char = UTF8_string::toUni(data, len, true);
+   // pass file_end so toUni()'s own bounds check can actually reject a
+   // multi-byte lead byte whose continuation bytes would run past the
+   // mmap'd (exactly file_length bytes, not NUL-terminated) buffer --
+   // without it (the 3-arg call this used to be), that check is inert.
+   current_char = UTF8_string::toUni(data, len, true, file_end);
+
+   // toUni() returns len == 0 (with current_char == Invalid_Unicode) on
+   // exactly the truncation it was just asked to detect via file_end.
+   // data must still be treated as exhausted here: advancing by 0 would
+   // otherwise leave data unchanged and current_char permanently
+   // Invalid_Unicode, so every caller loop of the form
+   // "while (current_char != X) { if (get_uni()) return/break; }" would
+   // spin forever (get_uni() never returning true, data never moving)
+   // instead of ever reaching this EOF/error path.
+   if (len == 0)   return true;   // truncated/invalid -- treat as EOF
+
    data += len;
    if (current_char == 0x0A)   { ++line_no;   line_start = data; }
    return false;
@@ -1915,11 +1939,22 @@ XML_Loading_Archive::instantiate_derived_functions(bool allocate)
 const UTF8 *
 XML_Loading_Archive::read_Cells(Value & Z, const UTF8 * input)
 {
-   // skip leading whitespace
-   while (*input <= ' ')   ++input;
+   // skip leading whitespace. Bounded by file_end: input comes from
+   // find_*_attr() into the mmap'd (exactly file_length bytes, PROT_READ,
+   // NOT NUL-terminated) workspace file, so an unterminated/truncated
+   // attribute value would otherwise run this scan past the mapped
+   // region -- *x <= ' ' is even true for a NUL byte, so a single
+   // trailing NUL does not stop it either.
+   while (input < file_end && *input <= ' ')   ++input;
+   if (input >= file_end)
+      {
+        MORE_ERROR() << "corrupt/truncated workspace: unexpected end of "
+                        "file while reading Ravel cells";
+        DOMAIN_ERROR;
+      }
 
 int type_len = 0;
-const Unicode type = UTF8_string::toUni(input, type_len, true);
+const Unicode type = UTF8_string::toUni(input, type_len, true, file_end);
    input += type_len;   // skip type in input
 
    // result pointer for u8::strtoll() / u8::strtod()
@@ -1976,14 +2011,23 @@ UTF8 * end = 0;
         case UNI_PAD_U6: // pointer,                e.g. ⁶1525 (vid)
              {
                const int vid = u8::strtoll(input, &end, 10);
-               Assert(vid >= 0);
-               Assert(vid < int(values.size()));
+               // Assert() is a no-op at the documented default assert
+               // level, so it cannot be relied on to reject an
+               // out-of-range vid coming from (possibly hand-edited or
+               // corrupted) workspace XML; use an always-enforced check.
+               if (vid < 0 || vid >= int(values.size()))
+                  {
+                    MORE_ERROR() << "corrupt workspace: pointer vid="
+                                 << vid << " out of range (0.."
+                                 << (values.size() - 1) << ")";
+                    DOMAIN_ERROR;
+                  }
                Z.next_ravel_Value(values[vid].get());
                input = end;
              }
              return input;
 
-        case UNI_PAD_U7: // cellref,                e.g. ⁷ 
+        case UNI_PAD_U7: // cellref,                e.g. ⁷
              if (input[0] == '0')    // 0-cell-pointer
                 {
                   Z.next_ravel_Lval(0, 0);
@@ -1992,18 +2036,41 @@ UTF8 * end = 0;
              else
                 {
                   const int vid = u8::strtoll(input, &end, 16);
-                  Assert(vid >= 0);
-                  Assert(vid < int(values.size()));
-                  Assert(*end == '[');   ++end;
+                  if (vid < 0 || vid >= int(values.size()))
+                     {
+                       MORE_ERROR() << "corrupt workspace: cellref vid="
+                                    << vid << " out of range (0.."
+                                    << (values.size() - 1) << ")";
+                       DOMAIN_ERROR;
+                     }
+                  if (*end != '[')
+                     {
+                       MORE_ERROR() << "corrupt workspace: malformed "
+                                       "cellref (expected '[')";
+                       DOMAIN_ERROR;
+                     }
+                  ++end;
                   const ShapeItem offset = u8::strtoll(end, &end, 16);
-                  Assert(*end == ']');   ++end;
+                  if (*end != ']')
+                     {
+                       MORE_ERROR() << "corrupt workspace: malformed "
+                                       "cellref (expected ']')";
+                       DOMAIN_ERROR;
+                     }
+                  ++end;
                   Value * target = values[vid].get();
                   // get_wravel()'s own bounds check is Assert1(), a no-op
-                  // at the default assert level, so validate offset here
-                  // (with the real Assert()) against attacker-controlled
-                  // workspace XML.
+                  // at the default assert level too, so validate offset
+                  // here (with an always-enforced check) against
+                  // attacker-controlled workspace XML.
                   //
-                  Assert(offset >= 0 && offset < target->nz_element_count());
+                  if (!target || offset < 0 ||
+                      offset >= target->nz_element_count())
+                     {
+                       MORE_ERROR() << "corrupt workspace: cellref offset="
+                                    << offset << " out of range";
+                       DOMAIN_ERROR;
+                     }
                   Z.next_ravel_Lval(&target->get_wravel(offset), target);
                   input = end;
                 }
@@ -2410,7 +2477,16 @@ const UTF8 * cells_utf = find_optional_attr("cells");
       err << "    read_Ravel() vid=" << vid
            << ", XML line " << line_no << " - ";
 
-   Assert(vid >= 0 && vid < int(values.size()));
+   // Assert() is a no-op at the documented default assert level, so it
+   // cannot be relied on to reject an out-of-range vid coming from
+   // (possibly hand-edited or corrupted) workspace XML; use an
+   // always-enforced check.
+   if (vid < 0 || vid >= int(values.size()))
+      {
+        MORE_ERROR() << "corrupt workspace: Ravel vid=" << vid
+                     << " out of range (0.." << (values.size() - 1) << ")";
+        DOMAIN_ERROR;
+      }
 Value_P Z = values[vid];
 
    if (!Z)
@@ -3080,7 +3156,19 @@ XML_Loading_Archive::read_XML_string(UCS_string & ucs, const UTF8 * utf)
       On return, 'utf' points to the terminating '"'.
     */
 
-   while (*utf <= ' ')   ++utf;   // skip leading whitespace
+   // skip leading whitespace. Bounded by file_end: utf comes from
+   // find_attr() into the mmap'd (exactly file_length bytes, PROT_READ,
+   // NOT NUL-terminated) workspace file, so an unterminated/truncated
+   // attribute value would otherwise run this scan past the mapped
+   // region -- *x <= ' ' is even true for a NUL byte, so a single
+   // trailing NUL does not stop it either.
+   while (utf < file_end && *utf <= ' ')   ++utf;
+   if (utf >= file_end)
+      {
+        MORE_ERROR() << "corrupt/truncated workspace: unexpected end of "
+                        "file while reading an XML string";
+        DOMAIN_ERROR;
+      }
 
    // char mode is controlled by delimiters:
    //
@@ -3092,13 +3180,13 @@ XML_Loading_Archive::read_XML_string(UCS_string & ucs, const UTF8 * utf)
    // It returns at the end of the XML attribute (") or a the next
    // micro-tag (³ ⁴ ⁵ ⁶ ⁷ ⁸ ⁹)
 
-   for (bool char_mode = false; *utf && (*utf != '"');)
+   for (bool char_mode = false; utf < file_end && *utf && (*utf != '"');)
        {
          // get next Unicode and advance utf
          //
          const UTF8 * from = utf;
          int len = 0;   // length of uni
-         const Unicode uni = UTF8_string::toUni(utf, len, true);
+         const Unicode uni = UTF8_string::toUni(utf, len, true, file_end);
          utf += len;     // skip uni
 
           if (char_mode && uni != '\n' && uni != UNI_PAD_U0)

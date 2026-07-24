@@ -153,6 +153,17 @@ uint32_t bx = b0;   // the "significant" bits in b0
 
         BACKTRACE
         Assert(0 && "Internal error in UTF8_string::toUni()");
+
+        // Assert() is a no-op at the documented default ASSERT_LEVEL 0,
+        // so this is reachable in normal builds: without it, len keeps
+        // whatever the caller passed in and the continuation-byte code
+        // below runs with a garbage/attacker-uninfluenced length --
+        // an infinite loop (some callers pre-set len=0, advancing the
+        // cursor by 0 forever) or an OOB read (DiffOut::different()
+        // leaves len uninitialized). Fail the same way the non-verbose
+        // branch already does.
+        len = 0;
+        return Invalid_Unicode;
       }
    else
       {

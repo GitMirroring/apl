@@ -85,6 +85,14 @@ public:
                  uint32_t idx, uint32_t len)
    : X(pX), Y(pY), Z(pZ), row_num(idx), N(len)
    {
+     if (N == 0)   // no data points: X[0]/Y[0]/Z[0] below would be OOB
+        {
+          min_X = max_X = 0.0;
+          min_Y = max_Y = 0.0;
+          min_Z = max_Z = 0.0;
+          return;
+        }
+
      min_X = max_X = get_X(0);
      min_Y = max_Y = get_Y(0);
      min_Z = max_Z = get_Z(0);
@@ -293,8 +301,8 @@ public:
              max_X = row->get_max_X();
              min_Y = row->get_min_Y();
              max_Y = row->get_max_Y();
-             min_Z = row->get_min_Y();
-             max_Z = row->get_max_Y();
+             min_Z = row->get_min_Z();
+             max_Z = row->get_max_Z();
            }
         else
            {

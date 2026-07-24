@@ -894,37 +894,34 @@ int num = 0;
 void
 Value::to_type(bool force_numeric)
 {
-const ShapeItem ec = nz_element_count();
-const RavelType rt = get_ravel_type();
+   // set_ravel_Char()/set_ravel_Int() below placement-new a full 24-byte
+   // Cell at Cell stride; a packed (non-RPT_CELLS) ravel's elements are
+   // narrower and more closely spaced, so writing Cells directly into one
+   // without unpacking first overruns adjacent elements and leaves the
+   // (still-installed) packed fetcher reinterpreting Cell internals (e.g.
+   // a vtable pointer) as packed data. explode_to_Cells() is a no-op if
+   // the ravel is already RPT_CELLS.
+   explode_to_Cells();
 
-   if (rt == RPT_CELLS)   // only RPT_CELLS can have pointer or mixed cells
+const ShapeItem ec = nz_element_count();
+
+   loop(e, ec)
       {
-        loop(e, ec)
+        Cell & cell = get_wravel(e);
+        if (cell.is_pointer_cell())
            {
-             Cell & cell = get_wravel(e);
-             if (cell.is_pointer_cell())
-                {
-                  PointerCell & ptr_cell = reinterpret_cast<PointerCell &>(cell);
-                  ptr_cell.isolate(LOC);
-                  ptr_cell.get_pointer_value()->to_type(force_numeric);
-                }
-             else if (cell.is_character_cell() && ! force_numeric)
-                {
-                  set_ravel_Char(e, UNI_SPACE);
-                }
-             else
-                {
-                  set_ravel_Int(e, 0);
-                }
+             PointerCell & ptr_cell = reinterpret_cast<PointerCell &>(cell);
+             ptr_cell.isolate(LOC);
+             ptr_cell.get_pointer_value()->to_type(force_numeric);
            }
-      }
-   else if ((rt & RPT_char) && !force_numeric)
-      {
-        loop(e, ec)   set_ravel_Char(e, UNI_SPACE);
-      }
-   else
-      {
-        loop(e, ec)   set_ravel_Int(e, 0);
+        else if (cell.is_character_cell() && ! force_numeric)
+           {
+             set_ravel_Char(e, UNI_SPACE);
+           }
+        else
+           {
+             set_ravel_Int(e, 0);
+           }
       }
 }
 //────────────────────────────────────────────────────────────────────────────
@@ -1029,7 +1026,7 @@ auto src = reinterpret_cast<const uint16_t *>(ravel.cells) + N;
    loop(i, N)   *--dst = *--src;
 
    flags.ravel_type        = RPT_UNICODE32;
-   ravel.fetcher           = &Ravel::cell_fetcher;
+   ravel.fetcher           = &Ravel::char32_fetcher;
    ravel.valid_ravel_items = N;
    return RPT_UNICODE32;
 }

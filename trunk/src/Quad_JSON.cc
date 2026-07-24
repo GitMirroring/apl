@@ -975,15 +975,25 @@ ShapeItem content_len = 0;
         ++content_len;
         if (uni == UNI_BACKSLASH)   // skip the escaped part...
            {
-             if (ucs_B[b + 1] == UNI_u)   // \uUUUU
+             // safe_at(): like ucs_B[idx], but returns a placeholder
+             // instead of reading out of bounds -- decode_UUUU() only
+             // guarantees indices up to (but not including) its own
+             // failure point are in range, and a truncated escape (e.g.
+             // a lone trailing '\' or '\u') can fail before all 6 (or,
+             // for a high surrogate, 12) fields below are valid.
+             auto safe_at = [&ucs_B](ShapeItem idx) -> Unicode
+                { return (idx >= 0 && idx < ucs_B.ssize())
+                         ? ucs_B[idx] : Unicode('?'); };
+
+             if (safe_at(b + 1) == UNI_u)   // \uUUUU
                 {
                   const Unicode u1 = decode_UUUU(ucs_B, b);
                   if (u1 == Unicode_0)   // decode_UUUU() failed
                      {
                        MORE_ERROR() << "⎕JSON B: bad escape sequence "
-                                    << ucs_B[b    ] << ucs_B[b + 1]
-                                    << ucs_B[b + 2] << ucs_B[b + 3]
-                                    << ucs_B[b + 4] << ucs_B[b + 5]
+                                    << safe_at(b    ) << safe_at(b + 1)
+                                    << safe_at(b + 2) << safe_at(b + 3)
+                                    << safe_at(b + 4) << safe_at(b + 5)
                                     << " at " << b << "↓B";
                        DOMAIN_ERROR;
                      }
@@ -994,9 +1004,9 @@ ShapeItem content_len = 0;
                        if (u2 == Unicode_0)   // decode_UUUU() failed
                           {
                             MORE_ERROR() << "⎕JSON B: bad escape sequence "
-                                         << ucs_B[b +  6] << ucs_B[b +  7]
-                                         << ucs_B[b +  8] << ucs_B[b +  9]
-                                         << ucs_B[b + 10] << ucs_B[b + 11]
+                                         << safe_at(b +  6) << safe_at(b +  7)
+                                         << safe_at(b +  8) << safe_at(b +  9)
+                                         << safe_at(b + 10) << safe_at(b + 11)
                                          << " at " << (b + 6) << "↓B";
                             DOMAIN_ERROR;
                           }

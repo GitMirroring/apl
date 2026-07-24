@@ -501,7 +501,17 @@ int
 Quad_GTK::write_TLV(int fd, int tag, const UTF8_string & value)
 {
 const int TLV_len = 8 + value.size();
-unsigned char TLV[TLV_len];
+
+   // TLV_len is driven by the caller-supplied value (e.g. a huge APL
+   // string passed to ⎕GTK[H_id] 'set_text'); a VLA sized by it can
+   // overflow the stack with no guard. Use a small fixed stack buffer
+   // for the common case and fall back to the heap for large values,
+   // matching the same pattern already used in send_name_or_data().
+unsigned char short_TLV[1000];
+unsigned char * del = 0;
+unsigned char * TLV = short_TLV;
+   if (size_t(TLV_len) > sizeof(short_TLV))   del = TLV = new unsigned char[TLV_len];
+
    TLV[0] = tag >> 24 & 0xFF;
    TLV[1] = tag >> 16 & 0xFF;
    TLV[2] = tag >> 8  & 0xFF;
@@ -512,11 +522,14 @@ unsigned char TLV[TLV_len];
    TLV[7] = value.size();
    loop(s, value.size())   TLV[8 + s] = value[s];
 
-    if (write(fd, TLV, TLV_len) != TLV_len)
-       {
-         CERR << "write(Tag = " << tag << ") failed in ⎕GTK::write_TLV()";
-         return -1;
-       }
+const bool failed = write(fd, TLV, TLV_len) != TLV_len;
+   delete[] del;
+
+   if (failed)
+      {
+        CERR << "write(Tag = " << tag << ") failed in ⎕GTK::write_TLV()";
+        return -1;
+      }
 
    return 0;
 }
@@ -837,6 +850,16 @@ char * V = TLV + 8;
         UTF8_string data_utf;   // H:widget:callback
         loop(v, V_len)   data_utf += V[v];
         UCS_string data_ucs(data_utf);
+        // a genuine Gtk_server always prepends the 'H' placeholder (so
+        // data_ucs is never empty here); a rogue/buggy peer sending an
+        // event-class tag with V_len == 0 would otherwise make this an
+        // OOB write on an empty UCS_string (unchecked operator[]).
+        if (data_ucs.size() == 0)
+           {
+             MORE_ERROR() << "⎕GTK: empty event value "
+                             "(expected 'H' placeholder prefix)";
+             DOMAIN_ERROR;
+           }
         data_ucs[0] = Unicode(fd);
 
         event_queue.push_back(data_ucs);

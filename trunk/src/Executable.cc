@@ -591,7 +591,14 @@ int stats_before = 0;
          //
          if (body[p].get_tag() == TOK_STOP_LINE)          --stats_before;
 
-         if (body[p].get_Class() == TC_END)               ++stats_before;
+         // TOK_IF_THEN/IF_ELSE/IF_END are TC_END too (conditional-branch
+         // bookkeeping tokens synthesized for →→/←→/←← syntax) but have
+         // no ◊ of their own in line_txt -- counting them here would
+         // overcount relative to the ◊ scan below and desync tidx.
+         if (body[p].get_Class() == TC_END &&
+             body[p].get_tag() != TOK_IF_THEN &&
+             body[p].get_tag() != TOK_IF_ELSE &&
+             body[p].get_tag() != TOK_IF_END)             ++stats_before;
          else if (body[p].get_tag() == TOK_RETURN_EXEC)   ++stats_before;
        }
 
@@ -605,7 +612,7 @@ int tidx = 0;
 
    // skip leading spaces
    //
-   while (line_txt[tidx] == ' ')   ++tidx;
+   while (tidx < line_txt.ssize() && line_txt[tidx] == ' ')   ++tidx;
 
 UCS_string ret;
    while (tidx < line_txt.ssize())
@@ -1045,7 +1052,11 @@ ShapeItem sols = 0;   // start-of-last-statement; assume no ◊.
         if (Avec::is_DIAMOND(lambda_text[j]))
            {
              sols = j + 1;
-             while (lambda_text[sols] <= UNI_SPACE)   ++sols;
+             // currently unreachable (SIG_Z implies non-whitespace
+             // follows the last ◊), but bound defensively in case a
+             // future change to lambda parsing makes it reachable.
+             while (sols < lambda_text.ssize() &&
+                    lambda_text[sols] <= UNI_SPACE)   ++sols;
              break;
            }
       }

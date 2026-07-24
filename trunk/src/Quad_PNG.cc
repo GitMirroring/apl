@@ -407,6 +407,20 @@ png_structp png_ptr = png_create_read_struct(PNG_LIBPNG_VER_STRING,
 png_infop info_ptr = png_create_info_struct(png_ptr);
    if (!info_ptr)   WS_FULL;
 
+   // PNG_err() (registered above) throws DOMAIN_ERROR on any libpng
+   // decode error, e.g. a truncated/corrupt IDAT after a valid IHDR.
+   // Without a try/catch here, that throw unwinds straight past the
+   // png_destroy_read_struct()/delete[] cleanup at the end of this
+   // function, leaking png_ptr/info_ptr and (once allocated below)
+   // RGB/row_pointers on every malformed-input decode error -- a
+   // mild but freely repeatable DoS (⎕PNG on the same bad file again
+   // and again). Catch, clean up, then rethrow so the DOMAIN_ERROR
+   // itself is still reported to the caller unchanged.
+   //
+UTF8 * RGB = 0;
+UTF8 ** row_pointers = 0;
+   try
+      {
     png_init_io(png_ptr, reader.get_FILE());
 
    // We use the low-level interface for a better control of the input
@@ -426,13 +440,6 @@ const int bit_depth = png_get_bit_depth(png_ptr, info_ptr);
 const bool alpha_used   = color_type & 0x04;
 const bool color_used   = color_type & 0x02;
 const bool palette_used = color_type & 0x01;
-const int planes = (alpha_used ? 1 : 0) + (color_used ? 3 : 1);
-
-   // secondary image parameters (derived from the primary parameters)
-   //
-const int bytes_per_color = (bit_depth + 7) / 8;       // 1 or 2 bytes
-
-const int bytes_per_pixel = planes * bytes_per_color;
 
    if (verbosity & SHOW_DATA)
       {
@@ -442,37 +449,21 @@ const int bytes_per_pixel = planes * bytes_per_color;
              << " ├─── alpha:   " << (alpha_used ? "yes" : "no")   << endl
              << " ├─── color:   " << (color_used ? "yes" : "no")   << endl
              << " └─── palette: " << (palette_used ? "yes" : "no") << endl
-             << "bit_depth:     " << bit_depth << " bits/color"    << endl
-             << "planes:        " << planes                        << endl;
+             << "bit_depth:     " << bit_depth << " bits/color"    << endl;
       }
 
-   // 2. allocate the pixel memory and scanline pointers...
-   //
-if ((size_t)planes * height > SIZE_MAX / 2 / (unsigned)width)   WS_FULL;
-   // The guard above is computed in size_t, but width/height/planes are
-   // all plain int, so "planes*height*width*2" here used to multiply
-   // entirely in 32-bit int -- silently wrapping (UB) for a large,
-   // highly compressible image (e.g. ~26000x26000 RGB) that passes the
-   // size_t guard but overflows INT_MAX, under-allocating RGB while
-   // png_read_image() still writes the full (large) decoded image into
-   // it. Force the same size_t arithmetic used by the guard.
-const size_t rgb_bytes = size_t(planes) * height * width * 2;
-UTF8 * RGB = new UTF8[rgb_bytes];
-UTF8 ** row_pointers = new UTF8 *[height];
-
-UTF8 * scanline = RGB;
-   loop(y, height)
-       {
-         row_pointers[y] = scanline;
-         // size_t(planes)*width*2, not planes*width*2: the latter is
-         // 32-bit int arithmetic (planes/width are int) and overflows
-         // (UB) for a row stride > INT_MAX even though rgb_bytes above
-         // was already widened to size_t -- row_pointers[y] would then
-         // point far outside RGB, into which png_read_image() writes.
-         scanline += size_t(planes) * width * 2;
-       }
-
-   // 3. set the desired input transformations...
+   // 2. set the desired input transformations. This must happen BEFORE
+   //    png_read_update_info() below, and the pixel buffer must not be
+   //    sized until AFTER it: png_set_tRNS_to_alpha() (for a PNG that
+   //    carries a tRNS chunk) adds an alpha channel that the original,
+   //    pre-transform color_type never accounted for. Deriving `planes`
+   //    from color_type and sizing the buffer/row-stride from that stale
+   //    count (as this code used to) under-allocates whenever tRNS is
+   //    present -- for 16-bit GRAY/RGB specifically, libpng then writes
+   //    the true (wider, alpha-added) decoded image into a buffer sized
+   //    for the narrower one: a heap overflow. (8-bit and palette cases
+   //    happened to still fit only because of the unconditional "*2"
+   //    over-allocation below, which masked the same underlying bug.)
    //
    if (color_type == PNG_COLOR_TYPE_PALETTE)   // color palettes → RGB
       png_set_palette_to_rgb(png_ptr);
@@ -485,6 +476,45 @@ UTF8 * scanline = RGB;
 
    // update the info_ptr according to the desired transformations.
    png_read_update_info(png_ptr, info_ptr);
+
+   // the TRUE post-transform channel count -- querying png_get_channels()
+   // after png_read_update_info() is libpng's own documented way to learn
+   // the format that png_read_image() will actually produce, rather than
+   // re-deriving it from the pre-transform color_type above.
+   //
+const int planes = png_get_channels(png_ptr, info_ptr);
+
+   // secondary image parameters (derived from the primary parameters)
+   //
+const int bytes_per_color = (bit_depth + 7) / 8;       // 1 or 2 bytes
+
+const int bytes_per_pixel = planes * bytes_per_color;
+
+   // 3. allocate the pixel memory and scanline pointers...
+   //
+if ((size_t)planes * height > SIZE_MAX / 2 / (unsigned)width)   WS_FULL;
+   // The guard above is computed in size_t, but width/height/planes are
+   // all plain int, so "planes*height*width*2" here used to multiply
+   // entirely in 32-bit int -- silently wrapping (UB) for a large,
+   // highly compressible image (e.g. ~26000x26000 RGB) that passes the
+   // size_t guard but overflows INT_MAX, under-allocating RGB while
+   // png_read_image() still writes the full (large) decoded image into
+   // it. Force the same size_t arithmetic used by the guard.
+const size_t rgb_bytes = size_t(planes) * height * width * 2;
+   RGB = new UTF8[rgb_bytes];
+   row_pointers = new UTF8 *[height];
+
+UTF8 * scanline = RGB;
+   loop(y, height)
+       {
+         row_pointers[y] = scanline;
+         // size_t(planes)*width*2, not planes*width*2: the latter is
+         // 32-bit int arithmetic (planes/width are int) and overflows
+         // (UB) for a row stride > INT_MAX even though rgb_bytes above
+         // was already widened to size_t -- row_pointers[y] would then
+         // point far outside RGB, into which png_read_image() writes.
+         scanline += size_t(planes) * width * 2;
+       }
 
    png_read_image(png_ptr, row_pointers);
 
@@ -545,6 +575,14 @@ Value_P Z(shape_Z, LOC);
 
    Z->check_value(LOC);
    return Z;
+      }
+   catch (...)
+      {
+        png_destroy_read_struct(&png_ptr, &info_ptr, 0);
+        delete [] row_pointers;
+        delete [] RGB;
+        throw;
+      }
 
 #else   // not PNG_LIBS
    return Value_P();

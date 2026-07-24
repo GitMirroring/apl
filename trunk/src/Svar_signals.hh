@@ -102,6 +102,14 @@ and then:
 
 using namespace std;
 
+/// the end of the buffer currently being deserialized by the Sig_item_*
+/// constructors below (set by Signal_base::recv_TCP() before it dispatches
+/// to a signal subclass constructor); used by Sig_item_int (and, through
+/// it, Sig_item_string's own length-prefix read) to bound otherwise
+/// attacker-controlled reads against what was actually received, instead
+/// of trusting a declared length unconditionally.
+static const uint8_t * sig_buffer_end = 0;
+
 //────────────────────────────────────────────────────────────────────────────
 /// an integer signal item of size \b bytes
 template<typename T, int bytes>
@@ -118,8 +126,23 @@ public:
    Sig_item_int(const uint8_t * & buffer)
       {
         value = 0;
-        for (int b = 0; b < bytes; ++b)
-            value = value << 8 | *buffer++;
+
+        // sig_buffer_end (declared above) bounds how many bytes were
+        // actually received. Without this check, a
+        // truncated/short signal -- e.g. a MATCH_OR_MAKE whose declared
+        // varname length consumes all remaining bytes -- makes every
+        // following Sig_item_int field (the six u32 to_proc..from_grand
+        // fields, or even Sig_item_string's own u16 length-prefix read,
+        // which itself is a Sig_item_int) walk past the end of the
+        // buffer. Read only what's actually available and zero-pad the
+        // rest instead.
+        const ptrdiff_t remaining =
+           sig_buffer_end ? (sig_buffer_end - buffer) : ptrdiff_t(bytes);
+        const int avail = remaining <= 0 ? 0
+                         : remaining < bytes ? int(remaining) : bytes;
+
+        for (int b = 0; b < avail; ++b)    value = value << 8 | *buffer++;
+        for (int b = avail; b < bytes; ++b)   value = value << 8;
 
         if (bytes == 6 && (value & 0x000080000000000ULL))
            value |= 0xFFFF000000000000ULL;
@@ -194,13 +217,6 @@ typedef Sig_item_xint<uint64_t, 6> Sig_item_x48;   ///< 48-bit hex integer
 typedef Sig_item_int < int64_t, 8> Sig_item_i64;   ///< 64-bit signed integer
 typedef Sig_item_int <uint64_t, 8> Sig_item_u64;   ///< 64-bit unsigned integer
 typedef Sig_item_xint<uint64_t, 8> Sig_item_x64;   ///< 64-bit hex integer
-
-/// the end of the buffer currently being deserialized by the Sig_item_*
-/// constructors below (set by Signal_base::recv_TCP() before it dispatches
-/// to a signal subclass constructor); used by Sig_item_string to bound its
-/// otherwise attacker-controlled 16-bit length against what was actually
-/// received, instead of trusting the length unconditionally.
-static const uint8_t * sig_buffer_end = 0;
 
 /// a string signal item of size \b bytes
 class Sig_item_string
@@ -3267,7 +3283,7 @@ char * rx_buf = buffer + MAX_SIGNAL_CLASS_SIZE;
 // debug && *debug << "rx_bytes is " << rx_bytes << " in recv_TCP()" << endl;
 
 const uint8_t * b = reinterpret_cast<const uint8_t *>(rx_buf);
-   sig_buffer_end = b + siglen;   // bounds Sig_item_string, see its comment
+   sig_buffer_end = b + siglen;   // bounds Sig_item_int/Sig_item_string, see their comments
 Sig_item_u16 signal_id(b);
 
 Signal_base * ret = 0;

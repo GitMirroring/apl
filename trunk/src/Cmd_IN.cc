@@ -218,6 +218,7 @@ Shape shape;
 int idx = get_nrs(var_name, shape);
 
    if (objects.size() && !objects.contains(var_name))   return;
+   if (var_name.size() == 0)   return;   // malformed record: empty object name
 
 Symbol * sym = 0;
    if (Avec::is_quad(var_name.front()))   // system variable.
@@ -232,7 +233,7 @@ Symbol * sym = 0;
         sym = Workspace::lookup_symbol(var_name);
         Assert(sym);
       }
-   
+
    Log(LOG_command_IN)
       {
         CERR << endl << var_name << " rank " << shape.get_rank() << " IS '";
@@ -277,6 +278,7 @@ Shape shape;
 int idx = get_nrs(var_name, shape);
 
    if (objects.size() && !objects.contains(var_name))   return;
+   if (var_name.size() == 0)   return;   // malformed record: empty object name
 
 Symbol * sym = 0;
    if (Avec::is_quad(var_name.front()))   // system variable.

@@ -301,6 +301,7 @@ string progname(prog_name());
               goon = false;
               if (verbose)   get_CERR() << AP_NAME
                                         << " done (parent died)" << endl;
+              if (del)   delete[] del;
               continue;
             }
 
@@ -444,6 +445,7 @@ cerr << "APnnn got " << signal->get_sigName() << endl;
                           << signal->get_sigName() << ")" << endl;
           }
 
+         delete signal;
          if (del)   delete[] del;
        }
 

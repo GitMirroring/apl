@@ -166,7 +166,7 @@ Quad_SQL::eval_B(cValue_R B) const
              new (&Z->get_wproto()) IntCell(0);   // prototype
            }
 
-        loop(c, count)
+        loop(c, SQL_connections.size())
             {
               const conn_file slot = SQL_connections[c];
               if (const Connection * conn = slot.connection)

@@ -230,10 +230,23 @@ char line[200];
          while (*s == ' ')   ++s;   // skip leading whilespace
          if (!strncmp(s, "<object", 7))   ++level;
 
-         char * cb = class_buf       + 100*level;
-         char * ib = id_buf          + 100*level;
-         char * wb = widget_name_buf + 100*level;
-         if (2 == sscanf(line, " <object class=\"%s id=\"%s>", cb, ib))
+         // level indexes 100-byte slots in the MAX_level-sized buffers
+         // below; unchecked it can reach MAX_level (>10 levels of
+         // nested <object>, pointing past the end of the buffers) --
+         // the sscanf() calls further down would then write out of
+         // bounds. level == -1 (no <object> seen yet, e.g. still on
+         // header lines like <?xml...?> or <interface>) is normal and
+         // not an error by itself; it only becomes unsafe if a
+         // <property name="name"> line (which needs a valid slot) is
+         // matched while in that state, which the level >= 0 guards on
+         // cb/wb below prevent.
+         if (level >= MAX_level)
+            return "malformed .ui/.glade: <object> nesting too deep";
+
+         char * cb = level >= 0 ? class_buf       + 100*level : 0;
+         char * ib = level >= 0 ? id_buf          + 100*level : 0;
+         char * wb = level >= 0 ? widget_name_buf + 100*level : 0;
+         if (cb && 2 == sscanf(line, " <object class=\"%99s id=\"%99s>", cb, ib))
             {
               if (char * qu = strchr(cb, '"'))   *qu = 0;
               if (char * qu = strchr(ib, '"'))   *qu = 0;
@@ -252,7 +265,7 @@ char line[200];
                          << endl;
                  }
             }
-         else if (1 == sscanf(line, " <property name=\"name\">%s", wb))
+         else if (wb && 1 == sscanf(line, " <property name=\"name\">%99s", wb))
             {
               if (char * ob = strchr(wb, '<'))   *ob = 0;
 
@@ -902,7 +915,12 @@ char * V = TLV + 8;                  // the V part of the TLV buffer
             if ((V_len + 8) > TLV_buflen)   // re-allocate a larger buffer
                {
                  delete [] TLV;
-                 TLV_buflen = V_len + 8;
+                 // +1: V[V_len] = 0 below writes one byte past the
+                 // V_len value bytes (a trailing NUL terminator); size
+                 // the allocation with room for it instead of exactly
+                 // V_len + 8, which left zero slack -- an off-by-one
+                 // heap overflow on every reallocation.
+                 TLV_buflen = V_len + 8 + 1;
                  TLV = new char[TLV_buflen];
                  assert(TLV);
                  V = TLV + 8;
@@ -1168,7 +1186,7 @@ const int cmd_len = cmd_end - cmd;
         return;
       }
 
-   count = sscanf(cmd, "font-family %s", s1);
+   count = sscanf(cmd, "font-family %99s", s1);
    if (count == 1)
       {
         s1[sizeof(s1) - 1] = 0;
@@ -1178,7 +1196,7 @@ const int cmd_len = cmd_end - cmd;
         return;
       }
 
-   count = sscanf(cmd, "font-slant %s", s1);
+   count = sscanf(cmd, "font-slant %99s", s1);
    if (count == 1)
       {
         s1[sizeof(s1) - 1] = 0;
@@ -1193,7 +1211,7 @@ const int cmd_len = cmd_end - cmd;
         return;
       }
 
-   count = sscanf(cmd, "font-weight %s", s1);
+   count = sscanf(cmd, "font-weight %99s", s1);
    if (count == 1)
       {
         s1[sizeof(s1) - 1] = 0;
@@ -1429,7 +1447,13 @@ const int cmd_len = cmd_end - cmd;
                                     draw_param.font_weight);
         cairo_set_font_size(cr1, draw_param.font_size);
         const char * start = cmd + i3;
-        const int slen = cmd_len - i3;
+        int slen = cmd_len - i3;
+        // clamp to the buffer bound: strncpy() below already stops
+        // copying at sizeof(s1)-1, but slen itself is the full
+        // (unbounded, caller-controlled) remaining text length and
+        // was being used unclamped as the NUL-terminator index below,
+        // writing past the end of s1 for text >= sizeof(s1) bytes.
+        if (slen >= int(sizeof(s1)))   slen = sizeof(s1) - 1;
         strncpy(s1, start, sizeof(s1) - 1);
         s1[slen] = 0;
         cairo_show_text(cr1, s1);

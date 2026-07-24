@@ -553,7 +553,11 @@ Quad_FIO::clear()
          else              close(fe.fe_fd);
          CERR << "WARNING: File " << fe.path << " still open - closing it"
               << endl;
-        ::close(open_files.back().fe_fd);
+        // fe.fe_fd was already closed above (either via fclose() or the
+        // direct close()); closing it again here is a double-close --
+        // normally a harmless EBADF, but if another thread reopened
+        // that same fd number in between, this closes an unrelated
+        // descriptor instead.
         open_files.pop_back();
       }
 }
