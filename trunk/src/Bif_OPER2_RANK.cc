@@ -154,6 +154,10 @@ const ShapeItem length = y123_B->element_count();
          y123 = y123_B->get_pointer_value(0);
          if (length == 1)        // scalar y123 and empty B
             {
+              // NOTE: B is NOT assigned so that Prefix::reduce_F_D_B_() can
+              // detect that y123_B was only y123 -- same as case 2 below.
+              y123->check_value(LOC);
+              return;
             }
          else if (length == 2)   // skalar B
             {

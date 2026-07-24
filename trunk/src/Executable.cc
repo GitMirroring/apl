@@ -225,7 +225,12 @@ int statement = 0;
    //
    if (get_parse_mode() != PM_FUNCTION)   line = 0;
 
-   Assert(line <= text.ssize());
+   // Assert() is a no-op in the default build; a function with N body
+   // lines has text.ssize() == N+1, and when the failing statement's PC
+   // lands on the trailing RETURN region, line reaches N+1 == text.ssize()
+   // -- one past the end of the (unchecked operator[]) UCS_string_vector.
+   // Clamp instead of indexing past it.
+   if (line >= text.ssize())   line = text.ssize() - 1;
 const UCS_string & failed_line = text[line];
 
    // extract the failed statement text from the failed_line

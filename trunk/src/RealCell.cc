@@ -35,7 +35,17 @@ ErrorCode
 RealCell::bif_circle_fun(Cell * Z, const Cell * A) const
 {
    if (!A->is_near_int())   return E_DOMAIN_ERROR;
-   return do_bif_circle_fun(Z, A->get_checked_near_int());
+
+   // do_bif_circle_fun() has several cases (e.g. fun 3 = tan, 4, 8, ¯8)
+   // that can overflow to Inf for large but perfectly ordinary finite B
+   // (confirmed: 4○1E200 silently returned Inf); mirror the finiteness
+   // check ComplexCell::bif_circle_fun_c() already applies for the
+   // complex-B case, instead of checking isfinite() in every branch.
+   //
+   IntCell::z0(Z);
+const ErrorCode ret = do_bif_circle_fun(Z, A->get_checked_near_int());
+   if (!Z->is_finite())   return E_DOMAIN_ERROR;
+   return ret;
 }
 //────────────────────────────────────────────────────────────────────────────
 ErrorCode
@@ -52,9 +62,19 @@ const APL_Integer fun = A->get_checked_near_int();
         case  5: case -5:
         case  6: case -6:
         case  7: case -7:
-                 return do_bif_circle_fun(Z, -fun);
+                 {
+                   IntCell::z0(Z);
+                   const ErrorCode ret = do_bif_circle_fun(Z, -fun);
+                   if (!Z->is_finite())   return E_DOMAIN_ERROR;
+                   return ret;
+                 }
         case -10:
-                 return do_bif_circle_fun(Z, fun);
+                 {
+                   IntCell::z0(Z);
+                   const ErrorCode ret = do_bif_circle_fun(Z, fun);
+                   if (!Z->is_finite())   return E_DOMAIN_ERROR;
+                   return ret;
+                 }
         default: return E_DOMAIN_ERROR;
       }
 }

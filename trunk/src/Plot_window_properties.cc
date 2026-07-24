@@ -102,6 +102,12 @@ Plot_window_properties::~Plot_window_properties()
       CERR << "~Plot_window_properties(): deleting plot_data" << endl;
 
    delete &plot_data;
+
+   // line_properties (and every Plot_line_properties it points to) was
+   // never freed here -- a leak growing by one array + line_count objects
+   // on every ⎕PLOT. The 0-terminated iteration mirrors print() above.
+   for (Plot_line_properties ** lp = line_properties; *lp; ++lp)   delete *lp;
+   delete[] line_properties;
 }
 //────────────────────────────────────────────────────────────────────────────
 

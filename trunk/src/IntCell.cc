@@ -126,6 +126,16 @@ IntCell::bif_divide(Cell * Z, const Cell * A) const
              if (a == 0)   return IntCell::z1(Z);
              return E_DOMAIN_ERROR;
            }
+
+        // a = -a and b = -b below would overflow (UB) for a or b ==
+        // INT64_MIN, since -INT64_MIN is not representable as
+        // APL_Integer (the same trap fixed elsewhere for bif_divide_ii/
+        // bif_power_ii/bif_negative_i); reject up front instead of
+        // risking UB or a wrong GCD from a still-negative operand.
+        //
+        if (a == APL_Integer(0x8000000000000000ULL))   return E_DOMAIN_ERROR;
+        if (b == APL_Integer(0x8000000000000000ULL))   return E_DOMAIN_ERROR;
+
         if (b < 0)   { a = -a;   b = -b; }
         const APL_Integer g = FloatCell::gcd(b, a);
         if (b == g)   return IntCell::zI(Z, a/g);

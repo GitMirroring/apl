@@ -33,13 +33,52 @@
 
 #include "Workspace.icc"
 
-/// prevent recursive do_Assert() calls.
+/// prevent recursive do_Assert() calls. Set for the *entire* duration of
+/// a do_Assert() call (including the throw_apl_error() below), not just
+/// while printing the backtrace/SI stack -- see Asserting_guard.
 static bool asserting = false;
+
+/// RAII guard for \b asserting: sets it on construction, clears it on
+/// destruction -- including when do_Assert() "returns" via the C++
+/// exception thrown by throw_apl_error() rather than a normal return,
+/// so a later, unrelated assertion failure is not mistaken for a
+/// recursive one just because a previous do_Assert() call threw out of
+/// its frame without reaching an explicit "asserting = false" statement.
+struct Asserting_guard
+{
+   Asserting_guard()    { asserting = true;  }
+   ~Asserting_guard()   { asserting = false; }
+};
 
 //════════════════════════════════════════════════════════════════════════════
 void
 do_Assert(const char * cond, const char * fun, const char * file, int line)
 {
+   if (asserting)
+      {
+        // do_Assert() was called again while already unwinding from an
+        // earlier assertion failure -- typically because that failure's
+        // own error-reporting path (do_Assert -> throw_apl_error ->
+        // ... -> Error::print_em() -> cout) writes through a streambuf
+        // whose overflow() contains an Assert() of its own (e.g.
+        // DiffOut::overflow()'s Assert(report.is_open())), which fails
+        // for the same underlying reason and re-enters here. Recursing
+        // into the full handling below -- and, critically, calling
+        // throw_apl_error() again -- is exactly what turns one assertion
+        // failure into unbounded recursion and a stack-overflow SIGSEGV
+        // (see Savannah SVN r3480-era nightly-build crash in JUMPS/AAA1.tc,
+        // caused by exactly this cycle). Report it and return instead,
+        // so the caller that hit the *second* Assert() falls through to
+        // its own (degraded but safe) behavior after the failed check,
+        // the same way it would if Assert() were compiled out entirely.
+        get_CERR() << "*** do_Assert() called recursively -- "
+                    << (cond ? cond : (fun ? fun : "?")) << " at " << file
+                    << ":" << line << " -- ignoring to avoid infinite"
+                       " recursion ***" << endl;
+        return;
+      }
+
+Asserting_guard guard;
 char loc[FILENAME_MAX + 20];
 
    Log(LOG_delete)
@@ -65,19 +104,11 @@ char loc[FILENAME_MAX + 20];
 
    get_CERR() << "C/C++ call stack:" << endl;
 
-   if (asserting)
-      {
-        get_CERR() << "*** do_Assert() called recursively ***" << endl;
-      }
-   else
-      {
-        asserting = true;
+   BACKTRACE
 
-        BACKTRACE
+   get_CERR() << endl << "SI stack:" << endl << endl;
+   Workspace::list_SI(get_CERR(), SIM_SIS_dbg);
 
-        get_CERR() << endl << "SI stack:" << endl << endl;
-        Workspace::list_SI(get_CERR(), SIM_SIS_dbg);
-      }
    get_CERR() << "======================================="
            "=======================================" << endl;
 
@@ -86,8 +117,6 @@ char loc[FILENAME_MAX + 20];
 
    if (Error * err = Workspace::get_error())
       new (err) Error(E_ASSERTION_FAILED, loc);
-
-   asserting = false;
 
    throw_apl_error(E_ASSERTION_FAILED, LOC);
 }

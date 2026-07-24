@@ -271,6 +271,20 @@ protected:
    /// @param B right argument APL value (ignored)
    static Value_P do_CR49(cValue_R B);
 
+   /// compute \b 50 ⎕CR \b B or \b 51 ⎕CR \b B: elementwise integer
+   /// B[IDX] → (nested, unless B is scalar) hex string Z[IDX]; no leading
+   /// zeros for B[IDX] ≥ 0, minimal-byte two's complement for B[IDX] < 0
+   /// @param A5051 selector: 50 (uppercase) or 51 (lowercase)
+   /// @param B right argument APL value (integers, may be nested)
+   static Value_P do_CR50_51(int A5051, cValue_R B);
+
+   /// hex string (per do_CR50_51()'s rules) for one integer-valued Cell
+   /// @param A5051 selector: 50 (uppercase) or 51 (lowercase)
+   /// @param cB the cell to convert (must be an integer or near-integer)
+   /// @param idx_txt "[N]" for error messages, or "" if B itself is cB
+   static Value_P hex_of_int_cell(int A5051, const Cell & cB,
+                                  const char * idx_txt);
+
    /// @param prefix indentation prefix string for this nesting level
    /// @param B APL value whose internal addresses are to be printed
    static void do_CR45_value(const UCS_string prefix, cValue_R B);

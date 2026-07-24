@@ -30,12 +30,6 @@
 #include "Value.hh"
 #include "Id.hh"
 
-class ArrayIterator;
-class CharCell;
-class CollatingCache;
-class ConstRavel_P;
-class IntCell;
-
 //════════════════════════════════════════════════════════════════════════════
 /**
     Base class for the APL system functions (Quad functions and primitives
@@ -73,21 +67,30 @@ public:
    /// overloaded Function::eval_fill_AB()
    /// @param A  the left APL argument value
    /// @param B  the right APL argument value
-   virtual Token eval_fill_AB(cValue_R A, cValue_R B) const;
+   virtual Token eval_fill_AB(cValue_R A, cValue_R B) const
+      { return eval_AB(A, B); }
 
 protected:
    /// overloaded Function::eval_fill_B()
    /// @param B  the right APL argument value
-   virtual Token eval_fill_B(cValue_R B) const;
+   virtual Token eval_fill_B(cValue_R B) const
+      { return eval_B(B); }
 
    /// Print the name of \b this PrimitiveFunction to \b out
    /// @param out  output stream to print the function name to
-   virtual ostream & print(ostream & out) const;
+   virtual ostream & print(ostream & out) const
+      { return out << get_Id(); }
 
    /// overloaded Function::print_properties()
    /// @param out     output stream for property display
    /// @param indent  indentation level for nested output
-   virtual void print_properties(ostream & out, int indent) const;
+   virtual void print_properties(ostream & out, int indent) const
+      {
+        UCS_string ind(indent, UNI_SPACE);
+        out << ind << "System Function ";
+        print(out);
+        out << endl;
+      }
 
    /// performance statistics for eval_B()
    CellFunctionStatistics * statistics_AB;
@@ -121,530 +124,50 @@ public:
    /// Overloaded Function::eval_identity_fun()
    /// @param B     the right APL argument value
    /// @param axis  the axis along which to apply the identity
-   virtual Token eval_identity_fun(cValue_R B, sAxis axis) const;
+   virtual Token eval_identity_fun(cValue_R B, sAxis axis) const
+      {
+        // axis is already normalized to IO←0
+        // return Z←,/B0 where (B0 , B) is B.
+
+        const Shape & shape_B = B.get_shape();
+        const sRank rank_B = shape_B.get_rank();
+        if (rank_B < 1)       RANK_ERROR;   // identity restriction, lrm p. 212
+        if (axis >= rank_B)   RANK_ERROR;
+
+        // eval_identity_fun() is supposedly only called when the length of
+        // axis is 0
+        const ShapeItem axis_len = shape_B.get_shape_item(axis);
+        Assert(axis_len == 0);
+
+        const Shape shape_Z = shape_B.without_axis(axis);
+
+        /* the removal of the reduction axis must not create a non-empty
+           result.
+
+           In IBM APL2:
+
+                        ┌───── reduction axis
+                        │
+                 ⍴ ,/ 0 0⍴42   → 0
+                 ⍴ ,/ 0 3⍴42   → 0 (not happening here since axis_len == 0)
+                 ⍴ ,/ 3 0⍴42   → DOMAIN ERROR (volume would be 3)
+                 ⍴ ,/   0⍴42   → DOMAIN ERROR (volume would be 1)
+           but:  ⍴ +/   0⍴42   → ⍬   and +/   0⍴42   → 0 (integer scalar 0)
+                 ⍴ ×/   0⍴42   → ⍬   and +/   0⍴42   → 1 (integer scalar 1)
+         */
+        if (shape_Z.get_rank() && shape_Z.get_volume() > 0)   DOMAIN_ERROR;
+
+        Value_P Z(shape_Z, LOC);
+        Z->set_default(B, LOC);
+        Z->check_value(LOC);
+        return Token(TOK_APL_VALUE1, Z);
+      }
 
    /// implementation of eval_identity_fun(), so that non-derived functions
    /// may use it as well.
    /// @param B     the right APL argument value
    /// @param axis  the axis along which to apply the identity
    static Token do_eval_identity_fun(cValue_R B, sAxis axis);
-};
-//────────────────────────────────────────────────────────────────────────────
-/** System function zilde (⍬) */
-/// The class implementing ⍬ (the empty numeric vector)
-class Bif_F0_ZILDE : public NonscalarFunction
-{
-public:
-   /// Constructor
-   Bif_F0_ZILDE()
-   : NonscalarFunction(TOK_F0_ZILDE)
-   {}
-
-   /// overladed Function::eval_()
-   virtual Token eval_() const;
-
-   static Bif_F0_ZILDE  fun;   ///< Built-in function
-
-protected:
-   /// overladed Function::may_push_SI()
-   virtual bool may_push_SI() const   { return false; }
-};
-//────────────────────────────────────────────────────────────────────────────
-/** System function execute */
-/// The class implementing ⍎
-class Bif_F1_EXECUTE : public NonscalarFunction
-{
-public:
-   /// Constructor
-   Bif_F1_EXECUTE()
-   : NonscalarFunction(TOK_F1_EXECUTE)
-   {}
-
-   /// overladed Function::eval_B()
-   /// @param B  the right APL argument value
-   virtual Token eval_B(cValue_R B) const;
-
-   /// overloaded Function::eval_fill_B()
-   /// @param B  the right APL argument value
-   virtual Token eval_fill_B(cValue_R B) const;
-
-   /// execute string containing an APL command
-   /// @param command  the APL command text to execute
-   static Token execute_command(UCS_string & command);
-
-   /// execute string containing an APL expression or an APL command
-   /// @param statement  the APL expression or command text to execute
-   static Token execute_statement(UCS_string & statement);
-
-   /// the number of outstanding )COPYs with APL scipts
-   static int copy_pending;
-
-   static Bif_F1_EXECUTE  fun;   ///< Built-in function
-
-protected:
-   /// overladed Function::may_push_SI()
-   virtual bool may_push_SI() const   { return true; }
-};
-//────────────────────────────────────────────────────────────────────────────
-/** System function index (⌷) */
-/// The class implementing ⌷
-class Bif_F2_INDEX : public NonscalarFunction
-{
-public:
-   /// Constructor
-   Bif_F2_INDEX()
-   : NonscalarFunction(TOK_F2_INDEX)
-   {}
-
-   /// overloaded Function::eval_AB()
-   /// @param A  the left APL argument value
-   /// @param B  the right APL argument value
-   virtual Token eval_AB(cValue_R A, cValue_R B) const;
-
-   /// overloaded Function::eval_AXB()
-   /// @param A  the left APL argument value
-   /// @param X  the axis specification value
-   /// @param B  the right APL argument value
-   virtual Token eval_AXB(cValue_R A, cValue_R X, cValue_R B) const;
-
-   static Bif_F2_INDEX  fun;   ///< Built-in function
-protected:
-};
-//────────────────────────────────────────────────────────────────────────────
-/** primitive functions member and enlist */
-/// The class implementing ϵ
-class Bif_F12_ELEMENT : public NonscalarFunction
-{
-public:
-   /// Constructor
-   Bif_F12_ELEMENT()
-   : NonscalarFunction(TOK_F12_ELEMENT)
-   {}
-
-   /// overloaded Function::eval_B()
-   /// @param B  the right APL argument value
-   virtual Token eval_B(cValue_R B) const
-      { return Token(TOK_APL_VALUE1, do_eval_B(B)); }
-
-   /// overloaded Function::eval_AB()
-   /// @param A  the left APL argument value
-   /// @param B  the right APL argument value
-   virtual Token eval_AB(cValue_R A, cValue_R B) const;
-
-   /// implementation of eval_B()
-   /// @param B  the right APL value (raw pointer)
-   static Value_P do_eval_B(cValue_R B);
-
-   static Bif_F12_ELEMENT  fun;   ///< Built-in function
-
-protected:
-};
-//────────────────────────────────────────────────────────────────────────────
-/** primitive functions match and depth */
-/// The class implementing ≡
-class Bif_F12_EQUIV : public NonscalarFunction
-{
-public:
-   /// Constructor
-   Bif_F12_EQUIV()
-   : NonscalarFunction(TOK_F12_EQUIV)
-   {}
-
-   /// overloaded Function::eval_AB() : A ≡ B
-   /// @param A  the left APL argument value
-   /// @param B  the right APL argument value
-   virtual Token eval_AB(cValue_R A, cValue_R B) const
-      { return Token(TOK_APL_VALUE1,
-                     IntScalar((do_eval_AB(A, B) ? 1 : 0), LOC)); }
-
-   /// overloaded Function::eval_B() : B
-   /// @param B  the right APL argument value
-   virtual Token eval_B(cValue_R B) const;
-
-   /// @param A  the left APL argument value
-   /// @param B  the right APL argument value
-   static bool do_eval_AB(cValue_R A, cValue_R B);
-
-   static Bif_F12_EQUIV  fun;   ///< Built-in function
-
-protected:
-   /// return the depth of B
-   /// @param B  the APL value whose depth to compute
-   Token depth(Value_P B);
-};
-//────────────────────────────────────────────────────────────────────────────
-/** primitive function natch (≢) */
-/// The class implementing ≡
-class Bif_F12_NEQUIV : public NonscalarFunction
-{
-public:
-   /// Constructor
-   Bif_F12_NEQUIV()
-   : NonscalarFunction(TOK_F12_NEQUIV)
-   {}
-
-   /// overloaded Function::eval_AB()
-   /// @param A  the left APL argument value
-   /// @param B  the right APL argument value
-   virtual Token eval_AB(cValue_R A, cValue_R B) const;
-
-   /// overloaded Function::eval_B()
-   /// @param B  the right APL argument value
-   virtual Token eval_B(cValue_R B) const;
-
-   static Bif_F12_NEQUIV  fun;   ///< Built-in function
-};
-//────────────────────────────────────────────────────────────────────────────
-/** System function encode */
-/// The class implementing ⊤
-class Bif_F12_ENCODE : public NonscalarFunction
-{
-public:
-   /// Constructor
-   Bif_F12_ENCODE()
-   : NonscalarFunction(TOK_F12_ENCODE)
-   {}
-
-   /// overloaded Function::eval_AB()
-   /// @param A  the left APL argument value (number system bases)
-   /// @param B  the right APL argument value (numbers to encode)
-   virtual Token eval_AB(cValue_R A, cValue_R B) const;
-
-   /// overloaded Function::eval_AXB()
-   /// @param A  the left APL argument value (number system bases)
-   /// @param X  the axis specification value
-   /// @param B  the right APL argument value (numbers to encode)
-   virtual Token eval_AXB(cValue_R A, cValue_R X, cValue_R B) const;
-
-   static Bif_F12_ENCODE  fun;   ///< Built-in function
-
-protected:
-   /// encode *ib() according to A
-   /// @param Z    the output value to fill with encoded digits
-   /// @param aH   high dimension of the A argument
-   /// @param aL   low dimension of the A argument
-   /// @param iA   ravel iterator over the bases array
-   /// @param iB   ravel iterator over the numbers to encode
-   /// @param qct  comparison tolerance for floating-point equality
-   static void encode_Cpx(Value & Z, ShapeItem aH, ShapeItem aL,
-                          const ConstRavel_P & iA, const ConstRavel_P & iB,
-                          double qct);
-
-   /// encode *ib() according to A
-   /// @param Z    the output value to fill with encoded digits
-   /// @param ah   high dimension of the A argument
-   /// @param al   low dimension of the A argument
-   /// @param iA   ravel iterator over the bases array
-   /// @param iB   ravel iterator over the numbers to encode
-   /// @param qct  comparison tolerance for floating-point equality
-   static void encode_Flt(Value & Z, ShapeItem ah, ShapeItem al,
-                          const ConstRavel_P & iA, const ConstRavel_P & iB,
-                         double qct);
-
-   /// encode *ib() according to A (integer A and b)
-   /// @param Z   the output value to fill with encoded digits
-   /// @param aH  high dimension of the A argument (number of digits)
-   /// @param aL  low dimension of the A argument (number of elements)
-   /// @param iA  ravel iterator over the bases array
-   /// @param iB  ravel iterator over the numbers to encode
-   static void encode_Int(Value & Z, ShapeItem aH, ShapeItem aL,
-                          const ConstRavel_P & iA,
-                          const ConstRavel_P & iB);
-
-   /// return the (minimum) number of digits needed to represent every
-   /// item in B in a number system with base A0.
-   /// @param A0  the radix (base) of the number system
-   /// @param B   the APL value containing the numbers to represent
-   static int get_X0(APL_Integer A0, const cValue & B);
-};
-//────────────────────────────────────────────────────────────────────────────
-/** System function decode */
-/// The class implementing ⊥
-class Bif_F12_DECODE : public NonscalarFunction
-{
-public:
-   /// Constructor
-   Bif_F12_DECODE()
-   : NonscalarFunction(TOK_F12_DECODE)
-   {}
-
-   /// overloaded Function::eval_AB()
-   /// @param A  the left APL argument value (number system bases)
-   /// @param B  the right APL argument value (digit vectors to decode)
-   virtual Token eval_AB(cValue_R A, cValue_R B) const;
-
-   static Bif_F12_DECODE  fun;   ///< Built-in function
-
-protected:
-   /// decode B according to len_A and cA (complex A or B)
-   /// @param Z      the output value receiving decoded complex numbers
-   /// @param len_A  number of elements in the bases array
-   /// @param cA     pointer to the first cell of the bases array
-   /// @param len_B  number of digit-vectors in B
-   /// @param cB     pointer to the first cell of B
-   /// @param dB     stride between successive digit-vectors in B
-   static void decode_complex(Value & Z, ShapeItem len_A,
-                              cValue_R VA, ShapeItem idxA,
-                              ShapeItem len_B, cValue_R VB, ShapeItem idxB,
-                              ShapeItem dB);
-
-   /// decode B according to len_A and cA (integer A, B and Z)
-   static bool decode_int(Value & Z, ShapeItem len_A,
-                          cValue_R VA, ShapeItem idxA,
-                          ShapeItem len_B, cValue_R VB, ShapeItem idxB,
-                          ShapeItem dB);
-
-   /// decode B according to len_A and cA (real A and B)
-   static void decode_real(Value & Z, ShapeItem len_A,
-                           cValue_R VA, ShapeItem idxA,
-                           ShapeItem len_B, cValue_R VB, ShapeItem idxB,
-                           ShapeItem dB);
-};
-//════════════════════════════════════════════════════════════════════════════
-/** primitive functions rotate and reverse */
-/// Base class for implementing ⌽ and ⊖
-class Bif_ROTATE : public NonscalarFunction_default_identity
-{
-public:
-   /// Constructor.
-   /// @param tag  the token tag identifying this rotate/reverse function
-   Bif_ROTATE(TokenTag tag)
-   : NonscalarFunction_default_identity(tag)
-   {}
-
-protected:
-   /// Reverse B along axis
-   /// @param B     the right APL argument value (array to reverse)
-   /// @param axis  the axis along which to reverse
-   static Token reverse(cValue_R B, sAxis axis);
-
-   /// Rotate B according to A along axis
-   /// @param A     the left APL argument value (rotation amounts)
-   /// @param B     the right APL argument value (array to rotate)
-   /// @param axis  the axis along which to rotate
-   static Token rotate(cValue_R A, cValue_R B, sAxis axis);
-};
-//────────────────────────────────────────────────────────────────────────────
-/** primitive functions rotate and reverse along last axis */
-/// The class implementing ⌽
-class Bif_F12_ROTATE : public Bif_ROTATE
-{
-public:
-   /// Constructor
-   Bif_F12_ROTATE()
-   : Bif_ROTATE(TOK_F12_ROTATE)
-   {}
-
-   /// overloaded Function::eval_AB()
-   virtual Token eval_AB(cValue_R A, cValue_R B) const
-      { return rotate(A, B, B.get_rank() - 1); }
-
-   /// overloaded Function::eval_B()
-   virtual Token eval_B(cValue_R B) const
-      { return reverse(B, B.get_rank() - 1); }
-
-   /// overloaded Function::eval_AXB()
-   /// @param A  the left APL argument value (rotation amounts)
-   /// @param X  the axis specification value
-   /// @param B  the right APL argument value
-   virtual Token eval_AXB(cValue_R A, cValue_R X, cValue_R B) const;
-
-   /// overloaded Function::eval_XB()
-   /// @param X  the axis specification value
-   /// @param B  the right APL argument value
-   virtual Token eval_XB(cValue_R X, cValue_R B) const;
-
-   static Bif_F12_ROTATE  fun;   ///< Built-in function
-protected:
-};
-//────────────────────────────────────────────────────────────────────────────
-/** primitive functions rotate and reverse along first axis */
-/// The class implementing ⊖
-class Bif_F12_ROTATE1 : public Bif_ROTATE
-{
-public:
-   /// Constructor
-   Bif_F12_ROTATE1()
-   : Bif_ROTATE(TOK_F12_ROTATE1)
-   {}
-
-   /// overloaded Function::eval_AB()
-   virtual Token eval_AB(cValue_R A, cValue_R B) const
-      { return rotate(A, B, 0); }
-
-   /// overloaded Function::eval_B()
-   virtual Token eval_B(cValue_R B) const
-      { return reverse(B, 0); }
-
-   /// overloaded Function::eval_AXB()
-   /// @param A  the left APL argument value (rotation amounts)
-   /// @param X  the axis specification value
-   /// @param B  the right APL argument value
-   virtual Token eval_AXB(cValue_R A, cValue_R X, cValue_R B) const;
-
-   /// overloaded Function::eval_XB()
-   /// @param X  the axis specification value
-   /// @param B  the right APL argument value
-   virtual Token eval_XB(cValue_R X, cValue_R B) const;
-
-   static Bif_F12_ROTATE1  fun;   ///< Built-in function
-protected:
-};
-//════════════════════════════════════════════════════════════════════════════
-/** System function transpose */
-/// The class implementing ⍉
-class Bif_F12_TRANSPOSE : public NonscalarFunction_default_identity
-{
-public:
-   /// Constructor
-   Bif_F12_TRANSPOSE()
-   : NonscalarFunction_default_identity(TOK_F12_TRANSPOSE)
-   {}
-
-   /// overloaded Function::eval_B()
-   /// @param B  the right APL argument value
-   virtual Token eval_B(cValue_R B) const
-      { return do_eval_B(B); }
-
-   /// overloaded Function::eval_AB()
-   /// @param A  the left APL argument value (axis permutation vector)
-   /// @param B  the right APL argument value (array to transpose)
-   virtual Token eval_AB(cValue_R A, cValue_R B) const;
-
-   /// implementation of eval_B()
-   /// @param B  the APL array to reverse-transpose (raw pointer)
-   static Token do_eval_B(cValue_R B);
-
-   /// Transpose B according to axes A (without diagonals)
-   /// @param A  the permutation shape specifying new axis order
-   /// @param B  the APL array to transpose (raw pointer)
-   static Value_P transpose(const Shape & A, cValue_R B);
-
-   static Bif_F12_TRANSPOSE  fun;   ///< Built-in function
-
-protected:
-   /// for \b sh being a permutation of 0, 1, ... rank - 1,
-   /// return the inverse permutation sh⁻¹
-   /// @param sh  the permutation shape to invert
-   static Shape inverse_permutation(const Shape & sh);
-
-   /// return sh permuted according to permutation perm
-   /// @param sh    the shape to permute
-   /// @param perm  the permutation to apply
-   static Shape permute(const Shape & sh, const Shape & perm);
-
-   /// Transpose B according to axes A (with diagonals)
-   /// @param A  the permutation shape (may map multiple axes to one)
-   /// @param B  the APL array to transpose (raw pointer)
-   static Value_P transpose_diag(const Shape & A, cValue_R B);
-};
-//────────────────────────────────────────────────────────────────────────────
-/** primitive functions reshape and shape */
-/// The class implementing ⍴
-class Bif_F12_RHO : public NonscalarFunction_default_identity
-{
-public:
-   /// Constructor
-   Bif_F12_RHO()
-   : NonscalarFunction_default_identity(TOK_F12_RHO)
-   {}
-
-   /// overloaded Function::eval_AB()
-   virtual Token eval_AB(cValue_R A, cValue_R B) const;
-
-   /// overloaded Function::eval_B()
-   virtual Token eval_B(cValue_R B) const;
-
-   /// Reshape B according to rank and shape
-   static Token do_reshape(const Shape & shape, const cValue & B);
-
-   static Bif_F12_RHO  fun;   ///< Built-in function
-protected:
-};
-//════════════════════════════════════════════════════════════════════════════
-/** System function ∪ (unique/union) */
-/// The class implementing ∪
-class Bif_F12_UNION : public NonscalarFunction
-{
-public:
-   /// Constructor
-   Bif_F12_UNION()
-   : NonscalarFunction(TOK_F12_UNION)
-   {}
-
-   /// overloaded Function::eval_AB()
-   virtual Token eval_AB(cValue_R A, cValue_R B) const;
-
-   /// overloaded Function::eval_B()
-   virtual Token eval_B(cValue_R B) const;
-
-   /// Built-in function
-   static Bif_F12_UNION  fun;
-};
-//────────────────────────────────────────────────────────────────────────────
-/** System function ∩ (intersection) */
-/// The class implementing ∩
-class Bif_F2_INTER : public NonscalarFunction
-{
-public:
-   /// Constructor
-   Bif_F2_INTER()
-   : NonscalarFunction(TOK_F2_INTER)
-   {}
-
-   /// overloaded Function::eval_AB()
-   virtual Token eval_AB(cValue_R A, cValue_R B) const;
-
-   static Bif_F2_INTER  fun;   ///< Built-in function
-
-protected:
-};
-//────────────────────────────────────────────────────────────────────────────
-/** System function left (⊣) */
-/// The class implementing ⊣
-class Bif_F2_LEFT : public NonscalarFunction
-{
-public:
-   /// Constructor
-   Bif_F2_LEFT()
-   : NonscalarFunction(TOK_F2_LEFT)
-   {}
-
-   /// overloaded Function::eval_AB()
-   virtual Token eval_AB(cValue_R A, cValue_R B) const
-      { return Token(TOK_APL_VALUE1, A.clone(LOC)); }
-
-   /// overloaded Function::eval_B()
-   virtual Token eval_B(cValue_R B) const
-      { return Token(TOK_APL_VALUE2, IntScalar(0, LOC)); }
-
-   static Bif_F2_LEFT  fun;   ///< Built-in function
-protected:
-};
-//────────────────────────────────────────────────────────────────────────────
-/** System function right (⊢) */
-/// The class implementing ⊢
-class Bif_F2_RIGHT : public NonscalarFunction
-{
-public:
-   /// Constructor
-   Bif_F2_RIGHT()
-   : NonscalarFunction(TOK_F2_RIGHT)
-   {}
-
-   /// overloaded Function::eval_AB()
-   virtual Token eval_AB(cValue_R A, cValue_R B) const
-      { return Token(TOK_APL_VALUE1, B.clone(LOC)); }
-
-   /// overloaded Function::eval_B()
-   virtual Token eval_B(cValue_R B) const
-      { return Token(TOK_APL_VALUE1, B.clone(LOC)); }
-
-   /// overloaded Function::eval_AXB()
-   virtual Token eval_AXB(cValue_R A, cValue_R X, cValue_R B) const;
-
-   static Bif_F2_RIGHT  fun;   ///< Built-in function
-protected:
 };
 //════════════════════════════════════════════════════════════════════════════
 

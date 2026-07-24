@@ -21,6 +21,7 @@
 /** @file
 */
 
+#include "../Bif_F1_EXECUTE.hh"
 #include "RunCommand.hh"
 #include "emacs.hh"
 #include "NetworkConnection.hh"

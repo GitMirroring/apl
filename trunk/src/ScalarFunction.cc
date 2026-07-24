@@ -24,6 +24,7 @@
 
 #include "ArrayIterator.hh"
 #include "Avec.hh"
+#include "Bif_F12_EQUIV.hh"
 #include "CharCell.hh"
 #include "ComplexCell.hh"
 #include "FloatCell.hh"

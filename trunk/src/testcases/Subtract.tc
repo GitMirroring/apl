@@ -20,5 +20,37 @@
       2J8 - 3.0
 ¯1J8
 
+      ⍝ Integer overflow → float promotion (Cell::diff_overflow(),
+      ⍝ IntCell::bif_subtract_ii()). ⎕PP←17 so the promoted (float)
+      ⍝ results print with enough digits to be unambiguous.
+      ⍝
+      ⎕PP←17
+
+      ⍝ boundary: difference is exactly the largest int64 value, stays integer
+      9223372036854775806-¯1
+9223372036854775807
+      26⎕CR 9223372036854775806-¯1
+16
+
+      ⍝ one more: difference overflows int64, promoted to float
+      9223372036854775807-¯1
+9.2233720368547765E18
+      26⎕CR 9223372036854775807-¯1
+32
+
+      ⍝ boundary: difference is exactly the smallest int64 value, stays integer
+      ¯9223372036854775807-1
+¯9223372036854775808
+      26⎕CR ¯9223372036854775807-1
+16
+
+      ⍝ one more negative: difference overflows int64, promoted to float
+      ¯9223372036854775808-1
+¯9.2233720368547765E18
+      26⎕CR ¯9223372036854775808-1
+32
+
+      ⎕PP←10
+
       ⍝ ==================================
 

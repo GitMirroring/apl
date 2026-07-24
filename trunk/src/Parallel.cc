@@ -44,6 +44,12 @@ namespace {
 /// siblings -- see the caller for why an even-CPUs-are-primary /
 /// odd-CPUs-are-secondary numbering is not a reliable proxy for this on
 /// every system.
+// unused (but still correct) when cfg_CORE_COUNT_WANTED forces a fixed
+// or sequential core count at compile time -- only the -1 (all cores)
+// and -3 (⎕SYL) paths below ever call this.
+#ifdef __GNUC__
+__attribute__((unused))
+#endif
 int
 read_topology_int(size_t cpu, const char * file)
 {

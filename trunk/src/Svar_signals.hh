@@ -3205,6 +3205,24 @@ ssize_t siglen = 0;
         return 0;   // close
       }
 
+   // siglen is a raw 4-byte length taken directly off the (unauthenticated,
+   // local TCP) wire, with no upper bound: an oversized value would size a
+   // heap allocation up to 4 GiB below (del = new char[siglen]) -- a
+   // resource-exhaustion DoS at best, or (on a 32-bit build, where ssize_t
+   // is 32 bits) a value >= 0x80000000 turns siglen negative here, bypasses
+   // the siglen > bufsize check below, and reaches recv() as a huge size_t
+   // -- a stack-buffer write overflow. Reject anything past a sane maximum
+   // up front; no legitimate signal (fixed header + one shared-variable
+   // value) is anywhere near this large.
+   //
+   enum { MAX_TCP_SIGNAL_SIZE = 64 << 20 };   // 64 MiB
+   if (siglen < 0 || siglen > MAX_TCP_SIGNAL_SIZE)
+      {
+        cerr << "*** bad siglen " << siglen << " in recv_TCP()" << endl;
+        *loc = LOC;
+        return 0;
+      }
+
 // debug && *debug << "signal length is " << siglen << " in recv_TCP()" << endl;
 
    // skip MAX_SIGNAL_CLASS_SIZE bytes at the beginning of buffer

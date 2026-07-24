@@ -605,13 +605,17 @@ FloatCell::map_FC(UCS_string & ucs)
 ErrorCode
 FloatCell::bif_add_ff(Cell * Z, APL_Float a, APL_Float b)
 {
-   return FloatCell::zF(Z, a + b);
+const APL_Float z = a + b;
+   if (!isfinite(z))   return E_DOMAIN_ERROR;
+   return FloatCell::zF(Z, z);
 }
 //────────────────────────────────────────────────────────────────────────────
 ErrorCode
 FloatCell::bif_subtract_ff(Cell * Z, APL_Float a, APL_Float b)
 {
-   return FloatCell::zF(Z, a - b);
+const APL_Float z = a - b;
+   if (!isfinite(z))   return E_DOMAIN_ERROR;
+   return FloatCell::zF(Z, z);
 }
 //────────────────────────────────────────────────────────────────────────────
 ErrorCode
@@ -649,7 +653,9 @@ const bool invert_Z = b < 0;
         if (invert_Z)
            {
              if (a == 0.0)   return E_DOMAIN_ERROR;
-             return FloatCell::zF(Z, 1.0 / a);
+             const APL_Float z = 1.0 / a;
+             if (!isfinite(z))   return E_DOMAIN_ERROR;
+             return FloatCell::zF(Z, z);
            }
         return FloatCell::zF(Z, a);
       }
@@ -763,14 +769,14 @@ FloatCell::bif_residue_ff(Cell * Z, APL_Float a, APL_Float b)
 
 const APL_Float null(0.0);
 const APL_Float z = nc_p_modulo_q(b, a);
-Assert(isnormal(z) || z == null);
+Assert(isfinite(z));
 
 APL_Float r2;
    if      (z < null && a < null)   r2 = z;
    else if (z > null && a > null)   r2 = z;
    else                             r2 = z + a;
 
-Assert(isnormal(r2) || r2 == null);
+Assert(isfinite(r2));
 
    if (r2 == null)   return IntCell::z0(Z);
    if (r2 == a)      return IntCell::z0(Z);

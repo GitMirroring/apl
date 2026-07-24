@@ -21,6 +21,8 @@
 /** @file
 */
 
+#include <climits>
+
 #include "Command.hh"
 #include "InputFile.hh"
 #include "LineInput.hh"
@@ -1224,8 +1226,15 @@ LineLabel ret(0);
 
    while (c.has_more() && Avec::is_digit(c.lookup()))
       {
-        ret.ln_major *= 10;
-        ret.ln_major += c.next() - UNI_0;
+        const int digit = c.next() - UNI_0;
+        // detect overflow *before* it happens (signed overflow is UB):
+        // an arbitrarily long digit run (e.g. [99999999999999999999])
+        // would otherwise overflow ln_major -- mirrors the marker-index
+        // parse in Tokenizer.cc.
+        if (ret.ln_major > (INT_MAX - digit) / 10)
+           ret.ln_major = INT_MAX;
+        else
+           ret.ln_major = 10 * ret.ln_major + digit;
       }
 
    if (c.has_more() && c.lookup() == UNI_FULLSTOP)

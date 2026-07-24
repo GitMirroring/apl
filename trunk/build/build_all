@@ -405,12 +405,28 @@ build_one()
       echo "    make OK for configuration: $1" >> $summ
       if [ -f "$VSRC_dir/apl" ] ; then
          cp -f "$VSRC_dir/apl" "/var/www/html/apl--$1"
+         # "standard" is the canonical general-purpose build; also publish
+         # it under the plain name the nightly-results artifact table
+         # actually checks for (see write_nightly_build_results()'s
+         # "artifact ... apl apl" call) -- every OTHER config's binary is
+         # only ever published as apl--$1, so without this the report
+         # always shows the interpreter as "missing" regardless of
+         # whether any configuration succeeded.
+         [ "$1" = "standard" ] && cp -f "$VSRC_dir/apl" "/var/www/html/apl"
          mv -f "$VSRC_dir/apl" "$TOP_BUILD_dir/apl--$1"
          configs_good=$((configs_good+1))
          this_build_ok=0
       elif [ -f "$VSRC_dir/.libs/libapl.so" ] ; then
          cp -f "$VSRC_dir/.libs/libapl.so" "/var/www/html/libapl.so"
          mv -f "$VSRC_dir/.libs/libapl.so" "$TOP_BUILD_dir/"
+         # libtool builds the static archive alongside the shared object
+         # by default (LT_INIT has no --disable-static in configure.ac);
+         # publish it the same way, or the artifact table always reports
+         # libapl.a as missing even though it was built successfully.
+         if [ -f "$VSRC_dir/.libs/libapl.a" ] ; then
+            cp -f "$VSRC_dir/.libs/libapl.a" "/var/www/html/libapl.a"
+            mv -f "$VSRC_dir/.libs/libapl.a" "$TOP_BUILD_dir/"
+         fi
          configs_good=$((configs_good+1))
          this_build_ok=0
       elif [ -f "$VSRC_dir/.libs/lib_gnu_apl.so" ] ; then

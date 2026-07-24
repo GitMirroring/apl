@@ -23,6 +23,7 @@
 
 #include "Bif_F12_DOMINO.hh"
 #include "Bif_F12_TAKE_DROP.hh"
+#include "Bif_F1_EXECUTE.hh"
 #include "Bif_OPER1_EACH.hh"
 #include "Macro.hh"
 #include "PointerCell.hh"

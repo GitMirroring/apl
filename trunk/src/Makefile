@@ -101,25 +101,25 @@ am__append_3 = Plot_gtk.cc
 am__append_5 = Plot_xcb.cc
 #am__append_6 = Plot_xcb.cc
 am__append_7 = Regexp.cc								Regexp.hh
-am__append_8 = $(SQLITE3_CFLAGS)
-am__append_9 = $(SQLITE3_LDFLAGS)
-am__append_10 = sql/SqliteArgListBuilder.cc \
-	sql/SqliteArgListBuilder.hh \
-	sql/SqliteConnection.cc \
-	sql/SqliteConnection.hh \
-	sql/SqliteResultValue.cc \
-	sql/SqliteResultValue.hh \
-	sql/SqliteProvider.cc sql/SqliteProvider.hh \
-	sql/Connection.cc
+#am__append_8 = $(SQLITE3_CFLAGS)
+#am__append_9 = $(SQLITE3_LDFLAGS)
+#am__append_10 = sql/SqliteArgListBuilder.cc \
+#	sql/SqliteArgListBuilder.hh \
+#	sql/SqliteConnection.cc \
+#	sql/SqliteConnection.hh \
+#	sql/SqliteResultValue.cc \
+#	sql/SqliteResultValue.hh \
+#	sql/SqliteProvider.cc sql/SqliteProvider.hh \
+#	sql/Connection.cc
 #am__append_11 = sql/Connection.cc
-am__append_12 = $(POSTGRESQL_CFLAGS)
-am__append_13 = $(POSTGRESQL_LDFLAGS)
-am__append_14 = sql/PostgresArgListBuilder.cc \
-	sql/PostgresArgListBuilder.hh \
-	sql/PostgresConnection.cc \
-	sql/PostgresConnection.hh \
-	sql/PostgresProvider.cc \
-	sql/PostgresProvider.hh
+#am__append_12 = $(POSTGRESQL_CFLAGS)
+#am__append_13 = $(POSTGRESQL_LDFLAGS)
+#am__append_14 = sql/PostgresArgListBuilder.cc \
+#	sql/PostgresArgListBuilder.hh \
+#	sql/PostgresConnection.cc \
+#	sql/PostgresConnection.hh \
+#	sql/PostgresProvider.cc \
+#	sql/PostgresProvider.hh
 #am__append_15 = libapl.la
 #am__append_16 = lib_gnu_apl.la
 bin_PROGRAMS = apl$(EXEEXT)
@@ -267,16 +267,16 @@ am__objects_3 = lib_gnu_apl_la-Plot_ascii.lo $(am__objects_1) \
 	$(am__objects_2)
 am__objects_4 = lib_gnu_apl_la-Regexp.lo
 am__dirstamp = $(am__leading_dot)dirstamp
-am__objects_5 =  \
-	sql/lib_gnu_apl_la-SqliteArgListBuilder.lo \
-	sql/lib_gnu_apl_la-SqliteConnection.lo \
-	sql/lib_gnu_apl_la-SqliteResultValue.lo \
-	sql/lib_gnu_apl_la-SqliteProvider.lo \
-	sql/lib_gnu_apl_la-Connection.lo
+#am__objects_5 =  \
+#	sql/lib_gnu_apl_la-SqliteArgListBuilder.lo \
+#	sql/lib_gnu_apl_la-SqliteConnection.lo \
+#	sql/lib_gnu_apl_la-SqliteResultValue.lo \
+#	sql/lib_gnu_apl_la-SqliteProvider.lo \
+#	sql/lib_gnu_apl_la-Connection.lo
 #am__objects_6 = sql/lib_gnu_apl_la-Connection.lo
-am__objects_7 = sql/lib_gnu_apl_la-PostgresArgListBuilder.lo \
-	sql/lib_gnu_apl_la-PostgresConnection.lo \
-	sql/lib_gnu_apl_la-PostgresProvider.lo
+#am__objects_7 = sql/lib_gnu_apl_la-PostgresArgListBuilder.lo \
+#	sql/lib_gnu_apl_la-PostgresConnection.lo \
+#	sql/lib_gnu_apl_la-PostgresProvider.lo
 am__objects_8 = $(am__objects_3) lib_gnu_apl_la-Archive.lo \
 	lib_gnu_apl_la-Assert.lo lib_gnu_apl_la-Avec.lo \
 	lib_gnu_apl_la-Backtrace.lo lib_gnu_apl_la-Bif_F12_COMMA.lo \
@@ -452,17 +452,17 @@ am__objects_10 = libapl_la-Plot_xcb.lo
 am__objects_11 = libapl_la-Plot_ascii.lo $(am__objects_9) \
 	$(am__objects_10)
 am__objects_12 = libapl_la-Regexp.lo
-am__objects_13 =  \
-	sql/libapl_la-SqliteArgListBuilder.lo \
-	sql/libapl_la-SqliteConnection.lo \
-	sql/libapl_la-SqliteResultValue.lo \
-	sql/libapl_la-SqliteProvider.lo \
-	sql/libapl_la-Connection.lo
+#am__objects_13 =  \
+#	sql/libapl_la-SqliteArgListBuilder.lo \
+#	sql/libapl_la-SqliteConnection.lo \
+#	sql/libapl_la-SqliteResultValue.lo \
+#	sql/libapl_la-SqliteProvider.lo \
+#	sql/libapl_la-Connection.lo
 #am__objects_14 = sql/libapl_la-Connection.lo
-am__objects_15 =  \
-	sql/libapl_la-PostgresArgListBuilder.lo \
-	sql/libapl_la-PostgresConnection.lo \
-	sql/libapl_la-PostgresProvider.lo
+#am__objects_15 =  \
+#	sql/libapl_la-PostgresArgListBuilder.lo \
+#	sql/libapl_la-PostgresConnection.lo \
+#	sql/libapl_la-PostgresProvider.lo
 am__objects_16 = $(am__objects_11) libapl_la-Archive.lo \
 	libapl_la-Assert.lo libapl_la-Avec.lo libapl_la-Backtrace.lo \
 	libapl_la-Bif_F12_COMMA.lo libapl_la-Bif_F12_DOMINO.lo \
@@ -612,17 +612,17 @@ am__objects_18 = apl-Plot_xcb.$(OBJEXT)
 am__objects_19 = apl-Plot_ascii.$(OBJEXT) $(am__objects_17) \
 	$(am__objects_18)
 am__objects_20 = apl-Regexp.$(OBJEXT)
-am__objects_21 =  \
-	sql/apl-SqliteArgListBuilder.$(OBJEXT) \
-	sql/apl-SqliteConnection.$(OBJEXT) \
-	sql/apl-SqliteResultValue.$(OBJEXT) \
-	sql/apl-SqliteProvider.$(OBJEXT) \
-	sql/apl-Connection.$(OBJEXT)
+#am__objects_21 =  \
+#	sql/apl-SqliteArgListBuilder.$(OBJEXT) \
+#	sql/apl-SqliteConnection.$(OBJEXT) \
+#	sql/apl-SqliteResultValue.$(OBJEXT) \
+#	sql/apl-SqliteProvider.$(OBJEXT) \
+#	sql/apl-Connection.$(OBJEXT)
 #am__objects_22 = sql/apl-Connection.$(OBJEXT)
-am__objects_23 =  \
-	sql/apl-PostgresArgListBuilder.$(OBJEXT) \
-	sql/apl-PostgresConnection.$(OBJEXT) \
-	sql/apl-PostgresProvider.$(OBJEXT)
+#am__objects_23 =  \
+#	sql/apl-PostgresArgListBuilder.$(OBJEXT) \
+#	sql/apl-PostgresConnection.$(OBJEXT) \
+#	sql/apl-PostgresProvider.$(OBJEXT)
 am__objects_24 = $(am__objects_19) apl-Archive.$(OBJEXT) \
 	apl-Assert.$(OBJEXT) apl-Avec.$(OBJEXT) \
 	apl-Backtrace.$(OBJEXT) apl-Bif_F12_COMMA.$(OBJEXT) \
@@ -1205,6 +1205,7 @@ ECHO_C =
 ECHO_N = -n
 ECHO_T = 
 EGREP = /usr/bin/grep -E
+ERLC = 
 ETAGS = etags
 EXEEXT = 
 FGREP = /usr/bin/grep -F
@@ -1250,11 +1251,11 @@ PATH_SEPARATOR = :
 PCRE_CFLAGS = 
 PCRE_LIBS = -lpcre2-32
 PERFORMANCE_COUNTERS_WANTED = no
-PG_CONFIG = /usr/bin/pg_config
+PG_CONFIG = 
 PKG_CONFIG = /usr/bin/pkg-config
-POSTGRESQL_CFLAGS = -I/usr/include/postgresql
-POSTGRESQL_LDFLAGS = -L/usr/lib/x86_64-linux-gnu -lpq
-POSTGRESQL_VERSION = 14.22 (Ubuntu 14.22-0ubuntu0.22.04.1)
+POSTGRESQL_CFLAGS = 
+POSTGRESQL_LDFLAGS = 
+POSTGRESQL_VERSION = 
 POW_LIB = 
 PYTHON_CFLAGS = 
 RANLIB = ranlib
@@ -1264,9 +1265,9 @@ SED = /usr/bin/sed
 SET_MAKE = 
 SHELL = /bin/bash
 SHORT_VALUE_LENGTH_WANTED = 12
-SQLITE3_CFLAGS = -I/usr/include
-SQLITE3_LDFLAGS = -L/usr/lib -lsqlite3
-SQLITE3_VERSION = 3.37.2
+SQLITE3_CFLAGS = 
+SQLITE3_LDFLAGS = 
+SQLITE3_VERSION = 
 STRIP = strip
 VALUE_CHECK_WANTED = no
 VALUE_HISTORY_WANTED = no
@@ -1287,7 +1288,7 @@ am__leading_dot = .
 am__quote = 
 am__tar = $${TAR-tar} chof - "$$tardir"
 am__untar = $${TAR-tar} xf -
-apl_BUILD_DATE = 2026-07-17 13:17:05 CEST
+apl_BUILD_DATE = 2026-07-24 14:43:33 CEST
 apl_BUILD_OS = Linux 5.15.0-177-generic x86_64
 bindir = ${exec_prefix}/bin
 build = x86_64-pc-linux-gnu

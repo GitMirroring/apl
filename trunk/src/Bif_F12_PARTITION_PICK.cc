@@ -24,6 +24,7 @@
 #include "ArrayIterator.hh"
 #include "Bif_F12_PARTITION_PICK.hh"
 #include "Bif_F12_TAKE_DROP.hh"
+#include "Bif_F12_TRANSPOSE.hh"
 #include "Bif_OPER1_EACH.hh"
 #include "Workspace.hh"
 

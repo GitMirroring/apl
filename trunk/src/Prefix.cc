@@ -21,6 +21,7 @@
 /** @file
 */
 
+#include "Bif_F1_EXECUTE.hh"
 #include "Bif_OPER2_RANK.hh"
 #include "Bif_OPER2_POWER.hh"
 #include "Common.hh"
@@ -35,9 +36,6 @@
 #include "UserFunction.hh"
 #include "ValueHistory.hh"
 #include "Workspace.hh"
-
-/// prefix search mode (hash table vs. search tree
-// #define PREFIX_HASH
 
 uint64_t Prefix::instance_counter = 0;
 
@@ -303,26 +301,8 @@ Prefix::locate_X(UCS_string & function) const
 //
 # define reduce_none 0
 
-#ifdef PREFIX_HASH
 # define PH(name, suffix, idx, prio, misc, len)                         \
    { #name, #suffix, &Prefix::reduce_ ## suffix, idx, prio, misc, len }
-#endif   // PREFIX_HASH
-
-#ifdef PREFIX_TREE
-
-# define PH(name, suffix, idx, prio, misc, len,                               \
-           t0,t1,t2,t3,t4,t5,t6,t7,t8,t9,tA,tB,tC,tD,tE,tF,tG,tH)             \
-  { #name, #suffix, &Prefix::reduce_ ## suffix, idx, prio, misc, len,         \
-    { 0x##t0, 0x##t1, 0x##t2, 0x##t3, 0x##t4, 0x##t5, 0x##t6, 0x##t7, 0x##t8, \
-      0x##t9, 0x##tA, 0x##tB, 0x##tC, 0x##tD, 0x##tE, 0x##tF, 0x##tG, 0x##tH }}
-
-// dito, but without reduce function.
-#define P0(name, suffix, idx, prio, misc, len,                          \
-           t0,t1,t2,t3,t4,t5,t6,t7,t8,t9,tA,tB,tC,tD,tE,tF,tG,tH)       \
-   { #name, #suffix, 0, idx, prio, misc, len,                           \
-    { 0x##t0, 0x##t1, 0x##t2, 0x##t3, 0x##t4, 0x##t5, 0x##t6, 0x##t7, 0x##t8, \
-      0x##t9, 0x##tA, 0x##tB, 0x##tC, 0x##tD, 0x##tE, 0x##tF, 0x##tG, 0x##tH }}
-#endif   // PREFIX_TREE
 
 const Prefix::Phrase Prefix::hash_table[] =
 {
@@ -1091,7 +1071,6 @@ const Token_loc tloc(tok, old_PC);
    return false;   // )SI not pushed
 }
 //────────────────────────────────────────────────────────────────────────────
-#ifdef PREFIX_HASH
 inline void
 Prefix::find_best_phrase()
 {
@@ -1124,49 +1103,6 @@ unsigned int hash[4] = { at0().get_Class() };
 
    best_phrase = 0;   // not found
 }
-#endif
-
-#ifdef PREFIX_TREE
-inline void
-Prefix::find_best_phrase()
-{
-   best_phrase = 0;   // assume nothing found
-
-// CERR << "\nfind_best_phrase(): size=" << size() << endl;
-// print_stack(CERR, LOC);
-
-int idx = 0;
-   loop(s, size())
-       {
-// CERR << "s=" << s << " idx=" << HEX2(idx) << endl;
-
-         const TokenClass tc = at(s).get_Class();
-// CERR << " TokenClass tc=" << HEX2(tc) << " aka. "
-//      << Token::class_name(tc) << endl;
-
-         idx = hash_table[idx].sub_nodes[tc];
-         const Phrase & phrase = hash_table[idx];
-// CERR << " phrase now #" << HEX2(idx) << ": " << phrase.phrase_name << endl;
-// CERR << " reduce name: " << phrase.reduce_name << endl;
-
-         {
-// CERR << "  ├── best_phrase before=" << voidP(best_phrase) << endl;
-         if (phrase.reduce_fun)   best_phrase = &phrase;
-// CERR << "  └── best_phrase after=" << voidP(best_phrase) << endl;
-         }
-
-// if (idx)   CERR << "  now idx=" << HEX2(idx) << " : "
-//                 << hash_table[idx].reduce_name << endl;
-// else       CERR << "  no child" << endl;
-         if (idx == 0)
-            {
-// CERR << "end of tree" << endl;
-              return;
-            }
-       }
-// CERR << "end of prefix" << endl;
-}
-#endif
 //────────────────────────────────────────────────────────────────────────────
 inline bool
 Prefix::check_next_binding()

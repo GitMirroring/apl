@@ -398,6 +398,26 @@ char * fract_end = 0;
 
         int elen = strlen(ep);
 
+        // the exponent could be wider than the field the example string
+        // reserved for it (e.g. '0.07E0' ⍕ 1E100 needs 3 exponent digits
+        // but the example only reserves 1); unlike the integer-part
+        // overflow check just below fill_data_fields()'s caller, this
+        // case was not detected here, so it instead surfaced downstream
+        // as a negative pad_count in format_right_side() -- a size_t
+        // underflow that aborts the interpreter. Detect it here instead,
+        // mirroring the integer-part check.
+        if (elen > exponent.format.ssize())
+           {
+             if (Workspace::get_FC(3) == UNI_0)
+                {
+                  MORE_ERROR() << "A⍕B : Bad value " << value
+                               << " (exponent exceeds A specification)";
+                  DOMAIN_ERROR;
+                }
+             overflow = true;
+             return;
+           }
+
         // insert leading zeros until we have at least min_len digits.
         //
         for (; elen < exponent.min_len; ++elen)   data_expo << UNI_0;
@@ -555,6 +575,7 @@ UCS_string ucs;
    // now do the right side padding.
    {
      const Unicode pad_char = fract_part.pad_char(Workspace::get_FC(2));
+     if (pad_count < 0)   pad_count = 0;   // defensive: see fill_data_fields()
      const UCS_string pad(pad_count, pad_char);
 
      if (fract_part.no_float())                // floating disabled.
@@ -1027,6 +1048,16 @@ Bif_F12_FORMAT::format_one_col_by_spec(int width, int precision,
                                        cValue_R B, ShapeItem base,
                                        ShapeItem cols, ShapeItem rows)
 {
+   // precision comes straight from the left argument with no upper bound
+   // otherwise: a large positive precision drives an unbounded
+   // UCS_string(size_t, Unicode)-style allocation in format_float_by_spec()
+   // (via from_double_to_fixed()), and an equally unbounded (-precision)
+   // does the same via from_double_to_expo() below -- either exhausts
+   // memory and aborts uncleanly (glibc sysmalloc assertion, not a clean
+   // bad_alloc). No legitimate format specification needs anywhere near
+   // this many digits.
+   if (precision > 1000 || precision < -1000)   DOMAIN_ERROR;
+
 PrintBuffer ret;
 
 bool has_char    = false;

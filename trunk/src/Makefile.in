@@ -187,32 +187,44 @@ am__lib_gnu_apl_la_SOURCES_DIST = Plot_ascii.cc Plot_gtk.cc \
 	Plot_xcb.cc ../config.h APL_Float_as_class.hh APL_types.hh \
 	APL_enums.hh Archive.cc Archive.hh ArrayIterator.hh Assert.cc \
 	Assert.hh Avec.cc Avec.def Avec.hh Backtrace.cc Backtrace.hh \
-	Bif_F12_COMMA.cc Bif_F12_COMMA.hh Bif_F12_DOMINO.cc \
-	Bif_F12_DOMINO.hh Bif_F12_INDEX_OF.cc Bif_F12_INDEX_OF.hh \
+	Bif_F0_ZILDE.cc Bif_F0_ZILDE.hh Bif_F12_COMMA.cc \
+	Bif_F12_COMMA.hh Bif_F12_DOMINO.cc Bif_F12_DOMINO.hh \
+	Bif_F12_ELEMENT.cc Bif_F12_ELEMENT.hh Bif_F12_ENCODE_DECODE.cc \
+	Bif_F12_ENCODE_DECODE.hh Bif_F12_EQUIV.cc Bif_F12_EQUIV.hh \
+	Bif_F12_INDEX_OF.cc Bif_F12_INDEX_OF.hh \
 	Bif_F12_INTERVAL_INDEX.cc Bif_F12_INTERVAL_INDEX.hh \
 	Bif_F12_FORMAT.cc Bif_F12_FORMAT.hh Bif_F12_PARTITION_PICK.cc \
-	Bif_F12_PARTITION_PICK.hh Bif_F12_SORT.cc Bif_F12_SORT.hh \
-	Bif_F12_TAKE_DROP.cc Bif_F12_TAKE_DROP.hh Bif_OPER1_COMMUTE.cc \
-	Bif_OPER1_COMMUTE.hh Bif_OPER1_EACH.cc Bif_OPER1_EACH.hh \
-	Bif_OPER2_POWER.cc Bif_OPER2_POWER.hh Bif_OPER2_INNER.cc \
-	Bif_OPER2_INNER.hh Bif_OPER2_OUTER.cc Bif_OPER2_OUTER.hh \
-	Bif_OPER2_RANK.cc Bif_OPER2_RANK.hh Bif_OPER1_REDUCE.cc \
-	Bif_OPER1_REDUCE.hh Bif_OPER1_SCAN.cc Bif_OPER1_SCAN.hh CDR.cc \
-	CDR.hh Cell.cc Cell.icc Cell.hh Cmd_KEYB.cc Cmd_LIB.cc \
-	Cmd_IN.cc Doxy.cc Doxy.hh CharCell.cc CharCell.hh Command.cc \
-	Command.def Command.hh Common.cc Common.hh ComplexCell.cc \
-	ComplexCell.hh ConstCell_P.hh DerivedFunction.cc \
-	DerivedFunction.hh DiffOut.cc DiffOut.hh DynamicObject.cc \
-	DynamicObject.hh Error.cc Error.def Error.hh Error_macros.hh \
-	ErrorCode.hh Executable.cc Executable.hh FileBuffers.hh \
-	FloatCell.cc FloatCell.hh Focus.icc Function.cc Function.hh \
-	Help.def Heapsort.hh Id.cc Id.def Id.hh IdEnums.hh \
-	IndexExpr.cc IndexExpr.hh IndexIterator.cc IndexIterator.hh \
-	InputFile.cc InputFile.hh IntCell.cc IntCell.hh IO_Files.cc \
-	IO_Files.hh LApack.cc LAdebug.icc LApack.hh LibPaths.cc \
-	LibPaths.hh LineInput.cc LineInput.hh Logging.cc Logging.def \
-	Logging.hh LvalCell.cc LvalCell.hh Malloc_hooks.cc Nabla.cc \
-	Nabla.hh Macro.cc Macro.def Macro.hh Missing_Libraries.cc \
+	Bif_F12_PARTITION_PICK.hh Bif_F12_RHO.cc Bif_F12_RHO.hh \
+	Bif_F12_ROTATE.cc Bif_F12_ROTATE.hh Bif_F12_SORT.cc \
+	Bif_F12_SORT.hh Bif_F12_TAKE_DROP.cc Bif_F12_TAKE_DROP.hh \
+	Bif_F12_TRANSPOSE.cc Bif_F12_TRANSPOSE.hh \
+	Bif_F12_UNION_INTER.cc Bif_F12_UNION_INTER.hh \
+	Bif_F1_EXECUTE.cc Bif_F1_EXECUTE.hh Bif_F2_INDEX.cc \
+	Bif_F2_INDEX.hh Bif_F2_LEFT_RIGHT.cc Bif_F2_LEFT_RIGHT.hh \
+	Bif_OPER1_COMMUTE.cc Bif_OPER1_COMMUTE.hh Bif_OPER1_EACH.cc \
+	Bif_OPER1_EACH.hh Bif_OPER2_POWER.cc Bif_OPER2_POWER.hh \
+	Bif_OPER2_INNER.cc Bif_OPER2_INNER.hh Bif_OPER2_OUTER.cc \
+	Bif_OPER2_OUTER.hh Bif_OPER2_RANK.cc Bif_OPER2_RANK.hh \
+	Bif_OPER1_REDUCE.cc Bif_OPER1_REDUCE.hh Bif_OPER1_SCAN.cc \
+	Bif_OPER1_SCAN.hh CDR.cc CDR.hh Cell.cc Cell.icc Cell.hh \
+	Cmd_KEYB.cc Cmd_LIB.cc Cmd_IN.cc Cmd_DIAG.cc Cmd_DIAG.hh \
+	Cmd_HELP.cc Cmd_HELP.hh Cmd_HOST.cc Cmd_HOST.hh Cmd_LISTING.cc \
+	Cmd_LISTING.hh Cmd_SESSION.cc Cmd_SESSION.hh Cmd_SI.cc \
+	Cmd_SI.hh Cmd_USERCMD.cc Cmd_USERCMD.hh Cmd_WS.cc Cmd_WS.hh \
+	Doxy.cc Doxy.hh CharCell.cc CharCell.hh Command.cc Command.def \
+	Command.hh Common.cc Common.hh ComplexCell.cc ComplexCell.hh \
+	ConstCell_P.hh DerivedFunction.cc DerivedFunction.hh \
+	DiffOut.cc DiffOut.hh DynamicObject.cc DynamicObject.hh \
+	Error.cc Error.def Error.hh Error_macros.hh ErrorCode.hh \
+	Executable.cc Executable.hh FileBuffers.hh FloatCell.cc \
+	FloatCell.hh Focus.icc Function.cc Function.hh Help.def \
+	Heapsort.hh Id.cc Id.def Id.hh IdEnums.hh IndexExpr.cc \
+	IndexExpr.hh IndexIterator.cc IndexIterator.hh InputFile.cc \
+	InputFile.hh IntCell.cc IntCell.hh IO_Files.cc IO_Files.hh \
+	LApack.cc LAdebug.icc LApack.hh LibPaths.cc LibPaths.hh \
+	LineInput.cc LineInput.hh Logging.cc Logging.def Logging.hh \
+	LvalCell.cc LvalCell.hh Malloc_hooks.cc Nabla.cc Nabla.hh \
+	Macro.cc Macro.def Macro.hh Missing_Libraries.cc \
 	NamedObject.cc NamedObject.hh NativeFunction.cc \
 	NativeFunction.hh Native_interface.hh NumericCell.cc \
 	NumericCell.icc NumericCell.hh Output.cc Output.hh PJob.hh \
@@ -221,9 +233,9 @@ am__lib_gnu_apl_la_SOURCES_DIST = Plot_ascii.cc Plot_gtk.cc \
 	Prefix.cc Prefix.def Prefix.hh Plot_line_properties.cc \
 	Plot_line_properties.hh Plot_data.cc Plot_data.hh \
 	Plot_window_properties.cc Plot_window_properties.hh \
-	PrimitiveFunction.cc PrimitiveFunction.hh PrimitiveOperator.hh \
-	PrintBuffer.cc PrintBuffer.hh PrintContext.hh Polynomial.cc \
-	Polynomial.hh PrintOperator.hh PythonPipe.cc PythonPipe.hh \
+	PrimitiveFunction.hh PrimitiveOperator.hh PrintBuffer.cc \
+	PrintBuffer.hh PrintContext.hh Polynomial.cc Polynomial.hh \
+	PrintOperator.hh PythonPipe.cc PythonPipe.hh \
 	QR_factorization_GSL.cc QR_factorization_GSL.hh \
 	QuadFunction.cc QuadFunction.hh ProcessorID.cc ProcessorID.hh \
 	Quad_CC.cc Quad_CC.hh Quad_CR.cc Quad_CR.def Quad_CR.hh \
@@ -279,14 +291,24 @@ am__dirstamp = $(am__leading_dot)dirstamp
 @apl_POSTGRES_TRUE@	sql/lib_gnu_apl_la-PostgresProvider.lo
 am__objects_8 = $(am__objects_3) lib_gnu_apl_la-Archive.lo \
 	lib_gnu_apl_la-Assert.lo lib_gnu_apl_la-Avec.lo \
-	lib_gnu_apl_la-Backtrace.lo lib_gnu_apl_la-Bif_F12_COMMA.lo \
+	lib_gnu_apl_la-Backtrace.lo lib_gnu_apl_la-Bif_F0_ZILDE.lo \
+	lib_gnu_apl_la-Bif_F12_COMMA.lo \
 	lib_gnu_apl_la-Bif_F12_DOMINO.lo \
+	lib_gnu_apl_la-Bif_F12_ELEMENT.lo \
+	lib_gnu_apl_la-Bif_F12_ENCODE_DECODE.lo \
+	lib_gnu_apl_la-Bif_F12_EQUIV.lo \
 	lib_gnu_apl_la-Bif_F12_INDEX_OF.lo \
 	lib_gnu_apl_la-Bif_F12_INTERVAL_INDEX.lo \
 	lib_gnu_apl_la-Bif_F12_FORMAT.lo \
 	lib_gnu_apl_la-Bif_F12_PARTITION_PICK.lo \
+	lib_gnu_apl_la-Bif_F12_RHO.lo lib_gnu_apl_la-Bif_F12_ROTATE.lo \
 	lib_gnu_apl_la-Bif_F12_SORT.lo \
 	lib_gnu_apl_la-Bif_F12_TAKE_DROP.lo \
+	lib_gnu_apl_la-Bif_F12_TRANSPOSE.lo \
+	lib_gnu_apl_la-Bif_F12_UNION_INTER.lo \
+	lib_gnu_apl_la-Bif_F1_EXECUTE.lo \
+	lib_gnu_apl_la-Bif_F2_INDEX.lo \
+	lib_gnu_apl_la-Bif_F2_LEFT_RIGHT.lo \
 	lib_gnu_apl_la-Bif_OPER1_COMMUTE.lo \
 	lib_gnu_apl_la-Bif_OPER1_EACH.lo \
 	lib_gnu_apl_la-Bif_OPER2_POWER.lo \
@@ -297,6 +319,10 @@ am__objects_8 = $(am__objects_3) lib_gnu_apl_la-Archive.lo \
 	lib_gnu_apl_la-Bif_OPER1_SCAN.lo lib_gnu_apl_la-CDR.lo \
 	lib_gnu_apl_la-Cell.lo lib_gnu_apl_la-Cmd_KEYB.lo \
 	lib_gnu_apl_la-Cmd_LIB.lo lib_gnu_apl_la-Cmd_IN.lo \
+	lib_gnu_apl_la-Cmd_DIAG.lo lib_gnu_apl_la-Cmd_HELP.lo \
+	lib_gnu_apl_la-Cmd_HOST.lo lib_gnu_apl_la-Cmd_LISTING.lo \
+	lib_gnu_apl_la-Cmd_SESSION.lo lib_gnu_apl_la-Cmd_SI.lo \
+	lib_gnu_apl_la-Cmd_USERCMD.lo lib_gnu_apl_la-Cmd_WS.lo \
 	lib_gnu_apl_la-Doxy.lo lib_gnu_apl_la-CharCell.lo \
 	lib_gnu_apl_la-Command.lo lib_gnu_apl_la-Common.lo \
 	lib_gnu_apl_la-ComplexCell.lo \
@@ -319,7 +345,6 @@ am__objects_8 = $(am__objects_3) lib_gnu_apl_la-Archive.lo \
 	lib_gnu_apl_la-Plot_line_properties.lo \
 	lib_gnu_apl_la-Plot_data.lo \
 	lib_gnu_apl_la-Plot_window_properties.lo \
-	lib_gnu_apl_la-PrimitiveFunction.lo \
 	lib_gnu_apl_la-PrintBuffer.lo lib_gnu_apl_la-Polynomial.lo \
 	lib_gnu_apl_la-PythonPipe.lo \
 	lib_gnu_apl_la-QR_factorization_GSL.lo \
@@ -372,32 +397,44 @@ am__libapl_la_SOURCES_DIST = Plot_ascii.cc Plot_gtk.cc Plot_xcb.cc \
 	../config.h APL_Float_as_class.hh APL_types.hh APL_enums.hh \
 	Archive.cc Archive.hh ArrayIterator.hh Assert.cc Assert.hh \
 	Avec.cc Avec.def Avec.hh Backtrace.cc Backtrace.hh \
-	Bif_F12_COMMA.cc Bif_F12_COMMA.hh Bif_F12_DOMINO.cc \
-	Bif_F12_DOMINO.hh Bif_F12_INDEX_OF.cc Bif_F12_INDEX_OF.hh \
+	Bif_F0_ZILDE.cc Bif_F0_ZILDE.hh Bif_F12_COMMA.cc \
+	Bif_F12_COMMA.hh Bif_F12_DOMINO.cc Bif_F12_DOMINO.hh \
+	Bif_F12_ELEMENT.cc Bif_F12_ELEMENT.hh Bif_F12_ENCODE_DECODE.cc \
+	Bif_F12_ENCODE_DECODE.hh Bif_F12_EQUIV.cc Bif_F12_EQUIV.hh \
+	Bif_F12_INDEX_OF.cc Bif_F12_INDEX_OF.hh \
 	Bif_F12_INTERVAL_INDEX.cc Bif_F12_INTERVAL_INDEX.hh \
 	Bif_F12_FORMAT.cc Bif_F12_FORMAT.hh Bif_F12_PARTITION_PICK.cc \
-	Bif_F12_PARTITION_PICK.hh Bif_F12_SORT.cc Bif_F12_SORT.hh \
-	Bif_F12_TAKE_DROP.cc Bif_F12_TAKE_DROP.hh Bif_OPER1_COMMUTE.cc \
-	Bif_OPER1_COMMUTE.hh Bif_OPER1_EACH.cc Bif_OPER1_EACH.hh \
-	Bif_OPER2_POWER.cc Bif_OPER2_POWER.hh Bif_OPER2_INNER.cc \
-	Bif_OPER2_INNER.hh Bif_OPER2_OUTER.cc Bif_OPER2_OUTER.hh \
-	Bif_OPER2_RANK.cc Bif_OPER2_RANK.hh Bif_OPER1_REDUCE.cc \
-	Bif_OPER1_REDUCE.hh Bif_OPER1_SCAN.cc Bif_OPER1_SCAN.hh CDR.cc \
-	CDR.hh Cell.cc Cell.icc Cell.hh Cmd_KEYB.cc Cmd_LIB.cc \
-	Cmd_IN.cc Doxy.cc Doxy.hh CharCell.cc CharCell.hh Command.cc \
-	Command.def Command.hh Common.cc Common.hh ComplexCell.cc \
-	ComplexCell.hh ConstCell_P.hh DerivedFunction.cc \
-	DerivedFunction.hh DiffOut.cc DiffOut.hh DynamicObject.cc \
-	DynamicObject.hh Error.cc Error.def Error.hh Error_macros.hh \
-	ErrorCode.hh Executable.cc Executable.hh FileBuffers.hh \
-	FloatCell.cc FloatCell.hh Focus.icc Function.cc Function.hh \
-	Help.def Heapsort.hh Id.cc Id.def Id.hh IdEnums.hh \
-	IndexExpr.cc IndexExpr.hh IndexIterator.cc IndexIterator.hh \
-	InputFile.cc InputFile.hh IntCell.cc IntCell.hh IO_Files.cc \
-	IO_Files.hh LApack.cc LAdebug.icc LApack.hh LibPaths.cc \
-	LibPaths.hh LineInput.cc LineInput.hh Logging.cc Logging.def \
-	Logging.hh LvalCell.cc LvalCell.hh Malloc_hooks.cc Nabla.cc \
-	Nabla.hh Macro.cc Macro.def Macro.hh Missing_Libraries.cc \
+	Bif_F12_PARTITION_PICK.hh Bif_F12_RHO.cc Bif_F12_RHO.hh \
+	Bif_F12_ROTATE.cc Bif_F12_ROTATE.hh Bif_F12_SORT.cc \
+	Bif_F12_SORT.hh Bif_F12_TAKE_DROP.cc Bif_F12_TAKE_DROP.hh \
+	Bif_F12_TRANSPOSE.cc Bif_F12_TRANSPOSE.hh \
+	Bif_F12_UNION_INTER.cc Bif_F12_UNION_INTER.hh \
+	Bif_F1_EXECUTE.cc Bif_F1_EXECUTE.hh Bif_F2_INDEX.cc \
+	Bif_F2_INDEX.hh Bif_F2_LEFT_RIGHT.cc Bif_F2_LEFT_RIGHT.hh \
+	Bif_OPER1_COMMUTE.cc Bif_OPER1_COMMUTE.hh Bif_OPER1_EACH.cc \
+	Bif_OPER1_EACH.hh Bif_OPER2_POWER.cc Bif_OPER2_POWER.hh \
+	Bif_OPER2_INNER.cc Bif_OPER2_INNER.hh Bif_OPER2_OUTER.cc \
+	Bif_OPER2_OUTER.hh Bif_OPER2_RANK.cc Bif_OPER2_RANK.hh \
+	Bif_OPER1_REDUCE.cc Bif_OPER1_REDUCE.hh Bif_OPER1_SCAN.cc \
+	Bif_OPER1_SCAN.hh CDR.cc CDR.hh Cell.cc Cell.icc Cell.hh \
+	Cmd_KEYB.cc Cmd_LIB.cc Cmd_IN.cc Cmd_DIAG.cc Cmd_DIAG.hh \
+	Cmd_HELP.cc Cmd_HELP.hh Cmd_HOST.cc Cmd_HOST.hh Cmd_LISTING.cc \
+	Cmd_LISTING.hh Cmd_SESSION.cc Cmd_SESSION.hh Cmd_SI.cc \
+	Cmd_SI.hh Cmd_USERCMD.cc Cmd_USERCMD.hh Cmd_WS.cc Cmd_WS.hh \
+	Doxy.cc Doxy.hh CharCell.cc CharCell.hh Command.cc Command.def \
+	Command.hh Common.cc Common.hh ComplexCell.cc ComplexCell.hh \
+	ConstCell_P.hh DerivedFunction.cc DerivedFunction.hh \
+	DiffOut.cc DiffOut.hh DynamicObject.cc DynamicObject.hh \
+	Error.cc Error.def Error.hh Error_macros.hh ErrorCode.hh \
+	Executable.cc Executable.hh FileBuffers.hh FloatCell.cc \
+	FloatCell.hh Focus.icc Function.cc Function.hh Help.def \
+	Heapsort.hh Id.cc Id.def Id.hh IdEnums.hh IndexExpr.cc \
+	IndexExpr.hh IndexIterator.cc IndexIterator.hh InputFile.cc \
+	InputFile.hh IntCell.cc IntCell.hh IO_Files.cc IO_Files.hh \
+	LApack.cc LAdebug.icc LApack.hh LibPaths.cc LibPaths.hh \
+	LineInput.cc LineInput.hh Logging.cc Logging.def Logging.hh \
+	LvalCell.cc LvalCell.hh Malloc_hooks.cc Nabla.cc Nabla.hh \
+	Macro.cc Macro.def Macro.hh Missing_Libraries.cc \
 	NamedObject.cc NamedObject.hh NativeFunction.cc \
 	NativeFunction.hh Native_interface.hh NumericCell.cc \
 	NumericCell.icc NumericCell.hh Output.cc Output.hh PJob.hh \
@@ -406,9 +443,9 @@ am__libapl_la_SOURCES_DIST = Plot_ascii.cc Plot_gtk.cc Plot_xcb.cc \
 	Prefix.cc Prefix.def Prefix.hh Plot_line_properties.cc \
 	Plot_line_properties.hh Plot_data.cc Plot_data.hh \
 	Plot_window_properties.cc Plot_window_properties.hh \
-	PrimitiveFunction.cc PrimitiveFunction.hh PrimitiveOperator.hh \
-	PrintBuffer.cc PrintBuffer.hh PrintContext.hh Polynomial.cc \
-	Polynomial.hh PrintOperator.hh PythonPipe.cc PythonPipe.hh \
+	PrimitiveFunction.hh PrimitiveOperator.hh PrintBuffer.cc \
+	PrintBuffer.hh PrintContext.hh Polynomial.cc Polynomial.hh \
+	PrintOperator.hh PythonPipe.cc PythonPipe.hh \
 	QR_factorization_GSL.cc QR_factorization_GSL.hh \
 	QuadFunction.cc QuadFunction.hh ProcessorID.cc ProcessorID.hh \
 	Quad_CC.cc Quad_CC.hh Quad_CR.cc Quad_CR.def Quad_CR.hh \
@@ -465,25 +502,35 @@ am__objects_11 = libapl_la-Plot_ascii.lo $(am__objects_9) \
 @apl_POSTGRES_TRUE@	sql/libapl_la-PostgresProvider.lo
 am__objects_16 = $(am__objects_11) libapl_la-Archive.lo \
 	libapl_la-Assert.lo libapl_la-Avec.lo libapl_la-Backtrace.lo \
-	libapl_la-Bif_F12_COMMA.lo libapl_la-Bif_F12_DOMINO.lo \
+	libapl_la-Bif_F0_ZILDE.lo libapl_la-Bif_F12_COMMA.lo \
+	libapl_la-Bif_F12_DOMINO.lo libapl_la-Bif_F12_ELEMENT.lo \
+	libapl_la-Bif_F12_ENCODE_DECODE.lo libapl_la-Bif_F12_EQUIV.lo \
 	libapl_la-Bif_F12_INDEX_OF.lo \
 	libapl_la-Bif_F12_INTERVAL_INDEX.lo \
 	libapl_la-Bif_F12_FORMAT.lo \
-	libapl_la-Bif_F12_PARTITION_PICK.lo libapl_la-Bif_F12_SORT.lo \
-	libapl_la-Bif_F12_TAKE_DROP.lo libapl_la-Bif_OPER1_COMMUTE.lo \
-	libapl_la-Bif_OPER1_EACH.lo libapl_la-Bif_OPER2_POWER.lo \
-	libapl_la-Bif_OPER2_INNER.lo libapl_la-Bif_OPER2_OUTER.lo \
-	libapl_la-Bif_OPER2_RANK.lo libapl_la-Bif_OPER1_REDUCE.lo \
-	libapl_la-Bif_OPER1_SCAN.lo libapl_la-CDR.lo libapl_la-Cell.lo \
-	libapl_la-Cmd_KEYB.lo libapl_la-Cmd_LIB.lo libapl_la-Cmd_IN.lo \
-	libapl_la-Doxy.lo libapl_la-CharCell.lo libapl_la-Command.lo \
-	libapl_la-Common.lo libapl_la-ComplexCell.lo \
-	libapl_la-DerivedFunction.lo libapl_la-DiffOut.lo \
-	libapl_la-DynamicObject.lo libapl_la-Error.lo \
-	libapl_la-Executable.lo libapl_la-FloatCell.lo \
-	libapl_la-Function.lo libapl_la-Id.lo libapl_la-IndexExpr.lo \
-	libapl_la-IndexIterator.lo libapl_la-InputFile.lo \
-	libapl_la-IntCell.lo libapl_la-IO_Files.lo libapl_la-LApack.lo \
+	libapl_la-Bif_F12_PARTITION_PICK.lo libapl_la-Bif_F12_RHO.lo \
+	libapl_la-Bif_F12_ROTATE.lo libapl_la-Bif_F12_SORT.lo \
+	libapl_la-Bif_F12_TAKE_DROP.lo libapl_la-Bif_F12_TRANSPOSE.lo \
+	libapl_la-Bif_F12_UNION_INTER.lo libapl_la-Bif_F1_EXECUTE.lo \
+	libapl_la-Bif_F2_INDEX.lo libapl_la-Bif_F2_LEFT_RIGHT.lo \
+	libapl_la-Bif_OPER1_COMMUTE.lo libapl_la-Bif_OPER1_EACH.lo \
+	libapl_la-Bif_OPER2_POWER.lo libapl_la-Bif_OPER2_INNER.lo \
+	libapl_la-Bif_OPER2_OUTER.lo libapl_la-Bif_OPER2_RANK.lo \
+	libapl_la-Bif_OPER1_REDUCE.lo libapl_la-Bif_OPER1_SCAN.lo \
+	libapl_la-CDR.lo libapl_la-Cell.lo libapl_la-Cmd_KEYB.lo \
+	libapl_la-Cmd_LIB.lo libapl_la-Cmd_IN.lo libapl_la-Cmd_DIAG.lo \
+	libapl_la-Cmd_HELP.lo libapl_la-Cmd_HOST.lo \
+	libapl_la-Cmd_LISTING.lo libapl_la-Cmd_SESSION.lo \
+	libapl_la-Cmd_SI.lo libapl_la-Cmd_USERCMD.lo \
+	libapl_la-Cmd_WS.lo libapl_la-Doxy.lo libapl_la-CharCell.lo \
+	libapl_la-Command.lo libapl_la-Common.lo \
+	libapl_la-ComplexCell.lo libapl_la-DerivedFunction.lo \
+	libapl_la-DiffOut.lo libapl_la-DynamicObject.lo \
+	libapl_la-Error.lo libapl_la-Executable.lo \
+	libapl_la-FloatCell.lo libapl_la-Function.lo libapl_la-Id.lo \
+	libapl_la-IndexExpr.lo libapl_la-IndexIterator.lo \
+	libapl_la-InputFile.lo libapl_la-IntCell.lo \
+	libapl_la-IO_Files.lo libapl_la-LApack.lo \
 	libapl_la-LibPaths.lo libapl_la-LineInput.lo \
 	libapl_la-Logging.lo libapl_la-LvalCell.lo \
 	libapl_la-Malloc_hooks.lo libapl_la-Nabla.lo \
@@ -494,24 +541,24 @@ am__objects_16 = $(am__objects_11) libapl_la-Archive.lo \
 	libapl_la-Performance.lo libapl_la-PointerCell.lo \
 	libapl_la-Prefix.lo libapl_la-Plot_line_properties.lo \
 	libapl_la-Plot_data.lo libapl_la-Plot_window_properties.lo \
-	libapl_la-PrimitiveFunction.lo libapl_la-PrintBuffer.lo \
-	libapl_la-Polynomial.lo libapl_la-PythonPipe.lo \
-	libapl_la-QR_factorization_GSL.lo libapl_la-QuadFunction.lo \
-	libapl_la-ProcessorID.lo libapl_la-Quad_CC.lo \
-	libapl_la-Quad_CR.lo libapl_la-Quad_DLX.lo \
-	libapl_la-Quad_FFT.lo libapl_la-Quad_FIO.lo \
-	libapl_la-Quad_FX.lo libapl_la-Quad_GTK.lo \
-	libapl_la-Quad_JSON.lo libapl_la-Quad_MAP.lo \
-	libapl_la-Quad_MX.lo libapl_la-Quad_PLOT.lo \
-	libapl_la-Quad_PNG.lo libapl_la-Quad_RE.lo \
-	libapl_la-Quad_RL.lo libapl_la-Quad_RVAL.lo \
-	libapl_la-Quad_SQL.lo libapl_la-Quad_SVx.lo \
-	libapl_la-Quad_TF.lo libapl_la-Quad_WA.lo \
-	libapl_la-Quad_XML.lo libapl_la-RealCell.lo libapl_la-sbrk.lo \
-	libapl_la-Shape.lo libapl_la-ScalarFunction.lo \
-	libapl_la-Security.lo libapl_la-StateIndicator.lo \
-	libapl_la-Svar_DB.lo libapl_la-Svar_record.lo \
-	libapl_la-Symbol.lo libapl_la-SymbolTable.lo libapl_la-Sys.lo \
+	libapl_la-PrintBuffer.lo libapl_la-Polynomial.lo \
+	libapl_la-PythonPipe.lo libapl_la-QR_factorization_GSL.lo \
+	libapl_la-QuadFunction.lo libapl_la-ProcessorID.lo \
+	libapl_la-Quad_CC.lo libapl_la-Quad_CR.lo \
+	libapl_la-Quad_DLX.lo libapl_la-Quad_FFT.lo \
+	libapl_la-Quad_FIO.lo libapl_la-Quad_FX.lo \
+	libapl_la-Quad_GTK.lo libapl_la-Quad_JSON.lo \
+	libapl_la-Quad_MAP.lo libapl_la-Quad_MX.lo \
+	libapl_la-Quad_PLOT.lo libapl_la-Quad_PNG.lo \
+	libapl_la-Quad_RE.lo libapl_la-Quad_RL.lo \
+	libapl_la-Quad_RVAL.lo libapl_la-Quad_SQL.lo \
+	libapl_la-Quad_SVx.lo libapl_la-Quad_TF.lo \
+	libapl_la-Quad_WA.lo libapl_la-Quad_XML.lo \
+	libapl_la-RealCell.lo libapl_la-sbrk.lo libapl_la-Shape.lo \
+	libapl_la-ScalarFunction.lo libapl_la-Security.lo \
+	libapl_la-StateIndicator.lo libapl_la-Svar_DB.lo \
+	libapl_la-Svar_record.lo libapl_la-Symbol.lo \
+	libapl_la-SymbolTable.lo libapl_la-Sys.lo \
 	libapl_la-SystemVariable.lo libapl_la-TabExpansion.lo \
 	libapl_la-Thread_context.lo libapl_la-Token.lo \
 	libapl_la-Token_string.lo libapl_la-Tokenizer.lo \
@@ -533,32 +580,44 @@ am__apl_SOURCES_DIST = main.cc Plot_ascii.cc Plot_gtk.cc Plot_xcb.cc \
 	../config.h APL_Float_as_class.hh APL_types.hh APL_enums.hh \
 	Archive.cc Archive.hh ArrayIterator.hh Assert.cc Assert.hh \
 	Avec.cc Avec.def Avec.hh Backtrace.cc Backtrace.hh \
-	Bif_F12_COMMA.cc Bif_F12_COMMA.hh Bif_F12_DOMINO.cc \
-	Bif_F12_DOMINO.hh Bif_F12_INDEX_OF.cc Bif_F12_INDEX_OF.hh \
+	Bif_F0_ZILDE.cc Bif_F0_ZILDE.hh Bif_F12_COMMA.cc \
+	Bif_F12_COMMA.hh Bif_F12_DOMINO.cc Bif_F12_DOMINO.hh \
+	Bif_F12_ELEMENT.cc Bif_F12_ELEMENT.hh Bif_F12_ENCODE_DECODE.cc \
+	Bif_F12_ENCODE_DECODE.hh Bif_F12_EQUIV.cc Bif_F12_EQUIV.hh \
+	Bif_F12_INDEX_OF.cc Bif_F12_INDEX_OF.hh \
 	Bif_F12_INTERVAL_INDEX.cc Bif_F12_INTERVAL_INDEX.hh \
 	Bif_F12_FORMAT.cc Bif_F12_FORMAT.hh Bif_F12_PARTITION_PICK.cc \
-	Bif_F12_PARTITION_PICK.hh Bif_F12_SORT.cc Bif_F12_SORT.hh \
-	Bif_F12_TAKE_DROP.cc Bif_F12_TAKE_DROP.hh Bif_OPER1_COMMUTE.cc \
-	Bif_OPER1_COMMUTE.hh Bif_OPER1_EACH.cc Bif_OPER1_EACH.hh \
-	Bif_OPER2_POWER.cc Bif_OPER2_POWER.hh Bif_OPER2_INNER.cc \
-	Bif_OPER2_INNER.hh Bif_OPER2_OUTER.cc Bif_OPER2_OUTER.hh \
-	Bif_OPER2_RANK.cc Bif_OPER2_RANK.hh Bif_OPER1_REDUCE.cc \
-	Bif_OPER1_REDUCE.hh Bif_OPER1_SCAN.cc Bif_OPER1_SCAN.hh CDR.cc \
-	CDR.hh Cell.cc Cell.icc Cell.hh Cmd_KEYB.cc Cmd_LIB.cc \
-	Cmd_IN.cc Doxy.cc Doxy.hh CharCell.cc CharCell.hh Command.cc \
-	Command.def Command.hh Common.cc Common.hh ComplexCell.cc \
-	ComplexCell.hh ConstCell_P.hh DerivedFunction.cc \
-	DerivedFunction.hh DiffOut.cc DiffOut.hh DynamicObject.cc \
-	DynamicObject.hh Error.cc Error.def Error.hh Error_macros.hh \
-	ErrorCode.hh Executable.cc Executable.hh FileBuffers.hh \
-	FloatCell.cc FloatCell.hh Focus.icc Function.cc Function.hh \
-	Help.def Heapsort.hh Id.cc Id.def Id.hh IdEnums.hh \
-	IndexExpr.cc IndexExpr.hh IndexIterator.cc IndexIterator.hh \
-	InputFile.cc InputFile.hh IntCell.cc IntCell.hh IO_Files.cc \
-	IO_Files.hh LApack.cc LAdebug.icc LApack.hh LibPaths.cc \
-	LibPaths.hh LineInput.cc LineInput.hh Logging.cc Logging.def \
-	Logging.hh LvalCell.cc LvalCell.hh Malloc_hooks.cc Nabla.cc \
-	Nabla.hh Macro.cc Macro.def Macro.hh Missing_Libraries.cc \
+	Bif_F12_PARTITION_PICK.hh Bif_F12_RHO.cc Bif_F12_RHO.hh \
+	Bif_F12_ROTATE.cc Bif_F12_ROTATE.hh Bif_F12_SORT.cc \
+	Bif_F12_SORT.hh Bif_F12_TAKE_DROP.cc Bif_F12_TAKE_DROP.hh \
+	Bif_F12_TRANSPOSE.cc Bif_F12_TRANSPOSE.hh \
+	Bif_F12_UNION_INTER.cc Bif_F12_UNION_INTER.hh \
+	Bif_F1_EXECUTE.cc Bif_F1_EXECUTE.hh Bif_F2_INDEX.cc \
+	Bif_F2_INDEX.hh Bif_F2_LEFT_RIGHT.cc Bif_F2_LEFT_RIGHT.hh \
+	Bif_OPER1_COMMUTE.cc Bif_OPER1_COMMUTE.hh Bif_OPER1_EACH.cc \
+	Bif_OPER1_EACH.hh Bif_OPER2_POWER.cc Bif_OPER2_POWER.hh \
+	Bif_OPER2_INNER.cc Bif_OPER2_INNER.hh Bif_OPER2_OUTER.cc \
+	Bif_OPER2_OUTER.hh Bif_OPER2_RANK.cc Bif_OPER2_RANK.hh \
+	Bif_OPER1_REDUCE.cc Bif_OPER1_REDUCE.hh Bif_OPER1_SCAN.cc \
+	Bif_OPER1_SCAN.hh CDR.cc CDR.hh Cell.cc Cell.icc Cell.hh \
+	Cmd_KEYB.cc Cmd_LIB.cc Cmd_IN.cc Cmd_DIAG.cc Cmd_DIAG.hh \
+	Cmd_HELP.cc Cmd_HELP.hh Cmd_HOST.cc Cmd_HOST.hh Cmd_LISTING.cc \
+	Cmd_LISTING.hh Cmd_SESSION.cc Cmd_SESSION.hh Cmd_SI.cc \
+	Cmd_SI.hh Cmd_USERCMD.cc Cmd_USERCMD.hh Cmd_WS.cc Cmd_WS.hh \
+	Doxy.cc Doxy.hh CharCell.cc CharCell.hh Command.cc Command.def \
+	Command.hh Common.cc Common.hh ComplexCell.cc ComplexCell.hh \
+	ConstCell_P.hh DerivedFunction.cc DerivedFunction.hh \
+	DiffOut.cc DiffOut.hh DynamicObject.cc DynamicObject.hh \
+	Error.cc Error.def Error.hh Error_macros.hh ErrorCode.hh \
+	Executable.cc Executable.hh FileBuffers.hh FloatCell.cc \
+	FloatCell.hh Focus.icc Function.cc Function.hh Help.def \
+	Heapsort.hh Id.cc Id.def Id.hh IdEnums.hh IndexExpr.cc \
+	IndexExpr.hh IndexIterator.cc IndexIterator.hh InputFile.cc \
+	InputFile.hh IntCell.cc IntCell.hh IO_Files.cc IO_Files.hh \
+	LApack.cc LAdebug.icc LApack.hh LibPaths.cc LibPaths.hh \
+	LineInput.cc LineInput.hh Logging.cc Logging.def Logging.hh \
+	LvalCell.cc LvalCell.hh Malloc_hooks.cc Nabla.cc Nabla.hh \
+	Macro.cc Macro.def Macro.hh Missing_Libraries.cc \
 	NamedObject.cc NamedObject.hh NativeFunction.cc \
 	NativeFunction.hh Native_interface.hh NumericCell.cc \
 	NumericCell.icc NumericCell.hh Output.cc Output.hh PJob.hh \
@@ -567,9 +626,9 @@ am__apl_SOURCES_DIST = main.cc Plot_ascii.cc Plot_gtk.cc Plot_xcb.cc \
 	Prefix.cc Prefix.def Prefix.hh Plot_line_properties.cc \
 	Plot_line_properties.hh Plot_data.cc Plot_data.hh \
 	Plot_window_properties.cc Plot_window_properties.hh \
-	PrimitiveFunction.cc PrimitiveFunction.hh PrimitiveOperator.hh \
-	PrintBuffer.cc PrintBuffer.hh PrintContext.hh Polynomial.cc \
-	Polynomial.hh PrintOperator.hh PythonPipe.cc PythonPipe.hh \
+	PrimitiveFunction.hh PrimitiveOperator.hh PrintBuffer.cc \
+	PrintBuffer.hh PrintContext.hh Polynomial.cc Polynomial.hh \
+	PrintOperator.hh PythonPipe.cc PythonPipe.hh \
 	QR_factorization_GSL.cc QR_factorization_GSL.hh \
 	QuadFunction.cc QuadFunction.hh ProcessorID.cc ProcessorID.hh \
 	Quad_CC.cc Quad_CC.hh Quad_CR.cc Quad_CR.def Quad_CR.hh \
@@ -625,38 +684,49 @@ am__objects_19 = apl-Plot_ascii.$(OBJEXT) $(am__objects_17) \
 @apl_POSTGRES_TRUE@	sql/apl-PostgresProvider.$(OBJEXT)
 am__objects_24 = $(am__objects_19) apl-Archive.$(OBJEXT) \
 	apl-Assert.$(OBJEXT) apl-Avec.$(OBJEXT) \
-	apl-Backtrace.$(OBJEXT) apl-Bif_F12_COMMA.$(OBJEXT) \
-	apl-Bif_F12_DOMINO.$(OBJEXT) apl-Bif_F12_INDEX_OF.$(OBJEXT) \
+	apl-Backtrace.$(OBJEXT) apl-Bif_F0_ZILDE.$(OBJEXT) \
+	apl-Bif_F12_COMMA.$(OBJEXT) apl-Bif_F12_DOMINO.$(OBJEXT) \
+	apl-Bif_F12_ELEMENT.$(OBJEXT) \
+	apl-Bif_F12_ENCODE_DECODE.$(OBJEXT) \
+	apl-Bif_F12_EQUIV.$(OBJEXT) apl-Bif_F12_INDEX_OF.$(OBJEXT) \
 	apl-Bif_F12_INTERVAL_INDEX.$(OBJEXT) \
 	apl-Bif_F12_FORMAT.$(OBJEXT) \
-	apl-Bif_F12_PARTITION_PICK.$(OBJEXT) \
-	apl-Bif_F12_SORT.$(OBJEXT) apl-Bif_F12_TAKE_DROP.$(OBJEXT) \
+	apl-Bif_F12_PARTITION_PICK.$(OBJEXT) apl-Bif_F12_RHO.$(OBJEXT) \
+	apl-Bif_F12_ROTATE.$(OBJEXT) apl-Bif_F12_SORT.$(OBJEXT) \
+	apl-Bif_F12_TAKE_DROP.$(OBJEXT) \
+	apl-Bif_F12_TRANSPOSE.$(OBJEXT) \
+	apl-Bif_F12_UNION_INTER.$(OBJEXT) apl-Bif_F1_EXECUTE.$(OBJEXT) \
+	apl-Bif_F2_INDEX.$(OBJEXT) apl-Bif_F2_LEFT_RIGHT.$(OBJEXT) \
 	apl-Bif_OPER1_COMMUTE.$(OBJEXT) apl-Bif_OPER1_EACH.$(OBJEXT) \
 	apl-Bif_OPER2_POWER.$(OBJEXT) apl-Bif_OPER2_INNER.$(OBJEXT) \
 	apl-Bif_OPER2_OUTER.$(OBJEXT) apl-Bif_OPER2_RANK.$(OBJEXT) \
 	apl-Bif_OPER1_REDUCE.$(OBJEXT) apl-Bif_OPER1_SCAN.$(OBJEXT) \
 	apl-CDR.$(OBJEXT) apl-Cell.$(OBJEXT) apl-Cmd_KEYB.$(OBJEXT) \
-	apl-Cmd_LIB.$(OBJEXT) apl-Cmd_IN.$(OBJEXT) apl-Doxy.$(OBJEXT) \
-	apl-CharCell.$(OBJEXT) apl-Command.$(OBJEXT) \
-	apl-Common.$(OBJEXT) apl-ComplexCell.$(OBJEXT) \
-	apl-DerivedFunction.$(OBJEXT) apl-DiffOut.$(OBJEXT) \
-	apl-DynamicObject.$(OBJEXT) apl-Error.$(OBJEXT) \
-	apl-Executable.$(OBJEXT) apl-FloatCell.$(OBJEXT) \
-	apl-Function.$(OBJEXT) apl-Id.$(OBJEXT) \
-	apl-IndexExpr.$(OBJEXT) apl-IndexIterator.$(OBJEXT) \
-	apl-InputFile.$(OBJEXT) apl-IntCell.$(OBJEXT) \
-	apl-IO_Files.$(OBJEXT) apl-LApack.$(OBJEXT) \
-	apl-LibPaths.$(OBJEXT) apl-LineInput.$(OBJEXT) \
-	apl-Logging.$(OBJEXT) apl-LvalCell.$(OBJEXT) \
-	apl-Malloc_hooks.$(OBJEXT) apl-Nabla.$(OBJEXT) \
-	apl-Macro.$(OBJEXT) apl-Missing_Libraries.$(OBJEXT) \
-	apl-NamedObject.$(OBJEXT) apl-NativeFunction.$(OBJEXT) \
-	apl-NumericCell.$(OBJEXT) apl-Output.$(OBJEXT) \
-	apl-Parallel.$(OBJEXT) apl-Parser.$(OBJEXT) \
-	apl-Performance.$(OBJEXT) apl-PointerCell.$(OBJEXT) \
-	apl-Prefix.$(OBJEXT) apl-Plot_line_properties.$(OBJEXT) \
-	apl-Plot_data.$(OBJEXT) apl-Plot_window_properties.$(OBJEXT) \
-	apl-PrimitiveFunction.$(OBJEXT) apl-PrintBuffer.$(OBJEXT) \
+	apl-Cmd_LIB.$(OBJEXT) apl-Cmd_IN.$(OBJEXT) \
+	apl-Cmd_DIAG.$(OBJEXT) apl-Cmd_HELP.$(OBJEXT) \
+	apl-Cmd_HOST.$(OBJEXT) apl-Cmd_LISTING.$(OBJEXT) \
+	apl-Cmd_SESSION.$(OBJEXT) apl-Cmd_SI.$(OBJEXT) \
+	apl-Cmd_USERCMD.$(OBJEXT) apl-Cmd_WS.$(OBJEXT) \
+	apl-Doxy.$(OBJEXT) apl-CharCell.$(OBJEXT) \
+	apl-Command.$(OBJEXT) apl-Common.$(OBJEXT) \
+	apl-ComplexCell.$(OBJEXT) apl-DerivedFunction.$(OBJEXT) \
+	apl-DiffOut.$(OBJEXT) apl-DynamicObject.$(OBJEXT) \
+	apl-Error.$(OBJEXT) apl-Executable.$(OBJEXT) \
+	apl-FloatCell.$(OBJEXT) apl-Function.$(OBJEXT) \
+	apl-Id.$(OBJEXT) apl-IndexExpr.$(OBJEXT) \
+	apl-IndexIterator.$(OBJEXT) apl-InputFile.$(OBJEXT) \
+	apl-IntCell.$(OBJEXT) apl-IO_Files.$(OBJEXT) \
+	apl-LApack.$(OBJEXT) apl-LibPaths.$(OBJEXT) \
+	apl-LineInput.$(OBJEXT) apl-Logging.$(OBJEXT) \
+	apl-LvalCell.$(OBJEXT) apl-Malloc_hooks.$(OBJEXT) \
+	apl-Nabla.$(OBJEXT) apl-Macro.$(OBJEXT) \
+	apl-Missing_Libraries.$(OBJEXT) apl-NamedObject.$(OBJEXT) \
+	apl-NativeFunction.$(OBJEXT) apl-NumericCell.$(OBJEXT) \
+	apl-Output.$(OBJEXT) apl-Parallel.$(OBJEXT) \
+	apl-Parser.$(OBJEXT) apl-Performance.$(OBJEXT) \
+	apl-PointerCell.$(OBJEXT) apl-Prefix.$(OBJEXT) \
+	apl-Plot_line_properties.$(OBJEXT) apl-Plot_data.$(OBJEXT) \
+	apl-Plot_window_properties.$(OBJEXT) apl-PrintBuffer.$(OBJEXT) \
 	apl-Polynomial.$(OBJEXT) apl-PythonPipe.$(OBJEXT) \
 	apl-QR_factorization_GSL.$(OBJEXT) apl-QuadFunction.$(OBJEXT) \
 	apl-ProcessorID.$(OBJEXT) apl-Quad_CC.$(OBJEXT) \
@@ -711,14 +781,25 @@ depcomp = $(SHELL) $(top_srcdir)/depcomp
 am__maybe_remake_depfiles = depfiles
 am__depfiles_remade = ./$(DEPDIR)/apl-Archive.Po \
 	./$(DEPDIR)/apl-Assert.Po ./$(DEPDIR)/apl-Avec.Po \
-	./$(DEPDIR)/apl-Backtrace.Po ./$(DEPDIR)/apl-Bif_F12_COMMA.Po \
+	./$(DEPDIR)/apl-Backtrace.Po ./$(DEPDIR)/apl-Bif_F0_ZILDE.Po \
+	./$(DEPDIR)/apl-Bif_F12_COMMA.Po \
 	./$(DEPDIR)/apl-Bif_F12_DOMINO.Po \
+	./$(DEPDIR)/apl-Bif_F12_ELEMENT.Po \
+	./$(DEPDIR)/apl-Bif_F12_ENCODE_DECODE.Po \
+	./$(DEPDIR)/apl-Bif_F12_EQUIV.Po \
 	./$(DEPDIR)/apl-Bif_F12_FORMAT.Po \
 	./$(DEPDIR)/apl-Bif_F12_INDEX_OF.Po \
 	./$(DEPDIR)/apl-Bif_F12_INTERVAL_INDEX.Po \
 	./$(DEPDIR)/apl-Bif_F12_PARTITION_PICK.Po \
+	./$(DEPDIR)/apl-Bif_F12_RHO.Po \
+	./$(DEPDIR)/apl-Bif_F12_ROTATE.Po \
 	./$(DEPDIR)/apl-Bif_F12_SORT.Po \
 	./$(DEPDIR)/apl-Bif_F12_TAKE_DROP.Po \
+	./$(DEPDIR)/apl-Bif_F12_TRANSPOSE.Po \
+	./$(DEPDIR)/apl-Bif_F12_UNION_INTER.Po \
+	./$(DEPDIR)/apl-Bif_F1_EXECUTE.Po \
+	./$(DEPDIR)/apl-Bif_F2_INDEX.Po \
+	./$(DEPDIR)/apl-Bif_F2_LEFT_RIGHT.Po \
 	./$(DEPDIR)/apl-Bif_OPER1_COMMUTE.Po \
 	./$(DEPDIR)/apl-Bif_OPER1_EACH.Po \
 	./$(DEPDIR)/apl-Bif_OPER1_REDUCE.Po \
@@ -728,8 +809,12 @@ am__depfiles_remade = ./$(DEPDIR)/apl-Archive.Po \
 	./$(DEPDIR)/apl-Bif_OPER2_POWER.Po \
 	./$(DEPDIR)/apl-Bif_OPER2_RANK.Po ./$(DEPDIR)/apl-CDR.Po \
 	./$(DEPDIR)/apl-Cell.Po ./$(DEPDIR)/apl-CharCell.Po \
-	./$(DEPDIR)/apl-Cmd_IN.Po ./$(DEPDIR)/apl-Cmd_KEYB.Po \
-	./$(DEPDIR)/apl-Cmd_LIB.Po ./$(DEPDIR)/apl-Command.Po \
+	./$(DEPDIR)/apl-Cmd_DIAG.Po ./$(DEPDIR)/apl-Cmd_HELP.Po \
+	./$(DEPDIR)/apl-Cmd_HOST.Po ./$(DEPDIR)/apl-Cmd_IN.Po \
+	./$(DEPDIR)/apl-Cmd_KEYB.Po ./$(DEPDIR)/apl-Cmd_LIB.Po \
+	./$(DEPDIR)/apl-Cmd_LISTING.Po ./$(DEPDIR)/apl-Cmd_SESSION.Po \
+	./$(DEPDIR)/apl-Cmd_SI.Po ./$(DEPDIR)/apl-Cmd_USERCMD.Po \
+	./$(DEPDIR)/apl-Cmd_WS.Po ./$(DEPDIR)/apl-Command.Po \
 	./$(DEPDIR)/apl-Common.Po ./$(DEPDIR)/apl-ComplexCell.Po \
 	./$(DEPDIR)/apl-DerivedFunction.Po ./$(DEPDIR)/apl-DiffOut.Po \
 	./$(DEPDIR)/apl-Doxy.Po ./$(DEPDIR)/apl-DynamicObject.Po \
@@ -753,7 +838,6 @@ am__depfiles_remade = ./$(DEPDIR)/apl-Archive.Po \
 	./$(DEPDIR)/apl-Plot_window_properties.Po \
 	./$(DEPDIR)/apl-Plot_xcb.Po ./$(DEPDIR)/apl-PointerCell.Po \
 	./$(DEPDIR)/apl-Polynomial.Po ./$(DEPDIR)/apl-Prefix.Po \
-	./$(DEPDIR)/apl-PrimitiveFunction.Po \
 	./$(DEPDIR)/apl-PrintBuffer.Po ./$(DEPDIR)/apl-ProcessorID.Po \
 	./$(DEPDIR)/apl-PythonPipe.Po \
 	./$(DEPDIR)/apl-QR_factorization_GSL.Po \
@@ -789,14 +873,25 @@ am__depfiles_remade = ./$(DEPDIR)/apl-Archive.Po \
 	./$(DEPDIR)/lib_gnu_apl_la-Assert.Plo \
 	./$(DEPDIR)/lib_gnu_apl_la-Avec.Plo \
 	./$(DEPDIR)/lib_gnu_apl_la-Backtrace.Plo \
+	./$(DEPDIR)/lib_gnu_apl_la-Bif_F0_ZILDE.Plo \
 	./$(DEPDIR)/lib_gnu_apl_la-Bif_F12_COMMA.Plo \
 	./$(DEPDIR)/lib_gnu_apl_la-Bif_F12_DOMINO.Plo \
+	./$(DEPDIR)/lib_gnu_apl_la-Bif_F12_ELEMENT.Plo \
+	./$(DEPDIR)/lib_gnu_apl_la-Bif_F12_ENCODE_DECODE.Plo \
+	./$(DEPDIR)/lib_gnu_apl_la-Bif_F12_EQUIV.Plo \
 	./$(DEPDIR)/lib_gnu_apl_la-Bif_F12_FORMAT.Plo \
 	./$(DEPDIR)/lib_gnu_apl_la-Bif_F12_INDEX_OF.Plo \
 	./$(DEPDIR)/lib_gnu_apl_la-Bif_F12_INTERVAL_INDEX.Plo \
 	./$(DEPDIR)/lib_gnu_apl_la-Bif_F12_PARTITION_PICK.Plo \
+	./$(DEPDIR)/lib_gnu_apl_la-Bif_F12_RHO.Plo \
+	./$(DEPDIR)/lib_gnu_apl_la-Bif_F12_ROTATE.Plo \
 	./$(DEPDIR)/lib_gnu_apl_la-Bif_F12_SORT.Plo \
 	./$(DEPDIR)/lib_gnu_apl_la-Bif_F12_TAKE_DROP.Plo \
+	./$(DEPDIR)/lib_gnu_apl_la-Bif_F12_TRANSPOSE.Plo \
+	./$(DEPDIR)/lib_gnu_apl_la-Bif_F12_UNION_INTER.Plo \
+	./$(DEPDIR)/lib_gnu_apl_la-Bif_F1_EXECUTE.Plo \
+	./$(DEPDIR)/lib_gnu_apl_la-Bif_F2_INDEX.Plo \
+	./$(DEPDIR)/lib_gnu_apl_la-Bif_F2_LEFT_RIGHT.Plo \
 	./$(DEPDIR)/lib_gnu_apl_la-Bif_OPER1_COMMUTE.Plo \
 	./$(DEPDIR)/lib_gnu_apl_la-Bif_OPER1_EACH.Plo \
 	./$(DEPDIR)/lib_gnu_apl_la-Bif_OPER1_REDUCE.Plo \
@@ -808,9 +903,17 @@ am__depfiles_remade = ./$(DEPDIR)/apl-Archive.Po \
 	./$(DEPDIR)/lib_gnu_apl_la-CDR.Plo \
 	./$(DEPDIR)/lib_gnu_apl_la-Cell.Plo \
 	./$(DEPDIR)/lib_gnu_apl_la-CharCell.Plo \
+	./$(DEPDIR)/lib_gnu_apl_la-Cmd_DIAG.Plo \
+	./$(DEPDIR)/lib_gnu_apl_la-Cmd_HELP.Plo \
+	./$(DEPDIR)/lib_gnu_apl_la-Cmd_HOST.Plo \
 	./$(DEPDIR)/lib_gnu_apl_la-Cmd_IN.Plo \
 	./$(DEPDIR)/lib_gnu_apl_la-Cmd_KEYB.Plo \
 	./$(DEPDIR)/lib_gnu_apl_la-Cmd_LIB.Plo \
+	./$(DEPDIR)/lib_gnu_apl_la-Cmd_LISTING.Plo \
+	./$(DEPDIR)/lib_gnu_apl_la-Cmd_SESSION.Plo \
+	./$(DEPDIR)/lib_gnu_apl_la-Cmd_SI.Plo \
+	./$(DEPDIR)/lib_gnu_apl_la-Cmd_USERCMD.Plo \
+	./$(DEPDIR)/lib_gnu_apl_la-Cmd_WS.Plo \
 	./$(DEPDIR)/lib_gnu_apl_la-Command.Plo \
 	./$(DEPDIR)/lib_gnu_apl_la-Common.Plo \
 	./$(DEPDIR)/lib_gnu_apl_la-ComplexCell.Plo \
@@ -853,7 +956,6 @@ am__depfiles_remade = ./$(DEPDIR)/apl-Archive.Po \
 	./$(DEPDIR)/lib_gnu_apl_la-PointerCell.Plo \
 	./$(DEPDIR)/lib_gnu_apl_la-Polynomial.Plo \
 	./$(DEPDIR)/lib_gnu_apl_la-Prefix.Plo \
-	./$(DEPDIR)/lib_gnu_apl_la-PrimitiveFunction.Plo \
 	./$(DEPDIR)/lib_gnu_apl_la-PrintBuffer.Plo \
 	./$(DEPDIR)/lib_gnu_apl_la-ProcessorID.Plo \
 	./$(DEPDIR)/lib_gnu_apl_la-PythonPipe.Plo \
@@ -914,14 +1016,25 @@ am__depfiles_remade = ./$(DEPDIR)/apl-Archive.Po \
 	./$(DEPDIR)/libapl_la-Assert.Plo \
 	./$(DEPDIR)/libapl_la-Avec.Plo \
 	./$(DEPDIR)/libapl_la-Backtrace.Plo \
+	./$(DEPDIR)/libapl_la-Bif_F0_ZILDE.Plo \
 	./$(DEPDIR)/libapl_la-Bif_F12_COMMA.Plo \
 	./$(DEPDIR)/libapl_la-Bif_F12_DOMINO.Plo \
+	./$(DEPDIR)/libapl_la-Bif_F12_ELEMENT.Plo \
+	./$(DEPDIR)/libapl_la-Bif_F12_ENCODE_DECODE.Plo \
+	./$(DEPDIR)/libapl_la-Bif_F12_EQUIV.Plo \
 	./$(DEPDIR)/libapl_la-Bif_F12_FORMAT.Plo \
 	./$(DEPDIR)/libapl_la-Bif_F12_INDEX_OF.Plo \
 	./$(DEPDIR)/libapl_la-Bif_F12_INTERVAL_INDEX.Plo \
 	./$(DEPDIR)/libapl_la-Bif_F12_PARTITION_PICK.Plo \
+	./$(DEPDIR)/libapl_la-Bif_F12_RHO.Plo \
+	./$(DEPDIR)/libapl_la-Bif_F12_ROTATE.Plo \
 	./$(DEPDIR)/libapl_la-Bif_F12_SORT.Plo \
 	./$(DEPDIR)/libapl_la-Bif_F12_TAKE_DROP.Plo \
+	./$(DEPDIR)/libapl_la-Bif_F12_TRANSPOSE.Plo \
+	./$(DEPDIR)/libapl_la-Bif_F12_UNION_INTER.Plo \
+	./$(DEPDIR)/libapl_la-Bif_F1_EXECUTE.Plo \
+	./$(DEPDIR)/libapl_la-Bif_F2_INDEX.Plo \
+	./$(DEPDIR)/libapl_la-Bif_F2_LEFT_RIGHT.Plo \
 	./$(DEPDIR)/libapl_la-Bif_OPER1_COMMUTE.Plo \
 	./$(DEPDIR)/libapl_la-Bif_OPER1_EACH.Plo \
 	./$(DEPDIR)/libapl_la-Bif_OPER1_REDUCE.Plo \
@@ -932,9 +1045,17 @@ am__depfiles_remade = ./$(DEPDIR)/apl-Archive.Po \
 	./$(DEPDIR)/libapl_la-Bif_OPER2_RANK.Plo \
 	./$(DEPDIR)/libapl_la-CDR.Plo ./$(DEPDIR)/libapl_la-Cell.Plo \
 	./$(DEPDIR)/libapl_la-CharCell.Plo \
+	./$(DEPDIR)/libapl_la-Cmd_DIAG.Plo \
+	./$(DEPDIR)/libapl_la-Cmd_HELP.Plo \
+	./$(DEPDIR)/libapl_la-Cmd_HOST.Plo \
 	./$(DEPDIR)/libapl_la-Cmd_IN.Plo \
 	./$(DEPDIR)/libapl_la-Cmd_KEYB.Plo \
 	./$(DEPDIR)/libapl_la-Cmd_LIB.Plo \
+	./$(DEPDIR)/libapl_la-Cmd_LISTING.Plo \
+	./$(DEPDIR)/libapl_la-Cmd_SESSION.Plo \
+	./$(DEPDIR)/libapl_la-Cmd_SI.Plo \
+	./$(DEPDIR)/libapl_la-Cmd_USERCMD.Plo \
+	./$(DEPDIR)/libapl_la-Cmd_WS.Plo \
 	./$(DEPDIR)/libapl_la-Command.Plo \
 	./$(DEPDIR)/libapl_la-Common.Plo \
 	./$(DEPDIR)/libapl_la-ComplexCell.Plo \
@@ -977,7 +1098,6 @@ am__depfiles_remade = ./$(DEPDIR)/apl-Archive.Po \
 	./$(DEPDIR)/libapl_la-PointerCell.Plo \
 	./$(DEPDIR)/libapl_la-Polynomial.Plo \
 	./$(DEPDIR)/libapl_la-Prefix.Plo \
-	./$(DEPDIR)/libapl_la-PrimitiveFunction.Plo \
 	./$(DEPDIR)/libapl_la-PrintBuffer.Plo \
 	./$(DEPDIR)/libapl_la-ProcessorID.Plo \
 	./$(DEPDIR)/libapl_la-PythonPipe.Plo \
@@ -1356,33 +1476,44 @@ common_LDFLAGS = -L/usr/local/lib -export-dynamic $(GTK_LDFLAGS) \
 common_SOURCES = $(plot_SOURCES) ../config.h APL_Float_as_class.hh \
 	APL_types.hh APL_enums.hh Archive.cc Archive.hh \
 	ArrayIterator.hh Assert.cc Assert.hh Avec.cc Avec.def Avec.hh \
-	Backtrace.cc Backtrace.hh Bif_F12_COMMA.cc Bif_F12_COMMA.hh \
-	Bif_F12_DOMINO.cc Bif_F12_DOMINO.hh Bif_F12_INDEX_OF.cc \
+	Backtrace.cc Backtrace.hh Bif_F0_ZILDE.cc Bif_F0_ZILDE.hh \
+	Bif_F12_COMMA.cc Bif_F12_COMMA.hh Bif_F12_DOMINO.cc \
+	Bif_F12_DOMINO.hh Bif_F12_ELEMENT.cc Bif_F12_ELEMENT.hh \
+	Bif_F12_ENCODE_DECODE.cc Bif_F12_ENCODE_DECODE.hh \
+	Bif_F12_EQUIV.cc Bif_F12_EQUIV.hh Bif_F12_INDEX_OF.cc \
 	Bif_F12_INDEX_OF.hh Bif_F12_INTERVAL_INDEX.cc \
 	Bif_F12_INTERVAL_INDEX.hh Bif_F12_FORMAT.cc Bif_F12_FORMAT.hh \
 	Bif_F12_PARTITION_PICK.cc Bif_F12_PARTITION_PICK.hh \
-	Bif_F12_SORT.cc Bif_F12_SORT.hh Bif_F12_TAKE_DROP.cc \
-	Bif_F12_TAKE_DROP.hh Bif_OPER1_COMMUTE.cc Bif_OPER1_COMMUTE.hh \
+	Bif_F12_RHO.cc Bif_F12_RHO.hh Bif_F12_ROTATE.cc \
+	Bif_F12_ROTATE.hh Bif_F12_SORT.cc Bif_F12_SORT.hh \
+	Bif_F12_TAKE_DROP.cc Bif_F12_TAKE_DROP.hh Bif_F12_TRANSPOSE.cc \
+	Bif_F12_TRANSPOSE.hh Bif_F12_UNION_INTER.cc \
+	Bif_F12_UNION_INTER.hh Bif_F1_EXECUTE.cc Bif_F1_EXECUTE.hh \
+	Bif_F2_INDEX.cc Bif_F2_INDEX.hh Bif_F2_LEFT_RIGHT.cc \
+	Bif_F2_LEFT_RIGHT.hh Bif_OPER1_COMMUTE.cc Bif_OPER1_COMMUTE.hh \
 	Bif_OPER1_EACH.cc Bif_OPER1_EACH.hh Bif_OPER2_POWER.cc \
 	Bif_OPER2_POWER.hh Bif_OPER2_INNER.cc Bif_OPER2_INNER.hh \
 	Bif_OPER2_OUTER.cc Bif_OPER2_OUTER.hh Bif_OPER2_RANK.cc \
 	Bif_OPER2_RANK.hh Bif_OPER1_REDUCE.cc Bif_OPER1_REDUCE.hh \
 	Bif_OPER1_SCAN.cc Bif_OPER1_SCAN.hh CDR.cc CDR.hh Cell.cc \
-	Cell.icc Cell.hh Cmd_KEYB.cc Cmd_LIB.cc Cmd_IN.cc Doxy.cc \
-	Doxy.hh CharCell.cc CharCell.hh Command.cc Command.def \
-	Command.hh Common.cc Common.hh ComplexCell.cc ComplexCell.hh \
-	ConstCell_P.hh DerivedFunction.cc DerivedFunction.hh \
-	DiffOut.cc DiffOut.hh DynamicObject.cc DynamicObject.hh \
-	Error.cc Error.def Error.hh Error_macros.hh ErrorCode.hh \
-	Executable.cc Executable.hh FileBuffers.hh FloatCell.cc \
-	FloatCell.hh Focus.icc Function.cc Function.hh Help.def \
-	Heapsort.hh Id.cc Id.def Id.hh IdEnums.hh IndexExpr.cc \
-	IndexExpr.hh IndexIterator.cc IndexIterator.hh InputFile.cc \
-	InputFile.hh IntCell.cc IntCell.hh IO_Files.cc IO_Files.hh \
-	LApack.cc LAdebug.icc LApack.hh LibPaths.cc LibPaths.hh \
-	LineInput.cc LineInput.hh Logging.cc Logging.def Logging.hh \
-	LvalCell.cc LvalCell.hh Malloc_hooks.cc Nabla.cc Nabla.hh \
-	Macro.cc Macro.def Macro.hh Missing_Libraries.cc \
+	Cell.icc Cell.hh Cmd_KEYB.cc Cmd_LIB.cc Cmd_IN.cc Cmd_DIAG.cc \
+	Cmd_DIAG.hh Cmd_HELP.cc Cmd_HELP.hh Cmd_HOST.cc Cmd_HOST.hh \
+	Cmd_LISTING.cc Cmd_LISTING.hh Cmd_SESSION.cc Cmd_SESSION.hh \
+	Cmd_SI.cc Cmd_SI.hh Cmd_USERCMD.cc Cmd_USERCMD.hh Cmd_WS.cc \
+	Cmd_WS.hh Doxy.cc Doxy.hh CharCell.cc CharCell.hh Command.cc \
+	Command.def Command.hh Common.cc Common.hh ComplexCell.cc \
+	ComplexCell.hh ConstCell_P.hh DerivedFunction.cc \
+	DerivedFunction.hh DiffOut.cc DiffOut.hh DynamicObject.cc \
+	DynamicObject.hh Error.cc Error.def Error.hh Error_macros.hh \
+	ErrorCode.hh Executable.cc Executable.hh FileBuffers.hh \
+	FloatCell.cc FloatCell.hh Focus.icc Function.cc Function.hh \
+	Help.def Heapsort.hh Id.cc Id.def Id.hh IdEnums.hh \
+	IndexExpr.cc IndexExpr.hh IndexIterator.cc IndexIterator.hh \
+	InputFile.cc InputFile.hh IntCell.cc IntCell.hh IO_Files.cc \
+	IO_Files.hh LApack.cc LAdebug.icc LApack.hh LibPaths.cc \
+	LibPaths.hh LineInput.cc LineInput.hh Logging.cc Logging.def \
+	Logging.hh LvalCell.cc LvalCell.hh Malloc_hooks.cc Nabla.cc \
+	Nabla.hh Macro.cc Macro.def Macro.hh Missing_Libraries.cc \
 	NamedObject.cc NamedObject.hh NativeFunction.cc \
 	NativeFunction.hh Native_interface.hh NumericCell.cc \
 	NumericCell.icc NumericCell.hh Output.cc Output.hh PJob.hh \
@@ -1391,9 +1522,9 @@ common_SOURCES = $(plot_SOURCES) ../config.h APL_Float_as_class.hh \
 	Prefix.cc Prefix.def Prefix.hh Plot_line_properties.cc \
 	Plot_line_properties.hh Plot_data.cc Plot_data.hh \
 	Plot_window_properties.cc Plot_window_properties.hh \
-	PrimitiveFunction.cc PrimitiveFunction.hh PrimitiveOperator.hh \
-	PrintBuffer.cc PrintBuffer.hh PrintContext.hh Polynomial.cc \
-	Polynomial.hh PrintOperator.hh PythonPipe.cc PythonPipe.hh \
+	PrimitiveFunction.hh PrimitiveOperator.hh PrintBuffer.cc \
+	PrintBuffer.hh PrintContext.hh Polynomial.cc Polynomial.hh \
+	PrintOperator.hh PythonPipe.cc PythonPipe.hh \
 	QR_factorization_GSL.cc QR_factorization_GSL.hh \
 	QuadFunction.cc QuadFunction.hh ProcessorID.cc ProcessorID.hh \
 	Quad_CC.cc Quad_CC.hh Quad_CR.cc Quad_CR.def Quad_CR.hh \
@@ -1654,14 +1785,25 @@ distclean-compile:
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/apl-Assert.Po@am__quote@ # am--include-marker
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/apl-Avec.Po@am__quote@ # am--include-marker
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/apl-Backtrace.Po@am__quote@ # am--include-marker
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/apl-Bif_F0_ZILDE.Po@am__quote@ # am--include-marker
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/apl-Bif_F12_COMMA.Po@am__quote@ # am--include-marker
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/apl-Bif_F12_DOMINO.Po@am__quote@ # am--include-marker
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/apl-Bif_F12_ELEMENT.Po@am__quote@ # am--include-marker
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/apl-Bif_F12_ENCODE_DECODE.Po@am__quote@ # am--include-marker
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/apl-Bif_F12_EQUIV.Po@am__quote@ # am--include-marker
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/apl-Bif_F12_FORMAT.Po@am__quote@ # am--include-marker
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/apl-Bif_F12_INDEX_OF.Po@am__quote@ # am--include-marker
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/apl-Bif_F12_INTERVAL_INDEX.Po@am__quote@ # am--include-marker
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/apl-Bif_F12_PARTITION_PICK.Po@am__quote@ # am--include-marker
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/apl-Bif_F12_RHO.Po@am__quote@ # am--include-marker
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/apl-Bif_F12_ROTATE.Po@am__quote@ # am--include-marker
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/apl-Bif_F12_SORT.Po@am__quote@ # am--include-marker
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/apl-Bif_F12_TAKE_DROP.Po@am__quote@ # am--include-marker
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/apl-Bif_F12_TRANSPOSE.Po@am__quote@ # am--include-marker
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/apl-Bif_F12_UNION_INTER.Po@am__quote@ # am--include-marker
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/apl-Bif_F1_EXECUTE.Po@am__quote@ # am--include-marker
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/apl-Bif_F2_INDEX.Po@am__quote@ # am--include-marker
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/apl-Bif_F2_LEFT_RIGHT.Po@am__quote@ # am--include-marker
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/apl-Bif_OPER1_COMMUTE.Po@am__quote@ # am--include-marker
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/apl-Bif_OPER1_EACH.Po@am__quote@ # am--include-marker
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/apl-Bif_OPER1_REDUCE.Po@am__quote@ # am--include-marker
@@ -1673,9 +1815,17 @@ distclean-compile:
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/apl-CDR.Po@am__quote@ # am--include-marker
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/apl-Cell.Po@am__quote@ # am--include-marker
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/apl-CharCell.Po@am__quote@ # am--include-marker
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/apl-Cmd_DIAG.Po@am__quote@ # am--include-marker
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/apl-Cmd_HELP.Po@am__quote@ # am--include-marker
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/apl-Cmd_HOST.Po@am__quote@ # am--include-marker
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/apl-Cmd_IN.Po@am__quote@ # am--include-marker
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/apl-Cmd_KEYB.Po@am__quote@ # am--include-marker
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/apl-Cmd_LIB.Po@am__quote@ # am--include-marker
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/apl-Cmd_LISTING.Po@am__quote@ # am--include-marker
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/apl-Cmd_SESSION.Po@am__quote@ # am--include-marker
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/apl-Cmd_SI.Po@am__quote@ # am--include-marker
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/apl-Cmd_USERCMD.Po@am__quote@ # am--include-marker
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/apl-Cmd_WS.Po@am__quote@ # am--include-marker
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/apl-Command.Po@am__quote@ # am--include-marker
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/apl-Common.Po@am__quote@ # am--include-marker
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/apl-ComplexCell.Po@am__quote@ # am--include-marker
@@ -1718,7 +1868,6 @@ distclean-compile:
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/apl-PointerCell.Po@am__quote@ # am--include-marker
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/apl-Polynomial.Po@am__quote@ # am--include-marker
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/apl-Prefix.Po@am__quote@ # am--include-marker
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/apl-PrimitiveFunction.Po@am__quote@ # am--include-marker
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/apl-PrintBuffer.Po@am__quote@ # am--include-marker
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/apl-ProcessorID.Po@am__quote@ # am--include-marker
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/apl-PythonPipe.Po@am__quote@ # am--include-marker
@@ -1779,14 +1928,25 @@ distclean-compile:
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/lib_gnu_apl_la-Assert.Plo@am__quote@ # am--include-marker
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/lib_gnu_apl_la-Avec.Plo@am__quote@ # am--include-marker
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/lib_gnu_apl_la-Backtrace.Plo@am__quote@ # am--include-marker
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/lib_gnu_apl_la-Bif_F0_ZILDE.Plo@am__quote@ # am--include-marker
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/lib_gnu_apl_la-Bif_F12_COMMA.Plo@am__quote@ # am--include-marker
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/lib_gnu_apl_la-Bif_F12_DOMINO.Plo@am__quote@ # am--include-marker
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/lib_gnu_apl_la-Bif_F12_ELEMENT.Plo@am__quote@ # am--include-marker
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/lib_gnu_apl_la-Bif_F12_ENCODE_DECODE.Plo@am__quote@ # am--include-marker
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/lib_gnu_apl_la-Bif_F12_EQUIV.Plo@am__quote@ # am--include-marker
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/lib_gnu_apl_la-Bif_F12_FORMAT.Plo@am__quote@ # am--include-marker
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/lib_gnu_apl_la-Bif_F12_INDEX_OF.Plo@am__quote@ # am--include-marker
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/lib_gnu_apl_la-Bif_F12_INTERVAL_INDEX.Plo@am__quote@ # am--include-marker
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/lib_gnu_apl_la-Bif_F12_PARTITION_PICK.Plo@am__quote@ # am--include-marker
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/lib_gnu_apl_la-Bif_F12_RHO.Plo@am__quote@ # am--include-marker
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/lib_gnu_apl_la-Bif_F12_ROTATE.Plo@am__quote@ # am--include-marker
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/lib_gnu_apl_la-Bif_F12_SORT.Plo@am__quote@ # am--include-marker
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/lib_gnu_apl_la-Bif_F12_TAKE_DROP.Plo@am__quote@ # am--include-marker
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/lib_gnu_apl_la-Bif_F12_TRANSPOSE.Plo@am__quote@ # am--include-marker
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/lib_gnu_apl_la-Bif_F12_UNION_INTER.Plo@am__quote@ # am--include-marker
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/lib_gnu_apl_la-Bif_F1_EXECUTE.Plo@am__quote@ # am--include-marker
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/lib_gnu_apl_la-Bif_F2_INDEX.Plo@am__quote@ # am--include-marker
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/lib_gnu_apl_la-Bif_F2_LEFT_RIGHT.Plo@am__quote@ # am--include-marker
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/lib_gnu_apl_la-Bif_OPER1_COMMUTE.Plo@am__quote@ # am--include-marker
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/lib_gnu_apl_la-Bif_OPER1_EACH.Plo@am__quote@ # am--include-marker
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/lib_gnu_apl_la-Bif_OPER1_REDUCE.Plo@am__quote@ # am--include-marker
@@ -1798,9 +1958,17 @@ distclean-compile:
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/lib_gnu_apl_la-CDR.Plo@am__quote@ # am--include-marker
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/lib_gnu_apl_la-Cell.Plo@am__quote@ # am--include-marker
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/lib_gnu_apl_la-CharCell.Plo@am__quote@ # am--include-marker
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/lib_gnu_apl_la-Cmd_DIAG.Plo@am__quote@ # am--include-marker
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/lib_gnu_apl_la-Cmd_HELP.Plo@am__quote@ # am--include-marker
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/lib_gnu_apl_la-Cmd_HOST.Plo@am__quote@ # am--include-marker
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/lib_gnu_apl_la-Cmd_IN.Plo@am__quote@ # am--include-marker
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/lib_gnu_apl_la-Cmd_KEYB.Plo@am__quote@ # am--include-marker
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/lib_gnu_apl_la-Cmd_LIB.Plo@am__quote@ # am--include-marker
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/lib_gnu_apl_la-Cmd_LISTING.Plo@am__quote@ # am--include-marker
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/lib_gnu_apl_la-Cmd_SESSION.Plo@am__quote@ # am--include-marker
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/lib_gnu_apl_la-Cmd_SI.Plo@am__quote@ # am--include-marker
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/lib_gnu_apl_la-Cmd_USERCMD.Plo@am__quote@ # am--include-marker
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/lib_gnu_apl_la-Cmd_WS.Plo@am__quote@ # am--include-marker
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/lib_gnu_apl_la-Command.Plo@am__quote@ # am--include-marker
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/lib_gnu_apl_la-Common.Plo@am__quote@ # am--include-marker
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/lib_gnu_apl_la-ComplexCell.Plo@am__quote@ # am--include-marker
@@ -1843,7 +2011,6 @@ distclean-compile:
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/lib_gnu_apl_la-PointerCell.Plo@am__quote@ # am--include-marker
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/lib_gnu_apl_la-Polynomial.Plo@am__quote@ # am--include-marker
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/lib_gnu_apl_la-Prefix.Plo@am__quote@ # am--include-marker
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/lib_gnu_apl_la-PrimitiveFunction.Plo@am__quote@ # am--include-marker
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/lib_gnu_apl_la-PrintBuffer.Plo@am__quote@ # am--include-marker
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/lib_gnu_apl_la-ProcessorID.Plo@am__quote@ # am--include-marker
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/lib_gnu_apl_la-PythonPipe.Plo@am__quote@ # am--include-marker
@@ -1904,14 +2071,25 @@ distclean-compile:
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libapl_la-Assert.Plo@am__quote@ # am--include-marker
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libapl_la-Avec.Plo@am__quote@ # am--include-marker
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libapl_la-Backtrace.Plo@am__quote@ # am--include-marker
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libapl_la-Bif_F0_ZILDE.Plo@am__quote@ # am--include-marker
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libapl_la-Bif_F12_COMMA.Plo@am__quote@ # am--include-marker
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libapl_la-Bif_F12_DOMINO.Plo@am__quote@ # am--include-marker
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libapl_la-Bif_F12_ELEMENT.Plo@am__quote@ # am--include-marker
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libapl_la-Bif_F12_ENCODE_DECODE.Plo@am__quote@ # am--include-marker
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libapl_la-Bif_F12_EQUIV.Plo@am__quote@ # am--include-marker
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libapl_la-Bif_F12_FORMAT.Plo@am__quote@ # am--include-marker
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libapl_la-Bif_F12_INDEX_OF.Plo@am__quote@ # am--include-marker
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libapl_la-Bif_F12_INTERVAL_INDEX.Plo@am__quote@ # am--include-marker
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libapl_la-Bif_F12_PARTITION_PICK.Plo@am__quote@ # am--include-marker
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libapl_la-Bif_F12_RHO.Plo@am__quote@ # am--include-marker
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libapl_la-Bif_F12_ROTATE.Plo@am__quote@ # am--include-marker
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libapl_la-Bif_F12_SORT.Plo@am__quote@ # am--include-marker
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libapl_la-Bif_F12_TAKE_DROP.Plo@am__quote@ # am--include-marker
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libapl_la-Bif_F12_TRANSPOSE.Plo@am__quote@ # am--include-marker
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libapl_la-Bif_F12_UNION_INTER.Plo@am__quote@ # am--include-marker
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libapl_la-Bif_F1_EXECUTE.Plo@am__quote@ # am--include-marker
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libapl_la-Bif_F2_INDEX.Plo@am__quote@ # am--include-marker
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libapl_la-Bif_F2_LEFT_RIGHT.Plo@am__quote@ # am--include-marker
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libapl_la-Bif_OPER1_COMMUTE.Plo@am__quote@ # am--include-marker
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libapl_la-Bif_OPER1_EACH.Plo@am__quote@ # am--include-marker
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libapl_la-Bif_OPER1_REDUCE.Plo@am__quote@ # am--include-marker
@@ -1923,9 +2101,17 @@ distclean-compile:
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libapl_la-CDR.Plo@am__quote@ # am--include-marker
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libapl_la-Cell.Plo@am__quote@ # am--include-marker
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libapl_la-CharCell.Plo@am__quote@ # am--include-marker
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libapl_la-Cmd_DIAG.Plo@am__quote@ # am--include-marker
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libapl_la-Cmd_HELP.Plo@am__quote@ # am--include-marker
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libapl_la-Cmd_HOST.Plo@am__quote@ # am--include-marker
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libapl_la-Cmd_IN.Plo@am__quote@ # am--include-marker
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libapl_la-Cmd_KEYB.Plo@am__quote@ # am--include-marker
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libapl_la-Cmd_LIB.Plo@am__quote@ # am--include-marker
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libapl_la-Cmd_LISTING.Plo@am__quote@ # am--include-marker
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libapl_la-Cmd_SESSION.Plo@am__quote@ # am--include-marker
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libapl_la-Cmd_SI.Plo@am__quote@ # am--include-marker
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libapl_la-Cmd_USERCMD.Plo@am__quote@ # am--include-marker
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libapl_la-Cmd_WS.Plo@am__quote@ # am--include-marker
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libapl_la-Command.Plo@am__quote@ # am--include-marker
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libapl_la-Common.Plo@am__quote@ # am--include-marker
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libapl_la-ComplexCell.Plo@am__quote@ # am--include-marker
@@ -1968,7 +2154,6 @@ distclean-compile:
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libapl_la-PointerCell.Plo@am__quote@ # am--include-marker
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libapl_la-Polynomial.Plo@am__quote@ # am--include-marker
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libapl_la-Prefix.Plo@am__quote@ # am--include-marker
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libapl_la-PrimitiveFunction.Plo@am__quote@ # am--include-marker
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libapl_la-PrintBuffer.Plo@am__quote@ # am--include-marker
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libapl_la-ProcessorID.Plo@am__quote@ # am--include-marker
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libapl_la-PythonPipe.Plo@am__quote@ # am--include-marker
@@ -2129,6 +2314,13 @@ lib_gnu_apl_la-Backtrace.lo: Backtrace.cc
 @AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
 @am__fastdepCXX_FALSE@	$(AM_V_CXX@am__nodep@)$(LIBTOOL) $(AM_V_lt) --tag=CXX $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(lib_gnu_apl_la_CXXFLAGS) $(CXXFLAGS) -c -o lib_gnu_apl_la-Backtrace.lo `test -f 'Backtrace.cc' || echo '$(srcdir)/'`Backtrace.cc
 
+lib_gnu_apl_la-Bif_F0_ZILDE.lo: Bif_F0_ZILDE.cc
+@am__fastdepCXX_TRUE@	$(AM_V_CXX)$(LIBTOOL) $(AM_V_lt) --tag=CXX $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(lib_gnu_apl_la_CXXFLAGS) $(CXXFLAGS) -MT lib_gnu_apl_la-Bif_F0_ZILDE.lo -MD -MP -MF $(DEPDIR)/lib_gnu_apl_la-Bif_F0_ZILDE.Tpo -c -o lib_gnu_apl_la-Bif_F0_ZILDE.lo `test -f 'Bif_F0_ZILDE.cc' || echo '$(srcdir)/'`Bif_F0_ZILDE.cc
+@am__fastdepCXX_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/lib_gnu_apl_la-Bif_F0_ZILDE.Tpo $(DEPDIR)/lib_gnu_apl_la-Bif_F0_ZILDE.Plo
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	$(AM_V_CXX)source='Bif_F0_ZILDE.cc' object='lib_gnu_apl_la-Bif_F0_ZILDE.lo' libtool=yes @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCXX_FALSE@	$(AM_V_CXX@am__nodep@)$(LIBTOOL) $(AM_V_lt) --tag=CXX $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(lib_gnu_apl_la_CXXFLAGS) $(CXXFLAGS) -c -o lib_gnu_apl_la-Bif_F0_ZILDE.lo `test -f 'Bif_F0_ZILDE.cc' || echo '$(srcdir)/'`Bif_F0_ZILDE.cc
+
 lib_gnu_apl_la-Bif_F12_COMMA.lo: Bif_F12_COMMA.cc
 @am__fastdepCXX_TRUE@	$(AM_V_CXX)$(LIBTOOL) $(AM_V_lt) --tag=CXX $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(lib_gnu_apl_la_CXXFLAGS) $(CXXFLAGS) -MT lib_gnu_apl_la-Bif_F12_COMMA.lo -MD -MP -MF $(DEPDIR)/lib_gnu_apl_la-Bif_F12_COMMA.Tpo -c -o lib_gnu_apl_la-Bif_F12_COMMA.lo `test -f 'Bif_F12_COMMA.cc' || echo '$(srcdir)/'`Bif_F12_COMMA.cc
 @am__fastdepCXX_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/lib_gnu_apl_la-Bif_F12_COMMA.Tpo $(DEPDIR)/lib_gnu_apl_la-Bif_F12_COMMA.Plo
@@ -2142,6 +2334,27 @@ lib_gnu_apl_la-Bif_F12_DOMINO.lo: Bif_F12_DOMINO.cc
 @AMDEP_TRUE@@am__fastdepCXX_FALSE@	$(AM_V_CXX)source='Bif_F12_DOMINO.cc' object='lib_gnu_apl_la-Bif_F12_DOMINO.lo' libtool=yes @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
 @am__fastdepCXX_FALSE@	$(AM_V_CXX@am__nodep@)$(LIBTOOL) $(AM_V_lt) --tag=CXX $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(lib_gnu_apl_la_CXXFLAGS) $(CXXFLAGS) -c -o lib_gnu_apl_la-Bif_F12_DOMINO.lo `test -f 'Bif_F12_DOMINO.cc' || echo '$(srcdir)/'`Bif_F12_DOMINO.cc
+
+lib_gnu_apl_la-Bif_F12_ELEMENT.lo: Bif_F12_ELEMENT.cc
+@am__fastdepCXX_TRUE@	$(AM_V_CXX)$(LIBTOOL) $(AM_V_lt) --tag=CXX $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(lib_gnu_apl_la_CXXFLAGS) $(CXXFLAGS) -MT lib_gnu_apl_la-Bif_F12_ELEMENT.lo -MD -MP -MF $(DEPDIR)/lib_gnu_apl_la-Bif_F12_ELEMENT.Tpo -c -o lib_gnu_apl_la-Bif_F12_ELEMENT.lo `test -f 'Bif_F12_ELEMENT.cc' || echo '$(srcdir)/'`Bif_F12_ELEMENT.cc
+@am__fastdepCXX_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/lib_gnu_apl_la-Bif_F12_ELEMENT.Tpo $(DEPDIR)/lib_gnu_apl_la-Bif_F12_ELEMENT.Plo
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	$(AM_V_CXX)source='Bif_F12_ELEMENT.cc' object='lib_gnu_apl_la-Bif_F12_ELEMENT.lo' libtool=yes @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCXX_FALSE@	$(AM_V_CXX@am__nodep@)$(LIBTOOL) $(AM_V_lt) --tag=CXX $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(lib_gnu_apl_la_CXXFLAGS) $(CXXFLAGS) -c -o lib_gnu_apl_la-Bif_F12_ELEMENT.lo `test -f 'Bif_F12_ELEMENT.cc' || echo '$(srcdir)/'`Bif_F12_ELEMENT.cc
+
+lib_gnu_apl_la-Bif_F12_ENCODE_DECODE.lo: Bif_F12_ENCODE_DECODE.cc
+@am__fastdepCXX_TRUE@	$(AM_V_CXX)$(LIBTOOL) $(AM_V_lt) --tag=CXX $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(lib_gnu_apl_la_CXXFLAGS) $(CXXFLAGS) -MT lib_gnu_apl_la-Bif_F12_ENCODE_DECODE.lo -MD -MP -MF $(DEPDIR)/lib_gnu_apl_la-Bif_F12_ENCODE_DECODE.Tpo -c -o lib_gnu_apl_la-Bif_F12_ENCODE_DECODE.lo `test -f 'Bif_F12_ENCODE_DECODE.cc' || echo '$(srcdir)/'`Bif_F12_ENCODE_DECODE.cc
+@am__fastdepCXX_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/lib_gnu_apl_la-Bif_F12_ENCODE_DECODE.Tpo $(DEPDIR)/lib_gnu_apl_la-Bif_F12_ENCODE_DECODE.Plo
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	$(AM_V_CXX)source='Bif_F12_ENCODE_DECODE.cc' object='lib_gnu_apl_la-Bif_F12_ENCODE_DECODE.lo' libtool=yes @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCXX_FALSE@	$(AM_V_CXX@am__nodep@)$(LIBTOOL) $(AM_V_lt) --tag=CXX $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(lib_gnu_apl_la_CXXFLAGS) $(CXXFLAGS) -c -o lib_gnu_apl_la-Bif_F12_ENCODE_DECODE.lo `test -f 'Bif_F12_ENCODE_DECODE.cc' || echo '$(srcdir)/'`Bif_F12_ENCODE_DECODE.cc
+
+lib_gnu_apl_la-Bif_F12_EQUIV.lo: Bif_F12_EQUIV.cc
+@am__fastdepCXX_TRUE@	$(AM_V_CXX)$(LIBTOOL) $(AM_V_lt) --tag=CXX $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(lib_gnu_apl_la_CXXFLAGS) $(CXXFLAGS) -MT lib_gnu_apl_la-Bif_F12_EQUIV.lo -MD -MP -MF $(DEPDIR)/lib_gnu_apl_la-Bif_F12_EQUIV.Tpo -c -o lib_gnu_apl_la-Bif_F12_EQUIV.lo `test -f 'Bif_F12_EQUIV.cc' || echo '$(srcdir)/'`Bif_F12_EQUIV.cc
+@am__fastdepCXX_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/lib_gnu_apl_la-Bif_F12_EQUIV.Tpo $(DEPDIR)/lib_gnu_apl_la-Bif_F12_EQUIV.Plo
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	$(AM_V_CXX)source='Bif_F12_EQUIV.cc' object='lib_gnu_apl_la-Bif_F12_EQUIV.lo' libtool=yes @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCXX_FALSE@	$(AM_V_CXX@am__nodep@)$(LIBTOOL) $(AM_V_lt) --tag=CXX $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(lib_gnu_apl_la_CXXFLAGS) $(CXXFLAGS) -c -o lib_gnu_apl_la-Bif_F12_EQUIV.lo `test -f 'Bif_F12_EQUIV.cc' || echo '$(srcdir)/'`Bif_F12_EQUIV.cc
 
 lib_gnu_apl_la-Bif_F12_INDEX_OF.lo: Bif_F12_INDEX_OF.cc
 @am__fastdepCXX_TRUE@	$(AM_V_CXX)$(LIBTOOL) $(AM_V_lt) --tag=CXX $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(lib_gnu_apl_la_CXXFLAGS) $(CXXFLAGS) -MT lib_gnu_apl_la-Bif_F12_INDEX_OF.lo -MD -MP -MF $(DEPDIR)/lib_gnu_apl_la-Bif_F12_INDEX_OF.Tpo -c -o lib_gnu_apl_la-Bif_F12_INDEX_OF.lo `test -f 'Bif_F12_INDEX_OF.cc' || echo '$(srcdir)/'`Bif_F12_INDEX_OF.cc
@@ -2171,6 +2384,20 @@ lib_gnu_apl_la-Bif_F12_PARTITION_PICK.lo: Bif_F12_PARTITION_PICK.cc
 @AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
 @am__fastdepCXX_FALSE@	$(AM_V_CXX@am__nodep@)$(LIBTOOL) $(AM_V_lt) --tag=CXX $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(lib_gnu_apl_la_CXXFLAGS) $(CXXFLAGS) -c -o lib_gnu_apl_la-Bif_F12_PARTITION_PICK.lo `test -f 'Bif_F12_PARTITION_PICK.cc' || echo '$(srcdir)/'`Bif_F12_PARTITION_PICK.cc
 
+lib_gnu_apl_la-Bif_F12_RHO.lo: Bif_F12_RHO.cc
+@am__fastdepCXX_TRUE@	$(AM_V_CXX)$(LIBTOOL) $(AM_V_lt) --tag=CXX $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(lib_gnu_apl_la_CXXFLAGS) $(CXXFLAGS) -MT lib_gnu_apl_la-Bif_F12_RHO.lo -MD -MP -MF $(DEPDIR)/lib_gnu_apl_la-Bif_F12_RHO.Tpo -c -o lib_gnu_apl_la-Bif_F12_RHO.lo `test -f 'Bif_F12_RHO.cc' || echo '$(srcdir)/'`Bif_F12_RHO.cc
+@am__fastdepCXX_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/lib_gnu_apl_la-Bif_F12_RHO.Tpo $(DEPDIR)/lib_gnu_apl_la-Bif_F12_RHO.Plo
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	$(AM_V_CXX)source='Bif_F12_RHO.cc' object='lib_gnu_apl_la-Bif_F12_RHO.lo' libtool=yes @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCXX_FALSE@	$(AM_V_CXX@am__nodep@)$(LIBTOOL) $(AM_V_lt) --tag=CXX $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(lib_gnu_apl_la_CXXFLAGS) $(CXXFLAGS) -c -o lib_gnu_apl_la-Bif_F12_RHO.lo `test -f 'Bif_F12_RHO.cc' || echo '$(srcdir)/'`Bif_F12_RHO.cc
+
+lib_gnu_apl_la-Bif_F12_ROTATE.lo: Bif_F12_ROTATE.cc
+@am__fastdepCXX_TRUE@	$(AM_V_CXX)$(LIBTOOL) $(AM_V_lt) --tag=CXX $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(lib_gnu_apl_la_CXXFLAGS) $(CXXFLAGS) -MT lib_gnu_apl_la-Bif_F12_ROTATE.lo -MD -MP -MF $(DEPDIR)/lib_gnu_apl_la-Bif_F12_ROTATE.Tpo -c -o lib_gnu_apl_la-Bif_F12_ROTATE.lo `test -f 'Bif_F12_ROTATE.cc' || echo '$(srcdir)/'`Bif_F12_ROTATE.cc
+@am__fastdepCXX_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/lib_gnu_apl_la-Bif_F12_ROTATE.Tpo $(DEPDIR)/lib_gnu_apl_la-Bif_F12_ROTATE.Plo
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	$(AM_V_CXX)source='Bif_F12_ROTATE.cc' object='lib_gnu_apl_la-Bif_F12_ROTATE.lo' libtool=yes @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCXX_FALSE@	$(AM_V_CXX@am__nodep@)$(LIBTOOL) $(AM_V_lt) --tag=CXX $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(lib_gnu_apl_la_CXXFLAGS) $(CXXFLAGS) -c -o lib_gnu_apl_la-Bif_F12_ROTATE.lo `test -f 'Bif_F12_ROTATE.cc' || echo '$(srcdir)/'`Bif_F12_ROTATE.cc
+
 lib_gnu_apl_la-Bif_F12_SORT.lo: Bif_F12_SORT.cc
 @am__fastdepCXX_TRUE@	$(AM_V_CXX)$(LIBTOOL) $(AM_V_lt) --tag=CXX $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(lib_gnu_apl_la_CXXFLAGS) $(CXXFLAGS) -MT lib_gnu_apl_la-Bif_F12_SORT.lo -MD -MP -MF $(DEPDIR)/lib_gnu_apl_la-Bif_F12_SORT.Tpo -c -o lib_gnu_apl_la-Bif_F12_SORT.lo `test -f 'Bif_F12_SORT.cc' || echo '$(srcdir)/'`Bif_F12_SORT.cc
 @am__fastdepCXX_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/lib_gnu_apl_la-Bif_F12_SORT.Tpo $(DEPDIR)/lib_gnu_apl_la-Bif_F12_SORT.Plo
@@ -2184,6 +2411,41 @@ lib_gnu_apl_la-Bif_F12_TAKE_DROP.lo: Bif_F12_TAKE_DROP.cc
 @AMDEP_TRUE@@am__fastdepCXX_FALSE@	$(AM_V_CXX)source='Bif_F12_TAKE_DROP.cc' object='lib_gnu_apl_la-Bif_F12_TAKE_DROP.lo' libtool=yes @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
 @am__fastdepCXX_FALSE@	$(AM_V_CXX@am__nodep@)$(LIBTOOL) $(AM_V_lt) --tag=CXX $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(lib_gnu_apl_la_CXXFLAGS) $(CXXFLAGS) -c -o lib_gnu_apl_la-Bif_F12_TAKE_DROP.lo `test -f 'Bif_F12_TAKE_DROP.cc' || echo '$(srcdir)/'`Bif_F12_TAKE_DROP.cc
+
+lib_gnu_apl_la-Bif_F12_TRANSPOSE.lo: Bif_F12_TRANSPOSE.cc
+@am__fastdepCXX_TRUE@	$(AM_V_CXX)$(LIBTOOL) $(AM_V_lt) --tag=CXX $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(lib_gnu_apl_la_CXXFLAGS) $(CXXFLAGS) -MT lib_gnu_apl_la-Bif_F12_TRANSPOSE.lo -MD -MP -MF $(DEPDIR)/lib_gnu_apl_la-Bif_F12_TRANSPOSE.Tpo -c -o lib_gnu_apl_la-Bif_F12_TRANSPOSE.lo `test -f 'Bif_F12_TRANSPOSE.cc' || echo '$(srcdir)/'`Bif_F12_TRANSPOSE.cc
+@am__fastdepCXX_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/lib_gnu_apl_la-Bif_F12_TRANSPOSE.Tpo $(DEPDIR)/lib_gnu_apl_la-Bif_F12_TRANSPOSE.Plo
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	$(AM_V_CXX)source='Bif_F12_TRANSPOSE.cc' object='lib_gnu_apl_la-Bif_F12_TRANSPOSE.lo' libtool=yes @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCXX_FALSE@	$(AM_V_CXX@am__nodep@)$(LIBTOOL) $(AM_V_lt) --tag=CXX $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(lib_gnu_apl_la_CXXFLAGS) $(CXXFLAGS) -c -o lib_gnu_apl_la-Bif_F12_TRANSPOSE.lo `test -f 'Bif_F12_TRANSPOSE.cc' || echo '$(srcdir)/'`Bif_F12_TRANSPOSE.cc
+
+lib_gnu_apl_la-Bif_F12_UNION_INTER.lo: Bif_F12_UNION_INTER.cc
+@am__fastdepCXX_TRUE@	$(AM_V_CXX)$(LIBTOOL) $(AM_V_lt) --tag=CXX $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(lib_gnu_apl_la_CXXFLAGS) $(CXXFLAGS) -MT lib_gnu_apl_la-Bif_F12_UNION_INTER.lo -MD -MP -MF $(DEPDIR)/lib_gnu_apl_la-Bif_F12_UNION_INTER.Tpo -c -o lib_gnu_apl_la-Bif_F12_UNION_INTER.lo `test -f 'Bif_F12_UNION_INTER.cc' || echo '$(srcdir)/'`Bif_F12_UNION_INTER.cc
+@am__fastdepCXX_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/lib_gnu_apl_la-Bif_F12_UNION_INTER.Tpo $(DEPDIR)/lib_gnu_apl_la-Bif_F12_UNION_INTER.Plo
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	$(AM_V_CXX)source='Bif_F12_UNION_INTER.cc' object='lib_gnu_apl_la-Bif_F12_UNION_INTER.lo' libtool=yes @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCXX_FALSE@	$(AM_V_CXX@am__nodep@)$(LIBTOOL) $(AM_V_lt) --tag=CXX $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(lib_gnu_apl_la_CXXFLAGS) $(CXXFLAGS) -c -o lib_gnu_apl_la-Bif_F12_UNION_INTER.lo `test -f 'Bif_F12_UNION_INTER.cc' || echo '$(srcdir)/'`Bif_F12_UNION_INTER.cc
+
+lib_gnu_apl_la-Bif_F1_EXECUTE.lo: Bif_F1_EXECUTE.cc
+@am__fastdepCXX_TRUE@	$(AM_V_CXX)$(LIBTOOL) $(AM_V_lt) --tag=CXX $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(lib_gnu_apl_la_CXXFLAGS) $(CXXFLAGS) -MT lib_gnu_apl_la-Bif_F1_EXECUTE.lo -MD -MP -MF $(DEPDIR)/lib_gnu_apl_la-Bif_F1_EXECUTE.Tpo -c -o lib_gnu_apl_la-Bif_F1_EXECUTE.lo `test -f 'Bif_F1_EXECUTE.cc' || echo '$(srcdir)/'`Bif_F1_EXECUTE.cc
+@am__fastdepCXX_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/lib_gnu_apl_la-Bif_F1_EXECUTE.Tpo $(DEPDIR)/lib_gnu_apl_la-Bif_F1_EXECUTE.Plo
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	$(AM_V_CXX)source='Bif_F1_EXECUTE.cc' object='lib_gnu_apl_la-Bif_F1_EXECUTE.lo' libtool=yes @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCXX_FALSE@	$(AM_V_CXX@am__nodep@)$(LIBTOOL) $(AM_V_lt) --tag=CXX $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(lib_gnu_apl_la_CXXFLAGS) $(CXXFLAGS) -c -o lib_gnu_apl_la-Bif_F1_EXECUTE.lo `test -f 'Bif_F1_EXECUTE.cc' || echo '$(srcdir)/'`Bif_F1_EXECUTE.cc
+
+lib_gnu_apl_la-Bif_F2_INDEX.lo: Bif_F2_INDEX.cc
+@am__fastdepCXX_TRUE@	$(AM_V_CXX)$(LIBTOOL) $(AM_V_lt) --tag=CXX $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(lib_gnu_apl_la_CXXFLAGS) $(CXXFLAGS) -MT lib_gnu_apl_la-Bif_F2_INDEX.lo -MD -MP -MF $(DEPDIR)/lib_gnu_apl_la-Bif_F2_INDEX.Tpo -c -o lib_gnu_apl_la-Bif_F2_INDEX.lo `test -f 'Bif_F2_INDEX.cc' || echo '$(srcdir)/'`Bif_F2_INDEX.cc
+@am__fastdepCXX_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/lib_gnu_apl_la-Bif_F2_INDEX.Tpo $(DEPDIR)/lib_gnu_apl_la-Bif_F2_INDEX.Plo
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	$(AM_V_CXX)source='Bif_F2_INDEX.cc' object='lib_gnu_apl_la-Bif_F2_INDEX.lo' libtool=yes @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCXX_FALSE@	$(AM_V_CXX@am__nodep@)$(LIBTOOL) $(AM_V_lt) --tag=CXX $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(lib_gnu_apl_la_CXXFLAGS) $(CXXFLAGS) -c -o lib_gnu_apl_la-Bif_F2_INDEX.lo `test -f 'Bif_F2_INDEX.cc' || echo '$(srcdir)/'`Bif_F2_INDEX.cc
+
+lib_gnu_apl_la-Bif_F2_LEFT_RIGHT.lo: Bif_F2_LEFT_RIGHT.cc
+@am__fastdepCXX_TRUE@	$(AM_V_CXX)$(LIBTOOL) $(AM_V_lt) --tag=CXX $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(lib_gnu_apl_la_CXXFLAGS) $(CXXFLAGS) -MT lib_gnu_apl_la-Bif_F2_LEFT_RIGHT.lo -MD -MP -MF $(DEPDIR)/lib_gnu_apl_la-Bif_F2_LEFT_RIGHT.Tpo -c -o lib_gnu_apl_la-Bif_F2_LEFT_RIGHT.lo `test -f 'Bif_F2_LEFT_RIGHT.cc' || echo '$(srcdir)/'`Bif_F2_LEFT_RIGHT.cc
+@am__fastdepCXX_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/lib_gnu_apl_la-Bif_F2_LEFT_RIGHT.Tpo $(DEPDIR)/lib_gnu_apl_la-Bif_F2_LEFT_RIGHT.Plo
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	$(AM_V_CXX)source='Bif_F2_LEFT_RIGHT.cc' object='lib_gnu_apl_la-Bif_F2_LEFT_RIGHT.lo' libtool=yes @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCXX_FALSE@	$(AM_V_CXX@am__nodep@)$(LIBTOOL) $(AM_V_lt) --tag=CXX $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(lib_gnu_apl_la_CXXFLAGS) $(CXXFLAGS) -c -o lib_gnu_apl_la-Bif_F2_LEFT_RIGHT.lo `test -f 'Bif_F2_LEFT_RIGHT.cc' || echo '$(srcdir)/'`Bif_F2_LEFT_RIGHT.cc
 
 lib_gnu_apl_la-Bif_OPER1_COMMUTE.lo: Bif_OPER1_COMMUTE.cc
 @am__fastdepCXX_TRUE@	$(AM_V_CXX)$(LIBTOOL) $(AM_V_lt) --tag=CXX $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(lib_gnu_apl_la_CXXFLAGS) $(CXXFLAGS) -MT lib_gnu_apl_la-Bif_OPER1_COMMUTE.lo -MD -MP -MF $(DEPDIR)/lib_gnu_apl_la-Bif_OPER1_COMMUTE.Tpo -c -o lib_gnu_apl_la-Bif_OPER1_COMMUTE.lo `test -f 'Bif_OPER1_COMMUTE.cc' || echo '$(srcdir)/'`Bif_OPER1_COMMUTE.cc
@@ -2275,6 +2537,62 @@ lib_gnu_apl_la-Cmd_IN.lo: Cmd_IN.cc
 @AMDEP_TRUE@@am__fastdepCXX_FALSE@	$(AM_V_CXX)source='Cmd_IN.cc' object='lib_gnu_apl_la-Cmd_IN.lo' libtool=yes @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
 @am__fastdepCXX_FALSE@	$(AM_V_CXX@am__nodep@)$(LIBTOOL) $(AM_V_lt) --tag=CXX $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(lib_gnu_apl_la_CXXFLAGS) $(CXXFLAGS) -c -o lib_gnu_apl_la-Cmd_IN.lo `test -f 'Cmd_IN.cc' || echo '$(srcdir)/'`Cmd_IN.cc
+
+lib_gnu_apl_la-Cmd_DIAG.lo: Cmd_DIAG.cc
+@am__fastdepCXX_TRUE@	$(AM_V_CXX)$(LIBTOOL) $(AM_V_lt) --tag=CXX $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(lib_gnu_apl_la_CXXFLAGS) $(CXXFLAGS) -MT lib_gnu_apl_la-Cmd_DIAG.lo -MD -MP -MF $(DEPDIR)/lib_gnu_apl_la-Cmd_DIAG.Tpo -c -o lib_gnu_apl_la-Cmd_DIAG.lo `test -f 'Cmd_DIAG.cc' || echo '$(srcdir)/'`Cmd_DIAG.cc
+@am__fastdepCXX_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/lib_gnu_apl_la-Cmd_DIAG.Tpo $(DEPDIR)/lib_gnu_apl_la-Cmd_DIAG.Plo
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	$(AM_V_CXX)source='Cmd_DIAG.cc' object='lib_gnu_apl_la-Cmd_DIAG.lo' libtool=yes @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCXX_FALSE@	$(AM_V_CXX@am__nodep@)$(LIBTOOL) $(AM_V_lt) --tag=CXX $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(lib_gnu_apl_la_CXXFLAGS) $(CXXFLAGS) -c -o lib_gnu_apl_la-Cmd_DIAG.lo `test -f 'Cmd_DIAG.cc' || echo '$(srcdir)/'`Cmd_DIAG.cc
+
+lib_gnu_apl_la-Cmd_HELP.lo: Cmd_HELP.cc
+@am__fastdepCXX_TRUE@	$(AM_V_CXX)$(LIBTOOL) $(AM_V_lt) --tag=CXX $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(lib_gnu_apl_la_CXXFLAGS) $(CXXFLAGS) -MT lib_gnu_apl_la-Cmd_HELP.lo -MD -MP -MF $(DEPDIR)/lib_gnu_apl_la-Cmd_HELP.Tpo -c -o lib_gnu_apl_la-Cmd_HELP.lo `test -f 'Cmd_HELP.cc' || echo '$(srcdir)/'`Cmd_HELP.cc
+@am__fastdepCXX_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/lib_gnu_apl_la-Cmd_HELP.Tpo $(DEPDIR)/lib_gnu_apl_la-Cmd_HELP.Plo
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	$(AM_V_CXX)source='Cmd_HELP.cc' object='lib_gnu_apl_la-Cmd_HELP.lo' libtool=yes @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCXX_FALSE@	$(AM_V_CXX@am__nodep@)$(LIBTOOL) $(AM_V_lt) --tag=CXX $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(lib_gnu_apl_la_CXXFLAGS) $(CXXFLAGS) -c -o lib_gnu_apl_la-Cmd_HELP.lo `test -f 'Cmd_HELP.cc' || echo '$(srcdir)/'`Cmd_HELP.cc
+
+lib_gnu_apl_la-Cmd_HOST.lo: Cmd_HOST.cc
+@am__fastdepCXX_TRUE@	$(AM_V_CXX)$(LIBTOOL) $(AM_V_lt) --tag=CXX $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(lib_gnu_apl_la_CXXFLAGS) $(CXXFLAGS) -MT lib_gnu_apl_la-Cmd_HOST.lo -MD -MP -MF $(DEPDIR)/lib_gnu_apl_la-Cmd_HOST.Tpo -c -o lib_gnu_apl_la-Cmd_HOST.lo `test -f 'Cmd_HOST.cc' || echo '$(srcdir)/'`Cmd_HOST.cc
+@am__fastdepCXX_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/lib_gnu_apl_la-Cmd_HOST.Tpo $(DEPDIR)/lib_gnu_apl_la-Cmd_HOST.Plo
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	$(AM_V_CXX)source='Cmd_HOST.cc' object='lib_gnu_apl_la-Cmd_HOST.lo' libtool=yes @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCXX_FALSE@	$(AM_V_CXX@am__nodep@)$(LIBTOOL) $(AM_V_lt) --tag=CXX $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(lib_gnu_apl_la_CXXFLAGS) $(CXXFLAGS) -c -o lib_gnu_apl_la-Cmd_HOST.lo `test -f 'Cmd_HOST.cc' || echo '$(srcdir)/'`Cmd_HOST.cc
+
+lib_gnu_apl_la-Cmd_LISTING.lo: Cmd_LISTING.cc
+@am__fastdepCXX_TRUE@	$(AM_V_CXX)$(LIBTOOL) $(AM_V_lt) --tag=CXX $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(lib_gnu_apl_la_CXXFLAGS) $(CXXFLAGS) -MT lib_gnu_apl_la-Cmd_LISTING.lo -MD -MP -MF $(DEPDIR)/lib_gnu_apl_la-Cmd_LISTING.Tpo -c -o lib_gnu_apl_la-Cmd_LISTING.lo `test -f 'Cmd_LISTING.cc' || echo '$(srcdir)/'`Cmd_LISTING.cc
+@am__fastdepCXX_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/lib_gnu_apl_la-Cmd_LISTING.Tpo $(DEPDIR)/lib_gnu_apl_la-Cmd_LISTING.Plo
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	$(AM_V_CXX)source='Cmd_LISTING.cc' object='lib_gnu_apl_la-Cmd_LISTING.lo' libtool=yes @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCXX_FALSE@	$(AM_V_CXX@am__nodep@)$(LIBTOOL) $(AM_V_lt) --tag=CXX $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(lib_gnu_apl_la_CXXFLAGS) $(CXXFLAGS) -c -o lib_gnu_apl_la-Cmd_LISTING.lo `test -f 'Cmd_LISTING.cc' || echo '$(srcdir)/'`Cmd_LISTING.cc
+
+lib_gnu_apl_la-Cmd_SESSION.lo: Cmd_SESSION.cc
+@am__fastdepCXX_TRUE@	$(AM_V_CXX)$(LIBTOOL) $(AM_V_lt) --tag=CXX $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(lib_gnu_apl_la_CXXFLAGS) $(CXXFLAGS) -MT lib_gnu_apl_la-Cmd_SESSION.lo -MD -MP -MF $(DEPDIR)/lib_gnu_apl_la-Cmd_SESSION.Tpo -c -o lib_gnu_apl_la-Cmd_SESSION.lo `test -f 'Cmd_SESSION.cc' || echo '$(srcdir)/'`Cmd_SESSION.cc
+@am__fastdepCXX_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/lib_gnu_apl_la-Cmd_SESSION.Tpo $(DEPDIR)/lib_gnu_apl_la-Cmd_SESSION.Plo
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	$(AM_V_CXX)source='Cmd_SESSION.cc' object='lib_gnu_apl_la-Cmd_SESSION.lo' libtool=yes @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCXX_FALSE@	$(AM_V_CXX@am__nodep@)$(LIBTOOL) $(AM_V_lt) --tag=CXX $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(lib_gnu_apl_la_CXXFLAGS) $(CXXFLAGS) -c -o lib_gnu_apl_la-Cmd_SESSION.lo `test -f 'Cmd_SESSION.cc' || echo '$(srcdir)/'`Cmd_SESSION.cc
+
+lib_gnu_apl_la-Cmd_SI.lo: Cmd_SI.cc
+@am__fastdepCXX_TRUE@	$(AM_V_CXX)$(LIBTOOL) $(AM_V_lt) --tag=CXX $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(lib_gnu_apl_la_CXXFLAGS) $(CXXFLAGS) -MT lib_gnu_apl_la-Cmd_SI.lo -MD -MP -MF $(DEPDIR)/lib_gnu_apl_la-Cmd_SI.Tpo -c -o lib_gnu_apl_la-Cmd_SI.lo `test -f 'Cmd_SI.cc' || echo '$(srcdir)/'`Cmd_SI.cc
+@am__fastdepCXX_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/lib_gnu_apl_la-Cmd_SI.Tpo $(DEPDIR)/lib_gnu_apl_la-Cmd_SI.Plo
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	$(AM_V_CXX)source='Cmd_SI.cc' object='lib_gnu_apl_la-Cmd_SI.lo' libtool=yes @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCXX_FALSE@	$(AM_V_CXX@am__nodep@)$(LIBTOOL) $(AM_V_lt) --tag=CXX $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(lib_gnu_apl_la_CXXFLAGS) $(CXXFLAGS) -c -o lib_gnu_apl_la-Cmd_SI.lo `test -f 'Cmd_SI.cc' || echo '$(srcdir)/'`Cmd_SI.cc
+
+lib_gnu_apl_la-Cmd_USERCMD.lo: Cmd_USERCMD.cc
+@am__fastdepCXX_TRUE@	$(AM_V_CXX)$(LIBTOOL) $(AM_V_lt) --tag=CXX $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(lib_gnu_apl_la_CXXFLAGS) $(CXXFLAGS) -MT lib_gnu_apl_la-Cmd_USERCMD.lo -MD -MP -MF $(DEPDIR)/lib_gnu_apl_la-Cmd_USERCMD.Tpo -c -o lib_gnu_apl_la-Cmd_USERCMD.lo `test -f 'Cmd_USERCMD.cc' || echo '$(srcdir)/'`Cmd_USERCMD.cc
+@am__fastdepCXX_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/lib_gnu_apl_la-Cmd_USERCMD.Tpo $(DEPDIR)/lib_gnu_apl_la-Cmd_USERCMD.Plo
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	$(AM_V_CXX)source='Cmd_USERCMD.cc' object='lib_gnu_apl_la-Cmd_USERCMD.lo' libtool=yes @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCXX_FALSE@	$(AM_V_CXX@am__nodep@)$(LIBTOOL) $(AM_V_lt) --tag=CXX $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(lib_gnu_apl_la_CXXFLAGS) $(CXXFLAGS) -c -o lib_gnu_apl_la-Cmd_USERCMD.lo `test -f 'Cmd_USERCMD.cc' || echo '$(srcdir)/'`Cmd_USERCMD.cc
+
+lib_gnu_apl_la-Cmd_WS.lo: Cmd_WS.cc
+@am__fastdepCXX_TRUE@	$(AM_V_CXX)$(LIBTOOL) $(AM_V_lt) --tag=CXX $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(lib_gnu_apl_la_CXXFLAGS) $(CXXFLAGS) -MT lib_gnu_apl_la-Cmd_WS.lo -MD -MP -MF $(DEPDIR)/lib_gnu_apl_la-Cmd_WS.Tpo -c -o lib_gnu_apl_la-Cmd_WS.lo `test -f 'Cmd_WS.cc' || echo '$(srcdir)/'`Cmd_WS.cc
+@am__fastdepCXX_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/lib_gnu_apl_la-Cmd_WS.Tpo $(DEPDIR)/lib_gnu_apl_la-Cmd_WS.Plo
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	$(AM_V_CXX)source='Cmd_WS.cc' object='lib_gnu_apl_la-Cmd_WS.lo' libtool=yes @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCXX_FALSE@	$(AM_V_CXX@am__nodep@)$(LIBTOOL) $(AM_V_lt) --tag=CXX $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(lib_gnu_apl_la_CXXFLAGS) $(CXXFLAGS) -c -o lib_gnu_apl_la-Cmd_WS.lo `test -f 'Cmd_WS.cc' || echo '$(srcdir)/'`Cmd_WS.cc
 
 lib_gnu_apl_la-Doxy.lo: Doxy.cc
 @am__fastdepCXX_TRUE@	$(AM_V_CXX)$(LIBTOOL) $(AM_V_lt) --tag=CXX $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(lib_gnu_apl_la_CXXFLAGS) $(CXXFLAGS) -MT lib_gnu_apl_la-Doxy.lo -MD -MP -MF $(DEPDIR)/lib_gnu_apl_la-Doxy.Tpo -c -o lib_gnu_apl_la-Doxy.lo `test -f 'Doxy.cc' || echo '$(srcdir)/'`Doxy.cc
@@ -2548,13 +2866,6 @@ lib_gnu_apl_la-Plot_window_properties.lo: Plot_window_properties.cc
 @AMDEP_TRUE@@am__fastdepCXX_FALSE@	$(AM_V_CXX)source='Plot_window_properties.cc' object='lib_gnu_apl_la-Plot_window_properties.lo' libtool=yes @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
 @am__fastdepCXX_FALSE@	$(AM_V_CXX@am__nodep@)$(LIBTOOL) $(AM_V_lt) --tag=CXX $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(lib_gnu_apl_la_CXXFLAGS) $(CXXFLAGS) -c -o lib_gnu_apl_la-Plot_window_properties.lo `test -f 'Plot_window_properties.cc' || echo '$(srcdir)/'`Plot_window_properties.cc
-
-lib_gnu_apl_la-PrimitiveFunction.lo: PrimitiveFunction.cc
-@am__fastdepCXX_TRUE@	$(AM_V_CXX)$(LIBTOOL) $(AM_V_lt) --tag=CXX $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(lib_gnu_apl_la_CXXFLAGS) $(CXXFLAGS) -MT lib_gnu_apl_la-PrimitiveFunction.lo -MD -MP -MF $(DEPDIR)/lib_gnu_apl_la-PrimitiveFunction.Tpo -c -o lib_gnu_apl_la-PrimitiveFunction.lo `test -f 'PrimitiveFunction.cc' || echo '$(srcdir)/'`PrimitiveFunction.cc
-@am__fastdepCXX_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/lib_gnu_apl_la-PrimitiveFunction.Tpo $(DEPDIR)/lib_gnu_apl_la-PrimitiveFunction.Plo
-@AMDEP_TRUE@@am__fastdepCXX_FALSE@	$(AM_V_CXX)source='PrimitiveFunction.cc' object='lib_gnu_apl_la-PrimitiveFunction.lo' libtool=yes @AMDEPBACKSLASH@
-@AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCXX_FALSE@	$(AM_V_CXX@am__nodep@)$(LIBTOOL) $(AM_V_lt) --tag=CXX $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(lib_gnu_apl_la_CXXFLAGS) $(CXXFLAGS) -c -o lib_gnu_apl_la-PrimitiveFunction.lo `test -f 'PrimitiveFunction.cc' || echo '$(srcdir)/'`PrimitiveFunction.cc
 
 lib_gnu_apl_la-PrintBuffer.lo: PrintBuffer.cc
 @am__fastdepCXX_TRUE@	$(AM_V_CXX)$(LIBTOOL) $(AM_V_lt) --tag=CXX $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(lib_gnu_apl_la_CXXFLAGS) $(CXXFLAGS) -MT lib_gnu_apl_la-PrintBuffer.lo -MD -MP -MF $(DEPDIR)/lib_gnu_apl_la-PrintBuffer.Tpo -c -o lib_gnu_apl_la-PrintBuffer.lo `test -f 'PrintBuffer.cc' || echo '$(srcdir)/'`PrintBuffer.cc
@@ -3060,6 +3371,13 @@ libapl_la-Backtrace.lo: Backtrace.cc
 @AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
 @am__fastdepCXX_FALSE@	$(AM_V_CXX@am__nodep@)$(LIBTOOL) $(AM_V_lt) --tag=CXX $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libapl_la_CXXFLAGS) $(CXXFLAGS) -c -o libapl_la-Backtrace.lo `test -f 'Backtrace.cc' || echo '$(srcdir)/'`Backtrace.cc
 
+libapl_la-Bif_F0_ZILDE.lo: Bif_F0_ZILDE.cc
+@am__fastdepCXX_TRUE@	$(AM_V_CXX)$(LIBTOOL) $(AM_V_lt) --tag=CXX $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libapl_la_CXXFLAGS) $(CXXFLAGS) -MT libapl_la-Bif_F0_ZILDE.lo -MD -MP -MF $(DEPDIR)/libapl_la-Bif_F0_ZILDE.Tpo -c -o libapl_la-Bif_F0_ZILDE.lo `test -f 'Bif_F0_ZILDE.cc' || echo '$(srcdir)/'`Bif_F0_ZILDE.cc
+@am__fastdepCXX_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/libapl_la-Bif_F0_ZILDE.Tpo $(DEPDIR)/libapl_la-Bif_F0_ZILDE.Plo
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	$(AM_V_CXX)source='Bif_F0_ZILDE.cc' object='libapl_la-Bif_F0_ZILDE.lo' libtool=yes @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCXX_FALSE@	$(AM_V_CXX@am__nodep@)$(LIBTOOL) $(AM_V_lt) --tag=CXX $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libapl_la_CXXFLAGS) $(CXXFLAGS) -c -o libapl_la-Bif_F0_ZILDE.lo `test -f 'Bif_F0_ZILDE.cc' || echo '$(srcdir)/'`Bif_F0_ZILDE.cc
+
 libapl_la-Bif_F12_COMMA.lo: Bif_F12_COMMA.cc
 @am__fastdepCXX_TRUE@	$(AM_V_CXX)$(LIBTOOL) $(AM_V_lt) --tag=CXX $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libapl_la_CXXFLAGS) $(CXXFLAGS) -MT libapl_la-Bif_F12_COMMA.lo -MD -MP -MF $(DEPDIR)/libapl_la-Bif_F12_COMMA.Tpo -c -o libapl_la-Bif_F12_COMMA.lo `test -f 'Bif_F12_COMMA.cc' || echo '$(srcdir)/'`Bif_F12_COMMA.cc
 @am__fastdepCXX_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/libapl_la-Bif_F12_COMMA.Tpo $(DEPDIR)/libapl_la-Bif_F12_COMMA.Plo
@@ -3073,6 +3391,27 @@ libapl_la-Bif_F12_DOMINO.lo: Bif_F12_DOMINO.cc
 @AMDEP_TRUE@@am__fastdepCXX_FALSE@	$(AM_V_CXX)source='Bif_F12_DOMINO.cc' object='libapl_la-Bif_F12_DOMINO.lo' libtool=yes @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
 @am__fastdepCXX_FALSE@	$(AM_V_CXX@am__nodep@)$(LIBTOOL) $(AM_V_lt) --tag=CXX $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libapl_la_CXXFLAGS) $(CXXFLAGS) -c -o libapl_la-Bif_F12_DOMINO.lo `test -f 'Bif_F12_DOMINO.cc' || echo '$(srcdir)/'`Bif_F12_DOMINO.cc
+
+libapl_la-Bif_F12_ELEMENT.lo: Bif_F12_ELEMENT.cc
+@am__fastdepCXX_TRUE@	$(AM_V_CXX)$(LIBTOOL) $(AM_V_lt) --tag=CXX $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libapl_la_CXXFLAGS) $(CXXFLAGS) -MT libapl_la-Bif_F12_ELEMENT.lo -MD -MP -MF $(DEPDIR)/libapl_la-Bif_F12_ELEMENT.Tpo -c -o libapl_la-Bif_F12_ELEMENT.lo `test -f 'Bif_F12_ELEMENT.cc' || echo '$(srcdir)/'`Bif_F12_ELEMENT.cc
+@am__fastdepCXX_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/libapl_la-Bif_F12_ELEMENT.Tpo $(DEPDIR)/libapl_la-Bif_F12_ELEMENT.Plo
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	$(AM_V_CXX)source='Bif_F12_ELEMENT.cc' object='libapl_la-Bif_F12_ELEMENT.lo' libtool=yes @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCXX_FALSE@	$(AM_V_CXX@am__nodep@)$(LIBTOOL) $(AM_V_lt) --tag=CXX $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libapl_la_CXXFLAGS) $(CXXFLAGS) -c -o libapl_la-Bif_F12_ELEMENT.lo `test -f 'Bif_F12_ELEMENT.cc' || echo '$(srcdir)/'`Bif_F12_ELEMENT.cc
+
+libapl_la-Bif_F12_ENCODE_DECODE.lo: Bif_F12_ENCODE_DECODE.cc
+@am__fastdepCXX_TRUE@	$(AM_V_CXX)$(LIBTOOL) $(AM_V_lt) --tag=CXX $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libapl_la_CXXFLAGS) $(CXXFLAGS) -MT libapl_la-Bif_F12_ENCODE_DECODE.lo -MD -MP -MF $(DEPDIR)/libapl_la-Bif_F12_ENCODE_DECODE.Tpo -c -o libapl_la-Bif_F12_ENCODE_DECODE.lo `test -f 'Bif_F12_ENCODE_DECODE.cc' || echo '$(srcdir)/'`Bif_F12_ENCODE_DECODE.cc
+@am__fastdepCXX_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/libapl_la-Bif_F12_ENCODE_DECODE.Tpo $(DEPDIR)/libapl_la-Bif_F12_ENCODE_DECODE.Plo
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	$(AM_V_CXX)source='Bif_F12_ENCODE_DECODE.cc' object='libapl_la-Bif_F12_ENCODE_DECODE.lo' libtool=yes @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCXX_FALSE@	$(AM_V_CXX@am__nodep@)$(LIBTOOL) $(AM_V_lt) --tag=CXX $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libapl_la_CXXFLAGS) $(CXXFLAGS) -c -o libapl_la-Bif_F12_ENCODE_DECODE.lo `test -f 'Bif_F12_ENCODE_DECODE.cc' || echo '$(srcdir)/'`Bif_F12_ENCODE_DECODE.cc
+
+libapl_la-Bif_F12_EQUIV.lo: Bif_F12_EQUIV.cc
+@am__fastdepCXX_TRUE@	$(AM_V_CXX)$(LIBTOOL) $(AM_V_lt) --tag=CXX $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libapl_la_CXXFLAGS) $(CXXFLAGS) -MT libapl_la-Bif_F12_EQUIV.lo -MD -MP -MF $(DEPDIR)/libapl_la-Bif_F12_EQUIV.Tpo -c -o libapl_la-Bif_F12_EQUIV.lo `test -f 'Bif_F12_EQUIV.cc' || echo '$(srcdir)/'`Bif_F12_EQUIV.cc
+@am__fastdepCXX_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/libapl_la-Bif_F12_EQUIV.Tpo $(DEPDIR)/libapl_la-Bif_F12_EQUIV.Plo
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	$(AM_V_CXX)source='Bif_F12_EQUIV.cc' object='libapl_la-Bif_F12_EQUIV.lo' libtool=yes @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCXX_FALSE@	$(AM_V_CXX@am__nodep@)$(LIBTOOL) $(AM_V_lt) --tag=CXX $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libapl_la_CXXFLAGS) $(CXXFLAGS) -c -o libapl_la-Bif_F12_EQUIV.lo `test -f 'Bif_F12_EQUIV.cc' || echo '$(srcdir)/'`Bif_F12_EQUIV.cc
 
 libapl_la-Bif_F12_INDEX_OF.lo: Bif_F12_INDEX_OF.cc
 @am__fastdepCXX_TRUE@	$(AM_V_CXX)$(LIBTOOL) $(AM_V_lt) --tag=CXX $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libapl_la_CXXFLAGS) $(CXXFLAGS) -MT libapl_la-Bif_F12_INDEX_OF.lo -MD -MP -MF $(DEPDIR)/libapl_la-Bif_F12_INDEX_OF.Tpo -c -o libapl_la-Bif_F12_INDEX_OF.lo `test -f 'Bif_F12_INDEX_OF.cc' || echo '$(srcdir)/'`Bif_F12_INDEX_OF.cc
@@ -3102,6 +3441,20 @@ libapl_la-Bif_F12_PARTITION_PICK.lo: Bif_F12_PARTITION_PICK.cc
 @AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
 @am__fastdepCXX_FALSE@	$(AM_V_CXX@am__nodep@)$(LIBTOOL) $(AM_V_lt) --tag=CXX $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libapl_la_CXXFLAGS) $(CXXFLAGS) -c -o libapl_la-Bif_F12_PARTITION_PICK.lo `test -f 'Bif_F12_PARTITION_PICK.cc' || echo '$(srcdir)/'`Bif_F12_PARTITION_PICK.cc
 
+libapl_la-Bif_F12_RHO.lo: Bif_F12_RHO.cc
+@am__fastdepCXX_TRUE@	$(AM_V_CXX)$(LIBTOOL) $(AM_V_lt) --tag=CXX $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libapl_la_CXXFLAGS) $(CXXFLAGS) -MT libapl_la-Bif_F12_RHO.lo -MD -MP -MF $(DEPDIR)/libapl_la-Bif_F12_RHO.Tpo -c -o libapl_la-Bif_F12_RHO.lo `test -f 'Bif_F12_RHO.cc' || echo '$(srcdir)/'`Bif_F12_RHO.cc
+@am__fastdepCXX_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/libapl_la-Bif_F12_RHO.Tpo $(DEPDIR)/libapl_la-Bif_F12_RHO.Plo
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	$(AM_V_CXX)source='Bif_F12_RHO.cc' object='libapl_la-Bif_F12_RHO.lo' libtool=yes @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCXX_FALSE@	$(AM_V_CXX@am__nodep@)$(LIBTOOL) $(AM_V_lt) --tag=CXX $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libapl_la_CXXFLAGS) $(CXXFLAGS) -c -o libapl_la-Bif_F12_RHO.lo `test -f 'Bif_F12_RHO.cc' || echo '$(srcdir)/'`Bif_F12_RHO.cc
+
+libapl_la-Bif_F12_ROTATE.lo: Bif_F12_ROTATE.cc
+@am__fastdepCXX_TRUE@	$(AM_V_CXX)$(LIBTOOL) $(AM_V_lt) --tag=CXX $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libapl_la_CXXFLAGS) $(CXXFLAGS) -MT libapl_la-Bif_F12_ROTATE.lo -MD -MP -MF $(DEPDIR)/libapl_la-Bif_F12_ROTATE.Tpo -c -o libapl_la-Bif_F12_ROTATE.lo `test -f 'Bif_F12_ROTATE.cc' || echo '$(srcdir)/'`Bif_F12_ROTATE.cc
+@am__fastdepCXX_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/libapl_la-Bif_F12_ROTATE.Tpo $(DEPDIR)/libapl_la-Bif_F12_ROTATE.Plo
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	$(AM_V_CXX)source='Bif_F12_ROTATE.cc' object='libapl_la-Bif_F12_ROTATE.lo' libtool=yes @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCXX_FALSE@	$(AM_V_CXX@am__nodep@)$(LIBTOOL) $(AM_V_lt) --tag=CXX $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libapl_la_CXXFLAGS) $(CXXFLAGS) -c -o libapl_la-Bif_F12_ROTATE.lo `test -f 'Bif_F12_ROTATE.cc' || echo '$(srcdir)/'`Bif_F12_ROTATE.cc
+
 libapl_la-Bif_F12_SORT.lo: Bif_F12_SORT.cc
 @am__fastdepCXX_TRUE@	$(AM_V_CXX)$(LIBTOOL) $(AM_V_lt) --tag=CXX $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libapl_la_CXXFLAGS) $(CXXFLAGS) -MT libapl_la-Bif_F12_SORT.lo -MD -MP -MF $(DEPDIR)/libapl_la-Bif_F12_SORT.Tpo -c -o libapl_la-Bif_F12_SORT.lo `test -f 'Bif_F12_SORT.cc' || echo '$(srcdir)/'`Bif_F12_SORT.cc
 @am__fastdepCXX_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/libapl_la-Bif_F12_SORT.Tpo $(DEPDIR)/libapl_la-Bif_F12_SORT.Plo
@@ -3115,6 +3468,41 @@ libapl_la-Bif_F12_TAKE_DROP.lo: Bif_F12_TAKE_DROP.cc
 @AMDEP_TRUE@@am__fastdepCXX_FALSE@	$(AM_V_CXX)source='Bif_F12_TAKE_DROP.cc' object='libapl_la-Bif_F12_TAKE_DROP.lo' libtool=yes @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
 @am__fastdepCXX_FALSE@	$(AM_V_CXX@am__nodep@)$(LIBTOOL) $(AM_V_lt) --tag=CXX $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libapl_la_CXXFLAGS) $(CXXFLAGS) -c -o libapl_la-Bif_F12_TAKE_DROP.lo `test -f 'Bif_F12_TAKE_DROP.cc' || echo '$(srcdir)/'`Bif_F12_TAKE_DROP.cc
+
+libapl_la-Bif_F12_TRANSPOSE.lo: Bif_F12_TRANSPOSE.cc
+@am__fastdepCXX_TRUE@	$(AM_V_CXX)$(LIBTOOL) $(AM_V_lt) --tag=CXX $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libapl_la_CXXFLAGS) $(CXXFLAGS) -MT libapl_la-Bif_F12_TRANSPOSE.lo -MD -MP -MF $(DEPDIR)/libapl_la-Bif_F12_TRANSPOSE.Tpo -c -o libapl_la-Bif_F12_TRANSPOSE.lo `test -f 'Bif_F12_TRANSPOSE.cc' || echo '$(srcdir)/'`Bif_F12_TRANSPOSE.cc
+@am__fastdepCXX_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/libapl_la-Bif_F12_TRANSPOSE.Tpo $(DEPDIR)/libapl_la-Bif_F12_TRANSPOSE.Plo
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	$(AM_V_CXX)source='Bif_F12_TRANSPOSE.cc' object='libapl_la-Bif_F12_TRANSPOSE.lo' libtool=yes @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCXX_FALSE@	$(AM_V_CXX@am__nodep@)$(LIBTOOL) $(AM_V_lt) --tag=CXX $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libapl_la_CXXFLAGS) $(CXXFLAGS) -c -o libapl_la-Bif_F12_TRANSPOSE.lo `test -f 'Bif_F12_TRANSPOSE.cc' || echo '$(srcdir)/'`Bif_F12_TRANSPOSE.cc
+
+libapl_la-Bif_F12_UNION_INTER.lo: Bif_F12_UNION_INTER.cc
+@am__fastdepCXX_TRUE@	$(AM_V_CXX)$(LIBTOOL) $(AM_V_lt) --tag=CXX $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libapl_la_CXXFLAGS) $(CXXFLAGS) -MT libapl_la-Bif_F12_UNION_INTER.lo -MD -MP -MF $(DEPDIR)/libapl_la-Bif_F12_UNION_INTER.Tpo -c -o libapl_la-Bif_F12_UNION_INTER.lo `test -f 'Bif_F12_UNION_INTER.cc' || echo '$(srcdir)/'`Bif_F12_UNION_INTER.cc
+@am__fastdepCXX_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/libapl_la-Bif_F12_UNION_INTER.Tpo $(DEPDIR)/libapl_la-Bif_F12_UNION_INTER.Plo
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	$(AM_V_CXX)source='Bif_F12_UNION_INTER.cc' object='libapl_la-Bif_F12_UNION_INTER.lo' libtool=yes @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCXX_FALSE@	$(AM_V_CXX@am__nodep@)$(LIBTOOL) $(AM_V_lt) --tag=CXX $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libapl_la_CXXFLAGS) $(CXXFLAGS) -c -o libapl_la-Bif_F12_UNION_INTER.lo `test -f 'Bif_F12_UNION_INTER.cc' || echo '$(srcdir)/'`Bif_F12_UNION_INTER.cc
+
+libapl_la-Bif_F1_EXECUTE.lo: Bif_F1_EXECUTE.cc
+@am__fastdepCXX_TRUE@	$(AM_V_CXX)$(LIBTOOL) $(AM_V_lt) --tag=CXX $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libapl_la_CXXFLAGS) $(CXXFLAGS) -MT libapl_la-Bif_F1_EXECUTE.lo -MD -MP -MF $(DEPDIR)/libapl_la-Bif_F1_EXECUTE.Tpo -c -o libapl_la-Bif_F1_EXECUTE.lo `test -f 'Bif_F1_EXECUTE.cc' || echo '$(srcdir)/'`Bif_F1_EXECUTE.cc
+@am__fastdepCXX_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/libapl_la-Bif_F1_EXECUTE.Tpo $(DEPDIR)/libapl_la-Bif_F1_EXECUTE.Plo
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	$(AM_V_CXX)source='Bif_F1_EXECUTE.cc' object='libapl_la-Bif_F1_EXECUTE.lo' libtool=yes @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCXX_FALSE@	$(AM_V_CXX@am__nodep@)$(LIBTOOL) $(AM_V_lt) --tag=CXX $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libapl_la_CXXFLAGS) $(CXXFLAGS) -c -o libapl_la-Bif_F1_EXECUTE.lo `test -f 'Bif_F1_EXECUTE.cc' || echo '$(srcdir)/'`Bif_F1_EXECUTE.cc
+
+libapl_la-Bif_F2_INDEX.lo: Bif_F2_INDEX.cc
+@am__fastdepCXX_TRUE@	$(AM_V_CXX)$(LIBTOOL) $(AM_V_lt) --tag=CXX $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libapl_la_CXXFLAGS) $(CXXFLAGS) -MT libapl_la-Bif_F2_INDEX.lo -MD -MP -MF $(DEPDIR)/libapl_la-Bif_F2_INDEX.Tpo -c -o libapl_la-Bif_F2_INDEX.lo `test -f 'Bif_F2_INDEX.cc' || echo '$(srcdir)/'`Bif_F2_INDEX.cc
+@am__fastdepCXX_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/libapl_la-Bif_F2_INDEX.Tpo $(DEPDIR)/libapl_la-Bif_F2_INDEX.Plo
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	$(AM_V_CXX)source='Bif_F2_INDEX.cc' object='libapl_la-Bif_F2_INDEX.lo' libtool=yes @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCXX_FALSE@	$(AM_V_CXX@am__nodep@)$(LIBTOOL) $(AM_V_lt) --tag=CXX $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libapl_la_CXXFLAGS) $(CXXFLAGS) -c -o libapl_la-Bif_F2_INDEX.lo `test -f 'Bif_F2_INDEX.cc' || echo '$(srcdir)/'`Bif_F2_INDEX.cc
+
+libapl_la-Bif_F2_LEFT_RIGHT.lo: Bif_F2_LEFT_RIGHT.cc
+@am__fastdepCXX_TRUE@	$(AM_V_CXX)$(LIBTOOL) $(AM_V_lt) --tag=CXX $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libapl_la_CXXFLAGS) $(CXXFLAGS) -MT libapl_la-Bif_F2_LEFT_RIGHT.lo -MD -MP -MF $(DEPDIR)/libapl_la-Bif_F2_LEFT_RIGHT.Tpo -c -o libapl_la-Bif_F2_LEFT_RIGHT.lo `test -f 'Bif_F2_LEFT_RIGHT.cc' || echo '$(srcdir)/'`Bif_F2_LEFT_RIGHT.cc
+@am__fastdepCXX_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/libapl_la-Bif_F2_LEFT_RIGHT.Tpo $(DEPDIR)/libapl_la-Bif_F2_LEFT_RIGHT.Plo
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	$(AM_V_CXX)source='Bif_F2_LEFT_RIGHT.cc' object='libapl_la-Bif_F2_LEFT_RIGHT.lo' libtool=yes @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCXX_FALSE@	$(AM_V_CXX@am__nodep@)$(LIBTOOL) $(AM_V_lt) --tag=CXX $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libapl_la_CXXFLAGS) $(CXXFLAGS) -c -o libapl_la-Bif_F2_LEFT_RIGHT.lo `test -f 'Bif_F2_LEFT_RIGHT.cc' || echo '$(srcdir)/'`Bif_F2_LEFT_RIGHT.cc
 
 libapl_la-Bif_OPER1_COMMUTE.lo: Bif_OPER1_COMMUTE.cc
 @am__fastdepCXX_TRUE@	$(AM_V_CXX)$(LIBTOOL) $(AM_V_lt) --tag=CXX $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libapl_la_CXXFLAGS) $(CXXFLAGS) -MT libapl_la-Bif_OPER1_COMMUTE.lo -MD -MP -MF $(DEPDIR)/libapl_la-Bif_OPER1_COMMUTE.Tpo -c -o libapl_la-Bif_OPER1_COMMUTE.lo `test -f 'Bif_OPER1_COMMUTE.cc' || echo '$(srcdir)/'`Bif_OPER1_COMMUTE.cc
@@ -3206,6 +3594,62 @@ libapl_la-Cmd_IN.lo: Cmd_IN.cc
 @AMDEP_TRUE@@am__fastdepCXX_FALSE@	$(AM_V_CXX)source='Cmd_IN.cc' object='libapl_la-Cmd_IN.lo' libtool=yes @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
 @am__fastdepCXX_FALSE@	$(AM_V_CXX@am__nodep@)$(LIBTOOL) $(AM_V_lt) --tag=CXX $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libapl_la_CXXFLAGS) $(CXXFLAGS) -c -o libapl_la-Cmd_IN.lo `test -f 'Cmd_IN.cc' || echo '$(srcdir)/'`Cmd_IN.cc
+
+libapl_la-Cmd_DIAG.lo: Cmd_DIAG.cc
+@am__fastdepCXX_TRUE@	$(AM_V_CXX)$(LIBTOOL) $(AM_V_lt) --tag=CXX $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libapl_la_CXXFLAGS) $(CXXFLAGS) -MT libapl_la-Cmd_DIAG.lo -MD -MP -MF $(DEPDIR)/libapl_la-Cmd_DIAG.Tpo -c -o libapl_la-Cmd_DIAG.lo `test -f 'Cmd_DIAG.cc' || echo '$(srcdir)/'`Cmd_DIAG.cc
+@am__fastdepCXX_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/libapl_la-Cmd_DIAG.Tpo $(DEPDIR)/libapl_la-Cmd_DIAG.Plo
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	$(AM_V_CXX)source='Cmd_DIAG.cc' object='libapl_la-Cmd_DIAG.lo' libtool=yes @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCXX_FALSE@	$(AM_V_CXX@am__nodep@)$(LIBTOOL) $(AM_V_lt) --tag=CXX $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libapl_la_CXXFLAGS) $(CXXFLAGS) -c -o libapl_la-Cmd_DIAG.lo `test -f 'Cmd_DIAG.cc' || echo '$(srcdir)/'`Cmd_DIAG.cc
+
+libapl_la-Cmd_HELP.lo: Cmd_HELP.cc
+@am__fastdepCXX_TRUE@	$(AM_V_CXX)$(LIBTOOL) $(AM_V_lt) --tag=CXX $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libapl_la_CXXFLAGS) $(CXXFLAGS) -MT libapl_la-Cmd_HELP.lo -MD -MP -MF $(DEPDIR)/libapl_la-Cmd_HELP.Tpo -c -o libapl_la-Cmd_HELP.lo `test -f 'Cmd_HELP.cc' || echo '$(srcdir)/'`Cmd_HELP.cc
+@am__fastdepCXX_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/libapl_la-Cmd_HELP.Tpo $(DEPDIR)/libapl_la-Cmd_HELP.Plo
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	$(AM_V_CXX)source='Cmd_HELP.cc' object='libapl_la-Cmd_HELP.lo' libtool=yes @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCXX_FALSE@	$(AM_V_CXX@am__nodep@)$(LIBTOOL) $(AM_V_lt) --tag=CXX $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libapl_la_CXXFLAGS) $(CXXFLAGS) -c -o libapl_la-Cmd_HELP.lo `test -f 'Cmd_HELP.cc' || echo '$(srcdir)/'`Cmd_HELP.cc
+
+libapl_la-Cmd_HOST.lo: Cmd_HOST.cc
+@am__fastdepCXX_TRUE@	$(AM_V_CXX)$(LIBTOOL) $(AM_V_lt) --tag=CXX $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libapl_la_CXXFLAGS) $(CXXFLAGS) -MT libapl_la-Cmd_HOST.lo -MD -MP -MF $(DEPDIR)/libapl_la-Cmd_HOST.Tpo -c -o libapl_la-Cmd_HOST.lo `test -f 'Cmd_HOST.cc' || echo '$(srcdir)/'`Cmd_HOST.cc
+@am__fastdepCXX_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/libapl_la-Cmd_HOST.Tpo $(DEPDIR)/libapl_la-Cmd_HOST.Plo
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	$(AM_V_CXX)source='Cmd_HOST.cc' object='libapl_la-Cmd_HOST.lo' libtool=yes @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCXX_FALSE@	$(AM_V_CXX@am__nodep@)$(LIBTOOL) $(AM_V_lt) --tag=CXX $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libapl_la_CXXFLAGS) $(CXXFLAGS) -c -o libapl_la-Cmd_HOST.lo `test -f 'Cmd_HOST.cc' || echo '$(srcdir)/'`Cmd_HOST.cc
+
+libapl_la-Cmd_LISTING.lo: Cmd_LISTING.cc
+@am__fastdepCXX_TRUE@	$(AM_V_CXX)$(LIBTOOL) $(AM_V_lt) --tag=CXX $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libapl_la_CXXFLAGS) $(CXXFLAGS) -MT libapl_la-Cmd_LISTING.lo -MD -MP -MF $(DEPDIR)/libapl_la-Cmd_LISTING.Tpo -c -o libapl_la-Cmd_LISTING.lo `test -f 'Cmd_LISTING.cc' || echo '$(srcdir)/'`Cmd_LISTING.cc
+@am__fastdepCXX_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/libapl_la-Cmd_LISTING.Tpo $(DEPDIR)/libapl_la-Cmd_LISTING.Plo
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	$(AM_V_CXX)source='Cmd_LISTING.cc' object='libapl_la-Cmd_LISTING.lo' libtool=yes @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCXX_FALSE@	$(AM_V_CXX@am__nodep@)$(LIBTOOL) $(AM_V_lt) --tag=CXX $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libapl_la_CXXFLAGS) $(CXXFLAGS) -c -o libapl_la-Cmd_LISTING.lo `test -f 'Cmd_LISTING.cc' || echo '$(srcdir)/'`Cmd_LISTING.cc
+
+libapl_la-Cmd_SESSION.lo: Cmd_SESSION.cc
+@am__fastdepCXX_TRUE@	$(AM_V_CXX)$(LIBTOOL) $(AM_V_lt) --tag=CXX $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libapl_la_CXXFLAGS) $(CXXFLAGS) -MT libapl_la-Cmd_SESSION.lo -MD -MP -MF $(DEPDIR)/libapl_la-Cmd_SESSION.Tpo -c -o libapl_la-Cmd_SESSION.lo `test -f 'Cmd_SESSION.cc' || echo '$(srcdir)/'`Cmd_SESSION.cc
+@am__fastdepCXX_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/libapl_la-Cmd_SESSION.Tpo $(DEPDIR)/libapl_la-Cmd_SESSION.Plo
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	$(AM_V_CXX)source='Cmd_SESSION.cc' object='libapl_la-Cmd_SESSION.lo' libtool=yes @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCXX_FALSE@	$(AM_V_CXX@am__nodep@)$(LIBTOOL) $(AM_V_lt) --tag=CXX $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libapl_la_CXXFLAGS) $(CXXFLAGS) -c -o libapl_la-Cmd_SESSION.lo `test -f 'Cmd_SESSION.cc' || echo '$(srcdir)/'`Cmd_SESSION.cc
+
+libapl_la-Cmd_SI.lo: Cmd_SI.cc
+@am__fastdepCXX_TRUE@	$(AM_V_CXX)$(LIBTOOL) $(AM_V_lt) --tag=CXX $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libapl_la_CXXFLAGS) $(CXXFLAGS) -MT libapl_la-Cmd_SI.lo -MD -MP -MF $(DEPDIR)/libapl_la-Cmd_SI.Tpo -c -o libapl_la-Cmd_SI.lo `test -f 'Cmd_SI.cc' || echo '$(srcdir)/'`Cmd_SI.cc
+@am__fastdepCXX_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/libapl_la-Cmd_SI.Tpo $(DEPDIR)/libapl_la-Cmd_SI.Plo
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	$(AM_V_CXX)source='Cmd_SI.cc' object='libapl_la-Cmd_SI.lo' libtool=yes @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCXX_FALSE@	$(AM_V_CXX@am__nodep@)$(LIBTOOL) $(AM_V_lt) --tag=CXX $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libapl_la_CXXFLAGS) $(CXXFLAGS) -c -o libapl_la-Cmd_SI.lo `test -f 'Cmd_SI.cc' || echo '$(srcdir)/'`Cmd_SI.cc
+
+libapl_la-Cmd_USERCMD.lo: Cmd_USERCMD.cc
+@am__fastdepCXX_TRUE@	$(AM_V_CXX)$(LIBTOOL) $(AM_V_lt) --tag=CXX $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libapl_la_CXXFLAGS) $(CXXFLAGS) -MT libapl_la-Cmd_USERCMD.lo -MD -MP -MF $(DEPDIR)/libapl_la-Cmd_USERCMD.Tpo -c -o libapl_la-Cmd_USERCMD.lo `test -f 'Cmd_USERCMD.cc' || echo '$(srcdir)/'`Cmd_USERCMD.cc
+@am__fastdepCXX_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/libapl_la-Cmd_USERCMD.Tpo $(DEPDIR)/libapl_la-Cmd_USERCMD.Plo
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	$(AM_V_CXX)source='Cmd_USERCMD.cc' object='libapl_la-Cmd_USERCMD.lo' libtool=yes @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCXX_FALSE@	$(AM_V_CXX@am__nodep@)$(LIBTOOL) $(AM_V_lt) --tag=CXX $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libapl_la_CXXFLAGS) $(CXXFLAGS) -c -o libapl_la-Cmd_USERCMD.lo `test -f 'Cmd_USERCMD.cc' || echo '$(srcdir)/'`Cmd_USERCMD.cc
+
+libapl_la-Cmd_WS.lo: Cmd_WS.cc
+@am__fastdepCXX_TRUE@	$(AM_V_CXX)$(LIBTOOL) $(AM_V_lt) --tag=CXX $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libapl_la_CXXFLAGS) $(CXXFLAGS) -MT libapl_la-Cmd_WS.lo -MD -MP -MF $(DEPDIR)/libapl_la-Cmd_WS.Tpo -c -o libapl_la-Cmd_WS.lo `test -f 'Cmd_WS.cc' || echo '$(srcdir)/'`Cmd_WS.cc
+@am__fastdepCXX_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/libapl_la-Cmd_WS.Tpo $(DEPDIR)/libapl_la-Cmd_WS.Plo
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	$(AM_V_CXX)source='Cmd_WS.cc' object='libapl_la-Cmd_WS.lo' libtool=yes @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCXX_FALSE@	$(AM_V_CXX@am__nodep@)$(LIBTOOL) $(AM_V_lt) --tag=CXX $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libapl_la_CXXFLAGS) $(CXXFLAGS) -c -o libapl_la-Cmd_WS.lo `test -f 'Cmd_WS.cc' || echo '$(srcdir)/'`Cmd_WS.cc
 
 libapl_la-Doxy.lo: Doxy.cc
 @am__fastdepCXX_TRUE@	$(AM_V_CXX)$(LIBTOOL) $(AM_V_lt) --tag=CXX $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libapl_la_CXXFLAGS) $(CXXFLAGS) -MT libapl_la-Doxy.lo -MD -MP -MF $(DEPDIR)/libapl_la-Doxy.Tpo -c -o libapl_la-Doxy.lo `test -f 'Doxy.cc' || echo '$(srcdir)/'`Doxy.cc
@@ -3479,13 +3923,6 @@ libapl_la-Plot_window_properties.lo: Plot_window_properties.cc
 @AMDEP_TRUE@@am__fastdepCXX_FALSE@	$(AM_V_CXX)source='Plot_window_properties.cc' object='libapl_la-Plot_window_properties.lo' libtool=yes @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
 @am__fastdepCXX_FALSE@	$(AM_V_CXX@am__nodep@)$(LIBTOOL) $(AM_V_lt) --tag=CXX $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libapl_la_CXXFLAGS) $(CXXFLAGS) -c -o libapl_la-Plot_window_properties.lo `test -f 'Plot_window_properties.cc' || echo '$(srcdir)/'`Plot_window_properties.cc
-
-libapl_la-PrimitiveFunction.lo: PrimitiveFunction.cc
-@am__fastdepCXX_TRUE@	$(AM_V_CXX)$(LIBTOOL) $(AM_V_lt) --tag=CXX $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libapl_la_CXXFLAGS) $(CXXFLAGS) -MT libapl_la-PrimitiveFunction.lo -MD -MP -MF $(DEPDIR)/libapl_la-PrimitiveFunction.Tpo -c -o libapl_la-PrimitiveFunction.lo `test -f 'PrimitiveFunction.cc' || echo '$(srcdir)/'`PrimitiveFunction.cc
-@am__fastdepCXX_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/libapl_la-PrimitiveFunction.Tpo $(DEPDIR)/libapl_la-PrimitiveFunction.Plo
-@AMDEP_TRUE@@am__fastdepCXX_FALSE@	$(AM_V_CXX)source='PrimitiveFunction.cc' object='libapl_la-PrimitiveFunction.lo' libtool=yes @AMDEPBACKSLASH@
-@AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCXX_FALSE@	$(AM_V_CXX@am__nodep@)$(LIBTOOL) $(AM_V_lt) --tag=CXX $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libapl_la_CXXFLAGS) $(CXXFLAGS) -c -o libapl_la-PrimitiveFunction.lo `test -f 'PrimitiveFunction.cc' || echo '$(srcdir)/'`PrimitiveFunction.cc
 
 libapl_la-PrintBuffer.lo: PrintBuffer.cc
 @am__fastdepCXX_TRUE@	$(AM_V_CXX)$(LIBTOOL) $(AM_V_lt) --tag=CXX $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libapl_la_CXXFLAGS) $(CXXFLAGS) -MT libapl_la-PrintBuffer.lo -MD -MP -MF $(DEPDIR)/libapl_la-PrintBuffer.Tpo -c -o libapl_la-PrintBuffer.lo `test -f 'PrintBuffer.cc' || echo '$(srcdir)/'`PrintBuffer.cc
@@ -4054,6 +4491,20 @@ apl-Backtrace.obj: Backtrace.cc
 @AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
 @am__fastdepCXX_FALSE@	$(AM_V_CXX@am__nodep@)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(apl_CXXFLAGS) $(CXXFLAGS) -c -o apl-Backtrace.obj `if test -f 'Backtrace.cc'; then $(CYGPATH_W) 'Backtrace.cc'; else $(CYGPATH_W) '$(srcdir)/Backtrace.cc'; fi`
 
+apl-Bif_F0_ZILDE.o: Bif_F0_ZILDE.cc
+@am__fastdepCXX_TRUE@	$(AM_V_CXX)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(apl_CXXFLAGS) $(CXXFLAGS) -MT apl-Bif_F0_ZILDE.o -MD -MP -MF $(DEPDIR)/apl-Bif_F0_ZILDE.Tpo -c -o apl-Bif_F0_ZILDE.o `test -f 'Bif_F0_ZILDE.cc' || echo '$(srcdir)/'`Bif_F0_ZILDE.cc
+@am__fastdepCXX_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/apl-Bif_F0_ZILDE.Tpo $(DEPDIR)/apl-Bif_F0_ZILDE.Po
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	$(AM_V_CXX)source='Bif_F0_ZILDE.cc' object='apl-Bif_F0_ZILDE.o' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCXX_FALSE@	$(AM_V_CXX@am__nodep@)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(apl_CXXFLAGS) $(CXXFLAGS) -c -o apl-Bif_F0_ZILDE.o `test -f 'Bif_F0_ZILDE.cc' || echo '$(srcdir)/'`Bif_F0_ZILDE.cc
+
+apl-Bif_F0_ZILDE.obj: Bif_F0_ZILDE.cc
+@am__fastdepCXX_TRUE@	$(AM_V_CXX)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(apl_CXXFLAGS) $(CXXFLAGS) -MT apl-Bif_F0_ZILDE.obj -MD -MP -MF $(DEPDIR)/apl-Bif_F0_ZILDE.Tpo -c -o apl-Bif_F0_ZILDE.obj `if test -f 'Bif_F0_ZILDE.cc'; then $(CYGPATH_W) 'Bif_F0_ZILDE.cc'; else $(CYGPATH_W) '$(srcdir)/Bif_F0_ZILDE.cc'; fi`
+@am__fastdepCXX_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/apl-Bif_F0_ZILDE.Tpo $(DEPDIR)/apl-Bif_F0_ZILDE.Po
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	$(AM_V_CXX)source='Bif_F0_ZILDE.cc' object='apl-Bif_F0_ZILDE.obj' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCXX_FALSE@	$(AM_V_CXX@am__nodep@)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(apl_CXXFLAGS) $(CXXFLAGS) -c -o apl-Bif_F0_ZILDE.obj `if test -f 'Bif_F0_ZILDE.cc'; then $(CYGPATH_W) 'Bif_F0_ZILDE.cc'; else $(CYGPATH_W) '$(srcdir)/Bif_F0_ZILDE.cc'; fi`
+
 apl-Bif_F12_COMMA.o: Bif_F12_COMMA.cc
 @am__fastdepCXX_TRUE@	$(AM_V_CXX)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(apl_CXXFLAGS) $(CXXFLAGS) -MT apl-Bif_F12_COMMA.o -MD -MP -MF $(DEPDIR)/apl-Bif_F12_COMMA.Tpo -c -o apl-Bif_F12_COMMA.o `test -f 'Bif_F12_COMMA.cc' || echo '$(srcdir)/'`Bif_F12_COMMA.cc
 @am__fastdepCXX_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/apl-Bif_F12_COMMA.Tpo $(DEPDIR)/apl-Bif_F12_COMMA.Po
@@ -4081,6 +4532,48 @@ apl-Bif_F12_DOMINO.obj: Bif_F12_DOMINO.cc
 @AMDEP_TRUE@@am__fastdepCXX_FALSE@	$(AM_V_CXX)source='Bif_F12_DOMINO.cc' object='apl-Bif_F12_DOMINO.obj' libtool=no @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
 @am__fastdepCXX_FALSE@	$(AM_V_CXX@am__nodep@)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(apl_CXXFLAGS) $(CXXFLAGS) -c -o apl-Bif_F12_DOMINO.obj `if test -f 'Bif_F12_DOMINO.cc'; then $(CYGPATH_W) 'Bif_F12_DOMINO.cc'; else $(CYGPATH_W) '$(srcdir)/Bif_F12_DOMINO.cc'; fi`
+
+apl-Bif_F12_ELEMENT.o: Bif_F12_ELEMENT.cc
+@am__fastdepCXX_TRUE@	$(AM_V_CXX)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(apl_CXXFLAGS) $(CXXFLAGS) -MT apl-Bif_F12_ELEMENT.o -MD -MP -MF $(DEPDIR)/apl-Bif_F12_ELEMENT.Tpo -c -o apl-Bif_F12_ELEMENT.o `test -f 'Bif_F12_ELEMENT.cc' || echo '$(srcdir)/'`Bif_F12_ELEMENT.cc
+@am__fastdepCXX_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/apl-Bif_F12_ELEMENT.Tpo $(DEPDIR)/apl-Bif_F12_ELEMENT.Po
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	$(AM_V_CXX)source='Bif_F12_ELEMENT.cc' object='apl-Bif_F12_ELEMENT.o' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCXX_FALSE@	$(AM_V_CXX@am__nodep@)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(apl_CXXFLAGS) $(CXXFLAGS) -c -o apl-Bif_F12_ELEMENT.o `test -f 'Bif_F12_ELEMENT.cc' || echo '$(srcdir)/'`Bif_F12_ELEMENT.cc
+
+apl-Bif_F12_ELEMENT.obj: Bif_F12_ELEMENT.cc
+@am__fastdepCXX_TRUE@	$(AM_V_CXX)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(apl_CXXFLAGS) $(CXXFLAGS) -MT apl-Bif_F12_ELEMENT.obj -MD -MP -MF $(DEPDIR)/apl-Bif_F12_ELEMENT.Tpo -c -o apl-Bif_F12_ELEMENT.obj `if test -f 'Bif_F12_ELEMENT.cc'; then $(CYGPATH_W) 'Bif_F12_ELEMENT.cc'; else $(CYGPATH_W) '$(srcdir)/Bif_F12_ELEMENT.cc'; fi`
+@am__fastdepCXX_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/apl-Bif_F12_ELEMENT.Tpo $(DEPDIR)/apl-Bif_F12_ELEMENT.Po
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	$(AM_V_CXX)source='Bif_F12_ELEMENT.cc' object='apl-Bif_F12_ELEMENT.obj' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCXX_FALSE@	$(AM_V_CXX@am__nodep@)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(apl_CXXFLAGS) $(CXXFLAGS) -c -o apl-Bif_F12_ELEMENT.obj `if test -f 'Bif_F12_ELEMENT.cc'; then $(CYGPATH_W) 'Bif_F12_ELEMENT.cc'; else $(CYGPATH_W) '$(srcdir)/Bif_F12_ELEMENT.cc'; fi`
+
+apl-Bif_F12_ENCODE_DECODE.o: Bif_F12_ENCODE_DECODE.cc
+@am__fastdepCXX_TRUE@	$(AM_V_CXX)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(apl_CXXFLAGS) $(CXXFLAGS) -MT apl-Bif_F12_ENCODE_DECODE.o -MD -MP -MF $(DEPDIR)/apl-Bif_F12_ENCODE_DECODE.Tpo -c -o apl-Bif_F12_ENCODE_DECODE.o `test -f 'Bif_F12_ENCODE_DECODE.cc' || echo '$(srcdir)/'`Bif_F12_ENCODE_DECODE.cc
+@am__fastdepCXX_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/apl-Bif_F12_ENCODE_DECODE.Tpo $(DEPDIR)/apl-Bif_F12_ENCODE_DECODE.Po
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	$(AM_V_CXX)source='Bif_F12_ENCODE_DECODE.cc' object='apl-Bif_F12_ENCODE_DECODE.o' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCXX_FALSE@	$(AM_V_CXX@am__nodep@)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(apl_CXXFLAGS) $(CXXFLAGS) -c -o apl-Bif_F12_ENCODE_DECODE.o `test -f 'Bif_F12_ENCODE_DECODE.cc' || echo '$(srcdir)/'`Bif_F12_ENCODE_DECODE.cc
+
+apl-Bif_F12_ENCODE_DECODE.obj: Bif_F12_ENCODE_DECODE.cc
+@am__fastdepCXX_TRUE@	$(AM_V_CXX)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(apl_CXXFLAGS) $(CXXFLAGS) -MT apl-Bif_F12_ENCODE_DECODE.obj -MD -MP -MF $(DEPDIR)/apl-Bif_F12_ENCODE_DECODE.Tpo -c -o apl-Bif_F12_ENCODE_DECODE.obj `if test -f 'Bif_F12_ENCODE_DECODE.cc'; then $(CYGPATH_W) 'Bif_F12_ENCODE_DECODE.cc'; else $(CYGPATH_W) '$(srcdir)/Bif_F12_ENCODE_DECODE.cc'; fi`
+@am__fastdepCXX_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/apl-Bif_F12_ENCODE_DECODE.Tpo $(DEPDIR)/apl-Bif_F12_ENCODE_DECODE.Po
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	$(AM_V_CXX)source='Bif_F12_ENCODE_DECODE.cc' object='apl-Bif_F12_ENCODE_DECODE.obj' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCXX_FALSE@	$(AM_V_CXX@am__nodep@)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(apl_CXXFLAGS) $(CXXFLAGS) -c -o apl-Bif_F12_ENCODE_DECODE.obj `if test -f 'Bif_F12_ENCODE_DECODE.cc'; then $(CYGPATH_W) 'Bif_F12_ENCODE_DECODE.cc'; else $(CYGPATH_W) '$(srcdir)/Bif_F12_ENCODE_DECODE.cc'; fi`
+
+apl-Bif_F12_EQUIV.o: Bif_F12_EQUIV.cc
+@am__fastdepCXX_TRUE@	$(AM_V_CXX)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(apl_CXXFLAGS) $(CXXFLAGS) -MT apl-Bif_F12_EQUIV.o -MD -MP -MF $(DEPDIR)/apl-Bif_F12_EQUIV.Tpo -c -o apl-Bif_F12_EQUIV.o `test -f 'Bif_F12_EQUIV.cc' || echo '$(srcdir)/'`Bif_F12_EQUIV.cc
+@am__fastdepCXX_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/apl-Bif_F12_EQUIV.Tpo $(DEPDIR)/apl-Bif_F12_EQUIV.Po
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	$(AM_V_CXX)source='Bif_F12_EQUIV.cc' object='apl-Bif_F12_EQUIV.o' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCXX_FALSE@	$(AM_V_CXX@am__nodep@)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(apl_CXXFLAGS) $(CXXFLAGS) -c -o apl-Bif_F12_EQUIV.o `test -f 'Bif_F12_EQUIV.cc' || echo '$(srcdir)/'`Bif_F12_EQUIV.cc
+
+apl-Bif_F12_EQUIV.obj: Bif_F12_EQUIV.cc
+@am__fastdepCXX_TRUE@	$(AM_V_CXX)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(apl_CXXFLAGS) $(CXXFLAGS) -MT apl-Bif_F12_EQUIV.obj -MD -MP -MF $(DEPDIR)/apl-Bif_F12_EQUIV.Tpo -c -o apl-Bif_F12_EQUIV.obj `if test -f 'Bif_F12_EQUIV.cc'; then $(CYGPATH_W) 'Bif_F12_EQUIV.cc'; else $(CYGPATH_W) '$(srcdir)/Bif_F12_EQUIV.cc'; fi`
+@am__fastdepCXX_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/apl-Bif_F12_EQUIV.Tpo $(DEPDIR)/apl-Bif_F12_EQUIV.Po
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	$(AM_V_CXX)source='Bif_F12_EQUIV.cc' object='apl-Bif_F12_EQUIV.obj' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCXX_FALSE@	$(AM_V_CXX@am__nodep@)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(apl_CXXFLAGS) $(CXXFLAGS) -c -o apl-Bif_F12_EQUIV.obj `if test -f 'Bif_F12_EQUIV.cc'; then $(CYGPATH_W) 'Bif_F12_EQUIV.cc'; else $(CYGPATH_W) '$(srcdir)/Bif_F12_EQUIV.cc'; fi`
 
 apl-Bif_F12_INDEX_OF.o: Bif_F12_INDEX_OF.cc
 @am__fastdepCXX_TRUE@	$(AM_V_CXX)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(apl_CXXFLAGS) $(CXXFLAGS) -MT apl-Bif_F12_INDEX_OF.o -MD -MP -MF $(DEPDIR)/apl-Bif_F12_INDEX_OF.Tpo -c -o apl-Bif_F12_INDEX_OF.o `test -f 'Bif_F12_INDEX_OF.cc' || echo '$(srcdir)/'`Bif_F12_INDEX_OF.cc
@@ -4138,6 +4631,34 @@ apl-Bif_F12_PARTITION_PICK.obj: Bif_F12_PARTITION_PICK.cc
 @AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
 @am__fastdepCXX_FALSE@	$(AM_V_CXX@am__nodep@)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(apl_CXXFLAGS) $(CXXFLAGS) -c -o apl-Bif_F12_PARTITION_PICK.obj `if test -f 'Bif_F12_PARTITION_PICK.cc'; then $(CYGPATH_W) 'Bif_F12_PARTITION_PICK.cc'; else $(CYGPATH_W) '$(srcdir)/Bif_F12_PARTITION_PICK.cc'; fi`
 
+apl-Bif_F12_RHO.o: Bif_F12_RHO.cc
+@am__fastdepCXX_TRUE@	$(AM_V_CXX)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(apl_CXXFLAGS) $(CXXFLAGS) -MT apl-Bif_F12_RHO.o -MD -MP -MF $(DEPDIR)/apl-Bif_F12_RHO.Tpo -c -o apl-Bif_F12_RHO.o `test -f 'Bif_F12_RHO.cc' || echo '$(srcdir)/'`Bif_F12_RHO.cc
+@am__fastdepCXX_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/apl-Bif_F12_RHO.Tpo $(DEPDIR)/apl-Bif_F12_RHO.Po
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	$(AM_V_CXX)source='Bif_F12_RHO.cc' object='apl-Bif_F12_RHO.o' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCXX_FALSE@	$(AM_V_CXX@am__nodep@)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(apl_CXXFLAGS) $(CXXFLAGS) -c -o apl-Bif_F12_RHO.o `test -f 'Bif_F12_RHO.cc' || echo '$(srcdir)/'`Bif_F12_RHO.cc
+
+apl-Bif_F12_RHO.obj: Bif_F12_RHO.cc
+@am__fastdepCXX_TRUE@	$(AM_V_CXX)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(apl_CXXFLAGS) $(CXXFLAGS) -MT apl-Bif_F12_RHO.obj -MD -MP -MF $(DEPDIR)/apl-Bif_F12_RHO.Tpo -c -o apl-Bif_F12_RHO.obj `if test -f 'Bif_F12_RHO.cc'; then $(CYGPATH_W) 'Bif_F12_RHO.cc'; else $(CYGPATH_W) '$(srcdir)/Bif_F12_RHO.cc'; fi`
+@am__fastdepCXX_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/apl-Bif_F12_RHO.Tpo $(DEPDIR)/apl-Bif_F12_RHO.Po
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	$(AM_V_CXX)source='Bif_F12_RHO.cc' object='apl-Bif_F12_RHO.obj' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCXX_FALSE@	$(AM_V_CXX@am__nodep@)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(apl_CXXFLAGS) $(CXXFLAGS) -c -o apl-Bif_F12_RHO.obj `if test -f 'Bif_F12_RHO.cc'; then $(CYGPATH_W) 'Bif_F12_RHO.cc'; else $(CYGPATH_W) '$(srcdir)/Bif_F12_RHO.cc'; fi`
+
+apl-Bif_F12_ROTATE.o: Bif_F12_ROTATE.cc
+@am__fastdepCXX_TRUE@	$(AM_V_CXX)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(apl_CXXFLAGS) $(CXXFLAGS) -MT apl-Bif_F12_ROTATE.o -MD -MP -MF $(DEPDIR)/apl-Bif_F12_ROTATE.Tpo -c -o apl-Bif_F12_ROTATE.o `test -f 'Bif_F12_ROTATE.cc' || echo '$(srcdir)/'`Bif_F12_ROTATE.cc
+@am__fastdepCXX_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/apl-Bif_F12_ROTATE.Tpo $(DEPDIR)/apl-Bif_F12_ROTATE.Po
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	$(AM_V_CXX)source='Bif_F12_ROTATE.cc' object='apl-Bif_F12_ROTATE.o' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCXX_FALSE@	$(AM_V_CXX@am__nodep@)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(apl_CXXFLAGS) $(CXXFLAGS) -c -o apl-Bif_F12_ROTATE.o `test -f 'Bif_F12_ROTATE.cc' || echo '$(srcdir)/'`Bif_F12_ROTATE.cc
+
+apl-Bif_F12_ROTATE.obj: Bif_F12_ROTATE.cc
+@am__fastdepCXX_TRUE@	$(AM_V_CXX)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(apl_CXXFLAGS) $(CXXFLAGS) -MT apl-Bif_F12_ROTATE.obj -MD -MP -MF $(DEPDIR)/apl-Bif_F12_ROTATE.Tpo -c -o apl-Bif_F12_ROTATE.obj `if test -f 'Bif_F12_ROTATE.cc'; then $(CYGPATH_W) 'Bif_F12_ROTATE.cc'; else $(CYGPATH_W) '$(srcdir)/Bif_F12_ROTATE.cc'; fi`
+@am__fastdepCXX_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/apl-Bif_F12_ROTATE.Tpo $(DEPDIR)/apl-Bif_F12_ROTATE.Po
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	$(AM_V_CXX)source='Bif_F12_ROTATE.cc' object='apl-Bif_F12_ROTATE.obj' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCXX_FALSE@	$(AM_V_CXX@am__nodep@)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(apl_CXXFLAGS) $(CXXFLAGS) -c -o apl-Bif_F12_ROTATE.obj `if test -f 'Bif_F12_ROTATE.cc'; then $(CYGPATH_W) 'Bif_F12_ROTATE.cc'; else $(CYGPATH_W) '$(srcdir)/Bif_F12_ROTATE.cc'; fi`
+
 apl-Bif_F12_SORT.o: Bif_F12_SORT.cc
 @am__fastdepCXX_TRUE@	$(AM_V_CXX)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(apl_CXXFLAGS) $(CXXFLAGS) -MT apl-Bif_F12_SORT.o -MD -MP -MF $(DEPDIR)/apl-Bif_F12_SORT.Tpo -c -o apl-Bif_F12_SORT.o `test -f 'Bif_F12_SORT.cc' || echo '$(srcdir)/'`Bif_F12_SORT.cc
 @am__fastdepCXX_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/apl-Bif_F12_SORT.Tpo $(DEPDIR)/apl-Bif_F12_SORT.Po
@@ -4165,6 +4686,76 @@ apl-Bif_F12_TAKE_DROP.obj: Bif_F12_TAKE_DROP.cc
 @AMDEP_TRUE@@am__fastdepCXX_FALSE@	$(AM_V_CXX)source='Bif_F12_TAKE_DROP.cc' object='apl-Bif_F12_TAKE_DROP.obj' libtool=no @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
 @am__fastdepCXX_FALSE@	$(AM_V_CXX@am__nodep@)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(apl_CXXFLAGS) $(CXXFLAGS) -c -o apl-Bif_F12_TAKE_DROP.obj `if test -f 'Bif_F12_TAKE_DROP.cc'; then $(CYGPATH_W) 'Bif_F12_TAKE_DROP.cc'; else $(CYGPATH_W) '$(srcdir)/Bif_F12_TAKE_DROP.cc'; fi`
+
+apl-Bif_F12_TRANSPOSE.o: Bif_F12_TRANSPOSE.cc
+@am__fastdepCXX_TRUE@	$(AM_V_CXX)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(apl_CXXFLAGS) $(CXXFLAGS) -MT apl-Bif_F12_TRANSPOSE.o -MD -MP -MF $(DEPDIR)/apl-Bif_F12_TRANSPOSE.Tpo -c -o apl-Bif_F12_TRANSPOSE.o `test -f 'Bif_F12_TRANSPOSE.cc' || echo '$(srcdir)/'`Bif_F12_TRANSPOSE.cc
+@am__fastdepCXX_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/apl-Bif_F12_TRANSPOSE.Tpo $(DEPDIR)/apl-Bif_F12_TRANSPOSE.Po
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	$(AM_V_CXX)source='Bif_F12_TRANSPOSE.cc' object='apl-Bif_F12_TRANSPOSE.o' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCXX_FALSE@	$(AM_V_CXX@am__nodep@)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(apl_CXXFLAGS) $(CXXFLAGS) -c -o apl-Bif_F12_TRANSPOSE.o `test -f 'Bif_F12_TRANSPOSE.cc' || echo '$(srcdir)/'`Bif_F12_TRANSPOSE.cc
+
+apl-Bif_F12_TRANSPOSE.obj: Bif_F12_TRANSPOSE.cc
+@am__fastdepCXX_TRUE@	$(AM_V_CXX)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(apl_CXXFLAGS) $(CXXFLAGS) -MT apl-Bif_F12_TRANSPOSE.obj -MD -MP -MF $(DEPDIR)/apl-Bif_F12_TRANSPOSE.Tpo -c -o apl-Bif_F12_TRANSPOSE.obj `if test -f 'Bif_F12_TRANSPOSE.cc'; then $(CYGPATH_W) 'Bif_F12_TRANSPOSE.cc'; else $(CYGPATH_W) '$(srcdir)/Bif_F12_TRANSPOSE.cc'; fi`
+@am__fastdepCXX_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/apl-Bif_F12_TRANSPOSE.Tpo $(DEPDIR)/apl-Bif_F12_TRANSPOSE.Po
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	$(AM_V_CXX)source='Bif_F12_TRANSPOSE.cc' object='apl-Bif_F12_TRANSPOSE.obj' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCXX_FALSE@	$(AM_V_CXX@am__nodep@)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(apl_CXXFLAGS) $(CXXFLAGS) -c -o apl-Bif_F12_TRANSPOSE.obj `if test -f 'Bif_F12_TRANSPOSE.cc'; then $(CYGPATH_W) 'Bif_F12_TRANSPOSE.cc'; else $(CYGPATH_W) '$(srcdir)/Bif_F12_TRANSPOSE.cc'; fi`
+
+apl-Bif_F12_UNION_INTER.o: Bif_F12_UNION_INTER.cc
+@am__fastdepCXX_TRUE@	$(AM_V_CXX)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(apl_CXXFLAGS) $(CXXFLAGS) -MT apl-Bif_F12_UNION_INTER.o -MD -MP -MF $(DEPDIR)/apl-Bif_F12_UNION_INTER.Tpo -c -o apl-Bif_F12_UNION_INTER.o `test -f 'Bif_F12_UNION_INTER.cc' || echo '$(srcdir)/'`Bif_F12_UNION_INTER.cc
+@am__fastdepCXX_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/apl-Bif_F12_UNION_INTER.Tpo $(DEPDIR)/apl-Bif_F12_UNION_INTER.Po
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	$(AM_V_CXX)source='Bif_F12_UNION_INTER.cc' object='apl-Bif_F12_UNION_INTER.o' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCXX_FALSE@	$(AM_V_CXX@am__nodep@)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(apl_CXXFLAGS) $(CXXFLAGS) -c -o apl-Bif_F12_UNION_INTER.o `test -f 'Bif_F12_UNION_INTER.cc' || echo '$(srcdir)/'`Bif_F12_UNION_INTER.cc
+
+apl-Bif_F12_UNION_INTER.obj: Bif_F12_UNION_INTER.cc
+@am__fastdepCXX_TRUE@	$(AM_V_CXX)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(apl_CXXFLAGS) $(CXXFLAGS) -MT apl-Bif_F12_UNION_INTER.obj -MD -MP -MF $(DEPDIR)/apl-Bif_F12_UNION_INTER.Tpo -c -o apl-Bif_F12_UNION_INTER.obj `if test -f 'Bif_F12_UNION_INTER.cc'; then $(CYGPATH_W) 'Bif_F12_UNION_INTER.cc'; else $(CYGPATH_W) '$(srcdir)/Bif_F12_UNION_INTER.cc'; fi`
+@am__fastdepCXX_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/apl-Bif_F12_UNION_INTER.Tpo $(DEPDIR)/apl-Bif_F12_UNION_INTER.Po
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	$(AM_V_CXX)source='Bif_F12_UNION_INTER.cc' object='apl-Bif_F12_UNION_INTER.obj' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCXX_FALSE@	$(AM_V_CXX@am__nodep@)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(apl_CXXFLAGS) $(CXXFLAGS) -c -o apl-Bif_F12_UNION_INTER.obj `if test -f 'Bif_F12_UNION_INTER.cc'; then $(CYGPATH_W) 'Bif_F12_UNION_INTER.cc'; else $(CYGPATH_W) '$(srcdir)/Bif_F12_UNION_INTER.cc'; fi`
+
+apl-Bif_F1_EXECUTE.o: Bif_F1_EXECUTE.cc
+@am__fastdepCXX_TRUE@	$(AM_V_CXX)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(apl_CXXFLAGS) $(CXXFLAGS) -MT apl-Bif_F1_EXECUTE.o -MD -MP -MF $(DEPDIR)/apl-Bif_F1_EXECUTE.Tpo -c -o apl-Bif_F1_EXECUTE.o `test -f 'Bif_F1_EXECUTE.cc' || echo '$(srcdir)/'`Bif_F1_EXECUTE.cc
+@am__fastdepCXX_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/apl-Bif_F1_EXECUTE.Tpo $(DEPDIR)/apl-Bif_F1_EXECUTE.Po
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	$(AM_V_CXX)source='Bif_F1_EXECUTE.cc' object='apl-Bif_F1_EXECUTE.o' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCXX_FALSE@	$(AM_V_CXX@am__nodep@)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(apl_CXXFLAGS) $(CXXFLAGS) -c -o apl-Bif_F1_EXECUTE.o `test -f 'Bif_F1_EXECUTE.cc' || echo '$(srcdir)/'`Bif_F1_EXECUTE.cc
+
+apl-Bif_F1_EXECUTE.obj: Bif_F1_EXECUTE.cc
+@am__fastdepCXX_TRUE@	$(AM_V_CXX)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(apl_CXXFLAGS) $(CXXFLAGS) -MT apl-Bif_F1_EXECUTE.obj -MD -MP -MF $(DEPDIR)/apl-Bif_F1_EXECUTE.Tpo -c -o apl-Bif_F1_EXECUTE.obj `if test -f 'Bif_F1_EXECUTE.cc'; then $(CYGPATH_W) 'Bif_F1_EXECUTE.cc'; else $(CYGPATH_W) '$(srcdir)/Bif_F1_EXECUTE.cc'; fi`
+@am__fastdepCXX_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/apl-Bif_F1_EXECUTE.Tpo $(DEPDIR)/apl-Bif_F1_EXECUTE.Po
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	$(AM_V_CXX)source='Bif_F1_EXECUTE.cc' object='apl-Bif_F1_EXECUTE.obj' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCXX_FALSE@	$(AM_V_CXX@am__nodep@)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(apl_CXXFLAGS) $(CXXFLAGS) -c -o apl-Bif_F1_EXECUTE.obj `if test -f 'Bif_F1_EXECUTE.cc'; then $(CYGPATH_W) 'Bif_F1_EXECUTE.cc'; else $(CYGPATH_W) '$(srcdir)/Bif_F1_EXECUTE.cc'; fi`
+
+apl-Bif_F2_INDEX.o: Bif_F2_INDEX.cc
+@am__fastdepCXX_TRUE@	$(AM_V_CXX)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(apl_CXXFLAGS) $(CXXFLAGS) -MT apl-Bif_F2_INDEX.o -MD -MP -MF $(DEPDIR)/apl-Bif_F2_INDEX.Tpo -c -o apl-Bif_F2_INDEX.o `test -f 'Bif_F2_INDEX.cc' || echo '$(srcdir)/'`Bif_F2_INDEX.cc
+@am__fastdepCXX_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/apl-Bif_F2_INDEX.Tpo $(DEPDIR)/apl-Bif_F2_INDEX.Po
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	$(AM_V_CXX)source='Bif_F2_INDEX.cc' object='apl-Bif_F2_INDEX.o' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCXX_FALSE@	$(AM_V_CXX@am__nodep@)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(apl_CXXFLAGS) $(CXXFLAGS) -c -o apl-Bif_F2_INDEX.o `test -f 'Bif_F2_INDEX.cc' || echo '$(srcdir)/'`Bif_F2_INDEX.cc
+
+apl-Bif_F2_INDEX.obj: Bif_F2_INDEX.cc
+@am__fastdepCXX_TRUE@	$(AM_V_CXX)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(apl_CXXFLAGS) $(CXXFLAGS) -MT apl-Bif_F2_INDEX.obj -MD -MP -MF $(DEPDIR)/apl-Bif_F2_INDEX.Tpo -c -o apl-Bif_F2_INDEX.obj `if test -f 'Bif_F2_INDEX.cc'; then $(CYGPATH_W) 'Bif_F2_INDEX.cc'; else $(CYGPATH_W) '$(srcdir)/Bif_F2_INDEX.cc'; fi`
+@am__fastdepCXX_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/apl-Bif_F2_INDEX.Tpo $(DEPDIR)/apl-Bif_F2_INDEX.Po
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	$(AM_V_CXX)source='Bif_F2_INDEX.cc' object='apl-Bif_F2_INDEX.obj' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCXX_FALSE@	$(AM_V_CXX@am__nodep@)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(apl_CXXFLAGS) $(CXXFLAGS) -c -o apl-Bif_F2_INDEX.obj `if test -f 'Bif_F2_INDEX.cc'; then $(CYGPATH_W) 'Bif_F2_INDEX.cc'; else $(CYGPATH_W) '$(srcdir)/Bif_F2_INDEX.cc'; fi`
+
+apl-Bif_F2_LEFT_RIGHT.o: Bif_F2_LEFT_RIGHT.cc
+@am__fastdepCXX_TRUE@	$(AM_V_CXX)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(apl_CXXFLAGS) $(CXXFLAGS) -MT apl-Bif_F2_LEFT_RIGHT.o -MD -MP -MF $(DEPDIR)/apl-Bif_F2_LEFT_RIGHT.Tpo -c -o apl-Bif_F2_LEFT_RIGHT.o `test -f 'Bif_F2_LEFT_RIGHT.cc' || echo '$(srcdir)/'`Bif_F2_LEFT_RIGHT.cc
+@am__fastdepCXX_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/apl-Bif_F2_LEFT_RIGHT.Tpo $(DEPDIR)/apl-Bif_F2_LEFT_RIGHT.Po
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	$(AM_V_CXX)source='Bif_F2_LEFT_RIGHT.cc' object='apl-Bif_F2_LEFT_RIGHT.o' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCXX_FALSE@	$(AM_V_CXX@am__nodep@)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(apl_CXXFLAGS) $(CXXFLAGS) -c -o apl-Bif_F2_LEFT_RIGHT.o `test -f 'Bif_F2_LEFT_RIGHT.cc' || echo '$(srcdir)/'`Bif_F2_LEFT_RIGHT.cc
+
+apl-Bif_F2_LEFT_RIGHT.obj: Bif_F2_LEFT_RIGHT.cc
+@am__fastdepCXX_TRUE@	$(AM_V_CXX)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(apl_CXXFLAGS) $(CXXFLAGS) -MT apl-Bif_F2_LEFT_RIGHT.obj -MD -MP -MF $(DEPDIR)/apl-Bif_F2_LEFT_RIGHT.Tpo -c -o apl-Bif_F2_LEFT_RIGHT.obj `if test -f 'Bif_F2_LEFT_RIGHT.cc'; then $(CYGPATH_W) 'Bif_F2_LEFT_RIGHT.cc'; else $(CYGPATH_W) '$(srcdir)/Bif_F2_LEFT_RIGHT.cc'; fi`
+@am__fastdepCXX_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/apl-Bif_F2_LEFT_RIGHT.Tpo $(DEPDIR)/apl-Bif_F2_LEFT_RIGHT.Po
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	$(AM_V_CXX)source='Bif_F2_LEFT_RIGHT.cc' object='apl-Bif_F2_LEFT_RIGHT.obj' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCXX_FALSE@	$(AM_V_CXX@am__nodep@)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(apl_CXXFLAGS) $(CXXFLAGS) -c -o apl-Bif_F2_LEFT_RIGHT.obj `if test -f 'Bif_F2_LEFT_RIGHT.cc'; then $(CYGPATH_W) 'Bif_F2_LEFT_RIGHT.cc'; else $(CYGPATH_W) '$(srcdir)/Bif_F2_LEFT_RIGHT.cc'; fi`
 
 apl-Bif_OPER1_COMMUTE.o: Bif_OPER1_COMMUTE.cc
 @am__fastdepCXX_TRUE@	$(AM_V_CXX)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(apl_CXXFLAGS) $(CXXFLAGS) -MT apl-Bif_OPER1_COMMUTE.o -MD -MP -MF $(DEPDIR)/apl-Bif_OPER1_COMMUTE.Tpo -c -o apl-Bif_OPER1_COMMUTE.o `test -f 'Bif_OPER1_COMMUTE.cc' || echo '$(srcdir)/'`Bif_OPER1_COMMUTE.cc
@@ -4347,6 +4938,118 @@ apl-Cmd_IN.obj: Cmd_IN.cc
 @AMDEP_TRUE@@am__fastdepCXX_FALSE@	$(AM_V_CXX)source='Cmd_IN.cc' object='apl-Cmd_IN.obj' libtool=no @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
 @am__fastdepCXX_FALSE@	$(AM_V_CXX@am__nodep@)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(apl_CXXFLAGS) $(CXXFLAGS) -c -o apl-Cmd_IN.obj `if test -f 'Cmd_IN.cc'; then $(CYGPATH_W) 'Cmd_IN.cc'; else $(CYGPATH_W) '$(srcdir)/Cmd_IN.cc'; fi`
+
+apl-Cmd_DIAG.o: Cmd_DIAG.cc
+@am__fastdepCXX_TRUE@	$(AM_V_CXX)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(apl_CXXFLAGS) $(CXXFLAGS) -MT apl-Cmd_DIAG.o -MD -MP -MF $(DEPDIR)/apl-Cmd_DIAG.Tpo -c -o apl-Cmd_DIAG.o `test -f 'Cmd_DIAG.cc' || echo '$(srcdir)/'`Cmd_DIAG.cc
+@am__fastdepCXX_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/apl-Cmd_DIAG.Tpo $(DEPDIR)/apl-Cmd_DIAG.Po
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	$(AM_V_CXX)source='Cmd_DIAG.cc' object='apl-Cmd_DIAG.o' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCXX_FALSE@	$(AM_V_CXX@am__nodep@)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(apl_CXXFLAGS) $(CXXFLAGS) -c -o apl-Cmd_DIAG.o `test -f 'Cmd_DIAG.cc' || echo '$(srcdir)/'`Cmd_DIAG.cc
+
+apl-Cmd_DIAG.obj: Cmd_DIAG.cc
+@am__fastdepCXX_TRUE@	$(AM_V_CXX)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(apl_CXXFLAGS) $(CXXFLAGS) -MT apl-Cmd_DIAG.obj -MD -MP -MF $(DEPDIR)/apl-Cmd_DIAG.Tpo -c -o apl-Cmd_DIAG.obj `if test -f 'Cmd_DIAG.cc'; then $(CYGPATH_W) 'Cmd_DIAG.cc'; else $(CYGPATH_W) '$(srcdir)/Cmd_DIAG.cc'; fi`
+@am__fastdepCXX_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/apl-Cmd_DIAG.Tpo $(DEPDIR)/apl-Cmd_DIAG.Po
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	$(AM_V_CXX)source='Cmd_DIAG.cc' object='apl-Cmd_DIAG.obj' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCXX_FALSE@	$(AM_V_CXX@am__nodep@)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(apl_CXXFLAGS) $(CXXFLAGS) -c -o apl-Cmd_DIAG.obj `if test -f 'Cmd_DIAG.cc'; then $(CYGPATH_W) 'Cmd_DIAG.cc'; else $(CYGPATH_W) '$(srcdir)/Cmd_DIAG.cc'; fi`
+
+apl-Cmd_HELP.o: Cmd_HELP.cc
+@am__fastdepCXX_TRUE@	$(AM_V_CXX)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(apl_CXXFLAGS) $(CXXFLAGS) -MT apl-Cmd_HELP.o -MD -MP -MF $(DEPDIR)/apl-Cmd_HELP.Tpo -c -o apl-Cmd_HELP.o `test -f 'Cmd_HELP.cc' || echo '$(srcdir)/'`Cmd_HELP.cc
+@am__fastdepCXX_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/apl-Cmd_HELP.Tpo $(DEPDIR)/apl-Cmd_HELP.Po
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	$(AM_V_CXX)source='Cmd_HELP.cc' object='apl-Cmd_HELP.o' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCXX_FALSE@	$(AM_V_CXX@am__nodep@)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(apl_CXXFLAGS) $(CXXFLAGS) -c -o apl-Cmd_HELP.o `test -f 'Cmd_HELP.cc' || echo '$(srcdir)/'`Cmd_HELP.cc
+
+apl-Cmd_HELP.obj: Cmd_HELP.cc
+@am__fastdepCXX_TRUE@	$(AM_V_CXX)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(apl_CXXFLAGS) $(CXXFLAGS) -MT apl-Cmd_HELP.obj -MD -MP -MF $(DEPDIR)/apl-Cmd_HELP.Tpo -c -o apl-Cmd_HELP.obj `if test -f 'Cmd_HELP.cc'; then $(CYGPATH_W) 'Cmd_HELP.cc'; else $(CYGPATH_W) '$(srcdir)/Cmd_HELP.cc'; fi`
+@am__fastdepCXX_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/apl-Cmd_HELP.Tpo $(DEPDIR)/apl-Cmd_HELP.Po
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	$(AM_V_CXX)source='Cmd_HELP.cc' object='apl-Cmd_HELP.obj' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCXX_FALSE@	$(AM_V_CXX@am__nodep@)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(apl_CXXFLAGS) $(CXXFLAGS) -c -o apl-Cmd_HELP.obj `if test -f 'Cmd_HELP.cc'; then $(CYGPATH_W) 'Cmd_HELP.cc'; else $(CYGPATH_W) '$(srcdir)/Cmd_HELP.cc'; fi`
+
+apl-Cmd_HOST.o: Cmd_HOST.cc
+@am__fastdepCXX_TRUE@	$(AM_V_CXX)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(apl_CXXFLAGS) $(CXXFLAGS) -MT apl-Cmd_HOST.o -MD -MP -MF $(DEPDIR)/apl-Cmd_HOST.Tpo -c -o apl-Cmd_HOST.o `test -f 'Cmd_HOST.cc' || echo '$(srcdir)/'`Cmd_HOST.cc
+@am__fastdepCXX_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/apl-Cmd_HOST.Tpo $(DEPDIR)/apl-Cmd_HOST.Po
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	$(AM_V_CXX)source='Cmd_HOST.cc' object='apl-Cmd_HOST.o' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCXX_FALSE@	$(AM_V_CXX@am__nodep@)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(apl_CXXFLAGS) $(CXXFLAGS) -c -o apl-Cmd_HOST.o `test -f 'Cmd_HOST.cc' || echo '$(srcdir)/'`Cmd_HOST.cc
+
+apl-Cmd_HOST.obj: Cmd_HOST.cc
+@am__fastdepCXX_TRUE@	$(AM_V_CXX)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(apl_CXXFLAGS) $(CXXFLAGS) -MT apl-Cmd_HOST.obj -MD -MP -MF $(DEPDIR)/apl-Cmd_HOST.Tpo -c -o apl-Cmd_HOST.obj `if test -f 'Cmd_HOST.cc'; then $(CYGPATH_W) 'Cmd_HOST.cc'; else $(CYGPATH_W) '$(srcdir)/Cmd_HOST.cc'; fi`
+@am__fastdepCXX_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/apl-Cmd_HOST.Tpo $(DEPDIR)/apl-Cmd_HOST.Po
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	$(AM_V_CXX)source='Cmd_HOST.cc' object='apl-Cmd_HOST.obj' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCXX_FALSE@	$(AM_V_CXX@am__nodep@)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(apl_CXXFLAGS) $(CXXFLAGS) -c -o apl-Cmd_HOST.obj `if test -f 'Cmd_HOST.cc'; then $(CYGPATH_W) 'Cmd_HOST.cc'; else $(CYGPATH_W) '$(srcdir)/Cmd_HOST.cc'; fi`
+
+apl-Cmd_LISTING.o: Cmd_LISTING.cc
+@am__fastdepCXX_TRUE@	$(AM_V_CXX)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(apl_CXXFLAGS) $(CXXFLAGS) -MT apl-Cmd_LISTING.o -MD -MP -MF $(DEPDIR)/apl-Cmd_LISTING.Tpo -c -o apl-Cmd_LISTING.o `test -f 'Cmd_LISTING.cc' || echo '$(srcdir)/'`Cmd_LISTING.cc
+@am__fastdepCXX_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/apl-Cmd_LISTING.Tpo $(DEPDIR)/apl-Cmd_LISTING.Po
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	$(AM_V_CXX)source='Cmd_LISTING.cc' object='apl-Cmd_LISTING.o' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCXX_FALSE@	$(AM_V_CXX@am__nodep@)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(apl_CXXFLAGS) $(CXXFLAGS) -c -o apl-Cmd_LISTING.o `test -f 'Cmd_LISTING.cc' || echo '$(srcdir)/'`Cmd_LISTING.cc
+
+apl-Cmd_LISTING.obj: Cmd_LISTING.cc
+@am__fastdepCXX_TRUE@	$(AM_V_CXX)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(apl_CXXFLAGS) $(CXXFLAGS) -MT apl-Cmd_LISTING.obj -MD -MP -MF $(DEPDIR)/apl-Cmd_LISTING.Tpo -c -o apl-Cmd_LISTING.obj `if test -f 'Cmd_LISTING.cc'; then $(CYGPATH_W) 'Cmd_LISTING.cc'; else $(CYGPATH_W) '$(srcdir)/Cmd_LISTING.cc'; fi`
+@am__fastdepCXX_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/apl-Cmd_LISTING.Tpo $(DEPDIR)/apl-Cmd_LISTING.Po
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	$(AM_V_CXX)source='Cmd_LISTING.cc' object='apl-Cmd_LISTING.obj' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCXX_FALSE@	$(AM_V_CXX@am__nodep@)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(apl_CXXFLAGS) $(CXXFLAGS) -c -o apl-Cmd_LISTING.obj `if test -f 'Cmd_LISTING.cc'; then $(CYGPATH_W) 'Cmd_LISTING.cc'; else $(CYGPATH_W) '$(srcdir)/Cmd_LISTING.cc'; fi`
+
+apl-Cmd_SESSION.o: Cmd_SESSION.cc
+@am__fastdepCXX_TRUE@	$(AM_V_CXX)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(apl_CXXFLAGS) $(CXXFLAGS) -MT apl-Cmd_SESSION.o -MD -MP -MF $(DEPDIR)/apl-Cmd_SESSION.Tpo -c -o apl-Cmd_SESSION.o `test -f 'Cmd_SESSION.cc' || echo '$(srcdir)/'`Cmd_SESSION.cc
+@am__fastdepCXX_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/apl-Cmd_SESSION.Tpo $(DEPDIR)/apl-Cmd_SESSION.Po
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	$(AM_V_CXX)source='Cmd_SESSION.cc' object='apl-Cmd_SESSION.o' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCXX_FALSE@	$(AM_V_CXX@am__nodep@)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(apl_CXXFLAGS) $(CXXFLAGS) -c -o apl-Cmd_SESSION.o `test -f 'Cmd_SESSION.cc' || echo '$(srcdir)/'`Cmd_SESSION.cc
+
+apl-Cmd_SESSION.obj: Cmd_SESSION.cc
+@am__fastdepCXX_TRUE@	$(AM_V_CXX)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(apl_CXXFLAGS) $(CXXFLAGS) -MT apl-Cmd_SESSION.obj -MD -MP -MF $(DEPDIR)/apl-Cmd_SESSION.Tpo -c -o apl-Cmd_SESSION.obj `if test -f 'Cmd_SESSION.cc'; then $(CYGPATH_W) 'Cmd_SESSION.cc'; else $(CYGPATH_W) '$(srcdir)/Cmd_SESSION.cc'; fi`
+@am__fastdepCXX_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/apl-Cmd_SESSION.Tpo $(DEPDIR)/apl-Cmd_SESSION.Po
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	$(AM_V_CXX)source='Cmd_SESSION.cc' object='apl-Cmd_SESSION.obj' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCXX_FALSE@	$(AM_V_CXX@am__nodep@)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(apl_CXXFLAGS) $(CXXFLAGS) -c -o apl-Cmd_SESSION.obj `if test -f 'Cmd_SESSION.cc'; then $(CYGPATH_W) 'Cmd_SESSION.cc'; else $(CYGPATH_W) '$(srcdir)/Cmd_SESSION.cc'; fi`
+
+apl-Cmd_SI.o: Cmd_SI.cc
+@am__fastdepCXX_TRUE@	$(AM_V_CXX)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(apl_CXXFLAGS) $(CXXFLAGS) -MT apl-Cmd_SI.o -MD -MP -MF $(DEPDIR)/apl-Cmd_SI.Tpo -c -o apl-Cmd_SI.o `test -f 'Cmd_SI.cc' || echo '$(srcdir)/'`Cmd_SI.cc
+@am__fastdepCXX_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/apl-Cmd_SI.Tpo $(DEPDIR)/apl-Cmd_SI.Po
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	$(AM_V_CXX)source='Cmd_SI.cc' object='apl-Cmd_SI.o' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCXX_FALSE@	$(AM_V_CXX@am__nodep@)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(apl_CXXFLAGS) $(CXXFLAGS) -c -o apl-Cmd_SI.o `test -f 'Cmd_SI.cc' || echo '$(srcdir)/'`Cmd_SI.cc
+
+apl-Cmd_SI.obj: Cmd_SI.cc
+@am__fastdepCXX_TRUE@	$(AM_V_CXX)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(apl_CXXFLAGS) $(CXXFLAGS) -MT apl-Cmd_SI.obj -MD -MP -MF $(DEPDIR)/apl-Cmd_SI.Tpo -c -o apl-Cmd_SI.obj `if test -f 'Cmd_SI.cc'; then $(CYGPATH_W) 'Cmd_SI.cc'; else $(CYGPATH_W) '$(srcdir)/Cmd_SI.cc'; fi`
+@am__fastdepCXX_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/apl-Cmd_SI.Tpo $(DEPDIR)/apl-Cmd_SI.Po
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	$(AM_V_CXX)source='Cmd_SI.cc' object='apl-Cmd_SI.obj' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCXX_FALSE@	$(AM_V_CXX@am__nodep@)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(apl_CXXFLAGS) $(CXXFLAGS) -c -o apl-Cmd_SI.obj `if test -f 'Cmd_SI.cc'; then $(CYGPATH_W) 'Cmd_SI.cc'; else $(CYGPATH_W) '$(srcdir)/Cmd_SI.cc'; fi`
+
+apl-Cmd_USERCMD.o: Cmd_USERCMD.cc
+@am__fastdepCXX_TRUE@	$(AM_V_CXX)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(apl_CXXFLAGS) $(CXXFLAGS) -MT apl-Cmd_USERCMD.o -MD -MP -MF $(DEPDIR)/apl-Cmd_USERCMD.Tpo -c -o apl-Cmd_USERCMD.o `test -f 'Cmd_USERCMD.cc' || echo '$(srcdir)/'`Cmd_USERCMD.cc
+@am__fastdepCXX_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/apl-Cmd_USERCMD.Tpo $(DEPDIR)/apl-Cmd_USERCMD.Po
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	$(AM_V_CXX)source='Cmd_USERCMD.cc' object='apl-Cmd_USERCMD.o' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCXX_FALSE@	$(AM_V_CXX@am__nodep@)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(apl_CXXFLAGS) $(CXXFLAGS) -c -o apl-Cmd_USERCMD.o `test -f 'Cmd_USERCMD.cc' || echo '$(srcdir)/'`Cmd_USERCMD.cc
+
+apl-Cmd_USERCMD.obj: Cmd_USERCMD.cc
+@am__fastdepCXX_TRUE@	$(AM_V_CXX)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(apl_CXXFLAGS) $(CXXFLAGS) -MT apl-Cmd_USERCMD.obj -MD -MP -MF $(DEPDIR)/apl-Cmd_USERCMD.Tpo -c -o apl-Cmd_USERCMD.obj `if test -f 'Cmd_USERCMD.cc'; then $(CYGPATH_W) 'Cmd_USERCMD.cc'; else $(CYGPATH_W) '$(srcdir)/Cmd_USERCMD.cc'; fi`
+@am__fastdepCXX_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/apl-Cmd_USERCMD.Tpo $(DEPDIR)/apl-Cmd_USERCMD.Po
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	$(AM_V_CXX)source='Cmd_USERCMD.cc' object='apl-Cmd_USERCMD.obj' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCXX_FALSE@	$(AM_V_CXX@am__nodep@)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(apl_CXXFLAGS) $(CXXFLAGS) -c -o apl-Cmd_USERCMD.obj `if test -f 'Cmd_USERCMD.cc'; then $(CYGPATH_W) 'Cmd_USERCMD.cc'; else $(CYGPATH_W) '$(srcdir)/Cmd_USERCMD.cc'; fi`
+
+apl-Cmd_WS.o: Cmd_WS.cc
+@am__fastdepCXX_TRUE@	$(AM_V_CXX)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(apl_CXXFLAGS) $(CXXFLAGS) -MT apl-Cmd_WS.o -MD -MP -MF $(DEPDIR)/apl-Cmd_WS.Tpo -c -o apl-Cmd_WS.o `test -f 'Cmd_WS.cc' || echo '$(srcdir)/'`Cmd_WS.cc
+@am__fastdepCXX_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/apl-Cmd_WS.Tpo $(DEPDIR)/apl-Cmd_WS.Po
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	$(AM_V_CXX)source='Cmd_WS.cc' object='apl-Cmd_WS.o' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCXX_FALSE@	$(AM_V_CXX@am__nodep@)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(apl_CXXFLAGS) $(CXXFLAGS) -c -o apl-Cmd_WS.o `test -f 'Cmd_WS.cc' || echo '$(srcdir)/'`Cmd_WS.cc
+
+apl-Cmd_WS.obj: Cmd_WS.cc
+@am__fastdepCXX_TRUE@	$(AM_V_CXX)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(apl_CXXFLAGS) $(CXXFLAGS) -MT apl-Cmd_WS.obj -MD -MP -MF $(DEPDIR)/apl-Cmd_WS.Tpo -c -o apl-Cmd_WS.obj `if test -f 'Cmd_WS.cc'; then $(CYGPATH_W) 'Cmd_WS.cc'; else $(CYGPATH_W) '$(srcdir)/Cmd_WS.cc'; fi`
+@am__fastdepCXX_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/apl-Cmd_WS.Tpo $(DEPDIR)/apl-Cmd_WS.Po
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	$(AM_V_CXX)source='Cmd_WS.cc' object='apl-Cmd_WS.obj' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCXX_FALSE@	$(AM_V_CXX@am__nodep@)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(apl_CXXFLAGS) $(CXXFLAGS) -c -o apl-Cmd_WS.obj `if test -f 'Cmd_WS.cc'; then $(CYGPATH_W) 'Cmd_WS.cc'; else $(CYGPATH_W) '$(srcdir)/Cmd_WS.cc'; fi`
 
 apl-Doxy.o: Doxy.cc
 @am__fastdepCXX_TRUE@	$(AM_V_CXX)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(apl_CXXFLAGS) $(CXXFLAGS) -MT apl-Doxy.o -MD -MP -MF $(DEPDIR)/apl-Doxy.Tpo -c -o apl-Doxy.o `test -f 'Doxy.cc' || echo '$(srcdir)/'`Doxy.cc
@@ -4893,20 +5596,6 @@ apl-Plot_window_properties.obj: Plot_window_properties.cc
 @AMDEP_TRUE@@am__fastdepCXX_FALSE@	$(AM_V_CXX)source='Plot_window_properties.cc' object='apl-Plot_window_properties.obj' libtool=no @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
 @am__fastdepCXX_FALSE@	$(AM_V_CXX@am__nodep@)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(apl_CXXFLAGS) $(CXXFLAGS) -c -o apl-Plot_window_properties.obj `if test -f 'Plot_window_properties.cc'; then $(CYGPATH_W) 'Plot_window_properties.cc'; else $(CYGPATH_W) '$(srcdir)/Plot_window_properties.cc'; fi`
-
-apl-PrimitiveFunction.o: PrimitiveFunction.cc
-@am__fastdepCXX_TRUE@	$(AM_V_CXX)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(apl_CXXFLAGS) $(CXXFLAGS) -MT apl-PrimitiveFunction.o -MD -MP -MF $(DEPDIR)/apl-PrimitiveFunction.Tpo -c -o apl-PrimitiveFunction.o `test -f 'PrimitiveFunction.cc' || echo '$(srcdir)/'`PrimitiveFunction.cc
-@am__fastdepCXX_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/apl-PrimitiveFunction.Tpo $(DEPDIR)/apl-PrimitiveFunction.Po
-@AMDEP_TRUE@@am__fastdepCXX_FALSE@	$(AM_V_CXX)source='PrimitiveFunction.cc' object='apl-PrimitiveFunction.o' libtool=no @AMDEPBACKSLASH@
-@AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCXX_FALSE@	$(AM_V_CXX@am__nodep@)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(apl_CXXFLAGS) $(CXXFLAGS) -c -o apl-PrimitiveFunction.o `test -f 'PrimitiveFunction.cc' || echo '$(srcdir)/'`PrimitiveFunction.cc
-
-apl-PrimitiveFunction.obj: PrimitiveFunction.cc
-@am__fastdepCXX_TRUE@	$(AM_V_CXX)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(apl_CXXFLAGS) $(CXXFLAGS) -MT apl-PrimitiveFunction.obj -MD -MP -MF $(DEPDIR)/apl-PrimitiveFunction.Tpo -c -o apl-PrimitiveFunction.obj `if test -f 'PrimitiveFunction.cc'; then $(CYGPATH_W) 'PrimitiveFunction.cc'; else $(CYGPATH_W) '$(srcdir)/PrimitiveFunction.cc'; fi`
-@am__fastdepCXX_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/apl-PrimitiveFunction.Tpo $(DEPDIR)/apl-PrimitiveFunction.Po
-@AMDEP_TRUE@@am__fastdepCXX_FALSE@	$(AM_V_CXX)source='PrimitiveFunction.cc' object='apl-PrimitiveFunction.obj' libtool=no @AMDEPBACKSLASH@
-@AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCXX_FALSE@	$(AM_V_CXX@am__nodep@)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(apl_CXXFLAGS) $(CXXFLAGS) -c -o apl-PrimitiveFunction.obj `if test -f 'PrimitiveFunction.cc'; then $(CYGPATH_W) 'PrimitiveFunction.cc'; else $(CYGPATH_W) '$(srcdir)/PrimitiveFunction.cc'; fi`
 
 apl-PrintBuffer.o: PrintBuffer.cc
 @am__fastdepCXX_TRUE@	$(AM_V_CXX)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(apl_CXXFLAGS) $(CXXFLAGS) -MT apl-PrintBuffer.o -MD -MP -MF $(DEPDIR)/apl-PrintBuffer.Tpo -c -o apl-PrintBuffer.o `test -f 'PrintBuffer.cc' || echo '$(srcdir)/'`PrintBuffer.cc
@@ -6062,14 +6751,25 @@ distclean: distclean-recursive
 	-rm -f ./$(DEPDIR)/apl-Assert.Po
 	-rm -f ./$(DEPDIR)/apl-Avec.Po
 	-rm -f ./$(DEPDIR)/apl-Backtrace.Po
+	-rm -f ./$(DEPDIR)/apl-Bif_F0_ZILDE.Po
 	-rm -f ./$(DEPDIR)/apl-Bif_F12_COMMA.Po
 	-rm -f ./$(DEPDIR)/apl-Bif_F12_DOMINO.Po
+	-rm -f ./$(DEPDIR)/apl-Bif_F12_ELEMENT.Po
+	-rm -f ./$(DEPDIR)/apl-Bif_F12_ENCODE_DECODE.Po
+	-rm -f ./$(DEPDIR)/apl-Bif_F12_EQUIV.Po
 	-rm -f ./$(DEPDIR)/apl-Bif_F12_FORMAT.Po
 	-rm -f ./$(DEPDIR)/apl-Bif_F12_INDEX_OF.Po
 	-rm -f ./$(DEPDIR)/apl-Bif_F12_INTERVAL_INDEX.Po
 	-rm -f ./$(DEPDIR)/apl-Bif_F12_PARTITION_PICK.Po
+	-rm -f ./$(DEPDIR)/apl-Bif_F12_RHO.Po
+	-rm -f ./$(DEPDIR)/apl-Bif_F12_ROTATE.Po
 	-rm -f ./$(DEPDIR)/apl-Bif_F12_SORT.Po
 	-rm -f ./$(DEPDIR)/apl-Bif_F12_TAKE_DROP.Po
+	-rm -f ./$(DEPDIR)/apl-Bif_F12_TRANSPOSE.Po
+	-rm -f ./$(DEPDIR)/apl-Bif_F12_UNION_INTER.Po
+	-rm -f ./$(DEPDIR)/apl-Bif_F1_EXECUTE.Po
+	-rm -f ./$(DEPDIR)/apl-Bif_F2_INDEX.Po
+	-rm -f ./$(DEPDIR)/apl-Bif_F2_LEFT_RIGHT.Po
 	-rm -f ./$(DEPDIR)/apl-Bif_OPER1_COMMUTE.Po
 	-rm -f ./$(DEPDIR)/apl-Bif_OPER1_EACH.Po
 	-rm -f ./$(DEPDIR)/apl-Bif_OPER1_REDUCE.Po
@@ -6081,9 +6781,17 @@ distclean: distclean-recursive
 	-rm -f ./$(DEPDIR)/apl-CDR.Po
 	-rm -f ./$(DEPDIR)/apl-Cell.Po
 	-rm -f ./$(DEPDIR)/apl-CharCell.Po
+	-rm -f ./$(DEPDIR)/apl-Cmd_DIAG.Po
+	-rm -f ./$(DEPDIR)/apl-Cmd_HELP.Po
+	-rm -f ./$(DEPDIR)/apl-Cmd_HOST.Po
 	-rm -f ./$(DEPDIR)/apl-Cmd_IN.Po
 	-rm -f ./$(DEPDIR)/apl-Cmd_KEYB.Po
 	-rm -f ./$(DEPDIR)/apl-Cmd_LIB.Po
+	-rm -f ./$(DEPDIR)/apl-Cmd_LISTING.Po
+	-rm -f ./$(DEPDIR)/apl-Cmd_SESSION.Po
+	-rm -f ./$(DEPDIR)/apl-Cmd_SI.Po
+	-rm -f ./$(DEPDIR)/apl-Cmd_USERCMD.Po
+	-rm -f ./$(DEPDIR)/apl-Cmd_WS.Po
 	-rm -f ./$(DEPDIR)/apl-Command.Po
 	-rm -f ./$(DEPDIR)/apl-Common.Po
 	-rm -f ./$(DEPDIR)/apl-ComplexCell.Po
@@ -6126,7 +6834,6 @@ distclean: distclean-recursive
 	-rm -f ./$(DEPDIR)/apl-PointerCell.Po
 	-rm -f ./$(DEPDIR)/apl-Polynomial.Po
 	-rm -f ./$(DEPDIR)/apl-Prefix.Po
-	-rm -f ./$(DEPDIR)/apl-PrimitiveFunction.Po
 	-rm -f ./$(DEPDIR)/apl-PrintBuffer.Po
 	-rm -f ./$(DEPDIR)/apl-ProcessorID.Po
 	-rm -f ./$(DEPDIR)/apl-PythonPipe.Po
@@ -6187,14 +6894,25 @@ distclean: distclean-recursive
 	-rm -f ./$(DEPDIR)/lib_gnu_apl_la-Assert.Plo
 	-rm -f ./$(DEPDIR)/lib_gnu_apl_la-Avec.Plo
 	-rm -f ./$(DEPDIR)/lib_gnu_apl_la-Backtrace.Plo
+	-rm -f ./$(DEPDIR)/lib_gnu_apl_la-Bif_F0_ZILDE.Plo
 	-rm -f ./$(DEPDIR)/lib_gnu_apl_la-Bif_F12_COMMA.Plo
 	-rm -f ./$(DEPDIR)/lib_gnu_apl_la-Bif_F12_DOMINO.Plo
+	-rm -f ./$(DEPDIR)/lib_gnu_apl_la-Bif_F12_ELEMENT.Plo
+	-rm -f ./$(DEPDIR)/lib_gnu_apl_la-Bif_F12_ENCODE_DECODE.Plo
+	-rm -f ./$(DEPDIR)/lib_gnu_apl_la-Bif_F12_EQUIV.Plo
 	-rm -f ./$(DEPDIR)/lib_gnu_apl_la-Bif_F12_FORMAT.Plo
 	-rm -f ./$(DEPDIR)/lib_gnu_apl_la-Bif_F12_INDEX_OF.Plo
 	-rm -f ./$(DEPDIR)/lib_gnu_apl_la-Bif_F12_INTERVAL_INDEX.Plo
 	-rm -f ./$(DEPDIR)/lib_gnu_apl_la-Bif_F12_PARTITION_PICK.Plo
+	-rm -f ./$(DEPDIR)/lib_gnu_apl_la-Bif_F12_RHO.Plo
+	-rm -f ./$(DEPDIR)/lib_gnu_apl_la-Bif_F12_ROTATE.Plo
 	-rm -f ./$(DEPDIR)/lib_gnu_apl_la-Bif_F12_SORT.Plo
 	-rm -f ./$(DEPDIR)/lib_gnu_apl_la-Bif_F12_TAKE_DROP.Plo
+	-rm -f ./$(DEPDIR)/lib_gnu_apl_la-Bif_F12_TRANSPOSE.Plo
+	-rm -f ./$(DEPDIR)/lib_gnu_apl_la-Bif_F12_UNION_INTER.Plo
+	-rm -f ./$(DEPDIR)/lib_gnu_apl_la-Bif_F1_EXECUTE.Plo
+	-rm -f ./$(DEPDIR)/lib_gnu_apl_la-Bif_F2_INDEX.Plo
+	-rm -f ./$(DEPDIR)/lib_gnu_apl_la-Bif_F2_LEFT_RIGHT.Plo
 	-rm -f ./$(DEPDIR)/lib_gnu_apl_la-Bif_OPER1_COMMUTE.Plo
 	-rm -f ./$(DEPDIR)/lib_gnu_apl_la-Bif_OPER1_EACH.Plo
 	-rm -f ./$(DEPDIR)/lib_gnu_apl_la-Bif_OPER1_REDUCE.Plo
@@ -6206,9 +6924,17 @@ distclean: distclean-recursive
 	-rm -f ./$(DEPDIR)/lib_gnu_apl_la-CDR.Plo
 	-rm -f ./$(DEPDIR)/lib_gnu_apl_la-Cell.Plo
 	-rm -f ./$(DEPDIR)/lib_gnu_apl_la-CharCell.Plo
+	-rm -f ./$(DEPDIR)/lib_gnu_apl_la-Cmd_DIAG.Plo
+	-rm -f ./$(DEPDIR)/lib_gnu_apl_la-Cmd_HELP.Plo
+	-rm -f ./$(DEPDIR)/lib_gnu_apl_la-Cmd_HOST.Plo
 	-rm -f ./$(DEPDIR)/lib_gnu_apl_la-Cmd_IN.Plo
 	-rm -f ./$(DEPDIR)/lib_gnu_apl_la-Cmd_KEYB.Plo
 	-rm -f ./$(DEPDIR)/lib_gnu_apl_la-Cmd_LIB.Plo
+	-rm -f ./$(DEPDIR)/lib_gnu_apl_la-Cmd_LISTING.Plo
+	-rm -f ./$(DEPDIR)/lib_gnu_apl_la-Cmd_SESSION.Plo
+	-rm -f ./$(DEPDIR)/lib_gnu_apl_la-Cmd_SI.Plo
+	-rm -f ./$(DEPDIR)/lib_gnu_apl_la-Cmd_USERCMD.Plo
+	-rm -f ./$(DEPDIR)/lib_gnu_apl_la-Cmd_WS.Plo
 	-rm -f ./$(DEPDIR)/lib_gnu_apl_la-Command.Plo
 	-rm -f ./$(DEPDIR)/lib_gnu_apl_la-Common.Plo
 	-rm -f ./$(DEPDIR)/lib_gnu_apl_la-ComplexCell.Plo
@@ -6251,7 +6977,6 @@ distclean: distclean-recursive
 	-rm -f ./$(DEPDIR)/lib_gnu_apl_la-PointerCell.Plo
 	-rm -f ./$(DEPDIR)/lib_gnu_apl_la-Polynomial.Plo
 	-rm -f ./$(DEPDIR)/lib_gnu_apl_la-Prefix.Plo
-	-rm -f ./$(DEPDIR)/lib_gnu_apl_la-PrimitiveFunction.Plo
 	-rm -f ./$(DEPDIR)/lib_gnu_apl_la-PrintBuffer.Plo
 	-rm -f ./$(DEPDIR)/lib_gnu_apl_la-ProcessorID.Plo
 	-rm -f ./$(DEPDIR)/lib_gnu_apl_la-PythonPipe.Plo
@@ -6312,14 +7037,25 @@ distclean: distclean-recursive
 	-rm -f ./$(DEPDIR)/libapl_la-Assert.Plo
 	-rm -f ./$(DEPDIR)/libapl_la-Avec.Plo
 	-rm -f ./$(DEPDIR)/libapl_la-Backtrace.Plo
+	-rm -f ./$(DEPDIR)/libapl_la-Bif_F0_ZILDE.Plo
 	-rm -f ./$(DEPDIR)/libapl_la-Bif_F12_COMMA.Plo
 	-rm -f ./$(DEPDIR)/libapl_la-Bif_F12_DOMINO.Plo
+	-rm -f ./$(DEPDIR)/libapl_la-Bif_F12_ELEMENT.Plo
+	-rm -f ./$(DEPDIR)/libapl_la-Bif_F12_ENCODE_DECODE.Plo
+	-rm -f ./$(DEPDIR)/libapl_la-Bif_F12_EQUIV.Plo
 	-rm -f ./$(DEPDIR)/libapl_la-Bif_F12_FORMAT.Plo
 	-rm -f ./$(DEPDIR)/libapl_la-Bif_F12_INDEX_OF.Plo
 	-rm -f ./$(DEPDIR)/libapl_la-Bif_F12_INTERVAL_INDEX.Plo
 	-rm -f ./$(DEPDIR)/libapl_la-Bif_F12_PARTITION_PICK.Plo
+	-rm -f ./$(DEPDIR)/libapl_la-Bif_F12_RHO.Plo
+	-rm -f ./$(DEPDIR)/libapl_la-Bif_F12_ROTATE.Plo
 	-rm -f ./$(DEPDIR)/libapl_la-Bif_F12_SORT.Plo
 	-rm -f ./$(DEPDIR)/libapl_la-Bif_F12_TAKE_DROP.Plo
+	-rm -f ./$(DEPDIR)/libapl_la-Bif_F12_TRANSPOSE.Plo
+	-rm -f ./$(DEPDIR)/libapl_la-Bif_F12_UNION_INTER.Plo
+	-rm -f ./$(DEPDIR)/libapl_la-Bif_F1_EXECUTE.Plo
+	-rm -f ./$(DEPDIR)/libapl_la-Bif_F2_INDEX.Plo
+	-rm -f ./$(DEPDIR)/libapl_la-Bif_F2_LEFT_RIGHT.Plo
 	-rm -f ./$(DEPDIR)/libapl_la-Bif_OPER1_COMMUTE.Plo
 	-rm -f ./$(DEPDIR)/libapl_la-Bif_OPER1_EACH.Plo
 	-rm -f ./$(DEPDIR)/libapl_la-Bif_OPER1_REDUCE.Plo
@@ -6331,9 +7067,17 @@ distclean: distclean-recursive
 	-rm -f ./$(DEPDIR)/libapl_la-CDR.Plo
 	-rm -f ./$(DEPDIR)/libapl_la-Cell.Plo
 	-rm -f ./$(DEPDIR)/libapl_la-CharCell.Plo
+	-rm -f ./$(DEPDIR)/libapl_la-Cmd_DIAG.Plo
+	-rm -f ./$(DEPDIR)/libapl_la-Cmd_HELP.Plo
+	-rm -f ./$(DEPDIR)/libapl_la-Cmd_HOST.Plo
 	-rm -f ./$(DEPDIR)/libapl_la-Cmd_IN.Plo
 	-rm -f ./$(DEPDIR)/libapl_la-Cmd_KEYB.Plo
 	-rm -f ./$(DEPDIR)/libapl_la-Cmd_LIB.Plo
+	-rm -f ./$(DEPDIR)/libapl_la-Cmd_LISTING.Plo
+	-rm -f ./$(DEPDIR)/libapl_la-Cmd_SESSION.Plo
+	-rm -f ./$(DEPDIR)/libapl_la-Cmd_SI.Plo
+	-rm -f ./$(DEPDIR)/libapl_la-Cmd_USERCMD.Plo
+	-rm -f ./$(DEPDIR)/libapl_la-Cmd_WS.Plo
 	-rm -f ./$(DEPDIR)/libapl_la-Command.Plo
 	-rm -f ./$(DEPDIR)/libapl_la-Common.Plo
 	-rm -f ./$(DEPDIR)/libapl_la-ComplexCell.Plo
@@ -6376,7 +7120,6 @@ distclean: distclean-recursive
 	-rm -f ./$(DEPDIR)/libapl_la-PointerCell.Plo
 	-rm -f ./$(DEPDIR)/libapl_la-Polynomial.Plo
 	-rm -f ./$(DEPDIR)/libapl_la-Prefix.Plo
-	-rm -f ./$(DEPDIR)/libapl_la-PrimitiveFunction.Plo
 	-rm -f ./$(DEPDIR)/libapl_la-PrintBuffer.Plo
 	-rm -f ./$(DEPDIR)/libapl_la-ProcessorID.Plo
 	-rm -f ./$(DEPDIR)/libapl_la-PythonPipe.Plo
@@ -6507,14 +7250,25 @@ maintainer-clean: maintainer-clean-recursive
 	-rm -f ./$(DEPDIR)/apl-Assert.Po
 	-rm -f ./$(DEPDIR)/apl-Avec.Po
 	-rm -f ./$(DEPDIR)/apl-Backtrace.Po
+	-rm -f ./$(DEPDIR)/apl-Bif_F0_ZILDE.Po
 	-rm -f ./$(DEPDIR)/apl-Bif_F12_COMMA.Po
 	-rm -f ./$(DEPDIR)/apl-Bif_F12_DOMINO.Po
+	-rm -f ./$(DEPDIR)/apl-Bif_F12_ELEMENT.Po
+	-rm -f ./$(DEPDIR)/apl-Bif_F12_ENCODE_DECODE.Po
+	-rm -f ./$(DEPDIR)/apl-Bif_F12_EQUIV.Po
 	-rm -f ./$(DEPDIR)/apl-Bif_F12_FORMAT.Po
 	-rm -f ./$(DEPDIR)/apl-Bif_F12_INDEX_OF.Po
 	-rm -f ./$(DEPDIR)/apl-Bif_F12_INTERVAL_INDEX.Po
 	-rm -f ./$(DEPDIR)/apl-Bif_F12_PARTITION_PICK.Po
+	-rm -f ./$(DEPDIR)/apl-Bif_F12_RHO.Po
+	-rm -f ./$(DEPDIR)/apl-Bif_F12_ROTATE.Po
 	-rm -f ./$(DEPDIR)/apl-Bif_F12_SORT.Po
 	-rm -f ./$(DEPDIR)/apl-Bif_F12_TAKE_DROP.Po
+	-rm -f ./$(DEPDIR)/apl-Bif_F12_TRANSPOSE.Po
+	-rm -f ./$(DEPDIR)/apl-Bif_F12_UNION_INTER.Po
+	-rm -f ./$(DEPDIR)/apl-Bif_F1_EXECUTE.Po
+	-rm -f ./$(DEPDIR)/apl-Bif_F2_INDEX.Po
+	-rm -f ./$(DEPDIR)/apl-Bif_F2_LEFT_RIGHT.Po
 	-rm -f ./$(DEPDIR)/apl-Bif_OPER1_COMMUTE.Po
 	-rm -f ./$(DEPDIR)/apl-Bif_OPER1_EACH.Po
 	-rm -f ./$(DEPDIR)/apl-Bif_OPER1_REDUCE.Po
@@ -6526,9 +7280,17 @@ maintainer-clean: maintainer-clean-recursive
 	-rm -f ./$(DEPDIR)/apl-CDR.Po
 	-rm -f ./$(DEPDIR)/apl-Cell.Po
 	-rm -f ./$(DEPDIR)/apl-CharCell.Po
+	-rm -f ./$(DEPDIR)/apl-Cmd_DIAG.Po
+	-rm -f ./$(DEPDIR)/apl-Cmd_HELP.Po
+	-rm -f ./$(DEPDIR)/apl-Cmd_HOST.Po
 	-rm -f ./$(DEPDIR)/apl-Cmd_IN.Po
 	-rm -f ./$(DEPDIR)/apl-Cmd_KEYB.Po
 	-rm -f ./$(DEPDIR)/apl-Cmd_LIB.Po
+	-rm -f ./$(DEPDIR)/apl-Cmd_LISTING.Po
+	-rm -f ./$(DEPDIR)/apl-Cmd_SESSION.Po
+	-rm -f ./$(DEPDIR)/apl-Cmd_SI.Po
+	-rm -f ./$(DEPDIR)/apl-Cmd_USERCMD.Po
+	-rm -f ./$(DEPDIR)/apl-Cmd_WS.Po
 	-rm -f ./$(DEPDIR)/apl-Command.Po
 	-rm -f ./$(DEPDIR)/apl-Common.Po
 	-rm -f ./$(DEPDIR)/apl-ComplexCell.Po
@@ -6571,7 +7333,6 @@ maintainer-clean: maintainer-clean-recursive
 	-rm -f ./$(DEPDIR)/apl-PointerCell.Po
 	-rm -f ./$(DEPDIR)/apl-Polynomial.Po
 	-rm -f ./$(DEPDIR)/apl-Prefix.Po
-	-rm -f ./$(DEPDIR)/apl-PrimitiveFunction.Po
 	-rm -f ./$(DEPDIR)/apl-PrintBuffer.Po
 	-rm -f ./$(DEPDIR)/apl-ProcessorID.Po
 	-rm -f ./$(DEPDIR)/apl-PythonPipe.Po
@@ -6632,14 +7393,25 @@ maintainer-clean: maintainer-clean-recursive
 	-rm -f ./$(DEPDIR)/lib_gnu_apl_la-Assert.Plo
 	-rm -f ./$(DEPDIR)/lib_gnu_apl_la-Avec.Plo
 	-rm -f ./$(DEPDIR)/lib_gnu_apl_la-Backtrace.Plo
+	-rm -f ./$(DEPDIR)/lib_gnu_apl_la-Bif_F0_ZILDE.Plo
 	-rm -f ./$(DEPDIR)/lib_gnu_apl_la-Bif_F12_COMMA.Plo
 	-rm -f ./$(DEPDIR)/lib_gnu_apl_la-Bif_F12_DOMINO.Plo
+	-rm -f ./$(DEPDIR)/lib_gnu_apl_la-Bif_F12_ELEMENT.Plo
+	-rm -f ./$(DEPDIR)/lib_gnu_apl_la-Bif_F12_ENCODE_DECODE.Plo
+	-rm -f ./$(DEPDIR)/lib_gnu_apl_la-Bif_F12_EQUIV.Plo
 	-rm -f ./$(DEPDIR)/lib_gnu_apl_la-Bif_F12_FORMAT.Plo
 	-rm -f ./$(DEPDIR)/lib_gnu_apl_la-Bif_F12_INDEX_OF.Plo
 	-rm -f ./$(DEPDIR)/lib_gnu_apl_la-Bif_F12_INTERVAL_INDEX.Plo
 	-rm -f ./$(DEPDIR)/lib_gnu_apl_la-Bif_F12_PARTITION_PICK.Plo
+	-rm -f ./$(DEPDIR)/lib_gnu_apl_la-Bif_F12_RHO.Plo
+	-rm -f ./$(DEPDIR)/lib_gnu_apl_la-Bif_F12_ROTATE.Plo
 	-rm -f ./$(DEPDIR)/lib_gnu_apl_la-Bif_F12_SORT.Plo
 	-rm -f ./$(DEPDIR)/lib_gnu_apl_la-Bif_F12_TAKE_DROP.Plo
+	-rm -f ./$(DEPDIR)/lib_gnu_apl_la-Bif_F12_TRANSPOSE.Plo
+	-rm -f ./$(DEPDIR)/lib_gnu_apl_la-Bif_F12_UNION_INTER.Plo
+	-rm -f ./$(DEPDIR)/lib_gnu_apl_la-Bif_F1_EXECUTE.Plo
+	-rm -f ./$(DEPDIR)/lib_gnu_apl_la-Bif_F2_INDEX.Plo
+	-rm -f ./$(DEPDIR)/lib_gnu_apl_la-Bif_F2_LEFT_RIGHT.Plo
 	-rm -f ./$(DEPDIR)/lib_gnu_apl_la-Bif_OPER1_COMMUTE.Plo
 	-rm -f ./$(DEPDIR)/lib_gnu_apl_la-Bif_OPER1_EACH.Plo
 	-rm -f ./$(DEPDIR)/lib_gnu_apl_la-Bif_OPER1_REDUCE.Plo
@@ -6651,9 +7423,17 @@ maintainer-clean: maintainer-clean-recursive
 	-rm -f ./$(DEPDIR)/lib_gnu_apl_la-CDR.Plo
 	-rm -f ./$(DEPDIR)/lib_gnu_apl_la-Cell.Plo
 	-rm -f ./$(DEPDIR)/lib_gnu_apl_la-CharCell.Plo
+	-rm -f ./$(DEPDIR)/lib_gnu_apl_la-Cmd_DIAG.Plo
+	-rm -f ./$(DEPDIR)/lib_gnu_apl_la-Cmd_HELP.Plo
+	-rm -f ./$(DEPDIR)/lib_gnu_apl_la-Cmd_HOST.Plo
 	-rm -f ./$(DEPDIR)/lib_gnu_apl_la-Cmd_IN.Plo
 	-rm -f ./$(DEPDIR)/lib_gnu_apl_la-Cmd_KEYB.Plo
 	-rm -f ./$(DEPDIR)/lib_gnu_apl_la-Cmd_LIB.Plo
+	-rm -f ./$(DEPDIR)/lib_gnu_apl_la-Cmd_LISTING.Plo
+	-rm -f ./$(DEPDIR)/lib_gnu_apl_la-Cmd_SESSION.Plo
+	-rm -f ./$(DEPDIR)/lib_gnu_apl_la-Cmd_SI.Plo
+	-rm -f ./$(DEPDIR)/lib_gnu_apl_la-Cmd_USERCMD.Plo
+	-rm -f ./$(DEPDIR)/lib_gnu_apl_la-Cmd_WS.Plo
 	-rm -f ./$(DEPDIR)/lib_gnu_apl_la-Command.Plo
 	-rm -f ./$(DEPDIR)/lib_gnu_apl_la-Common.Plo
 	-rm -f ./$(DEPDIR)/lib_gnu_apl_la-ComplexCell.Plo
@@ -6696,7 +7476,6 @@ maintainer-clean: maintainer-clean-recursive
 	-rm -f ./$(DEPDIR)/lib_gnu_apl_la-PointerCell.Plo
 	-rm -f ./$(DEPDIR)/lib_gnu_apl_la-Polynomial.Plo
 	-rm -f ./$(DEPDIR)/lib_gnu_apl_la-Prefix.Plo
-	-rm -f ./$(DEPDIR)/lib_gnu_apl_la-PrimitiveFunction.Plo
 	-rm -f ./$(DEPDIR)/lib_gnu_apl_la-PrintBuffer.Plo
 	-rm -f ./$(DEPDIR)/lib_gnu_apl_la-ProcessorID.Plo
 	-rm -f ./$(DEPDIR)/lib_gnu_apl_la-PythonPipe.Plo
@@ -6757,14 +7536,25 @@ maintainer-clean: maintainer-clean-recursive
 	-rm -f ./$(DEPDIR)/libapl_la-Assert.Plo
 	-rm -f ./$(DEPDIR)/libapl_la-Avec.Plo
 	-rm -f ./$(DEPDIR)/libapl_la-Backtrace.Plo
+	-rm -f ./$(DEPDIR)/libapl_la-Bif_F0_ZILDE.Plo
 	-rm -f ./$(DEPDIR)/libapl_la-Bif_F12_COMMA.Plo
 	-rm -f ./$(DEPDIR)/libapl_la-Bif_F12_DOMINO.Plo
+	-rm -f ./$(DEPDIR)/libapl_la-Bif_F12_ELEMENT.Plo
+	-rm -f ./$(DEPDIR)/libapl_la-Bif_F12_ENCODE_DECODE.Plo
+	-rm -f ./$(DEPDIR)/libapl_la-Bif_F12_EQUIV.Plo
 	-rm -f ./$(DEPDIR)/libapl_la-Bif_F12_FORMAT.Plo
 	-rm -f ./$(DEPDIR)/libapl_la-Bif_F12_INDEX_OF.Plo
 	-rm -f ./$(DEPDIR)/libapl_la-Bif_F12_INTERVAL_INDEX.Plo
 	-rm -f ./$(DEPDIR)/libapl_la-Bif_F12_PARTITION_PICK.Plo
+	-rm -f ./$(DEPDIR)/libapl_la-Bif_F12_RHO.Plo
+	-rm -f ./$(DEPDIR)/libapl_la-Bif_F12_ROTATE.Plo
 	-rm -f ./$(DEPDIR)/libapl_la-Bif_F12_SORT.Plo
 	-rm -f ./$(DEPDIR)/libapl_la-Bif_F12_TAKE_DROP.Plo
+	-rm -f ./$(DEPDIR)/libapl_la-Bif_F12_TRANSPOSE.Plo
+	-rm -f ./$(DEPDIR)/libapl_la-Bif_F12_UNION_INTER.Plo
+	-rm -f ./$(DEPDIR)/libapl_la-Bif_F1_EXECUTE.Plo
+	-rm -f ./$(DEPDIR)/libapl_la-Bif_F2_INDEX.Plo
+	-rm -f ./$(DEPDIR)/libapl_la-Bif_F2_LEFT_RIGHT.Plo
 	-rm -f ./$(DEPDIR)/libapl_la-Bif_OPER1_COMMUTE.Plo
 	-rm -f ./$(DEPDIR)/libapl_la-Bif_OPER1_EACH.Plo
 	-rm -f ./$(DEPDIR)/libapl_la-Bif_OPER1_REDUCE.Plo
@@ -6776,9 +7566,17 @@ maintainer-clean: maintainer-clean-recursive
 	-rm -f ./$(DEPDIR)/libapl_la-CDR.Plo
 	-rm -f ./$(DEPDIR)/libapl_la-Cell.Plo
 	-rm -f ./$(DEPDIR)/libapl_la-CharCell.Plo
+	-rm -f ./$(DEPDIR)/libapl_la-Cmd_DIAG.Plo
+	-rm -f ./$(DEPDIR)/libapl_la-Cmd_HELP.Plo
+	-rm -f ./$(DEPDIR)/libapl_la-Cmd_HOST.Plo
 	-rm -f ./$(DEPDIR)/libapl_la-Cmd_IN.Plo
 	-rm -f ./$(DEPDIR)/libapl_la-Cmd_KEYB.Plo
 	-rm -f ./$(DEPDIR)/libapl_la-Cmd_LIB.Plo
+	-rm -f ./$(DEPDIR)/libapl_la-Cmd_LISTING.Plo
+	-rm -f ./$(DEPDIR)/libapl_la-Cmd_SESSION.Plo
+	-rm -f ./$(DEPDIR)/libapl_la-Cmd_SI.Plo
+	-rm -f ./$(DEPDIR)/libapl_la-Cmd_USERCMD.Plo
+	-rm -f ./$(DEPDIR)/libapl_la-Cmd_WS.Plo
 	-rm -f ./$(DEPDIR)/libapl_la-Command.Plo
 	-rm -f ./$(DEPDIR)/libapl_la-Common.Plo
 	-rm -f ./$(DEPDIR)/libapl_la-ComplexCell.Plo
@@ -6821,7 +7619,6 @@ maintainer-clean: maintainer-clean-recursive
 	-rm -f ./$(DEPDIR)/libapl_la-PointerCell.Plo
 	-rm -f ./$(DEPDIR)/libapl_la-Polynomial.Plo
 	-rm -f ./$(DEPDIR)/libapl_la-Prefix.Plo
-	-rm -f ./$(DEPDIR)/libapl_la-PrimitiveFunction.Plo
 	-rm -f ./$(DEPDIR)/libapl_la-PrintBuffer.Plo
 	-rm -f ./$(DEPDIR)/libapl_la-ProcessorID.Plo
 	-rm -f ./$(DEPDIR)/libapl_la-PythonPipe.Plo

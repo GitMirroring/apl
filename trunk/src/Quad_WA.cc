@@ -220,9 +220,20 @@ const char * mem_arg = UserPreferences::uprefs.mem_arg;
         CERR << "using --mem with user's value " << mem_arg << endl;
       }
 
-char mem_unit = mem_arg[strlen(mem_arg) -1];
-   if (mem_unit == 'b' || mem_unit == 'B')   // optional trailing B
-      mem_unit = mem_arg[strlen(mem_arg) -2];
+const size_t mem_arg_len = strlen(mem_arg);
+   // Assert(mem_arg) above guarantees non-null but not non-empty; an
+   // empty (or, for the -2 access below, single-character) --mem value
+   // made strlen(mem_arg) - N underflow to (size_t)-1, reading
+   // mem_arg[-1].
+   if (mem_arg_len == 0)
+      {
+        CERR << "*** --mem \"\" (empty) is not a valid memory size" << endl;
+        exit(3);
+      }
+
+char mem_unit = mem_arg[mem_arg_len - 1];
+   if ((mem_unit == 'b' || mem_unit == 'B') && mem_arg_len >= 2)
+      mem_unit = mem_arg[mem_arg_len - 2];
 
 #if MINGW_SRC
    if (mem_unit == '%')

@@ -100,7 +100,8 @@ public:
 
 protected:
    /// overloaded Cell::CDR_size() should not be called for pointer cells
-   virtual int CDR_size() const { NeverReach("PointerCell::CDR_size() called");}
+   virtual int CDR_size() const
+      { NeverReach("PointerCell::CDR_size() called"); return 0; }
 
    ///  overloaded Cell::get_cell_type()
    virtual CellType get_cell_type() const

@@ -217,7 +217,7 @@ public:
    ~Plot_data()
    {
      loop(r, idx)   delete data_rows[r];
-     delete data_rows;
+     delete[] data_rows;
    }
 
    /// return the number of plot lines

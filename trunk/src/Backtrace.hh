@@ -48,6 +48,16 @@ public:
    /// @param line  source line number where the call is made
    static void show(const char * file, int line);
 
+   /// show the current function call stack using only async-signal-safe
+   /// operations (raw backtrace() + backtrace_symbols_fd() + write();
+   /// no malloc, no __cxa_demangle, no iostream). Call this -- never
+   /// show() above -- from inside a signal handler: show()'s use of
+   /// backtrace_symbols()/__cxa_demangle() calls malloc() internally,
+   /// which can deadlock or crash a second time if the fault interrupted
+   /// the crashing thread while it already held glibc's malloc arena
+   /// lock. Prints raw (non-demangled) addresses only.
+   static void show_signal_safe();
+
 protected:
    /// a mapping from PCs to source lines.
    struct PC_src

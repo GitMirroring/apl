@@ -678,13 +678,19 @@ const APL_Float diff = val - result;
 ErrorCode
 ComplexCell::bif_add_cc(Cell * Z, APL_Complex a, APL_Complex b)
 {
-   return ComplexCell::zC(Z, a + b);
+const APL_Complex z = a + b;
+   if (!isfinite(z.real()))   return E_DOMAIN_ERROR;
+   if (!isfinite(z.imag()))   return E_DOMAIN_ERROR;
+   return ComplexCell::zC(Z, z);
 }
 //────────────────────────────────────────────────────────────────────────────
 ErrorCode
 ComplexCell::bif_subtract_cc(Cell * Z, APL_Complex a, APL_Complex b)
 {
-   return ComplexCell::zC(Z, a - b);
+const APL_Complex z = a - b;
+   if (!isfinite(z.real()))   return E_DOMAIN_ERROR;
+   if (!isfinite(z.imag()))   return E_DOMAIN_ERROR;
+   return ComplexCell::zC(Z, z);
 }
 //────────────────────────────────────────────────────────────────────────────
 ErrorCode
@@ -705,7 +711,33 @@ ComplexCell::bif_divide_cc(Cell * Z, APL_Complex a, APL_Complex b)
         if (a.imag() != 0.0)   return E_DOMAIN_ERROR;
         return IntCell::z1(Z);
       }
-   return ComplexCell::zC(Z, a / b);
+
+   // Smith's algorithm (avoids squaring b's components, unlike the naive
+   // formula and unlike libstdc++'s std::complex<>::operator/() for some
+   // versions/platforms) - confirmed directly: with the naive/library
+   // division, (1E10J1E10) ÷ (1E¯300J0) silently underflowed to 0J0
+   // instead of overflowing (the true quotient, ~1E310, does not fit in
+   // a double either way, but the wrong answer was a finite 0, not Inf).
+   //
+APL_Complex z;
+   if (fabs(b.real()) >= fabs(b.imag()))
+      {
+        const APL_Float r   = b.imag() / b.real();
+        const APL_Float den = b.real() + r*b.imag();
+        z = APL_Complex((a.real() + r*a.imag()) / den,
+                         (a.imag() - r*a.real()) / den);
+      }
+   else
+      {
+        const APL_Float r   = b.real() / b.imag();
+        const APL_Float den = b.imag() + r*b.real();
+        z = APL_Complex((a.real()*r + a.imag()) / den,
+                         (a.imag()*r - a.real()) / den);
+      }
+
+   if (!isfinite(z.real()))   return E_DOMAIN_ERROR;
+   if (!isfinite(z.imag()))   return E_DOMAIN_ERROR;
+   return ComplexCell::zC(Z, z);
 }
 //────────────────────────────────────────────────────────────────────────────
 ErrorCode

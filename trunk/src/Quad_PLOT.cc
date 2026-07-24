@@ -656,6 +656,20 @@ const ShapeItem data_points = rows * cols;
 
    if (planes == 3)   // X, Y, and Z
       {
+        // validate every cell before allocating anything below (mirroring
+        // setup_data_2D()): X/Y/Z/data are raw pointers with no owner, so
+        // a DOMAIN_ERROR thrown mid-loop after they were allocated would
+        // leak them.
+        loop(p, data_points)
+            {
+              if (!B.get_cravel(p).is_integer_cell() &&
+                  !B.get_cravel(p).is_real_cell())              DOMAIN_ERROR;
+              if (!B.get_cravel(p + data_points).is_integer_cell() &&
+                  !B.get_cravel(p + data_points).is_real_cell())   DOMAIN_ERROR;
+              if (!B.get_cravel(p + 2*data_points).is_integer_cell() &&
+                  !B.get_cravel(p + 2*data_points).is_real_cell())   DOMAIN_ERROR;
+            }
+
         if ((size_t)data_points > SIZE_MAX / 3)   WS_FULL;
         double * X = new double[3*data_points];
         double * Y = X + data_points;
@@ -692,6 +706,15 @@ const ShapeItem data_points = rows * cols;
       }
    else if (planes == 2)   // X and Y, but no Z
       {
+        // validate first -- see the planes==3 comment above.
+        loop(p, data_points)
+            {
+              if (!B.get_cravel(p).is_integer_cell() &&
+                  !B.get_cravel(p).is_real_cell())              DOMAIN_ERROR;
+              if (!B.get_cravel(p + data_points).is_integer_cell() &&
+                  !B.get_cravel(p + data_points).is_real_cell())   DOMAIN_ERROR;
+            }
+
         double * X = new double[2*data_points];
         double * Y = X + data_points;
         if (!X)   WS_FULL;
@@ -721,6 +744,13 @@ const ShapeItem data_points = rows * cols;
       }
    else                    // Y, but no X and no Z
       {
+        // validate first -- see the planes==3 comment above.
+        loop(p, data_points)
+            {
+              if (!B.get_cravel(p).is_integer_cell() &&
+                  !B.get_cravel(p).is_real_cell())   DOMAIN_ERROR;
+            }
+
         double * Y = new double[data_points];
         if (!Y)   WS_FULL;
 

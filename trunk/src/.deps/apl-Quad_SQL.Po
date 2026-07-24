@@ -278,12 +278,7 @@ apl-Quad_SQL.o: Quad_SQL.cc /usr/include/stdc-predef.h \
  ScalarFunction.hh Thread_context.hh PJob.hh ConstCell_P.hh \
  SymbolTable.hh SystemVariable.def sql/ArgListBuilder.hh sql/Provider.hh \
  sql/Connection.hh Quad_SQL.hh QuadFunction.hh Value.hh Security.hh \
- UserPreferences.hh sql/SqliteResultValue.hh Cell.hh \
- /usr/include/sqlite3.h sql/SqliteConnection.hh sql/SqliteProvider.hh \
- sql/Provider.hh sql/PostgresConnection.hh \
- /usr/include/postgresql/libpq-fe.h \
- /usr/include/postgresql/postgres_ext.h \
- /usr/include/postgresql/pg_config_ext.h sql/PostgresProvider.hh
+ UserPreferences.hh
 /usr/include/stdc-predef.h:
 /usr/include/string.h:
 /usr/include/x86_64-linux-gnu/bits/libc-header-start.h:
@@ -701,14 +696,3 @@ QuadFunction.hh:
 Value.hh:
 Security.hh:
 UserPreferences.hh:
-sql/SqliteResultValue.hh:
-Cell.hh:
-/usr/include/sqlite3.h:
-sql/SqliteConnection.hh:
-sql/SqliteProvider.hh:
-sql/Provider.hh:
-sql/PostgresConnection.hh:
-/usr/include/postgresql/libpq-fe.h:
-/usr/include/postgresql/postgres_ext.h:
-/usr/include/postgresql/pg_config_ext.h:
-sql/PostgresProvider.hh:

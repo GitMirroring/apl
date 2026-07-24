@@ -94,9 +94,21 @@ Signal_base * response = Signal_base::recv_TCP(sock, buffer, sizeof(buffer),
                                                del, log, &err_loc);
    if (response)
       {
-        memcpy(reinterpret_cast<void *>(&cache),
-               response->get__SVAR_RECORD_IS__record().data(),
-               sizeof(Svar_record));
+        const string record = response->get__SVAR_RECORD_IS__record();
+        if (record.size() >= sizeof(Svar_record))
+           {
+             memcpy(reinterpret_cast<void *>(&cache),
+                    record.data(), sizeof(Svar_record));
+           }
+        else
+           {
+             // peer sent a truncated SVAR_RECORD_IS -- reading
+             // sizeof(Svar_record) bytes from it would read past the
+             // string's own heap buffer. Treat as a protocol error.
+             get_CERR() << "Svar_record_P(): short SVAR_RECORD_IS record ("
+                        << record.size() << " < " << sizeof(Svar_record)
+                        << " bytes) at " << LOC << endl;
+           }
 
         delete response;
       }

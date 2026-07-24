@@ -23,6 +23,7 @@
 
 #include "Bif_F12_DOMINO.hh"
 #include "Bif_F12_FORMAT.hh"
+#include "Bif_F12_TRANSPOSE.hh"
 #include "ComplexCell.hh"
 #include "LibPaths.hh"
 #include "Polynomial.hh"

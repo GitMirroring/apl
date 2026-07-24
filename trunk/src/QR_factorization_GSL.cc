@@ -21,9 +21,9 @@
 /** @file
  */
 
+#include "Bif_F12_TRANSPOSE.hh"
 #include "Common.hh"
 #include "Cell.hh"
-#include "PrimitiveFunction.hh"
 #include "Value.hh"
 #include "Workspace.hh"
 

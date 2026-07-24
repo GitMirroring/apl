@@ -125,22 +125,31 @@ public:
 
    virtual bool is_pointer_cell(ShapeItem idx) const
       { return get_cravel(idx).is_pointer_cell(); }
+
    virtual bool is_lval_cell(ShapeItem idx) const
       { return get_cravel(idx).is_lval_cell(); }
+
    virtual bool is_simple_cell(ShapeItem idx) const
       { return get_cravel(idx).is_simple_cell(); }
+
    virtual bool is_character_cell(ShapeItem idx) const
       { return get_cravel(idx).is_character_cell(); }
+
    virtual bool is_integer_cell(ShapeItem idx) const
       { return get_cravel(idx).is_integer_cell(); }
+
    virtual bool is_numeric(ShapeItem idx) const
       { return get_cravel(idx).is_numeric(); }
+
    virtual bool is_complex_cell(ShapeItem idx) const
       { return get_cravel(idx).is_complex_cell(); }
+
    virtual bool is_near_int(ShapeItem idx) const
       { return get_cravel(idx).is_near_int(); }
+
    virtual bool is_near_bool(ShapeItem idx) const
       { return get_cravel(idx).is_near_bool(); }
+
    virtual bool is_near_real(ShapeItem idx) const
       { return get_cravel(idx).is_near_real(); }
    virtual bool is_real_cell(ShapeItem idx) const

@@ -60,31 +60,40 @@ Cell::same_half_plane(APL_Complex A, APL_Complex B)
 inline bool
 Cell::tolerantly_equal(APL_Complex A, APL_Complex B, double C)
 {
+   // ISO/IEC 13751 p.19, "A is Tolerantly-Equal to B Within C":
+   // Z is one if the distance-between A and B (i.e. mag(A-B)) is less
+   // than C times the larger-magnitude of A and B (i.e. C×max(mag(A),
+   // mag(B))). The standard's half-plane pre-check is deliberately NOT
+   // applied here: it breaks complex modulo of Gaussian integers (see
+   // NumericCell::cpx_gcd()).
+   //
+   // IBM APL2's apl2lrm.pdf phrases this differently ("real and
+   // imaginary parts are equal"), which read literally would compare
+   // the real and imaginary parts independently, each against its own
+   // (possibly tiny) scale rather than one scale shared by both. That
+   // reading conflicts with testcases/Boolean.tc's own
+   // `1J1E¯15 = 1J1E¯14` (expected: 1), which only holds if the tiny
+   // imaginary difference is judged against the dominant (~1) overall
+   // magnitude rather than against the imaginary parts' own scale -
+   // deliberately kept as ISO's shared-scale formula for that reason.
+   //
    if (A == B)   return true;
 
-   // Component-wise using the largest absolute component as common scale.
-   // This avoids both Euclidean sqrt and squaring small ⎕CT values, while
-   // keeping near-zero components tolerant (a near-zero component is scaled
-   // by the dominant component rather than collapsing to zero threshold).
+   // Compare squared magnitudes instead of mag(A-B) < C×max(mag(A),mag(B))
+   // to avoid two sqrt() calls; squaring both (non-negative) sides of that
+   // inequality gives mag²(A-B) < C²×max(mag(A),mag(B))² , and since
+   // squaring is monotonic, max(mag(A),mag(B))² == max(mag²(A), mag²(B)).
+   // (An earlier version of this code mistakenly scaled by C instead of
+   // C², making it roughly 1/C times too permissive.)
    //
-const APL_Float aR = A.real() < 0.0 ? -A.real() : A.real();
-const APL_Float aI = A.imag() < 0.0 ? -A.imag() : A.imag();
-const APL_Float bR = B.real() < 0.0 ? -B.real() : B.real();
-const APL_Float bI = B.imag() < 0.0 ? -B.imag() : B.imag();
-const APL_Float mAB = aR > aI ? aR : aI;
-const APL_Float mAB2 = bR > bI ? bR : bI;
-const APL_Float scale = mAB > mAB2 ? mAB : mAB2;
-const APL_Float threshold = C * scale;
+const APL_Complex A_B = A - B;
+const APL_Float dist2_A_B = A_B.real()*A_B.real() + A_B.imag()*A_B.imag();
 
-const APL_Float dR = A.real() - B.real();
-   if (dR >  threshold)   return false;
-   if (dR < -threshold)   return false;
+const APL_Float mag2_A = A.real()*A.real() + A.imag()*A.imag();
+const APL_Float mag2_B = B.real()*B.real() + B.imag()*B.imag();
+const APL_Float mag2_max = mag2_A > mag2_B ? mag2_A : mag2_B;
 
-const APL_Float dI = A.imag() - B.imag();
-   if (dI >  threshold)   return false;
-   if (dI < -threshold)   return false;
-
-   return true;
+   return dist2_A_B < (C*C)*mag2_max;
 }
 //════════════════════════════════════════════════════════════════════════════
 inline bool

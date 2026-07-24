@@ -307,7 +307,6 @@ UCS_string_vector directories;
        {
          const dirent * entry = readdir(dir);
          if (entry == 0)   break;   // directory loop done
-         const size_t dlen = strlen(entry->d_name);
          if (entry->d_name[0] == '.')   continue;   // ignore hidden files
 
          const UTF8_string filename_utf8(entry->d_name);
@@ -324,7 +323,10 @@ UCS_string_vector directories;
               continue;
             }
 
-         if (filename[dlen - 1] == '~')   continue;  // editor backup file
+         // dlen (a UTF-8 byte count) would index filename (a UCS_string of
+         // codepoints) with a byte offset -- wrong, and an OOB read
+         // (unchecked operator[]) for any multibyte name. Use back().
+         if (filename.size() && filename.back() == '~')   continue;  // editor backup file
 
          if (dbg)   // ]LIB ...
             {

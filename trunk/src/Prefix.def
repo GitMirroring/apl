@@ -4,8 +4,7 @@
    Generator:       tools/phrase_gen
    Generator input: tools/phrase_gen.def
 
-   USAGE: cd tools ; make gen    # hash table
-      OR: cd tools ; make gen2   # search tree
+   USAGE: cd tools ; make gen
 
    ╔══════╤═════ PHRASE TABLE ═══╤═══╤═══════════════╗
    ║number│ phrase               │len│ alias         ║

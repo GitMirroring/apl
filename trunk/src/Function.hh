@@ -243,7 +243,7 @@ public:
 
    /// Quad_CR of this function.
    virtual UCS_string canonical(bool with_lines) const
-      { NeverReach("Function::canonical() called"); }
+      { NeverReach("Function::canonical() called"); return UCS_string(); }
 
    /// if this function is an associative scalar function then return
    /// its associative cell function, otherwise 0.

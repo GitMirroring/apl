@@ -224,7 +224,13 @@ public:
    /// @param len length of the new trailing dimension
    void add_shape_item(ShapeItem len)
       { if (rho_rho >= MAX_RANK)   LIMIT_ERROR_RANK;
-        rho[rho_rho++] = len;   volume *= len; }   // no overflow check: by design
+        rho[rho_rho++] = len;   volume *= len; }
+      // no overflow check here (by design, hot path, and a partial
+      // product may legitimately overflow if a later axis is 0 --
+      // e.g. 1E7 1E7 1E7 0 1E7 1E7 1E7⍴42 is a tiny, valid, empty
+      // value). Callers that turn a Shape into an actual allocation
+      // must validate via checked_volume() instead of trusting the
+      // raw volume field -- see Value::init_ravel().
 
    /// possibly increase rank by prepending axes of length 1
    /// @param new_rank desired minimum rank; no-op if already >= new_rank
@@ -257,6 +263,31 @@ public:
       { Assert(r < rho_rho);
         if (rho[r])   { volume /= rho[r];  rho[r] = sh;  volume *= rho[r]; }
         else          { rho[r] = sh;   recompute_volume();                 } }
+
+   /// return the true volume (×/rho), throwing WS_FULL if it would
+   /// overflow. Unlike the raw \b volume field above (an incrementally
+   /// maintained cache that legitimately overflows mid-construction
+   /// whenever a not-yet-seen axis turns out to be 0, e.g.
+   /// 1E7 1E7 1E7 0 1E7 1E7 1E7⍴42 is a tiny, valid, empty value), this
+   /// recomputes from \b rho[] fresh and short-circuits to 0 the moment
+   /// any axis is 0 -- so it never rejects a shape whose true volume is
+   /// small just because an intermediate partial product was huge.
+   /// Callers that turn a Shape into a real ravel allocation must use
+   /// this instead of the raw volume field / get_volume().
+   ShapeItem checked_volume() const
+      { // scan for a zero axis FIRST: it may appear anywhere, and once
+        // found the true volume is 0 no matter how huge the other axes
+        // are, so no overflow check is needed (or wanted) at all.
+        loop(r, rho_rho)   if (rho[r] == 0)   return 0;
+
+        ShapeItem v = 1;
+        loop(r, rho_rho)
+           { const ShapeItem len = rho[r];
+             if (volume_overflow(v, len))   WS_FULL;
+             v *= len;
+           }
+        return v;
+      }
 
    /// return a shape like this, but with negative elements made positive
    Shape abs() const;
@@ -295,6 +326,23 @@ public:
    /// possibly expand rank and increase axes so that B fits into this shape
    /// @param B shape that must fit within the expanded shape
    void expand(const Shape & B);
+
+private:
+   /// return true iff a*b would overflow ShapeItem (int64_t). Fast path:
+   /// operands that both fit in int32_t can never overflow an int64_t
+   /// product; otherwise fall back to a double-precision magnitude check
+   /// against the same conservative LARGE_INT/SMALL_INT bound the rest of
+   /// the interpreter already uses (SystemLimits.def, reachable here via
+   /// Common.hh). Same technique as Cell::prod_overflow(), duplicated
+   /// rather than called to avoid pulling Cell.hh into Shape.hh.
+   /// @param a  first factor (current volume)
+   /// @param b  second factor (new shape item)
+   static bool volume_overflow(ShapeItem a, ShapeItem b)
+      { if (a <= 0x000000007FFFFFFFLL && a >= -0x0000000080000000LL &&
+            b <= 0x000000007FFFFFFFLL && b >= -0x0000000080000000LL)
+           return false;
+        const double prod = double(a) * double(b);
+        return prod > double(LARGE_INT) || prod < double(SMALL_INT); }
 
 protected:
    /// the rank (number of valid shape items)

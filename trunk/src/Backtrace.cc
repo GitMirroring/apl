@@ -31,6 +31,7 @@
 #include <vector>
 #include <sys/types.h>
 #include <sys/stat.h>
+#include <unistd.h>
 
 #include "Common.hh"   // for HAVE_EXECINFO_H et al.
 #include "Sys.hh"
@@ -106,6 +107,43 @@ std::vector<Backtrace::PC_src> Backtrace::pc_2_src;
 static int64_t main_offset_0 = 0;
 
 //════════════════════════════════════════════════════════════════════════════
+void
+Backtrace::show_signal_safe()
+{
+#ifndef HAVE_EXECINFO_H
+const char msg[] = "Cannot show function call stack: no execinfo.h\n";
+   if (write(STDERR_FILENO, msg, sizeof(msg) - 1)) { /* nothing to do */ }
+   return;
+
+#else
+
+   // backtrace() itself may allocate (unwind tables etc.) on its very
+   // first-ever call; main() calls it once during normal startup (see
+   // main.cc) specifically so that first allocation never happens here.
+   //
+void * buffer[200];
+const int size = backtrace(buffer, sizeof(buffer)/sizeof(*buffer));
+
+const char banner[] =
+      "-- raw backtrace (addresses only; not demangled -- see\n"
+      "   Backtrace::show_signal_safe() for why) --\n";
+   // return value deliberately ignored: this runs from a signal handler
+   // (or right before one, see main.cc's warm-up call) with nothing
+   // sensible to do about a failed/partial write while already crashing.
+   if (write(STDERR_FILENO, banner, sizeof(banner) - 1)) { /* nothing to do */ }
+
+   // backtrace_symbols_fd(), unlike backtrace_symbols(), does not call
+   // malloc() -- it is the one part of this API glibc itself documents
+   // as safe to call from a signal handler.
+   //
+   backtrace_symbols_fd(buffer, size, STDERR_FILENO);
+
+const char footer[] = "====================================================\n";
+   if (write(STDERR_FILENO, footer, sizeof(footer) - 1)) { /* nothing to do */ }
+
+#endif
+}
+//────────────────────────────────────────────────────────────────────────────
 void
 Backtrace::show(const char * file, int line)
 {

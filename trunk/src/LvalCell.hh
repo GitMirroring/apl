@@ -77,7 +77,7 @@ protected:
 
   /// Overloaded Cell::CDR_size() should not be called for lval cells
    virtual int CDR_size() const
-      { NeverReach("CDR_size called on LvalCell base class"); }
+      { NeverReach("CDR_size called on LvalCell base class"); return 0; }
 
    ///  Overloaded Cell::get_cell_type()
    virtual CellType get_cell_type() const

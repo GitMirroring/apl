@@ -9,6 +9,7 @@
 # put them into apl-x.x.tar.gz, but don't install them.
 #
 dist_noinst_DATA =              \
+        Add.tc                  \
         BracketIndex.tc         \
         Catenate.tc             \
         CatenateAxis.tc         \
@@ -21,6 +22,7 @@ dist_noinst_DATA =              \
         Depth.tc                \
         Disclose.tc             \
         DiscloseAxis.tc         \
+        Divide.tc               \
         Drop.tc                 \
         DropAxis.tc             \
         EachDyadic.tc           \
@@ -50,6 +52,7 @@ dist_noinst_DATA =              \
         MatrixDivide.tc         \
         MatrixInverse.tc        \
         Member.tc               \
+        Multiply.tc             \
         Negative.tc             \
         OuterProduct.tc         \
         Partition.tc            \
@@ -72,6 +75,7 @@ dist_noinst_DATA =              \
         Scan.tc                 \
         ScanAxis.tc             \
         Shape.tc                \
+        Subtract.tc             \
         Take.tc                 \
         TakeAxis.tc             \
         Transpose.tc            \

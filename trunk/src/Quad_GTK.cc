@@ -596,13 +596,13 @@ char * path = short_path;
 const size_t wlen = write(fd, path, TLV_len);
    if (wlen != TLV_len)
       {
-         delete del;
+         delete[] del;
          Quad_FIO::close_handle(fd);
          MORE_ERROR() << "write(Tag " << tag << ") failed in ⎕GTK";
          DOMAIN_ERROR;
       }
 
-   delete del;
+   delete[] del;
 }
 //────────────────────────────────────────────────────────────────────────────
 int

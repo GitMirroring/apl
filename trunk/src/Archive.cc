@@ -31,13 +31,24 @@
 #include <sys/types.h>
 
 #include "Archive.hh"
+#include "Bif_F0_ZILDE.hh"
 #include "Bif_F12_COMMA.hh"
 #include "Bif_F12_DOMINO.hh"
+#include "Bif_F12_ELEMENT.hh"
+#include "Bif_F12_ENCODE_DECODE.hh"
+#include "Bif_F12_EQUIV.hh"
 #include "Bif_F12_FORMAT.hh"
 #include "Bif_F12_INDEX_OF.hh"
 #include "Bif_F12_PARTITION_PICK.hh"
+#include "Bif_F12_RHO.hh"
+#include "Bif_F12_ROTATE.hh"
 #include "Bif_F12_SORT.hh"
 #include "Bif_F12_TAKE_DROP.hh"
+#include "Bif_F12_TRANSPOSE.hh"
+#include "Bif_F12_UNION_INTER.hh"
+#include "Bif_F1_EXECUTE.hh"
+#include "Bif_F2_INDEX.hh"
+#include "Bif_F2_LEFT_RIGHT.hh"
 #include "Bif_OPER1_COMMUTE.hh"
 #include "Bif_OPER1_EACH.hh"
 #include "Bif_OPER1_REDUCE.hh"
@@ -46,6 +57,7 @@
 #include "Bif_OPER2_OUTER.hh"
 #include "Bif_OPER2_POWER.hh"
 #include "Bif_OPER2_RANK.hh"
+#include "Cmd_DIAG.hh"
 #include "Common.hh"
 #include "Command.hh"
 #include "CharCell.hh"
@@ -243,7 +255,7 @@ XML_Saving_Archive::save()
                         BACKTRACE
                    err << endl << " Running )CHECK..." << endl;
                    UCS_string no_arg;
-                   Command::cmd_CHECK(err, no_arg);
+                   Cmd_DIAG::cmd_CHECK(err, no_arg);
                    err << endl;
 
 #if cfg_VALUE_HISTORY_WANTED
@@ -1014,11 +1026,17 @@ const void * item = Heapsort<_val_par>
 void
 XML_Saving_Archive::write_XML_header()
 {
-tm * t;
+tm t;
    {
+     // gmtime() returns a pointer into a static buffer that the next
+     // gmtime()/localtime()/ctime()/asctime() call anywhere in the
+     // process (e.g. from another thread) may overwrite; since t's
+     // fields are not read until much further down (after writing the
+     // whole DTD), use the reentrant form and copy the result onto our
+     // own stack immediately instead of holding onto that pointer.
      timeval now;   gettimeofday(&now, 0);
      time_t seconds = now.tv_sec;
-     t = gmtime(&seconds);
+     gmtime_r(&seconds, &t);
    }
 
 const int offset = Workspace::get_v_Quad_TZ().get_offset();   // timezone offset
@@ -1161,12 +1179,12 @@ const int offset = Workspace::get_v_Quad_TZ().get_offset();   // timezone offset
    }
    outf <<
         Workspace::get_WSID().get_name()
-     << "\" year=\""       << (t->tm_year + 1900)
-     << "\" month=\""      << (t->tm_mon  + 1)
-     << "\" day=\""        <<  t->tm_mday << "\"" << endl <<
-"           hour=\""       <<  t->tm_hour
-     << "\" minute=\""     <<  t->tm_min
-     << "\" second=\""     <<  t->tm_sec
+     << "\" year=\""       << (t.tm_year + 1900)
+     << "\" month=\""      << (t.tm_mon  + 1)
+     << "\" day=\""        <<  t.tm_mday << "\"" << endl <<
+"           hour=\""       <<  t.tm_hour
+     << "\" minute=\""     <<  t.tm_min
+     << "\" second=\""     <<  t.tm_sec
      << "\" timezone=\""   << offset << "\"" << endl <<
 "           saving_SVN=\"" << ARCHIVE_SVN
      << "\" syntax=\"" << ASX_MAJOR << "."

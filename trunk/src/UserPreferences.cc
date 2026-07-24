@@ -26,6 +26,7 @@
 #include <string.h>
 #include <sys/time.h>
 
+#include "Bif_F12_RHO.hh"
 #include "Bif_OPER2_INNER.hh"
 #include "Bif_OPER2_OUTER.hh"
 #include "Common.hh"

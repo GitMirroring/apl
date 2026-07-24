@@ -320,7 +320,7 @@ public:
    /// CDR format. The actual number of data bytes can be bigger if other
    /// cells need more bytes,
    virtual int CDR_size() const
-      { NeverReach("CDR_size called on Cell base class"); }
+      { NeverReach("CDR_size called on Cell base class"); return 0; }
 
    /// the Quad_CR representation of this cell
    /// @param pctx  print format context
@@ -341,7 +341,7 @@ public:
 
    /// Return value if it is (known to be) close to int, or else Assert()
    virtual APL_Integer get_checked_near_int()  const
-      { NeverReach("Value is not an integer"); }
+      { NeverReach("Value is not an integer"); return 0; }
 
    /// return the name of the class
    virtual const char * get_classname()  const   { return "Cell"; }
@@ -498,14 +498,33 @@ public:
 
    /// return \b true if multiplying a and b will (probably) overflow.
    /// For some huge a or b the result may incorrectly return true.
-   /// a or b the result may incorrectly return true.
    /// @param a  first factor
    /// @param b  second factor
    static bool prod_overflow(int64_t a, int64_t b)
       {
-        const int64_t prod = (a >> 4) * (b >> 4);
-        return prod >=  0x0FFFFFFFFFFFFFFELL
-            || prod <= -0x0FFFFFFFFFFFFFFELL;
+        // fast path: if a and b both fit in int32_t then |a*b| ≤ 2^62,
+        // which can never overflow int64_t (max magnitude 2^63) - skip
+        // the float check below (two int64_t comparisons per operand
+        // beat two int-to-double conversions plus a multiply, fabs(),
+        // and a float compare by a wide margin). A shift-based range
+        // test (x>>31 == 0 or -1) says the same thing but needs the
+        // shift width to exactly match int32_t's own width to avoid
+        // an aliasing trap for huge a or b close to ±2^63; comparing
+        // directly against the int32_t bounds sidesteps that question.
+        if (a <= 0x000000007FFFFFFFLL && a >= -0x0000000080000000LL &&
+            b <= 0x000000007FFFFFFFLL && b >= -0x0000000080000000LL)
+           return false;
+
+        // general path: compare the exact product using double
+        // precision. A double cannot represent every int64_t exactly
+        // (53 vs. 63 bits of mantissa), but that is irrelevant here:
+        // we only need to know whether the true product has crossed
+        // the (conservative) LARGE_INT/SMALL_INT boundary, and a
+        // double's relative error near that magnitude (roughly
+        // ±2^10) is negligible next to LARGE_INT's own margin below
+        // the actual int64_t limits (roughly 2×10^16).
+        const double prod = double(a) * double(b);
+        return prod > double(LARGE_INT) || prod < double(SMALL_INT);
       }
 
    /// return \b true if z = a + b had an overflow.

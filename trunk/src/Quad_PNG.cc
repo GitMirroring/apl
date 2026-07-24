@@ -464,7 +464,12 @@ UTF8 * scanline = RGB;
    loop(y, height)
        {
          row_pointers[y] = scanline;
-         scanline += planes*width*2;
+         // size_t(planes)*width*2, not planes*width*2: the latter is
+         // 32-bit int arithmetic (planes/width are int) and overflows
+         // (UB) for a row stride > INT_MAX even though rgb_bytes above
+         // was already widened to size_t -- row_pointers[y] would then
+         // point far outside RGB, into which png_read_image() writes.
+         scanline += size_t(planes) * width * 2;
        }
 
    // 3. set the desired input transformations...

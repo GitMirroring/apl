@@ -29,8 +29,13 @@
 #include <fcntl.h>
 #include <limits.h>
 #include <signal.h>
+#include <stdlib.h>   // for atexit(), see below
 #include <string.h>
 #include <sys/stat.h>
+
+#if HAVE_EXECINFO_H
+# include <execinfo.h>    // for backtrace() warm-up call, see below
+#endif
 
 #ifndef SIGHUP   // MINGW
 # define SIGHUP 1
@@ -132,7 +137,13 @@ signal_SEGV_handler(int)
    Thread_context::print_all(CERR);
 #endif // PARALLEL_ENABLED
 
-   BACKTRACE
+   // Backtrace::show() (the BACKTRACE macro) calls backtrace_symbols()
+   // and __cxa_demangle(), both of which call malloc() -- not safe here:
+   // if this fault interrupted the crashing thread while it already held
+   // glibc's malloc arena lock, re-entering malloc from this handler can
+   // deadlock or crash a second time (this is the "crashes at times" case
+   // noted historically in Backtrace.cc). Use the signal-safe variant.
+   Backtrace::show_signal_safe();
 
    CERR << "====================================================\n";
 
@@ -430,6 +441,24 @@ const bool log_startup =
    new_SEGV_action     .sa_handler = &signal_SEGV_handler;
    new_TERM_action     .sa_handler = &signal_TERM_handler;
    new_HUP_action      .sa_handler = &signal_HUP_handler;
+
+#if HAVE_EXECINFO_H
+   // prime backtrace(): its very first call ever may itself allocate
+   // (unwind tables etc.); doing that once here, in normal startup code,
+   // means signal_SEGV_handler()'s later call (via
+   // Backtrace::show_signal_safe()) never has to.
+   { void * warmup[1]; backtrace(warmup, 1); }
+#endif
+
+   // Output::mark_CERR_unsafe() must run before any static (global)
+   // destructor does -- including CERR's own -- or get_CERR() can still
+   // believe CERR is safe to use after it no longer is (see Output.hh for
+   // the exact destruction-order gap this closes). atexit() functions
+   // registered here, after every global's constructor has already run,
+   // are guaranteed by the standard to run before any of those globals'
+   // destructors, regardless of the (otherwise unspecified) order those
+   // destructors run in -- exactly the guarantee this needs.
+   atexit(&Output::mark_CERR_unsafe);
 
    sigaction(SIGINT,   &new_control_C_action, &old_control_C_action);
    sigaction(SIGUSR1,  &new_USR1_action,      &old_USR1_action);

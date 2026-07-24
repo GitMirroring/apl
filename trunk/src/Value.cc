@@ -116,6 +116,7 @@ Value::Value(const Shape & sh, uint64_t * bits, const char * loc)
    : DynamicObject(loc, &all_values),
      owner_count(0)
 {
+   sh.checked_volume();   // throw WS_FULL if sh's true volume overflows
    shape = sh;
    pointer_cell_count = 0;
    ravel.fetcher = &Ravel::bool_fetcher;
@@ -1956,7 +1957,7 @@ Value::init_ravel()
         InterruptContext::set_interrupt_raised(LOC);
       }
 
-const ShapeItem length = shape.get_volume();
+const ShapeItem length = shape.checked_volume();
 
    // small values always succeed...
    //

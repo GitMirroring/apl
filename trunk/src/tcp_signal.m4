@@ -187,6 +187,13 @@ typedef Sig_item_int < int64_t, 8> Sig_item_i64;   ///< 64-bit signed integer
 typedef Sig_item_int <uint64_t, 8> Sig_item_u64;   ///< 64-bit unsigned integer
 typedef Sig_item_xint<uint64_t, 8> Sig_item_x64;   ///< 64-bit hex integer
 
+/// the end of the buffer currently being deserialized by the Sig_item_*
+/// constructors below (set by Signal_base::recv_TCP() before it dispatches
+/// to a signal subclass constructor); used by Sig_item_string to bound its
+/// otherwise attacker-controlled 16-bit length against what was actually
+/// received, instead of trusting the length unconditionally.
+static const uint8_t * sig_buffer_end = 0;
+
 /// a string signal item of size \b bytes
 class Sig_item_string
 {
@@ -200,8 +207,16 @@ public:
    Sig_item_string(const uint8_t * & buffer)
       {
         Sig_item_u16 len (buffer);
-        value.reserve(len.get_value() + 2);
-        for (int b = 0; b < len.get_value(); ++b)   value += *buffer++;
+        int len_val = len.get_value();
+        if (sig_buffer_end && buffer + len_val > sig_buffer_end)
+           {
+             // declared length runs past the bytes actually received --
+             // clamp instead of reading adjacent heap/stack memory
+             len_val = sig_buffer_end > buffer ? int(sig_buffer_end - buffer)
+                                               : 0;
+           }
+        value.reserve(len_val + 2);
+        for (int b = 0; b < len_val; ++b)   value += *buffer++;
       }
 
    /// return the value of the item
@@ -471,6 +486,24 @@ ssize_t siglen = 0;
       {
         *loc = LOC;
         return 0;   // close
+      }
+
+   // siglen is a raw 4-byte length taken directly off the (unauthenticated,
+   // local TCP) wire, with no upper bound: an oversized value would size a
+   // heap allocation up to 4 GiB below (del = new char[siglen]) -- a
+   // resource-exhaustion DoS at best, or (on a 32-bit build, where ssize_t
+   // is 32 bits) a value >= 0x80000000 turns siglen negative here, bypasses
+   // the siglen > bufsize check below, and reaches recv() as a huge size_t
+   // -- a stack-buffer write overflow. Reject anything past a sane maximum
+   // up front; no legitimate signal (fixed header + one shared-variable
+   // value) is anywhere near this large.
+   //
+   enum { MAX_TCP_SIGNAL_SIZE = 64 << 20 };   // 64 MiB
+   if (siglen < 0 || siglen > MAX_TCP_SIGNAL_SIZE)
+      {
+        cerr << "*** bad siglen " << siglen << " in recv_TCP()" << endl;
+        *loc = LOC;
+        return 0;
       }
 
 // debug && *debug << "signal length is " << siglen << " in recv_TCP()" << endl;

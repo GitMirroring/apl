@@ -89,18 +89,18 @@ PRE_UNINSTALL = :
 POST_UNINSTALL = :
 build_triplet = x86_64-pc-linux-gnu
 host_triplet = x86_64-pc-linux-gnu
-am__append_1 = $(SQLITE3_CFLAGS)
-am__append_2 = $(SQLITE3_LDFLAGS)
-am__append_3 = SqliteArgListBuilder.cc	SqliteArgListBuilder.hh	\
-			SqliteConnection.cc	SqliteConnection.hh	\
-			SqliteResultValue.cc	SqliteResultValue.hh	\
-			SqliteProvider.cc	SqliteProvider.hh
+#am__append_1 = $(SQLITE3_CFLAGS)
+#am__append_2 = $(SQLITE3_LDFLAGS)
+#am__append_3 = SqliteArgListBuilder.cc	SqliteArgListBuilder.hh	\
+#			SqliteConnection.cc	SqliteConnection.hh	\
+#			SqliteResultValue.cc	SqliteResultValue.hh	\
+#			SqliteProvider.cc	SqliteProvider.hh
 
-am__append_4 = $(POSTGRESQL_CFLAGS)
-am__append_5 = $(POSTGRESQL_LDFLAGS)
-am__append_6 = PostgresArgListBuilder.cc PostgresArgListBuilder.hh \
-			PostgresConnection.cc     PostgresConnection.hh	\
-			PostgresProvider.cc       PostgresProvider.hh
+#am__append_4 = $(POSTGRESQL_CFLAGS)
+#am__append_5 = $(POSTGRESQL_LDFLAGS)
+#am__append_6 = PostgresArgListBuilder.cc PostgresArgListBuilder.hh \
+#			PostgresConnection.cc     PostgresConnection.hh	\
+#			PostgresProvider.cc       PostgresProvider.hh
 
 subdir = src/sql
 ACLOCAL_M4 = $(top_srcdir)/aclocal.m4
@@ -164,11 +164,11 @@ am__lib_sql_la_SOURCES_DIST = apl-sqlite.cc apl-sqlite.hh \
 	PostgresArgListBuilder.cc PostgresArgListBuilder.hh \
 	PostgresConnection.cc PostgresConnection.hh \
 	PostgresProvider.cc PostgresProvider.hh
-am__objects_1 = SqliteArgListBuilder.lo \
-	SqliteConnection.lo SqliteResultValue.lo \
-	SqliteProvider.lo
-am__objects_2 = PostgresArgListBuilder.lo \
-	PostgresConnection.lo PostgresProvider.lo
+#am__objects_1 = SqliteArgListBuilder.lo \
+#	SqliteConnection.lo SqliteResultValue.lo \
+#	SqliteProvider.lo
+#am__objects_2 = PostgresArgListBuilder.lo \
+#	PostgresConnection.lo PostgresProvider.lo
 am_lib_sql_la_OBJECTS = apl-sqlite.lo Connection.lo $(am__objects_1) \
 	$(am__objects_2)
 lib_sql_la_OBJECTS = $(am_lib_sql_la_OBJECTS)
@@ -300,6 +300,7 @@ ECHO_C =
 ECHO_N = -n
 ECHO_T = 
 EGREP = /usr/bin/grep -E
+ERLC = 
 ETAGS = etags
 EXEEXT = 
 FGREP = /usr/bin/grep -F
@@ -345,11 +346,11 @@ PATH_SEPARATOR = :
 PCRE_CFLAGS = 
 PCRE_LIBS = -lpcre2-32
 PERFORMANCE_COUNTERS_WANTED = no
-PG_CONFIG = /usr/bin/pg_config
+PG_CONFIG = 
 PKG_CONFIG = /usr/bin/pkg-config
-POSTGRESQL_CFLAGS = -I/usr/include/postgresql
-POSTGRESQL_LDFLAGS = -L/usr/lib/x86_64-linux-gnu -lpq
-POSTGRESQL_VERSION = 14.22 (Ubuntu 14.22-0ubuntu0.22.04.1)
+POSTGRESQL_CFLAGS = 
+POSTGRESQL_LDFLAGS = 
+POSTGRESQL_VERSION = 
 POW_LIB = 
 PYTHON_CFLAGS = 
 RANLIB = ranlib
@@ -359,9 +360,9 @@ SED = /usr/bin/sed
 SET_MAKE = 
 SHELL = /bin/bash
 SHORT_VALUE_LENGTH_WANTED = 12
-SQLITE3_CFLAGS = -I/usr/include
-SQLITE3_LDFLAGS = -L/usr/lib -lsqlite3
-SQLITE3_VERSION = 3.37.2
+SQLITE3_CFLAGS = 
+SQLITE3_LDFLAGS = 
+SQLITE3_VERSION = 
 STRIP = strip
 VALUE_CHECK_WANTED = no
 VALUE_HISTORY_WANTED = no
@@ -382,7 +383,7 @@ am__leading_dot = .
 am__quote = 
 am__tar = $${TAR-tar} chof - "$$tardir"
 am__untar = $${TAR-tar} xf -
-apl_BUILD_DATE = 2026-07-17 13:17:05 CEST
+apl_BUILD_DATE = 2026-07-24 14:43:33 CEST
 apl_BUILD_OS = Linux 5.15.0-177-generic x86_64
 bindir = ${exec_prefix}/bin
 build = x86_64-pc-linux-gnu

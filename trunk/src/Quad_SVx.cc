@@ -624,7 +624,16 @@ int last_zero = -1;
       {
         if (varnames[v] == 0)
            {
-             var_lengths.push_back(v + 1 - last_zero);
+             // distance from (one past) the previous terminator to and
+             // including this one; last_zero's initial -1 sentinel
+             // already makes this come out right for the first name.
+             // The "+ 1" this replaces double-counted the terminator,
+             // inflating every length by one -- which in turn inflated
+             // max_len below and made the fill loop's
+             // next_ravel_Char(Unicode(varnames[v++])) run one
+             // iteration too far, reading past varnames (garbage into
+             // the returned array) even for a single offered variable.
+             var_lengths.push_back(v - last_zero);
              last_zero = v;
            }
       }

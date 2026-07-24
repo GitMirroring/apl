@@ -135,6 +135,7 @@ void * emacs_start = dlsym(handle, "emacs_start");
       {
         t4 << ", but it\n   it is lacking the mandatory "
                        "function emacs_start()\n";
+        dlclose(handle);
         return t4;
       }
 
@@ -145,6 +146,7 @@ const int error =
 
    if (error)
       {
+        dlclose(handle);
         return t4 << ", but emacs_start()  returned error " << error << UNI_LF;
       }
 
@@ -283,6 +285,13 @@ NativeFunction::~NativeFunction()
              valid_functions.erase(valid_functions.begin() + v);
            }
       }
+
+   // the constructor dlopen()s handle before it can fail (missing
+   // get_function_mux()/get_signature(), or cant_be_defined()); on that
+   // failure path fix() deletes this object with handle still live, and
+   // (unlike destroy()/cleanup()) this destructor never dlclose()d it --
+   // each failed ⎕FX leaked a handle and kept the library mapped.
+   if (handle)   { dlclose(handle);   handle = 0; }
 }
 //────────────────────────────────────────────────────────────────────────────
 void *

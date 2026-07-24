@@ -54,3 +54,35 @@
 2 3 4 5 6
 2 3 4 5 6
 
+      ⍝ Integer overflow → float promotion (Cell::sum_overflow(),
+      ⍝ IntCell::bif_add_ii()). ⎕PP←17 so the promoted (float) results
+      ⍝ print with enough digits to be unambiguous.
+      ⍝
+      ⎕PP←17
+
+      ⍝ boundary: sum is exactly ⎕IO's largest int64 value, stays integer
+      9223372036854775806+1
+9223372036854775807
+      26⎕CR 9223372036854775806+1
+16
+
+      ⍝ one more: sum overflows int64, promoted to float
+      9223372036854775807+1
+9.2233720368547765E18
+      26⎕CR 9223372036854775807+1
+32
+
+      ⍝ boundary: sum is exactly the smallest int64 value, stays integer
+      ¯9223372036854775807+¯1
+¯9223372036854775808
+      26⎕CR ¯9223372036854775807+¯1
+16
+
+      ⍝ one more negative: sum overflows int64, promoted to float
+      ¯9223372036854775808+¯1
+¯9.2233720368547765E18
+      26⎕CR ¯9223372036854775808+¯1
+32
+
+      ⎕PP←10
+

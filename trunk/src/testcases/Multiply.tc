@@ -33,5 +33,42 @@
 2 2 2 2 2
 3 3 3 3 3
 
+      ⍝ Integer overflow → float promotion (IntCell::bif_multiply_ii()).
+      ⍝ Unlike + and -, × promotes as soon as the product's magnitude
+      ⍝ exceeds the conservative LARGE_INT/SMALL_INT threshold (≈9.2E18,
+      ⍝ ⎕SYL "largest/smallest integer"), well before the exact int64
+      ⍝ boundary (≈9.223E18) that + and - use. ⎕PP←17 so the promoted
+      ⍝ (float) results print with enough digits to be unambiguous.
+      ⍝
+      ⎕PP←17
+
+      ⍝ boundary: product is (just) below the conservative threshold,
+      ⍝ stays integer even though it is far from the true int64 limit
+      1000000000×9199999999
+9199999999000000000
+      26⎕CR 1000000000×9199999999
+16
+
+      ⍝ product crosses the conservative threshold: promoted to float,
+      ⍝ even though the exact integer product would still fit in int64
+      1000000000×9200000001
+9.2000000010000011E18
+      26⎕CR 1000000000×9200000001
+32
+
+      ⍝ clear overflow (positive): promoted to float
+      9223372036854775807×10
+9.2233720368547782E19
+      26⎕CR 9223372036854775807×10
+32
+
+      ⍝ clear overflow (negative): promoted to float
+      ¯9223372036854775807×10
+¯9.2233720368547782E19
+      26⎕CR ¯9223372036854775807×10
+32
+
+      ⎕PP←10
+
       ⍝ ==================================
 

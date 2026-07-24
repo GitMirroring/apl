@@ -22,6 +22,7 @@
 */
 
 #include "Assert.hh"
+#include "Bif_F12_RHO.hh"
 #include "CDR.hh"
 #include "CharCell.hh"
 #include "ComplexCell.hh"

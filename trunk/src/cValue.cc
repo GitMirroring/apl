@@ -1808,7 +1808,14 @@ Value_P Z(get_shape(), loc);
              const size_t nbytes = (get_ravel_type() == RPT_BOOL)
                                   ? (size_t(count) + 7) / 8
                                   : size_t(count) * packed_bytes_per_item();
-             memcpy(&Z->get_wfirst(), cravel_packed(), nbytes);
+             // cast to void*: this is a bulk raw-byte copy of packed
+             // storage, not construction of Cell objects (see the packed
+             // fast-path comment above) -- Cell itself is not trivially
+             // copyable (it has virtual functions), so memcpy'ing through
+             // a bare Cell* triggers -Wclass-memaccess; the explicit cast
+             // says so instead of suppressing the diagnostic wholesale.
+             memcpy(reinterpret_cast<void *>(&Z->get_wfirst()),
+                    cravel_packed(), nbytes);
            }
         else
            {

@@ -96,6 +96,12 @@ ostream & get_CERR()
       return ErrOut_filebuf::used ? CERR : cerr;
 };
 
+void
+Output::mark_CERR_unsafe()
+{
+   ErrOut_filebuf::used = false;
+}
+
 Output::ColorMode Output::color_mode = COLM_UNDEF;
 
 /// CSI sequence for ANSI/VT100 terminals (ESC [)

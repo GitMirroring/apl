@@ -286,8 +286,7 @@ apl-sqlite.lo: apl-sqlite.cc /usr/include/stdc-predef.h \
  /usr/include/c++/11/bits/stl_map.h \
  /usr/include/c++/11/bits/stl_multimap.h \
  /usr/include/c++/11/bits/erase_if.h Connection.hh ArgListBuilder.hh \
- Provider.hh SqliteResultValue.hh ../Cell.hh /usr/include/sqlite3.h \
- SqliteConnection.hh SqliteProvider.hh
+ Provider.hh
 /usr/include/stdc-predef.h:
 /usr/include/c++/11/vector:
 /usr/include/c++/11/bits/stl_algobase.h:
@@ -701,8 +700,3 @@ apl-sqlite.hh:
 Connection.hh:
 ArgListBuilder.hh:
 Provider.hh:
-SqliteResultValue.hh:
-../Cell.hh:
-/usr/include/sqlite3.h:
-SqliteConnection.hh:
-SqliteProvider.hh:

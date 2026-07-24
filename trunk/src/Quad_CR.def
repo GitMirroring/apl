@@ -69,6 +69,8 @@
   crdef(47, style_boxed_8          , "Z  ← 47 ⎕CR B   ⍝ 8 ⎕CR without frame decorators"                       )
   crdef(48, packet_type            , "Zi ← 'packet_type' ⎕CR B  ⍝ ravel packing type of B as integer scalar"  )
   crdef(49, pack_threshold         , "Zi ← 'pack_threshold' ⎕CR B  ⍝ minimum ravel length for automatic packing" )
+  crdef(50, int_to_HEX             , "Zs ← 50 ⎕CR Bi  ⍝ Zs[IDX] is (uppercase) HEX of int Bi[IDX], 2's complement if < 0" )
+  crdef(51, int_to_hex             , "Zs ← 51 ⎕CR Bi  ⍝ Zs[IDX] is (lowercase) hex of int Bi[IDX], 2's complement if < 0" )
 #else
  #error "macro crdef() was not #define'd"
 #endif

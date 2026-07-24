@@ -613,16 +613,64 @@ Z←2 2⍴5 6.6 7J8
       'pack_threshold' ⎕CR B
 12
 
+      50 ⎕CR 0 1 15 16 255 4096
+ 0 1 F 10 FF 1000 
+
+      51 ⎕CR 0 1 15 16 255 4096
+ 0 1 f 10 ff 1000 
+
+      50 ⎕CR (⊂1 2 3),⊂10 200
+  1 2 3    A C8  
+
+      50 ⎕CR 200
+C8
+
+      50 ⎕CR 0
+0
+
+      50 ⎕CR ¯1
+FF
+
+      51 ⎕CR ¯1
+ff
+
+      50 ⎕CR ¯16
+F0
+
+      50 ⎕CR ¯200
+FF38
+
+      50 ⎕CR ¯32768
+8000
+
+      50 ⎕CR ¯1J1
+DOMAIN ERROR+
+      50 ⎕CR ¯1J1
+      ^  ^
+
+      )MORE
+50/51 ⎕CR B : B is not an integer
+      →
+
+      50 ⎕CR 1.5
+DOMAIN ERROR+
+      50 ⎕CR 1.5
+      ^  ^
+
+      )MORE
+50/51 ⎕CR B : B is not an integer
+      →
+
       ⍝ trigger a domain error if new left arguments were implemented
       ⍝ without adding a testcase for them above
       ⍝
-      50 ⎕CR B
+      52 ⎕CR B
 DOMAIN ERROR+
-      50 ⎕CR B
+      52 ⎕CR B
       ^      ^
 
       )MORE
-A ⎕CR B with invalid A (=50)
+A ⎕CR B with invalid A (=52)
       →
 
       ⍝ regression

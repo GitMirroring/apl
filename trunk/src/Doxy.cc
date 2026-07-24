@@ -25,6 +25,7 @@
 #include <errno.h>
 #include <sys/stat.h>
 
+#include "Bif_F12_ELEMENT.hh"
 #include "Bif_F12_TAKE_DROP.hh"
 #include "Doxy.hh"
 #include "Heapsort.hh"
@@ -128,8 +129,8 @@ Doxy::functions_table_entry(const Symbol * fun_sym, ofstream & page,
    loop(si, fun_sym->value_stack_size())
        {
          cFunction_P fun = fun_sym->get_function(si);
-         const UserFunction * ufun = fun->get_func_ufun();
          if (fun == 0)   continue;
+         const UserFunction * ufun = fun->get_func_ufun();
 
          const int si_level = fun_sym->get_SI_level(fun);
 
@@ -736,7 +737,7 @@ PipeReader dot(cmd);
 char buffer[1000];
    for (;;)
        {
-         const int len = dot.fread(buffer, sizeof(buffer));
+         const int len = dot.fread(buffer, sizeof(buffer) - 1);
          if (len == 0)   break;
          buffer[len] = 0;
          CERR << "dot says: " << buffer;

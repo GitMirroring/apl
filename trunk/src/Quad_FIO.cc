@@ -2180,7 +2180,15 @@ Token
 Quad_FIO::eval_AXB__8(Value_P A, Value_P B)
 {
    errno = 0;
-const size_t bytes = A->get_near_int(0);
+   // A->get_near_int(0) is signed; copying it straight into a size_t (as
+   // was done before) has no lower bound, so Ai = ¯1 wrapped to SIZE_MAX,
+   // making "new char[bytes + 1]" wrap to a 0-byte allocation while
+   // "bytes" (truncated to fgets's int size parameter) became ¯1 --
+   // a libc that accepts a non-positive size then writes a full line into
+   // that 0-byte heap buffer. Validate the signed value first.
+const APL_Integer bytes_signed = A->get_near_int(0);
+   if (bytes_signed < 1 || bytes_signed > 100000000)   LENGTH_ERROR;
+const size_t bytes = bytes_signed;
 FILE * file = get_FILE(*B);
    clearerr(file);
 char small_buffer[SMALL_BUF];
@@ -2188,7 +2196,7 @@ char * buffer = small_buffer;
 char * del = 0;
    if (bytes > sizeof(small_buffer))
       buffer = del = new char[bytes + 1];
-const char * s = fgets(buffer, bytes, file);
+const char * s = fgets(buffer, int(bytes), file);
 const int len = s ? strlen(s) : 0;
 Value_P Z(len, LOC);
    loop(z, len)   Z->next_ravel_Int(buffer[z] & 0xFF);
@@ -2267,6 +2275,13 @@ Quad_FIO::eval_B___18(Value_P B)
 {
 const int64_t blocks = B->get_int_value(1);
 const int64_t verbo  = B->get_int_value(2);
+   // blocks * 512 below is computed in signed 64-bit and can itself wrap
+   // to a small (or negative) value for a large blocks, in which case the
+   // allocation SUCCEEDS at the wrapped-small size while probe_memory()
+   // still writes using the original, huge blocks -- an OOB write that
+   // the try/catch(bad_alloc) below does not catch, since no exception is
+   // thrown in that case. Reject blocks that would overflow first.
+   if (blocks < 1 || uint64_t(blocks) > SIZE_MAX / 512)   WS_FULL;
 uint64_t * p = 0;
    try { p = new uint64_t[blocks * 512]; }
    catch (std::bad_alloc &) { WS_FULL; }

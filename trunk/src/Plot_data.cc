@@ -30,7 +30,7 @@ Plot_data::Color_from_str(const char * str, const char * & error)
    error = 0;   // assume no error
 
 uint32_t r, g, b;
-   if (3 == sscanf(str, " %u %u %u", &r, &b, &g))
+   if (3 == sscanf(str, " %u %u %u", &r, &g, &b))
       return (r & 0xFF) << 16 | (g & 0xFF) << 8 | (b & 0xFF);
 
    if (const char * h = strchr(str, '#'))

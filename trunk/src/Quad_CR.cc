@@ -189,6 +189,8 @@ bool extra_frame = false;
         case 47: FRAME(PR_BOXED_GRAPHIC5)
         case 48: return do_CR48(B);            // ravel packing type as scalar
         case 49: return do_CR49(B);            // packing threshold as scalar
+        case 50:                               // int (elementwise) → HEX
+        case 51: return do_CR50_51(a, B);      // int (elementwise) → hex
 
         default: MORE_ERROR() << "A ⎕CR B with invalid A (=" << a << ")";
                  DOMAIN_ERROR;
@@ -1341,6 +1343,94 @@ Value_P
 Quad_CR::do_CR49(cValue_R B)
 {
    return IntScalar(Value::PACKED_MINIMUM_LENGHT, LOC);
+}
+//────────────────────────────────────────────────────────────────────────────
+Value_P
+Quad_CR::hex_of_int_cell(int A_50_51, const Cell & cB, const char * idx_txt)
+{
+   // is_near_int() alone is not enough: ComplexCell::is_near_int() checks
+   // that the real *and* imaginary parts are each individually integral,
+   // which is true (and misleading) for e.g. ¯1J1 -- both -1 and 1 are
+   // "near an int", but ¯1J1 is not a real integer. Reject complex cells
+   // outright.
+   if (cB.is_complex_cell() || !cB.is_near_int())
+      {
+        MORE_ERROR() << "50/51 ⎕CR B : B" << idx_txt
+                     << " is not an integer";
+        DOMAIN_ERROR;
+      }
+
+const APL_Integer value = cB.get_near_int();
+const char * format = (A_50_51 == 50) ? "%0*llX" : "%0*llx";
+char cc[24];
+
+   if (value >= 0)
+      {
+        // no leading zeros -- except for 0 itself, which %llX/%llx
+        // already renders as "0" rather than an empty string.
+        SPRINTF(cc, (A_50_51 == 50) ? "%llX" : "%llx", ulong_long(value));
+      }
+   else
+      {
+        // negative: two's complement, using the fewest whole BYTES (not
+        // just nibbles) that both represent the value correctly and keep
+        // the top bit set (so it reads as negative); byte-alignment is
+        // what guarantees an even digit count, and the digits *above*
+        // the value's own minimal width come out as 'F' automatically,
+        // since two's-complement sign-extension of a negative number is
+        // all-1-bits. E.g. ¯1 → FF (1 byte; -1 alone would need just one
+        // nibble, 0xF, but that is not byte-aligned, so it widens to
+        // 0xFF), ¯200 → FF38 (2 bytes; -200 does not fit in 1 signed
+        // byte).
+        //
+        int nbytes = 1;
+        for (; nbytes < 8; ++nbytes)
+           {
+             const int64_t half = int64_t(1) << (8*nbytes - 1);
+             if (value >= -half && value <= half - 1)   break;
+           }
+
+        const uint64_t mask = (nbytes == 8) ? ~0ULL
+                                            : (1ULL << (8*nbytes)) - 1;
+        const uint64_t bits = uint64_t(value) & mask;
+        SPRINTF(cc, format, 2*nbytes, ulong_long(bits));
+      }
+
+   return Value_P(UCS_ASCII_string(cc), LOC);
+}
+//────────────────────────────────────────────────────────────────────────────
+Value_P
+Quad_CR::do_CR50_51(int A_50_51, cValue_R B)
+{
+   // elementwise (rather than 5/6's whole-vector) integer → hex string.
+   // A scalar B converts to a plain (non-nested) string; a non-scalar B
+   // converts to a same-shaped Z with one nested hex string Z[IDX] per
+   // B[IDX] (recursing into nested items of B the same way do_CR26()
+   // does, and applying the same scalar-B-is-a-plain-string rule at
+   // every recursion level).
+   //
+   if (B.is_scalar())   return hex_of_int_cell(A_50_51, B.get_cscalar(), "");
+
+Value_P Z(B.get_shape(), LOC);
+
+   loop(b, B.element_count())
+       {
+         const Cell & cB = B.get_cravel(b);
+         if (cB.is_pointer_cell())
+            {
+              Value_P Z_sub = do_CR50_51(A_50_51, *cB.get_pointer_value());
+              Z->next_ravel_Pointer(Z_sub.get());
+              continue;
+            }
+
+         char idx_txt[24];   // "[" + up to 20 digits/sign (int64) + "]" + NUL
+         SPRINTF(idx_txt, "[%lld]", long_long(b));
+         Value_P Z_sub = hex_of_int_cell(A_50_51, cB, idx_txt);
+         Z->next_ravel_Pointer(Z_sub.get());
+       }
+
+   Z->check_value(LOC);
+   return Z;
 }
 //────────────────────────────────────────────────────────────────────────────
 Value_P

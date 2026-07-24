@@ -130,7 +130,17 @@ ShapeItem repeat_cnt = N->get_cfirst().get_checked_near_int();
         if (inverse == 0)   DOMAIN_ERROR;   // no inverse for LO
 
         LO = inverse;
-        repeat_cnt = - repeat_cnt;
+
+        // negating repeat_cnt's own most negative value overflows (the
+        // same hazard Bif_OPER1_REDUCE::do_reduce() guards for n_wise);
+        // left unchecked, repeat_cnt stays negative, and the loop below
+        // (`if (--repeat_cnt == 0) return ...`) then wraps it from
+        // INT64_MIN down through INT64_MAX and applies the inverse
+        // ~2⁶³ times -- a near-infinite loop.
+        const ShapeItem neg_repeat_cnt = - repeat_cnt;
+        if (Cell::diff_overflow(neg_repeat_cnt, 0, repeat_cnt))
+           DOMAIN_ERROR;
+        repeat_cnt = neg_repeat_cnt;
       }
 
    if (repeat_cnt == 1)

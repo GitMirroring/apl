@@ -103,6 +103,19 @@ public:
    /// reset colors to black and white
    static void reset_colors();
 
+   /// mark CERR unsafe to use via get_CERR() from here on. Must be called
+   /// (via atexit(), see main.cc) before static destruction begins: within
+   /// Output.cc, ostream CERR is destroyed *before* ErrOut_filebuf
+   /// CERR_filebuf (constructed first, so -- per C++'s reverse-order-of-
+   /// construction destruction rule -- destroyed last), which left a real
+   /// window where ErrOut_filebuf::used was still true, and therefore
+   /// get_CERR() still returned CERR, after CERR itself had already been
+   /// destroyed. Any code reachable from another global's destructor during
+   /// that window (an Assert() failure, most plausibly) was reading through
+   /// an already-destroyed ostream -- undefined behavior, in practice a
+   /// crash after )OFF or at any other static-teardown exit path.
+   static void mark_CERR_unsafe();
+
    /// reset() dout_filebuf
    static void reset_dout();
 

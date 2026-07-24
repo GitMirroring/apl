@@ -379,7 +379,6 @@ protected:
         int            prio;            ///< phrase priority
         int            misc;            ///< 1 if MISC phrase
         int            phrase_len;      ///< phrase length
-        uint8_t        sub_nodes[TC_MAX_PHRASE+1];   ///< parent nodes
       };
 
    /// push the next token onto the stack. Return \b true iff )SI was pushed.

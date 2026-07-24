@@ -17,7 +17,7 @@ old_library='lib_sql.a'
 inherited_linker_flags=''
 
 # Libraries that this one depends upon.
-dependency_libs=' -L/usr/lib -lsqlite3 -lpq -lcairo -lgdk-3 -lgtk-3 -lgsl -lgslcblas -lpcre2-32 -lpng -lz -lfftw3 -lX11-xcb -lxcb -lX11 -ldl -lnsl -lpthread'
+dependency_libs=' -lcairo -lgdk-3 -lgtk-3 -lgsl -lgslcblas -lpcre2-32 -lpng -lz -lfftw3 -lX11-xcb -lxcb -lX11 -ldl -lnsl -lpthread'
 
 # Names of additional weak libraries provided by this library
 weak_library_names=''

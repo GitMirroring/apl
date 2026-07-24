@@ -21,6 +21,7 @@
 /** @file
 */
 
+#include "Bif_F12_RHO.hh"
 #include "Bif_OPER1_REDUCE.hh"
 #include "Macro.hh"
 #include "PointerCell.hh"
@@ -351,6 +352,9 @@ std::vector<ShapeItem> rep_counts;
         len_A = len_B;
         APL_Integer rep_A = A.get_near_int(0);
         loop(a, len_A)   rep_counts.push_back(rep_A);
+        // -rep_A is UB for rep_A == INT64_MIN, and would overflow anyway.
+        if (rep_A == INT64_MIN || Cell::prod_overflow(rep_A, len_B))
+           WS_FULL;
         if (rep_A < 0)   len_Z = -rep_A*len_B;   // replicate ↑B
         else             len_Z =  rep_A*len_B;   // replicat B[a]
       }
@@ -361,8 +365,23 @@ std::vector<ShapeItem> rep_counts;
            {
              const APL_Integer rep_A = A.get_near_int(a);
              rep_counts.push_back(rep_A);
-             len_Z += rep_A;   ++nonneg_A;        // most likely:  rep_A >= 0
-             if (rep_A < 0)    { len_Z -= 2*rep_A;  --nonneg_A; }   // rare
+
+             // amount by which len_Z grows: rep_A (if >= 0) or -rep_A
+             APL_Integer grow;
+             if (rep_A < 0)
+                {
+                  if (rep_A == INT64_MIN)   WS_FULL;   // -rep_A is UB
+                  grow = -rep_A;
+                }
+             else
+                {
+                  grow = rep_A;
+                  ++nonneg_A;
+                }
+
+             const ShapeItem new_len_Z = len_Z + grow;
+             if (Cell::sum_overflow(new_len_Z, len_Z, grow))   WS_FULL;
+             len_Z = new_len_Z;
            }
 
         // the B axis shall have an item for every non-negative A

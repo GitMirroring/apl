@@ -1234,15 +1234,18 @@ public:
    static void v_negate(double * pZ, const double * pB, ShapeItem N)
       { loop(i, N) pZ[i] = -pB[i]; }
 
-   static void v_negate_i(int64_t * pZ, const int64_t * pB, ShapeItem N)
-      { loop(i, N) pZ[i] = -pB[i]; }
+   // no get_v_i2i() override: -pB[i] on an INT64_MIN element overflows
+   // and (being outside the worker's int64-only signature) cannot promote
+   // to float the way the scalar Cell path (IntCell::bif_negative_i)
+   // correctly does -- confirmed to silently return a wrong (still
+   // negative) result for a packed int64 ravel containing INT64_MIN.
+   // Falling back to the Cell path is the correct, if slower, choice.
 
    DEF_VV_Z2Z(vv_sub_z, _ar - _br, _ai - _bi)
    DEF_V_Z2Z(v_neg_z, -_br, -_bi)
 
    virtual vv_f2f_t get_vv_f2f() const { return &vv_minus; }
    virtual v_f2f_t  get_v_f2f()  const { return &v_negate; }
-   virtual v_i2i_t  get_v_i2i()  const { return &v_negate_i; }
    virtual vv_z2z_t get_vv_z2z() const { return &vv_sub_z; }
    virtual v_z2z_t  get_v_z2z()  const { return &v_neg_z; }
 
@@ -1615,11 +1618,13 @@ public:
 
    static void v_abs(double * pZ, const double * pB, ShapeItem N)
       { loop(i, N) pZ[i] = pB[i] < 0 ? -pB[i] : pB[i]; }
-   static void v_abs_i(int64_t * pZ, const int64_t * pB, ShapeItem N)
-      { loop(i, N) pZ[i] = pB[i] < 0 ? -pB[i] : pB[i]; }
+
+   // no get_v_i2i() override: -pB[i] on an INT64_MIN element overflows
+   // and cannot promote to float from within this int64-only worker --
+   // see Bif_F12_MINUS's identical comment above; same confirmed bug,
+   // same fix.
 
    virtual v_f2f_t get_v_f2f() const { return &v_abs; }
-   virtual v_i2i_t get_v_i2i() const { return &v_abs_i; }
 
    /// overloaded Function::eval_AB().
    virtual Token eval_AB(cValue_R A, cValue_R B) const

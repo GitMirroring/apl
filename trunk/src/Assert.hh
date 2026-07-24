@@ -50,17 +50,17 @@
 
 #include "Common.hh"
 
-/// the complaint function
+/// the complaint function. NOT noreturn: normally throws (via
+/// throw_apl_error()) rather than returning, but a re-entrant call --
+/// do_Assert() invoked again while already unwinding from an earlier
+/// one, see Assert.cc's Asserting_guard -- returns normally instead of
+/// throwing again, to break what would otherwise be unbounded recursion.
 /// @param cond stringified condition that failed
 /// @param fun  name of the enclosing C++ function
 /// @param file source file name
 /// @param line source line number
 extern void do_Assert(const char * cond, const char * fun,
-                      const char * file, int line)
-#ifdef __GNUC__
-    __attribute__ ((noreturn))
-#endif
-;
+                      const char * file, int line);
 
 #ifndef cfg_ASSERT_LEVEL_WANTED
 

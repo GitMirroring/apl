@@ -25,6 +25,7 @@
 
 #include "Bif_F12_COMMA.hh"
 #include "Bif_F12_PARTITION_PICK.hh"
+#include "Bif_F12_RHO.hh"
 #include "CharCell.hh"
 #include "ComplexCell.hh"
 #include "Common.hh"
@@ -1295,6 +1296,14 @@ bool progress = false;
 
         create_value(tos, t, to - t);
         if (to > (t + 1))   progress = true;
+        else if (tos[t].get_tag() == TOK_APL_VALUE3)
+           {
+             // a single item was collected, not an (open) strand: close it,
+             // the same way collect_value_groups() closes a parenthesized
+             // value, so that TOK_APL_VALUE3 keeps meaning "open strand"
+             //
+             tos[t].ChangeTag(TOK_APL_VALUE1);
+           }
       }
 
    Log(LOG_collect_constants)
