@@ -196,6 +196,7 @@ Quad_JSON::APL_to_JSON_string(UCS_string & result, const cValue & B,
                    case UNI_FF:           result << "\\f";   break;
                    case UNI_CR:           result << "\\r";   break;
                    case UNI_DOUBLE_QUOTE: result << "\\\"";   break;
+                   case UNI_BACKSLASH:    result << "\\\\";   break;
 
                    default: if (uni < UNI_SPACE)
                                {
@@ -819,7 +820,14 @@ UCS_string member_name;
           DOMAIN_ERROR;
         }
 
-     member_name = UCS_string(ucs_B, ucs_B_name, name_len);
+     // decode escapes (\uXXXX, \n, \", ...) instead of taking the raw
+     // source characters: object member names were copied verbatim,
+     // unlike string values (parse_string() below), so {"aA":1,
+     // "aA":2} was accepted as two distinct keys even though A
+     // decodes to 'A' and both keys are really the same name "aA" --
+     // defeating the duplicate-key check right below this block.
+     member_name = decode_json_string_escapes(
+                       UCS_string(ucs_B, ucs_B_name, name_len));
    }
 
    // check that member_name does not yet exist in Z.
@@ -855,6 +863,59 @@ UCS_string member_name;
           DOMAIN_ERROR;
         }
    }
+}
+//────────────────────────────────────────────────────────────────────────────
+UCS_string
+Quad_JSON::decode_json_string_escapes(const UCS_string & raw)
+{
+   // same escape table as parse_string() below, adapted to walk a plain
+   // (already-dequoted) UCS_string instead of a position within the
+   // token-indexed source text.
+UCS_string result;
+   for (ShapeItem bb = 0; bb < raw.ssize();)
+       {
+         Unicode uni = raw[bb++];
+         if (uni == UNI_BACKSLASH && bb < raw.ssize())
+            {
+              Unicode surr = Unicode_0;
+
+              uni = raw[bb++];   // default: escaped = character itself
+              switch(uni)
+                 {
+                   case UNI_b: uni = UNI_BS;   break;   // \b
+                   case UNI_f: uni = UNI_FF;   break;   // \f
+                   case UNI_n: uni = UNI_LF;   break;   // \n
+                   case UNI_r: uni = UNI_CR;   break;   // \r
+                   case UNI_t: uni = UNI_HT;   break;   // \t
+                   case UNI_u:                          // \uUUUU
+                        uni  = decode_UUUU(raw, bb - 2);
+                        surr = decode_UUUU(raw, bb + 4);
+                        if (is_high_surrogate(uni) && is_low_surrogate(surr))
+                           {
+                             uni = Unicode(0x10000 + (surr & 0x03FF)
+                                                   + ((uni  & 0x03FF) << 10));
+                             bb += 10;
+                           }
+                        else if (is_high_surrogate(uni))
+                           {
+                             MORE_ERROR() << "⎕JSON B: No low surrogate "
+                                             "in object member name";
+                             DOMAIN_ERROR;
+                           }
+                        else if (uni != Unicode_0)   // normal \uUUUU
+                           {
+                             bb += 4;
+                           }
+                        break;   // case UNI_u
+
+                   default: break;
+                 }
+            }
+
+         result << uni;
+       }
+
+   return result;
 }
 //────────────────────────────────────────────────────────────────────────────
 void
@@ -919,7 +980,21 @@ void
 Quad_JSON::parse_value(Value & Z, const UCS_string & ucs_B,
                       const std::vector<ShapeItem> & tokens_B, size_t & token0)
 {
-const ShapeItem b = tokens_B.at(token0);
+   // tokens_B.at(token0) below throws std::out_of_range for an empty (or
+   // exhausted, e.g. a trailing-comma "[1,]") token list -- that is not
+   // an APL Error, so it isn't caught by the normal error path and instead
+   // propagates to Workspace::immediate_execution()'s generic catch(...),
+   // which prints a FIXME diagnostic and calls exit(0), silently killing
+   // the whole interpreter session. Reject it as an ordinary DOMAIN_ERROR
+   // instead (reachable via e.g. "⎕JSON ''" or "1 ⎕JSON 'empty.json'").
+   if (token0 >= tokens_B.size())
+      {
+        MORE_ERROR() << "⎕JSON: unexpected end of input when expecting "
+                        "a value";
+        DOMAIN_ERROR;
+      }
+
+const ShapeItem b = tokens_B[token0];
    switch(ucs_B[b])
       {
         // unexpected token...

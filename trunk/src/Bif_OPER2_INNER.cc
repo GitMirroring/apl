@@ -112,7 +112,12 @@ Value_P Z(shape_A1 + shape_B1, LOC);
         job.VA     = &A;
         job.idxA   = 0;
         job.ZAh    = items_A1;
-        job.LO_len = A.is_scalar() ? len_B : len_A;
+        // must match the element_count()==1 test job.incA uses above
+        // (not A.is_scalar(), i.e. rank==0): a 1-element but non-scalar
+        // A (e.g. (1⍴5), rank 1) is scalar-extended by incA==0 above but
+        // was sized as if it weren't here, truncating the inner product
+        // to LO_len==1 term. (1⍴5)+.×1 2 3 gave 5 instead of 30.
+        job.LO_len = (len_A == 1) ? len_B : len_A;
         job.VB     = &B;
         job.idxB   = 0;
         job.ZBl    = items_B1;

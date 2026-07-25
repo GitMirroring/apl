@@ -64,21 +64,21 @@ a𝄞b
       "G:" :  -1
       }
       """
-.dd: 3
-
-.f:  5.6E¯7
+.Ee: 30000
 
 .G:: ¯1
 
-.Ee: 30000
+.a:  1
+
+.b:  2
 
 .c:  ┌→──┐
      │ccc│
      └───┘
 
-.b:  2
+.dd: 3
 
-.a:  1
+.f:  5.6E¯7
 
       ⍝ JSON literals
       ⍝
@@ -136,13 +136,13 @@ a𝄞b
       ⍝ same with sorted members
       ⍝
       ⊃35 ⎕CR 3 ⎕JSON ⎕JSON J
-{ "G": -1,     
-  "a": 1,      
-  "b": 2,      
-  "c": "ccc",  
-  "f": 5.6e-07,
-  "Ee": 30000, 
-  "dd": 3 }    
+{ "Ee": 30000,  
+  "G": -1,      
+  "a": 1,       
+  "b": 2,       
+  "c": "ccc",   
+  "dd": 3,      
+  "f": 5.6e-07 }
 
       ⍝ inverses of more examples above...
       ⍝

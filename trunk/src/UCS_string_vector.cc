@@ -234,6 +234,14 @@ std::vector<int> name_blocks;
    // compute max number of column blocks based on first line blocks
    //
 int max_col = -1;
+bool overflowed = false;   // -1 was reused as both "not set" and a
+                           // genuinely computed "n-1" (== -1 when even
+                           // the very first name already overflows
+                           // max_blocks, n==0) -- indistinguishable, so
+                           // a single over-wide name took the "all
+                           // blocks fit" branch below instead of the
+                           // column-width-reduction path. Track it with
+                           // its own flag instead of overloading -1.
    {
      int blocks = 0;
      loop(n, size())
@@ -243,11 +251,12 @@ int max_col = -1;
            else                                          // max_blocks exceeded
              {
                max_col = n - 1;
+               overflowed = true;
                break;
              }
          }
 
-     if (max_col == -1)   // all blocks fit
+     if (!overflowed)   // all blocks fit
         {
           result.clear();
           loop(n, size())   result.push_back(name_blocks[n]);

@@ -241,9 +241,25 @@ Quad_MX::getCross(GSL_Matrix *mtx)
 {
 Dcomplex det(0.0, 0.0);
 vector<Dcomplex> rc(mtx->cols());
+   // M7 REVERTED: removing this rows()==2 special case (and adding a
+   // rows()==1 base case to getDet() below) looked right in isolation
+   // -- the special case computed det and never stored it into rc, so
+   // rc stayed all-zero for a 2-row B (Blake's reported bug). But
+   // genCofactor(mtx,0,k) shrinks BOTH rows and cols by 1 each call, so
+   // for the (n-1)*n matrices this function is meant for, the
+   // recursion never reaches a square 1x1 -- it bottoms out at a
+   // 1-row, 2-column matrix. Treating that as "rows()==1 => scalar"
+   // silently drops the second column and, for at least one real
+   // ⎕MX[11] input, produced a NaN that (via int(NaN) UB in
+   // UCS_string's float formatter) corrupted the printed output.
+   // A correct fix needs a column-only cofactor step to first shrink
+   // mtx to square before handing off to getDet()'s row+column
+   // recursion; that's a bigger change than a quick patch warrants,
+   // so this reverts to the original (known-incomplete: still returns
+   // 0 0 for a 2-row B) behavior until it can be redone properly.
    if (mtx->rows() == 2)
       {
-        det = (mtx->val(0, 0) * mtx->val(1,1)) 
+        det = (mtx->val(0, 0) * mtx->val(1,1))
             - (mtx->val(0, 1) * mtx->val(1,0));
       }
    else
@@ -310,7 +326,12 @@ Quad_MX::Dcomplex
 Quad_MX::magnitude(const vector<Dcomplex> &v)
 {
 Dcomplex rc(0.0, 0.0);
-   loop(i, v.size())   rc += v[i] * v[i];
+   // v[i]*v[i] is the complex SQUARE, not |v[i]|^2 -- for a complex
+   // vector that's mathematically wrong (can be negative-real or fully
+   // complex) and can even sum to exactly 0 for a non-zero vector
+   // (e.g. 1J1 and 1J¯1 square to 2i and -2i). Use v[i]*conj(v[i])
+   // instead, which is always the correct non-negative real |v[i]|^2.
+   loop(i, v.size())   rc += v[i] * conj(v[i]);
    return sqrt(rc);
 }
 //────────────────────────────────────────────────────────────────────────────
@@ -319,6 +340,13 @@ Quad_MX::normalise(vector<double> &v)
 {
 const double mean = gsl_stats_mean(v.data(), 1, v.size());
 const double sdev = gsl_stats_sd_m(v.data(), 1, v.size(), mean);
+   // sdev == 0 means every element already equals mean (e.g. an all-
+   // zero imaginary part of an otherwise real ⎕MX.covariance B), so
+   // v[c] - mean is 0 for every c regardless of what it would be
+   // divided by. Dividing by 0 anyway produced NaN (0.0/0.0), which
+   // later hit undefined behavior (int(NaN)) in UCS_string's float
+   // formatter and corrupted the printed output.
+   if (sdev == 0.0)   { loop(c, v.size())   v[c] = 0.0;   return; }
    loop(c, v.size())   v[c] = (v[c] - mean) / sdev;
 }
 //────────────────────────────────────────────────────────────────────────────
@@ -1147,10 +1175,17 @@ Dcomplex sum(0.0, 0.0);
        {
          const Cell & Bv = B->get_cravel(c);
          Dcomplex val(Bv.get_real_value(), Bv.get_imag_value());
-         sum += val * val;
+         // val*val is the complex SQUARE, not |val|^2 -- see magnitude()
+         // above for why that's wrong for a complex vector norm.
+         sum += val * conj(val);
        }
-       
+
    sum = sqrt(sum);
+   if (sum == Dcomplex(0.0, 0.0))
+      {
+        MORE_ERROR() << "⎕MX.norm B: B is the zero vector.";
+        DOMAIN_ERROR;
+      }
 
    loop(b, B_count)
        {

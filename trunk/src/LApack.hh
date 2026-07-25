@@ -546,21 +546,48 @@ public:
   /// return ║ vec ║²
   static APL_Float norm_2(const DD * vec, size_t len)
      {
-        APL_Float norm = 0.0;
-        loop(j, len)   norm += square(get_real(*vec++));
-        return norm;
+        // Naive sum-of-squares overflows to +Inf once an element exceeds
+        // ~1.34E154 (its square alone already exceeds DBL_MAX), silently
+        // turning e.g. a singular matrix into one gelsy()/estimate_rank()
+        // reports as full rank. Scale by the largest magnitude first
+        // (DNRM2-style) so no individual term is ever squared while > 1;
+        // the result (max² * Σ(x/max)²) is mathematically identical to
+        // the naive sum for well-scaled input, but immune to overflow.
+        APL_Float scale = 0.0;
+        loop(j, len)
+            { const APL_Float a = abs(vec[j]);
+              if (a > scale)   scale = a; }
+        if (scale == 0.0)   return 0.0;
+
+        APL_Float sum = 0.0;
+        loop(j, len)   sum += square(get_real(vec[j]) / scale);
+        return sum * square(scale);
      }
 
      /// return ║ vec ║²
   static APL_Float norm_2(const ZZ * vec, size_t len)
         {
-          APL_Float norm = 0.0;
+          // see the DD overload above for why this is scaled, not naive.
+          // NOTE: scale is found via max(|re|,|im|) per element (a cheap
+          // Chebyshev/L∞ bound), not abs(ZZ) -- abs(ZZ) itself squares
+          // re/im internally (sqrt(re²+im²)) and would overflow for the
+          // very huge-single-element inputs this fix targets (e.g. a bare
+          // 1E200 element: 1E200² alone already exceeds DBL_MAX).
+          APL_Float scale = 0.0;
+          loop(j, len)
+              { const APL_Float re = ::fabs(get_real(vec[j]));
+                const APL_Float im = ::fabs(get_imag(vec[j]));
+                if (re > scale)   scale = re;
+                if (im > scale)   scale = im; }
+          if (scale == 0.0)   return 0.0;
+
+          APL_Float sum = 0.0;
           loop(j, len)
              {
-               norm += square(get_real(*vec));
-               norm += square(get_imag(*vec++));
+               sum += square(get_real(vec[j]) / scale);
+               sum += square(get_imag(vec[j]) / scale);
              }
-          return norm;
+          return sum * square(scale);
         }
 
    /// LApack function unm2r. Apply reflectors A(i) to matrix C.

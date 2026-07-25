@@ -184,7 +184,14 @@ const char * loc = 0;
         if (*s == '*')   continue;   // comment line
         if (*s == 0)     continue;   // empty line
 
-        if (!strcmp(s, ":svopid,"))
+        // was plain strcmp(): s is the whole line (tag plus trailing
+        // data, e.g. ":svopid,123"), so exact-equality strcmp() against
+        // just the tag could only ever match a bare "tag," line with
+        // nothing after it -- never a real, data-bearing line. Every
+        // tag check below has the same bug; all fixed to strncmp() so
+        // only the tag prefix is compared, matching what the sscanf()/
+        // s+=N code right after each check already assumes.
+        if (!strncmp(s, ":svopid,", 8))
            {
              SvoPid svopid;
               if (1 != sscanf(s, ":svopid,%u", &svopid.svopid))
@@ -197,7 +204,7 @@ const char * loc = 0;
              continue;
            }
 
-        if (!strcmp(s, ":procauth,"))
+        if (!strncmp(s, ":procauth,", 10))
            {
              ProcAuth procauth;
              int i = NO_AP;
@@ -250,7 +257,7 @@ const char * loc = 0;
          if (*s == '*')   continue;   // comment line
          if (*s == 0)     continue;   // empty line
 
-         if (!strcmp(s, ":rsvopid,"))
+         if (!strncmp(s, ":rsvopid,", 9))
             {
               // skip tag and remove trailing whitespaces
               //
@@ -298,7 +305,7 @@ const char * loc = 0;
          if (*s == '*')   continue;   // comment line
          if (*s == 0)     continue;   // empty line
 
-         if (!strcmp(s, ":processor,"))
+         if (!strncmp(s, ":processor,", 11))
             {
               int i = NO_AP;
               int j = AP_NULL;
@@ -312,7 +319,7 @@ const char * loc = 0;
               continue;
             }
 
-         if (!strcmp(s, ":address,"))
+         if (!strncmp(s, ":address,", 9))
             {
               // skip tag and remove trailing whitespaces
               //
@@ -337,7 +344,7 @@ const char * loc = 0;
               continue;
             }
 
-         if (!strcmp(s, ":userid,"))
+         if (!strncmp(s, ":userid,", 8))
             {
               s += 8;
               for (unsigned int u = 1; u < sizeof(svopid.user); ++u)
@@ -350,7 +357,7 @@ const char * loc = 0;
               continue;
             }
 
-         if (!strcmp(s, ":crypt,"))
+         if (!strncmp(s, ":crypt,", 7))
             {
               // ignored
               continue;

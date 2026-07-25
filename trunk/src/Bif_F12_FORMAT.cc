@@ -615,8 +615,15 @@ const ShapeItem len_A = A.element_count();
         ShapeItem W = 0;
         loop(c, cols_B)
            {
-             if (len_A <= 2)   W += A.get_near_int(0);
-             else              W += A.get_near_int(2*c);
+             // width (unlike the non-empty-B path's
+             // format_one_col_by_spec(), which enforces width>=0) was
+             // used completely unvalidated here -- a negative width
+             // silently produced a Value with a negative shape item.
+             // ¯5 2 ⍕ 0 3⍴0 gave ⍴Z == 0 ¯15 instead of DOMAIN_ERROR.
+             const APL_Integer w = (len_A <= 2) ? A.get_near_int(0)
+                                                : A.get_near_int(2*c);
+             if (w < 0)   DOMAIN_ERROR;
+             W += w;
            }
 
         Shape shape_Z = shape_B.without_last_axis();

@@ -1402,8 +1402,19 @@ again:
    if (current_char == '?')   goto again;   // processing instruction
    if (current_char == '!')                 // comment
       {
-        const UTF8 * comment_end = u8::strstr(tag_name, "-->");
+        // u8::strstr() is an unbounded C strstr() and this buffer is
+        // mmap()'d, not guaranteed NUL-terminated on every )LOAD/)COPY
+        // path (e.g. a file truncated mid-)SAVE) -- an unterminated "<!"
+        // with no following "-->" would run off the mapping. Search
+        // manually, bounded by file_end.
+        const UTF8 * comment_end = 0;
+        for (const UTF8 * p = tag_name; p + 3 <= file_end; ++p)
+            {
+              if (p[0] == '-' && p[1] == '-' && p[2] == '>')
+                 { comment_end = p;   break; }
+            }
         Assert(comment_end);
+        if (!comment_end)   return true;   // EOF: no closing "-->"
         comment_end += 3;
         while (data < comment_end)
            {
@@ -1916,6 +1927,13 @@ XML_Loading_Archive::instantiate_derived_functions(bool allocate)
                 }
              else                       // dyadic operator with axis
                 {
+                  // AXIS_vid comes straight from the file index (an
+                  // attacker-controlled "<Derived AXIS-vid=...>" attribute)
+                  // with only the -1 (no axis) sentinel filtered above --
+                  // any other out-of-range value was an OOB vector read.
+                  if (todo.AXIS_vid < 0 ||
+                      size_t(todo.AXIS_vid) >= values.size())
+                     DOMAIN_ERROR;
                   Value_P val_X = values[todo.AXIS_vid];
                   new (todo.cache) Derived_LO_D_X_RO(tok_LO, OPER, val_X,
                                                      tok_RO, LOC);
@@ -1929,6 +1947,10 @@ XML_Loading_Archive::instantiate_derived_functions(bool allocate)
                 }
              else                       // monadic operator with axis
                 {
+                  // see the dyadic-operator-with-axis branch above.
+                  if (todo.AXIS_vid < 0 ||
+                      size_t(todo.AXIS_vid) >= values.size())
+                     DOMAIN_ERROR;
                   Value_P X = values[todo.AXIS_vid];
                   new (todo.cache) Derived_LO_M_X(tok_LO, OPER, X, LOC);
                 }
@@ -1974,8 +1996,14 @@ UTF8 * end = 0;
 
                UCS_string ucs;
                input = read_XML_string(ucs, input);
+               // bound by Z.more(): an over-long cells="..." attribute
+               // (crafted or corrupted )LOAD/)COPY file) must not run past
+               // Z's allocation -- next_ravel() returns 0 once Z is full,
+               // and next_ravel_Char()/CharCell::zU() placement-new that
+               // pointer unconditionally (SIGSEGV at address 0).
                loop(u, ucs.size())
                    {
+                     if (!Z.more())   break;
                      Z.next_ravel_Char(ucs[u]);
                    }
              }
@@ -2000,7 +2028,16 @@ UTF8 * end = 0;
         case UNI_PAD_U5: // complex,                e.g. ⁵
              {
                const APL_Float real = u8::strtod(input, &end);
-               Assert(*end == 'J');
+               // Assert() alone is a no-op at ASSERT_LEVEL 0: a missing
+               // 'J' separator (crafted/corrupted workspace XML) left
+               // the imaginary part parsed from whatever byte followed
+               // instead of being caught.
+               if (*end != 'J')
+                  {
+                    MORE_ERROR() << "corrupt workspace: expected 'J' in "
+                                    "complex cell";
+                    DOMAIN_ERROR;
+                  }
                ++end;
                const APL_Float imag = u8::strtod(end, &end);
                Z.next_ravel_Complex(real, imag);
@@ -2035,7 +2072,16 @@ UTF8 * end = 0;
                 }
              else
                 {
-                  const int vid = u8::strtoll(input, &end, 16);
+                  // base 10, matching the writer (Archive.cc, CT_CELLREF:
+                  // SPRINTF(cc, "%d[%lld]", vid, offset) -- both %d and
+                  // %lld are decimal). This used to read base 16 here,
+                  // silently misinterpreting any vid/offset >= 10 -- with
+                  // the range check below now enforced (rather than the
+                  // former no-op Assert), that base mismatch turned a
+                  // "silently wrong" bug into a hard DOMAIN ERROR on any
+                  // workspace GNU APL itself saved containing such a
+                  // selective-assignment lvalue.
+                  const int vid = u8::strtoll(input, &end, 10);
                   if (vid < 0 || vid >= int(values.size()))
                      {
                        MORE_ERROR() << "corrupt workspace: cellref vid="
@@ -2050,7 +2096,7 @@ UTF8 * end = 0;
                        DOMAIN_ERROR;
                      }
                   ++end;
-                  const ShapeItem offset = u8::strtoll(end, &end, 16);
+                  const ShapeItem offset = u8::strtoll(end, &end, 10);
                   if (*end != ']')
                      {
                        MORE_ERROR() << "corrupt workspace: malformed "
@@ -2084,11 +2130,26 @@ UTF8 * end = 0;
              {
                const uint64_t numer = u8::strtoll(input, &end, 10);
 
-               // skip ÷ (which is is C3 B7 in UTF8)
-               Assert((*end++ & 0xFF) == 0xC3);
-               Assert((*end++ & 0xFF) == 0xB7);
+               // skip ÷ (which is is C3 B7 in UTF8). Assert() alone is a
+               // no-op at ASSERT_LEVEL 0, and (even when enabled) its
+               // *end++ side effects advance end regardless of whether
+               // the byte actually matched -- a missing/malformed
+               // separator let strtoll() below read from a shifted,
+               // essentially arbitrary position instead of being caught.
+               if ((*end & 0xFF) != 0xC3 || (*(end+1) & 0xFF) != 0xB7)
+                  {
+                    MORE_ERROR() << "corrupt workspace: expected '÷' in "
+                                    "rational cell";
+                    DOMAIN_ERROR;
+                  }
+               end += 2;
                const uint64_t denom = u8::strtoll(end, &end, 10);
-               Assert(denom > 0);
+               if (denom == 0)
+                  {
+                    MORE_ERROR() << "corrupt workspace: zero denominator "
+                                    "in rational cell";
+                    DOMAIN_ERROR;
+                  }
 #ifdef cfg_RATIONAL_NUMBERS_WANTED
                Z.next_ravel_Float(numer, denom);
 #else
@@ -2945,7 +3006,11 @@ const TokenTag tag = TokenTag(find_int_attr("tag", false, 16));
         case TV_VAL:   
              {
                const int vid = find_int_attr("vid", false, 10);
-               Assert(vid >= 0 && vid < int(values.size()));
+               // Assert() alone is a no-op at ASSERT_LEVEL 0: vid comes
+               // straight from the file (a crafted/corrupted
+               // )LOAD/)COPY), so an out-of-range value must be an
+               // enforced error, not merely asserted.
+               if (vid < 0 || vid >= int(values.size()))   DOMAIN_ERROR;
                new (&tloc.get_token()) Token(tag, values[vid]);
              }
              break;
@@ -2960,6 +3025,7 @@ const TokenTag tag = TokenTag(find_int_attr("tag", false, 16));
                     if (*vids == '-')   // elided index
                        {
                          idx.add_index(Value_P());
+                         ++vids;   // was missing: re-read '-' forever (OOM)
                        }
                     else                // value
                        {
@@ -2969,7 +3035,8 @@ const TokenTag tag = TokenTag(find_int_attr("tag", false, 16));
                          Assert1(*vids == 'd');   ++vids;
                          Assert1(*vids == '_');   ++vids;
                          const int vid = u8::strtoll(vids, &end, 10);
-                         Assert(vid >= 0 && vid < int(values.size()));
+                         if (vid < 0 || vid >= int(values.size()))
+                            DOMAIN_ERROR;
                          idx.add_index(values[vid]);
                          vids = end;
                        }
@@ -3056,11 +3123,20 @@ bool no_copy = false;   // assume the value is needed
         // if vid is a sub-value then find its topmost owner
         //
         int parent = vid;
-        for (;;)
+        loop(steps, parents.size() + 1)
             {
-              Assert(parent >= 0 && parent < int(parents.size()));
+              // Assert() alone is a no-op at ASSERT_LEVEL 0, and neither
+              // it nor an out-of-range check catches a self-referential
+              // chain (a crafted <Value vid="5" parent="5"/>): parent
+              // stays a valid index forever, so the loop below would spin
+              // unboundedly. Enforce the bound, and cap iterations at
+              // parents.size()+1 -- a genuine (acyclic) chain can be at
+              // most parents.size() long before reaching -1.
+              if (parent < 0 || parent >= int(parents.size()))
+                 DOMAIN_ERROR;
               if (parents[parent] == -1)   break;   // topmost owner found
               parent = parents[parent];
+              if (steps == ShapeItem(parents.size()))   DOMAIN_ERROR;   // cycle
             }
 
         no_copy = true;   // assume the value is not needed
@@ -3080,7 +3156,13 @@ bool no_copy = false;   // assume the value is needed
       }
    else
       {
-        Assert(vid == int(values.size()));
+        // Assert() alone is a no-op at ASSERT_LEVEL 0: vid comes from the
+        // file and is expected to match the sequential push order below
+        // (values.size() at this point). If a crafted/corrupted file
+        // violates that, push_back() below silently desynchronizes the
+        // vid -> values[] mapping the vid range checks elsewhere in this
+        // file all rely on -- enforce it instead of merely asserting.
+        if (vid != int(values.size()))   DOMAIN_ERROR;
         if (flags & VF_packed)
            {
              Value_P val(sh_value, /* constructor allocates */ 0, LOC);

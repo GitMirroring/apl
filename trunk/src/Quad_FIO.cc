@@ -1864,14 +1864,26 @@ SockAddr addr;
    addr.inet.sin_addr.s_addr = htonl(A->get_int_value(1));
    addr.inet.sin_port        = htons(A->get_int_value(2));
    errno = 0;
-   connect(fd, &addr.addr, sizeof(addr));
+   // was 'sizeof(addr)': addr is a union also containing sockaddr_un
+   // (much larger than sockaddr_in on this platform), so sizeof(addr)
+   // overstates the real, populated sockaddr_in's length -- the extra
+   // bytes were never written by memset() or the assignments above
+   // either. bind() a few lines above already gets this right with
+   // sizeof(addr.inet); match it here.
+   connect(fd, &addr.addr, sizeof(addr.inet));
    return Token(TOK_APL_VALUE1, IntScalar(-errno, LOC));
 }
 //────────────────────────────────────────────────────────────────────────────
 Token
 Quad_FIO::eval_AXB__37(Value_P A, Value_P B)
 {
-const size_t bytes = A->get_near_int(0);
+   // A->get_near_int(0) is signed; copying it straight into a size_t
+   // has no lower bound, so a negative A wraps to a huge size_t and
+   // "new char[bytes]" attempts a huge allocation -- same bug already
+   // fixed for the sibling ⎕FIO[8], see the comment there.
+const APL_Integer bytes_signed = A->get_near_int(0);
+   if (bytes_signed < 0)   LENGTH_ERROR;
+const size_t bytes = bytes_signed;
 const int fd = get_fd(*B.get());
 char small_buffer[SMALL_BUF];
 char * buffer = small_buffer;
@@ -1929,7 +1941,11 @@ const ssize_t len = send(fd, utf.c_str(), utf.size(), 0);
 Token
 Quad_FIO::eval_AXB__41(Value_P A, Value_P B)
 {
-const size_t bytes = A->get_near_int(0);
+   // see eval_AXB__37 above: A->get_near_int(0) is signed and has no
+   // lower bound when copied straight into a size_t.
+const APL_Integer bytes_signed = A->get_near_int(0);
+   if (bytes_signed < 0)   LENGTH_ERROR;
+const size_t bytes = bytes_signed;
 const int fd = get_fd(*B.get());
 char small_buffer[SMALL_BUF];
 char * buffer = small_buffer;
@@ -2127,7 +2143,11 @@ Token
 Quad_FIO::eval_AXB__6(Value_P A, Value_P B)
 {
    errno = 0;
-const size_t bytes = A->get_near_int(0);
+   // see eval_AXB__37 above: A->get_near_int(0) is signed and has no
+   // lower bound when copied straight into a size_t.
+const APL_Integer bytes_signed = A->get_near_int(0);
+   if (bytes_signed < 0)   LENGTH_ERROR;
+const size_t bytes = bytes_signed;
 FILE * file = get_FILE(*B);
    clearerr(file);
 char small_buffer[SMALL_BUF];
@@ -2806,6 +2826,14 @@ socklen_t alen = sizeof(addr.inet);
 const int sock = accept(fd, &addr.addr, &alen);
    if (sock == -1)   return Token(TOK_APL_VALUE1, IntScalar(-errno, LOC));
 file_entry nfe(0, sock);
+   // file_entry(FILE*, int) default-initializes both flags to false;
+   // an accepted TCP connection is always usable for both, same as a
+   // freshly created socket() a few lines above (which does set both)
+   // -- left unset here, so eval_XB__?? (the FIO[?] "may read/write"
+   // reporting query, around line 3237) misreported every accepted
+   // connection as neither readable nor writable.
+   nfe.fe_may_read = true;
+   nfe.fe_may_write = true;
    open_files.push_back(nfe);
 Value_P Z(4, LOC);
    Z->next_ravel_Int(nfe.fe_fd);
@@ -2866,6 +2894,8 @@ APL_Integer max_fd = -1;
         if (milli < 0)   DOMAIN_ERROR;
         timeout.tv_sec = milli / 1000;
         timeout.tv_usec = (milli%1000) * 1000;
+        to = &timeout;   // was missing: select() always blocked (NULL
+                          // timeout) regardless of this argument.
       }
 
    if (B->element_count() >= 3)
@@ -2876,8 +2906,8 @@ APL_Integer max_fd = -1;
         loop(l, vex->element_count())
             {
               const int fd(vex->get_int_value(l));
-              if (fd < 0)                       DOMAIN_ERROR;
-              if (fd > 8*int(sizeof(fd_set)))   DOMAIN_ERROR;
+              if (fd < 0)              DOMAIN_ERROR;
+              if (fd >= FD_SETSIZE)    DOMAIN_ERROR;   // was >, off-by-one
               FD_SET(SOCKET(fd), &exceptfds);
               if (max_fd < fd)   max_fd = fd;
               ex = &exceptfds;
@@ -2892,8 +2922,8 @@ APL_Integer max_fd = -1;
         loop(l, vwr->element_count())
             {
               const APL_Integer fd = vwr->get_int_value(l);
-              if (fd < 0)                       DOMAIN_ERROR;
-              if (fd > 8*int(sizeof(fd_set)))   DOMAIN_ERROR;
+              if (fd < 0)              DOMAIN_ERROR;
+              if (fd >= FD_SETSIZE)    DOMAIN_ERROR;   // was >, off-by-one
               FD_SET(SOCKET(fd), &writefds);
               if (max_fd < fd)   max_fd = fd;
               wr = &writefds;
@@ -2908,8 +2938,8 @@ APL_Integer max_fd = -1;
         loop(l, vrd->element_count())
             {
               const APL_Integer fd = vrd->get_int_value(l);
-              if (fd < 0)                         DOMAIN_ERROR;
-              if (fd > (8*int(sizeof(fd_set))))   DOMAIN_ERROR;
+              if (fd < 0)              DOMAIN_ERROR;
+              if (fd >= FD_SETSIZE)    DOMAIN_ERROR;   // was >, off-by-one
               FD_SET(SOCKET(fd), &readfds);
               if (max_fd < fd)   max_fd = fd;
               rd = &readfds;
@@ -2922,9 +2952,15 @@ const int count = select(max_fd + 1, rd, wr, ex, to);
 Value_P Z(5, LOC);
 const APL_Integer milli_seconds = timeout.tv_sec*1000 + timeout.tv_usec/1000;
    Z->next_ravel_Int(count);
-   Z->next_ravel_Pointer(fds_to_val(rd, max_fd).get());
-   Z->next_ravel_Pointer(fds_to_val(wr, max_fd).get());
-   Z->next_ravel_Pointer(fds_to_val(ex, max_fd).get());
+   // fds_to_val()'s loop is 'for (m=0; m<max_fd; ...)', an EXCLUSIVE
+   // upper bound -- same convention as select()'s own nfds parameter
+   // just above (which correctly used max_fd+1). Passing plain max_fd
+   // (the highest fd VALUE, not value+1) here silently skipped
+   // checking that highest fd itself, dropping it from the result
+   // whenever it was actually ready.
+   Z->next_ravel_Pointer(fds_to_val(rd, max_fd + 1).get());
+   Z->next_ravel_Pointer(fds_to_val(wr, max_fd + 1).get());
+   Z->next_ravel_Pointer(fds_to_val(ex, max_fd + 1).get());
    Z->next_ravel_Int(milli_seconds);
    Z->check_value(LOC);
    return Token(TOK_APL_VALUE1, Z);
@@ -3254,6 +3290,17 @@ const ssize_t bytes = read(device, buffer, len);
       {
         MORE_ERROR() << "⎕FIO[60] failed when trying to read /dev/urandom: "
                      << strerror(errno);
+        DOMAIN_ERROR;
+      }
+
+   // read() succeeding does not guarantee it filled the whole buffer --
+   // a short read is legal per POSIX and was not checked for here, so
+   // the mode==0/mode==1 loops below could read uninitialized stack
+   // bytes (buffer[bytes..len-1]) as if they were real random data.
+   if (bytes != len)
+      {
+        MORE_ERROR() << "⎕FIO[60]: short read from /dev/urandom ("
+                     << bytes << " of " << len << " bytes)";
         DOMAIN_ERROR;
       }
 

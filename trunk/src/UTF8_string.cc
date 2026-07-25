@@ -70,12 +70,25 @@ UTF8_string::UTF8_string(const UCS_string & ucs)
            }
         else                       // N-byte unicode
            {
+             // For uni >= 0x80000000 (every genuinely negative Unicode,
+             // e.g. ⎕UCS ¯1, once cast to uint32_t here) the loop below
+             // needs a 7th continuation byte -- one byte more than any
+             // UTF-8 variant (even the old pre-RFC-3629 6-byte/31-bit
+             // scheme) can represent, and one byte more than
+             // libapl.h's Unicode_to_UTF8() contract ("provide at least
+             // 7 bytes for dest, dest will be 0-terminated") accounts
+             // for: that function writes exactly this string's bytes
+             // plus a NUL, so an 8-byte need against a 7-byte documented
+             // buffer is a 1-byte OOB write for any caller that follows
+             // the documented contract. Clamp instead of growing past
+             // the 6-byte/31-bit maximum -- 0x7FFFFFFF is not a
+             // meaningful Unicode codepoint either way.
+             if (uni >= 0x80000000U)   uni = 0x7FFFFFFF;
+
              // sixbits must hold up to 6 continuation bytes: for
-             // uni == 0xFFFFFFFF the loop below writes indices 0..5
+             // uni == 0x7FFFFFFF the loop below writes indices 0..5
              // (confirmed with ASan -- sixbits[5] overflowed by one
-             // byte). Reachable via a negative near-int Unicode (e.g.
-             // ⎕UCS ¯1), which ⎕UCS's own range check (-0x80..0x7FFFFFFF)
-             // allows, converted to uint32_t here.
+             // byte before the clamp above existed).
              char sixbits[6];
              char * s = sixbits;
              while (uni >= 0x40U >> (s - sixbits))  
@@ -189,6 +202,14 @@ uint32_t uni = 0;
             {
               CERR << "Bad UTF8 sequence: " << HEX(b0) << "... at " LOC << endl;
               Assert(0 && "Internal error in UTF8_string::toUni()");
+              // Assert() alone is a no-op at ASSERT_LEVEL 0: without an
+              // enforced return, a bad continuation byte fell through and
+              // got silently folded into uni as if it were valid instead
+              // of failing the decode. len was already fully consumed by
+              // the time we get here (this loop doesn't advance len), so
+              // just return the failure the same way the lead-byte checks
+              // above do.
+              return Invalid_Unicode;
             }
 
          bx  <<= 6;
@@ -402,6 +423,15 @@ UTF8_string::round_0_1()
               pop_back();   // discard last digit.
               return false;   // no carry
             }
+      }
+   else   // round down: no rounding needed at all
+      {
+        // was missing -- fell through into the carry epilogue below,
+        // wrongly setting the first digit to '1' and returning true
+        // (as if 0.999...->1.000... had occurred) for an ordinary
+        // round-down.
+        pop_back();
+        return false;
       }
 
    // if carry survived then digits were 0.999... and were then rounded

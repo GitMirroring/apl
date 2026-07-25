@@ -857,7 +857,12 @@ APL_Complex floor_quot;
    else if (Dr < (Di - qct))  floor_quot = APL_Complex(fr,        fi + 1.0);
    else                       floor_quot = APL_Complex(fr + 1.0,  fi);
 
-   return ComplexCell::zC(Z, b - a * floor_quot);
+const ErrorCode ret = ComplexCell::zC(Z, b - a * floor_quot);
+   // the sibling bif_circle_fun_c() right below already does this check
+   // (via the same Z->is_finite() idiom); this residue function had no
+   // finiteness check on its quotient/result at all.
+   if (!Z->is_finite())   return E_DOMAIN_ERROR;
+   return ret;
 }
 //────────────────────────────────────────────────────────────────────────────
 ErrorCode
@@ -902,14 +907,23 @@ ErrorCode ret = E_DOMAIN_ERROR;
 ErrorCode
 ComplexCell::bif_ceiling_c(Cell * Z, APL_Complex b)
 {
-const APL_Float cr = ceil(b.real());
-const APL_Float Dr = cr - b.real();
-const APL_Float ci = ceil(b.imag());
-const APL_Float Di = ci - b.imag();
-const APL_Float D  = Dr + Di;
-   if (D < 1.0)     return ComplexCell::zV(Z, cr, ci);
-   if (Di > Dr)     return ComplexCell::zV(Z, cr, ci - 1.0);
-   else             return ComplexCell::zV(Z, cr - 1.0, ci);
+   // mirrors bif_floor_c()'s ⎕CT-tolerant snapping below, which this
+   // omitted entirely: a raw ceil() jumps a full unit for any value even
+   // a hair above an integer (e.g. 3.000000000000001), instead of
+   // snapping back down to that integer the way tolerant floor() does
+   // for a value a hair below one. ⌈3.000000000000001J2 gave 4J2 instead
+   // of the tolerant 3J2.
+APL_Float cr = ceil(b.real());
+APL_Float Dr = cr - b.real();
+APL_Float ci = ceil(b.imag());
+APL_Float Di = ci - b.imag();
+const double qct = Workspace::get_CT();
+const double limit = 1.0 - qct;
+   if (Dr > limit)   { cr -= 1.0;   Dr = 0.0; }
+   if (Di > limit)   { ci -= 1.0;   Di = 0.0; }
+   if ((Dr + Di) < limit)   return ComplexCell::zV(Z, cr, ci);
+   if (Dr < (Di - qct))     return ComplexCell::zV(Z, cr, ci - 1.0);
+   return ComplexCell::zV(Z, cr - 1.0, ci);
 }
 //────────────────────────────────────────────────────────────────────────────
 ErrorCode
@@ -945,7 +959,9 @@ const APL_Float mag = abs(b);
 ErrorCode
 ComplexCell::bif_exponential_c(Cell * Z, APL_Complex b)
 {
-   return ComplexCell::zC(Z, complex_exponent(b));
+const APL_Complex z = complex_exponent(b);
+   if (!isfinite(z.real()) || !isfinite(z.imag()))   return E_DOMAIN_ERROR;
+   return ComplexCell::zC(Z, z);
 }
 //────────────────────────────────────────────────────────────────────────────
 ErrorCode

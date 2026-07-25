@@ -99,21 +99,21 @@ member access: cannot use non-leaf member A.b in selective specification.
       A.b.c←1
       A['d']←"ddd"
       A
+.b: □
+.b.c: 1
+
 .d: ┌→──┐
     │ddd│
     └───┘
 
+      A['d']←"def"
+      A
 .b: □
 .b.c: 1
 
-      A['d']←"def"
-      A
 .d: ┌→──┐
     │def│
     └───┘
-
-.b: □
-.b.c: 1
 
 
       Q←2 2⍴'a' 'leaf-a' 'bb' 'leaf-bb'
@@ -122,14 +122,16 @@ member access: cannot use non-leaf member A.b in selective specification.
  bb leaf-bb 
 
       W←38 ⎕CR Q   ⍝ member names in Q are sorted, but 38 ⎕CR hashes them
+                   ⍝ internally -- print_members() re-sorts by name for
+                   ⍝ display regardless, so W still prints alphabetically.
       W
-.bb: ┌→──────┐
-     │leaf-bb│
-     └───────┘
-
 .a:  ┌→─────┐
      │leaf-a│
      └──────┘
+
+.bb: ┌→──────┐
+     │leaf-bb│
+     └───────┘
 
       R←39 ⎕CR W
       R

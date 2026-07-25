@@ -334,7 +334,17 @@ const PCRE2_SIZE * ovector = rem.get_ovector();
    //
    if (ovector[1] == ovector[0])   ++B_offset;
 
-const uint32_t ovector_count = rem.get_ovector_count();
+// num_matches() (== pcre2_match's own return value, "the number of
+// pairs that have been set"), not get_ovector_count() -- the latter is
+// the ovector's *allocated capacity* (sized to the pattern's maximum
+// possible capture-group count via pcre2_match_data_create_from_pattern),
+// not how many groups actually participated in *this* match. Using the
+// capacity here processed uninitialized trailing ovector slots as bogus
+// extra (non-)groups and dropped real non-participating groups from the
+// numbering: 'a|b' matched against 'b' has group 1 (the alternative
+// that didn't match, correctly recorded as [-1,-1] in ovector) shifted
+// out of the result entirely.
+const uint32_t ovector_count = rem.num_matches();
 vector<int> parents(ovector_count, -1);   // no parents
 vector<int> ccount(ovector_count, 0);     // 0 children
 
@@ -393,7 +403,17 @@ const PCRE2_SIZE * ovector = rem.get_ovector();
         return Z;
       }
 
-const uint32_t ovector_count = rem.get_ovector_count();
+// num_matches() (== pcre2_match's own return value, "the number of
+// pairs that have been set"), not get_ovector_count() -- the latter is
+// the ovector's *allocated capacity* (sized to the pattern's maximum
+// possible capture-group count via pcre2_match_data_create_from_pattern),
+// not how many groups actually participated in *this* match. Using the
+// capacity here processed uninitialized trailing ovector slots as bogus
+// extra (non-)groups and dropped real non-participating groups from the
+// numbering: 'a|b' matched against 'b' has group 1 (the alternative
+// that didn't match, correctly recorded as [-1,-1] in ovector) shifted
+// out of the result entirely.
+const uint32_t ovector_count = rem.num_matches();
 vector<int> parents(ovector_count, -1);   // no parent
 vector<int> ccount(ovector_count,   0);   // 0 children
 

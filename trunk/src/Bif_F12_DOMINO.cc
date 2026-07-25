@@ -1685,8 +1685,9 @@ Monomial T;
                         ++src;
                        continue;
 
-             case 'J': 
+             case 'J':
              case 'j': got_j = true;
+                       ++src;   // was missing: *src stayed 'J' forever
                        continue;
 
              case UNI_OVERBAR: got_overbar = true;

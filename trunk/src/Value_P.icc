@@ -61,9 +61,15 @@ Value_P_Base::clear(const char * loc)
 {
   if (value_p)
      {
+        // capture the post-decrement count BEFORE decrementing: if this
+        // was the last owner, decrement_owner_count() does 'delete this'
+        // -- value_p (the pointer variable) stays non-NULL, but what it
+        // points to no longer exists, so re-reading value_p->owner_count
+        // afterward (the old code below) was a use-after-free read.
+        const int count_after = value_p->owner_count - 1;
         value_p->decrement_owner_count(LOC);
-       ADD_EVENT(value_p, VHE_PtrClr,
-                 value_p ? value_p->owner_count : -99, loc);
+       ADD_EVENT(value_p, VHE_PtrClr, count_after, loc);
+       (void)count_after;   // else unused without --with-value-history
 
        value_p = 0;
      }
@@ -104,9 +110,12 @@ inline Value_P::~Value_P()
 {
    if (value_p)
       {
+        // see Value_P_Base::clear() above for why this is captured
+        // before decrementing, not re-read from value_p afterward.
+        const int count_after = value_p->owner_count - 1;
         value_p->decrement_owner_count(LOC);
-        ADD_EVENT(value_p, VHE_PtrDel,
-                  value_p ? value_p->owner_count : -99, LOC);
+        ADD_EVENT(value_p, VHE_PtrDel, count_after, LOC);
+        (void)count_after;   // else unused without --with-value-history
       }
 }
 //──────────────────────────────────────────────────────────────────────────

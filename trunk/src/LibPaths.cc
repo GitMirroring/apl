@@ -297,10 +297,9 @@ LibPaths::compute_bin_path(const char * argv0, bool logit)
               while (*paths)
                     {
                       size_t dir_len;
-                      if (const char * colon = strchr(paths, ':'))
-                         dir_len = colon - paths;
-                      else
-                         dir_len = strlen(paths);
+                      const char * colon = strchr(paths, ':');
+                      if (colon)   dir_len = colon - paths;
+                      else         dir_len = strlen(paths);
 
                     std::string filename(paths, dir_len);
                     filename += '/';
@@ -318,7 +317,16 @@ LibPaths::compute_bin_path(const char * argv0, bool logit)
                          goto done;
                        }
 
-                    paths += dir_len + 1;   // next $PATH item
+                    // was 'paths += dir_len + 1' unconditionally: for
+                    // the LAST $PATH item (no colon found), dir_len is
+                    // strlen(paths), so +1 walks one byte past the
+                    // terminating NUL into whatever memory follows --
+                    // an OOB read (the next while(*paths) dereferences
+                    // it, and the loop could keep going over garbage).
+                    // Only skip past an actual colon; with no colon,
+                    // this was the last item, so stop.
+                    if (colon)   paths = colon + 1;   // next $PATH item
+                    else         break;               // no more items
                   }
             }
            else

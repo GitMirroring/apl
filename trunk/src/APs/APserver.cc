@@ -334,26 +334,33 @@ TCP_socket removed_fd2 = NO_TCP_SOCKET;
             {
               found_fd = true;
               removed_AP = connected_procs[j].ap3;
+              // capture fd2 *before* erase(): erase() shifts the following
+              // elements down into slot j, so connected_procs[j] after
+              // erase() is a different (or, for the last index, an
+              // out-of-bounds) record -- reading .fd2 from it closed an
+              // unrelated live connection instead of this record's peer fd.
+              removed_fd2 = connected_procs[j].fd2;
               connected_procs.erase(connected_procs.begin() + j);
               (verbosity > 0) && cerr << "erased fd " << fd << " (Id "
                                       << removed_AP.proc << ":"
                                       << removed_AP.parent << ":"
                                       << removed_AP.grand
                                       << ") from connected_procs" << endl;
-              removed_fd2 = connected_procs[j].fd2;
               break;
             }
          else if (fd == connected_procs[j].fd2)
             {
               found_fd = true;
               removed_AP = connected_procs[j].ap3;
+              // capture fd *before* erase(): see the comment in the
+              // fd-matching branch above.
+              removed_fd2 = connected_procs[j].fd;
               connected_procs.erase(connected_procs.begin() + j);
               (verbosity > 0) && cerr << "erased fd " << fd << " (Id "
                                       << removed_AP.proc << ":"
                                       << removed_AP.parent << ":"
                                       << removed_AP.grand
                                       << ") from connected_procs" << endl;
-              removed_fd2 = connected_procs[j].fd;
               break;
             }
        }
@@ -1265,7 +1272,18 @@ const int listen_sock = got_path ? open_UNIX_socket(listen_name)
                       {
                         cerr << prog << ": socket fd[" << j
                              << "] has died unexpectedly" << endl;
+                        // close_fd() erases connected_procs[j] (fd is
+                        // unique, so it is the match close_fd() finds),
+                        // shifting every following element down by one.
+                        // connected_procs[j] below would therefore read a
+                        // *different* record (or, for the last index, be
+                        // out of bounds) -- back up j so the loop's ++j
+                        // revisits the shifted-in element instead of
+                        // silently skipping it, and skip the rest of this
+                        // iteration, which assumed the pre-erase layout.
                         close_fd(fd);
+                        --j;
+                        continue;
                       }
                    else
                       {
@@ -1283,7 +1301,10 @@ const int listen_sock = got_path ? open_UNIX_socket(listen_name)
                         {
                           cerr << prog << ": socket fd2[" << j
                                << "] has died unexpectedly" << endl;
+                          // see the close_fd(fd) comment above.
                           close_fd(fd2);
+                          --j;
+                          continue;
                         }
                      else
                         {

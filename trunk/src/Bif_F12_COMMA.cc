@@ -65,6 +65,11 @@ const APL_Integer qio = Workspace::get_IO();
         if (B.get_rank() == MAX_RANK)   INDEX_ERROR;
 
         const APL_Float new_axis = X.get_real_value(0) - qio;
+        // reject before narrowing to sAxis (int16_t): an unchecked
+        // float->int16 conversion for a magnitude beyond int16 range is
+        // UB, and silently landed the new axis at the front instead of
+        // raising an error (⍴,[100000.5]M gave 1 2 3 with no error).
+        if (new_axis > 32000.0 || new_axis < -32000.0)   AXIS_ERROR;
         sAxis axis = new_axis;   if (new_axis < 0.0)   axis = -1;
         const Shape shape_Z = B.get_shape().insert_axis(axis + 1, 1);
         return ravel(shape_Z, B);
@@ -73,6 +78,12 @@ const APL_Integer qio = Workspace::get_IO();
    //
    if (X.is_scalar_or_len1_vector())   // single int: return B.
       {
+        // this shortcut had no range check on n at all: ,[99]M and
+        // ,[¯5]M both silently returned M unchanged instead of
+        // AXIS_ERROR.
+        const APL_Integer n = X.get_near_int(0) - qio;
+        if (n < 0 || n >= B.get_rank())   AXIS_ERROR;
+
         Token result(TOK_APL_VALUE1, CLONE(&B, LOC));
         return result;
       }
@@ -393,10 +404,16 @@ const APL_Integer qio = Workspace::get_IO();
 
    if (cX.is_near_int())   // catenate along existing axis
       {
-        const sAxis axis = cX.get_checked_near_int() - qio;
-        if (axis < 0)                                         AXIS_ERROR;
-        if (uAxis(axis) >= A.get_rank() && uAxis(axis) >= B.get_rank())
+        // validate in the full-width APL_Integer before narrowing to
+        // sAxis (int16_t): narrowing first let a huge axis wrap into
+        // the valid range instead of being rejected (M,[65537]M
+        // silently catenated along axis 0 -- 65537 wrapped to 1, minus
+        // ⎕IO -- instead of raising AXIS_ERROR).
+        const APL_Integer wide_axis = cX.get_checked_near_int() - qio;
+        if (wide_axis < 0)                                    AXIS_ERROR;
+        if (wide_axis >= A.get_rank() && wide_axis >= B.get_rank())
            AXIS_ERROR;
+        const sAxis axis = wide_axis;
         return catenate(A, axis, B);
       }
 

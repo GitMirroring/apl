@@ -79,11 +79,22 @@ size_t rest_2 = 0;
    try {
          do_tokenize(input, tos, rest_2);
        }
-   catch (Error err)
+   catch (Error & err)
        {
-         const int caret_1 = input.size();
-         const int caret_2 = input.size() - rest_2;
-         err.set_error_line_2(input, caret_1, caret_2);
+         // catch by reference, not by value: set_error_line_2() below
+         // mutates err's own error_message_2/left_caret/right_caret
+         // fields -- catching by value made that mutation apply to a
+         // throwaway local copy, discarded when this catch block ends,
+         // so the corrected line/caret info the code below computes
+         // never reached whatever later reports the error to the user.
+         const int caret_1 = input.size();            // end of input
+         const int caret_2 = input.size() - rest_2;    // consumed so far
+         // caret_2 <= caret_1 (consumed-so-far is never past the end),
+         // and set_error_line_2()'s (lcaret, rcaret) contract expects
+         // left <= right (Error.cc: "diff = right_caret - left_caret" is
+         // used as a non-negative span width) -- these were passed
+         // reversed.
+         err.set_error_line_2(input, caret_2, caret_1);
          return err.get_error_code();
        }
 
@@ -244,11 +255,24 @@ bool dot_seen = false;      // the decimal . was seen
 
    // integer part
    //
+size_t skipped_int_digits = 0;
    while (src.has_more() && Avec::is_digit(*src))
       {
         const Unicode digit = src.get();
         if (int_digits.size() < MAX_ACCUM_DIGITS)   int_digits += digit;
+        else                                        ++skipped_int_digits;
       }
+
+   // integer-part digits beyond MAX_ACCUM_DIGITS were dropped entirely
+   // above -- since APL numeric literals are positional, that silently
+   // divides the value by 10 per dropped digit (a magnitude error, not
+   // just a precision loss: "123..." (1030 digits) parsed as if the
+   // last 6 digits had never been typed, not as a rounded approximation
+   // of the actual 1030-digit value). Pad back with zeros instead: this
+   // still loses precision beyond MAX_ACCUM_DIGITS significant digits
+   // (unavoidable, and irrelevant at this magnitude), but keeps the
+   // decimal point -- and therefore the magnitude -- where it belongs.
+   loop(z, skipped_int_digits)   int_digits += UNI_0;
 
    // fractional part...
    //
@@ -359,7 +383,20 @@ bool dot_seen = false;      // the decimal . was seen
              for (int d = int_digits.size();;)
                  {
                    if (d == 0)   // all digits were 9 (10^19 overflow → float)
-                      { need_float = true;   break; }
+                      {
+                        // by this point every digit has already been
+                        // rewritten '9'->'0' (see the loop body below) --
+                        // int_digits is now e.g. "0000000000000000000"
+                        // instead of the correctly-rounded-up
+                        // "10000000000000000000". Prepend the carried-out
+                        // leading 1 so the buffer built below actually
+                        // represents the rounded value instead of 0.
+                        // Reproduced: 9999999999999999999.5 gave 0 (want
+                        // 1E19).
+                        int_digits.insert(int_digits.begin(), UNI_1);
+                        need_float = true;
+                        break;
+                      }
                    const UTF8 digit = int_digits[--d];
                    if (digit == UNI_9)   // propagate carry
                       {

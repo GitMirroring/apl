@@ -262,7 +262,13 @@ Value_P Z0(M, M, LOC);   // Z[0] is the orthogonal M×M matrix Q
   // 2. Invert Z1 to get Z2. L is inverted in place. The non-zero triangle
   //    of L aka. Z1 sits at the bottom of L, i.e. it starts at row (M - N).
   //
-  Li = gsl_matrix_alloc(M, M);   if (Li == 0)   WS_FULL;
+  // N×N, not M×M: only the N×N block below is ever filled (and every
+  // later use of Li only ever indexes row/col < N), so the extra M-N
+  // rows/columns of an M×M allocation were left uninitialized and then
+  // read/written by gsl_linalg_tri_invert() over the whole (wrongly
+  // M×M-sized) matrix -- latent nondeterministic behavior from
+  // uninitialized heap memory.
+  Li = gsl_matrix_alloc(N, N);   if (Li == 0)   WS_FULL;
   loop(row, N)
   loop(col, N)   gsl_matrix_set(Li, row, col,
                                 gsl_matrix_get(L, row + M - N, col));

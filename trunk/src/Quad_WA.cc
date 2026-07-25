@@ -112,7 +112,11 @@ rlimit rl;
         if (total_memory < 0x8000000)
            {
              rl.rlim_cur = total_memory;
-             setrlimit(rl.rlim_cur, &rl);
+             setrlimit(RLIMIT_AS, &rl);   // was rl.rlim_cur (a byte count,
+                                           // not a resource number) -- the
+                                           // call failed with EINVAL, so
+                                           // this low-memory backstop was
+                                           // silently never installed
              getrlimit(RLIMIT_AS, &rl);
              if (log_startup)
                 CERR << "decreasing RLIMIT_AS to: " << rl.rlim_cur
@@ -374,8 +378,14 @@ const int64_t overcommit = read_procfile("/proc/sys/vm/overcommit_memory");
 Value_P
 Quad_WA::get_apl_value() const
 {
-   return IntScalar(total_memory -
-                    (Value::total_ravel_count * sizeof(Cell)
-                    + Value::value_count * sizeof(Value)), LOC);
+   // total_memory is uint64_t; if the (approximate) used-bytes estimate
+   // ever exceeds it, the subtraction underflows and wraps to ~1.8E19
+   // instead of reporting (near-)zero free memory -- exactly when memory
+   // is tightest and an accurate ⎕WA matters most. Compute in a signed
+   // type and clamp instead.
+const int64_t used = Value::total_ravel_count * sizeof(Cell)
+                    + Value::value_count * sizeof(Value);
+const int64_t free = int64_t(total_memory) - used;
+   return IntScalar(free < 0 ? 0 : free, LOC);
 }
 //════════════════════════════════════════════════════════════════════════════

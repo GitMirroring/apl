@@ -538,7 +538,14 @@ Bif_OPER2_RANK::y123_to_chunk_B_rank(const UCS_string & LO_name,
              │ │      └──── take
              └─┴─────────── check
     */
-sRank y3;
+// APL_Integer (64-bit), not sRank (int16_t): y123's items come straight
+// from the user, and narrowing a huge value (e.g. 65536) directly into
+// sRank at the point of assignment wraps it into a small (even
+// negative) chunk rank *before* the "y3 > rank_B ? rank_B : y3" clamp
+// below ever sees the true magnitude (⌽⍤65536⊢M silently used chunk
+// rank 0 -- 65536 wrapped to 0 -- instead of behaving like the
+// in-range ⌽⍤99⊢M). Clamp in 64 bits first, narrow only at the end.
+APL_Integer y3;
 
    switch(y123->element_count())
       {
@@ -561,7 +568,12 @@ sRank y3;
                  LENGTH_ERROR;
       }
 
-const sRank y5 = y3 > rank_B ? rank_B : y3;
+   // symmetric lower-bound clamp before narrowing: y6 below clamps to 0
+   // for any y3 <= -rank_B anyway (y6 += rank_B stays <= 0), so this
+   // preserves the exact same result while keeping y3 within sRank's
+   // representable range for the narrowing cast.
+   if (y3 < -APL_Integer(rank_B))   y3 = -APL_Integer(rank_B);
+const sRank y5 = y3 > rank_B ? rank_B : sRank(y3);
 sRank y6 = y5;
    if (y6 < 0)   y6 += rank_B;   // e.g. y123_to_AB's rank_A += rk_A
    if (y6 < 0)   y6 = 0;
@@ -596,30 +608,40 @@ const sRank rk_B = rank_B;
    // yM yA yB :        N/A        yM           yA       yB
    // ---------------------------------------------------------
 
+   // wide (APL_Integer) temporaries, not sRank (int16_t) directly: y123
+   // comes straight from the user, and narrowing at the point of
+   // assignment (the old code stored straight into rank_A/rank_B, both
+   // sRank references) wrapped a huge value into a small/negative rank
+   // *before* the clamp below ever saw its true magnitude -- the same
+   // bug as get_rank_A_or_B() above, same fix.
+APL_Integer wide_A, wide_B;
    switch(y123->element_count())
       {
-        case 1:  rank_A = y123->get_near_int(0);
-                 rank_B = rank_A;                            break;
+        case 1:  wide_A = y123->get_near_int(0);
+                 wide_B = wide_A;                            break;
 
-        case 2:  rank_A = y123->get_near_int(0);
-                 rank_B = y123->get_near_int(1);  break;
+        case 2:  wide_A = y123->get_near_int(0);
+                 wide_B = y123->get_near_int(1);  break;
 
         case 3:           y123->get_near_int(0);
-                 rank_A = y123->get_near_int(1);
-                 rank_B = y123->get_near_int(2);  break;
+                 wide_A = y123->get_near_int(1);
+                 wide_B = y123->get_near_int(2);  break;
 
         default: LENGTH_ERROR;
       }
 
    // 3. adjust rank_A and rank_B if they exceed their initial value or
-   // if they are negative
+   // if they are negative -- clamped in 64 bits, narrowed to sRank only
+   // once guaranteed to fit (|rk_A|/|rk_B| are always small).
    //
-   if (rank_A > rk_A)   rank_A = rk_A;
-   if (rank_A < 0)      rank_A += rk_A;
-   if (rank_A < 0)      rank_A = 0;
+   if (wide_A > rk_A)   wide_A = rk_A;
+   if (wide_A < 0)       wide_A += rk_A;
+   if (wide_A < 0)       wide_A = 0;
+   rank_A = sRank(wide_A);
 
-   if (rank_B > rk_B)   rank_B = rk_B;
-   if (rank_B < 0)      rank_B += rk_B;
-   if (rank_B < 0)      rank_B = 0;
+   if (wide_B > rk_B)   wide_B = rk_B;
+   if (wide_B < 0)       wide_B += rk_B;
+   if (wide_B < 0)       wide_B = 0;
+   rank_B = sRank(wide_B);
 }
 //════════════════════════════════════════════════════════════════════════════

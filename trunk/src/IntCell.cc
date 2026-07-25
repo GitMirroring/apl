@@ -726,10 +726,17 @@ IntCell::CDR_size() const
 {
    // use 4 byte for small integers and 8 bytes for others (converted to float).
    //
+   // was: only val==0 or val==0xFFFFFFFF (4294967295 as a signed 64-bit
+   // APL_Integer, not -1) got 4 bytes; every other integer -- including
+   // ordinary small ones like 1, 2, or -5 -- fell through to 8, which
+   // contradicts the comment's own stated intent and the sibling
+   // range check already used for the same "fits in CDR's 32-bit slot"
+   // decision elsewhere (cValue.cc's get_CDR_type()). Fixed to test the
+   // actual signed 32-bit range.
+   //
 const APL_Integer val = get_int_value();
 
-   if (val == 0)              return 4;
-   if (val == 0xFFFFFFFF)     return 4;
+   if (val >= -0x80000000LL && val <= 0x7FFFFFFFLL)   return 4;
    return 8;
 }
 //════════════════════════════════════════════════════════════════════════════
@@ -869,6 +876,7 @@ APL_Integer zi = 1;
 APL_Float z = pow(APL_Float(a), APL_Float(b));
    if (negate_Z)   z = -z;
    if (invert_Z)   z = 1.0 / z;
+   if (!isfinite(z))   return E_DOMAIN_ERROR;   // 2⋆4096 gave ∞
    return FloatCell::zF(Z, z);
 }
 //────────────────────────────────────────────────────────────────────────────
@@ -939,7 +947,9 @@ APL_Integer result = 0;
 ErrorCode
 IntCell::bif_exponential_i(Cell * Z, APL_Integer b)
 {
-   return FloatCell::zF(Z, exp(APL_Float(b)));
+const APL_Float z = exp(APL_Float(b));
+   if (!isfinite(z))   return E_DOMAIN_ERROR;   // ⋆1000 gave ∞
+   return FloatCell::zF(Z, z);
 }
 //────────────────────────────────────────────────────────────────────────────
 ErrorCode

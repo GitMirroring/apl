@@ -188,6 +188,26 @@ cFunction_P RO = _RO.get_function();
 
 Value_P Z(A.get_shape() + B.get_shape(), LOC);
 
+   // is_empty() checked BEFORE the scalar fast path below: that fast
+   // path, for an empty result, ran 0 iterations and then set Z's
+   // prototype from B alone (Z->set_default(B,LOC)) -- skipping RO's own
+   // fill function entirely and losing any contribution from A, unlike
+   // the general (non-scalar-RO) path just below, which correctly
+   // computes the fill element via RO->eval_fill_AB(). Checking here
+   // routes the empty case through that existing, correct logic instead,
+   // with no effect on the (far more common) non-empty case, which still
+   // takes the fast path exactly as before.
+   if (Z->is_empty())
+      {
+        Value_P Fill_A = Bif_F12_TAKE::first(A);
+        Value_P Fill_B = Bif_F12_TAKE::first(B);
+
+        Value_P Z1 = RO->eval_fill_AB(*Fill_A, *Fill_B).get_apl_val();
+        Z->set_ravel_Cell(0, Z1->get_cfirst());
+        Z->check_value(LOC);
+        return Token(TOK_APL_VALUE1, Z);
+      }
+
    // an important (and the most likely) special case is RO being a scalar
    // function. This case can be implemented in a far simpler fashion than
    // the general case.
@@ -210,17 +230,6 @@ Value_P Z(A.get_shape() + B.get_shape(), LOC);
 
         Z->set_default(B, LOC);
         Z->try_pack();   // result type matches RO's output for homogeneous inputs
-        Z->check_value(LOC);
-        return Token(TOK_APL_VALUE1, Z);
-      }
-
-   if (Z->is_empty())
-      {
-        Value_P Fill_A = Bif_F12_TAKE::first(A);
-        Value_P Fill_B = Bif_F12_TAKE::first(B);
-
-        Value_P Z1 = RO->eval_fill_AB(*Fill_A, *Fill_B).get_apl_val();
-        Z->set_ravel_Cell(0, Z1->get_cfirst());
         Z->check_value(LOC);
         return Token(TOK_APL_VALUE1, Z);
       }

@@ -398,8 +398,15 @@ Error::throw_symbol_error(const UCS_string & sym_name, const char * loc)
         CERR << endl;
       }
 
+   // Workspace::SI_top() can return null (empty SI stack, e.g. no
+   // statement/function currently suspended) -- the unguarded
+   // dereference below crashed in that case; SI_top() is correctly
+   // null-checked a few lines further down in this same function for
+   // exactly this reason. An empty SI is trivially "not in ⎕ES", so
+   // treat it the same as get_safe_execution_depth()==0.
    if (Workspace::more_error().size() == 0 &&   // no )MORE info provided, and
-       Workspace::SI_top()->get_safe_execution_depth() == 0)   // and not in ⎕ES
+       (!Workspace::SI_top() ||
+        Workspace::SI_top()->get_safe_execution_depth() == 0))   // and not in ⎕ES
       {
         char extra[20] = { 0 };
         if (sym_name.size() == 1 && sym_name[0] >= 0x80)

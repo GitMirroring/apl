@@ -648,17 +648,30 @@ Value_P Z(shZ, LOC);
 int v = 0;
 
    loop(z, count)
+      {
+        // v points at the previous row's terminating 0 here (except for
+        // z==0, where it's already at the first real character) -- skip
+        // it before reading this row's characters.
+        if (z > 0 && varnames[v] == 0)   ++v;
+
    loop(c, max_len)
       {
-        if (c < var_lengths[z])
+        // var_lengths[z] includes the terminating 0 (see max_len above,
+        // which correctly uses var_lengths[z]-1) -- the old condition
+        // here used the un-adjusted length, letting c reach the
+        // terminator position itself for any name shorter than max_len,
+        // "consuming" it via a since-removed ++v and then reading the
+        // *next* name's first character (or, for the last name in the
+        // vector, reading past varnames entirely).
+        if (c < var_lengths[z] - 1)
            {
-             if (varnames[v] == 0)   ++v;
              Z->next_ravel_Char(Unicode(varnames[v++]));
            }
         else
            {
              Z->next_ravel_Char(UNI_SPACE);
            }
+      }
       }
 
    Z->set_proto_Spc();   // prototype: character

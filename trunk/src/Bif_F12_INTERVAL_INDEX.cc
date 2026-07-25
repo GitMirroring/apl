@@ -95,9 +95,20 @@ const APL_Integer qio = Workspace::get_IO();
 
 Value_P Z(B.get_shape(), LOC);
 
+   // find_range() below fetches from A while its cell argument (fetched
+   // from B here) is still live; for V⍸V, A and B are the same Value
+   // sharing one cell_fetch_cache, so a raw reference into it (plain
+   // B.get_cravel(b)) gets clobbered by the first A.get_cravel() inside
+   // find_range() -- same aliasing bug as A⍳B above, and the same fix:
+   // materialize into caller-owned storage (the generic sort check a few
+   // lines above this function already does this with its own c1_cache).
+Cell key_B_cache;
    loop(b, ec_B)
       {
-        const ShapeItem z = find_range(B.get_cravel(b), A, ec_A);
+        const Cell & key_B = B.is_packed()
+                            ? B.get_cravel(b, key_B_cache)
+                            : B.get_cravel(b);
+        const ShapeItem z = find_range(key_B, A, ec_A);
         Z->next_ravel_Int(z + qio);
       }
 

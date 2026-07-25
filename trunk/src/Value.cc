@@ -126,7 +126,27 @@ Value::Value(const Shape & sh, uint64_t * bits, const char * loc)
    ADD_EVENT(this, VHE_Create, 0, loc);
    check_ptr = charP(this) + 7;
 
-   if (ravel.cells)   return;   // caller has allocated
+   // this constructor bypasses init_ravel() entirely, but ~Value()'s
+   // RPT_BOOL branch always does --value_count (unconditionally) and,
+   // since ravel.cells here is always heap (this constructor never uses
+   // ravel.short_value), always total_ravel_count -= nz_element_count()
+   // too -- without mirroring init_ravel()'s ++value_count/
+   // total_ravel_count here, both counters silently underflow over
+   // repeated )LOADs of bit-packed values, corrupting WS-FULL decisions
+   // that depend on them.
+   ++value_count;
+   total_ravel_count += sh.get_nz_volume();
+
+   if (ravel.cells)   { set_complete();   return; }   // caller has
+                                                       // allocated -- this
+                                                       // value is already
+                                                       // fully populated
+                                                       // too, just like
+                                                       // the self-
+                                                       // allocated branch
+                                                       // below, which
+                                                       // already called
+                                                       // set_complete().
 
    // round the size up to the next 64 bit boundary.
 const size_t uint64_count = (sh.get_nz_volume() + 63) >> 6;
@@ -595,6 +615,16 @@ Value::get_new_member(const UCS_string & new_member_name)
                    cell->get_int_value() == 0)   // unused row
                   {
                     Value_P name_val(new_member_name, LOC);
+                    // member names are read-only, always short, and only
+                    // ever compared -- pack unconditionally (bypassing
+                    // the general pack_min_length threshold, which exists
+                    // to avoid packing overhead for values that might not
+                    // stay short) and, for anything that ends up heap
+                    // ravel'd, use the MemberNameRavel vtable instead of
+                    // plain Char16Ravel so character-wise access is
+                    // caught instead of silently allowed.
+                    name_val->try_pack(true);
+                    name_val->upgrade_member_name();
                     new (cell) PointerCell(name_val.get(), *this);
                     return cell + 1;
                   }
@@ -720,6 +750,11 @@ Value * member_owner = 0;
 Cell * data = get_member(members, member_owner, false);
    Assert(member_owner);
    Assert(member_owner == this);
+   // get_member() can return an EXISTING (already-populated) member's
+   // cell, not just an unused slot -- placement-new over it without
+   // releasing first leaked the old sub-tree's reference (never
+   // decremented) and could double-count pointer_cell_count.
+   data->release(LOC);
    new (data) PointerCell(member_value, *this);
 }
 //────────────────────────────────────────────────────────────────────────────
@@ -1005,6 +1040,13 @@ Cell * dst = ravel.cells + N;
    flags.ravel_type        = RPT_CELLS;
    ravel.fetcher           = &Ravel::cell_fetcher;
    ravel.valid_ravel_items = N;
+   // Packing installs a subclass vtable via placement-new (IntRavel(),
+   // BoolRavel(), Char16Ravel(), ...) for heap ravels; reinstall the base
+   // Ravel vtable here so indexed accessors (get_int_value(),
+   // is_integer_cell(), apply_fast_dyadic(), ...) stop dispatching through
+   // the stale subclass and decoding the old packed layout as Cells.
+   if (ravel.cells != ravel.short_value)
+      new (&ravel) Ravel(Ravel::upgrade_tag{});
 }
 //────────────────────────────────────────────────────────────────────────────
 RavelType
@@ -1028,6 +1070,8 @@ auto src = reinterpret_cast<const uint16_t *>(ravel.cells) + N;
    flags.ravel_type        = RPT_UNICODE32;
    ravel.fetcher           = &Ravel::char32_fetcher;
    ravel.valid_ravel_items = N;
+   // see explode_to_Cells() for why this vtable reinstall is needed.
+   if (ravel.cells != ravel.short_value)   new (&ravel) Char32Ravel();
    return RPT_UNICODE32;
 }
 //────────────────────────────────────────────────────────────────────────────
@@ -1088,6 +1132,8 @@ auto dst = reinterpret_cast<double *>(ravel.cells) + 2 * N;
    flags.ravel_type        = RPT_COMPLEX;
    ravel.fetcher           = &Ravel::complex_fetcher;
    ravel.valid_ravel_items = N;
+   // see explode_to_Cells() for why this vtable reinstall is needed.
+   if (ravel.cells != ravel.short_value)   new (&ravel) ComplexRavel();
    return RPT_COMPLEX;
 }
 //────────────────────────────────────────────────────────────────────────────
@@ -1132,6 +1178,8 @@ auto dst = reinterpret_cast<double *>(ravel.cells) + N;
    flags.ravel_type        = RPT_FLOAT64;
    ravel.fetcher           = &Ravel::float64_fetcher;
    ravel.valid_ravel_items = N;
+   // see explode_to_Cells() for why this vtable reinstall is needed.
+   if (ravel.cells != ravel.short_value)   new (&ravel) FloatRavel();
    return RPT_FLOAT64;
 }
 //────────────────────────────────────────────────────────────────────────────
@@ -1159,6 +1207,8 @@ auto dst = reinterpret_cast<int64_t *>(ravel.cells) + N;
    flags.ravel_type        = RPT_INT64;
    ravel.fetcher           = &Ravel::int64_fetcher;
    ravel.valid_ravel_items = N;
+   // see explode_to_Cells() for why this vtable reinstall is needed.
+   if (ravel.cells != ravel.short_value)   new (&ravel) IntRavel();
    return RPT_INT64;
 }
 //────────────────────────────────────────────────────────────────────────────
@@ -1264,7 +1314,18 @@ bool has_inexact_int = false;   // any seen INT64 not exactly representable as d
                    break;
 
               case CT_COMPLEX:
-                   if (t == RPT_BOOL || t == RPT_INT64 || t == RPT_FLOAT64)   t = RPT_COMPLEX;
+                   if (t == RPT_BOOL || t == RPT_INT64)
+                      {
+                        // same has_inexact_int guard as the CT_FLOAT case
+                        // above, missing here: INT64->COMPLEX packing
+                        // also stores the integer as a double (the
+                        // complex real part), so an integer beyond
+                        // exact-double range (> 2^53) would silently
+                        // truncate just like the INT64->FLOAT64 case does.
+                        if (has_inexact_int)   return;
+                        t = RPT_COMPLEX;
+                      }
+                   else if (t == RPT_FLOAT64)   t = RPT_COMPLEX;
                      else if (t != RPT_COMPLEX)   return;   // char + complex → mixed
                    break;
 
@@ -1358,7 +1419,17 @@ ShapeItem
 cValue::packed_bytes_per_item() const
 {
 const RavelType rt = get_ravel_type();
-   if (rt & RPT_real)       return 8;    // RPT_INT64 or RPT_FLOAT64
+   // NOTE: this used to be `if (rt & RPT_real) return 8;` -- but
+   // RPT_BOOL == 0x0201 and RPT_real == 0x3200 (RPT_real's definition
+   // ORs in RPT_integer, which ORs in RPT_BOOL, before masking to the
+   // one-hot high byte), so RPT_BOOL & RPT_real == 0x0200 != 0: a
+   // bit-packed boolean ravel matched this test and returned 8, even
+   // though bpi==0 is documented (and intended) for RPT_BOOL just below.
+   // Every caller treats bpi>0 as "byte-addressable packed elements" and
+   // memcpy's raw bytes per element on that assumption -- for a bit-packed
+   // value that reads 8-byte units per *bit*, i.e. stale pre-pack garbage.
+   // Test the two intended types explicitly instead of a bitmask.
+   if (rt == RPT_INT64 || rt == RPT_FLOAT64)   return 8;
    if (rt == RPT_COMPLEX)   return 16;
    if (rt == RPT_UNICODE32) return 4;
    if (rt == RPT_UNICODE16) return 2;
@@ -1454,9 +1525,19 @@ const ShapeItem N = nz_element_count();
         case RPT_COMPLEX:
              {
                auto dst = reinterpret_cast<double *>(ravel.cells);
+               // read both parts into locals BEFORE writing dst[2*i]:
+               // dst aliases ravel.cells (in place), and dst[2*i]'s first
+               // 8 bytes ARE cells[i]'s vptr (sizeof(double)==8, matching
+               // Cell's leading vptr) -- writing dst[2*i] first, then
+               // calling the virtual get_imag_value() on the same cell,
+               // dispatches through the just-clobbered vptr. try_pack()
+               // (which this is a copy of, with the temporaries removed)
+               // already gets this right.
                loop(i, N)
-                  { dst[2*i]   = ravel.cells[i].get_real_value();
-                    dst[2*i+1] = ravel.cells[i].get_imag_value();
+                  { const APL_Float r = ravel.cells[i].get_real_value();
+                    const APL_Float m = ravel.cells[i].get_imag_value();
+                    dst[2*i]   = r;
+                    dst[2*i+1] = m;
                   }
                ravel.fetcher           = &Ravel::complex_fetcher;
                ravel.valid_ravel_items = N;

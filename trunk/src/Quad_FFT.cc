@@ -172,8 +172,23 @@ fftw_complex * out =  reinterpret_cast<fftw_complex *>(fftw_malloc(io_size));
              WS_FULL;
            }
 
-        init_in(in, B, win);   // do this after plan was created
-        fftw_execute(plan);
+        // init_in() can throw (e.g. DOMAIN_ERROR on a non-numeric cell in
+        // B) -- without this try/catch, an exception there unwound past
+        // this function leaking in/out/plan (the read path already
+        // hardened the analogous case). fftw_free()/fftw_destroy_plan()
+        // then re-throw so the error still propagates normally.
+        try
+           {
+             init_in(in, B, win);   // do this after plan was created
+             fftw_execute(plan);
+           }
+        catch (...)
+           {
+             fftw_free(in);
+             fftw_free(out);
+             fftw_destroy_plan(plan);
+             throw;
+           }
         fftw_destroy_plan(plan);
       }
    else if (B->get_rank() == 2)   // two-dimensional FFT
@@ -188,8 +203,23 @@ fftw_complex * out =  reinterpret_cast<fftw_complex *>(fftw_malloc(io_size));
              WS_FULL;
            }
 
-        init_in(in, B, win);   // do this after plan was created
-        fftw_execute(plan);
+        // init_in() can throw (e.g. DOMAIN_ERROR on a non-numeric cell in
+        // B) -- without this try/catch, an exception there unwound past
+        // this function leaking in/out/plan (the read path already
+        // hardened the analogous case). fftw_free()/fftw_destroy_plan()
+        // then re-throw so the error still propagates normally.
+        try
+           {
+             init_in(in, B, win);   // do this after plan was created
+             fftw_execute(plan);
+           }
+        catch (...)
+           {
+             fftw_free(in);
+             fftw_free(out);
+             fftw_destroy_plan(plan);
+             throw;
+           }
         fftw_destroy_plan(plan);
       }
    else if (B->get_rank() == 3)   // two-dimensional FFT
@@ -205,8 +235,23 @@ fftw_complex * out =  reinterpret_cast<fftw_complex *>(fftw_malloc(io_size));
              WS_FULL;
            }
 
-        init_in(in, B, win);   // do this after plan was created
-        fftw_execute(plan);
+        // init_in() can throw (e.g. DOMAIN_ERROR on a non-numeric cell in
+        // B) -- without this try/catch, an exception there unwound past
+        // this function leaking in/out/plan (the read path already
+        // hardened the analogous case). fftw_free()/fftw_destroy_plan()
+        // then re-throw so the error still propagates normally.
+        try
+           {
+             init_in(in, B, win);   // do this after plan was created
+             fftw_execute(plan);
+           }
+        catch (...)
+           {
+             fftw_free(in);
+             fftw_free(out);
+             fftw_destroy_plan(plan);
+             throw;
+           }
         fftw_destroy_plan(plan);
       }
    else                           // k-dimensional FFT
@@ -222,8 +267,23 @@ fftw_complex * out =  reinterpret_cast<fftw_complex *>(fftw_malloc(io_size));
              WS_FULL;
            }
 
-        init_in(in, B, win);   // do this after plan was created
-        fftw_execute(plan);
+        // init_in() can throw (e.g. DOMAIN_ERROR on a non-numeric cell in
+        // B) -- without this try/catch, an exception there unwound past
+        // this function leaking in/out/plan (the read path already
+        // hardened the analogous case). fftw_free()/fftw_destroy_plan()
+        // then re-throw so the error still propagates normally.
+        try
+           {
+             init_in(in, B, win);   // do this after plan was created
+             fftw_execute(plan);
+           }
+        catch (...)
+           {
+             fftw_free(in);
+             fftw_free(out);
+             fftw_destroy_plan(plan);
+             throw;
+           }
         fftw_destroy_plan(plan);
       }
 

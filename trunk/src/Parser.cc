@@ -468,6 +468,14 @@ bool progress = false;
                  CERR << "new    " << voidP(idx) << " at " LOC << endl;
               new (&tos[src++]) Token(TOK_INDEX, *idx);   // replace [
               new (&tos[src]) Token(TOK_VOID);            // replace ]
+              // idx has rank 0 here, so the Token ctor above always took
+              // its "case 2a" branch (Token.cc): tag became TOK_AXIS and
+              // idx->extract_axis()'s *return value* was stored, not idx
+              // itself -- idx is now unreferenced anywhere. Without this
+              // delete, every literal "[]" leaked one IndexExpr (~125
+              // bytes measured: 900k repeated ⍎'A[]' -> 133 MB RSS vs
+              // 20 MB for an axis-free statement).
+              delete idx;
               OptmizationStatistics::count(OPTI_FT_LITERAL_AXIS);
               progress = true;
               continue;
@@ -490,10 +498,24 @@ bool progress = false;
                  primitives) we can decide that here; if not then we have
                  to defer the decision to the Prefix parser.
                */
-              if (src > 0 && tos[src - 1].is_function())   // function axis
+              // this parse-time literal-axis optimization is the path
+              // actually taken for e.g. ⌽[N] or ,[N] with a literal N in
+              // brackets (the common case) -- bypassing it entirely
+              // skips the runtime axis-range checks in
+              // Value::get_single_axis()/catenate_or_laminate() etc.
+              // Narrowing an out-of-range N (e.g. 4294967298, or 65537)
+              // directly into sAxis (int16_t) here wrapped it into a
+              // small in-range value *before* any of those checks ever
+              // ran -- ⌽[4294967298]M silently reversed axis 2 instead
+              // of raising AXIS_ERROR, same for a huge ,[N] axis. Only
+              // take this shortcut when N actually fits in sAxis; leave
+              // out-of-range N for the (checked) Prefix-parser path.
+              const APL_Integer wide_axis = T1.get_apl_val()
+                                          ->get_int_value(0);
+              if (src > 0 && tos[src - 1].is_function()   // function axis
+                  && wide_axis >= -32000 && wide_axis <= 32000)
                  {
-                   const sAxis function_axis = T1.get_apl_val()
-                                             ->get_int_value(0);
+                   const sAxis function_axis = wide_axis;
 
                    Token tok_axis(TOK_FAXIS, function_axis);
                    new (&tos[src++]) Token(TOK_VOID);   // invalidate [
@@ -506,11 +528,16 @@ bool progress = false;
                  {
                    IndexExpr * idx = new IndexExpr(assign_state, LOC);
                    idx->add_index(T1.get_apl_val());
-                   
+
                    // T1 is an axis [ N ].
                    new (&tos[src++]) Token(TOK_VOID);   // invalidate [
                    new (&tos[src++]) Token(TOK_INDEX, *idx);
                    new (&tos[src])   Token(TOK_VOID);   // invalidate ]
+                   // idx has rank 1 here, so the Token ctor above always
+                   // took its "case 2a" branch and never stored idx
+                   // itself -- see the "[]" case above for the full
+                   // explanation; same leak, same fix.
+                   delete idx;
                    OptmizationStatistics::count(OPTI_FT_LITERAL_INDEX);
                    progress = true;
                  }
@@ -887,6 +914,21 @@ Shape shape_Z;
          shape_Z.add_shape_item(max_counters[rank - r - 1] + 1);
        }
    shape_Z.add_shape_item(max_value_length);
+
+   // shape_Z is sized from the *maximum* group/row counters per axis, but
+   // the fill loop below only ever writes value_rows.size() rows. If some
+   // group has fewer rows than the group that set max_counters[], those
+   // extra Shape_Z-implied rows are never next_ravel_Cell()'d, leaving
+   // that many trailing Cells uninitialized (garbage vtables) -- reachable
+   // via a ragged multi-line literal (e.g. groups of 200/1/1 rows) and a
+   // guaranteed SEGV on first use of the result. check_value() below only
+   // catches this under cfg_VALUE_CHECK_WANTED, so enforce it here instead.
+   if (ShapeItem(value_rows.size()) * max_value_length != shape_Z.get_volume())
+      {
+        MORE_ERROR() <<
+             "Error parsing multi-line literal (ragged group/row counts)";
+        LENGTH_ERROR;
+      }
 
 Value_P Z(shape_Z, LOC);
    loop(r, value_rows.size())
@@ -2068,7 +2110,11 @@ Parser::parse_statement(Token_string & tos, bool optimize)
    //
    if (tos.ssize() == 1)
       {
-        Log(LOG_parse)   CERR << "parse 5: single value " << tos[0] << endl;;
+        // was "parse 5: ..." -- collides with the real step 5
+        // (map_function_groups, logged via parse_log(5, tos) above);
+        // debug-trace-only mislabeling, no functional effect, but
+        // makes -l LOG_parse output look like step 5 ran twice.
+        Log(LOG_parse)   CERR << "parse (single value): " << tos[0] << endl;
         return E_NO_ERROR;
       }
    parse_log(9, tos);

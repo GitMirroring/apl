@@ -530,7 +530,7 @@ public:
    /// print \b this member value
    /// @param out output stream to write to
    /// @param member name of the member to display
-   ostream & print_member(ostream & out, UCS_string member) const;
+   ostream & print_members(ostream & out, UCS_string member) const;
 
    /// print \b this value (line break at print_width)
    /// @param out output stream to write to
@@ -1272,6 +1272,18 @@ public:
    /// Does nothing if the value is already packed, has PointerCells, or has
    /// fewer than PACKED_MINIMUM_LENGHT elements.  Safe to call multiple times.
    void try_pack(bool force = false);
+
+   /// upgrade an already RPT_UNICODE16-packed, heap-allocated ravel to the
+   /// MemberNameRavel vtable (see its class comment in Ravel.hh). Intended
+   /// to be called right after try_pack(true) when constructing a
+   /// structured-variable member name (Value::get_new_member()). A no-op
+   /// for anything not RPT_UNICODE16, and for short (short_value-backed)
+   /// ravels -- those keep the base Ravel vtable, same as every other
+   /// packed type, so get_char_value() is not disabled for a short name.
+   void upgrade_member_name()
+      { if (get_ravel_type() != RPT_UNICODE16)   return;
+        if (ravel.cells == ravel.short_value)    return;
+        new (&ravel) MemberNameRavel(); }
 
    /// print incomplete Values, and return the number of incomplete Values.
    /// @param out output stream to write to

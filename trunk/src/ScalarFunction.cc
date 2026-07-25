@@ -731,7 +731,12 @@ ScalarFunction::expand_nested(Value * Z, const Cell & cell_A,
           {
             const ShapeItem pos = Z->get_valid_item_count();
             Z->next_ravel_0();   // pre-init with 0
-            (cell_B.*fun)(&Z->get_wravel(pos), &cell_A);
+            // the returned ErrorCode used to be silently discarded here
+            // (siblings do_scalar_AB/PF_scalar_AB check it) -- on
+            // E_DOMAIN_ERROR the cell just kept its pre-init 0 instead of
+            // raising an error, e.g. "1 2÷[1]2 2⍴0" silently gave 0 0/0 0.
+            const ErrorCode ec = (cell_B.*fun)(&Z->get_wravel(pos), &cell_A);
+            if (ec != E_NO_ERROR)   throw_apl_error(ec, LOC);
           }
       }
 }

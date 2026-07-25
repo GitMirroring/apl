@@ -68,11 +68,17 @@ cFunction_P LO = _LO.get_function();
         Value_P first_B = Bif_F12_TAKE::first(B);
         Shape shape_Z;   // will be ⍴A or ⍴B and therefore empty
 
+        // is_scalar_or_len1_vector(), not is_scalar(): the general
+        // (non-empty) conformance test a few lines above already accepts
+        // a 1-element vector partner for scalar-extension, but this
+        // empty-arg branch required a strict scalar -- ⍬+¨,5 gave
+        // DOMAIN_ERROR (B=,5 is a 1-element vector, not scalar) though
+        // the same B would extend fine against any non-empty A.
         if (A.is_empty())          shape_Z = A.get_shape();
-        else if (!A.is_scalar())   DOMAIN_ERROR;
+        else if (!A.is_scalar_or_len1_vector())   DOMAIN_ERROR;
 
         if (B.is_empty())          shape_Z = B.get_shape();
-        else if (!B.is_scalar())   DOMAIN_ERROR;
+        else if (!B.is_scalar_or_len1_vector())   DOMAIN_ERROR;
 
         // evaluate the fill function (lrm p. 245)
         //

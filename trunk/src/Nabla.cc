@@ -132,6 +132,7 @@ Nabla::Nabla(const UCS_string & cmd)
      modified(false),
      do_close(false),
      locked(false),
+     out_of_order(false),
      current_line(1),
      first_command(cmd)
 {

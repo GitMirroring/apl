@@ -65,10 +65,17 @@ const double qct = Workspace::get_CT();
 
    // if both args are int then return the least common multiple of them
    //
-   if (A->is_near_int() && is_near_int())
+   // is_near_int64_t() (not is_near_int()): is_near_int() is deliberately
+   // true for any huge magnitude too (its own doc comment: "if [int64
+   // representability] is the concern then use is_near_int64_t()"), but
+   // get_checked_near_int() below does an unchecked double->int64_t cast
+   // (UB, e.g. yields INT64_MIN for 1E19) -- is_near_int64_t() correctly
+   // excludes those and lets them fall through to the real/float LCM path
+   // a few lines below instead.
+   if (A->is_near_int64_t() && is_near_int64_t())
       {
-        if (!A->is_near_int())   return E_DOMAIN_ERROR;
-        if (!is_near_int())      return E_DOMAIN_ERROR;
+        if (!A->is_near_int64_t())   return E_DOMAIN_ERROR;
+        if (!is_near_int64_t())      return E_DOMAIN_ERROR;
 
         const APL_Integer a = A->get_checked_near_int();
         const APL_Integer b =    get_checked_near_int();
@@ -142,13 +149,29 @@ const int row = (r_A < 0   ? 4 : 0)
    //
 const char * how = "-0?-0?-0";   // '?' means case cannot occur
 const char chow = how[row];
-   if (chow == '0')   return IntCell::z0(Z);   // cases 1, 4, and 7
+   if (chow == '0')   // cases 1, 4, and 7
+      {
+        // The '0' entries model poles of the Gamma function, which only
+        // exist for *integer* N/K -- this table is keyed purely on sign
+        // (A<0, B<0, B<A), evaluated before any integrality test, so a
+        // non-integer A/B landing in one of these sign patterns was
+        // returning 0 unconditionally instead of the general Gamma-based
+        // real_binomial() result. Reproduced: 2!0.5 gave 0 (want -0.125);
+        // 0.5!0.2 gave 0 (want ~0.798).
+        if (A->is_near_int() && is_near_int())   return IntCell::z0(Z);
+        return real_binomial(Z, A);
+      }
    Assert(chow == '-');                        // cases 0, 3, and 6
 
-   if (!   is_near_int())   return real_binomial(Z, A);
-   if (!A->is_near_int())   return real_binomial(Z, A);
+   // is_near_int64_t(), not is_near_int(): the latter is also true for
+   // magnitudes that don't fit in int64_t (by design, see its doc
+   // comment), which get_checked_near_int() below then casts unchecked
+   // (UB) instead of routing through real_binomial() as intended.
+   if (!   is_near_int64_t())   return real_binomial(Z, A);
+   if (!A->is_near_int64_t())   return real_binomial(Z, A);
 
-   // at this point both A and B are integer (possibly negative)
+   // at this point both A and B are integer (possibly negative) and
+   // actually representable as int64_t.
    //
 const APL_Integer K = A->get_checked_near_int();
 const APL_Integer N =    get_checked_near_int();
@@ -330,7 +353,10 @@ const double qct = Workspace::get_CT();
 
    // if both args are int then return the greatest common divisor of them
    //
-   if (A->is_near_int() && is_near_int())
+   // is_near_int64_t(), not is_near_int(): see the LCM function above for
+   // why (get_checked_near_int()'s unchecked cast is UB for a magnitude
+   // is_near_int() alone doesn't exclude).
+   if (A->is_near_int64_t() && is_near_int64_t())
       {
         const APL_Integer a = A->get_checked_near_int();
         const APL_Integer b =    get_checked_near_int();
@@ -414,10 +440,17 @@ NumericCell::cpx_gcd(APL_Complex & z, APL_Complex a, APL_Complex b, double qct)
    if (!is_near_int(b.real()))   return E_DOMAIN_ERROR;
    if (!is_near_int(b.imag()))   return E_DOMAIN_ERROR;
 
-   // make a and b true integers
+   // make a and b true (Gaussian) integers -- both real AND imaginary
+   // parts, matching the is_near_int() checks just above on both parts
+   // of both a and b. Was rounding only the real part, leaving the
+   // imaginary part as a near-but-not-exact float (e.g. 2.9999999998),
+   // which can drift the Euclidean-algorithm loop below (its own
+   // round()-based quotient/remainder steps and the abs(a)<0.2
+   // termination test) into a wrong result for inputs whose imaginary
+   // part isn't already an exact integer.
    //
-   a = APL_Complex(round(a.real()), a.imag());
-   b = APL_Complex(round(b.real()), b.imag());
+   a = APL_Complex(round(a.real()), round(a.imag()));
+   b = APL_Complex(round(b.real()), round(b.imag()));
 
    for (;;)
        {

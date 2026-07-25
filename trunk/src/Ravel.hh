@@ -310,8 +310,14 @@ public:
       { return 0.0; }
 
    virtual int get_byte_value(ShapeItem idx) const override
-      { const int64_t v = reinterpret_cast<const int64_t *>(cells)[idx];
-        if (v >= 0 && v <= 255)   return int(v);
+      { // must match IntCell::get_byte_value()'s -128..255 range (the
+        // unpacked/Cell-array path this packed one substitutes for), not
+        // just 0..255 -- otherwise the same value (e.g. -1) is accepted
+        // or rejected purely depending on whether the array happened to
+        // pack (>= pack_min_length elements). ⎕FIO byte write of -1
+        // failed at >= 12 elements while working below that threshold.
+        const int64_t v = reinterpret_cast<const int64_t *>(cells)[idx];
+        if (v >= -128 && v <= 255)   return int(v);
         DOMAIN_ERROR; }
 
    virtual APL_Complex get_complex_value(ShapeItem idx) const override
@@ -422,6 +428,30 @@ public:
    virtual bool apply_fast_monadic(const ScalarFunction & sf,
                                     cValue_R B,
                                     Value & Z, ShapeItem len_Z) const override;
+};
+//════════════════════════════════════════════════════════════════════════════
+/// A Ravel for structured-variable member names (see Value::get_new_member()
+/// and cValue::is_structured()). Member names are read-only after creation,
+/// always short plain character strings (never 4-byte Unicode), and only
+/// ever compared as a whole -- never indexed character-wise. Reuses
+/// Char16Ravel's packed 16-bit storage and fetcher unchanged (so generic
+/// printing/display/iteration via get_cravel() keeps working), but
+/// disables the single-character accessor: any code that forgets a member
+/// name isn't a general indexable string and tries per-character access
+/// anyway hits this instead of silently working. (cValue::equal_string()'s
+/// RPT_UNICODE16 fast path is the intended way to compare a member name;
+/// it never calls get_char_value().)
+/// Same placement-new guard as every other packed-type Ravel subclass:
+/// only installed for heap ravels (see Value::upgrade_member_name()) --
+/// a short member name keeps the base Ravel vtable, same as any other
+/// short packed value, so get_char_value() is not disabled for those.
+class MemberNameRavel : public Char16Ravel
+{
+public:
+   MemberNameRavel() : Char16Ravel() {}
+
+   virtual Unicode get_char_value(ShapeItem idx) const override
+      { FIXME; }
 };
 //════════════════════════════════════════════════════════════════════════════
 /// A Ravel whose storage holds a packed Unicode array (RPT_UNICODE32).

@@ -305,8 +305,13 @@ const ShapeItem item_len = item_shape.get_volume();
              // shape_Z, which -- like B0's own value -- always has volume
              // 0 here, so this is a safe, allocation-free reshape.
              //
+             // NOTE: CLONE_P(x, L) is NOT a clone under NEW_CLONE (see
+             // Value.hh) -- it expands to (x), the same Value_P. Using it
+             // here left every PointerCell sharing B0's sub-value aliased,
+             // so set_shape() below corrupted all of them. vB->clone(LOC)
+             // is an actual copy.
              Value_P vB = B0.get_pointer_value();
-             Value_P result = CLONE_P(vB, LOC);
+             Value_P result = vB->clone(LOC);
              result->set_shape(shape_Z);
              return result;
            }

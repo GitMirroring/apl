@@ -89,7 +89,10 @@ const ShapeItem ebytes = B.packed_bytes_per_item();
 Token
 Bif_ROTATE::rotate(cValue_R A, cValue_R B, sAxis axis)
 {
-int32_t gsh = 0;   // global shift (scalar A); 0 means local shift (A) used.
+// was int32_t: truncated a 64-bit rotate amount, and low-32-bits-zero
+// (e.g. 4294967296 == 1<<32) even short-circuited the "nothing to do"
+// case below. 4294967296⌽1 2 3 gave 1 2 3 unchanged instead of 2 3 1.
+ShapeItem gsh = 0;   // global shift (scalar A); 0 means local shift (A) used.
 
 const Shape3 shape_B3(B.get_shape(), axis);
 const Shape shape_A2(shape_B3.h(), shape_B3.l());

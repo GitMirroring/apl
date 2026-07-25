@@ -177,6 +177,13 @@ Quad_PNG::eval_AB(cValue_R A, cValue_R B) const
       }
    else if (A.element_count() == 2)   // case 2: PNG file A[1] depth A[2]
       {
+        // case 1 above checks this before calling write_PNG_file(); this
+        // branch didn't -- write_PNG_file() reads B's shape items 0/1/2
+        // assuming rank 3, guarded only by Assert() (a no-op at
+        // ASSERT_LEVEL 0), so a wrong-rank B read garbage height/width
+        // and could walk off B's actual ravel.
+        if (B.get_rank() != 3)   RANK_ERROR;
+
         const APL_Integer A1 = A.get_int_value(1);   // bit depth
         if (A.is_pointer_cell(0))   // probably file name
            {
@@ -693,6 +700,12 @@ if (B.element_count() > (ShapeItem)(SIZE_MAX / 2))   WS_FULL;
 UTF8 * RGB = new UTF8[2*B.element_count()];
 UTF8 ** row_pointers = new UTF8 *[height];
 
+// the fill loop below can throw (e.g. DOMAIN_ERROR on an out-of-range
+// color component or bad bit_depth); without this try/catch, that
+// leaked png_ptr/info_ptr/RGB/row_pointers -- their only cleanup used to
+// be at the very end of this function, past every possible throw site.
+try
+   {
 UTF8 * scanline = RGB;
    loop(y, height)
        {
@@ -771,9 +784,22 @@ UTF8 * scanline = RGB;
                 PNG_COMPRESSION_TYPE_DEFAULT, PNG_FILTER_TYPE_DEFAULT);
    png_set_rows(png_ptr, info_ptr, row_pointers);
 
+   // png_write_png() (the high-level, "do everything" call) already
+   // writes the image data and the end marker internally when row
+   // pointers were set via png_set_rows() above -- the extra
+   // png_write_image()/png_write_end() calls that used to follow it
+   // appended a second IDAT chunk and a second IEND chunk after the
+   // file's real end, corrupting the output. Keep only the one call.
    png_write_png(png_ptr, info_ptr, PNG_TRANSFORM_IDENTITY, 0);
-   png_write_image(png_ptr, row_pointers);
-   png_write_end(png_ptr, info_ptr);
+   }
+catch (...)
+   {
+     loop(y, height)   row_pointers[y] = 0;   // just in case
+     delete [] row_pointers;
+     delete [] RGB;
+     png_destroy_write_struct(&png_ptr, &info_ptr);
+     throw;
+   }
 
    loop(y, height)   row_pointers[y] = 0;   // just in case
    delete [] row_pointers;

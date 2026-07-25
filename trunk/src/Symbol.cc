@@ -573,6 +573,9 @@ ValueStackItem & vs = value_stack.back();
         case NC_LABEL:
              MORE_ERROR() << "attempt to assign a value to label "
                           << get_name() << " (line " << vs.get_label() << ")";
+             SYNTAX_ERROR;   // was missing: fell through into NC_VARIABLE,
+                              // performing the forbidden assignment and
+                              // silently turning the label into a variable
 
         case NC_VARIABLE:
              if (vs.get_val_cptr() == new_value.get())   return;   // X←X

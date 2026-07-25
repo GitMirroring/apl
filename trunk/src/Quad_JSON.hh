@@ -158,6 +158,14 @@ protected:
    /// @param b starting position of the string token (opening quote)
    static void parse_string(Value & Z, const UCS_string & ucs_B, ShapeItem b);
 
+   /// decode JSON escapes (\uXXXX, \n, \", ...) in already-dequoted
+   /// string content, e.g. an object member name. Same escape table as
+   /// parse_string(), extracted so member names (which are located via
+   /// their own quote-search rather than skip_string()) get the same
+   /// decoding instead of being copied raw.
+   /// @param raw already-dequoted string content (no surrounding quotes)
+   static UCS_string decode_json_string_escapes(const UCS_string & raw);
+
    /// parse a JSON value (false, null, true, object, array, number, or string)
    /// and increment along the way.
    /// @param Z APL output value being constructed

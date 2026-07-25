@@ -32,6 +32,8 @@ static_assert(sizeof(FloatRavel) == sizeof(Ravel),
               "FloatRavel must not add data members (vtable upgrade via placement-new)");
 static_assert(sizeof(Char16Ravel) == sizeof(Ravel),
               "Char16Ravel must not add data members (vtable upgrade via placement-new)");
+static_assert(sizeof(MemberNameRavel) == sizeof(Ravel),
+              "MemberNameRavel must not add data members (vtable upgrade via placement-new)");
 static_assert(sizeof(Char32Ravel) == sizeof(Ravel),
               "Char32Ravel must not add data members (vtable upgrade via placement-new)");
 static_assert(sizeof(BoolRavel) == sizeof(Ravel),

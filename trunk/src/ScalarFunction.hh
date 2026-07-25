@@ -1181,7 +1181,14 @@ public:
 
    static void vv_plus(double * pZ, const double * pA, int incA,
                                     const double * pB, int incB, ShapeItem N)
-      { loop(i, N) pZ[i] = pA[i * incA] + pB[i * incB]; }
+      { loop(i, N)
+           { pZ[i] = pA[i * incA] + pB[i * incB];
+             // the per-cell (non-packed) path enforces this; this packed
+             // fast path silently stored raw IEEE overflow/NaN instead --
+             // (12⍴1E308)+(12⍴1E308) gave ∞ while the 2-element (non-
+             // packed) case correctly gave DOMAIN_ERROR.
+             if (!isfinite(pZ[i]))   DOMAIN_ERROR;
+           } }
    static void v_conjugate(double * pZ, const double * pB, ShapeItem N)
       { loop(i, N) pZ[i] = pB[i]; }
 
@@ -1230,7 +1237,10 @@ public:
 
    static void vv_minus(double * pZ, const double * pA, int incA,
                                      const double * pB, int incB, ShapeItem N)
-      { loop(i, N) pZ[i] = pA[i * incA] - pB[i * incB]; }
+      { loop(i, N)
+           { pZ[i] = pA[i * incA] - pB[i * incB];
+             if (!isfinite(pZ[i]))   DOMAIN_ERROR;
+           } }
    static void v_negate(double * pZ, const double * pB, ShapeItem N)
       { loop(i, N) pZ[i] = -pB[i]; }
 
@@ -1365,7 +1375,10 @@ public:
 
    static void vv_times(double * pZ, const double * pA, int incA,
                                      const double * pB, int incB, ShapeItem N)
-      { loop(i, N) pZ[i] = pA[i * incA] * pB[i * incB]; }
+      { loop(i, N)
+           { pZ[i] = pA[i * incA] * pB[i * incB];
+             if (!isfinite(pZ[i]))   DOMAIN_ERROR;
+           } }
 
    static void v_signum_i(int64_t * pZ, const int64_t * pB, ShapeItem N)
       { loop(i, N) pZ[i] = (0 < pB[i]) - (pB[i] < 0); }

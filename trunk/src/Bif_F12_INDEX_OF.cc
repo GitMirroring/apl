@@ -157,10 +157,20 @@ Value_P Z(B.get_shape(), LOC);
    else
 #endif
       {
+        // see the "materialize into caller-owned stable storage" comment
+        // in the sorted path above -- find_B_in_A() below fetches from A
+        // while cell_B (fetched from B) is still live, and for V⍳V, A and
+        // B are the same Value sharing one cell_fetch_cache: a raw
+        // reference into it gets clobbered by A.get_cravel() on the very
+        // first comparison, so every search degenerated into "compare
+        // A[0] against itself" (V⍳V returned all 1s instead of 1 2 … 20).
+        Cell stable_B;
         loop(bz, len_BZ)
             {
-              const APL_Integer z = find_B_in_A(A, len_A,
-                                               B.get_cravel(bz), qct);
+              const Cell & key_B = B.is_packed()
+                                  ? B.get_cravel(bz, stable_B)
+                                  : B.get_cravel(bz);
+              const APL_Integer z = find_B_in_A(A, len_A, key_B, qct);
 
               if (simple_result)   Z->next_ravel_Int(qio + z);
               else if (z == len_A)   // not found: set result item to ⍬

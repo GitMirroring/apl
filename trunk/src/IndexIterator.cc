@@ -118,32 +118,53 @@ MultiIndexIterator::MultiIndexIterator(const Shape & shape,
       }
 
 ShapeItem weight = 1;
-   loop(idx_r, shape.get_rank())
-       {
-         const sAxis ax_r = shape.get_rank() - idx_r - 1;  // see comment above.
-         const ShapeItem  sh_r = shape.get_shape_item(ax_r);
-         Value_P I = IDX.values[idx_r];
-         IndexIterator * new_it;
-         if (!I)   // elided index
+   // TrueIndexIterator's ctor can throw INDEX_ERROR (and 'new' itself
+   // can throw bad_alloc); if that happens partway through this loop,
+   // the iterators built and chained by EARLIER iterations are only
+   // reachable via lowest_it/highest_it -- but since this constructor
+   // never finishes, ~MultiIndexIterator() never runs either (a
+   // throwing ctor leaves the object "never constructed" in C++), so
+   // that partial chain leaked. Catch, walk and delete it the same way
+   // the destructor does, then rethrow.
+   try
+      {
+        loop(idx_r, shape.get_rank())
             {
-              new_it = new ElidedIndexIterator(weight, sh_r);
-              if (sh_r == 0)   empty = true;
+              const sAxis ax_r = shape.get_rank() - idx_r - 1;  // see comment above.
+              const ShapeItem  sh_r = shape.get_shape_item(ax_r);
+              Value_P I = IDX.values[idx_r];
+              IndexIterator * new_it;
+              if (!I)   // elided index
+                 {
+                   new_it = new ElidedIndexIterator(weight, sh_r);
+                   if (sh_r == 0)   empty = true;
+                 }
+              else
+                 {
+                   new_it = new TrueIndexIterator(weight, I, IDX.quad_io, sh_r);
+                   if (I->element_count() == 0)   empty = true;
+                 }
+
+              Log(LOG_delete)
+                 CERR << "new    " << voidP(new_it) << " at " LOC << endl;
+
+              if (highest_it)   highest_it->set_upper(new_it);
+              else              lowest_it = new_it;
+
+              weight *= sh_r;
+              highest_it = new_it;
             }
-         else
+      }
+   catch (...)
+      {
+        for (IndexIterator * it = lowest_it; it;)
             {
-              new_it = new TrueIndexIterator(weight, I, IDX.quad_io, sh_r);
-              if (I->element_count() == 0)   empty = true;
+              IndexIterator * del = it;
+              it = it->get_upper();
+              delete del;
             }
-
-         Log(LOG_delete)
-            CERR << "new    " << voidP(new_it) << " at " LOC << endl;
-
-         if (highest_it)   highest_it->set_upper(new_it);
-         else              lowest_it = new_it;
-
-         weight *= sh_r;
-         highest_it = new_it;
-       }
+        throw;
+      }
 }
 //────────────────────────────────────────────────────────────────────────────
 MultiIndexIterator::~MultiIndexIterator()

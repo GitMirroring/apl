@@ -659,7 +659,11 @@ XML_node::is_first_name_char(Unicode uni)
    if (strchr(":ABCDEFGHIJKLMNOPQRSTUVWXYZ"
               "_abcdefghijklmnopqrstuvwxyz", uni))   return true;
 
-   for (size_t j = 0; j < sizeof(first_ranges); )
+   // sizeof(first_ranges) is a BYTE count (96 for 24 ints), but j is used
+   // as an ELEMENT index -- without the /sizeof(*first_ranges), this read
+   // up to first_ranges[95] for a codepoint above the last real range,
+   // treating 288 bytes of adjacent .rodata as more range pairs.
+   for (size_t j = 0; j < sizeof(first_ranges)/sizeof(*first_ranges); )
        {
          if (uni <  first_ranges[j++])   return false;   // below range start
          if (uni <= first_ranges[j++])   return true;    // below range end
@@ -813,6 +817,7 @@ enum { PREDEFINED_COUNT = sizeof(predefined_entities)
 
          // &... but not &#... Try predefined entities
          //
+         bool found = false;
          loop(p, PREDEFINED_COUNT)
              {
                const _mapping & pred = predefined_entities[p];
@@ -833,9 +838,17 @@ enum { PREDEFINED_COUNT = sizeof(predefined_entities)
                   {
                     attval[dest++] = pred.replacement;
                     src += len - 1;   // except uni
+                    found = true;
                     break;   // loop(p)
                   }
              }
+
+         // an unrecognized/malformed &entity; used to just fall through
+         // here without ever writing dest -- silently dropping the '&'
+         // from the output instead of preserving it or raising an error.
+         // AT&T became ATT. Preserve the literal '&' (uni, already read
+         // by the enclosing loop above this block) instead.
+         if (!found)   attval[dest++] = uni;
        }
 
    attval.resize(dest);
@@ -1258,9 +1271,16 @@ bool error = true;
    // create a (flat) doubly-linked list, starting at anchor, and containing
    // all XML_nodes of B.
    //
-   loop(b, len_B)
+   // NOTE: scan string_B (the CR-normalized copy), not B -- string_B is
+   // shorter than B whenever B contains a CR/LF pair (the CR is dropped),
+   // so indexing string_B with an offset "b" counted over the raw B
+   // desyncs after the first such pair: get_taglen()'s
+   // Assert(string_B[offset]=='<') fails (a no-op at ASSERT_LEVEL 0, so
+   // this silently misparses instead), and a longer run of CRLF pairs
+   // pushes b past string_B.size() entirely (OOB operator[]).
+   loop(b, dest_B)
        {
-         const Unicode uni_b = B.get_char_value(b);
+         const Unicode uni_b = string_B[b];
          if (uni_b == '<')
             {
               if (text_start != b)   // some text before the '<'
@@ -1285,8 +1305,8 @@ bool error = true;
             }
        }
 
-   if (text_start != len_B)   // trailing unstructured text
-      new XML_node(&anchor, string_B, text_start, len_B - text_start);
+   if (text_start != dest_B)   // trailing unstructured text
+      new XML_node(&anchor, string_B, text_start, dest_B - text_start);
 
   error = XML_node::translate(anchor, garbage);
   if (!error)   error = XML_node::collect(anchor, garbage, Z.get());
@@ -1387,7 +1407,16 @@ UCS_string path(B);
    while (path.size() && path.back() == UNI_FULLSTOP)   path.pop_back();
    while (path.size() && path[0]     == UNI_FULLSTOP)   path = path.drop(1);
 
-ShapeItem len_Z = 1;
+   // was unconditionally 1, assuming a path always has at least one
+   // (possibly whole-string) member -- but for an empty path (e.g.
+   // "2⎕XML ''", or a path that was nothing but dots and got trimmed
+   // away above), there are zero real members, and the fill loops
+   // below correctly write zero of them: Z ended up allocated for 1
+   // element that next_ravel_Pointer() never touched, an uninitialized
+   // ravel cell in the result. Size for zero members when path is
+   // empty.
+   //
+ShapeItem len_Z = path.size() ? 1 : 0;
 
    // count number of dots
    loop(p, path.size())

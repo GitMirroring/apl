@@ -191,6 +191,11 @@ bool auto_started = false;
    prog = argv[0];
 char bin_path[FILENAME_MAX];
    strncpy(bin_path, prog, sizeof(bin_path) - 1);
+   // strncpy() does not NUL-terminate when the source is >= the given
+   // length, so a long enough argv[0] left bin_path without a
+   // terminator, and strrchr() below could then read past the buffer
+   // looking for one.
+   bin_path[sizeof(bin_path) - 1] = 0;
 
 char * slash = strrchr(bin_path, '/');
    if (slash)
@@ -225,8 +230,12 @@ char * slash = strrchr(bin_path, '/');
                          { ProcessorID::set_grand_ID(AP_num(atoi(val))); ++a; }
          else
             {
+              // was 'argv[a]': the loop already did 'opt = argv[a++]'
+              // above, so by this point 'a' has moved on to the NEXT
+              // argument (or is out of range at the end of argv) --
+              // the offending option is 'opt', not argv[a].
               get_CERR() << pref << ": Bad command line option '"
-                   << argv[a] << "'" << endl;
+                   << opt << "'" << endl;
               need_help = true;
             }
        }
@@ -238,7 +247,21 @@ char * slash = strrchr(bin_path, '/');
    // serious attempt to run: run in the background
    //
 #if ! MINGW_SRC
-   if (fork())   return 0;            // parent returns (daemonize)
+   {
+     const pid_t child = fork();
+     // fork() returns -1 on failure, the child's PID (> 0) in the
+     // parent, and 0 in the child. The old 'if (fork()) return 0;'
+     // treated -1 as "truthy" the same as a successful parent return,
+     // so a failed fork silently exited 0 as if daemonizing had
+     // succeeded -- no child process ever started, no error reported.
+     if (child == -1)
+        {
+          get_CERR() << pref << ": fork() failed: "
+                     << strerror(errno) << endl;
+          return 1;
+        }
+     if (child)   return 0;            // parent returns (daemonize)
+   }
 #endif // ! MINGW_SRC
 
    // child code...

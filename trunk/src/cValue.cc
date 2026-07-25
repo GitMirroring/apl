@@ -224,6 +224,20 @@ cValue::equal_string(const UCS_string & ucs) const
       {
         const ShapeItem len = element_count();
         if (ucs.ssize() != len)   return false;   // wrong length
+
+        if (get_ravel_type() == RPT_UNICODE16)
+           {
+             // bulk-compare directly against the packed buffer instead of
+             // len virtual get_char_value() calls -- also the reason
+             // this doesn't crash on a MemberNameRavel-backed member
+             // name, whose get_char_value() is deliberately disabled
+             // (see Ravel.hh): this path never calls it.
+             const uint16_t * packed = cravel_unicode16();
+             loop(u, len)
+                 if (ucs[u] != Unicode(packed[u]))   return false;
+             return true;
+           }
+
         loop(u, len)
             if (ucs[u] != get_char_value(u))   // mismatch
                return false;
@@ -400,7 +414,32 @@ static bool
 member_name_greater(const ShapeItem & a, const ShapeItem & b, const void * ctx)
 {
 const cValue * val = reinterpret_cast<const cValue *>(ctx);
-   return val->get_cravel(2*a).greater(val->get_cravel(2*b));
+Value_P name_a = val->get_cravel(2*a).get_pointer_value();
+Value_P name_b = val->get_cravel(2*b).get_pointer_value();
+
+   // Plain dictionary (lexicographic) string comparison -- NOT
+   // Cell::greater()/PointerCell::compare(), which compares nested
+   // values shape-first (rank, then per-axis length) and only falls
+   // back to content when the shapes match exactly. That's the right
+   // rule for general ⍋/⍒ grading of mixed/nested arrays, but wrong
+   // here: it sorted member names by LENGTH before content (e.g.
+   // "kiwi" before "apple"/"mango"/"zebra", since kiwi is shorter),
+   // not by name as a dictionary would.
+   //
+const ShapeItem len_a = name_a->element_count();
+const ShapeItem len_b = name_b->element_count();
+const ShapeItem min_len = len_a < len_b ? len_a : len_b;
+
+   loop(c, min_len)
+       {
+         const Unicode ca = name_a->get_char_value(c);
+         const Unicode cb = name_b->get_char_value(c);
+         if (ca != cb)   return ca > cb;
+       }
+
+   // one name is a prefix of the other (or they are equal length):
+   // the shorter one sorts first, e.g. "apple" before "apples".
+   return len_a > len_b;
 }
 //────────────────────────────────────────────────────────────────────────────
 void
@@ -711,7 +750,7 @@ const ShapeItem count = nz_element_count();
 ostream &
 cValue::print(ostream & out) const
 {
-   if (is_member())   return print_member(out, UCS_string());
+   if (is_member())   return print_members(out, UCS_string());
 
 PrintContext pctx = Workspace::get_PrintContext(PR_APL);
    if (get_rank() == 0)   // scalar
@@ -772,13 +811,15 @@ const int count = min(3, int(element_count()));
 }
 //────────────────────────────────────────────────────────────────────────────
 ostream &
-cValue::print_member(ostream & out, UCS_string member_prefix) const
+cValue::print_members(ostream & out, UCS_string member_prefix) const
 {
 const ShapeItem rows = get_rows();
 
-   // figure the longest member name...
+   // figure the longest member name, and collect the row numbers of
+   // the used (member-name-bearing) rows.
    //
 ShapeItem longest_name = 0;
+std::vector<ShapeItem> order;
    loop(r, rows)
       {
         const Cell & cell = get_cravel(2*r);   // (nested) member-name or 0
@@ -787,15 +828,44 @@ ShapeItem longest_name = 0;
               Value_P member_name = cell.get_pointer_value();
               const ShapeItem name_len = member_name->element_count();
               if (longest_name < name_len)  longest_name = name_len;
+              order.push_back(r);
            }
       }
 
+   // sort order[] by member name so members print alphabetically. The
+   // member count is normally small (a handful of struct fields), so
+   // a simple O(N×N) selection sort is enough -- no need for Heapsort.
+   //
+   loop(i, order.size())
+       {
+         ShapeItem min_at = i;
+         UCS_string min_name =
+            get_cravel(2*order[min_at]).get_pointer_value()->get_UCS_ravel();
+         for (ShapeItem j = i + 1; j < ShapeItem(order.size()); ++j)
+             {
+               const UCS_string name_j =
+                  get_cravel(2*order[j]).get_pointer_value()->get_UCS_ravel();
+               if (name_j.compare(min_name) == COMP_LT)
+                  {
+                    min_at = j;
+                    min_name = name_j;
+                  }
+             }
+
+         if (min_at != i)
+            {
+              const ShapeItem tmp = order[i];
+              order[i] = order[min_at];
+              order[min_at] = tmp;
+            }
+       }
+
 const size_t indent = member_prefix.size() + longest_name + 3;
 
-   loop(r, rows)
+   loop(oi, order.size())
        {
-         const Cell & cell_name = get_cravel(2*r);   // (nested) member-name or 0
-         if (!cell_name.is_pointer_cell())       continue;
+         const ShapeItem r = order[oi];
+         const Cell & cell_name = get_cravel(2*r);   // (nested) member-name
 
          Value_P cell_sub = cell_name.get_pointer_value();
          Assert(cell_sub->is_char_string());
@@ -819,7 +889,7 @@ const size_t indent = member_prefix.size() + longest_name + 3;
               if (sub->is_member())
                  {
                    out << "□" << endl;
-                   sub->print_member(out, member);
+                   sub->print_members(out, member);
                    printed = true;
                  }
               else if (sub->is_char_vector())   // maybe multi-line with \n
@@ -962,6 +1032,13 @@ cValue::index(const IndexExpr & IX) const
               LENGTH_ERROR;   // not elided
             }
 
+         if (!IX.values[0])   // also elided, e.g. VAR[;]
+            {
+              MORE_ERROR() << "member access: first index is elided "
+                              "(expecting VAR[;1] to obtain the member names)";
+              LENGTH_ERROR;
+            }
+
          if (IX.values[0]->element_count() != 1)
             {
               MORE_ERROR() << "member access: first index too long";
@@ -971,23 +1048,18 @@ cValue::index(const IndexExpr & IX) const
          const APL_Integer col = IX.values[0]->get_int_value(0);
          if (col != Workspace::get_IO())           INDEX_ERROR;
 
-         // count the number of member names.
+         // VAR is a dictionary: VAR[;1] returns its keys sorted by name,
+         // not in raw (insertion-order-independent, resize-dependent)
+         // hash-bucket order.
          //
-         ShapeItem member_count = 0;
-         const ShapeItem rows = get_rows();
-         loop(row, rows)
-             {
-               if (is_pointer_cell(2*row))   ++member_count;
-             }
+         std::vector<ShapeItem> used_rows;
+         used_members(used_rows, /* sorted */ true);
 
-         Value_P Z(member_count, LOC);
-         loop(row, rows)
-             {
-               if (is_pointer_cell(2*row))
-                  Z->next_ravel_Cell(get_cravel(2*row));
-             }
+         Value_P Z(used_rows.size(), LOC);
+         loop(r, used_rows.size())
+             Z->next_ravel_Cell(get_cravel(2*used_rows[r]));
 
-         if (member_count == 0)   // no valid members (last member )ERASEd)
+         if (used_rows.size() == 0)   // no valid members (last member )ERASEd)
             new (&Z->get_wfirst()) PointerCell(Idx0(LOC).get(), *Z);
 
          Z->check_value(LOC);
@@ -1224,7 +1296,12 @@ Value::get_single_axis(const cValue * val, sRank max_axis)
 
    if (!val->is_near_int(0))   AXIS_ERROR;
 
-const int axis = val->get_near_int(0) - Workspace::get_IO();
+// APL_Integer (64-bit), not a plain (32-bit) int: get_near_int(0) is a
+// full APL_Integer, and a plain int here wrapped an axis >= 2^32 back
+// into the valid range instead of being rejected (confirmed: ⌽[4294967298]M
+// silently reversed axis 2 -- 4294967298 truncated to 32 bits -- instead
+// of raising AXIS_ERROR).
+const APL_Integer axis = val->get_near_int(0) - Workspace::get_IO();
 
    // axis is a plain (32-bit) signed int here while max_axis is the
    // (16-bit) signed sRank, so "axis >= max_axis" alone is a signed
@@ -1232,7 +1309,7 @@ const int axis = val->get_near_int(0) - Workspace::get_IO();
    // with ⎕IO←1 silently returned B unreversed instead of raising an
    // error). Test both bounds explicitly.
    //
-   if (axis < 0 || axis >= max_axis)   AXIS_ERROR;
+   if (axis < 0 || axis >= APL_Integer(max_axis))   AXIS_ERROR;
 
    return axis;
 }

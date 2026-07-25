@@ -83,7 +83,13 @@ UCS_string::UCS_string(const UCS_string & ucs, size_t pos)
 //────────────────────────────────────────────────────────────────────────────
 UCS_string::UCS_string(const UCS_string & ucs, size_t pos, size_t len)
 {
-   if (len > (ucs.size() - pos))   len = ucs.ssize() - pos;
+   // pos must be clamped BEFORE computing ucs.size()-pos: both are
+   // size_t (unsigned), so for pos > ucs.size() that subtraction
+   // underflows to a huge value, the len > (huge) clamp test is then
+   // almost always false, and the loop below reads ucs[pos+l] out of
+   // bounds. Reached via H12's negative-length XML CRLF desync.
+   if (pos > ucs.size())   pos = ucs.size();
+   if (len > (ucs.size() - pos))   len = ucs.size() - pos;
    reserve(2*len);
    loop(l, len)   push_back(ucs[pos + l]);
    create(LOC);
@@ -424,15 +430,24 @@ UCS_string::atoi() const
 {
 int ret = 0;
 bool negative = false;
+bool seen_digit = false;   // once true, whitespace/sign are no longer
+                           // "leading" and must stop the scan instead
+                           // of being silently skipped/re-toggled --
+                           // was gated on "!ret" alone, so a run of
+                           // leading zeros, or a sign/space appearing
+                           // *after* digits, was still treated as
+                           // leading ("12-34" gave -1234, "0 12" gave
+                           // 12 instead of stopping after the "0").
 
    loop(s, size())
       {
         const Unicode uni = at(s);
 
-        if (!ret && Avec::is_white(uni))   continue;   // leading whitespace
+        if (!seen_digit && Avec::is_white(uni))   continue;   // leading ws
 
         if (uni == UNI_MINUS || uni == UNI_OVERBAR)
            {
+             if (seen_digit)   break;   // sign after digits: stop
              negative = true;
              continue;
            }
@@ -440,6 +455,7 @@ bool negative = false;
         if (uni < UNI_0)                break;      // non-digit
         if (uni > UNI_9)                break;      // non-digit
 
+        seen_digit = true;
         ret *= 10;
         ret += uni - UNI_0;
       }
@@ -1107,7 +1123,7 @@ UCS_string ret;
                   case UNI_n:            if (keep_LF)   break;
                                                ret << UNI_LF;    continue;
                   case UNI_r:            ret << UNI_CR;    continue;
-                  case UNI_t:            ret << UNI_BS;    continue;
+                  case UNI_t:            ret << UNI_HT;    continue;   // was UNI_BS (backspace)
                   case UNI_v:            ret << UNI_VT;    continue;
                   case UNI_DOUBLE_QUOTE:
                   case UNI_BACKSLASH:
@@ -1711,6 +1727,9 @@ start_of_sequence:
              goto start_of_sequence;
            }
 
+const uint32_t seq_len = more;   // more is decremented to 0 below; keep
+                                  // the original byte count to validate
+                                  // the assembled codepoint afterward.
         uint32_t uni = 0;
         for (; more; --more)
             {
@@ -1749,7 +1768,34 @@ start_of_sequence:
               uni |= subc & 0x3F;
             }
 
-         *this << Unicode(bx | uni);
+const uint32_t codepoint = bx | uni;
+
+        // reject non-minimal (overlong) encodings, surrogates, and
+        // codepoints beyond the valid Unicode range -- none of these are
+        // legal UTF-8 per RFC 3629, and accepting them enables smuggling:
+        // e.g. the overlong 2-byte sequence C0 80 decodes to U+0000 and,
+        // if later re-encoded/used as a C string, becomes a real embedded
+        // NUL byte (path/name truncation through ⎕FIO and similar).
+const uint32_t min_for_len[] = { 0, 0x80, 0x800, 0x10000, 0x200000, 0x4000000 };
+const bool overlong  = seq_len < 6 && codepoint < min_for_len[seq_len];
+const bool surrogate = codepoint >= 0xD800 && codepoint <= 0xDFFF;
+const bool oor       = codepoint > 0x10FFFF;
+   if (overlong || surrogate || oor)
+      {
+        Log(LOG_char_conversion)
+           {
+             CERR << "Invalid UTF8 codepoint (overlong/surrogate/out-of-"
+                     "range): ";
+             UTF8_string::dump_hex(CERR, utf, size, 40);
+             CERR << " at " << LOC <<  endl;
+           }
+
+        *this << Unicode(utf[from] | 0x100000);
+        i = ++from;   // retry, starting at next char
+        goto start_of_sequence;
+      }
+
+         *this << Unicode(codepoint);
          from = i;
       }
 
@@ -1760,32 +1806,37 @@ start_of_sequence:
 ostream &
 operator <<(ostream & os, Unicode uni)
 {
-   if (uni < 0x80)      return os << char(uni);
-        
-   if (uni < 0x800)     return os << char(0xC0 | (uni >> 6))
-                                  << char(0x80 | (uni & 0x3F));
+   // Unicode is signed; a negative value (e.g. ⎕UCS ¯1) satisfied
+   // "uni < 0x80" under a signed comparison and was written as a single
+   // raw byte (char(uni) == 0xFF for uni==-1) instead of being encoded
+   // like any other large codepoint. Compare unsigned instead.
+const uint32_t u = uni;
+   if (u < 0x80)      return os << char(uni);
 
-   if (uni < 0x10000)    return os << char(0xE0 | (uni >> 12))
-                                   << char(0x80 | (uni >>  6 & 0x3F))
-                                   << char(0x80 | (uni       & 0x3F));
+   if (u < 0x800)     return os << char(0xC0 | (u >> 6))
+                                 << char(0x80 | (u & 0x3F));
 
-   if (uni < 0x200000)   return os << char(0xF0 | (uni >> 18))
-                                   << char(0x80 | (uni >> 12 & 0x3F))
-                                   << char(0x80 | (uni >>  6 & 0x3F))
-                                   << char(0x80 | (uni       & 0x3F));
+   if (u < 0x10000)    return os << char(0xE0 | (u >> 12))
+                                  << char(0x80 | (u >>  6 & 0x3F))
+                                  << char(0x80 | (u       & 0x3F));
 
-   if (uni < 0x4000000)  return os << char(0xF8 | (uni >> 24))
-                                   << char(0x80 | (uni >> 18 & 0x3F))
-                                   << char(0x80 | (uni >> 12 & 0x3F))
-                                   << char(0x80 | (uni >>  6 & 0x3F))
-                                   << char(0x80 | (uni       & 0x3F));
+   if (u < 0x200000)   return os << char(0xF0 | (u >> 18))
+                                  << char(0x80 | (u >> 12 & 0x3F))
+                                  << char(0x80 | (u >>  6 & 0x3F))
+                                  << char(0x80 | (u       & 0x3F));
 
-   return os << char(0xFC | (uni >> 30))
-             << char(0x80 | (uni >> 24 & 0x3F))
-             << char(0x80 | (uni >> 18 & 0x3F))
-             << char(0x80 | (uni >> 12 & 0x3F))
-             << char(0x80 | (uni >>  6 & 0x3F))
-             << char(0x80 | (uni       & 0x3F));
+   if (u < 0x4000000)  return os << char(0xF8 | (u >> 24))
+                                  << char(0x80 | (u >> 18 & 0x3F))
+                                  << char(0x80 | (u >> 12 & 0x3F))
+                                  << char(0x80 | (u >>  6 & 0x3F))
+                                  << char(0x80 | (u       & 0x3F));
+
+   return os << char(0xFC | (u >> 30))
+             << char(0x80 | (u >> 24 & 0x3F))
+             << char(0x80 | (u >> 18 & 0x3F))
+             << char(0x80 | (u >> 12 & 0x3F))
+             << char(0x80 | (u >>  6 & 0x3F))
+             << char(0x80 | (u       & 0x3F));
 }
 //════════════════════════════════════════════════════════════════════════════
 ostream &

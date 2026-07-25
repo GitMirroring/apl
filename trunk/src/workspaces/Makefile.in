@@ -307,6 +307,7 @@ dist_noinst_DATA = \
 	Performance.apl		\
 	Performance.gnuplot
 
+CLEANFILES = ASSERT.apl
 all: all-am
 
 .SUFFIXES:
@@ -386,7 +387,7 @@ distdir-am: $(DISTFILES)
 	done
 check-am: all-am
 check: check-am
-all-am: Makefile $(DATA)
+all-am: Makefile $(DATA) all-local
 installdirs:
 install: install-am
 install-exec: install-exec-am
@@ -410,6 +411,7 @@ install-strip:
 mostlyclean-generic:
 
 clean-generic:
+	-test -z "$(CLEANFILES)" || rm -f $(CLEANFILES)
 
 distclean-generic:
 	-test -z "$(CONFIG_CLEAN_FILES)" || rm -f $(CONFIG_CLEAN_FILES)
@@ -486,20 +488,31 @@ uninstall-am:
 
 .MAKE: install-am install-strip
 
-.PHONY: all all-am check check-am clean clean-generic clean-libtool \
-	cscopelist-am ctags-am distclean distclean-generic \
-	distclean-libtool distdir dvi dvi-am html html-am info info-am \
-	install install-am install-data install-data-am install-dvi \
-	install-dvi-am install-exec install-exec-am install-html \
-	install-html-am install-info install-info-am install-man \
-	install-pdf install-pdf-am install-ps install-ps-am \
-	install-strip installcheck installcheck-am installdirs \
-	maintainer-clean maintainer-clean-generic mostlyclean \
-	mostlyclean-generic mostlyclean-libtool pdf pdf-am ps ps-am \
-	tags-am uninstall uninstall-am
+.PHONY: all all-am all-local check check-am clean clean-generic \
+	clean-libtool cscopelist-am ctags-am distclean \
+	distclean-generic distclean-libtool distdir dvi dvi-am html \
+	html-am info info-am install install-am install-data \
+	install-data-am install-dvi install-dvi-am install-exec \
+	install-exec-am install-html install-html-am install-info \
+	install-info-am install-man install-pdf install-pdf-am \
+	install-ps install-ps-am install-strip installcheck \
+	installcheck-am installdirs maintainer-clean \
+	maintainer-clean-generic mostlyclean mostlyclean-generic \
+	mostlyclean-libtool pdf pdf-am ps ps-am tags-am uninstall \
+	uninstall-am
 
 .PRECIOUS: Makefile
 
+
+# ASSERT.apl (library 0, needed by testcases that do ")COPY ASSERT.apl" or
+# ")COPY_ONCE 0 ASSERT.apl", e.g. Rank.tc and Polynomials.tc) is generated
+# here from the single SVN-tracked master copy in wslib5/ASSERT.apl instead
+# of keeping a second, driftable copy under version control.
+#
+ASSERT.apl: $(top_srcdir)/wslib5/ASSERT.apl
+	cp $< $@
+
+all-local: ASSERT.apl
 
 # Tell versions [3.59,3.63) of GNU make to not export all variables.
 # Otherwise a system limit (for SysV at least) may be exceeded.

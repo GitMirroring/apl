@@ -190,8 +190,11 @@ const bool lval = B.is_lval_cell(0);
 ShapeItem inc_1 = shape_Z3.l();   // increment after result l items
 ShapeItem inc_2 = 0;              // increment after result m*l items
 
-   if (B.is_scalar() || (shape_B.get_shape_item(axis) == 1
-                      && (shape_Z3.l() != 1)))
+   // the "&& shape_Z3.l() != 1" conjunct disabled length-1-axis
+   // extension specifically when axis is the trailing axis (where l()==1),
+   // falling through to a spurious LENGTH_ERROR instead: 1 0 1\,5 gave
+   // LENGTH_ERROR instead of 5 0 5.
+   if (B.is_scalar() || shape_B.get_shape_item(axis) == 1)
       {
          inc_1 = 0;
          inc_2 = shape_Z3.l();

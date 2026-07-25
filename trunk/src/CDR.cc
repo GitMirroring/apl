@@ -354,8 +354,17 @@ const uint8_t * ravel = data + 16 + 4*rank;
       }
    else
       {
+        // Assert() alone is a no-op at the default ASSERT_LEVEL 0: Z was
+        // constructed above (some shape) but never filled via any
+        // next_ravel_*() call in this branch, so falling through to
+        // check_value()/return Z below would hand the caller a Value
+        // whose polymorphic Cells are uninitialized garbage (reachable
+        // via e.g. a crafted 12 ⎕CR with CDR type 6 = CDR_PROG64, which
+        // has no top-level handler here -- only as a CDR_NEST32 sub-item
+        // type, a different code path entirely).
         CERR << "Unsupported CDR type " << vtype << endl;
-        Assert(0 && "Bad/unsupported CDR type");
+        MORE_ERROR() << "Unsupported/unhandled CDR type " << vtype;
+        DOMAIN_ERROR;
       }
 
    Z->check_value(LOC);

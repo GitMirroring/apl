@@ -242,6 +242,21 @@ const APL_Integer n_wise = A0 < 0 ? neg_A0 : A0;
 
         // n_wise is 1 or 2: return (2 - n_wise) ⍴ B
         //
+        // NOTE (investigated, reverted): the comment says "(2-n_wise)⍴B",
+        // which for n_wise==1 would be a length-1 VECTOR -- but making
+        // that change breaks "reduce with reduction"
+        // (testcases/Reduce.tc's "+//10 10⍴1" -- lrm p.209's derived-
+        // function-as-reduce-operand case): folding a matrix with (+/)
+        // as the dyadic operand combines pairs of scalar CELLS via this
+        // exact scalar-B, n_wise==1 code path on every fold step, and a
+        // length-1-vector result there makes every fold step nest one
+        // level deeper instead of staying scalar, turning a simple
+        // result into a runaway-nested one (confirmed live: ≡ went from
+        // 1 to 2). Keeping the scalar collapse for n_wise==1 is required
+        // for that to terminate flat, so this is intentional, not a bug
+        // -- left as the original code despite the comment being
+        // literally imprecise about the n_wise==1 case.
+        //
         Shape sh;
         if (n_wise == 2)   sh.add_shape_item(0);
         return Bif_F12_RHO::do_reshape(sh, *B);

@@ -42,7 +42,10 @@ Shape ravel_A1(A, /* ⎕IO */ 0);   // checks 1 ≤ ⍴⍴A and ⍴A ≤ MAX_RAN
       {
         Shape shape_B1;
         loop(a, ravel_A1.get_rank())   shape_B1.add_shape_item(1);
-        Value_P B1 = CLONE(&B, LOC);   // so that we can set_shape()
+        // B.clone(), NOT the CLONE() macro: under NEW_CLONE, CLONE(&B, LOC)
+        // is just another Value_P to the *same* Value (see Value.hh), so
+        // set_shape() below would permanently reshape the caller's B.
+        Value_P B1 = B.clone(LOC);
         B1->set_shape(shape_B1);
         return Token(TOK_APL_VALUE1, do_take(ravel_A1, *B1, false));
       }
@@ -275,7 +278,11 @@ Shape shape_Z;
 Value_P Z(shape_Z, LOC);
    if (shape_Z.is_empty())   // empty Z, e.g. from overdrop
       {
-        Value_P Z(shape_Z, LOC);
+        // was a second, inner 'Value_P Z(shape_Z, LOC);' here, shadowing
+        // (and silently discarding) the outer Z just constructed above
+        // with the identical shape_Z -- redundant allocation, not a
+        // correctness bug (the inner Z was used consistently within its
+        // own scope), but pointless. Reuse the outer Z.
         Z->set_default(B, LOC);
         Z->check_value(LOC);
         return Token(TOK_APL_VALUE1, Z);

@@ -200,7 +200,12 @@ const int err = pthread_setaffinity_np(thread, sizeof(cpu_set_t), &cpus);
 void
 Thread_context::init_parallel(CoreCount count, bool logit)
 {
-   delete thread_contexts;
+   delete[] thread_contexts;   // allocated with new[] below (and at the
+                                // other allocation site) -- plain delete
+                                // on an array is UB (currently latent:
+                                // init_parallel() runs once with the
+                                // pointer still null, so this only ever
+                                // deletes nullptr today).
 
    thread_contexts_count = count;
    thread_contexts = new Thread_context[thread_contexts_count];

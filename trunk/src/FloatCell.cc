@@ -724,13 +724,18 @@ const APL_Complex z = log(APL_Complex(b, 0.0)) / log(APL_Complex(a, 0.0));
 ErrorCode
 FloatCell::bif_maximum_ff(Cell * Z, APL_Float a, APL_Float b)
 {
-   return ComplexCell::zV(Z, a >= b ? a : b);
+   // FloatCell::zF() (unrounded), not ComplexCell::zV(): zV rounds a
+   // value within ⎕CT-tolerance of an integer to an IntCell instead of
+   // storing the selected operand verbatim -- dyadic max/min must return
+   // one of its two arguments exactly. 2.00000000005⌈1 gave 2 instead of
+   // 2.00000000005.
+   return FloatCell::zF(Z, a >= b ? a : b);
 }
 //────────────────────────────────────────────────────────────────────────────
 ErrorCode
 FloatCell::bif_minimum_ff(Cell * Z, APL_Float a, APL_Float b)
 {
-   return ComplexCell::zV(Z, a <= b ? a : b);
+   return FloatCell::zF(Z, a <= b ? a : b);
 }
 // ISO residue: R ← P - (×P) ⌊ |Q × ⌊ |P ÷ Q   (cf. FloatCell.cc)
 static double
@@ -832,7 +837,11 @@ FloatCell::bif_direction_f(Cell * Z, APL_Float b)
 ErrorCode
 FloatCell::bif_exponential_f(Cell * Z, APL_Float b)
 {
-   return FloatCell::zF(Z, exp(b));
+const APL_Float z = exp(b);
+   // sibling bif_factorial_f() below already does this; ⋆1000 gave ∞
+   // instead of DOMAIN_ERROR here.
+   if (!isfinite(z))   return E_DOMAIN_ERROR;
+   return FloatCell::zF(Z, z);
 }
 //────────────────────────────────────────────────────────────────────────────
 ErrorCode
@@ -867,13 +876,17 @@ FloatCell::bif_negative_f(Cell * Z, APL_Float b)
 ErrorCode
 FloatCell::bif_pi_times_f(Cell * Z, APL_Float b)
 {
-   return FloatCell::zF(Z, b * M_PI);
+const APL_Float z = b * M_PI;
+   if (!isfinite(z))   return E_DOMAIN_ERROR;   // ○1E308 gave ∞
+   return FloatCell::zF(Z, z);
 }
 //────────────────────────────────────────────────────────────────────────────
 ErrorCode
 FloatCell::bif_pi_times_inverse_f(Cell * Z, APL_Float b)
 {
-   return FloatCell::zF(Z, b / M_PI);
+const APL_Float z = b / M_PI;
+   if (!isfinite(z))   return E_DOMAIN_ERROR;
+   return FloatCell::zF(Z, z);
 }
 //────────────────────────────────────────────────────────────────────────────
 ErrorCode

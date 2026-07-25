@@ -219,7 +219,10 @@ Svar_record::get_state() const
 void
 Svar_record::set_state(bool used, const char * loc)
 {
-usleep(50000);
+   // an unconditional 50ms sleep here blocked the single-threaded
+   // APserver (and every peer waiting on it) on every single shared-
+   // variable state change -- looked like leftover debug/throttling
+   // code with no comment explaining an actual need for it. Removed.
 
    Log(LOG_shared_variables)
       {
@@ -238,7 +241,10 @@ Svar_partner * peer = 0;
 
    if (ProcessorID::get_id() == offering.id)
       {
-        peer = &offering;
+        peer = &accepting;   // was &offering (the caller's own side) --
+                              // peer means "the *other* side to notify",
+                              // same as the accepting branch below
+                              // correctly does with peer = &offering.
         offering.events = SVE_NO_EVENTS;   // clear events
 
         if (used)   // offering has used the variable (unless read-back)

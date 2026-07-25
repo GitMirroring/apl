@@ -187,6 +187,12 @@ LineHistory::clear_history(ostream & out)
    current_line = 0;
    put = 0;
    hist_lines.clear();
+   // was left stale: search() only clamps search_start_line
+   // (= last_search_line - 1) when it goes NEGATIVE, so an old
+   // last_search_line pointing past the end of the freshly-cleared
+   // (much smaller) hist_lines caused an out-of-bounds
+   // hist_lines[idx] access on the next search.
+   last_search_line = 0;
 UCS_string u((U"xxx"));
    add_line(u);
 }

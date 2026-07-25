@@ -1966,6 +1966,17 @@ const APL_Float norm2_X = norm_2(X, len_X);   // ║X║²
 APL_Float BETA_r = sqrt(square(ALPHA) + norm2_X);   // length of ║ALPHA, X║
    if (ALPHA_r > 0.0)   BETA_r = -BETA_r;           // opposite sign of ALPHA
 
+   // square(ALPHA)/norm2_X are naive (unscaled) sums of squares: for a
+   // denormal-scale ALPHA/X (e.g. 1E-200J1E-200) both underflow to exactly
+   // 0.0, so BETA_r itself becomes exactly 0.0 -- which the "scale small
+   // BETA" loop below can never move away from 0 (0.0 * anything is still
+   // 0.0), so its "BETA_r > neg_safe_min && BETA_r < pos_safe_min" exit
+   // condition holds forever. Reproduced: ⌹ 2 2⍴1J1 0 0 1E¯200J1E¯200
+   // hangs at 100% CPU. Only ALPHA_i==0.0 exactly short-circuits above;
+   // guard the general BETA_r==0.0 case here too (H = I is the correct,
+   // same degenerate answer as that earlier check).
+   if (BETA_r == 0.0)   return T(0.0);
+
    // scale small BETA (and, with it, X) so that it can be used safely
    //
 int kcnt = 0;

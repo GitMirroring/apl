@@ -29,6 +29,17 @@
 
 //════════════════════════════════════════════════════════════════════════════
 IndexExpr::IndexExpr(Assign_state astate, const char * loc)
+   // M28 (Blake's report): tried switching this to
+   // DynamicObject(loc, &all_index_exprs) so erase_stale()/)CHECK's
+   // "no stale indices" diagnostic would actually do something (it's
+   // currently a permanent no-op, since IndexExpr never links into
+   // all_index_exprs at all). REVERTED: caused a real SIGSEGV in
+   // ~IndexExpr() during Prefix::clean_up() at )CLEAR (Quad_SYL.tc),
+   // most likely IndexExpr objects being destroyed through a path that
+   // doesn't expect list membership (or a second, uncoordinated walker
+   // of all_index_exprs) -- not safely fixable without deeper
+   // investigation into every IndexExpr lifetime/ownership path first.
+   // Left as the original, safe, always-no-op anchor-only form.
    : DynamicObject(loc),
      quad_io(Workspace::get_IO()),
      assign_state(astate),

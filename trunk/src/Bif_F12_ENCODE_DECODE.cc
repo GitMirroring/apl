@@ -243,7 +243,20 @@ APL_Integer bi = iB->get_int_value();   // the value being decoded
          else
            {
              bi -= cZ->get_int_value();
-             bi /= cellA.get_int_value();
+
+             // bi /= -1 traps (hardware #DE / SIGFPE) for the single
+             // combination bi == INT64_MIN, since -INT64_MIN is not
+             // representable as APL_Integer (confirmed directly:
+             // (,¯1) ⊤ ¯9223372036854775808 crashes the interpreter).
+             // Negate via unsigned wraparound instead of dividing --
+             // well-defined, and reproduces two's-complement -x for every
+             // representable x, INT64_MIN included (same on-the-wire result
+             // dividing by -1 would give: bi unchanged, the standard
+             // fixed-width wraparound also used elsewhere in encode/decode).
+             if (cellA.get_int_value() == -1)
+                bi = APL_Integer(0 - uint64_t(bi));
+             else
+                bi /= cellA.get_int_value();
            }
        }
 }
@@ -399,7 +412,18 @@ ShapeItem idxA = 0;
                      break;
                    }
 
-                if (!A.is_near_int(idxA + aa))   integer_A = false;
+                // is_near_int64_t() (Cell-level), not is_near_int(): a
+                // radix >= LARGE_INT (e.g. 1E30) is_near_int()==true (by
+                // design -- see Cell::is_near_int()'s doc comment), which
+                // would route it into decode_int() below; decode_int()'s
+                // own overflow-to-decode_real() fallback only ever fires
+                // *after* a successful weight multiply, but
+                // get_near_int() on a value this size throws DOMAIN_ERROR
+                // immediately, before that fallback gets a chance.
+                // Classify as non-integer up front instead so it goes
+                // straight to decode_real()/decode_complex().
+                if (!A.get_cravel(idxA + aa).is_near_int64_t())
+                   integer_A = false;
              }
 
          loop(l, l_len_B)
@@ -417,7 +441,8 @@ ShapeItem idxA = 0;
                            break;
                          }
 
-                      if (!B.is_near_int(l + bb*l_len_B))
+                      // see the integer_A classification above.
+                      if (!B.get_cravel(l + bb*l_len_B).is_near_int64_t())
                          integer_B = false;
                     }
 

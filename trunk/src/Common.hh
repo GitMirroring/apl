@@ -46,6 +46,7 @@
 #endif
 
 #include <string.h>
+#include <csignal>   // for sig_atomic_t (InterruptContext's ^C flags)
 
 #include <stdint.h>
 #include <stdio.h>
@@ -186,8 +187,12 @@ protected:
   /// the number of attentions
   uint64_t attention_count;
 
-  /// true if ^C was hit (once)
-  bool attention_raised;
+  /// true if ^C was hit (once). volatile sig_atomic_t, not plain bool:
+  /// this is written from control_C(), a real SIGINT handler, and read
+  /// from ordinary code -- a plain bool has no guaranteed atomicity or
+  /// visibility across a signal, sig_atomic_t is the standard's own
+  /// type for exactly this (C++11 [support.signal], C11 7.14.1.1).
+  volatile sig_atomic_t attention_raised;
 
   /// The range in the prefix parser when ^C was hit (once)
   Function_PC2 attention_range;
@@ -195,8 +200,9 @@ protected:
   /// the number of interrupts
   uint64_t interrupt_count;
 
-  /// true if ^C was hit (twice)
-  bool interrupt_raised;
+  /// true if ^C was hit (twice) -- see attention_raised for why this
+  /// is volatile sig_atomic_t rather than plain bool.
+  volatile sig_atomic_t interrupt_raised;
 
   /// The range in the prefix parser when ^C was hit (twice)
   Function_PC2 interrupt_range;

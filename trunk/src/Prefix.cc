@@ -140,6 +140,25 @@ Prefix::syntax_error(const char * loc)
         Token & tok = at(s).get_token();
         if (tok.get_Class() == TC_VALUE)
            {
+             // INVESTIGATED, REVERTED: 'Value_P val = tok.get_apl_val();'
+             // (get_apl_val() returns Value_P BY VALUE) takes a second,
+             // temporary reference and drops it right away -- tok's own
+             // owned Value_P is never touched, so despite the comment
+             // above, this doesn't actually clear anything. Confirmed
+             // "not a leak today": the Prefix's own storage still holds
+             // and eventually releases it. Tried the "real" fix,
+             // tok.clear(loc) -- but Token::clear() resets the whole
+             // token via placement-new, which also changes its Class to
+             // TC_VOID as a side effect. The very next loop below
+             // depends on TC_VOID meaning "a function genuinely
+             // produced no value" to decide VALUE_ERROR vs
+             // SYNTAX_ERROR; reclassifying every real value token to
+             // TC_VOID here made that check fire spuriously, turning
+             // ordinary SYNTAX ERRORs into wrong VALUE ERRORs (confirmed
+             // live: 4 testcases regressed, AllPrimitives/OuterProduct/
+             // Quad_ET/Quad_R.tc). This loop being a no-op is load-
+             // bearing for that reason, not just harmless -- left as
+             // the original code.
              Value_P val = tok.get_apl_val();
           }
         else if (tok.get_Class() == TC_FUN2)
@@ -961,6 +980,9 @@ TokenClass next = body[pc].get_Class();
         const int offset = body[pc].get_int_val2();
         pc += offset;
         Assert1(body[pc].get_Class() == TC_L_BRACK);   // opening [
+        ++pc;   // was missing: landed on '[' itself instead of past it,
+                // misclassifying e.g. (⌽[X]) as a value instead of a
+                // function
         if (pc >= Function_PC(body.ssize()))   return true;   // syntax error
         next = body[pc].get_Class();
       }
@@ -2311,6 +2333,14 @@ Value_P Z;
       }
    else                               // [I1; I2...]
       {
+        // get_index_val() only self-protects with Assert (a no-op at the
+        // default ASSERT_LEVEL 0). A user-typed @N@ marker (TOK_MARKER,
+        // TC_INDEX, TV_INT -- see Token.def) reaches here too, since its
+        // token class is the same as a real index; without this check the
+        // literal integer N is reinterpreted as an IndexExpr* below,
+        // dereferenced, and delete'd -- an attacker-controlled pointer.
+        if (at1().get_ValueType() != TV_INDEX)   SYNTAX_ERROR;
+
         const IndexExpr * idx =  &at1().get_index_val();
         try
            {

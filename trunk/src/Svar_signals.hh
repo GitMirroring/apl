@@ -740,9 +740,20 @@ protected:
          string buffer;
          store(buffer);
 
+         // MSG_NOSIGNAL: without it, send() on a socket whose peer has
+         // already disconnected raises SIGPIPE, whose default action is
+         // to terminate the process -- one misbehaving/disconnecting
+         // client killed the whole APserver (and every other client's
+         // shared variables with it) instead of this send() merely
+         // reporting an error via its return value/errno=EPIPE.
          uint32_t ll = htonl(buffer.size());
-         send(tcp_sock, reinterpret_cast<const char *>(&ll), 4, 0);
-         ssize_t sent = send(tcp_sock, buffer.data(), buffer.size(), 0);
+         const ssize_t sent_len = send(tcp_sock,
+                                       reinterpret_cast<const char *>(&ll),
+                                       4, MSG_NOSIGNAL);
+         if (sent_len != 4)   return -1;   // short/failed send of length
+         const ssize_t sent = send(tcp_sock, buffer.data(), buffer.size(),
+                                   MSG_NOSIGNAL);
+         if (sent != ssize_t(buffer.size()))   return -1;   // short/failed
          return sent;
        }
 };
