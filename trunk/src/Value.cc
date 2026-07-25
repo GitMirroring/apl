@@ -238,21 +238,21 @@ Value::~Value()
         if (ravel.cells != ravel.short_value)   // don't free embedded buffer
            {
              // mirror the value_count/total_ravel_count bookkeeping of the
-             // long-value branch below so that they do not leak on every
-             // packed boolean value. total_ravel_count is decremented using
-             // the count that was live at allocation time (nz_element_count
-             // (), since try_implode() packs in place without reallocating)
-             // -- NOT necessarily the value's *current* shape if it was
-             // ever shrunk via set_shape() after allocation, which is why
-             // the buffer itself is still released via delete[] (matching
-             // how it was allocated relative to that original count) rather
-             // than std::allocator<Cell>::deallocate(ptr, n): passing a
-             // mismatched n there is undefined behavior and can silently
-             // corrupt the heap allocator's free-list bookkeeping.
+             // long-value branch below, and (like that branch) deallocate
+             // via std::allocator<Cell>, matching how init_ravel() actually
+             // allocated the buffer via std::allocator<Cell>::allocate().
+             // This requires nz_element_count() here to still equal the
+             // count originally passed to allocate() -- true as long as no
+             // code path shrinks an already-packed value's shape in place.
+             // The one place that used to do exactly that (A⍴B's in-place-
+             // reshape optimization in Bif_F12_RHO.cc, which could reshape
+             // an already-packed B) has been removed for this reason; every
+             // remaining packing call site packs a value as its very last
+             // step before returning it, with no shrink afterward.
              //
-             total_ravel_count -= nz_element_count();
-             auto bits = reinterpret_cast<uint8_t *>(ravel.cells);
-             delete[] bits;
+             const ShapeItem length = nz_element_count();
+             total_ravel_count -= length;
+             std::allocator<Cell>{}.deallocate(ravel.cells, length);
            }
         ravel.cells = 0;
         Assert(check_ptr == charP(this) + 7);

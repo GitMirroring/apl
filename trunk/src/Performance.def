@@ -103,7 +103,6 @@ optim(OFT_ANY, FT_DIRECT_BRANCHES, "⎕FX Time: Unconditional branches"  )   // 
 optim(OFT_ANY, FT_LITERAL_AXIS,    "⎕FX Time: Literal axis [X]"        )   // 2
 optim(OFT_ANY, FT_LITERAL_INDEX,   "⎕FX Time: Literal index [X1;...]"  )   // 3
 optim(OFT_ANY, FT_SHORT_PRIMITIVE, "⎕FX Time: Short primitives"        )   // 4
-optim(ORT_ANY, RT_A_RHO_B,         "Run Time: In-place A⍴B"            )   // 5
 optim(ORT_ANY, RT_COMMA_B,         "Run Time: In-place ,B"             )   // 6
 optim(ORT_ANY, RT_COMMA1_B,        "Run Time: In-place ⍪B"             )   // 7
 

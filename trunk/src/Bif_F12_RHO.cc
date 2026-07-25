@@ -49,71 +49,19 @@ const Shape shape_Z(A, 0);
         if (shape_Z.get_shape_item(r) < 0)   DOMAIN_ERROR;
       }
 
-const ShapeItem len_Z = shape_Z.get_volume();
-
-   if (DO_RT_A_RHO_B                      &&
-       len_Z <= B.element_count()         &&   // 1.   Z is not longer than B
-       B.get_owner_count() == 1           &&   // 2.   B is a temporary value
-       (len_Z > 0 || !B.is_packed())      &&   // 3.   empty+packed: init_type would corrupt proto slot
-       this == Workspace::SI_top()->get_prefix().get_dyadic_fun())   // 4. below
-      {
-        /* Optimization of Z←A⍴B. At this point:
-
-          1. Z is not longer than B, and
-          2. B has only 1 owner: the prefix (who will discard it after we
-             return). Previously the check was == 2 when B arrived as Value_P
-             (prefix + our local copy); now B arrives as const cValue * so
-             the prefix is the sole owner.
-          3. A⍴B was called from a reduction rule (Prefix::reduce_A_F_B())
-
-           We will give up our ownership on return below, and
-           Prefix::reduce_A_F_B prefix will Prefix::pop_args_push_result()
-           and hence give up its ownership, causing B to be erased.
-
-           That means that B will no longer be used and that, instead of
-           of copying B into a new Z and then erasing B, we can reshape B
-           in place and return the reshaped B.
-
-           return Token(TOK_APL_VALUE1, vB); below will take ownership of B
-           so that Prefix::reduce_A_F_B() won't erase B.
-         */
-        Log(LOG_optimization) CERR << "optimizing A⍴B" << endl;
-
-Value * vB = static_cast<Value *>(const_cast<cValue *>(&B));
-
-        // release the no longer used cells of B after shape_Z.
-        //
-        const ShapeItem len_B = B.element_count();   // all Cells
-        ShapeItem rest = len_Z;                       // Cells remaining
-        if (rest == 0)   // Z is empty
-           {
-             rest = 1;
-             if (B.is_pointer_cell(0))
-                {
-                  B.get_pointer_value(0)->to_type(false);
-                }
-             else
-                {
-                   vB->get_wproto().init_type(B.get_cproto(), *vB, LOC);
-                }
-           }
-
-        // release the Cells after Z (packed ravels have no per-cell heap allocations)
-        if (!B.is_packed())
-           while (rest < len_B)   vB->release(rest++, LOC);
-
-        vB->set_shape(shape_Z);
-
-#ifdef cfg_PERFORMANCE_COUNTERS_WANTED
-const uint64_t end_1 = cycle_counter();
-   Performance::fs_F12_RHO_AB.add_sample(end_1 - start_1,
-                                         vB->nz_element_count());
-#endif
-
-        OptmizationStatistics::count(OPTI_RT_A_RHO_B);
-        return Token(TOK_APL_VALUE1, Value_P(vB, LOC));
-      }
-
+   // NOTE: this function used to have an "optimization of Z<-A/B" here that
+   // reshaped B in place and returned it as Z whenever B was a temporary
+   // (owner_count==1) value and Z was not longer than B -- avoiding a copy.
+   // Removed: it could reshape (shrink) B's *logical* shape even when B was
+   // already packed to RPT_BOOL, which is the one case where ~Value()'s
+   // RPT_BOOL destructor branch cannot safely deallocate using the value's
+   // current (post-shrink) element count -- see the destructor's own
+   // comment. Every other call site that packs a value does so as the very
+   // last step before returning it, with no further shrink, so removing
+   // this one in-place optimization lets the destructor use exactly the
+   // same std::allocator<Cell>::deallocate() as the non-packed case,
+   // instead of the less clean delete[] override it needed before.
+   //
 #ifdef cfg_PERFORMANCE_COUNTERS_WANTED
 Token ret = do_reshape(shape_Z, B);
 const uint64_t end_1 = cycle_counter();
