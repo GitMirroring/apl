@@ -66,6 +66,7 @@
 #include "Performance.hh"
 #include "Security.hh"
 #include "StateIndicator.hh"
+#include "SystemLimits.hh"
 #include "Tokenizer.hh"
 #include "Workspace.hh"
 
@@ -1367,6 +1368,31 @@ const Shape sh_Z(Z->get_valid_item_count());
    return Token(TOK_APL_VALUE1, Z);
 }
 //────────────────────────────────────────────────────────────────────────────
+/// pad \b content to the field width encoded in fmt[1 .. fm-1] (the
+/// flags/width accumulated so far for a %s, %c, or %m conversion, which
+/// -- unlike the numeric conversions -- never gets a trailing conversion
+/// character appended) and append the result to \b UZ. A '-' flag left-
+/// justifies (pad on the right); otherwise the field is right-justified
+/// (pad on the left), matching normal printf() semantics.
+static void
+pad_and_append(UCS_string & UZ, const UCS_string & content,
+               const char * fmt, unsigned int fm)
+{
+bool left = false;
+int width = 0;
+   for (unsigned int f = 1; f < fm; ++f)
+       {
+         if (fmt[f] == '-')                         left = true;
+         else if (fmt[f] >= '0' && fmt[f] <= '9')
+            width = width*10 + (fmt[f] - '0');
+       }
+
+const int pad = width - int(content.size());
+   if (pad > 0 && !left)   loop(p, pad)   UZ << UNI_SPACE;
+   UZ << content;
+   if (pad > 0 && left)    loop(p, pad)   UZ << UNI_SPACE;
+}
+//────────────────────────────────────────────────────────────────────────────
 void
 Quad_FIO::do_snprintf(UCS_string & UZ, const UCS_string & A_format,
                     cValue_R B, int off_B, const char * funname)
@@ -1422,15 +1448,17 @@ int conversion_count_A = 0;   // the number of conversions (in A_format)
                     return;
                   }
 
-               if (fm >= sizeof(fmt) - 1)
+               if (fm >= sizeof(fmt) - 3)
                   {
                     // After seeing a %, no conversion specifier was seen
-                    // within 40 characters. Most likely the user has
-                    // forgotten it. In theory the format string could be
-                    // proper, but we assumt it is mal-formed.
-                    // (- 1 above: every write below is fmt[fm++]=uni_1;
-                    // fmt[fm]=0; i.e. 2 bytes, so fm==sizeof(fmt)-1 must
-                    // also be rejected to avoid a 1-byte overflow.)
+                    // within (almost) 40 characters. Most likely the user
+                    // has forgotten it. In theory the format string could
+                    // be proper, but we assumt it is mal-formed.
+                    // (- 3 above: every write below is fmt[fm++]=uni_1;
+                    // fmt[fm]=0; i.e. 2 bytes, and the integer conversion
+                    // case below may additionally insert a 2-byte "ll"
+                    // length modifier, i.e. up to 4 bytes, so fm must stay
+                    // 3 short of sizeof(fmt) to avoid an overflow.)
                     //
                     UTF8_string utf(fmt);
                     UCS_string ufmt(utf);
@@ -1480,13 +1508,47 @@ int conversion_count_A = 0;   // the number of conversions (in A_format)
                             else
                                {
                                  const double fv = cell.get_real_value();
-                                 if (fv < 0.0)   int_val = -int(-fv);
-                                 else            int_val = int(fv);
+                                 if (!(fv > -BIG_INT64_F && fv < BIG_INT64_F))
+                                    {
+                                      MORE_ERROR() << "value " << fv
+                                         << " is out of range for integer"
+                                            " format '%" << uni_1
+                                         << "' in " << funname;
+                                      DOMAIN_ERROR;
+                                    }
+                                 int_val = APL_Integer(fv);
                                }
+
+                            // APL integers are 64 bits; drop any
+                            // user-supplied length modifier (it would be
+                            // the wrong size) and force a 64-bit one.
+                            //
+                            unsigned int fm2 = 1;   // keep the leading '%'
+                            for (unsigned int f = 1; f < fm; ++f)
+                                {
+                                  switch (fmt[f])
+                                     {
+                                       case 'h': case 'l': case 'L':
+                                       case 'q': case 'j': case 'z':
+                                       case 't': continue;   // drop
+                                       default:  fmt[fm2++] = fmt[f];
+                                     }
+                                }
+                            fm = fm2;
+                            if (uni_1 != 'p')   // %p takes no length mod.
+                               { fmt[fm++] = 'l';   fmt[fm++] = 'l'; }
                             fmt[fm++] = uni_1;   fmt[fm] = 0;
-                            SPRINTF(numbuf, fmt, int_val);
-                            if (thousands)  group_thousands(UZ, numbuf, false);
-                            else            UZ << numbuf;
+
+                            // fmt's width/precision are user-controlled and
+                            // can exceed numbuf's fixed size; size the
+                            // buffer to what this conversion actually needs.
+                            //
+                            int need = snprintf(0, 0, fmt, int_val);
+                            if (need < 0)   need = 0;
+                            vector<char> dynbuf(need + 1);
+                            snprintf(&dynbuf[0], dynbuf.size(), fmt, int_val);
+                            if (thousands)  group_thousands(UZ, &dynbuf[0], false);
+                            else            UZ << &dynbuf[0];
                           }
                           goto field_done;
 
@@ -1497,7 +1559,12 @@ int conversion_count_A = 0;   // the number of conversions (in A_format)
                             const APL_Float float_val =
                                   B.get_real_value(off_B++);
                             fmt[fm++] = uni_1;   fmt[fm] = 0;
-                            SPRINTF(numbuf, fmt, float_val);
+
+                            int need = snprintf(0, 0, fmt, float_val);
+                            if (need < 0)   need = 0;
+                            vector<char> dynbuf(need + 1);
+                            snprintf(&dynbuf[0], dynbuf.size(), fmt, float_val);
+                            char * const numbuf = &dynbuf[0];
                             if (thousands)
                                {
                                  group_thousands(UZ, numbuf, true);
@@ -1516,29 +1583,38 @@ int conversion_count_A = 0;   // the number of conversions (in A_format)
                           goto field_done;
 
                      case 's':   // string or char
-                          COUNT_ARG;
-                          if (B.is_character_cell(off_B))
-                             {
-                               UZ << B.get_char_value(off_B++);
-                               goto field_done;
-                             }
                           {
-                            Value_P str =
-                                    B.get_pointer_value(off_B++);
-                            UCS_string ucs(*str.get());
-                            UZ << ucs;
+                            COUNT_ARG;
+                            UCS_string content;
+                            if (B.is_character_cell(off_B))
+                               {
+                                 content << B.get_char_value(off_B++);
+                               }
+                            else
+                               {
+                                 Value_P str = B.get_pointer_value(off_B++);
+                                 content = UCS_string(*str.get());
+                               }
+                            pad_and_append(UZ, content, fmt, fm);
                           }
                           goto field_done;
 
                      case 'c':   // single char
-                          COUNT_ARG;
-                          UZ << B.get_char_value(off_B++);
+                          {
+                            COUNT_ARG;
+                            const UCS_string content(1, B.get_char_value(off_B++));
+                            pad_and_append(UZ, content, fmt, fm);
+                          }
                           goto field_done;
 
                      case 'm':
-                          COUNT_ARG;
-                          SPRINTF(numbuf, "%s", strerror(errno));
-                          UZ << numbuf;
+                          {
+                            COUNT_ARG;
+                            SPRINTF(numbuf, "%s", strerror(errno));
+                            const UTF8_string utf(numbuf);
+                            const UCS_string content(utf);
+                            pad_and_append(UZ, content, fmt, fm);
+                          }
                           goto field_done;
 
                      case '%':
@@ -1885,21 +1961,12 @@ const APL_Integer bytes_signed = A->get_near_int(0);
    if (bytes_signed < 0)   LENGTH_ERROR;
 const size_t bytes = bytes_signed;
 const int fd = get_fd(*B.get());
-char small_buffer[SMALL_BUF];
-char * buffer = small_buffer;
-char * del = 0;
-   if (bytes > sizeof(small_buffer))
-      buffer = del = new char[bytes];
+vector<char> buffer(bytes);
    errno = 0;
-const ssize_t len = recv(fd, buffer, bytes, 0);
-   if (len < 0)
-      {
-        delete [] del;
-        return Token(TOK_APL_VALUE1, IntScalar(-errno, LOC));
-      }
+const ssize_t len = recv(fd, buffer.data(), bytes, 0);
+   if (len < 0)   return Token(TOK_APL_VALUE1, IntScalar(-errno, LOC));
 Value_P Z(len, LOC);
    loop(z, len)   Z->next_ravel_Int(buffer[z] & 0xFF);
-   delete [] del;
    Z->check_value(LOC);
    return Token(TOK_APL_VALUE1, Z);
 }
@@ -1910,19 +1977,10 @@ Quad_FIO::eval_AXB__38(Value_P A, Value_P B)
    errno = 0;
 const size_t bytes = A->element_count();
 const int fd = get_fd(*B.get());
-char small_buffer[SMALL_BUF];
-char * buffer = small_buffer;
-char * del = 0;
-   if (bytes > sizeof(small_buffer))
-      buffer = del = new char[bytes];
+vector<char> buffer(bytes);
    loop(z, bytes)   buffer[z] = A->get_near_int(z);
-const ssize_t len = send(fd, buffer, bytes, 0);
-   if (len < 0)
-      {
-        delete [] del;
-        return Token(TOK_APL_VALUE1, IntScalar(-errno, LOC));
-      }
-   delete [] del;
+const ssize_t len = send(fd, buffer.data(), bytes, 0);
+   if (len < 0)   return Token(TOK_APL_VALUE1, IntScalar(-errno, LOC));
    return Token(TOK_APL_VALUE1, IntScalar(len, LOC));
 }
 //────────────────────────────────────────────────────────────────────────────
@@ -1947,21 +2005,12 @@ const APL_Integer bytes_signed = A->get_near_int(0);
    if (bytes_signed < 0)   LENGTH_ERROR;
 const size_t bytes = bytes_signed;
 const int fd = get_fd(*B.get());
-char small_buffer[SMALL_BUF];
-char * buffer = small_buffer;
-char * del = 0;
-   if (bytes > sizeof(small_buffer))
-      buffer = del = new char[bytes];
+vector<char> buffer(bytes);
    errno = 0;
-const ssize_t len = read(fd, buffer, bytes);
-   if (len < 0)
-      {
-        delete [] del;
-        return Token(TOK_APL_VALUE1, IntScalar(-errno, LOC));
-      }
+const ssize_t len = read(fd, buffer.data(), bytes);
+   if (len < 0)   return Token(TOK_APL_VALUE1, IntScalar(-errno, LOC));
 Value_P Z(len, LOC);
    loop(z, len)   Z->next_ravel_Int(buffer[z] & 0xFF);
-   delete [] del;
    Z->check_value(LOC);
    return Token(TOK_APL_VALUE1, Z);
 }
@@ -1972,15 +2021,10 @@ Quad_FIO::eval_AXB__42(Value_P A, Value_P B)
    CHECK_SECURITY(disable_Quad_FIO__write);
 const size_t bytes = A->element_count();
 const int fd = get_fd(*B.get());
-char small_buffer[SMALL_BUF];
-char * buffer = small_buffer;
-char * del = 0;
-   if (bytes > sizeof(small_buffer))
-      buffer = del = new char[bytes];
+vector<char> buffer(bytes);
    loop(z, bytes)   buffer[z] = A->get_byte_value(z);
    errno = 0;
-const ssize_t len = write(fd, buffer, bytes);
-   delete [] del;
+const ssize_t len = write(fd, buffer.data(), bytes);
    if (len < 0)   return Token(TOK_APL_VALUE1, IntScalar(-errno, LOC));
    return Token(TOK_APL_VALUE1, IntScalar(len, LOC));
 }
@@ -2150,20 +2194,11 @@ const APL_Integer bytes_signed = A->get_near_int(0);
 const size_t bytes = bytes_signed;
 FILE * file = get_FILE(*B);
    clearerr(file);
-char small_buffer[SMALL_BUF];
-char * buffer = small_buffer;
-char * del = 0;
-   if (bytes > sizeof(small_buffer))
-      buffer = del = new char[bytes];
-const size_t len = fread(buffer, 1, bytes, file);
-   if (len == 0)
-      {
-        delete [] del;
-        return Token(TOK_APL_VALUE1, IntScalar(-errno, LOC));
-      }
+vector<char> buffer(bytes);
+const size_t len = fread(buffer.data(), 1, bytes, file);
+   if (len == 0)   return Token(TOK_APL_VALUE1, IntScalar(-errno, LOC));
 Value_P Z(len, LOC);
    loop(z, len)   Z->next_ravel_Int(buffer[z] & 0xFF);
-   delete [] del;
    Z->check_value(LOC);
    return Token(TOK_APL_VALUE1, Z);
 }
@@ -2189,14 +2224,9 @@ Quad_FIO::eval_AXB__7(Value_P A, Value_P B)
    errno = 0;
 const size_t bytes = A->element_count();
 FILE * file = get_FILE(*B);
-char small_buffer[SMALL_BUF];
-char * buffer = small_buffer;
-char * del = 0;
-   if (bytes > sizeof(small_buffer))
-      buffer = del = new char[bytes];
+vector<char> buffer(bytes);
    loop(z, bytes)   buffer[z] = A->get_near_int(z);
-const size_t len = fwrite(buffer, 1, bytes, file);
-   delete [] del;
+const size_t len = fwrite(buffer.data(), 1, bytes, file);
    return Token(TOK_APL_VALUE1, IntScalar(len, LOC));
 }
 //────────────────────────────────────────────────────────────────────────────
@@ -2215,16 +2245,11 @@ const APL_Integer bytes_signed = A->get_near_int(0);
 const size_t bytes = bytes_signed;
 FILE * file = get_FILE(*B);
    clearerr(file);
-char small_buffer[SMALL_BUF];
-char * buffer = small_buffer;
-char * del = 0;
-   if (bytes > sizeof(small_buffer))
-      buffer = del = new char[bytes + 1];
-const char * s = fgets(buffer, int(bytes), file);
+vector<char> buffer(bytes + 1);
+const char * s = fgets(buffer.data(), int(bytes), file);
 const int len = s ? strlen(s) : 0;
 Value_P Z(len, LOC);
    loop(z, len)   Z->next_ravel_Int(buffer[z] & 0xFF);
-   delete [] del;
    Z->check_value(LOC);
    return Token(TOK_APL_VALUE1, Z);
 }

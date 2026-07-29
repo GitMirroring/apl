@@ -954,7 +954,7 @@ const int data_chars = len - idx;
              return Value_P();
            }
 
-        // check that all token are numeric...
+        // check that all tokens are numeric...
         //
         loop(t, tos.size())
            {

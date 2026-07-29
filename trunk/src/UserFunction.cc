@@ -1082,7 +1082,7 @@ UserFunction::remove_TOK_VOID()
 {
    // if line_starts is empty (= not yet initialized )then line_starts need
    // not be updated. Only the TOK_VOID need to be removed, and we pretend
-   // that no token were removed (so the caller needs not care),
+   // that no tokens were removed (so the caller needs not care),
    //
    if (line_starts.size() == 0)
       {
@@ -1129,7 +1129,7 @@ const Function_PC old_body_size = Function_PC(body.ssize());
            {
              // Do not copy but ignore (skip) body[src_PC]. After the removal
              // of the TOK_VOID have all GOTO_PC targets above src_PC become
-             // are too high (by 1). Adjust these token.
+             // are too high (by 1). Adjust these tokens.
              //
              loop(bb, body.ssize())
                  {

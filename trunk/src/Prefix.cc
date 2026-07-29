@@ -1161,7 +1161,7 @@ TokenClass next = TC_INVALID;   // assume no bext
          if (is_value_bracket())   // case 1.
             {
               // we call reduce_RBRA____, which pushes a partial index list
-              // onto the stack. The following token are processed until the
+              // onto the stack. The following tokens are processed until the
               // entire indexed value A[ ... ] is computed
               prefix_len = 1;
               reduce_RBRA___();
@@ -1267,7 +1267,7 @@ UCS_string & more = MORE_ERROR();
          if (rightmost)   break;
        }
 
-   syntax_error(LOC);   // no more token
+   syntax_error(LOC);   // no more tokens
 }
 //────────────────────────────────────────────────────────────────────────────
 inline bool
@@ -1891,7 +1891,7 @@ Prefix::reduce_D_V__()
       at1() is the '.' (aka. D) before V.
 
       Collect the members (and discard the '.' preceeding them)
-      until no more '.' token are found.
+      until no more '.' tokens are found.
 
       Prefix::reduce_D_V__() is called from two places:
 

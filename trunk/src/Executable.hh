@@ -35,7 +35,7 @@ class UserFunction;
 
 //════════════════════════════════════════════════════════════════════════════
 /**
-     A sequence of APL token. An executable is created for one of 3 purposes:
+     A sequence of APL tokens. An executable is created for one of 3 purposes:
      - an APL expression for execute (⍎), or
      - the statements of one line in immediate execution, or
      - all lines of a user defined function.
@@ -192,7 +192,7 @@ public:
    /// @param pc program counter identifying the statement
    UCS_string statement_text(Function_PC pc) const;
 
-   /// clear marked flag in all body token
+   /// clear marked flag in all body tokens
    void unmark_all_values() const;
 
    /// delete values in body and (maybe) remove lambdas
@@ -211,7 +211,7 @@ public:
    /// @param creator description of the entity acquiring the reference
    void increment_refcount(const char * loc, const char * creator);
 
-   /// remove all TOK_VOID token from the body. \b UserFunction needs to
+   /// remove all TOK_VOID tokens from the body. \b UserFunction needs to
    /// overload this function, e.g. to update its jump table.
    /// Return the number of tokens removed
    virtual VoidCount remove_TOK_VOID();
@@ -253,7 +253,7 @@ protected:
    /// @param skip zero-based index of which lambda to extract
    UCS_string extract_lambda_text(Fun_signature signature, int skip) const;
 
-   /// body[b ... bend] is a lambda. Move these token from this body to the body
+   /// body[b ... bend] is a lambda. Move these tokens from this body to the body
    /// of the lambda and clear them in \b this body.
    /// @param rev_lambda_body token string receiving the reversed lambda body
    /// @param b index of the opening '{' in the body
@@ -293,7 +293,7 @@ protected:
    /// reverse the token order of the entire Token_string (i.e. not statement
    /// by statement)
    /// @param tos token string to reverse in place
-  static void reverse_all_token(Token_string & tos);
+  static void reverse_all_tokens(Token_string & tos);
 
    /// reverse the token order in each statement of tos (statement by
    /// statement reversal). The order pf statements is not changed).

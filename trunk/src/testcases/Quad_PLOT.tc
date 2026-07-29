@@ -37,7 +37,7 @@
 ╚════════╧═════════╧═════════╧═════════╧═════════╧═════════╝
 
       ⎕PLOT ¯3   ⍝ close all ⎕PLOT windows
-1
+³
 
       ⍝ only checks that ⎕PLOT was compiled
       ⍝

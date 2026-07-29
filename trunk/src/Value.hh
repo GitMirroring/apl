@@ -693,18 +693,18 @@ public:
 
    /// return the total CDR size (header + data + padding) for \b this value.
    /// @param cdr_type CDR encoding type selector
-   int total_CDR_size_brutto(CDR_type cdr_type) const
+   ShapeItem total_CDR_size_brutto(CDR_type cdr_type) const
       { return (total_CDR_size_netto(cdr_type) + 15) & ~15; }
 
    /// return the total CDR size in bytes (header + data),
    /// not including any padding for \b this value.
    /// @param cdr_type CDR encoding type selector
-   int total_CDR_size_netto(CDR_type cdr_type) const;
+   ShapeItem total_CDR_size_netto(CDR_type cdr_type) const;
 
    /// return the CDR size in bytes for the data of \b value,
    /// not including the CDR header and padding
    /// @param cdr_type CDR encoding type selector
-   int CDR_data_size(CDR_type cdr_type) const;
+   ShapeItem CDR_data_size(CDR_type cdr_type) const;
 
    /// return the CDR type for \b this value
    CDR_type get_CDR_type() const;

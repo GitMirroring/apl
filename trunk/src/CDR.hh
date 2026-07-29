@@ -78,7 +78,7 @@ protected:
    /// @param type CDR type code for the value
    /// @param len total byte length of the CDR representation
    /// @param val APL value whose CDR bytes are appended
-   static void fill(CDR_string & result, int type, int len, const cValue & val);
+   static void fill(CDR_string & result, int type, ShapeItem len, const cValue & val);
 };
 //════════════════════════════════════════════════════════════════════════════
 

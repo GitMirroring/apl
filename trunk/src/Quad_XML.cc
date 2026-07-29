@@ -725,10 +725,11 @@ bool inside_sq  = false;   // inside '...'
        }
 
 const int len = string_B.size() - offset;
-const int len1 = len > 50 ? 50 : len;
+const bool truncated = len > 50;
+const int len1 = truncated ? 50 : len;
 UCS_string where(string_B, offset, len1);
-   if (len < 50)   MORE_ERROR() << "No tag end found in: " << where;
-   else            MORE_ERROR() << "No tag end found in: " << where;
+   if (truncated)   MORE_ERROR() << "No tag end found in: " << where << "...";
+   else             MORE_ERROR() << "No tag end found in: " << where;
    return -1;
 }
 //────────────────────────────────────────────────────────────────────────────
@@ -777,7 +778,9 @@ enum { PREDEFINED_COUNT = sizeof(predefined_entities)
          if ((src + 2) < attval.ssize() && attval[src + 1] == '#')
             {
               src += 2;   // skip &#
-              int number = 0;
+              uint32_t number = 0;
+              bool overflow = false;
+              bool terminated = false;
               Unicode bad_char = UNI_NUL;
               if (attval[src] == 'x')   // hex value &#xHH
                  {
@@ -785,21 +788,23 @@ enum { PREDEFINED_COUNT = sizeof(predefined_entities)
                    while (src < attval.ssize() && !bad_char)
                       {
                         const Unicode digit = attval[src++];
-                        if (digit == ';')   break;   // end of hex digits
+                        if (digit == ';')   { terminated = true;   break; }
                         const int digval = Avec::digit_value(digit, true);
-                        if (digval == -1)   bad_char = digit;
-                        else                number = 16*number + digval;
+                        if (digval == -1)            bad_char = digit;
+                        else if (number > 0x10FFFF)   overflow = true;
+                        else                       number = 16*number + digval;
                       }
                  }
               else                      // decimal value &#DDD
                  {
-                   while (src < attval.ssize())
+                   while (src < attval.ssize() && !bad_char)
                       {
                         const Unicode digit = attval[src++];
-                        if (digit == ';')   break;   // end of decimal digits
+                        if (digit == ';')   { terminated = true;   break; }
                         const int digval = Avec::digit_value(digit, false);
-                        if (digval == -1)   bad_char = digit;
-                        else                number = 10*number + digval;
+                        if (digval == -1)            bad_char = digit;
+                        else if (number > 0x10FFFF)   overflow = true;
+                        else                       number = 10*number + digval;
                       }
                  }
 
@@ -810,6 +815,23 @@ enum { PREDEFINED_COUNT = sizeof(predefined_entities)
                                 << "' in attribute value '" << attval << "'";
                    return true;
                  }
+
+              if (!terminated)
+                 {
+                   MORE_ERROR() << "⎕XML: missing ';' terminating a "
+                                   "character reference in attribute "
+                                   "value '" << attval << "'";
+                   return true;
+                 }
+
+              if (overflow || !XML_node::is_XML_char(Unicode(number)))
+                 {
+                   MORE_ERROR() << "⎕XML: character reference &#" << number
+                                << "; is not a legal XML character in "
+                                   "attribute value '" << attval << "'";
+                   return true;
+                 }
+
               attval[dest++] = Unicode(number);
               --src;   // compensate the ++src done by the enclosing loop()
               continue;
@@ -1082,19 +1104,18 @@ const int function_number = A.get_int_value(0);
 Value_P
 Quad_XML::APL_to_XML(const cValue & B)
 {
-vector<const UCS_string *> entities;
+vector<UCS_string> entities;
    add_sorted_entities(entities, B);
 
 ShapeItem len_Z = 0;
-   loop(e, entities.size())   len_Z += entities[e]->size();
+   loop(e, entities.size())   len_Z += entities[e].size();
 
 Value_P Z(len_Z, LOC);
    loop(e, entities.size())
        {
-         const UCS_string & entity = *entities[e];
+         const UCS_string & entity = entities[e];
          const ShapeItem len = entity.size();
          loop(l, len)   Z->next_ravel_Char(entity[l]);
-         delete entities[e];
        }
 
    Z->check_value(LOC);
@@ -1102,7 +1123,7 @@ Value_P Z(len_Z, LOC);
 }
 //────────────────────────────────────────────────────────────────────────────
 void
-Quad_XML::add_sorted_entities(vector<const UCS_string *> & entities,
+Quad_XML::add_sorted_entities(vector<UCS_string> & entities,
                               const cValue & B)
 {
    Assert(B.is_structured());
@@ -1142,7 +1163,7 @@ bool tag_open = false;
                    if (start_tag_open)   // previous tag still open
                       {
                         start_tag << "/>";
-                        entities.push_back(new UCS_string(start_tag));
+                        entities.push_back(start_tag);
                         start_tag_open = false;
                       }
                    else if (tag_open)
@@ -1170,13 +1191,13 @@ bool tag_open = false;
               if (start_tag_open)   // start tag still open
                  {
                    start_tag << UNI_GREATER;
-                   entities.push_back(new UCS_string(start_tag));
+                   entities.push_back(start_tag);
                    start_tag_open = false;
                  }
 
               if (category == UNI_DELTA)
                   {
-                    entities.push_back(new UCS_string(member_data));
+                    entities.push_back(UCS_string(member_data));
                   }
                else if (category == UNI_UNDERSCORE)
                   {
@@ -1202,7 +1223,7 @@ bool tag_open = false;
              start_tag.clear();
              start_tag << "</" << start_tag_name << UNI_GREATER;
            }
-        entities.push_back(new UCS_string(start_tag));
+        entities.push_back(start_tag);
       }
 }
 //────────────────────────────────────────────────────────────────────────────
@@ -1368,10 +1389,23 @@ struct stat st;
         DOMAIN_ERROR;
       }
 
-UTF8 * buffer = new UTF8[st.st_size];
-   if (buffer == 0)
+   if (!S_ISREG(st.st_mode))
+      {
+        MORE_ERROR() << "1 ⎕XML B: " << B << " is not a regular file";
+        ::close(fd);
+        DOMAIN_ERROR;
+      }
+
+UTF8 * buffer = 0;
+   try
+      {
+        buffer = new UTF8[st.st_size];
+      }
+   catch (const std::bad_alloc &)
       {
         ::close(fd);
+        MORE_ERROR() << "1 ⎕XML B: file " << B << " is too large ("
+                     << st.st_size << " bytes)";
         WS_FULL;
       }
 

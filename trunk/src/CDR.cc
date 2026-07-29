@@ -375,7 +375,7 @@ void
 CDR::to_CDR(CDR_string & result, const cValue * value)
 {
 const CDR_type type = value->get_CDR_type();
-const int len = value->total_CDR_size_brutto(type);
+const ShapeItem len = value->total_CDR_size_brutto(type);
    result.reserve(len + 1);
    result.clear();
 
@@ -383,7 +383,7 @@ const int len = value->total_CDR_size_brutto(type);
 }
 //────────────────────────────────────────────────────────────────────────────
 void
-CDR::fill(CDR_string & result, int type, int len, const cValue & val)
+CDR::fill(CDR_string & result, int type, ShapeItem len, const cValue & val)
 {
    Assert((len & 0x0F) == 0);
 
@@ -617,7 +617,7 @@ const uint32_t nelm = val.element_count();
                   sub_val->set_ravel_Cell(0, cell);
 
                   const CDR_type sub_type = sub_val->get_CDR_type();
-                  const int sub_len = sub_val->total_CDR_size_brutto(sub_type);
+                  const ShapeItem sub_len = sub_val->total_CDR_size_brutto(sub_type);
                   fill(result, sub_type, sub_len, *sub_val);
                 }
               else
@@ -625,7 +625,7 @@ const uint32_t nelm = val.element_count();
                   Value_P sub_val = cell.get_pointer_value();
 
                   const CDR_type sub_type = sub_val->get_CDR_type();
-                  const int sub_len = sub_val->total_CDR_size_brutto(sub_type);
+                  const ShapeItem sub_len = sub_val->total_CDR_size_brutto(sub_type);
                   fill(result, sub_type, sub_len, *sub_val);
                 }
            }

@@ -263,7 +263,7 @@ public:
        /// @param M new number of rows
        /// @param N new number of columns
        inline void resize(ShapeItem M, ShapeItem N)
-          { new (this)   Matrix<cplx>(data, M, N); }
+          { this->M = M;   this->N = N;   dY = dpi*N; }
 
        /// return the real part of A[x;y]
        /// @param y row index (0-based)
@@ -298,7 +298,9 @@ public:
 
        /// return the elements of matrix 1 1↓this
        inline double * drop_1_1()
-          { new (this)   Matrix<cplx>(data + dpi*(N + 1), M-1, N-1, dY);
+          { data = data + dpi*(N + 1);   // uses old N; must run before N--
+            --M;
+            --N;                         // dY (stride) is unchanged
             return data; }
 
        /// return the real part of A[x;y]
@@ -431,13 +433,13 @@ public:
 
        public:
        /// the number of matrix rows
-       const ShapeItem M;
+       ShapeItem M;
 
        /// the number of matrix columns
-       const ShapeItem N;
+       ShapeItem N;
 
        /// the distance (in doubles) between  A[i;j] and A[i+1;j]
-       const ShapeItem dY;
+       ShapeItem dY;
      };
 };
 //════════════════════════════════════════════════════════════════════════════
@@ -705,7 +707,9 @@ Bif_F12_DOMINO::Matrix<true>::operator =(const Matrix<true> & src)
 {
    matrix_assert(M == src.M);
    matrix_assert(N == src.N);
-   new(this)   Matrix<true>(data, src.M, src.N);
+   M = src.M;
+   N = src.N;
+   dY = dpi*N;
    loop(y, src.M) loop(x, src.N)
        {
          real(y, x) = src.real(y, x);
@@ -745,7 +749,9 @@ const ShapeItem Z = src_A.N;
    matrix_assert(N == src_B.N);
    matrix_assert(Z == src_A.N);
    matrix_assert(Z == src_B.M);
-   new (this) Matrix<true>(data, src_A.M, src_B.N);
+   M = src_A.M;
+   N = src_B.N;
+   dY = dpi*N;
 
    loop(y, src_A.M)   // for every row y of src_A
    loop(x, src_B.N)   // for every column x of src_B

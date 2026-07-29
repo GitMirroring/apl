@@ -68,10 +68,10 @@ protected:
      ce_shape(shape_A)   // shape_A means not found
    {}
 
-   /// assignment (to allow const ce_char)
+   /// assignment
    /// @param other source entry to copy from
    void operator =(const CollatingCacheEntry & other)
-      { new (this)   CollatingCacheEntry(other); }
+      { ce_char = other.ce_char;   ce_shape = other.ce_shape; }
 
    /// compare this entry with \b other at \b axis
    /// @param other cache entry to compare against
@@ -92,7 +92,7 @@ protected:
       { return key - entry.ce_char; }
 
    /// the character
-   const Unicode ce_char;
+   Unicode ce_char;
 
    /// the shape
    Shape ce_shape;

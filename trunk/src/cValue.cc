@@ -1586,7 +1586,7 @@ cValue::list_one(ostream & out, bool show_owners) const
    return out;
 }
 //────────────────────────────────────────────────────────────────────────────
-int
+ShapeItem
 cValue::total_CDR_size_netto(CDR_type cdr_type) const
 {
    if (cdr_type != 7)   // not nested
@@ -1595,7 +1595,7 @@ cValue::total_CDR_size_netto(CDR_type cdr_type) const
    // nested: header + offset-array + sub-values.
    //
 const ShapeItem ec = nz_element_count();
-int size = 16 + 4*get_rank() + 4*ec;   // top_level size
+ShapeItem size = 16 + 4*get_rank() + 4*ec;   // top_level size
    size = (size + 15) & ~15;           // rounded up to 16 bytes
 
    loop(e, ec)
@@ -1621,12 +1621,12 @@ int size = 16 + 4*get_rank() + 4*ec;   // top_level size
    return size;
 }
 //────────────────────────────────────────────────────────────────────────────
-int
+ShapeItem
 cValue::CDR_data_size(CDR_type cdr_type) const
 {
 const ShapeItem ec = nz_element_count();
-   
-   switch (cdr_type) 
+
+   switch (cdr_type)
       {
         case 0: return (ec + 7) / 8;   // 1/8 byte bit, rounded up
         case 1: return 4*ec;           //   4 byte integer
@@ -1635,15 +1635,15 @@ const ShapeItem ec = nz_element_count();
         case 4: return ec;             // 1 byte char
         case 5: return 4*ec;           // 4 byte Unicode char
         case 7: break;                 // nested: continue below.
-             
+
         default: FIXME;
-      }      
-             
+      }
+
    // compute size of a nested CDR.
    // The top level consists of structural offsets that do not count as data.
    // We therefore simly add up the data sizes for the sub-values.
    //
-int size = 0;
+ShapeItem size = 0;
    loop(e, ec)
       {
         const Cell & cell = get_cravel(e);

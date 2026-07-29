@@ -34,7 +34,7 @@ struct ReduceArg;
 class StateIndicator;
 class Token_string;
 
-/// the max. number of token in one reduction
+/// the max. number of tokens in one reduction
 enum { MAX_REDUCTION_LEN = 4 };   // == MAX_PHRASE_LEN in Prefix.def
 
 //────────────────────────────────────────────────────────────────────────────
@@ -84,7 +84,7 @@ public:
    /// destructor
    void clean_up();
 
-   /// max. number of lookahead token
+   /// max. number of lookahead tokens
    enum { MAX_CONTENT   = 10*MAX_REDUCTION_LEN,
           MAX_CONTENT_1 = MAX_CONTENT - 1 };
 
@@ -149,7 +149,7 @@ public:
    /// or immediate execution)
    Token reduce_statements();
 
-   /// return the number of token currently in the FIFO
+   /// return the number of tokens currently in the FIFO
    int ssize() const
       { return put; }
 

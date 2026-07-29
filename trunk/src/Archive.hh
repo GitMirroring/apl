@@ -128,12 +128,12 @@ public:
          Vid _par;
 
          /// the depth of the value
-         const APL_types::Depth _depth;
+         APL_types::Depth _depth;
 
          /// assign \b other
          /// @param other source _val_par to copy from
          void operator=(const _val_par & other)
-            { new (this) _val_par(other._val, other._par); }
+            { _val = other._val;   _par = other._par;   _depth = other._depth; }
 
          /// compare function for Heapsort::sort()
          /// @param A left-hand operand

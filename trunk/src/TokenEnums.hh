@@ -54,7 +54,7 @@ enum TokenClass
    TC_SYMBOL        = 0x0E,   ///< user defined name
    TC_VALUE         = 0x0F,   ///< APL value
 
-   TC_MAX_PERM,               ///< permanent token are < TC_MAX_PERM
+   TC_MAX_PERM,               ///< permanent tokens are < TC_MAX_PERM
 
    // token class aliases. We sometimes want to use TC_FUN1 or TC_FUN2
    // for clarification, but both are TC_FUN12.

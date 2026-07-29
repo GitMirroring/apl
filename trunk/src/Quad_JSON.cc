@@ -61,10 +61,23 @@ struct stat st;
         DOMAIN_ERROR;
       }
 
-UTF8 * buffer = new UTF8[st.st_size];
-   if (buffer == 0)
+   if (!S_ISREG(st.st_mode))
+      {
+        MORE_ERROR() << "1 ⎕JSON B: " << B << " is not a regular file";
+        ::close(fd);
+        DOMAIN_ERROR;
+      }
+
+UTF8 * buffer = 0;
+   try
+      {
+        buffer = new UTF8[st.st_size];
+      }
+   catch (const std::bad_alloc &)
       {
         ::close(fd);
+        MORE_ERROR() << "1 ⎕JSON B: file " << B << " is too large ("
+                     << st.st_size << " bytes)";
         WS_FULL;
       }
 
@@ -185,32 +198,7 @@ Quad_JSON::APL_to_JSON_string(UCS_string & result, const cValue & B,
    if (B.is_char_vector())
       {
         const UCS_string ucs_string(B);
-        result << UNI_DOUBLE_QUOTE;
-        loop(u, ucs_string.size())
-            {
-              switch(const Unicode uni = ucs_string[u])
-                 {
-                   case UNI_BS:           result << "\\b";   break;
-                   case UNI_HT:           result << "\\t";   break;
-                   case UNI_LF:           result << "\\n";   break;
-                   case UNI_FF:           result << "\\f";   break;
-                   case UNI_CR:           result << "\\r";   break;
-                   case UNI_DOUBLE_QUOTE: result << "\\\"";   break;
-                   case UNI_BACKSLASH:    result << "\\\\";   break;
-
-                   default: if (uni < UNI_SPACE)
-                               {
-                                 char cc[10];
-                                 SPRINTF(cc, "\\u%4.4X", int(uni));
-                                 result << cc;
-                               }
-                            else
-                               {
-                                 result << uni;
-                               }
-                 }
-            }
-        result << UNI_DOUBLE_QUOTE;
+        escape_JSON_string(result, ucs_string);
         return;
       }
 
@@ -251,10 +239,11 @@ Quad_JSON::APL_to_JSON_string(UCS_string & result, const cValue & B,
              const Cell & member_data = B.get_cravel(2*member_indices[m] + 1);
 
              result << UCS_string(2*level, UNI_SPACE);   // level indent
-             if (m)   result << "  \"";
-             else     result << "{ \"";
-             UCS_string member(*member_name.get_pointer_value());
-             result << member_name << "\": ";
+             if (m)   result << "  ";
+             else     result << "{ ";
+             const UCS_string member(*member_name.get_pointer_value());
+             escape_JSON_string(result, member);
+             result << ": ";
              APL_to_JSON_string(result, member_data, level + 1, sorted);
              if (result.size() == 0)   return;   // error converting member_data
              if (size_t(m) < (member_indices.size() - 1))
@@ -275,6 +264,37 @@ Quad_JSON::APL_to_JSON_string(UCS_string & result, const cValue & B,
    //
    MORE_ERROR() << "⎕JSON B: bad rank " << B.get_rank();
    result.clear();   // indicate error
+}
+//────────────────────────────────────────────────────────────────────────────
+void
+Quad_JSON::escape_JSON_string(UCS_string & result, const UCS_string & in)
+{
+   result << UNI_DOUBLE_QUOTE;
+   loop(u, in.size())
+       {
+         switch(const Unicode uni = in[u])
+            {
+              case UNI_BS:           result << "\\b";   break;
+              case UNI_HT:           result << "\\t";   break;
+              case UNI_LF:           result << "\\n";   break;
+              case UNI_FF:           result << "\\f";   break;
+              case UNI_CR:           result << "\\r";   break;
+              case UNI_DOUBLE_QUOTE: result << "\\\"";   break;
+              case UNI_BACKSLASH:    result << "\\\\";   break;
+
+              default: if (uni < UNI_SPACE)
+                          {
+                            char cc[10];
+                            SPRINTF(cc, "\\u%4.4X", int(uni));
+                            result << cc;
+                          }
+                       else
+                          {
+                            result << uni;
+                          }
+            }
+       }
+   result << UNI_DOUBLE_QUOTE;
 }
 //────────────────────────────────────────────────────────────────────────────
 void

@@ -676,7 +676,7 @@ bool
 Executable::compute_if_else_targets()
 {
    /*
-      This function recursively matches corresponding TOK_IF_XXX token and
+      This function recursively matches corresponding TOK_IF_XXX tokens and
       sets their int values to the pc of their companion. In a single sided
       IF (i.e. without ELSE):
 
@@ -1274,7 +1274,7 @@ const ShapeItem end = input.size();
 Token_string output;   // in reverse order
    while (idx < end)   // loop over one line
       {
-        // 1. determine the number of token (excluding ◊) in the statement
+        // 1. determine the number of tokens (excluding ◊) in the statement
         //    that starts at idx. The END token may be missing and in that case
         //    TOK_END is appended.
         //
@@ -1477,7 +1477,7 @@ vector<Symbol *> local_vars;   // collector for local variables
 const UCS_string lambda_text = extract_lambda_text(signature, lambda_num - 1);
 
    reverse_each_statement(lambda_body);
-   reverse_all_token(lambda_body);
+   reverse_all_tokens(lambda_body);
 
 UserFunction * ufun = new UserFunction(signature, lambda_num,
                                        lambda_text, lambda_body, local_vars);
@@ -1497,7 +1497,7 @@ Token tok_ufun = ufun->get_token();
 }
 //────────────────────────────────────────────────────────────────────────────
 void
-Executable::reverse_all_token(Token_string & tos)
+Executable::reverse_all_tokens(Token_string & tos)
 {
    for (Token * t1 = &tos[0], * t2 = &tos[tos.size() - 1]; t1 < t2;)
        t1++->swap_token(*t2--);

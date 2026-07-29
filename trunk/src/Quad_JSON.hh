@@ -89,6 +89,11 @@ protected:
    static void APL_to_JSON_string(UCS_string & result, const Cell & B,
                                   int level, bool sorted);
 
+   /// append \b in to \b result as a quoted, escaped JSON string
+   /// @param result output UCS string being built
+   /// @param in the (unescaped) string to append
+   static void escape_JSON_string(UCS_string & result, const UCS_string & in);
+
    /// return the number of name-separators or value-separators at the
    /// top-level of the object or array starting at token0 and increment token0
    /// along the way.

@@ -48,7 +48,7 @@ class Workspace;
 class Token
 {
 public:
-   /// Construct a VOID token. VOID token are used for two purposes: (1) to
+   /// Construct a VOID token. VOID tokens are used for two purposes: (1) to
    /// fill positions when e.g. 3 tokens were replaced by 2 tokens during
    /// parsing, and (2) as return values of user defined functions that
    /// do not return values.
