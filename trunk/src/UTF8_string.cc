@@ -165,13 +165,15 @@ uint32_t bx = b0;   // the "significant" bits in b0
         CERR <<  " at " LOC << endl;
 
         BACKTRACE
-        Assert(0 && "Internal error in UTF8_string::toUni()");
 
-        // Assert() is a no-op at the documented default ASSERT_LEVEL 0,
-        // so this is reachable in normal builds: without it, len keeps
-        // whatever the caller passed in and the continuation-byte code
-        // below runs with a garbage/attacker-uninfluenced length --
-        // an infinite loop (some callers pre-set len=0, advancing the
+        // No Assert() here: at the project's *default* ASSERT_LEVEL (1,
+        // not 0 -- see configure.ac), Assert(0 && ...) is not a no-op,
+        // it throws via do_Assert(), so it would pre-empt exactly the
+        // fallback below that a malformed/truncated workspace file (or
+        // any other bad input) needs: without it, len keeps whatever
+        // the caller passed in and the continuation-byte code below
+        // runs with a garbage/attacker-uninfluenced length -- an
+        // infinite loop (some callers pre-set len=0, advancing the
         // cursor by 0 forever) or an OOB read (DiffOut::different()
         // leaves len uninitialized). Fail the same way the non-verbose
         // branch already does.
@@ -201,14 +203,16 @@ uint32_t uni = 0;
          if ((subc & 0xC0) != 0x80)
             {
               CERR << "Bad UTF8 sequence: " << HEX(b0) << "... at " LOC << endl;
-              Assert(0 && "Internal error in UTF8_string::toUni()");
-              // Assert() alone is a no-op at ASSERT_LEVEL 0: without an
-              // enforced return, a bad continuation byte fell through and
-              // got silently folded into uni as if it were valid instead
-              // of failing the decode. len was already fully consumed by
-              // the time we get here (this loop doesn't advance len), so
-              // just return the failure the same way the lead-byte checks
-              // above do.
+
+              // No Assert() here: at the project's default ASSERT_LEVEL
+              // (1), Assert(0 && ...) throws via do_Assert() instead of
+              // being a no-op, which would pre-empt exactly this
+              // fallback -- without it, a bad continuation byte would
+              // fall through and get silently folded into uni as if it
+              // were valid instead of failing the decode. len was
+              // already fully consumed by the time we get here (this
+              // loop doesn't advance len), so just return the failure
+              // the same way the lead-byte checks above do.
               return Invalid_Unicode;
             }
 

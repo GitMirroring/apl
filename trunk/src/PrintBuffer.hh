@@ -131,12 +131,19 @@ public:
       { return buffer.size(); }
 
    /// return the first (and only) line
-   UCS_string l1() const
+   const UCS_string & l1() const
       { Assert(get_row_count() == 1);   return buffer[0]; }
 
-   /// return line y
+   /// return line y. Returns a reference (not a copy, as it used to):
+   /// callers that chunk a long line into ⎕PW-sized pieces call this
+   /// once per chunk (PrintBuffer::print_interruptible(),
+   /// UCS_string::UCS_string(const PrintBuffer&, ...)), so returning by
+   /// value copied the *entire* row on every chunk -- O(row_length ×
+   /// chunk_count) copying, and (via repeated huge alloc/free of the
+   /// temporaries) the ~100x peak-RSS amplification measured on long
+   /// character vectors (Blake McBride, Bugs6 #6).
    /// @param y row index (0-based)
-   UCS_string get_line(int y) const
+   const UCS_string & get_line(int y) const
       { Assert(y < get_row_count());   return buffer[y]; }
 
    /// print this buffer, interruptible with ^C

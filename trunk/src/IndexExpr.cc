@@ -29,18 +29,25 @@
 
 //════════════════════════════════════════════════════════════════════════════
 IndexExpr::IndexExpr(Assign_state astate, const char * loc)
-   // M28 (Blake's report): tried switching this to
-   // DynamicObject(loc, &all_index_exprs) so erase_stale()/)CHECK's
-   // "no stale indices" diagnostic would actually do something (it's
-   // currently a permanent no-op, since IndexExpr never links into
-   // all_index_exprs at all). REVERTED: caused a real SIGSEGV in
-   // ~IndexExpr() during Prefix::clean_up() at )CLEAR (Quad_SYL.tc),
-   // most likely IndexExpr objects being destroyed through a path that
-   // doesn't expect list membership (or a second, uncoordinated walker
-   // of all_index_exprs) -- not safely fixable without deeper
-   // investigation into every IndexExpr lifetime/ownership path first.
-   // Left as the original, safe, always-no-op anchor-only form.
-   : DynamicObject(loc),
+   // M28 (Blake's report, Bugs6 #5): a previous attempt to switch this to
+   // DynamicObject(loc, &all_index_exprs) -- so erase_stale()/)CHECK's
+   // "no stale indices" diagnostic would actually do something, instead
+   // of being a permanent no-op -- was reverted after it caused a real
+   // SIGSEGV in ~IndexExpr() during Prefix::clean_up() at )CLEAR
+   // (Quad_SYL.tc). At the time, DynamicObject had no destructor at all,
+   // so any IndexExpr deleted through a path other than
+   // IndexExpr::erase_stale()'s own ring walk (e.g. Prefix::clean_up()'s
+   // "delete &tok.get_index_val();", or any of the individual delete
+   // call sites in Parser.cc) left a dangling entry in all_index_exprs
+   // -- exactly the Value/all_values bug fixed as Bugs6 #1, just for
+   // IndexExpr. Now that DynamicObject has ~DynamicObject(){ unlink(); }
+   // (added for #1), every deletion path -- wherever it happens --
+   // keeps the ring consistent, so this is safe to re-enable; see
+   // testcases/Bracket_Index.tc's regression test (mirrors Quad_SYL.tc's
+   // repeated ⎕SYL[1;2]-through-)SI-limit-errors pattern that triggered
+   // the original crash) and the erase_stale()/)CHECK's "IndexExpr"
+   // counts for verification that this now actually tracks.
+   : DynamicObject(loc, &all_index_exprs),
      quad_io(Workspace::get_IO()),
      assign_state(astate),
      rank(0),

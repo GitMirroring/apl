@@ -240,5 +240,61 @@ y 3
       1 opex 'xyz' [2] 3
 y 0 3
 
+      ⍝ Regression: Bugs6 #5 (Blake McBride). IndexExpr never joined
+      ⍝ all_index_exprs, so )CHECK's "no stale indices" and
+      ⍝ IndexExpr::erase_stale() were permanent no-ops. Fixed together
+      ⍝ with #1 (DynamicObject now unlinks on any deletion path, not
+      ⍝ just its own erase_stale() walk). A rank>=2 literal index whose
+      ⍝ evaluation is aborted (error) partway, repeated with )SIC,
+      ⍝ mirrors the Quad_SYL.tc pattern that crashed an earlier,
+      ⍝ reverted attempt at this same fix -- must not corrupt the ring
+      ⍝ or crash here either.
+      ⍝
+      T←4 4⍴⍳16
+
+∇ Z←BUGS6_5_FOO
+ Z←UNDEFVAR_BUGS6_5[1;2]
+∇
+
+      BUGS6_5_FOO
+VALUE ERROR+
+BUGS6_5_FOO[1]  Z←UNDEFVAR_BUGS6_5[1;2]
+                                  ^
+
+      )SIC
+      BUGS6_5_FOO
+VALUE ERROR+
+BUGS6_5_FOO[1]  Z←UNDEFVAR_BUGS6_5[1;2]
+                                  ^
+
+      )SIC
+      BUGS6_5_FOO
+VALUE ERROR+
+BUGS6_5_FOO[1]  Z←UNDEFVAR_BUGS6_5[1;2]
+                                  ^
+
+      )SIC
+
+∇ Z←BUGS6_5_BAR
+ Z←T[1;2]
+∇
+
+      BUGS6_5_BAR
+2
+
+      BUGS6_5_BAR
+2
+
+      )CHECK
+OK      - no stale functions
+OK      - no stale values
+OK      - no stale indices
+OK      - no duplicate parents
+
+      ⎕EX 'BUGS6_5_FOO'
+1
+      ⎕EX 'BUGS6_5_BAR'
+1
+
 
 

@@ -100,10 +100,12 @@ host_triplet = @host@
 @apl_GTK3_FALSE@am__append_4 = Plot_gtk.cc
 @apl_XCB_TRUE@am__append_5 = Plot_xcb.cc
 @apl_XCB_FALSE@am__append_6 = Plot_xcb.cc
-@apl_PCRE_TRUE@am__append_7 = Regexp.cc								Regexp.hh
-@apl_SQLITE3_TRUE@am__append_8 = $(SQLITE3_CFLAGS)
-@apl_SQLITE3_TRUE@am__append_9 = $(SQLITE3_LDFLAGS)
-@apl_SQLITE3_TRUE@am__append_10 = sql/SqliteArgListBuilder.cc \
+@apl_TARGET_MINGW_TRUE@am__append_7 = Plot_win32.cc
+@apl_TARGET_MINGW_FALSE@am__append_8 = Plot_win32.cc
+@apl_PCRE_TRUE@am__append_9 = Regexp.cc								Regexp.hh
+@apl_SQLITE3_TRUE@am__append_10 = $(SQLITE3_CFLAGS)
+@apl_SQLITE3_TRUE@am__append_11 = $(SQLITE3_LDFLAGS)
+@apl_SQLITE3_TRUE@am__append_12 = sql/SqliteArgListBuilder.cc \
 @apl_SQLITE3_TRUE@	sql/SqliteArgListBuilder.hh \
 @apl_SQLITE3_TRUE@	sql/SqliteConnection.cc \
 @apl_SQLITE3_TRUE@	sql/SqliteConnection.hh \
@@ -111,21 +113,21 @@ host_triplet = @host@
 @apl_SQLITE3_TRUE@	sql/SqliteResultValue.hh \
 @apl_SQLITE3_TRUE@	sql/SqliteProvider.cc sql/SqliteProvider.hh \
 @apl_SQLITE3_TRUE@	sql/Connection.cc
-@apl_POSTGRES_TRUE@@apl_SQLITE3_FALSE@am__append_11 = sql/Connection.cc
-@apl_POSTGRES_TRUE@am__append_12 = $(POSTGRESQL_CFLAGS)
-@apl_POSTGRES_TRUE@am__append_13 = $(POSTGRESQL_LDFLAGS)
-@apl_POSTGRES_TRUE@am__append_14 = sql/PostgresArgListBuilder.cc \
+@apl_POSTGRES_TRUE@@apl_SQLITE3_FALSE@am__append_13 = sql/Connection.cc
+@apl_POSTGRES_TRUE@am__append_14 = $(POSTGRESQL_CFLAGS)
+@apl_POSTGRES_TRUE@am__append_15 = $(POSTGRESQL_LDFLAGS)
+@apl_POSTGRES_TRUE@am__append_16 = sql/PostgresArgListBuilder.cc \
 @apl_POSTGRES_TRUE@	sql/PostgresArgListBuilder.hh \
 @apl_POSTGRES_TRUE@	sql/PostgresConnection.cc \
 @apl_POSTGRES_TRUE@	sql/PostgresConnection.hh \
 @apl_POSTGRES_TRUE@	sql/PostgresProvider.cc \
 @apl_POSTGRES_TRUE@	sql/PostgresProvider.hh
-@apl_TARGET_LIBAPL_TRUE@am__append_15 = libapl.la
-@apl_TARGET_LIBAPL_FALSE@@apl_TARGET_PYTHON_TRUE@am__append_16 = lib_gnu_apl.la
+@apl_TARGET_LIBAPL_TRUE@am__append_17 = libapl.la
+@apl_TARGET_LIBAPL_FALSE@@apl_TARGET_PYTHON_TRUE@am__append_18 = lib_gnu_apl.la
 @apl_TARGET_LIBAPL_FALSE@@apl_TARGET_PYTHON_FALSE@bin_PROGRAMS = apl$(EXEEXT)
 # Cross-compiled Windows binary: suppress libtool's lt-apl.c wrapper, which
 # uses _spawnv/_P_WAIT without including <process.h> and fails to compile.
-@apl_TARGET_LIBAPL_FALSE@@apl_TARGET_MINGW_TRUE@@apl_TARGET_PYTHON_FALSE@am__append_17 = -no-install
+@apl_TARGET_LIBAPL_FALSE@@apl_TARGET_MINGW_TRUE@@apl_TARGET_PYTHON_FALSE@am__append_19 = -no-install
 subdir = src
 ACLOCAL_M4 = $(top_srcdir)/aclocal.m4
 am__aclocal_m4_deps = $(top_srcdir)/m4/depend.m4 \
@@ -184,7 +186,218 @@ am__uninstall_files_from_dir = { \
 LTLIBRARIES = $(pkglib_LTLIBRARIES)
 lib_gnu_apl_la_LIBADD =
 am__lib_gnu_apl_la_SOURCES_DIST = Plot_ascii.cc Plot_gtk.cc \
-	Plot_xcb.cc ../config.h APL_Float_as_class.hh APL_types.hh \
+	Plot_xcb.cc Plot_win32.cc ../config.h APL_Float_as_class.hh \
+	APL_types.hh APL_enums.hh Archive.cc Archive.hh \
+	ArrayIterator.hh Assert.cc Assert.hh Avec.cc Avec.def Avec.hh \
+	Backtrace.cc Backtrace.hh Bif_F0_ZILDE.cc Bif_F0_ZILDE.hh \
+	Bif_F12_COMMA.cc Bif_F12_COMMA.hh Bif_F12_DOMINO.cc \
+	Bif_F12_DOMINO.hh Bif_F12_ELEMENT.cc Bif_F12_ELEMENT.hh \
+	Bif_F12_ENCODE_DECODE.cc Bif_F12_ENCODE_DECODE.hh \
+	Bif_F12_EQUIV.cc Bif_F12_EQUIV.hh Bif_F12_INDEX_OF.cc \
+	Bif_F12_INDEX_OF.hh Bif_F12_INTERVAL_INDEX.cc \
+	Bif_F12_INTERVAL_INDEX.hh Bif_F12_FORMAT.cc Bif_F12_FORMAT.hh \
+	Bif_F12_PARTITION_PICK.cc Bif_F12_PARTITION_PICK.hh \
+	Bif_F12_RHO.cc Bif_F12_RHO.hh Bif_F12_ROTATE.cc \
+	Bif_F12_ROTATE.hh Bif_F12_SORT.cc Bif_F12_SORT.hh \
+	Bif_F12_TAKE_DROP.cc Bif_F12_TAKE_DROP.hh Bif_F12_TRANSPOSE.cc \
+	Bif_F12_TRANSPOSE.hh Bif_F12_UNION_INTER.cc \
+	Bif_F12_UNION_INTER.hh Bif_F1_EXECUTE.cc Bif_F1_EXECUTE.hh \
+	Bif_F2_INDEX.cc Bif_F2_INDEX.hh Bif_F2_LEFT_RIGHT.cc \
+	Bif_F2_LEFT_RIGHT.hh Bif_OPER1_COMMUTE.cc Bif_OPER1_COMMUTE.hh \
+	Bif_OPER1_EACH.cc Bif_OPER1_EACH.hh Bif_OPER2_POWER.cc \
+	Bif_OPER2_POWER.hh Bif_OPER2_INNER.cc Bif_OPER2_INNER.hh \
+	Bif_OPER2_OUTER.cc Bif_OPER2_OUTER.hh Bif_OPER2_RANK.cc \
+	Bif_OPER2_RANK.hh Bif_OPER1_REDUCE.cc Bif_OPER1_REDUCE.hh \
+	Bif_OPER1_SCAN.cc Bif_OPER1_SCAN.hh CDR.cc CDR.hh Cell.cc \
+	Cell.icc Cell.hh Cmd_KEYB.cc Cmd_LIB.cc Cmd_IN.cc Cmd_DIAG.cc \
+	Cmd_DIAG.hh Cmd_HELP.cc Cmd_HELP.hh Cmd_HOST.cc Cmd_HOST.hh \
+	Cmd_LISTING.cc Cmd_LISTING.hh Cmd_SESSION.cc Cmd_SESSION.hh \
+	Cmd_SI.cc Cmd_SI.hh Cmd_USERCMD.cc Cmd_USERCMD.hh Cmd_WS.cc \
+	Cmd_WS.hh Doxy.cc Doxy.hh CharCell.cc CharCell.hh Command.cc \
+	Command.def Command.hh Common.cc Common.hh ComplexCell.cc \
+	ComplexCell.hh ConstCell_P.hh DerivedFunction.cc \
+	DerivedFunction.hh DiffOut.cc DiffOut.hh DynamicObject.cc \
+	DynamicObject.hh Error.cc Error.def Error.hh Error_macros.hh \
+	ErrorCode.hh Executable.cc Executable.hh FileBuffers.hh \
+	FloatCell.cc FloatCell.hh Focus.icc Function.cc Function.hh \
+	Help.def Heapsort.hh Id.cc Id.def Id.hh IdEnums.hh \
+	IndexExpr.cc IndexExpr.hh IndexIterator.cc IndexIterator.hh \
+	InputFile.cc InputFile.hh IntCell.cc IntCell.hh IO_Files.cc \
+	IO_Files.hh LApack.cc LAdebug.icc LApack.hh LibPaths.cc \
+	LibPaths.hh LineInput.cc LineInput.hh Logging.cc Logging.def \
+	Logging.hh LvalCell.cc LvalCell.hh Malloc_hooks.cc Nabla.cc \
+	Nabla.hh Macro.cc Macro.def Macro.hh Missing_Libraries.cc \
+	NamedObject.cc NamedObject.hh NativeFunction.cc \
+	NativeFunction.hh Native_interface.hh NumericCell.cc \
+	NumericCell.icc NumericCell.hh Output.cc Output.hh PJob.hh \
+	Parallel.cc Parallel.hh Parser.cc Parser.hh Performance.cc \
+	Performance.def Performance.hh PointerCell.cc PointerCell.hh \
+	Prefix.cc Prefix.def Prefix.hh Plot_line_properties.cc \
+	Plot_line_properties.hh Plot_data.cc Plot_data.hh \
+	Plot_window_properties.cc Plot_window_properties.hh \
+	PrimitiveFunction.hh PrimitiveOperator.hh PrintBuffer.cc \
+	PrintBuffer.hh PrintContext.hh Polynomial.cc Polynomial.hh \
+	PrintOperator.hh PythonPipe.cc PythonPipe.hh \
+	QR_factorization_GSL.cc QR_factorization_GSL.hh \
+	QuadFunction.cc QuadFunction.hh ProcessorID.cc ProcessorID.hh \
+	Quad_CC.cc Quad_CC.hh Quad_CR.cc Quad_CR.def Quad_CR.hh \
+	Quad_DLX.cc Quad_DLX.hh Quad_FFT.cc Quad_FFT.hh Quad_FIO.cc \
+	Quad_FIO.def Quad_FIO.hh Quad_FX.cc Quad_FX.hh Quad_GTK.cc \
+	Quad_GTK.hh Quad_JSON.cc Quad_JSON.hh Quad_MAP.cc Quad_MAP.hh \
+	Quad_MX.cc Quad_MX.def Quad_MX.hh Quad_PLOT.cc Quad_PLOT.def \
+	Quad_PLOT.hh Quad_PNG.cc Quad_PNG.hh Quad_RE.cc Quad_RE.hh \
+	Quad_RL.cc Quad_RL.hh Quad_RVAL.cc Quad_RVAL.hh Quad_SQL.cc \
+	Quad_SQL.hh Quad_SVx.cc Quad_SVx.hh Quad_TF.cc Quad_TF.hh \
+	Quad_WA.cc Quad_WA.hh Quad_XML.cc Quad_XML.hh RealCell.cc \
+	RealCell.hh sbrk.cc Shape.cc Shape.hh ScalarFunction.cc \
+	ScalarFunction.hh ScalarOps.hh Security.cc Security.def \
+	Security.hh StateIndicator.cc StateIndicator.hh Svar_DB.cc \
+	Svar_DB.hh Svar_record.cc Svar_record.hh tcp_signal.m4 \
+	Svar_signals.def Svar_signals.hh Symbol.cc Symbol.hh \
+	Simple_string.hh SymbolTable.cc SymbolTable.hh \
+	SystemLimits.def SystemLimits.hh Sys.cc Sys.hh \
+	SystemVariable.cc SystemVariable.def SystemVariable.hh \
+	TabExpansion.cc TabExpansion.hh Thread_context.cc \
+	Thread_context.hh Token.cc Token.def Token.hh Token_string.cc \
+	Token_string.hh TokenEnums.hh Tokenizer.cc Tokenizer.hh \
+	u8_string.hh UCS_string.cc UCS_string.hh UCS_string_vector.cc \
+	UCS_string_vector.hh Unicode.hh UserFunction.cc \
+	UserFunction.hh UserFunction_header.cc UserFunction_header.hh \
+	UserPreferences.cc UserPreferences.hh UTF8_string.cc \
+	UTF8_string.hh Ravel.cc Ravel.hh Value.cc Value.icc Value.hh \
+	cValue.cc Value_P.icc Value_P.hh ValueHistory.cc \
+	ValueHistory.hh Workspace.cc Workspace.icc Workspace.hh \
+	static_Objects.cc static_Objects.hh Regexp.cc Regexp.hh \
+	sql/SqliteArgListBuilder.cc sql/SqliteArgListBuilder.hh \
+	sql/SqliteConnection.cc sql/SqliteConnection.hh \
+	sql/SqliteResultValue.cc sql/SqliteResultValue.hh \
+	sql/SqliteProvider.cc sql/SqliteProvider.hh sql/Connection.cc \
+	sql/PostgresArgListBuilder.cc sql/PostgresArgListBuilder.hh \
+	sql/PostgresConnection.cc sql/PostgresConnection.hh \
+	sql/PostgresProvider.cc sql/PostgresProvider.hh python_apl.cc
+@apl_GTK3_TRUE@am__objects_1 = lib_gnu_apl_la-Plot_gtk.lo
+@apl_XCB_TRUE@am__objects_2 = lib_gnu_apl_la-Plot_xcb.lo
+@apl_TARGET_MINGW_TRUE@am__objects_3 = lib_gnu_apl_la-Plot_win32.lo
+am__objects_4 = lib_gnu_apl_la-Plot_ascii.lo $(am__objects_1) \
+	$(am__objects_2) $(am__objects_3)
+@apl_PCRE_TRUE@am__objects_5 = lib_gnu_apl_la-Regexp.lo
+am__dirstamp = $(am__leading_dot)dirstamp
+@apl_SQLITE3_TRUE@am__objects_6 =  \
+@apl_SQLITE3_TRUE@	sql/lib_gnu_apl_la-SqliteArgListBuilder.lo \
+@apl_SQLITE3_TRUE@	sql/lib_gnu_apl_la-SqliteConnection.lo \
+@apl_SQLITE3_TRUE@	sql/lib_gnu_apl_la-SqliteResultValue.lo \
+@apl_SQLITE3_TRUE@	sql/lib_gnu_apl_la-SqliteProvider.lo \
+@apl_SQLITE3_TRUE@	sql/lib_gnu_apl_la-Connection.lo
+@apl_POSTGRES_TRUE@@apl_SQLITE3_FALSE@am__objects_7 = sql/lib_gnu_apl_la-Connection.lo
+@apl_POSTGRES_TRUE@am__objects_8 = sql/lib_gnu_apl_la-PostgresArgListBuilder.lo \
+@apl_POSTGRES_TRUE@	sql/lib_gnu_apl_la-PostgresConnection.lo \
+@apl_POSTGRES_TRUE@	sql/lib_gnu_apl_la-PostgresProvider.lo
+am__objects_9 = $(am__objects_4) lib_gnu_apl_la-Archive.lo \
+	lib_gnu_apl_la-Assert.lo lib_gnu_apl_la-Avec.lo \
+	lib_gnu_apl_la-Backtrace.lo lib_gnu_apl_la-Bif_F0_ZILDE.lo \
+	lib_gnu_apl_la-Bif_F12_COMMA.lo \
+	lib_gnu_apl_la-Bif_F12_DOMINO.lo \
+	lib_gnu_apl_la-Bif_F12_ELEMENT.lo \
+	lib_gnu_apl_la-Bif_F12_ENCODE_DECODE.lo \
+	lib_gnu_apl_la-Bif_F12_EQUIV.lo \
+	lib_gnu_apl_la-Bif_F12_INDEX_OF.lo \
+	lib_gnu_apl_la-Bif_F12_INTERVAL_INDEX.lo \
+	lib_gnu_apl_la-Bif_F12_FORMAT.lo \
+	lib_gnu_apl_la-Bif_F12_PARTITION_PICK.lo \
+	lib_gnu_apl_la-Bif_F12_RHO.lo lib_gnu_apl_la-Bif_F12_ROTATE.lo \
+	lib_gnu_apl_la-Bif_F12_SORT.lo \
+	lib_gnu_apl_la-Bif_F12_TAKE_DROP.lo \
+	lib_gnu_apl_la-Bif_F12_TRANSPOSE.lo \
+	lib_gnu_apl_la-Bif_F12_UNION_INTER.lo \
+	lib_gnu_apl_la-Bif_F1_EXECUTE.lo \
+	lib_gnu_apl_la-Bif_F2_INDEX.lo \
+	lib_gnu_apl_la-Bif_F2_LEFT_RIGHT.lo \
+	lib_gnu_apl_la-Bif_OPER1_COMMUTE.lo \
+	lib_gnu_apl_la-Bif_OPER1_EACH.lo \
+	lib_gnu_apl_la-Bif_OPER2_POWER.lo \
+	lib_gnu_apl_la-Bif_OPER2_INNER.lo \
+	lib_gnu_apl_la-Bif_OPER2_OUTER.lo \
+	lib_gnu_apl_la-Bif_OPER2_RANK.lo \
+	lib_gnu_apl_la-Bif_OPER1_REDUCE.lo \
+	lib_gnu_apl_la-Bif_OPER1_SCAN.lo lib_gnu_apl_la-CDR.lo \
+	lib_gnu_apl_la-Cell.lo lib_gnu_apl_la-Cmd_KEYB.lo \
+	lib_gnu_apl_la-Cmd_LIB.lo lib_gnu_apl_la-Cmd_IN.lo \
+	lib_gnu_apl_la-Cmd_DIAG.lo lib_gnu_apl_la-Cmd_HELP.lo \
+	lib_gnu_apl_la-Cmd_HOST.lo lib_gnu_apl_la-Cmd_LISTING.lo \
+	lib_gnu_apl_la-Cmd_SESSION.lo lib_gnu_apl_la-Cmd_SI.lo \
+	lib_gnu_apl_la-Cmd_USERCMD.lo lib_gnu_apl_la-Cmd_WS.lo \
+	lib_gnu_apl_la-Doxy.lo lib_gnu_apl_la-CharCell.lo \
+	lib_gnu_apl_la-Command.lo lib_gnu_apl_la-Common.lo \
+	lib_gnu_apl_la-ComplexCell.lo \
+	lib_gnu_apl_la-DerivedFunction.lo lib_gnu_apl_la-DiffOut.lo \
+	lib_gnu_apl_la-DynamicObject.lo lib_gnu_apl_la-Error.lo \
+	lib_gnu_apl_la-Executable.lo lib_gnu_apl_la-FloatCell.lo \
+	lib_gnu_apl_la-Function.lo lib_gnu_apl_la-Id.lo \
+	lib_gnu_apl_la-IndexExpr.lo lib_gnu_apl_la-IndexIterator.lo \
+	lib_gnu_apl_la-InputFile.lo lib_gnu_apl_la-IntCell.lo \
+	lib_gnu_apl_la-IO_Files.lo lib_gnu_apl_la-LApack.lo \
+	lib_gnu_apl_la-LibPaths.lo lib_gnu_apl_la-LineInput.lo \
+	lib_gnu_apl_la-Logging.lo lib_gnu_apl_la-LvalCell.lo \
+	lib_gnu_apl_la-Malloc_hooks.lo lib_gnu_apl_la-Nabla.lo \
+	lib_gnu_apl_la-Macro.lo lib_gnu_apl_la-Missing_Libraries.lo \
+	lib_gnu_apl_la-NamedObject.lo lib_gnu_apl_la-NativeFunction.lo \
+	lib_gnu_apl_la-NumericCell.lo lib_gnu_apl_la-Output.lo \
+	lib_gnu_apl_la-Parallel.lo lib_gnu_apl_la-Parser.lo \
+	lib_gnu_apl_la-Performance.lo lib_gnu_apl_la-PointerCell.lo \
+	lib_gnu_apl_la-Prefix.lo \
+	lib_gnu_apl_la-Plot_line_properties.lo \
+	lib_gnu_apl_la-Plot_data.lo \
+	lib_gnu_apl_la-Plot_window_properties.lo \
+	lib_gnu_apl_la-PrintBuffer.lo lib_gnu_apl_la-Polynomial.lo \
+	lib_gnu_apl_la-PythonPipe.lo \
+	lib_gnu_apl_la-QR_factorization_GSL.lo \
+	lib_gnu_apl_la-QuadFunction.lo lib_gnu_apl_la-ProcessorID.lo \
+	lib_gnu_apl_la-Quad_CC.lo lib_gnu_apl_la-Quad_CR.lo \
+	lib_gnu_apl_la-Quad_DLX.lo lib_gnu_apl_la-Quad_FFT.lo \
+	lib_gnu_apl_la-Quad_FIO.lo lib_gnu_apl_la-Quad_FX.lo \
+	lib_gnu_apl_la-Quad_GTK.lo lib_gnu_apl_la-Quad_JSON.lo \
+	lib_gnu_apl_la-Quad_MAP.lo lib_gnu_apl_la-Quad_MX.lo \
+	lib_gnu_apl_la-Quad_PLOT.lo lib_gnu_apl_la-Quad_PNG.lo \
+	lib_gnu_apl_la-Quad_RE.lo lib_gnu_apl_la-Quad_RL.lo \
+	lib_gnu_apl_la-Quad_RVAL.lo lib_gnu_apl_la-Quad_SQL.lo \
+	lib_gnu_apl_la-Quad_SVx.lo lib_gnu_apl_la-Quad_TF.lo \
+	lib_gnu_apl_la-Quad_WA.lo lib_gnu_apl_la-Quad_XML.lo \
+	lib_gnu_apl_la-RealCell.lo lib_gnu_apl_la-sbrk.lo \
+	lib_gnu_apl_la-Shape.lo lib_gnu_apl_la-ScalarFunction.lo \
+	lib_gnu_apl_la-Security.lo lib_gnu_apl_la-StateIndicator.lo \
+	lib_gnu_apl_la-Svar_DB.lo lib_gnu_apl_la-Svar_record.lo \
+	lib_gnu_apl_la-Symbol.lo lib_gnu_apl_la-SymbolTable.lo \
+	lib_gnu_apl_la-Sys.lo lib_gnu_apl_la-SystemVariable.lo \
+	lib_gnu_apl_la-TabExpansion.lo \
+	lib_gnu_apl_la-Thread_context.lo lib_gnu_apl_la-Token.lo \
+	lib_gnu_apl_la-Token_string.lo lib_gnu_apl_la-Tokenizer.lo \
+	lib_gnu_apl_la-UCS_string.lo \
+	lib_gnu_apl_la-UCS_string_vector.lo \
+	lib_gnu_apl_la-UserFunction.lo \
+	lib_gnu_apl_la-UserFunction_header.lo \
+	lib_gnu_apl_la-UserPreferences.lo \
+	lib_gnu_apl_la-UTF8_string.lo lib_gnu_apl_la-Ravel.lo \
+	lib_gnu_apl_la-Value.lo lib_gnu_apl_la-cValue.lo \
+	lib_gnu_apl_la-ValueHistory.lo lib_gnu_apl_la-Workspace.lo \
+	lib_gnu_apl_la-static_Objects.lo $(am__objects_5) \
+	$(am__objects_6) $(am__objects_7) $(am__objects_8)
+@apl_TARGET_LIBAPL_FALSE@@apl_TARGET_PYTHON_TRUE@am_lib_gnu_apl_la_OBJECTS = $(am__objects_9) \
+@apl_TARGET_LIBAPL_FALSE@@apl_TARGET_PYTHON_TRUE@	lib_gnu_apl_la-python_apl.lo
+lib_gnu_apl_la_OBJECTS = $(am_lib_gnu_apl_la_OBJECTS)
+AM_V_lt = $(am__v_lt_@AM_V@)
+am__v_lt_ = $(am__v_lt_@AM_DEFAULT_V@)
+am__v_lt_0 = --silent
+am__v_lt_1 = 
+lib_gnu_apl_la_LINK = $(LIBTOOL) $(AM_V_lt) --tag=CXX \
+	$(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=link $(CXXLD) \
+	$(lib_gnu_apl_la_CXXFLAGS) $(CXXFLAGS) \
+	$(lib_gnu_apl_la_LDFLAGS) $(LDFLAGS) -o $@
+@apl_TARGET_LIBAPL_FALSE@@apl_TARGET_PYTHON_TRUE@am_lib_gnu_apl_la_rpath =  \
+@apl_TARGET_LIBAPL_FALSE@@apl_TARGET_PYTHON_TRUE@	-rpath \
+@apl_TARGET_LIBAPL_FALSE@@apl_TARGET_PYTHON_TRUE@	$(pkglibdir)
+libapl_la_LIBADD =
+am__libapl_la_SOURCES_DIST = Plot_ascii.cc Plot_gtk.cc Plot_xcb.cc \
+	Plot_win32.cc ../config.h APL_Float_as_class.hh APL_types.hh \
 	APL_enums.hh Archive.cc Archive.hh ArrayIterator.hh Assert.cc \
 	Assert.hh Avec.cc Avec.def Avec.hh Backtrace.cc Backtrace.hh \
 	Bif_F0_ZILDE.cc Bif_F0_ZILDE.hh Bif_F12_COMMA.cc \
@@ -272,235 +485,26 @@ am__lib_gnu_apl_la_SOURCES_DIST = Plot_ascii.cc Plot_gtk.cc \
 	sql/SqliteProvider.cc sql/SqliteProvider.hh sql/Connection.cc \
 	sql/PostgresArgListBuilder.cc sql/PostgresArgListBuilder.hh \
 	sql/PostgresConnection.cc sql/PostgresConnection.hh \
-	sql/PostgresProvider.cc sql/PostgresProvider.hh python_apl.cc
-@apl_GTK3_TRUE@am__objects_1 = lib_gnu_apl_la-Plot_gtk.lo
-@apl_XCB_TRUE@am__objects_2 = lib_gnu_apl_la-Plot_xcb.lo
-am__objects_3 = lib_gnu_apl_la-Plot_ascii.lo $(am__objects_1) \
-	$(am__objects_2)
-@apl_PCRE_TRUE@am__objects_4 = lib_gnu_apl_la-Regexp.lo
-am__dirstamp = $(am__leading_dot)dirstamp
-@apl_SQLITE3_TRUE@am__objects_5 =  \
-@apl_SQLITE3_TRUE@	sql/lib_gnu_apl_la-SqliteArgListBuilder.lo \
-@apl_SQLITE3_TRUE@	sql/lib_gnu_apl_la-SqliteConnection.lo \
-@apl_SQLITE3_TRUE@	sql/lib_gnu_apl_la-SqliteResultValue.lo \
-@apl_SQLITE3_TRUE@	sql/lib_gnu_apl_la-SqliteProvider.lo \
-@apl_SQLITE3_TRUE@	sql/lib_gnu_apl_la-Connection.lo
-@apl_POSTGRES_TRUE@@apl_SQLITE3_FALSE@am__objects_6 = sql/lib_gnu_apl_la-Connection.lo
-@apl_POSTGRES_TRUE@am__objects_7 = sql/lib_gnu_apl_la-PostgresArgListBuilder.lo \
-@apl_POSTGRES_TRUE@	sql/lib_gnu_apl_la-PostgresConnection.lo \
-@apl_POSTGRES_TRUE@	sql/lib_gnu_apl_la-PostgresProvider.lo
-am__objects_8 = $(am__objects_3) lib_gnu_apl_la-Archive.lo \
-	lib_gnu_apl_la-Assert.lo lib_gnu_apl_la-Avec.lo \
-	lib_gnu_apl_la-Backtrace.lo lib_gnu_apl_la-Bif_F0_ZILDE.lo \
-	lib_gnu_apl_la-Bif_F12_COMMA.lo \
-	lib_gnu_apl_la-Bif_F12_DOMINO.lo \
-	lib_gnu_apl_la-Bif_F12_ELEMENT.lo \
-	lib_gnu_apl_la-Bif_F12_ENCODE_DECODE.lo \
-	lib_gnu_apl_la-Bif_F12_EQUIV.lo \
-	lib_gnu_apl_la-Bif_F12_INDEX_OF.lo \
-	lib_gnu_apl_la-Bif_F12_INTERVAL_INDEX.lo \
-	lib_gnu_apl_la-Bif_F12_FORMAT.lo \
-	lib_gnu_apl_la-Bif_F12_PARTITION_PICK.lo \
-	lib_gnu_apl_la-Bif_F12_RHO.lo lib_gnu_apl_la-Bif_F12_ROTATE.lo \
-	lib_gnu_apl_la-Bif_F12_SORT.lo \
-	lib_gnu_apl_la-Bif_F12_TAKE_DROP.lo \
-	lib_gnu_apl_la-Bif_F12_TRANSPOSE.lo \
-	lib_gnu_apl_la-Bif_F12_UNION_INTER.lo \
-	lib_gnu_apl_la-Bif_F1_EXECUTE.lo \
-	lib_gnu_apl_la-Bif_F2_INDEX.lo \
-	lib_gnu_apl_la-Bif_F2_LEFT_RIGHT.lo \
-	lib_gnu_apl_la-Bif_OPER1_COMMUTE.lo \
-	lib_gnu_apl_la-Bif_OPER1_EACH.lo \
-	lib_gnu_apl_la-Bif_OPER2_POWER.lo \
-	lib_gnu_apl_la-Bif_OPER2_INNER.lo \
-	lib_gnu_apl_la-Bif_OPER2_OUTER.lo \
-	lib_gnu_apl_la-Bif_OPER2_RANK.lo \
-	lib_gnu_apl_la-Bif_OPER1_REDUCE.lo \
-	lib_gnu_apl_la-Bif_OPER1_SCAN.lo lib_gnu_apl_la-CDR.lo \
-	lib_gnu_apl_la-Cell.lo lib_gnu_apl_la-Cmd_KEYB.lo \
-	lib_gnu_apl_la-Cmd_LIB.lo lib_gnu_apl_la-Cmd_IN.lo \
-	lib_gnu_apl_la-Cmd_DIAG.lo lib_gnu_apl_la-Cmd_HELP.lo \
-	lib_gnu_apl_la-Cmd_HOST.lo lib_gnu_apl_la-Cmd_LISTING.lo \
-	lib_gnu_apl_la-Cmd_SESSION.lo lib_gnu_apl_la-Cmd_SI.lo \
-	lib_gnu_apl_la-Cmd_USERCMD.lo lib_gnu_apl_la-Cmd_WS.lo \
-	lib_gnu_apl_la-Doxy.lo lib_gnu_apl_la-CharCell.lo \
-	lib_gnu_apl_la-Command.lo lib_gnu_apl_la-Common.lo \
-	lib_gnu_apl_la-ComplexCell.lo \
-	lib_gnu_apl_la-DerivedFunction.lo lib_gnu_apl_la-DiffOut.lo \
-	lib_gnu_apl_la-DynamicObject.lo lib_gnu_apl_la-Error.lo \
-	lib_gnu_apl_la-Executable.lo lib_gnu_apl_la-FloatCell.lo \
-	lib_gnu_apl_la-Function.lo lib_gnu_apl_la-Id.lo \
-	lib_gnu_apl_la-IndexExpr.lo lib_gnu_apl_la-IndexIterator.lo \
-	lib_gnu_apl_la-InputFile.lo lib_gnu_apl_la-IntCell.lo \
-	lib_gnu_apl_la-IO_Files.lo lib_gnu_apl_la-LApack.lo \
-	lib_gnu_apl_la-LibPaths.lo lib_gnu_apl_la-LineInput.lo \
-	lib_gnu_apl_la-Logging.lo lib_gnu_apl_la-LvalCell.lo \
-	lib_gnu_apl_la-Malloc_hooks.lo lib_gnu_apl_la-Nabla.lo \
-	lib_gnu_apl_la-Macro.lo lib_gnu_apl_la-Missing_Libraries.lo \
-	lib_gnu_apl_la-NamedObject.lo lib_gnu_apl_la-NativeFunction.lo \
-	lib_gnu_apl_la-NumericCell.lo lib_gnu_apl_la-Output.lo \
-	lib_gnu_apl_la-Parallel.lo lib_gnu_apl_la-Parser.lo \
-	lib_gnu_apl_la-Performance.lo lib_gnu_apl_la-PointerCell.lo \
-	lib_gnu_apl_la-Prefix.lo \
-	lib_gnu_apl_la-Plot_line_properties.lo \
-	lib_gnu_apl_la-Plot_data.lo \
-	lib_gnu_apl_la-Plot_window_properties.lo \
-	lib_gnu_apl_la-PrintBuffer.lo lib_gnu_apl_la-Polynomial.lo \
-	lib_gnu_apl_la-PythonPipe.lo \
-	lib_gnu_apl_la-QR_factorization_GSL.lo \
-	lib_gnu_apl_la-QuadFunction.lo lib_gnu_apl_la-ProcessorID.lo \
-	lib_gnu_apl_la-Quad_CC.lo lib_gnu_apl_la-Quad_CR.lo \
-	lib_gnu_apl_la-Quad_DLX.lo lib_gnu_apl_la-Quad_FFT.lo \
-	lib_gnu_apl_la-Quad_FIO.lo lib_gnu_apl_la-Quad_FX.lo \
-	lib_gnu_apl_la-Quad_GTK.lo lib_gnu_apl_la-Quad_JSON.lo \
-	lib_gnu_apl_la-Quad_MAP.lo lib_gnu_apl_la-Quad_MX.lo \
-	lib_gnu_apl_la-Quad_PLOT.lo lib_gnu_apl_la-Quad_PNG.lo \
-	lib_gnu_apl_la-Quad_RE.lo lib_gnu_apl_la-Quad_RL.lo \
-	lib_gnu_apl_la-Quad_RVAL.lo lib_gnu_apl_la-Quad_SQL.lo \
-	lib_gnu_apl_la-Quad_SVx.lo lib_gnu_apl_la-Quad_TF.lo \
-	lib_gnu_apl_la-Quad_WA.lo lib_gnu_apl_la-Quad_XML.lo \
-	lib_gnu_apl_la-RealCell.lo lib_gnu_apl_la-sbrk.lo \
-	lib_gnu_apl_la-Shape.lo lib_gnu_apl_la-ScalarFunction.lo \
-	lib_gnu_apl_la-Security.lo lib_gnu_apl_la-StateIndicator.lo \
-	lib_gnu_apl_la-Svar_DB.lo lib_gnu_apl_la-Svar_record.lo \
-	lib_gnu_apl_la-Symbol.lo lib_gnu_apl_la-SymbolTable.lo \
-	lib_gnu_apl_la-Sys.lo lib_gnu_apl_la-SystemVariable.lo \
-	lib_gnu_apl_la-TabExpansion.lo \
-	lib_gnu_apl_la-Thread_context.lo lib_gnu_apl_la-Token.lo \
-	lib_gnu_apl_la-Token_string.lo lib_gnu_apl_la-Tokenizer.lo \
-	lib_gnu_apl_la-UCS_string.lo \
-	lib_gnu_apl_la-UCS_string_vector.lo \
-	lib_gnu_apl_la-UserFunction.lo \
-	lib_gnu_apl_la-UserFunction_header.lo \
-	lib_gnu_apl_la-UserPreferences.lo \
-	lib_gnu_apl_la-UTF8_string.lo lib_gnu_apl_la-Ravel.lo \
-	lib_gnu_apl_la-Value.lo lib_gnu_apl_la-cValue.lo \
-	lib_gnu_apl_la-ValueHistory.lo lib_gnu_apl_la-Workspace.lo \
-	lib_gnu_apl_la-static_Objects.lo $(am__objects_4) \
-	$(am__objects_5) $(am__objects_6) $(am__objects_7)
-@apl_TARGET_LIBAPL_FALSE@@apl_TARGET_PYTHON_TRUE@am_lib_gnu_apl_la_OBJECTS = $(am__objects_8) \
-@apl_TARGET_LIBAPL_FALSE@@apl_TARGET_PYTHON_TRUE@	lib_gnu_apl_la-python_apl.lo
-lib_gnu_apl_la_OBJECTS = $(am_lib_gnu_apl_la_OBJECTS)
-AM_V_lt = $(am__v_lt_@AM_V@)
-am__v_lt_ = $(am__v_lt_@AM_DEFAULT_V@)
-am__v_lt_0 = --silent
-am__v_lt_1 = 
-lib_gnu_apl_la_LINK = $(LIBTOOL) $(AM_V_lt) --tag=CXX \
-	$(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=link $(CXXLD) \
-	$(lib_gnu_apl_la_CXXFLAGS) $(CXXFLAGS) \
-	$(lib_gnu_apl_la_LDFLAGS) $(LDFLAGS) -o $@
-@apl_TARGET_LIBAPL_FALSE@@apl_TARGET_PYTHON_TRUE@am_lib_gnu_apl_la_rpath =  \
-@apl_TARGET_LIBAPL_FALSE@@apl_TARGET_PYTHON_TRUE@	-rpath \
-@apl_TARGET_LIBAPL_FALSE@@apl_TARGET_PYTHON_TRUE@	$(pkglibdir)
-libapl_la_LIBADD =
-am__libapl_la_SOURCES_DIST = Plot_ascii.cc Plot_gtk.cc Plot_xcb.cc \
-	../config.h APL_Float_as_class.hh APL_types.hh APL_enums.hh \
-	Archive.cc Archive.hh ArrayIterator.hh Assert.cc Assert.hh \
-	Avec.cc Avec.def Avec.hh Backtrace.cc Backtrace.hh \
-	Bif_F0_ZILDE.cc Bif_F0_ZILDE.hh Bif_F12_COMMA.cc \
-	Bif_F12_COMMA.hh Bif_F12_DOMINO.cc Bif_F12_DOMINO.hh \
-	Bif_F12_ELEMENT.cc Bif_F12_ELEMENT.hh Bif_F12_ENCODE_DECODE.cc \
-	Bif_F12_ENCODE_DECODE.hh Bif_F12_EQUIV.cc Bif_F12_EQUIV.hh \
-	Bif_F12_INDEX_OF.cc Bif_F12_INDEX_OF.hh \
-	Bif_F12_INTERVAL_INDEX.cc Bif_F12_INTERVAL_INDEX.hh \
-	Bif_F12_FORMAT.cc Bif_F12_FORMAT.hh Bif_F12_PARTITION_PICK.cc \
-	Bif_F12_PARTITION_PICK.hh Bif_F12_RHO.cc Bif_F12_RHO.hh \
-	Bif_F12_ROTATE.cc Bif_F12_ROTATE.hh Bif_F12_SORT.cc \
-	Bif_F12_SORT.hh Bif_F12_TAKE_DROP.cc Bif_F12_TAKE_DROP.hh \
-	Bif_F12_TRANSPOSE.cc Bif_F12_TRANSPOSE.hh \
-	Bif_F12_UNION_INTER.cc Bif_F12_UNION_INTER.hh \
-	Bif_F1_EXECUTE.cc Bif_F1_EXECUTE.hh Bif_F2_INDEX.cc \
-	Bif_F2_INDEX.hh Bif_F2_LEFT_RIGHT.cc Bif_F2_LEFT_RIGHT.hh \
-	Bif_OPER1_COMMUTE.cc Bif_OPER1_COMMUTE.hh Bif_OPER1_EACH.cc \
-	Bif_OPER1_EACH.hh Bif_OPER2_POWER.cc Bif_OPER2_POWER.hh \
-	Bif_OPER2_INNER.cc Bif_OPER2_INNER.hh Bif_OPER2_OUTER.cc \
-	Bif_OPER2_OUTER.hh Bif_OPER2_RANK.cc Bif_OPER2_RANK.hh \
-	Bif_OPER1_REDUCE.cc Bif_OPER1_REDUCE.hh Bif_OPER1_SCAN.cc \
-	Bif_OPER1_SCAN.hh CDR.cc CDR.hh Cell.cc Cell.icc Cell.hh \
-	Cmd_KEYB.cc Cmd_LIB.cc Cmd_IN.cc Cmd_DIAG.cc Cmd_DIAG.hh \
-	Cmd_HELP.cc Cmd_HELP.hh Cmd_HOST.cc Cmd_HOST.hh Cmd_LISTING.cc \
-	Cmd_LISTING.hh Cmd_SESSION.cc Cmd_SESSION.hh Cmd_SI.cc \
-	Cmd_SI.hh Cmd_USERCMD.cc Cmd_USERCMD.hh Cmd_WS.cc Cmd_WS.hh \
-	Doxy.cc Doxy.hh CharCell.cc CharCell.hh Command.cc Command.def \
-	Command.hh Common.cc Common.hh ComplexCell.cc ComplexCell.hh \
-	ConstCell_P.hh DerivedFunction.cc DerivedFunction.hh \
-	DiffOut.cc DiffOut.hh DynamicObject.cc DynamicObject.hh \
-	Error.cc Error.def Error.hh Error_macros.hh ErrorCode.hh \
-	Executable.cc Executable.hh FileBuffers.hh FloatCell.cc \
-	FloatCell.hh Focus.icc Function.cc Function.hh Help.def \
-	Heapsort.hh Id.cc Id.def Id.hh IdEnums.hh IndexExpr.cc \
-	IndexExpr.hh IndexIterator.cc IndexIterator.hh InputFile.cc \
-	InputFile.hh IntCell.cc IntCell.hh IO_Files.cc IO_Files.hh \
-	LApack.cc LAdebug.icc LApack.hh LibPaths.cc LibPaths.hh \
-	LineInput.cc LineInput.hh Logging.cc Logging.def Logging.hh \
-	LvalCell.cc LvalCell.hh Malloc_hooks.cc Nabla.cc Nabla.hh \
-	Macro.cc Macro.def Macro.hh Missing_Libraries.cc \
-	NamedObject.cc NamedObject.hh NativeFunction.cc \
-	NativeFunction.hh Native_interface.hh NumericCell.cc \
-	NumericCell.icc NumericCell.hh Output.cc Output.hh PJob.hh \
-	Parallel.cc Parallel.hh Parser.cc Parser.hh Performance.cc \
-	Performance.def Performance.hh PointerCell.cc PointerCell.hh \
-	Prefix.cc Prefix.def Prefix.hh Plot_line_properties.cc \
-	Plot_line_properties.hh Plot_data.cc Plot_data.hh \
-	Plot_window_properties.cc Plot_window_properties.hh \
-	PrimitiveFunction.hh PrimitiveOperator.hh PrintBuffer.cc \
-	PrintBuffer.hh PrintContext.hh Polynomial.cc Polynomial.hh \
-	PrintOperator.hh PythonPipe.cc PythonPipe.hh \
-	QR_factorization_GSL.cc QR_factorization_GSL.hh \
-	QuadFunction.cc QuadFunction.hh ProcessorID.cc ProcessorID.hh \
-	Quad_CC.cc Quad_CC.hh Quad_CR.cc Quad_CR.def Quad_CR.hh \
-	Quad_DLX.cc Quad_DLX.hh Quad_FFT.cc Quad_FFT.hh Quad_FIO.cc \
-	Quad_FIO.def Quad_FIO.hh Quad_FX.cc Quad_FX.hh Quad_GTK.cc \
-	Quad_GTK.hh Quad_JSON.cc Quad_JSON.hh Quad_MAP.cc Quad_MAP.hh \
-	Quad_MX.cc Quad_MX.def Quad_MX.hh Quad_PLOT.cc Quad_PLOT.def \
-	Quad_PLOT.hh Quad_PNG.cc Quad_PNG.hh Quad_RE.cc Quad_RE.hh \
-	Quad_RL.cc Quad_RL.hh Quad_RVAL.cc Quad_RVAL.hh Quad_SQL.cc \
-	Quad_SQL.hh Quad_SVx.cc Quad_SVx.hh Quad_TF.cc Quad_TF.hh \
-	Quad_WA.cc Quad_WA.hh Quad_XML.cc Quad_XML.hh RealCell.cc \
-	RealCell.hh sbrk.cc Shape.cc Shape.hh ScalarFunction.cc \
-	ScalarFunction.hh ScalarOps.hh Security.cc Security.def \
-	Security.hh StateIndicator.cc StateIndicator.hh Svar_DB.cc \
-	Svar_DB.hh Svar_record.cc Svar_record.hh tcp_signal.m4 \
-	Svar_signals.def Svar_signals.hh Symbol.cc Symbol.hh \
-	Simple_string.hh SymbolTable.cc SymbolTable.hh \
-	SystemLimits.def SystemLimits.hh Sys.cc Sys.hh \
-	SystemVariable.cc SystemVariable.def SystemVariable.hh \
-	TabExpansion.cc TabExpansion.hh Thread_context.cc \
-	Thread_context.hh Token.cc Token.def Token.hh Token_string.cc \
-	Token_string.hh TokenEnums.hh Tokenizer.cc Tokenizer.hh \
-	u8_string.hh UCS_string.cc UCS_string.hh UCS_string_vector.cc \
-	UCS_string_vector.hh Unicode.hh UserFunction.cc \
-	UserFunction.hh UserFunction_header.cc UserFunction_header.hh \
-	UserPreferences.cc UserPreferences.hh UTF8_string.cc \
-	UTF8_string.hh Ravel.cc Ravel.hh Value.cc Value.icc Value.hh \
-	cValue.cc Value_P.icc Value_P.hh ValueHistory.cc \
-	ValueHistory.hh Workspace.cc Workspace.icc Workspace.hh \
-	static_Objects.cc static_Objects.hh Regexp.cc Regexp.hh \
-	sql/SqliteArgListBuilder.cc sql/SqliteArgListBuilder.hh \
-	sql/SqliteConnection.cc sql/SqliteConnection.hh \
-	sql/SqliteResultValue.cc sql/SqliteResultValue.hh \
-	sql/SqliteProvider.cc sql/SqliteProvider.hh sql/Connection.cc \
-	sql/PostgresArgListBuilder.cc sql/PostgresArgListBuilder.hh \
-	sql/PostgresConnection.cc sql/PostgresConnection.hh \
 	sql/PostgresProvider.cc sql/PostgresProvider.hh libapl.h \
 	libapl.cc
-@apl_GTK3_TRUE@am__objects_9 = libapl_la-Plot_gtk.lo
-@apl_XCB_TRUE@am__objects_10 = libapl_la-Plot_xcb.lo
-am__objects_11 = libapl_la-Plot_ascii.lo $(am__objects_9) \
-	$(am__objects_10)
-@apl_PCRE_TRUE@am__objects_12 = libapl_la-Regexp.lo
-@apl_SQLITE3_TRUE@am__objects_13 =  \
+@apl_GTK3_TRUE@am__objects_10 = libapl_la-Plot_gtk.lo
+@apl_XCB_TRUE@am__objects_11 = libapl_la-Plot_xcb.lo
+@apl_TARGET_MINGW_TRUE@am__objects_12 = libapl_la-Plot_win32.lo
+am__objects_13 = libapl_la-Plot_ascii.lo $(am__objects_10) \
+	$(am__objects_11) $(am__objects_12)
+@apl_PCRE_TRUE@am__objects_14 = libapl_la-Regexp.lo
+@apl_SQLITE3_TRUE@am__objects_15 =  \
 @apl_SQLITE3_TRUE@	sql/libapl_la-SqliteArgListBuilder.lo \
 @apl_SQLITE3_TRUE@	sql/libapl_la-SqliteConnection.lo \
 @apl_SQLITE3_TRUE@	sql/libapl_la-SqliteResultValue.lo \
 @apl_SQLITE3_TRUE@	sql/libapl_la-SqliteProvider.lo \
 @apl_SQLITE3_TRUE@	sql/libapl_la-Connection.lo
-@apl_POSTGRES_TRUE@@apl_SQLITE3_FALSE@am__objects_14 = sql/libapl_la-Connection.lo
-@apl_POSTGRES_TRUE@am__objects_15 =  \
+@apl_POSTGRES_TRUE@@apl_SQLITE3_FALSE@am__objects_16 = sql/libapl_la-Connection.lo
+@apl_POSTGRES_TRUE@am__objects_17 =  \
 @apl_POSTGRES_TRUE@	sql/libapl_la-PostgresArgListBuilder.lo \
 @apl_POSTGRES_TRUE@	sql/libapl_la-PostgresConnection.lo \
 @apl_POSTGRES_TRUE@	sql/libapl_la-PostgresProvider.lo
-am__objects_16 = $(am__objects_11) libapl_la-Archive.lo \
+am__objects_18 = $(am__objects_13) libapl_la-Archive.lo \
 	libapl_la-Assert.lo libapl_la-Avec.lo libapl_la-Backtrace.lo \
 	libapl_la-Bif_F0_ZILDE.lo libapl_la-Bif_F12_COMMA.lo \
 	libapl_la-Bif_F12_DOMINO.lo libapl_la-Bif_F12_ELEMENT.lo \
@@ -567,9 +571,9 @@ am__objects_16 = $(am__objects_11) libapl_la-Archive.lo \
 	libapl_la-UserPreferences.lo libapl_la-UTF8_string.lo \
 	libapl_la-Ravel.lo libapl_la-Value.lo libapl_la-cValue.lo \
 	libapl_la-ValueHistory.lo libapl_la-Workspace.lo \
-	libapl_la-static_Objects.lo $(am__objects_12) \
-	$(am__objects_13) $(am__objects_14) $(am__objects_15)
-@apl_TARGET_LIBAPL_TRUE@am_libapl_la_OBJECTS = $(am__objects_16) \
+	libapl_la-static_Objects.lo $(am__objects_14) \
+	$(am__objects_15) $(am__objects_16) $(am__objects_17)
+@apl_TARGET_LIBAPL_TRUE@am_libapl_la_OBJECTS = $(am__objects_18) \
 @apl_TARGET_LIBAPL_TRUE@	libapl_la-libapl.lo
 libapl_la_OBJECTS = $(am_libapl_la_OBJECTS)
 libapl_la_LINK = $(LIBTOOL) $(AM_V_lt) --tag=CXX $(AM_LIBTOOLFLAGS) \
@@ -577,9 +581,9 @@ libapl_la_LINK = $(LIBTOOL) $(AM_V_lt) --tag=CXX $(AM_LIBTOOLFLAGS) \
 	$(CXXFLAGS) $(libapl_la_LDFLAGS) $(LDFLAGS) -o $@
 @apl_TARGET_LIBAPL_TRUE@am_libapl_la_rpath = -rpath $(pkglibdir)
 am__apl_SOURCES_DIST = main.cc Plot_ascii.cc Plot_gtk.cc Plot_xcb.cc \
-	../config.h APL_Float_as_class.hh APL_types.hh APL_enums.hh \
-	Archive.cc Archive.hh ArrayIterator.hh Assert.cc Assert.hh \
-	Avec.cc Avec.def Avec.hh Backtrace.cc Backtrace.hh \
+	Plot_win32.cc ../config.h APL_Float_as_class.hh APL_types.hh \
+	APL_enums.hh Archive.cc Archive.hh ArrayIterator.hh Assert.cc \
+	Assert.hh Avec.cc Avec.def Avec.hh Backtrace.cc Backtrace.hh \
 	Bif_F0_ZILDE.cc Bif_F0_ZILDE.hh Bif_F12_COMMA.cc \
 	Bif_F12_COMMA.hh Bif_F12_DOMINO.cc Bif_F12_DOMINO.hh \
 	Bif_F12_ELEMENT.cc Bif_F12_ELEMENT.hh Bif_F12_ENCODE_DECODE.cc \
@@ -666,23 +670,24 @@ am__apl_SOURCES_DIST = main.cc Plot_ascii.cc Plot_gtk.cc Plot_xcb.cc \
 	sql/PostgresArgListBuilder.cc sql/PostgresArgListBuilder.hh \
 	sql/PostgresConnection.cc sql/PostgresConnection.hh \
 	sql/PostgresProvider.cc sql/PostgresProvider.hh
-@apl_GTK3_TRUE@am__objects_17 = apl-Plot_gtk.$(OBJEXT)
-@apl_XCB_TRUE@am__objects_18 = apl-Plot_xcb.$(OBJEXT)
-am__objects_19 = apl-Plot_ascii.$(OBJEXT) $(am__objects_17) \
-	$(am__objects_18)
-@apl_PCRE_TRUE@am__objects_20 = apl-Regexp.$(OBJEXT)
-@apl_SQLITE3_TRUE@am__objects_21 =  \
+@apl_GTK3_TRUE@am__objects_19 = apl-Plot_gtk.$(OBJEXT)
+@apl_XCB_TRUE@am__objects_20 = apl-Plot_xcb.$(OBJEXT)
+@apl_TARGET_MINGW_TRUE@am__objects_21 = apl-Plot_win32.$(OBJEXT)
+am__objects_22 = apl-Plot_ascii.$(OBJEXT) $(am__objects_19) \
+	$(am__objects_20) $(am__objects_21)
+@apl_PCRE_TRUE@am__objects_23 = apl-Regexp.$(OBJEXT)
+@apl_SQLITE3_TRUE@am__objects_24 =  \
 @apl_SQLITE3_TRUE@	sql/apl-SqliteArgListBuilder.$(OBJEXT) \
 @apl_SQLITE3_TRUE@	sql/apl-SqliteConnection.$(OBJEXT) \
 @apl_SQLITE3_TRUE@	sql/apl-SqliteResultValue.$(OBJEXT) \
 @apl_SQLITE3_TRUE@	sql/apl-SqliteProvider.$(OBJEXT) \
 @apl_SQLITE3_TRUE@	sql/apl-Connection.$(OBJEXT)
-@apl_POSTGRES_TRUE@@apl_SQLITE3_FALSE@am__objects_22 = sql/apl-Connection.$(OBJEXT)
-@apl_POSTGRES_TRUE@am__objects_23 =  \
+@apl_POSTGRES_TRUE@@apl_SQLITE3_FALSE@am__objects_25 = sql/apl-Connection.$(OBJEXT)
+@apl_POSTGRES_TRUE@am__objects_26 =  \
 @apl_POSTGRES_TRUE@	sql/apl-PostgresArgListBuilder.$(OBJEXT) \
 @apl_POSTGRES_TRUE@	sql/apl-PostgresConnection.$(OBJEXT) \
 @apl_POSTGRES_TRUE@	sql/apl-PostgresProvider.$(OBJEXT)
-am__objects_24 = $(am__objects_19) apl-Archive.$(OBJEXT) \
+am__objects_27 = $(am__objects_22) apl-Archive.$(OBJEXT) \
 	apl-Assert.$(OBJEXT) apl-Avec.$(OBJEXT) \
 	apl-Backtrace.$(OBJEXT) apl-Bif_F0_ZILDE.$(OBJEXT) \
 	apl-Bif_F12_COMMA.$(OBJEXT) apl-Bif_F12_DOMINO.$(OBJEXT) \
@@ -753,11 +758,11 @@ am__objects_24 = $(am__objects_19) apl-Archive.$(OBJEXT) \
 	apl-UserPreferences.$(OBJEXT) apl-UTF8_string.$(OBJEXT) \
 	apl-Ravel.$(OBJEXT) apl-Value.$(OBJEXT) apl-cValue.$(OBJEXT) \
 	apl-ValueHistory.$(OBJEXT) apl-Workspace.$(OBJEXT) \
-	apl-static_Objects.$(OBJEXT) $(am__objects_20) \
-	$(am__objects_21) $(am__objects_22) $(am__objects_23)
+	apl-static_Objects.$(OBJEXT) $(am__objects_23) \
+	$(am__objects_24) $(am__objects_25) $(am__objects_26)
 @apl_TARGET_LIBAPL_FALSE@@apl_TARGET_PYTHON_FALSE@am_apl_OBJECTS = apl-main.$(OBJEXT) \
-@apl_TARGET_LIBAPL_FALSE@@apl_TARGET_PYTHON_FALSE@	$(am__objects_24)
-am__EXTRA_apl_SOURCES_DIST = Plot_gtk.cc Plot_xcb.cc
+@apl_TARGET_LIBAPL_FALSE@@apl_TARGET_PYTHON_FALSE@	$(am__objects_27)
+am__EXTRA_apl_SOURCES_DIST = Plot_gtk.cc Plot_xcb.cc Plot_win32.cc
 apl_OBJECTS = $(am_apl_OBJECTS)
 am__DEPENDENCIES_1 =
 apl_DEPENDENCIES = $(am__DEPENDENCIES_1)
@@ -835,6 +840,7 @@ am__depfiles_remade = ./$(DEPDIR)/apl-Archive.Po \
 	./$(DEPDIR)/apl-Performance.Po ./$(DEPDIR)/apl-Plot_ascii.Po \
 	./$(DEPDIR)/apl-Plot_data.Po ./$(DEPDIR)/apl-Plot_gtk.Po \
 	./$(DEPDIR)/apl-Plot_line_properties.Po \
+	./$(DEPDIR)/apl-Plot_win32.Po \
 	./$(DEPDIR)/apl-Plot_window_properties.Po \
 	./$(DEPDIR)/apl-Plot_xcb.Po ./$(DEPDIR)/apl-PointerCell.Po \
 	./$(DEPDIR)/apl-Polynomial.Po ./$(DEPDIR)/apl-Prefix.Po \
@@ -951,6 +957,7 @@ am__depfiles_remade = ./$(DEPDIR)/apl-Archive.Po \
 	./$(DEPDIR)/lib_gnu_apl_la-Plot_data.Plo \
 	./$(DEPDIR)/lib_gnu_apl_la-Plot_gtk.Plo \
 	./$(DEPDIR)/lib_gnu_apl_la-Plot_line_properties.Plo \
+	./$(DEPDIR)/lib_gnu_apl_la-Plot_win32.Plo \
 	./$(DEPDIR)/lib_gnu_apl_la-Plot_window_properties.Plo \
 	./$(DEPDIR)/lib_gnu_apl_la-Plot_xcb.Plo \
 	./$(DEPDIR)/lib_gnu_apl_la-PointerCell.Plo \
@@ -1093,6 +1100,7 @@ am__depfiles_remade = ./$(DEPDIR)/apl-Archive.Po \
 	./$(DEPDIR)/libapl_la-Plot_data.Plo \
 	./$(DEPDIR)/libapl_la-Plot_gtk.Plo \
 	./$(DEPDIR)/libapl_la-Plot_line_properties.Plo \
+	./$(DEPDIR)/libapl_la-Plot_win32.Plo \
 	./$(DEPDIR)/libapl_la-Plot_window_properties.Plo \
 	./$(DEPDIR)/libapl_la-Plot_xcb.Plo \
 	./$(DEPDIR)/libapl_la-PointerCell.Plo \
@@ -1460,8 +1468,9 @@ dist_pkgdata_DATA = integral.py
 EXTRA_DIRS = $(am__append_1)
 @apl_TARGET_MINGW_FALSE@SUBDIRS = native $(EXTRA_DIRS) $(am__append_2)
 @apl_TARGET_MINGW_TRUE@SUBDIRS = $(EXTRA_DIRS) $(am__append_2)
-EXTRA_apl_SOURCES = $(am__append_4) $(am__append_6)
-plot_SOURCES = Plot_ascii.cc $(am__append_3) $(am__append_5)
+EXTRA_apl_SOURCES = $(am__append_4) $(am__append_6) $(am__append_8)
+plot_SOURCES = Plot_ascii.cc $(am__append_3) $(am__append_5) \
+	$(am__append_7)
 @apl_GTK3_TRUE@plot_CXXFLAGS = -Wno-parentheses
 dist_noinst_DATA = valgrind.supp rval.def
 DIST_SUBDIRS = $(SUBDIRS) testcases
@@ -1470,9 +1479,9 @@ DIST_SUBDIRS = $(SUBDIRS) testcases
 #
 common_CXXFLAGS = -Wall -O2 $(plot_CXXFLAGS) -I $(srcdir)/sql -I \
 	$(abs_top_srcdir) $(CXX_WERROR) $(GTK_CFLAGS) $(GTK_LIBS) \
-	$(PYTHON_CFLAGS) $(am__append_8) $(am__append_12)
+	$(PYTHON_CFLAGS) $(am__append_10) $(am__append_14)
 common_LDFLAGS = -L/usr/local/lib -export-dynamic $(GTK_LDFLAGS) \
-	$(am__append_9) $(am__append_13)
+	$(am__append_11) $(am__append_15)
 common_SOURCES = $(plot_SOURCES) ../config.h APL_Float_as_class.hh \
 	APL_types.hh APL_enums.hh Archive.cc Archive.hh \
 	ArrayIterator.hh Assert.cc Assert.hh Avec.cc Avec.def Avec.hh \
@@ -1554,9 +1563,9 @@ common_SOURCES = $(plot_SOURCES) ../config.h APL_Float_as_class.hh \
 	UTF8_string.hh Ravel.cc Ravel.hh Value.cc Value.icc Value.hh \
 	cValue.cc Value_P.icc Value_P.hh ValueHistory.cc \
 	ValueHistory.hh Workspace.cc Workspace.icc Workspace.hh \
-	static_Objects.cc static_Objects.hh $(am__append_7) \
-	$(am__append_10) $(am__append_11) $(am__append_14)
-pkglib_LTLIBRARIES = $(am__append_15) $(am__append_16)
+	static_Objects.cc static_Objects.hh $(am__append_9) \
+	$(am__append_12) $(am__append_13) $(am__append_16)
+pkglib_LTLIBRARIES = $(am__append_17) $(am__append_18)
 @apl_TARGET_LIBAPL_TRUE@pkginclude_HEADERS = libapl.h Error.def
 @apl_TARGET_LIBAPL_TRUE@libapl_la_SOURCES = $(common_SOURCES) libapl.h libapl.cc
 @apl_TARGET_LIBAPL_TRUE@libapl_la_LDFLAGS = $(common_LDFLAGS) \
@@ -1588,7 +1597,7 @@ pkglib_LTLIBRARIES = $(am__append_15) $(am__append_16)
 @apl_TARGET_LIBAPL_FALSE@@apl_TARGET_PYTHON_FALSE@	$(GPROF_WANTED) \
 @apl_TARGET_LIBAPL_FALSE@@apl_TARGET_PYTHON_FALSE@	$(CXX_RDYNAMIC)
 @apl_TARGET_LIBAPL_FALSE@@apl_TARGET_PYTHON_FALSE@apl_LDFLAGS = $(common_LDFLAGS) \
-@apl_TARGET_LIBAPL_FALSE@@apl_TARGET_PYTHON_FALSE@	$(am__append_17)
+@apl_TARGET_LIBAPL_FALSE@@apl_TARGET_PYTHON_FALSE@	$(am__append_19)
 apl_LDADD = $(LIBS)
 @apl_TARGET_MINGW_TRUE@CLEANFILES = apl-$(VERSION).exe
 all: all-recursive
@@ -1863,6 +1872,7 @@ distclean-compile:
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/apl-Plot_data.Po@am__quote@ # am--include-marker
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/apl-Plot_gtk.Po@am__quote@ # am--include-marker
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/apl-Plot_line_properties.Po@am__quote@ # am--include-marker
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/apl-Plot_win32.Po@am__quote@ # am--include-marker
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/apl-Plot_window_properties.Po@am__quote@ # am--include-marker
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/apl-Plot_xcb.Po@am__quote@ # am--include-marker
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/apl-PointerCell.Po@am__quote@ # am--include-marker
@@ -2006,6 +2016,7 @@ distclean-compile:
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/lib_gnu_apl_la-Plot_data.Plo@am__quote@ # am--include-marker
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/lib_gnu_apl_la-Plot_gtk.Plo@am__quote@ # am--include-marker
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/lib_gnu_apl_la-Plot_line_properties.Plo@am__quote@ # am--include-marker
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/lib_gnu_apl_la-Plot_win32.Plo@am__quote@ # am--include-marker
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/lib_gnu_apl_la-Plot_window_properties.Plo@am__quote@ # am--include-marker
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/lib_gnu_apl_la-Plot_xcb.Plo@am__quote@ # am--include-marker
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/lib_gnu_apl_la-PointerCell.Plo@am__quote@ # am--include-marker
@@ -2149,6 +2160,7 @@ distclean-compile:
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libapl_la-Plot_data.Plo@am__quote@ # am--include-marker
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libapl_la-Plot_gtk.Plo@am__quote@ # am--include-marker
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libapl_la-Plot_line_properties.Plo@am__quote@ # am--include-marker
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libapl_la-Plot_win32.Plo@am__quote@ # am--include-marker
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libapl_la-Plot_window_properties.Plo@am__quote@ # am--include-marker
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libapl_la-Plot_xcb.Plo@am__quote@ # am--include-marker
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libapl_la-PointerCell.Plo@am__quote@ # am--include-marker
@@ -2285,6 +2297,13 @@ lib_gnu_apl_la-Plot_xcb.lo: Plot_xcb.cc
 @AMDEP_TRUE@@am__fastdepCXX_FALSE@	$(AM_V_CXX)source='Plot_xcb.cc' object='lib_gnu_apl_la-Plot_xcb.lo' libtool=yes @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
 @am__fastdepCXX_FALSE@	$(AM_V_CXX@am__nodep@)$(LIBTOOL) $(AM_V_lt) --tag=CXX $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(lib_gnu_apl_la_CXXFLAGS) $(CXXFLAGS) -c -o lib_gnu_apl_la-Plot_xcb.lo `test -f 'Plot_xcb.cc' || echo '$(srcdir)/'`Plot_xcb.cc
+
+lib_gnu_apl_la-Plot_win32.lo: Plot_win32.cc
+@am__fastdepCXX_TRUE@	$(AM_V_CXX)$(LIBTOOL) $(AM_V_lt) --tag=CXX $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(lib_gnu_apl_la_CXXFLAGS) $(CXXFLAGS) -MT lib_gnu_apl_la-Plot_win32.lo -MD -MP -MF $(DEPDIR)/lib_gnu_apl_la-Plot_win32.Tpo -c -o lib_gnu_apl_la-Plot_win32.lo `test -f 'Plot_win32.cc' || echo '$(srcdir)/'`Plot_win32.cc
+@am__fastdepCXX_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/lib_gnu_apl_la-Plot_win32.Tpo $(DEPDIR)/lib_gnu_apl_la-Plot_win32.Plo
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	$(AM_V_CXX)source='Plot_win32.cc' object='lib_gnu_apl_la-Plot_win32.lo' libtool=yes @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCXX_FALSE@	$(AM_V_CXX@am__nodep@)$(LIBTOOL) $(AM_V_lt) --tag=CXX $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(lib_gnu_apl_la_CXXFLAGS) $(CXXFLAGS) -c -o lib_gnu_apl_la-Plot_win32.lo `test -f 'Plot_win32.cc' || echo '$(srcdir)/'`Plot_win32.cc
 
 lib_gnu_apl_la-Archive.lo: Archive.cc
 @am__fastdepCXX_TRUE@	$(AM_V_CXX)$(LIBTOOL) $(AM_V_lt) --tag=CXX $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(lib_gnu_apl_la_CXXFLAGS) $(CXXFLAGS) -MT lib_gnu_apl_la-Archive.lo -MD -MP -MF $(DEPDIR)/lib_gnu_apl_la-Archive.Tpo -c -o lib_gnu_apl_la-Archive.lo `test -f 'Archive.cc' || echo '$(srcdir)/'`Archive.cc
@@ -3342,6 +3361,13 @@ libapl_la-Plot_xcb.lo: Plot_xcb.cc
 @AMDEP_TRUE@@am__fastdepCXX_FALSE@	$(AM_V_CXX)source='Plot_xcb.cc' object='libapl_la-Plot_xcb.lo' libtool=yes @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
 @am__fastdepCXX_FALSE@	$(AM_V_CXX@am__nodep@)$(LIBTOOL) $(AM_V_lt) --tag=CXX $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libapl_la_CXXFLAGS) $(CXXFLAGS) -c -o libapl_la-Plot_xcb.lo `test -f 'Plot_xcb.cc' || echo '$(srcdir)/'`Plot_xcb.cc
+
+libapl_la-Plot_win32.lo: Plot_win32.cc
+@am__fastdepCXX_TRUE@	$(AM_V_CXX)$(LIBTOOL) $(AM_V_lt) --tag=CXX $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libapl_la_CXXFLAGS) $(CXXFLAGS) -MT libapl_la-Plot_win32.lo -MD -MP -MF $(DEPDIR)/libapl_la-Plot_win32.Tpo -c -o libapl_la-Plot_win32.lo `test -f 'Plot_win32.cc' || echo '$(srcdir)/'`Plot_win32.cc
+@am__fastdepCXX_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/libapl_la-Plot_win32.Tpo $(DEPDIR)/libapl_la-Plot_win32.Plo
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	$(AM_V_CXX)source='Plot_win32.cc' object='libapl_la-Plot_win32.lo' libtool=yes @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCXX_FALSE@	$(AM_V_CXX@am__nodep@)$(LIBTOOL) $(AM_V_lt) --tag=CXX $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libapl_la_CXXFLAGS) $(CXXFLAGS) -c -o libapl_la-Plot_win32.lo `test -f 'Plot_win32.cc' || echo '$(srcdir)/'`Plot_win32.cc
 
 libapl_la-Archive.lo: Archive.cc
 @am__fastdepCXX_TRUE@	$(AM_V_CXX)$(LIBTOOL) $(AM_V_lt) --tag=CXX $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libapl_la_CXXFLAGS) $(CXXFLAGS) -MT libapl_la-Archive.lo -MD -MP -MF $(DEPDIR)/libapl_la-Archive.Tpo -c -o libapl_la-Archive.lo `test -f 'Archive.cc' || echo '$(srcdir)/'`Archive.cc
@@ -4434,6 +4460,20 @@ apl-Plot_xcb.obj: Plot_xcb.cc
 @AMDEP_TRUE@@am__fastdepCXX_FALSE@	$(AM_V_CXX)source='Plot_xcb.cc' object='apl-Plot_xcb.obj' libtool=no @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
 @am__fastdepCXX_FALSE@	$(AM_V_CXX@am__nodep@)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(apl_CXXFLAGS) $(CXXFLAGS) -c -o apl-Plot_xcb.obj `if test -f 'Plot_xcb.cc'; then $(CYGPATH_W) 'Plot_xcb.cc'; else $(CYGPATH_W) '$(srcdir)/Plot_xcb.cc'; fi`
+
+apl-Plot_win32.o: Plot_win32.cc
+@am__fastdepCXX_TRUE@	$(AM_V_CXX)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(apl_CXXFLAGS) $(CXXFLAGS) -MT apl-Plot_win32.o -MD -MP -MF $(DEPDIR)/apl-Plot_win32.Tpo -c -o apl-Plot_win32.o `test -f 'Plot_win32.cc' || echo '$(srcdir)/'`Plot_win32.cc
+@am__fastdepCXX_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/apl-Plot_win32.Tpo $(DEPDIR)/apl-Plot_win32.Po
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	$(AM_V_CXX)source='Plot_win32.cc' object='apl-Plot_win32.o' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCXX_FALSE@	$(AM_V_CXX@am__nodep@)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(apl_CXXFLAGS) $(CXXFLAGS) -c -o apl-Plot_win32.o `test -f 'Plot_win32.cc' || echo '$(srcdir)/'`Plot_win32.cc
+
+apl-Plot_win32.obj: Plot_win32.cc
+@am__fastdepCXX_TRUE@	$(AM_V_CXX)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(apl_CXXFLAGS) $(CXXFLAGS) -MT apl-Plot_win32.obj -MD -MP -MF $(DEPDIR)/apl-Plot_win32.Tpo -c -o apl-Plot_win32.obj `if test -f 'Plot_win32.cc'; then $(CYGPATH_W) 'Plot_win32.cc'; else $(CYGPATH_W) '$(srcdir)/Plot_win32.cc'; fi`
+@am__fastdepCXX_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/apl-Plot_win32.Tpo $(DEPDIR)/apl-Plot_win32.Po
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	$(AM_V_CXX)source='Plot_win32.cc' object='apl-Plot_win32.obj' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCXX_FALSE@	$(AM_V_CXX@am__nodep@)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(apl_CXXFLAGS) $(CXXFLAGS) -c -o apl-Plot_win32.obj `if test -f 'Plot_win32.cc'; then $(CYGPATH_W) 'Plot_win32.cc'; else $(CYGPATH_W) '$(srcdir)/Plot_win32.cc'; fi`
 
 apl-Archive.o: Archive.cc
 @am__fastdepCXX_TRUE@	$(AM_V_CXX)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(apl_CXXFLAGS) $(CXXFLAGS) -MT apl-Archive.o -MD -MP -MF $(DEPDIR)/apl-Archive.Tpo -c -o apl-Archive.o `test -f 'Archive.cc' || echo '$(srcdir)/'`Archive.cc
@@ -6829,6 +6869,7 @@ distclean: distclean-recursive
 	-rm -f ./$(DEPDIR)/apl-Plot_data.Po
 	-rm -f ./$(DEPDIR)/apl-Plot_gtk.Po
 	-rm -f ./$(DEPDIR)/apl-Plot_line_properties.Po
+	-rm -f ./$(DEPDIR)/apl-Plot_win32.Po
 	-rm -f ./$(DEPDIR)/apl-Plot_window_properties.Po
 	-rm -f ./$(DEPDIR)/apl-Plot_xcb.Po
 	-rm -f ./$(DEPDIR)/apl-PointerCell.Po
@@ -6972,6 +7013,7 @@ distclean: distclean-recursive
 	-rm -f ./$(DEPDIR)/lib_gnu_apl_la-Plot_data.Plo
 	-rm -f ./$(DEPDIR)/lib_gnu_apl_la-Plot_gtk.Plo
 	-rm -f ./$(DEPDIR)/lib_gnu_apl_la-Plot_line_properties.Plo
+	-rm -f ./$(DEPDIR)/lib_gnu_apl_la-Plot_win32.Plo
 	-rm -f ./$(DEPDIR)/lib_gnu_apl_la-Plot_window_properties.Plo
 	-rm -f ./$(DEPDIR)/lib_gnu_apl_la-Plot_xcb.Plo
 	-rm -f ./$(DEPDIR)/lib_gnu_apl_la-PointerCell.Plo
@@ -7115,6 +7157,7 @@ distclean: distclean-recursive
 	-rm -f ./$(DEPDIR)/libapl_la-Plot_data.Plo
 	-rm -f ./$(DEPDIR)/libapl_la-Plot_gtk.Plo
 	-rm -f ./$(DEPDIR)/libapl_la-Plot_line_properties.Plo
+	-rm -f ./$(DEPDIR)/libapl_la-Plot_win32.Plo
 	-rm -f ./$(DEPDIR)/libapl_la-Plot_window_properties.Plo
 	-rm -f ./$(DEPDIR)/libapl_la-Plot_xcb.Plo
 	-rm -f ./$(DEPDIR)/libapl_la-PointerCell.Plo
@@ -7328,6 +7371,7 @@ maintainer-clean: maintainer-clean-recursive
 	-rm -f ./$(DEPDIR)/apl-Plot_data.Po
 	-rm -f ./$(DEPDIR)/apl-Plot_gtk.Po
 	-rm -f ./$(DEPDIR)/apl-Plot_line_properties.Po
+	-rm -f ./$(DEPDIR)/apl-Plot_win32.Po
 	-rm -f ./$(DEPDIR)/apl-Plot_window_properties.Po
 	-rm -f ./$(DEPDIR)/apl-Plot_xcb.Po
 	-rm -f ./$(DEPDIR)/apl-PointerCell.Po
@@ -7471,6 +7515,7 @@ maintainer-clean: maintainer-clean-recursive
 	-rm -f ./$(DEPDIR)/lib_gnu_apl_la-Plot_data.Plo
 	-rm -f ./$(DEPDIR)/lib_gnu_apl_la-Plot_gtk.Plo
 	-rm -f ./$(DEPDIR)/lib_gnu_apl_la-Plot_line_properties.Plo
+	-rm -f ./$(DEPDIR)/lib_gnu_apl_la-Plot_win32.Plo
 	-rm -f ./$(DEPDIR)/lib_gnu_apl_la-Plot_window_properties.Plo
 	-rm -f ./$(DEPDIR)/lib_gnu_apl_la-Plot_xcb.Plo
 	-rm -f ./$(DEPDIR)/lib_gnu_apl_la-PointerCell.Plo
@@ -7614,6 +7659,7 @@ maintainer-clean: maintainer-clean-recursive
 	-rm -f ./$(DEPDIR)/libapl_la-Plot_data.Plo
 	-rm -f ./$(DEPDIR)/libapl_la-Plot_gtk.Plo
 	-rm -f ./$(DEPDIR)/libapl_la-Plot_line_properties.Plo
+	-rm -f ./$(DEPDIR)/libapl_la-Plot_win32.Plo
 	-rm -f ./$(DEPDIR)/libapl_la-Plot_window_properties.Plo
 	-rm -f ./$(DEPDIR)/libapl_la-Plot_xcb.Plo
 	-rm -f ./$(DEPDIR)/libapl_la-PointerCell.Plo
@@ -7764,29 +7810,42 @@ apl.lines2:	../tools/filter_apl_lines2 apl
 	objdump --line-numbers --dwarf=decodedline ./apl \
 	| ../tools/filter_apl_lines2 | sort | uniq > $@
 
+# All test* targets below run with HOME pointed at a fresh, empty scratch
+# directory (removed afterwards) rather than the developer's real $HOME:
+# a $HOME/.gnu-apl/preferences with e.g. DISCARD-INDENTATION or LIBREF-0
+# set changes ⎕FX/⎕CR/∇ and )COPY behaviour, which invalidates the
+# expected output baked into several testcases and makes results
+# non-reproducible across developer machines (Blake McBride, Bugs6 #8).
+
 # run all testcases, continue after errors
 test: all
-	./apl --id 1010 -T testcases/*tc
+	H=$$(mktemp -d); HOME=$$H ./apl --id 1010 -T testcases/*tc; \
+	RC=$$?; rm -rf "$$H"; exit $$RC
 
 # run all testcases, stop after the first error
 test1: all
-	./apl --id 1010 --TM 3 -T testcases/*\.tc
+	H=$$(mktemp -d); HOME=$$H ./apl --id 1010 --TM 3 -T testcases/*\.tc; \
+	RC=$$?; rm -rf "$$H"; exit $$RC
 
 test2: all
-	./apl --id 1010 --TR -T testcases/*tc
+	H=$$(mktemp -d); HOME=$$H ./apl --id 1010 --TR -T testcases/*tc; \
+	RC=$$?; rm -rf "$$H"; exit $$RC
 
 # run testcases related to APs
 testAP: all
-	./apl --id 1010 -T testcases/AP*tc
+	H=$$(mktemp -d); HOME=$$H ./apl --id 1010 -T testcases/AP*tc; \
+	RC=$$?; rm -rf "$$H"; exit $$RC
 
 # run the ⎕GTK TLV round-trip regression test (requires X display and GTK support)
 testGTK: all
-	./apl --id 1010 -T testcases/ZZ02_GTK.tc
+	H=$$(mktemp -d); HOME=$$H ./apl --id 1010 -T testcases/ZZ02_GTK.tc; \
+	RC=$$?; rm -rf "$$H"; exit $$RC
 
 # run all testcases, except slow ones
 test3: all
-	./apl --id 1010 -T testcases_3/*tc; \
-	RC=$$?; stty sane; \
+	H=$$(mktemp -d); \
+	HOME=$$H ./apl --id 1010 -T testcases_3/*tc; \
+	RC=$$?; rm -rf "$$H"; stty sane; \
 	if [ $$RC -ne 0 ]; then \
 	  D=/tmp/apl-test3-$$(date +%Y%m%d_%H%M%S); \
 	  mkdir "$$D"; \
@@ -7798,7 +7857,8 @@ test3: all
 
 # run only invariant testcases
 test4: all
-	./apl --id 1010 -T testcases/invariants/*tc || true
+	H=$$(mktemp -d); HOME=$$H ./apl --id 1010 -T testcases/invariants/*tc || true; \
+	rm -rf "$$H"
 	stty sane
 
 # Create/refresh testcases_3/ and testcases_4/ symlink directories from ⍝@ markers.

@@ -152,30 +152,42 @@ DiffOut::different(const UTF8 * apl, const UTF8 * ref, size_t & pos)
 int
 DiffOut::overflow(int c)
 {
-   // process one output character c from APL.
+   // process one output character c from APL. Characters are
+   // accumulated in aplout and only written to cout once per line
+   // (rather than via "cout << char(c)" here, for every character) --
+   // Output::init() sets ios::unitbuf on cout whenever stdout is not a
+   // tty, so every "cout << ..." there flushes, i.e. costs a write()
+   // syscall; for a long line (no embedded '\n') that was one syscall
+   // per character, ~100x slower than necessary (Blake McBride, Bugs6
+   // #6). aplout was already used for exactly this line-at-a-time
+   // buffering on the (separate) testcase-comparison path below; this
+   // just also routes the plain "echo it to cout" path through it.
    //
 PERFORMANCE_START(cout_perf)
    Output::set_color_mode(errout ? Output::COLM_UERROR
                                  : Output::COLM_OUTPUT);
 
-   // expand LF to CRLF if desired
-   //
-   if (expand_LF && c == '\n')   cout << "\r";
-
    if      (c == '\n')            Output::output_column = 0;
    else if ((c & 0x80) == 0)      ++Output::output_column;   // ASCII
    else if ((c & 0xC0) == 0xC0)   ++Output::output_column;   // first UTF
-   cout << char(c);
 
-   if (!InputFile::is_validating())
+   if (c != '\n')   // not end of line: accumulate only
       {
+        aplout += c;
         PERFORMANCE_END(fs_COUT_B, cout_perf, 1)
         return 0;
       }
 
-   if (c != '\n')   // not end of line
+   // end of line: emit the accumulated line (plus '\r' first if
+   // expand_LF) to cout in one shot.
+   //
+   if (expand_LF)   cout << "\r";
+   cout.write(aplout.c_str(), aplout.size());
+   cout << '\n';
+
+   if (!InputFile::is_validating())
       {
-        aplout += c;
+        aplout.clear();
         PERFORMANCE_END(fs_COUT_B, cout_perf, 1)
         return 0;
       }

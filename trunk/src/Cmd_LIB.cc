@@ -47,8 +47,15 @@ const bool query = args.size() &&
    if (args.size() == 2)   // cases 1a. or 1b.: set or query single libdir
       {
         const UCS_string & libref_ucs = args.front();
+        if (libref_ucs.size() != 1)
+           {
+             CERR << "Invalid library reference '" << libref_ucs << "'"
+                     ". Valid library references are the digits 0..9." << endl;
+             return;
+           }
+
         const LibRef libref = LibRef(libref_ucs.front() - '0');
-        if (libref_ucs.size() != 1 || libref < 0 || libref > 9)
+        if (libref < 0 || libref > 9)
            {
              CERR << "Invalid library reference '" << libref_ucs << "'"
                      ". Valid library references are the digits 0..9." << endl;

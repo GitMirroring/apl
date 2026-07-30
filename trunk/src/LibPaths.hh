@@ -138,7 +138,14 @@ public:
    /// return source that configured \b this entry
    /// @param lib library reference to query
    static LibDir::CfgSrc get_cfg_src(LibRef lib)
-      { return lib_dirs[lib].cfg_src; }
+      {
+        // LIB_NONE (-1) means "no libref given", which is the same as
+        // LIB0 (see LibRef_name's class comment); normalize it here
+        // rather than indexing lib_dirs[-1] (Blake McBride, Bugs6 #3).
+        if (lib == LIB_NONE)   lib = LIB0;
+        Assert(lib >= LIB0 && lib < LIB_MAX);
+        return lib_dirs[lib].cfg_src;
+      }
 
    /// return the full path for lib/file \b lib_name, possibly adding
    /// the .ext1 or the .ext2 extension (if not provided)

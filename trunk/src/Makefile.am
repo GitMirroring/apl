@@ -320,29 +320,42 @@ apl.lines2:	../tools/filter_apl_lines2 apl
 	objdump --line-numbers --dwarf=decodedline ./apl \
 	| ../tools/filter_apl_lines2 | sort | uniq > $@
 
+# All test* targets below run with HOME pointed at a fresh, empty scratch
+# directory (removed afterwards) rather than the developer's real $HOME:
+# a $HOME/.gnu-apl/preferences with e.g. DISCARD-INDENTATION or LIBREF-0
+# set changes ⎕FX/⎕CR/∇ and )COPY behaviour, which invalidates the
+# expected output baked into several testcases and makes results
+# non-reproducible across developer machines (Blake McBride, Bugs6 #8).
+
 # run all testcases, continue after errors
 test: all
-	./apl --id 1010 -T testcases/*tc
+	H=$$(mktemp -d); HOME=$$H ./apl --id 1010 -T testcases/*tc; \
+	RC=$$?; rm -rf "$$H"; exit $$RC
 
 # run all testcases, stop after the first error
 test1: all
-	./apl --id 1010 --TM 3 -T testcases/*\.tc
+	H=$$(mktemp -d); HOME=$$H ./apl --id 1010 --TM 3 -T testcases/*\.tc; \
+	RC=$$?; rm -rf "$$H"; exit $$RC
 
 test2: all
-	./apl --id 1010 --TR -T testcases/*tc
+	H=$$(mktemp -d); HOME=$$H ./apl --id 1010 --TR -T testcases/*tc; \
+	RC=$$?; rm -rf "$$H"; exit $$RC
 
 # run testcases related to APs
 testAP: all
-	./apl --id 1010 -T testcases/AP*tc
+	H=$$(mktemp -d); HOME=$$H ./apl --id 1010 -T testcases/AP*tc; \
+	RC=$$?; rm -rf "$$H"; exit $$RC
 
 # run the ⎕GTK TLV round-trip regression test (requires X display and GTK support)
 testGTK: all
-	./apl --id 1010 -T testcases/ZZ02_GTK.tc
+	H=$$(mktemp -d); HOME=$$H ./apl --id 1010 -T testcases/ZZ02_GTK.tc; \
+	RC=$$?; rm -rf "$$H"; exit $$RC
 
 # run all testcases, except slow ones
 test3: all
-	./apl --id 1010 -T testcases_3/*tc; \
-	RC=$$?; stty sane; \
+	H=$$(mktemp -d); \
+	HOME=$$H ./apl --id 1010 -T testcases_3/*tc; \
+	RC=$$?; rm -rf "$$H"; stty sane; \
 	if [ $$RC -ne 0 ]; then \
 	  D=/tmp/apl-test3-$$(date +%Y%m%d_%H%M%S); \
 	  mkdir "$$D"; \
@@ -354,7 +367,8 @@ test3: all
 
 # run only invariant testcases
 test4: all
-	./apl --id 1010 -T testcases/invariants/*tc || true
+	H=$$(mktemp -d); HOME=$$H ./apl --id 1010 -T testcases/invariants/*tc || true; \
+	rm -rf "$$H"
 	stty sane
 
 # Create/refresh testcases_3/ and testcases_4/ symlink directories from ⍝@ markers.

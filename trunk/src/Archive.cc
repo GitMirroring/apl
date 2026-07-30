@@ -1419,7 +1419,6 @@ again:
               if (p[0] == '-' && p[1] == '-' && p[2] == '>')
                  { comment_end = p;   break; }
             }
-        Assert(comment_end);
         if (!comment_end)   return true;   // EOF: no closing "-->"
         comment_end += 3;
         while (data < comment_end)
@@ -1747,7 +1746,14 @@ const int att_len = strlen(att_name);
          // attribute= found. find value.
          while (dd < file_end && *dd <= ' ')   ++dd;   // skip whitespaces
          if (dd >= file_end)   break;
-         Assert(*dd == '"');
+         if (*dd != '"')
+            {
+              const int offset = d - line_start;
+              MORE_ERROR() << "Attribute '" << att_name
+                   << "' is not properly quoted in line " << line_no << ":"
+                   << offset << " of file " << filename;
+              DOMAIN_ERROR;
+            }
          return dd + 1;
        }
 
@@ -2275,9 +2281,22 @@ XML_Loading_Archive::read_Function()
 {
 const Fid fid = find_Fid_attr("fid", false, 16);
 const TokenTag primitive_tag = TokenTag(find_int_attr("tag", true, 16));
-   Assert(primitive_tag != TOK_NONE);
-   cFunction_P pfun = ID::get_system_function(primitive_tag);
-   Assert(pfun);
+   if (primitive_tag == TOK_NONE)
+      {
+        MORE_ERROR() << "Function fid=\"" << int(fid) << "\" has an "
+             "invalid or missing 'tag' attribute in line " << line_no
+             << " of file " << filename;
+        DOMAIN_ERROR;
+      }
+
+cFunction_P pfun = ID::get_system_function(primitive_tag);
+   if (pfun == 0)
+      {
+        MORE_ERROR() << "Function fid=\"" << int(fid) << "\", tag="
+             << int(primitive_tag) << " is not a known system function "
+             "(line " << line_no << " of file " << filename << ")";
+        DOMAIN_ERROR;
+      }
    add_fid_function(fid, pfun, LOC);
 }
 //────────────────────────────────────────────────────────────────────────────

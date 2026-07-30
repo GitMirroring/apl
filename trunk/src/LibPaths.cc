@@ -150,6 +150,16 @@ UTF8_string filename = get_lib_dir(lib_name.get_libref());
 UTF8_string
 LibPaths::get_lib_dir(LibRef libref)
 {
+   // LIB_NONE (-1) means "no libref given", which is the same as LIB0
+   // (see LibRef_name's class comment); normalize it here rather than
+   // indexing lib_dirs[-1] (Blake McBride, Bugs6 #3). This is also what
+   // makes plain `apl` startup with no CONTINUE workspace correctly
+   // probe $APL_lib_root/workspaces/SETUP.* instead of the filesystem
+   // root: main.cc constructs the SETUP LibRef_name with
+   // allow_LIB_NONE == true, so libref arrives here as LIB_NONE.
+   if (libref == LIB_NONE)   libref = LIB0;
+   Assert(libref >= LIB0 && libref < LIB_MAX);
+
    switch(lib_dirs[libref].cfg_src)
       {
         case LibDir::CSRC_NONE:      return UTF8_string();

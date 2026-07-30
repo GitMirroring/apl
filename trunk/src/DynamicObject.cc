@@ -58,17 +58,37 @@ DynamicObject::print(ostream & out) const
 void
 DynamicObject::print_chain(ostream & out) const
 {
+   // print one line per ring entry, then stop. A corrupted ring can
+   // contain a self-loop that is not `this` (Blake McBride, Bugs6 #2,
+   // confirmed: "Chain[ 1] 0x... --> 0x... --> 0x..." with all three
+   // addresses identical and not this's own) or, in principle, a longer
+   // cycle that never returns to `this` at all; guard against both, or
+   // a corrupted ring makes this print forever (it is called from
+   // Value::erase_stale() right after that function has itself detected
+   // such a loop, so it must not be the thing that then hangs).
+   enum { MAX_CHAIN_PRINT = 100000 };
 int pos = 0;
    for (const DynamicObject * p = this; ;)
        {
-         out << "    Chain[" << setw(2) << pos++ << "]  " 
+         out << "    Chain[" << setw(2) << pos << "]  "
              << voidP(p->prev) << " --> "
              << voidP(p)       << " --> "
              << voidP(p->next) << "    "
              << p->where_allocated() << endl;
 
-          p = p->next;
-          if (p == this)   break;
+         const DynamicObject * next = p->next;
+         if (next == p)   break;   // p loops to itself: done (this also
+                                    // covers the ordinary, non-corrupted
+                                    // case where `this` is the only member)
+         p = next;
+         if (p == this)   break;   // back to the start: done
+
+         if (++pos >= MAX_CHAIN_PRINT)
+            {
+              out << "    (" << int(MAX_CHAIN_PRINT) << " entries printed "
+                     "without returning to the start -- stopping)" << endl;
+              break;
+            }
        }
 }
 //────────────────────────────────────────────────────────────────────────────

@@ -71,6 +71,21 @@ public:
      prev(this)
    {}
 
+   /// destructor: unlink this DynamicObject from its list. Not just
+   /// belt-and-braces: if a derived class's (Value's, IndexExpr's)
+   /// constructor body throws *after* this base sub-object was already
+   /// linked in by one of the constructors above, C++ still destroys
+   /// the already-constructed base sub-object during unwinding -- so
+   /// this destructor is what unlinks it. Without it, a Value whose
+   /// ravel allocation threw WS_FULL/bad_alloc stayed linked into
+   /// all_values after being freed, corrupting the ring (reported by
+   /// Blake McBride, Bugs6 #1). unlink() is idempotent (it self-links
+   /// after unlinking), so this is harmless for objects that already
+   /// unlinked themselves (Value::~Value() does) or that were never
+   /// linked to begin with (IndexExpr's anchor-only constructor).
+   ~DynamicObject()
+      { unlink(); }
+
    /// return the next DynamicObject in its list
    const DynamicObject * get_next()  const { return next; }
 

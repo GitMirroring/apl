@@ -186,6 +186,45 @@ const ShapeItem ec = value.element_count();
         return;
       }
 
+   if (value.is_char_vector())
+      {
+        // fast path: a simple (non-nested) character vector's per-cell
+        // representation (CharCell::character_representation() for the
+        // default, non-quoted style handled above) is always exactly
+        // the one character itself -- no scaling, no column alignment
+        // is ever needed. The general path below builds one heap-
+        // allocated PrintBuffer/UCS_string *per character* via an
+        // ec-element item_matrix; for a long line that cost ~100x the
+        // payload size in peak RSS and was clearly superlinear in time
+        // (Blake McBride, Bugs6 #6). Assemble the single row directly
+        // instead, matching the same shortcut already taken above for
+        // PST_QUOTE_CHARS and in pb_for_function().
+        //
+        UCS_string ucs;
+        ucs.reserve(ec);
+        const bool pretty = pctx.get_style() & PST_PRETTY;
+        loop(e, ec)
+           {
+             Unicode uni = value.get_char_value(e);
+             if (pretty && uni < UNI_SPACE)   uni = Unicode(uni + 0x2400);
+             ucs << uni;
+           }
+        append_ucs(ucs);
+        add_outer_frame(outer_style);
+
+        if (ec > 10000 && out)
+           print_interruptible(*out, value.get_rank(), pctx.get_PW());
+        else if (out)
+           {
+             UCS_string out_ucs(*this, value.get_rank(), pctx.get_PW());
+             if (out_ucs.size())   *out << out_ucs << endl;
+           }
+
+        update_info();
+        complete = true;
+        return;
+      }
+
    // non-trivial PrintBuffer
    //
 const ShapeItem cols = value.get_last_shape_item();
