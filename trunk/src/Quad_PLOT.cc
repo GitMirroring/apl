@@ -128,7 +128,9 @@ sem_t * Quad_PLOT::expose_sema = &__expose_sema;
 
 int Quad_PLOT::verbosity = 0;
 
-#if apl_GTK3
+#if MINGW_SRC
+const Quad_PLOT::Plot_driver default_plot_driver = Quad_PLOT::PltDrv_WIN32;
+#elif apl_GTK3
 const Quad_PLOT::Plot_driver default_plot_driver = Quad_PLOT::PltDrv_GTK;
 #elif apl_XCB
 const Quad_PLOT::Plot_driver default_plot_driver = Quad_PLOT::PltDrv_XCB;
@@ -198,6 +200,7 @@ const string driver_attr = w_props->get_gui_driver();
    else if (driver_attr == "GTK")     driver = PltDrv_GTK;
    else if (driver_attr == "XCB")     driver = PltDrv_XCB;
    else if (driver_attr == "ASCII")   driver = PltDrv_ASCII;
+   else if (driver_attr == "WIN32")   driver = PltDrv_WIN32;
    else
            {
              MORE_ERROR() << "A ⎕PLOT B: invalid gui_driver '"
@@ -246,7 +249,26 @@ const string driver_attr = w_props->get_gui_driver();
 #endif   // (not) apl_XCB
       }
 
-   // neither GTK nor XCB. Use ASCII fallback
+   if (driver == PltDrv_WIN32)
+      {
+#if MINGW_SRC
+        // plot_main_WIN32() pushes a new WIN32_context into variable
+        // Quad_PLOT::all_PLOT_windows and posts expose_sema after
+        // its plot window was exposed.
+        //
+        plot_main_WIN32(w_props, handle);
+        sem_wait(expose_sema);   // blocks until window shown
+        sem_post(expose_sema);   // for the next window (if any)
+        Log(LOG_Quad_PLOT)   CERR << "Plot driver WIN32 loaded." << endl;
+        return;
+#else   // not MINGW_SRC
+   MORE_ERROR() << "A ⎕PLOT B: gui_driver=WIN32 requested, but this "
+                   "build was not compiled for a Windows/MinGW target.";
+   DOMAIN_ERROR;
+#endif   // (not) MINGW_SRC
+      }
+
+   // neither GTK, XCB, nor WIN32. Use ASCII fallback
    Assert(driver == PltDrv_ASCII);
    Log(LOG_Quad_PLOT)
       CERR << "gui_driver: " << driver_attr.c_str() 
@@ -304,6 +326,14 @@ Plot_window_properties * w_props = new Plot_window_properties(data, verbosity);
         MORE_ERROR() << "A ⎕PLOT B: gui_driver=XCB, but XCB was "
                         "not (completely) installed.\nMissing:"
                         MISSING_X11 MISSING_XCB;
+        DOMAIN_ERROR;
+#endif
+      }
+   else if (w_props->get_gui_driver() == "WIN32")    // WIN32 requested
+      {
+#if not MINGW_SRC
+        MORE_ERROR() << "A ⎕PLOT B: gui_driver=WIN32, but this build "
+                        "was not compiled for a Windows/MinGW target.";
         DOMAIN_ERROR;
 #endif
       }

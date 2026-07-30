@@ -19,7 +19,7 @@ dist_noinst_DATA =                              \
         AP100.tc                                \
         AP210.tc                                \
         APnnn.tc                                \
-        APnnn_1011.sh                            \
+        APnnn_1011.sh                           \
         APnnn_1011.tc2                          \
         Binding.tc                              \
         Branch.tc                               \

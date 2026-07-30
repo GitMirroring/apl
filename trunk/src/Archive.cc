@@ -1036,7 +1036,13 @@ tm t;
      // own stack immediately instead of holding onto that pointer.
      timeval now;   gettimeofday(&now, 0);
      time_t seconds = now.tv_sec;
+#if MINGW_SRC
+     // Windows CRT has no gmtime_r(); its closest equivalent, gmtime_s(),
+     // takes the same two pointers in the opposite order.
+     gmtime_s(&t, &seconds);
+#else
      gmtime_r(&seconds, &t);
+#endif
    }
 
 const int offset = Workspace::get_v_Quad_TZ().get_offset();   // timezone offset
@@ -2056,7 +2062,7 @@ UTF8 * end = 0;
                   {
                     MORE_ERROR() << "corrupt workspace: pointer vid="
                                  << vid << " out of range (0.."
-                                 << (values.size() - 1) << ")";
+                                 << (int(values.size()) - 1) << ")";
                     DOMAIN_ERROR;
                   }
                Z.next_ravel_Value(values[vid].get());
@@ -2086,7 +2092,7 @@ UTF8 * end = 0;
                      {
                        MORE_ERROR() << "corrupt workspace: cellref vid="
                                     << vid << " out of range (0.."
-                                    << (values.size() - 1) << ")";
+                                    << (int(values.size()) - 1) << ")";
                        DOMAIN_ERROR;
                      }
                   if (*end != '[')
@@ -2545,7 +2551,7 @@ const UTF8 * cells_utf = find_optional_attr("cells");
    if (vid < 0 || vid >= int(values.size()))
       {
         MORE_ERROR() << "corrupt workspace: Ravel vid=" << vid
-                     << " out of range (0.." << (values.size() - 1) << ")";
+                     << " out of range (0.." << (int(values.size()) - 1) << ")";
         DOMAIN_ERROR;
       }
 Value_P Z = values[vid];

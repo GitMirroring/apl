@@ -37,6 +37,12 @@ else
    EXTRA_apl_SOURCES += Plot_xcb.cc
 endif
 
+if apl_TARGET_MINGW
+   plot_SOURCES      += Plot_win32.cc
+else
+   EXTRA_apl_SOURCES += Plot_win32.cc
+endif
+
 dist_noinst_DATA = valgrind.supp rval.def
 DIST_SUBDIRS = $(SUBDIRS) testcases
 

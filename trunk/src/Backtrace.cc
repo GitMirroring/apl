@@ -627,7 +627,7 @@ int idx_len = 1;
    for (size_t r = 0; r < count; ++r)
        {
          ctx.out && *ctx.out << "        [" << right << setw(idx_len) << r
-                    << left << "] ";
+                    << "] ";
          unsigned elen = 0, eout = 0;
          Dwarf_Unsigned raw1 = 0, raw2 = 0, cooked1 = 0, cooked2 = 0;
          Dwarf_Bool unavaliable = false;
@@ -1276,7 +1276,7 @@ const int64_t dwarf_PC = PC - adjust;
         << "\n    - ∆:                 " << HEX16s(adjust)
         << "\n    ─────────────────────────────────────"
         << "\n    = PC in dwarf:       " << HEX16s(dwarf_PC)
-        << left << endl << endl;
+        << endl << endl;
 
 
 

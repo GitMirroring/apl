@@ -97,6 +97,14 @@ and then:
 #  define SOCKET(x) x
 #endif // ! MINGW_SRC
 
+#ifndef MSG_NOSIGNAL
+   // Windows sockets never raise SIGPIPE in the first place (a failed
+   // send() just reports an error), so the flag has nothing to do there;
+   // define it as a harmless no-op bit for platforms (Windows included)
+   // that don't have it.
+#  define MSG_NOSIGNAL 0
+#endif // MSG_NOSIGNAL
+
 #include <iostream>
 #include <iomanip>
 

@@ -148,11 +148,21 @@ public:
    /// @param vp_props pointer to the Plot_window_properties for this window
    static void * plot_main_XCB(void * vp_props);
 
+   /// the native Windows (GDI+) window that handles one plot window.
+   /// Always declared here (to make doxygen happy), but only implemented
+   /// if MINGW_SRC. Spawns one worker pthread per plot window (mirroring
+   /// plot_main_GTK's calling convention) that creates the HWND, draws
+   /// into it, and runs its own message loop.
+   /// @param vp_props pointer to the Plot_window_properties for this window
+   /// @param handle window handle assigned to this plot window
+   static void plot_main_WIN32(void * vp_props, Handle handle);
+
    enum Plot_driver
       {
         PltDrv_GTK   = 1,
         PltDrv_XCB   = 2,
         PltDrv_ASCII = 3,
+        PltDrv_WIN32 = 4,
 
       };
 

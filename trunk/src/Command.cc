@@ -127,7 +127,14 @@ rlimit rl;
 bool
 Command::do_APL_command(ostream & out, UCS_string & line)
 {
-   out << left << dec << nouppercase << setfill(' ');
+   // reset the stream to its normal (right-justified) formatting state
+   // before processing this command -- a stray "left" here (instead of
+   // "right") would leave the stream left-justified for the rest of the
+   // session, silently corrupting the next unrelated setfill('0') <<
+   // setw(N) elsewhere (confirmed: this caused the workspace-load
+   // "SAVED ..." timestamp to print e.g. "70" instead of "07").
+   //
+   out << right << dec << nouppercase << setfill(' ');
 
    if (line.contains(UNI_COMMENT))   // unlikely, but valid
       {
@@ -189,7 +196,8 @@ Command::do_APL_expression(const UCS_string & line, Value_P literal)
 {
    ++APL_expression_count;
 
-   COUT << left << dec << nouppercase << setfill(' ');
+   // see the identical comment in do_APL_command() above
+   COUT << right << dec << nouppercase << setfill(' ');
    Workspace::more_error().clear();
 
 Executable * statements = 0;

@@ -242,6 +242,8 @@ bool left_col = true;
    left_col = !left_col;
 #include "SystemVariable.def"
    if (!left_col)   out << endl;   // last function was in left column: close line
+
+   out << right;   // undo the left set above; out is a caller-owned stream
 }
 //────────────────────────────────────────────────────────────────────────────
 void

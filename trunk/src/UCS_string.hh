@@ -24,6 +24,7 @@
 #ifndef __UCS_STRING_HH_DEFINED__
 #define __UCS_STRING_HH_DEFINED__
 
+#include <climits>
 #include <stdint.h>
 #include <stdio.h>
 #include <string>
@@ -294,6 +295,29 @@ public:
    /// append number \b num
    UCS_string & operator <<(ShapeItem num)
       { append_int(num);   return *this; }
+
+   /// append integer \b num. On LP64 (Linux) this is a distinct type from
+   /// (and therefore does not conflict with) operator <<(unsigned long)
+   /// above; on Windows' LLP64 data model, size_t/std::vector::size_type
+   /// *is* unsigned long long (not unsigned long, which is only 32 bits
+   /// there), so without this overload every "<< some_container.size()"
+   /// is ambiguous between the four overloads above.
+   UCS_string & operator <<(unsigned long long num)
+      { append_int(num);   return *this; }
+
+#if LONG_MAX == 0x7FFFFFFFL
+   /// append integer \b num. Only needed where `long` is 32 bits -- a
+   /// type distinct from both `int` and ShapeItem/int64_t, so e.g.
+   /// streaming a `struct stat`'s 32-bit `long` st_size is otherwise
+   /// ambiguous there. This is the case both on Windows' LLP64 data
+   /// model and on 32-bit (ILP32) Linux/Unix. On a 64-bit LP64 Unix,
+   /// `long` and ShapeItem are the *same* type, so this overload would
+   /// conflict with (be a duplicate of) operator <<(ShapeItem) above --
+   /// hence the width check (not a MINGW_SRC/platform-name check, which
+   /// would incorrectly exclude 32-bit Linux).
+   UCS_string & operator <<(long num)
+      { append_int(num);   return *this; }
+#endif
 
    /// append character \b uni
    UCS_string & operator <<(Unicode uni)

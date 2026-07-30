@@ -135,7 +135,7 @@ UCS_string_vector args = Command::split_arg(arg);
 
               const bool val = Log_status(l);
               CERR << "    " << setw(2) << right << l << ": "
-                   << (val ? "(ON)  " : "(OFF) ") << left << info << endl;
+                   << (val ? "(ON)  " : "(OFF) ") << info << endl;
             }
 
         return;
