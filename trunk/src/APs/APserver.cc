@@ -1256,10 +1256,22 @@ const int listen_sock = got_path ? open_UNIX_socket(listen_name)
 
         size_t janitor = 0;
         int max_fd = listen_sock;
+#if ! MINGW_SRC
         char dummy;
 
+        // read() cannot be used to probe a Winsock SOCKET on Windows --
+        // it is not a CRT file descriptor, only recv()/send()/ioctlsocket()
+        // are valid on it -- so this always (falsely) reported the listen
+        // socket, and then any freshly accepted connection, as dead on
+        // every pass, immediately closing real connections again via
+        // close_fd() below. A dead listen socket has no corrective action
+        // here anyway (just the message); on Windows a dead per-connection
+        // socket is still caught by the normal recv() return value once
+        // real data-handling code runs on it later in the loop, the same
+        // way most Windows socket servers detect a disconnect.
         if (0 != read(listen_sock, &dummy, 0))
            cerr << prog << ": listen socket has died unexpectedly" << endl;
+#endif // ! MINGW_SRC
 
         FD_SET(listen_sock, &read_fds);
         for (size_t j = 0; j < connected_procs.size(); ++j)
@@ -1268,6 +1280,11 @@ const int listen_sock = got_path ? open_UNIX_socket(listen_name)
               const TCP_socket fd = connected_procs[j].fd;
               if (fd != NO_TCP_SOCKET)
                  {
+#if ! MINGW_SRC
+                   // see the read()-on-Winsock comment at the listen_sock
+                   // check above; the same false-positive here used to
+                   // close_fd() every real connection immediately after
+                   // it was accepted.
                    if (0 != read(fd, &dummy, 0))
                       {
                         cerr << prog << ": socket fd[" << j
@@ -1286,6 +1303,7 @@ const int listen_sock = got_path ? open_UNIX_socket(listen_name)
                         continue;
                       }
                    else
+#endif // ! MINGW_SRC
                       {
                         if (max_fd < fd)   max_fd = fd;
                         FD_SET(fd, &read_fds);
@@ -1297,6 +1315,9 @@ const int listen_sock = got_path ? open_UNIX_socket(listen_name)
                 const TCP_socket fd2 = connected_procs[j].fd2;
                 if (fd2 != NO_TCP_SOCKET)
                    {
+#if ! MINGW_SRC
+                     // see the read()-on-Winsock comment at the
+                     // listen_sock check above.
                      if (0 != read(fd2, &dummy, 0))
                         {
                           cerr << prog << ": socket fd2[" << j
@@ -1307,6 +1328,7 @@ const int listen_sock = got_path ? open_UNIX_socket(listen_name)
                           continue;
                         }
                      else
+#endif // ! MINGW_SRC
                         {
                           if (max_fd < fd2)   max_fd = fd2;
                           FD_SET(fd2, &read_fds);

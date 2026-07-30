@@ -723,6 +723,17 @@ char line[strlen(lines) + 10];
 /// draw single-line string \b text at position xy (in black, matching
 /// Plot_gtk.cc's draw_text() which never sets a color either -- text is
 /// always black in this ⎕PLOT implementation)
+///
+/// xy is the *baseline*-left origin, matching Plot_gtk.cc's draw_text()
+/// (cairo_move_to() + cairo_text_path() anchor at the baseline) -- so
+/// that callers ported from Plot_gtk.cc's Y offsets (tuned for that
+/// baseline convention) don't all need re-tuning here. GDI+'s
+/// Graphics::DrawString(..., PointF, ...) instead anchors at the
+/// top-left of the text's full bounding box, which without a
+/// correction sits noticeably too low (by roughly the font's ascent)
+/// wherever a caller passed a baseline-style Y -- e.g. the plot legend,
+/// where the "Line-1" label sat about a line lower than the "--o--"
+/// marker to its left, which is drawn independently of text metrics.
 static void
 draw_text(Gdiplus::Graphics * cr, const char * text, const Pixel_XY & xy)
 {
@@ -730,8 +741,13 @@ Gdiplus::Font font(plot_font_family, Gdiplus::REAL(FONT_SIZE));
 Gdiplus::SolidBrush brush(Gdiplus::Color(0xFF, 0, 0, 0));
 const std::wstring wtext = utf8_to_wide(text);
 
+const Gdiplus::REAL ascent = FONT_SIZE
+      * plot_font_family->GetCellAscent(Gdiplus::FontStyleRegular)
+      / Gdiplus::REAL(plot_font_family->GetEmHeight(Gdiplus::FontStyleRegular));
+
    cr->DrawString(wtext.c_str(), wtext.size(), &font,
-                  Gdiplus::PointF(Gdiplus::REAL(xy.x), Gdiplus::REAL(xy.y)),
+                  Gdiplus::PointF(Gdiplus::REAL(xy.x),
+                                  Gdiplus::REAL(xy.y) - ascent),
                   &brush);
 }
 //════════════════════════════════════════════════════════════════════════════
