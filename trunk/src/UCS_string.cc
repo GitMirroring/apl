@@ -701,7 +701,7 @@ UCS_string::dump(ostream & out) const
         out << " U+" << setw(4) << int(at(s));
       }
 
-   return out << right << dec << nouppercase << setfill(' ');
+   return out << reset_format;
 }
 //────────────────────────────────────────────────────────────────────────────
 bool 

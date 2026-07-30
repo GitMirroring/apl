@@ -127,14 +127,16 @@ rlimit rl;
 bool
 Command::do_APL_command(ostream & out, UCS_string & line)
 {
-   // reset the stream to its normal (right-justified) formatting state
-   // before processing this command -- a stray "left" here (instead of
-   // "right") would leave the stream left-justified for the rest of the
-   // session, silently corrupting the next unrelated setfill('0') <<
-   // setw(N) elsewhere (confirmed: this caused the workspace-load
-   // "SAVED ..." timestamp to print e.g. "70" instead of "07").
+   // reset the stream to its normal formatting state before processing
+   // this command -- a stray manual "left" here (instead of "right") once
+   // left the stream left-justified for the rest of the session, silently
+   // corrupting the next unrelated setfill('0') << setw(N) elsewhere
+   // (confirmed: this caused the workspace-load "SAVED ..." timestamp to
+   // print e.g. "70" instead of "07"). reset_format() copies from a single
+   // shared default_format_state instead, so there is nothing left to get
+   // wrong here.
    //
-   out << right << dec << nouppercase << setfill(' ');
+   out << reset_format;
 
    if (line.contains(UNI_COMMENT))   // unlikely, but valid
       {
@@ -196,8 +198,8 @@ Command::do_APL_expression(const UCS_string & line, Value_P literal)
 {
    ++APL_expression_count;
 
-   // see the identical comment in do_APL_command() above
-   COUT << right << dec << nouppercase << setfill(' ');
+   // see the comment in do_APL_command() above
+   COUT << reset_format;
    Workspace::more_error().clear();
 
 Executable * statements = 0;

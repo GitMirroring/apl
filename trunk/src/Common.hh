@@ -120,6 +120,25 @@ extern void init_modules2(bool log_startup);
 /// @param soft  true for a soft (non-fatal) cleanup, false for hard exit
 extern void cleanup(bool soft);
 
+/// the default ostream format state (flags, precision, fill, ...) that
+/// every ostream in GNU APL (COUT, CERR, or a caller-owned ostream & out)
+/// shall be reset to via reset_format(); shared by all of them so there is
+/// exactly one definition of "default" and no per-stream drift. A function-
+/// local static (rather than an extern global defined in Common.cc) so
+/// that reset_format() stays header-only: some binaries (e.g. the AP1xx
+/// auxiliary processors) link a stand-alone Backtrace.o without linking
+/// Common.o, which would otherwise leave default_format_state undefined.
+inline const ios &
+default_format_state()
+   { static const ios state(0);   return state; }
+
+/// reset \b out (typically COUT, CERR, or a caller-owned ostream) to
+/// default_format_state(), i.e. undo any setfill()/left/hex/... left
+/// behind by earlier output. Use as: out << reset_format;
+inline ostream &
+reset_format(ostream & out)
+   { out.copyfmt(default_format_state());   return out; }
+
 //════════════════════════════════════════════════════════════════════════════
 class InterruptContext
 {
@@ -608,21 +627,25 @@ voidP(const void * addr)
 #define uhex  std::hex << uppercase << setfill('0')
 #define uhexs  std::hex << uppercase
 #define lhex  std::hex << nouppercase << setfill('0')
-#define nohex std::dec << nouppercase << setfill(' ')
 
-/// formatting for hex (and similar) values
-#define HEX(x)     "0x" << uhex <<             int64_t(x) << nohex
+/// formatting for hex (and similar) values. Each ends with reset_format
+/// (not a hand-written "undo", see reset_format() in Common.hh above) so
+/// the stream is fully back to normal afterwards -- earlier versions
+/// ended with "<< std::left << nohex", which reset dec/case/fill but
+/// left the stream *left*-justified, i.e. the same class of bug as the
+/// Command.cc/UCS_string.cc left/right leaks found elsewhere.
+#define HEX(x)     "0x" << uhex <<             int64_t(x) << reset_format
 #define HEX2(x)    "0x" << uhex << std::right << \
-                           setw(2) << int(x) << std::left << nohex
+                           setw(2) << int(x) << reset_format
 #define HEX4(x)    "0x" << uhex << std::right << \
-                           setw(4) << int(x) << std::left << nohex
+                           setw(4) << int(x) << reset_format
 #define HEX8(x)    "0x" << uhex << std::right << \
-                           setw(8) << int32_t(x) << std::left << nohex
+                           setw(8) << int32_t(x) << reset_format
 #define HEX16(x)   "0x" << uhex << std::right << \
-                           setw(16) << int64_t(x) << std::left << nohex
+                           setw(16) << int64_t(x) << reset_format
 #define HEX16s(x)          uhexs << std::right << \
-                           setw(16) << int64_t(x) << std::left << nohex
-#define UNI(x)     "U+" << uhex <<      setw(4) << int(x) << nohex
+                           setw(16) << int64_t(x) << reset_format
+#define UNI(x)     "U+" << uhex <<      setw(4) << int(x) << reset_format
 
 /// set the last byte in buffer to 0 (so that string functions won't fail
 /// even if the  buffer was not 0-terminated for some reason.

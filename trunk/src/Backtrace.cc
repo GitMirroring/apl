@@ -411,7 +411,7 @@ main():
                          cerr << endl
                               << "in file apl.lines:" << file_lines << endl
                               << lhex << "prev_pc was: " << prev_pc << endl
-                              << "pc is:       " << pc << nohex     << endl
+                              << "pc is:       " << pc << reset_format << endl
                               << "line is:     '" << s << "'"       << endl
                               << endl;
                          assert(0 && "file apl.lines is not ordered by PC");
@@ -1266,8 +1266,7 @@ const int64_t dwarf_PC = PC - adjust;
    cerr << "\n\nNow searching for PC = " << HEX(PC)
         << " (dwarf PC = " << HEX(dwarf_PC) << ")...";
 
-   cerr << right
-        << "\n      main() in program: " << HEX16s(main_in_program)
+   cerr << "\n      main() in program: " << HEX16s(main_in_program)
         << "\n    - main() in dwarf:   " << HEX16s(main_in_dwarf)
         << "\n    ─────────────────────────────────────"
         << "\n    = ∆                  " << HEX16s(adjust)
@@ -1447,7 +1446,7 @@ char obuf[200] = "@@@@";
    // we normally prefer uppercase hex, but 'objcopy' and friends produce
    // lowercase hex and we follow suit as to simplify searching in their files.
    //
-   cerr << "0x" << lhex << abs_addr << nohex;
+   cerr << "0x" << lhex << abs_addr << reset_format;
 
 // cerr << left << setw(20) << s << right << " ";
 

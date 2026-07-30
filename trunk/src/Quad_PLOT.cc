@@ -552,7 +552,7 @@ Quad_PLOT::help()
         << Plot_data::ty ## _to_str(val) << " (" << descr << ")" << endl;
 # include "Quad_PLOT.def"
 
-   CERR << right;
+   CERR << reset_format;
 }
 //────────────────────────────────────────────────────────────────────────────
 // the ⎕PLOT workhorse

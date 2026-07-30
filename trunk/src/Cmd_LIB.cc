@@ -132,7 +132,7 @@ const bool query = args.size() &&
 "       └── PWD:   the path is relative to current directory $PWD (last resort)"
        << endl;
 
-   out << right;   // restore the default
+   out << reset_format;   // restore the default
 }
 //────────────────────────────────────────────────────────────────────────────
 DIR *
