@@ -29,25 +29,44 @@
 
 //════════════════════════════════════════════════════════════════════════════
 IndexExpr::IndexExpr(Assign_state astate, const char * loc)
-   // M28 (Blake's report, Bugs6 #5): a previous attempt to switch this to
+   // M28 (Blake's report, Bugs6 #5): switching this to
    // DynamicObject(loc, &all_index_exprs) -- so erase_stale()/)CHECK's
    // "no stale indices" diagnostic would actually do something, instead
-   // of being a permanent no-op -- was reverted after it caused a real
-   // SIGSEGV in ~IndexExpr() during Prefix::clean_up() at )CLEAR
-   // (Quad_SYL.tc). At the time, DynamicObject had no destructor at all,
+   // of being a permanent no-op -- was tried TWICE and reverted TWICE,
+   // both times after a real SIGSEGV in ~IndexExpr() during
+   // Prefix::clean_up() at )CLEAR (Quad_SYL.tc).
+   //
+   // First revert: at the time, DynamicObject had no destructor at all,
    // so any IndexExpr deleted through a path other than
    // IndexExpr::erase_stale()'s own ring walk (e.g. Prefix::clean_up()'s
    // "delete &tok.get_index_val();", or any of the individual delete
    // call sites in Parser.cc) left a dangling entry in all_index_exprs
    // -- exactly the Value/all_values bug fixed as Bugs6 #1, just for
-   // IndexExpr. Now that DynamicObject has ~DynamicObject(){ unlink(); }
-   // (added for #1), every deletion path -- wherever it happens --
-   // keeps the ring consistent, so this is safe to re-enable; see
-   // testcases/Bracket_Index.tc's regression test (mirrors Quad_SYL.tc's
-   // repeated ⎕SYL[1;2]-through-)SI-limit-errors pattern that triggered
-   // the original crash) and the erase_stale()/)CHECK's "IndexExpr"
-   // counts for verification that this now actually tracks.
-   : DynamicObject(loc, &all_index_exprs),
+   // IndexExpr.
+   //
+   // Second attempt (2026-07-30, SVN 2053): added
+   // ~DynamicObject(){ unlink(); } for #1, reasoned that this made the
+   // ring-membership change safe by the same logic, verified extensively
+   // (exact Quad_SYL.tc repro, repeated-error+)SIC stress tests, a
+   // suspended-state )SAVE/)LOAD round trip, the full regression suite
+   // multiple times) -- all passed locally. Shipped, then a real user
+   // (Bill Heagy) hit a SEGSEGV in the exact same place running the full
+   // testcase suite (`apl -T testcases/*.tc`), which exercises far more
+   // cross-file / cross-testcase workspace state than any of the above
+   // targeted tests did. Could not reproduce locally afterwards (targeted
+   // 2-file repro of the alphabetically-preceding testcase +
+   // Quad_SYL.tc, and a full 269-file suite run under AddressSanitizer,
+   // both completed cleanly) or pin down the exact mechanism through
+   // further static analysis of Prefix.cc's IndexExpr-handling reduce_*()
+   // functions and Prefix::reset()/clean_up(). Reverted again out of
+   // caution rather than ship continued uncertainty on a real crash.
+   //
+   // Left as the original, safe, always-no-op anchor-only form. Do not
+   // re-attempt without first getting a locally-reproducible crash (Bill
+   // Heagy's exact SVN revision/environment/full testcase-order may
+   // matter) -- verifying against a hand-picked subset of testcases is
+   // not sufficient, as this history now shows twice over.
+   : DynamicObject(loc),
      quad_io(Workspace::get_IO()),
      assign_state(astate),
      rank(0),

@@ -240,15 +240,17 @@ y 3
       1 opex 'xyz' [2] 3
 y 0 3
 
-      ⍝ Regression: Bugs6 #5 (Blake McBride). IndexExpr never joined
-      ⍝ all_index_exprs, so )CHECK's "no stale indices" and
-      ⍝ IndexExpr::erase_stale() were permanent no-ops. Fixed together
-      ⍝ with #1 (DynamicObject now unlinks on any deletion path, not
-      ⍝ just its own erase_stale() walk). A rank>=2 literal index whose
-      ⍝ evaluation is aborted (error) partway, repeated with )SIC,
-      ⍝ mirrors the Quad_SYL.tc pattern that crashed an earlier,
-      ⍝ reverted attempt at this same fix -- must not corrupt the ring
-      ⍝ or crash here either.
+      ⍝ Regression: Bugs6 #5 (Blake McBride). IndexExpr never joining
+      ⍝ all_index_exprs (so )CHECK's "no stale indices" and
+      ⍝ IndexExpr::erase_stale() are permanent no-ops) is currently
+      ⍝ deliberate -- see the long comment on IndexExpr's constructor:
+      ⍝ actually joining the ring has twice caused a real SIGSEGV
+      ⍝ elsewhere (Quad_SYL.tc's )CLEAR, only reproducible via the full
+      ⍝ testcase suite, not this file alone) despite passing everything
+      ⍝ tried here. This test still has value regardless of which way
+      ⍝ that constructor is wired: a rank>=2 literal index whose
+      ⍝ evaluation is aborted (error) partway, repeated with )SIC, must
+      ⍝ not crash or corrupt anything either way.
       ⍝
       T←4 4⍴⍳16
 
