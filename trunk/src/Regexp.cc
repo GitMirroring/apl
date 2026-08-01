@@ -39,13 +39,21 @@ RegexpMatch::RegexpMatch(pcre2_code * code, const UCS_string & B,
    : matched_B(B)
 {
    match_data = pcre2_match_data_create_from_pattern_32(code, NULL);
+   if (match_data == 0)   // allocation failure
+      {
+        MORE_ERROR() << "pcre2_match_data_create_from_pattern_32() failed";
+        DOMAIN_ERROR;
+      }
+
    match_result = pcre2_match_32(code, B.raw<PCRE2_UCHAR32>(), B.size(),
                                  start, 0, match_data, NULL);
    if (match_result == 0)
       {
         MORE_ERROR() << "Match buffer too small";
         ovector_count = 0;
-        FIXME;
+        ovector = 0;
+        pcre2_match_data_free(match_data);   // ~RegexpMatch() will not run
+        DOMAIN_ERROR;
       }
     else if (match_result > 0)
       {

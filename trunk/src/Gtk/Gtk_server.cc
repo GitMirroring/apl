@@ -38,6 +38,7 @@
 #include <iomanip>
 #include <new>
 #include <string>
+#include <vector>
 
 #include "../Common.hh"
 #include "Gtk_enums.hh"
@@ -428,16 +429,16 @@ void *
 gtk_text_view_add_row(GtkTextView * view, const char * text)
 {
 size_t text_len = strlen(text);
-char cc[text_len + 10];
+std::vector<char> cc(text_len + 10);
 GtkTextBuffer * buffer = gtk_text_view_get_buffer(view);
    if (gtk_text_buffer_get_char_count(buffer))   // subsequent line
-       { snprintf(cc, sizeof(cc), "\n%s", text);   ++text_len; }
+       { snprintf(cc.data(), cc.size(), "\n%s", text);   ++text_len; }
    else                                          // first line
-       { snprintf(cc, sizeof(cc), "%s", text); }
+       { snprintf(cc.data(), cc.size(), "%s", text); }
 
 
 GtkTextIter end;   gtk_text_buffer_get_end_iter(buffer, &end);
-   gtk_text_buffer_insert(buffer, &end, cc, text_len);
+   gtk_text_buffer_insert(buffer, &end, cc.data(), text_len);
    return 0;
 }
 //════════════════════════════════════════════════════════════════════════════
@@ -1378,8 +1379,8 @@ const int cmd_len = cmd_end - cmd;
               ++point_count;
               ++p;   // skip (
             }
-        double x[point_count];
-        double y[point_count];
+        std::vector<double> x(point_count);
+        std::vector<double> y(point_count);
         int point_idx = 0;
         for (const char * p = cmd; p < cmd_end;)
             {

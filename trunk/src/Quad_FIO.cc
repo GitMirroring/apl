@@ -87,10 +87,25 @@ MINGW_more(const char * fun, int line)
 }
 extern uint64_t top_of_memory();
 uint64_t Quad_FIO::benchmark_cycles_from = 0;
+APL_Integer Quad_FIO::TM3_trigger = 0;
 
 std::vector<Quad_FIO::file_entry> Quad_FIO::open_files;
 
 Quad_FIO  Quad_FIO::fun;
+
+//────────────────────────────────────────────────────────────────────────────
+bool
+Quad_FIO::TM3_trigger_armed()
+{
+const APL_Integer trigger = TM3_trigger;
+   TM3_trigger = 0;   // one-shot: consume it regardless of the outcome
+
+   if (trigger == TM3_TRIGGER_ARMED)   return true;
+
+   CERR << "NOTE: this ⎕FIO function is disarmed (arm it first with "
+        << int(TM3_TRIGGER_ARMED) << " ⎕FIO ¯19) -- doing nothing." << endl;
+   return false;
+}
 
 // A union holding a sockaddr and a sockaddr_in as to avoid casting
 /// between sockaddr and a sockaddr_in
@@ -164,6 +179,9 @@ Value_P B_vp = CLONE(&B, LOC);
       {
         case -3: // read probe A and clear it
              return eval_AB___3(CLONE(&A, LOC));
+
+        case -19: // arm/disarm the --TM 3 test trigger
+             return eval_AB___19(CLONE(&A, LOC));
 
         default: break;
       }
@@ -307,6 +325,9 @@ Value_P B_vp = CLONE(&B, LOC);
         // function_numbers < 0 refer to "hacker functions" that should not be
         // used by normal mortals.
         //
+        case -20: // simulate a FIXME (only if the --TM 3 trigger is armed)
+             return eval_B___20();
+
         case -18: // memory test
              return eval_B___18(B_vp);
 
@@ -1674,6 +1695,14 @@ Value_P Z(len, LOC);
    Z->check_value(LOC);
    return Token(TOK_APL_VALUE1, Z);
 }
+//────────────────────────────────────────────────────────────────────────────
+Token
+Quad_FIO::eval_AB___19(Value_P A)
+{
+const APL_Integer old_trigger = TM3_trigger;
+   TM3_trigger = A->get_int_value(0);
+   return Token(TOK_APL_VALUE1, IntScalar(old_trigger, LOC));
+}
 //════════════════════════════════════════════════════════════════════════════
 Token
 Quad_FIO::eval_ALXB___1(Value_P A, Token & LO, Value_P B)
@@ -2374,6 +2403,8 @@ const Unicode * ibm = Avec::IBM_quad_AV();
 Token
 Quad_FIO::eval_B___6()
 {
+   if (!TM3_trigger_armed())   return Token(TOK_APL_VALUE1, IntScalar(0, LOC));
+
 NOT_MINGW(
    {
      CERR << "NOTE: Resetting SIGSEGV handler and triggering "
@@ -2395,12 +2426,24 @@ NOT_MINGW(
 Token
 Quad_FIO::eval_B___7()
 {
+   if (!TM3_trigger_armed())   return Token(TOK_APL_VALUE1, IntScalar(0, LOC));
+
    CERR << "NOTE: Triggering a segfault (keeping the current "
            "SIGSEGV handler)..." << endl;
 
 const APL_Integer result = *reinterpret_cast<char *>(4343);
    CERR << "NOTE: Throwing a segfault failed." << endl;
    return Token(TOK_APL_VALUE1, IntScalar(result, LOC));
+}
+//────────────────────────────────────────────────────────────────────────────
+Token
+Quad_FIO::eval_B___20()
+{
+   if (!TM3_trigger_armed())   return Token(TOK_APL_VALUE1, IntScalar(0, LOC));
+
+   CERR << "NOTE: Simulating a FIXME (internal-consistency-failure)..."
+        << endl;
+   FIXME;
 }
 //────────────────────────────────────────────────────────────────────────────
 Token

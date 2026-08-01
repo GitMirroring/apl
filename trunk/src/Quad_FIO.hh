@@ -88,6 +88,29 @@ public:
    /// cycle counter at start of a benchmark (⎕FIO[-1])
    static uint64_t benchmark_cycles_from;
 
+   /// magic value that arms the --TM 3 abnormal-condition test trigger
+   /// (see TM3_trigger below); chosen to be an unlikely accidental value
+   /// rather than plain 0/1, so ordinary ⎕FIO exploration can't arm it
+   /// by mistake.
+   enum { TM3_TRIGGER_ARMED = 0x41524D31 };   // ASCII "ARM1"
+
+   /// test-only trigger, armed via 'TM3_TRIGGER_ARMED ⎕FIO ¯19' (see
+   /// eval_AB___19()) and consumed (reset to disarmed) by every check --
+   /// so it must be re-armed before each individual use. Gates
+   /// eval_B___6()/___7() (segfault) and eval_B___20() (FIXME): with the
+   /// trigger disarmed (the default, and after )CLEAR since this is a
+   /// plain static, not part of the workspace), those functions are
+   /// harmless no-ops instead of unconditionally crashing the
+   /// interpreter. Armed only deliberately, from a testcase, so external
+   /// tooling (src/Automated_Test_Report.sh) can verify --TM 3's exit-code behaviour
+   /// end-to-end without risking an accidental crash for ordinary ⎕FIO
+   /// exploration.
+   static APL_Integer TM3_trigger;
+
+   /// consume (read and reset) TM3_trigger; return \b true iff it was
+   /// armed. Prints a NOTE and returns \b false otherwise.
+   static bool TM3_trigger_armed();
+
    static Quad_FIO  fun;   ///< Built-in function.
 
 protected:
@@ -206,6 +229,11 @@ protected:
 
    /// eval_AB case -3: read probe A and clear it
    static Token eval_AB___3(Value_P A);
+
+   /// eval_AB case -19: arm/disarm the --TM 3 test trigger (A ==
+   /// TM3_TRIGGER_ARMED arms it, any other A disarms it); returns the
+   /// previous value.
+   static Token eval_AB___19(Value_P A);
 
    /// eval_ALXB case -1: benchmark dyadic LO with arguments A and B
    static Token eval_ALXB___1(Value_P A, Token & LO, Value_P B);
@@ -335,6 +363,11 @@ protected:
 
    /// eval_B case -9: screen height
    static Token eval_B___9();
+
+   /// eval_B case -20: simulate a FIXME (internal-consistency-failure)
+   /// condition -- only if the --TM 3 test trigger is armed, see
+   /// TM3_trigger.
+   static Token eval_B___20();
 
    /// eval_LXB case -1: benchmark monadic LO with argument B
    static Token eval_LXB___1(Token & LO, Value_P B);

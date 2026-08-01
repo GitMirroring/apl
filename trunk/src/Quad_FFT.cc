@@ -21,6 +21,8 @@
 /** @file
 */
 
+#include <vector>
+
 #include "FloatCell.hh"
 #include "Quad_FFT.hh"
 #include "Workspace.hh"
@@ -150,6 +152,12 @@ Quad_FFT::do_fft(int dir, Value_P B, window_function win)
 
 const APL_Integer N = B->element_count();
    if (N == 0)   LENGTH_ERROR;
+
+   // allocate Z before in/out so that a WS_FULL here (Z needs more bytes
+   // than in/out combined, since sizeof(Cell) > sizeof(fftw_complex))
+   // cannot leak the FFTW buffers below.
+   //
+Value_P Z(B->get_shape(), LOC);
 
 const ShapeItem io_size = N * sizeof(fftw_complex);
 
@@ -287,7 +295,6 @@ fftw_complex * out =  reinterpret_cast<fftw_complex *>(fftw_malloc(io_size));
         fftw_destroy_plan(plan);
       }
 
-Value_P Z(B->get_shape(), LOC);
 const double norm = sqrt(N);
    loop(n, N)   Z->next_ravel_Complex(out[n][0]/norm, out[n][1]/norm);
 
@@ -333,9 +340,8 @@ const RavelType rt = B->get_ravel_type();
       }
    else
       {
-        double * wp = new double[N];
-        if (wp == 0)   WS_FULL;
-        fill_window(wp, B->get_shape(), win);
+        std::vector<double> wp(N);
+        fill_window(wp.data(), B->get_shape(), win);
 
         if (rt == RPT_CELLS)
            { loop(n, N)
@@ -354,7 +360,6 @@ const RavelType rt = B->get_ravel_type();
                                                    wp[n]*B->get_imag_value(n)); } }
         else   // RPT_integer or RPT_FLOAT64
            { loop(n, N)   { Z->next_ravel_Float(wp[n] * B->get_real_value(n)); } }
-        delete [] wp;
       }
 
    Z->check_value(LOC);
@@ -427,16 +432,14 @@ const APL_Integer N = B->element_count();
       }
    else
       {
-        double * wp = new double[N];
-        if (wp == 0)   WS_FULL;
-        fill_window(wp, B->get_shape(), win);
+        std::vector<double> wp(N);
+        fill_window(wp.data(), B->get_shape(), win);
         loop(n, N)
            {
              const double w = wp[n];
              in[n][0] = w * B->get_real_value(n);
              in[n][1] = w * B->get_imag_value(n);
            }
-        delete [] wp;
       }
 }
 #else   // not apl_FFT

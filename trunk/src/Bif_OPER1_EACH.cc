@@ -256,13 +256,17 @@ Value_P Z;
            {
              Value_P vZ = result.get_apl_val();
 
-             if (vZ->is_simple_scalar() || (left_val && vZ->is_scalar()))
+             if (!Z)
+                ;   // LO without result: nothing to store
+             else if (vZ->is_simple_scalar() || (left_val && vZ->is_scalar()))
                 Z->next_ravel_Cell(vZ->get_cfirst());
              else
                 Z->next_ravel_Pointer(vZ.get());
 
              continue;   // next z
            }
+
+        if (result.get_tag() == TOK_VOID)   continue;   // next z: LO without result
 
         if (result.get_tag() == TOK_ERROR)   return result;
 
@@ -377,7 +381,9 @@ Value_P Z;
              if (result.get_Class() == TC_VALUE)
                 {
                   Value_P vZ = result.get_apl_val();
-                  if (vZ->is_simple_scalar())
+                  if (!Z)
+                     ;   // LO without result: nothing to store
+                  else if (vZ->is_simple_scalar())
                      Z->next_ravel_Cell(vZ->get_cfirst());
                   else
                      Z->next_ravel_Pointer(vZ.get());
@@ -412,8 +418,10 @@ Value_P Z;
                 {
                   Value * vZ = result.get_apl_val().get();
 
-                  if (vZ->is_simple_scalar() ||
-                      (is_left_val && vZ->is_scalar()))
+                  if (!Z)
+                     ;   // LO without result: nothing to store
+                  else if (vZ->is_simple_scalar() ||
+                           (is_left_val && vZ->is_scalar()))
                      Z->next_ravel_Cell(vZ->get_cfirst());
                   else
                      Z->next_ravel_Pointer(vZ);

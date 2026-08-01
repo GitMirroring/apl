@@ -155,12 +155,12 @@ public:
    /// return the length of dimension \b r
    /// @param r axis index (0-based from the highest dimension)
    ShapeItem get_shape_item(sAxis r) const
-      { Assert(r < rho_rho);   return rho[r]; }
+      { Assert(r >= 0 && r < rho_rho);   return rho[r]; }
 
    /// return the length of dimension \b r
    /// @param r axis index counted from the last (lowest) dimension
    ShapeItem get_transposed_shape_item(sAxis r) const
-      { Assert(r < rho_rho);   return rho[rho_rho - r - 1]; }
+      { Assert(r >= 0 && r < rho_rho);   return rho[rho_rho - r - 1]; }
 
    /// return the number of ravel elements (1 for scalars,i
    ///  else product of shapes)
@@ -235,7 +235,8 @@ public:
    /// possibly increase rank by prepending axes of length 1
    /// @param new_rank desired minimum rank; no-op if already >= new_rank
    void expand_rank(sRank new_rank)
-      { if (rho_rho >= new_rank)   return;   // no need to expand
+      { Assert(new_rank <= MAX_RANK);
+        if (rho_rho >= new_rank)   return;   // no need to expand
         const int diff = new_rank - rho_rho;
         for (sRank r = rho_rho - 1; r >= 0; --r)   rho[r + diff] = rho[r];
         loop(r, diff)      rho[r] = 1;
@@ -260,7 +261,7 @@ public:
    /// @param r axis index to modify
    /// @param sh new length for axis \b r
    void set_shape_item(sAxis r, ShapeItem sh)
-      { Assert(r < rho_rho);
+      { Assert(r >= 0 && r < rho_rho);
         if (rho[r])   { volume /= rho[r];  rho[r] = sh;  volume *= rho[r]; }
         else          { rho[r] = sh;   recompute_volume();                 } }
 

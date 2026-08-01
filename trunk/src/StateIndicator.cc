@@ -69,18 +69,6 @@ StateIndicator::~StateIndicator()
       }
 }
 //────────────────────────────────────────────────────────────────────────────
-const StateIndicator *
-StateIndicator::find_child() const
-{
-   for (const StateIndicator * si = Workspace::SI_top();
-        si; si = si->get_parent())
-       {
-         if (this == si->get_parent())   return si;   // found child si
-       }
-
-   return 0;   // si is Workspace::SI_top()
-}
-//────────────────────────────────────────────────────────────────────────────
 UCS_string
 StateIndicator::function_name() const
 {

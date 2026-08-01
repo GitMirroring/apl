@@ -398,7 +398,7 @@ const TCP_socket tcp = Svar_DB::get_DB_tcp();
 
         if (response == 0)
            {
-             if (del)   delete del;
+             if (del)   delete[] del;
              CERR << "no response to signal READ_WSWS_VAR" << endl;
              VALUE_ERROR;
            }
@@ -407,7 +407,7 @@ const TCP_socket tcp = Svar_DB::get_DB_tcp();
         if (data.size() == 0)
            {
              delete response;
-             if (del)   delete del;
+             if (del)   delete[] del;
              CERR << "no data in signal WSWS_VALUE_IS" << endl;
              VALUE_ERROR;
            }
@@ -415,7 +415,7 @@ const TCP_socket tcp = Svar_DB::get_DB_tcp();
         CDR_string cdr;
         loop(d, data.size())   cdr.push_back(data[d]);
         delete response;
-        if (del)   delete del;
+        if (del)   delete[] del;
 
         Value_P value = CDR::from_CDR(cdr, LOC);
         if (!value)     VALUE_ERROR;
@@ -435,6 +435,7 @@ const Signal_base * response =
 
    if (response == 0)
       {
+        if (del)   delete[] del;
         CERR << "TIMEOUT on signal GET_VALUE" << endl;
         VALUE_ERROR;
       }
@@ -451,7 +452,7 @@ const ErrorCode err(ErrorCode(response->get__VALUE_IS__error()));
 
         string eloc = response->get__VALUE_IS__error_loc();
         delete response;
-        if (del)   delete del;
+        if (del)   delete[] del;
         throw_apl_error(err, eloc.c_str());
       }
 
@@ -459,7 +460,7 @@ const string & data = response->get__VALUE_IS__cdr_value();
 CDR_string cdr;
    loop(d, data.size())   cdr.push_back(data[d]);
    delete response;
-   if (del)   delete del;
+   if (del)   delete[] del;
 
 Value_P value = CDR::from_CDR(cdr, LOC);
    if (!value)     VALUE_ERROR;
@@ -900,7 +901,7 @@ const Signal_base * response =
    if (response == 0)
       {
         cerr << "TIMEOUT on signal ASSIGN_VALUE" << endl;
-        if (del)   delete del;
+        if (del)   delete[] del;
         VALUE_ERROR;
       }
 
@@ -917,12 +918,12 @@ const ErrorCode ec = ErrorCode(response->get__SVAR_ASSIGNED__error());
            }
 
         delete response;
-        if (del)   delete del;
+        if (del)   delete[] del;
         throw_apl_error(ec, loc);
       }
 
    delete response;
-   if (del)   delete del;
+   if (del)   delete[] del;
 }
 //════════════════════════════════════════════════════════════════════════════
 void

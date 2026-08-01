@@ -22,6 +22,8 @@
 /** @file
 */
 
+#include <vector>
+
 #include "Common.hh"
 #if HAVE_LOCALE_H
 # include <locale.h>
@@ -610,7 +612,7 @@ cairo_multiline_size(double & len_x, double & len_y, cairo_t * cr,
 {
   len_x = 0;
   len_y = 0;
-char line[strlen(lines) + 10];
+std::vector<char> line(strlen(lines) + 10);
 
    // split lines into single strings line and cumulate the sizes
    for (;;)
@@ -620,11 +622,11 @@ char line[strlen(lines) + 10];
          if (const char * nl = strchr(lines, '\n'))   // more lines coming
             {
               const size_t len = nl - lines;
-              memcpy(line, lines, len);
+              memcpy(line.data(), lines, len);
               line[len] = 0;
               lines = nl + 1;
 
-              cairo_string_size(lx, ly, cr, line, font_name, font_size);
+              cairo_string_size(lx, ly, cr, line.data(), font_name, font_size);
               if (len_x < lx)   len_x = lx;   // horizontal: take maximum
               if (len_y)   len_y += 2;        // space between lines
               len_y += ly;                    // vertical: add height
@@ -668,23 +670,23 @@ const int font_size = FONT_SIZE;
 
   cairo_set_font_size(cr, font_size);
 
-char line[strlen(lines) + 10];
+std::vector<char> line(strlen(lines) + 10);
 
    for (;;)
        {
          if (const char * nl = strchr(lines, '\n'))   // more lines coming
             {
               const size_t len = nl - lines;
-              memcpy(line, lines, len);
+              memcpy(line.data(), lines, len);
               line[len] = 0;
               lines = nl + 1;
 
               double line_w = 0, line_h = 0;   // size of line
-              cairo_string_size(line_w, line_h, cr, line, font_name, font_size);
+              cairo_string_size(line_w, line_h, cr, line.data(), font_name, font_size);
               const double indent = 0.5*(width - line_w);
 
               cairo_move_to(cr, xy.x + indent, xy.y);
-              cairo_text_path(cr, line);
+              cairo_text_path(cr, line.data());
               xy.y += 2 + FONT_SIZE;
               cairo_fill(cr);
             }

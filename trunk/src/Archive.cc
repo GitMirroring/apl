@@ -2173,7 +2173,18 @@ UTF8 * end = 0;
 
         case UNI_PAD_U9: // packed boolean,         e.g. ⁹
              {
-               Assert(Z.is_bool_packed());
+               // Assert() alone is a no-op at ASSERT_LEVEL 0: a ⁹ cell
+               // marker on a value that is not bool-packed would make
+               // dst below point at the first (polymorphic) Cell of an
+               // ordinary ravel, and the loop then overwrites it with raw
+               // bytes -- a type-confusion primitive reachable via a
+               // hand-edited or corrupted )LOAD/)COPY workspace.
+               if (!Z.is_bool_packed())
+                  {
+                    MORE_ERROR() << "corrupt workspace: packed-boolean "
+                                    "cell in a non-packed value";
+                    DOMAIN_ERROR;
+                  }
 
                // Z's packed ravel was allocated (by its constructor) to hold
                // exactly ⌈element_count()/64⌉ 64-bit words == max_bytes

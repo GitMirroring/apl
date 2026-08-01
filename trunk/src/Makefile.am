@@ -44,6 +44,15 @@ else
 endif
 
 dist_noinst_DATA = valgrind.supp rval.def
+
+# testcase-debugging helpers: not installed, but shipped in the source
+# tarball so they are available wherever the tree is (see plan.txt).
+# Automated_Test_Report.sh narrows a 'make test'/'make test3' failure down to a
+# minimal reproducing subset of testcases; verify_TM3_exit.sh is its
+# regression test (--TM 3 abnormal-exit-code guarantee, see
+# Error_macros.hh's fixme_exit_code()).
+dist_noinst_SCRIPTS = Automated_Test_Report.sh verify_TM3_exit.sh
+
 DIST_SUBDIRS = $(SUBDIRS) testcases
 
 datadir = @datadir@

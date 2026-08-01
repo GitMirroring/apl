@@ -126,9 +126,6 @@ public:
    static Error & get_error(StateIndicator * si)
        { return si ? si->error : top_level_error; }
 
-   /// return the immediate child SI (if any) of \b this )SI entry
-   const StateIndicator * find_child() const;
-
    /// Return the function name, or "*" for an immediate execution context
    UCS_string function_name() const;
 

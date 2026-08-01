@@ -21,6 +21,8 @@
 /** @file
 */
 
+#include <vector>
+
 #include "Avec.hh"
 #include "Bif_F12_FORMAT.hh"
 #include "CDR.hh"
@@ -1464,12 +1466,19 @@ const ShapeItem len = Workspace::SI_entry_count();
    //
 Value_P Z(len, LOC);
 
-   // move from oldest SI entry towards SI_top()...
+   // collect the SI chain newest (SI_top()) to oldest, the same direction
+   // as every other SI walk in this codebase, then process it in reverse
+   // so that ⎕SI still moves from oldest SI entry towards SI_top()...
    //
-   for (const StateIndicator * parent = 0; parent != Workspace::SI_top();)
+std::vector<const StateIndicator *> sis;
+   sis.reserve(len);
+   for (const StateIndicator * si = Workspace::SI_top(); si;
+        si = si->get_parent())
+       sis.push_back(si);
+
+   for (ShapeItem s = ShapeItem(sis.size()) - 1; s >= 0; --s)
        {
-         const StateIndicator * si = parent->find_child();
-         parent = si;   // for the next iteration
+         const StateIndicator * si = sis[s];
 
          const Function_PC PC = Function_PC(si->get_PC() - 1);
          const Executable * exec = si->get_executable();

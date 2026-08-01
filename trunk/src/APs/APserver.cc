@@ -869,6 +869,7 @@ AP3_fd * ap_fd = 0;
                               << ", loc=" << loc << endl;
                        }
                      close_fd(fd);
+                     if (del)   delete[] del;
                      return;
                   }
 

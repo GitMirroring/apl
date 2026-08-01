@@ -62,6 +62,8 @@
 
 #if MINGW_SRC
 
+#include <vector>
+
 #include <windows.h>            // already pulled in via Sys.hh's winsock2.h,
                                 // included again (harmless, header-guarded)
                                 // for clarity
@@ -690,7 +692,7 @@ gdip_multiline_size(double & len_x, double & len_y, Gdiplus::Graphics * cr,
 {
   len_x = 0;
   len_y = 0;
-char line[strlen(lines) + 10];
+std::vector<char> line(strlen(lines) + 10);
 
    // split lines into single strings line and cumulate the sizes
    for (;;)
@@ -700,11 +702,11 @@ char line[strlen(lines) + 10];
          if (const char * nl = strchr(lines, '\n'))   // more lines coming
             {
               const size_t len = nl - lines;
-              memcpy(line, lines, len);
+              memcpy(line.data(), lines, len);
               line[len] = 0;
               lines = nl + 1;
 
-              gdip_string_size(lx, ly, cr, line, font_size);
+              gdip_string_size(lx, ly, cr, line.data(), font_size);
               if (len_x < lx)   len_x = lx;   // horizontal: take maximum
               if (len_y)   len_y += 2;        // space between lines
               len_y += ly;                    // vertical: add height
@@ -756,22 +758,22 @@ static void
 draw_multiline(Gdiplus::Graphics * cr, const char * lines, Pixel_XY xy,
               double width)
 {
-char line[strlen(lines) + 10];
+std::vector<char> line(strlen(lines) + 10);
 
    for (;;)
        {
          if (const char * nl = strchr(lines, '\n'))   // more lines coming
             {
               const size_t len = nl - lines;
-              memcpy(line, lines, len);
+              memcpy(line.data(), lines, len);
               line[len] = 0;
               lines = nl + 1;
 
               double line_w = 0, line_h = 0;   // size of line
-              gdip_string_size(line_w, line_h, cr, line, FONT_SIZE);
+              gdip_string_size(line_w, line_h, cr, line.data(), FONT_SIZE);
               const double indent = 0.5*(width - line_w);
 
-              draw_text(cr, line, Pixel_XY(xy.x + indent, xy.y));
+              draw_text(cr, line.data(), Pixel_XY(xy.x + indent, xy.y));
               xy.y += 2 + FONT_SIZE;
             }
          else   // final line

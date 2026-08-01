@@ -20,6 +20,7 @@
 
 
 
+
 VPATH = @srcdir@
 am__is_gnu_make = { \
   if test -z '$(MAKELEVEL)'; then \
@@ -146,9 +147,9 @@ am__aclocal_m4_deps = $(top_srcdir)/m4/depend.m4 \
 	$(top_srcdir)/m4/build_date.m4 $(top_srcdir)/configure.ac
 am__configure_deps = $(am__aclocal_m4_deps) $(CONFIGURE_DEPENDENCIES) \
 	$(ACLOCAL_M4)
-DIST_COMMON = $(srcdir)/Makefile.am $(dist_noinst_DATA) \
-	$(dist_pkgdata_DATA) $(am__pkginclude_HEADERS_DIST) \
-	$(am__DIST_COMMON)
+DIST_COMMON = $(srcdir)/Makefile.am $(dist_noinst_SCRIPTS) \
+	$(dist_noinst_DATA) $(dist_pkgdata_DATA) \
+	$(am__pkginclude_HEADERS_DIST) $(am__DIST_COMMON)
 mkinstalldirs = $(install_sh) -d
 CONFIG_HEADER = $(top_builddir)/config.h
 CONFIG_CLEAN_FILES =
@@ -769,6 +770,7 @@ apl_DEPENDENCIES = $(am__DEPENDENCIES_1)
 apl_LINK = $(LIBTOOL) $(AM_V_lt) --tag=CXX $(AM_LIBTOOLFLAGS) \
 	$(LIBTOOLFLAGS) --mode=link $(CXXLD) $(apl_CXXFLAGS) \
 	$(CXXFLAGS) $(apl_LDFLAGS) $(LDFLAGS) -o $@
+SCRIPTS = $(dist_noinst_SCRIPTS)
 AM_V_P = $(am__v_P_@AM_V@)
 am__v_P_ = $(am__v_P_@AM_DEFAULT_V@)
 am__v_P_0 = false
@@ -1473,6 +1475,14 @@ plot_SOURCES = Plot_ascii.cc $(am__append_3) $(am__append_5) \
 	$(am__append_7)
 @apl_GTK3_TRUE@plot_CXXFLAGS = -Wno-parentheses
 dist_noinst_DATA = valgrind.supp rval.def
+
+# testcase-debugging helpers: not installed, but shipped in the source
+# tarball so they are available wherever the tree is (see plan.txt).
+# Automated_Test_Report.sh narrows a 'make test'/'make test3' failure down to a
+# minimal reproducing subset of testcases; verify_TM3_exit.sh is its
+# regression test (--TM 3 abnormal-exit-code guarantee, see
+# Error_macros.hh's fixme_exit_code()).
+dist_noinst_SCRIPTS = Automated_Test_Report.sh verify_TM3_exit.sh
 DIST_SUBDIRS = $(SUBDIRS) testcases
 
 # common means common to the apl and libapl builds
@@ -6741,8 +6751,8 @@ distdir-am: $(DISTFILES)
 check-am: all-am
 check: check-recursive
 @apl_TARGET_MINGW_FALSE@all-local:
-all-am: Makefile $(PROGRAMS) $(LTLIBRARIES) $(DATA) $(HEADERS) \
-		all-local
+all-am: Makefile $(PROGRAMS) $(LTLIBRARIES) $(SCRIPTS) $(DATA) \
+		$(HEADERS) all-local
 installdirs: installdirs-recursive
 installdirs-am:
 	for dir in "$(DESTDIR)$(bindir)" "$(DESTDIR)$(pkglibdir)" "$(DESTDIR)$(pkgdatadir)" "$(DESTDIR)$(pkgincludedir)"; do \

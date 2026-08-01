@@ -94,6 +94,11 @@ public:
    static bool exit_on_error()
       { return test_mode == TM_EXIT_AFTER_FILE_ERROR; }
 
+   /// return \b true iff --TM 3 (stop testing after the first file error,
+   /// but stay in the interpreter rather than exit()ing) is active.
+   static bool is_stop_after_file_error()
+      { return test_mode == TM_STOP_AFTER_FILE_ERROR; }
+
    /// count and report a parse error
    static void syntax_error();
 
@@ -107,6 +112,29 @@ public:
 
    /// count a failed assertion
    static void assert_error();
+
+   /// write a summary.log entry (and print "Failed testcase is ...") for
+   /// the testcase file that is executing right now, if any -- for a
+   /// crash (signal_SEGV_handler(), main.cc) or an internal-consistency
+   /// failure (the FIXME macro, via fixme_exit_code()), both of which
+   /// exit() directly without ever reaching end_of_current_file(). Without
+   /// this, such a file is silently missing from summary.log entirely
+   /// (not even a "0 errors" line), making it invisible to tooling that
+   /// parses summary.log for the first failure (src/Automated_Test_Report.sh).
+   /// Also persists a raw backtrace to disk under get_crash_backtrace_path()
+   /// (see there) so it survives independent of whatever, if anything,
+   /// later captures CERR. No-op if no testcase file is currently being
+   /// read.
+   static void report_abnormal_exit();
+
+   /// the file path used by report_abnormal_exit() to persist a raw
+   /// backtrace for the testcase file that is executing right now (the
+   /// same testcase named in its summary.log entry), so that a crash's
+   /// or FIXME's backtrace is available on disk even though CERR itself
+   /// is not normally captured anywhere durable. Returns an empty string
+   /// if no testcase file is currently being read (mirrors
+   /// report_abnormal_exit()'s own no-op condition).
+   static UTF8_string get_crash_backtrace_path();
 
    /// count a output diff error
    static void diff_error();

@@ -108,11 +108,12 @@ static int64_t main_offset_0 = 0;
 
 //════════════════════════════════════════════════════════════════════════════
 void
-Backtrace::show_signal_safe()
+Backtrace::show_signal_safe(int extra_fd)
 {
 #ifndef HAVE_EXECINFO_H
 const char msg[] = "Cannot show function call stack: no execinfo.h\n";
    if (write(STDERR_FILENO, msg, sizeof(msg) - 1)) { /* nothing to do */ }
+   if (extra_fd >= 0 && write(extra_fd, msg, sizeof(msg) - 1)) { }
    return;
 
 #else
@@ -131,15 +132,18 @@ const char banner[] =
    // (or right before one, see main.cc's warm-up call) with nothing
    // sensible to do about a failed/partial write while already crashing.
    if (write(STDERR_FILENO, banner, sizeof(banner) - 1)) { /* nothing to do */ }
+   if (extra_fd >= 0 && write(extra_fd, banner, sizeof(banner) - 1)) { }
 
    // backtrace_symbols_fd(), unlike backtrace_symbols(), does not call
    // malloc() -- it is the one part of this API glibc itself documents
    // as safe to call from a signal handler.
    //
    backtrace_symbols_fd(buffer, size, STDERR_FILENO);
+   if (extra_fd >= 0)   backtrace_symbols_fd(buffer, size, extra_fd);
 
 const char footer[] = "====================================================\n";
    if (write(STDERR_FILENO, footer, sizeof(footer) - 1)) { /* nothing to do */ }
+   if (extra_fd >= 0 && write(extra_fd, footer, sizeof(footer) - 1)) { }
 
 #endif
 }

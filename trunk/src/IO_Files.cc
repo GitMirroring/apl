@@ -21,8 +21,11 @@
 /** @file
 */
 
+#include <fcntl.h>
 #include <stdlib.h>
+#include <unistd.h>
 
+#include "Backtrace.hh"
 #include "Common.hh"
 #include "Command.hh"
 #include "IndexExpr.hh"
@@ -53,6 +56,80 @@ APL_time_us IO_Files::start_usecs = 0;
 
 static  ios_base::openmode summary_flags = ofstream::trunc;
 
+//────────────────────────────────────────────────────────────────────────────
+UTF8_string
+IO_Files::get_crash_backtrace_path()
+{
+   if (!InputFile::is_validating())   return UTF8_string();
+   if (!InputFile::current_file())    return UTF8_string();
+
+UTF8_string path(InputFile::current_filename());
+   path << ".crash.txt";
+   return path;
+}
+//────────────────────────────────────────────────────────────────────────────
+void
+IO_Files::report_abnormal_exit()
+{
+   if (!InputFile::is_validating())   return;   // not running a -T testcase
+   if (!InputFile::current_file())    return;   // no file context at all
+
+   // this file is about to be abandoned mid-run by a direct exit() call
+   // (crash or FIXME) that never reaches end_of_current_file() -- make
+   // sure it still shows up as failed rather than silently missing.
+   if (error_count() == 0)   ++diff_errors;
+
+   const char * path = summary_path.c_str();
+   ofstream summary(path, summary_flags);
+   if (summary_flags == ofstream::trunc)   // first file
+      {
+        summary << "Errors   Time File\n-------------------------"
+                   "---------------------------------------------" << endl;
+        summary_flags = ofstream::app;
+      }
+   summary << endl   // to find it quickly, matching the normal error format
+           << setw(3) << error_count() << "  abnormal termination  ("
+           << apl_errors << " APL, " << assert_errors << " assert, "
+           << diff_errors << " diff, " << parse_errors << " parse) "
+           << InputFile::current_filename() << endl;
+
+   total_errors += error_count();
+
+   // persist a raw backtrace to disk (the same signal-safe mechanism
+   // used for a live SIGSEGV, see Backtrace::show_signal_safe()) so it
+   // survives independent of whatever, if anything, later captures CERR
+   // -- e.g. src/Automated_Test_Report.sh, run well after this process
+   // has exited. open()/close() are not guaranteed async-signal-safe,
+   // but this function already isn't strictly signal-safe either (the
+   // summary.log ofstream above), so that is an existing, not a new,
+   // risk when this runs from signal_SEGV_handler().
+const UTF8_string crash_path = get_crash_backtrace_path();
+   if (crash_path.size())
+      {
+        const int fd = open(crash_path.c_str(),
+                             O_WRONLY | O_CREAT | O_TRUNC, 0644);
+        if (fd >= 0)
+           {
+             Backtrace::show_signal_safe(fd);
+             close(fd);
+           }
+      }
+
+   CERR << endl
+        << "Stopping test execution since an abnormal termination has"
+           " occurred" << endl
+        << "Failed testcase is " << InputFile::current_filename() << endl;
+   if (crash_path.size())
+      CERR << "Backtrace saved to " << crash_path << endl;
+   CERR << endl;
+}
+//────────────────────────────────────────────────────────────────────────────
+int
+fixme_exit_code()
+{
+   IO_Files::report_abnormal_exit();
+   return IO_Files::is_stop_after_file_error() ? 3 : 0;
+}
 //────────────────────────────────────────────────────────────────────────────
 void
 IO_Files::syntax_error()

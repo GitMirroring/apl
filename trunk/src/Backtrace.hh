@@ -56,7 +56,16 @@ public:
    /// which can deadlock or crash a second time if the fault interrupted
    /// the crashing thread while it already held glibc's malloc arena
    /// lock. Prints raw (non-demangled) addresses only.
-   static void show_signal_safe();
+   ///
+   /// @param extra_fd  if >= 0, an already-open file descriptor that the
+   /// same raw backtrace is ALSO written to (via the same signal-safe
+   /// backtrace_symbols_fd() call), so a crash's backtrace survives on
+   /// disk independent of whatever else happens to CERR/STDERR_FILENO
+   /// afterward. The fd is written to, but neither opened nor closed
+   /// here -- the caller (main.cc, before installing/triggering the
+   /// signal) is responsible for both, since open()/close() are not
+   /// guaranteed async-signal-safe either.
+   static void show_signal_safe(int extra_fd = -1);
 
 protected:
    /// a mapping from PCs to source lines.

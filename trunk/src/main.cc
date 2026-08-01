@@ -150,6 +150,12 @@ signal_SEGV_handler(int)
    // count errors
    IO_Files::assert_error();
 
+   // Command::cmd_OFF() below exit()s directly, bypassing
+   // end_of_current_file() -- without this, a testcase file that was
+   // being read at the time of the crash goes silently missing from
+   // summary.log instead of showing up as failed.
+   IO_Files::report_abnormal_exit();
+
    // restore terminal setting and
    LineInput::restore_termios();
 

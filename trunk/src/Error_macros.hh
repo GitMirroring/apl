@@ -36,6 +36,19 @@ void throw_apl_error(ErrorCode code, const char * loc)
 #endif
 ;
 
+/// called by FIXME (see below) just before it exit()s: if a testcase file
+/// is currently being read, writes its summary.log entry and prints
+/// "Failed testcase is ..." (IO_Files::report_abnormal_exit()) since
+/// exit() bypasses end_of_current_file(), which would otherwise be the
+/// only place that happens -- without this, the file goes silently
+/// missing from summary.log instead of showing up as failed. Returns the
+/// exit() code FIXME should use: 0 (unchanged default/interactive
+/// behaviour) unless --TM 3 is active, in which case it is non-zero so
+/// that test tooling (e.g. src/Automated_Test_Report.sh) can tell an
+/// internal-consistency failure apart from a clean pass -- exit(0) would
+/// otherwise report false success. See IO_Files.cc.
+int fixme_exit_code();
+
 #define ATTENTION         { throw_apl_error(E_ATTENTION,           LOC); }
 #define AXIS_ERROR          throw_apl_error(E_AXIS_ERROR,          LOC)
 #define DEFN_ERROR          throw_apl_error(E_DEFN_ERROR,          LOC)
@@ -53,7 +66,8 @@ void throw_apl_error(ErrorCode code, const char * loc)
 #define LEFT_SYNTAX_ERROR   throw_apl_error(E_LEFT_SYNTAX_ERROR,   LOC)
 #define SYSTEM_ERROR        throw_apl_error(E_SYSTEM_ERROR,        LOC)
 #define TODO                throw_apl_error(E_NOT_YET_IMPLEMENTED, LOC)
-#define FIXME               {  BACKTRACE; cleanup(false); exit(0);        \
+#define FIXME               {  BACKTRACE; cleanup(false);                \
+                               exit(fixme_exit_code());                  \
                                throw_apl_error(E_THIS_IS_A_BUG,    LOC); }
 #define VALUE_ERROR         throw_apl_error(E_VALUE_ERROR,         LOC)
 #define VALENCE_ERROR       throw_apl_error(E_VALENCE_ERROR,       LOC)
