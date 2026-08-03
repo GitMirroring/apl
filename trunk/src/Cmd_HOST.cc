@@ -115,14 +115,25 @@ const int len = capa.size();
         if (len == 4 && capa1.starts_iwith("FFT"))       return apl_FFT;
         if (len == 4 && capa1.starts_iwith("PNG"))       return apl_PNG;
         if (len == 3 && capa1.starts_iwith("RE"))        return apl_PCRE;
+        // ⎕SQL and ⎕PLOT are not their own config.h flags (no AC_DEFINE
+        // for either -- confirmed: apl_SQL only ever exists as a
+        // configure.ac shell variable used for the ./configure summary
+        // line, never exported to config.h/C++ at all) -- each is really
+        // an umbrella over the specific backend(s) that implement it.
+        if (len == 4 && capa1.starts_iwith("SQL"))
+           return apl_POSTGRES || apl_SQLITE3;
+        if (len == 5 && capa1.starts_iwith("PLOT"))
+           return apl_GTK3 || apl_XCB;
       }
    else
       {
+        if (len == 3 && capa.starts_iwith("GSL"))        return apl_GSL;
         if (len == 3 && capa.starts_iwith("GTK"))        return apl_GTK3;
         if (len == 3 && capa.starts_iwith("GUI"))        return apl_GUI;
         if (len == 8 && capa.starts_iwith("POSTGRES"))   return apl_POSTGRES;
         if (len == 7 && capa.starts_iwith("SQLITE3"))    return apl_SQLITE3;
         if (len == 3 && capa.starts_iwith("X11"))        return apl_X11;
+        if (len == 3 && capa.starts_iwith("XCB"))        return apl_XCB;
       }
 
    CERR << "]NEXTFILE: Unknown capability '" << capa << "'" << endl;

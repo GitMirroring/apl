@@ -404,6 +404,27 @@ install-testlinks:
 	  fi; \
 	done
 
+# Bootstrap testcases_3/ from scratch (same ⍝@ test3. marker selection as
+# install-testlinks above), for a fresh checkout/tarball that cannot
+# portably carry symlinks in SVN/git. Unlike install-testlinks -- which
+# always refreshes, and only ever runs as a side effect of 'make install'
+# (typically as root) -- this is meant to be run directly and is a strict
+# no-op if testcases_3 already exists, so it never touches or refreshes a
+# directory that is already set up (and possibly hand-modified since).
+.PHONY:	test3_symlinks
+test3_symlinks:
+	if [ -d testcases_3 ]; then \
+	  echo "test3_symlinks: testcases_3 already exists, doing nothing"; \
+	else \
+	  $(MKDIR_P) testcases_3; \
+	  for f in testcases/*.tc; do \
+	    name=$$(basename "$$f"); \
+	    if head -10 "$$f" | grep -q '@ test3\.'; then \
+	      ln -sf "../testcases/$$name" "testcases_3/$$name"; \
+	    fi; \
+	  done; \
+	fi
+
 perf: apl
 	./apl --id 1010 --TM 3 -T testcases/Performance.pt
 

@@ -149,7 +149,12 @@ const sRank rank = cache.get_rank();
          if (const int diff = a.compare_axis(b, r))   return diff < 0;
        }
 
-   return significance_a < significance_b;
+   // Bugs9 #9 (Blake McBride): heapsort is unstable, so this tiebreak is
+   // the only thing holding equal items in index order. Inverting the
+   // *value* comparison above for a descending sort (⍒) is correct, but
+   // inverting the tiebreak along with it is not -- ties must always break
+   // ascending by index, matching greater_vec() (used by ⍋) just above.
+   return significance_a > significance_b;
 }
 //════════════════════════════════════════════════════════════════════════════
 Token

@@ -2071,7 +2071,15 @@ UTF8 * end = 0;
                                  << (int(values.size()) - 1) << ")";
                     DOMAIN_ERROR;
                   }
-               Z.next_ravel_Value(values[vid].get());
+               // next_ravel_Value() implements strand-literal semantics
+               // (reuse a scalar's own cell instead of boxing it) -- right
+               // for Parser::create_vector_value(), wrong here: a saved
+               // pointer cell must be re-boxed unconditionally regardless
+               // of whether the pointee happens to be a scalar, or every
+               // nesting depth >= 3 silently collapses to 2 on )LOAD/)COPY
+               // (Bugs9 #1, Blake McBride).
+               //
+               Z.next_ravel_Pointer(values[vid].get());
                input = end;
              }
              return input;

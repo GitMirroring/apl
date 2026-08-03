@@ -1301,6 +1301,31 @@ UserPreferences::show_configure_options()
 #endif
    << endl
    << endl
+
+   // optional-library capabilities: whether this exact binary was built
+   // with each optional feature or not (compile-time, from config.h) --
+   // NOT whether the feature is usable/reachable at runtime (e.g.
+   // apl_POSTGRES=1 only means the PostgreSQL client library was found and
+   // linked at build time; it says nothing about whether a PostgreSQL
+   // server is actually running or reachable). Printed here (and so
+   // captured for free by anything that already runs 'apl --cfg', such as
+   // Automated_Test_Report.sh's culprits_env.txt) so a bug report never
+   // has to leave this as a guess -- matches Cmd_HOST::have_capability()'s
+   // ]NEXTFILE HAVE-/NO- capability names one-for-one where one exists.
+   << "optional-library capabilities (this binary):" << endl
+   << "---------------------------------------------" << endl
+   << "    ⎕FFT (FFT)        =" << apl_FFT      << endl
+   << "    GSL                =" << apl_GSL      << endl
+   << "    GTK (GTK3)         =" << apl_GTK3     << endl
+   << "    GUI                =" << apl_GUI      << endl
+   << "    ⎕RE (PCRE)         =" << apl_PCRE     << endl
+   << "    ⎕PNG (PNG)         =" << apl_PNG      << endl
+   << "    POSTGRES           =" << apl_POSTGRES << endl
+   << "    SQLITE3            =" << apl_SQLITE3  << endl
+   << "    X11                =" << apl_X11      << endl
+   << "    XCB                =" << apl_XCB      << endl
+   << endl
+
    << "how ./configure was (probably) called:" << endl
    << "--------------------------------------" << endl
    << "    " cfg_CONFIGURE_ARGS << endl

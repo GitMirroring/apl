@@ -77,7 +77,14 @@ Complex coeff = coefficient;
        {
          if (const int expo = expos[r])   // more than X⁰
             {
-              out << Unicode('x' + r);
+              // Bugs9 #14 (Blake McBride): 'x'+r walks past 'z' (and then
+              // past printable ASCII entirely) once there are more than 3
+              // indeterminants -- ⌹[11] places no limit on how many a
+              // caller can name. Keep the familiar x,y,z for the common
+              // (<=3 variable) case tested by testcases/Polynomials.tc,
+              // and fall back to a legible x3, x4, ... beyond that.
+              if (r < 3)   out << Unicode('x' + r);
+              else         out << 'x' << r;
               if (expo > 1)   out << UCS_string::power(expo);
             }
        }

@@ -436,8 +436,15 @@ Quad_TF::tf2_value(int level, UCS_string & ucs, const cValue & value,
       }
 
 
-   // some (but not all) empty vectors
-   if (value.is_empty())
+   // Bugs9 #8 (Blake McBride): this shortcut is only correct for the plain
+   // '' case (rank 1, shape 0, not enclosed) -- it used to fire for *any*
+   // empty character value (any shape, any nesting level), discarding both
+   // the shape (e.g. 2 0⍴'a' came back as '') and the enclosure (e.g.
+   // ,⊂⊂'' lost both ⊂). Restrict it accordingly; everything else falls
+   // through to tf2_shape() + tf2_all_char_ravel(), which already handle
+   // shape and nesting correctly.
+   if (value.is_empty() && nesting == 0 &&
+       value.get_rank() == 1 && value.get_shape_item(0) == 0)
       {
         const Cell & cell = value.get_cfirst();
         if (cell.is_character_cell())
@@ -570,6 +577,22 @@ Quad_TF::tf2_ravel(int level, UCS_string & ucs, const ShapeItem len,
                       sub_val = sub_val->get_pointer_value(0);
                     }
 
+              // Bugs9 #8 (Blake McBride), broader than reported: for len>1
+              // the ⊂ around each item is not printed explicitly -- the
+              // items are simply space-juxtaposed, and APL's own strand
+              // notation ("A B" auto-encloses each strand member) recreates
+              // the missing PointerCell when the record is re-evaluated.
+              // With len==1 there is no second strand member to trigger
+              // that, so the sole element would be emitted bare and one
+              // level of enclosure silently vanishes on re-evaluation
+              // (reproduced independently of any empty array: enclosing
+              // 1 2 3 once and ravelling to a 1-element vector came back
+              // as the plain scalar 1, since reshaping a 1-element result
+              // to shape 1 without the compensating enclose just truncates
+              // to the first element instead of nesting it).
+              // Compensate by enclosing the lone element explicitly.
+              if (len == 1)   ++nesting;
+
               tf2_value(level + 1, ucs, *sub_val, nesting);
            }
         else if (cell.is_lval_cell())
@@ -676,6 +699,18 @@ const ShapeItem ec = val->element_count();
       }
    else   // number
       {
+        // Bugs9 #6 (Blake McBride): the char branch above always emits a
+        // separator after the shape (even when ec == 0), but this branch
+        // relied on each element's own leading space to double as that
+        // separator -- so an empty numeric array (ec == 0) emitted none,
+        // and its own inverse then rejected the record ("missing space (in
+        // shape)"), since the shape reader requires a space after every
+        // shape item including the last. A doubled space before the first
+        // element (non-empty case) is harmless -- the reader below
+        // tokenizes the data with the normal APL tokenizer, which is
+        // whitespace-insensitive.
+        ucs << UNI_SPACE;
+
         const RavelType rt = val->get_ravel_type();
         if (rt == RPT_CELLS)
            {
@@ -823,9 +858,22 @@ ShapeItem idx = 2;
       }
 
 ShapeItem idx0 = idx;
-sRank rank = 0;
+ShapeItem rank64 = 0;   // Bugs9 #3 (Blake McBride): accumulate wide and bound
+                        // as we go -- sRank rank = ...; rank = 10*rank + ...
+                        // wraps int16_t silently (e.g. a claimed rank of
+                        // 65536 wraps to 0 and sails past the > MAX_RANK
+                        // check below), letting a bogus record parse as if
+                        // it had a small, valid rank.
    while (idx < len && Avec::is_digit(ravel[idx]))
-      rank = 10 * rank + ravel[idx++] - UNI_0;
+      {
+        rank64 = 10 * rank64 + ravel[idx++] - UNI_0;
+        if (rank64 > MAX_RANK)
+           {
+             MORE_ERROR() << "max. rank exceeded in 1 ⎕TF record";
+             return Value_P();
+           }
+      }
+const sRank rank = sRank(rank64);
 
    if (rank == 0 && idx0 == idx)
       {
@@ -839,19 +887,24 @@ sRank rank = 0;
         return Value_P();
       }
 
-   if (rank > MAX_RANK)
-      {
-        MORE_ERROR() << "max. rank exceeded in 1 ⎕TF record";
-        return Value_P();
-      }
-
 Shape shape;
    loop(r, rank)
       {
         idx0 = idx;
         ShapeItem sh = 0;
         while (idx < len && Avec::is_digit(ravel[idx]))
-           sh = 10 * sh + ravel[idx++] - UNI_0;
+           {
+             // Bugs9 #3: same wrap hazard as rank above, but here the
+             // accumulator (ShapeItem = int64_t) can also form an
+             // overflowing (UB) signed sum given enough digits, so bound
+             // *before* multiplying/adding rather than after.
+             if (sh > (LARGE_INT - 9) / 10)
+                {
+                  MORE_ERROR() << "shape item too large in 1 ⎕TF record";
+                  return Value_P();
+                }
+             sh = 10 * sh + ravel[idx++] - UNI_0;
+           }
         if (sh == 0 && idx0 == idx)   // no shape
            {
              MORE_ERROR() << "too few shape items in 1 ⎕TF record";
@@ -926,6 +979,10 @@ const int data_chars = len - idx;
 
         Value_P new_val(shape, LOC);
         loop(d, data_chars)   new_val->next_ravel_Char(ravel[idx + d]);
+        // Bugs9 #7 (Blake McBride): with data_chars == 0 (empty char array)
+        // the loop body above never runs, so new_val never gets a character
+        // cell and silently keeps the default numeric prototype.
+        if (data_chars == 0)   new_val->set_proto_Spc();
 
         new_val->check_value(LOC);
 

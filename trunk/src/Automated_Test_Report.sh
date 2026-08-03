@@ -14,20 +14,37 @@
 #
 # Usage: (from the src/ directory, after 'make test' or 'make test3' has
 # produced a summary.log with a failure in it)
-#   ./Automated_Test_Report.sh [logdir]
+#   ./Automated_Test_Report.sh [logdir] [selection]
 #
 # logdir defaults to "testcases" and must contain a summary.log (as written
 # by e.g. 'make test' -> testcases/summary.log, or 'make test3' ->
 # testcases_3/summary.log).
 #
+# selection is only used when summary.log has more than one failing
+# testcase (see step 2b below): a 1-based number picking which one to
+# isolate, in the numbered list this script would otherwise prompt for
+# interactively -- pass it to run non-interactively (e.g. from a cron job
+# or CI) instead of being asked.
+#
 # Algorithm (see plan.txt):
 #   1. Locate summary.log.
-#   2. Parse it for the ordered list of testcases that were run, and the
-#      first one with a nonzero error count -- this list is kept as an
-#      in-memory array throughout, never re-derived from a shell wildcard
-#      (globs get re-sorted by the shell, which is exactly the ordering
-#      trap this script exists to avoid).
-#   3. Drop every testcase that ran after the first failure -- irrelevant.
+#   2. Parse it for the ordered list of testcases that were run, each
+#      one's error count, and every one with a nonzero error count -- this
+#      list is kept as an in-memory array throughout, never re-derived
+#      from a shell wildcard (globs get re-sorted by the shell, which is
+#      exactly the ordering trap this script exists to avoid).
+#   2b. If more than one testcase failed, show them as a numbered list and
+#      ask which one to isolate (or take it from the command line) --
+#      a single run's summary.log cannot say by itself which of several
+#      failures is an independent bug and which are follow-on damage from
+#      an earlier one. With only one failure, nothing to choose.
+#   3. Drop every testcase that ran after the chosen failure -- irrelevant.
+#   3b. First reduction pass: if any OTHER testcase that ran before the
+#      chosen one also failed, try dropping all of them at once first, to
+#      directly answer the question Step 2b's dialog raises (independent
+#      bug, or follow-on effect of another already-known failure?) before
+#      the general-purpose minimization below has to work it out the hard
+#      way.
 #   4. Re-run apl once to confirm the resulting set still reproduces the
 #      same failure (the log may be stale).
 #   5. Bisect: repeatedly try halving the remaining candidate set.
@@ -236,16 +253,18 @@ fi
 # ---------------------------------------------------------------------------
 # 2. parse summary.log: build the ordered testcase-name list, the matching
 # original path (as recorded in the log, relative to $SRC_DIR) for each,
-# and find the first one with a nonzero error count.
+# each entry's error count, and the full list of entries with a nonzero
+# error count (there may be more than one -- see Step 2b below).
 # ---------------------------------------------------------------------------
-step "parse summary.log for the run order and the first failure"
+step "parse summary.log for the run order and all failures"
 
 action "read $SUMMARY line by line, extracting each entry's error count" \
        "and testcase path"
 
 all_names=()
 all_paths=()
-target_idx=-1
+all_errs=()
+fail_idxs=()
 
 # an entry with apl_errors > 0 (a testcase left something on the )SI stack,
 # etc.) spans two lines: "N time (M APL,   loc=... .tc line=L" followed by
@@ -274,9 +293,10 @@ while IFS= read -r line; do
 
    all_paths+=("$local_path")
    all_names+=("$(basename "$local_path")")
+   all_errs+=("$local_errs")
 
-   if (( target_idx < 0 )) && (( local_errs > 0 )); then
-      target_idx=$(( ${#all_names[@]} - 1 ))
+   if (( local_errs > 0 )); then
+      fail_idxs+=($(( ${#all_names[@]} - 1 )))
    fi
 done < "$SUMMARY"
 
@@ -288,16 +308,98 @@ if (( ${#all_names[@]} == 0 )); then
    exit 1
 fi
 
-if (( target_idx < 0 )); then
+if (( ${#fail_idxs[@]} == 0 )); then
    boundary "${#all_names[@]} entries parsed, none with a nonzero" \
             "error count"
    consequence "nothing to narrow down -- the recorded run passed cleanly"
    exit 0
 fi
 
+boundary "${#all_names[@]} entries parsed; ${#fail_idxs[@]} with a" \
+         "nonzero error count"
+if (( ${#fail_idxs[@]} == 1 )); then
+   consequence "only one failing testcase -- nothing to choose between"
+else
+   consequence "more than one failing testcase -- which to isolate is" \
+               "decided next (Step 2b)"
+fi
+
+# ---------------------------------------------------------------------------
+# 2b. if more than one testcase failed, a single run's summary.log cannot
+# tell, by itself, which of them is an independent bug and which are mere
+# follow-on damage from an earlier one (shared-workspace interference is
+# exactly what this script exists to untangle in the first place) -- so
+# ask which one to isolate, rather than silently guessing "the first one".
+# With only one failure there is nothing to choose, so this step is a
+# no-op in that case.
+# ---------------------------------------------------------------------------
+step "choose which failing testcase to isolate"
+
+if (( ${#fail_idxs[@]} == 1 )); then
+   action "check how many testcases failed"
+   boundary "only one (${all_names[${fail_idxs[0]}]}) -- Step 2 already" \
+            "established this"
+   consequence "skipped -- nothing to choose"
+   target_idx=${fail_idxs[0]}
+else
+   action "list every failing testcase, in the order it ran, for the user" \
+          "to choose from"
+   echo
+   for i in "${!fail_idxs[@]}"; do
+      fi=${fail_idxs[$i]}
+      printf '  %d) %-40s (%s error%s)\n' "$((i + 1))" "${all_names[$fi]}" \
+             "${all_errs[$fi]}" \
+             "$([[ ${all_errs[$fi]} == 1 ]] || echo s)"
+   done
+   echo
+   boundary "${#fail_idxs[@]} failing testcases printed above, numbered" \
+            "1..${#fail_idxs[@]} in run order"
+
+   selection=""
+   if (( $# > 1 )) && [[ $2 =~ ^[0-9]+$ ]] \
+      && (( $2 >= 1 && $2 <= ${#fail_idxs[@]} ))
+   then
+      selection=$2
+      consequence "selection given on the command line: #$selection"
+   # /dev/tty can exist as a device node yet still fail to open (ENXIO --
+   # no controlling terminal, e.g. under some sandboxes/containers) even
+   # though a plain [[ -r/-w ]] check on it says yes -- confirmed directly,
+   # so actually try to open it rather than trust those tests alone. Done
+   # in a subshell first, purely to test openability: "exec 5<>/dev/tty
+   # 2>/dev/null" directly (no subshell) does NOT suppress bash's own
+   # redirection-failure message here -- confirmed directly -- because
+   # that message is emitted while setting up 5<>/dev/tty itself, before
+   # the later 2>/dev/null redirection in the same command has taken
+   # effect. A subshell scopes both the attempt and its stderr cleanly.
+   elif ( exec 5<>/dev/tty ) 2>/dev/null && exec 5<>/dev/tty; then
+      # read from /dev/tty (fd 5) explicitly, not plain stdin -- later apl
+      # runs in this script feed their own stdin via a heredoc, but that
+      # must never be confused with (or consume) this interactive prompt,
+      # and this also lets the prompt work even if the script's own stdin
+      # happens to be redirected from something else.
+      while :; do
+         read -r -p "Which failing testcase should be isolated? [1-${#fail_idxs[@]}, default 1]: " \
+                 selection <&5 >&5 2>&1
+         [[ -z "$selection" ]] && { selection=1; break; }
+         [[ "$selection" =~ ^[0-9]+$ ]] \
+            && (( selection >= 1 && selection <= ${#fail_idxs[@]} )) && break
+         echo "please enter a number between 1 and ${#fail_idxs[@]}" >&5
+      done
+      exec 5>&-
+      consequence "user selected #$selection"
+   else
+      selection=1
+      consequence "no usable /dev/tty (non-interactive run) and no" \
+                  "selection given on the command line -- defaulting to" \
+                  "#1 (${all_names[${fail_idxs[0]}]}); pass a number as a" \
+                  "second argument to choose a different one non-interactively"
+   fi
+
+   target_idx=${fail_idxs[$((selection - 1))]}
+fi
+
 target=${all_names[$target_idx]}
-boundary "${#all_names[@]} entries parsed; the first with a nonzero" \
-         "error count is #$((target_idx + 1)): $target"
+boundary "isolating #$((target_idx + 1)) of ${#all_names[@]}: $target"
 consequence "target = $target"
 
 # ---------------------------------------------------------------------------
@@ -332,14 +434,26 @@ done
 ln -s "$SRC_DIR/$target_path" "$WORK/$target"
 
 # ---------------------------------------------------------------------------
-# run_apl OUTVAR path1 path2 ...
+# run_apl_and_check OUTVAR path1 path2 ...
 #
-# Runs apl --TM 3 over exactly the given testcase paths, in exactly the
-# given order, and stores the name of the first failing testcase (or an
-# empty string, if none failed) into the caller's OUTVAR. Quiet -- callers
-# narrate the result themselves via action/boundary/consequence.
+# Runs every given testcase path to completion, in exactly the given order
+# -- deliberately WITHOUT --TM (which stops the whole run dead at the
+# FIRST mismatch anywhere in the set, confirmed directly: with --TM 3, an
+# earlier file that itself fails prevents every later file, including
+# $target, from ever running at all -- there would be no way to tell
+# whether $target's own bug is independent of an earlier known failure, or
+# a follow-on effect of it, which is exactly the question Step 3b below
+# needs an answer to). Instead, every given path always runs, and this
+# looks up $target's OWN recorded result afterward, regardless of what
+# else in the run passed or failed, before or after it.
+#
+# Stores $target's error count (as a plain non-negative integer) into the
+# caller's OUTVAR, or the empty string if $target's own result could not
+# be determined at all (crashed before its own entry was ever written --
+# see the Testfile: banner fallback below). Quiet -- callers narrate the
+# result themselves via action/boundary/consequence.
 # ---------------------------------------------------------------------------
-run_apl()
+run_apl_and_check()
 {
    local -n out_ref=$1
    shift
@@ -355,27 +469,51 @@ run_apl()
    run_home=$(mktemp -d)
    local logfile
    logfile=$(mktemp)
-   HOME="$run_home" ./apl --id 1010 --noColor --TM 3 -T "$@" \
+   HOME="$run_home" ./apl --id 1010 --noColor -T "$@" \
       <<< ')OFF' > "$logfile" 2>&1
    rm -rf "$run_home"
 
-   # normal path: apl stopped gracefully and told us which file failed.
-   local failed
-   failed=$(sed -n 's/^Failed testcase is //p' "$logfile" | head -1)
+   # apl -T always (re)writes a summary.log next to the given testcase
+   # paths -- every path this script ever passes lives under $WORK, so
+   # that is where to look; parsed with the exact same two-line-entry
+   # logic as Step 2 above.
+   local errs="" pending="" line path e
+   if [[ -f "$WORK/summary.log" ]]; then
+      while IFS= read -r line; do
+         if [[ "$line" != *.tc ]]; then
+            if [[ "$line" =~ ^[[:space:]]*([0-9]+)[[:space:]].*\(.*APL, ]]; then
+               pending=${BASH_REMATCH[1]}
+            fi
+            continue
+         fi
+         path=${line##* }
+         if [[ -n "$pending" ]]; then e=$pending; pending=""
+         else read -r e _ <<< "$line"; fi
+         [[ "$(basename "$path")" == "$target" ]] || continue
+         errs=$e
+         break
+      done < "$WORK/summary.log"
+   fi
 
-   if [[ -z "$failed" ]] \
-      && ! grep -aq ' errors in [0-9]*([0-9]*) testcase files' "$logfile"
-   then
-      # apl terminated abnormally (e.g. crashed) before it could print
-      # either "Failed testcase is ..." or the closing summary line. The
-      # last "Testfile:" banner names the testcase that was running.
-      failed=$(sed -n 's/^ *## *Testfile: *\([^ ]*\.tc\).*$/\1/p' "$logfile" \
-               | tail -1)
-      [[ -n "$failed" ]] && failed="$failed (apl terminated abnormally)"
+   if [[ -z "$errs" ]]; then
+      # $target's own entry never made it into summary.log -- apl most
+      # likely crashed partway through and never got as far as writing
+      # it. The last "Testfile:" banner in the raw transcript names
+      # whichever testcase was actually running when that happened.
+      local crashed_on
+      crashed_on=$(sed -n 's/^ *## *Testfile: *\([^ ]*\.tc\).*$/\1/p' \
+                   "$logfile" | tail -1)
+      if [[ -n "$crashed_on" ]] && [[ "$(basename "$crashed_on")" == "$target" ]]
+      then
+         errs="crashed"
+      fi
+      # otherwise leave errs empty: apl crashed on some OTHER (earlier)
+      # file, or exited before reaching $target for some other reason --
+      # $target's own status here is simply unknown/not applicable.
    fi
 
    rm -f "$logfile"
-   out_ref=$failed
+   out_ref=$errs
 }
 
 # ---------------------------------------------------------------------------
@@ -395,31 +533,99 @@ reproduces()
    for n in "${rp_cands[@]}"; do rp_paths+=("$WORK/$n"); done
    rp_paths+=("$WORK/$target")
 
-   local rp_result
-   run_apl rp_result "${rp_paths[@]}"
+   local rp_errs
+   run_apl_and_check rp_errs "${rp_paths[@]}"
 
-   if [[ -z "$rp_result" ]]; then
-      RESULT_TEXT="apl passed -- $target did not fail"
+   if [[ -z "$rp_errs" ]]; then
+      RESULT_TEXT="apl did not reach $target at all -- it crashed (or" \
+                  " otherwise stopped) on an earlier file first"
       return 1
    fi
 
-   local rp_name
-   rp_name=$(basename "$rp_result")
-   if [[ "$rp_name" == "$target"* ]]; then
-      RESULT_TEXT="apl still failed on $rp_result"
+   if [[ "$rp_errs" == crashed ]]; then
+      RESULT_TEXT="$target itself crashed apl (terminated abnormally" \
+                  " while $target was running)"
       return 0
    fi
 
-   RESULT_TEXT="apl failed, but on $rp_result instead of $target"
+   if (( rp_errs > 0 )); then
+      RESULT_TEXT="$target still failed ($rp_errs error(s))"
+      return 0
+   fi
+
+   RESULT_TEXT="apl passed -- $target did not fail"
    return 1
 }
 
 # ---------------------------------------------------------------------------
-# 4. sanity check: does the log-derived set still reproduce right now?
+# 3b. first reduction pass: if any OTHER testcase that ran before $target also
+# failed (per Step 2/2b), try dropping all of those at once, before doing
+# anything else. This is the specific question Step 2b's selection dialog
+# raises: is the chosen failure its own, independent bug, or merely
+# follow-on damage from one of the other testcases already known to have
+# failed earlier in the same run? Bisection/one-by-one removal (Step 6/7
+# below) would eventually reach the same answer on its own, but only after
+# treating the other known-bad testcase(s) as just more unnamed candidates
+# among possibly many passing ones -- asking the question explicitly, first,
+# gives a direct answer to exactly what Step 2b's dialog was about, and
+# shrinks the set minimization has to work with whenever the answer is
+# "independent".
+# ---------------------------------------------------------------------------
+step "first reduction pass: drop the other known-failing testcase(s)"
+
+other_fail_names=()
+for fi in "${fail_idxs[@]}"; do
+   (( fi == target_idx )) && continue
+   (( fi < target_idx )) && other_fail_names+=("${all_names[$fi]}")
+done
+
+action "check whether any OTHER testcase that ran before $target also" \
+       "failed, per the summary.log entries parsed in Step 2"
+if (( ${#other_fail_names[@]} == 0 )); then
+   boundary "no other testcase before $target failed"
+   consequence "skipped -- nothing to drop here"
+else
+   boundary "${#other_fail_names[@]} other failing testcase(s) ran" \
+            "before $target: ${other_fail_names[*]}"
+
+   reduced_candidates=()
+   for c in "${candidates[@]}"; do
+      is_other=no
+      for o in "${other_fail_names[@]}"; do
+         [[ "$c" == "$o" ]] && { is_other=yes; break; }
+      done
+      [[ "$is_other" == no ]] && reduced_candidates+=("$c")
+   done
+
+   action "run apl on the candidate set with ${#other_fail_names[@]} other" \
+          "known-failing testcase(s) removed, keeping every ordinary" \
+          "(passing) candidate + $target"
+   if reproduces reduced_candidates; then
+      boundary "$RESULT_TEXT"
+      candidates=("${reduced_candidates[@]}")
+      consequence "$target's failure does NOT depend on the other" \
+                  "known-failing testcase(s) -- confirmed independent," \
+                  "dropping them; ${#candidates[@]} candidate(s) remain" \
+                  "for the normal minimization below"
+   else
+      boundary "$RESULT_TEXT"
+      consequence "$target's failure depends on at least one of the" \
+                  "other known-failing testcase(s) -- it may be a" \
+                  "follow-on effect rather than an independent bug;" \
+                  "keeping them in the candidate set so the normal" \
+                  "minimization below (which narrows down to exactly" \
+                  "what is required) can sort out which one(s)"
+   fi
+fi
+
+# ---------------------------------------------------------------------------
+# 4. sanity check: does the (possibly just-reduced) candidate set still
+# reproduce right now?
 # ---------------------------------------------------------------------------
 step "confirm the failure still reproduces"
 
-action "run apl --TM 3 on all ${#candidates[@]} candidate(s) + $target"
+action "run apl on all ${#candidates[@]} candidate(s) + $target, and check" \
+       "$target's own result"
 if reproduces candidates; then
    boundary "$RESULT_TEXT"
    consequence "proceeding to minimize this set"

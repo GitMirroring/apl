@@ -92,11 +92,11 @@ dead
 
 
       DCS⍒'AVENUE'
-2 5 4 6 3 1
+2 5 4 3 6 1
 
       H←'YZOMMXA'
       DCS⍒H
-2 1 6 3 5 4 7
+2 1 6 3 4 5 7
 
       H[DCS⍒H]
 ZYXOMMA
@@ -160,7 +160,7 @@ X1
       ⍝ identical subarrays ----------------------------------
 
       'ABCDE'⍒'DABBED'
-5 6 1 4 3 2
+5 1 6 3 4 2
       'DABBED'['ABCDE'⍒'DABBED']
 EDDBBA
 
@@ -169,9 +169,9 @@ EDDBBA
       Q←'BLEAT'
       W←'ABCDE'⍒Q
       W
-5 2 3 1 4
+2 5 3 1 4
       Q[W]
-TLEBA
+LTEBA
 
       )CHECK BRIEF
 

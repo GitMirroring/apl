@@ -177,12 +177,12 @@ const uint8_t * ravel = data + 16 + 4*rank;
       }
    else if (vtype == CDR_CHAR8)   // 1 byte char vector
       {
-        loop(n, nelm)
-           {
-             uint32_t d = ravel[n];
-             if (d & 0x80)   d |= 0xFFFFFFFFFFFFFF00ULL;
-             Z->next_ravel_Char(Unicode(d));
-           }
+        // Bugs9 #4 (Blake McBride): sign-extending a *character* byte is
+        // meaningless (chars 128-255, e.g. Latin-1 e-acute, came back as
+        // negative Unicode code points) and disagreed with both the writer
+        // (CDR::fill() type 4 stores the plain unsigned byte) and the
+        // nested-scalar CHAR8 reader just below (no sign extension).
+        loop(n, nelm)   Z->next_ravel_Char(Unicode(ravel[n]));
       }
    else if (vtype == CDR_CHAR32)   // 4 byte UNICODE vector
       {
@@ -278,7 +278,17 @@ const uint8_t * ravel = data + 16 + 4*rank;
 
                    if (sub_vtype == 5)        // 4 byte Unicode
                       {
-                        Z->next_ravel_Char(Unicode(get_4_be(sub_ravel)));
+                        // Bugs9 #5 (Blake McBride): GNU APL's CDR is
+                        // deliberately mixed-endian -- header fields use
+                        // get_4_be(), but ravel data (including this nested
+                        // scalar, matching the writer at CDR.cc and the
+                        // sibling int branch just above) is native/little-
+                        // endian. Using get_4_be() here read written bytes
+                        // in the wrong order (e.g. U+012C came back as
+                        // 0x2C010000).
+                        Z->next_ravel_Char(Unicode(
+                               *reinterpret_cast<const uint32_t *>
+                                                 (sub_ravel)));
                         continue;   // next n
                       }
 

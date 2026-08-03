@@ -1484,14 +1484,33 @@ void * buffer[200];
 const int size = backtrace(buffer, sizeof(buffer)/sizeof(*buffer));
 char ** strings = backtrace_symbols(buffer, size);
 
+   // Bugs9 #12 (Blake McBride): strings[offset] was read without checking
+   // offset against size (callers pass a literal 3, so a shallower stack
+   // read out of bounds) nor against backtrace_symbols() returning 0 (its
+   // documented allocation-failure return).
+   if (strings == 0 || offset < 0 || offset >= size)
+      {
+        free(strings);
+        return "???";
+      }
+
+   // demangled is deliberately leaked: this is a one-shot diagnostic path
+   // (only reached under LOG_error_throw-style logging), and its callers
+   // (UCS_string.cc) use the returned string once, immediately, in a
+   // stream expression with no way to free it afterwards.
 char * demangled = static_cast<char *>(malloc(1024));
    if (demangled)
        {
          *demangled = 0;
          demangle_line(demangled, 1024, strings[offset]);
+         free(strings);
          return demangled;
        }
-   return strings[offset];
+
+static char fallback[256];
+   SPRINTF(fallback, "%.255s", strings[offset]);
+   free(strings);
+   return fallback;
 }
 //────────────────────────────────────────────────────────────────────────────
 int

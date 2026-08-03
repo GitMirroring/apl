@@ -113,17 +113,17 @@ const int function_number = A.get_int_value(0);
                return eval_B(B);
              }
 
-         case 1:   // read and convert a JSOM file
+         case 1:   // read and convert a JSON file
               {
                 return convert_file(B);
               }
 
-         case 2:   // read and convert a JSOM file (unsorted)
+         case 2:   // convert an APL value to a JSON string (unsorted)
               {
                 return Token(TOK_APL_VALUE1, APL_to_JSON(B, false));
               }
 
-         case 3:   // read and convert a JSOM file (sorted)
+         case 3:   // convert an APL value to a JSON string (sorted)
               {
                 return Token(TOK_APL_VALUE1, APL_to_JSON(B, true));
               }
@@ -232,6 +232,13 @@ Quad_JSON::APL_to_JSON_string(UCS_string & result, const cValue & B,
       {
         std::vector<ShapeItem> member_indices;
         B.used_members(member_indices, sorted);
+
+        // Bugs9 #10 (Blake McBride): the opening brace was only ever
+        // emitted inside the loop below (guarded by "if (m)"), so an
+        // object with zero members printed the closing UNI_R_CURLY at
+        // :259 without a matching opening one -- invalid JSON, and not
+        // even parseable by ⎕JSON's own reader.
+        if (member_indices.size() == 0)   { result << "{}";   return; }
 
         loop(m, member_indices.size())
            {
@@ -991,6 +998,13 @@ Value_P Zsub(content_len, LOC);
 
          Zsub->next_ravel_Char(uni);
        }
+
+   // Bugs9 #11 (Blake McBride): with content_len == 0 ("" ) the loop above
+   // never runs, so Zsub never gets a character cell and silently keeps
+   // the default numeric prototype -- a subsequent re-serialisation then
+   // (correctly, given the wrong prototype) emits a JSON array instead of
+   // an empty string. Same one-line shape as Bugs9 #7.
+   if (content_len == 0)   Zsub->set_proto_Spc();
 
    Zsub->check_value(LOC);
    Z.next_ravel_Pointer(Zsub.get());

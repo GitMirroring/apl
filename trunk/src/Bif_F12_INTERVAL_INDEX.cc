@@ -188,6 +188,25 @@ ShapeItem count = 0;
               DOMAIN_ERROR;
             }
 
+         // Bugs9 #2 (Blake McBride): count += Bi with no overflow check let
+         // e.g. 4×4611686018427387904 (= 2^64 ≡ 0) allocate Z with zero
+         // cells while the fill loop below still performs 2^62
+         // next_ravel_Int() calls -- heap overflow, SIGSEGV.
+         //
+         // NOTE: the obvious fix -- form count+Bi first and check the
+         // result via Cell::sum_overflow(), the pattern
+         // Bif_REDUCE::replicate() uses -- does NOT reliably work here:
+         // forming an overflowing signed sum is undefined behaviour, and
+         // at -O2 the compiler silently optimizes the subsequent check
+         // away based on the assumption that the overflow it just
+         // computed cannot have happened (confirmed empirically: the
+         // exact same Cell::sum_overflow() call, given the exact same
+         // already-overflowed inputs, returns true in an isolated test
+         // program but false here). Bi and count are both already known
+         // >= 0 at this point (Bi < 0 was rejected above), so check
+         // *before* adding, using only well-defined subtraction/compare.
+         //
+         if (Bi > LARGE_INT - count)   WS_FULL;
          count += Bi;
        }
 
