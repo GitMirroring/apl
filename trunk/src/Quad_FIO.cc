@@ -1565,7 +1565,30 @@ int conversion_count_A = 0;   // the number of conversions (in A_format)
                             // buffer to what this conversion actually needs.
                             //
                             int need = snprintf(0, 0, fmt, int_val);
-                            if (need < 0)   need = 0;
+                            if (need < 0)
+                               {
+                                 // Bugs8 #5 (Blake McBride): glibc returns
+                                 // -1/EOVERFLOW when the conversion would
+                                 // exceed INT_MAX; clamping to 0 silently
+                                 // formatted into a 1-byte buffer and
+                                 // appended the resulting empty string.
+                                 //
+                                 MORE_ERROR() << "⎕FIO printf: format '"
+                                    << fmt << "' rejected by snprintf() "
+                                       "(width/precision too large)";
+                                 DOMAIN_ERROR;
+                               }
+
+                            // Bugs8 #4 (Blake McBride): need is
+                            // user-controlled via the format string's
+                            // width/precision and was never bounded, so a
+                            // single expression could allocate gigabytes
+                            // and OOM-kill the interpreter instead of
+                            // raising WS FULL.
+                            //
+                            if (Value::check_WS_FULL("⎕FIO printf", need, LOC))
+                               WS_FULL;
+
                             vector<char> dynbuf(need + 1);
                             snprintf(&dynbuf[0], dynbuf.size(), fmt, int_val);
                             if (thousands)  group_thousands(UZ, &dynbuf[0], false);
@@ -1582,7 +1605,17 @@ int conversion_count_A = 0;   // the number of conversions (in A_format)
                             fmt[fm++] = uni_1;   fmt[fm] = 0;
 
                             int need = snprintf(0, 0, fmt, float_val);
-                            if (need < 0)   need = 0;
+                            if (need < 0)
+                               {
+                                 MORE_ERROR() << "⎕FIO printf: format '"
+                                    << fmt << "' rejected by snprintf() "
+                                       "(width/precision too large)";
+                                 DOMAIN_ERROR;
+                               }
+
+                            if (Value::check_WS_FULL("⎕FIO printf", need, LOC))
+                               WS_FULL;
+
                             vector<char> dynbuf(need + 1);
                             snprintf(&dynbuf[0], dynbuf.size(), fmt, float_val);
                             char * const numbuf = &dynbuf[0];

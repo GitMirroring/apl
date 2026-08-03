@@ -124,10 +124,24 @@ Executable::execute_body() const
 {
 StateIndicator & si = *Workspace::SI_top();
 
-   try                 { return si.run();                               }
-   catch (Error err)   { return Token(TOK_ERROR, err.get_error_code()); }
+   try                       { return si.run();                             }
+   catch (const Error & err) { return Token(TOK_ERROR, err.get_error_code()); }
 
-   catch (std::bad_alloc &) { return Token(TOK_ERROR, E_SYSTEM_ERROR);       }
+   catch (std::bad_alloc &)
+      {
+        // Bugs8 #2 (Blake McBride): a bare Token(TOK_ERROR, ...) here (with
+        // no Error ever stored into the SI) left ⎕ET/⎕EM holding whatever
+        // the *previous* error was, so Command::process_line() printed
+        // nothing and the caller (interactively or inside a function) saw
+        // no result and no error at all. Build and attach a real Error
+        // instead, exactly like throw_apl_error() does.
+        //
+        Error error(E_WS_FULL, LOC);
+        if (StateIndicator * si = Workspace::SI_top())
+           error.update_error_info(si);
+        MORE_ERROR() << "C++ allocation failed (std::bad_alloc)";
+        return Token(TOK_ERROR, error.get_error_code());
+      }
    catch (...)              { FIXME; }
 
    // not reached
@@ -1564,7 +1578,7 @@ ExecuteList * fun = new ExecuteList(data, loc);
       {
         fun->parse_body_line(Function_Line_0, data, false, loc, false);
       }
-   catch (Error err)
+   catch (const Error & err)
       {
         if (Error * werr = Workspace::get_error())   *werr = err;
 

@@ -118,7 +118,7 @@ const bool query = args.size() &&
            { out << " present     │ ";   closedir(dir); }
         else
            {
-             char cc[10];
+             char cc[16];   // "(%u)" of an int errno needs up to 13 bytes
              SPRINTF(cc, "(%u)", errno);
              out << " missing " << setw(4) << cc << "│ ";
            }

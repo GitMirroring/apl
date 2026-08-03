@@ -155,7 +155,15 @@ public:
    /// return the length of dimension \b r
    /// @param r axis index (0-based from the highest dimension)
    ShapeItem get_shape_item(sAxis r) const
-      { Assert(r >= 0 && r < rho_rho);   return rho[r]; }
+      { Assert(r >= 0 && r < rho_rho);
+        // hardening only (Bugs8 #9, Blake McBride): Assert() is
+        // compiled out at the default assert level, and GCC flags
+        // rho[-1] as reachable on ~26 inlined call sites -- most
+        // likely all false positives from GCC not seeing the callers'
+        // rank guards (no APL expression was found that reaches this),
+        // but the clamp costs nothing.
+        if (r < 0)   r = 0;
+        return rho[r]; }
 
    /// return the length of dimension \b r
    /// @param r axis index counted from the last (lowest) dimension

@@ -514,6 +514,51 @@ build_git()
   make $J8
 }
 
+# build the AddressSanitizer variant -- CXXFLAGS/LDFLAGS with embedded
+# spaces can't go through build_cfg_asan (build_one passes it to
+# ../../configure as one unquoted, word-split argument, which would
+# split "-fsanitize=address -fno-omit-frame-pointer -g -O1" into
+# separate bogus configure options instead of one CXXFLAGS value) -- so
+# this exports them as real environment variables around build_one/
+# test_one instead, same as testing this manually from a shell.
+#
+# ASan roughly doubles both compile-time and run-time memory use, which
+# is a real risk on server72 (848M RAM, 1 core -- see the disk-full
+# incidents in project history) but not on server68 (15G RAM, 12
+# cores). Rather than maintain two different DEFAULT_CONFIGS lists (and
+# risk them diverging across the "make server72" tarball push), this
+# function checks its own host and is a no-op everywhere except
+# server68.
+build_asan()
+{
+   if [ "$(hostname)" != "server68" ]
+   then
+      echo "skipping 'asan' configuration: only runs on server68 (needs" \
+           "more RAM/CPU than this host has to offer safely)."
+      return
+   fi
+
+   echo "building configuration 'asan' (AddressSanitizer)"
+   VSRC_dir="$TOP_BUILD_dir/builddir_asan/src"
+   CXXFLAGS="-fsanitize=address -fno-omit-frame-pointer -g -O1" \
+   LDFLAGS="-fsanitize=address" \
+      build_one "asan" "$STD ASSERT_LEVEL_WANTED=2" "$VSRC_dir/apl"
+   local cfg_ok=$?
+
+   if [ $cfg_ok -eq 0 ]
+   then
+      # LeakSanitizer (bundled with ASan, on by default) flags a lot of
+      # GTK/GLib's own internal caching as "leaks" -- not real bugs,
+      # just noise from a GUI toolkit that was never designed to be run
+      # under a leak checker. Disable it here and keep the
+      # memory-corruption detectors (buffer overflows, use-after-free,
+      # alloc/dealloc mismatches -- the actually useful part) active.
+      ASAN_OPTIONS="detect_leaks=0" test_one "asan"
+      [ $? -eq 0 ] || cfg_ok=1
+   fi
+   [ $cfg_ok -eq 0 ] && rm -Rf "$TOP_BUILD_dir/builddir_asan"
+}
+
 ###################################################################
 # main build loop
 #

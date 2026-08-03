@@ -188,6 +188,20 @@ main(int argc, char * argv[])
 bool need_help = false;
 bool auto_started = false;
 
+   // Bugs8 #3 (Blake McBride): src/main.cc sets SIGCHLD to SIG_IGN ("do
+   // not create zombies") before execve()ing this AP binary. SIG_IGN
+   // survives execve() (POSIX), so without this reset every AP inherits
+   // it and any raw popen()/pclose() it does (e.g. AP100.cc, APserver.cc)
+   // has its pclose() always fail with ECHILD and return -1, which
+   // AP100.cc's "result >> 8 & 0xFF" then turns into a bogus exit status
+   // of 255 for every host command. Reset here (before the fork() below,
+   // so the forked child -- which is the AP that actually runs -- starts
+   // from a sane signal state too) rather than in each AP individually.
+   //
+#if ! MINGW_SRC
+   signal(SIGCHLD, SIG_DFL);
+#endif // ! MINGW_SRC
+
    prog = argv[0];
 char bin_path[FILENAME_MAX];
    strncpy(bin_path, prog, sizeof(bin_path) - 1);

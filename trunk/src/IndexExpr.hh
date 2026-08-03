@@ -81,11 +81,37 @@ public:
    /// return the single axis value and clear it in \b this IndexExpr.
    Value_P extract_axis();
 
-   /// erase stale IndexExprs
-   /// @param loc caller location for diagnostics
-   static void erase_stale(const char * loc);
+   /// mark all IndexExprs in the ring as (tentatively) stale. Mirrors
+   /// Value::mark_all_dynamic_values(); see print_stale().
+   static void mark_all_dynamic_index_exprs();
+
+   /// true if this IndexExpr was marked by mark_all_dynamic_index_exprs()
+   /// and not yet unmarked as reachable.
+   bool is_marked() const   { return marked; }
+
+   /// mark this IndexExpr as (tentatively) stale.
+   void set_marked() const   { marked = true; }
+
+   /// clear the marked flag, i.e. record that this IndexExpr was found
+   /// reachable from a live TOK_PINDEX/TOK_INDEX token (see
+   /// Prefix::unmark_all_values()).
+   void unmark() const   { marked = false; }
 
    /// print stale IndexExprs, and return the number of stale IndexExprs.
+   ///
+   /// Unlike erase_stale() (removed, see IndexExpr.cc), this never
+   /// deletes anything: it independently re-derives reachability (mark
+   /// all, then unmark those reachable from a live SI) rather than
+   /// trusting any bookkeeping, and only reports what is still marked
+   /// afterwards. Actual freeing of IndexExprs stays exactly where it
+   /// already correctly happens (Prefix::clean_up() and the individual
+   /// reduce_*() delete sites) -- deleting something this diagnostic
+   /// merely *suspects* is stale is what caused Bugs8 #1 (Blake
+   /// McBride): deleting a live IndexExpr is (near-)guaranteed to
+   /// segfault later in ~IndexExpr(), since the dangling pointer is
+   /// still sitting in a TOK_PINDEX/TOK_INDEX token on some SI's prefix
+   /// stack, scheduled for a second delete at the next )SIC/)CLEAR/
+   /// )RESET.
    /// @param out output stream for the diagnostic report
    static int print_stale(ostream & out);
 
@@ -104,6 +130,9 @@ protected:
 
    /// the number of values (excluding elided)
    uRank value_count;
+
+   /// see is_marked()/set_marked()/unmark()
+   mutable bool marked;
 };
 //════════════════════════════════════════════════════════════════════════════
 

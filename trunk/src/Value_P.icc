@@ -347,6 +347,13 @@ Value_P_Base::isolate_deep(const char * loc)
 inline void
 Value_P_Base::move(Value_P_Base & other, const char * loc)
 {
+   // Bugs8 #9 (Blake McBride): with &other == this, decrementing (and
+   // possibly deleting) *this below, then re-reading other.value_p (the
+   // same, now-dangling object) is a use-after-free. No known caller
+   // does this, so this is hardening only.
+   //
+   if (this == &other)   return;
+
    if (value_p)   value_p->decrement_owner_count(loc);
    value_p = other.value_p;
    if (value_p)

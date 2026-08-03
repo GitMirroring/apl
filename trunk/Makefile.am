@@ -109,6 +109,7 @@ SYNC:	DIST
 #
 .PHONY:	EXPO
 EXPO:
+	$(MAKE) -C tools -j10
 	tools/check_src
 	tools/check_command_def
 	svn -m "auto-commit by make EXPO, local SVN: `svnversion`" commit
@@ -124,6 +125,7 @@ EXPO:
 # EXPO1 is EXPO without updating/committing from/to SVN
 .PHONY:	EXPO1
 EXPO1:
+	$(MAKE) -C tools -j10
 	tools/check_src
 	tools/check_command_def
 	./configure --disable-maintainer-mode

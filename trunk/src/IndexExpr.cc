@@ -29,48 +29,33 @@
 
 //════════════════════════════════════════════════════════════════════════════
 IndexExpr::IndexExpr(Assign_state astate, const char * loc)
-   // M28 (Blake's report, Bugs6 #5): switching this to
-   // DynamicObject(loc, &all_index_exprs) -- so erase_stale()/)CHECK's
-   // "no stale indices" diagnostic would actually do something, instead
-   // of being a permanent no-op -- was tried TWICE and reverted TWICE,
-   // both times after a real SIGSEGV in ~IndexExpr() during
-   // Prefix::clean_up() at )CLEAR (Quad_SYL.tc).
+   // Ring membership (Bugs6 #5) was tried and reverted TWICE before this
+   // (see r2053/r2054 history), both times because erase_stale() *deleted*
+   // whatever it found via the ring -- and it had no way to tell a stale
+   // IndexExpr from a live one (no owner_count; a live one is the normal
+   // case while an index is on some SI's suspended prefix stack). Deleting
+   // a live IndexExpr is a segfault waiting to happen: the dangling
+   // pointer is still sitting in a TOK_PINDEX/TOK_INDEX token, scheduled
+   // for a second delete at the next )SIC/)CLEAR/)RESET (Blake McBride,
+   // Bugs8 #1 -- almost certainly also Bill Heagy's original crash).
    //
-   // First revert: at the time, DynamicObject had no destructor at all,
-   // so any IndexExpr deleted through a path other than
-   // IndexExpr::erase_stale()'s own ring walk (e.g. Prefix::clean_up()'s
-   // "delete &tok.get_index_val();", or any of the individual delete
-   // call sites in Parser.cc) left a dangling entry in all_index_exprs
-   // -- exactly the Value/all_values bug fixed as Bugs6 #1, just for
-   // IndexExpr.
-   //
-   // Second attempt (2026-07-30, SVN 2053): added
-   // ~DynamicObject(){ unlink(); } for #1, reasoned that this made the
-   // ring-membership change safe by the same logic, verified extensively
-   // (exact Quad_SYL.tc repro, repeated-error+)SIC stress tests, a
-   // suspended-state )SAVE/)LOAD round trip, the full regression suite
-   // multiple times) -- all passed locally. Shipped, then a real user
-   // (Bill Heagy) hit a SEGSEGV in the exact same place running the full
-   // testcase suite (`apl -T testcases/*.tc`), which exercises far more
-   // cross-file / cross-testcase workspace state than any of the above
-   // targeted tests did. Could not reproduce locally afterwards (targeted
-   // 2-file repro of the alphabetically-preceding testcase +
-   // Quad_SYL.tc, and a full 269-file suite run under AddressSanitizer,
-   // both completed cleanly) or pin down the exact mechanism through
-   // further static analysis of Prefix.cc's IndexExpr-handling reduce_*()
-   // functions and Prefix::reset()/clean_up(). Reverted again out of
-   // caution rather than ship continued uncertainty on a real crash.
-   //
-   // Left as the original, safe, always-no-op anchor-only form. Do not
-   // re-attempt without first getting a locally-reproducible crash (Bill
-   // Heagy's exact SVN revision/environment/full testcase-order may
-   // matter) -- verifying against a hand-picked subset of testcases is
-   // not sufficient, as this history now shows twice over.
-   : DynamicObject(loc),
+   // Fix: IndexExpr::erase_stale() is gone. Actual freeing stays exactly
+   // where it already correctly happened all along (Prefix::clean_up(),
+   // the individual reduce_*() delete sites). Ring membership now exists
+   // purely so that print_stale() (used by )CHECK and by IO_Files.cc at
+   // the end of every .tc file) can independently re-derive reachability
+   // -- mark every IndexExpr in the ring, then unmark those still
+   // reachable from a live TOK_PINDEX/TOK_INDEX token on some SI's prefix
+   // stack (see Prefix::unmark_all_values()) -- and report, never delete,
+   // whatever is still marked afterwards. This mirrors how Value's own
+   // )CHECK diagnostic works: a real bug still leaks rather than crashes,
+   // but is now visible and testcase-reproducible instead of silent.
+   : DynamicObject(loc, &all_index_exprs),
      quad_io(Workspace::get_IO()),
      assign_state(astate),
      rank(0),
-     value_count(0)
+     value_count(0),
+     marked(false)
 {
 }
 //────────────────────────────────────────────────────────────────────────────
@@ -156,37 +141,34 @@ Value_P ret = values[0];
 }
 //────────────────────────────────────────────────────────────────────────────
 void
-IndexExpr::erase_stale(const char * loc)
+IndexExpr::mark_all_dynamic_index_exprs()
 {
-   Log(LOG_Value__erase_stale)
-      CERR << endl << endl << "erase_stale() called from " << loc << endl;
-
    for (DynamicObject * dob = all_index_exprs.get_next();
         dob != &all_index_exprs; dob = dob->get_next())
        {
-         IndexExpr * idx = dob->pIndexExpr();
-
-         Log(LOG_Value__erase_stale)
-            {
-              CERR << "Erasing stale IndexExpr:" << endl
-                   << "  Allocated by " << idx->alloc_loc << endl;
-            }
-
-         dob = dob->get_prev();
-         idx->unlink();
-         delete idx;
+         dob->pIndexExpr()->set_marked();
        }
 }
 //────────────────────────────────────────────────────────────────────────────
 int
 IndexExpr::print_stale(ostream & out)
 {
+   // independently re-derive reachability rather than trusting any
+   // bookkeeping (IndexExpr has no owner_count): mark everything, then
+   // unmark whatever Prefix::unmark_all_values() finds still reachable
+   // from a live TOK_PINDEX/TOK_INDEX token on some SI's prefix stack.
+   // See the constructor comment for why this never deletes anything.
+   //
+   mark_all_dynamic_index_exprs();
+   Workspace::unmark_all_values();
+
 int count = 0;
 
    for (const DynamicObject * dob = all_index_exprs.get_next();
         dob != &all_index_exprs; dob = dob->get_next())
        {
          const IndexExpr * idx = dob->pIndexExpr();
+         if (!idx->is_marked())   continue;   // reachable, i.e. not stale
 
          out << dob->where_allocated();
 
@@ -197,6 +179,7 @@ int count = 0;
 
          out << endl;
 
+         idx->unmark();
          ++count;
        }
 

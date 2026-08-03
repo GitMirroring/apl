@@ -560,10 +560,27 @@ Unicode_source src(input);
                         break;
                       }
 
-                   CERR << "Offending token: " << tok.get_tag()
-                        << " (" << tok << ")" << endl;
-                   if (tok.get_tag() == TOK_CHARACTER)
-                      CERR << "Unicode: " << UNI(tok.get_char_val()) << endl;
+                   // this and the TC_VOID case below used to print
+                   // unconditionally, unlike every sibling diagnostic in
+                   // this switch (see the TC_END case above, which is
+                   // properly Log()-gated) -- so e.g. AllPrimitives.tc's
+                   // fuzz row for the execute primitive (rval.def's
+                   // "Z<-EXEC B", which deliberately generates B as an
+                   // unrestricted random character array to stress-test
+                   // execute's error handling) leaked this to the error
+                   // stream on every draw containing a character outside
+                   // the interpreter's own character set, even though the
+                   // resulting E_NON_APL_CHAR error is perfectly normal
+                   // and gets caught correctly by the caller.
+                   //
+                   Log(LOG_error_throw)
+                      {
+                        CERR << "Offending token: " << tok.get_tag()
+                             << " (" << tok << ")" << endl;
+                        if (tok.get_tag() == TOK_CHARACTER)
+                           CERR << "Unicode: " << UNI(tok.get_char_val())
+                                << endl;
+                      }
                    rest_2 = src.rest_len();
                    Error::throw_parse_error(E_NON_APL_CHAR, LOC, loc);
                    break;
@@ -572,8 +589,9 @@ Unicode_source src(input);
                    // Avec::uni_to_token returns TC_VOID for non-apl characters
                    //
                    rest_2 = src.rest_len();
-                   UERR << "Unknown APL character: " << uni
-                        << " (" << UNI(uni) << ")" << endl;
+                   Log(LOG_error_throw)
+                      UERR << "Unknown APL character: " << uni
+                           << " (" << UNI(uni) << ")" << endl;
                    Error::throw_parse_error(E_NON_APL_CHAR, LOC, loc);
                    break;
 

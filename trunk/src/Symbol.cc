@@ -1525,6 +1525,14 @@ UCS_string data;
                    {
                      *cp++ = ' ';
                    }
+                if (seq >= 100000000ULL)   // SEQ_LEN == 8 decimal digits
+                   {
+                     MORE_ERROR() << ")OUT: transfer-file sequence number "
+                        "exceeded the fixed " << int(SEQ_LEN) << "-digit "
+                        "sequence field (more than 10⁸ records written to "
+                        "this transfer file)";
+                     DOMAIN_ERROR;
+                   }
                 snprintf(ts_buf + CONTENT_LEN, BUFSIZE - CONTENT_LEN,
                          "%8.8lld\r\n", long_long(seq++));
                NULL_TERMINATE(ts_buf)
@@ -1554,6 +1562,14 @@ char buffer[BUFSIZE];
              buffer[1 + uu] = cc;
            }
 
+        if (seq >= 100000000ULL)   // SEQ_LEN == 8 decimal digits
+           {
+             MORE_ERROR() << ")OUT: transfer-file sequence number "
+                "exceeded the fixed " << int(SEQ_LEN) << "-digit sequence "
+                "field (more than 10⁸ records written to this transfer "
+                "file)";
+             DOMAIN_ERROR;
+           }
         snprintf(buffer + CONTENT_LEN, BUFSIZE - CONTENT_LEN,
                  "%8.8lld\r\n", long_long(seq++));
         NULL_TERMINATE(buffer)

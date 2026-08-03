@@ -502,10 +502,9 @@ IO_Files::end_of_current_file()
              if (IndexExpr::print_stale(current_testreport))
                 {
                   current_testreport
-                     << " (automatic check for stale indices failed,"
-                        " offending IndexExpr erased)." << endl;
+                     << " (automatic check for stale indices failed)."
+                     << endl;
                   apl_error(LOC);
-                  IndexExpr::erase_stale(LOC);
                 }
            }
       }

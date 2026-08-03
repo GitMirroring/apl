@@ -207,7 +207,7 @@ Executable * statements = 0;
       {
         statements = StatementList::fix(line, literal, LOC);
       }
-   catch (Error err)
+   catch (const Error & err)
       {
         bool plus = Workspace::more_error().size();   // assume + needed
         const char * error_name = Error::error_name(err.get_error_code());
@@ -499,8 +499,13 @@ check_EOC:
 
               if (Workspace::SI_top()->get_level() == 0)
                  {
+                   // IndexExpr::erase_stale() is gone: it used to delete
+                   // every IndexExpr in the ring unconditionally, live or
+                   // not, which is what caused Bugs8 #1 (Blake McBride).
+                   // IndexExpr freeing stays where it already correctly
+                   // happens (Prefix::clean_up(), the reduce_*() sites).
+                   //
                    Value::erase_stale(LOC);
-                   IndexExpr::erase_stale(LOC);
                  }
               return;
             }

@@ -988,7 +988,7 @@ Value_P Z(shape_Z, LOC);
                 Z->set_ravel_Char(r*all_formats.size() + c, row[c]);
            }
       }
-   catch (Error err)
+   catch (const Error & err)
       {
         throw err;   // rethrow
       }

@@ -195,11 +195,23 @@ Prefix::unmark_all_values() const
    loop (s, ssize())
       {
         const Token & tok = at(s).get_token();
-        if (tok.get_ValueType() != TV_VAL)      continue;
-
-        Value_P value = tok.get_apl_val();
-        if (+value)   value->unmark();
+        if (tok.get_ValueType() == TV_VAL)
+           {
+             Value_P value = tok.get_apl_val();
+             if (+value)   value->unmark();
+           }
+        else if (tok.get_ValueType() == TV_INDEX)
+           {
+             tok.get_index_val().unmark();
+           }
       }
+
+   // saved_MISC is a single Token_loc slot outside the main stack (used
+   // while reducing indices/axes); it can also hold a live TOK_INDEX and
+   // must be swept too (Blake McBride, Bugs8 #1).
+   //
+   const Token & misc = saved_MISC.get_token();
+   if (misc.get_ValueType() == TV_INDEX)   misc.get_index_val().unmark();
 }
 //────────────────────────────────────────────────────────────────────────────
 int
@@ -2349,7 +2361,7 @@ Value_P Z;
                 CERR << "delete " << voidP(idx) << " at " LOC << endl;
              delete idx;
            }
-        catch (Error err)
+        catch (const Error & err)
            {
              const Token result(TOK_ERROR, err.get_error_code());
              Log(LOG_delete)   CERR << "delete " << voidP(idx)
@@ -2391,7 +2403,7 @@ Value_P B = at3().get_apl_val();
            {
              V->assign_indexed(v_idx, B);
            }
-        catch (Error err)
+        catch (const Error & err)
            {
              const Token result(TOK_ERROR, err.get_error_code());
              at1().clear(LOC);
@@ -2412,7 +2424,7 @@ Value_P B = at3().get_apl_val();
                                     << " at " LOC << endl;
              delete idx;
            }
-        catch (Error err)
+        catch (const Error & err)
            {
              const Token result(TOK_ERROR, err.get_error_code());
              at1().clear(LOC);
@@ -2559,11 +2571,21 @@ Token result = at1();
 
         if (idx.is_axis())   // [] or [ axis ]
            {
-             Token I = at1();
+             // Bugs8 #8 (Blake McBride): this branch is currently
+             // unreachable (is_axis(), i.e. rank==1, after the
+             // add_index() above implies rank was 0 before it, and
+             // rank==0 && last_index already returned above) but was a
+             // trap if it ever became reachable: it used to convert a
+             // separate second copy 'I = at1()' and then still push
+             // 'result' (which still carried the IndexExpr just
+             // deleted below) -- a use-after-free on the prefix stack.
+             // Fixed to convert 'result' itself, mirroring the correct
+             // sibling reduce_LBRA_B_I_() below.
+             //
              Value_P X = idx.extract_axis();
              Assert1(+X);   // not [ ]
              Token tok_axis(TOK_AXIS, X);
-             I.move_from(tok_axis, LOC);
+             result.move_from(tok_axis, LOC);
              Log(LOG_delete)
                 CERR << "delete " << voidP(&idx) << " at " LOC << endl;
              delete &idx;

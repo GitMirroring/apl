@@ -557,7 +557,7 @@ const char * dirs[] = { "", "/APs" };
 
                 if (!is_executable(filename))   continue;
 
-                int apnum;
+                unsigned int apnum;   // %u into an int* is formally UB
                 if (sscanf(entry->d_name, "AP%u", &apnum) != 1)   continue;
 
                 char expected[APL_PATH_MAX + 1];
