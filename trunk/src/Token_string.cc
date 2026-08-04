@@ -31,9 +31,8 @@ vector<TokenTag> expected;
    loop(s, size())
       {
         const TokenTag tag = at(s).get_tag();
-        ErrorCode ec1, ec2;
-        #define want(x) ec1 = E_UNBALANCED_L_ ## x; ec2 = E_UNBALANCED_R_ ## x
-        switch(tag)
+        ErrorCode ec;   // the closing tag has no matching opener: unbalanced
+        switch(tag)      // *right* bracket, regardless of which case below
            {
              default: continue;   // not (, ), [, ], {, ot }.
 
@@ -41,14 +40,13 @@ vector<TokenTag> expected;
              case TOK_L_CURLY:  expected.push_back(TOK_R_CURLY);    continue;
              case TOK_L_PARENT: expected.push_back(TOK_R_PARENT);   continue;
 
-             case TOK_R_BRACK:  want(BRACK);    break;
-             case TOK_R_CURLY:  want(CURLY);    break;
-             case TOK_R_PARENT: want(PARENT);   break;
+             case TOK_R_BRACK:  ec = E_UNBALANCED_R_BRACK;    break;
+             case TOK_R_CURLY:  ec = E_UNBALANCED_R_CURLY;    break;
+             case TOK_R_PARENT: ec = E_UNBALANCED_R_PARENT;   break;
            }
-        #undef want
 
-        if (expected.size() == 0)     return ec1;   // error
-        if (tag != expected.back())   return ec2;   // error
+        if (expected.size() == 0)     return ec;   // error: no opener at all
+        if (tag != expected.back())   return ec;   // error: wrong opener
         expected.pop_back();   // level done
       }
 
