@@ -318,18 +318,30 @@ Quad_JSON::APL_to_JSON_string(UCS_string & result, const Cell & cell,
 
    if (cell.is_float_cell())
       {
+        // Bugs10 #4 (Blake McBride): %lg without a precision truncates to
+        // 6 significant digits, silently changing the value; and JSON has
+        // no infinity literal, so a non-finite value must be rejected
+        // rather than written as the bare (non-JSON) tokens inf/-inf.
+        if (!isfinite(cell.get_real_value()))
+           {
+             MORE_ERROR() << "2 ⎕JSON B: B contains a non-finite value "
+                             "(JSON has no infinity literal)";
+             DOMAIN_ERROR;
+           }
         char cc[40];
-        SPRINTF(cc, "%lg", cell.get_real_value());
+        SPRINTF(cc, "%.17g", cell.get_real_value());
         result << cc;
         return;
       }
 
    if (cell.is_complex_cell())
       {
-        char cc[50];
-        SPRINTF(cc, "%lgJ%lg", cell.get_real_value(), cell.get_imag_value());
-        result << cc;
-        return;
+        // JSON has no complex type, and GNU APL's own parser rejects the
+        // 'J' notation this used to emit, so a complex cell cannot be
+        // represented in JSON at all.
+        MORE_ERROR() << "2 ⎕JSON B: B contains a complex value "
+                        "(JSON has no complex type)";
+        DOMAIN_ERROR;
       }
 
    if (!cell.is_pointer_cell())
@@ -728,6 +740,16 @@ double dval = 0;
    // always scan the double value
    //
    dval = strtod(cc, 0);
+
+   // Bugs10 #4 (Blake McBride): a numeric literal that overflows to ±∞
+   // is not a valid JSON number; reject it instead of silently accepting
+   // it as a FloatCell holding an infinity that 2 ⎕JSON could not emit.
+   if (!isfinite(dval))
+      {
+        MORE_ERROR() << "⎕JSON B: numeric literal '" << cc
+                     << "' is out of range";
+        DOMAIN_ERROR;
+      }
 
    if (dval > LARGE_INT || dval < SMALL_INT)   need_fract = true;
 

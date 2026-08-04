@@ -529,13 +529,18 @@ UCS_string command_ucs;
 ostringstream out;
   Command::do_APL_command(out, command_ucs);
 
-UTF8_string result_utf8(out.str().c_str());
+// Bugs10 #12 (Blake McBride): the previous 0-terminated constructor
+// truncated the command output at the first embedded NUL byte (see
+// Bugs10 #5); use the exact-length constructor instead.
+const string out_str = out.str();
+UTF8_string result_utf8(out_str.data(), out_str.size());
    if (result_utf8.size() == 0)   return 0;   // no output
 
 UCS_string result_ucs(result_utf8);
 
 unsigned int * ret = reinterpret_cast<unsigned int *>
                      (malloc((result_ucs.size() + 1) * sizeof(int)));
+   if (ret == 0)   return 0;   // allocation failure
    loop(l, result_ucs.size())   ret[l] = result_ucs[l];
    ret[result_ucs.size()] = 0;
    return ret;

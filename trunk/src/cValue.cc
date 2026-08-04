@@ -386,7 +386,13 @@ ShapeItem * sorted_nodes = sorted + max_member_count;   // ∆ and _
          UCS_string name;
          Quad_XML::split_name(&category, &member_pos, &name, val);
 
-         Assert(member_pos <= max_member_count);
+         if (member_pos < 0 || member_pos >= max_member_count)
+            {
+              MORE_ERROR() << "invalid position " << member_pos
+                           << " in member name '" << name << "'";
+              delete [] sorted;
+              DOMAIN_ERROR;
+            }
          loop(f, 4)   // at most filters ⍙, ∆, and _
              {
                const Unicode filter = filters[f];

@@ -1259,9 +1259,14 @@ UCS_string::operator <<(const Shape & shape)
 UCS_string &
 UCS_string::operator <<(double num)
 {
+// Bugs10 #10 (Blake McBride): is_near_int() is true for any value within
+// INTEGER_TOLERANCE of an integer (and unconditionally true above
+// LARGE_INT), so %.2g -- 2 significant digits -- was applied to values
+// of arbitrary magnitude, e.g. 1234567 rendered as "1.2E06" in
+// diagnostics. %.17g round-trips a double exactly in both branches
+// (same fix as Bugs10 #3 in Archive.cc).
 char cc[40];
-   if (Cell::is_near_int(num))   { SPRINTF(cc, "%.2g", num); }
-   else                          { SPRINTF(cc, "%.16g", num);   }
+   SPRINTF(cc, "%.17g", num);
 
    loop(c, sizeof(cc))
       {

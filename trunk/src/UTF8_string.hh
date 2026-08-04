@@ -75,27 +75,24 @@ public:
    UTF8_string(const UTF8 * str)
       { while (const UTF8 cc = *str++)   *this += cc; }
 
-   /// constructor: copy of ASCII string, at most len bytes, possibly less if
-   /// \b str is 0-terminated.
+   /// constructor: copy of ASCII string, exactly len bytes (Bugs10 #5,
+   /// Blake McBride: the caller supplies an explicit length precisely
+   /// because the data is not NUL-terminated text; stopping early on a
+   /// NUL byte silently truncated it).
    /// @param str source ASCII byte array
-   /// @param len maximum number of bytes to copy
+   /// @param len number of bytes to copy
    UTF8_string(const ASCII * str, size_t len)
-      {
-        loop(l, len)
-            if (const ASCII cc = *str++)   *this += cc;
-            else        break;
-      }
+   : std::string(str, len)
+      {}
 
-   /// constructor: copy of UTF-8 string, at most len bytes, possibly less if
-   /// \b str is 0-terminated.
+   /// constructor: copy of UTF-8 string, exactly len bytes (see Bugs10 #5
+   /// above: U+0000 is a legal Unicode character, so this must not stop
+   /// at the first NUL either).
    /// @param str source UTF-8 byte array
-   /// @param len maximum number of bytes to copy
+   /// @param len number of bytes to copy
    UTF8_string(const UTF8 * str, size_t len)
-      {
-        loop(l, len)
-            if (const UTF8 cc = *str++)   *this += cc;
-            else        break;
-      }
+   : std::string(reinterpret_cast<const char *>(str), len)
+      {}
 
    /// constructor: copy of UCS string. The Unicodes in ucs
    /// will be UTF8-encoded

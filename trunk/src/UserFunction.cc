@@ -1023,7 +1023,10 @@ Lit_DB literals;
 
         const UCS_string & line = get_text(l);
         try {
-              parse_body_line(Function_Line(l), line, trace_line, loc, macro);
+              const ErrorCode ec =
+                    parse_body_line(Function_Line(l), line, trace_line,
+                                    loc, macro);
+              if (ec != E_NO_ERROR)   return;   // error_line is already l
             }
         catch(const Error & err)
             {

@@ -2785,13 +2785,25 @@ NOT_MINGW(
      const UTF8 * data = Sys::mmap(fd, len);
      close(fd);
      if (data == 0)   return Token(TOK_APL_VALUE1, IntScalar(-errno, LOC));
-     Value_P Z(len, LOC);
-     Z->set_proto_Spc();
-     loop(z, len)   Z->next_ravel_Char(Unicode(data[z]));
-     Sys::munmap(data, len);
-     Z->set_proto_Spc();
-     Z->check_value(LOC);
-     return Token(TOK_APL_VALUE1, Z);
+
+     // Bugs10 #12 (Blake McBride): Value_P Z(len, LOC) can throw WS FULL;
+     // without the try/catch that unwind never reaches Sys::munmap()
+     // below and the mapping leaks.
+     try
+        {
+          Value_P Z(len, LOC);
+          Z->set_proto_Spc();
+          loop(z, len)   Z->next_ravel_Char(Unicode(data[z]));
+          Sys::munmap(data, len);
+          Z->set_proto_Spc();
+          Z->check_value(LOC);
+          return Token(TOK_APL_VALUE1, Z);
+        }
+     catch (...)
+        {
+          Sys::munmap(data, len);
+          throw;
+        }
    }
 ) // NOT_MINGW
 }
@@ -3154,37 +3166,48 @@ NOT_MINGW(
      // if the last line does not end with \n then count it as well
      if (len && data[len - 1] != '\n')   ++line_count;
 
-     Value_P Z(line_count, LOC);
-     Z->set_proto_Spc();
-
-     const UTF8 * from = data;
-     loop(l, len)
-         {
-           if (data[l] != '\n')   continue;
-           const uint8_t * end = data + l;
-          // discard CR before LF
-           if (end > data && end[-1] == '\r')   --end;
-           UTF8_string utf(from, end - from);
-           UCS_string ucs(utf);
-           Value_P ZZ(ucs, LOC);
-           Z->next_ravel_Pointer(ZZ.get());
-           from = data + l + 1;
-         }
-
-     if (len && data[len - 1] != '\n')   // incomplete final line
+     // Bugs10 #12 (Blake McBride): Value_P Z()/ZZ() below can throw
+     // WS FULL; without the try/catch that unwind never reaches
+     // Sys::munmap() below and the mapping leaks.
+     try
         {
-           const uint8_t * end = data + len;
-           if (end[-1] == '\r')   --end;   // discard trailing CR
-           UTF8_string utf(from, end - from);
-           UCS_string ucs(utf);
-           Value_P ZZ(ucs, LOC);
-           Z->next_ravel_Pointer(ZZ.get());
-        }
+          Value_P Z(line_count, LOC);
+          Z->set_proto_Spc();
 
-     Sys::munmap(data, len);
-     Z->set_proto_Spc();
-     Z->check_value(LOC);
-     return Token(TOK_APL_VALUE1, Z);
+          const UTF8 * from = data;
+          loop(l, len)
+              {
+                if (data[l] != '\n')   continue;
+                const uint8_t * end = data + l;
+               // discard CR before LF
+                if (end > data && end[-1] == '\r')   --end;
+                UTF8_string utf(from, end - from);
+                UCS_string ucs(utf);
+                Value_P ZZ(ucs, LOC);
+                Z->next_ravel_Pointer(ZZ.get());
+                from = data + l + 1;
+              }
+
+          if (len && data[len - 1] != '\n')   // incomplete final line
+             {
+                const uint8_t * end = data + len;
+                if (end[-1] == '\r')   --end;   // discard trailing CR
+                UTF8_string utf(from, end - from);
+                UCS_string ucs(utf);
+                Value_P ZZ(ucs, LOC);
+                Z->next_ravel_Pointer(ZZ.get());
+             }
+
+          Sys::munmap(data, len);
+          Z->set_proto_Spc();
+          Z->check_value(LOC);
+          return Token(TOK_APL_VALUE1, Z);
+        }
+     catch (...)
+        {
+          Sys::munmap(data, len);
+          throw;
+        }
    }
 ) // NOT_MINGW
 }

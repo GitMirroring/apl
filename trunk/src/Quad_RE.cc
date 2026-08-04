@@ -117,10 +117,36 @@ int ofcnt = 0;
 //────────────────────────────────────────────────────────────────────────────
 static Value_P
 deep_value(int idx, const PCRE2_SIZE * ovector, int count, const int * parents,
-           const int * child_count, const UCS_string * B)
+           const int * child_count, const UCS_string * B, int real_count)
 {
    if (child_count[idx] == 0)   // simple RE (no sub-REs)
       {
+        // Bugs10 #7 (Blake McBride): group idx either did not participate
+        // in the match (ovector[2*idx] == PCRE2_UNSET, but only readable
+        // when idx < real_count -- see below), or was never reached at
+        // all (idx >= real_count, e.g. the losing side of a trailing
+        // alternation), in which case PCRE2 leaves its ovector slot
+        // uninitialized and it must not be read. Either way, emit a
+        // placeholder instead of silently omitting the group, which
+        // shifted every later group's number down by one.
+        if (idx >= real_count || ovector[2*idx] == PCRE2_UNSET)
+           {
+             if (B)   // string form: empty string
+                {
+                  Value_P Z(UCS_string(), LOC);
+                  Z->check_value(LOC);
+                  return Z;
+                }
+             else     // pos+len form: ¯1 0, i.e. "no match"
+                {
+                  Value_P Z(2, LOC);
+                  Z->next_ravel_Int(-1);
+                  Z->next_ravel_Int(0);
+                  Z->check_value(LOC);
+                  return Z;
+                }
+           }
+
         const PCRE2_SIZE start = ovector[2*idx];
         const PCRE2_SIZE end   = ovector[2*idx + 1];
         if (B)   // string
@@ -160,7 +186,8 @@ Value_P Z(ini + child_count[idx], LOC);
    loop(ch, count)
        {
          if (parents[ch] != idx)   continue;   // ch is not a child of idx
-         Value_P CH = deep_value(ch, ovector, count, parents, child_count, B);
+         Value_P CH = deep_value(ch, ovector, count, parents, child_count,
+                                 B, real_count);
          Z->next_ravel_Pointer(CH.get());
        }
 
@@ -305,9 +332,17 @@ Quad_RE::string_result(const Regexp & A, const Flags & X,
 RegexpMatch rem(A.get_code(), B, B_offset);
    if (!rem.is_match())
       {
-        B_offset = -1;   // indicates an error
-        if (X.get_global())               return Value_P();
-        if (!X.get_error_on_no_match())   return Idx0(LOC);
+        // Bugs10 #11 (Blake McBride): B_offset is still its initial 0 iff
+        // this is the very first call for this ⎕RE invocation -- the g
+        // early-return below is also the loop terminator that
+        // Quad_RE::regex_results() uses to end a global search once at
+        // least one match was found, but it must not pre-empt the E
+        // (error-on-no-match) check on the first call, when there were
+        // genuinely no matches at all.
+        const bool first_call = (B_offset == 0);
+        B_offset = -1;   // indicates an error / end of matches
+        if (X.get_global() && !first_call)   return Value_P();
+        if (!X.get_error_on_no_match())      return Idx0(LOC);
         MORE_ERROR() << "No match";
         DOMAIN_ERROR;
       }
@@ -335,20 +370,24 @@ const PCRE2_SIZE * ovector = rem.get_ovector();
    if (ovector[1] == ovector[0])   ++B_offset;
 
 // num_matches() (== pcre2_match's own return value, "the number of
-// pairs that have been set"), not get_ovector_count() -- the latter is
-// the ovector's *allocated capacity* (sized to the pattern's maximum
-// possible capture-group count via pcre2_match_data_create_from_pattern),
-// not how many groups actually participated in *this* match. Using the
-// capacity here processed uninitialized trailing ovector slots as bogus
-// extra (non-)groups and dropped real non-participating groups from the
-// numbering: 'a|b' matched against 'b' has group 1 (the alternative
-// that didn't match, correctly recorded as [-1,-1] in ovector) shifted
-// out of the result entirely.
-const uint32_t ovector_count = rem.num_matches();
-vector<int> parents(ovector_count, -1);   // no parents
-vector<int> ccount(ovector_count, 0);     // 0 children
+// pairs that have been set") tells us how much of ovector is safe to
+// read; get_ovector_count() is the ovector's *allocated capacity*
+// (sized to the pattern's total capture-group count via
+// pcre2_match_data_create_from_pattern, constant for a given pattern
+// regardless of which alternative matched). Reading ovector for indices
+// at or beyond real_count is undefined -- PCRE2 leaves those slots
+// uninitialized -- but the group numbers up to total_count are still
+// real capture groups of the pattern and must appear in the result
+// (Bugs10 #7, Blake McBride): 'a|b' matched against 'b' has group 1
+// (the alternative that didn't match) reported in ovector as [-1,-1]
+// (real_count includes it), while 'a|b' matched against 'a' never even
+// allocates group 2 in real_count at all (total_count still does).
+const uint32_t real_count  = rem.num_matches();
+const uint32_t total_count = rem.get_ovector_count();
+vector<int> parents(total_count, -1);   // no parents
+vector<int> ccount(total_count, 0);     // 0 children
 
-   for (int o = ovector_count - 1; o >= 0; --o)
+   for (int o = real_count - 1; o >= 0; --o)
        {
          const PCRE2_SIZE ostart = ovector[2*o];
          for (int p = o - 1; p >= 0; --p)
@@ -360,10 +399,30 @@ vector<int> ccount(ovector_count, 0);     // 0 children
                     break;
                   }
              }
+
+         // a non-participating group (ovector[2*o] == PCRE2_UNSET) has
+         // no enclosing span for the search above to find, so parents[o]
+         // stays -1 -- attach it to the whole match instead of dropping
+         // it from the result.
+         if (parents[o] == -1 && o > 0)
+            {
+              parents[o] = 0;
+              ++ccount[0];
+            }
        }
 
-   return deep_value(0, ovector, ovector_count,
-                     parents.data(), ccount.data(), &B);
+   // groups beyond real_count were never reached at all during matching
+   // (e.g. the losing side of a trailing alternation); their ovector
+   // slots are uninitialized, so attach them to the whole match directly
+   // without reading ovector.
+   for (uint32_t o = real_count; o < total_count; ++o)
+       {
+         parents[o] = 0;
+         ++ccount[0];
+       }
+
+   return deep_value(0, ovector, total_count,
+                     parents.data(), ccount.data(), &B, real_count);
 }
 //────────────────────────────────────────────────────────────────────────────
 Value_P
@@ -404,20 +463,24 @@ const PCRE2_SIZE * ovector = rem.get_ovector();
       }
 
 // num_matches() (== pcre2_match's own return value, "the number of
-// pairs that have been set"), not get_ovector_count() -- the latter is
-// the ovector's *allocated capacity* (sized to the pattern's maximum
-// possible capture-group count via pcre2_match_data_create_from_pattern),
-// not how many groups actually participated in *this* match. Using the
-// capacity here processed uninitialized trailing ovector slots as bogus
-// extra (non-)groups and dropped real non-participating groups from the
-// numbering: 'a|b' matched against 'b' has group 1 (the alternative
-// that didn't match, correctly recorded as [-1,-1] in ovector) shifted
-// out of the result entirely.
-const uint32_t ovector_count = rem.num_matches();
-vector<int> parents(ovector_count, -1);   // no parent
-vector<int> ccount(ovector_count,   0);   // 0 children
+// pairs that have been set") tells us how much of ovector is safe to
+// read; get_ovector_count() is the ovector's *allocated capacity*
+// (sized to the pattern's total capture-group count via
+// pcre2_match_data_create_from_pattern, constant for a given pattern
+// regardless of which alternative matched). Reading ovector for indices
+// at or beyond real_count is undefined -- PCRE2 leaves those slots
+// uninitialized -- but the group numbers up to total_count are still
+// real capture groups of the pattern and must appear in the result
+// (Bugs10 #7, Blake McBride): 'a|b' matched against 'b' has group 1
+// (the alternative that didn't match) reported in ovector as [-1,-1]
+// (real_count includes it), while 'a|b' matched against 'a' never even
+// allocates group 2 in real_count at all (total_count still does).
+const uint32_t real_count  = rem.num_matches();
+const uint32_t total_count = rem.get_ovector_count();
+vector<int> parents(total_count, -1);   // no parent
+vector<int> ccount(total_count,   0);   // 0 children
 
-   for (int o = ovector_count - 1; o >= 0; --o)
+   for (int o = real_count - 1; o >= 0; --o)
        {
          const PCRE2_SIZE ostart = ovector[2*o];
          for (int p = o - 1; p >= 0; --p)
@@ -429,10 +492,30 @@ vector<int> ccount(ovector_count,   0);   // 0 children
                     break;
                   }
              }
+
+         // a non-participating group (ovector[2*o] == PCRE2_UNSET) has
+         // no enclosing span for the search above to find, so parents[o]
+         // stays -1 -- attach it to the whole match instead of dropping
+         // it from the result.
+         if (parents[o] == -1 && o > 0)
+            {
+              parents[o] = 0;
+              ++ccount[0];
+            }
        }
 
-   return deep_value(0, ovector, ovector_count,
-                     parents.data(), ccount.data(), 0);
+   // groups beyond real_count were never reached at all during matching
+   // (e.g. the losing side of a trailing alternation); their ovector
+   // slots are uninitialized, so attach them to the whole match directly
+   // without reading ovector.
+   for (uint32_t o = real_count; o < total_count; ++o)
+       {
+         parents[o] = 0;
+         ++ccount[0];
+       }
+
+   return deep_value(0, ovector, total_count,
+                     parents.data(), ccount.data(), 0, real_count);
 }
 #else // ! HAVE_LIBPCRE2_32
 

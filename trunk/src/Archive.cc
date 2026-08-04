@@ -866,13 +866,16 @@ char cc[80];
                   }
              }
 #endif
-             SPRINTF(cc, "%.16g", double(cell.get_real_value()));
+             // Bugs10 #3 (Blake McBride): an IEEE-754 double needs 17
+             // significant digits (DBL_DIG + 2) to round-trip exactly;
+             // %.16g silently drops the last bit.
+             SPRINTF(cc, "%.17g", double(cell.get_real_value()));
              NEED(1 + strlen(cc)) << UNI_PAD_U4 << decr(--space, cc);
              break;
 
         case CT_COMPLEX:   // uses UNI_PAD_U5
              space -= leave_char_mode();
-             SPRINTF(cc, "%.16gJ%.16g", double(cell.get_real_value()),
+             SPRINTF(cc, "%.17gJ%.17g", double(cell.get_real_value()),
                                         double(cell.get_imag_value()));
              NEED(1 + strlen(cc)) << UNI_PAD_U5 << decr(--space, cc);
              break;

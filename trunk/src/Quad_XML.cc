@@ -300,9 +300,15 @@ size_t attribute_count = Workspace::get_IO();   // "⍙" gets ⎕IO
              return true;
            }
 
+        // Bugs10 #8 (Blake McBride): store the value *without* its
+        // surrounding quotes -- keeping them made denormalize_attribute_value()
+        // pass the first/last character through unescaped on the assumption
+        // that it was always the original quote, which produced malformed
+        // (or GNU APL's own parser-rejected) XML for any attribute value an
+        // APL program assigned itself rather than round-tripping unchanged.
         const size_t attvalue = pos;
         while (pos < end && src[pos] != start_quote)   ++pos;
-        UCS_string attribute_value(src, attvalue-1, pos + 2 - attvalue);
+        UCS_string attribute_value(src, attvalue, pos - attvalue);
         ++pos;   // skip trailing ' or "
         if (normalize_attribute_value(attribute_value))   return true;
 
@@ -508,6 +514,11 @@ vector<size_t> pos_stack;   // a stack of node positions
 
               case NT_leaf_tag:
                    if (root == 0)   root = node;   // remember the root
+                   else if (stack.size() == 0)   // subsequent root
+                      {
+                        MORE_ERROR() << "⎕XML: more than one root";
+                        return true;
+                      }
                    break;
 
               case NT_error: FIXME;
@@ -878,7 +889,7 @@ enum { PREDEFINED_COUNT = sizeof(predefined_entities)
 }
 //────────────────────────────────────────────────────────────────────────────
 UCS_string
-XML_node::denormalize_attribute_value(const UCS_string & attval, bool quoted)
+XML_node::denormalize_attribute_value(const UCS_string & attval)
 {
 UCS_string ret;
    ret.reserve(attval.size() + 100);
@@ -886,15 +897,6 @@ UCS_string ret;
    loop(a, attval.size())
       {
         const Unicode uni = attval[a];
-        if (quoted)
-           {
-             if (a == 0 || a == (attval.ssize() - 1))
-                {
-                  ret << uni;
-                  continue;
-                }
-           }
-
         switch(uni)
             {
               case 0x00 ... 0x1F:
@@ -974,7 +976,7 @@ int ret = -1;
    else if (val0 == UNI_UNDERSCORE)       ret = 2;
    else
       {
-        MORE_ERROR() << "⎕XML: bad name '" << UCS_string() << "'; "
+        MORE_ERROR() << "⎕XML: bad name '" << UCS_string(value) << "'; "
                         "it shall begin with ⍙ (name inside an XML tag),\n"
                         "    ∆ (synthetic name), or _ (tag name)";
         DOMAIN_ERROR;
@@ -988,6 +990,13 @@ ShapeItem pos = 0;
          const Unicode digit = value.get_char_value(srcI);
          if (digit >= UNI_0 && digit <= UNI_9)
             {
+              // Bugs10 #1 (Blake McBride): bound before multiplying, same
+              // wrap/overflow hazard as Bugs9 #3 in Quad_TF.cc.
+              if (pos > (LARGE_INT - 9) / 10)
+                 {
+                   MORE_ERROR() << "⎕XML: member position too large in name";
+                   DOMAIN_ERROR;
+                 }
               pos = 10 * pos + digit - UNI_0;
             }
           else break;
@@ -1183,7 +1192,9 @@ bool tag_open = false;
 
                    const UCS_string md(member_data);
                    start_tag << UNI_SPACE << UCS_string(name) << UNI_EQUAL
-                             << XML_node::denormalize_attribute_value(md, true);
+                             << UNI_DOUBLE_QUOTE
+                             << XML_node::denormalize_attribute_value(md)
+                             << UNI_DOUBLE_QUOTE;
                  }
             }
          else   // ∆ or _
@@ -1793,13 +1804,6 @@ std::vector<const Cell *>member_values;
         subname << UNI_FULLSTOP;
         subname << member_names[m];
         tree(*sub, z, prefix, subname, flags);
-        if (last_member && prefix.size() > 1)
-           {
-             // the char was │ initially, has now become └, and should be
-             // blank in subsequent lines.
-             //
-             prefix[prefix.size() - 2] = UNI_SPACE;
-           }
       }
    prefix.pop_back();
 }

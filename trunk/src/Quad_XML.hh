@@ -181,8 +181,7 @@ public:
    static bool normalize_attribute_value(UCS_string & attval);
 
    /// return the inverse of normalize_attribute_value()
-   static UCS_string denormalize_attribute_value(const UCS_string & UCS_string,
-                                                 bool quoted);
+   static UCS_string denormalize_attribute_value(const UCS_string & UCS_string);
 
 protected:
    /// return true iff \b end_tag matches \b this start tag

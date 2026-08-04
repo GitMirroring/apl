@@ -131,11 +131,11 @@ DOMAIN ERROR+
 
       ⊃35 ⎕CR⎕XML APL      ⍝ inverse monadic ⎕XML
   <ROOT>                       
-    <LT name='A &lt; B'/>      
-    <GT name='A&gt;B'/>        
-    <AMP name='&amp;B'/>       
-    <QU1 name='&apos;B&apos;'/>
-    <QU2 name='&quot;B&quot;'/>
+    <LT name="A &lt; B"/>      
+    <GT name="A&gt;B"/>        
+    <AMP name="&amp;B"/>       
+    <QU1 name="&apos;B&apos;"/>
+    <QU2 name="&quot;B&quot;"/>
   </ROOT>                      
                                
 
@@ -167,15 +167,15 @@ DOMAIN ERROR+
 .∆15text             
 
       APL._2ROOT._2LT.⍙2name
-'A < B'
+A < B
       APL._2ROOT._4GT.⍙2name
-'A>B'
+A>B
       APL._2ROOT._6AMP.⍙2name
-'&B'
+&B
       APL._2ROOT._8QU1.⍙2name
-''B''
+'B'
       APL._2ROOT._10QU2.⍙2name
-'"B"'
+"B"
 
 ⍝ ============================================================================
 )SI
@@ -205,9 +205,9 @@ OK      - no duplicate parents
       ⊃35 ⎕CR⎕XML APL      ⍝ inverse monadic ⎕XML
 <?xml version='1.0' encoding='UTF-8'?>                  
   <Document>                                            
-    <Tag1 name='tag1'>   <!-- first tag -->             
+    <Tag1 name="tag1">   <!-- first tag -->             
       TEXT1                                             
-      <Subtag name='subtag_1.1'>   <!-- first subtag -->
+      <Subtag name="subtag_1.1">   <!-- first subtag -->
         SUBTEXT1_1                                      
       </Subtag>                                         
     </Tag1>                                             
