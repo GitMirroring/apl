@@ -1304,9 +1304,11 @@ XML_Saving_Archive::xml_allowed(Unicode uni)
 XML_Loading_Archive::XML_Loading_Archive(ostream & of, ostream & ef,
                                          const char * _filename, int & dump_fd)
    : XML_Archive(of, ef),
+     attributes(0),
      copying(false),
      current_char(UNI_SPACE),
      data(0),
+     end_attr(0),
      file_end(0),
      file_is_complete(false),
      file_length(0),
@@ -1316,7 +1318,8 @@ XML_Loading_Archive::XML_Loading_Archive(ostream & of, ostream & ef,
      line_no(1),
      line_start(0),
      protection(false),
-     reading_vids(false)
+     reading_vids(false),
+     tag_name(0)
 {
    Log(LOG_archive)   err << "Loading workspace file " << filename << endl;
 
@@ -1840,6 +1843,10 @@ XML_Loading_Archive::expect_tag(const char * prefix, const char * loc) const
 bool
 XML_Loading_Archive::is_tag(const char * prefix) const
 {
+   // tag_name is 0 if next_tag() has never successfully found a '<' at
+   // all (e.g. reset()'s initial call hit EOF on an empty/near-empty
+   // file) -- u8::strncmp(0, ...) would be a null-pointer dereference.
+   if (tag_name == 0)   return false;
    return !u8::strncmp(tag_name, prefix, strlen(prefix));
 }
 //────────────────────────────────────────────────────────────────────────────

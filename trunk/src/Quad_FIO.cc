@@ -2782,9 +2782,13 @@ NOT_MINGW(
           DOMAIN_ERROR;
         }
      const ShapeItem len = st.st_size;
-     const UTF8 * data = Sys::mmap(fd, len);
+     // mmap()ing 0 bytes is invalid (EINVAL) whenever HAVE_SYS_MMAN_H's
+     // real mmap() is active -- an empty regular file is not an error,
+     // so skip the call rather than surface -EINVAL for it; data is
+     // never dereferenced below when len==0 (the fill loop is a no-op).
+     const UTF8 * data = len ? Sys::mmap(fd, len) : 0;
      close(fd);
-     if (data == 0)   return Token(TOK_APL_VALUE1, IntScalar(-errno, LOC));
+     if (len && data == 0)   return Token(TOK_APL_VALUE1, IntScalar(-errno, LOC));
 
      // Bugs10 #12 (Blake McBride): Value_P Z(len, LOC) can throw WS FULL;
      // without the try/catch that unwind never reaches Sys::munmap()
@@ -3151,9 +3155,14 @@ NOT_MINGW(
           DOMAIN_ERROR;
         }
      const ShapeItem len = st.st_size;
-     const UTF8 * data = Sys::mmap(fd, len);
+     // mmap()ing 0 bytes is invalid (EINVAL) whenever HAVE_SYS_MMAN_H's
+     // real mmap() is active -- an empty regular file is not an error
+     // (0 lines), so skip the call rather than surface -EINVAL for it;
+     // data is never dereferenced below when len==0 (both loops and the
+     // "last line" check are gated on len).
+     const UTF8 * data = len ? Sys::mmap(fd, len) : 0;
      close(fd);
-     if (data == 0)   return Token(TOK_APL_VALUE1, IntScalar(-errno, LOC));
+     if (len && data == 0)   return Token(TOK_APL_VALUE1, IntScalar(-errno, LOC));
 
      // count number of LFs in the file
      //

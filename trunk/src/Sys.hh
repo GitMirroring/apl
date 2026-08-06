@@ -33,7 +33,12 @@
 #include <unistd.h>
 #include <signal.h>
 
-#include "config.h"   // for HAVE_MMAN_H
+#include "config.h"   // for HAVE_SYS_MMAN_H
+
+#if HAVE_SYS_MMAN_H
+# include <sys/mman.h>   // must be at file scope: its extern "C" block
+                          // cannot appear inside a class body
+#endif
 
 //════════════════════════════════════════════════════════════════════════════
 /// A FILE * that pclose()s itself FILE * when destructed.
@@ -67,15 +72,21 @@ class Sys
 {
 public:
 
-#if HAVE_MMAN_H
-
-#  include <sys/mman.h>
+#if HAVE_SYS_MMAN_H
 
    /// @param fd open file descriptor to map
    /// @param len number of bytes to map
    static inline const uint8_t * mmap(int fd, int len)
       {
-      const void * vp = mmap(NULL, len, PROT_READ, MAP_PRIVATE, fd, 0);
+      // ::mmap, not mmap: an unqualified call here would resolve to
+      // this very function (Sys::mmap hides the global ::mmap once
+      // found, regardless of the mismatched argument count) -- silent
+      // infinite recursion, not a call to the POSIX syscall. This
+      // branch was dead code until the HAVE_MMAN_H/HAVE_SYS_MMAN_H
+      // macro-name mismatch below was fixed, so it had never been
+      // compiled; both this and the equivalent bug in munmap() below
+      // were caught only then.
+      const void * vp = ::mmap(NULL, len, PROT_READ, MAP_PRIVATE, fd, 0);
          if (vp == MAP_FAILED)   return 0;
          return reinterpret_cast<const uint8_t *>(vp);
       }
@@ -83,9 +94,10 @@ public:
    /// @param data pointer returned by mmap()
    /// @param len number of bytes originally mapped
    static inline void munmap(const uint8_t * data, int len)
-      { munmap(data, len); }
+      { ::munmap(const_cast<void *>(reinterpret_cast<const void *>(data)),
+                len); }
 
-#else // ! HAVE_MMAN_H =======================================================
+#else // ! HAVE_SYS_MMAN_H ===================================================
 
    /// @param fd open file descriptor to read
    /// @param len number of bytes to read
@@ -107,7 +119,7 @@ public:
    static inline void munmap(const uint8_t * data, size_t len)
       { delete [] data; }
 
-#endif // ! MINGW_SRC
+#endif // ! HAVE_SYS_MMAN_H
 
    /// invasive memory test
    /// @param base start address of the memory region to probe
