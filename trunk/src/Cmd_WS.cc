@@ -26,6 +26,7 @@
 
 #include <errno.h>
 
+#include "Archive.hh"
 #include "Avec.hh"
 #include "Cmd_WS.hh"
 #include "Command.hh"
@@ -37,6 +38,63 @@
 #include "Workspace.hh"
 
 //════════════════════════════════════════════════════════════════════════════
+void
+Cmd_WS::cmd_CHECK_WS(ostream & out, const UCS_string_vector & args)
+{
+   // Command is:
+   //
+   // )CHECK_WS wsname
+   // )CHECK_WS libnum wsname
+
+const LibRef_name lib_name(out, args, false);
+   if (lib_name.get_name().size() == 0)   return;   // error, )MORE set
+
+const bool has_xml = lib_name.get_name().ends_with(".xml");
+const bool has_apl = lib_name.get_name().ends_with(".apl");
+int checked = 0;
+
+   if (!has_apl)   // check the .xml file (unless an explicit .apl was given)
+      {
+        const UTF8_string filename = LibPaths::get_filename(lib_name, false,
+                                                            ".xml", 0);
+        if (access(filename.c_str(), F_OK) == 0)
+           {
+             ++checked;
+             int dump_fd = -1;
+             XML_Loading_Archive in(out, out, filename.c_str(), dump_fd);
+             if (dump_fd != -1)   close(dump_fd);   // not really XML
+
+             if (!in.is_open())
+                out << "WARNING - " << filename << ": could not be opened"
+                    << endl;
+             else if (dump_fd != -1)
+                out << "WARNING - " << filename
+                    << ": not a GNU APL .xml workspace file" << endl;
+             else
+                in.check_checksum(out);
+           }
+      }
+
+   if (!has_xml)   // check the .apl file (unless an explicit .xml was given)
+      {
+        const UTF8_string filename = LibPaths::get_filename(lib_name, false,
+                                                            ".apl", 0);
+        if (access(filename.c_str(), F_OK) == 0)
+           {
+             ++checked;
+             Workspace::check_DUMP_checksum(out, filename);
+           }
+      }
+
+   if (checked == 0)
+      {
+        out << lib_name.get_name() << ": no such workspace file(s)+" << endl;
+        MORE_ERROR() << "neither '" << lib_name.get_name() << ".apl' nor '"
+                     << lib_name.get_name() << ".xml' (nor a file with "
+                        "that exact name) was found.";
+      }
+}
+//────────────────────────────────────────────────────────────────────────────
 void
 Cmd_WS::cmd_CLEAR(ostream & out)
 {

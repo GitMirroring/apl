@@ -220,6 +220,13 @@ public:
    /// @param loc caller location for diagnostics
    static void clear_error(const char * loc);
 
+   /// report (on \b out) the checksum status of a )DUMP'ed (.apl) file
+   /// \b filename, for )CHECK_WS. Unlike verify_DUMP_checksum() (a
+   /// Workspace.cc-local helper used automatically by load_DUMP()), this
+   /// always reports (including CS_OK and no-checksum) and never loads
+   /// the workspace. \b filename is expected to exist (the caller checks).
+   static void check_DUMP_checksum(ostream & out, const UTF8_string & filename);
+
    /// clear the SI
    /// @param out output stream for messages
    static void clear_SI(ostream & out);

@@ -88,7 +88,7 @@ Error::add_MORE_indicator(bool have_more)
    if (have_more)   // )MORE info available
       {
         const size_t len = strlen(error_message_1);
-        if (error_message_1[len - 1] != UNI_PLUS &&
+        if (len && error_message_1[len - 1] != UNI_PLUS &&
             len < sizeof(error_message_1) - 1)
            {
              error_message_1[len]     = '+';

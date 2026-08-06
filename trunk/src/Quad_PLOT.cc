@@ -380,7 +380,8 @@ Quad_PLOT::eval_B(cValue_R B) const
         return Token(TOK_APL_VALUE1, Idx0(LOC));
       }
 
-   if (B.get_rank() > 3)   RANK_ERROR;
+   if (B.get_rank() > 3)        RANK_ERROR;
+   if (B.element_count() < 2)   LENGTH_ERROR;
 
    // plot window with default attributes
    //

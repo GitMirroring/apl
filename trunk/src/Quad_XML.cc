@@ -108,6 +108,20 @@ const Unicode ucs1 = src[src_pos + 1];          // the character after <
              return;
            }
 
+        if (src_len >= 12 &&
+            src[src_pos + 2] =='[' &&
+            src[src_pos + 3] =='C' &&
+            src[src_pos + 4] =='D' &&
+            src[src_pos + 5] =='A' &&
+            src[src_pos + 6] =='T' &&
+            src[src_pos + 7] =='A' &&
+            src[src_pos + 8] =='[')   // <![CDATA[ ...
+           {
+             // get_taglen() already found the terminating ]]> for us.
+             node_type = NT_cdata;
+             return;
+           }
+
         if (src[src_pos + 2] !='-' ||
             src[src_pos + 3] !='-')        // not <!--
            {
@@ -232,6 +246,28 @@ UCS_string ret;
    return ret;
 }
 //────────────────────────────────────────────────────────────────────────────
+UCS_string
+XML_node::get_doctype_root_name() const
+{
+   Assert(node_type == NT_doctype);
+
+size_t pos = src_pos + 9;   // skip "<!DOCTYPE"
+const size_t end_of_node = src_pos + src_len;
+   while (pos < end_of_node && src[pos] <= UNI_SPACE)   ++pos;   // whitespace
+
+const size_t start = pos;
+   if (pos < end_of_node && is_first_name_char(src[pos]))   ++pos;
+   while (pos < end_of_node && is_name_char(src[pos]))       ++pos;
+
+   if (pos == start)   // no valid name after DOCTYPE
+      {
+        MORE_ERROR() << "⎕XML: bad root element name in: " << get_item();
+        DOMAIN_ERROR;
+      }
+
+   return UCS_string(src, start, pos - start);
+}
+//────────────────────────────────────────────────────────────────────────────
 void
 XML_node::print(ostream & out) const
 {
@@ -347,6 +383,7 @@ XML_node::get_node_type_name() const
         case NT_comment:     return "NT_comm";
         case NT_declaration: return "NT_decl";
         case NT_doctype:     return "NT_doct";
+        case NT_cdata:       return "NT_cdat";
       }
 
    return "--???";
@@ -366,6 +403,44 @@ int level = 0;
          switch(node->get_node_type())
             {
               case NT_text:
+                   if (node->get_src_len())   // not empty
+                      {
+                        // Bugs10 #12 follow-up (Blake McBride): text-node
+                        // content must be entity-decoded too, not just
+                        // attribute values -- ⎕XML '<r>a&amp;b</r>' shall
+                        // hand APL the character data 'a&b', not the raw
+                        // source text 'a&amp;b'.
+                        UCS_string item = node->get_item();
+                        if (decode_entities(item))   return true;
+                        node->APL_value = Value_P(item, LOC);
+                      }
+                   else   // empty string
+                      {
+                        node = node->get_prev();   // move back
+                        garbage.append_garbage(node->get_next()->unlink());
+                      }
+                   break;
+
+              case NT_cdata:
+                   {
+                     // strip the <![CDATA[ prefix (9 chars) and ]]>
+                     // suffix (3 chars); CDATA content is verbatim by
+                     // definition and must NOT be entity-decoded.
+                     const ShapeItem payload_len = node->get_src_len() - 12;
+                     if (payload_len > 0)
+                        {
+                          const UCS_string item(node->src, node->src_pos + 9,
+                                                payload_len);
+                          node->APL_value = Value_P(item, LOC);
+                        }
+                     else   // empty CDATA section
+                        {
+                          node = node->get_prev();   // move back
+                          garbage.append_garbage(node->get_next()->unlink());
+                        }
+                   }
+                   break;
+
               case NT_comment:
               case NT_declaration:
               case NT_doctype:
@@ -404,6 +479,7 @@ bool
 XML_node::collect(XML_node & anchor, XML_node & garbage, Value * Z)
 {
 XML_node * root = 0;
+XML_node * doctype = 0;   // remembered for the root-name sanity check below
 
 vector<XML_node *> stack;   // a stack of start tags
 vector<size_t> pos_stack;   // a stack of node positions
@@ -448,6 +524,7 @@ vector<size_t> pos_stack;   // a stack of node positions
                         return true;
                       }
 
+                   doctype = node;   // checked against the root name below
                    add_member(Z, UNI_DELTA, "doctype", position,
                               node->APL_value.get());
                    node = node->get_prev();   // move back
@@ -466,6 +543,14 @@ vector<size_t> pos_stack;   // a stack of node positions
               case NT_text:
                    if (stack.size())   continue;   // only top-level texts
                    add_member(Z, UNI_DELTA, "text", position,
+                              node->APL_value.get());
+                   node = node->get_prev();
+                   garbage.append_garbage(node->get_next()->unlink());
+                   break;
+
+              case NT_cdata:
+                   if (stack.size())   continue;   // only top-level cdata
+                   add_member(Z, UNI_DELTA, "cdata", position,
                               node->APL_value.get());
                    node = node->get_prev();
                    garbage.append_garbage(node->get_next()->unlink());
@@ -527,6 +612,29 @@ vector<size_t> pos_stack;   // a stack of node positions
 
    if (root)
       {
+        if (doctype)   // sanity check: DOCTYPE name shall match the root
+           {
+             // get_tagname() prepends the ⎕IO-relative position, e.g.
+             // "1r" for a root tag named 'r' at position 1; skip that
+             // to compare against the plain name.
+             const UCS_string root_name_pos = root->get_tagname();
+             ShapeItem np = 0;
+             while (np < root_name_pos.ssize() &&
+                    root_name_pos[np] >= UNI_0 &&
+                    root_name_pos[np] <= UNI_9)   ++np;
+             const UCS_string root_name(root_name_pos, np,
+                                        root_name_pos.ssize() - np);
+
+             const UCS_string doctype_name = doctype->get_doctype_root_name();
+             if (doctype_name != root_name)
+                {
+                  MORE_ERROR() << "⎕XML: DOCTYPE declares root element '"
+                               << doctype_name << "' but the document root "
+                                  "is '" << root_name << "'";
+                  return true;
+                }
+           }
+
         UTF8_string root_utf(root->get_tagname());
         add_member(Z, UNI_UNDERSCORE, root_utf.c_str(), -1,
                    anchor.get_next()->APL_value.get());
@@ -576,6 +684,11 @@ size_t position = Workspace::get_IO();   // re-number sub nodes
             {
               case NT_text:
                    add_member(start.APL_value.get(), UNI_DELTA, "text",
+                              sub.position, sub.APL_value.get());
+                   break;
+
+              case NT_cdata:
+                   add_member(start.APL_value.get(), UNI_DELTA, "cdata",
                               sub.position, sub.APL_value.get());
                    break;
 
@@ -688,6 +801,37 @@ XML_node::get_taglen(const UCS_string & string_B, ShapeItem offset)
 {
    Assert(string_B[offset] == '<');
 
+   // <![CDATA[ ... ]]>  -- content is taken verbatim up to the first
+   // ']]>', so it may contain unescaped '<', '>', or quote characters
+   // that would otherwise confuse the quote/'<'-sensitive scan below.
+   //
+   {
+     const char * ccdata = "<![CDATA[";
+     bool is_cdata = true;
+     for (int i = 0; ccdata[i]; ++i)
+         {
+           if (offset + i >= string_B.ssize() ||
+               string_B[offset + i] != Unicode(ccdata[i]))
+              { is_cdata = false;   break; }
+         }
+
+     if (is_cdata)
+        {
+          for (ShapeItem pos = offset + 9; pos + 2 < string_B.ssize(); ++pos)
+              {
+                if (string_B[pos]     == ']' &&
+                    string_B[pos + 1] == ']' &&
+                    string_B[pos + 2] == '>')
+                   return pos + 3 - offset;
+              }
+
+          MORE_ERROR() << "⎕XML: CDATA section not terminated "
+                          "(expecting ]]>): "
+                       << UCS_string(string_B, offset, 20) << "...";
+          return -1;
+        }
+   }
+
 bool is_doctype = true;
 const char * cdoc = "!DOCTYPE";
 bool inside_dq  = false;   // inside "..."
@@ -747,6 +891,19 @@ UCS_string where(string_B, offset, len1);
 bool
 XML_node::normalize_attribute_value(UCS_string & attval)
 {
+   // XML standard "3.3.3 Attribute-Value Normalization": collapse every
+   // whitespace character to a space first (text-node content must NOT
+   // do this -- see decode_entities()), then decode entities as usual.
+   //
+   loop(a, attval.size())
+       if (attval[a] < UNI_SPACE)   attval[a] = UNI_SPACE;
+
+   return decode_entities(attval);
+}
+//────────────────────────────────────────────────────────────────────────────
+bool
+XML_node::decode_entities(UCS_string & attval)
+{
    // XML standard "4.6 Predefined Entities"
 
 ShapeItem dest = 0;
@@ -772,12 +929,6 @@ enum { PREDEFINED_COUNT = sizeof(predefined_entities)
    loop(src, attval.size())
        {
          const Unicode uni = attval[src];
-         if (uni < UNI_SPACE)
-            {
-              attval[dest++] = UNI_SPACE;
-              continue;
-            }
-
          if (uni != UNI_AMPERSAND)   // normal char
             {
               attval[dest++] = uni;
@@ -823,23 +974,23 @@ enum { PREDEFINED_COUNT = sizeof(predefined_entities)
                  {
                    MORE_ERROR() << "⎕XML: bad character '"
                                 << UCS_string(1, bad_char)
-                                << "' in attribute value '" << attval << "'";
+                                << "' in '" << attval << "'";
                    return true;
                  }
 
               if (!terminated)
                  {
                    MORE_ERROR() << "⎕XML: missing ';' terminating a "
-                                   "character reference in attribute "
-                                   "value '" << attval << "'";
+                                   "character reference in '"
+                                << attval << "'";
                    return true;
                  }
 
               if (overflow || !XML_node::is_XML_char(Unicode(number)))
                  {
                    MORE_ERROR() << "⎕XML: character reference &#" << number
-                                << "; is not a legal XML character in "
-                                   "attribute value '" << attval << "'";
+                                << "; is not a legal XML character in '"
+                                << attval << "'";
                    return true;
                  }
 
@@ -886,6 +1037,36 @@ enum { PREDEFINED_COUNT = sizeof(predefined_entities)
 
    attval.resize(dest);
    return false;   // OK
+}
+//────────────────────────────────────────────────────────────────────────────
+UCS_string
+XML_node::encode_text(const UCS_string & text)
+{
+   // the inverse of decode_entities() for text-node content: unlike
+   // denormalize_attribute_value() below, control characters (including
+   // literal newlines/tabs, which are significant and legal in text
+   // content -- unlike in an attribute value) must NOT be escaped, and
+   // quote characters don't need escaping outside an attribute value
+   // delimiter either.
+   //
+UCS_string ret;
+   ret.reserve(text.size() + 20);
+
+   loop(a, text.size())
+      {
+        const Unicode uni = text[a];
+        switch(uni)
+            {
+              case UNI_LESS:      ret << "&lt;";    continue;
+              case UNI_AMPERSAND: ret << "&amp;";   continue;
+              // recommended (not required) by XML 2.4, to avoid any
+              // resemblance to a CDATA section terminator ']]>'
+              case UNI_GREATER:   ret << "&gt;";    continue;
+              default: ret << uni;
+            }
+      }
+
+   return ret;
 }
 //────────────────────────────────────────────────────────────────────────────
 UCS_string
@@ -1208,7 +1389,24 @@ bool tag_open = false;
 
               if (category == UNI_DELTA)
                   {
-                    entities.push_back(UCS_string(member_data));
+                    // "text" is decoded on read (see translate()) and
+                    // must therefore be re-encoded on write; "comment",
+                    // "declaration", and "doctype" are stored (and
+                    // re-emitted) verbatim; "cdata" is stored as the bare
+                    // payload (see translate()) and must have its
+                    // <![CDATA[ ... ]]> wrapper added back.
+                    if (name == "text")
+                       entities.push_back(
+                          XML_node::encode_text(UCS_string(member_data)));
+                    else if (name == "cdata")
+                       {
+                         UCS_string cdata;
+                         cdata << "<![CDATA[" << UCS_string(member_data)
+                               << "]]>";
+                         entities.push_back(cdata);
+                       }
+                    else
+                       entities.push_back(UCS_string(member_data));
                   }
                else if (category == UNI_UNDERSCORE)
                   {

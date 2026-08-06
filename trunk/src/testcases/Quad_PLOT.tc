@@ -46,3 +46,23 @@
       )MORE
 NO )MORE ERROR INFO
 
+      ⍝ Bugs11 #5 (Blake McBride, 2026-08-04): monadic ⎕PLOT lacked the
+      ⍝ element_count<2 guard that the dyadic form has, so a 0-row
+      ⍝ argument reached setup_data() with row_count==0; Plot_data's six
+      ⍝ min/max members were then read uninitialized by
+      ⍝ Plot_window_properties (UB, occasionally a crash).
+      ⍝
+      ⎕PLOT 0 5⍴0
+LENGTH ERROR
+      ⎕PLOT 0 5⍴0
+      ^
+
+      ⎕PLOT 0 0⍴0
+LENGTH ERROR
+      ⎕PLOT 0 0⍴0
+      ^
+
+      ⍝ clear the SI left behind by the LENGTH ERRORs above
+      ⍝
+      )SIC
+

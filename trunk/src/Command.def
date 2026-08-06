@@ -31,6 +31,7 @@
 //──────────────────────────────────────────────────────────────────────────────────────────────────────
 //      command     ,  implementation                           ,argument(s)               ,\t expansion 
 //──────────────────,────────,──────────────────────────────────,──────────────────────────,────────────
+cmd_def(")CHECK_WS" , Cmd_WS::cmd_CHECK_WS(out, args)           ,"[lib] wsname"            ,oLIB_WSNAME)
 cmd_def(")CHECK"    , Cmd_DIAG::cmd_CHECK(out, arg)             ,"[BRIEF]"                 ,NO_PARAM   )
 cmd_def(")CLEAR"    , Cmd_WS::cmd_CLEAR(out)                    ,""                        ,NO_PARAM   )
 cmd_def(")CONTINUE" , Cmd_WS::cmd_CONTINUE(out)                 ,""                        ,NO_PARAM   )

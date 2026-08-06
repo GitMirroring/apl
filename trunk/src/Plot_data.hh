@@ -216,7 +216,13 @@ public:
    Plot_data(uint32_t rows)
    : surface(false),
      row_count(rows),
-     idx(0)
+     idx(0),
+     min_X(0.0),
+     max_X(0.0),
+     min_Y(0.0),
+     max_Y(0.0),
+     min_Z(0.0),
+     max_Z(0.0)
      {
         data_rows = new const Plot_data_row *[row_count];
       }

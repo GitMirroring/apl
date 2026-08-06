@@ -32,6 +32,12 @@
 class Cmd_WS
 {
 public:
+   /// )CHECK_WS: check the on-disk checksum(s) of a workspace file
+   /// (.apl and/or .xml) without loading it
+   /// @param out   output stream for command result
+   /// @param args  optional library reference and workspace name
+   static void cmd_CHECK_WS(ostream & out, const UCS_string_vector & args);
+
    /// )CLEAR: clear the current Workspace
    /// @param out  output stream for command result
    static void cmd_CLEAR(ostream & out);

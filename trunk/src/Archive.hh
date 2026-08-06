@@ -75,7 +75,7 @@ protected:
    enum ArchiveSyntax
       {
         ASX_MAJOR =  1,   ///< ++ if incompatible XML file format change
-        ASX_MINOR = 11,  ///< ++ if backward compatible XML file format change
+        ASX_MINOR = 12,  ///< ++ if backward compatible XML file format change
         ASX_OTHER =  6,   ///< ++ if no XML file format change (code cleanup)
       };
 
@@ -84,6 +84,25 @@ protected:
 
    /// where to send information messages (such as "SAVED...")
    ostream & out;
+
+   /// the fixed text that starts the checksum comment written after
+   /// </Workspace> (shared between the writer and the verifier)
+   static const char * checksum_prefix()
+      { return "<!-- checksum: crc32="; }
+
+   /// normalize \b data (the <Workspace>...</Workspace> region of a
+   /// )SAVEd .xml file) for checksum purposes: strip the leading and
+   /// trailing whitespace of every physical line and treat \\n, \\r,
+   /// and \\r\\n alike as line boundaries, so that a text editor's
+   /// whitespace-/line-ending-only reformatting of the file is not
+   /// mistaken for corruption. Literal APL data (ravel/token/name
+   /// content) is never affected: it always lives inside an XML
+   /// attribute value, is never itself the leading or trailing
+   /// whitespace of a physical line (only the writer's own structural
+   /// line-wrap indentation ever is), and is otherwise left untouched.
+   /// @param data start of the byte range to normalize
+   /// @param len number of bytes
+   static string normalize_for_checksum(const char * data, size_t len);
 };
 //────────────────────────────────────────────────────────────────────────────
 /// a helper class for saving an APL workspace
@@ -262,6 +281,14 @@ protected:
 
    void write_XML_header();
 
+   /// append a "<!-- checksum: crc32=XXXXXXXX -->" comment after the
+   /// </Workspace> line already written to outf, computed over the
+   /// normalize_for_checksum()d <Workspace>...</Workspace> region.
+   /// Re-reads the file just written (simplest way to get at the exact
+   /// bytes without threading a tee through every outf << call in
+   /// save()).
+   void write_checksum();
+
    /// decrement \b space by length of \b str and return \b str
    /// @param space character budget counter to decrement
    /// @param str string whose length is subtracted from space
@@ -279,6 +306,9 @@ protected:
 
    /// output XML file
    ofstream outf;
+
+   /// path of outf, kept for write_checksum()'s re-read
+   const char * filename;
 
    /// \b true iff )SAVE was successful
    bool save_success;
@@ -321,6 +351,34 @@ public:
    /// check compatibility information in the workspace and maybe warn the
    /// user
    void check_compatibility();
+
+   /// if a "<!-- checksum: crc32=XXXXXXXX -->" comment is present after
+   /// </Workspace>, recompute it over the normalize_for_checksum()d
+   /// <Workspace>...</Workspace> region and warn (but still accept the
+   /// workspace) if it does not match. Silently does nothing if no such
+   /// comment is present (e.g. an older file, or one not written by
+   /// GNU APL).
+   void verify_checksum();
+
+   /// outcome of get_checksum_status()
+   enum ChecksumStatus
+      {
+        CS_NO_WORKSPACE,   ///< no <Workspace>...</Workspace> found
+        CS_NO_CHECKSUM,    ///< no checksum comment (e.g. an older file)
+        CS_OK,             ///< checksum present and matching
+        CS_MISMATCH,       ///< checksum present but not matching
+      };
+
+   /// compute the checksum status of this (already mmap()ed, not yet
+   /// parsed) file; \b stored_crc and \b computed_crc are only set for
+   /// CS_OK and CS_MISMATCH.
+   ChecksumStatus get_checksum_status(uint32_t & stored_crc,
+                                      uint32_t & computed_crc) const;
+
+   /// like verify_checksum(), but for )CHECK_WS: report the outcome
+   /// (including CS_OK and CS_NO_CHECKSUM, unlike verify_checksum())
+   /// on \b out, without loading the workspace.
+   void check_checksum(ostream & out);
 
    /// move to next tag, return true if EOF
    /// @param loc caller location for diagnostics

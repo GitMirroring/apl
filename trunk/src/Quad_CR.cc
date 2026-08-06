@@ -25,6 +25,7 @@
 
 #include "Bif_F12_TAKE_DROP.hh"
 #include "CDR.hh"
+#include "CRC32.hh"
 #include "Macro.hh"
 #include "PointerCell.hh"
 #include "Quad_CR.hh"
@@ -191,6 +192,8 @@ bool extra_frame = false;
         case 49: return do_CR49(B);            // packing threshold as scalar
         case 50:                               // int (elementwise) → HEX
         case 51: return do_CR50_51(a, B);      // int (elementwise) → hex
+        case 52: return do_CR52(B);            // byte vector → CRC32
+        case 53: return do_CR53(B);            // byte vector → CRC32 hex string
 
         default: MORE_ERROR() << "A ⎕CR B with invalid A (=" << a << ")";
                  DOMAIN_ERROR;
@@ -1429,6 +1432,42 @@ Value_P Z(B.get_shape(), LOC);
          Z->next_ravel_Pointer(Z_sub.get());
        }
 
+   Z->check_value(LOC);
+   return Z;
+}
+//────────────────────────────────────────────────────────────────────────────
+uint32_t
+Quad_CR::crc32_of(cValue_R B)
+{
+   if (B.get_rank() > 1)   RANK_ERROR;
+
+const ShapeItem len_B = B.element_count();
+
+uint32_t crc = 0xFFFFFFFFU;
+   loop(b, len_B)
+       // B.get_byte_value(b) throws DOMAIN ERROR if B[b] is not a byte
+       // (integer in [-128, 255], same convention as do_CR33()/do_CR34())
+       crc = apl_crc::crc32_update(crc, uint8_t(B.get_byte_value(b)));
+
+   return crc ^ 0xFFFFFFFFU;
+}
+//────────────────────────────────────────────────────────────────────────────
+Value_P
+Quad_CR::do_CR52(cValue_R B)
+{
+   return IntScalar(APL_Integer(crc32_of(B)), LOC);
+}
+//────────────────────────────────────────────────────────────────────────────
+Value_P
+Quad_CR::do_CR53(cValue_R B)
+{
+const uint32_t crc = crc32_of(B);
+
+char cc[9];
+   SPRINTF(cc, "%8.8X", crc);
+
+Value_P Z(8, LOC);
+   loop(z, 8)   Z->next_ravel_Char(Unicode(cc[z]));
    Z->check_value(LOC);
    return Z;
 }

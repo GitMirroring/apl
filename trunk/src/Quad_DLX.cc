@@ -389,7 +389,7 @@ ShapeItem ones = 0;
    nodes.reserve(ones);
    loop(o, ones)   nodes.push_back(DLX_Node(false));
 
-   DLX_Node * n = &nodes[0];
+   DLX_Node * n = nodes.data();
    loop (r, rows)
       {
         DLX_Node * const lm = n;   // leftmost item in this row

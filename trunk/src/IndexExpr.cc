@@ -146,7 +146,7 @@ IndexExpr::mark_all_dynamic_index_exprs()
    for (DynamicObject * dob = all_index_exprs.get_next();
         dob != &all_index_exprs; dob = dob->get_next())
        {
-         dob->pIndexExpr()->set_marked();
+         dob->pIndexExpr()->mark();
        }
 }
 //────────────────────────────────────────────────────────────────────────────

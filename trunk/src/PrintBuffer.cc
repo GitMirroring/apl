@@ -240,7 +240,17 @@ PrintBuffer * item_matrix = 0;
    catch (...)
       { FIXME; }
 
-   if (do_PrintBuffer(value, pctx, out, outer_style, item_matrix))   // ^C hit
+   // do_PrintBuffer() can itself throw (e.g. WS_FULL from a nested
+   // PrintBuffer of a PointerCell under memory pressure); without this
+   // guard, item_matrix (and every UCS_string row already built inside
+   // it) would leak, worsening the very WS_FULL that caused it.
+   //
+bool interrupted = false;
+   try            { interrupted = do_PrintBuffer(value, pctx, out,
+                                                 outer_style, item_matrix); }
+   catch (...)   { delete [] item_matrix;   throw; }
+
+   if (interrupted)   // ^C hit
       {
         // the user has interrupted the construction
         //

@@ -664,14 +664,43 @@ DOMAIN ERROR+
       ⍝ trigger a domain error if new left arguments were implemented
       ⍝ without adding a testcase for them above
       ⍝
-      52 ⎕CR B
+      54 ⎕CR B
 DOMAIN ERROR+
-      52 ⎕CR B
+      54 ⎕CR B
       ^      ^
 
       )MORE
-A ⎕CR B with invalid A (=52)
+A ⎕CR B with invalid A (=54)
       →
+
+      ⍝ 52 ⎕CR B: byte vector -> CRC32
+      ⍝ 53 ⎕CR B: byte vector -> CRC32 as 8 uppercase hex digits
+      ⍝
+      52 ⎕CR 49 50 51 52 53 54 55 56 57
+3421780262
+
+      'crc32' ⎕CR 49 50 51 52 53 54 55 56 57
+3421780262
+
+      53 ⎕CR 49 50 51 52 53 54 55 56 57
+CBF43926
+
+      'crc32_hex' ⎕CR 49 50 51 52 53 54 55 56 57
+CBF43926
+
+      52 ⎕CR ⍬
+0
+
+      53 ⎕CR ⍬
+00000000
+
+      52 ⎕CR 256
+DOMAIN ERROR+
+      52 ⎕CR 256
+      ^  ^
+
+      )MORE
+integer 256 is too large (> 255) for a byte value
 
       ⍝ regression
       5 ⎕CR '1'

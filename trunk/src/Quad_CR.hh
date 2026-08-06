@@ -285,6 +285,22 @@ protected:
    static Value_P hex_of_int_cell(int A5051, const Cell & cB,
                                   const char * idx_txt);
 
+   /// compute \b 52 ⎕CR \b B: the CRC32 of byte vector B (elements
+   /// validated via cValue::get_byte_value(), i.e. integers in
+   /// [-128, 255], same convention as do_CR33()/do_CR34()), returned
+   /// as an integer scalar
+   /// @param B right argument APL value (a byte vector)
+   static Value_P do_CR52(cValue_R B);
+
+   /// compute \b 53 ⎕CR \b B: like do_CR52(), but returned as an
+   /// 8-character vector of uppercase hex digits
+   /// @param B right argument APL value (a byte vector)
+   static Value_P do_CR53(cValue_R B);
+
+   /// compute the CRC32 of byte vector B (shared by do_CR52()/do_CR53())
+   /// @param B right argument APL value (a byte vector)
+   static uint32_t crc32_of(cValue_R B);
+
    /// @param prefix indentation prefix string for this nesting level
    /// @param B APL value whose internal addresses are to be printed
    static void do_CR45_value(const UCS_string prefix, cValue_R B);

@@ -31,6 +31,7 @@ using namespace std;
 
 #include "Archive.hh"
 #include "Bif_F1_EXECUTE.hh"
+#include "CRC32.hh"
 #include "Command.hh"
 #include "InputFile.hh"
 #include "IO_Files.hh"
@@ -803,6 +804,149 @@ const int err = rename(filename, backup_filename.c_str());
    return false; // OK
 }
 //────────────────────────────────────────────────────────────────────────────
+/// the trailing comment written by write_DUMP_checksum() / looked for by
+/// verify_DUMP_checksum()
+static const char * const DUMP_checksum_marker = "\n⍝ checksum: crc32=";
+
+/// normalize )DUMP'ed (.apl) file content for checksumming: unlike the XML
+/// case (Archive.cc, XML_Archive::normalize_for_checksum()), a )DUMP file
+/// is APL source, so the normalization is narrower and specific to APL
+/// source text: strip a leading 6-blank command-prompt prefix (present if
+/// the file was pasted back from an interactive session -- APL ignores
+/// leading blanks on an input line, so this makes no difference), and
+/// trailing blanks/tabs (likewise invisible to APL). Anything else,
+/// including other leading whitespace (e.g. function body indentation),
+/// is kept as-is.
+static string
+normalize_for_DUMP_checksum(const char * data, size_t len)
+{
+string result;
+   result.reserve(len);
+
+size_t line_start = 0;
+   for (;;)
+       {
+         size_t line_end = line_start;
+         while (line_end < len && data[line_end] != '\n'
+                                && data[line_end] != '\r')   ++line_end;
+
+         size_t s = line_start;
+         size_t e = line_end;
+         if ((e - s) >= 6 && !memcmp(data + s, "      ", 6))   s += 6;
+         while (e > s && (data[e-1] == ' ' || data[e-1] == '\t'))   --e;
+
+         result.append(data + s, e - s);
+
+         if (line_end >= len)   break;
+
+         line_start = line_end + 1;
+         if (data[line_end] == '\r' && line_start < len
+                                     && data[line_start] == '\n')
+            ++line_start;
+       }
+
+   return result;
+}
+//────────────────────────────────────────────────────────────────────────────
+/// append a trailing "⍝ checksum: crc32=XXXXXXXX" comment to a freshly
+/// written )DUMP file \b filename (already flushed/closed content in
+/// \b outf, more to be written to \b outf after this call returns).
+static void
+write_DUMP_checksum(ofstream & outf, const char * filename)
+{
+   outf.flush();
+ifstream in(filename, ifstream::binary);
+   if (!in.is_open())   return;
+const string content((istreambuf_iterator<char>(in)), istreambuf_iterator<char>());
+const string normalized = normalize_for_DUMP_checksum(content.data(),
+                                                       content.size());
+const uint32_t crc = apl_crc::crc32(normalized.data(), normalized.size());
+char cc[10];
+   SPRINTF(cc, "%8.8X", crc);
+   outf << "⍝ checksum: crc32=" << cc << endl;
+}
+//────────────────────────────────────────────────────────────────────────────
+/// outcome of get_DUMP_checksum_status()
+enum DUMP_ChecksumStatus
+   {
+     DCS_NO_FILE,       ///< file could not be opened
+     DCS_NO_CHECKSUM,   ///< no checksum comment (e.g. an older file)
+     DCS_OK,            ///< checksum present and matching
+     DCS_MISMATCH,      ///< checksum present but not matching
+   };
+
+/// compute the checksum status of a )DUMP file \b filename; \b stored_crc
+/// and \b computed_crc are only set for DCS_OK and DCS_MISMATCH.
+static DUMP_ChecksumStatus
+get_DUMP_checksum_status(const UTF8_string & filename, uint32_t & stored_crc,
+                         uint32_t & computed_crc)
+{
+ifstream in(filename.c_str(), ifstream::binary);
+   if (!in.is_open())   return DCS_NO_FILE;
+const string content((istreambuf_iterator<char>(in)), istreambuf_iterator<char>());
+
+const size_t marker_pos = content.rfind(DUMP_checksum_marker);
+   if (marker_pos == string::npos)   return DCS_NO_CHECKSUM;
+
+const size_t crc_pos = marker_pos + strlen(DUMP_checksum_marker);
+   if (sscanf(content.c_str() + crc_pos, "%8X", &stored_crc) != 1)
+      return DCS_NO_CHECKSUM;
+
+const string normalized = normalize_for_DUMP_checksum(content.data(),
+                                                       marker_pos + 1);
+   computed_crc = apl_crc::crc32(normalized.data(), normalized.size());
+
+   return (computed_crc == stored_crc) ? DCS_OK : DCS_MISMATCH;
+}
+//────────────────────────────────────────────────────────────────────────────
+/// verify the trailing checksum comment (if any) of a )DUMP file \b
+/// filename read via )LOAD or )COPY; print a WARNING (but do not prevent
+/// loading) on mismatch. Silently do nothing if there is no checksum
+/// comment (e.g. a file written before this feature existed, or one not
+/// written by GNU APL at all).
+static void
+verify_DUMP_checksum(const UTF8_string & filename)
+{
+uint32_t stored_crc = 0;
+uint32_t computed_crc = 0;
+   if (get_DUMP_checksum_status(filename, stored_crc, computed_crc)
+       != DCS_MISMATCH)   return;
+
+   CERR << "WARNING: checksum mismatch in workspace file " << filename
+        << endl
+        << "         (stored crc32=" << HEX8(stored_crc)
+        << ", computed crc32=" << HEX8(computed_crc) << ")." << endl
+        << "         The file may have been edited outside of GNU APL. "
+           "Loading it anyway." << endl;
+}
+//────────────────────────────────────────────────────────────────────────────
+void
+Workspace::check_DUMP_checksum(ostream & out, const UTF8_string & filename)
+{
+uint32_t stored_crc = 0;
+uint32_t computed_crc = 0;
+   switch (get_DUMP_checksum_status(filename, stored_crc, computed_crc))
+      {
+        case DCS_NO_FILE:   // caller is expected to check existence first
+             break;
+
+        case DCS_NO_CHECKSUM:
+             out << "WARNING - " << filename
+                 << ": no checksum (old workspace)" << endl;
+             break;
+
+        case DCS_OK:
+             out << "OK      - " << filename << ": checksum OK" << endl;
+             break;
+
+        case DCS_MISMATCH:
+             out << "WARNING - " << filename
+                 << ": checksum mismatch (stored crc32=" << HEX8(stored_crc)
+                 << ", computed crc32=" << HEX8(computed_crc) << ")" << endl;
+             break;
+      }
+}
+//────────────────────────────────────────────────────────────────────────────
 void
 Workspace::load_DUMP(ostream & out, const UTF8_string & filename, int fd,
                      LX_mode with_LX, bool silent,
@@ -810,6 +954,8 @@ Workspace::load_DUMP(ostream & out, const UTF8_string & filename, int fd,
 {
    Log(LOG_command_IN)
       CERR << "loading )DUMP file " << filename << "..." << endl;
+
+   verify_DUMP_checksum(filename);
 
    {
      struct stat st;
@@ -1005,6 +1151,7 @@ int variable_count = 0;
 #include "SystemVariable.def"
 
    if (html)   outf << endl << "⍝ EOF </pre></body></html>" << endl;
+   else        write_DUMP_checksum(outf, filename.c_str());
 
    if (silent)
       {

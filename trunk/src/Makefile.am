@@ -104,6 +104,7 @@ common_SOURCES += Bif_OPER2_RANK.cc						Bif_OPER2_RANK.hh
 common_SOURCES += Bif_OPER1_REDUCE.cc					Bif_OPER1_REDUCE.hh
 common_SOURCES += Bif_OPER1_SCAN.cc						Bif_OPER1_SCAN.hh
 common_SOURCES += CDR.cc								CDR.hh
+common_SOURCES +=										CRC32.hh
 common_SOURCES += Cell.cc			Cell.icc			Cell.hh
 common_SOURCES += Cmd_KEYB.cc
 common_SOURCES += Cmd_LIB.cc

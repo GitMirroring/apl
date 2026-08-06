@@ -240,6 +240,24 @@ protected:
   /// @param dist distribution selector (e.g. uniform, normal)
   static Value_P randoms(Value_P opt_A, Value_P B, int dist);
 
+  /// remap the axes 100...103 (documented shorthands for ⎕MX[10, D]) onto
+  /// OP_RANDOMS with the corresponding distribution D in \b modifier;
+  /// no-op for any other \b op. Must run before every subfun_count range
+  /// check, since that check treats subfun_count (the .def row count) as
+  /// a maximum axis number, which is wrong for the sparse 100...103 range.
+  /// The bounds are the named OP_RANDOMS_1xx constants (from Quad_MX.def)
+  /// rather than literals, so an out-of-range axis like 104 correctly
+  /// falls through to bad_subfun_number_ERROR() instead of being
+  /// silently absorbed into an invalid distribution index.
+  static void remap_randoms_subfun(MX_ops & op, int & modifier)
+     {
+       if (op >= OP_RANDOMS_100 && op <= OP_RANDOMS_103)
+          {
+            modifier = op - 100;
+            op = OP_RANDOMS;
+          }
+     }
+
   /// @param B APL vector or matrix value
   static Value_P norm(const Value_P B);
 

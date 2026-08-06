@@ -71,6 +71,8 @@
   crdef(49, pack_threshold         , "Zi ← 'pack_threshold' ⎕CR B  ⍝ minimum ravel length for automatic packing" )
   crdef(50, int_to_HEX             , "Zs ← 50 ⎕CR Bi  ⍝ Zs[IDX] is (uppercase) HEX of int Bi[IDX], 2's complement if < 0" )
   crdef(51, int_to_hex             , "Zs ← 51 ⎕CR Bi  ⍝ Zs[IDX] is (lowercase) hex of int Bi[IDX], 2's complement if < 0" )
+  crdef(52, crc32                  , "Zi ← 52 ⎕CR Bb  ⍝ Zi is the CRC32 (as an integer scalar) of byte vector Bb"        )
+  crdef(53, crc32_hex              , "Zs ← 53 ⎕CR Bb  ⍝ Zs is the CRC32 (as 8 uppercase hex digits) of byte vector Bb"   )
 #else
  #error "macro crdef() was not #define'd"
 #endif

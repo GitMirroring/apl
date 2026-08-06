@@ -53,6 +53,7 @@ public:
         NT_comment     =  5,    // <!-- ... -->
         NT_declaration =  6,    // <?xml ... ?>
         NT_doctype     =  7,    // <!DOCTYPE ... >
+        NT_cdata       =  8,    // <![CDATA[ ... ]]>
       };
 
    /// return the next XML node in the document
@@ -90,6 +91,10 @@ public:
    /// return the tagname of this node. Starts with a valid XML name, thus no
    /// leading <, /m or _.
    UCS_string get_tagname() const;
+
+   /// return the root element name declared by this node, which shall be
+   /// an NT_doctype node, e.g. "html" for <!DOCTYPE html ...>
+   UCS_string get_doctype_root_name() const;
 
    /// return true iff this XML_node was parsed (and has produced an APL value)
    bool is_parsed() const
@@ -176,11 +181,24 @@ public:
    /// return the length of the tag at string_B + offset...
    static ShapeItem get_taglen(const UCS_string & string_B, ShapeItem offset);
 
-   /// perform an in-place attribute value normalization (XML standard 3.3.3).
+   /// decode XML predefined entities and numeric character references
+   /// (XML standard 4.6) in-place. Unlike normalize_attribute_value(),
+   /// does not collapse whitespace -- used for text-node content, where
+   /// whitespace is significant. On error set MORE_ERROR() and return
+   /// \b true
+   static bool decode_entities(UCS_string & text);
+
+   /// perform an in-place attribute value normalization (XML standard 3.3.3):
+   /// collapse whitespace to spaces, then decode_entities().
    /// On error set MORE_ERROR() and return \b true
    static bool normalize_attribute_value(UCS_string & attval);
 
-   /// return the inverse of normalize_attribute_value()
+   /// return the inverse of decode_entities() for text-node content
+   /// (does not escape control chars or quotes, unlike
+   /// denormalize_attribute_value())
+   static UCS_string encode_text(const UCS_string & text);
+
+   /// return the inverse of decode_entities() / normalize_attribute_value()
    static UCS_string denormalize_attribute_value(const UCS_string & UCS_string);
 
 protected:

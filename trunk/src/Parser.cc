@@ -1162,7 +1162,14 @@ Parser::transform_old_multi_line_strings(UCS_string_vector & text)
    */
 
 
-char * status = ALLOCA(char, text.size());
+// a heap buffer, not ALLOCA(): text.size() is the (user-controlled, via
+// ⎕FX on a tall character matrix) line count of the function being fixed,
+// with no cap -- ALLOCA()/alloca() here would be an unbounded stack
+// allocation. This is a one-shot ⎕FX path, not a hot loop, so the extra
+// heap indirection is immaterial.
+//
+std::vector<char> status_v(text.size());
+char * status = status_v.data();
    status[0] = MLS_Function_header;
 Multiline_status current = MLS_APL_text;
 

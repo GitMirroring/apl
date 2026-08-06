@@ -57,6 +57,7 @@
 #include "Bif_OPER2_OUTER.hh"
 #include "Bif_OPER2_POWER.hh"
 #include "Bif_OPER2_RANK.hh"
+#include "CRC32.hh"
 #include "Cmd_DIAG.hh"
 #include "Common.hh"
 #include "Command.hh"
@@ -107,11 +108,46 @@ using namespace std;
    { leave_char_mode();   outf << "\n";   space = do_indent(); } outf
 
 //════════════════════════════════════════════════════════════════════════════
+string
+XML_Archive::normalize_for_checksum(const char * data, size_t len)
+{
+string result;
+   result.reserve(len);
+
+size_t line_start = 0;
+   for (;;)
+       {
+         size_t line_end = line_start;
+         while (line_end < len && data[line_end] != '\n'
+                                && data[line_end] != '\r')   ++line_end;
+
+         // trim leading/trailing horizontal whitespace of this line
+         size_t s = line_start;
+         size_t e = line_end;
+         while (s < e && (data[s] == ' ' || data[s] == '\t'))     ++s;
+         while (e > s && (data[e-1] == ' ' || data[e-1] == '\t')) --e;
+
+         result.append(data + s, e - s);
+
+         if (line_end >= len)   break;   // was the last line
+
+         // skip the line ending (\n, \r, or \r\n) as a single boundary;
+         // it contributes nothing to the normalized result.
+         line_start = line_end + 1;
+         if (data[line_end] == '\r' && line_start < len
+                                     && data[line_start] == '\n')
+            ++line_start;
+       }
+
+   return result;
+}
+//════════════════════════════════════════════════════════════════════════════
 XML_Saving_Archive::XML_Saving_Archive(ostream & of, ostream & ef,
                                        const char * filename)
   : XML_Archive(of, ef),
      char_mode(false),
      indent(0),
+     filename(filename),
      save_success(false)
 {
    outf.open(filename, ofstream::out);
@@ -350,14 +386,49 @@ ShapeItem done_count = 0;
 
    do_indent();
 
-   // write closing tag and a few 0's so that string functions
-   // can be used if the file should be mmap()ed.
-
+   // write closing tag ...
    //
-   outf << "</Workspace>" << endl
-       << char(0) << char(0) << char(0) << char(0) << endl;
+   outf << "</Workspace>" << endl;
+
+   write_checksum();
+
+   // ... and a few 0's so that string functions can be used if the
+   // file should be mmap()ed.
+   //
+   outf << char(0) << char(0) << char(0) << char(0) << endl;
 
    return *this;
+}
+//────────────────────────────────────────────────────────────────────────────
+void
+XML_Saving_Archive::write_checksum()
+{
+   outf.flush();
+
+   // re-read the file just written -- simplest way to get at the exact
+   // bytes without threading a tee through every outf << call above.
+   //
+ifstream in(filename, ifstream::binary);
+   if (!in.is_open())   return;   // best effort; )SAVE itself succeeded
+
+string content((istreambuf_iterator<char>(in)), istreambuf_iterator<char>());
+
+const char * const ws_open  = "<Workspace ";
+const size_t open_pos = content.find(ws_open);
+   if (open_pos == string::npos)   return;   // shouldn't happen
+
+const char * const ws_close = "</Workspace>";
+const size_t close_pos = content.rfind(ws_close);
+   if (close_pos == string::npos || close_pos < open_pos)   return;
+
+const size_t ws_len = close_pos + strlen(ws_close) - open_pos;
+const string normalized = normalize_for_checksum(content.data() + open_pos,
+                                                 ws_len);
+const uint32_t crc = apl_crc::crc32(normalized.data(), normalized.size());
+
+char cc[20];
+   SPRINTF(cc, "%8.8X", crc);
+   outf << checksum_prefix() << cc << " -->" << endl;
 }
 //────────────────────────────────────────────────────────────────────────────
 void
@@ -1383,6 +1454,87 @@ UCS_string current_SVN(UTF8_string(ARCHIVE_SVN));
       }
 }
 //────────────────────────────────────────────────────────────────────────────
+XML_Loading_Archive::ChecksumStatus
+XML_Loading_Archive::get_checksum_status(uint32_t & stored_crc,
+                                         uint32_t & computed_crc) const
+{
+const char * const ws_open = "<Workspace ";
+const UTF8 * open_pos = u8::strstr(file_start, ws_open);
+   if (open_pos == 0)   return CS_NO_WORKSPACE;
+
+   // find the LAST "</Workspace>" (mirrors the file_is_complete scan in
+   // read_Workspace(), just with a pointer kept and a wider window: a
+   // checksum comment plus the NUL trailer can sit between it and file_end).
+   //
+const char * const ws_close = "</Workspace>";
+const size_t ws_close_len = strlen(ws_close);
+const UTF8 * close_pos = 0;
+   for (const UTF8 * c = file_end - ws_close_len;
+        (c > open_pos) && (c > file_end - 1000); --c)
+       {
+         if (!u8::strncmp(c, ws_close, ws_close_len))   { close_pos = c; break; }
+       }
+   if (close_pos == 0)   return CS_NO_WORKSPACE;
+
+const UTF8 * after_close = close_pos + ws_close_len;
+const UTF8 * cs = u8::strstr(after_close, checksum_prefix());
+   if (cs == 0)   return CS_NO_CHECKSUM;   // no checksum in this file
+
+   cs += strlen(checksum_prefix());
+   if (u8::sscanf(cs, "%8X", &stored_crc) != 1)   return CS_NO_CHECKSUM;
+
+const size_t ws_len = (after_close - open_pos);
+const string normalized =
+   normalize_for_checksum(charP(open_pos), ws_len);
+   computed_crc = apl_crc::crc32(normalized.data(), normalized.size());
+
+   return (computed_crc == stored_crc) ? CS_OK : CS_MISMATCH;
+}
+//────────────────────────────────────────────────────────────────────────────
+void
+XML_Loading_Archive::verify_checksum()
+{
+uint32_t stored_crc = 0;
+uint32_t computed_crc = 0;
+   if (get_checksum_status(stored_crc, computed_crc) != CS_MISMATCH)   return;
+
+   err << "WARNING: checksum mismatch in workspace file " << filename
+       << endl
+       << "         (stored crc32=" << HEX8(stored_crc)
+       << ", computed crc32=" << HEX8(computed_crc) << ")." << endl
+       << "         The file may have been edited outside of GNU APL. "
+          "Loading it anyway." << endl;
+}
+//────────────────────────────────────────────────────────────────────────────
+void
+XML_Loading_Archive::check_checksum(ostream & out)
+{
+uint32_t stored_crc = 0;
+uint32_t computed_crc = 0;
+   switch (get_checksum_status(stored_crc, computed_crc))
+      {
+        case CS_NO_WORKSPACE:
+             out << "WARNING - " << filename
+                 << ": not a GNU APL workspace file" << endl;
+             break;
+
+        case CS_NO_CHECKSUM:
+             out << "WARNING - " << filename
+                 << ": no checksum (old workspace)" << endl;
+             break;
+
+        case CS_OK:
+             out << "OK      - " << filename << ": checksum OK" << endl;
+             break;
+
+        case CS_MISMATCH:
+             out << "WARNING - " << filename
+                 << ": checksum mismatch (stored crc32=" << HEX8(stored_crc)
+                 << ", computed crc32=" << HEX8(computed_crc) << ")" << endl;
+             break;
+      }
+}
+//────────────────────────────────────────────────────────────────────────────
 bool
 XML_Loading_Archive::next_tag(const char * loc)
 {
@@ -1556,11 +1708,13 @@ bool prev_month = false;
       {
         err <<
 "*** workspace file " << filename << endl <<
-"    seems to be incomplete (possibly caused by a crash on )SAVE?)\n" 
+"    seems to be incomplete (possibly caused by a crash on )SAVE?)\n"
 "    You may still be able to )COPY from it.\n"
 "\nNOT COPIED" << endl;
         return;
       }
+
+   verify_checksum();
 
    // the order in which tags are written to the xml file
    //
@@ -3357,8 +3511,15 @@ XML_Loading_Archive::read_XML_string(UCS_string & ucs, const UTF8 * utf)
               continue;
             }
 
-         if (uni == ' ')   // indentation
-            {
+         if (uni == ' ' || uni == '\t' || uni == '\r')   // indentation, or
+            {                                            // \r of a \r\n
+              // GNU APL itself only ever writes ' ' for indentation and
+              // '\n' for line endings, but a text editor may convert
+              // leading spaces to tabs or the file to CRLF line endings;
+              // that must not crash the reader. Treat '\t' the same as
+              // the ' ' it replaced, and '\r' the same as the
+              // indentation it's adjacent to; the '\n' of a \r\n pair
+              // (if any) is handled by the case above.
               continue;
             }
 

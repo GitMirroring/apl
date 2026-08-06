@@ -90,7 +90,15 @@ public:
    bool is_marked() const   { return marked; }
 
    /// mark this IndexExpr as (tentatively) stale.
-   void set_marked() const   { marked = true; }
+   //
+   // named mark() rather than set_marked(): Value.hh #defines a
+   // function-like macro set_marked() (for Value::SET_marked() call-site
+   // location tracking) that is never #undef'd, so a same-named method
+   // here gets silently rewritten by the preprocessor -- harmlessly in a
+   // release build, but into ill-formed syntax whenever cfg_VF_TRACING_WANTED
+   // or cfg_VALUE_HISTORY_WANTED add a macro argument (i.e. any
+   // --enable-maintainer-mode / DEVELOP_WANTED=yes build, e.g. `make develop`).
+   void mark() const   { marked = true; }
 
    /// clear the marked flag, i.e. record that this IndexExpr was found
    /// reachable from a live TOK_PINDEX/TOK_INDEX token (see

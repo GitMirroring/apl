@@ -118,11 +118,6 @@ int modifier = 0;
    if (X.is_int_scalar() || X.is_char_string())   // op only
       {
         op = MX_ops(value_to_subfun(X));
-        if (op >= 100 && op <= 104)
-           {
-             modifier = op - 100;
-             op = OP_RANDOMS;
-           }
       }
    else if (X.is_vector())                         // op and modifier
       {
@@ -135,7 +130,8 @@ int modifier = 0;
         MORE_ERROR() << "A ⎕MX[X] B: integer or string X expected.";
         DOMAIN_ERROR;
       }
-  
+   remap_randoms_subfun(op, modifier);
+
    if (op < OP_LIST || int(op) >= subfun_count)   bad_subfun_number_ERROR(op);
 
 Value_P A_vp(static_cast<Value *>(const_cast<cValue *>(&A)), LOC);
@@ -186,6 +182,7 @@ int modifier = 0;
         MORE_ERROR() << "⎕MX[X] B: integer or string X expected.";
         SYNTAX_ERROR;
       }
+   remap_randoms_subfun(op, modifier);
 
    if (op < OP_LIST || int(op) >= subfun_count)   bad_subfun_number_ERROR(op);
 
@@ -302,6 +299,8 @@ int rx = 0;
 Quad_MX::Dcomplex
 Quad_MX::getDet(GSL_Matrix * mtx)
 {
+   if (mtx->rows() == 1)   return mtx->val(0, 0);
+
    if (mtx->rows() == 2)
       {
         return (mtx->val(0, 0) * mtx->val(1, 1)) -   // diagonal
@@ -396,6 +395,18 @@ const ShapeItem cols = B->get_cols();
         LENGTH_ERROR;
       }
 
+   if (rows == 0)
+      {
+        MORE_ERROR() << "⎕MX.eigenvector B: non-empty matrix B expected.";
+        LENGTH_ERROR;
+      }
+
+   // constructed before any of the GSL allocations below so that a
+   // WS_FULL thrown here cannot leak mtx/eval/evec (filled in below,
+   // once erc == GSL_SUCCESS is confirmed).
+   //
+Value_P Z(rows, cols, LOC);
+
 GSL_Matrix * mtx = genMtx(B, false);
 std::vector<double> data_v((size_t)mtx->rows() * mtx->cols());
 double * data = data_v.data();
@@ -428,7 +439,6 @@ int erc = gsl_eigen_nonsymmv(&m.matrix, eval, evec, w);
        INTERNAL_ERROR;
      }
 
-Value_P Z(rows, cols, LOC);
    loop(c, mtx->cols())
        {
          gsl_vector_complex_view evec_c = gsl_matrix_complex_column(evec, c);
@@ -646,6 +656,18 @@ const ShapeItem cols = B->get_cols();
         LENGTH_ERROR;
       }
 
+   if (rows == 0)
+      {
+        MORE_ERROR() << "⎕MX.eigenvalue B: non-empty matrix B expected.";
+        LENGTH_ERROR;
+      }
+
+   // constructed before any of the GSL allocations below so that a
+   // WS_FULL thrown here cannot leak mtx/eval/evec (filled in below,
+   // once erc == GSL_SUCCESS is confirmed).
+   //
+Value_P Z(cols, LOC);
+
 GSL_Matrix * mtx = genMtx(B, false);
 std::vector<double> data_v((size_t)mtx->rows() * mtx->cols());
 double * data = data_v.data();
@@ -678,7 +700,6 @@ int erc = gsl_eigen_nonsymmv(&m.matrix, eval, evec, w);
         INTERNAL_ERROR;
       }
 
-Value_P Z(cols, LOC);
    loop(i, mtx->cols())
        {
          gsl_complex eval_i = gsl_vector_complex_get(eval, i);
@@ -894,6 +915,11 @@ Quad_MX::ident(const Value_P B)
       }
 
 const ShapeItem dim = B->get_sole_integer();
+   if (dim <  0)
+      {
+        MORE_ERROR() << "⎕MX.ident B: non-negative B expected.";
+        DOMAIN_ERROR;
+      }
    if (dim == 0)   return Idx0_0(LOC);
 
 Value_P Z(dim, dim, LOC);
@@ -1141,16 +1167,46 @@ Value_P Z(shape_Z, LOC);
                         break;
 
               case 2:   {
+                          // unlike normal/lognormal's stddev, chi-squared's
+                          // degrees-of-freedom parameter has no meaningful
+                          // value at 0 -- constructing chi_squared_distribution
+                          // with dof<=0 is undefined behaviour (observed as
+                          // outright corrupt output, not just a wrong number).
+                          // B0_real is the parameter the caller actually
+                          // asked for, so reject it; B0_imag is 0.0 whenever
+                          // B was a plain real number, so treat that as "no
+                          // imaginary part requested" (matching how case 0/1
+                          // already tolerate a real-only B).
+                          if (B0_real <= 0.0)
+                             {
+                               MORE_ERROR() << "⎕MX[10, 2] B: B (chi-squared "
+                                               "degrees of freedom) must be "
+                                               "> 0.";
+                               DOMAIN_ERROR;
+                             }
                           chi_squared_distribution<double> real_dist{B0_real};
-                          chi_squared_distribution<double> imag_dist{B0_imag};
-                          yy = complex<double>(real_dist(rgen), imag_dist(igen));
+                          const double yim = (B0_imag > 0.0)
+                             ? chi_squared_distribution<double>{B0_imag}(igen)
+                             : 0.0;
+                          yy = complex<double>(real_dist(rgen), yim);
                         }
                         break;
 
               case 3:   {
+                          // see case 2: student-t's degrees-of-freedom
+                          // parameter is likewise undefined at 0.
+                          if (B0_real <= 0.0)
+                             {
+                               MORE_ERROR() << "⎕MX[10, 3] B: B (student-t "
+                                               "degrees of freedom) must be "
+                                               "> 0.";
+                               DOMAIN_ERROR;
+                             }
                           student_t_distribution<double> real_dist{B0_real};
-                          student_t_distribution<double> imag_dist{B0_imag};
-                          yy = complex<double>(real_dist(rgen), imag_dist(igen));
+                          const double yim = (B0_imag > 0.0)
+                             ? student_t_distribution<double>{B0_imag}(igen)
+                             : 0.0;
+                          yy = complex<double>(real_dist(rgen), yim);
                         }
                         break;
 

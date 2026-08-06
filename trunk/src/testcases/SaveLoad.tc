@@ -118,5 +118,83 @@ Attempt (of ⎕FX) to create or edit a lambda. Use { ... } instead.
 
       )CHECK BRIEF
 
+      ⍝ )SAVE/)LOAD workspace checksum (see plan.txt): )SAVE appends a
+      ⍝ CRC32 comment after </Workspace>; )LOAD verifies it and warns
+      ⍝ (but still loads) on a mismatch.
+      ⍝
+      )CLEAR
+CLEAR WS
+
+      )DROP checksum_test.xml
+³
+
+      )WSID checksum_test
+WAS CLEAR WS
+
+      X←'hello'
+
+      ⍝ case 1: unmodified round-trip -- no WARNING. checksum_test.xml
+      ⍝ resolves (via the default library path) to workspaces/checksum_test.xml
+      ⍝ -- the raw ⎕FIO calls below use that same resolved path so they edit
+      ⍝ the exact same file that )SAVE/)LOAD operate on.
+      ⍝
+      )SAVE checksum_test
+20⁰-⁰-⁰  ⁰:⁰:⁰ (GMT⁵⁰) 
+
+      )LOAD checksum_test.xml
+SAVED 20⁰-⁰-⁰ ⁰:⁰:⁰ (GMT⁵⁰)
+
+      X
+hello
+
+      ⍝ case 2: edit a decorative XML comment inside <Workspace> (changes
+      ⍝ the checksummed bytes but not the loadability -- comments carry
+      ⍝ no meaning) using raw ⎕FIO, then )LOAD again: expect a WARNING
+      ⍝ but the workspace shall still load correctly
+      ⍝
+      data ← ⎕FIO[26] 'workspaces/checksum_test.xml'
+      needle ← '<!-- Symbol Table -->'
+      pos ← (needle ⍷ data) ⍳ 1
+      replacement ← '<!-- Symbol Table (edited) -->'
+      new_data ← ((pos-1)↑data) , replacement , (((pos-1)+≢needle)↓data)
+      Handle ← 'w' ⎕FIO[3] 'workspaces/checksum_test.xml'
+      Wcount ← (⎕UCS new_data) ⎕FIO[7] Handle
+
+      ⎕FIO[4] Handle
+0
+
+      ⍝ note: the WARNING itself goes to plain CERR (like the pre-existing
+      ⍝ "this workspace was )SAVEd with a VERY..." warning below), which is
+      ⍝ not DiffOut-instrumented and therefore not part of the reference
+      ⍝ comparison -- only the still-successful )LOAD is verified here.
+      ⍝
+      )LOAD checksum_test.xml
+SAVED 20⁰-⁰-⁰ ⁰:⁰:⁰ (GMT⁵⁰)
+
+      X
+hello
+
+      ⍝ )CHECK_WS: check the on-disk checksum(s) without loading. The
+      ⍝ absolute path in the message is not deterministic across checkouts,
+      ⍝ so it is swallowed by ³; checksum_test.xml still has the mismatch
+      ⍝ from case 2 above (the )LOAD WARNING is CERR-only and doesn't fix
+      ⍝ the file on disk). checksum_test.apl doesn't exist, so only one
+      ⍝ line (for the .xml) is reported.
+      ⍝
+      )CHECK_WS checksum_test
+WARNING - ³
+
+      )SAVE checksum_test
+20⁰-⁰-⁰  ⁰:⁰:⁰ (GMT⁵⁰) 
+
+      )CHECK_WS checksum_test
+OK      - ³
+
+      )CHECK_WS no_such_checksum_test_ws
+no_such_checksum_test_ws: no such workspace file(s)+
+
+      )DROP checksum_test.xml
+³
+
       ⍝ ==================================
 
