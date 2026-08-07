@@ -57,6 +57,7 @@ public:
    : fetcher(0),
      valid_ravel_items(0),
      nz_subcell_count(0),
+     alloc_cells(0),
      cells(0),
      fetch_cache(0)
    {}
@@ -166,13 +167,13 @@ public:
    /// fetch function for packed (bit-array) boolean ravels.
    /// @param offset ravel index (0-based)
    /// @param cells pointer to the packed bit array cast to Cell *
-   /// @param cache unused (required by fetcher signature)
+   /// @param cache receives the materialised IntCell(0 or 1)
    static const Cell & bool_fetcher(ShapeItem offset, const Cell * cells,
-                                    Cell & not_iused)
+                                    Cell & cache)
       {
-        return 1 << (offset & 7) &
-               reinterpret_cast<const uint8_t *>(cells)[offset >> 3]
-             ? IntCell::boolean_TRUE : IntCell::boolean_FALSE;
+        new (&cache) IntCell((1 << (offset & 7) &
+              reinterpret_cast<const uint8_t *>(cells)[offset >> 3]) ? 1 : 0);
+        return cache;
       }
 
    /// fetch function for packed int64_t ravels.
@@ -263,6 +264,19 @@ protected:
 
    /// number of cells in nested sub-values.
    ShapeItem nz_subcell_count;
+
+   /// the number of Cells actually passed to std::allocator<Cell>::allocate()
+   /// for the current heap buffer (0 if cells == short_value, i.e. no heap
+   /// buffer at all). Distinct from valid_ravel_items/nz_element_count():
+   /// several primitives allocate a worst-case ravel and then shrink the
+   /// *logical* shape/count in place (an explicitly supported operation,
+   /// see Value::set_shape_item()) without ever touching the underlying
+   /// allocation. std::allocator<Cell>::deallocate() requires the exact
+   /// size originally passed to allocate() -- unlike new[]/delete[], it has
+   /// no self-tracking size cookie -- so ~Value() must use this field, not
+   /// nz_element_count(), when freeing ravel.cells. Set in init_ravel() and
+   /// kept current by double_ravel().
+   ShapeItem alloc_cells;
 
    /// pointer to the ravel cells (points to short_value for short ravels,
    /// or to a heap-allocated array for longer ones).

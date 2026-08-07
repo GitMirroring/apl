@@ -241,18 +241,14 @@ Value::~Value()
              // long-value branch below, and (like that branch) deallocate
              // via std::allocator<Cell>, matching how init_ravel() actually
              // allocated the buffer via std::allocator<Cell>::allocate().
-             // This requires nz_element_count() here to still equal the
-             // count originally passed to allocate() -- true as long as no
-             // code path shrinks an already-packed value's shape in place.
-             // The one place that used to do exactly that (A⍴B's in-place-
-             // reshape optimization in Bif_F12_RHO.cc, which could reshape
-             // an already-packed B) has been removed for this reason; every
-             // remaining packing call site packs a value as its very last
-             // step before returning it, with no shrink afterward.
+             // Uses ravel.alloc_cells (the count actually passed to
+             // allocate()), not nz_element_count() (the current, possibly
+             // shrunk-in-place, logical count) -- see ravel.alloc_cells's
+             // own comment (Ravel.hh) and finding #3 of Blake McBride's
+             // Bugs12.md.
              //
-             const ShapeItem length = nz_element_count();
-             total_ravel_count -= length;
-             std::allocator<Cell>{}.deallocate(ravel.cells, length);
+             total_ravel_count -= ravel.alloc_cells;
+             std::allocator<Cell>{}.deallocate(ravel.cells, ravel.alloc_cells);
            }
         ravel.cells = 0;
         Assert(check_ptr == charP(this) + 7);
@@ -289,8 +285,13 @@ const ShapeItem length = nz_element_count();
 
    if (ravel.cells != ravel.short_value)   // long value
       {
-        total_ravel_count -= length;
-        std::allocator<Cell>{}.deallocate(ravel.cells, length);
+        // ravel.alloc_cells (the count originally passed to allocate()),
+        // NOT length (== nz_element_count(), the current logical count,
+        // which several primitives shrink in place after allocating a
+        // worst-case ravel -- see ravel.alloc_cells's own comment).
+        //
+        total_ravel_count -= ravel.alloc_cells;
+        std::allocator<Cell>{}.deallocate(ravel.cells, ravel.alloc_cells);
       }
 
    Assert(check_ptr == charP(this) + 7);
@@ -673,20 +674,28 @@ const char * del = 0;
 const ShapeItem old_rows  = get_rows();
 const ShapeItem new_rows  = 2*old_rows;
 const ShapeItem new_cells = 2*new_rows;
-const ShapeItem old_cells = 2*old_rows;
+const ShapeItem old_alloc_cells = ravel.alloc_cells;   // for deallocate() below
 
-Cell * doubled = new Cell[new_cells];
+   // std::allocator<Cell>, not new Cell[]: init_ravel()/~Value() use
+   // std::allocator<Cell> throughout, and mixing allocator families is
+   // alloc-dealloc-mismatch UB (Blake McBride, Bugs12.md #4). The
+   // following loop placement-constructs every cell via IntCell::z0(),
+   // matching allocate()'s raw/uninitialized-memory contract exactly --
+   // no change needed there.
+   //
+Cell * doubled = std::allocator<Cell>{}.allocate(new_cells);
    loop(n, new_cells)   IntCell::z0(doubled + n);
    ravel.valid_ravel_items = new_cells;
+   ravel.alloc_cells = new_cells;
    shape.set_shape_item(0, new_rows);
    ravel.cells = doubled;
 
    // keep total_ravel_count in sync with the grown ravel so that ~Value()
-   // (which subtracts based on the *current*, now larger, element count)
-   // does not under-subtract and drift/underflow total_ravel_count.
+   // (which subtracts ravel.alloc_cells, just updated above) does not
+   // under- or over-subtract and drift/underflow total_ravel_count.
    //
-   if (del)   total_ravel_count += new_cells - old_cells;   // was long already
-   else       total_ravel_count += new_cells;               // was short, now long
+   if (del)   total_ravel_count += new_cells - old_alloc_cells; // was long already
+   else       total_ravel_count += new_cells;                  // was short, now long
 
    loop(r, old_rows)
        {
@@ -707,7 +716,13 @@ Cell * doubled = new Cell[new_cells];
          memcpy(dest, old_member_data_cell, sizeof(Cell));
        }
 
-   delete [] del;   // del is char *, so no cell destructor is called
+   // del is char *, so std::allocator<Cell>::deallocate() does not (and
+   // must not -- these cells were memcpy()'d out or released() above,
+   // not destructed) call any cell destructors.
+   //
+   if (del)
+      std::allocator<Cell>{}.deallocate(
+          reinterpret_cast<Cell *>(const_cast<char *>(del)), old_alloc_cells);
 }
 //────────────────────────────────────────────────────────────────────────────
 bool
@@ -1347,7 +1362,7 @@ const bool heap_ravel = ravel.cells != ravel.short_value;
    switch (t)
       {
         case RPT_BOOL:
-             try_implode();   // uses a separate allocation; flags.ravel_type set inside
+             try_implode();   // packs in place, no reallocation; flags.ravel_type set inside
              return;
 
         case RPT_INT64:
@@ -2078,6 +2093,7 @@ CERR << "*** Quad_SYL::ravel_count_limit hit ***" << endl;
 
    alloc_size = length * sizeof(Cell);
    ravel.cells = std::allocator<Cell>{}.allocate(length);
+   ravel.alloc_cells = length;
 
 /*
    ravel = 0;   // assume new() fails

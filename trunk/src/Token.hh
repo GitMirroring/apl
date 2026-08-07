@@ -125,7 +125,20 @@ public:
    /// @param tg tag identifying the token type (from Avec.def)
    /// @param uni Unicode character value to store
    Token(TokenTag tg, Unicode uni)
-   : tag(tg) { value.char_val = uni; }
+   : tag(tg)
+      {
+        // uni only occupies the low bytes of value.int_vals[0] (Unicode is
+        // narrower than APL_Integer). Some tags constructed via this
+        // overload (e.g. TOK_L_PARENT/TOK_R_PARENT, see Token.def) declare
+        // get_ValueType() == TV_INT although only the char value is ever
+        // meaningful for them; zero the union first so a caller that reads
+        // the wider TV_INT value (e.g. Quad_CR.cc's do_CR42_43(), which
+        // dumps every raw token's value per its declared ValueType) never
+        // sees uninitialized bytes.
+        //
+        value.int_vals[0] = 0;
+        value.char_val = uni;
+      }
 
    /// Construct a token for a single integer value.
    /// @param tg tag identifying the token type

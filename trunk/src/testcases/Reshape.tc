@@ -136,6 +136,21 @@ ABCD ¯5 ¯6
       T
 7 8 3 4 5 6
 
+      ⍝ regression (Blake McBride, Bugs12.md #11b, 2026-08-06): a partial
+      ⍝ shape product legitimately overflows int64 when a later axis is
+      ⍝ 0 (the overflowing partial product is intentionally discarded,
+      ⍝ per design comments in Shape.hh/Shape.cc) -- but doing that via
+      ⍝ plain "volume *= len" made the overflow itself UB rather than
+      ⍝ just an intentionally-discarded value. Shape::add_shape_item()
+      ⍝ and Shape::fits_into() now multiply via uint64_t (well-defined
+      ⍝ wraparound) instead.
+      ⍝
+      ⍴ 10000000 100000000000000 0⍴42
+10000000 100000000000000 0
+
+      0 = ≢, 10000000 100000000000000 0⍴42
+1
+
       ⍝ regression
 
       ¯1⍴0,0

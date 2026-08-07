@@ -32,12 +32,25 @@ int main()
               continue;
             }
 
-          int len, val = cc;
+          // Blake McBride, Bugs12.md #12b: 0xFE/0xFF are not valid UTF-8
+          // lead bytes (easy to hit on a binary or Latin-1 file) and used
+          // to fall through this if/else-if chain with len uninitialized,
+          // making the continuation loop below run an arbitrary number of
+          // times. len = 1 (no continuation bytes expected) plus an
+          // explicit diagnostic, mirroring the "Unexpected UTF8-*"
+          // messages already used elsewhere in this loop.
+          //
+          int len = 1, val = cc;
           if      ((cc & 0xE0) == 0xC0)   { len = 2;   val &= 0x1F; }
           else if ((cc & 0xF0) == 0xE0)   { len = 3;   val &= 0x0F; }
           else if ((cc & 0xF8) == 0xF0)   { len = 4;   val &= 0x07; }
           else if ((cc & 0xFC) == 0xF8)   { len = 5;   val &= 0x03; }
           else if ((cc & 0xFE) == 0xFC)   { len = 6;   val &= 0x01; }
+          else if ((cc & 0xFE) == 0xFE)
+             {
+               printf("*** Illegal UTF8 lead byte %2.2X\n", cc & 0xFF);
+               continue;
+             }
 
           for (int l = 1; l < len; ++l)
               {

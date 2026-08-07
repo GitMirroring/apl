@@ -346,4 +346,28 @@ A ⎕XML B: Bad function number A=15
 
       )SIC
 
+      ⍝ regression (Blake McBride, Bugs12.md #4, 2026-08-06): a node with
+      ⍝ more than 8 members (attributes+children) forces
+      ⍝ Value::get_new_member()/double_ravel() to grow the structured
+      ⍝ value's member table. double_ravel() used to allocate the new
+      ⍝ (doubled) ravel via `new Cell[]` and free the old one via
+      ⍝ `delete []` (on a char*, so no destructor ran) -- mismatched with
+      ⍝ init_ravel()/~Value(), which use std::allocator<Cell> throughout.
+      ⍝ Confirmed via ASan alloc-dealloc-mismatch on this exact
+      ⍝ expression before the fix. 11 children (+2 attributes) is enough
+      ⍝ to force (at least) one growth.
+      ⍝
+      APL←⎕XML '<a><b x="1"/><c y="2"/><d/><e/><f/><g/><h/><i/><j/><k/><l/></a>'
+      APL._1a._1b.⍙2x
+1
+
+      APL._1a._2c.⍙2y
+2
+
+      (14 "") ⎕XML APL._1a
+⍙1
+
+      (14 "_10k") ⎕XML APL._1a
+_11l
+
 

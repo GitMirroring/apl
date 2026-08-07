@@ -108,12 +108,15 @@ Shape::fits_into(ShapeItem max_ravel) const
    // must not throw!
    // overflow of volume is intentional: the product is on a performance-critical
    // path and overflowing shapes that pass this test will be caught downstream.
+   // The multiply itself is done in uint64_t (well-defined wraparound) and
+   // reinterpreted back to ShapeItem, rather than relying on signed-overflow
+   // UB to produce the same bit pattern (Blake McBride, Bugs12.md #11b).
 
 ShapeItem volume = 1;
    loop(r, rho_rho)
        {
          const ShapeItem sr = rho[r];
-         if (sr > 0)         volume *= sr;
+         if (sr > 0)         volume = ShapeItem(uint64_t(volume) * uint64_t(sr));
          else if (sr == 0)   return true;
          else                return false;
        }

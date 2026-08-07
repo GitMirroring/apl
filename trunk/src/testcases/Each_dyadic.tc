@@ -61,3 +61,20 @@
       (,3)↑¨'abcd'
  a   b   c   d   
 
+      ⍝ regression (Blake McBride, Bugs12.md #2, 2026-08-06): same
+      ⍝ uninitialized-Cell bug as Each_monadic.tc, dyadic form -- an
+      ⍝ empty nested left AND right argument, whose (disclosed)
+      ⍝ prototype items have more than one element.
+      ⍝
+      Z←⍬+¨0⍴⊂⍳3
+      ⍴Z
+0
+
+      Z←1+¨0⍴⊂⍳3
+      ⍴Z
+0
+
+      Z←(0⍴⊂2 3⍴⍳6)⌊¨(0⍴⊂⍳3)
+      ⍴Z
+0
+

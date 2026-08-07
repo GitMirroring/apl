@@ -157,8 +157,16 @@ ScalarFunction::do_eval_fill_B(cValue_R B) const
    //
    if (B.is_numeric(0) || B.is_character_cell(0))
       {
+        // the comment above says "simple scalars", but B.get_shape() can
+        // be non-scalar here: Bif_OPER1_EACH calls this with B already
+        // replaced by Bif_F12_TAKE::first(B) -- for an empty nested B
+        // that's the disclosed (and possibly non-scalar) prototype item,
+        // not B itself. Fill every cell, not just cell 0, or cells
+        // 1..n-1 are left as uninitialized garbage.
+        //
         Value_P Z(B.get_shape(), LOC);
-        Z->set_ravel_Int(0, 0);
+        while (Z->more())   Z->next_ravel_0();
+        if (!Z->element_count())   Z->set_ravel_Int(0, 0);   // prototype
         Z->check_value(LOC);
         return Token(TOK_APL_VALUE1, Z);
       }

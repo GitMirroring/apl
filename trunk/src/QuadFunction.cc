@@ -1288,7 +1288,14 @@ UCS_string_vector names;
           NameClass nc = symbol->get_NC();
           if (nc == NC_SYSTEM_VAR)   nc = NC_VARIABLE;
 
-          if (!(requested_NCs & 1 << nc))   continue;   // name class not in B
+          // nc is a NameClass (one-hot selector in the high byte, ordinal
+          // in the low byte -- NamedObject.hh), not a small ordinal;
+          // shifting by it directly is UB (e.g. NC_VARIABLE == 2050) and
+          // only happened to work on x86, which masks the shift count to
+          // 5 bits, and because every NameClass is a multiple of 32
+          // (Blake McBride, Bugs12.md #9). Mask down to the ordinal first.
+          //
+          if (!(requested_NCs & 1 << (nc & NC_case_mask)))   continue;
 
           if (first_chars.size())
              {

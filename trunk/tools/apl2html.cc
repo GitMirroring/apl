@@ -97,13 +97,22 @@ bool apl_to_html = true;
 int year, mon, day;
 
    {
+     // Blake McBride, Bugs12.md #12a: the statements below used to read
+     // tv.tv_sec *before* gettimeofday() filled it in (uninitialized), and
+     // dereferenced localtime()'s result without checking for NULL (which
+     // it returns for an out-of-range time_t).
+     //
      timeval tv;
-     const time_t seconds = tv.tv_sec;
      gettimeofday(&tv, 0);
+     const time_t seconds = tv.tv_sec;
      tm * t = localtime(&seconds);
-     year = 1900 + t->tm_year;
-     mon = 1 + t->tm_mon;
-     day = t->tm_mday;
+     if (t == 0)   { year = 1900;   mon = 1;   day = 1; }
+     else
+        {
+          year = 1900 + t->tm_year;
+          mon = 1 + t->tm_mon;
+          day = t->tm_mday;
+        }
    }
 
    for (int a = 1; a < argc; )

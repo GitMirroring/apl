@@ -397,8 +397,16 @@ Token
 Bif_F12_DOMINO::eval_fill_AB(cValue_R A, cValue_R B) const
 {
 Shape shape_Z;
-   loop(r, A.get_rank() - 1)  shape_Z.add_shape_item(A.get_shape_item(r + 1));
-   loop(r, B.get_rank() - 1)  shape_Z.add_shape_item(B.get_shape_item(r + 1));
+   // A.get_rank()/B.get_rank() return uRank (uint32_t); a rank-0 argument
+   // (guaranteed here, since Bif_OPER2_RANK::do_ALyXB() always reaches
+   // this path via Bif_F12_TAKE::first(), which returns a scalar) makes
+   // "- 1" wrap to ~4 billion instead of going negative -- cast to the
+   // signed sRank first (Blake McBride, Bugs12.md #7).
+   //
+   loop(r, sRank(A.get_rank()) - 1)
+      shape_Z.add_shape_item(A.get_shape_item(r + 1));
+   loop(r, sRank(B.get_rank()) - 1)
+      shape_Z.add_shape_item(B.get_shape_item(r + 1));
 
 Value_P Z(shape_Z, LOC);
    while (Z->more())   Z->next_ravel_0();

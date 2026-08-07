@@ -67,6 +67,15 @@
 16
 
       ⍝ one more: sum overflows int64, promoted to float
+      ⍝
+      ⍝ regression (Blake McBride, Bugs12.md #11a, 2026-08-06): the two
+      ⍝ overflow tests below (and the negative-boundary pair further down)
+      ⍝ used to compute a+b (here and in Subtract.tc's a-b) *before*
+      ⍝ checking for overflow -- signed overflow is UB, so a compiler
+      ⍝ would have been entitled to assume it never happens and delete
+      ⍝ the float fallback. IntCell::bif_add_ii()/bif_subtract_ii() now
+      ⍝ compute via uint64_t (well-defined wraparound) first.
+      ⍝
       9223372036854775807+1
 9.2233720368547765E18
       26⎕CR 9223372036854775807+1

@@ -129,3 +129,49 @@ Hello 33.
       'Hello 55,550.' ⍕ 33.3
 Hello     33.
 
+      ⍝ regression (Blake McBride, Bugs12.md #6, 2026-08-06): an 'E' with
+      ⍝ no digit position after it (directly, or via a pending exponent
+      ⍝ flag reaching end-of-string / a right decorator before any digit
+      ⍝ position) used to abort: Assertion failed:
+      ⍝ row.size() == all_formats.size() in format_by_example()
+      ⍝ (Bif_F12_FORMAT.cc:986), or -- with asserts off -- leave part of
+      ⍝ the result's Cells uninitialized. Now rejected with DOMAIN ERROR.
+      ⍝ '9.9E' (E as a plain right-decorator char, no pending exponent
+      ⍝ flag) and '9E9' (E with a digit position) are unaffected.
+      ⍝
+      '9E'⍕0
+DOMAIN ERROR+
+      '9E'⍕0
+      ^   ^
+)SIC
+
+      '99E'⍕0
+DOMAIN ERROR+
+      '99E'⍕0
+      ^    ^
+)SIC
+
+      '9EE'⍕0
+DOMAIN ERROR+
+      '9EE'⍕0
+      ^    ^
+)SIC
+
+      '9E '⍕0
+DOMAIN ERROR+
+      '9E '⍕0
+      ^    ^
+)SIC
+
+      '9.7E'⍕0
+DOMAIN ERROR+
+      '9.7E'⍕0
+      ^     ^
+)SIC
+
+      '9.9E'⍕1.5
+1.5E
+
+      '9E9'⍕0
+ E0
+

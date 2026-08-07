@@ -1099,11 +1099,20 @@ const int cols = B.get_cols();
    if (cols == 0)   return Str0(LOC);  // empty value
    if (cols & 3)    LENGTH_ERROR;      // length not 4*n
 
-   // figure number of missing chars in final quantum
+   // figure number of missing chars in final quantum. Check cols-1 (the
+   // true last character) first: a lone '=' at cols-2 with a non-'=' at
+   // cols-1 (e.g. "AA=A") is not padding at all, just a stray '=' in the
+   // last quantum's 3rd position -- checking cols-2 first (as before)
+   // mistook it for 2 missing bytes and silently derived the wrong
+   // length (Blake McBride, Bugs12.md #8). The loop below rejects that
+   // case explicitly once missing is (correctly) 0 here.
    //
 int missing = 0;
-   if      (B.get_char_value(cols - 2) == '=')   missing = 2;
-   else if (B.get_char_value(cols - 1) == '=')   missing = 1;
+   if (B.get_char_value(cols - 1) == '=')
+      {
+        missing = 1;
+        if (B.get_char_value(cols - 2) == '=')   missing = 2;
+      }
 
 const ShapeItem len_Z = 3 * (B.element_count() / 4) - missing;
 const ShapeItem quantums = B.element_count() / 4;
@@ -1128,6 +1137,25 @@ ShapeItem bI = 0;
          const int z3 = (b3 & 0x03) << 6 | b4;
 
          if (b1 < 0 || b2 < 0 || q3  == -1 || q4 == -1)   DOMAIN_ERROR;
+
+         // '=' (sixbit() == 64, RFC 4648's pad character) is only valid
+         // as one or both of the last quantum's trailing characters
+         // (checked against 'missing' above, which was itself derived
+         // from those same trailing characters); anywhere else -- b1/b2
+         // of any quantum, or q3/q4 of a non-last quantum, or q3/q4 of
+         // the last quantum in excess of what 'missing' says -- it is a
+         // malformed encoding, not valid padding (Bugs12.md #8).
+         //
+         if (b1 == 64 || b2 == 64)   DOMAIN_ERROR;
+         if (q < (quantums - 1))
+            {
+              if (q3 == 64 || q4 == 64)   DOMAIN_ERROR;
+            }
+         else
+            {
+              if (missing == 0 && (q3 == 64 || q4 == 64))   DOMAIN_ERROR;
+              if (missing == 1 && q3 == 64)                 DOMAIN_ERROR;
+            }
 
          if (q < (quantums - 1) || missing == 0)
             {
@@ -1948,7 +1976,17 @@ Value_P Z(tos.size(), LOC);
                         }
                      else
                         {
-                          ZZ->next_ravel_Pointer(Z2.get());
+                          // not next_ravel_Pointer(): with optimize=true,
+                          // Parser::parse() folds scalar literals into
+                          // TOK_APL_VALUE* tokens holding a *simple*
+                          // scalar, and next_ravel_Pointer() asserts
+                          // !is_simple_scalar() (a simple scalar is
+                          // always stored directly in a cell, never
+                          // behind a PointerCell). next_ravel_Value()
+                          // already handles both the simple-scalar and
+                          // nested-scalar cases correctly.
+                          //
+                          ZZ->next_ravel_Value(Z2.get());
                         }
                    }
                    break;

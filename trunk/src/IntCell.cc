@@ -744,7 +744,13 @@ const APL_Integer val = get_int_value();
 ErrorCode
 IntCell::bif_add_ii(Cell * Z, APL_Integer a, APL_Integer b)
 {
-const APL_Integer z = a + b;
+   // a + b directly would be signed overflow (UB) exactly when
+   // sum_overflow() below is about to say so (Blake McBride,
+   // Bugs12.md #11a). Compute via uint64_t, whose overflow is
+   // well-defined wraparound, then reinterpret -- same bit pattern
+   // two's-complement a + b would have produced anyway.
+   //
+const APL_Integer z = APL_Integer(uint64_t(a) + uint64_t(b));
    if (Cell::sum_overflow(z, a, b))
       return FloatCell::zF(Z, APL_Float(a) + APL_Float(b));
    return IntCell::zI(Z, z);
@@ -753,7 +759,9 @@ const APL_Integer z = a + b;
 ErrorCode
 IntCell::bif_subtract_ii(Cell * Z, APL_Integer a, APL_Integer b)
 {
-const APL_Integer z = a - b;
+   // see bif_add_ii() above.
+   //
+const APL_Integer z = APL_Integer(uint64_t(a) - uint64_t(b));
    if (Cell::diff_overflow(z, a, b))
       return FloatCell::zF(Z, APL_Float(a) - APL_Float(b));
    return IntCell::zI(Z, z);

@@ -202,6 +202,42 @@ f
 
       ¯16 ⎕CR 16 ⎕CR ''
 
+      ⍝ regression (Blake McBride, Bugs12.md #8, 2026-08-06): 17 ⎕CR
+      ⍝ (base64 -> byte vector) used to silently mis-decode malformed
+      ⍝ input instead of rejecting it: '=' (RFC 4648's pad character)
+      ⍝ was only ever checked at cols-2/cols-1 to derive the missing-byte
+      ⍝ count, never validated as *invalid* everywhere else -- so a '='
+      ⍝ as b1/b2 produced an out-of-range "byte" 256 (masked bits were
+      ⍝ dropped for b3/b4 but not b1/b2), embedded padding ('QQ==QQ==')
+      ⍝ silently decoded as zero bytes, and a stray '=' at cols-2 with a
+      ⍝ non-'=' at cols-1 (e.g. 'AA=A') silently derived the wrong
+      ⍝ output length. All four are DOMAIN ERROR now; well-formed input
+      ⍝ (tested throughout this file) is unaffected.
+      ⍝
+      ⎕UCS 17 ⎕CR '=AAA'
+DOMAIN ERROR
+      ⎕UCS 17 ⎕CR '=AAA'
+           ^  ^
+)SIC
+
+      ⎕UCS 17 ⎕CR '===='
+DOMAIN ERROR
+      ⎕UCS 17 ⎕CR '===='
+           ^  ^
+)SIC
+
+      ⎕UCS 17 ⎕CR 'QQ==QQ=='
+DOMAIN ERROR
+      ⎕UCS 17 ⎕CR 'QQ==QQ=='
+           ^  ^
+)SIC
+
+      ⎕UCS 17 ⎕CR 'AA=A'
+DOMAIN ERROR
+      ⎕UCS 17 ⎕CR 'AA=A'
+           ^  ^
+)SIC
+
       5 ⎕CR 18 ⎕CR '123∆⎕'
 313233E28886E28E95
 
@@ -705,6 +741,29 @@ integer 256 is too large (> 255) for a byte value
       ⍝ regression
       5 ⎕CR '1'
 31
+
+      ⍝ regression (Blake McBride, Bugs12.md #5, 2026-08-06): 43 ⎕CR B used
+      ⍝ to abort (Assertion failed: !value->is_simple_scalar() in
+      ⍝ next_ravel_Pointer, Value.icc:172) whenever B's parse folded to a
+      ⍝ single simple-scalar TOK_APL_VALUE token (e.g. '2', '1+2', 'A←1');
+      ⍝ next_ravel_Value() (which already handles both the simple-scalar
+      ⍝ and nested cases) is used now instead of next_ravel_Pointer().
+      ⍝
+      ⊃43 ⎕CR '2'
+1090848527 2
+
+      ⊃43 ⎕CR '1+2'
+ 1090848527 1 
+ 1342376199 + 
+ 1090848527 2 
+
+      ⊃43 ⎕CR 'A←1'
+      66830 A 
+ 1091371009 0 
+ 1090848527 1 
+
+      ⍴⊃43 ⎕CR '(2 3⍴⍳6)'
+6 2
 
       )SIC
 

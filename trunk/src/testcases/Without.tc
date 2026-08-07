@@ -49,5 +49,26 @@ RE
       Z1≡Z2
 1
 
+      ⍝ regression (Blake McBride, Bugs12.md #3, 2026-08-06): A∼B (and other
+      ⍝ primitives that allocate a worst-case ravel and then shrink the
+      ⍝ shape in place, e.g. Quad_RE.cc, Bif_F12_COMMA.cc, Quad_FIO.cc,
+      ⍝ Bif_F12_FORMAT.cc, Bif_F12_TAKE_DROP.cc, Quad_TF.cc,
+      ⍝ Bif_OPER2_RANK.cc, Bif_F12_PARTITION_PICK.cc, PrimitiveFunction.cc)
+      ⍝ used to make ~Value() deallocate using nz_element_count() (the
+      ⍝ current, post-shrink count) instead of the count actually passed
+      ⍝ to allocate() -- sized-deallocation UB (confirmed via ASan
+      ⍝ new-delete-type-mismatch on this exact expression: "size of the
+      ⍝ allocated type: 2400 bytes; size of the deallocated type: 2328
+      ⍝ bytes"), and total_ravel_count (⎕SYL[6;2]) leaking by exactly the
+      ⍝ number of dropped elements every call. Verify the leak is gone:
+      ⍝ ⎕SYL[6;2] must be identical before and after 1000 calls that each
+      ⍝ drop 3 elements.
+      ⍝
+      X←(⍳100)∼30 40 50
+      before←⎕SYL[6;2]
+      ⊣{⊣(⍳100)∼30 40 50 ⋄ ⍵+1}⍣1000⊢0
+      before=⎕SYL[6;2]
+1
+
       ⍝ ==================================
 

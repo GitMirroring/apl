@@ -609,7 +609,13 @@ enum { valid = 0b10000000100010110 };  // 16, 8, 4, 2, and 1
    switch(color_type)
       {
         case PNG_COLOR_TYPE_GRAY:              // type 0: 1, 2, 4, 8, or 16
-             return valid & 1 << bit_depth;
+             // bit_depth comes straight from the user (A.get_int_value(1))
+             // and can be negative or arbitrarily large; 1 << bit_depth is
+             // UB outside [0, 31] and, on x86, wraps the shift count into
+             // range so e.g. 33 and 40 were wrongly accepted as valid
+             // (Blake McBride, Bugs12.md #10). Range-check before shifting.
+             //
+             return bit_depth >= 1 && bit_depth <= 16 && (valid & 1 << bit_depth);
 
         case PNG_COLOR_TYPE_RGB:                // type 2: 8 or 16
         case PNG_COLOR_TYPE_GRAY_ALPHA:         // type 4: 8 or 16

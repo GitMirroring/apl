@@ -200,6 +200,7 @@ Bif_F12_FORMAT::Format_LIFER::Format_LIFER(const UCS_string format)
 int f = 0;
 bool exponent_pending = false;
 bool have_decimal_point = false;
+bool exponent_requested = false;   // set at exponent_part: (see below)
 
 // left_decorator:
    while (f < format.ssize())
@@ -271,6 +272,20 @@ exponent_decorator:
       }
 
 exponent_part:
+   // every route into this label (the direct 'E' trigger in integral_part,
+   // and exponent_decorator's control-char lookahead) intends a genuine
+   // exponent field with at least one digit position; remember that so
+   // fields_done can catch the case where no digit position ever actually
+   // materializes (e.g. a trailing/orphaned 'E' as in Blake McBride,
+   // Bugs12.md #6: '9E', '99E', '9EE', '9E ', '9E'⍕1.5, '9E'⍕1E¯308) --
+   // without this, exponent.size() stays 0 so the out_len computation
+   // below skips expo_deco/exponent entirely, and format_by_example()'s
+   // result width (from all_formats, the example string) silently
+   // disagrees with format_example()'s output width (from the *_out_len
+   // fields), which used to trip the row.size()==all_formats.size()
+   // assertion (or, with asserts off, leave cells uninitialized).
+   //
+   exponent_requested = true;
    while (f < format.ssize())
       {
         const Unicode cc = format[f++];
@@ -306,6 +321,19 @@ right_decorator:   /// the right decorator
       right_deco.format << format[f++];
 
 fields_done:
+   if (exponent_requested && exponent.format.ssize() == 0)
+      {
+        // an 'E' was seen (directly, or via a pending exponent flag) but
+        // no digit position followed it before the format string ended or
+        // a right decorator began -- there is no way to format a numeric
+        // exponent with zero digit positions. See the exponent_part:
+        // comment above (Blake McBride, Bugs12.md #6).
+        //
+        MORE_ERROR() << "A⍕B : Bad format A"
+                        " (exponent 'E' without a digit position)";
+        DOMAIN_ERROR;
+      }
+
    left_deco.out_len = left_deco .format.ssize();
 
    int_part  .out_len = int_part  .format.ssize();

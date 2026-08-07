@@ -232,13 +232,18 @@ public:
    /// @param len length of the new trailing dimension
    void add_shape_item(ShapeItem len)
       { if (rho_rho >= MAX_RANK)   LIMIT_ERROR_RANK;
-        rho[rho_rho++] = len;   volume *= len; }
+        rho[rho_rho++] = len;
+        volume = ShapeItem(uint64_t(volume) * uint64_t(len)); }
       // no overflow check here (by design, hot path, and a partial
       // product may legitimately overflow if a later axis is 0 --
       // e.g. 1E7 1E7 1E7 0 1E7 1E7 1E7⍴42 is a tiny, valid, empty
       // value). Callers that turn a Shape into an actual allocation
       // must validate via checked_volume() instead of trusting the
-      // raw volume field -- see Value::init_ravel().
+      // raw volume field -- see Value::init_ravel(). The multiply
+      // itself is done in uint64_t (whose overflow is well-defined
+      // wraparound) and reinterpreted back to ShapeItem, since the
+      // overflow, while intentional, was otherwise signed-overflow UB
+      // (Blake McBride, Bugs12.md #11b) -- same bit pattern either way.
 
    /// possibly increase rank by prepending axes of length 1
    /// @param new_rank desired minimum rank; no-op if already >= new_rank

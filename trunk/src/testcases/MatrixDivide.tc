@@ -116,6 +116,28 @@
 
       ⍝ fails with DOMAIN ERROR for some (linear dependent) A and B
 
+      ⍝ regression (Blake McBride, Bugs12.md #7, 2026-08-06): A⌹⍤1 B (or
+      ⍝ B⌹⍤1 A) reaches Bif_F12_DOMINO::eval_fill_AB() via the rank
+      ⍝ operator's empty-frame path whenever A or B is a scalar (which
+      ⍝ Bif_OPER2_RANK::do_ALyXB() always passes as a rank-0 argument
+      ⍝ here). "A.get_rank() - 1" used to wrap (uRank is unsigned), so
+      ⍝ the loop bound became ~4 billion -- Shape::get_shape_item()
+      ⍝ asserted (or, with asserts off, ran off the end of Shape::rho[]
+      ⍝ until LIMIT_ERROR_RANK). Plain (non-rank-operator) A⌹B is
+      ⍝ unaffected -- it never reaches eval_fill_AB() this way.
+      ⍝
+      ⍴⍬⌹⍤1(0 3⍴0)
+0 3
+
+      ⍴1⌹⍤1(0 3⍴0)
+0 3
+
+      ⍴(0 3⍴0)⌹⍤1⊢⍬
+0
+
+      ⍴⍬⌹⍤1(0 0⍴0)
+0 0
+
       )CLEAR
 CLEAR WS
 
