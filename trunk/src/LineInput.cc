@@ -749,26 +749,57 @@ bool interactive = (mode == LIM_Quote_Quad) || (mode == LIM_Quad_Quad);
    if (UserPreferences::uprefs.raw_cin)
       {
         Quad_QUOTE::done(mode != LIM_Quote_Quad, LOC);
-        CIN << '\r' << prompt;
-        char buffer[4000];
-        const APL_time_us from = now();
-         const char * s = fgets(buffer, sizeof(buffer) - 1, stdin);
-         Workspace::add_wait(now() - from);
 
-        if (s == 0)
+        // once script/file input is exhausted, falling through to here is
+        // supposed to make the session continue interactively at this
+        // (possibly real) terminal -- a script with no trailing )OFF is
+        // not necessarily a mistake. A single fgets() EOF is ambiguous: on
+        // a real interactive terminal it's just as likely a stray ^D (which
+        // should not end the session -- retry, i.e. block again waiting for
+        // the next line) as the first sign of a genuinely closed/empty
+        // stdin (e.g. "< /dev/null", where every retry returns instantly).
+        // Distinguish the two the same way the non-raw_cin path below
+        // already does: keep retrying, but if EOF keeps recurring at
+        // machine speed (10+ times, averaging under 10ms apart -- a real
+        // user could not type that fast), conclude stdin is not actually
+        // interactive and exit. Previously this returned eof=true on the
+        // very first fgets() EOF with no retry at all, and nothing
+        // downstream ever exited either: Workspace::immediate_execution()'s
+        // for(;;) loop just called Command::process_lines() again, which
+        // called back in here, got eof again, forever -- a 100%-reproducible
+        // CPU-pegging infinite loop for e.g. ]NEXTFILE running out of files.
+        //
+const APL_time_us from = now();
+        for (int control_D_count = 0;;)
            {
-             eof = true;
-             return;
+             CIN << '\r' << prompt;
+             char buffer[4000];
+             const char * s = fgets(buffer, sizeof(buffer) - 1, stdin);
+             Workspace::add_wait(now() - from);
+
+             if (s != 0)
+                {
+                  buffer[sizeof(buffer) - 1] = 0;
+
+                  int slen = strlen(buffer);
+                  if (slen && buffer[slen - 1] == '\n')   buffer[--slen] = 0;
+                  if (slen && buffer[slen - 1] == '\r')   buffer[--slen] = 0;
+
+                  UTF8_string line_utf(buffer);
+                  line = UCS_string(line_utf);
+                  return;
+                }
+
+             ++control_D_count;
+             if (control_D_count > 10 &&
+                 (now() - from) / control_D_count < 10000)
+                {
+                  CIN << endl;
+                  COUT << "      *** end of input" << endl;
+                  Command::cmd_OFF(2);   // exit()s
+                  return;   // not reached
+                }
            }
-        buffer[sizeof(buffer) - 1] = 0;
-
-        int slen = strlen(buffer);
-        if (slen && buffer[slen - 1] == '\n')   buffer[--slen] = 0;
-        if (slen && buffer[slen - 1] == '\r')   buffer[--slen] = 0;
-
-        UTF8_string line_utf(buffer);
-        line = UCS_string(line_utf);
-        return;
       }
 
    Quad_QUOTE::done(mode != LIM_Quote_Quad, LOC);

@@ -24,7 +24,10 @@
     )ERASE, )LOAD, )OUT, )SAVE, and )WSID.
 */
 
+#include <dirent.h>
 #include <errno.h>
+
+#include <algorithm>
 
 #include "Archive.hh"
 #include "Avec.hh"
@@ -43,8 +46,16 @@ Cmd_WS::cmd_CHECK_WS(ostream & out, const UCS_string_vector & args)
 {
    // Command is:
    //
+   // )CHECK_WS                 (every .apl/.xml file in every present
+   //                            library reference directory, see )LIBS)
    // )CHECK_WS wsname
    // )CHECK_WS libnum wsname
+
+   if (args.size() == 0)
+      {
+        check_all_WS(out);
+        return;
+      }
 
 const LibRef_name lib_name(out, args, false);
    if (lib_name.get_name().size() == 0)   return;   // error, )MORE set
@@ -60,18 +71,7 @@ int checked = 0;
         if (access(filename.c_str(), F_OK) == 0)
            {
              ++checked;
-             int dump_fd = -1;
-             XML_Loading_Archive in(out, out, filename.c_str(), dump_fd);
-             if (dump_fd != -1)   close(dump_fd);   // not really XML
-
-             if (!in.is_open())
-                out << "WARNING - " << filename << ": could not be opened"
-                    << endl;
-             else if (dump_fd != -1)
-                out << "WARNING - " << filename
-                    << ": not a GNU APL .xml workspace file" << endl;
-             else
-                in.check_checksum(out);
+             check_WS_file(out, filename, true);
            }
       }
 
@@ -82,7 +82,7 @@ int checked = 0;
         if (access(filename.c_str(), F_OK) == 0)
            {
              ++checked;
-             Workspace::check_DUMP_checksum(out, filename);
+             check_WS_file(out, filename, false);
            }
       }
 
@@ -92,6 +92,77 @@ int checked = 0;
         MORE_ERROR() << "neither '" << lib_name.get_name() << ".apl' nor '"
                      << lib_name.get_name() << ".xml' (nor a file with "
                         "that exact name) was found.";
+      }
+}
+//────────────────────────────────────────────────────────────────────────────
+void
+Cmd_WS::check_WS_file(ostream & out, const UTF8_string & filename, bool is_xml)
+{
+   if (is_xml)
+      {
+        int dump_fd = -1;
+        XML_Loading_Archive in(out, out, filename.c_str(), dump_fd);
+        if (dump_fd != -1)   close(dump_fd);   // not really XML
+
+        if (!in.is_open())
+           out << "WARNING - " << filename << ": could not be opened"
+               << endl;
+        else if (dump_fd != -1)
+           out << "WARNING - " << filename
+               << ": not a GNU APL .xml workspace file" << endl;
+        else
+           in.check_checksum(out);
+      }
+   else
+      {
+        Workspace::check_DUMP_checksum(out, filename);
+      }
+}
+//────────────────────────────────────────────────────────────────────────────
+void
+Cmd_WS::check_all_WS(ostream & out)
+{
+   // )CHECK_WS without an argument: every library reference (0..9) that
+   // maps to a present, readable directory (same present/absent test as
+   // )LIBS) contributes every .apl and .xml file in that directory --
+   // mirroring )LIB's own file-collection logic (Cmd_LIB.cc's LIB_common())
+   // for consistency, but scoped to workspace files only (no directories).
+   //
+   loop(l, LIB_MAX)
+      {
+        const LibRef lib = LibRef(l);
+        if (LibPaths::is_present(lib))   continue;   // absent/unreadable
+
+        const UTF8_string dir_path = LibPaths::get_lib_dir(lib);
+        DIR * dir = opendir(dir_path.c_str());
+        if (dir == 0)   continue;   // is_present() said OK, but be safe
+
+        UCS_string_vector filenames;
+        for (;;)
+            {
+              const dirent * entry = readdir(dir);
+              if (entry == 0)   break;
+              if (entry->d_name[0] == '.')   continue;   // hidden files
+
+              const UTF8_string filename_utf8(entry->d_name);
+              if (filename_utf8.ends_with(".apl") ||
+                  filename_utf8.ends_with(".xml"))
+                 filenames.push_back(UCS_string(filename_utf8));
+            }
+        closedir(dir);
+
+        filenames.sort();
+
+        loop(f, filenames.size())
+            {
+              const UTF8_string filename(filenames[f]);
+              UTF8_string full_path = dir_path;
+              full_path += '/';
+              full_path << filename;
+
+              out << full_path << ":" << endl;
+              check_WS_file(out, full_path, filename.ends_with(".xml"));
+            }
       }
 }
 //────────────────────────────────────────────────────────────────────────────

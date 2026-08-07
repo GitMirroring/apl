@@ -66,3 +66,38 @@ LENGTH ERROR
       ⍝
       )SIC
 
+      ⍝ regression (found while auditing get_cravel() call sites after
+      ⍝ Blake McBride's Bugs12.md #1, 2026-08-07): setup_data_3D()/2D()
+      ⍝ fetched cX/cY(/cZ) from the SAME packed B via three (or two)
+      ⍝ consecutive no-cache get_cravel() calls before reading any of
+      ⍝ them -- each fetch silently overwrote B's single shared
+      ⍝ ravel.cell_fetch_cache, so by the time X[p]/Y[p](/Z[p]) were
+      ⍝ finally read, cX/cY(/cZ) all aliased the LAST fetch (cZ for the
+      ⍝ 3-plane case, cY for the 2-plane case) -- silent wrong RESULTS,
+      ⍝ not a crash, and only for B large enough to be packed (small B
+      ⍝ stays RPT_CELLS and is unaffected). Fixed by giving each
+      ⍝ coordinate its own explicit cache cell (get_cravel(idx, cache)).
+      ⍝
+      ⍝ X increasing, Y decreasing (anti-diagonal "\"): confirmed live
+      ⍝ that the pre-fix code rendered an ascending "/" here instead
+      ⍝ (X wrongly aliased to Y's descending values).
+      ⍝
+      X←⍳1000
+      Y←1000-⍳1000
+      B←2 2 500⍴X,Y
+      Z←('gui_driver: ASCII' 'terminal_rows: 10' 'terminal_cols: 40') ⎕PLOT B
+      ⎕←Z[1;;]
+╔════════╤═════════╤═════════╤═════════╗
+║●●●●●   │         │         │         ║
+║    ●●●●●●        │         │         ║
+╟────────┼●●●●●────┼─────────┼─────────╢
+║        │    ●●●●●●         │         ║
+║        │         ●●●●●●    │         ║
+║        │         │    ●●●●●●         ║
+╟────────┼─────────┼─────────●●●●●●────╢
+║        │         │         │    ●●●●●║
+╚════════╧═════════╧═════════╧═════════╝
+
+      ⎕PLOT ¯3   ⍝ close all ⎕PLOT windows
+³
+

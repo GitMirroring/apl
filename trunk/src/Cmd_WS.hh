@@ -26,6 +26,7 @@
 
 #include "Common.hh"
 #include "UCS_string.hh"
+#include "UTF8_string.hh"
 
 //════════════════════════════════════════════════════════════════════════════
 /// The class implementing the workspace-lifecycle commands
@@ -98,6 +99,22 @@ public:
    /// @param out   output stream for command result
    /// @param args  optional new workspace name
    static void cmd_WSID(ostream & out, const UCS_string_vector & args);
+
+protected:
+   /// )CHECK_WS without an argument: check every .apl/.xml workspace file
+   /// in every present library reference directory (0..9, as per )LIBS).
+   /// @param out   output stream for command result
+   static void check_all_WS(ostream & out);
+
+   /// check the on-disk checksum of one workspace file, already known to
+   /// exist, and already known to be .apl or .xml from its own extension.
+   /// Shared by cmd_CHECK_WS() (explicit name) and check_all_WS() (library
+   /// directory scan).
+   /// @param out       output stream for command result
+   /// @param filename  full path of an existing .apl or .xml file
+   /// @param is_xml    true for a .xml file, false for a .apl file
+   static void check_WS_file(ostream & out, const UTF8_string & filename,
+                             bool is_xml);
 };
 //════════════════════════════════════════════════════════════════════════════
 #endif // __CMD_WS_HH_DEFINED__

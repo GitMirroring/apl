@@ -73,7 +73,20 @@ public:
    /// return the idx'th cell of the ravel (no bounds check).
    /// @param idx ravel index (0-based)
    const Cell & get_cravel(ShapeItem idx) const
-      { return fetcher(idx, cells, cell_fetch_cache); }
+      {
+        const Cell & result = fetcher(idx, cells, cell_fetch_cache);
+
+        // every fetcher except cell_fetcher() (whose cache parameter is
+        // intentionally unused -- an unpacked ravel already holds real
+        // Cells, cells[offset] IS the cell) must materialise into, and
+        // return a reference to, *this* cache -- not some other object
+        // (e.g. a shared static). A fetcher that silently violates this
+        // is exactly Blake McBride's Bugs12.md #1 (bool_fetcher used to
+        // return IntCell::boolean_TRUE/FALSE instead of writing cache).
+        //
+        Assert(fetcher == &Ravel::cell_fetcher || &result == &cell_fetch_cache);
+        return result;
+      }
 
    /// return the first ravel cell (for non-empty ravels).
    const Cell & get_cfirst() const   { return get_cravel(0); }

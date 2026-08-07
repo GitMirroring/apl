@@ -55,6 +55,11 @@ const char * FONT_NAME = "sans-serif";
 /// the size of the font to be used for texts
 enum {  FONT_SIZE = 10 };
 
+/// close \b window on the gtk_main() thread (via g_idle_add()); see
+/// GTK_context::plot_stop()'s comment for why this must not call
+/// gtk_window_close() directly from the interpreter thread.
+static gboolean close_GTK_window_idle(gpointer window);
+
 //════════════════════════════════════════════════════════════════════════════
 /** a structure that aggregates:
 
@@ -90,7 +95,17 @@ public:
    /// overloaded PLOT_context::plot_stop()
    virtual void plot_stop()
       {
-        gtk_window_close(GTK_WINDOW(window));
+        // gtk_window_close() must run on the gtk_main() thread, not here
+        // (the interpreter thread) -- same cross-thread widget-ownership
+        // hazard as plot_main_GTK()'s window creation (see its comment),
+        // and the same fix the WIN32 driver already uses for its own
+        // HWND-vs-worker-thread version of this (Plot_win32.cc's
+        // plot_stop(): PostMessage instead of a direct HWND call).
+        // window itself stays valid until the "destroy" signal actually
+        // fires (on the gtk_main() thread, which is what frees pctx) --
+        // nothing on this (interpreter) thread deletes it in between.
+        //
+        if (window)   g_idle_add(close_GTK_window_idle, window);
       }
 
    /// return the required width of the entire plot area
@@ -1815,6 +1830,13 @@ post_gtk_started(gpointer data)
    sem_post(static_cast<sem_t *>(data));
    return G_SOURCE_REMOVE;   // one-shot: remove after first call
 }
+//────────────────────────────────────────────────────────────────────────────
+static gboolean
+close_GTK_window_idle(gpointer window)
+{
+   gtk_window_close(GTK_WINDOW(window));
+   return G_SOURCE_REMOVE;   // one-shot
+}
 
 static void *
 gtk_main_wrapper(void *)
@@ -1829,45 +1851,26 @@ gtk_main_wrapper(void *)
 }
 //════════════════════════════════════════════════════════════════════════════
 
-void
-Quad_PLOT::plot_main_GTK(void * vp_props, Handle handle)
+/// arguments for create_GTK_window_idle(), heap-allocated per call and
+/// freed by the idle callback itself once it has read them.
+struct GTK_window_create_args
 {
-// CERR << "plot_main(" << vp_props << ")" << endl;
+   Plot_window_properties * w_props;
+   Quad_PLOT::Handle handle;
+};
 
-   if (getenv("DISPLAY") == 0)   // DISPLAY not set
-      setenv("DISPLAY", ":0", true);
-
-Plot_window_properties & w_props =
-      *reinterpret_cast<Plot_window_properties *>(vp_props);
-   verbosity = w_props.get_verbosity();
-
-   if (!gtk_init_done)
-      {
-        MAYBE_XInitThreads();
-        int argc = 0;
-        char ** argv = { 0 };
-        gtk_init(&argc, &argv);   setlocale(LC_ALL, "C");
-        gtk_init_done = true;
-
-        // Register a one-shot idle callback that posts gtk_started_sema once
-        // gtk_main() has started its event loop.  On slow (e.g. 32-bit) systems,
-        // gtk_widget_realize() crashes with g_source_set_name_by_id() if the GLib
-        // main context has not yet been acquired by gtk_main(); the sem_wait below
-        // ensures the loop is running before we create any GTK windows.
-        //
-        sem_init(&gtk_started_sema, 0, 0);
-        g_idle_add(post_gtk_started, &gtk_started_sema);
-
-        pthread_t thread = 0;
-        pthread_create(&thread, 0, gtk_main_wrapper, 0);
-
-# if HAVE_PTHREAD_SETNAME_NP
-         // show with e.g.   ps H -o 'pid tid cmd comm'
-         pthread_setname_np(thread, "apl/GTK");
-# endif
-
-        sem_wait(&gtk_started_sema);   // block until gtk_main() loop is running
-      }
+/** create (and show) one ⎕PLOT window. Runs as a GLib idle callback, i.e.
+    on the SAME thread as gtk_main() -- see plot_main_GTK()'s comment for
+    why this must not run directly on the interpreter thread.
+ */
+static gboolean
+create_GTK_window_idle(gpointer data)
+{
+GTK_window_create_args * args =
+      static_cast<GTK_window_create_args *>(data);
+Plot_window_properties & w_props = *args->w_props;
+const Quad_PLOT::Handle handle = args->handle;
+   delete args;
 
 GTK_context * pctx = new GTK_context(w_props, handle);
    Assert(pctx);
@@ -1933,6 +1936,72 @@ GTK_context * pctx = new GTK_context(w_props, handle);
    Connect_signal(pctx->drawing_area, "draw",           Draw)
 
    sem_post(Quad_PLOT::expose_sema);   // unleash the APL interpreter
+   return G_SOURCE_REMOVE;   // one-shot
+}
+//════════════════════════════════════════════════════════════════════════════
+void
+Quad_PLOT::plot_main_GTK(void * vp_props, Handle handle)
+{
+// CERR << "plot_main(" << vp_props << ")" << endl;
+
+   if (getenv("DISPLAY") == 0)   // DISPLAY not set
+      setenv("DISPLAY", ":0", true);
+
+Plot_window_properties & w_props =
+      *reinterpret_cast<Plot_window_properties *>(vp_props);
+   verbosity = w_props.get_verbosity();
+
+   if (!gtk_init_done)
+      {
+        MAYBE_XInitThreads();
+        int argc = 0;
+        char ** argv = { 0 };
+        gtk_init(&argc, &argv);   setlocale(LC_ALL, "C");
+        gtk_init_done = true;
+
+        // Register a one-shot idle callback that posts gtk_started_sema once
+        // gtk_main() has started its event loop.  On slow (e.g. 32-bit) systems,
+        // gtk_widget_realize() crashes with g_source_set_name_by_id() if the GLib
+        // main context has not yet been acquired by gtk_main(); the sem_wait below
+        // ensures the loop is running before we create any GTK windows.
+        //
+        sem_init(&gtk_started_sema, 0, 0);
+        g_idle_add(post_gtk_started, &gtk_started_sema);
+
+        pthread_t thread = 0;
+        pthread_create(&thread, 0, gtk_main_wrapper, 0);
+
+# if HAVE_PTHREAD_SETNAME_NP
+         // show with e.g.   ps H -o 'pid tid cmd comm'
+         pthread_setname_np(thread, "apl/GTK");
+# endif
+
+        sem_wait(&gtk_started_sema);   // block until gtk_main() loop is running
+      }
+
+   // Marshal window creation onto the gtk_main() thread via g_idle_add(),
+   // for every call -- not just the first. The !gtk_init_done block above
+   // only guarantees gtk_main()'s event loop has STARTED; it does not make
+   // it safe to call gtk_window_new()/gtk_widget_show_all()/etc. directly
+   // from this (interpreter) thread while that loop is now CONCURRENTLY
+   // running on its own thread. GTK+3 is not thread-safe for that: every
+   // widget must be created/manipulated on the thread running gtk_main().
+   // The first ⎕PLOT call in a session got away with it by accident (nothing
+   // else was racing yet); the second and later ones raced gtk_main()'s
+   // live event dispatch, observed as an intermittent SIGSEGV inside
+   // gtk_widget_realize()/gtk_widget_map()/g_signal_emit() (Bill Heagy,
+   // 2026-08-07, /tmp/trouble.eml) -- the exact same failure mode the
+   // !gtk_init_done synchronisation above was originally added to prevent
+   // (SVN r3304, David Alden), just for the N-th window instead of the 1st.
+   // The caller (Quad_PLOT::start_GUI()) already sem_waits on expose_sema
+   // right after this function returns, so returning immediately here
+   // (instead of running the creation code synchronously) needs no change
+   // on the caller's side.
+   //
+GTK_window_create_args * args = new GTK_window_create_args;
+   args->w_props = &w_props;
+   args->handle  = handle;
+   g_idle_add(create_GTK_window_idle, args);
 }
 //════════════════════════════════════════════════════════════════════════════
 #endif // apl_GTK3

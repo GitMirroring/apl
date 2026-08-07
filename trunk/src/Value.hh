@@ -430,7 +430,12 @@ public:
    const Cell & get_cravel(ShapeItem idx, Cell & cache) const
       {
         Assert1(idx < nz_element_count());
-        return ravel.fetcher(idx, ravel.cells, cache);
+        const Cell & result = ravel.fetcher(idx, ravel.cells, cache);
+
+        // see Ravel::get_cravel()'s comment -- same contract, same check.
+        //
+        Assert(ravel.fetcher == &Ravel::cell_fetcher || &result == &cache);
+        return result;
       }
 
    /// return the first element of the ravel (which is always present).

@@ -171,16 +171,23 @@ Quad_PLOT::PLOT_context::remove_handle(Handle handle)
 {
 // CERR << "remove_handle(" << handle << ")" << endl;
 
+   // called from the "destroy" signal handler, i.e. on the GTK/XCB driver's
+   // own thread -- concurrently with window_control() (interpreter thread)
+   // reading/mutating the same vector. Same lock as window_control().
+   //
+   sem_wait(all_PLOT_windows_sema);
    loop(h, all_PLOT_windows.size())
       {
         if (all_PLOT_windows[h]->handle == handle)
            {
              all_PLOT_windows[h] = all_PLOT_windows.back();
              all_PLOT_windows.pop_back();
+             sem_post(all_PLOT_windows_sema);
              return handle;
            }
       }
 
+   sem_post(all_PLOT_windows_sema);
    return 0;
 }
 //────────────────────────────────────────────────────────────────────────────
@@ -435,12 +442,23 @@ Quad_PLOT::window_control(APL_Integer B0) const
       {
         Value_P Z = window_control(-6);   // get all open handles, see below
 
+         // all_PLOT_windows is also touched by PLOT_context::remove_handle()
+         // (called from the "destroy" signal handler, i.e. on the GTK/XCB
+         // driver's own thread once plot_stop() actually closes a window --
+         // plot_stop() itself no longer closes synchronously, see its own
+         // comment). Protect our own read+clear with the same semaphore
+         // the single-handle close path below already uses, so the two
+         // don't race on the vector.
+         //
+         sem_wait(all_PLOT_windows_sema);
          loop(h, all_PLOT_windows.size())
             {
               all_PLOT_windows[h]->plot_stop();
             }
 
          all_PLOT_windows.clear();
+         sem_post(all_PLOT_windows_sema);
+
          next_handle = 0;
          Z->check_value(LOC);
          return Z;
@@ -707,14 +725,27 @@ const ShapeItem data_points = rows * cols;
         double * Z = Y + data_points;
 
         data = new Plot_data(rows);
+Cell cX_cache, cY_cache, cZ_cache;
         loop(r, rows)
             {
               loop(c, cols)
                   {
                     const ShapeItem p = c + r*cols;
-                    const Cell & cX = B.get_cravel(p);
-                    const Cell & cY = B.get_cravel(p +   data_points);
-                    const Cell & cZ = B.get_cravel(p + 2*data_points);
+
+                    // NOT the no-cache get_cravel(): for a packed B (e.g.
+                    // homogeneous numeric 3-plane plot data), all three
+                    // no-cache fetches would materialise into B's single
+                    // shared ravel.cell_fetch_cache -- cY's fetch would
+                    // silently invalidate cX, and cZ's would invalidate
+                    // both, so cX/cY/cZ (and hence X[p]/Y[p]/Z[p] below)
+                    // would all end up reading cZ's value. Confirmed live
+                    // (3 1 1000⍴(1000+⍳1000),(2000+⍳1000),(3000+⍳1000) --
+                    // large enough to pack -- gave X[p]==Y[p]==Z[p], all
+                    // three equal to the Z coordinate) before this fix.
+                    //
+                    const Cell & cX = B.get_cravel(p, cX_cache);
+                    const Cell & cY = B.get_cravel(p +   data_points, cY_cache);
+                    const Cell & cZ = B.get_cravel(p + 2*data_points, cZ_cache);
 
                     if (!(cX.is_integer_cell() ||
                           cX.is_real_cell()))   DOMAIN_ERROR;
@@ -751,13 +782,18 @@ const ShapeItem data_points = rows * cols;
         if (!X)   WS_FULL;
 
         data = new Plot_data(rows);
+Cell cX_cache, cY_cache;
         loop(r, rows)
             {
               loop(c, cols)
                   {
                     const ShapeItem p = c + r*cols;
-                    const Cell & cX = B.get_cravel(p);
-                    const Cell & cY = B.get_cravel(p + data_points);
+
+                    // see the planes==3 case above: NOT the no-cache
+                    // get_cravel() -- same B-is-packed hazard.
+                    //
+                    const Cell & cX = B.get_cravel(p, cX_cache);
+                    const Cell & cY = B.get_cravel(p + data_points, cY_cache);
 
                     if (!(cX.is_integer_cell() ||
                     cX.is_real_cell()))   DOMAIN_ERROR;
