@@ -37,6 +37,12 @@ the option will not occur.
    executable program. The second argument, if non-zero, enables start-up
    logging of the interpreter (for debugging purposes).
 
+   When --with-libapl is given (directly, or implied by --with-erlang),
+   'make install' also installs a pkg-config file libapl.pc, so that
+   programs embedding libapl.so can find its compile/link flags with
+   'pkg-config --cflags --libs libapl' instead of hard-coding the
+   $(includedir)/apl and $(libdir)/apl paths.
+
 --with-sqlite3=[ARG]
    Build the native function for SQL using sqlite3. ARG may provide the
    non-default location of the sqlite3 library.

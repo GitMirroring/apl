@@ -667,6 +667,7 @@ am__EXEEXT_TRUE
 LTLIBOBJS
 apl_TARGET_MINGW_FALSE
 apl_TARGET_MINGW_TRUE
+bashcompletiondir
 apl_BUILD_OS
 apl_BUILD_DATE
 RATIONAL_NUMBERS_WANTED
@@ -22236,7 +22237,7 @@ fi
 { printf "%s\n" "$as_me:${as_lineno-$LINENO}: result: $cfg_CTRLD_DEL" >&5
 printf "%s\n" "$cfg_CTRLD_DEL" >&6; }
 
-ac_config_files="$ac_config_files Makefile build/Makefile Claude/Makefile debian/Makefile debian/source/Makefile doc/Makefile doc/DALY/Makefile erlang/Makefile erlang/apl.erl gnu-apl.d/Makefile gnu-apl.d/preferences HOWTOs/Makefile rpm/Makefile rpm/apl.spec src/Makefile src/APs/Makefile src/Gtk/Makefile src/emacs_mode/Makefile src/native/Makefile src/sql/Makefile src/testcases/Makefile src/testcases/invariants/Makefile src/workspaces/Makefile support-files/Makefile support-files/fonts/Makefile support-files/105-key-International-Keyboard/Makefile support-files/Bill_Daly_Ubuntu/Makefile support-files/Dirk/Makefile support-files/Dyalog-Keyboard/Makefile support-files/Juergen-Mint-19/Makefile support-files/Juergen-Mint-21/Makefile support-files/old-Keyboard/Makefile support-files/OS-X-Keyboard/Makefile support-files/Unicomp-Keyboard/Makefile support-files/WASD-Keyboard/Makefile support-files/windows-installer/Makefile tools/Makefile websock/Makefile websock/client/Makefile websock/server/Makefile workspaces/Makefile wslib3/Makefile wslib3/DALY/Makefile wslib4/Makefile wslib5/Makefile wslib5/APLComponentFiles/Makefile wslib5/DALY/Makefile wslib5/iso-apl-cf/Makefile"
+ac_config_files="$ac_config_files Makefile build/Makefile Claude/Makefile debian/Makefile debian/source/Makefile doc/Makefile doc/DALY/Makefile erlang/Makefile erlang/apl.erl gnu-apl.d/Makefile gnu-apl.d/preferences HOWTOs/Makefile rpm/Makefile rpm/apl.spec src/Makefile src/APs/Makefile src/Gtk/Makefile src/emacs_mode/Makefile src/libapl.pc src/native/Makefile src/sql/Makefile src/testcases/Makefile src/testcases/invariants/Makefile src/workspaces/Makefile support-files/Makefile support-files/fonts/Makefile support-files/105-key-International-Keyboard/Makefile support-files/Bill_Daly_Ubuntu/Makefile support-files/Dirk/Makefile support-files/Dyalog-Keyboard/Makefile support-files/Juergen-Mint-19/Makefile support-files/Juergen-Mint-21/Makefile support-files/old-Keyboard/Makefile support-files/OS-X-Keyboard/Makefile support-files/Unicomp-Keyboard/Makefile support-files/WASD-Keyboard/Makefile support-files/windows-installer/Makefile tools/Makefile websock/Makefile websock/client/Makefile websock/server/Makefile workspaces/Makefile wslib3/Makefile wslib3/DALY/Makefile wslib4/Makefile wslib5/Makefile wslib5/APLComponentFiles/Makefile wslib5/DALY/Makefile wslib5/iso-apl-cf/Makefile"
 
 
 # AM_CXXFLAGS: do/dont -Werror ?
@@ -22752,6 +22753,71 @@ printf "%s\n" "#define apl_DIR__pkglib \"$apl_libdir/apl\"" >>confdefs.h
 
 
 printf "%s\n" "#define apl_DIR__pkgdata \"$apl_datarootdir/apl\"" >>confdefs.h
+
+
+# where to install support-files/apl (bash command-line completion for the
+# "apl" command itself, see that file's own header comment). Prefer asking
+# pkg-config for bash-completion's own idea of its completions directory --
+# this correctly follows wherever bash-completion was itself configured to
+# look, which need not be the same as GNU APL's own --datadir. Falls back to
+# the standard bash-completion >= 2.x default if pkg-config or the
+# bash-completion .pc file is not found (installing there is harmless even
+# on a system without bash-completion -- completion simply starts working
+# automatically if bash-completion is installed later).
+#
+# Extract the first word of "pkg-config", so it can be a program name with args.
+set dummy pkg-config; ac_word=$2
+{ printf "%s\n" "$as_me:${as_lineno-$LINENO}: checking for $ac_word" >&5
+printf %s "checking for $ac_word... " >&6; }
+if test ${ac_cv_path_PKG_CONFIG+y}
+then :
+  printf %s "(cached) " >&6
+else $as_nop
+  case $PKG_CONFIG in
+  [\\/]* | ?:[\\/]*)
+  ac_cv_path_PKG_CONFIG="$PKG_CONFIG" # Let the user override the test with a path.
+  ;;
+  *)
+  as_save_IFS=$IFS; IFS=$PATH_SEPARATOR
+for as_dir in $PATH
+do
+  IFS=$as_save_IFS
+  case $as_dir in #(((
+    '') as_dir=./ ;;
+    */) ;;
+    *) as_dir=$as_dir/ ;;
+  esac
+    for ac_exec_ext in '' $ac_executable_extensions; do
+  if as_fn_executable_p "$as_dir$ac_word$ac_exec_ext"; then
+    ac_cv_path_PKG_CONFIG="$as_dir$ac_word$ac_exec_ext"
+    printf "%s\n" "$as_me:${as_lineno-$LINENO}: found $as_dir$ac_word$ac_exec_ext" >&5
+    break 2
+  fi
+done
+  done
+IFS=$as_save_IFS
+
+  ;;
+esac
+fi
+PKG_CONFIG=$ac_cv_path_PKG_CONFIG
+if test -n "$PKG_CONFIG"; then
+  { printf "%s\n" "$as_me:${as_lineno-$LINENO}: result: $PKG_CONFIG" >&5
+printf "%s\n" "$PKG_CONFIG" >&6; }
+else
+  { printf "%s\n" "$as_me:${as_lineno-$LINENO}: result: no" >&5
+printf "%s\n" "no" >&6; }
+fi
+
+
+if test -n "$PKG_CONFIG" && "$PKG_CONFIG" --exists bash-completion 2>/dev/null
+then
+   bashcompletiondir=`"$PKG_CONFIG" --variable=completionsdir bash-completion`
+   printf "%s\n" "   bash-completion directory (from pkg-config): $bashcompletiondir"
+else
+   bashcompletiondir='${datarootdir}/bash-completion/completions'
+   printf "%s\n" "   bash-completion directory (default, pkg-config unavailable): $bashcompletiondir"
+fi
 
 
 if test -n "$SOURCE_DATE_EPOCH"
@@ -24036,6 +24102,7 @@ do
     "src/APs/Makefile") CONFIG_FILES="$CONFIG_FILES src/APs/Makefile" ;;
     "src/Gtk/Makefile") CONFIG_FILES="$CONFIG_FILES src/Gtk/Makefile" ;;
     "src/emacs_mode/Makefile") CONFIG_FILES="$CONFIG_FILES src/emacs_mode/Makefile" ;;
+    "src/libapl.pc") CONFIG_FILES="$CONFIG_FILES src/libapl.pc" ;;
     "src/native/Makefile") CONFIG_FILES="$CONFIG_FILES src/native/Makefile" ;;
     "src/sql/Makefile") CONFIG_FILES="$CONFIG_FILES src/sql/Makefile" ;;
     "src/testcases/Makefile") CONFIG_FILES="$CONFIG_FILES src/testcases/Makefile" ;;

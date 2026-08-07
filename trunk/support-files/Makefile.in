@@ -106,8 +106,8 @@ am__aclocal_m4_deps = $(top_srcdir)/m4/depend.m4 \
 	$(top_srcdir)/m4/build_date.m4 $(top_srcdir)/configure.ac
 am__configure_deps = $(am__aclocal_m4_deps) $(CONFIGURE_DEPENDENCIES) \
 	$(ACLOCAL_M4)
-DIST_COMMON = $(srcdir)/Makefile.am $(dist_noinst_DATA) \
-	$(am__DIST_COMMON)
+DIST_COMMON = $(srcdir)/Makefile.am $(dist_bashcompletion_DATA) \
+	$(dist_noinst_DATA) $(am__DIST_COMMON)
 mkinstalldirs = $(install_sh) -d
 CONFIG_HEADER = $(top_builddir)/config.h
 CONFIG_CLEAN_FILES =
@@ -139,7 +139,35 @@ am__can_run_installinfo = \
     n|no|NO) false;; \
     *) (install-info --version) >/dev/null 2>&1;; \
   esac
-DATA = $(dist_noinst_DATA)
+am__vpath_adj_setup = srcdirstrip=`echo "$(srcdir)" | sed 's|.|.|g'`;
+am__vpath_adj = case $$p in \
+    $(srcdir)/*) f=`echo "$$p" | sed "s|^$$srcdirstrip/||"`;; \
+    *) f=$$p;; \
+  esac;
+am__strip_dir = f=`echo $$p | sed -e 's|^.*/||'`;
+am__install_max = 40
+am__nobase_strip_setup = \
+  srcdirstrip=`echo "$(srcdir)" | sed 's/[].[^$$\\*|]/\\\\&/g'`
+am__nobase_strip = \
+  for p in $$list; do echo "$$p"; done | sed -e "s|$$srcdirstrip/||"
+am__nobase_list = $(am__nobase_strip_setup); \
+  for p in $$list; do echo "$$p $$p"; done | \
+  sed "s| $$srcdirstrip/| |;"' / .*\//!s/ .*/ ./; s,\( .*\)/[^/]*$$,\1,' | \
+  $(AWK) 'BEGIN { files["."] = "" } { files[$$2] = files[$$2] " " $$1; \
+    if (++n[$$2] == $(am__install_max)) \
+      { print $$2, files[$$2]; n[$$2] = 0; files[$$2] = "" } } \
+    END { for (dir in files) print dir, files[dir] }'
+am__base_list = \
+  sed '$$!N;$$!N;$$!N;$$!N;$$!N;$$!N;$$!N;s/\n/ /g' | \
+  sed '$$!N;$$!N;$$!N;$$!N;s/\n/ /g'
+am__uninstall_files_from_dir = { \
+  test -z "$$files" \
+    || { test ! -d "$$dir" && test ! -f "$$dir" && test ! -r "$$dir"; } \
+    || { echo " ( cd '$$dir' && rm -f" $$files ")"; \
+         $(am__cd) "$$dir" && rm -f $$files; }; \
+  }
+am__installdirs = "$(DESTDIR)$(bashcompletiondir)"
+DATA = $(dist_bashcompletion_DATA) $(dist_noinst_DATA)
 RECURSIVE_CLEAN_TARGETS = mostlyclean-recursive clean-recursive	\
   distclean-recursive maintainer-clean-recursive
 am__recursive_targets = \
@@ -315,6 +343,13 @@ am__tar = @am__tar@
 am__untar = @am__untar@
 apl_BUILD_DATE = @apl_BUILD_DATE@
 apl_BUILD_OS = @apl_BUILD_OS@
+
+# bash command-line completion for the "apl" command itself (see apl's own
+# header comment for what it does and does not cover). bashcompletiondir is
+# set by ./configure (see configure.ac), preferring pkg-config's own idea of
+# where bash-completion looks.
+#
+bashcompletiondir = @bashcompletiondir@
 bindir = @bindir@
 build = @build@
 build_alias = @build_alias@
@@ -370,6 +405,7 @@ SUBDIRS = Bill_Daly_Ubuntu  \
         105-key-International-Keyboard
 
 dist_noinst_DATA = apl.vim
+dist_bashcompletion_DATA = apl
 all: all-recursive
 
 .SUFFIXES:
@@ -408,6 +444,27 @@ mostlyclean-libtool:
 
 clean-libtool:
 	-rm -rf .libs _libs
+install-dist_bashcompletionDATA: $(dist_bashcompletion_DATA)
+	@$(NORMAL_INSTALL)
+	@list='$(dist_bashcompletion_DATA)'; test -n "$(bashcompletiondir)" || list=; \
+	if test -n "$$list"; then \
+	  echo " $(MKDIR_P) '$(DESTDIR)$(bashcompletiondir)'"; \
+	  $(MKDIR_P) "$(DESTDIR)$(bashcompletiondir)" || exit 1; \
+	fi; \
+	for p in $$list; do \
+	  if test -f "$$p"; then d=; else d="$(srcdir)/"; fi; \
+	  echo "$$d$$p"; \
+	done | $(am__base_list) | \
+	while read files; do \
+	  echo " $(INSTALL_DATA) $$files '$(DESTDIR)$(bashcompletiondir)'"; \
+	  $(INSTALL_DATA) $$files "$(DESTDIR)$(bashcompletiondir)" || exit $$?; \
+	done
+
+uninstall-dist_bashcompletionDATA:
+	@$(NORMAL_UNINSTALL)
+	@list='$(dist_bashcompletion_DATA)'; test -n "$(bashcompletiondir)" || list=; \
+	files=`for p in $$list; do echo $$p; done | sed -e 's|^.*/||'`; \
+	dir='$(DESTDIR)$(bashcompletiondir)'; $(am__uninstall_files_from_dir)
 
 # This directory's subdirectories are mostly independent; you can cd
 # into them and run 'make' without going through this Makefile.
@@ -570,6 +627,9 @@ check: check-recursive
 all-am: Makefile $(DATA)
 installdirs: installdirs-recursive
 installdirs-am:
+	for dir in "$(DESTDIR)$(bashcompletiondir)"; do \
+	  test -z "$$dir" || $(MKDIR_P) "$$dir"; \
+	done
 install: install-recursive
 install-exec: install-exec-recursive
 install-data: install-data-recursive
@@ -620,7 +680,7 @@ info: info-recursive
 
 info-am:
 
-install-data-am:
+install-data-am: install-dist_bashcompletionDATA
 
 install-dvi: install-dvi-recursive
 
@@ -664,7 +724,7 @@ ps: ps-recursive
 
 ps-am:
 
-uninstall-am:
+uninstall-am: uninstall-dist_bashcompletionDATA
 
 .MAKE: $(am__recursive_targets) install-am install-strip
 
@@ -672,14 +732,16 @@ uninstall-am:
 	check-am clean clean-generic clean-libtool cscopelist-am ctags \
 	ctags-am distclean distclean-generic distclean-libtool \
 	distclean-tags distdir dvi dvi-am html html-am info info-am \
-	install install-am install-data install-data-am install-dvi \
-	install-dvi-am install-exec install-exec-am install-html \
-	install-html-am install-info install-info-am install-man \
-	install-pdf install-pdf-am install-ps install-ps-am \
-	install-strip installcheck installcheck-am installdirs \
-	installdirs-am maintainer-clean maintainer-clean-generic \
-	mostlyclean mostlyclean-generic mostlyclean-libtool pdf pdf-am \
-	ps ps-am tags tags-am uninstall uninstall-am
+	install install-am install-data install-data-am \
+	install-dist_bashcompletionDATA install-dvi install-dvi-am \
+	install-exec install-exec-am install-html install-html-am \
+	install-info install-info-am install-man install-pdf \
+	install-pdf-am install-ps install-ps-am install-strip \
+	installcheck installcheck-am installdirs installdirs-am \
+	maintainer-clean maintainer-clean-generic mostlyclean \
+	mostlyclean-generic mostlyclean-libtool pdf pdf-am ps ps-am \
+	tags tags-am uninstall uninstall-am \
+	uninstall-dist_bashcompletionDATA
 
 .PRECIOUS: Makefile
 

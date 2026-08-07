@@ -500,6 +500,7 @@ AC_CONFIG_FILES([Makefile
                  src/APs/Makefile
                  src/Gtk/Makefile
                  src/emacs_mode/Makefile
+                 src/libapl.pc
                  src/native/Makefile
                  src/sql/Makefile
                  src/testcases/Makefile
@@ -945,6 +946,27 @@ AC_DEFINE_UNQUOTED(apl_DIR__pkglib,      "$apl_libdir/apl",
                    [installation directory for GNU APL libraries])
 AC_DEFINE_UNQUOTED(apl_DIR__pkgdata,     "$apl_datarootdir/apl",
                    [installation directory for GNU APL data files])
+
+# where to install support-files/apl (bash command-line completion for the
+# "apl" command itself, see that file's own header comment). Prefer asking
+# pkg-config for bash-completion's own idea of its completions directory --
+# this correctly follows wherever bash-completion was itself configured to
+# look, which need not be the same as GNU APL's own --datadir. Falls back to
+# the standard bash-completion >= 2.x default if pkg-config or the
+# bash-completion .pc file is not found (installing there is harmless even
+# on a system without bash-completion -- completion simply starts working
+# automatically if bash-completion is installed later).
+#
+AC_PATH_PROG([PKG_CONFIG], [pkg-config], [])
+if test -n "$PKG_CONFIG" && "$PKG_CONFIG" --exists bash-completion 2>/dev/null
+then
+   bashcompletiondir=`"$PKG_CONFIG" --variable=completionsdir bash-completion`
+   AS_ECHO(["   bash-completion directory (from pkg-config): $bashcompletiondir"])
+else
+   bashcompletiondir='${datarootdir}/bash-completion/completions'
+   AS_ECHO(["   bash-completion directory (default, pkg-config unavailable): $bashcompletiondir"])
+fi
+AC_SUBST(bashcompletiondir)
 
 if test -n "$SOURCE_DATE_EPOCH"
 then   # reproducible build

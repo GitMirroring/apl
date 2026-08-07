@@ -383,6 +383,13 @@ which has its stdin, stdout, and stderr redirected to the TCP connection.
 WARNING: This option is dangerous if PORT is directly exposed to the Internet!
 
 @item
+@code{--tcp_websocket}
+
+Used together with @code{--tcp_port}: the TCP connection speaks the
+WebSocket protocol rather than a plain byte stream. See @b{websock/} in
+the GNU APL source tree.
+
+@item
 @code{--noCONT}
 
 Do not load a SETUP or CONTINUE workspace on start-up.
@@ -520,6 +527,13 @@ first failed testcase (i.e. do not exit).
 testcase. This is useful for automatic regression tests, where no errors
 are expected.
 
+@code{--TM 5} exit immediately after the first failed testcase @i{line}
+(i.e. comparison), rather than waiting for the current testcase file to
+finish as @code{--TM 4} does.
+
+@code{--TM 6} like @code{--TM 5}, but do not exit; stay in the interpreter
+so that the failure can be investigated right away.
+
 @item
 @code{--TR}
 
@@ -584,6 +598,33 @@ All command line options after @code{-} are ignored by the interpreter
 (except for including them in ⎕ARG).
 
 @end itemize
+
+@node Command Line Completion
+@section Command Line Completion
+
+If the @b{bash-completion} package is installed, then GNU APL provides
+TAB completion for its own command line options in bash. For example,
+typing @code{apl --} followed by TAB lists (and completes) all long
+options above, and @code{apl --sc} followed by TAB completes to
+@code{apl --script}.
+
+Unlike, for example, the completion mechanism of GNU @b{make} (which asks
+the @command{make} binary itself, via @command{make -npq}, for its
+current, dynamic list of targets), the completion offered for GNU APL is
+a plain static list of the (small, fixed, compile-time-known) set of
+command line options described in the previous section; it does not run
+@code{apl} itself. The list is maintained by hand in the completion
+script and needs to be kept in sync whenever a command line option is
+added, removed, or changed -- which, in practice, is rare.
+
+The completion script is installed automatically by @code{make install}
+into the directory reported by @command{pkg-config --variable=completionsdir
+bash-completion}, if the @b{bash-completion} package is present at
+@command{./configure} time, or otherwise into
+@code{$(datarootdir)/bash-completion/completions}. A newly started
+interactive bash picks this up automatically; in a shell that is already
+running, the script can instead be loaded directly with @command{source},
+without having to start a new shell.
 
 @node Configuration File for GNU APL
 @section Configuration File for GNU APL

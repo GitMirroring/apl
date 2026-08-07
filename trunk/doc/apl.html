@@ -73,7 +73,7 @@ Next: <a href="#Installing-and-Starting-GNU-APL" accesskey="n" rel="next">Instal
 </div>
 <span id="GNU-APL-Reference-Manual"></span><h1 class="top">GNU APL Reference Manual</h1>
 
-<p>July 19, 2026.
+<p>August 7, 2026.
 This manual briefly documents GNU APL, an interpreter for APL as described
 in ISO standard 13751, aka. &quot;Programming Language APL, Extended&quot;.
 </p>
@@ -106,9 +106,10 @@ therefore it must be expanded with e.g. <b>gunzip</b> before it can be read.
     <li><a id="toc-Installing-APL-1" href="#Installing-APL">1.1 Installing APL</a></li>
     <li><a id="toc-Starting-APL-1" href="#Starting-APL">1.2 Starting APL</a></li>
     <li><a id="toc-Command-Line-Options-1" href="#Command-Line-Options">1.3 Command Line Options</a></li>
-    <li><a id="toc-Configuration-File-for-GNU-APL-1" href="#Configuration-File-for-GNU-APL">1.4 Configuration File for GNU APL</a></li>
-    <li><a id="toc-Tuning-Parallel-Execution-Thresholds-1" href="#Tuning-Parallel-Execution-Thresholds">1.5 Tuning Parallel Execution Thresholds</a></li>
-    <li><a id="toc-File-Names-and-Paths-1" href="#File-Names-and-Paths">1.6 File Names and Paths</a></li>
+    <li><a id="toc-Command-Line-Completion-1" href="#Command-Line-Completion">1.4 Command Line Completion</a></li>
+    <li><a id="toc-Configuration-File-for-GNU-APL-1" href="#Configuration-File-for-GNU-APL">1.5 Configuration File for GNU APL</a></li>
+    <li><a id="toc-Tuning-Parallel-Execution-Thresholds-1" href="#Tuning-Parallel-Execution-Thresholds">1.6 Tuning Parallel Execution Thresholds</a></li>
+    <li><a id="toc-File-Names-and-Paths-1" href="#File-Names-and-Paths">1.7 File Names and Paths</a></li>
   </ul></li>
   <li><a id="toc-Non_002dstandard-GNU-APL-Features-1" href="#Non_002dstandard-GNU-APL-Features">2 Non-standard GNU APL Features</a>
   <ul class="no-bullet">
@@ -430,9 +431,10 @@ Next: <a href="#Non_002dstandard-GNU-APL-Features" accesskey="n" rel="next">Non-
 <li><a href="#Installing-APL" accesskey="1">Installing APL</a></li>
 <li><a href="#Starting-APL" accesskey="2">Starting APL</a></li>
 <li><a href="#Command-Line-Options" accesskey="3">Command Line Options</a></li>
-<li><a href="#Configuration-File-for-GNU-APL" accesskey="4">Configuration File for GNU APL</a></li>
-<li><a href="#Tuning-Parallel-Execution-Thresholds" accesskey="5">Tuning Parallel Execution Thresholds</a></li>
-<li><a href="#File-Names-and-Paths" accesskey="6">File Names and Paths</a></li>
+<li><a href="#Command-Line-Completion" accesskey="4">Command Line Completion</a></li>
+<li><a href="#Configuration-File-for-GNU-APL" accesskey="5">Configuration File for GNU APL</a></li>
+<li><a href="#Tuning-Parallel-Execution-Thresholds" accesskey="6">Tuning Parallel Execution Thresholds</a></li>
+<li><a href="#File-Names-and-Paths" accesskey="7">File Names and Paths</a></li>
 </ul>
 <hr>
 <div class="section" id="Installing-APL">
@@ -542,7 +544,7 @@ U+23FF range).
 <div class="section" id="Command-Line-Options">
 <div class="header">
 <p>
-Next: <a href="#Configuration-File-for-GNU-APL" accesskey="n" rel="next">Configuration File for GNU APL</a>, Previous: <a href="#Starting-APL" accesskey="p" rel="prev">Starting APL</a>, Up: <a href="#Installing-and-Starting-GNU-APL" accesskey="u" rel="up">Installing and Starting GNU APL</a> &nbsp; [<a href="#SEC_Contents" title="Table of contents" rel="contents">Contents</a>]</p>
+Next: <a href="#Command-Line-Completion" accesskey="n" rel="next">Command Line Completion</a>, Previous: <a href="#Starting-APL" accesskey="p" rel="prev">Starting APL</a>, Up: <a href="#Installing-and-Starting-GNU-APL" accesskey="u" rel="up">Installing and Starting GNU APL</a> &nbsp; [<a href="#SEC_Contents" title="Table of contents" rel="contents">Contents</a>]</p>
 </div>
 <span id="Command-Line-Options-1"></span><h3 class="section">1.3 Command Line Options</h3>
 
@@ -732,6 +734,12 @@ which has its stdin, stdout, and stderr redirected to the TCP connection.
 </p>
 <p>WARNING: This option is dangerous if PORT is directly exposed to the Internet!
 </p>
+</li><li> <code>--tcp_websocket</code>
+
+<p>Used together with <code>--tcp_port</code>: the TCP connection speaks the
+WebSocket protocol rather than a plain byte stream. See <b>websock/</b> in
+the GNU APL source tree.
+</p>
 </li><li> <code>--noCONT</code>
 
 <p>Do not load a SETUP or CONTINUE workspace on start-up.
@@ -851,6 +859,13 @@ first failed testcase (i.e. do not exit).
 testcase. This is useful for automatic regression tests, where no errors
 are expected.
 </p>
+<p><code>--TM 5</code> exit immediately after the first failed testcase <i>line</i>
+(i.e. comparison), rather than waiting for the current testcase file to
+finish as <code>--TM 4</code> does.
+</p>
+<p><code>--TM 6</code> like <code>--TM 5</code>, but do not exit; stay in the interpreter
+so that the failure can be investigated right away.
+</p>
 </li><li> <code>--TR</code>
 
 <p>Executes test case files in random order.
@@ -912,12 +927,45 @@ applications.
 
 <hr>
 </div>
+<div class="section" id="Command-Line-Completion">
+<div class="header">
+<p>
+Next: <a href="#Configuration-File-for-GNU-APL" accesskey="n" rel="next">Configuration File for GNU APL</a>, Previous: <a href="#Command-Line-Options" accesskey="p" rel="prev">Command Line Options</a>, Up: <a href="#Installing-and-Starting-GNU-APL" accesskey="u" rel="up">Installing and Starting GNU APL</a> &nbsp; [<a href="#SEC_Contents" title="Table of contents" rel="contents">Contents</a>]</p>
+</div>
+<span id="Command-Line-Completion-1"></span><h3 class="section">1.4 Command Line Completion</h3>
+
+<p>If the <b>bash-completion</b> package is installed, then GNU APL provides
+TAB completion for its own command line options in bash. For example,
+typing <code>apl --</code> followed by TAB lists (and completes) all long
+options above, and <code>apl --sc</code> followed by TAB completes to
+<code>apl --script</code>.
+</p>
+<p>Unlike, for example, the completion mechanism of GNU <b>make</b> (which asks
+the <code>make</code> binary itself, via <code>make -npq</code>, for its
+current, dynamic list of targets), the completion offered for GNU APL is
+a plain static list of the (small, fixed, compile-time-known) set of
+command line options described in the previous section; it does not run
+<code>apl</code> itself. The list is maintained by hand in the completion
+script and needs to be kept in sync whenever a command line option is
+added, removed, or changed &ndash; which, in practice, is rare.
+</p>
+<p>The completion script is installed automatically by <code>make install</code>
+into the directory reported by <code>pkg-config --variable=completionsdir
+bash-completion</code>, if the <b>bash-completion</b> package is present at
+<code>./configure</code> time, or otherwise into
+<code>$(datarootdir)/bash-completion/completions</code>. A newly started
+interactive bash picks this up automatically; in a shell that is already
+running, the script can instead be loaded directly with <code>source</code>,
+without having to start a new shell.
+</p>
+<hr>
+</div>
 <div class="section" id="Configuration-File-for-GNU-APL">
 <div class="header">
 <p>
-Next: <a href="#Tuning-Parallel-Execution-Thresholds" accesskey="n" rel="next">Tuning Parallel Execution Thresholds</a>, Previous: <a href="#Command-Line-Options" accesskey="p" rel="prev">Command Line Options</a>, Up: <a href="#Installing-and-Starting-GNU-APL" accesskey="u" rel="up">Installing and Starting GNU APL</a> &nbsp; [<a href="#SEC_Contents" title="Table of contents" rel="contents">Contents</a>]</p>
+Next: <a href="#Tuning-Parallel-Execution-Thresholds" accesskey="n" rel="next">Tuning Parallel Execution Thresholds</a>, Previous: <a href="#Command-Line-Completion" accesskey="p" rel="prev">Command Line Completion</a>, Up: <a href="#Installing-and-Starting-GNU-APL" accesskey="u" rel="up">Installing and Starting GNU APL</a> &nbsp; [<a href="#SEC_Contents" title="Table of contents" rel="contents">Contents</a>]</p>
 </div>
-<span id="Configuration-File-for-GNU-APL-1"></span><h3 class="section">1.4 Configuration File for GNU APL</h3>
+<span id="Configuration-File-for-GNU-APL-1"></span><h3 class="section">1.5 Configuration File for GNU APL</h3>
 
 <p>The default values for some of the command line options discussed in the
 previous section can be set in a configuration file for GNU APL. The name
@@ -951,7 +999,7 @@ $HOME/.config/gnu-apl/preferences override settings in, for example,
 <p>
 Next: <a href="#File-Names-and-Paths" accesskey="n" rel="next">File Names and Paths</a>, Previous: <a href="#Configuration-File-for-GNU-APL" accesskey="p" rel="prev">Configuration File for GNU APL</a>, Up: <a href="#Installing-and-Starting-GNU-APL" accesskey="u" rel="up">Installing and Starting GNU APL</a> &nbsp; [<a href="#SEC_Contents" title="Table of contents" rel="contents">Contents</a>]</p>
 </div>
-<span id="Tuning-Parallel-Execution-Thresholds-1"></span><h3 class="section">1.5 Tuning Parallel Execution Thresholds</h3>
+<span id="Tuning-Parallel-Execution-Thresholds-1"></span><h3 class="section">1.6 Tuning Parallel Execution Thresholds</h3>
 
 <p>GNU APL can execute scalar functions (and the inner and outer products of
 dyadic scalar functions) on several CPU cores in parallel, but doing so is
@@ -1042,7 +1090,7 @@ without editing any file, via <b>⎕FIO[200]</b> to <b>⎕FIO[203]</b>; see
 <p>
 Previous: <a href="#Tuning-Parallel-Execution-Thresholds" accesskey="p" rel="prev">Tuning Parallel Execution Thresholds</a>, Up: <a href="#Installing-and-Starting-GNU-APL" accesskey="u" rel="up">Installing and Starting GNU APL</a> &nbsp; [<a href="#SEC_Contents" title="Table of contents" rel="contents">Contents</a>]</p>
 </div>
-<span id="File-Names-and-Paths-1"></span><h3 class="section">1.6 File Names and Paths</h3>
+<span id="File-Names-and-Paths-1"></span><h3 class="section">1.7 File Names and Paths</h3>
 
 <p>The GNU APL interpreter is a binary file named <b>apl</b>. It is usually
 installed in directory <b>/usr/bin/</b> or in <b>/usr/local/bin/</b>. The location
