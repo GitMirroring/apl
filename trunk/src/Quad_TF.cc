@@ -361,30 +361,14 @@ Token_string tos;
     */
    if (tos[0].get_Class() == TC_SYMBOL && tos[1].get_Class() == TC_ASSIGN)
       {
-        // structured-variable transfer form: SYM ← ( 38 ⎕CR VALUE ), as
-        // produced by tf2_var() for a B.is_member() variable. Reconstruct
-        // by actually calling 38⎕CR (Quad_CR::do_CR38(), plain array ->
-        // structured value) instead of just assigning the plain matrix,
-        // which is what the generic SYM ← VALUE case below would do.
-        //
-        if (tos.size() == 7                     &&
-            tos[2].get_Class() == TC_L_PARENT    &&
-            tos[3].get_Class() == TC_VALUE       &&
-            tos[4].get_Class() == TC_FUN12       &&
-            tos[4].get_function() == &Quad_CR::fun &&
-            tos[5].get_Class() == TC_VALUE       &&
-            tos[6].get_Class() == TC_R_PARENT    &&
-            tos[3].get_apl_val()->get_int_value(0) == 38)
-           {
-             Value_P reconstructed =
-                Quad_CR::do_CR38(*tos[5].get_apl_val());
-             tos[0].get_sym_ptr()->assign(reconstructed, true, LOC);
-             Log(LOG_Quad_TF)
-                CERR << "valid inverse 2 ⎕TF (structured variable)" << endl;
-             return tos[0].get_sym_ptr()->get_name();   // valid 2⎕TF
-           }
-
-        // at this point, we expect SYM ← VALUE.
+        // at this point, we expect SYM ← VALUE. A structured-variable
+        // transfer form SYM ← ( 38 ⎕CR VALUE ), as produced by
+        // tf2_var()/tf2_ravel() for a B.is_member() value (at any
+        // nesting level), was already reduced to a plain SYM ← VALUE by
+        // tf2_reduce_CR38() above -- which actually calls 38⎕CR
+        // (Quad_CR::do_CR38()) rather than just producing the plain
+        // matrix, so is_member() is already correctly set on the value
+        // assigned below.
         //
         if (tos.size() != 3)                  return UCS_string();
         if (tos[2].get_Class() != TC_VALUE)   return UCS_string();
@@ -539,9 +523,13 @@ UCS_string ucs(var_name);
         // 38⎕CR (plain array → structured value, Quad_CR.cc) turns the
         // matrix back into a proper structured value on reconstruction;
         // keep ucs_value's outer parentheses this time since they are
-        // now needed to bind ucs_value as 38⎕CR's right argument.
+        // now needed to bind ucs_value as 38⎕CR's right argument. The
+        // extra outer (...) makes "38⎕CR(...)" unambiguously one self-
+        // contained expression regardless of what surrounds it (matters
+        // when this whole VAR←... text is itself embedded as one strand
+        // element of an enclosing structured value, see tf2_ravel()).
         //
-        ucs << "38⎕CR" << ucs_value;
+        ucs << "(38⎕CR" << ucs_value << UNI_R_PARENT;
       }
    else
       {
@@ -644,7 +632,32 @@ Quad_TF::tf2_ravel(int level, UCS_string & ucs, const ShapeItem len,
               // Compensate by enclosing the lone element explicitly.
               if (len == 1)   ++nesting;
 
-              tf2_value(level + 1, ucs, *sub_val, nesting);
+              if (sub_val->is_member())   // nested structured value
+                 {
+                   // as in tf2_var(): the encoding below is already a
+                   // correct plain-matrix encoding of *sub_val, oblivious
+                   // to is_member(); wrap it in 38⎕CR(...) so that
+                   // tf2_reduce_CR38() (part of the inverse ⎕TF2 pipeline)
+                   // re-applies the "structured" property when this
+                   // sub-expression is reduced back to a value, the same
+                   // way the top-level 38⎕CR wrap in tf2_var() does for
+                   // B itself.
+                   //
+                   // The extra outer (...) makes "38⎕CR(...)" unambiguous
+                   // as its own strand element -- without it, the space
+                   // between the preceding strand element and "38" would
+                   // let APL's own strand-forming absorb "38" into that
+                   // element instead of leaving it as the left argument
+                   // of dyadic ⎕CR here.
+                   //
+                   UCS_string sub_ucs;
+                   tf2_value(level + 1, sub_ucs, *sub_val, nesting);
+                   ucs << "(38⎕CR" << sub_ucs << UNI_R_PARENT;
+                 }
+              else
+                 {
+                   tf2_value(level + 1, ucs, *sub_val, nesting);
+                 }
            }
         else if (cell.is_lval_cell())
            {
@@ -1114,6 +1127,7 @@ Quad_TF::tf2_reduce(Token_string & tos)
          Log(LOG_Quad_TF)   tos.print(CERR, true);
 
          if ((progress = tf2_reduce_RHO(tos)))               continue;
+         if ((progress = tf2_reduce_CR38(tos)))              continue;
          if ((progress = tf2_reduce_COMMA(tos)))             continue;
          if ((progress = tf2_reduce_ENCLOSE_ENCLOSE(tos)))   continue;
          if ((progress = tf2_reduce_ENCLOSE(tos)))           continue;
@@ -1220,6 +1234,57 @@ ShapeItem skipped = 0;
       {
         Log(LOG_Quad_TF)
            CERR << "tf2_reduce_RHO() has skipped "
+                << skipped << " token" << endl;
+
+        tos.resize(tos.size() - skipped);
+      }
+
+   return skipped > 0;
+}
+//────────────────────────────────────────────────────────────────────────────
+bool
+Quad_TF::tf2_reduce_CR38(Token_string & tos)
+{
+ShapeItem skipped = 0;
+
+   loop(s, tos.size())
+      {
+        // we replace (38 ⎕CR B) by Quad_CR::do_CR38(B), i.e. actually
+        // apply the "plain array -> structured value" conversion, rather
+        // than just assigning the plain matrix -- this is what restores
+        // is_member() on reconstruction for a structured value (or, when
+        // this pattern occurs nested inside a larger matrix literal, a
+        // nested structured sub-value) encoded by tf2_var()/tf2_ravel().
+        //
+        if ((s + 3) >= ShapeItem(tos.size())          ||   // too short
+            tos[s    ].get_Class() != TC_VALUE        ||   // not 38
+            tos[s + 1].get_Class() != TC_FUN12        ||   // not ⎕CR
+            tos[s + 1].get_function() != &Quad_CR::fun ||   // not ⎕CR
+            tos[s + 2].get_Class() != TC_VALUE        ||   // not B
+            tos[s + 3].get_tag()   != TOK_R_PARENT    ||   // not )
+            tos[s].get_apl_val()->get_rank() != 0     ||
+            tos[s].get_apl_val()->get_int_value(0) != 38)
+           {
+             // no match: copy the token (but never to itself)
+             //
+             if (skipped)   tos[s - skipped].move_from(tos[s], LOC);
+             continue;
+           }
+
+        Value_P bval = tos[s + 2].get_apl_val();
+        Value_P zval = Quad_CR::do_CR38(*bval);
+
+        tos[s].release_apl_val(LOC);
+        s += 2;     skipped += 2;    // skip ( 38 ⎕CR
+
+        Token t(TOK_APL_VALUE1, zval);
+        tos[s - skipped].move_from(t, LOC);
+      }
+
+   if (skipped)
+      {
+        Log(LOG_Quad_TF)
+           CERR << "tf2_reduce_CR38() has skipped "
                 << skipped << " token" << endl;
 
         tos.resize(tos.size() - skipped);

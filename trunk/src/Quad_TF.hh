@@ -144,6 +144,13 @@ protected:
    /// @param tos token string to reduce in place
    static bool tf2_reduce_RHO(Token_string & tos);
 
+   /// replace pattern 38 ⎕CR B in \b tos with the single token
+   /// Quad_CR::do_CR38(B) (plain array -> structured value), as emitted
+   /// by tf2_var()/tf2_ravel() for a structured value (or sub-value);
+   /// return true iff done so.
+   /// @param tos token string to reduce in place
+   static bool tf2_reduce_CR38(Token_string & tos);
+
    /// replace pattern N - ⎕IO - ⍳ K  in \b tos with N N+1 ... N+K-1;
    /// return true iff done so.
    /// @param tos token string to reduce in place

@@ -268,33 +268,49 @@ ABC
       ⍝ structured value is represented internally), losing the
       ⍝ "structured" property, so a round-trip through 2 ⎕TF degraded X
       ⍝ to a plain nested matrix (member access, e.g. X.a, then failed
-      ⍝ with DOMAIN ERROR). Fixed by having tf2_var() wrap a structured
-      ⍝ B's encoding in "38⎕CR(...)" (Quad_CR.cc's existing "plain array
-      ⍝ -> structured value" conversion) instead of a bare "(...)", and
-      ⍝ teaching tf2_inverse() to recognize and evaluate that specific
-      ⍝ "SYM←(38⎕CR VALUE)" pattern (do_CR38 -- made public in
-      ⍝ Quad_CR.hh for this -- then assign) instead of just assigning the
-      ⍝ plain matrix as the generic "SYM←VALUE" case does. Fixed in
-      ⍝ Quad_TF.cc, Quad_CR.hh.
-      ⍝
-      ⍝ NOTE: this fixes the reported (single-level) case. A structured
-      ⍝ variable whose own member value is *itself* a structured value
-      ⍝ (e.g. X.sub.c, two levels deep) does not fully round-trip yet --
-      ⍝ only the outer 38⎕CR is emitted/recognized, so the inner level
-      ⍝ loses its "structured" property the same way the outer one used
-      ⍝ to. Not covered by Blake's report; left as a known follow-up.
+      ⍝ with DOMAIN ERROR). Fixed by having tf2_var()/tf2_ravel() wrap a
+      ⍝ structured value's encoding in "(38⎕CR(...))" (Quad_CR.cc's
+      ⍝ existing "plain array -> structured value" conversion; the extra
+      ⍝ outer parens keep it unambiguous when it appears as one strand
+      ⍝ element among others -- without them, e.g. "38" could get
+      ⍝ stranded with a *preceding* element instead of binding to ⎕CR)
+      ⍝ instead of a bare "(...)", and adding a general tf2_reduce_CR38()
+      ⍝ pass to the existing tf2_reduce_XXX() pipeline (alongside
+      ⍝ tf2_reduce_RHO() etc.) that folds any "(38 ⎕CR VALUE)" -- at any
+      ⍝ nesting depth, not just the top level -- into do_CR38()'s actual
+      ⍝ result, rather than just the plain matrix. This also covers a
+      ⍝ structured variable whose own member value is *itself* structured
+      ⍝ (e.g. X.sub.c, arbitrarily many levels deep), which an earlier,
+      ⍝ narrower version of this fix (special-casing only the top-level
+      ⍝ "SYM←(38⎕CR VALUE)" pattern in tf2_inverse(), now removed as
+      ⍝ redundant) did not. Fixed in Quad_TF.cc/.hh, Quad_CR.hh.
       X←⎕JSON '{"a":1,"b":2}'
       X.a
 1
       S←2 ⎕TF 'X'
       S
-X←38⎕CR(8 2⍴0 0 0 0 0 0 0 0 0 0 0 0 (1⍴'b') 2 (1⍴'a') 1)
+X←(38⎕CR(8 2⍴0 0 0 0 0 0 0 0 0 0 0 0 (1⍴'b') 2 (1⍴'a') 1))
       E←⎕EX 'X'
       R←2 ⎕TF S
       X.a
 1
       X.b
 2
+
+      ⍝ nested case: a structured value whose own member is itself
+      ⍝ structured.
+      Y←⎕JSON '{"a":1,"sub":{"c":3}}'
+      Y.a
+1
+      Y.sub.c
+3
+      T←2 ⎕TF 'Y'
+      E←⎕EX 'Y'
+      U←2 ⎕TF T
+      Y.a
+1
+      Y.sub.c
+3
 
       ⍝ Bugs13 #11 (Blake McBride): ⎕FIO[55]/[48] scanf's "%[a-c]"
       ⍝ character-range handling expanded the a-c range correctly, but
