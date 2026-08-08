@@ -9,7 +9,7 @@
 ∇
 
       FOO 10
-LENGTH ERROR
+LENGTH ERROR+
 FOO[1]  Z←44+((R×1 2)+3 4 5)⌈7
               ^             ^
       ⎕R

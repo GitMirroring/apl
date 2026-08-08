@@ -22,6 +22,7 @@
 */
 
 #include <algorithm>
+#include "ArgCheck.hh"
 #include "Bif_F12_INTERVAL_INDEX.hh"
 #include "Workspace.hh"
 
@@ -36,12 +37,11 @@ Bif_F12_INTERVAL_INDEX::eval_AB(cValue_R A, cValue_R B) const
 {
   // A must be a non-empty sorted vector
   //
-   if (A.get_rank() > 1)   RANK_ERROR;
+   ArgCheck::require_scalar_or_vector("A⍸B", "A", A);
 const ShapeItem ec_A = A.element_count();
    if (ec_A < 1)
       {
-        MORE_ERROR() << "A⍸B : Bad length 0 of argument A"
-                        " (expecting ⍴A > 0)";
+        MORE_ERROR() << "A⍸B: A is empty (expecting ⍴A > 0)";
         LENGTH_ERROR;
       }
 
@@ -59,7 +59,7 @@ const APL_Integer qio = Workspace::get_IO();
             {
               if (pA[a-1] >= pA[a])
                  {
-                   MORE_ERROR() << "A⍸B : Bad value of argument A"
+                   MORE_ERROR() << "A⍸B: Bad value of argument A"
                                    " (expecting ascending order)";
                    DOMAIN_ERROR;
                  }
@@ -87,7 +87,7 @@ const APL_Integer qio = Workspace::get_IO();
          const Comp_result c1_c2 = c1.compare(c2);
          if (c1_c2 != COMP_LT)
             {
-              MORE_ERROR() << "A⍸B : Bad value of argument A"
+              MORE_ERROR() << "A⍸B: Bad value of argument A"
                               " (expecting ascending order)";
               DOMAIN_ERROR;
             }
@@ -176,7 +176,7 @@ ShapeItem count = 0;
          const Cell & cell = B.get_cravel(b);
          if (!cell.is_near_int())
             {
-              MORE_ERROR() << "⍸B : Bad type of argument B"
+              MORE_ERROR() << "⍸B: Bad type of argument B"
                               " (expecting integers)";
               DOMAIN_ERROR;
             }
@@ -184,7 +184,7 @@ ShapeItem count = 0;
           const APL_Integer Bi = B.get_near_int(b);
           if (Bi < 0)
             {
-              MORE_ERROR() << "⍸B : Bad value of argument B (expecting B ≥ 0)";
+              MORE_ERROR() << "⍸B: Bad value of argument B (expecting B ≥ 0)";
               DOMAIN_ERROR;
             }
 

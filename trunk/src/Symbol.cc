@@ -24,6 +24,7 @@
 #include <string.h>
 #include <strings.h>
 
+#include "ArgCheck.hh"
 #include "CDR.hh"
 #include "Command.hh"
 #include "Function.hh"
@@ -610,7 +611,13 @@ Symbol::assign_indexed(const IndexExpr & IX, Value_P B)   // A[IX;...] ← B
    value_stack.back().isolate(LOC);
 Value_P Z = get_apl_value();
 
-   if (Z->get_rank() != IX.get_rank())   RANK_ERROR;   // ISO p. 159
+   if (Z->get_rank() != IX.get_rank())   // ISO p. 159
+      {
+        MORE_ERROR() << "A[B]←C: expecting " << Z->get_rank()
+                     << " semicolon-separated indices (⍴⍴A); got "
+                     << IX.get_rank();
+        RANK_ERROR;
+      }
 
    // B must either be a scalar (and is then scalar extended to the size
    // of the updated area, or else have the shape of the concatenated index
@@ -656,10 +663,28 @@ Value_P Z = get_apl_value();
 
         if (B1 != IX1)
            {
-             if (B1.get_rank() != IX1.get_rank())   RANK_ERROR;
-             else                                   LENGTH_ERROR;
+             if (B1.get_rank() != IX1.get_rank())
+                {
+                  MORE_ERROR() << "A[B]←C: expecting ⍴⍴C = " << IX1.get_rank()
+                               << " (⍴⍴ of the selected area, after removing"
+                                  " length-1 axes); ⍴⍴C is " << B1.get_rank();
+                  RANK_ERROR;
+                }
+             else
+                {
+                  MORE_ERROR() << "A[B]←C: expecting ⍴C = " << IX1
+                               << " (⍴ of the selected area, after removing"
+                                  " length-1 axes); ⍴C is " << B1;
+                  LENGTH_ERROR;
+                }
            }
       }
+
+   // per-axis index bounds check, same as for A[B] (see cValue::index()).
+   // A valid multi-index (checked here) always produces an in-range flat
+   // offset below, so the offset itself no longer needs checking.
+   //
+   IX.check_index_range(Z->get_shape());
 
 MultiIndexIterator mult(Z->get_shape(), IX);
 
@@ -670,8 +695,7 @@ ShapeItem idxB = 0;
    while (mult.has_more())
       {
         const ShapeItem offset_Z = mult++;
-        if (offset_Z < 0)                     INDEX_ERROR;
-        if (offset_Z >= Z->element_count())   INDEX_ERROR;
+        Assert(offset_Z >= 0 && offset_Z < Z->element_count());
         const Cell & cB = B->get_cravel(idxB);
         Z->assign_cell(offset_Z, cB, LOC);
         idxB += incr_B;
@@ -703,8 +727,8 @@ Value_P Z = get_apl_value();  // the current APL value of this Symbol
                  data->get_pointer_value()->is_member())
                 {
                   MORE_ERROR()
-                     << "member access: cannot override non-leaf member "
-                     << name << " of variable " << get_name()
+                     << "A[B]←C: member access: cannot override non-leaf"
+                        " member " << name << " of variable " << get_name()
                      << ".\n      )ERASE or ⎕EX that member first.";
                   DOMAIN_ERROR;
                 }
@@ -732,7 +756,13 @@ const ShapeItem max_idx = Z->element_count();
            }
       }
 
-   if (Z->get_rank() != 1)   RANK_ERROR;
+   if (Z->get_rank() != 1)
+      {
+        MORE_ERROR() << "A[B]←C: A is not a vector (single-index A[B]←C"
+                        " only applies to vector A); ⍴⍴A is "
+                     << Z->get_rank();
+        RANK_ERROR;
+      }
 
    if (!X)   // X[] ← B
       {
@@ -750,13 +780,26 @@ const int incr_B = (ec_B == 1) ? 0 : 1;   // maybe scalar extend B
 ShapeItem idxX = 0;
 ShapeItem idxB = 0;
 
-   if (ec_B != 1 && ec_B != ec_X)   LENGTH_ERROR;
+   if (ec_B != 1 && ec_B != ec_X)
+      {
+        MORE_ERROR() << "A[B]←C: expecting ⍴C to be 1 or " << ec_X
+                     << " (⍴B); ⍴C is " << ec_B;
+        LENGTH_ERROR;
+      }
 
    loop(x, ec_X)
       {
+        const ShapeItem this_idxX = idxX;
         const ShapeItem idx = X->get_near_int(idxX++) - qio;
-        if (idx < 0)          INDEX_ERROR;
-        if (idx >= max_idx)   INDEX_ERROR;
+        if (idx < 0 || idx >= max_idx)
+           {
+             MORE_ERROR() << "A[B]←C: B[" << (this_idxX + qio) << "] = "
+                          << (idx + qio)
+                          << " is not a valid index for A (expecting "
+                          << qio << "≤index<" << (max_idx + qio) << ")"
+                          << ArgCheck::index_io0_note(idx, max_idx);
+             INDEX_ERROR;
+           }
         const Cell & cB = B->get_cravel(idxB);
         Z->assign_cell(idx, cB, LOC);
 

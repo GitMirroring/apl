@@ -22,6 +22,7 @@
 */
 
 #include <string.h>
+#include "ArgCheck.hh"
 #include "Bif_F12_COMMA.hh"
 #include "StateIndicator.hh"
 #include "Workspace.hh"
@@ -31,7 +32,7 @@ Bif_F12_COMMA1 Bif_F12_COMMA1::fun;    // ⍪
 
 //════════════════════════════════════════════════════════════════════════════
 Token
-Bif_COMMA::ravel_axis(cValue_R X, cValue_R B, uAxis axis)
+Bif_COMMA::ravel_axis(const char * where, cValue_R X, cValue_R B, uAxis axis)
 {
 const APL_Integer qio = Workspace::get_IO();
 
@@ -39,7 +40,12 @@ const APL_Integer qio = Workspace::get_IO();
 
    // I must be a (integer or real) scalar or simple integer vector
    //
-   if (X.get_rank() > 1)   INDEX_ERROR;
+   if (X.get_rank() > 1)
+      {
+        MORE_ERROR() << where << ": X must be a scalar or vector; ⍴⍴X is "
+                     << X.get_rank();
+        AXIS_ERROR;
+      }
 
    // There are 3 variants, determined by I:
    //
@@ -52,7 +58,13 @@ const APL_Integer qio = Workspace::get_IO();
    //
    if (X.element_count() == 0)
       {
-        if (B.get_rank() == MAX_RANK)   AXIS_ERROR;
+        if (B.get_rank() == MAX_RANK)
+           {
+             MORE_ERROR() << where << ": ⍴⍴B (=" << B.get_rank()
+                          << ") already is the system limit " << MAX_RANK
+                          << "; cannot insert another axis";
+             AXIS_ERROR;
+           }
 
         const Shape shape_Z = B.get_shape().insert_axis(axis, 1);
         return ravel(shape_Z, B);
@@ -62,14 +74,25 @@ const APL_Integer qio = Workspace::get_IO();
    //
    if (!X.is_near_int(0))  // fraction: insert an axis
       {
-        if (B.get_rank() == MAX_RANK)   INDEX_ERROR;
+        if (B.get_rank() == MAX_RANK)
+           {
+             MORE_ERROR() << where << ": ⍴⍴B (=" << B.get_rank()
+                          << ") already is the system limit " << MAX_RANK
+                          << "; cannot insert another axis";
+             AXIS_ERROR;
+           }
 
         const APL_Float new_axis = X.get_real_value(0) - qio;
         // reject before narrowing to sAxis (int16_t): an unchecked
         // float->int16 conversion for a magnitude beyond int16 range is
         // UB, and silently landed the new axis at the front instead of
         // raising an error (⍴,[100000.5]M gave 1 2 3 with no error).
-        if (new_axis > 32000.0 || new_axis < -32000.0)   AXIS_ERROR;
+        if (new_axis > 32000.0 || new_axis < -32000.0)
+           {
+             MORE_ERROR() << where << ": X = " << (new_axis + qio)
+                          << " is too far from a valid axis of B";
+             AXIS_ERROR;
+           }
         sAxis axis = new_axis;   if (new_axis < 0.0)   axis = -1;
         const Shape shape_Z = B.get_shape().insert_axis(axis + 1, 1);
         return ravel(shape_Z, B);
@@ -82,7 +105,14 @@ const APL_Integer qio = Workspace::get_IO();
         // ,[¯5]M both silently returned M unchanged instead of
         // AXIS_ERROR.
         const APL_Integer n = X.get_near_int(0) - qio;
-        if (n < 0 || n >= B.get_rank())   AXIS_ERROR;
+        if (n < 0 || n >= B.get_rank())
+           {
+             MORE_ERROR() << where << ": X = " << (n + qio)
+                          << " is not a valid axis of B (expecting " << qio
+                          << "≤X<" << (B.get_rank() + qio) << ")"
+                          << ArgCheck::index_io0_note(n, B.get_rank());
+             AXIS_ERROR;
+           }
 
         Token result(TOK_APL_VALUE1, CLONE(&B, LOC));
         return result;
@@ -93,10 +123,24 @@ const APL_Integer qio = Workspace::get_IO();
 const Shape axes(X, qio);
 
 const ShapeItem from = axes.get_first_shape_item();
-   if (from < 0)   AXIS_ERROR;
+   if (from < 0)
+      {
+        MORE_ERROR() << where << ": X = " << (from + qio)
+                     << " is not a valid axis of B (expecting " << qio
+                     << "≤X<" << (B.get_rank() + qio) << ")"
+                     << ArgCheck::index_io0_note(from, B.get_rank());
+        AXIS_ERROR;
+      }
 
 const ShapeItem to   = axes.get_last_shape_item();
-   if (to >= B.get_rank())   AXIS_ERROR;
+   if (to >= B.get_rank())
+      {
+        MORE_ERROR() << where << ": X = " << (to + qio)
+                     << " is not a valid axis of B (expecting " << qio
+                     << "≤X<" << (B.get_rank() + qio) << ")"
+                     << ArgCheck::index_io0_note(to, B.get_rank());
+        AXIS_ERROR;
+      }
 
    // check that the axes are contiguous and compute the number of elements
    // in the combined axes
@@ -104,7 +148,14 @@ const ShapeItem to   = axes.get_last_shape_item();
 ShapeItem count = 1;
    loop(a, axes.get_rank())
       {
-        if (axes.get_shape_item(a) != (from + a))   AXIS_ERROR;
+        if (axes.get_shape_item(a) != (from + a))
+           {
+             MORE_ERROR() << where << ": X = " << axes
+                          << " is not contiguous (expecting consecutive"
+                             " axes " << (from + qio) << ".."
+                          << (to + qio) << ")";
+             AXIS_ERROR;
+           }
         count *= B.get_shape_item(from + a);
       }
 
@@ -144,7 +195,8 @@ const ShapeItem ebytes = B.packed_bytes_per_item();
 }
 //────────────────────────────────────────────────────────────────────────────
 Value_P
-Bif_COMMA::catenate(const cValue & A, sAxis axis, const cValue & B)
+Bif_COMMA::catenate(const char * where, const cValue & A, sAxis axis,
+                    const cValue & B)
 {
    // NOTE: the case A.is_scalar() && B.is_scalar() was supposedly ruled out
    //       before calling catenate()
@@ -179,6 +231,11 @@ Bif_COMMA::catenate(const cValue & A, sAxis axis, const cValue & B)
                     shape_Z.add_shape_item(B.get_shape_item(rb));
                     if (A.get_shape_item(ra) != B.get_shape_item(rb))
                        {
+                         MORE_ERROR() << where << ": expecting ⍴A = ⍴B (with"
+                                         " axis " << (axis + Workspace::get_IO())
+                                      << " of B removed); ⍴A is "
+                                      << A.get_shape() << ", ⍴B is "
+                                      << B.get_shape();
                          LENGTH_ERROR;
                        }
                     ++ra;
@@ -227,7 +284,14 @@ Bif_COMMA::catenate(const cValue & A, sAxis axis, const cValue & B)
                if (ra != axis)
                   {
                     if (A.get_shape_item(ra) != B.get_shape_item(rb))
-                       LENGTH_ERROR;
+                       {
+                         MORE_ERROR() << where << ": expecting ⍴A = ⍴B (with"
+                                         " axis " << (axis + Workspace::get_IO())
+                                      << " of A removed); ⍴A is "
+                                      << A.get_shape() << ", ⍴B is "
+                                      << B.get_shape();
+                         LENGTH_ERROR;
+                       }
 
                     shape_Z.add_shape_item(A.get_shape_item(ra));
                     ++rb;
@@ -261,7 +325,13 @@ Bif_COMMA::catenate(const cValue & A, sAxis axis, const cValue & B)
         Z->check_value(LOC);
         return Z;
       }
-   if (A.get_rank() != B.get_rank())   RANK_ERROR;
+   if (A.get_rank() != B.get_rank())
+      {
+        MORE_ERROR() << where << ": expecting ⍴⍴A = ⍴⍴B (or A or B a"
+                        " scalar); ⍴⍴A is " << A.get_rank() << ", ⍴⍴B is "
+                     << B.get_rank();
+        RANK_ERROR;
+      }
 
    // A and B have the same rank. The shapes need to agree, except for the
    // dimension corresponding to the axis.
@@ -273,7 +343,13 @@ Shape shape_Z;
          if (r != axis)
             {
               if (A.get_shape_item(r) != B.get_shape_item(r))
-                 LENGTH_ERROR;
+                 {
+                   MORE_ERROR() << where << ": expecting ⍴A = ⍴B (except at"
+                                   " axis " << (axis + Workspace::get_IO())
+                                << "); ⍴A is " << A.get_shape()
+                                << ", ⍴B is " << B.get_shape();
+                   LENGTH_ERROR;
+                 }
 
               shape_Z.add_shape_item(A.get_shape_item(r));
             }
@@ -328,13 +404,28 @@ Value_P Z(shape_Z, LOC);
 }
 //────────────────────────────────────────────────────────────────────────────
 Value_P
-Bif_COMMA::laminate(const cValue & A, sAxis axis, const cValue & B)
+Bif_COMMA::laminate(const char * where, const cValue & A, sAxis axis,
+                    const cValue & B)
 {
    // shapes of A and B must be the same, unless one of them is a scalar.
    //
    if (!A.is_scalar() && !B.is_scalar())
-      A.get_shape().check_same(B.get_shape(),
-                                E_INDEX_ERROR, E_LENGTH_ERROR, LOC);
+      {
+        if (A.get_rank() != B.get_rank())
+           {
+             MORE_ERROR() << where << ": expecting ⍴⍴A = ⍴⍴B (or A or B a"
+                             " scalar); ⍴⍴A is " << A.get_rank()
+                          << ", ⍴⍴B is " << B.get_rank();
+             INDEX_ERROR;
+           }
+        if (A.get_shape() != B.get_shape())
+           {
+             MORE_ERROR() << where << ": expecting ⍴A = ⍴B (or A or B a"
+                             " scalar); ⍴A is " << A.get_shape()
+                          << ", ⍴B is " << B.get_shape();
+             LENGTH_ERROR;
+           }
+      }
 
 const Shape shape_Z = A.is_scalar() ? B.get_shape().insert_axis(axis, 2)
                                     : A.get_shape().insert_axis(axis, 2);
@@ -342,7 +433,11 @@ const Shape shape_Z = A.is_scalar() ? B.get_shape().insert_axis(axis, 2)
 Value_P Z(shape_Z, LOC);
 
 const Shape3 shape_Z3(shape_Z, axis);
-   if (shape_Z3.m() != 2)   AXIS_ERROR;
+   if (shape_Z3.m() != 2)
+      {
+        MORE_ERROR() << where << ": X is not a valid axis to laminate at";
+        AXIS_ERROR;
+      }
 
 ShapeItem idxA = 0;
 ShapeItem idxB = 0;
@@ -390,14 +485,23 @@ ShapeItem idxB = 0;
 }
 //────────────────────────────────────────────────────────────────────────────
 Value_P
-Bif_COMMA::catenate_or_laminate(const cValue & A, const cValue & X,
-                                const cValue & B)
+Bif_COMMA::catenate_or_laminate(const char * where, const cValue & A,
+                                const cValue & X, const cValue & B)
 {
- if (A.is_scalar() && B.is_scalar())   RANK_ERROR;
+   if (A.is_scalar() && B.is_scalar())
+      {
+        MORE_ERROR() << where << ": A and B are both scalars; at least one"
+                        " must be a non-scalar";
+        RANK_ERROR;
+      }
 
    // catenate or laminate
    //
-   if (!X.is_scalar_or_len1_vector())   AXIS_ERROR;
+   if (!X.is_scalar_or_len1_vector())
+      {
+        MORE_ERROR() << where << ": X must be a scalar or 1-item vector";
+        AXIS_ERROR;
+      }
 
 const Cell & cX = X.get_cfirst();
 const APL_Integer qio = Workspace::get_IO();
@@ -410,18 +514,33 @@ const APL_Integer qio = Workspace::get_IO();
         // silently catenated along axis 0 -- 65537 wrapped to 1, minus
         // ⎕IO -- instead of raising AXIS_ERROR).
         const APL_Integer wide_axis = cX.get_checked_near_int() - qio;
-        if (wide_axis < 0)                                    AXIS_ERROR;
-        if (wide_axis >= A.get_rank() && wide_axis >= B.get_rank())
-           AXIS_ERROR;
+        const ShapeItem max_rank = A.get_rank() > B.get_rank()
+                                  ? A.get_rank() : B.get_rank();
+        if (wide_axis < 0 || wide_axis >= max_rank)
+           {
+             MORE_ERROR() << where << ": X = " << (wide_axis + qio)
+                          << " is not a valid axis (expecting " << qio
+                          << "≤X<" << (max_rank + qio) << ")"
+                          << ArgCheck::index_io0_note(wide_axis, max_rank);
+             AXIS_ERROR;
+           }
         const sAxis axis = wide_axis;
-        return catenate(A, axis, B);
+        return catenate(where, A, axis, B);
       }
 
 const APL_Float axis = cX.get_real_value() - qio;
-   if (axis <= -1.0)   AXIS_ERROR;
-   if (axis >= (A.get_rank() + 1.0) &&
-       axis >= (B.get_rank() + 1.0))   AXIS_ERROR;
-   return laminate(A, sAxis(axis + 1.0), B);
+   {
+     const APL_Float max_rank = A.get_rank() > B.get_rank()
+                               ? A.get_rank() : B.get_rank();
+     if (axis <= -1.0 || axis >= (max_rank + 1.0))
+        {
+          MORE_ERROR() << where << ": X = " << (axis + qio)
+                       << " is not a valid (fractional) axis (expecting "
+                       << (qio - 1) << "<X<" << (max_rank + qio + 1.0) << ")";
+          AXIS_ERROR;
+        }
+   }
+   return laminate(where, A, sAxis(axis + 1.0), B);
 }
 //════════════════════════════════════════════════════════════════════════════
 Value_P
@@ -533,7 +652,7 @@ Bif_F12_COMMA::eval_AB(cValue_R A, cValue_R B) const
 
 uRank max_rank = A.get_rank();
    if (max_rank < B.get_rank())  max_rank = B.get_rank();
-   return Token(TOK_APL_VALUE1, catenate(A, max_rank-1, B));
+   return Token(TOK_APL_VALUE1, catenate("A,B", A, max_rank-1, B));
 }
 //────────────────────────────────────────────────────────────────────────────
 Token
@@ -599,7 +718,7 @@ Bif_F12_COMMA1::eval_AB(cValue_R A, cValue_R B) const
        return Token(TOK_APL_VALUE1, Z);
      }
 
-   return Token(TOK_APL_VALUE1, catenate(A, 0, B));
+   return Token(TOK_APL_VALUE1, catenate("A⍪B", A, 0, B));
 }
 //════════════════════════════════════════════════════════════════════════════
 

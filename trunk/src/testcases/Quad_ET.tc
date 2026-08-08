@@ -14,7 +14,7 @@ SYNTAX ERROR
       →
 
       (⍳68)⍴15
-SYSTEM LIMIT (rank)
+SYSTEM LIMIT (rank)+
       (⍳68)⍴15
       ^    ^
 

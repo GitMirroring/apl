@@ -23,6 +23,7 @@
 
 #include "Bif_F2_LEFT_RIGHT.hh"
 #include "Value.hh"
+#include "Workspace.hh"
 
 // primitive function instances
 //
@@ -45,6 +46,8 @@ const int inc_X = X.is_scalar_extensible() ? 0 : 1;
         const APL_Integer x0 = X.get_int_value(0);
         if (x0 == 0)   return Token(TOK_APL_VALUE1, CLONE(&A, LOC));
         if (x0 == 1)   return Token(TOK_APL_VALUE1, CLONE(&B, LOC));
+        MORE_ERROR() << "A⊢[X]B: X = " << x0
+                     << " is not Boolean (expecting 0 or 1)";
         DOMAIN_ERROR;
       }
 
@@ -52,14 +55,34 @@ const int inc_X = X.is_scalar_extensible() ? 0 : 1;
    //
    if (inc_A && ! X.same_shape(A))
       {
-        if (A.get_rank() != X.get_rank())   RANK_ERROR;
-        else                                  LENGTH_ERROR;
+        if (A.get_rank() != X.get_rank())
+           {
+             MORE_ERROR() << "A⊢[X]B: expecting ⍴⍴A = ⍴⍴X; ⍴⍴A is "
+                          << A.get_rank() << ", ⍴⍴X is " << X.get_rank();
+             RANK_ERROR;
+           }
+        else
+           {
+             MORE_ERROR() << "A⊢[X]B: expecting ⍴A = ⍴X; ⍴A is "
+                          << A.get_shape() << ", ⍴X is " << X.get_shape();
+             LENGTH_ERROR;
+           }
       }
 
    if (inc_B && ! X.same_shape(B))
       {
-        if (B.get_rank() != X.get_rank())   RANK_ERROR;
-        else                                  LENGTH_ERROR;
+        if (B.get_rank() != X.get_rank())
+           {
+             MORE_ERROR() << "A⊢[X]B: expecting ⍴⍴B = ⍴⍴X; ⍴⍴B is "
+                          << B.get_rank() << ", ⍴⍴X is " << X.get_rank();
+             RANK_ERROR;
+           }
+        else
+           {
+             MORE_ERROR() << "A⊢[X]B: expecting ⍴B = ⍴X; ⍴B is "
+                          << B.get_shape() << ", ⍴X is " << X.get_shape();
+             LENGTH_ERROR;
+           }
       }
 
 const Shape * shape_Z = &A.get_shape();   // last resort if X and B are scalar
@@ -76,7 +99,9 @@ Value_P Z(*shape_Z, LOC);
            Z->next_ravel_Cell(B.get_cravel(z*inc_B));
         else
            {
-             MORE_ERROR() << "non-Boolean X in A⊢[X]B";
+             MORE_ERROR() << "A⊢[X]B: X[" << (z + Workspace::get_IO())
+                          << "] = " << xz
+                          << " is not Boolean (expecting 0 or 1)";
              DOMAIN_ERROR;
            }
        }

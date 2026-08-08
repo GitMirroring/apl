@@ -44,7 +44,7 @@ Bif_OPER2_POWER::unstrand_RO_B(const UCS_string & LO_name, Value_P N_B,
 
    if (N_B->get_rank() > 1)
       {
-        MORE_ERROR() << LO_name << "⍣N B : Bad rank " << N_B->get_rank()
+        MORE_ERROR() << LO_name << "⍣N B: Bad rank " << N_B->get_rank()
                      << " (expecting ⍴⍴N B ≤ 1)";
         RANK_ERROR;
       }
@@ -57,7 +57,7 @@ Bif_OPER2_POWER::unstrand_RO_B(const UCS_string & LO_name, Value_P N_B,
 
    if (N_B->element_count() != 2)
       {
-        MORE_ERROR() << LO_name << "⍣N B : Bad length " << N_B->element_count()
+        MORE_ERROR() << LO_name << "⍣N B: Bad length " << N_B->element_count()
                      << " (expecting ⍴N B = 2)";
         LENGTH_ERROR;
       }
@@ -65,7 +65,7 @@ Bif_OPER2_POWER::unstrand_RO_B(const UCS_string & LO_name, Value_P N_B,
 const Cell & first = N_B->get_cfirst();
    if (!(first.is_numeric() && first.is_near_int()))
       {
-        MORE_ERROR() << LO_name << "⍣N B : Bad type of argument N"
+        MORE_ERROR() << LO_name << "⍣N B: Bad type of argument N"
                         " (expecting an integer scalar)";
         DOMAIN_ERROR;
       }
@@ -109,11 +109,26 @@ cFunction_P LO = _LO.get_function();
    Assert(+N);
    if (N->element_count() != 1)
       {
-        if (N->get_rank() > 1)   RANK_ERROR;
-        else                     LENGTH_ERROR;
+        if (N->get_rank() > 1)
+           {
+             MORE_ERROR() << "f⍣N B: N must be a scalar or 1-element"
+                             " vector; ⍴⍴N is " << N->get_rank();
+             RANK_ERROR;
+           }
+        else
+           {
+             MORE_ERROR() << "f⍣N B: N must be a scalar or 1-element"
+                             " vector; N has " << N->element_count()
+                          << " items";
+             LENGTH_ERROR;
+           }
       }
 
-   if (!N->is_near_int(0))   DOMAIN_ERROR;
+   if (!N->is_near_int(0))
+      {
+        MORE_ERROR() << "f⍣N B: N is not an integer";
+        DOMAIN_ERROR;
+      }
 ShapeItem repeat_cnt = N->get_cfirst().get_checked_near_int();
 
    // special cases: 0, negative, and 1
@@ -127,7 +142,12 @@ ShapeItem repeat_cnt = N->get_cfirst().get_checked_near_int();
    if (repeat_cnt < 0)   // inverse
       {
         cFunction_P inverse = LO->get_dyadic_inverse();
-        if (inverse == 0)   DOMAIN_ERROR;   // no inverse for LO
+        if (inverse == 0)
+           {
+             MORE_ERROR() << "f⍣N B: f has no known inverse (needed for"
+                             " N < 0); f is " << LO->get_name();
+             DOMAIN_ERROR;   // no inverse for LO
+           }
 
         LO = inverse;
 
@@ -139,7 +159,11 @@ ShapeItem repeat_cnt = N->get_cfirst().get_checked_near_int();
         // ~2⁶³ times -- a near-infinite loop.
         const ShapeItem neg_repeat_cnt = - repeat_cnt;
         if (Cell::diff_overflow(neg_repeat_cnt, 0, repeat_cnt))
-           DOMAIN_ERROR;
+           {
+             MORE_ERROR() << "f⍣N B: N = " << repeat_cnt
+                          << " overflows on negation";
+             DOMAIN_ERROR;
+           }
         repeat_cnt = neg_repeat_cnt;
       }
 
@@ -186,8 +210,18 @@ Bif_OPER2_POWER::eval_form_2(Value_P A, Token & _LO, Token & _RO, Value_P B)
 cFunction_P LO = _LO.get_function();   Assert(LO);
 cFunction_P RO = _RO.get_function();   Assert(RO);
 
-   if (!LO->has_result())   DOMAIN_ERROR;
-   if (!RO->has_result())   DOMAIN_ERROR;
+   if (!LO->has_result())
+      {
+        MORE_ERROR() << "f⍣g B: f must return a result; f is "
+                     << LO->get_name();
+        DOMAIN_ERROR;
+      }
+   if (!RO->has_result())
+      {
+        MORE_ERROR() << "f⍣g B: g must return a result; g is "
+                     << RO->get_name();
+        DOMAIN_ERROR;
+      }
 
    if (LO->may_push_SI() || RO->may_push_SI())   // user-defined or macro
       {

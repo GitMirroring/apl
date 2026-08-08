@@ -44,7 +44,7 @@ Quad_FX::eval_AXB(cValue_R A, cValue_R X, cValue_R B) const
    if (A.get_rank() > 1)                RANK_ERROR;
    if (!A.is_char_string())             DOMAIN_ERROR;
 
-const sAxis axis = Value::get_single_axis(&X, 10);
+const sAxis axis = Value::get_single_axis(&X, 10, "A⎕FX[X]B");
    return Token(TOK_APL_VALUE1, do_native_FX(A, axis, B));
 }
 //════════════════════════════════════════════════════════════════════════════

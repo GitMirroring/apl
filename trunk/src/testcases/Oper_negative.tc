@@ -27,7 +27,7 @@
 
 
       A +.× B
-LENGTH ERROR
+LENGTH ERROR+
       A+.×B
       ^   ^
 
@@ -36,7 +36,7 @@ LENGTH ERROR
       LEFT←{(⍺+⍵)⊣⎕←'LEFT: ⍺=',(⍕⍺),', ⍵=',(⍕⍵)}
       RIGHT←{(⍺×⍵)⊣⎕←'RIGHT: ⍺=',(⍕⍺),', ⍵=',(⍕⍵)}
       A LEFT.RIGHT B
-LENGTH ERROR
+LENGTH ERROR+
       A LEFT.RIGHT B
       ^            ^
 

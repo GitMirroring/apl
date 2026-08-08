@@ -21,6 +21,7 @@
 /** @file
 */
 
+#include "ArgCheck.hh"
 #include "IndexExpr.hh"
 #include "PrintBuffer.hh"
 #include "PrintOperator.hh"
@@ -74,24 +75,18 @@ IndexExpr::check_index_range(const Shape & shape) const
       {
         if (const cValue * ival = get_axis_value(r))   // unless elided index
            {
-             const ShapeItem max_idx = shape.get_shape_item(r) + quad_io;
+             const ShapeItem dim = shape.get_shape_item(r);
              loop(i, ival->element_count())
                 {
-                  const APL_Integer idx = ival->get_near_int(i);
-                  if (idx < quad_io || idx >= max_idx)   // invalid index
+                  const APL_Integer idx = ival->get_near_int(i) - quad_io;
+                  if (idx < 0 || idx >= dim)   // invalid index
                      {
-                       UCS_string & ucs = MORE_ERROR();
-                       ucs << "Offending index: " << idx
-                           << " (with ⎕IO: " << quad_io << ")\n"
-                           << "offending axis:  " << (r + quad_io)
-                           << " of some";
-                       loop(s, shape.get_rank())
-                           ucs << " " << shape.get_shape_item(s);
-                       ucs << "⍴...";
-                       if (idx >= max_idx)
-                          ucs << "\nthe max index for axis "
-                              << (r + quad_io)<< " is: "
-                              << (max_idx - quad_io);
+                       MORE_ERROR() << "A[B]: index " << (idx + quad_io)
+                                    << " is not a valid index for axis "
+                                    << (r + quad_io) << " of A (expecting "
+                                    << quad_io << "≤index<" << (dim + quad_io)
+                                    << "); ⍴A is " << shape
+                                    << ArgCheck::index_io0_note(idx, dim);
                        INDEX_ERROR;
                      }
                 }

@@ -22,6 +22,7 @@
 */
 
 #include <string.h>
+#include "ArgCheck.hh"
 #include "Bif_F12_PARTITION_PICK.hh"
 #include "Bif_OPER1_EACH.hh"
 #include "Bif_F12_TAKE_DROP.hh"
@@ -36,6 +37,14 @@ Bif_F12_DROP      Bif_F12_DROP     ::fun;    // ↓
 Token
 Bif_F12_TAKE::eval_AB(cValue_R A, cValue_R B) const
 {
+   ArgCheck::require_scalar_or_vector("A↑B", "A", A);
+   if (A.element_count() > MAX_RANK)
+      {
+        MORE_ERROR() << "A↑B: A has " << A.element_count()
+                     << " items; ⍴⍴Z cannot exceed " << MAX_RANK;
+        LIMIT_ERROR_RANK;
+      }
+
 Shape ravel_A1(A, /* ⎕IO */ 0);   // checks 1 ≤ ⍴⍴A and ⍴A ≤ MAX_RANK
 
    if (B.is_scalar())
@@ -51,7 +60,12 @@ Shape ravel_A1(A, /* ⎕IO */ 0);   // checks 1 ≤ ⍴⍴A and ⍴A ≤ MAX_RAN
       }
    else
       {
-        if (ravel_A1.get_rank() != B.get_rank())   LENGTH_ERROR;
+        if (ravel_A1.get_rank() != B.get_rank())
+           {
+             MORE_ERROR() << "A↑B: expecting ⍴⍴B = " << ravel_A1.get_rank()
+                          << " (⍴A); ⍴⍴B is " << B.get_rank();
+             LENGTH_ERROR;
+           }
         return Token(TOK_APL_VALUE1, do_take(ravel_A1, B, false));
       }
 }
@@ -59,12 +73,20 @@ Shape ravel_A1(A, /* ⎕IO */ 0);   // checks 1 ≤ ⍴⍴A and ⍴A ≤ MAX_RAN
 Token
 Bif_F12_TAKE::eval_AXB(cValue_R A, cValue_R X, cValue_R B) const
 {
-   if (A.get_rank() > 1)   RANK_ERROR;
-   if (X.get_rank() > 1)   RANK_ERROR;
+   ArgCheck::require_scalar_or_vector("A↑[X]B", "A", A);
+   ArgCheck::require_scalar_or_vector("A↑[X]B", "X", X);
 
 const ShapeItem len_A = A.element_count();
 const ShapeItem len_X = X.element_count();
-   if (len_A != len_X)   LENGTH_ERROR;
+   if (len_A != len_X)
+      {
+        UCS_string & more = MORE_ERROR();
+        more << "A↑[X]B: expecting ⍴A = ⍴X; ⍴A is ";
+        ArgCheck::append_shape(more, A);
+        more << ", ⍴X is ";
+        ArgCheck::append_shape(more, X);
+        LENGTH_ERROR;
+      }
 
    if (len_X == 0)   // no axes
       {
@@ -76,7 +98,7 @@ const ShapeItem len_X = X.element_count();
    // then replace corresponding shape items with A[X[x]].
    //
 const APL_Integer qio = Workspace::get_IO();
-const AxesBitmap axes_X = X.to_bitmap("A ↑[X] B", B.get_rank());
+const AxesBitmap axes_X = X.to_bitmap("A↑[X]B", B.get_rank());
 Shape sh_take = B.get_shape();   // start with ⍴B
    loop(x, len_X)                 // for exery axis X[x] in X
       {
@@ -92,9 +114,14 @@ Token
 Bif_F12_TAKE::eval_XB(cValue_R X, cValue_R B) const
 {
    // ↑[X] B    ←→ ((⍴X)⍴1)↑[X] B   (GNU APL only)
-   if (X.get_rank() > 1)   AXIS_ERROR;
+   if (X.get_rank() > 1)
+      {
+        MORE_ERROR() << "↑[X]B: X must be a scalar or vector; ⍴⍴X is "
+                     << X.get_rank();
+        AXIS_ERROR;
+      }
 
-const AxesBitmap axes_X = X.to_bitmap("↑[X] B", B.get_rank());
+const AxesBitmap axes_X = X.to_bitmap("↑[X]B", B.get_rank());
 
    // construct the left argument of Bif_F12_TAKE::fill(). Start with ⍴B and
    // then replace corresponding shape items with 1.
@@ -227,7 +254,13 @@ const Cell & first_B = B.get_cfirst();
 Token
 Bif_F12_DROP::eval_AB(cValue_R A, cValue_R B) const
 {
-   if (A.get_rank() > 1)   RANK_ERROR;
+   ArgCheck::require_scalar_or_vector("A↓B", "A", A);
+   if (A.element_count() > MAX_RANK)
+      {
+        MORE_ERROR() << "A↓B: A has " << A.element_count()
+                     << " items; ⍴⍴Z cannot exceed " << MAX_RANK;
+        LIMIT_ERROR_RANK;
+      }
 
 const Shape ravel_A(A, /* ⎕IO */ 0);
 
@@ -263,7 +296,12 @@ const Shape ravel_A(A, /* ⎕IO */ 0);
         return Token(TOK_APL_VALUE1, Z);
       }
 
-   if (ravel_A.get_rank() != B.get_rank())   LENGTH_ERROR;
+   if (ravel_A.get_rank() != B.get_rank())
+      {
+        MORE_ERROR() << "A↓B: expecting ⍴⍴B = " << ravel_A.get_rank()
+                     << " (⍴A); ⍴⍴B is " << B.get_rank();
+        LENGTH_ERROR;
+      }
 
 Shape shape_Z;
    loop(r, ravel_A.get_rank())
@@ -322,34 +360,37 @@ Bif_F12_DROP::eval_AXB(cValue_R A, cValue_R X, cValue_R B) const
         return result;
       }
 
-   if (X.get_rank() > 1)    INDEX_ERROR;
+   ArgCheck::require_scalar_or_vector("A↓[X]B", "A", A);
+   ArgCheck::require_scalar_or_vector("A↓[X]B", "X", X);
 
-const uint64_t len_X = X.element_count();
-   if (len_X > MAX_RANK)     INDEX_ERROR;
-   if (len_X == 0)           INDEX_ERROR;
+const ShapeItem len_X = X.element_count();
+const ShapeItem len_A = A.element_count();
+   if (len_A != len_X)
+      {
+        UCS_string & more = MORE_ERROR();
+        more << "A↓[X]B: expecting ⍴A = ⍴X; ⍴A is ";
+        ArgCheck::append_shape(more, A);
+        more << ", ⍴X is ";
+        ArgCheck::append_shape(more, X);
+        LENGTH_ERROR;
+      }
 
-   if (A.get_rank() > 1)    RANK_ERROR;
-
-uint64_t len_A = A.element_count();
-   if (len_A != len_X)   LENGTH_ERROR;
+   // to_bitmap() also (redundantly but harmlessly) re-checks X's rank
+   // and validates every axis is integral, in range, and unique -- so
+   // the loop below no longer needs its own range/duplicate tracking.
+   //
+   X.to_bitmap("A↓[X]B", B.get_rank());
 
 const APL_Integer qio = Workspace::get_IO();
 
-   // init ravel_A = shape_B and seen.
+   // init ravel_A = shape_B.
    //
 Shape ravel_A(B.get_shape());
-bool seen[MAX_RANK];
-   loop(r, B.get_rank())   seen[r] = false;
 
    loop(r, len_X)
        {
          const APL_Integer a = A.get_near_int(r);
          const APL_Integer x = X.get_near_int(r) - qio;
-
-         if (x <  0)               INDEX_ERROR;
-         if (x >= B.get_rank())   INDEX_ERROR;
-         if (seen[x])              INDEX_ERROR;
-         seen[x] = true;
 
          const ShapeItem amax = B.get_shape_item(x);
          if      (a >= amax)   ravel_A.set_shape_item(x, 0);

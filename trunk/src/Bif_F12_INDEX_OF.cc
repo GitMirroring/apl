@@ -24,6 +24,7 @@
 #include <algorithm>
 #include <utility>
 #include <vector>
+#include "ArgCheck.hh"
 #include "Bif_F12_INDEX_OF.hh"
 #include "Workspace.hh"
 
@@ -194,7 +195,7 @@ Value_P Z(B.get_shape(), LOC);
 Token
 Bif_F12_INDEX_OF::eval_B(cValue_R B) const
 {
-   if (B.get_rank() > 1)   RANK_ERROR;
+   ArgCheck::require_scalar_or_vector("⍳B", "B", B);
 
 const APL_Integer qio = Workspace::get_IO();
 const ShapeItem ec = B.element_count();
@@ -204,7 +205,11 @@ const ShapeItem ec = B.element_count();
         // interval (standard ⍳B with scalar or 1-element B)
         //
         const APL_Integer len = B.get_near_int(0);
-        if (len < 0)   DOMAIN_ERROR;
+        if (len < 0)
+           {
+             MORE_ERROR() << "⍳B: B = " << len << " is negative";
+             DOMAIN_ERROR;
+           }
 
         Value_P Z(len, LOC);
 
@@ -229,8 +234,23 @@ const ShapeItem ec = B.element_count();
         return Token(TOK_APL_VALUE1, Z);
       }
 
+   if (ec > MAX_RANK)
+      {
+        MORE_ERROR() << "⍳B: B has " << ec << " items; ⍴⍴Z cannot exceed "
+                     << MAX_RANK;
+        LIMIT_ERROR_RANK;
+      }
+
 Shape sh_Z(B, 0);
-   loop(b, ec)   if (sh_Z.get_shape_item(b) < 0)   DOMAIN_ERROR;
+   loop(b, ec)
+      {
+        if (sh_Z.get_shape_item(b) < 0)
+           {
+             MORE_ERROR() << "⍳B: B[" << (b + qio) << "] = "
+                          << sh_Z.get_shape_item(b) << " is negative";
+             DOMAIN_ERROR;
+           }
+      }
 
    // at this point sh is correct and ⍳ cannot fail.
    //

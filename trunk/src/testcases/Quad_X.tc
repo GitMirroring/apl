@@ -32,7 +32,7 @@ AVG[1]  Z←+/[X]R÷(⍴R)[X]
 
       ⎕X←1
       →⍬   ⍝ → axis error for [3]
-AXIS ERROR
+AXIS ERROR+
 AVG[1]  Z←+/[X]R÷(⍴R)[X]
           ^    ^
 

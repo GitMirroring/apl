@@ -24,6 +24,7 @@
 #include <string.h>
 #include <stdio.h>
 
+#include "ArgCheck.hh"
 #include "Avec.hh"
 #include "Bif_F12_FORMAT.hh"
 #include "CharCell.hh"
@@ -636,7 +637,13 @@ const ShapeItem cols_B = shape_B.get_cols();
 
 const ShapeItem len_A = A.element_count();
 
-   if (len_A != 1 && len_A != 2 && len_A != 2*cols_B)   LENGTH_ERROR;
+   if (len_A != 1 && len_A != 2 && len_A != 2*cols_B)
+      {
+        MORE_ERROR() << "A⍕B: expecting ⍴A to be 1, 2, or "
+                     << (2*cols_B) << " (2×the number of columns of B); ⍴A"
+                        " is " << len_A;
+        LENGTH_ERROR;
+      }
 
    if (shape_B.get_volume() == 0)   // empty B
       {
@@ -650,7 +657,13 @@ const ShapeItem len_A = A.element_count();
              // ¯5 2 ⍕ 0 3⍴0 gave ⍴Z == 0 ¯15 instead of DOMAIN_ERROR.
              const APL_Integer w = (len_A <= 2) ? A.get_near_int(0)
                                                 : A.get_near_int(2*c);
-             if (w < 0)   DOMAIN_ERROR;
+             if (w < 0)
+                {
+                  MORE_ERROR() << "A⍕B: width " << w
+                               << " (for column " << (c + Workspace::get_IO())
+                               << ") is negative";
+                  DOMAIN_ERROR;
+                }
              W += w;
            }
 
@@ -911,14 +924,14 @@ Value_P Z;
 
    // any A should be a scalar or a vcector
    //
-   if (A.get_rank() > 1)   RANK_ERROR;
+   ArgCheck::require_scalar_or_vector("A⍕B", "A", A);
 
    if      (A.is_char_array())   Z = format_by_example(A, B);
    else if (A.is_int_array())    Z = format_by_specification(A, B);
    else
       {
-        MORE_ERROR() << "A⍕B : Bad type of argument A"
-                        " (expecting characters or integers)";
+        MORE_ERROR() << "A⍕B: A must be characters (format by example) or"
+                        " integers (format by specification)";
         DOMAIN_ERROR;
       }
 
@@ -933,7 +946,11 @@ Bif_F12_FORMAT::format_by_example(cValue_R A, cValue_R B)
    // convert the ravel of char vector A into UCS_string 'format'.
    //
 UCS_string all_formats = A.get_UCS_ravel();
-   if (all_formats.size() == 0)   LENGTH_ERROR;
+   if (all_formats.size() == 0)
+      {
+        MORE_ERROR() << "A⍕B: A (the format string) is empty";
+        LENGTH_ERROR;
+      }
 
 const ShapeItem cols = B.get_cols();
 const ShapeItem rows = B.get_rows();
@@ -954,7 +971,13 @@ UCS_string_vector col_formats;
            }
       }
 
-   if (cols != ShapeItem(col_formats.size()))   LENGTH_ERROR;
+   if (cols != ShapeItem(col_formats.size()))
+      {
+        MORE_ERROR() << "A⍕B: A (the format string) has "
+                     << col_formats.size() << " column format(s); expecting"
+                        " 1 or " << cols << " (the number of columns of B)";
+        LENGTH_ERROR;
+      }
 
    // convert each column format string into a Format_LIFER
    //
@@ -1091,7 +1114,12 @@ Bif_F12_FORMAT::format_one_col_by_spec(int width, int precision,
    // memory and aborts uncleanly (glibc sysmalloc assertion, not a clean
    // bad_alloc). No legitimate format specification needs anywhere near
    // this many digits.
-   if (precision > 1000 || precision < -1000)   DOMAIN_ERROR;
+   if (precision > 1000 || precision < -1000)
+      {
+        MORE_ERROR() << "A⍕B: precision " << precision
+                     << " is too far from 0 (expecting ¯1000..1000)";
+        DOMAIN_ERROR;
+      }
 
    // width comes straight from the left argument too, with no
    // non-negativity check otherwise: on overflow (data.ssize() > width)
@@ -1101,7 +1129,11 @@ Bif_F12_FORMAT::format_one_col_by_spec(int width, int precision,
    // near-SIZE_MAX count, whose internal reserve() throws
    // std::length_error. (A positive width of 2^31 truncates to INT_MIN
    // at the int parameter and reaches the same path.)
-   if (width < 0)   DOMAIN_ERROR;
+   if (width < 0)
+      {
+        MORE_ERROR() << "A⍕B: width " << width << " is negative";
+        DOMAIN_ERROR;
+      }
 
 PrintBuffer ret;
 

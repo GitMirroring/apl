@@ -72,6 +72,7 @@ common_SOURCES +=										APL_Float_as_class.hh
 common_SOURCES +=										APL_types.hh
 common_SOURCES +=										APL_enums.hh
 common_SOURCES += Archive.cc							Archive.hh
+common_SOURCES +=										ArgCheck.hh
 common_SOURCES +=										ArrayIterator.hh
 common_SOURCES += Assert.cc								Assert.hh
 common_SOURCES += Avec.cc				Avec.def		Avec.hh

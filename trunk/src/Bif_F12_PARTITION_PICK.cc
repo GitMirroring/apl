@@ -21,6 +21,7 @@
 /** @file
 */
 
+#include "ArgCheck.hh"
 #include "ArrayIterator.hh"
 #include "Bif_F12_PARTITION_PICK.hh"
 #include "Bif_F12_TAKE_DROP.hh"
@@ -53,7 +54,7 @@ Value_P Z(LOC);   // Z ← ⊂B is always a scalar
 Token
 Bif_F12_PARTITION::eval_AXB(cValue_R A, cValue_R X, cValue_R B) const
 {
-const sAxis axis = Value::get_single_axis(&X, B.get_rank());
+const sAxis axis = Value::get_single_axis(&X, B.get_rank(), "A⊂[X]B");
    return Token(TOK_APL_VALUE1, partition(A, B, axis));
 }
 //════════════════════════════════════════════════════════════════════════════
@@ -147,8 +148,14 @@ Bif_F12_PARTITION::partition(cValue_R A, cValue_R B, sAxis axis)
    // A must be a scalar or vector (of non-negative integers)
    // B must be non-scalar
    //
-   if (A.get_rank() > 1)    RANK_ERROR;
-   if (B.get_rank() == 0)   RANK_ERROR;
+   ArgCheck::require_scalar_or_vector("A⊂B", "A", A);
+
+   if (B.get_rank() == 0)
+      {
+        MORE_ERROR() << "A⊂B: B must have rank ≥ 1; B is a scalar"
+                        " (⍴⍴B is 0)";
+        RANK_ERROR;
+      }
 
 const ShapeItem len_A = A.element_count();
 
@@ -161,10 +168,15 @@ const ShapeItem len_A = A.element_count();
    //
    if (len_A != 1 && len_A != B.get_shape_item(axis))
       {
-        MORE_ERROR() << "A⊂B : Bad length " << len_A << " of argument A"
-                        " (expecting 1 or " << B.get_shape_item(axis) << ")";
+        MORE_ERROR() << "A⊂B: expecting ⍴A to be 1 or "
+                     << B.get_shape_item(axis) << " (the length of B along"
+                        " axis " << (axis + Workspace::get_IO())
+                     << "); ⍴A is " << A.get_shape() << " (" << len_A
+                     << " items), ⍴B is " << B.get_shape();
         LENGTH_ERROR;
       }
+
+   ArgCheck::require_non_negative_ints("A⊂B", "A", A);
 
    // construct a vector of partitions from A...
 vector<Partition> partitions;   // all partitions on the B-axis
@@ -174,7 +186,6 @@ vector<Partition> partitions;   // all partitions on the B-axis
      loop(apos, len_A)
          {
            const APL_Integer aval = A.get_near_int(apos);
-           if (aval < 0)            DOMAIN_ERROR;
 
            if (aval > prev_A)   // new partition starting at apos
               {
@@ -246,7 +257,7 @@ const ShapeItem B3_lm = shape_B3.l() * shape_B3.m();
 Token
 Bif_F12_PICK::eval_AB(cValue_R A, cValue_R B) const
 {
-   if (A.get_rank() > 1)    RANK_ERROR;
+   ArgCheck::require_scalar_or_vector("A⊃B", "A", A);
 
 const ShapeItem ec_A = A.element_count();
 
@@ -411,33 +422,24 @@ Bif_F12_PICK::disclose_item(Value & Z, ShapeItem b,
 }
 //────────────────────────────────────────────────────────────────────────────
 Value_P
-Bif_F12_PICK::disclose_with_axis(const Shape & sh_X, cValue_R B)
+Bif_F12_PICK::disclose_with_axis(cValue_R X, cValue_R B)
 {
    // disclose with axis: Z←⊃[X] B
    // implemented as: cB ← ⊃ B ◊ cX ← ((⍳⍴⍴cB)∼X),X ◊ Z←cX ⍉ B
 
-   // Note: axes_X is already normalized to ⎕IO←0
-
 Value_P cB = disclose(B, true);   // cB ← ⊃ B
 
-AxesBitmap axes_X = 0;   // axes in axes_X with ⎕IO←0
-
-const APL_Integer qio = Workspace::get_IO();
-   // ⎕IO=0 is unusual enough that the axis number below can look like
-   // an off-by-one mistake if the reader assumes the (far more common)
-   // ⎕IO=1; call that out explicitly rather than silently.
-const char * io_note = qio == 0 ? " Note: ⎕IO=0." : "";
-   loop(x, sh_X.get_rank())   // rank(sh_X) is length(X)
-       {
-          const ShapeItem ax = sh_X.get_shape_item(x);
-          if (axes_X & 1 << ax)
-             {
-               MORE_ERROR() << "⊃[" << (ax + qio) << "]B : Bad axis of X"
-                               " (expecting unique axes)." << io_note;
-                AXIS_ERROR;
-             }
-          axes_X |= 1 << ax;
-       }
+   // X names axes of cB (not of B -- disclose() can raise cB's rank above
+   // B's own, e.g. when B's items are themselves non-scalar), so X can only
+   // be validated once cB is known. to_bitmap() checks that X is a scalar
+   // or vector of distinct, in-range, ⎕IO-adjusted axes and reports a
+   // ⎕IO-aware )MORE text on its own -- reused here instead of an ad-hoc
+   // check, which used to (a) invoke undefined behaviour (1 << negative)
+   // on an axis too small for the current ⎕IO, and (b) mislabel any
+   // out-of-range axis as a generic "Bad length of X" instead of naming
+   // the offending axis.
+const AxesBitmap axes_X = X.to_bitmap("⊃[X]B", cB->get_rank());
+const Shape sh_X = Value::to_shape(&X);
 
    /* ⍴Z is the axes of B that are not in X, followed by those which are.
       That is, shape_Z is a permutation of ⍳⍴⍴B defined by X.
@@ -457,15 +459,11 @@ Shape perm_cB;   // perm_cB is the permutation of cB, constructed from X
          perm_cB.add_shape_item(sh_X.get_shape_item(x));
        }
 
-   if (perm_cB.get_rank() != cB->get_rank())
-      {
-        MORE_ERROR() << "⊃[X]B : Bad length " << perm_cB.get_rank()
-                     << " of argument X"
-                        " (expecting ⍴⍴X = ⌈/∈⍴¨⍴¨⍴¨B = " << cB->get_rank()
-                     << ")";
-        RANK_ERROR;
-      }
-
+   // perm_cB.get_rank() == cB->get_rank() always holds here: to_bitmap()
+   // above guarantees that sh_X.get_rank() axes, all distinct and each in
+   // [0, cB->get_rank()), were excluded from the first loop, so the two
+   // loops together contribute exactly cB->get_rank() items.
+   //
    return Bif_F12_TRANSPOSE::transpose(perm_cB, *cB);
 }
 //────────────────────────────────────────────────────────────────────────────
@@ -580,7 +578,12 @@ const Cell & cB = B.get_cravel(offset);
              // of cB should be a PointerCell.
              //
              Cell & target = *cB.get_lval_value();
-             if (!target.is_pointer_cell())   DOMAIN_ERROR;
+             if (!target.is_pointer_cell())
+                {
+                  MORE_ERROR() << "A⊃B: the target selected by A["
+                               << (idx_A + qio) << "] is not nested";
+                  DOMAIN_ERROR;
+                }
 
              // secondly, get_cellrefs() is not recursive, therefore target has
              // not (yet) been converted to a left-value. We do that now.
@@ -593,6 +596,9 @@ const Cell & cB = B.get_cravel(offset);
         // simple cell. This means that the depth of B does not suffice to
         // pick the item selected by A or, in other words, A is too long).
         //
+        MORE_ERROR() << "A⊃B: B is only " << (idx_A + 1)
+                     << " levels deep, but A has " << (idx_A + len_A)
+                     << " items";
         RANK_ERROR;   // ISO p.166 wants a RANK ERROR here, event though LENGTH
                       // ERROR would be more intuitive since A is too long.
       }
@@ -668,8 +674,11 @@ const Cell & cA = A.get_cravel(idx_A);
            {
              if (!A.is_char_string())
                 {
-                  MORE_ERROR() << "A⊃B : Bad type of A[" << (idx_A + qio)
-                               << "] (expecting a member name)";
+                  UCS_string & more = MORE_ERROR();
+                  more << "A⊃B: A[" << (idx_A + qio)
+                       << "] must be a member name (a character vector);"
+                          " A[" << (idx_A + qio) << "] is ";
+                  ArgCheck::append_shape(more, A);
                   DOMAIN_ERROR;
                 }
 
@@ -685,18 +694,18 @@ const Cell & cA = A.get_cravel(idx_A);
            {
              if (A.get_rank() > 1)
                 {
-                  MORE_ERROR() << "A⊃B : Bad rank " << A.get_rank()
-                               << " of A[" << (idx_A + qio)
-                               << "] (expecting ⍴⍴A ≤ 1)";
+                  MORE_ERROR() << "A⊃B: expecting ⍴⍴A[" << (idx_A + qio)
+                               << "] ≤ 1; ⍴⍴A[" << (idx_A + qio) << "] is "
+                               << A.get_rank();
                   RANK_ERROR;
                 }
 
              const ShapeItem len_A = A.element_count();
              if (B.get_rank() != len_A)
                 {
-                  MORE_ERROR() << "A⊃B : Bad rank " << B.get_rank()
-                               << " of B (expecting ⍴⍴B = ⍴,A["
-                               << (idx_A + qio) << "] = " << len_A << ")";
+                  MORE_ERROR() << "A⊃B: expecting ⍴⍴B = ⍴,A[" << (idx_A + qio)
+                               << "] = " << len_A << "; ⍴⍴B is "
+                               << B.get_rank();
                   RANK_ERROR;
                 }
 
@@ -707,8 +716,17 @@ const Cell & cA = A.get_cravel(idx_A);
              loop(r, A.element_count())
                  {
                    const ShapeItem ar = A_as_shape.get_shape_item(r);
-                   if (ar < 0)                       INDEX_ERROR;
-                   if (ar >= B.get_shape_item(r))   INDEX_ERROR;
+                   const ShapeItem dim = B.get_shape_item(r);
+                   if (ar < 0 || ar >= dim)
+                      {
+                        MORE_ERROR() << "A⊃B: A[" << (idx_A + qio) << "]["
+                                     << (r + qio) << "] = " << (ar + qio)
+                                     << " is not a valid index for axis "
+                                     << (r + qio) << " of B (expecting "
+                                     << qio << "≤index<" << (dim + qio)
+                                     << ")" << ArgCheck::index_io0_note(ar, dim);
+                        INDEX_ERROR;
+                      }
                    offset += weights_B.get_shape_item(r) * ar;
                  }
              return offset;
@@ -718,13 +736,20 @@ const Cell & cA = A.get_cravel(idx_A);
       {
         if (B.get_rank() != 1)
            {
-             MORE_ERROR() << "A⊃B : Bad rank " << B.get_rank()
-                          << " of B (expecting ⍴⍴B = 1 for scalar A)";
+             MORE_ERROR() << "A⊃B: expecting ⍴⍴B = 1 for scalar A; ⍴⍴B is "
+                          << B.get_rank();
              RANK_ERROR;
            }
         const APL_Integer a = cA.get_near_int() - qio;
-        if (a < 0)                       INDEX_ERROR;
-        if (a >= B.get_shape_item(0))   INDEX_ERROR;
+        const ShapeItem dim = B.get_shape_item(0);
+        if (a < 0 || a >= dim)
+           {
+             MORE_ERROR() << "A⊃B: A = " << (a + qio)
+                          << " is not a valid index for B (expecting "
+                          << qio << "≤A<" << (dim + qio) << ")"
+                          << ArgCheck::index_io0_note(a, dim);
+             INDEX_ERROR;
+           }
         return a;
       }
 }

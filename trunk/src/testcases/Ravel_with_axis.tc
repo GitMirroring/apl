@@ -203,7 +203,7 @@ X
       ⍝ regression
       ⍝
       ,[3 4] 2 4 4⍴1
-AXIS ERROR
+AXIS ERROR+
       ,[3 4]2 4 4⍴1
       ^    ^
 

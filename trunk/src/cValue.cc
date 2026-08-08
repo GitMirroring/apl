@@ -21,6 +21,7 @@
 /** @file
 */
 
+#include "ArgCheck.hh"
 #include "Bif_F12_PARTITION_PICK.hh"
 #include "CDR_string.hh"
 #include "CharCell.hh"
@@ -1031,28 +1032,45 @@ cValue::index(const IndexExpr & IX) const
          // for a structured variable VAR, we only allow VAR[1;] to obtain
          // the valid member names...
          //
-         if (IX.get_rank() != 2)   RANK_ERROR;
-         if (+IX.values[1])   // not elided
+         if (IX.get_rank() != 2)
             {
-              MORE_ERROR() << "member access: second index is not elided";
+              MORE_ERROR() << "A[B]: expecting 2 indices (VAR[row;col]) for"
+                              " member access; got " << IX.get_rank();
+              RANK_ERROR;
+            }
+         if (+IX.values[1])   // row not elided
+            {
+              MORE_ERROR() << "A[B]: member access: row (VAR[row;col]'s"
+                              " first index) must be elided; use VAR[;col]";
               LENGTH_ERROR;   // not elided
             }
 
-         if (!IX.values[0])   // also elided, e.g. VAR[;]
+         if (!IX.values[0])   // col also elided, e.g. VAR[;]
             {
-              MORE_ERROR() << "member access: first index is elided "
+              MORE_ERROR() << "A[B]: member access: col (VAR[row;col]'s"
+                              " second index) is elided "
                               "(expecting VAR[;1] to obtain the member names)";
               LENGTH_ERROR;
             }
 
          if (IX.values[0]->element_count() != 1)
             {
-              MORE_ERROR() << "member access: first index too long";
+              MORE_ERROR() << "A[B]: member access: col (VAR[row;col]'s"
+                              " second index) has "
+                           << IX.values[0]->element_count()
+                           << " items (expecting 1)";
               LENGTH_ERROR;   // not 1 columns
             }
 
          const APL_Integer col = IX.values[0]->get_int_value(0);
-         if (col != Workspace::get_IO())           INDEX_ERROR;
+         if (col != Workspace::get_IO())
+            {
+              MORE_ERROR() << "A[B]: member access: col (VAR[row;col]'s"
+                              " second index) is " << col
+                           << " (expecting ⎕IO, i.e. "
+                           << Workspace::get_IO() << ")";
+              INDEX_ERROR;
+            }
 
          // VAR is a dictionary: VAR[;1] returns its keys sorted by name,
          // not in raw (insertion-order-independent, resize-dependent)
@@ -1074,7 +1092,13 @@ cValue::index(const IndexExpr & IX) const
 
    Assert(!IX.is_axis());   // should have called index(Value_P X)
 
-   if (get_rank() != IX.get_rank())   RANK_ERROR;   // ISO p. 158
+   if (get_rank() != IX.get_rank())   // ISO p. 158
+      {
+        MORE_ERROR() << "A[B]: expecting " << get_rank()
+                     << " semicolon-separated indices (⍴⍴A); got "
+                     << IX.get_rank();
+        RANK_ERROR;
+      }
 
    // Notes:
    //
@@ -1153,8 +1177,8 @@ AxesBitmap ret = 0;
 
    if (get_rank() > 1)
       {
-         MORE_ERROR() << "In " << where
-                      << ": invalid ⍴⍴X ( = " << get_rank() << ")";
+         MORE_ERROR() << where << ": Bad rank " << get_rank()
+                      << " of X (expecting ⍴⍴X ≤ 1)";
          AXIS_ERROR;
       }
 
@@ -1166,33 +1190,37 @@ AxesBitmap ret = 0;
          const Cell & cX = get_cravel(e);
          if (!cX.is_near_int())
             {
-              MORE_ERROR() << "In " << where << ": X[" << (e + qio)
-                           << "] is not integral." << io_note;
+              MORE_ERROR() << where << ": X[" << (e + qio)
+                           << "] is not integral.";
               AXIS_ERROR;
             }
 
          const APL_Integer axis = cX.get_near_int() - qio;
          if (axis < 0)
             {
-              MORE_ERROR() << "In " << where << " : X[" << (e + qio)
+              MORE_ERROR() << where << ": X[" << (e + qio)
                            << "] = " << (axis + qio)
-                           << " is too small." << io_note;
+                           << " is not a valid axis (expecting "
+                           << qio << "≤X[" << (e + qio) << "]<"
+                           << (rank_B + qio) << ")." << io_note;
               AXIS_ERROR;
             }
 
          if (axis >= rank_B)
             {
-              MORE_ERROR() << "In " << where << " : X[" << (e + qio)
+              MORE_ERROR() << where << ": X[" << (e + qio)
                            << "] = " << (axis + qio)
-                           << " is too large (note: ⍴⍴B is " << rank_B << ")."
-                           << io_note;
+                           << " is not a valid axis (expecting "
+                           << qio << "≤X[" << (e + qio) << "]<"
+                           << (rank_B + qio) << ")." << io_note;
               AXIS_ERROR;
             }
 
          if (ret & 1 << axis)   // aready set
             {
-              MORE_ERROR() << "In " << where << " : duplicate axis X["
-                           << (e + qio) << "] = " << (axis + qio) << io_note;
+              MORE_ERROR() << where << ": X[" << (e + qio)
+                           << "] = " << (axis + qio)
+                           << " is a duplicate axis.";
               AXIS_ERROR;
             }
 
@@ -1230,7 +1258,7 @@ cValue::index(cValue_R X) const
         // construct a )MORE error...
         //
         UCS_string & more = MORE_ERROR();
-        more << "member access: member " << name
+        more << "A[B]: member access: member " << name
              << " not found. The valid members are:";
         const ShapeItem rows = get_rows();
         loop(r, rows)
@@ -1264,7 +1292,12 @@ const APL_Integer qio = Workspace::get_IO();
         // fall through re-using the verbose INDEX_ERROR below
       }
 
-   if (get_rank() != 1)   RANK_ERROR;
+   if (get_rank() != 1)
+      {
+        MORE_ERROR() << "A[B]: A is not a vector (single-index A[B] only"
+                        " applies to vector A); ⍴⍴A is " << get_rank();
+        RANK_ERROR;
+      }
 
    // ⍴A[X] = ⍴X
    //
@@ -1274,13 +1307,15 @@ ShapeItem xI = 0;
 
    while (Z->more())
       {
+         const ShapeItem this_xI = xI;
          const ShapeItem idx0 = X.get_near_int(xI++) - qio;
          if (idx0 < 0 || idx0 >= max_idx)
             {
-              MORE_ERROR() << "min index=⎕IO (=" << qio
-                           <<  "), offending index=" << (idx0 + qio)
-                           << ", max index=⎕IO+" << (max_idx - 1)
-                           << " (=" << (max_idx + qio - 1) << ")";
+              MORE_ERROR() << "A[B]: B[" << (this_xI + qio) << "] = "
+                           << (idx0 + qio)
+                           << " is not a valid index for A (expecting "
+                           << qio << "≤index<" << (max_idx + qio) << ")"
+                           << ArgCheck::index_io0_note(idx0, max_idx);
               Z->rollback(Z->get_valid_item_count(), LOC);
               INDEX_ERROR;
             }
@@ -1294,20 +1329,35 @@ ShapeItem xI = 0;
 }
 //════════════════════════════════════════════════════════════════════════════
 sRank
-Value::get_single_axis(const cValue * val, sRank max_axis)
+Value::get_single_axis(const cValue * val, sRank max_axis, const char * where)
 {
-   if (val == 0)   AXIS_ERROR;
+const APL_Integer qio = Workspace::get_IO();
 
-   if (!val->is_scalar_or_len1_vector())     AXIS_ERROR;
+   if (val == 0)
+      {
+        MORE_ERROR() << where << ": X is missing (elided axis [])";
+        AXIS_ERROR;
+      }
 
-   if (!val->is_near_int(0))   AXIS_ERROR;
+   if (!val->is_scalar_or_len1_vector())
+      {
+        MORE_ERROR() << where << ": Bad rank/length of X (expecting a"
+                        " single axis, i.e. a scalar or 1-item vector)";
+        AXIS_ERROR;
+      }
+
+   if (!val->is_near_int(0))
+      {
+        MORE_ERROR() << where << ": X is not integral.";
+        AXIS_ERROR;
+      }
 
 // APL_Integer (64-bit), not a plain (32-bit) int: get_near_int(0) is a
 // full APL_Integer, and a plain int here wrapped an axis >= 2^32 back
 // into the valid range instead of being rejected (confirmed: ⌽[4294967298]M
 // silently reversed axis 2 -- 4294967298 truncated to 32 bits -- instead
 // of raising AXIS_ERROR).
-const APL_Integer axis = val->get_near_int(0) - Workspace::get_IO();
+const APL_Integer axis = val->get_near_int(0) - qio;
 
    // axis is a plain (32-bit) signed int here while max_axis is the
    // (16-bit) signed sRank, so "axis >= max_axis" alone is a signed
@@ -1315,7 +1365,21 @@ const APL_Integer axis = val->get_near_int(0) - Workspace::get_IO();
    // with ⎕IO←1 silently returned B unreversed instead of raising an
    // error). Test both bounds explicitly.
    //
-   if (axis < 0 || axis >= APL_Integer(max_axis))   AXIS_ERROR;
+   if (axis < 0 || axis >= APL_Integer(max_axis))
+      {
+        // ⎕IO=0 is unusual enough that the axis number below can look
+        // like an off-by-one mistake if the reader assumes the (far
+        // more common) ⎕IO=1; call that out explicitly rather than
+        // silently -- but only when it actually explains the error.
+        const APL_Integer axis_at_1 = val->get_near_int(0) - 1;
+        const char * io_note = (qio == 0 && axis_at_1 >= 0
+                                && axis_at_1 < APL_Integer(max_axis))
+                              ? " Note: ⎕IO=0." : "";
+        MORE_ERROR() << where << ": X = " << (axis + qio)
+                     << " is not a valid axis (expecting " << qio
+                     << "≤X<" << (max_axis + qio) << ")." << io_note;
+        AXIS_ERROR;
+      }
 
    return axis;
 }

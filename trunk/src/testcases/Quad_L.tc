@@ -12,7 +12,7 @@
 15 18 25
 
       F 6 7
-LENGTH ERROR
+LENGTH ERROR+
 F[1]  Z←(2×A)+3 4 5
         ^    ^
 
@@ -34,7 +34,7 @@ F[1]  Z←(2×A)+3 4 5
 1.333333333 3.333333333 6
 
       FL 4 5
-LENGTH ERROR
+LENGTH ERROR+
 FL[1]  Z←(A×1 2 3)÷⍴A
           ^        ^
 

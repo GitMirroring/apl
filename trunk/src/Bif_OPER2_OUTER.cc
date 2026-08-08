@@ -39,8 +39,16 @@ Bif_JOT::eval_AB(cValue_R A, cValue_R B) const
    // compute A∘B ←→ A +.× B
    // the rank of A and B is 0..2
    //
-   if (A.get_rank() > 2)   RANK_ERROR;
-   if (B.get_rank() > 2)   RANK_ERROR;
+   if (A.get_rank() > 2)
+      {
+        MORE_ERROR() << "A∘B: expecting ⍴⍴A ≤ 2; ⍴⍴A is " << A.get_rank();
+        RANK_ERROR;
+      }
+   if (B.get_rank() > 2)
+      {
+        MORE_ERROR() << "A∘B: expecting ⍴⍴B ≤ 2; ⍴⍴B is " << B.get_rank();
+        RANK_ERROR;
+      }
 
    if (A.is_scalar() || B.is_scalar())
       return Bif_F12_TIMES::fun.eval_AB(A, B);
@@ -52,7 +60,7 @@ Bif_JOT::eval_AB(cValue_R A, cValue_R B) const
        {
          if (!A.is_numeric(a))
             {
-              MORE_ERROR() << "A∘B : Bad type of argument A"
+              MORE_ERROR() << "A∘B: Bad type of argument A"
                               " (expecting numeric)";
               DOMAIN_ERROR;
             }
@@ -62,7 +70,7 @@ Bif_JOT::eval_AB(cValue_R A, cValue_R B) const
        {
          if (!B.is_numeric(b))
             {
-              MORE_ERROR() << "A∘B : Bad type of argument B"
+              MORE_ERROR() << "A∘B: Bad type of argument B"
                               " (expecting numeric)";
               DOMAIN_ERROR;
             }
@@ -184,7 +192,12 @@ Bif_OPER2_OUTER::eval_ALRB(cValue_R A, Token & LO, Token & _RO, cValue_R B) cons
 cFunction_P RO = _RO.get_function();
    Assert(RO);
 
-   if (!RO->has_result())   DOMAIN_ERROR;
+   if (!RO->has_result())
+      {
+        MORE_ERROR() << "A∘.RO B: RO must return a result; RO is "
+                     << RO->get_name();
+        DOMAIN_ERROR;
+      }
 
 Value_P Z(A.get_shape() + B.get_shape(), LOC);
 

@@ -21,6 +21,7 @@
 /** @file
 */
 
+#include "ArgCheck.hh"
 #include "Bif_F12_UNION_INTER.hh"
 #include "Heapsort.hh"
 #include "Value.hh"
@@ -51,8 +52,8 @@ Bif_F12_UNION::eval_AB(cValue_R A, cValue_R B) const
             which is simpler, symmetrical, and closer to the mathematical
             definition of a set.
     */
-   if (A.get_rank() > 1)   RANK_ERROR;
-   if (B.get_rank() > 1)   RANK_ERROR;
+   ArgCheck::require_scalar_or_vector("A∪B", "A", A);
+   ArgCheck::require_scalar_or_vector("A∪B", "B", B);
 
 const ShapeItem len_A = A.element_count();
 const ShapeItem len_B = B.element_count();
@@ -73,7 +74,7 @@ Bif_F12_UNION::eval_B(cValue_R B) const
 {
    // ∪B : Unique. The items of B without duplicates
 
-   if (B.get_rank() > 1)   RANK_ERROR;
+   ArgCheck::require_scalar_or_vector("∪B", "B", B);
 
 const ShapeItem len_B = B.element_count();
    if (len_B <= 1)   return Token(TOK_APL_VALUE1, CLONE(&B, LOC));
@@ -122,8 +123,8 @@ Value_P Z(len_Z, LOC);
 Token
 Bif_F2_INTER::eval_AB(cValue_R A, cValue_R B) const
 {
-   if (A.get_rank() > 1)   RANK_ERROR;
-   if (B.get_rank() > 1)   RANK_ERROR;
+   ArgCheck::require_scalar_or_vector("A∩B", "A", A);
+   ArgCheck::require_scalar_or_vector("A∩B", "B", B);
 
 const ShapeItem len_A = A.element_count();
 const ShapeItem len_B = B.element_count();

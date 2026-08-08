@@ -1211,7 +1211,9 @@ public:
    /// return that axis. Otherwise throw AXIS_ERROR.
    /// @param val value expected to contain a single axis number
    /// @param max_axis exclusive upper bound for valid axis values
-   static sRank get_single_axis(const cValue * val, sRank max_axis);
+   /// @param where arity prefix (e.g. "A⌽[X]B") for the )MORE error text
+   static sRank get_single_axis(const cValue * val, sRank max_axis,
+                                const char * where);
 
    /// convert the ravel of Value \b val to a shape (normalized to ⎕IO←0)
    /// An elided index, for example B[], throws an INDEX_ERROR.

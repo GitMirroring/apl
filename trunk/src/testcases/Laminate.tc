@@ -95,7 +95,7 @@ AD
 
       ⎕IO←1
       ⍴ A ,[¯0.5] B
-AXIS ERROR
+AXIS ERROR+
       ⍴A,[¯0.5]B
        ^       ^
 
@@ -109,13 +109,13 @@ AXIS ERROR
 4 3 2
 
       ⍴ A ,[3.5] B
-AXIS ERROR
+AXIS ERROR+
       ⍴A,[3.5]B
        ^      ^
 
       ⎕IO←0
       ⍴ A ,[¯1.5] B
-AXIS ERROR
+AXIS ERROR+
       ⍴A,[¯1.5]B
        ^       ^
 
@@ -129,7 +129,7 @@ AXIS ERROR
 4 3 2
 
       ⍴ A ,[2.5] B
-AXIS ERROR
+AXIS ERROR+
       ⍴A,[2.5]B
        ^      ^
 

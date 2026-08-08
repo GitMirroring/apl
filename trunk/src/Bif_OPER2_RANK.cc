@@ -134,7 +134,7 @@ Bif_OPER2_RANK::unstrand_RO_B(const UCS_string & LO_name, Value_P y123_B,
    //
    if (y123_B->get_rank() > 1)
       {
-        MORE_ERROR() << LO_name << "⍤y B : Bad rank " << y123_B->get_rank()
+        MORE_ERROR() << LO_name << "⍤y B: Bad rank " << y123_B->get_rank()
                      << " (expecting ⍴⍴y B ≤ 1)";
         RANK_ERROR;
       }
@@ -143,7 +143,7 @@ const ShapeItem length = y123_B->element_count();
    if (length == 0)
       {
         MORE_ERROR() << LO_name
-                     << "⍤y B : Bad length 0 of y B (expecting ⍴y B > 0)";
+                     << "⍤y B: Bad length 0 of y B (expecting ⍴y B > 0)";
         LENGTH_ERROR;
       }
 
@@ -194,7 +194,11 @@ int y123_len = 0;
         if (cy.is_near_int())   ++y123_len;
         else                                          break;
       }
-   if (y123_len == 0)   LENGTH_ERROR;   // at least y1 is needed
+   if (y123_len == 0)
+      {
+        MORE_ERROR() << "f⍤y B: y must have at least 1 item (y1)";
+        LENGTH_ERROR;   // at least y1 is needed
+      }
 
    // cases 2.-4. start with integers of length 1, 2, or 3
    //
@@ -295,7 +299,7 @@ cFunction_P LO = _LO.get_function();
    Assert(LO);
    if (!LO->has_result())
       {
-        MORE_ERROR() << "A " << LO->get_name() << " ⍤ y B : Bad function "
+        MORE_ERROR() << "A " << LO->get_name() << " ⍤ y B: Bad function "
                      << LO->get_name() << " (expecting a result)";
         DOMAIN_ERROR;
       }
@@ -346,8 +350,21 @@ const Shape shape_Z = frame_B_rank ? B->get_shape().frame_shape(frame_B_rank)
 
    if (frame_A_rank && frame_B_rank)   // A and B frames non-scalar
       {
-        if (frame_A_rank != frame_B_rank)                          RANK_ERROR;
-        if (shape_Z != A->get_shape().frame_shape(frame_A_rank))   LENGTH_ERROR;
+        if (frame_A_rank != frame_B_rank)
+           {
+             MORE_ERROR() << "A f⍤y B: expecting the frame ranks of A and"
+                             " B to match; frame rank of A is "
+                          << frame_A_rank << ", of B is " << frame_B_rank;
+             RANK_ERROR;
+           }
+        if (shape_Z != A->get_shape().frame_shape(frame_A_rank))
+           {
+             MORE_ERROR() << "A f⍤y B: expecting the frames of A and B to"
+                             " have the same shape; frame of A is "
+                          << A->get_shape().frame_shape(frame_A_rank)
+                          << ", of B is " << shape_Z;
+             LENGTH_ERROR;
+           }
       }
 
    if (shape_Z.is_empty())
@@ -357,10 +374,22 @@ const Shape shape_Z = frame_B_rank ? B->get_shape().frame_shape(frame_B_rank)
         Shape shape_Z;
 
         if (A->is_empty())          shape_Z = A->get_shape();
-        else if (!A->is_scalar())   DOMAIN_ERROR;
+        else if (!A->is_scalar())
+           {
+             MORE_ERROR() << "A f⍤y B: B's frame is empty and A's item is"
+                             " not a scalar; ⍴A's item is "
+                          << A->get_shape();
+             DOMAIN_ERROR;
+           }
 
         if (B->is_empty())          shape_Z = B->get_shape();
-        else if (!B->is_scalar())   DOMAIN_ERROR;
+        else if (!B->is_scalar())
+           {
+             MORE_ERROR() << "A f⍤y B: A's frame is empty and B's item is"
+                             " not a scalar; ⍴B's item is "
+                          << B->get_shape();
+             DOMAIN_ERROR;
+           }
 
         Value_P Z1 = LO->eval_fill_AB(*Fill_A, *Fill_B).get_apl_val();
 
@@ -417,7 +446,7 @@ cFunction_P LO = _LO.get_function();
    Assert(LO);
    if (!LO->has_result())
       {
-        MORE_ERROR() << LO->get_name() << " ⍤ y B : Bad function "
+        MORE_ERROR() << LO->get_name() << " ⍤ y B: Bad function "
                      << LO->get_name() << " (expecting a result)";
         DOMAIN_ERROR;
       }
@@ -506,13 +535,13 @@ Bif_OPER2_RANK::y123_to_chunk_B_rank(const UCS_string & LO_name,
 
    if (!y123)
       {
-        MORE_ERROR() << "(A) " << LO_name << " ⍤ y B : Missing argument y";
+        MORE_ERROR() << "(A) " << LO_name << " ⍤ y B: Missing argument y";
         VALUE_ERROR;
       }
 
    if ( y123->get_rank() > 1)
       {
-        MORE_ERROR() << "(A) " << LO_name << " ⍤ y B : Bad rank "
+        MORE_ERROR() << "(A) " << LO_name << " ⍤ y B: Bad rank "
                      << y123->get_rank()
                      << " of argument y (expecting 1 ≥ ⍴⍴y)";
         RANK_ERROR;
@@ -562,7 +591,7 @@ APL_Integer y3;
                       break;
 
         default: // ISO p. 124 (monadic) p. 125 (dyadic)
-                 MORE_ERROR() << "(A) " << LO_name << " ⍤ y B : Bad length "
+                 MORE_ERROR() << "(A) " << LO_name << " ⍤ y B: Bad length "
                               << y123->element_count()
                               << " of argument y (expecting 1, 2, or 3)";
                  LENGTH_ERROR;
@@ -595,7 +624,12 @@ const sRank rk_A = rank_A;
 const sRank rk_B = rank_B;
 
    if (!y123)                   VALUE_ERROR;
-   if ( y123->get_rank() > 1)   DOMAIN_ERROR;
+   if ( y123->get_rank() > 1)
+      {
+        MORE_ERROR() << "f⍤y B: y must be a scalar or vector; ⍴⍴y is "
+                     << y123->get_rank();
+        DOMAIN_ERROR;
+      }
 
    // 2. the number of elements in y determine how rank_A and rank_B
    // shall be computed:
@@ -627,7 +661,10 @@ APL_Integer wide_A, wide_B;
                  wide_A = y123->get_near_int(1);
                  wide_B = y123->get_near_int(2);  break;
 
-        default: LENGTH_ERROR;
+        default:
+             MORE_ERROR() << "f⍤y B: expecting ⍴y ≤ 3; ⍴y is "
+                          << y123->element_count();
+             LENGTH_ERROR;
       }
 
    // 3. adjust rank_A and rank_B if they exceed their initial value or

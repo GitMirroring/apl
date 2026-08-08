@@ -22,6 +22,7 @@
 /** @file
 */
 
+#include "ArgCheck.hh"
 #include "ArrayIterator.hh"
 #include "Avec.hh"
 #include "Bif_F12_EQUIV.hh"
@@ -187,11 +188,24 @@ Value_P Z = B.clone(LOC);
    return Token(TOK_APL_VALUE1, Z);
 }
 //────────────────────────────────────────────────────────────────────────────
+/// build the )MORE arity-prefix "A<glyph>B" (e.g. "A+B") for \b fun's own
+/// conforming_shape() checks -- ScalarFunction is the shared base of every
+/// dyadic scalar primitive, so the primitive's glyph is only known via
+/// its get_name() at the actual call site, not at compile time.
+static UTF8_string
+conforming_where(const Function * fun)
+{
+UCS_string ucs;
+   ucs << "A" << fun->get_name() << "B";
+   return UTF8_string(ucs);
+}
+//────────────────────────────────────────────────────────────────────────────
 Value_P
 ScalarFunction::do_scalar_AB(ErrorCode & ec, cValue_R A, cValue_R B,
                              prim_f2 fun) const
 {
-const Shape * shape_Z = conforming_shape(ec, A.get_shape(), B.get_shape());
+const Shape * shape_Z = conforming_shape(ec, conforming_where(this).c_str(),
+                                         A.get_shape(), B.get_shape());
    if (ec)   return Value_P();
 
 const ShapeItem len_Z = shape_Z->get_volume();
@@ -294,9 +308,9 @@ CELL_PERFORMANCE_END(get_statistics_AB(), start_fast_AB, false)
                          */
                         Value_P A1 = cell_A.get_pointer_value();
                         Value_P B1 = cell_B.get_pointer_value();
-                        const Shape * sh_Z1 = conforming_shape(ec,
-                                                               B1->get_shape(),
-                                                               A1->get_shape());
+                        const Shape * sh_Z1 =
+                              conforming_shape(ec, conforming_where(this).c_str(),
+                                              B1->get_shape(), A1->get_shape());
                         if (ec)   return Value_P();
 
                         const ShapeItem len_Z1 = sh_Z1->get_volume();
@@ -750,23 +764,11 @@ ScalarFunction::expand_nested(Value * Z, const Cell & cell_A,
 }
 //────────────────────────────────────────────────────────────────────────────
 const Shape *
-ScalarFunction::conforming_shape(ErrorCode & ec, const Shape & shape_A,
-                                                 const Shape & shape_B)
+ScalarFunction::conforming_shape(ErrorCode & ec, const char * where,
+                                 const Shape & shape_A, const Shape & shape_B)
 {
-   // scalar shape_A or shape_B. If one is scalar and the other is 1-element
-   // then 1-element wins.
-   if (shape_A.get_rank() == 0)   return &shape_B;
-   if (shape_B.get_rank() == 0)   return &shape_A;
-
-   // 1-element shape_A or shape_B
-   if (shape_A.get_volume() == 1)   return &shape_B;
-   if (shape_B.get_volume() == 1)   return &shape_A;
-
-   if (shape_A == shape_B)   return &shape_A;
-
-   if (shape_A.get_rank() != shape_B.get_rank())   ec = E_RANK_ERROR;
-   else                                            ec = E_LENGTH_ERROR;
-   return 0;
+   return ArgCheck::check_same_shape_or_scalar_extensible(ec, where,
+                                                           shape_A, shape_B);
 }
 //────────────────────────────────────────────────────────────────────────────
 Token
@@ -931,9 +933,10 @@ CELL_PERFORMANCE_END(job_AB->fun->get_statistics_AB(), start_2, z)
                  {
                    Value_P A1(cell_A, LOC);
                    Value_P B1 = cell_B.get_pointer_value();
-                   const Shape * sh_Z1 = conforming_shape(job_AB->error,
-                                                          B1->get_shape(),
-                                                          A1->get_shape());
+                   const Shape * sh_Z1 =
+                         conforming_shape(job_AB->error,
+                                         conforming_where(job_AB->fun).c_str(),
+                                         B1->get_shape(), A1->get_shape());
                    if (job_AB->error)
                       {
                         Parallel::release_lock(jobs_lock);

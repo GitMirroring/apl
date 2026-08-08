@@ -21,6 +21,7 @@
 /** @file
 */
 
+#include "ArgCheck.hh"
 #include "Bif_F2_INDEX.hh"
 #include "IndexExpr.hh"
 #include "Value.hh"
@@ -34,10 +35,15 @@ Bif_F2_INDEX      Bif_F2_INDEX     ::fun;    // ⌷
 Token
 Bif_F2_INDEX::eval_AB(cValue_R A, cValue_R B) const
 {
-   if (A.get_rank() > 1)   RANK_ERROR;
+   ArgCheck::require_scalar_or_vector("A⌷B", "A", A);
 
 const ShapeItem ec_A = A.element_count();
-   if (ec_A != B.get_rank())   RANK_ERROR;
+   if (ec_A != B.get_rank())
+      {
+        MORE_ERROR() << "A⌷B: expecting ⍴A = ⍴⍴B; ⍴A is " << ec_A
+                     << ", ⍴⍴B is " << B.get_rank();
+        RANK_ERROR;
+      }
 
    // index_expr is in reverse order!
    //
@@ -48,13 +54,27 @@ IndexExpr index_expr(ASS_none, LOC);
          if (cell.is_pointer_cell())
             {
               Value_P val = CLONE_P(cell.get_pointer_value(), LOC);
-              if (val->compute_depth() > 1)   DOMAIN_ERROR;
+              if (val->compute_depth() > 1)
+                 {
+                   MORE_ERROR() << "A⌷B: A[" << (ec_A - a - 1
+                                                 + Workspace::get_IO())
+                                << "] is nested too deeply (expecting a"
+                                   " simple index or a simple vector of"
+                                   " indices)";
+                   DOMAIN_ERROR;
+                 }
               index_expr.add_index(val);
             }
         else
             {
               const APL_Integer I = cell.get_near_int();
-              if (I < 0)   DOMAIN_ERROR;
+              if (I < 0)
+                 {
+                   MORE_ERROR() << "A⌷B: A["
+                                << (ec_A - a - 1 + Workspace::get_IO())
+                                << "] = " << I << " is negative";
+                   DOMAIN_ERROR;
+                 }
               index_expr.add_index(IntScalar(I, LOC));
             }
       }
@@ -80,13 +100,23 @@ IndexExpr index_expr(ASS_none, LOC);
 Token
 Bif_F2_INDEX::eval_AXB(cValue_R A, cValue_R X, cValue_R B) const
 {
-   if (A.get_rank() > 1)   RANK_ERROR;
+   ArgCheck::require_scalar_or_vector("A⌷[X]B", "A", A);
 
-const AxesBitmap axes_X = X.to_bitmap("⌷[X] B", B.get_rank());
+const AxesBitmap axes_X = X.to_bitmap("⌷[X]B", B.get_rank());
 
 const ShapeItem ec_A = A.element_count();
-   if (ec_A != X.element_count())   RANK_ERROR;
-   if (ec_A > B.get_rank())              RANK_ERROR;
+   if (ec_A != X.element_count())
+      {
+        MORE_ERROR() << "A⌷[X]B: expecting ⍴A = ⍴X; ⍴A is " << ec_A
+                     << ", ⍴X is " << X.element_count();
+        RANK_ERROR;
+      }
+   if (ec_A > B.get_rank())
+      {
+        MORE_ERROR() << "A⌷[X]B: expecting ⍴A ≤ ⍴⍴B; ⍴A is " << ec_A
+                     << ", ⍴⍴B is " << B.get_rank();
+        RANK_ERROR;
+      }
 
    // construct an IndexExpr in index (= parse-) order (i.e. the index_expr[0]
    // corresponds to the lasr axis ¯1↑⍴B of B). We therefore move backwards
@@ -108,13 +138,25 @@ ShapeItem a = ec_A;   // index_expr[0] ←→  B[;;;b]
           if (cell_A.is_pointer_cell())
              {
                Value_P val = CLONE_P(cell_A.get_pointer_value(), LOC);
-               if (val->compute_depth() > 1)   DOMAIN_ERROR;
+               if (val->compute_depth() > 1)
+                  {
+                    MORE_ERROR() << "A⌷[X]B: A[" << (a + Workspace::get_IO())
+                                 << "] is nested too deeply (expecting a"
+                                    " simple index or a simple vector of"
+                                    " indices)";
+                    DOMAIN_ERROR;
+                  }
               index_expr.add_index(val);
              }
          else   // single index
              {
                const APL_Integer I = cell_A.get_near_int();
-               if (I < 0)   DOMAIN_ERROR;
+               if (I < 0)
+                  {
+                    MORE_ERROR() << "A⌷[X]B: A[" << (a + Workspace::get_IO())
+                                 << "] = " << I << " is negative";
+                    DOMAIN_ERROR;
+                  }
                Value_P val = IntScalar(I, LOC);
               index_expr.add_index(val);
              }

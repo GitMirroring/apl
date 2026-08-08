@@ -160,8 +160,18 @@ const sRank rank = cache.get_rank();
 Token
 Bif_F12_SORT::sort(cValue_R B, Sort_order order)
 {
-   if (B.is_scalar())          return Token(TOK_ERROR, E_RANK_ERROR);
-   if (!B.can_be_compared())   return Token(TOK_ERROR, E_DOMAIN_ERROR);
+const char * where = order == SORT_ASCENDING ? "⍋B" : "⍒B";
+   if (B.is_scalar())
+      {
+        MORE_ERROR() << where << ": B is a scalar; B must have rank ≥ 1";
+        return Token(TOK_ERROR, E_RANK_ERROR);
+      }
+   if (!B.can_be_compared())
+      {
+        MORE_ERROR() << where << ": B contains items that cannot be"
+                        " compared with each other";
+        return Token(TOK_ERROR, E_DOMAIN_ERROR);
+      }
 
 const ShapeItem len_BZ = B.get_shape_item(0);
    if (len_BZ == 0)   return Token(TOK_APL_VALUE1, Idx0(LOC));
@@ -225,9 +235,24 @@ Token
 Bif_F12_SORT::sort_collating(cValue_R A, cValue_R B, Sort_order order)
 {
 const APL_Integer qio = Workspace::get_IO();
-   if (A.is_scalar())   RANK_ERROR;
-   if (A.NOTCHAR())     DOMAIN_ERROR;
-   if (B.NOTCHAR())     DOMAIN_ERROR;
+const char * where = order == SORT_ASCENDING ? "A⍋B" : "A⍒B";
+   if (A.is_scalar())
+      {
+        MORE_ERROR() << where << ": A is a scalar; A (the collating"
+                        " sequence) must have rank ≥ 1";
+        RANK_ERROR;
+      }
+   if (A.NOTCHAR())
+      {
+        MORE_ERROR() << where << ": A (the collating sequence) must be"
+                        " characters";
+        DOMAIN_ERROR;
+      }
+   if (B.NOTCHAR())
+      {
+        MORE_ERROR() << where << ": B must be characters";
+        DOMAIN_ERROR;
+      }
    if (B.is_scalar())   return Token(TOK_APL_VALUE1, IntScalar(qio, LOC));
 
 const ShapeItem len_BZ = B.get_shape_item(0);

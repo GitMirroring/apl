@@ -47,15 +47,27 @@ cFunction_P RO = _RO.get_function();
    // LO and RO must both be dyadic and must return a result.
    //
    if (LO->get_fun_valence() + RO->get_fun_valence() != 4)   SYNTAX_ERROR;
-   if (!LO->has_result() || !RO->has_result())               DOMAIN_ERROR;
+   if (!LO->has_result() || !RO->has_result())
+      {
+        MORE_ERROR() << "A LO.RO B: both LO and RO must return a result;"
+                        " LO is " << LO->get_name() << ", RO is "
+                     << RO->get_name();
+        DOMAIN_ERROR;
+      }
 
    if (!A.is_scalar_extensible() &&
        !B.is_scalar_extensible() &&
        A.get_rank() > 1          &&
-       B.get_rank() > 1          && 
+       B.get_rank() > 1          &&
        A.get_shape().get_last_shape_item() !=
        B.get_shape().get_shape_item(0)
-      )   LENGTH_ERROR;
+      )
+      {
+        MORE_ERROR() << "A LO.RO B: expecting ¯1↑⍴A = 1↑⍴B; ¯1↑⍴A is "
+                     << A.get_shape().get_last_shape_item()
+                     << ", 1↑⍴B is " << B.get_shape().get_shape_item(0);
+        LENGTH_ERROR;
+      }
 
 const Shape shape_A1 =A.get_shape().without_last_axis();
 const ShapeItem len_A = A.get_last_shape_item();
@@ -105,7 +117,13 @@ Value_P Z(shape_A1 + shape_B1, LOC);
 
    // len_A must be len_B, unless at least one length is 1
    //
-        if (len_A != len_B && job.incA && job.incB)   LENGTH_ERROR;
+        if (len_A != len_B && job.incA && job.incB)
+           {
+             MORE_ERROR() << "A LO.RO B: expecting ¯1↑⍴A = 1↑⍴B (or one of"
+                             " them 1); ¯1↑⍴A is " << len_A << ", 1↑⍴B is "
+                          << len_B;
+             LENGTH_ERROR;
+           }
 
         job.VZ     = Z.get();
         job.idxZ   = 0;

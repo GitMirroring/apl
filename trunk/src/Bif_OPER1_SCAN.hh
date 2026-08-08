@@ -45,10 +45,12 @@ protected:
    Token scan(Token & LO, Value_P B, uAxis axis) const;
 
    /// Expand B according to A.
+   /// @param where arity-prefix for )MORE text, e.g. "A\\B" or "A⍀[X]B"
    /// @param A    expansion vector
    /// @param B    APL value to expand
    /// @param axis axis along which to expand
-   static Token expand(cValue_R A, cValue_R B, uAxis axis);
+   static Token expand(const char * where, cValue_R A, cValue_R B,
+                       uAxis axis);
 
 
 };
@@ -66,7 +68,7 @@ public:
    /// @param A left argument APL value (expansion vector)
    /// @param B right argument APL value
    virtual Token eval_AB(cValue_R A, cValue_R B) const
-      { return expand(A, B, B.get_rank() - 1); }
+      { return expand("A\\B", A, B, B.get_rank() - 1); }
 
    /// Overloaded Function::eval_LB().
    /// @param LO left operand function token
@@ -108,7 +110,7 @@ public:
    /// @param A left argument APL value (expansion vector)
    /// @param B right argument APL value
    virtual Token eval_AB(cValue_R A, cValue_R B) const
-      { return expand(A, B, 0); }
+      { return expand("A⍀B", A, B, 0); }
 
    /// Overloaded Function::eval_ALB().
    /// @param LO left operand function token

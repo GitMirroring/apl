@@ -47,8 +47,20 @@ Bif_OPER1_EACH::eval_ALB(cValue_R A, Token & _LO, cValue_R B) const
            {
              if      (A.is_scalar_or_len1_vector())    ;   // OK
              else if (B.is_scalar_or_len1_vector())    ;   // OK
-             else if (A.get_rank() != B.get_rank())   RANK_ERROR;
-             else                                       LENGTH_ERROR;
+             else if (A.get_rank() != B.get_rank())
+                {
+                  MORE_ERROR() << "A f¨B: expecting ⍴⍴A = ⍴⍴B (or A or B a"
+                                  " scalar/1-element vector); ⍴⍴A is "
+                               << A.get_rank() << ", ⍴⍴B is " << B.get_rank();
+                  RANK_ERROR;
+                }
+             else
+                {
+                  MORE_ERROR() << "A f¨B: expecting ⍴A = ⍴B (or A or B a"
+                                  " scalar/1-element vector); ⍴A is "
+                               << A.get_shape() << ", ⍴B is " << B.get_shape();
+                  LENGTH_ERROR;
+                }
            }
       }
 
@@ -75,10 +87,20 @@ cFunction_P LO = _LO.get_function();
         // DOMAIN_ERROR (B=,5 is a 1-element vector, not scalar) though
         // the same B would extend fine against any non-empty A.
         if (A.is_empty())          shape_Z = A.get_shape();
-        else if (!A.is_scalar_or_len1_vector())   DOMAIN_ERROR;
+        else if (!A.is_scalar_or_len1_vector())
+           {
+             MORE_ERROR() << "A f¨B: B is empty and A is not a scalar or"
+                             " 1-element vector; ⍴A is " << A.get_shape();
+             DOMAIN_ERROR;
+           }
 
         if (B.is_empty())          shape_Z = B.get_shape();
-        else if (!B.is_scalar_or_len1_vector())   DOMAIN_ERROR;
+        else if (!B.is_scalar_or_len1_vector())
+           {
+             MORE_ERROR() << "A f¨B: A is empty and B is not a scalar or"
+                             " 1-element vector; ⍴B is " << B.get_shape();
+             DOMAIN_ERROR;
+           }
 
         // evaluate the fill function (lrm p. 245)
         //
@@ -221,8 +243,20 @@ const Shape * shape_Z = 0;
    else if (A.same_shape(B))   shape_Z = &B.get_shape();
    else   // error
       {
-        if (!A.same_rank(B))   RANK_ERROR;
-        else                     LENGTH_ERROR;
+        if (!A.same_rank(B))
+           {
+             MORE_ERROR() << "A f¨B: expecting ⍴⍴A = ⍴⍴B (or A or B a"
+                             " scalar); ⍴⍴A is " << A.get_rank()
+                          << ", ⍴⍴B is " << B.get_rank();
+             RANK_ERROR;
+           }
+        else
+           {
+             MORE_ERROR() << "A f¨B: expecting ⍴A = ⍴B (or A or B a"
+                             " scalar); ⍴A is " << A.get_shape()
+                          << ", ⍴B is " << B.get_shape();
+             LENGTH_ERROR;
+           }
       }
 
 const ShapeItem len_Z = shape_Z->get_volume();
@@ -318,7 +352,12 @@ cFunction_P LO = _LO.get_function();
            {
              // fake Z1←⎕EC ''  ←→  3 (0 0) (0 0⍴0)
              //
-             if (!B.is_character_cell(0))   DOMAIN_ERROR;
+             if (!B.is_character_cell(0))
+                {
+                  MORE_ERROR() << "⎕EC¨B: B's prototype is not a character"
+                                  " (needed to fabricate ⎕EC's fill value)";
+                  DOMAIN_ERROR;
+                }
              Z1 = Value_P(3, LOC);
              Z1->next_ravel_Number(3);
              {

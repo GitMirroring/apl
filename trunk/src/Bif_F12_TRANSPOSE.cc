@@ -23,6 +23,7 @@
 
 #include <string.h>
 
+#include "ArgCheck.hh"
 #include "ArrayIterator.hh"
 #include "Bif_F12_TRANSPOSE.hh"
 #include "Value.hh"
@@ -38,18 +39,13 @@ Bif_F12_TRANSPOSE::eval_AB(cValue_R A, cValue_R B) const
 {
    // A should be a scalar or vector.
    //
-   if (A.get_rank() > 1)
-      {
-        MORE_ERROR() << "A⍉B: A is not a vector or scalar.";
-        RANK_ERROR;
-      }
+   ArgCheck::require_scalar_or_vector("A⍉B", "A", A);
 
 const Shape shape_A(A, Workspace::get_IO());   // rank(shape_A) = length(A)
    if (shape_A.get_rank() != B.get_rank())
       {
-        MORE_ERROR() << "A⍉B: ⍴A is " << shape_A.get_rank()
-                     << ", but ⍴⍴B is " << B.get_rank()
-                     << " (i.e. ≠ ⍴A)";
+        MORE_ERROR() << "A⍉B: expecting ⍴⍴B = " << shape_A.get_rank()
+                     << " (⍴A); ⍴⍴B is " << B.get_rank();
         LENGTH_ERROR;
       }
 
@@ -61,10 +57,19 @@ const Shape shape_A(A, Workspace::get_IO());   // rank(shape_A) = length(A)
       }
 
    // shape_A is normalized to ⎕IO←- and shall only contain valid axes of B.
+const APL_Integer qio = Workspace::get_IO();
    loop(r, shape_A.get_rank())
       {
-        if (shape_A.get_shape_item(r) < 0)                DOMAIN_ERROR;
-        if (shape_A.get_shape_item(r) >= B.get_rank())   DOMAIN_ERROR;
+        const ShapeItem ar = shape_A.get_shape_item(r);
+        if (ar < 0 || ar >= B.get_rank())
+           {
+             MORE_ERROR() << "A⍉B: A[" << (r + qio) << "] = " << (ar + qio)
+                          << " is not a valid axis of B (expecting "
+                          << qio << "≤A[" << (r + qio) << "]<"
+                          << (B.get_rank() + qio) << ")"
+                          << ArgCheck::index_io0_note(ar, B.get_rank());
+             DOMAIN_ERROR;
+           }
       }
 
 Value_P Z = shape_A.get_rank() == B.get_rank() && shape_A.is_permutation()
@@ -211,34 +216,20 @@ ShapeItem rho[MAX_RANK];
    loop(a, perm.get_rank())
        {
          const ShapeItem ax = perm.get_shape_item(a);
-         if (ax < 0)
+         const APL_Integer qio = Workspace::get_IO();
+         if (ax < 0 || ax >= perm.get_rank())
             {
-              UCS_string & more = MORE_ERROR();
-              more << "Axis " << ax << " is < ⎕IO (="
-                   << Workspace::get_IO() << ") in permutation";
-              loop(a, perm.get_rank())
-                  more << " " << (Workspace::get_IO() + perm.get_shape_item(a));
-              MORE_ERROR() = more;
-              AXIS_ERROR;
-            }
-
-         if (ax >= perm.get_rank())
-            {
-              UCS_string & more = MORE_ERROR();
-              more << "Axis " << ax << " exceeds rank "
-                   << perm.get_rank() << " of shape in permutation";
-              loop(a, perm.get_rank())
-                  more << " " << (Workspace::get_IO() + perm.get_shape_item(a));
-              MORE_ERROR() = more;
+              MORE_ERROR() << "A⍉B: A[" << (a + qio) << "] = " << (ax + qio)
+                           << " is not a valid axis (expecting " << qio
+                           << "≤A[" << (a + qio) << "]<"
+                           << (perm.get_rank() + qio) << ")"
+                           << ArgCheck::index_io0_note(ax, perm.get_rank());
               AXIS_ERROR;
             }
          if (rho[ax] != -1)
             {
-              UCS_string & more = MORE_ERROR();
-              more << "Duplictate Axis " << ax << " in permutation";
-              loop(a, perm.get_rank())
-                  more << " " << (Workspace::get_IO() + perm.get_shape_item(a));
-              MORE_ERROR() = more;
+              MORE_ERROR() << "A⍉B: A[" << (a + qio) << "] = " << (ax + qio)
+                           << " is a duplicate axis";
               AXIS_ERROR;
             }
 

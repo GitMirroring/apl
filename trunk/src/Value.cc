@@ -368,9 +368,9 @@ const int src_incr  = (new_value->nz_element_count() == 1) ? 0 : 1;
         // NOTE:  M←3 2ρι6 ◊ (1 0/M) ← 'abc' succeeds in IBM APL2, even
         //        though the shapes of 1 0/M and 'abc' differ. We therefore
         //
-        MORE_ERROR() << "in (f Z)←B: length(X⊃F Z) is " << dest_count
-                     << ", but length(X⊃V) is " << new_value_count
-                     << " (for some X)";
+        MORE_ERROR() << "(f Z)←B: expecting ⍴,B to be 1 or " << dest_count
+                     << " (the number of selected items); ⍴,B is "
+                     << new_value_count;
         LENGTH_ERROR;
       }
 
@@ -428,22 +428,18 @@ const int src_incr  = (new_value->nz_element_count() == 1) ? 0 : 1;
                  {
                    if (left_sub->get_rank() != right_sub->get_rank())
                       {
-                        MORE_ERROR() <<
-                        "In selective specification: left rank is " <<
-                        left_sub->get_rank() << ", but right rank is " <<
-                        right_sub->get_rank();
+                        MORE_ERROR() << "(f Z)←B: expecting ⍴⍴B = "
+                                     << left_sub->get_rank()
+                                     << " (⍴⍴ of the selected item); ⍴⍴B is "
+                                     << right_sub->get_rank();
                         RANK_ERROR;
                       }
                    if (left_sub->get_shape() != right_sub->get_shape())
                       {
-                        const Shape & left_shape = left_sub->get_shape();
-                        const Shape & right_shape = right_sub->get_shape();
-
-                        MORE_ERROR()                                      <<
-                            "In selective specification: left shape is: " <<
-                            left_shape                                    <<
-                            ", but right shape is: "                      <<
-                            right_shape;
+                        MORE_ERROR() << "(f Z)←B: expecting ⍴B = "
+                                     << left_sub->get_shape()
+                                     << " (⍴ of the selected item); ⍴B is "
+                                     << right_sub->get_shape();
                         LENGTH_ERROR;
                       }
                  }

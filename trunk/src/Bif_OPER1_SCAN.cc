@@ -21,6 +21,7 @@
 /** @file
 */
 
+#include "ArgCheck.hh"
 #include "Bif_OPER1_REDUCE.hh"
 #include "Bif_OPER1_SCAN.hh"
 #include "LvalCell.hh"
@@ -61,7 +62,13 @@ cFunction_P LO = tok_LO.get_function();
         SYNTAX_ERROR;
       }
 
-   if (axis >= B->get_rank())   AXIS_ERROR;
+   if (axis >= B->get_rank())
+      {
+        MORE_ERROR() << "f" << get_name() << "B: axis " << axis
+                     << " is not a valid axis of B; ⍴⍴B is "
+                     << B->get_rank();
+        AXIS_ERROR;
+      }
 
 const ShapeItem m_len = B->get_shape_item(axis);
 
@@ -142,7 +149,7 @@ const Shape3 Z3(B->get_shape(), axis);
 }
 //════════════════════════════════════════════════════════════════════════════
 Token
-Bif_SCAN::expand(cValue_R A, cValue_R B, uAxis axis)
+Bif_SCAN::expand(const char * where, cValue_R A, cValue_R B, uAxis axis)
 {
    // turn scalar B into ,B
    //
@@ -152,10 +159,15 @@ Shape shape_B = B.get_shape();
          shape_B.add_shape_item(1);
          axis = 0;
       }
-   if (axis >= shape_B.get_rank())   INDEX_ERROR;
+   if (axis >= shape_B.get_rank())
+      {
+        MORE_ERROR() << where << ": axis " << axis
+                     << " is not a valid axis of B; ⍴⍴B is "
+                     << shape_B.get_rank();
+        AXIS_ERROR;
+      }
 
-   if (A.get_rank() > 1)            RANK_ERROR;
-   if (shape_B.get_rank() <= axis)   RANK_ERROR;
+   ArgCheck::require_scalar_or_vector(where, "A", A);
 
 const ShapeItem ec_A = A.element_count();
 ShapeItem ones_A = 0;
@@ -167,16 +179,28 @@ std::vector<ShapeItem> rep_counts;
         rep_counts.push_back(rep_A);
         if      (rep_A == 0)        ;
         else if (rep_A == 1)        ++ones_A;
-        else                        DOMAIN_ERROR;
+        else
+           {
+             MORE_ERROR() << where << ": A[" << (a + Workspace::get_IO())
+                          << "] = " << rep_A << " is neither 0 nor 1";
+             DOMAIN_ERROR;
+           }
       }
 
 Shape shape_Z(shape_B);
    shape_Z.set_shape_item(axis, ec_A);
 Value_P Z(shape_Z, LOC);
 
-   if (ec_A == 0)   // (⍳0)/B : 
+   if (ec_A == 0)   // (⍳0)/B :
       {
-        if (shape_B.get_shape_item(axis) > 1)   LENGTH_ERROR;
+        if (shape_B.get_shape_item(axis) > 1)
+           {
+             MORE_ERROR() << where << ": A is empty but (⍴B)["
+                          << (axis + Workspace::get_IO()) << "] = "
+                          << shape_B.get_shape_item(axis) << " (expecting"
+                             " ≤1)";
+             LENGTH_ERROR;
+           }
 
         Z->set_default(B, LOC);
         Z->check_value(LOC);
@@ -199,7 +223,14 @@ ShapeItem inc_2 = 0;              // increment after result m*l items
          inc_1 = 0;
          inc_2 = shape_Z3.l();
       }
-   else if (ones_A != shape_B.get_shape_item(axis))   LENGTH_ERROR;
+   else if (ones_A != shape_B.get_shape_item(axis))
+      {
+        MORE_ERROR() << where << ": expecting +/A = (⍴B)["
+                     << (axis + Workspace::get_IO()) << "] = "
+                     << shape_B.get_shape_item(axis) << " (the number of"
+                        " 1s in A); +/A is " << ones_A;
+        LENGTH_ERROR;
+      }
 
 ShapeItem bI = 0;
    loop(h, shape_Z3.h())
@@ -245,28 +276,28 @@ ShapeItem bI = 0;
 Token
 Bif_OPER1_SCAN::eval_AXB(cValue_R A, cValue_R X, cValue_R B) const
 {
-const sAxis axis = Value::get_single_axis(&X, B.get_rank());
-   return expand(A, B, axis);
+const sAxis axis = Value::get_single_axis(&X, B.get_rank(), "A\\[X]B");
+   return expand("A\\[X]B", A, B, axis);
 }
 //════════════════════════════════════════════════════════════════════════════
 Token
 Bif_OPER1_SCAN::eval_LXB(Token & LO, cValue_R X, cValue_R B) const
 {
-const sAxis axis = Value::get_single_axis(&X, B.get_rank());
+const sAxis axis = Value::get_single_axis(&X, B.get_rank(), "F\\[X]B");
    return scan(LO, CLONE(&B, LOC), axis);
 }
 //════════════════════════════════════════════════════════════════════════════
 Token
 Bif_OPER1_SCAN1::eval_AXB(cValue_R A, cValue_R X, cValue_R B) const
 {
-const sAxis axis = Value::get_single_axis(&X, B.get_rank());
-   return expand(A, B, axis);
+const sAxis axis = Value::get_single_axis(&X, B.get_rank(), "A⍀[X]B");
+   return expand("A⍀[X]B", A, B, axis);
 }
 //════════════════════════════════════════════════════════════════════════════
 Token
 Bif_OPER1_SCAN1::eval_LXB(Token & LO, cValue_R X, cValue_R B) const
 {
-const sAxis axis = Value::get_single_axis(&X, B.get_rank());
+const sAxis axis = Value::get_single_axis(&X, B.get_rank(), "F⍀[X]B");
    return scan(LO, CLONE(&B, LOC), axis);
 }
 //════════════════════════════════════════════════════════════════════════════

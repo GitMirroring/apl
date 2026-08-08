@@ -58,7 +58,7 @@ public:
    /// @param B right argument APL value
    virtual Token eval_XB(cValue_R X, cValue_R B) const
       {
-        X.to_bitmap("⊂[X] B", B.get_rank());   // check X
+        X.to_bitmap("⊂[X]B", B.get_rank());   // check X
         const Shape shape_X = Value::to_shape(&X);
         return Token(TOK_APL_VALUE1, enclose_with_axes(shape_X, CLONE(&B, LOC)));
       }
@@ -144,15 +144,12 @@ public:
    /// @param X axis argument APL value
    /// @param B right argument APL value
    virtual Token eval_XB(cValue_R X, cValue_R B) const
-      {
-        const Shape sh_X = Value::to_shape(&X);
-        return Token(TOK_APL_VALUE1, disclose_with_axis(sh_X, B));
-      }
+      { return Token(TOK_APL_VALUE1, disclose_with_axis(X, B)); }
 
    /// ⊃[X]B
-   /// @param axes_X axes along which to disclose
+   /// @param X axes along which to disclose
    /// @param B right argument APL value
-   static Value_P disclose_with_axis(const Shape & axes_X, cValue_R B);
+   static Value_P disclose_with_axis(cValue_R X, cValue_R B);
 
    static Bif_F12_PICK  fun;   ///< Built-in function
 

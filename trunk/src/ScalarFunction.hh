@@ -151,14 +151,18 @@ protected:
    /// overloaded Function::get_scalar_f2
    virtual prim_f2 get_scalar_f2() const = 0;
 
-   /// return the conforming shape of sh_A and sh_B, or set ec and return 0
-   /// if shapes cannot be conformed.
-   /// RANK ERROR or LENGTH ERROR if the dont.
+   /// return the conforming shape of sh_A and sh_B, or set ec (and a
+   /// )MORE text on \b where) and return 0 if shapes cannot be conformed.
+   /// RANK ERROR or LENGTH ERROR if they dont. Does not throw (safe to
+   /// call from a worker thread during parallel evaluation) -- see
+   /// ArgCheck::check_conformable(), which does the actual work.
    /// @param ec receives the error code if shapes cannot be conformed
+   /// @param where arity-prefix for the )MORE text, e.g. "A+B"
    /// @param sh_A shape of the left argument
    /// @param sh_B shape of the right argument
-   static const Shape * conforming_shape(ErrorCode & ec, const Shape & sh_A,
-                                                         const Shape & sh_B);
+   static const Shape * conforming_shape(ErrorCode & ec, const char * where,
+                                         const Shape & sh_A,
+                                         const Shape & sh_B);
 
    /// Evaluate \b the identity function.
    /// @param B right argument APL value

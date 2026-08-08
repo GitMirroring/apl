@@ -21,6 +21,7 @@
 /** @file
 */
 
+#include "ArgCheck.hh"
 #include "Bif_F1_EXECUTE.hh"
 #include "Command.hh"
 #include "Executable.hh"
@@ -38,7 +39,7 @@ int Bif_F1_EXECUTE::copy_pending = 0;
 Token
 Bif_F1_EXECUTE::eval_B(cValue_R B) const
 {
-   if (B.get_rank() > 1)   RANK_ERROR;
+   ArgCheck::require_scalar_or_vector("⍎B", "B", B);
 
 UCS_string statement(B);
 

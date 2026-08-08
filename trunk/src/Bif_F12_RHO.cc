@@ -23,6 +23,7 @@
 
 #include <string.h>
 
+#include "ArgCheck.hh"
 #include "Bif_F12_RHO.hh"
 #include "StateIndicator.hh"
 #include "Value.hh"
@@ -40,14 +41,26 @@ Bif_F12_RHO::eval_AB(cValue_R A, cValue_R B) const
 const uint64_t start_1 = cycle_counter();
 #endif
 
-const Shape shape_Z(A, 0);
-
-   // check that shape_Z is positive
+   // argument check: A (the new shape) must be a scalar or vector of
+   // non-negative integers, and short enough that the result does not
+   // exceed MAX_RANK axes. Checked here (with a specific message) rather
+   // than left to Shape's own constructor below, so that the )MORE text
+   // can name A specifically rather than being generic across Shape's
+   // several unrelated callers.
    //
-   loop(r, shape_Z.get_rank())
+   ArgCheck::require_scalar_or_vector("A⍴B", "A", A);
+
+   if (A.element_count() > MAX_RANK)
       {
-        if (shape_Z.get_shape_item(r) < 0)   DOMAIN_ERROR;
+        MORE_ERROR() << "A⍴B: the result rank (≡⍴A) cannot exceed " << MAX_RANK
+                     << "; ⍴A is " << A.get_shape() << " (" << A.element_count()
+                     << " items)";
+        LIMIT_ERROR_RANK;
       }
+
+   ArgCheck::require_non_negative_ints("A⍴B", "A", A);
+
+const Shape shape_Z(A, 0);
 
    // NOTE: this function used to have an "optimization of Z<-A/B" here that
    // reshaped B in place and returned it as Z whenever B was a temporary

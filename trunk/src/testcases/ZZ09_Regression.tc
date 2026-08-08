@@ -21,7 +21,7 @@ b 4
 
 
       V[2 2⍴2]
-RANK ERROR
+RANK ERROR+
       V[2 2⍴2]
       ^^
 
@@ -41,7 +41,7 @@ RANK ERROR
 2 2 2 2
 
       V[2 2⍴2;] ← 4 2
-RANK ERROR
+RANK ERROR+
       V[2 2⍴2;]←4 2
       ^        ^
 

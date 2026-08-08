@@ -73,7 +73,13 @@ ConstRavel_P iA(A, true);
               if (ct == CT_INT)            ;
               else if (ct == CT_FLOAT)     { if (ct_a == CT_INT)  ct_a = ct; }
               else if (ct == CT_COMPLEX)   ct_a = CT_COMPLEX;
-              else                         DOMAIN_ERROR;
+              else
+                 {
+                   MORE_ERROR() << "A⊤B: A["
+                                << (a + h*aH + Workspace::get_IO())
+                                << "] is not numeric";
+                   DOMAIN_ERROR;
+                 }
             }
 
         for (ConstRavel_P iB(B, true); +iB; ++iB)
@@ -83,7 +89,12 @@ ConstRavel_P iA(A, true);
               if (ct_b == CT_INT)            ;
               else if (ct_b == CT_FLOAT)     { if (ct == CT_INT)  ct = ct_b; }
               else if (ct_b == CT_COMPLEX)   ct = CT_COMPLEX;
-              else                           DOMAIN_ERROR;
+              else
+                 {
+                   MORE_ERROR() << "A⊤B: B[" << (iB() + Workspace::get_IO())
+                                << "] is not numeric";
+                   DOMAIN_ERROR;
+                 }
 
               if (ct == CT_INT)          // A and B are both integer
                  encode_Int(*Z, aL, aH, iA, iB);
@@ -114,7 +125,11 @@ const APL_Integer A0 = A.get_sole_integer();   // may throw RANK_ERROR or LENGTH
    if (A0 == 0)   return Token(TOK_APL_VALUE1, CLONE(&B, LOC));
 
 APL_Integer X0 = X.get_sole_integer();   // may throw RANK_ERROR or LENGTH_ERROR
-   if (X0 < 0)   DOMAIN_ERROR;
+   if (X0 < 0)
+      {
+        MORE_ERROR() << "A⊤[X]B: X = " << X0 << " is negative";
+        DOMAIN_ERROR;
+      }
 
    if (X0 == 0)   X0 = get_X0(A0, B);   // compute X0 from B
 
@@ -291,7 +306,7 @@ const RavelType rt = B.get_ravel_type();
                   const FloatCell imag_cell(cell.get_imag_value());
                   if (!(real_cell.is_near_int64_t() && imag_cell.is_near_int64_t()))
                      {
-                       MORE_ERROR() << "A ⊤[X] B: complex number " << cell
+                       MORE_ERROR() << "A⊤[X]B: complex number " << cell
                                     << " in B is not near int.";
                        DOMAIN_ERROR;
                      }
@@ -303,7 +318,7 @@ const RavelType rt = B.get_ravel_type();
                   if (max_B < imag_value)   max_B = imag_value;
                 }
              else
-                { MORE_ERROR() << "A ⊤[X] B: invalid Cell type in B";
+                { MORE_ERROR() << "A⊤[X]B: invalid Cell type in B";
                   DOMAIN_ERROR; }
            }
       }
@@ -324,7 +339,7 @@ const RavelType rt = B.get_ravel_type();
            }
       }
    else
-      { MORE_ERROR() << "A ⊤[X] B: invalid Cell type in B"; DOMAIN_ERROR; }
+      { MORE_ERROR() << "A⊤[X]B: invalid Cell type in B"; DOMAIN_ERROR; }
 
 const uint64_t abs_A0 = A0 < 0 ? -A0 : A0;
 
@@ -332,7 +347,12 @@ const uint64_t abs_A0 = A0 < 0 ? -A0 : A0;
    // 1 forever (radix 1 can't represent anything but 0), and the
    // min_N/max_N >= log_A0 guard -- log_A0 == 2^63/1 -- would never trip
    // either, so the loops never terminate. Reject up front instead.
-   if (abs_A0 <= 1)   DOMAIN_ERROR;
+   if (abs_A0 <= 1)
+      {
+        MORE_ERROR() << "A⊤[X]B: A = " << A0
+                     << " cannot represent B (expecting ∣A∣>1) when X=0";
+        DOMAIN_ERROR;
+      }
 
 const uint64_t log_A0 = 0x8000000000000000 / abs_A0;
 
@@ -346,7 +366,13 @@ uint32_t min_N = 0;   // number of digits for abs_min_B
    for (uint64_t min_V = 1; min_V < abs_min_B; min_V *= abs_A0)
        {
          ++min_N;
-         if (min_N >= log_A0)   DOMAIN_ERROR;
+         if (min_N >= log_A0)
+            {
+              MORE_ERROR() << "A⊤[X]B: the smallest item of B needs too"
+                              " many digits for radix A = " << A0
+                           << " (integer overflow) when X=0";
+              DOMAIN_ERROR;
+            }
        }
 
 uint64_t abs_max_B = max_B;
@@ -355,7 +381,13 @@ uint32_t max_N = 0;   // number of digits for abs_min_B
    for (uint64_t max_V = 1; max_V < abs_max_B; max_V *= abs_A0)
        {
          ++max_N;
-         if (max_N >= log_A0)   DOMAIN_ERROR;
+         if (max_N >= log_A0)
+            {
+              MORE_ERROR() << "A⊤[X]B: the largest item of B needs too"
+                              " many digits for radix A = " << A0
+                           << " (integer overflow) when X=0";
+              DOMAIN_ERROR;
+            }
        }
 
 const int N = max_N > min_N ? max_N : min_N;
@@ -391,7 +423,12 @@ const Shape shape_Z = shape_A1 + shape_B1;
    if ((l_len_A != 1) &&       // cannot scalar-extend A, and
        (h_len_B != 1) &&       // cannot scalar-extend B, and
        (l_len_A != h_len_B))   // the lengths of A and B differ
-       LENGTH_ERROR;
+      {
+        MORE_ERROR() << "A⊥B: expecting (¯1↑⍴A) = (1↑⍴B) (or one of them"
+                        " 1); ¯1↑⍴A is " << l_len_A << ", 1↑⍴B is "
+                     << h_len_B;
+        LENGTH_ERROR;
+      }
 
 Value_P Z(shape_Z, LOC);
 

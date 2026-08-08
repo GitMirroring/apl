@@ -87,7 +87,12 @@ Bif_F12_DOMINO::eval_B(cValue_R B) const
            {
              if (B.is_character_cell(0))      list_functions(CERR);
              else if (B.is_integer_cell(0))   list_mappings(CERR);
-             else                                          DOMAIN_ERROR;
+             else
+                {
+                  MORE_ERROR() << "⌹B: B is empty; expecting '' (list"
+                                  " functions) or ⍬ (list mappings)";
+                  DOMAIN_ERROR;
+                }
              return Token(TOK_APL_VALUE1, Idx0_0(LOC));
            }
 
@@ -102,7 +107,11 @@ Bif_F12_DOMINO::eval_B(cValue_R B) const
 
         if (r2.real() < qct && r2.real() > -qct &&
             r2.imag() < qct && r2.imag() > -qct)
-            DOMAIN_ERROR;
+           {
+             MORE_ERROR() << "⌹B: B is too close to the origin (+/B×B is 0"
+                             " within ⎕CT) to invert at the unit sphere";
+             DOMAIN_ERROR;
+           }
 
         Value_P Z(len, LOC);
 
@@ -128,7 +137,11 @@ Bif_F12_DOMINO::eval_B(cValue_R B) const
         return Token(TOK_APL_VALUE1, Z);
       }
 
-   if (B.get_rank() > 2)   RANK_ERROR;
+   if (B.get_rank() > 2)
+      {
+        MORE_ERROR() << "⌹B: expecting ⍴⍴B ≤ 2; ⍴⍴B is " << B.get_rank();
+        RANK_ERROR;
+      }
 
 const ShapeItem rows = B.get_shape_item(0);
 const ShapeItem cols = B.get_shape_item(1);
@@ -160,7 +173,11 @@ Bif_F12_DOMINO::eval_XB(cValue_R X, cValue_R B) const
    // b. integer 0 for the QR factorization with the Helzer algorithm, or
    // c. integer 1 for the QR factorization with LApack
    //
-   if (!X.is_scalar())   RANK_ERROR;
+   if (!X.is_scalar())
+      {
+        MORE_ERROR() << "⌹[X]B: X must be a scalar; ⍴⍴X is " << X.get_rank();
+        RANK_ERROR;
+      }
 
 enum { ALGO_BAD,         ///< bad algorithm number
        ALGO_QR_HELZER,   ///< QR factorization with Gary Helzer's algorithm
@@ -203,14 +220,22 @@ double EPS = Workspace::get_CT();
         DOMAIN_ERROR;
       }
 
-   if (B.get_rank() != 2)   RANK_ERROR;
+   if (B.get_rank() != 2)
+      {
+        MORE_ERROR() << "⌹[X]B: expecting ⍴⍴B = 2; ⍴⍴B is " << B.get_rank();
+        RANK_ERROR;
+      }
 
    // if rank of A or B is < 2 then treat it as a
    // 1 by n (or 1 by 1) matrix..
    //
 const ShapeItem M = B.get_rows();
 const ShapeItem N = B.get_cols();
-   if (M*N == 0)   LENGTH_ERROR;   // empty B
+   if (M*N == 0)
+      {
+        MORE_ERROR() << "⌹[X]B: B is empty (⍴B is " << B.get_shape() << ")";
+        LENGTH_ERROR;   // empty B
+      }
 
 const bool need_complex = B.is_complex(true);
 Value_P Z(3, LOC);
@@ -329,7 +354,10 @@ Shape shape_Z;   // ⍴Z ←→ (¯1↓⍴A), (1↓⍴B)
                   shape_Z.add_shape_item(cols_B);
                   break;
 
-         default: RANK_ERROR;
+         default:
+              MORE_ERROR() << "A⌹B: expecting ⍴⍴B ≤ 2; ⍴⍴B is "
+                           << B.get_rank();
+              RANK_ERROR;
       }
 
    switch(A.get_rank())
@@ -344,7 +372,10 @@ Shape shape_Z;   // ⍴Z ←→ (¯1↓⍴A), (1↓⍴B)
                   shape_Z.add_shape_item(cols_A);
                   break;
 
-         default: RANK_ERROR;
+         default:
+              MORE_ERROR() << "A⌹B: expecting ⍴⍴A ≤ 2; ⍴⍴A is "
+                           << A.get_rank();
+              RANK_ERROR;
       }
 
    if (rows_B < cols_B)

@@ -25,6 +25,7 @@
 #define __COLLATING_CACHE_HH_DEFINED__
 
 #include "Common.hh"
+#include "Error_macros.hh"
 #include "PrimitiveFunction.hh"
 #include "Token.hh"
 #include "Shape.hh"
@@ -212,7 +213,13 @@ public:
    virtual Token eval_B(cValue_R B) const
       { Token ret = sort(B, SORT_ASCENDING);
         if (ret.get_Class() == TC_VALUE)   return ret;
-        DOMAIN_ERROR;   // complex value(s)
+        // sort() itself already chose (and explained via MORE_ERROR()) the
+        // right error code -- RANK_ERROR for scalar B, DOMAIN_ERROR for
+        // values that cannot be compared -- so re-throw that instead of
+        // unconditionally forcing DOMAIN_ERROR (which used to be correct
+        // only because sort() had no other failure mode when this was
+        // written).
+        throw_apl_error(ErrorCode(ret.get_int_val()), LOC);
       }
 
    /// overloaded Function::eval_AB()
@@ -241,7 +248,13 @@ public:
    virtual Token eval_B(cValue_R B) const
       { Token ret = sort(B, SORT_DESCENDING);
         if (ret.get_Class() == TC_VALUE)   return ret;
-        DOMAIN_ERROR;   // complex value(s)
+        // sort() itself already chose (and explained via MORE_ERROR()) the
+        // right error code -- RANK_ERROR for scalar B, DOMAIN_ERROR for
+        // values that cannot be compared -- so re-throw that instead of
+        // unconditionally forcing DOMAIN_ERROR (which used to be correct
+        // only because sort() had no other failure mode when this was
+        // written).
+        throw_apl_error(ErrorCode(ret.get_int_val()), LOC);
       }
 
    /// overloaded Function::eval_AB()

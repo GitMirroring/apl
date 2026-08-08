@@ -111,7 +111,7 @@ GHI
       ⍝ arbitrary.
 
       3550579489682168305 +/ 1 2 3 4 5
-DOMAIN ERROR
+DOMAIN ERROR+
       3550579489682168305+/1 2 3 4 5
       ^                   ^
 

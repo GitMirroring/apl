@@ -1034,7 +1034,7 @@ FABCDE
       ⍝ 2
 
       1 2 3[2]
-RANK ERROR
+RANK ERROR+
       1 2 3[2]
           ^^
       →

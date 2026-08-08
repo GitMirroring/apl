@@ -173,28 +173,28 @@ const ShapeItem ebytes = B.packed_bytes_per_item();
 Token
 Bif_F12_ROTATE::eval_AXB(cValue_R A, cValue_R X, cValue_R B) const
 {
-const sAxis axis = Value::get_single_axis(&X, B.get_rank());
+const sAxis axis = Value::get_single_axis(&X, B.get_rank(), "A⌽[X]B");
    return rotate(A, B, axis);
 }
 //────────────────────────────────────────────────────────────────────────────
 Token
 Bif_F12_ROTATE::eval_XB(cValue_R X, cValue_R B) const
 {
-const sAxis axis = Value::get_single_axis(&X, B.get_rank());
+const sAxis axis = Value::get_single_axis(&X, B.get_rank(), "⌽[X]B");
    return reverse(B, axis);
 }
 //════════════════════════════════════════════════════════════════════════════
 Token
 Bif_F12_ROTATE1::eval_AXB(cValue_R A, cValue_R X, cValue_R B) const
 {
-const sAxis axis = Value::get_single_axis(&X, B.get_rank());
+const sAxis axis = Value::get_single_axis(&X, B.get_rank(), "A⊖[X]B");
    return rotate(A, B, axis);
 }
 //────────────────────────────────────────────────────────────────────────────
 Token
 Bif_F12_ROTATE1::eval_XB(cValue_R X, cValue_R B) const
 {
-const sAxis axis = Value::get_single_axis(&X, B.get_rank());
+const sAxis axis = Value::get_single_axis(&X, B.get_rank(), "⊖[X]B");
    return reverse(B, axis);
 }
 //════════════════════════════════════════════════════════════════════════════

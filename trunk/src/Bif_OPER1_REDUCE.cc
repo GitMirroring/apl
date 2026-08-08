@@ -21,6 +21,7 @@
 /** @file
 */
 
+#include "ArgCheck.hh"
 #include "Bif_F12_RHO.hh"
 #include "Bif_OPER1_REDUCE.hh"
 #include "Macro.hh"
@@ -142,7 +143,13 @@ cFunction_P LO = tok_LO.get_function();
         SYNTAX_ERROR;
       }
 
-   if (axis >= B->get_rank())   AXIS_ERROR;
+   if (axis >= B->get_rank())
+      {
+        MORE_ERROR() << "f/B resp. f⌿B: axis " << axis
+                     << " is not a valid axis of B; ⍴⍴B is "
+                     << B->get_rank();
+        AXIS_ERROR;
+      }
 
 const ShapeItem m_len = B->get_shape_item(axis);
    if (m_len == 0)   // apply the identity function
@@ -208,7 +215,13 @@ cFunction_P LO = tok_LO.get_function();
         VALENCE_ERROR;
       }
 
-   if (A->element_count() != 1)   LENGTH_ERROR;
+   if (A->element_count() != 1)
+      {
+        MORE_ERROR() << "A f/B resp. A f⌿B: A must be a scalar or 1-element"
+                        " vector (the n in n-wise reduce); A has "
+                     << A->element_count() << " items";
+        LENGTH_ERROR;
+      }
 const APL_Integer A0 = A->get_int_value(0);
 
    // the number of items (= M1 in ISO). Was 'const int n_wise = ...': A0 is
@@ -225,12 +238,22 @@ const APL_Integer A0 = A->get_int_value(0);
    // (negating APL_Integer's own most negative value overflows the same
    // way).
 const APL_Integer neg_A0 = -A0;
-   if (A0 < 0 && Cell::diff_overflow(neg_A0, 0, A0))   DOMAIN_ERROR;
+   if (A0 < 0 && Cell::diff_overflow(neg_A0, 0, A0))
+      {
+        MORE_ERROR() << "A f/B resp. A f⌿B: A = " << A0
+                     << " overflows on negation";
+        DOMAIN_ERROR;
+      }
 const APL_Integer n_wise = A0 < 0 ? neg_A0 : A0;
 
    if (B->is_scalar())
       {
-        if (n_wise > 2)    DOMAIN_ERROR;
+        if (n_wise > 2)
+           {
+             MORE_ERROR() << "A f/B resp. A f⌿B: B is a scalar; expecting"
+                             " ∣A∣≤2; A is " << A0;
+             DOMAIN_ERROR;
+           }
         if (n_wise == 0)
            {
               Token ident = LO->eval_identity_fun(*B, axis);
@@ -263,14 +286,27 @@ const APL_Integer n_wise = A0 < 0 ? neg_A0 : A0;
       }
    else
       {
-        if (n_wise > (1 + B->get_shape_item(axis)))   DOMAIN_ERROR;
+        if (n_wise > (1 + B->get_shape_item(axis)))
+           {
+             MORE_ERROR() << "A f/B resp. A f⌿B: expecting ∣A∣≤"
+                          << (1 + B->get_shape_item(axis)) << " (1+(⍴B)["
+                          << (axis + Workspace::get_IO()) << "]); A is "
+                          << A0;
+             DOMAIN_ERROR;
+           }
       }
 
    Assert1(LO);
 
    if (B->get_rank() == 0)      return Token(TOK_APL_VALUE1, CLONE_P(B, LOC));
 
-   if (axis >= B->get_rank())   AXIS_ERROR;
+   if (axis >= B->get_rank())
+      {
+        MORE_ERROR() << "A f/B resp. A f⌿B: axis " << axis
+                     << " is not a valid axis of B; ⍴⍴B is "
+                     << B->get_rank();
+        AXIS_ERROR;
+      }
 
    if (n_wise == 0)   // apply the identity function
       {
@@ -351,8 +387,14 @@ Shape shape_B = B.get_shape();
          axis = 0;
       }
 
-   if (A.get_rank() > 1)             RANK_ERROR;
-   if (axis >= shape_B.get_rank())    AXIS_ERROR;
+   ArgCheck::require_scalar_or_vector("A/B resp. A⌿B", "A", A);
+   if (axis >= shape_B.get_rank())
+      {
+        MORE_ERROR() << "A/B resp. A⌿B: axis " << axis
+                     << " is not a valid axis of B; ⍴⍴B is "
+                     << shape_B.get_rank();
+        AXIS_ERROR;
+      }
 
 const ShapeItem len_B = shape_B.get_shape_item(axis);
 ShapeItem len_A = A.element_count();
@@ -400,7 +442,14 @@ std::vector<ShapeItem> rep_counts;
            }
 
         // the B axis shall have an item for every non-negative A
-        if (len_B != 1 && nonneg_A != len_B)   LENGTH_ERROR;
+        if (len_B != 1 && nonneg_A != len_B)
+           {
+             MORE_ERROR() << "A/B resp. A⌿B: expecting ⍴A = 1 or "
+                          << len_B << " (the length of B along axis "
+                          << (axis + Workspace::get_IO()) << "); ⍴A is "
+                          << len_A;
+             LENGTH_ERROR;
+           }
       }
 
 Shape shape_Z(shape_B);
@@ -465,35 +514,35 @@ const Shape3 shape_B3(shape_B, axis);
 Token
 Bif_OPER1_REDUCE::eval_ALXB(cValue_R A, Token & _LO, cValue_R X, cValue_R B) const
 {
-const sAxis axis = Value::get_single_axis(&X, B.get_rank());
+const sAxis axis = Value::get_single_axis(&X, B.get_rank(), "A F/[X]B");
    return reduce_n_wise(CLONE(&A, LOC), _LO, CLONE(&B, LOC), axis);
 }
 //════════════════════════════════════════════════════════════════════════════
 Token
 Bif_OPER1_REDUCE::eval_AXB(cValue_R A, cValue_R X, cValue_R B) const
 {
-const sAxis axis = Value::get_single_axis(&X, B.get_rank());
+const sAxis axis = Value::get_single_axis(&X, B.get_rank(), "A/[X]B");
    return replicate(A, B, axis);
 }
 //════════════════════════════════════════════════════════════════════════════
 Token
 Bif_OPER1_REDUCE::eval_LXB(Token & _LO, cValue_R X, cValue_R B) const
 {
-const sAxis axis = Value::get_single_axis(&X, B.get_rank());
+const sAxis axis = Value::get_single_axis(&X, B.get_rank(), "F/[X]B");
    return reduce(_LO, CLONE(&B, LOC), axis);
 }
 //════════════════════════════════════════════════════════════════════════════
 Token
 Bif_OPER1_REDUCE1::eval_ALXB(cValue_R A, Token & LO, cValue_R X, cValue_R B) const
 {
-const sAxis axis = Value::get_single_axis(&X, B.get_rank());
+const sAxis axis = Value::get_single_axis(&X, B.get_rank(), "A F⌿[X]B");
    return reduce_n_wise(CLONE(&A, LOC), LO, CLONE(&B, LOC), axis);
 }
 //════════════════════════════════════════════════════════════════════════════
 Token
 Bif_OPER1_REDUCE1::eval_AXB(cValue_R A, cValue_R X, cValue_R B) const
 {
-const sAxis axis = Value::get_single_axis(&X, B.get_rank());
+const sAxis axis = Value::get_single_axis(&X, B.get_rank(), "A⌿[X]B");
 
    return replicate(A, B, axis);
 }
@@ -501,7 +550,7 @@ const sAxis axis = Value::get_single_axis(&X, B.get_rank());
 Token
 Bif_OPER1_REDUCE1::eval_LXB(Token & LO, cValue_R X, cValue_R B) const
 {
-const sAxis axis = Value::get_single_axis(&X, B.get_rank());
+const sAxis axis = Value::get_single_axis(&X, B.get_rank(), "F⌿[X]B");
    return reduce(LO, CLONE(&B, LOC), axis);
 }
 //════════════════════════════════════════════════════════════════════════════
