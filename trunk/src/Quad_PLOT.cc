@@ -175,7 +175,7 @@ Quad_PLOT::PLOT_context::remove_handle(Handle handle)
    // own thread -- concurrently with window_control() (interpreter thread)
    // reading/mutating the same vector. Same lock as window_control().
    //
-   sem_wait(all_PLOT_windows_sema);
+   sem_wait_safe(all_PLOT_windows_sema);
    loop(h, all_PLOT_windows.size())
       {
         if (all_PLOT_windows[h]->handle == handle)
@@ -223,7 +223,7 @@ const string driver_attr = w_props->get_gui_driver();
         // its plot window was exposed.
         //
         plot_main_GTK(w_props, handle);
-        sem_wait(expose_sema);   // blocks until window shown
+        sem_wait_safe(expose_sema);   // blocks until window shown
         sem_post(expose_sema);   // for the next window (if any)
         Log(LOG_Quad_PLOT)   CERR << "Plot driver GTK loaded." << endl;
         return;
@@ -244,7 +244,7 @@ const string driver_attr = w_props->get_gui_driver();
         //
         pthread_t th;
         pthread_create(&th, 0, plot_main_XCB, w_props);
-        sem_wait(expose_sema);   // blocks until window shown
+        sem_wait_safe(expose_sema);   // blocks until window shown
         sem_post(expose_sema);   // for the next window (if any)
         Log(LOG_Quad_PLOT)   CERR << "Plot driver XCB loaded." << endl;
         return;
@@ -264,7 +264,7 @@ const string driver_attr = w_props->get_gui_driver();
         // its plot window was exposed.
         //
         plot_main_WIN32(w_props, handle);
-        sem_wait(expose_sema);   // blocks until window shown
+        sem_wait_safe(expose_sema);   // blocks until window shown
         sem_post(expose_sema);   // for the next window (if any)
         Log(LOG_Quad_PLOT)   CERR << "Plot driver WIN32 loaded." << endl;
         return;
@@ -450,7 +450,7 @@ Quad_PLOT::window_control(APL_Integer B0) const
          // the single-handle close path below already uses, so the two
          // don't race on the vector.
          //
-         sem_wait(all_PLOT_windows_sema);
+         sem_wait_safe(all_PLOT_windows_sema);
          loop(h, all_PLOT_windows.size())
             {
               all_PLOT_windows[h]->plot_stop();
@@ -497,7 +497,7 @@ Quad_PLOT::window_control(APL_Integer B0) const
    //
 bool found = false;
 
-   sem_wait(all_PLOT_windows_sema);
+   sem_wait_safe(all_PLOT_windows_sema);
        loop(w, Quad_PLOT::all_PLOT_windows.size())
            {
              if (all_PLOT_windows[w]->handle != B0)   continue;
@@ -603,7 +603,7 @@ Quad_PLOT::do_plot_data(Plot_window_properties * w_props,
       }
 
 const APL_Integer Z = ++next_handle;
-   sem_wait(all_PLOT_windows_sema);
+   sem_wait_safe(all_PLOT_windows_sema);
        start_GUI(w_props, Z, PltDrv_GTK);
    sem_post(all_PLOT_windows_sema);
 

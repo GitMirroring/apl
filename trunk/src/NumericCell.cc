@@ -100,7 +100,9 @@ const double qct = Workspace::get_CT();
         const ErrorCode err = flt_gcd(gcd, a, b, qct);
         if (err)   return err;
         const APL_Float b_gcd = b / gcd;
-        return FloatCell::zF(Z, a * b_gcd);
+        const APL_Float lcm = a * b_gcd;
+        if (!isfinite(lcm))   return E_DOMAIN_ERROR;
+        return FloatCell::zF(Z, lcm);
       }
 
    return E_DOMAIN_ERROR;   // char ?
@@ -504,6 +506,14 @@ APL_Complex z;
 ErrorCode
 NumericCell::flt_gcd(APL_Float & z, APL_Float a, APL_Float b, double qct)
 {
+   // a non-finite operand (however it got here -- an infinite/NaN operand
+   // can, in principle, reach this low-level helper via more than just the
+   // ∧/∨ callers just above) makes fmod() return NaN forever: is_near_zero()
+   // never sees NaN as zero, so the loop below would spin without ever
+   // terminating or checking for attention/interrupt. Reject it up front.
+   //
+   if (!isfinite(a) || !isfinite(b))   return E_DOMAIN_ERROR;
+
    if (a < 0.0)   a = - a;
    if (b < 0.0)   b = - b;
    if (b < a)
@@ -513,15 +523,23 @@ NumericCell::flt_gcd(APL_Float & z, APL_Float a, APL_Float b, double qct)
          a = _b;
       }
 
-   // at this point 0 ≤ a ≤ b
+   // at this point 0 ≤ a ≤ b, both finite. The Euclidean algorithm below
+   // then halves (at worst) the magnitude of the larger operand every two
+   // steps, so it terminates in a small, bounded number of iterations for
+   // any finite inputs -- but cap it defensively anyway, in case some
+   // future change to this function's inputs reintroduces a non-finite
+   // (or otherwise pathological) value some other way.
    //
-   for (;;)
+   enum { MAX_GCD_ITERATIONS = 5000 };
+   loop(iteration, MAX_GCD_ITERATIONS)
        {
          if (is_near_zero(a))   { z = b;   return E_NO_ERROR; }
          const APL_Float r = fmod(b, a);
          b = a;
          a = r;
        }
+
+   return E_DOMAIN_ERROR;
 }
 //────────────────────────────────────────────────────────────────────────────
 ErrorCode

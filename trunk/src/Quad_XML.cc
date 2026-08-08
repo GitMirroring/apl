@@ -610,6 +610,13 @@ vector<size_t> pos_stack;   // a stack of node positions
             }
        }
 
+   if (stack.size())   // still-open element(s) at end of document
+      {
+        MORE_ERROR() << "⎕XML: start tag " << stack.back()->get_item()
+                     << " without matching end tag";
+        return true;
+      }
+
    if (root)
       {
         if (doctype)   // sanity check: DOCTYPE name shall match the root

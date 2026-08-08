@@ -133,11 +133,6 @@ public:
    /// @param path expected path prefix to check for
    bool starts_with(const char * path) const;
 
-   /// round a digit string is the fractional part of a number between
-   /// 0.0... and 0.9... up or down according to its last digit, return true
-   /// if the exponent shall be increased (because 1.0 -> 0.1)
-   bool round_0_1();
-
    /// skip over < ... > and expand &lt; and friends
    /// @param in_HTML current HTML nesting depth on entry
    int un_HTML(int in_HTML);

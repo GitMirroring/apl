@@ -82,6 +82,12 @@ public:
                                 const UCS_string & var_name,
                                 const cValue * value);
 
+   /// compute \b 38 ⎕CR \b B (plain array -> structured value); public
+   /// so that Quad_TF::tf2_inverse() can reconstruct a structured
+   /// variable's "38⎕CR(...)" transfer form (see Quad_TF.cc).
+   /// @param B right argument APL value
+   static Value_P do_CR38(cValue_R B);
+
 protected:
    /// a mapping between function names and function numbers
    static const FunctionGroup::function_info subfunction_infos[];
@@ -223,10 +229,6 @@ protected:
    /// @param B right argument APL value
    static Value_P do_CR37(cValue_R B)
       { return do_eval_B(B, false).get_apl_val(); }
-
-   /// compute \b 38 ⎕CR \b B
-   /// @param B right argument APL value
-   static Value_P do_CR38(cValue_R B);
 
    /// compute \b 39 ⎕CR \b B
    /// @param B right argument APL value

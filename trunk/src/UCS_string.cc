@@ -183,7 +183,7 @@ int expo = 0;
       }
    else if (value < 1.0)   // small number, negative exponent
       {
-       if (value < 1e-305)   // very small number: make it 0
+       if (value == 0.0)   // zero: make it 0
           {
             *this << UNI_0;
             return;
@@ -215,8 +215,6 @@ UCS_string digits;
              // less than 0.0 is a rounding error from 0.000...
              while (digits.ssize() < (quad_pp + 2))   digits << UNI_0;
              break;
-             digits << UNI_0;
-             value = 0.0;
            }
         else
            {
@@ -1712,8 +1710,8 @@ start_of_sequence:
         else if ((b0 & 0xE0) == 0xC0)   { more = 1; bx &= 0x1F; }
         else if ((b0 & 0xF0) == 0xE0)   { more = 2; bx &= 0x0F; }
         else if ((b0 & 0xF8) == 0xF0)   { more = 3; bx &= 0x07; }
-        else if ((b0 & 0xFC) == 0xF8)   { more = 4; bx &= 0x07; }
-        else if ((b0 & 0xFE) == 0xFC)   { more = 5; bx &= 0x03; }
+        else if ((b0 & 0xFC) == 0xF8)   { more = 4; bx &= 0x03; }
+        else if ((b0 & 0xFE) == 0xFC)   { more = 5; bx &= 0x01; }
         else   // invalid UTF start byte
            {
              Log(LOG_char_conversion)

@@ -405,46 +405,6 @@ uint64_t ret = 0;
    loop(j, size())   ret = 10*ret + (at(j) - UNI_0);
    return ret;
 }
-//────────────────────────────────────────────────────────────────────────────
-bool
-UTF8_string::round_0_1()
-{
-   if (back() >= '5')   // round up
-      {
-        // rounding up of the last digit creates a carry
-        //
-        for (int j = size() - 2; j >= 0; --j)
-            {
-              if (at(j) == '9')   // propagate carry
-                 {
-                   at(j) = '0';
-                   continue;      // carry survived
-                 }
-
-              // eat carry
-              //
-              ++at(j);
-              pop_back();   // discard last digit.
-              return false;   // no carry
-            }
-      }
-   else   // round down: no rounding needed at all
-      {
-        // was missing -- fell through into the carry epilogue below,
-        // wrongly setting the first digit to '1' and returning true
-        // (as if 0.999...->1.000... had occurred) for an ordinary
-        // round-down.
-        pop_back();
-        return false;
-      }
-
-   // if carry survived then digits were 0.999... and were then rounded
-   // up to 1.000...
-   //
-   at(0) = '1';
-   pop_back();
-   return true;   // 1.0 → 0.1
-}
 //════════════════════════════════════════════════════════════════════════════
 /// declared in PrintOperator.hh
 ostream &

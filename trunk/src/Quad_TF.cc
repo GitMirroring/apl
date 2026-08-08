@@ -29,11 +29,13 @@
 #include "FloatCell.hh"
 #include "IntCell.hh"
 #include "PointerCell.hh"
+#include "Quad_CR.hh"
 #include "Quad_FX.hh"
 #include "Quad_TF.hh"
 #include "Symbol.hh"
 #include "Tokenizer.hh"
 #include "Token_string.hh"
+#include "UCS_string_vector.hh"
 #include "Workspace.hh"
 
 Quad_TF   Quad_TF::fun;
@@ -359,6 +361,29 @@ Token_string tos;
     */
    if (tos[0].get_Class() == TC_SYMBOL && tos[1].get_Class() == TC_ASSIGN)
       {
+        // structured-variable transfer form: SYM ← ( 38 ⎕CR VALUE ), as
+        // produced by tf2_var() for a B.is_member() variable. Reconstruct
+        // by actually calling 38⎕CR (Quad_CR::do_CR38(), plain array ->
+        // structured value) instead of just assigning the plain matrix,
+        // which is what the generic SYM ← VALUE case below would do.
+        //
+        if (tos.size() == 7                     &&
+            tos[2].get_Class() == TC_L_PARENT    &&
+            tos[3].get_Class() == TC_VALUE       &&
+            tos[4].get_Class() == TC_FUN12       &&
+            tos[4].get_function() == &Quad_CR::fun &&
+            tos[5].get_Class() == TC_VALUE       &&
+            tos[6].get_Class() == TC_R_PARENT    &&
+            tos[3].get_apl_val()->get_int_value(0) == 38)
+           {
+             Value_P reconstructed =
+                Quad_CR::do_CR38(*tos[5].get_apl_val());
+             tos[0].get_sym_ptr()->assign(reconstructed, true, LOC);
+             Log(LOG_Quad_TF)
+                CERR << "valid inverse 2 ⎕TF (structured variable)" << endl;
+             return tos[0].get_sym_ptr()->get_name();   // valid 2⎕TF
+           }
+
         // at this point, we expect SYM ← VALUE.
         //
         if (tos.size() != 3)                  return UCS_string();
@@ -477,6 +502,20 @@ Quad_TF::tf2_var(const UCS_string & var_name, const cValue & B)
 {
    Log(LOG_Quad_TF)   CERR << "tf2_var(" << var_name << ")" << endl;
 
+   // B.is_member() (a structured variable) is, at the shape/ravel level,
+   // already exactly the plain N×2 nested matrix that 38⎕CR (Quad_CR.cc,
+   // "plain → structure") turns back into a structured value -- so
+   // tf2_value() below (which just walks shape/ravel, oblivious to
+   // is_member()) already produces a correct textual encoding of that
+   // matrix. The only thing missing was re-applying the "structured"
+   // property on reconstruction, which is exactly what wrapping the
+   // encoded matrix in "38⎕CR(...)" (instead of bare "(...)") below
+   // achieves; tf2_inverse() parses the result as one VAR←(...) / VAR←fn
+   // expression, so this fits its existing single-expression contract
+   // without needing any change there.
+   //
+const bool structured = B.is_member();
+
 UCS_string ucs_value; /// the right hand side of VAR←VALUE
    if (B.is_scalar() && !B.is_simple_scalar())
       {
@@ -495,9 +534,21 @@ UCS_string ucs_value; /// the right hand side of VAR←VALUE
 UCS_string ucs(var_name);
    ucs << UNI_LEFT_ARROW;
 
-   // copy ucs_value except the outer parrentheses
-   for (ShapeItem v = 1; v < (ucs_value.ssize() - 1); ++v)
-       ucs << ucs_value[v];
+   if (structured)
+      {
+        // 38⎕CR (plain array → structured value, Quad_CR.cc) turns the
+        // matrix back into a proper structured value on reconstruction;
+        // keep ucs_value's outer parentheses this time since they are
+        // now needed to bind ucs_value as 38⎕CR's right argument.
+        //
+        ucs << "38⎕CR" << ucs_value;
+      }
+   else
+      {
+        // copy ucs_value except the outer parrentheses
+        for (ShapeItem v = 1; v < (ucs_value.ssize() - 1); ++v)
+            ucs << ucs_value[v];
+      }
 
    Log(LOG_Quad_TF)   CERR << "success in tf2_var(): " << ucs << endl;
 Value_P Z(ucs, LOC);

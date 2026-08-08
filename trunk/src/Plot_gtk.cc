@@ -1976,7 +1976,7 @@ Plot_window_properties & w_props =
          pthread_setname_np(thread, "apl/GTK");
 # endif
 
-        sem_wait(&gtk_started_sema);   // block until gtk_main() loop is running
+        sem_wait_safe(&gtk_started_sema);   // block until gtk_main() loop is running
       }
 
    // Marshal window creation onto the gtk_main() thread via g_idle_add(),

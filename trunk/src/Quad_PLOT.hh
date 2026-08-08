@@ -24,6 +24,7 @@
 #ifndef __Quad_PLOT_DEFINED__
 #define __Quad_PLOT_DEFINED__
 
+#include <errno.h>
 #include <math.h>
 #include <pthread.h>
 #include <semaphore.h>
@@ -33,6 +34,24 @@
 
 class Plot_window_properties;
 class Plot_data;
+
+/// sem_wait() that retries on EINTR. A plain sem_wait() returns
+/// prematurely (with the semaphore left un-posted) if a signal arrives
+/// while blocked -- including a signal with nothing to do with ⎕PLOT,
+/// such as the user's own ^C (GNU APL installs a real SIGINT handler,
+/// see main.cc). All of ⎕PLOT's semaphores exist specifically to make
+/// the caller wait for some other thread to reach a certain point (e.g.
+/// gtk_main() actually running its event loop) before touching GTK from
+/// here; a premature, signal-triggered return silently reintroduces
+/// exactly the race the wait exists to prevent, since nothing checks
+/// sem_wait()'s return value. This is most likely to actually matter on
+/// a slow system (e.g. 32-bit), where the real wait is long enough for
+/// an unrelated signal to plausibly land before it's satisfied.
+inline void
+sem_wait_safe(sem_t * sema)
+{
+   while (sem_wait(sema) == -1 && errno == EINTR)   ;
+}
 
 /// ⎕PLOT verbosity bitmap
 enum

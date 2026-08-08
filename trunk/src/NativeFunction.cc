@@ -36,6 +36,7 @@
 #include "Common.hh"
 #include "Error.hh"
 #include "NativeFunction.hh"
+#include "Native_interface.hh"
 #include "Symbol.hh"
 #include "Workspace.hh"
 
@@ -190,6 +191,39 @@ void * fmux = dlsym(handle, "get_function_mux");
 void * (*get_function_mux)(const char *) =
                  reinterpret_cast<void * (*)(const char *)>(fmux);
 
+   // get the mandatory function get_ABI_version() and reject this library
+   // if it is missing, or if it does not match the ABI contract version
+   // (see Native_interface.hh) that this interpreter itself was built
+   // against. Without this check, a .so built against a different,
+   // binary-incompatible GNU APL (for example a stale library left behind
+   // in an unversioned, bare-name-resolved directory like
+   // /usr/local/lib/apl/ after an upgrade) would be dlopen()ed and its
+   // function pointers called anyway, silently corrupting the
+   // interpreter's heap through a mismatched Value/Cell layout instead of
+   // failing cleanly. This check must happen before any other function
+   // pointer obtained from this library is called.
+   //
+   {
+     void * get_abi = get_function_mux("get_ABI_version");
+     if (!get_abi)
+        {
+          t4 << "is invalid (no get_ABI_version(); built against an "
+                "older, incompatible GNU APL and needs to be rebuilt)";
+          MORE_ERROR() << t4;
+          return;
+        }
+
+     const int lib_abi = reinterpret_cast<int (*)()>(get_abi)();
+     if (lib_abi != NATIVE_ABI_VERSION)
+        {
+          t4 << "is invalid (ABI version " << lib_abi << ", but this "
+                "interpreter uses ABI version " << NATIVE_ABI_VERSION
+             << "; the library needs to be rebuilt against this GNU APL)";
+          MORE_ERROR() << t4;
+          return;
+        }
+   }
+
    // get the mandatory function get_signature() which returns
    //  the function signature
    //
@@ -322,25 +356,36 @@ NativeFunction::open_so_file(UCS_string & t4, UCS_string & so_path)
         return handle;
       }
 
-   // otherwise try apl_DIR__pkglib, /usr/lib/apl and /usr/local/lib/apl,
-   // avoiding duplicates
+   // otherwise try the build tree (if run from one), then apl_DIR__pkglib,
+   // /usr/lib/apl and /usr/local/lib/apl, avoiding duplicates.
+   //
+   // The build tree is searched *before* the installed locations so that
+   // running e.g. `make test` from a source checkout tests the library
+   // just built, rather than silently picking up a stale (and, per the
+   // ABI check above, now rejected rather than crash-inducing) library
+   // from a previous `make install`. libtool places the actual built
+   // .so files in native/.libs and emacs_mode/.libs, not directly in
+   // native/ or emacs_mode/ -- "./native" and "./emacs_mode" alone never
+   // matched anything.
    //
 UTF8_string utf_so_path(so_path);
 const char * dirs[] =
 {
+  ".",
+  "./native",             // if make install was not performed
+  "./native/.libs",       // where libtool actually puts the built .so
+  "./emacs_mode",         // if make install was not performed
+  "./emacs_mode/.libs",   // where libtool actually puts the built .so
   apl_DIR__pkglib,    // the normal case
   "/usr/lib/apl",
   "/usr/local/lib/apl",
-  ".",
-  "./native",             // if make install was not performed
-  "./emacs_mode",         // if make install was not performed
 };
 
    // most likely apl_DIR__pkglib is /usr/lib/apl or /usr/local/lib/apl.
    // don't try them twice.
    //
-   if (!strcmp(apl_DIR__pkglib, dirs[1]))   dirs[1] = 0;
-   if (!strcmp(apl_DIR__pkglib, dirs[2]))   dirs[2] = 0;
+   if (!strcmp(apl_DIR__pkglib, dirs[6]))   dirs[6] = 0;
+   if (!strcmp(apl_DIR__pkglib, dirs[7]))   dirs[7] = 0;
 
    loop(d, sizeof(dirs) / sizeof(*dirs))
        {

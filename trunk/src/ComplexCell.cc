@@ -661,8 +661,8 @@ ComplexCell::get_near_bool()  const
 APL_Integer
 ComplexCell::get_near_int() const
 {
-// if (value.cval[1] >  qct)   DOMAIN_ERROR;
-// if (value.cval[1] < -qct)   DOMAIN_ERROR;
+   if (value.cval[1] >  INTEGER_TOLERANCE)   DOMAIN_ERROR;
+   if (value.cval[1] < -INTEGER_TOLERANCE)   DOMAIN_ERROR;
 
 const APL_Float val = value.cval[0];
 const APL_Float result = round(val);

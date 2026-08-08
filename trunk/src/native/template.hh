@@ -78,6 +78,7 @@ No such process
 // mandatory functios
 extern "C" void * get_function_mux(const char * function_name);
 static Fun_signature get_signature();
+static int get_ABI_version();
 static bool close_fun(Cause cause, const NativeFunction * caller);
 static Token eval_fill_B(const cValue * B, const NativeFunction * caller);
 static Token eval_fill_AB(const cValue * A, const cValue * B, const NativeFunction * caller);
@@ -94,6 +95,8 @@ get_function_mux(const char * function_name)
 {
    if (!strcmp(function_name, "get_signature"))
       return reinterpret_cast<void *>(&get_signature);
+   if (!strcmp(function_name, "get_ABI_version"))
+      return reinterpret_cast<void *>(&get_ABI_version);
    if (!strcmp(function_name, "eval_"))
       return reinterpret_cast<void *>(&eval_);
    if (!strcmp(function_name, "eval_fill_B"))
@@ -130,6 +133,8 @@ get_function_mux(const char * function_name)
 {
    if (!strcmp(function_name, "get_signature"))
       return reinterpret_cast<void *>(&get_signature);
+   if (!strcmp(function_name, "get_ABI_version"))
+      return reinterpret_cast<void *>(&get_ABI_version);
    if (!strcmp(function_name, "eval_B"))
       return reinterpret_cast<void *>(&eval_B);
    if (!strcmp(function_name, "eval_AB"))
@@ -201,6 +206,8 @@ get_function_mux(const char * function_name)
 {
    if (!strcmp(function_name, "get_signature"))
       return reinterpret_cast<void *>(&get_signature);
+   if (!strcmp(function_name, "get_ABI_version"))
+      return reinterpret_cast<void *>(&get_ABI_version);
    if (!strcmp(function_name, "eval_LB"))
       return reinterpret_cast<void *>(&eval_LB);
    if (!strcmp(function_name, "eval_ALB"))
@@ -274,6 +281,8 @@ get_function_mux(const char * function_name)
 {
    if (!strcmp(function_name, "get_signature"))
       return reinterpret_cast<void *>(&get_signature);
+   if (!strcmp(function_name, "get_ABI_version"))
+      return reinterpret_cast<void *>(&get_ABI_version);
    if (!strcmp(function_name, "eval_LRB"))
       return reinterpret_cast<void *>(&eval_LRB);
    if (!strcmp(function_name, "eval_ALRB"))
@@ -334,6 +343,17 @@ Value_P Z(ucs, LOC);
 //────────────────────────────────────────────────────────────────────────────
 
 #endif
+
+/// a mandatory function returning the ABI contract version (see
+/// Native_interface.hh) that this library was compiled against, so that
+/// NativeFunction can refuse to use a library built against a different,
+/// binary-incompatible version of GNU APL instead of silently
+/// misinterpreting its Value/Cell layout.
+int
+get_ABI_version()
+{
+   return NATIVE_ABI_VERSION;
+}
 
 /// an optional function that is called when the native function in the
 /// APL interpreter is about to be removed. Return \b true if the caller shall

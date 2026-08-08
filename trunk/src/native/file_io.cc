@@ -26,6 +26,7 @@
    // and the native function has become a wrapper to ⎕FIO
    //
 
+#include "../Native_interface.hh"
 #include "../Quad_FIO.hh"
 
 class NativeFunction;
@@ -35,6 +36,7 @@ enum { SMALL_BUF = Quad_FIO::SMALL_BUF };
 //════════════════════════════════════════════════════════════════════════════
 extern "C" void * get_function_mux(const char * function_name);
 static Fun_signature get_signature();
+static int get_ABI_version();
 static bool close_fun(Cause cause,          const NativeFunction * caller);
 static Token eval_B  (const cValue * B,                           const NativeFunction * caller);
 static Token eval_AB (const cValue * A, const cValue * B,          const NativeFunction * caller);
@@ -46,6 +48,8 @@ get_function_mux(const char * function_name)
 {
    if (!strcmp(function_name, "get_signature"))
       return reinterpret_cast<void *>(&get_signature);
+   if (!strcmp(function_name, "get_ABI_version"))
+      return reinterpret_cast<void *>(&get_ABI_version);
    if (!strcmp(function_name, "close_fun"))
       return reinterpret_cast<void *>(&close_fun);
    if (!strcmp(function_name, "eval_B"))
@@ -66,6 +70,14 @@ Fun_signature
 get_signature()
 {
    return SIG_Z_A_F2_B;
+}
+//════════════════════════════════════════════════════════════════════════════
+/// a mandatory function returning the ABI contract version (see
+/// Native_interface.hh) that this library was compiled against.
+int
+get_ABI_version()
+{
+   return NATIVE_ABI_VERSION;
 }
 //════════════════════════════════════════════════════════════════════════════
 /// an optional function that is called when the native function in the

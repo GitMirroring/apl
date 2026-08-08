@@ -453,14 +453,39 @@ char * b = buffer;
 
    if (need_float)
       {
-        return Int_or_Double(APL_Float(strtod(buffer, 0)));
+        const APL_Float dval = APL_Float(strtod(buffer, 0));
+        if (!isfinite(dval))   // overflow: ±HUGE_VAL
+           {
+             // underflow (to 0, or to a subnormal) is benign and not
+             // reported -- glibc's strtod() sets errno==ERANGE for those
+             // too, not just for true overflow, so the (better than
+             // errno) test here is isfinite() on the actual result.
+             // Overflow is not benign, since every arithmetic primitive
+             // refuses to produce (or consume) a non-finite value --
+             // letting the tokenizer hand out ∞/¯∞ as an ordinary literal
+             // only postpones the same DOMAIN ERROR to some later, more
+             // confusing point.
+             MORE_ERROR() << "Numeric literal '" << buffer
+                          << "' is out of range for a real number.";
+             return Int_or_Double();
+           }
+        return Int_or_Double(dval);
       }
    else
       {
         errno = 0;
         const long long  result = strtoll(buffer, 0, 10);   // may set errno
         if (errno)   // strtoll() failed (int_digits too large)
-           return Int_or_Double(APL_Float(strtod(buffer, 0)));
+           {
+             const APL_Float dval = APL_Float(strtod(buffer, 0));
+             if (!isfinite(dval))
+                {
+                  MORE_ERROR() << "Numeric literal '" << buffer
+                               << "' is out of range for a real number.";
+                  return Int_or_Double();
+                }
+             return Int_or_Double(dval);
+           }
         else
            return Int_or_Double(APL_Integer(result));
       }

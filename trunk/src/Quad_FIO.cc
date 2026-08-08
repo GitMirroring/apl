@@ -1337,10 +1337,15 @@ Unicode lookahead = input.get_next();
                               }
 
                        // at this point the A-B construct is valid. Insert
-                       // the characters into range...
+                       // the characters into range... f is at 'to'; move
+                       // past it and continue, so that the fall-through
+                       // below (which would otherwise add funi, i.e. the
+                       // '-' itself, to the range) is not reached.
                        //
                        for (int u = from + 1; u <= to;)
                            range << Unicode(u++);
+                       ++f;
+                       continue;
                      }
                   if (funi == UNI_R_BRACK)   break;   // end of range
                   ++f;
@@ -2040,7 +2045,7 @@ Quad_FIO::eval_AXB__38(Value_P A, Value_P B)
 const size_t bytes = A->element_count();
 const int fd = get_fd(*B.get());
 vector<char> buffer(bytes);
-   loop(z, bytes)   buffer[z] = A->get_near_int(z);
+   loop(z, bytes)   buffer[z] = A->get_byte_value(z);
 const ssize_t len = send(fd, buffer.data(), bytes, 0);
    if (len < 0)   return Token(TOK_APL_VALUE1, IntScalar(-errno, LOC));
    return Token(TOK_APL_VALUE1, IntScalar(len, LOC));
@@ -2287,7 +2292,7 @@ Quad_FIO::eval_AXB__7(Value_P A, Value_P B)
 const size_t bytes = A->element_count();
 FILE * file = get_FILE(*B);
 vector<char> buffer(bytes);
-   loop(z, bytes)   buffer[z] = A->get_near_int(z);
+   loop(z, bytes)   buffer[z] = A->get_byte_value(z);
 const size_t len = fwrite(buffer.data(), 1, bytes, file);
    return Token(TOK_APL_VALUE1, IntScalar(len, LOC));
 }

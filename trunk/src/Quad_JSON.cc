@@ -363,7 +363,10 @@ const cValue * Z = cell.get_pointer_value().get();
    Z = Z->get_pointer_value(0).get();
    if (!Z->is_char_vector())
       {
-FIXME;
+        MORE_ERROR() << "2 ⎕JSON B: B contains a doubly-enclosed value "
+                        "that is not a character vector (JSON literals "
+                        "are encoded as ⊂'true'/⊂'false'/⊂'null')";
+        DOMAIN_ERROR;
       }
 
 const UCS_string lit_ucs(*Z);
