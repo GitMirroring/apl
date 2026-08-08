@@ -49,40 +49,50 @@ VAR3
 FUN1 4
 1
 
-      ⍝ regression (Roy Tobin, bug-apl@gnu.org, 2026-08-04): )COPY/)LOAD of
-      ⍝ a file that fails every format sniff right at offset 0 (e.g.
-      ⍝ /dev/null: opens fine, but is truly zero bytes) used to leave
-      ⍝ XML_Loading_Archive's tag_name/attributes/end_attr members
-      ⍝ uninitialized -- next_tag() hits EOF before ever setting them,
-      ⍝ but nothing checked that, so is_tag()/print_tag() went on to
-      ⍝ read through the garbage pointer. Reproducibly a SEGFAULT under
-      ⍝ valgrind (deterministic there: the uninitialized tag_name reads
-      ⍝ back as exactly NULL) and allocator-layout-dependent without it
-      ⍝ (this is why it "worked" during earlier testing but not for
-      ⍝ Roy). Fixed by zero-initializing all three in the constructor
-      ⍝ and guarding is_tag() against tag_name==0.
+      ⍝ regression (Roy Tobin, bug-apl@gnu.org, 2026-08-04 and 2026-08-07):
+      ⍝ )COPY/)LOAD of a file that fails every format sniff right at
+      ⍝ offset 0 (e.g. /dev/null: opens fine, but is truly zero bytes)
+      ⍝ used to leave XML_Loading_Archive's tag_name/attributes/end_attr
+      ⍝ members uninitialized -- next_tag() hits EOF before ever setting
+      ⍝ them, but nothing checked that, so is_tag()/print_tag() went on
+      ⍝ to read through the garbage pointer. Reproducibly a SEGFAULT
+      ⍝ under valgrind (deterministic there: the uninitialized tag_name
+      ⍝ reads back as exactly NULL) and allocator-layout-dependent
+      ⍝ without it. Fixed by zero-initializing all three in the
+      ⍝ constructor and guarding is_tag() against tag_name==0.
       ⍝
       ⍝ Separately: Sys.hh checked #if HAVE_MMAN_H but configure.ac only
       ⍝ ever defines HAVE_SYS_MMAN_H, so the real mmap()-based Sys::mmap()
       ⍝ had never been compiled into any build -- every build silently
-      ⍝ used a read()-based fallback instead, whose 1-byte NUL-padded
-      ⍝ buffer is why /dev/null previously produced "file ... does not
-      ⍝ have the format ..." (a DOMAIN ERROR) rather than an outright
-      ⍝ mmap() failure. With the typo fixed, mmap(fd, 0) correctly fails
-      ⍝ (EINVAL: mmap()ing 0 bytes is invalid), so this now surfaces as
-      ⍝ WS FULL instead -- the pre-existing, intentional error for "the
-      ⍝ workspace file could not be mapped", not a new defect. The
-      ⍝ file-format diagnostic itself goes to CERR (not compared here,
-      ⍝ like other CERR-only warnings elsewhere in this suite); )COPY's
-      ⍝ resulting error is uncaught at the harness's point of view and
-      ⍝ needs ]EXPECT 1, )LOAD's does not (caught one level up, before
-      ⍝ reaching immediate_execution()).
+      ⍝ used a read()-based fallback instead. With that typo fixed, the
+      ⍝ real mmap() started being used, and mmap()ing 0 bytes is invalid
+      ⍝ (POSIX: EINVAL) -- Archive.cc's XML_Loading_Archive constructor
+      ⍝ treated *any* mmap() failure as WS_FULL, so a merely-empty file
+      ⍝ was misdiagnosed as "workspace file could not be mapped" instead
+      ⍝ of "wrong format" (caught by Roy again, 2026-08-07: incorrectly
+      ⍝ accepted as "intentional" in an earlier version of this comment
+      ⍝ -- it was not). Fixed by checking file_length==0 explicitly
+      ⍝ before ever calling mmap(), matching the "diagnose as wrong
+      ⍝ format" behavior of every other unrecognized-content file.
+      ⍝
+      ⍝ A related bug Roy found in the same report: even for a file that
+      ⍝ *is* correctly diagnosed (e.g. /etc/hosts, "does not have the
+      ⍝ format ..."), )COPY/)LOAD had no way to know the constructor had
+      ⍝ already rejected the content, so execution fell through into
+      ⍝ read_Workspace() anyway and produced a second, confusing error
+      ⍝ ("Got tag ... when expecting tag Workspace ... DOMAIN ERROR").
+      ⍝ Fixed by adding XML_Loading_Archive::is_valid_format() (false
+      ⍝ once the constructor prints the format diagnostic) and checking
+      ⍝ it in Workspace::copy_WS()/load_WS() right after the existing
+      ⍝ is_open() check, returning immediately instead of proceeding.
+      ⍝
+      ⍝ The file-format diagnostic itself goes to CERR (not compared
+      ⍝ here, like other CERR-only warnings elsewhere in this suite);
+      ⍝ with both fixes, )COPY/)LOAD /dev/null no longer raise any APL
+      ⍝ error at all (nothing left to WS_FULL or fall through on), so
+      ⍝ neither needs ]EXPECT any more.
       ⍝
       )COPY /dev/null
-WS FULL
-
-
-      ]EXPECT 1
       )SIC
 
       )LOAD /dev/null
@@ -93,6 +103,22 @@ OK      - no stale values
 OK      - no stale indices
 OK      - no duplicate parents
 
+      ⍝ same regression, but for a *non-empty* file that fails the format
+      ⍝ check (i.e. the /etc/hosts case from Roy's report, reproduced
+      ⍝ with a self-contained scratch file instead of a system path):
+      ⍝ before the is_valid_format() fix, )COPY still printed the
+      ⍝ correct diagnostic but then fell through into read_Workspace()
+      ⍝ anyway, raising a second, confusing "Got tag ... when expecting
+      ⍝ tag Workspace ... DOMAIN ERROR". )SI below (nothing suspended,
+      ⍝ so no output at all) confirms neither that nor any other error
+      ⍝ was raised.
+      H←'w' ⎕FIO[3] '/tmp/COPY_test_garbage.xml'
+      R←('not xml content, deliberately wrong format') ⎕FIO[7] H
+      ⎕FIO[4] H
+0
+      )COPY /tmp/COPY_test_garbage.xml
+      )SI
+      R←⎕FIO[19] '/tmp/COPY_test_garbage.xml'
 
 ⍝ ==================================
 

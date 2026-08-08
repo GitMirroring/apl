@@ -448,6 +448,20 @@ public:
    /// removing the CR and NL chars in \b this string.
    size_t to_vector(UCS_string_vector & result) const;
 
+   /// return this text, filled/word-wrapped so that every returned line,
+   /// including \b indent leading spaces, fits within \b width columns
+   /// (e.g. the current ⎕PW, which -- unlike a fixed column count --
+   /// accounts for terminals differing in exactly where they wrap), and
+   /// with those \b indent spaces prepended to each line. A '\n' already
+   /// present in this string (see to_vector()) is honored as a
+   /// deliberate paragraph/clause break rather than merged away by the
+   /// wrapping: the text between two such breaks (or between a break
+   /// and the start/end of this string) is filled independently, so an
+   /// author-chosen break is never lost, but an over-long stretch
+   /// between breaks still wraps automatically instead of running off
+   /// the terminal.
+   UCS_string_vector wrapped_lines(int indent, int width) const;
+
    /// return \b this string with "escape sequences" replaced by their real
    /// characters ('' → ' if single quoted and \\r, \\n, \\xNNN etc. otherwise.
    UCS_string un_escape(bool double_quoted, bool keep_LF) const;

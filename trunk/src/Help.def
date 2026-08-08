@@ -367,9 +367,11 @@ help_def(1, "⍳", "Index generator",
          "Vector of the first B integers (starting from ⎕IO)",
          "")
 
-help_def(2, "⍳", "Index of",
-         "The location (index) of B in A if B∈,A, or 1+¯1↑⍳⍴D if 1≥⍴A, or else ⊂⍬",
-         "")
+help_def(2, "⍳", "Index of B in A",
+         "⍴Z is ⍴B and Z is the position of the corresponding item of B "
+         "in A, provided that A contains that item.",
+         "If the item is not found in A, the result item in Z depends on "
+         "the rank of A: for vector A it is ⎕IO+⍴,A and otherwise it is ⍬.")
 
 help_def(1, "⍸", "Where",
          "same as { (,⍵) / ,⍳⍴⍵ }.",
@@ -462,8 +464,13 @@ help_def(2, "⊂", "Partition",
          "")
 
 help_def(1, "⊃", "Disclose",
-         "Produce an array from B",
-         "")
+         "Combine the items of B into one array, using each item's own "
+         "shape for B's new trailing axes; items of different shape are "
+         "padded with fill values.",
+         "Example:\n"
+         "      ⊃(1 2 3) (4 5)\n"
+         "1 2 3\n"
+         "4 5 0")
 
 help_def(2, "⊃", "Pick",
          "Select a value from B based on A",

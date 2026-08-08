@@ -1088,6 +1088,51 @@ const size_t len = result.back().size();
    return max_len;
 }
 //────────────────────────────────────────────────────────────────────────────
+UCS_string_vector
+UCS_string::wrapped_lines(int indent, int width) const
+{
+UCS_string_vector paragraphs;
+   to_vector(paragraphs);   // split at author-provided '\n' breaks
+
+UCS_string_vector result;
+   loop(p, paragraphs.size())
+       {
+         const UCS_string & para = paragraphs[p];
+
+         if (para.size() == 0)   // blank paragraph (e.g. from "a\n\nb")
+            {
+              result.push_back(UCS_string());
+              continue;
+            }
+
+         ShapeItem w = 0;
+         while (w < para.ssize())
+             {
+               ShapeItem col = indent;
+               ShapeItem line_end = w;
+               ShapeItem last_space = -1;
+               while (line_end < para.ssize())
+                   {
+                     if (col >= width && last_space >= w)   break;
+                     if (para[line_end] == UNI_SPACE)   last_space = line_end;
+                     ++line_end;
+                     ++col;
+                   }
+               if (line_end < para.ssize() && last_space >= w)
+                  line_end = last_space;
+
+               UCS_string line(indent, UNI_SPACE);
+               line << UCS_string(para, w, line_end - w);
+               result.push_back(line);
+
+               w = line_end;
+               while (w < para.ssize() && para[w] == UNI_SPACE)   ++w;
+             }
+       }
+
+   return result;
+}
+//────────────────────────────────────────────────────────────────────────────
 UCS_string
 UCS_string::un_escape(bool double_quoted, bool keep_LF) const
 {

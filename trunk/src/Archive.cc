@@ -1319,7 +1319,8 @@ XML_Loading_Archive::XML_Loading_Archive(ostream & of, ostream & ef,
      line_start(0),
      protection(false),
      reading_vids(false),
-     tag_name(0)
+     tag_name(0),
+     valid_format(true)
 {
    Log(LOG_archive)   err << "Loading workspace file " << filename << endl;
 
@@ -1355,6 +1356,28 @@ const int fd = open(filename, O_RDONLY);
      file_length = st.st_size;
    }
 
+   // an empty file trivially cannot be a valid .xml/.apl file, and
+   // mmap()ping zero bytes is invalid (POSIX: EINVAL) -- handle it
+   // directly here rather than let the resulting mmap() failure be
+   // misdiagnosed as WS_FULL below (Roy Tobin, )COPY / )LOAD on
+   // /dev/null). file_start is set to a static, safely-dereferenceable
+   // (if empty) buffer rather than left 0, so is_open() (which merely
+   // means "the file could be opened/read", same as for the "wrong
+   // format" case below) still returns true; is_valid_format() is what
+   // distinguishes this from an actually-usable file.
+   //
+   if (file_length == 0)
+      {
+        close(fd);
+        static const UTF8 empty_file[1] = { 0 };
+        file_start = empty_file;
+        file_end = empty_file;
+        err << "file " << filename << " does not " << endl
+             << "have the format of a GNU APL .xml or .apl file" << endl;
+        valid_format = false;
+        return;
+      }
+
    // 3. read the workspace file and set file_start on success
    //
    {
@@ -1389,6 +1412,7 @@ const int fd = open(filename, O_RDONLY);
       {
         err << "file " << filename << " does not " << endl
              << "have the format of a GNU APL .xml or .apl file" << endl;
+        valid_format = false;
       }
 }
 //────────────────────────────────────────────────────────────────────────────

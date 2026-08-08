@@ -46,9 +46,14 @@ protected:
    /// @param name   the primitive name
    /// @param title  short title line
    /// @param descr  longer description text
+   /// @param first  true initially; set false after the first Help.def
+   ///               entry matching \b arg was printed, so that a blank
+   ///               line can separate multiple forms (e.g. monadic and
+   ///               dyadic) of the same primitive from each other
    static void primitive_help(ostream & out, const char * arg, int arity,
                               const char * prim, const char * name,
-                              const char * title, const char * descr);
+                              const char * title, const char * descr,
+                              bool & first);
 };
 //════════════════════════════════════════════════════════════════════════════
 #endif // __CMD_HELP_HH_DEFINED__

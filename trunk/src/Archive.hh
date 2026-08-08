@@ -341,6 +341,14 @@ public:
    /// return true iff constructor could open the file
    bool is_open() const   { return file_start != 0; }
 
+   /// return true iff the file was opened (is_open()) *and* looks like a
+   /// GNU APL .xml workspace (or a )DUMP .apl file, i.e. dump_fd was set).
+   /// false means the constructor already printed a diagnostic (e.g. "file
+   /// X does not have the format of a GNU APL .xml or .apl file") and the
+   /// caller should stop rather than attempt to read_Workspace()/
+   /// read_vids() on content that isn't XML at all.
+   bool is_valid_format() const   { return valid_format; }
+
    /// set copying and maybe set protection
    /// @param prot true if protection (⎕PCOPY) is requested
    /// @param allowed names of objects to copy; empty means copy all
@@ -693,6 +701,10 @@ protected:
 
    /// the name of the current tag, e.g. "Symbol" or "/Symbol"
    const UTF8 * tag_name;
+
+   /// false if the constructor determined that the file does not have
+   /// the format of a GNU APL .xml or .apl file (see is_valid_format())
+   bool valid_format;
 
    /// all values in the workspace
    std::vector<Value_P> values;

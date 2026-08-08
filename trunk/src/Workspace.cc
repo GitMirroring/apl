@@ -1245,6 +1245,9 @@ XML_Loading_Archive in(out, err, filename.c_str(), dump_fd);
              return;
            }
 
+        if (!in.is_valid_format())   // wrong format; diagnostic already
+           return;                   // printed by the constructor
+
         Log(LOG_command_IN)   out << "LOADING " << lib_name.get_name()
                                   << " from file '" << filename << "' ..."
                                   << endl;
@@ -1298,6 +1301,9 @@ XML_Loading_Archive in(out, err, filename.c_str(), dump_fd);
              << ") failed: " << strerror(errno) << endl;
         return;
       }
+
+   if (!in.is_valid_format())   // wrong format; diagnostic already
+      return;                  // printed by the constructor
 
    // case 2: )SAVEd .xml file
    //

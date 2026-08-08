@@ -165,9 +165,10 @@ UCS_string arg;
         {
           UTF8_string arg_utf(arg);
           const char * arg_cp = arg_utf.c_str();
+          bool first = true;
 
 #define help_def(ar, prim, name, title, descr)              \
-   primitive_help(out, arg_cp, ar, prim, name, title, descr);
+   primitive_help(out, arg_cp, ar, prim, name, title, descr, first);
 #include "Help.def"
 
          return;
@@ -246,17 +247,44 @@ bool left_col = true;
    out << reset_format;   // undo the left set above; out is caller-owned
 }
 //────────────────────────────────────────────────────────────────────────────
+/// print help text \b text via UCS_string::wrapped_lines(), i.e. filled/
+/// word-wrapped to the current ⎕PW (not a fixed column count -- terminals
+/// vary in exactly where they wrap) and indented by \b indent spaces on
+/// every line. See wrapped_lines() for how an author-provided '\n' (as
+/// Help.def routinely uses to keep a distinct clause or sentence on its
+/// own line) is handled. Previously, Help.def entries with an embedded
+/// '\n' rendered with only the first line indented (every subsequent
+/// line flush left) and relied on hand-picked break points sized for a
+/// fixed assumed width rather than ⎕PW.
+static void
+print_wrapped(ostream & out, const char * text, int indent)
+{
+const UCS_string_vector lines =
+      UCS_string(UTF8_string(text)).wrapped_lines(indent, Workspace::get_PW());
+
+   loop(l, lines.size())   out << lines[l] << endl;
+}
+//────────────────────────────────────────────────────────────────────────────
 void
 Cmd_HELP::primitive_help(ostream & out, const char * arg, int arity,
                         const char * prim,  const char * name,
-                        const char * brief, const char * descr)
+                        const char * brief, const char * descr,
+                        bool & first)
 {
    if (strcmp(arg, prim))   return;
 
+   // a primitive with several forms (e.g. ⍳'s monadic "Index generator"
+   // and dyadic "Index of B in A") has one Help.def entry per form, all
+   // matching the same arg; separate them with a blank line so that
+   // )HELP/]HELP output doesn't run different forms together.
+   //
+   if (!first)   out << endl;
+   first = false;
+
    if (arity == -6)
       {
-        out << "   " << name << ":   " << brief << endl
-            << "    " << descr << endl;
+        out << "   " << name << ":   " << brief << endl;
+        print_wrapped(out, descr, 4);
         return;
       }
 
@@ -289,8 +317,8 @@ Cmd_HELP::primitive_help(ostream & out, const char * arg, int arity,
 
    if (*name)   out << "  ("  << name  <<  ")";
    out << endl;
-   if (*brief)  out << "    " << brief << endl;
+   if (*brief)   print_wrapped(out, brief, 4);
 
-   if (descr)   out << descr << endl;
+   if (*descr)   print_wrapped(out, descr, 4);
 }
 //════════════════════════════════════════════════════════════════════════════
