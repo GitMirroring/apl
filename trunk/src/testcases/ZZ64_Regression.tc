@@ -201,42 +201,52 @@ DOMAIN ERROR+
 true
       )SIC
 
-      ⍝ Bugs13 #8 (Blake McBride): two related NativeFunction defects.
-      ⍝ (a) ⎕FX-loaded .so libraries had no ABI/version guard: a library
-      ⍝ built against a different, binary-incompatible GNU APL (e.g. a
-      ⍝ stale library left in the unversioned, bare-name-resolved
-      ⍝ /usr/local/lib/apl/ after an interpreter upgrade) was dlopen()ed
-      ⍝ and its function pointers called anyway, silently corrupting the
-      ⍝ interpreter's heap via a mismatched Value/Cell layout (confirmed
-      ⍝ under gdb: a stale library's inlined Value_P constructor wrote
-      ⍝ past a Value's check_ptr at the wrong offset). Added a mandatory
+      ⍝ Bugs13 #8 (Blake McBride): ⎕FX-loaded .so libraries had no ABI/
+      ⍝ version guard: a library built against a different, binary-
+      ⍝ incompatible GNU APL (e.g. a stale library left in the
+      ⍝ unversioned, bare-name-resolved /usr/local/lib/apl/ after an
+      ⍝ interpreter upgrade) was dlopen()ed and its function pointers
+      ⍝ called anyway, silently corrupting the interpreter's heap via a
+      ⍝ mismatched Value/Cell layout (confirmed under gdb: a stale
+      ⍝ library's inlined Value_P constructor wrote past a Value's
+      ⍝ check_ptr at the wrong offset). Added a mandatory
       ⍝ get_ABI_version() that every native library (template.hh and
       ⍝ file_io.cc) now exports, checked in NativeFunction's constructor
       ⍝ against NATIVE_ABI_VERSION (Native_interface.hh) before any other
-      ⍝ function pointer from the library is used; a missing or mismatched
-      ⍝ version is rejected with MORE_ERROR()+DOMAIN_ERROR (⎕FX returns 0)
-      ⍝ instead of loading the incompatible library. (b) The build-tree
-      ⍝ search path in open_so_file() listed "./native"/"./emacs_mode",
-      ⍝ but libtool actually puts built .so files in "./native/.libs" and
-      ⍝ "./emacs_mode/.libs" -- those entries never matched anything, so
-      ⍝ a bare filename (e.g. 'lib_template_F0.so' ⎕FX '...', as used by
-      ⍝ testcases/NativeFunctions.tc and in Blake's report) resolved only
-      ⍝ via the installed directory, meaning `make test` exercised
-      ⍝ whatever was installed rather than what was just built. Fixed by
-      ⍝ adding the .libs directories and searching the build tree before
-      ⍝ the installed/system directories. (Fixing (a) alone would have
-      ⍝ turned Blake's crash into a clean ⎕FX failure but not fixed the
-      ⍝ underlying "wrong library" problem; fixing (b) alone would not
-      ⍝ have protected against a genuinely stale library still being
-      ⍝ found first in some other search order. Both are needed.) Fixed
-      ⍝ in NativeFunction.cc, Native_interface.hh, native/template.hh,
-      ⍝ native/file_io.cc. (Full make test, 272/272 files: clean; this
-      ⍝ was previously an assertion-failure abort, see testcases/
+      ⍝ function pointer from the library is used; a missing or
+      ⍝ mismatched version is rejected with MORE_ERROR()+DOMAIN_ERROR
+      ⍝ (⎕FX returns 0) instead of loading the incompatible library.
+      ⍝ Fixed in NativeFunction.cc, Native_interface.hh, native/
+      ⍝ template.hh, native/file_io.cc.
+      ⍝
+      ⍝ Blake also called the build-tree fallback search path in
+      ⍝ open_so_file() "wrong" (it lists "./native"/"./emacs_mode", but
+      ⍝ libtool actually builds into "./native/.libs"/"./emacs_mode/
+      ⍝ .libs", so those two entries never match anything) and suggested
+      ⍝ adding the .libs directories, searched before the installed
+      ⍝ location. That part was tried (twice) and then deliberately
+      ⍝ reverted on Jürgen's direction: the normal, established workflow
+      ⍝ is to `make install` before testing native-function changes, at
+      ⍝ which point apl_DIR__pkglib -- already first in the search order,
+      ⍝ and exactly what `apl --show_lib_dir` reports, regardless of
+      ⍝ where apl is started from -- already has the current library.
+      ⍝ The two dead entries are unreachable but harmless under that
+      ⍝ workflow, and the search path had worked without a real problem
+      ⍝ for years, so it was left as-is rather than changed on the
+      ⍝ strength of one report. (This does mean a bare-name ⎕FX right
+      ⍝ after `make -C src apl`, with no `make install` in between, will
+      ⍝ resolve to whatever is currently installed rather than the just-
+      ⍝ built tree -- by design, not a bug, per the above.)
+      ⍝
+      ⍝ Below: the ABI guard exercised via a full path (so the test does
+      ⍝ not depend on `make install` having been run against this
+      ⍝ checkout). The rejection path itself isn't practical to cover
+      ⍝ here either, since it requires a second, ABI-incompatible build
+      ⍝ of GNU APL to load against -- manually verified against a real
+      ⍝ stale installed copy. Full make test, 272/272 files: clean; this
+      ⍝ was previously an assertion-failure abort; see testcases/
       ⍝ NativeFunctions.tc for the normal-path native-function coverage.
-      ⍝ The (a) rejection path itself isn't practical to cover here, since
-      ⍝ it requires a second, ABI-incompatible build of GNU APL to load
-      ⍝ against -- manually verified against a real stale installed copy.)
-      'lib_template_F0.so' ⎕FX 'NATIVE_F0'
+      './native/.libs/lib_template_F0.so' ⎕FX 'NATIVE_F0'
 NATIVE_F0
       NATIVE_F0
 eval_() called

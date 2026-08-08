@@ -356,36 +356,25 @@ NativeFunction::open_so_file(UCS_string & t4, UCS_string & so_path)
         return handle;
       }
 
-   // otherwise try the build tree (if run from one), then apl_DIR__pkglib,
-   // /usr/lib/apl and /usr/local/lib/apl, avoiding duplicates.
-   //
-   // The build tree is searched *before* the installed locations so that
-   // running e.g. `make test` from a source checkout tests the library
-   // just built, rather than silently picking up a stale (and, per the
-   // ABI check above, now rejected rather than crash-inducing) library
-   // from a previous `make install`. libtool places the actual built
-   // .so files in native/.libs and emacs_mode/.libs, not directly in
-   // native/ or emacs_mode/ -- "./native" and "./emacs_mode" alone never
-   // matched anything.
+   // otherwise try apl_DIR__pkglib, /usr/lib/apl and /usr/local/lib/apl,
+   // avoiding duplicates
    //
 UTF8_string utf_so_path(so_path);
 const char * dirs[] =
 {
-  ".",
-  "./native",             // if make install was not performed
-  "./native/.libs",       // where libtool actually puts the built .so
-  "./emacs_mode",         // if make install was not performed
-  "./emacs_mode/.libs",   // where libtool actually puts the built .so
   apl_DIR__pkglib,    // the normal case
   "/usr/lib/apl",
   "/usr/local/lib/apl",
+  ".",
+  "./native",             // if make install was not performed
+  "./emacs_mode",         // if make install was not performed
 };
 
    // most likely apl_DIR__pkglib is /usr/lib/apl or /usr/local/lib/apl.
    // don't try them twice.
    //
-   if (!strcmp(apl_DIR__pkglib, dirs[6]))   dirs[6] = 0;
-   if (!strcmp(apl_DIR__pkglib, dirs[7]))   dirs[7] = 0;
+   if (!strcmp(apl_DIR__pkglib, dirs[1]))   dirs[1] = 0;
+   if (!strcmp(apl_DIR__pkglib, dirs[2]))   dirs[2] = 0;
 
    loop(d, sizeof(dirs) / sizeof(*dirs))
        {
