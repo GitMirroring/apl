@@ -40,8 +40,12 @@ public:
       type( type_in )
     {}
 
-    ColumnDescriptor operator=(const ColumnDescriptor &orig)
-       { return ColumnDescriptor( orig.name, orig.type); }
+    // name/type are const, so a real assignment operator can't assign
+    // *this -- the old body returned a fresh temporary and silently left
+    // *this untouched, a trap for any vector op that assigns (erase,
+    // insert, resize, sort, ...) rather than just push_back (Blake
+    // McBride, Bugs14 #13). Delete it rather than pretend it works.
+    ColumnDescriptor & operator=(const ColumnDescriptor &) = delete;
 
     const string & get_name()
         { return name; }

@@ -85,3 +85,23 @@ For Macintosh users, Peter Teeson has contributed very nice installation
 instructions that can be found in the doc/ subdirectory (file:
 APL-on-Macintosh.pdf).
 
+
+===============================================================================
+====									   ====
+====			    Byte order (endianness)			   ====
+====									   ====
+===============================================================================
+
+GNU APL's bit-packed boolean ravels (values whose ravel is stored as one
+bit per element rather than one Cell per element) require a little-endian
+target. The same bit array is written and read as whole uint64_t words in
+some places (e.g. Value.cc's try_implode(), Bif_F12_RHO.cc, Quad_CR.cc,
+Bif_F12_INTERVAL_INDEX.cc) and as individual uint8_t bytes in others (e.g.
+Ravel.hh's bool_fetcher(), Value.cc's explode_to_INT64()); bit i of the
+array lands at word i>>6 / bit i&63 under the first view and at byte i>>3
+/ bit i&7 under the second, and the two agree only on a little-endian
+machine (confirmed by Blake McBride, Bugs14 #14f). GNU APL has not been
+tested on a big-endian target; if you are attempting a big-endian port,
+this is the first place to look if boolean vectors/arrays come out
+corrupted.
+

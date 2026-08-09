@@ -29,28 +29,38 @@
 #include <pthread.h>
 #include <semaphore.h>
 
+#include "Common.hh"
 #include "QuadFunction.hh"
 #include "Value.hh"
 
 class Plot_window_properties;
 class Plot_data;
 
-/// sem_wait() that retries on EINTR. A plain sem_wait() returns
-/// prematurely (with the semaphore left un-posted) if a signal arrives
-/// while blocked -- including a signal with nothing to do with ⎕PLOT,
-/// such as the user's own ^C (GNU APL installs a real SIGINT handler,
-/// see main.cc). All of ⎕PLOT's semaphores exist specifically to make
-/// the caller wait for some other thread to reach a certain point (e.g.
-/// gtk_main() actually running its event loop) before touching GTK from
-/// here; a premature, signal-triggered return silently reintroduces
-/// exactly the race the wait exists to prevent, since nothing checks
-/// sem_wait()'s return value. This is most likely to actually matter on
-/// a slow system (e.g. 32-bit), where the real wait is long enough for
-/// an unrelated signal to plausibly land before it's satisfied.
+/// sem_wait() that retries on EINTR, except for the user's own ^C. A
+/// plain sem_wait() returns prematurely (with the semaphore left
+/// un-posted) if a signal arrives while blocked -- including a signal
+/// with nothing to do with ⎕PLOT. All of ⎕PLOT's semaphores exist
+/// specifically to make the caller wait for some other thread to reach
+/// a certain point (e.g. gtk_main() actually running its event loop)
+/// before touching GTK from here; a premature, signal-triggered return
+/// silently reintroduces exactly the race the wait exists to prevent,
+/// since nothing checks sem_wait()'s return value. This is most likely
+/// to actually matter on a slow system (e.g. 32-bit), where the real
+/// wait is long enough for an unrelated signal to plausibly land before
+/// it's satisfied -- so incidental signals are retried transparently.
+/// But if the wait is never satisfied at all (a genuine deadlock in the
+/// other thread), blindly retrying forever would make that hang
+/// un-interruptible, which is worse than the original race: the user's
+/// own ^C (GNU APL installs a real SIGINT handler, see main.cc) must
+/// still be able to break out, so EINTR caused by an already-raised
+/// attention ends the wait instead of being retried.
 inline void
 sem_wait_safe(sem_t * sema)
 {
-   while (sem_wait(sema) == -1 && errno == EINTR)   ;
+   while (sem_wait(sema) == -1 && errno == EINTR)
+      {
+        if (InterruptContext::attention_is_raised())   break;
+      }
 }
 
 /// ⎕PLOT verbosity bitmap

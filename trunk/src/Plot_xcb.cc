@@ -692,18 +692,21 @@ const Color point_color = l_props.get_point_color();
 //════════════════════════════════════════════════════════════════════════════
 /// draw the legend
 void
-draw_legend(const XCB_context & pctx, const Plot_window_properties & w_props)
+draw_legend(const XCB_context & pctx, const Plot_window_properties & w_props,
+            bool surface_plot)
 {
+   if (!w_props.get_show_legend())   return;   // no legend
+
 const Plot_line_properties * const * l_props = w_props.get_line_properties();
-const int line_count = w_props.get_line_count();
+const int line_count = surface_plot ? 1 : w_props.get_line_count();
 
    // estimate the box size from the length of the longest legend string
    //
 Pixel_X longest_legend = 20;
    for (int l = 0; l < line_count; ++l)
        {
-         const char * lstr = l_props[l]->get_legend_name().c_str();
-         const Pixel_X width = string_width(pctx, lstr);
+         const String & lname = l_props[l]->get_legend_name();
+         const Pixel_X width = string_width(pctx, lname.c_str());
          if (longest_legend < width)   longest_legend = width;
        }
 
@@ -1135,7 +1138,7 @@ const bool surface = data.is_surface_plot();   // 2D or 3D plot ?
 
    // draw legend...
    //
-   draw_legend(pctx, w_props);
+   draw_legend(pctx, w_props, surface);
 }
 //════════════════════════════════════════════════════════════════════════════
 /// obtain an ID for \b name
@@ -1316,7 +1319,11 @@ Quad_PLOT::plot_main_XCB(void * vp_props)
 
 Plot_window_properties & w_props =
       *reinterpret_cast<Plot_window_properties *>(vp_props);
-const char * outfile = strdup(w_props.get_output_filename().c_str());
+// std::string (RAII), not strdup()/free(): several early returns/throws
+// below (e.g. the X-server connection failure and the pctx.caption
+// check) used to skip the single free() at the end of this function,
+// leaking outfile on those paths (Blake McBride, Bugs14 #14e).
+const std::string outfile = w_props.get_output_filename();
 
 const Quad_PLOT::Handle handle = Quad_PLOT::next_handle;
 XCB_context pctx(w_props, handle);
@@ -1491,9 +1498,9 @@ const xcb_get_input_focus_reply_t * focusReply =
                   do_plot(pctx, w_props, data);
                   xcb_flush(pctx.conn);
 
-                  if (outfile && *outfile)
+                  if (!outfile.empty())
                      {
-                       pctx.save_file(outfile);
+                       pctx.save_file(outfile.c_str());
                        if (w_props.get_auto_close())
                           {
                             // unleash the APL interpreter
@@ -1568,7 +1575,7 @@ const xcb_get_input_focus_reply_t * focusReply =
 
                        // make this thread a zombie
                        //
-                       sem_wait(Quad_PLOT::all_PLOT_windows_sema);
+                       sem_wait_safe(Quad_PLOT::all_PLOT_windows_sema);
                           const int count = Quad_PLOT::all_PLOT_windows.size();
                           const pthread_t thread = pthread_self();
                           loop(pt, count)
@@ -1614,7 +1621,6 @@ const xcb_get_input_focus_reply_t * focusReply =
    }
 
    xcb_disconnect(pctx.conn);
-   free(const_cast<char *>(outfile));
 
    return 0;
 }

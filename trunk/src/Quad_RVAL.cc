@@ -790,6 +790,14 @@ Value_P Z(desired_ranks.size(), LOC);
       }
    else if (B.element_count())   // distribution of ranks
       {
+        if (B.element_count() > MAX_RANK + 1)
+           {
+             MORE_ERROR() << "a vector right argument B of 1 ⎕RVAL B "
+                             "must have at most " << (MAX_RANK + 1)
+                          << " items (one per rank 0.." << MAX_RANK << ")";
+             LENGTH_ERROR;
+           }
+
         vector<int>new_ranks;
         loop(b, B.element_count())
             {

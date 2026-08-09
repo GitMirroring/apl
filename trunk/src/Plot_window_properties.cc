@@ -428,7 +428,8 @@ int line_number = -1;
             }
 
 # define gdef(ty,  na,  _val, _descr) \
-         if (!strncmp(#na, att_and_val, colon - att_and_val))         \
+         if (strlen(#na) == size_t(colon - att_and_val)              \
+             && !strncmp(#na, att_and_val, colon - att_and_val))      \
             { const char * error = 0;                                 \
               set_ ## na(Plot_data::ty ## _from_str(value, error));   \
               na ## _provided = true;                                 \

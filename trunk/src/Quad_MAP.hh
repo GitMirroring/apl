@@ -49,7 +49,8 @@ protected:
    /// @param ordered_indices_A sorted indices into A's key column
    /// @param B the data value to map
    /// @param recursive true to apply mapping recursively to nested elements
-   static Value_P do_map(const cValue & A, const vector<ShapeItem> ordered_indices_A,
+   static Value_P do_map(const cValue & A,
+                         const vector<ShapeItem> & ordered_indices_A,
                          cValue_R B, bool recursive);
 
    /// Heapsort helper

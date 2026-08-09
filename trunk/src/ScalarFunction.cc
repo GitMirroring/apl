@@ -1301,11 +1301,14 @@ APL_Integer set_size = B.get_near_int(0);
    //
 Value_P Z(zlen, LOC);
 
-   // set_size can be rather big, so we new/delete it
+   // set_size can be rather big, so we allocate it dynamically. A vector
+   // (rather than new[]/delete[]) so that Workspace::get_RL() throwing
+   // (attention/interrupt) inside the loop below cannot leak it (Blake
+   // McBride, Bugs14 #14d); operator new[] itself never returns 0 (it
+   // throws std::bad_alloc), so the old null check was already dead
+   // code (Bugs14 #14c).
    //
-uint8_t * used = new uint8_t[(set_size + 7)/8];
-   if (used == 0)   throw_apl_error(E_WS_FULL, LOC);
-   memset(used, 0, (set_size + 7)/8);
+vector<uint8_t> used((set_size + 7)/8, 0);
 
    loop(z, zlen)
        {
@@ -1319,8 +1322,6 @@ uint8_t * used = new uint8_t[(set_size + 7)/8];
          used[rnd >> 3] |= 1 << (rnd & 7);   // remember rnd
          Z->next_ravel_Int(rnd + Workspace::get_IO());
        }
-
-   delete [] used;
 
    Z->check_value(LOC);
    return Token(TOK_APL_VALUE1, Z);

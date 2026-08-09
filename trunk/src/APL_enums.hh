@@ -44,8 +44,12 @@ enum
    MAX_DEPTH = cfg_MAX_DEPTH_WANTED
 };
 //────────────────────────────────────────────────────────────────────────────
-/// Auxiliary processor numbers
-enum AP_num
+/// Auxiliary processor numbers. Fixed underlying type: AP_num holds
+/// arbitrary --id values, not just the enumerators below, and an
+/// unscoped enum with no fixed underlying type otherwise only has
+/// [dcl.enum]/8's smallest-bit-field range as its valid value set --
+/// UBSan flags every out-of-that-range load (Blake McBride, Bugs14 #11).
+enum AP_num : int
 {
   NO_AP          = -1,     ///< invalid AP
   AP_NULL        = 0,      ///< invalid AP for structs using memset(0)
@@ -200,7 +204,7 @@ enum CPU_count
 //────────────────────────────────────────────────────────────────────────────
 /// the line number of an APL function line (0 being the line to
 /// return from the function).
-enum Function_Line
+enum Function_Line : int
 {
    Function_Invalid = -3,   // invalid function line (in →N optimization)
    Function_Retry   = -2,   // →'' in immediate execution
@@ -232,7 +236,7 @@ const Function_Line before_increment = fl;
 /// interpreter as a high-level machine that executes token in user defined
 /// functions then this offset is the "program counter" of the high-level
 /// machine.
-enum Function_PC
+enum Function_PC : int
 {
    Function_PC_0       =  0,   ///< the first token in a function
    Function_PC_done    = -1,   ///< goto 0 (leave function)

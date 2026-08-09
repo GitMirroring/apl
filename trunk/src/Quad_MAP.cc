@@ -129,7 +129,7 @@ const ravel_comp_len * rcl = reinterpret_cast<const ravel_comp_len *>(ctx);
 //════════════════════════════════════════════════════════════════════════════
 
 Value_P
-Quad_MAP::do_map(const cValue & A, const vector<ShapeItem> ordered_indices_A,
+Quad_MAP::do_map(const cValue & A, const vector<ShapeItem> & ordered_indices_A,
                  cValue_R B, bool recursive)
 {
 Value_P Z(B.get_shape(), LOC);         // the result, ⍴Z ←→ ⍴B
@@ -139,7 +139,8 @@ const ravel_comp_len ctx = { &A, 1};
 const ShapeItem len_B = B.element_count();
    if (len_B == 0)   // empty value
       {
-         const Cell & cell_B = B.get_cfirst();
+         Cell cache_B;
+         const Cell & cell_B = B.get_cravel(0, cache_B);
          if (const ShapeItem * map =
                    Heapsort<ShapeItem>::search<const Cell &>
                                               (cell_B,
@@ -169,7 +170,8 @@ const ShapeItem len_B = B.element_count();
 
    loop(b, len_B)
        {
-         const Cell & cell_B = B.get_cravel(b);
+         Cell cache_B;
+         const Cell & cell_B = B.get_cravel(b, cache_B);
          if (const ShapeItem * map = Heapsort<ShapeItem>::search<const Cell &>
                    (cell_B, ordered_indices_A, compare_MAP, &ctx))
             {

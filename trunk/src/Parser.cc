@@ -190,11 +190,19 @@ Parser::parse(const Token_string & input, Token_string & tos,
 {
    parse_log(1, input);
 
-   // split input line into statements (separated by ◊)
+   // split input line into statements (separated by ◊). Held by value
+   // (not Token_string *) so that a thrown APL error -- parse_statement()
+   // below throws for many malformed inputs, not just returns an
+   // ErrorCode -- unwinds through ordinary RAII instead of leaking every
+   // not-yet-freed statement (Blake McBride, Bugs14 #4).
    //
-std::vector<Token_string *> statements;
+std::vector<Token_string> statements;
    {
-     Token_string * stat = new Token_string();
+     // mutate statements.back() in place rather than a reused/reassigned
+     // local: Token_string's operator= is private ("prevent accidental
+     // copying"), so it cannot be reassigned to start the next statement.
+     //
+     statements.push_back(Token_string());
      int curly_depth = 0;
      loop(idx, input.size())
         {
@@ -203,64 +211,47 @@ std::vector<Token_string *> statements;
              {
                case TOK_L_CURLY:
                     ++curly_depth;
-                    stat->push_back(tok);
+                    statements.back().push_back(tok);
                     break;
 
                case TOK_R_CURLY:
                     if (curly_depth)   --curly_depth;
                     else
                        {
-                         delete stat;
-                         while (statements.size())
-                            {
-                              delete statements.back();
-                              statements.pop_back();
-                            }
                          return E_UNBALANCED_R_CURLY;
                        }
-                    stat->push_back(tok);
+                    statements.back().push_back(tok);
                     break;
 
                case TOK_DIAMOND:
                     if (curly_depth)   // ◊ inside { ... }
                        {
                //        return E_ILLEGAL_DIAMOND;  // single statement { ... }
-                         stat->push_back(tok);      // multi  statement { ... }
+                         statements.back().push_back(tok);   // multi statement { ... }
                        }
                     else               // normal ◊
                        {
-                         statements.push_back(stat);
-                         stat = new Token_string();
+                         statements.push_back(Token_string());
                        }
                     break;
           default:
-               stat->push_back(tok);
+               statements.back().push_back(tok);
              }
         }
-     statements.push_back(stat);
    }
 
    loop(s, statements.size())
       {
-        Token_string * stat = statements[s];
-        if (const ErrorCode err = parse_statement(*stat, optimize))
-           {
-             while (size_t(s) < statements.size())
-               {
-                 stat = statements[s++];
-                 delete stat;
-               }
-             return err;
-           }
+        Token_string & stat = statements[s];
+        if (const ErrorCode err = parse_statement(stat, optimize))   return err;
 
         if (s)   tos.push_back(Token(TOK_DIAMOND));
 
-        loop(t, stat->size())
+        loop(t, stat.size())
            {
              tos.push_back(Token());
-             tos[tos.ssize() - 1].move_from((*stat)[t], LOC);
+             tos[tos.ssize() - 1].move_from(stat[t], LOC);
            }
-        delete stat;
       }
 
    return E_NO_ERROR;

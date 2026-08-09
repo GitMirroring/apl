@@ -296,11 +296,6 @@ Plot_data * data = setup_data(B);
    if (data == 0)   DOMAIN_ERROR;
 
 Plot_window_properties * w_props = new Plot_window_properties(data, verbosity);
-   if (w_props == 0)
-      {
-        delete data;
-        WS_FULL;
-      }
 
    Log(LOG_Quad_PLOT)
      CERR << "wprops = " << w_props << " created." << endl;
@@ -349,6 +344,7 @@ Plot_window_properties * w_props = new Plot_window_properties(data, verbosity);
              default_plot_driver == PltDrv_ASCII))        // and no GUI available
       {
         Value_P Z = do_plot_ASCII(*w_props, *data);
+        delete w_props;
         return Token(TOK_APL_VALUE2, Z);
       }
    else if (w_props->get_gui_driver() != "")
@@ -396,15 +392,11 @@ Plot_data * data = setup_data(B);
    if (data == 0)   DOMAIN_ERROR;
 
 Plot_window_properties * w_props = new Plot_window_properties(data, verbosity);
-   if (w_props == 0)
-      {
-        delete data;
-         WS_FULL;
-      }
 
    if (default_plot_driver == PltDrv_ASCII)     // no GUI available
       {
         Value_P Z = do_plot_ASCII(*w_props, *data);
+        delete w_props;
         return Token(TOK_APL_VALUE2, Z);
       }
 
@@ -777,9 +769,9 @@ Cell cX_cache, cY_cache, cZ_cache;
                   !B.get_cravel(p + data_points).is_real_cell())   DOMAIN_ERROR;
             }
 
+        if ((size_t)data_points > SIZE_MAX / 2)   WS_FULL;
         double * X = new double[2*data_points];
         double * Y = X + data_points;
-        if (!X)   WS_FULL;
 
         data = new Plot_data(rows);
 Cell cX_cache, cY_cache;
@@ -819,7 +811,6 @@ Cell cX_cache, cY_cache;
             }
 
         double * Y = new double[data_points];
-        if (!Y)   WS_FULL;
 
         data = new Plot_data(rows);
         loop(r, rows)

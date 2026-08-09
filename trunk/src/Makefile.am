@@ -239,6 +239,17 @@ if apl_PCRE
 common_SOURCES += Regexp.cc								Regexp.hh
 endif
 
+# Quad_SQL.cc (⎕SQL) is compiled unconditionally and includes
+# sql/Connection.hh regardless of which (if any) database backend is
+# configured. Connection.hh declares replace_bind_args() non-inline, so
+# its definition in sql/Connection.cc is Connection's vtable/typeinfo
+# key function (Connection.{hh,cc} need neither library, so this is
+# always safe to compile). Without it, a build with neither backend
+# fails to link with "undefined reference to typeinfo for Connection"
+# (Blake McBride, Bugs14 #13); it used to be compiled only as a side
+# effect of enabling one of the two backends below.
+common_SOURCES += sql/Connection.cc
+
 if apl_SQLITE3
 common_CXXFLAGS += $(SQLITE3_CFLAGS)
 common_LDFLAGS  += $(SQLITE3_LDFLAGS)
@@ -246,14 +257,9 @@ common_SOURCES  += sql/SqliteArgListBuilder.cc			sql/SqliteArgListBuilder.hh
 common_SOURCES += sql/SqliteConnection.cc				sql/SqliteConnection.hh
 common_SOURCES += sql/SqliteResultValue.cc				sql/SqliteResultValue.hh
 common_SOURCES += sql/SqliteProvider.cc					sql/SqliteProvider.hh
-common_SOURCES += sql/Connection.cc
 endif
 
 if apl_POSTGRES
-if !apl_SQLITE3
-common_SOURCES += sql/Connection.cc
-endif
-
 common_CXXFLAGS += $(POSTGRESQL_CFLAGS)
 common_LDFLAGS  += $(POSTGRESQL_LDFLAGS)
 common_SOURCES += sql/PostgresArgListBuilder.cc 		sql/PostgresArgListBuilder.hh

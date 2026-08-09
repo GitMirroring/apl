@@ -105,7 +105,7 @@ extern const char * event_name(Svar_event ev);
 typedef uint64_t SV_key;
 
 //────────────────────────────────────────────────────────────────────────────
-enum TCP_socket
+enum TCP_socket : int
 {
    NO_TCP_SOCKET = -1
 };

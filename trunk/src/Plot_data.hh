@@ -116,9 +116,14 @@ public:
    /// destructor
    ~Plot_data_row()
    {
-     // all rows belong to the same double *, so we only delete row 0
+     // all rows belong to the same double *, so we only delete row 0.
+     // That block is always allocated through X -- except for a 1-plane
+     // (Y-only) surface plot, which has no X and allocates the block
+     // through Y instead (Quad_PLOT.cc, setup_data_3D()'s planes==1
+     // branch); deleting only X there leaked the block (Blake McBride,
+     // Bugs14 #6).
      //
-     if (row_num == 0)   delete[] X;
+     if (row_num == 0)   delete[] (X ? X : Y);
    }
 
    /// return the number of data points
@@ -379,10 +384,18 @@ public:
         return val;
       }
 
-   /// return the idx'th row
-   /// @param idx zero-based row index
-   const Plot_data_row & operator[](ShapeItem idx) const
-      { Assert(idx < row_count);   return *data_rows[idx]; }
+   /// return the row'th row
+   /// @param row zero-based row index
+   const Plot_data_row & operator[](ShapeItem row) const
+      {
+        // bound-check against idx (rows actually filled by add_row()),
+        // not row_count (the allocated capacity) -- the parameter used
+        // to be named idx too, shadowing the member and checking the
+        // wrong bound (Blake McBride, Bugs14 #14a). data_rows itself is
+        // uninitialised past idx until add_row() fills it.
+        Assert(row < idx);
+        return *data_rows[row];
+      }
 
    /// convert a string to a Pixel
    /// @param str null-terminated string to parse

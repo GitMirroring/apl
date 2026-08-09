@@ -1718,7 +1718,8 @@ Monomial T;
 
              case '+': 
              case '-': terms.push_back(T);
-                       new (&T) Monomial;
+                       T = Monomial();   // reuse T's expos buffer, not
+                                         // new (&T) Monomial (leaked it)
                        term_sign = uni;
                        T.set_real(got_overbar, term_sign, 1.0);
                         ++src;
