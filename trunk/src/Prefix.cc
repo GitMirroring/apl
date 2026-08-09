@@ -197,8 +197,7 @@ Prefix::unmark_all_values() const
         const Token & tok = at(s).get_token();
         if (tok.get_ValueType() == TV_VAL)
            {
-             Value_P value = tok.get_apl_val();
-             if (+value)   value->unmark();
+             if (Value_P value = tok.get_apl_val())   value->unmark();
            }
         else if (tok.get_ValueType() == TV_INDEX)
            {
@@ -692,9 +691,8 @@ const TokenClass tc = tok.get_Class();
         else if (tag == TOK_APL_VALUE4)   out << "VALUE4(";
         else                              out << "VALUE?(";
 
-        Value_P value = tok.get_apl_val();
-        if (+value)   value->print_brief(out);
-        else          out << "0";
+        if (Value_P value = tok.get_apl_val())   value->print_brief(out);
+        else                                     out << "0";
         return out << ")";
       }
 
@@ -1370,8 +1368,7 @@ Symbol * const symbol = tl.get_token().get_sym_ptr();
         // is inefficient if the variable is big. We rather call
         // Symbol::get_var_value() directly in order to avoid that
         //
-        Value_P value = symbol->get_var_value();
-        if (+value)
+        if (Value_P value = symbol->get_var_value())
            {
              Token tok(TOK_APL_VALUE1, value);
              tl.get_token().move_from(tok, LOC);
@@ -1479,12 +1476,12 @@ Prefix::handle_QUAD_ES_COM(const Token & result)
 
    Workspace::pop_SI(LOC);   // discard ⎕EA/⎕EB context
 
-const Cell & QES_arg2 = result.get_apl_val()->get_cravel(2);
+Cell cache;
+const Cell & QES_arg2 = result.get_apl_val()->get_cravel(2, cache);
 Token & si_pushed = Workspace::SI_top()->get_prefix().at0();
    Assert(si_pushed.get_tag() == TOK_SI_PUSHED);
-   if (QES_arg2.is_pointer_cell())
+   if (Value_P val = QES_arg2.try_pointer_value())
       {
-        Value_P val = QES_arg2.get_pointer_value();
         new (&si_pushed)  Token(TOK_APL_VALUE2, val);
       }
    else
@@ -1519,7 +1516,8 @@ Prefix::handle_QUAD_ES_BRA(const Token & result)
 
    Workspace::pop_SI(LOC);   // discard the ⎕EA/⎕EB context
 
-const Cell & QES_arg2 = result.get_apl_val()->get_cravel(2);
+Cell cache;
+const Cell & QES_arg2 = result.get_apl_val()->get_cravel(2, cache);
 const APL_Integer line = QES_arg2.get_int_value();
 
 const Token & si_pushed = Workspace::SI_top()->get_prefix().at0();
@@ -2073,7 +2071,8 @@ Value_P top_val = top_sym->get_var_value();
         Value_P B = at3().get_apl_val();
         if (B->is_simple_scalar())
            {
-             member_cell->init(B->get_cfirst(), *member_owner, LOC);
+             Cell cache;
+             member_cell->init(B->get_cfirst(cache), *member_owner, LOC);
            }
         else
            {
@@ -2181,7 +2180,7 @@ DerivedFunction * derived = get_fun_oper_slot(LOC);
     */
 const Token dD(TOK_FUN2, derived);
 
-   if (+value_B)   // case 1 (valid B)
+   if (value_B)   // case 1 (valid B)
       {
         // save locations of ⍤ and B
         //
@@ -2305,7 +2304,7 @@ DerivedFunction * derived = get_fun_oper_slot(LOC);
     */
 const Token tok_derived(TOK_FUN2, derived);
 
-   if (+value_B)   // case 1 (valid B)
+   if (value_B)   // case 1 (valid B)
       {
         const Function_PC pc_B = at(3).get_PC();
 
@@ -2583,7 +2582,7 @@ Token result = at1();
              // sibling reduce_LBRA_B_I_() below.
              //
              Value_P X = idx.extract_axis();
-             Assert1(+X);   // not [ ]
+             Assert1(X);   // not [ ]
              Token tok_axis(TOK_AXIS, X);
              result.move_from(tok_axis, LOC);
              Log(LOG_delete)
@@ -2625,7 +2624,7 @@ const bool last_index = (at0().get_tag() == TOK_L_BRACK);   // ; vs. [
         if (idx.is_axis())   // [] or [ axis ]
            {
              Value_P X = idx.extract_axis();
-             Assert1(+X);   // not [ ]
+             Assert1(X);   // not [ ]
              Token tok_axis(TOK_AXIS, X);
              I.move_from(tok_axis, LOC);
              Log(LOG_delete)
@@ -3101,8 +3100,9 @@ Prefix::reduce_A_GOTO_B_()
    // we want this to be fast, therefore we don't check the shape but
    // rather use ↑A and ↑B,
    //
-const Cell & A0 = at0().get_apl_val()->get_cfirst();   // the jump offset
-const Cell & B0 = at2().get_apl_val()->get_cfirst();   // the condition
+Cell cache_A, cache_B;
+const Cell & A0 = at0().get_apl_val()->get_cfirst(cache_A); // the jump offset
+const Cell & B0 = at2().get_apl_val()->get_cfirst(cache_B); // the condition
 
    if (!A0.is_near_int())
       {

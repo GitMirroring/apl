@@ -83,7 +83,8 @@ const APL_Integer qio = Workspace::get_IO();
        {
          Cell c1_cache;
          const Cell & c1 = A.get_cravel(a-1, c1_cache);
-         const Cell & c2 = A.get_cravel(a);
+         Cell c2_cache;
+         const Cell & c2 = A.get_cravel(a, c2_cache);
          const Comp_result c1_c2 = c1.compare(c2);
          if (c1_c2 != COMP_LT)
             {
@@ -96,18 +97,16 @@ const APL_Integer qio = Workspace::get_IO();
 Value_P Z(B.get_shape(), LOC);
 
    // find_range() below fetches from A while its cell argument (fetched
-   // from B here) is still live; for V⍸V, A and B are the same Value
-   // sharing one cell_fetch_cache, so a raw reference into it (plain
-   // B.get_cravel(b)) gets clobbered by the first A.get_cravel() inside
-   // find_range() -- same aliasing bug as A⍳B above, and the same fix:
-   // materialize into caller-owned storage (the generic sort check a few
-   // lines above this function already does this with its own c1_cache).
-Cell key_B_cache;
+   // from B here) is still live; for V⍸V, A and B are the same Value, so
+   // a raw reference from the shared no-cache fetch (plain B.get_cravel(b))
+   // used to get clobbered by the first A.get_cravel() inside find_range()
+   // -- same aliasing bug as A⍳B above, and the same fix: materialize into
+   // caller-owned storage (the generic sort check a few lines above this
+   // function already does this with its own c1_cache).
    loop(b, ec_B)
       {
-        const Cell & key_B = B.is_packed()
-                            ? B.get_cravel(b, key_B_cache)
-                            : B.get_cravel(b);
+        Cell key_B_cache;
+        const Cell & key_B = B.get_cravel(b, key_B_cache);
         const ShapeItem z = find_range(key_B, A, ec_A);
         Z->next_ravel_Int(z + qio);
       }
@@ -173,8 +172,7 @@ const ShapeItem ec_B = B.element_count();
 ShapeItem count = 0;
    loop(b, ec_B)
        {
-         const Cell & cell = B.get_cravel(b);
-         if (!cell.is_near_int())
+         if (!B.is_near_int(b))
             {
               MORE_ERROR() << "⍸B: Bad type of argument B"
                               " (expecting integers)";
@@ -215,8 +213,7 @@ Value_P Z(count, LOC);
 const uRank rank = B.get_rank();
    loop(b, ec_B)
        {
-         const Cell & cell = B.get_cravel(b);
-         const APL_Integer Bi = cell.get_near_int();   // number of repetitions
+         const APL_Integer Bi = B.get_near_int(b);   // number of repetitions
          if (!Bi)   continue;   // nothing to do
 
         const Shape sh_b = B.get_shape().offset_to_index(b, qio);
@@ -254,10 +251,11 @@ Bif_F12_INTERVAL_INDEX::find_range(const Cell & cell, cValue_R A,
    // first check if cell is below or above it
    //
    {
-     const Comp_result c0 = cell.compare(A.get_cfirst());
+     Cell cache;
+     const Comp_result c0 = cell.compare(A.get_cfirst(cache));
      if (c0 == COMP_LT)   return -1;   // == 0 with ⎕IO = 1
 
-     const Comp_result cN = cell.compare(A.get_cravel(range_count - 1));
+     const Comp_result cN = cell.compare(A.get_cravel(range_count - 1, cache));
      if (cN != COMP_LT)   return range_count-1;
    }
 
@@ -267,7 +265,8 @@ ShapeItem ret = 0;
    while (range_count > 1)
          {
            const ShapeItem middle = range_count >> 1;
-           const Comp_result cm = cell.compare(A.get_cravel(ret + middle));
+           Cell cache;
+           const Comp_result cm = cell.compare(A.get_cravel(ret + middle, cache));
            if (cm == COMP_LT)   // cell is below the middle
               {
                 range_count = middle;

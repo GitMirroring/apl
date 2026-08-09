@@ -122,22 +122,17 @@ Value_P Z(B.get_shape(), LOC);
         vector<ShapeItem> sorted_idx_A;
         Cell::sorted_indices(sorted_idx_A, A, SORT_ASCENDING, 1);
 
-        // for a packed B, get_cravel(idx) materializes the element into
-        // B's single shared ravel.cell_fetch_cache; find_B_in_sorted_A()
+        // for a packed B, the no-cache fetch used to materialize the
+        // element into B's single shared ravel cache; find_B_in_sorted_A()
         // keeps the cell_B reference alive while also fetching from A
         // (and for X⍳X, A and B are the very same Value), so a raw
         // reference into the shared cache would be clobbered mid-search.
         // Materialize into caller-owned stable storage instead.
         //
-        vector<uint8_t> stable_B_mem;
-        if (B.is_packed())   stable_B_mem.resize(len_BZ * sizeof(Cell));
-        Cell * stable_B = reinterpret_cast<Cell *>(stable_B_mem.data());
-
+        Cell stable_B;
         loop(bz, len_BZ)
             {
-              const Cell & key_B = B.is_packed()
-                                  ? B.get_cravel(bz, stable_B[bz])
-                                  : B.get_cravel(bz);
+              const Cell & key_B = B.get_cravel(bz, stable_B);
               const APL_Integer z = find_B_in_sorted_A(A, sorted_idx_A,
                                                        key_B, qct);
 
@@ -161,16 +156,14 @@ Value_P Z(B.get_shape(), LOC);
         // see the "materialize into caller-owned stable storage" comment
         // in the sorted path above -- find_B_in_A() below fetches from A
         // while cell_B (fetched from B) is still live, and for V⍳V, A and
-        // B are the same Value sharing one cell_fetch_cache: a raw
-        // reference into it gets clobbered by A.get_cravel() on the very
-        // first comparison, so every search degenerated into "compare
+        // B are the same Value: a raw reference from the (then-)shared
+        // no-cache fetch used to get clobbered by A.get_cravel() on the
+        // very first comparison, so every search degenerated into "compare
         // A[0] against itself" (V⍳V returned all 1s instead of 1 2 … 20).
         Cell stable_B;
         loop(bz, len_BZ)
             {
-              const Cell & key_B = B.is_packed()
-                                  ? B.get_cravel(bz, stable_B)
-                                  : B.get_cravel(bz);
+              const Cell & key_B = B.get_cravel(bz, stable_B);
               const APL_Integer z = find_B_in_A(A, len_A, key_B, qct);
 
               if (simple_result)   Z->next_ravel_Int(qio + z);
@@ -292,7 +285,8 @@ Bif_F12_INDEX_OF::bs_cmp(const Cell & cell, const ShapeItem & A,
                          const void * ctx)
 {
 const cValue * VA = reinterpret_cast<const cValue *>(ctx);
-const Cell & cell_A = VA->get_cravel(A);
+Cell cache;
+const Cell & cell_A = VA->get_cravel(A, cache);
 
    if (cell_A.is_pointer_cell() && !cell.is_pointer_cell())   return COMP_LT;
 
@@ -313,7 +307,8 @@ const ShapeItem * const posp =
    if (!posp)   return len_A;   // cell_B was not found in ravel A
 
 ShapeItem pos = Idx_A[posp - Idx_A.data()];   // A[pos] = cell_B within qct
-   Assert(cell_B.equal(A.get_cravel(pos), qct));
+Cell pos_cache;
+   Assert(cell_B.equal(A.get_cravel(pos, pos_cache), qct));
 
    // A[pos] = cell_B, but there could be predecessors of pos that also
    // satisfy A[pos] = cell_B. Search neighbor with smallest index in A.
@@ -322,7 +317,8 @@ ShapeItem ret = pos;
    for (const ShapeItem * posp1 = posp - 1; posp1 >= Idx_A.data(); --posp1)
        {
          ShapeItem pos1 = Idx_A[posp1 - Idx_A.data()];
-         const Cell & C1 = A.get_cravel(pos1);
+         Cell cache;
+         const Cell & C1 = A.get_cravel(pos1, cache);
          if (!cell_B.equal(C1, qct))    break;
          if (ret > pos1)   ret = pos1;
        }
@@ -330,7 +326,8 @@ ShapeItem ret = pos;
    for (const ShapeItem * posp2 = posp + 1; posp2 < (Idx_A.data() + len_A); ++posp2)
        {
          ShapeItem pos2 = Idx_A[posp2 - Idx_A.data()];
-         const Cell & C2 = A.get_cravel(pos2);
+         Cell cache;
+         const Cell & C2 = A.get_cravel(pos2, cache);
          if (!cell_B.equal(C2, qct))    break;
          if (ret > pos2)   ret = pos2;
        }

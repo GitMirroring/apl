@@ -358,6 +358,40 @@ public:
    /// Return the APL value of a cell (Asserts for non-lval cells)
    virtual Cell * get_lval_value() const   { LEFT_SYNTAX_ERROR; }
 
+   /// like get_lval_value(), but returns 0 instead of throwing
+   /// LEFT_SYNTAX_ERROR when this cell is not an lval cell -- lets callers
+   /// write if (Cell * target = cell.try_lval_value()) { ... } instead of
+   /// a separate is_lval_cell() check first. A 0 result is therefore
+   /// ambiguous between "not an lval cell" and "a genuine lval cell whose
+   /// target is itself 0" (e.g. an invalid LvalCell(0, 0) left behind by
+   /// an overtake ↑) -- both cases mean "nothing to write through" to the
+   /// caller, so the ambiguity doesn't matter in practice. Non-virtual:
+   /// composes the two already-virtual calls above/below, no Cell
+   /// subclass needs its own override. Unlike try_pointer_value() (in
+   /// Cell.cc), safe to define inline here: Cell * needs no complete type.
+   Cell * try_lval_value() const
+      { return is_lval_cell() ? get_lval_value() : 0; }
+
+   /// return the Value that owns the cell this points to (PointerCell) or
+   /// the cell this refers to (LvalCell); throws DOMAIN_ERROR for any
+   /// other cell type.
+   virtual Value * get_cell_owner() const   { DOMAIN_ERROR; }
+
+   /// verify this cell's internal invariants (currently meaningful only
+   /// for LvalCell -- see LvalCell::check_consistency()); a no-op for
+   /// every other cell type.
+   virtual void check_consistency() const   {}
+
+   /// make the nested Value this cell points to (if any) uniquely owned
+   /// (copy-on-write clone if shared); a no-op for every cell type other
+   /// than PointerCell -- see PointerCell::isolate().
+   virtual void isolate(const char * loc)   {}
+
+   /// like isolate(), but also isolates every sub-value transitively; a
+   /// no-op for every cell type other than PointerCell -- see
+   /// PointerCell::isolate_deep().
+   virtual void isolate_deep(const char * loc)   {}
+
    /// Return value if it is close to boolean, or else throw DOMAIN_ERROR
    virtual bool get_near_bool()  const
       { DOMAIN_ERROR; }
@@ -582,6 +616,17 @@ public:
 
    /// Return the APL value of a cell (Asserts for non-pointer cells)
    virtual Value_P get_pointer_value()  const;
+
+   /// like get_pointer_value(), but returns an empty (null) Value_P
+   /// instead of throwing DOMAIN_ERROR when this cell is not a pointer
+   /// cell -- lets callers write if (Value_P v = cell.try_pointer_value())
+   /// instead of a separate is_pointer_cell() check first. Non-virtual:
+   /// composes the two already-virtual calls below, so Cell subclasses
+   /// need no override of their own. Defined out-of-line in Cell.cc (not
+   /// inline here), same as get_pointer_value() below: Value_P's own
+   /// destructor isn't visible yet at this point in Cell.hh, and an
+   /// inline body would need it to destroy the empty Value_P temporary.
+   Value_P try_pointer_value() const;
 
    /// Return \b true if \b this cell is greater than \b other, with:
    /// 1. PointerCell > NumericCell > CharCell

@@ -58,8 +58,10 @@ protected:
    static ShapeItem find_B_in_A(cValue_R A, ShapeItem len_A,
                          const Cell & cell_B, double qct)
       {
-        loop(a, len_A)   if (cell_B.equal(A.get_cravel(a), qct))   return a;   // found
-        return len_A;                                                            // not found
+        Cell cache;
+        loop(a, len_A)
+            if (cell_B.equal(A.get_cravel(a, cache), qct))   return a;   // found
+        return len_A;                                                   // not found
       }
 
    /// compare function for Heapsort<ShapeItem>::search<const Cell &>

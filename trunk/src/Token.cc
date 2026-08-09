@@ -142,7 +142,7 @@ const TokenTag tag = token.get_tag();
              else                              out << "VALUE???";
              {
                Value_P value = token.get_apl_val();
-               Assert(+value);
+               Assert(value);
                const APL_types::Depth depth = value->compute_depth();
                out << "«";
                for (APL_types::Depth d = 0; d < depth; ++d)   out << "≡";
@@ -397,8 +397,7 @@ Token::get_function_axis() const
 
    if (get_tag() == TOK_AXIS)   // axis is an APL value
       {
-        Value_P Z = get_apl_val();
-        if (+Z)   return Z;
+        if (Value_P Z = get_apl_val())   return Z;
         MORE_ERROR() << "Invalid function axis []";
         AXIS_ERROR;
       }
@@ -572,7 +571,8 @@ Token::print_value(ostream & out) const
                       }
 
                    const PrintContext pctx(PR_APL, 2, 80);
-                   out << UCS_string(v->get_cravel(e)
+                   Cell cache;
+                   out << UCS_string(v->get_cravel(e, cache)
                                        .character_representation(pctx), 0, 80)
                        << " ";
                  }

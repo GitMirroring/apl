@@ -40,7 +40,8 @@ Value_P Z(LOC);   // Z ← ⊂B is always a scalar
 
    if (B.is_simple_scalar())   // B is not nested: copy ↑B
       {
-        Z->next_ravel_Cell(B.get_cscalar());
+        Cell cache;
+        Z->next_ravel_Cell(B.get_cscalar(cache));
       }
    else                         // B is nested: clone and copy
       {
@@ -132,7 +133,8 @@ Value_P Z(shape_Z, LOC);
                     loop(i, item_shape.get_rank())
                         off_B += it_sh.get_shape_item(i)
                                * it_weights.get_shape_item(i);
-                   vZ->next_ravel_Cell(B->get_cravel(off_Z + off_B));
+                   Cell cache;
+                   vZ->next_ravel_Cell(B->get_cravel(off_Z + off_B, cache));
                  }
            }
         vZ->check_value(LOC);
@@ -244,7 +246,9 @@ const ShapeItem B3_lm = shape_B3.l() * shape_B3.m();
          Value_P ZZ(partition_len, LOC);   // the m'th partition
          loop(p, partition_len)
              {
-               ZZ->next_ravel_Cell(B.get_cravel(start_B + p * shape_B3.l()));
+               Cell cache;
+               ZZ->next_ravel_Cell(B.get_cravel(start_B + p * shape_B3.l(),
+                                                 cache));
              }
          ZZ->check_value(LOC);
          Z->next_ravel_Pointer(ZZ.get());
@@ -301,7 +305,8 @@ const ShapeItem item_len = item_shape.get_volume();
 
    if (item_len == 0)   // empty enclosed value
       {
-        const Cell & B0 = B.get_cproto();
+        Cell cache_B0;
+        const Cell & B0 = B.get_cproto(cache_B0);
         if (B0.is_pointer_cell())
            {
              // B0's own value has shape item_shape (item_len == 0 can only
@@ -337,7 +342,8 @@ const ShapeItem item_len = item_shape.get_volume();
 
    loop(b, len_B)   // for all items in B...
        {
-         const Cell & B_item = B.get_cravel(b);
+         Cell cache;
+         const Cell & B_item = B.get_cravel(b, cache);
          disclose_item(*Z, b, item_shape, item_len, B_item);
        }
 
@@ -493,10 +499,11 @@ ShapeItem ret[MAX_RANK];
        {
          const cValue * val;
          {
-           const Cell & cB = B.get_cravel(b);
-           if (cB.is_pointer_cell())
+           Cell cache;
+           const Cell & cB = B.get_cravel(b, cache);
+           if (Value_P v = cB.try_pointer_value())
               {
-                val = cB.get_pointer_value().get();
+                val = v.get();
               }
            else if (cB.is_lval_cell())
               {
@@ -560,7 +567,8 @@ Bif_F12_PICK::pick(cValue_R A, ShapeItem idx_A, ShapeItem len_A,
    // A[idx_A] is the current index of B.
    //
 const ShapeItem offset = pick_offset(A, idx_A, len_A, B, qio);
-const Cell & cB = B.get_cravel(offset);
+Cell cache;
+const Cell & cB = B.get_cravel(offset, cache);
 
    if (len_A > 1)   // more levels coming.
       {
@@ -606,10 +614,9 @@ const Cell & cB = B.get_cravel(offset);
    // len_A == 1, means that the end of the iteration over A has been reached,
    // and that cB is the cell in B that was pick'ed by A⊃B.
    //
-   if (cB.is_pointer_cell())
+   if (Value_P v = cB.try_pointer_value())
       {
-        Value_P Z = CLONE_P(cB.get_pointer_value(), LOC);
-        return Z;
+        return CLONE_P(v, LOC);
       }
 
    if (cB.is_lval_cell())   // selective assignment, e.g. (A⊃B) ← C
@@ -656,7 +663,8 @@ ShapeItem
 Bif_F12_PICK::pick_offset(cValue_R A, ShapeItem idx_A,
                           ShapeItem len_A, cValue_R B, APL_Integer qio)
 {
-const Cell & cA = A.get_cravel(idx_A);
+Cell cache;
+const Cell & cA = A.get_cravel(idx_A, cache);
 
    if (cA.is_pointer_cell())   // then B shall be a 1-dimensional array
       {
@@ -688,7 +696,7 @@ const Cell & cA = A.get_cravel(idx_A);
              members.push_back(&member);
              members.push_back(&top_level);   // dummy, must be last
              const Cell * Bsub = B.get_existing_member(members);  // may throw
-             return Bsub - &B.get_cfirst();
+             return B.get_offset(Bsub);
            }
         else                  // case ii. (normal B)
            {

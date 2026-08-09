@@ -112,7 +112,8 @@ const ShapeItem len_Z = Z->element_count();
 
    if (len_B == 0)   // empty B: use prototype of B for all cells of Z
       {
-        loop(z, len_Z)   Z->next_ravel_Proto(B.get_cproto());
+        Cell cache;
+        loop(z, len_Z)   Z->next_ravel_Proto(B.get_cproto(cache));
       }
    else
       {
@@ -148,9 +149,10 @@ const ShapeItem len_Z = Z->element_count();
            }
         else
            {
+             Cell cache;
              loop(z, len_Z)
                {
-                 Z->next_ravel_Cell(B.get_cravel(z % len_B));
+                 Z->next_ravel_Cell(B.get_cravel(z % len_B, cache));
                }
            }
       }

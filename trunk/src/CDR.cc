@@ -358,7 +358,7 @@ const uint8_t * ravel = data + 16 + 4*rank;
 
               CDR_string sub_cdr(sub_data, sub_cdr_len);
               Value_P sub_val = from_CDR(sub_cdr, LOC, nest_level + 1);
-              Assert(+sub_val);
+              Assert(sub_val);
               Z->next_ravel_Pointer(sub_val.get());
             }
       }
@@ -593,17 +593,16 @@ const uint32_t nelm = val.element_count();
              result.push_back(Unicode(offset >> 16 & 0xFF));
              result.push_back(Unicode(offset >> 24 & 0xFF));
 
-             const Cell & cell = val.get_cravel(e);
-             if (cell.is_simple_cell())
+             if (val.is_simple_cell(e))
                 {
                   // a non-pointer sub value: 16 byte header,
                   // and 1-16 data bytes, padded up to 16 bytes,
                   //
                   offset += 32;
                 }
-             else if (cell.is_pointer_cell())
+             else if (val.is_pointer_cell(e))
                 {
-                  const cValue & sub_val = *cell.get_pointer_value();
+                  const cValue & sub_val = *val.get_pointer_value(e);
                   const CDR_type sub_type = sub_val.get_CDR_type();
                   offset += sub_val.total_CDR_size_brutto(sub_type);
                 }
@@ -620,7 +619,8 @@ const uint32_t nelm = val.element_count();
         //
         loop(e, nelm)
            {
-             const Cell & cell = val.get_cravel(e);
+             Cell cache;
+             const Cell & cell = val.get_cravel(e, cache);
              if (cell.is_simple_cell())
                 {
                   Value_P sub_val(LOC);

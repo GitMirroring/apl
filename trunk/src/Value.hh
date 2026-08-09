@@ -208,10 +208,13 @@ public:
    ShapeItem get_rows() const
       { return shape.get_rows(); }
 
-   /// return the position of cell in the ravel of \b this value.
+   /// return the position of cell in the ravel of \b this value. Only
+   /// meaningful for an unpacked (RPT_CELLS) ravel, where \b cell is a
+   /// genuine address inside ravel.cells (e.g. an LvalCell/PointerCell
+   /// target); packed ravels have no per-Cell addresses to compare against.
    /// @param cell pointer to the ravel cell whose offset is required
    ShapeItem get_offset(const Cell * cell) const
-      { return cell - &get_cfirst(); }
+      { return cell - ravel.cells; }
 
    /// return the next byte after the ravel
    const Cell * get_ravel_end() const
@@ -321,14 +324,6 @@ public:
    /// return the number of (valid) members, as per this[1;]
    ShapeItem get_member_count() const;
 
-   /// return the (constant) idx'th element of the ravel.
-   /// For packed ravels the cell is materialised into ravel.cell_fetch_cache;
-   /// the reference is valid until the next get_cravel() call on the same Value.
-   /// Use get_cravel(idx, cache) when two references from the same Value must
-   /// be live simultaneously.
-   /// @param idx ravel index (0-based)
-   const Cell & get_cravel(ShapeItem idx) const;
-
    /// current ravel packing type (RPT_CELLS = unpacked Cell array)
    RavelType get_ravel_type() const
       { return RavelType(flags.ravel_type); }
@@ -400,6 +395,14 @@ public:
    Value_P get_pointer_value(ShapeItem idx) const
       { return ravel.get_pointer_value(idx); }
 
+   /// like get_pointer_value(idx), but returns an empty (null) Value_P
+   /// instead of throwing DOMAIN_ERROR when the cell at idx is not a
+   /// pointer cell -- see Ravel::try_pointer_value()/Cell::try_pointer_value().
+   /// Lets callers write if (Value_P v = X.try_pointer_value(idx)) { ... }
+   /// instead of a separate is_pointer_cell(idx) check first.
+   Value_P try_pointer_value(ShapeItem idx) const
+      { return ravel.try_pointer_value(idx); }
+
    bool is_pointer_cell(ShapeItem idx) const
       { return ravel.is_pointer_cell(idx); }
    bool is_lval_cell(ShapeItem idx) const
@@ -423,45 +426,60 @@ public:
    bool is_real_cell(ShapeItem idx) const
       { return ravel.is_real_cell(idx); }
 
-   /// like get_cravel(), but materialises packed cells into caller-supplied
-   /// \b cache instead of the shared ravel.cell_fetch_cache.  Use this when
-   /// two references from the same value must be live simultaneously (e.g.
-   /// inside a comparator).
+   /// return the (constant) idx'th element of the ravel, materialising a
+   /// packed cell into caller-supplied \b cache instead of a shared,
+   /// per-Value cache -- safe even when two references from the same (or
+   /// an aliased) Value must be live simultaneously (e.g. inside a
+   /// comparator).
+   /// @param idx ravel index (0-based)
+   /// @param cache caller-owned Cell to materialise a packed element into
    const Cell & get_cravel(ShapeItem idx, Cell & cache) const
       {
         Assert1(idx < nz_element_count());
+
+        // packed-empty-value special case: for packed empty values
+        // cells[0] holds Cell vtable bits, not valid packed data -- the
+        // prototype was never written in the packed format. Materialise 0.
+        // (Quad_CR10.tc regression: do_CR10_level's counting loop hit
+        // exactly this, idx 0 on a packed empty value, via nz_element_count()
+        // being "at least 1" for the prototype.)
+        //
+        if (idx == 0 && is_packed() && is_empty())
+           { new (&cache) IntCell(0); return cache; }
+
         const Cell & result = ravel.fetcher(idx, ravel.cells, cache);
 
-        // see Ravel::get_cravel()'s comment -- same contract, same check.
+        // every fetcher except cell_fetcher() (whose cache parameter is
+        // intentionally unused -- an unpacked ravel already holds real
+        // Cells, cells[offset] IS the cell) must materialise into, and
+        // return a reference to, *this* cache -- not some other object.
         //
         Assert(ravel.fetcher == &Ravel::cell_fetcher || &result == &cache);
         return result;
       }
 
-   /// return the first element of the ravel (which is always present).
-   /// same as get_cproto(), but named differently to indicate its context.
-   const Cell & get_cfirst() const
-      {
-        // For packed empty values cells[0] holds a Cell vtable pointer, not a
-        // valid packed element.  Materialise the zero prototype into the cache.
-        if (is_packed() && is_empty())
-           { new (&ravel.cell_fetch_cache) IntCell(0); return ravel.cell_fetch_cache; }
-        return ravel.get_cfirst();
-      }
-
-   /// return the first element of the ravel (which is always present)
-   /// same as get_first(), but named differently to indicate its context.
-   const Cell & get_cproto() const
+   /// like get_cravel(idx, cache), but for the first element of the ravel
+   /// (which is always present); same as get_cproto(cache), but named
+   /// differently to indicate its context.
+   const Cell & get_cfirst(Cell & cache) const
       {
         if (is_packed() && is_empty())
-           { new (&ravel.cell_fetch_cache) IntCell(0); return ravel.cell_fetch_cache; }
-        return ravel.get_cproto();
+           { new (&cache) IntCell(0); return cache; }
+        return get_cravel(0, cache);
       }
 
-   /// return the first element of the ravel of a scalar
-   /// same as get_cfirst(), but named differently to indicate its context.
-   const Cell & get_cscalar() const
-      { return ravel.get_cscalar(); }
+   /// like get_cfirst(Cell&), but for the first element of the ravel (the
+   /// prototype of an empty value); same as get_cfirst(cache) above.
+   const Cell & get_cproto(Cell & cache) const
+      {
+        if (is_packed() && is_empty())
+           { new (&cache) IntCell(0); return cache; }
+        return get_cravel(0, cache);
+      }
+
+   /// like get_cfirst(Cell&), but for the single ravel element of a scalar.
+   const Cell & get_cscalar(Cell & cache) const
+      { return get_cravel(0, cache); }
 
    /// return \b true iff more ravel items (as per shape) need to be initialized.
    /// (the prototype of empty values may still be missing)

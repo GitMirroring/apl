@@ -137,7 +137,8 @@ cFunction_P LO = _LO.get_function();
         //
         if (Z1->is_simple_scalar())     // then ⊂Z1 is Z1
            {
-             Z->set_ravel_Cell(0, Z1->get_cscalar());
+             Cell cache;
+             Z->set_ravel_Cell(0, Z1->get_cscalar(cache));
            }
         else   // need to enclose Z1
            {
@@ -195,11 +196,13 @@ cFunction_P LO = _LO.get_function();
              if (extend_B && !B.is_scalar())   // 1-element non-scalar B
                 {
                   Value_P A1(LOC);   // A1 ← , A
-                  A1->get_wscalar().init(A.get_cscalar(), *A1, LOC);
+                  Cell cache_A;
+                  A1->get_wscalar().init(A.get_cscalar(cache_A), *A1, LOC);
                   A1->check_value(LOC);
 
                   Value_P B1(LOC);   // B1 ← , B
-                  B1->get_wscalar().init(B.get_cscalar(), *B1, LOC);
+                  Cell cache_B;
+                  B1->get_wscalar().init(B.get_cscalar(cache_B), *B1, LOC);
                   B1->check_value(LOC);
 
                   return macro->eval_ALB(*A1, _LO, *B1);
@@ -207,7 +210,8 @@ cFunction_P LO = _LO.get_function();
              else
                 {
                   Value_P A1(LOC);
-                  A1->get_wscalar().init(A.get_cfirst(), *A1, LOC);
+                  Cell cache;
+                  A1->get_wscalar().init(A.get_cfirst(cache), *A1, LOC);
                   A1->check_value(LOC);
 
                   return macro->eval_ALB(*A1, _LO, B);
@@ -216,7 +220,8 @@ cFunction_P LO = _LO.get_function();
         else if (extend_B && !B.is_scalar())   // 1-element non-scalar B
            {
              Value_P B1(LOC);
-             B1->get_wscalar().init(B.get_cfirst(), *B1, LOC);
+             Cell cache;
+             B1->get_wscalar().init(B.get_cfirst(cache), *B1, LOC);
              B1->check_value(LOC);
 
              return macro->eval_ALB(A, _LO, *B1);
@@ -265,8 +270,9 @@ Value_P Z;
 
    loop(z, len_Z)
       {
-        const Cell & cA = A.get_cravel(inc_A * z);
-        const Cell & cB = B.get_cravel(inc_B * z);
+        Cell cache_A, cache_B;
+        const Cell & cA = A.get_cravel(inc_A * z, cache_A);
+        const Cell & cB = B.get_cravel(inc_B * z, cache_B);
         const bool left_val = cB.is_lval_cell();
         Value_P LO_A = cA.to_value(LOC);     // left argument of LO
         Value_P LO_B = cB.to_value(LOC);     // right argument of LO;
@@ -293,7 +299,10 @@ Value_P Z;
              if (!Z)
                 ;   // LO without result: nothing to store
              else if (vZ->is_simple_scalar() || (left_val && vZ->is_scalar()))
-                Z->next_ravel_Cell(vZ->get_cfirst());
+                {
+                  Cell cache;
+                  Z->next_ravel_Cell(vZ->get_cfirst(cache));
+                }
              else
                 Z->next_ravel_Pointer(vZ.get());
 
@@ -384,7 +393,10 @@ cFunction_P LO = _LO.get_function();
         // Z1 is the prototype of the empty Z
         //
         if (Z1->is_simple_scalar())     // then ⊂Z1 is Z1
-           Z->set_ravel_Cell(0, Z1->get_cscalar());
+           {
+             Cell cache;
+             Z->set_ravel_Cell(0, Z1->get_cscalar(cache));
+           }
         else                            // need to encose Z1
            Z->set_ravel_Pointer(0, Z1.get());
 
@@ -423,7 +435,10 @@ Value_P Z;
                   if (!Z)
                      ;   // LO without result: nothing to store
                   else if (vZ->is_simple_scalar())
-                     Z->next_ravel_Cell(vZ->get_cfirst());
+                     {
+                       Cell cache;
+                       Z->next_ravel_Cell(vZ->get_cfirst(cache));
+                     }
                   else
                      Z->next_ravel_Pointer(vZ.get());
 
@@ -438,7 +453,8 @@ Value_P Z;
            }
         else
            {
-             const Cell & cB = B.get_cravel(z);
+             Cell cache;
+             const Cell & cB = B.get_cravel(z, cache);
              const bool is_left_val = cB.is_lval_cell();
              Value_P LO_B = cB.to_value(LOC);      // right argument of LO
 
@@ -461,7 +477,10 @@ Value_P Z;
                      ;   // LO without result: nothing to store
                   else if (vZ->is_simple_scalar() ||
                            (is_left_val && vZ->is_scalar()))
-                     Z->next_ravel_Cell(vZ->get_cfirst());
+                     {
+                       Cell cache;
+                       Z->next_ravel_Cell(vZ->get_cfirst(cache));
+                     }
                   else
                      Z->next_ravel_Pointer(vZ);
 

@@ -1525,15 +1525,15 @@ int conversion_count_A = 0;   // the number of conversions (in A_format)
                      case 'u':   case 'x':   case 'X':   case 'p':
                           {
                             COUNT_ARG;
-                            const Cell & cell = B.get_cravel(off_B++);
+                            const ShapeItem idx_B = off_B++;
                             APL_Integer int_val;
-                            if (cell.is_integer_cell())
+                            if (B.is_integer_cell(idx_B))
                                {
-                                 int_val = cell.get_int_value();
+                                 int_val = B.get_int_value(idx_B);
                                }
                             else
                                {
-                                 const double fv = cell.get_real_value();
+                                 const double fv = B.get_real_value(idx_B);
                                  if (!(fv > -BIG_INT64_F && fv < BIG_INT64_F))
                                     {
                                       MORE_ERROR() << "value " << fv
@@ -2170,7 +2170,8 @@ const UTF8_string path(path_ucs);
 const ShapeItem line_count = A->element_count();
    loop(a, line_count)
        {
-         const Cell & cA = A->get_cravel(a);
+         Cell cache;
+         const Cell & cA = A->get_cravel(a, cache);
          if (!cA.is_pointer_cell())
             {
                MORE_ERROR() <<
@@ -2195,7 +2196,8 @@ FILE * f = fopen(path.c_str(), "w");
 
    loop(a, line_count)
        {
-         const Cell & cA = A->get_cravel(a);
+         Cell cache;
+         const Cell & cA = A->get_cravel(a, cache);
          const Value & Ai = *cA.get_pointer_value();
          UCS_string line_ucs(Ai);
          UTF8_string line_utf(line_ucs);
@@ -3022,7 +3024,8 @@ APL_Integer max_fd = -1;
 
    if (B->element_count() >= 3)
       {
-        const Cell & b2 = B->get_cravel(2);
+        Cell cache;
+        const Cell & b2 = B->get_cravel(2, cache);
         if (!b2.is_pointer_cell())   DOMAIN_ERROR;
         Value_P vex = b2.get_pointer_value();
         loop(l, vex->element_count())
@@ -3038,7 +3041,8 @@ APL_Integer max_fd = -1;
 
    if (B->element_count() >= 2)
       {
-        const Cell & b1 = B->get_cravel(1);
+        Cell cache;
+        const Cell & b1 = B->get_cravel(1, cache);
         if (!b1.is_pointer_cell())   DOMAIN_ERROR;
         Value_P vwr = b1.get_pointer_value();
         loop(l, vwr->element_count())
@@ -3054,7 +3058,8 @@ APL_Integer max_fd = -1;
 
    if (B->element_count() >= 1)
       {
-        const Cell & b0 = B->get_cfirst();
+        Cell cache;
+        const Cell & b0 = B->get_cfirst(cache);
         if (!b0.is_pointer_cell())   DOMAIN_ERROR;
         Value_P vrd = b0.get_pointer_value();
         loop(l, vrd->element_count())

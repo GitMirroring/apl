@@ -196,7 +196,8 @@ const cValue * pB = &B;   // may be rebound if B_enclosed
            {
              // A RO B has returned a scalar, so LO/A_RO_B is A_RO_B
              //
-             Z->next_ravel_Cell(A_RO_B->get_cfirst());
+             Cell cache;
+             Z->next_ravel_Cell(A_RO_B->get_cfirst(cache));
            }
         else
            {
@@ -207,7 +208,8 @@ const cValue * pB = &B;   // may be rebound if B_enclosed
              if (T2.get_tag() == TOK_ERROR)   return T2;
 
              Value_P V2 = T2.get_apl_val();
-             if (V2->is_simple_scalar())   Z->next_ravel_Cell(V2->get_cfirst());
+             if (V2->is_simple_scalar())
+                { Cell cache; Z->next_ravel_Cell(V2->get_cfirst(cache)); }
              else                          Z->next_ravel_Pointer(V2.get());
            }
       }

@@ -228,7 +228,7 @@ public:
    /// return the current comparison tolerance. MUST NOT CALL get_apl_value()
    /// because it can be called from parallel Cell functions
    APL_Float current() const
-      { return get_first_cell()->get_real_value(); }
+      { Cell cache; return get_first_cell(cache)->get_real_value(); }
 
 protected:
    /// overloaded Symbol::assign()
@@ -326,7 +326,7 @@ public:
    /// Return the current index origin. MUST NOT CALL get_apl_value()
    /// because it can be called from parallel Cell functions
    APL_Integer current() const
-      { return get_first_cell()->get_int_value(); }
+      { Cell cache; return get_first_cell(cache)->get_int_value(); }
 
 protected:
    /// overloaded Symbol::assign().
@@ -419,7 +419,7 @@ public:
    /// Return the current print precision. MUST NOT CALL get_apl_value()
    /// because it can be called from parallel Cell functions
    APL_Integer current() const
-      { return get_first_cell()->get_int_value(); }
+      { Cell cache; return get_first_cell(cache)->get_int_value(); }
 
 protected:
    /// overloaded Symbol::assign().
@@ -532,7 +532,7 @@ public:
    /// return the current ⎕PW. MUST NOT CALL get_apl_value()
    /// because it can be called from parallel Cell functions
    APL_Integer current() const
-      { return get_first_cell()->get_int_value(); }
+      { Cell cache; return get_first_cell(cache)->get_int_value(); }
 
    /// overloaded Symbol::assign().
    /// @param B the APL value to assign
@@ -766,8 +766,9 @@ protected:
    virtual void pop()
       {
         Symbol::pop();
+        Cell cache;
         offset_seconds = int(0.5 + 3600
-                          * get_apl_value()->get_cscalar().get_real_value());
+                     * get_apl_value()->get_cscalar(cache).get_real_value());
       }
 
    /// the offset from GMT of the current timezone (in seconds)

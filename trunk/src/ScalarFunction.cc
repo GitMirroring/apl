@@ -296,8 +296,9 @@ CELL_PERFORMANCE_END(get_statistics_AB(), start_fast_AB, false)
               if (!fast_path_done)
                  loop(z, job_AB->len_Z)
                     {
-                   const Cell & cell_A = job_AB->A_at(z);
-                   const Cell & cell_B = job_AB->B_at(z);
+                   Cell cache_A, cache_B;
+                   const Cell & cell_A = job_AB->A_at(z, cache_A);
+                   const Cell & cell_B = job_AB->B_at(z, cache_B);
                    Cell & cell_Z       = job_AB->Z_at(z);
 
                    if (cell_A.is_pointer_cell() && cell_B.is_pointer_cell())
@@ -505,12 +506,12 @@ CELL_PERFORMANCE_END(get_statistics_B(), start_fast_B, false)
               if (!fast_path_done)
                  loop(z, job_B->len_Z)
                     {
-                   const Cell & cell_B = job_B->B_at(z);
+                   Cell cache_B;
+                   const Cell & cell_B = job_B->B_at(z, cache_B);
                    Cell & cell_Z       = job_B->Z_at(z);
 
-                   if (cell_B.is_pointer_cell())   // nested B-item
+                   if (Value_P B1 = cell_B.try_pointer_value())   // nested B-item
                       {
-                        Value_P B1 = cell_B.get_pointer_value();
                         Value_P Z1(B1->get_shape(), LOC);
                         new (&cell_Z) PointerCell(Z1.get(),
                                                   *job_B->value_Z, 0x6B616769);
@@ -680,8 +681,9 @@ ShapeItem bI = 0;
                   }
              }
 
-         const Cell & cA = A.get_cravel(wA);
-         const Cell & cB = B.get_cravel(bI++);
+         Cell cache_A, cache_B;
+         const Cell & cA = A.get_cravel(wA, cache_A);
+         const Cell & cB = B.get_cravel(bI++, cache_B);
 
          // restore the original order of A and B
          //
@@ -862,12 +864,12 @@ CELL_PERFORMANCE_END(job_AB->fun->get_statistics_AB(), start_fast_ABp, false)
 
    // cache_A/cache_B are this thread's own stack-local materialisation
    // slots for A_at()/B_at() on packed operands. value_A/value_B are a
-   // single Value shared by every worker thread of this job; fetching
-   // via the plain (no-cache) A_at()/B_at() would materialise packed
-   // cells into that shared Value's ravel.cell_fetch_cache, which
-   // multiple threads then race on concurrently -- confirmed live as a
-   // SEGFAULT for a primitive without a packed fast path (falls through
-   // to this cell-by-cell loop) applied to packed int64 operands.
+   // single Value shared by every worker thread of this job; a plain
+   // (shared, non-caller-owned) fetch would materialise packed cells into
+   // that shared Value's ravel cache, which multiple threads then race on
+   // concurrently -- confirmed live as a SEGFAULT for a primitive without
+   // a packed fast path (falls through to this cell-by-cell loop) applied
+   // to packed int64 operands.
    //
 Cell cache_A, cache_B;
    for (; z < end_z; ++z)
@@ -1083,20 +1085,18 @@ const double qct = Workspace::get_CT();
 const ShapeItem len_B = B.element_count();
 vector<const Cell *> firsts;
 
-   // for a packed B, get_cravel(idx) materializes the element into B's
-   // single shared ravel.cell_fetch_cache, so a raw pointer into it is
-   // invalidated by the very next get_cravel() call. Give every element
-   // its own stable slot in this caller-owned buffer instead.
+   // firsts[] below stores raw Cell pointers that must stay valid across
+   // many get_cravel() calls, so a single reused cache slot won't do
+   // (each fetch would invalidate the previous one's pointer). Give every
+   // element its own stable slot in this caller-owned buffer instead.
    //
-vector<uint8_t> stable_B_mem;
-   if (B.is_packed())   stable_B_mem.resize(len_B * sizeof(Cell));
+vector<uint8_t> stable_B_mem(len_B * sizeof(Cell));
 Cell * stable_B = reinterpret_cast<Cell *>(stable_B_mem.data());
 
 Value_P Z(B.get_shape(), LOC);
    loop(b, len_B)
        {
-         const Cell & cell_B = B.is_packed() ? B.get_cravel(b, stable_B[b])
-                                              : B.get_cravel(b);
+         const Cell & cell_B = B.get_cravel(b, stable_B[b]);
 
          // sequentially search cell_B in firsts...
          //
@@ -1111,7 +1111,8 @@ Value_P Z(B.get_shape(), LOC);
                          Value_P vB = cell_B.get_pointer_value();
                          Value_P vF = cell_F.get_pointer_value();
                          const Token equiv = Bif_F12_EQUIV::fun.eval_AB(*vB, *vF);
-                         if (equiv.get_apl_val()->get_cfirst()
+                         Cell cache;
+                         if (equiv.get_apl_val()->get_cfirst(cache)
                                   .get_int_value() == 0)   continue;
                        }
                     else
@@ -1228,7 +1229,9 @@ const Shape weights_B = B.get_shape().get_weights();
                                          * (idx_B.get_shape_item(r)
                                          + pos_A.get_shape_item(r));
 
-         if (!A.get_cravel(ai.get_ravel_offset()).equal(B.get_cravel(pos_B), qct))
+         Cell cache_A, cache_B;
+         if (!A.get_cravel(ai.get_ravel_offset(), cache_A)
+              .equal(B.get_cravel(pos_B, cache_B), qct))
             return false;
        }
 
@@ -1334,10 +1337,10 @@ const ShapeItem count = B.nz_element_count();
 
    loop(b, count)
       {
-       const Cell & C = B.get_cravel(b);
-       if (C.is_pointer_cell())
+       Cell cache;
+       const Cell & C = B.get_cravel(b, cache);
+       if (Value_P sub_val = C.try_pointer_value())
           {
-            Value_P sub_val = C.get_pointer_value();
             if (check_B(*sub_val, qct))   return true;   // check sub_val failed
             continue;
           }
@@ -1372,10 +1375,12 @@ ShapeItem len_Z = 0;
    loop(a, len_A)
       {
         bool found = false;
-        const Cell & cell_A = A.get_cravel(a);
+        Cell cache_A;
+        const Cell & cell_A = A.get_cravel(a, cache_A);
         loop(b, len_B)
             {
-              if (cell_A.equal(B.get_cravel(b), qct))
+              Cell cache_B;
+              if (cell_A.equal(B.get_cravel(b, cache_B), qct))
                  {
                    found = true;
                    break;
@@ -1446,23 +1451,21 @@ vector<char> stable_A_mem, stable_B_mem;
          cells_A.reserve(len_A);
          cells_B.reserve(len_B);
          cells_Z.reserve(len_A);
-         if (A.is_packed())   stable_A_mem.resize(len_A * sizeof(Cell));
-         if (B.is_packed())   stable_B_mem.resize(len_B * sizeof(Cell));
+         stable_A_mem.resize(len_A * sizeof(Cell));
+         stable_B_mem.resize(len_B * sizeof(Cell));
 
        }   catch (std::bad_alloc &) { WS_FULL; }
            catch (...)              { FIXME; }
 
-   if (A.is_packed())
-      { Cell * p = reinterpret_cast<Cell *>(stable_A_mem.data());
-        loop(a, len_A)   { A.get_cravel(a, p[a]);   cells_A.push_back(p + a); } }
-   else
-      { loop(a, len_A)   cells_A.push_back(&A.get_cravel(a)); }
+   {
+     Cell * p = reinterpret_cast<Cell *>(stable_A_mem.data());
+     loop(a, len_A)   cells_A.push_back(&A.get_cravel(a, p[a]));
+   }
 
-   if (B.is_packed())
-      { Cell * p = reinterpret_cast<Cell *>(stable_B_mem.data());
-        loop(b, len_B)   { B.get_cravel(b, p[b]);   cells_B.push_back(p + b); } }
-   else
-      { loop(b, len_B)   cells_B.push_back(&B.get_cravel(b)); }
+   {
+     Cell * p = reinterpret_cast<Cell *>(stable_B_mem.data());
+     loop(b, len_B)   cells_B.push_back(&B.get_cravel(b, p[b]));
+   }
 
    // sort the A-cells and the B-cells ascendingly
    //

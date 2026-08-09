@@ -62,8 +62,10 @@ const ShapeItem len_B = B.element_count();
    //
 Value_P Z(len_A + len_B, LOC);
 
-   loop(a, len_A)   Z->next_ravel_Cell(A.get_cravel(a));
-   loop(b, len_B)   Z->next_ravel_Cell(B.get_cravel(b));
+   loop(a, len_A)
+       { Cell cache; Z->next_ravel_Cell(A.get_cravel(a, cache)); }
+   loop(b, len_B)
+       { Cell cache; Z->next_ravel_Cell(B.get_cravel(b, cache)); }
    Z->set_default(B, LOC);
    Z->check_value(LOC);
    return eval_B(*Z);
@@ -83,18 +85,12 @@ const ShapeItem len_B = B.element_count();
    //
 vector<const Cell *> cells_B;
    cells_B.reserve(len_B);
-vector<uint8_t> stable_B_mem;
+vector<uint8_t> stable_B_mem(len_B * sizeof(Cell));
 
-   if (B.is_packed())
-      {
-        stable_B_mem.resize(len_B * sizeof(Cell));
-        Cell * p = reinterpret_cast<Cell *>(stable_B_mem.data());
-        loop(b, len_B)   { B.get_cravel(b, p[b]);   cells_B.push_back(p + b); }
-      }
-   else
-      {
-        loop(b, len_B)   cells_B.push_back(&B.get_cravel(b));
-      }
+   {
+     Cell * p = reinterpret_cast<Cell *>(stable_B_mem.data());
+     loop(b, len_B)   cells_B.push_back(&B.get_cravel(b, p[b]));
+   }
    Heapsort<const Cell *>::sort(cells_B, Cell::compare_stable, 0);
 
    // 2. remove duplicates
@@ -143,22 +139,20 @@ const double qct = Workspace::get_CT();
               cells_A.reserve(len_A);
               cells_B.reserve(len_B);
               cells_Z.reserve(len_A + len_B);   // worst case
-              if (A.is_packed())   stable_A_mem.resize(len_A * sizeof(Cell));
-              if (B.is_packed())   stable_B_mem.resize(len_B * sizeof(Cell));
+              stable_A_mem.resize(len_A * sizeof(Cell));
+              stable_B_mem.resize(len_B * sizeof(Cell));
             } catch (std::bad_alloc &) { WS_FULL; }
               catch (...)              { FIXME; }
 
-        if (A.is_packed())
-           { Cell * p = reinterpret_cast<Cell *>(stable_A_mem.data());
-             loop(a, len_A)   { A.get_cravel(a, p[a]);   cells_A.push_back(p + a); } }
-        else
-           { loop(a, len_A)   cells_A.push_back(&A.get_cravel(a)); }
+        {
+          Cell * p = reinterpret_cast<Cell *>(stable_A_mem.data());
+          loop(a, len_A)   cells_A.push_back(&A.get_cravel(a, p[a]));
+        }
 
-        if (B.is_packed())
-           { Cell * p = reinterpret_cast<Cell *>(stable_B_mem.data());
-             loop(b, len_B)   { B.get_cravel(b, p[b]);   cells_B.push_back(p + b); } }
-        else
-           { loop(b, len_B)   cells_B.push_back(&B.get_cravel(b)); }
+        {
+          Cell * p = reinterpret_cast<Cell *>(stable_B_mem.data());
+          loop(b, len_B)   cells_B.push_back(&B.get_cravel(b, p[b]));
+        }
 
         Heapsort<const Cell *>::sort(cells_A, Cell::compare_stable, 0);
         Heapsort<const Cell *>::sort(cells_B, Cell::compare_stable, 0);
@@ -196,9 +190,9 @@ const double qct = Workspace::get_CT();
     else
       {
         // small A and B: use quadratic time algorithm.
-        // Collect matching A indices rather than Cell pointers: get_cravel()
-        // on a packed Value returns a reference to its shared cell_fetch_cache,
-        // which is overwritten by each subsequent call.
+        // Collect matching A indices rather than Cell pointers: a Cell
+        // reference from get_cravel(idx, cache) is only valid until its
+        // caller-owned cache is reused or goes out of scope.
         //
         vector<ShapeItem> indices_Z;
         indices_Z.reserve(len_A);
@@ -207,9 +201,10 @@ const double qct = Workspace::get_CT();
         for (ShapeItem a = 0; a < len_A; ++a)
             {
               const Cell & ca = A.get_cravel(a, a_cache);
+              Cell b_cache;
               loop(b, len_B)
                   {
-                    if (ca.equal(B.get_cravel(b), qct))
+                    if (ca.equal(B.get_cravel(b, b_cache), qct))
                        {
                          indices_Z.push_back(a);
                          break;

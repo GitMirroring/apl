@@ -96,8 +96,8 @@ UCS_string arg;
              case NC_VARIABLE:
                   {
                     CERR << "is a variable:" << endl;
-                    Value_P val = sym->get_apl_value();
-                    if (+val)   val->print_properties(CERR, 4, true);
+                    if (Value_P val = sym->get_apl_value())
+                       val->print_properties(CERR, 4, true);
                   }
                   CERR << endl;
                   return;

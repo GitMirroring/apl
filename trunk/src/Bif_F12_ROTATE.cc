@@ -74,8 +74,9 @@ const ShapeItem ebytes = B.packed_bytes_per_item();
                   {
                     const ShapeItem col_m = plane_h
                                          + (shape_B3.l() * (shape_B3.m() - m - 1));
+                    Cell cache;
                     loop(l, shape_B3.l())
-                        Z->next_ravel_Cell(B.get_cravel(col_m + l));
+                        Z->next_ravel_Cell(B.get_cravel(col_m + l, cache));
                   }
             }
         Z->pack_like(B);
@@ -173,7 +174,8 @@ const ShapeItem ebytes = B.packed_bytes_per_item();
               // amount -- Blake McBride, Bugs14 #8).
               src %= shape_B3.m();
               if (src < 0)   src += shape_B3.m();
-              Z->next_ravel_Cell(B.get_cravel(shape_B3.hml(h, src, l)));
+              Cell cache;
+              Z->next_ravel_Cell(B.get_cravel(shape_B3.hml(h, src, l), cache));
             }
         Z->pack_like(B);
       }

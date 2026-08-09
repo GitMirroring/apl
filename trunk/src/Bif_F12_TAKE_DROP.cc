@@ -197,7 +197,8 @@ Bif_F12_TAKE::fill(const Shape & shape_Zi, Value & Z,
          const ShapeItem offset = i();
          if (offset != -1)                          // valid cell
             {
-              Z.next_ravel_Cell(B.get_cravel(offset));
+              Cell cache;
+              Z.next_ravel_Cell(B.get_cravel(offset, cache));
             }
          else if (axes && B.element_count())         // overtake from axis
             {
@@ -205,11 +206,13 @@ Bif_F12_TAKE::fill(const Shape & shape_Zi, Value & Z,
               // empty then axis_proto()'s offset does not point to any
               // real item and falls through to the ↑B case below)
               const ShapeItem offset = i.axis_proto(axes);
-              Z.next_ravel_Proto(B.get_cravel(offset));
+              Cell cache;
+              Z.next_ravel_Proto(B.get_cravel(offset, cache));
             }
          else                                       // overtake from ↑B
             {
-              Z.next_ravel_Proto(B.get_cproto());
+              Cell cache;
+              Z.next_ravel_Proto(B.get_cproto(cache));
             }
        }
 }
@@ -229,10 +232,10 @@ Bif_F12_TAKE::first(const cValue & B)
 
       We handle the nested first_B case first because all others return scalars
     */
-const Cell & first_B = B.get_cfirst();
-   if (first_B.is_pointer_cell())   // first item is nested
+Cell cache;
+const Cell & first_B = B.get_cfirst(cache);
+   if (Value_P sub = first_B.try_pointer_value())   // first item is nested
       {
-        Value_P sub = first_B.get_pointer_value();
         return CLONE_P(sub, LOC);
       }
 
@@ -290,7 +293,8 @@ const Shape ravel_A(A, /* ⎕IO */ 0);
 
         Value_P Z(shape_Z, LOC);
 
-        Z->set_ravel_Cell(0, B.get_cfirst());
+        Cell cache;
+        Z->set_ravel_Cell(0, B.get_cfirst(cache));
         if (shape_Z.get_volume() == 0)   Z->to_type(false);
         Z->check_value(LOC);
         return Token(TOK_APL_VALUE1, Z);
@@ -344,7 +348,8 @@ Value_P Z(shape_Z, LOC);
    for (TakeDropIterator i(false, ravel_A, B.get_shape()); i.has_more(); ++i)
       {
         const ShapeItem offset = i();
-        Z->next_ravel_Cell(B.get_cravel(offset));
+        Cell cache;
+        Z->next_ravel_Cell(B.get_cravel(offset, cache));
       }
 
    Z->check_value(LOC);

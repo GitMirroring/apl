@@ -196,11 +196,11 @@ Symbol::get_apl_value() const
 }
 //────────────────────────────────────────────────────────────────────────────
 const Cell *
-Symbol::get_first_cell() const
+Symbol::get_first_cell(Cell & cache) const
 {
    Assert(value_stack.size() > 0);
    if (value_stack.back().get_NC() != NC_VARIABLE)   return 0;
-   return &value_stack.back().get_val_cptr()->get_cfirst();
+   return &value_stack.back().get_val_cptr()->get_cfirst(cache);
 }
 //────────────────────────────────────────────────────────────────────────────
 cFunction_P
@@ -550,7 +550,7 @@ Symbol::unmark_all_values() const
 void
 Symbol::assign(Value_P new_value, bool clone, const char * loc)
 {
-   Assert(+new_value);
+   Assert(new_value);
    Assert(value_stack.size());
 
    if (!new_value->is_complete())
@@ -600,7 +600,7 @@ ValueStackItem & vs = value_stack.back();
 void
 Symbol::assign_indexed(const IndexExpr & IX, Value_P B)   // A[IX;...] ← B
 {
-   if (IX.is_axis() && +IX.values[0])   // one-dimensional index, not elided
+   if (IX.is_axis() && IX.values[0])   // one-dimensional index, not elided
       {
          assign_indexed(IX.values[0].get(), B);
         return;
@@ -696,7 +696,8 @@ ShapeItem idxB = 0;
       {
         const ShapeItem offset_Z = mult++;
         Assert(offset_Z >= 0 && offset_Z < Z->element_count());
-        const Cell & cB = B->get_cravel(idxB);
+        Cell cache;
+        const Cell & cB = B->get_cravel(idxB, cache);
         Z->assign_cell(offset_Z, cB, LOC);
         idxB += incr_B;
      }
@@ -751,7 +752,8 @@ const ShapeItem max_idx = Z->element_count();
         const APL_Integer idx = X->get_near_int(0) - qio;
         if (idx >= 0 && idx < max_idx)   // idx is a valid index of Z
            {
-             Z->assign_cell(idx, B->get_cfirst(), LOC);
+             Cell cache;
+             Z->assign_cell(idx, B->get_cfirst(cache), LOC);
              return;
            }
       }
@@ -767,7 +769,8 @@ const ShapeItem max_idx = Z->element_count();
    if (!X)   // X[] ← B
       {
         // scalar B is scalar extended according to ⍴Z
-        const Cell & src = B->get_cfirst();
+        Cell cache;
+        const Cell & src = B->get_cfirst(cache);
         loop(a, max_idx)
             Z->assign_cell(a, src, LOC);
         if (monitor_callback)   monitor_callback(*this, SEV_ASSIGNED);
@@ -800,7 +803,8 @@ ShapeItem idxB = 0;
                           << ArgCheck::index_io0_note(idx, max_idx);
              INDEX_ERROR;
            }
-        const Cell & cB = B->get_cravel(idxB);
+        Cell cache;
+        const Cell & cB = B->get_cravel(idxB, cache);
         Z->assign_cell(idx, cB, LOC);
 
         idxB += incr_B;
@@ -1632,10 +1636,11 @@ ShapeItem idxV = 0;
    loop(s, symbols.size())
       {
         Symbol * sym = symbols[symbols.size() - s - 1];
-        const Cell & cV = values->get_cravel(idxV);
-        if (cV.is_pointer_cell())
+        Cell cache;
+        const Cell & cV = values->get_cravel(idxV, cache);
+        if (Value_P v = cV.try_pointer_value())
            {
-             sym->assign(cV.get_pointer_value(), true, LOC);
+             sym->assign(v, true, LOC);
            }
         else
            {

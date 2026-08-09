@@ -372,7 +372,8 @@ Quad_PLOT::eval_B(cValue_R B) const
       {
         // scalar (integer) argument: window control and logging
         //
-        const APL_Integer B0 = B.get_cscalar().get_int_value();
+        Cell cache;
+        const APL_Integer B0 = B.get_cscalar(cache).get_int_value();
         Value_P Z = window_control(B0);
         return Token(TOK_APL_VALUE1, Z);
       }
@@ -703,12 +704,14 @@ const ShapeItem data_points = rows * cols;
         // leak them.
         loop(p, data_points)
             {
-              if (!B.get_cravel(p).is_integer_cell() &&
-                  !B.get_cravel(p).is_real_cell())              DOMAIN_ERROR;
-              if (!B.get_cravel(p + data_points).is_integer_cell() &&
-                  !B.get_cravel(p + data_points).is_real_cell())   DOMAIN_ERROR;
-              if (!B.get_cravel(p + 2*data_points).is_integer_cell() &&
-                  !B.get_cravel(p + 2*data_points).is_real_cell())   DOMAIN_ERROR;
+              if (!B.is_integer_cell(p) && !B.is_real_cell(p))
+                 DOMAIN_ERROR;
+              if (!B.is_integer_cell(p + data_points) &&
+                  !B.is_real_cell(p + data_points))
+                 DOMAIN_ERROR;
+              if (!B.is_integer_cell(p + 2*data_points) &&
+                  !B.is_real_cell(p + 2*data_points))
+                 DOMAIN_ERROR;
             }
 
         if ((size_t)data_points > SIZE_MAX / 3)   WS_FULL;
@@ -763,10 +766,11 @@ Cell cX_cache, cY_cache, cZ_cache;
         // validate first -- see the planes==3 comment above.
         loop(p, data_points)
             {
-              if (!B.get_cravel(p).is_integer_cell() &&
-                  !B.get_cravel(p).is_real_cell())              DOMAIN_ERROR;
-              if (!B.get_cravel(p + data_points).is_integer_cell() &&
-                  !B.get_cravel(p + data_points).is_real_cell())   DOMAIN_ERROR;
+              if (!B.is_integer_cell(p) && !B.is_real_cell(p))
+                 DOMAIN_ERROR;
+              if (!B.is_integer_cell(p + data_points) &&
+                  !B.is_real_cell(p + data_points))
+                 DOMAIN_ERROR;
             }
 
         if ((size_t)data_points > SIZE_MAX / 2)   WS_FULL;
@@ -806,8 +810,8 @@ Cell cX_cache, cY_cache;
         // validate first -- see the planes==3 comment above.
         loop(p, data_points)
             {
-              if (!B.get_cravel(p).is_integer_cell() &&
-                  !B.get_cravel(p).is_real_cell())   DOMAIN_ERROR;
+              if (!B.is_integer_cell(p) && !B.is_real_cell(p))
+                 DOMAIN_ERROR;
             }
 
         double * Y = new double[data_points];
@@ -818,12 +822,11 @@ Cell cX_cache, cY_cache;
               loop(c, cols)
                   {
                     const ShapeItem p = c + r*cols;
-                    const Cell & cY = B.get_cravel(p);
 
-                    if (!(cY.is_integer_cell() ||
-                          cY.is_real_cell()))   DOMAIN_ERROR;
+                    if (!(B.is_integer_cell(p) ||
+                          B.is_real_cell(p)))   DOMAIN_ERROR;
 
-                    Y[p] = cY.get_real_value();
+                    Y[p] = B.get_real_value(p);
                   }
               const double * pY = Y + r*cols;
               const Plot_data_row * pdr = new Plot_data_row(0, pY, 0, r, cols);
@@ -870,16 +873,15 @@ double * Z = Y + len_B;
 const APL_Integer qio = Workspace::get_IO();
    loop(b, len_B)
        {
-         const Cell & cB = B.get_cravel(b);
-         if (cB.is_complex_cell())   // (x, y)
+         if (B.is_complex_cell(b))   // (x, y)
             {
-              X[b] = cB.get_real_value();
-              Z[b] = Y[b] = cB.get_imag_value();
+              X[b] = B.get_real_value(b);
+              Z[b] = Y[b] = B.get_imag_value(b);
             }
          else                        // (N, y)
             {
               X[b] = qio + b % cols_B;
-              Z[b] = Y[b] = cB.get_real_value();
+              Z[b] = Y[b] = B.get_real_value(b);
             }
        }
 
@@ -932,9 +934,10 @@ const APL_Integer qio = Workspace::get_IO();
    loop(r, rows)
        {
          const cValue * vrow = B.get_pointer_value(r).get();
+         Cell cache;
          loop(v, vrow->element_count())
              {
-               const Cell & cB = vrow->get_cravel(v);
+               const Cell & cB = vrow->get_cravel(v, cache);
                if (cB.is_complex_cell())
                   {
                     X[idx] = cB.get_real_value();
@@ -974,12 +977,12 @@ Quad_PLOT::parse_attributes(const cValue & A, Plot_window_properties * w_props)
       {
         loop(row, A.get_rows())
             {
-              const Cell & att_name = A.get_cravel(2*row);       // A[row; 1]
-              const Cell & att_val  = A.get_cravel(2*row + 1);   // A[row; 2]
-              if (att_name.is_pointer_cell())   // used entry in A
+              Cell cache_name, cache_val;
+              const Cell & att_name = A.get_cravel(2*row, cache_name);     // A[row; 1]
+              const Cell & att_val  = A.get_cravel(2*row + 1, cache_val); // A[row; 2]
+              if (Value_P v = att_name.try_pointer_value())   // used entry in A
                  {
-                   const UCS_string ucs = att_name.get_pointer_value()
-                                                 ->get_UCS_ravel();
+                   const UCS_string ucs = v->get_UCS_ravel();
                    if (const char * error = w_props->set_attribute(ucs, att_val))
                       {
                         MORE_ERROR() << "A ⎕PLOT B: " << error
@@ -1002,15 +1005,14 @@ const APL_Integer qio = Workspace::get_IO();
 
    loop(a, len_A)
        {
-         const Cell & cell_A = A.get_cravel(a);
-         if (!cell_A.is_pointer_cell())
+         if (!A.is_pointer_cell(a))
             {
                MORE_ERROR() << "A[" << (a + qio)
                             << "] is not a string in A ⎕PLOT B";
                return E_DOMAIN_ERROR;
             }
 
-         const cValue * attr = cell_A.get_pointer_value().get();
+         const cValue * attr = A.get_pointer_value(a).get();
          if (!attr->is_char_string())
             {
                MORE_ERROR() << "A[" << (a + qio)

@@ -249,19 +249,18 @@ XML_Saving_Archive::save()
         const ShapeItem ec = parent.nz_element_count();
         loop(e, ec)   // for every ravel cell of the (parent-) value
             {
-              const Cell & cP = parent.get_cravel(e);
-              if (cP.is_lval_cell())
+              if (parent.is_lval_cell(e))
                  {
                    Log(LOG_archive)
                       err << "LVAL CELL in " << p << " at " LOC << endl;
                    continue;
                  }
 
-              if (!cP.is_pointer_cell())   continue;
+              if (!parent.is_pointer_cell(e))   continue;
 
-              // from here on, cp is a PointerCell of the parent...
+              // from here on, e is the index of a PointerCell of the parent...
               //
-              const cValue * sub = cP.get_pointer_value().get();
+              const cValue * sub = parent.get_pointer_value(e).get();
               Assert1(sub);
               const Vid sub_idx = find_vid(sub);
               Assert(sub_idx < value_count);
@@ -619,7 +618,8 @@ int space = do_indent();
    // print the data of the 'cells' attribute
    // get_cravel() materialises packed elements (any RPT_) via the fetcher
    ++indent;
-   loop(l, len)   emit_cell(v.get_cravel(l), space);
+   Cell cache;
+   loop(l, len)   emit_cell(v.get_cravel(l, cache), space);
 
    space -= leave_char_mode();
    space -= 2;
@@ -963,11 +963,10 @@ char cc[80];
         case CT_CELLREF:   // uses UNI_PAD_U7
              {
              space -= leave_char_mode();
-             const LvalCell & lv = reinterpret_cast<const LvalCell &>(cell);
-             if (lv.get_lval_value())   // lv has a valid target
+             if (cell.try_lval_value())   // cell has a valid target
                 {
-                  const cValue * owner = lv.get_cell_owner();
-                  const long long offset = owner->get_offset(&lv);
+                  const cValue * owner = cell.get_cell_owner();
+                  const long long offset = owner->get_offset(&cell);
                   const Vid vid = find_vid(owner);
                   SPRINTF(cc, "%d[%lld]", vid, offset);
                   NEED(1 + strlen(cc)) << UNI_PAD_U7 << decr(--space, cc);

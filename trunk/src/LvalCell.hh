@@ -47,8 +47,8 @@ public:
    /// Overloaded Cell::is_lval_cell()
    virtual bool is_lval_cell()  const   { return true; }
 
-   /// return the owner of the cell pointed to
-   Value * get_cell_owner() const
+   /// Overloaded Cell::get_cell_owner(): the owner of the cell pointed to
+   virtual Value * get_cell_owner() const
       { return value.pval.owner; }
 
    /// Overloaded Cell::character_representation()
@@ -58,8 +58,9 @@ public:
    /// Overloaded Cell::get_lval_value()
    virtual Cell * get_lval_value() const;
 
-   /// make sure that owner (if any) owns this Cell
-   void check_consistency() const;
+   /// Overloaded Cell::check_consistency(): make sure that owner (if any)
+   /// owns this Cell
+   virtual void check_consistency() const;
 
    /// overloaded Cell::init_other
    /// @param other       raw memory for the new cell to initialise
@@ -69,9 +70,6 @@ public:
                            const char * loc) const;
 
 protected:
-   /// downcast to const LvalCell
-   virtual const LvalCell & cLvalCell() const   { return *this; }
-
    /// Overloaded Cell::get_classname().
    virtual const char * get_classname() const   { return "LvalCell"; }
 
@@ -86,9 +84,6 @@ protected:
    /// Overloaded Cell::greater().
    virtual bool greater(const Cell & other) const
       { DOMAIN_ERROR; }
-
-   /// downcast to LvalCell
-   virtual LvalCell & vLvalCell()   { return *this; }
 };
 //════════════════════════════════════════════════════════════════════════════
 

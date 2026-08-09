@@ -61,7 +61,8 @@ const Shape & shape = B.get_shape();
 Value_P Z(shape, LOC);
    for (ShapeItem i = 0 ; i < shape.get_volume() ; i++)
        {
-         const Cell & cell = B.get_cravel(i);
+         Cell cache;
+         const Cell & cell = B.get_cravel(i, cache);
          Value_P B_sub = cell.to_value(LOC);
          if (!B_sub->is_char_string())
             {
@@ -254,7 +255,8 @@ Value_P Z(cfg_SHORT_VALUE_LENGTH_WANTED, LOC);
               Value_P Z2(2*ec_Z, LOC);
               loop(z, ec_Z)
                   {
-                    const Cell & cell = Z->get_cravel(z);
+                    Cell cache;
+                    const Cell & cell = Z->get_cravel(z, cache);
                     Z2->next_ravel_Pointer(cell.get_pointer_value().get());
                     Z->release(z, LOC);
                   }

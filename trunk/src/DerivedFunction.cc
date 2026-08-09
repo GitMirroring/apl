@@ -41,7 +41,7 @@ UCS_string name;
    name << " ";
 
    name << oper->get_name();
-   if (+axis)   name << "[]";
+   if (axis)   name << "[]";
 
    if (right_arg.get_tag() != TOK_VOID)   // dyadic operator
       {
@@ -67,7 +67,7 @@ DerivedFunction::has_result() const
 void
 DerivedFunction::unmark_all_values() const
 {
-   if (+axis)   axis->unmark();
+   if (axis)   axis->unmark();
    if (left_arg.is_apl_val())   left_arg.get_apl_val()->unmark();
 }
 //────────────────────────────────────────────────────────────────────────────
@@ -111,7 +111,7 @@ const char * sepa = "";
              CERR << sepa << "RO";
              sepa = ", ";
            }
-        if (+X)
+        if (X)
            {
              CERR << sepa << "X";
              sepa = ", ";
@@ -146,7 +146,7 @@ UCS_string ind(indent, UNI_SPACE);
    else                          out << "VAL";
    out << endl << ind << "Operator:  ";
    oper->print(out);
-   if (+axis)   out << "Axis: " << *axis << endl;
+   if (axis)   out << "Axis: " << *axis << endl;
 
    if (right_arg.get_tag() != TOK_VOID)   // dyadic operator
       {

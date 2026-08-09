@@ -98,7 +98,7 @@ public:
 
    /// return true iff this XML_node was parsed (and has produced an APL value)
    bool is_parsed() const
-      { return +APL_value; }
+      { return bool(APL_value); }
 
    /// unlink \b this node from the doubly-linked list that contains it
    XML_node * unlink()

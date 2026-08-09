@@ -115,7 +115,8 @@ const RavelType rt = value->get_ravel_type();
       {
         loop(i, ravel_len)
            {
-             const Cell & cell = value->get_cravel(i);
+             Cell cache;
+             const Cell & cell = value->get_cravel(i, cache);
              if (cell.is_integer_cell())
                 PyList_SetItem(ravel, i, PyLong_FromLong(cell.get_int_value()));
              else if (cell.is_float_cell())
@@ -347,7 +348,8 @@ PyObject * result = PyList_New(len);
       {
         loop(l, len)
            {
-             const Cell & cell = value->get_cravel(l);
+             Cell cache;
+             const Cell & cell = value->get_cravel(l, cache);
              PyObject * item = Py_None;
              if (cell.is_integer_cell())
                 {

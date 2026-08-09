@@ -70,11 +70,106 @@ public:
    // Read-only (const) methods
    //══════════════════════════════════════════════════════════════════════════
 
-   /// return the idx'th cell of the ravel (no bounds check).
+   /// Indexed scalar accessors — return native C++ values without
+   /// materialising a temporary Cell that outlives the call.  The base
+   /// class falls back through fetch_transient() (which does materialise
+   /// into a call-local Cell for a packed ravel) so short packed ravels
+   /// (which keep the base Ravel vtable) and RPT_CELLS ravels work
+   /// correctly.  IntRavel, BoolRavel, FloatRavel, ComplexRavel,
+   /// Char16Ravel and Char32Ravel each override every one of these with
+   /// a direct read of the raw packed array (no Cell, no cache, no
+   /// aliasing hazard) -- prefer calling these over
+   /// fetch_transient(idx).xxx(), which always pays for a Cell
+   /// materialisation even where a packed-type override could have
+   /// avoided it entirely. A mismatched accessor for the ravel's real
+   /// type raises DOMAIN_ERROR, same as the equivalent call on the
+   /// underlying Cell subclass would.
+
+   virtual APL_Integer get_int_value(ShapeItem idx) const
+      { Cell cache; return fetch_transient(idx, cache).get_int_value(); }
+
+   virtual APL_Integer get_near_int(ShapeItem idx) const
+      { Cell cache; return fetch_transient(idx, cache).get_near_int(); }
+
+   virtual bool get_near_bool(ShapeItem idx) const
+      { Cell cache; return fetch_transient(idx, cache).get_near_bool(); }
+
+   virtual Unicode get_char_value(ShapeItem idx) const
+      { Cell cache; return fetch_transient(idx, cache).get_char_value(); }
+
+   virtual APL_Float get_real_value(ShapeItem idx) const
+      { Cell cache; return fetch_transient(idx, cache).get_real_value(); }
+
+   virtual APL_Float get_imag_value(ShapeItem idx) const
+      { Cell cache; return fetch_transient(idx, cache).get_imag_value(); }
+
+   virtual int get_byte_value(ShapeItem idx) const
+      { Cell cache; return fetch_transient(idx, cache).get_byte_value(); }
+
+   virtual APL_Complex get_complex_value(ShapeItem idx) const
+      { Cell cache; return fetch_transient(idx, cache).get_complex_value(); }
+
+   virtual CellType get_cell_type(ShapeItem idx) const
+      { Cell cache; return fetch_transient(idx, cache).get_cell_type(); }
+
+   virtual CellType get_cell_subtype(ShapeItem idx) const
+      { Cell cache; return fetch_transient(idx, cache).get_cell_subtype(); }
+
+   virtual Value_P get_pointer_value(ShapeItem idx) const
+      { Cell cache; return fetch_transient(idx, cache).get_pointer_value(); }
+
+   virtual bool is_pointer_cell(ShapeItem idx) const
+      { Cell cache; return fetch_transient(idx, cache).is_pointer_cell(); }
+
+   /// like get_pointer_value(idx), but returns an empty (null) Value_P
+   /// instead of throwing DOMAIN_ERROR when the cell at idx is not a
+   /// pointer cell -- see Cell::try_pointer_value(). Non-virtual: composes
+   /// the two already-virtual calls above, so packed-ravel subclasses
+   /// (whose is_pointer_cell(idx) override already returns false in O(1)
+   /// with no Cell materialisation) get the same zero-cost short-circuit
+   /// here for free, without needing their own override.
+   Value_P try_pointer_value(ShapeItem idx) const
+      { return is_pointer_cell(idx) ? get_pointer_value(idx) : Value_P(); }
+
+   virtual bool is_lval_cell(ShapeItem idx) const
+      { Cell cache; return fetch_transient(idx, cache).is_lval_cell(); }
+
+   virtual bool is_simple_cell(ShapeItem idx) const
+      { Cell cache; return fetch_transient(idx, cache).is_simple_cell(); }
+
+   virtual bool is_character_cell(ShapeItem idx) const
+      { Cell cache; return fetch_transient(idx, cache).is_character_cell(); }
+
+   virtual bool is_integer_cell(ShapeItem idx) const
+      { Cell cache; return fetch_transient(idx, cache).is_integer_cell(); }
+
+   virtual bool is_numeric(ShapeItem idx) const
+      { Cell cache; return fetch_transient(idx, cache).is_numeric(); }
+
+   virtual bool is_complex_cell(ShapeItem idx) const
+      { Cell cache; return fetch_transient(idx, cache).is_complex_cell(); }
+
+   virtual bool is_near_int(ShapeItem idx) const
+      { Cell cache; return fetch_transient(idx, cache).is_near_int(); }
+
+   virtual bool is_near_bool(ShapeItem idx) const
+      { Cell cache; return fetch_transient(idx, cache).is_near_bool(); }
+
+   virtual bool is_near_real(ShapeItem idx) const
+      { Cell cache; return fetch_transient(idx, cache).is_near_real(); }
+   virtual bool is_real_cell(ShapeItem idx) const
+      { Cell cache; return fetch_transient(idx, cache).is_real_cell(); }
+
+protected:
+   /// fetch the idx'th cell of the ravel into a call-local \b cache
+   /// (no bounds check). Only for the base-class fallback accessors
+   /// above, whose result is consumed and discarded within the same
+   /// statement -- never store the returned reference beyond that.
    /// @param idx ravel index (0-based)
-   const Cell & get_cravel(ShapeItem idx) const
+   /// @param cache caller-owned Cell to materialise a packed element into
+   const Cell & fetch_transient(ShapeItem idx, Cell & cache) const
       {
-        const Cell & result = fetcher(idx, cells, cell_fetch_cache);
+        const Cell & result = fetcher(idx, cells, cache);
 
         // every fetcher except cell_fetcher() (whose cache parameter is
         // intentionally unused -- an unpacked ravel already holds real
@@ -84,90 +179,10 @@ public:
         // is exactly Blake McBride's Bugs12.md #1 (bool_fetcher used to
         // return IntCell::boolean_TRUE/FALSE instead of writing cache).
         //
-        Assert(fetcher == &Ravel::cell_fetcher || &result == &cell_fetch_cache);
+        Assert(fetcher == &Ravel::cell_fetcher || &result == &cache);
         return result;
       }
-
-   /// return the first ravel cell (for non-empty ravels).
-   const Cell & get_cfirst() const   { return get_cravel(0); }
-
-   /// return the first ravel cell (the prototype of an empty value).
-   const Cell & get_cproto() const   { return get_cravel(0); }
-
-   /// return the single ravel cell of a scalar.
-   const Cell & get_cscalar() const  { return get_cravel(0); }
-
-   /// Indexed scalar accessors — return native C++ values without
-   /// materialising a temporary Cell.  The base class falls back through
-   /// the fetcher so short packed ravels (which keep the base Ravel vtable)
-   /// and RPT_CELLS ravels work correctly.  Only IntRavel and BoolRavel
-   /// override the integer accessors; CharXRavel overrides get_char_value();
-   /// other combinations propagate the DOMAIN_ERROR from the Cell subclass.
-
-   virtual APL_Integer get_int_value(ShapeItem idx) const
-      { return get_cravel(idx).get_int_value(); }
-
-   virtual APL_Integer get_near_int(ShapeItem idx) const
-      { return get_cravel(idx).get_near_int(); }
-
-   virtual bool get_near_bool(ShapeItem idx) const
-      { return get_cravel(idx).get_near_bool(); }
-
-   virtual Unicode get_char_value(ShapeItem idx) const
-      { return get_cravel(idx).get_char_value(); }
-
-   virtual APL_Float get_real_value(ShapeItem idx) const
-      { return get_cravel(idx).get_real_value(); }
-
-   virtual APL_Float get_imag_value(ShapeItem idx) const
-      { return get_cravel(idx).get_imag_value(); }
-
-   virtual int get_byte_value(ShapeItem idx) const
-      { return get_cravel(idx).get_byte_value(); }
-
-   virtual APL_Complex get_complex_value(ShapeItem idx) const
-      { return get_cravel(idx).get_complex_value(); }
-
-   virtual CellType get_cell_type(ShapeItem idx) const
-      { return get_cravel(idx).get_cell_type(); }
-
-   virtual CellType get_cell_subtype(ShapeItem idx) const
-      { return get_cravel(idx).get_cell_subtype(); }
-
-   virtual Value_P get_pointer_value(ShapeItem idx) const
-      { return get_cravel(idx).get_pointer_value(); }
-
-   virtual bool is_pointer_cell(ShapeItem idx) const
-      { return get_cravel(idx).is_pointer_cell(); }
-
-   virtual bool is_lval_cell(ShapeItem idx) const
-      { return get_cravel(idx).is_lval_cell(); }
-
-   virtual bool is_simple_cell(ShapeItem idx) const
-      { return get_cravel(idx).is_simple_cell(); }
-
-   virtual bool is_character_cell(ShapeItem idx) const
-      { return get_cravel(idx).is_character_cell(); }
-
-   virtual bool is_integer_cell(ShapeItem idx) const
-      { return get_cravel(idx).is_integer_cell(); }
-
-   virtual bool is_numeric(ShapeItem idx) const
-      { return get_cravel(idx).is_numeric(); }
-
-   virtual bool is_complex_cell(ShapeItem idx) const
-      { return get_cravel(idx).is_complex_cell(); }
-
-   virtual bool is_near_int(ShapeItem idx) const
-      { return get_cravel(idx).is_near_int(); }
-
-   virtual bool is_near_bool(ShapeItem idx) const
-      { return get_cravel(idx).is_near_bool(); }
-
-   virtual bool is_near_real(ShapeItem idx) const
-      { return get_cravel(idx).is_near_real(); }
-   virtual bool is_real_cell(ShapeItem idx) const
-      { return get_cravel(idx).is_real_cell(); }
+public:
 
    /// fetch function for unpacked (Cell-array) ravels.
    /// @param offset ravel index (0-based)
@@ -302,9 +317,6 @@ protected:
    /// (RPT_BOOL, RPT_UNICODE16, RPT_UNICODE32) that cannot return a direct
    /// pointer.
    mutable int64_t fetch_cache;
-
-   /// per-ravel Cell cache for get_cravel() on packed (non-Cell) ravels.
-   mutable Cell cell_fetch_cache;
 };
 //════════════════════════════════════════════════════════════════════════════
 /// A Ravel whose storage holds a packed int64_t array (RPT_INT64).

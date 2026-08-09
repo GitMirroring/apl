@@ -156,7 +156,8 @@ static Connection *value_to_db_id( Value_P value )
         throw_illegal_db_id();
     }
 
-    int db_id = value->get_cravel( 0 ).get_int_value();
+    Cell cache;
+    int db_id = value->get_cravel( 0, cache ).get_int_value();
     return db_id_to_connection( db_id );
  }
 
@@ -167,7 +168,8 @@ static Token close_database( Value_P B )
         DOMAIN_ERROR;
     }
 
-    int db_id = B->get_cravel( 0 ).get_int_value();
+    Cell cache;
+    int db_id = B->get_cravel( 0, cache ).get_int_value();
     if (db_id < 0 || db_id >= int(connections.size())) {
         throw_illegal_db_id();
     }
@@ -188,7 +190,8 @@ run_generic_one_query(ArgListBuilder *arg_list, Value_P B,
 {
    loop(i, num_args)
        {
-         const Cell & cell_B = B->get_cravel(start + i);
+         Cell cache;
+         const Cell & cell_B = B->get_cravel(start + i, cache);
          if (cell_B.is_integer_cell())
             {
               arg_list->append_long(cell_B.get_int_value(), i);
@@ -414,7 +417,8 @@ Token eval_AB( Value_P A, Value_P B )
 
 Token eval_XB(Value_P X, Value_P B)
 {
-const int function_number = X->get_cfirst().get_near_int( );
+Cell cache;
+const int function_number = X->get_cfirst( cache ).get_near_int( );
 
     switch(function_number)
        {
@@ -437,12 +441,14 @@ param_to_db( Value_P X)
         MORE_ERROR() << "Database id missing from axis parameter";
         RANK_ERROR;
     }
-    return db_id_to_connection( X->get_cravel( 1 ).get_near_int( ) );
+    Cell cache;
+    return db_id_to_connection( X->get_cravel( 1, cache ).get_near_int( ) );
 }
 
 Token eval_AXB(const Value_P A, const Value_P X, const Value_P B)
 {
-    const int function_number = X->get_cravel( 0 ).get_near_int( );
+    Cell cache;
+    const int function_number = X->get_cravel( 0, cache ).get_near_int( );
 
     switch( function_number ) {
     case 0:

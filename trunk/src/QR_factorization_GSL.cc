@@ -145,8 +145,9 @@ gsl_matrix_complex * B = gsl_matrix_complex_alloc(M, N);   if (B == 0)   WS_FULL
   loop(row, M)
   loop(col, N)
       {
-        const Cell & c = B_val.get_cravel(idx++);
-        const gsl_complex tmp = { c.get_real_value(), c.get_imag_value() };
+        const ShapeItem idx_c = idx++;
+        const gsl_complex tmp = { B_val.get_real_value(idx_c),
+                                   B_val.get_imag_value(idx_c) };
         gsl_matrix_complex_set(B, row, col, tmp);
       }
 
@@ -422,8 +423,9 @@ gsl_matrix_complex * Q = 0;
   loop(row, M)
   loop(col, N)
      {
-       const Cell & c = B_val.get_cravel(idx++);
-       const gsl_complex tmp = { c.get_real_value(), c.get_imag_value() };
+       const ShapeItem idx_c = idx++;
+       const gsl_complex tmp = { B_val.get_real_value(idx_c),
+                                  B_val.get_imag_value(idx_c) };
        gsl_matrix_complex_set(B, row, col, tmp);
      }
 

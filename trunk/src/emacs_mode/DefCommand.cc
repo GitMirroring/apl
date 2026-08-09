@@ -77,10 +77,12 @@ void DefCommand::run_command( NetworkConnection &conn, const std::vector<std::st
                   Value_P value = result.get_apl_val();
                   if (value->is_int_scalar())
                      {
+                       Cell cache;
                        out << "error\n"
                               "parse error\n"
                               "Error parsing expression\n"
-                           << value->get_cravel( 0 ).get_int_value() - Workspace::get_IO() + 1;
+                           << value->get_cravel( 0, cache ).get_int_value()
+                              - Workspace::get_IO() + 1;
                 }
                 else if (value->is_char_string())
                    {

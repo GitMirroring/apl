@@ -365,7 +365,8 @@ ShapeItem b = 0;
             }
          else
             {
-              const Cell & Bb = B->get_cravel(b++);
+              Cell cache;
+              const Cell & Bb = B->get_cravel(b++, cache);
               const APL_Float Bbr = Bb.get_real_value();
               const APL_Float Bbi = Bb.get_imag_value();
               mtx->set_val(r, c, complex<double>(Bbr, Bbi));
@@ -494,7 +495,8 @@ const RavelType rt = B->get_ravel_type();
         if (rt == RPT_CELLS)
            { loop(b, B_count)
                  {
-                   const Cell & Bb = B->get_cravel(b);
+                   Cell cache;
+                   const Cell & Bb = B->get_cravel(b, cache);
                    const APL_Float Bbr = Bb.get_real_value();
                    if (Bb.is_complex_cell())
                       { const APL_Float Bbi = Bb.get_imag_value();
@@ -523,7 +525,8 @@ const RavelType rt = B->get_ravel_type();
            { loop(a, B_count)
                  {
                    int len;
-                   const Cell & cell_A = B->get_cravel(a);
+                   Cell cache;
+                   const Cell & cell_A = B->get_cravel(a, cache);
                    const APL_Float Aa_real = cell_A.get_real_value();
                    if (cell_A.is_complex_cell())
                       {
@@ -580,7 +583,8 @@ const RavelType rt = B->get_ravel_type();
                       }
                 }
      
-             const Cell & Av = B->get_cravel(b);
+             Cell cache;
+             const Cell & Av = B->get_cravel(b, cache);
              const APL_Float Avr = Av.get_real_value();
              char str[STR_LEN];
              if (is_cpx && Av.is_complex_cell())
@@ -824,8 +828,16 @@ const ShapeItem A_count = A->element_count();
         Value_P BB(2, A_count, LOC);
         Cell * cell_BB = &BB->get_wfirst();
 
-        loop(a, A_count)   A->get_cravel(a).init_other(cell_BB++, *BB, LOC);
-        loop(b, A_count)   B->get_cravel(b).init_other(cell_BB++, *BB, LOC);
+        loop(a, A_count)
+            {
+              Cell cache;
+              A->get_cravel(a, cache).init_other(cell_BB++, *BB, LOC);
+            }
+        loop(b, A_count)
+            {
+              Cell cache;
+              B->get_cravel(b, cache).init_other(cell_BB++, *BB, LOC);
+            }
 
         BB->check_value(LOC);
         return monadicCrossProduct(BB);
@@ -834,8 +846,9 @@ const ShapeItem A_count = A->element_count();
 GSL_Matrix * mtx = new GSL_Matrix(3, 3);
    loop(c, 3)
        {
-         const Cell & Ac = A->get_cravel(c);
-         const Cell & Bc = B->get_cravel(c);
+         Cell cache_A, cache_B;
+         const Cell & Ac = A->get_cravel(c, cache_A);
+         const Cell & Bc = B->get_cravel(c, cache_B);
          mtx->set_val(0, c, Dcomplex(1.0, 0.0));
          mtx->set_val(1, c, Dcomplex(Ac.get_real_value(), Ac.get_imag_value()));
          mtx->set_val(2, c, Dcomplex(Bc.get_real_value(), Bc.get_imag_value()));
@@ -884,8 +897,9 @@ vector<Dcomplex> Av(A_count);
 vector<Dcomplex> Bv(A_count);
    loop(a, A_count)
        {
-         const Cell & Aa = A->get_cravel(a);
-         const Cell & Ba = B->get_cravel(a);
+         Cell cache_A, cache_B;
+         const Cell & Aa = A->get_cravel(a, cache_A);
+         const Cell & Ba = B->get_cravel(a, cache_B);
          Av[a] = Dcomplex(Aa.get_real_value(), Aa.get_imag_value());
          Bv[a] = Dcomplex(Ba.get_real_value(), Ba.get_imag_value());
        }
@@ -953,7 +967,8 @@ vector<vector<double> > Bimags(rows);
          const int offset = r * cols;
          loop(c, cols)
              {
-               const Cell & Bv = B->get_cravel(offset + c);
+               Cell cache;
+               const Cell & Bv = B->get_cravel(offset + c, cache);
                 Breals[r][c] = Bv.get_real_value();
                 Bimags[r][c] = Bv.get_imag_value();
              }
@@ -980,7 +995,8 @@ Value_P Z(rows, rows, LOC);
            }
         else   // below diagonal: copy from corresponding item above diagonal
            {
-             Z->next_ravel_Cell(Z->get_cravel(c * rows + r));
+             Cell cache;
+             Z->next_ravel_Cell(Z->get_cravel(c * rows + r, cache));
            }
        }
 
@@ -1023,7 +1039,8 @@ double maxv = -DBL_MAX;
 double minv =  DBL_MAX;
    loop(b, B_count)
        {   
-         const Cell & Bb = B->get_cravel(b);
+         Cell cache;
+         const Cell & Bb = B->get_cravel(b, cache);
          const double val = Bb.get_real_value();
          if (maxv < val) maxv = val;
          if (minv > val) minv = val;
@@ -1034,7 +1051,8 @@ vector<int> buckets(nr_buckets);
 int nr_bumps = 0;
    loop(b, B_count)
        {   
-         const Cell & Bb = B->get_cravel(b);
+         Cell cache;
+         const Cell & Bb = B->get_cravel(b, cache);
          double val = Bb.get_real_value();
          double mark = minv + incr;
          loop(bucket, nr_buckets - 1)
@@ -1087,8 +1105,9 @@ vector<double> Breals(AB_count);
 vector<double> Bimags(AB_count);
    loop(ab, AB_count)
        {
-         const Cell & Av = A->get_cravel(ab);
-         const Cell & Bv = B->get_cravel(ab);
+         Cell cache_A, cache_B;
+         const Cell & Av = A->get_cravel(ab, cache_A);
+         const Cell & Bv = B->get_cravel(ab, cache_B);
          Areals[ab] = Av.get_real_value();
          Aimags[ab] = Av.get_imag_value();
          Breals[ab] = Bv.get_real_value();
@@ -1124,7 +1143,7 @@ int rcnt = 0;   // assume error
        rng_seed_set = false;   // re-seed on next call
      }
 
-   if (+opt_A)   // optional A provided
+   if (opt_A)   // optional A provided
       {
         if (opt_A->is_scalar() && B->is_scalar())
            rcnt = opt_A->get_sole_integer();
@@ -1138,7 +1157,8 @@ int rcnt = 0;   // assume error
 
 
 
-const Cell & B0 = B->get_cfirst();
+Cell cache;
+const Cell & B0 = B->get_cfirst(cache);
 const APL_Float B0_real = B0.get_real_value();
 const APL_Float B0_imag = B0.get_imag_value();
 
@@ -1229,7 +1249,8 @@ const ShapeItem B_count = B->element_count();
 Dcomplex sum(0.0, 0.0);
    loop(c, B_count)
        {
-         const Cell & Bv = B->get_cravel(c);
+         Cell cache;
+         const Cell & Bv = B->get_cravel(c, cache);
          Dcomplex val(Bv.get_real_value(), Bv.get_imag_value());
          // val*val is the complex SQUARE, not |val|^2 -- see magnitude()
          // above for why that's wrong for a complex vector norm.
@@ -1245,7 +1266,8 @@ Dcomplex sum(0.0, 0.0);
 
    loop(b, B_count)
        {
-         const Cell & Bb = B->get_cravel(b);
+         Cell cache;
+         const Cell & Bb = B->get_cravel(b, cache);
          Dcomplex val(Bb.get_real_value(), Bb.get_imag_value());
          val /= sum;
 
@@ -1264,7 +1286,8 @@ Quad_MX::monadicRotation(Value_P B)
         RANK_ERROR;
       }
 
-const Cell & B0 = B->get_cscalar();
+Cell cache;
+const Cell & B0 = B->get_cscalar(cache);
 const APL_Float xr = B0.get_real_value();
 const APL_Float xi = B0.get_imag_value();
 const Dcomplex theta(xr, xi);
@@ -1309,7 +1332,8 @@ Value_P Z(sdim, sdim, LOC);
 Dcomplex angles[3];
    loop(i, 3)
        {
-         const Cell & Bv = B->get_cravel(i);
+         Cell cache;
+         const Cell & Bv = B->get_cravel(i, cache);
          angles[i] = Dcomplex(Bv.get_real_value(), Bv.get_imag_value());
        }
 
@@ -1361,9 +1385,10 @@ const Dcomplex t22 =  cosb * cosg;
         Z->next_ravel_Complex(t22.real(), t22.imag());
         Z->next_ravel_Complex(0.0,        0.0);
 
-        Z->next_ravel_Cell(A->get_cfirst());
-        Z->next_ravel_Cell(A->get_cravel(1));
-        Z->next_ravel_Cell(A->get_cravel(2));
+        Cell cache0, cache1, cache2;
+        Z->next_ravel_Cell(A->get_cfirst(cache0));
+        Z->next_ravel_Cell(A->get_cravel(1, cache1));
+        Z->next_ravel_Cell(A->get_cravel(2, cache2));
         Z->next_ravel_Complex(1.0, 0.0);
       }
 

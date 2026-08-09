@@ -65,7 +65,8 @@ Quad_RL::assign(Value_P B, bool /* clone */, const char * loc)
         else                     LENGTH_ERROR;
       }
 
-const Cell & cell = B->get_cscalar();
+Cell cache;
+const Cell & cell = B->get_cscalar(cache);
 const APL_Integer val = cell.get_near_int();
 
    state = val;

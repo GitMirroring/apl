@@ -663,9 +663,9 @@ T * result = work_B + items_B;
 
         ALL_ROWS(rows)   // APL rows
            {
-             const Cell & src_A = VA.get_cravel(row * cols_A + col);
-             set_real(a[row], src_A.get_real_value());
-             set_imag(a[row], src_A.get_imag_value());
+             const ShapeItem idx_A = row * cols_A + col;
+             set_real(a[row], VA.get_real_value(idx_A));
+             set_imag(a[row], VA.get_imag_value(idx_A));
            }
 
         // initialize entire b[] in FORTRAN (aka. column major) order,
@@ -677,9 +677,9 @@ T * result = work_B + items_B;
         ALL_COLS(cols_B)   // APL columns
         ALL_ROWS(rows)     // APL rows
            {
-             const Cell & src_B = VB.get_cravel(col + row*cols_B);
-             set_real(*b,   src_B.get_real_value());
-             set_imag(*b++, src_B.get_imag_value());
+             const ShapeItem idx_B = col + row*cols_B;
+             set_real(*b,   VB.get_real_value(idx_B));
+             set_imag(*b++, VB.get_imag_value(idx_B));
            }
 
         const sRank rank = gelsy<T>(A, B, rcond);

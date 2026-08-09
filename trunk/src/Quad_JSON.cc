@@ -191,7 +191,8 @@ Quad_JSON::APL_to_JSON_string(UCS_string & result, const cValue & B,
 {
    if (B.is_scalar())   // number or literal
       {
-        APL_to_JSON_string(result, B.get_cfirst(), level, sorted);
+        Cell cache;
+        APL_to_JSON_string(result, B.get_cfirst(cache), level, sorted);
         return;
       }
 
@@ -216,7 +217,8 @@ Quad_JSON::APL_to_JSON_string(UCS_string & result, const cValue & B,
                    array = UCS_string(2*level + 2, UNI_SPACE);
                  }
 
-              APL_to_JSON_string(array, B.get_cravel(e), level + 1, sorted);
+              Cell cache;
+              APL_to_JSON_string(array, B.get_cravel(e, cache), level + 1, sorted);
               if (array.size() == 0)   // error in APL_to_JSON_string()
                  {
                    result.clear();   // indicate error
@@ -242,8 +244,9 @@ Quad_JSON::APL_to_JSON_string(UCS_string & result, const cValue & B,
 
         loop(m, member_indices.size())
            {
-             const Cell & member_name = B.get_cravel(2*member_indices[m]);
-             const Cell & member_data = B.get_cravel(2*member_indices[m] + 1);
+             Cell cache_name, cache_data;
+             const Cell & member_name = B.get_cravel(2*member_indices[m], cache_name);
+             const Cell & member_data = B.get_cravel(2*member_indices[m] + 1, cache_data);
 
              result << UCS_string(2*level, UNI_SPACE);   // level indent
              if (m)   result << "  ";
@@ -900,7 +903,8 @@ UCS_string member_name;
      Zsub->check_value(LOC);
 
      Cell * member_data = Z.get_new_member(member_name);
-     member_data->init(Zsub->get_cfirst(), Z, LOC);
+     Cell cache;
+     member_data->init(Zsub->get_cfirst(cache), Z, LOC);
    }
 
    // check member-seperator (or end of object).

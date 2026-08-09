@@ -88,8 +88,11 @@ Value_P Z = shape_A.get_rank() == B.get_rank() && shape_A.is_permutation()
    // a clone of an already char/nested-prototyped empty B, was no
    // longer in its fresh int-prototype state). Only call it when Z is
    // both empty and still genuinely unprototyped.
-   if (Z->is_empty() && Z->get_cproto().is_integer_cell())
-      Z->set_default(B, LOC);
+   if (Z->is_empty())
+      {
+        Cell cache;
+        if (Z->get_cproto(cache).is_integer_cell())   Z->set_default(B, LOC);
+      }
 
    Z->check_value(LOC);
    return Token(TOK_APL_VALUE1, Z);
@@ -146,7 +149,10 @@ Bif_F12_TRANSPOSE::transpose(const Shape & sh_A, cValue_R B)
            {
              loop(rZ, cols_B)   // the rows of B are columns of Z
              loop(cZ, rows_B)   // the columns of B are rows of Z
-                 Z->next_ravel_Cell(B.get_cravel(rZ + cZ*cols_B));
+                 {
+                   Cell cache;
+                   Z->next_ravel_Cell(B.get_cravel(rZ + cZ*cols_B, cache));
+                 }
            }
         Z->check_value(LOC);
         return Z;
@@ -192,7 +198,8 @@ Value_P Z(shape_Z, LOC);
 
    for (ArrayIterator b(shape_Z, sh_A); b.has_more(); ++b)
        {
-         Z->next_ravel_Cell(B.get_cravel(b.get_ravel_offset()));
+         Cell cache;
+         Z->next_ravel_Cell(B.get_cravel(b.get_ravel_offset(), cache));
        }
 
    Z->check_value(LOC);
@@ -354,7 +361,8 @@ Value_P Z(shape_Z, LOC);
        {
          ShapeItem idxB = 0;
          loop(z, rank_Z)   idxB += iZ.get_shape_offset(z) * weight_Z[z];
-         Z->next_ravel_Cell(B.get_cravel(idxB));
+         Cell cache;
+         Z->next_ravel_Cell(B.get_cravel(idxB, cache));
        }
 
    Z->check_value(LOC);

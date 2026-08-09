@@ -27,7 +27,6 @@
 class PrimitiveFunction;
 
 #include "Assert.hh"
-#include "ConstCell_P.hh"
 #include "PrimitiveFunction.hh"
 
 /// float64 dyadic vector-vector fast-path function pointer
@@ -125,18 +124,12 @@ public:
    /// non-null when the parallel int64 fast path is in use
    pf_v_i64 int64_fv;
 
-   /// return Bbz]
-   /// @param b ravel index into the right argument
-   const Cell & B_at(ShapeItem b) const
-      { return value_B->get_cravel(b); }
-
    /// return B[b], materialising a packed cell into the caller-supplied
-   /// \b cache instead of the shared (per-Value, not per-thread)
-   /// ravel.cell_fetch_cache. Use this from a parallel worker thread's
-   /// per-cell loop: value_B is a single Value shared by every worker
-   /// thread of this job, so B_at(b) (which fetches via that shared
-   /// cache) races when two threads materialise different packed
-   /// elements concurrently -- confirmed live as a SEGFAULT inside
+   /// \b cache. Use this from a parallel worker thread's per-cell loop:
+   /// value_B is a single Value shared by every worker thread of this
+   /// job, so fetching via a shared (non-per-thread) cache races when
+   /// two threads materialise different packed elements concurrently
+   /// -- confirmed live as a SEGFAULT inside
    /// ScalarFunction::PF_scalar_B/PF_scalar_AB's cell-by-cell fallback
    /// for a primitive without a packed fast path (e.g. A⍟B on packed
    /// int64 operands under CORE_COUNT_WANTED>1).
@@ -235,24 +228,13 @@ public:
    /// non-null when the parallel int64 fast path is in use
    pf_vv_i64 int64_fvv;
 
-   /// return A[z]
-   /// @param a ravel index into the left argument
-   const Cell & A_at(ShapeItem a) const
-      { return value_A->get_cravel(a * inc_A); }
-
    /// return A[a], materialising a packed cell into the caller-supplied
-   /// \b cache instead of the shared (per-Value, not per-thread)
-   /// ravel.cell_fetch_cache -- see PJob_scalar_B::B_at(b, cache) for why
-   /// this matters for a parallel worker thread's per-cell loop.
+   /// \b cache -- see PJob_scalar_B::B_at(b, cache) for why this matters
+   /// for a parallel worker thread's per-cell loop.
    /// @param a ravel index into the left argument
    /// @param cache caller-owned (e.g. per-thread stack) Cell to fetch into
    const Cell & A_at(ShapeItem a, Cell & cache) const
       { return value_A->get_cravel(a * inc_A, cache); }
-
-   /// return B[z]
-   /// @param b ravel index into the right argument
-   const Cell & B_at(ShapeItem b) const
-      { return value_B->get_cravel(b * inc_B); }
 
    /// return B[b], materialising a packed cell into the caller-supplied
    /// \b cache -- see PJob_scalar_B::B_at(b, cache).

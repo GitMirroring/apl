@@ -344,7 +344,8 @@ const int qio = Workspace::get_IO();
 ShapeItem ones = 0;
    loop(e, ec_B)
       {
-        const Cell & cell = B.get_cravel(e);
+        Cell cache;
+        const Cell & cell = B.get_cravel(e, cache);
         const Col_Type ct = get_col_type(cell);
         if (ct == Col_INVALID)
            {
@@ -397,7 +398,8 @@ ShapeItem ones = 0;
         loop (c, cols)
            {
              DLX_Header_Node & hdr = headers[c];
-             const Col_Type ct = get_col_type(B.get_cravel(r*cols + c));
+             Cell cache;
+             const Col_Type ct = get_col_type(B.get_cravel(r*cols + c, cache));
              if (ct < Col_PRIMARY)   continue;   // most likely: not '1' or '2'
 
              if (hdr.col_type == Col_UNKNOWN)   // first '1' or '2' in this col
@@ -749,7 +751,8 @@ DLX_Node * h = right;
              {
                Assert(!v->is_header);
                Assert(h->col == v->col);
-               const Cell & src = B_mat.get_cravel(h->col + cols*v->row);
+               Cell cache;
+               const Cell & src = B_mat.get_cravel(h->col + cols*v->row, cache);
                Z->get_wravel(col + cols_Z*v->row).init(src, *Z, LOC);
              }
          h = h->right;

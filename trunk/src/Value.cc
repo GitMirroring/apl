@@ -29,6 +29,7 @@
 #include "CharCell.hh"
 #include "ComplexCell.hh"
 #include "Common.hh"
+#include "ConstCell_P.hh"
 #include "Error.hh"
 #include "FloatCell.hh"
 #include "Heapsort.hh"
@@ -390,12 +391,12 @@ const int src_incr  = (new_value->nz_element_count() == 1) ? 0 : 1;
 
    if (is_scalar() && !new_value->is_scalar())
       {
-        const Cell * C0 = &get_cscalar();
+        Cell cache;
+        const Cell * C0 = &get_cscalar(cache);
         if (!C0->is_lval_cell())   LEFT_SYNTAX_ERROR;
-        auto LVC0 = reinterpret_cast<const LvalCell *>(C0);
-        if (Cell * target = LVC0->get_lval_value())   // valid right Cell
+        if (Cell * target = C0->try_lval_value())   // valid right Cell
            {
-             Value & owner = *LVC0->get_cell_owner();
+             Value & owner = *C0->get_cell_owner();
              owner.depth_update_for_overwrite(target - owner.ravel.cells, 0);
              target->release(LOC);   // free sub-values etc (if any)
              new (target)   PointerCell(new_value.get(), owner);
@@ -405,7 +406,8 @@ const int src_incr  = (new_value->nz_element_count() == 1) ? 0 : 1;
 
    loop(d, dest_count)
       {
-        const Cell & src = new_value->get_cravel(d * src_incr);
+        Cell src_cache;
+        const Cell & src = new_value->get_cravel(d * src_incr, src_cache);
         Cell & dest = get_wravel(d);
         if (dest.is_pointer_cell())
            {
@@ -424,7 +426,7 @@ const int src_incr  = (new_value->nz_element_count() == 1) ? 0 : 1;
               Value_P left_sub = dest.get_pointer_value();
               Value_P right_sub;
               if (src.is_pointer_cell())   right_sub = src.get_pointer_value();
-              if (+right_sub)
+              if (right_sub)
                  {
                    if (left_sub->get_rank() != right_sub->get_rank())
                       {
@@ -447,18 +449,16 @@ const int src_incr  = (new_value->nz_element_count() == 1) ? 0 : 1;
                   {
                     Cell * Csub = &left_sub->get_wravel(s);
                     if (!Csub->is_lval_cell())   LEFT_SYNTAX_ERROR;
-              
-                    const LvalCell * LVC =
-                          reinterpret_cast<const LvalCell *>(Csub);
-                    Cell * target = LVC->get_lval_value();
-                    if (target)   // target can be 0!
+
+                    if (Cell * target = Csub->try_lval_value())   // 0 possible!
                        {
-                         Value & owner = *LVC->get_cell_owner();
+                         Value & owner = *Csub->get_cell_owner();
                          // if src is simple, then scalar extend it.
                          // Otherwise use item s of src.
                          //
-                         const Cell & right_cell = +right_sub ?
-                                     right_sub->get_cravel(s) : src;
+                         Cell right_cache;
+                         const Cell & right_cell = right_sub ?
+                                     right_sub->get_cravel(s, right_cache) : src;
                          owner.depth_update_for_overwrite(target - owner.ravel.cells,
                                     right_cell.is_pointer_cell() ? 0 : -1);
                          target->release(LOC);   // free sub-values etc.
@@ -468,10 +468,9 @@ const int src_incr  = (new_value->nz_element_count() == 1) ? 0 : 1;
            }
         else if (dest.is_lval_cell())
            {
-             auto LVC = reinterpret_cast<const LvalCell &>(dest);
              if (Cell * target = dest.get_lval_value())   // target can be 0!
                 {
-                  Value & owner = *LVC.get_cell_owner();
+                  Value & owner = *dest.get_cell_owner();
                   owner.depth_update_for_overwrite(target - owner.ravel.cells,
                                     src.is_pointer_cell() ? 0 : -1);
                   target->release(LOC);   // free sub-values etc (if any)
@@ -583,7 +582,8 @@ ShapeItem row = member_name.FNV_hash() % rows;
    loop(r, rows)
        {
          if (++row >= rows)   row = 0;
-         const Cell & name_cell = get_cravel(2*row);
+         Cell cache;
+         const Cell & name_cell = get_cravel(2*row, cache);
 
          if (name_cell.is_pointer_cell() &&
              name_cell.get_pointer_value()->equal_string(member_name))
@@ -807,7 +807,11 @@ Value::check_value(const char * loc)
       }
 
 uint32_t error_count = 0;
-const Cell * C = &get_cfirst();
+// this walks the ravel as an array of real Cell objects via pointer
+// arithmetic below, which is only valid for an unpacked (RPT_CELLS)
+// ravel -- same as ravel.cells itself, so read it directly rather than
+// through a fetcher/cache that may materialise a packed element.
+const Cell * C = ravel.cells;
 
 const ShapeItem ec = nz_element_count();
     loop(c, ec)
@@ -956,9 +960,8 @@ const ShapeItem ec = nz_element_count();
         Cell & cell = get_wravel(e);
         if (cell.is_pointer_cell())
            {
-             PointerCell & ptr_cell = reinterpret_cast<PointerCell &>(cell);
-             ptr_cell.isolate(LOC);
-             ptr_cell.get_pointer_value()->to_type(force_numeric);
+             cell.isolate(LOC);
+             cell.get_pointer_value()->to_type(force_numeric);
            }
         else if (cell.is_character_cell() && ! force_numeric)
            {
@@ -1891,7 +1894,8 @@ const ShapeItem len_B = strand_B.element_count();
 Value_P Z(len_B + 1, LOC);
    Z->next_ravel_Value(&item_A);
 
-   loop(b, len_B)   Z->next_ravel_Cell(strand_B.get_cravel(b));
+   loop(b, len_B)
+       { Cell cache; Z->next_ravel_Cell(strand_B.get_cravel(b, cache)); }
 
    Z->check_value(LOC);
    return Z;
@@ -1914,7 +1918,8 @@ Value::glue_strand_item(const Value & strand_A, Value & item_B,
 const ShapeItem len_A = strand_A.element_count();
 Value_P Z(len_A + 1, LOC);
 
-   loop(a, len_A)   Z->next_ravel_Cell(strand_A.get_cravel(a));
+   loop(a, len_A)
+       { Cell cache; Z->next_ravel_Cell(strand_A.get_cravel(a, cache)); }
    Z->next_ravel_Value(&item_B);
 
    Z->check_value(LOC);
@@ -1943,8 +1948,10 @@ const ShapeItem len_B = strand_B.element_count();
 
 Value_P Z(len_A + len_B, LOC);
 
-   loop(a, len_A)   Z->next_ravel_Cell(strand_A.get_cravel(a));
-   loop(b, len_B)   Z->next_ravel_Cell(strand_B.get_cravel(b));
+   loop(a, len_A)
+       { Cell cache; Z->next_ravel_Cell(strand_A.get_cravel(a, cache)); }
+   loop(b, len_B)
+       { Cell cache; Z->next_ravel_Cell(strand_B.get_cravel(b, cache)); }
 
    Z->check_value(LOC);
    return Z;

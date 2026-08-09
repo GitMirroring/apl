@@ -1022,10 +1022,10 @@ Value_P Z(shape_Z, LOC);
              UCS_string row;
              loop(c, cols)
                 {
-                  const Cell & cB = B.get_cravel(c + r*cols);
-                  if (!cB.is_real_cell())   DOMAIN_ERROR;
+                  const ShapeItem idx_B = c + r*cols;
+                  if (!B.is_real_cell(idx_B))   DOMAIN_ERROR;
 
-                  const APL_Float value = cB.get_real_value();
+                  const APL_Float value = B.get_real_value(idx_B);
 
                   const UCS_string item = col_items[c].format_example(value);
                   Log(LOG_Bif_F12_FORMAT)   Q1(item)
@@ -1144,11 +1144,10 @@ bool has_complex = false;
    // determine the data types (character/numbers/complex) in B
    loop(r, rows)
       {
-        const Cell & cell = B.get_cravel(base + r*cols);
-        if (cell.is_numeric())
+        if (B.is_numeric(base + r*cols))
            {
              has_num = true;
-             if (cell.is_complex_cell())   has_complex = true;
+             if (B.is_complex_cell(base + r*cols))   has_complex = true;
            }
         else
            {
@@ -1163,7 +1162,8 @@ bool has_complex = false;
          Value_P imag(rows, LOC);
          loop(r, rows)
             {
-              const Cell & cell = B.get_cravel(base + r*cols);
+              Cell cache;
+              const Cell & cell = B.get_cravel(base + r*cols, cache);
               if (cell.is_complex_cell())
                  {
                    real->next_ravel_Float(cell.get_real_value());
@@ -1201,18 +1201,17 @@ bool has_complex = false;
    //
    loop(r, rows)
       {
-        const Cell & cell = B.get_cravel(base + r*cols);
-        if (cell.is_character_cell())
+        const ShapeItem idx_B = base + r*cols;
+        if (B.is_character_cell(idx_B))
            {
-             UCS_string data = UCS_string(cell.get_char_value());
+             UCS_string data = UCS_string(B.get_char_value(idx_B));
 
              add_row(ret, r, has_char, has_num, UNI_E, data);
              continue;
            }
 
-        if (cell.is_pointer_cell())
+        if (Value_P value = B.try_pointer_value(idx_B))
            {
-             Value_P value = cell.get_pointer_value();
              UCS_string data = value->get_UCS_ravel();
 
              if (width && data.ssize() > width)   // overflow
@@ -1226,9 +1225,9 @@ bool has_complex = false;
              continue;
            }
 
-        if (!cell.is_real_cell())   DOMAIN_ERROR;
+        if (!B.is_real_cell(idx_B))   DOMAIN_ERROR;
 
-        APL_Float value = B.get_real_value(base + r*cols);
+        APL_Float value = B.get_real_value(idx_B);
         if (!isfinite(value))
            {
              MORE_ERROR() << "A⍕B : Bad value " << value

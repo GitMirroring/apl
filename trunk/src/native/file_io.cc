@@ -188,7 +188,8 @@ eval_B(const cValue * B, const NativeFunction * caller)
 {
    if (B->get_rank() > 1)   RANK_ERROR;
 
-   if (!B->get_cfirst().is_integer_cell())     return list_functions(COUT);
+   Cell cache;
+   if (!B->get_cfirst(cache).is_integer_cell())   return list_functions(COUT);
 
    return Quad_FIO::fun.eval_B(*B);
 }

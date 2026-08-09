@@ -555,7 +555,7 @@ StateIndicator::statement_result(const Token & result, bool trace)
 
 const TokenTag tag = result.get_tag();
 Value_P B(result.get_apl_val());
-   Assert(+B);
+   Assert(B);
 
    // print values, but not TOK_APL_VALUE2 (aka. commited value)
    //

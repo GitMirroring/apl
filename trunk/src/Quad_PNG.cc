@@ -185,9 +185,8 @@ Quad_PNG::eval_AB(cValue_R A, cValue_R B) const
         if (B.get_rank() != 3)   RANK_ERROR;
 
         const APL_Integer A1 = A.get_int_value(1);   // bit depth
-        if (A.is_pointer_cell(0))   // probably file name
+        if (const Value_P A0 = A.try_pointer_value(0))   // probably file name
            {
-             const Value_P A0 = A.get_pointer_value(0);
              UCS_string filename_ucs(*A0);
              UTF8_string filename_utf8(filename_ucs);
              write_PNG_file(filename_utf8.c_str(), A1, B);
@@ -224,7 +223,8 @@ Quad_PNG::eval_B(cValue_R B) const
       {
         // scalar (integer) argument: window control and logging
         //
-        const APL_Integer B0 = B.get_cscalar().get_int_value();
+        Cell cache;
+        const APL_Integer B0 = B.get_cscalar(cache).get_int_value();
         Value_P Z = window_control(B0);
         return Token(TOK_APL_VALUE1, Z);
       }

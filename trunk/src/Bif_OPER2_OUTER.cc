@@ -144,10 +144,11 @@ Value_P Z(shape_Z, LOC);
                     APL_Float sum_imag = 0;
                     bool need_complex = false;
                     Cell aa_cache;
+                    Cell bb_cache;
                     loop(ab, len)   // column of A × row of B
                        {
                          const Cell & aa = A.get_cravel(a * cols_A + ab, aa_cache);
-                         const Cell & bb = B.get_cravel(b + ab*cols_B);
+                         const Cell & bb = B.get_cravel(b + ab*cols_B, bb_cache);
                          sum_real += aa.get_real_value() * bb.get_real_value();
                          if (aa.is_complex_cell())   // complex aa and any b
                             {
@@ -216,7 +217,8 @@ Value_P Z(A.get_shape() + B.get_shape(), LOC);
         Value_P Fill_B = Bif_F12_TAKE::first(B);
 
         Value_P Z1 = RO->eval_fill_AB(*Fill_A, *Fill_B).get_apl_val();
-        Z->set_ravel_Cell(0, Z1->get_cfirst());
+        Cell cache;
+        Z->set_ravel_Cell(0, Z1->get_cfirst(cache));
         Z->check_value(LOC);
         return Token(TOK_APL_VALUE1, Z);
       }
@@ -260,14 +262,15 @@ Value_P RO_A;
 Value_P RO_B;
 
    Cell cA_cache;
+   Cell cB_cache;
    loop(z, len_Z)
       {
         const Cell & cA = A.get_cravel(z / len_B, cA_cache);
-        const Cell & cB = B.get_cravel(z % len_B);
+        const Cell & cB = B.get_cravel(z % len_B, cB_cache);
 
-        if (cA.is_pointer_cell())
+        if (Value_P v = cA.try_pointer_value())
            {
-             RO_A = cA.get_pointer_value();
+             RO_A = v;
            }
         else
            {
@@ -275,9 +278,9 @@ Value_P RO_B;
              RO_A->set_ravel_Cell(0, cA);
            }
 
-        if (cB.is_pointer_cell())
+        if (Value_P v = cB.try_pointer_value())
            {
-             RO_B = cB.get_pointer_value();
+             RO_B = v;
            }
         else
            {

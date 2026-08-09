@@ -154,67 +154,64 @@ bool need_restore = false;
 
          if (len_B >= 1)   // rank: scalar or enclosed vector (distribution)
             {
-              const Cell & cell = B.get_cfirst();
-              if (cell.is_pointer_cell())
+              if (Value_P v = B.try_pointer_value(0))
                  {
-                   do_eval_AB(1, *cell.get_pointer_value());
+                   do_eval_AB(1, *v);
                  }
               else   // rank as scalar
                  {
-                   Value_P rank = IntScalar(cell.get_int_value(), LOC);
+                   Value_P rank = IntScalar(B.get_int_value(0), LOC);
                    do_eval_AB(1, *rank);
                  }
             }
 
          if (len_B >= 2)   // shape: scalar or enclosed vector
             {
-              const Cell & cell = B.get_cravel(1);
-              if (cell.is_pointer_cell())
+              if (Value_P v = B.try_pointer_value(1))
                  {
-                   do_eval_AB(2, *cell.get_pointer_value());
+                   do_eval_AB(2, *v);
                  }
               else   // shape as scalar: Z← (rank⍴ec_B)⍴random_data
                  {
-                   Value_P rank = IntScalar(cell.get_int_value(), LOC);
+                   Value_P rank = IntScalar(B.get_int_value(1), LOC);
                    do_eval_AB(2, *rank);
                  }
             }
 
          if (len_B >= 3)   // type: always enclosed vector (distribution)
             {
-              if (!B.is_pointer_cell(2))
+              Value_P v = B.try_pointer_value(2);
+              if (!v)
                  {
                    MORE_ERROR() << "⎕RVAL B: B[2] (type distribution) must be "
                                    "an enclosed vector";
                    DOMAIN_ERROR;
                  }
-              do_eval_AB(3, *B.get_pointer_value(2));
+              do_eval_AB(3, *v);
             }
 
          if (len_B >= 4)   // maxdepth: scalar or 1-element vector
             {
-              const Cell & cell = B.get_cravel(3);
-              if (cell.is_pointer_cell())   // maxdepth as 1-element vector
+              if (Value_P v = B.try_pointer_value(3))   // maxdepth as 1-element vector
                  {
-                   do_eval_AB(4, *cell.get_pointer_value());
+                   do_eval_AB(4, *v);
                  }
               else   // maxdepth as scalar
                  {
-                   Value_P rank = IntScalar(cell.get_int_value(), LOC);
+                   Value_P rank = IntScalar(B.get_int_value(3), LOC);
                    do_eval_AB(4, *rank);
                  }
             }
 
          if (len_B >= 5)   // ecount: scalar or 1-element vector
             {
-              const Cell & cell = B.get_cravel(4);
-              if (cell.is_pointer_cell())   // ecount as 1-element vector
+              if (Value_P v = B.try_pointer_value(4))   // ecount as 1-element vector
                  {
-                   do_eval_AB(5, *cell.get_pointer_value());
+                   do_eval_AB(5, *v);
                  }
               else   // ecount as scalar
                  {
-                   Value_P ec = IntScalar(cell.get_int_value(), LOC);
+                   Value_P ec = IntScalar(B.get_int_value(4), LOC);
                    do_eval_AB(5, *ec);
                  }
             }
@@ -453,9 +450,10 @@ vector<int> old_types = desired_types;
    {
      vector<int> types_seen(5, 0);
      const ShapeItem ec = Bref.nz_element_count();
+     Cell cache;
      loop(b, ec)
         {
-          const Cell & cell = Bref.get_cravel(b);
+          const Cell & cell = Bref.get_cravel(b, cache);
           if      (cell.is_pointer_cell())     types_seen[4] = 1;
           else if (cell.is_character_cell())   types_seen[0] = 1;
           else if (cell.is_complex_cell())     types_seen[3] = 1;

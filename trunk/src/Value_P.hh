@@ -53,8 +53,12 @@ public:
    /// return a const reference to the Value as cValue
    inline const cValue & operator*() const;
 
-   /// return true if the pointer is valid
-   bool operator+() const
+   /// return true if the pointer is valid. explicit still participates in
+   /// contextual bool conversion (if/while/for conditions, !/&&/||, the
+   /// first operand of ?:), so if (Value_P value = ...) works directly,
+   /// without plain operator bool()'s downside of also enabling silent,
+   /// unwanted conversions (e.g. int n = value; or value + 5).
+   explicit operator bool() const
       { return value_p != 0; }
 
    /// return a const pointer to the Value (overloaded ->)

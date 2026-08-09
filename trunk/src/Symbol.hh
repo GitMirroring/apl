@@ -89,12 +89,12 @@ public:
    /// make \b apl_val the sole owner of apl_val.value
    /// @param loc  caller location for diagnostics
    void isolate(const char * loc)
-      { if (+apl_val)   apl_val.isolate(loc); }
+      { if (apl_val)   apl_val.isolate(loc); }
 
    /// isolate \b apl_val and its sub-values
    /// @param loc  caller location for diagnostics
    void isolate_deep(const char * loc)
-      { if (+apl_val)   apl_val.isolate_deep(loc); }
+      { if (apl_val)   apl_val.isolate_deep(loc); }
 
    /// reset (clear) the APL value in \b this ValueStackItem
    void reset_apl_value()
@@ -285,7 +285,7 @@ public:
    virtual Value_P get_apl_value() const;
 
    /// return the first Cell of this value without creating a value
-   const Cell * get_first_cell() const;
+   const Cell * get_first_cell(Cell & cache) const;
 
    /// Return the current function (or throw a VALUE_ERROR)
    virtual const Function * get_function() const;

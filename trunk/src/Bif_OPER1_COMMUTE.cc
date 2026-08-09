@@ -82,8 +82,7 @@ cFunction_P fun_LO = LO.get_function();
       {
         const DerivedFunction * A_LO =
                       reinterpret_cast<const DerivedFunction *>(fun_LO);
-        Value_P    A = A_LO->get_bound_LO_value();
-        if (+A)   // definitelt special case
+        if (Value_P A = A_LO->get_bound_LO_value())   // definitelt special case
            {
               cFunction_P LO = A_LO->get_OPER();
               return LO->eval_AB(B, *A);

@@ -124,7 +124,8 @@ compare_MAP(const Cell & key, const ShapeItem & item, const void * ctx)
 {
 const ravel_comp_len * rcl = reinterpret_cast<const ravel_comp_len *>(ctx);
 
-   return key.compare(rcl->value->get_cravel(2*item));
+Cell cache;
+   return key.compare(rcl->value->get_cravel(2*item, cache));
 }
 //════════════════════════════════════════════════════════════════════════════
 
@@ -148,7 +149,8 @@ const ShapeItem len_B = B.element_count();
                                                compare_MAP,
                                                &ctx))
             {
-              const Cell & cell_A = A.get_cravel(*map*2 + 1);
+              Cell cache_A;
+              const Cell & cell_A = A.get_cravel(*map*2 + 1, cache_A);
               if (cell_A.is_pointer_cell())
                  {
                    Cell & cell_Z0 = Z->get_wproto();
@@ -175,7 +177,8 @@ const ShapeItem len_B = B.element_count();
          if (const ShapeItem * map = Heapsort<ShapeItem>::search<const Cell &>
                    (cell_B, ordered_indices_A, compare_MAP, &ctx))
             {
-             Z->next_ravel_Cell(A.get_cravel(*map*2 + 1));
+             Cell cache_A;
+             Z->next_ravel_Cell(A.get_cravel(*map*2 + 1, cache_A));
             }
          else   // cell_B shall not be mapped
             {

@@ -66,7 +66,7 @@ public:
       {
        if (rank >= MAX_RANK)    RANK_ERROR;
        values[rank++] = val;
-       if (+val)   ++value_count;
+       if (val)   ++value_count;
       }
 
    /// check that all indices indices of \b this IndexExpr are valid indices

@@ -76,7 +76,8 @@ Bif_F12_DOMINO::eval_B(cValue_R B) const
       {
         Value_P Z(LOC);
 
-        B.get_cscalar().bif_reciprocal(&Z->get_wscalar());
+        Cell cache;
+        B.get_cscalar(cache).bif_reciprocal(&Z->get_wscalar());
         Z->check_value(LOC);
         return Token(TOK_APL_VALUE1, Z);
       }
@@ -189,7 +190,8 @@ enum { ALGO_BAD,         ///< bad algorithm number
        ALGO_LU_GSL,      ///< LU factorization (libgsl based)
      } algo = ALGO_BAD;
 
-const Cell & X0 = X.get_cscalar();
+Cell cache;
+const Cell & X0 = X.get_cscalar(cache);
 double EPS = Workspace::get_CT();
 
    if (X0.is_float_cell())   // a.
@@ -967,8 +969,7 @@ UCS_string_vector vars;
         if (B.get_rank() > ec_A)   LENGTH_ERROR;
         loop(a, ec_A)
             {
-              const Cell & cell = A.get_cravel(a);
-              const cValue & x = *cell.get_pointer_value();
+              const cValue & x = *A.get_pointer_value(a);
               if (!x.is_char_array())
                  {
                     MORE_ERROR() << "A ⌹.print_poly B : Bad type of A["
@@ -999,7 +1000,8 @@ int term = 0;
    loop(n, ec_B)   // loop over terms
       {
         const size_t b = ec_B - n - 1;
-        const Cell & coeff = B.get_cravel(b);
+        Cell cache;
+        const Cell & coeff = B.get_cravel(b, cache);
 
         if (coeff.is_near_zero())   continue;   // hide zero terms entirely
 
@@ -1181,12 +1183,14 @@ vector<Complex> vZ(shape_Z.get_volume(), Complex(0));
 
    loop(a, ec_A)
        {
-        const Cell & cell_A = A.get_cravel(a);
+        Cell cache_A;
+        const Cell & cell_A = A.get_cravel(a, cache_A);
         if (cell_A.is_near_zero())   continue;
         const Shape idx_A = shape_A.offset_to_index(a, /* ⎕IO */ 0);
         loop(b, ec_B)
            {
-             const Cell & cell_B = B.get_cravel(b);
+             Cell cache_B;
+             const Cell & cell_B = B.get_cravel(b, cache_B);
              if (cell_B.is_near_zero())   continue;
              const Shape idx_B = shape_B.offset_to_index(b, /* ⎕IO */ 0);
 
@@ -1298,7 +1302,8 @@ bool need_complex = false;
 
    loop(b, ec_B)
        {
-         const Cell & cell = B.get_cravel(b);
+         Cell cache;
+         const Cell & cell = B.get_cravel(b, cache);
          if (cell.is_near_zero())   continue;
          powers_B.push_back(b);   // remember b
          if (cell.is_complex_cell())   need_complex = true;
@@ -1315,17 +1320,17 @@ Value_P Z(2, LOC);   // Z is quotient Z1 and remainder Z2
         vector<Complex> R;   R.reserve(ec_A + ec_B - 1);   // remainder
         loop(a, ec_A)
             {
-              const Cell & cell = A.get_cravel(ec_A - a - 1);
-               R.push_back(Complex(cell.get_real_value(),
-                                   cell.get_imag_value()));
+              const ShapeItem idx = ec_A - a - 1;
+               R.push_back(Complex(A.get_real_value(idx),
+                                   A.get_imag_value(idx)));
             }
         loop(b, ec_B - 1)   R.push_back(0);
 
         loop(b, ec_B)
             {
-              const Cell & cell = B.get_cravel(ec_B - b - 1);
-               D.push_back(Complex(cell.get_real_value(),
-                                   cell.get_imag_value()));
+              const ShapeItem idx = ec_B - b - 1;
+               D.push_back(Complex(B.get_real_value(idx),
+                                   B.get_imag_value(idx)));
             }
 
         loop(q, ec_Q)
@@ -1391,14 +1396,12 @@ Value_P Z(2, LOC);   // Z is quotient Z1 and remainder Z2
         vector<double> R;   R.reserve(ec_A);   // remainder
         loop(a, ec_A)
             {
-              const Cell & cell = A.get_cravel(ec_A - a - 1);
-               R.push_back(cell.get_real_value());
+               R.push_back(A.get_real_value(ec_A - a - 1));
             }
 
         loop(b, ec_B)
             {
-              const Cell & cell = B.get_cravel(ec_B - b - 1);
-               D.push_back(cell.get_real_value());
+               D.push_back(B.get_real_value(ec_B - b - 1));
             }
 
         loop(q, ec_Q)
@@ -1570,7 +1573,8 @@ Value_P order_A(shape_A, LOC);  // A[2;...]
    {
      const ShapeItem len = shape_A.get_volume();
 
-     const Cell & order0 = A.get_cravel(len);
+     Cell cache0;
+     const Cell & order0 = A.get_cravel(len, cache0);
      if (!order0.is_near_zero())
         {
           MORE_ERROR() << "A ⌹.poly_divideN B : Bad order " << order0
@@ -1579,8 +1583,16 @@ Value_P order_A(shape_A, LOC);  // A[2;...]
         }
 
      ShapeItem cellI = 0;
-     loop(l, len)   poly_A->next_ravel_Cell(A.get_cravel(cellI++));
-     loop(l, len)   order_A->next_ravel_Cell(A.get_cravel(cellI++));
+     loop(l, len)
+         {
+           Cell cache;
+           poly_A->next_ravel_Cell(A.get_cravel(cellI++, cache));
+         }
+     loop(l, len)
+         {
+           Cell cache;
+           order_A->next_ravel_Cell(A.get_cravel(cellI++, cache));
+         }
 
      poly_A->check_value(LOC);
      order_A->check_value(LOC);
@@ -1592,7 +1604,8 @@ Value_P order_B(shape_B, LOC);  // B[2;...]
    {
      const ShapeItem len = shape_B.get_volume();
 
-     const Cell & order0 = B.get_cravel(len);
+     Cell cache0;
+     const Cell & order0 = B.get_cravel(len, cache0);
      if (!order0.is_near_zero())
         {
           MORE_ERROR() << "A ⌹.poly_divideN B : Bad order " << order0
@@ -1601,8 +1614,16 @@ Value_P order_B(shape_B, LOC);  // B[2;...]
         }
 
      ShapeItem cellI = 0;
-     loop(l, len)   poly_B->next_ravel_Cell(B.get_cravel(cellI++));
-     loop(l, len)   order_B->next_ravel_Cell(B.get_cravel(cellI++));
+     loop(l, len)
+         {
+           Cell cache;
+           poly_B->next_ravel_Cell(B.get_cravel(cellI++, cache));
+         }
+     loop(l, len)
+         {
+           Cell cache;
+           order_B->next_ravel_Cell(B.get_cravel(cellI++, cache));
+         }
 
      poly_B->check_value(LOC);
      order_B->check_value(LOC);
@@ -1653,8 +1674,7 @@ UCS_string_vector vars;
         if (B.get_rank() > ec_A)   LENGTH_ERROR;
         loop(a, ec_A)
             {
-              const Cell & cell = A.get_cravel(a);
-              const cValue & x = *cell.get_pointer_value();
+              const cValue & x = *A.get_pointer_value(a);
               if (!x.is_char_array())
                  {
                     MORE_ERROR() << "A ⌹.print_poly B : Bad type of A["
@@ -2032,7 +2052,8 @@ const RavelType rt = V.get_ravel_type();
    if (rt == RPT_CELLS)
       { loop(b, count)
            {
-             const Cell & cell = V.get_cravel(idx + b);
+             Cell cache;
+             const Cell & cell = V.get_cravel(idx + b, cache);
              if (cell.is_float_cell())
                 { *D++ = cell.get_real_value();   *D++ = 0.0; }
              else if (cell.is_integer_cell())
@@ -2060,7 +2081,8 @@ const RavelType rt = V.get_ravel_type();
    if (rt == RPT_CELLS)
       { loop(b, count)
            {
-             const Cell & cell = V.get_cravel(idx + b);
+             Cell cache;
+             const Cell & cell = V.get_cravel(idx + b, cache);
              if (cell.is_float_cell())          *D++ = cell.get_real_value();
              else if (cell.is_integer_cell())   *D++ = cell.get_real_value();
              else                               DOMAIN_ERROR;

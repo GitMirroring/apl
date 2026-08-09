@@ -143,7 +143,8 @@ const bool keep_indent = !UserPreferences::uprefs.discard_indentation;
         const ShapeItem rows = B.element_count();
         loop(row, rows)
            {
-             const Cell & cell = B.get_cravel(row);
+             Cell cache;
+             const Cell & cell = B.get_cravel(row, cache);
              if (cell.is_character_cell())   /// a line with a single char.
                 {
                   // rare special case: single char. This can only occur if
@@ -165,7 +166,7 @@ const bool keep_indent = !UserPreferences::uprefs.discard_indentation;
                 }
 
              Value_P line = cell.get_pointer_value();
-             Assert(+line);
+             Assert(line);
 
              Log(LOG_quad_FX)
                 {
@@ -180,7 +181,8 @@ const bool keep_indent = !UserPreferences::uprefs.discard_indentation;
                   bool skipping = false;
                   loop(l, line_len)
                      {
-                       const Cell & cell = line->get_cravel(l);
+                       Cell cache;
+                       const Cell & cell = line->get_cravel(l, cache);
                        if (!cell.is_character_cell())
                           {
                             MORE_ERROR() << "non-char in line at " LOC;

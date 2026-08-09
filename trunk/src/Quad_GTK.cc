@@ -107,14 +107,16 @@ int fd = -1;
 
         case 5: // function name for function number A
              if (A.is_scalar())
-                return Token(TOK_APL_VALUE1, fnum_to_function_name(
-                                     Fnum(A.get_cscalar().get_int_value())));
+                { Cell cache;
+                  return Token(TOK_APL_VALUE1, fnum_to_function_name(
+                                     Fnum(A.get_cscalar(cache).get_int_value()))); }
              RANK_ERROR;
 
         case 6: // widget class for function number A
              if (A.is_scalar())
-                return Token(TOK_APL_VALUE1, fnum_to_widget_class(
-                                     Fnum(A.get_cscalar().get_int_value())));
+                { Cell cache;
+                  return Token(TOK_APL_VALUE1, fnum_to_widget_class(
+                                     Fnum(A.get_cscalar(cache).get_int_value()))); }
              RANK_ERROR;
 
         default: MORE_ERROR() << "Invalid function number Bi=" << function
@@ -212,15 +214,14 @@ UCS_string ucs_A;
       {
         loop(a, A.element_count())
             {
-              const Cell & cell = A.get_cravel(a);
-              if (!cell.is_pointer_cell())
+              if (!A.is_pointer_cell(a))
                  {
                     MORE_ERROR() << "A ⎕GTK " << fun
                                  << " expects A to be a vector of "
                                     "draw commands (strings)";
                     DOMAIN_ERROR;
                  }
-              Value_P command = cell.get_pointer_value();
+              Value_P command = A.get_pointer_value(a);
               ucs_A << UCS_string(*command);
               ucs_A << UNI_LF;
             }

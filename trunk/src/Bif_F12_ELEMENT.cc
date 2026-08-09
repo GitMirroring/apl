@@ -101,7 +101,8 @@ Bif_F12_ELEMENT::do_eval_B(cValue_R B)
    //
    if (B.element_count() == 0)   // empty argument
       {
-        const Cell & C0 = B.get_cproto();
+        Cell cache_C0;
+        const Cell & C0 = B.get_cproto(cache_C0);
         if (C0.is_numeric())
            {
              Value_P Z(1, LOC);
@@ -128,9 +129,9 @@ Bif_F12_ELEMENT::do_eval_B(cValue_R B)
              return Z;
            }
 
-        if (C0.is_pointer_cell())
+        if (Value_P v = C0.try_pointer_value())
             {
-             return do_eval_B(*C0.get_pointer_value());
+             return do_eval_B(*v);
             }
 
 
@@ -165,9 +166,8 @@ const ShapeItem len_Z = B.get_enlist_count();
       {
         loop(c, B.element_count())
            {
-             const Cell & cell = B.get_cravel(c);
-             if (cell.is_pointer_cell())
-                return do_eval_B(*cell.get_pointer_value());
+             if (Value_P v = B.try_pointer_value(c))
+                return do_eval_B(*v);
            }
         FIXME;
       }

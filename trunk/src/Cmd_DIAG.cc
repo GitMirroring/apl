@@ -135,7 +135,8 @@ bool show_OK = true;   // assume more verbose output
             const ShapeItem ec = val->nz_element_count();
             loop(e, ec)   // for every ravel cell of the (parent-) value
                 {
-                  const Cell & cP = val->get_cravel(e);
+                  Cell cache;
+                  const Cell & cP = val->get_cravel(e, cache);
                   if (!cP.is_pointer_cell())   continue;   // not a parent
 
                   const cValue * sub = cP.get_pointer_value().get();

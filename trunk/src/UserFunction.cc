@@ -669,8 +669,7 @@ UCS_string message_2(error.get_error_line_2());
         message_2.append(header.A()->get_name());
         message_2.append(UNI_SPACE);
 #else
-        Value_P val_A = header.A()->get_apl_value();
-        if (+val_A)
+        if (Value_P val_A = header.A()->get_apl_value())
            {
              PrintContext pctx(PR_BOXED_GRAPHIC);
              PrintBuffer pb(*val_A, pctx, 0);
@@ -686,8 +685,7 @@ UCS_string message_2(error.get_error_line_2());
 #if SHORT
         message_2 << UNI_SPACE << header.B()->get_name();
 #else
-        Value_P val_B = header.B()->get_apl_value();
-        if (+val_B)
+        if (Value_P val_B = header.B()->get_apl_value())
            {
              PrintContext pctx(PR_APL_FUN);
              PrintBuffer pb(*val_B, pctx, 0);
@@ -814,7 +812,8 @@ bool VOID_inserted = false;
                        }
                     else if (tok_b.get_Class() == TC_VALUE)
                        {
-                         const int64_t line = tok_b.get_apl_val()->get_cfirst()
+                         Cell cache;
+                         const int64_t line = tok_b.get_apl_val()->get_cfirst(cache)
                                                    .get_int_value();
                          B->next_ravel_Int(line);
                        }
@@ -870,7 +869,8 @@ const size_t labels_declared = header.get_label_count();
               else if (tok.get_Class() == TC_VALUE)   // →N
                  {
                    const cValue * val_N = tok.get_apl_val().get();
-                   const Cell & cell_N = val_N->get_cfirst();
+                   Cell cache;
+                   const Cell & cell_N = val_N->get_cfirst(cache);
                    if (val_N->is_int_scalar())
                       {
                         const APL_Integer N = cell_N.get_int_value();
@@ -1068,7 +1068,7 @@ Lit_DB literals;
                  {
                    const ShapeItem key = token.get_int_val();
                    Value_P value = literals.pull(key);
-                   Assert(+value);
+                   Assert(value);
                    new (&body[b]) Token(TOK_APL_VALUE1, value);
                  }
             }

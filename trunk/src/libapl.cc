@@ -352,11 +352,13 @@ Cell * cell = &val->get_wravel(idx);
 
    if (new_value->is_simple_scalar())   // e.g. ⊂5 is 5
       {
-        cell->init(new_value->get_cfirst(), *val, LOC);
+        Cell cache;
+        cell->init(new_value->get_cfirst(cache), *val, LOC);
       }
    else if (new_value->is_scalar())     // e.g. ⊂⊂5 is ⊂5
       {
-        const Cell & src = new_value->get_cfirst();
+        Cell cache;
+        const Cell & src = new_value->get_cfirst(cache);
         if (!src.is_pointer_cell())   DOMAIN_ERROR;
         Value_P sub = CLONE(src.get_pointer_value().get(), LOC);
         new (cell)   PointerCell(sub.get(), *val);

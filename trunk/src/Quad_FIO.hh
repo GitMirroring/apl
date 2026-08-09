@@ -55,7 +55,7 @@ public:
    /// return the open FILE * for (APL integer value) \b handle
    /// @param handle APL value holding the integer file handle
    static FILE * get_FILE(const cValue & handle)
-      { return get_FILE(handle.get_cscalar().get_near_int()); }
+      { Cell cache; return get_FILE(handle.get_cscalar(cache).get_near_int()); }
 
    /// overloaded Function::eval_AB().
    virtual Token eval_AB(cValue_R A, cValue_R B) const;
@@ -184,7 +184,8 @@ protected:
    /// return the open file for (APL integer) \b handle
    /// @param handle APL value holding the integer file handle
    static file_entry & get_file_entry(const cValue & handle)
-      { return get_file_entry(handle.get_cscalar().get_near_int()); }
+      { Cell cache;
+        return get_file_entry(handle.get_cscalar(cache).get_near_int()); }
 
    /// overloaded Function::eval_ALXB().
    /// @param A left APL value argument

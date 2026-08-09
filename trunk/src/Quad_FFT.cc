@@ -323,7 +323,8 @@ const RavelType rt = B->get_ravel_type();
            { loop(n, N)
                 {
                   const double w = win(n, N);
-                  const Cell & cell_B = B->get_cravel(n);
+                  Cell cache;
+                  const Cell & cell_B = B->get_cravel(n, cache);
                   if (cell_B.is_complex_cell())
                      Z->next_ravel_Complex(w*cell_B.get_real_value(),
                                            w*cell_B.get_imag_value());
@@ -347,7 +348,8 @@ const RavelType rt = B->get_ravel_type();
            { loop(n, N)
                 {
                   const double w = wp[n];
-                  const Cell & cell_B = B->get_cravel(n);
+                  Cell cache;
+                  const Cell & cell_B = B->get_cravel(n, cache);
                   if (cell_B.is_complex_cell())
                      Z->next_ravel_Complex(w*cell_B.get_real_value(),
                                            w*cell_B.get_imag_value());

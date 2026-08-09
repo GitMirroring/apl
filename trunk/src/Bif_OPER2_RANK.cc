@@ -161,10 +161,11 @@ const ShapeItem length = y123_B->element_count();
             }
          else if (length == 2)   // skalar B
             {
-              const Cell & B0 = y123_B->get_cravel(1);
-              if (B0.is_pointer_cell())   // (B)
+              Cell cache;
+              const Cell & B0 = y123_B->get_cravel(1, cache);
+              if (Value_P v = B0.try_pointer_value())   // (B)
                  {
-                   B = B0.get_pointer_value();
+                   B = v;
                  }
               else
                  {
@@ -176,7 +177,10 @@ const ShapeItem length = y123_B->element_count();
             {
               B = Value_P(length - 1, LOC);
               loop(l, length - 1)
-                  B->next_ravel_Cell(y123_B->get_cravel(l + 1));
+                  {
+                    Cell cache;
+                    B->next_ravel_Cell(y123_B->get_cravel(l + 1, cache));
+                  }
             }
          y123->check_value(LOC);
          B->check_value(LOC);
@@ -190,7 +194,8 @@ int y123_len = 0;
    loop(yy, 3)
       {
         if (yy >= length)   break;
-        const Cell & cy = y123_B->get_cravel(yy);
+        Cell cache;
+        const Cell & cy = y123_B->get_cravel(yy, cache);
         if (cy.is_near_int())   ++y123_len;
         else                                          break;
       }
@@ -216,7 +221,11 @@ int y123_len = 0;
        y123_B->is_pointer_cell(y123_len))   // case 3. y123:⊂B
       {
         y123 = Value_P(y123_len, LOC);
-        loop(yy, y123_len)   y123->next_ravel_Cell(y123_B->get_cravel(yy));
+        loop(yy, y123_len)
+            {
+              Cell cache;
+              y123->next_ravel_Cell(y123_B->get_cravel(yy, cache));
+            }
         B = y123_B->get_pointer_value(y123_len);
         y123->check_value(LOC);
         B->check_value(LOC);
@@ -226,11 +235,19 @@ int y123_len = 0;
    // case 4: y123:B...
    //
    y123 = Value_P(y123_len, LOC);
-   loop(yy, y123_len)   y123->next_ravel_Cell(y123_B->get_cravel(yy));
+   loop(yy, y123_len)
+       {
+         Cell cache;
+         y123->next_ravel_Cell(y123_B->get_cravel(yy, cache));
+       }
 
 const ShapeItem B_len = length - y123_len;
    B = Value_P(B_len, LOC);
-   loop(bb, B_len)   B->next_ravel_Cell(y123_B->get_cravel(bb + y123_len));
+   loop(bb, B_len)
+       {
+         Cell cache;
+         B->next_ravel_Cell(y123_B->get_cravel(bb + y123_len, cache));
+       }
    B->check_value(LOC);
 }
 //────────────────────────────────────────────────────────────────────────────
@@ -321,7 +338,7 @@ sRank frame_B_rank = B->get_rank() - rank_chunk_B;   // frame_B_rank is y9
 const Shape shape_Z = frame_B_rank ? B->get_shape().frame_shape(frame_B_rank)
                                    : A->get_shape().frame_shape(frame_A_rank);
 
-   if (+X)   // ⍤ with axis
+   if (X)   // ⍤ with axis
       {
         // X is the final disclose in the NARS variant of the
         // rank operator. Every item X[i] of X should be an integer vector
@@ -465,7 +482,7 @@ const Shape shape_Z = B->get_shape().frame_shape(frame_B_rank);
         return Token(TOK_APL_VALUE1, Z);
       }
 
-   if (+X)   // ⍤ with axis
+   if (X)   // ⍤ with axis
       {
         loop(x, X->element_count())
             {

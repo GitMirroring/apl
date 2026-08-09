@@ -819,7 +819,7 @@ vector<Value_P>value_rows;   value_rows.reserve(100);
                   {
                     const ShapeItem idx = tos[t].get_int_val();
                     Value_P ZZ = literals.pull(idx);
-                    Assert(+ZZ);
+                    Assert(ZZ);
                     Z->next_ravel_Value(ZZ.get());
                   }
                else if (tos[t].get_Class() == TC_VALUE)
@@ -832,7 +832,10 @@ vector<Value_P>value_rows;   value_rows.reserve(100);
                     else
                        {
                          loop(z, ZZ->element_count())
-                             Z->next_ravel_Cell(ZZ->get_cravel(z));
+                             {
+                               Cell cache;
+                               Z->next_ravel_Cell(ZZ->get_cravel(z, cache));
+                             }
                        }
                   }
                else FIXME;
@@ -925,9 +928,10 @@ Value_P Z(shape_Z, LOC);
    loop(r, value_rows.size())
        {
          const Value & row = *value_rows[r];
+         Cell cache;
          loop(c, max_value_length)
              {
-               Z->next_ravel_Cell(row.get_cravel(c));
+               Z->next_ravel_Cell(row.get_cravel(c, cache));
              }
        }
 

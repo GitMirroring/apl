@@ -113,7 +113,8 @@ const ShapeItem ec = value.element_count();
    if (value.is_scalar())
       {
         PERFORMANCE_START(start_1)
-        const Cell & cell = value.get_cfirst();
+        Cell cache;
+        const Cell & cell = value.get_cfirst(cache);
         PrintContext pctx1(pctx);
         if (cell.need_scaling(pctx))   pctx1.set_scaled();
 
@@ -296,7 +297,8 @@ vector<PrintBuffer> pcols;    pcols.reserve(cols);
    loop(y, rows)
        {
          if (huge_interrupted)   return true;
-         if (value.get_cravel(x + y*cols).need_scaling(pctx))
+         Cell cache;
+         if (value.get_cravel(x + y*cols, cache).need_scaling(pctx))
             {
               scaling[x] = true;
               break;
@@ -331,7 +333,8 @@ vector<PrintBuffer> pcols;    pcols.reserve(cols);
               PrintBuffer & item = item_matrix[y*cols + x];
               PrintContext pctx1 = pctx;
               if (scaling[x])   pctx1.set_scaled();
-              const Cell & cell = value.get_cravel(x + y*cols);
+              Cell cache;
+              const Cell & cell = value.get_cravel(x + y*cols, cache);
               item = cell.character_representation(pctx1);
               if (!item.get_row_count())
                  {
@@ -339,10 +342,9 @@ vector<PrintBuffer> pcols;    pcols.reserve(cols);
                    item.append_ucs(empty);
                  }
 
-              if (cell.is_pointer_cell())
+              if (Value_P sub = cell.try_pointer_value())
                  {
-                   const cValue * sub_val = cell.get_pointer_value().get();
-                   const sRank sub_rank = sub_val->get_rank();
+                   const sRank sub_rank = sub->get_rank();
                    if (max_row_ranks.back() < sub_rank)
                       max_row_ranks.back() = sub_rank;
                  }
@@ -567,7 +569,8 @@ UCS_string ucs;
       {
         loop(e, ec)
            {
-             PrintBuffer pb = value.get_cravel(e)
+             Cell cache;
+             PrintBuffer pb = value.get_cravel(e, cache)
                                           .character_representation(pctx);
              if (e)   ucs << UNI_SPACE;
              ucs << UCS_string(pb, 0, pctx.get_PW());

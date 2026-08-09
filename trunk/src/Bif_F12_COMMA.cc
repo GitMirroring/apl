@@ -185,7 +185,11 @@ const ShapeItem ebytes = B.packed_bytes_per_item();
       }
    else
       {
-        loop(c, count)   Z->next_ravel_Cell(B.get_cravel(c));
+        loop(c, count)
+            {
+              Cell cache;
+              Z->next_ravel_Cell(B.get_cravel(c, cache));
+            }
         Z->pack_like(B);
       }
 
@@ -203,7 +207,8 @@ Bif_COMMA::catenate(const char * where, const cValue & A, sAxis axis,
 
    if (A.is_scalar())
       {
-        const Cell & cell_A = A.get_cfirst();
+        Cell cache;
+        const Cell & cell_A = A.get_cfirst(cache);
         Value_P Z = prepend_scalar(cell_A, axis, B);
         Z->check_value(LOC);
         return Z;
@@ -211,7 +216,8 @@ Bif_COMMA::catenate(const char * where, const cValue & A, sAxis axis,
 
    if (B.is_scalar())
       {
-        const Cell & cell_B = B.get_cfirst();
+        Cell cache;
+        const Cell & cell_B = B.get_cfirst(cache);
         Value_P Z = append_scalar(A, axis, cell_B);
         Z->check_value(LOC);
         return Z;
@@ -445,15 +451,19 @@ ShapeItem idxB = 0;
       {
         if (B.is_scalar())
            {
-             Z->next_ravel_Cell(A.get_cfirst());
-             Z->next_ravel_Cell(B.get_cfirst());
+             Cell cache_A, cache_B;
+             Z->next_ravel_Cell(A.get_cfirst(cache_A));
+             Z->next_ravel_Cell(B.get_cfirst(cache_B));
            }
         else
            {
              loop(h, shape_Z3.h())
                  {
                    loop(l, shape_Z3.l())
-                       Z->next_ravel_Cell(A.get_cfirst());
+                       {
+                         Cell cache;
+                         Z->next_ravel_Cell(A.get_cfirst(cache));
+                       }
                    Cell::copy(*Z.get(), B, idxB, shape_Z3.l());
                 }
            }
@@ -465,7 +475,11 @@ ShapeItem idxB = 0;
              loop(h, shape_Z3.h())
                  {
                    Cell::copy(*Z.get(), A, idxA, shape_Z3.l());
-                   loop(l, shape_Z3.l())   Z->next_ravel_Cell(B.get_cfirst());
+                   loop(l, shape_Z3.l())
+                       {
+                         Cell cache;
+                         Z->next_ravel_Cell(B.get_cfirst(cache));
+                       }
                 }
            }
         else
@@ -503,7 +517,8 @@ Bif_COMMA::catenate_or_laminate(const char * where, const cValue & A,
         AXIS_ERROR;
       }
 
-const Cell & cX = X.get_cfirst();
+Cell cache;
+const Cell & cX = X.get_cfirst(cache);
 const APL_Integer qio = Workspace::get_IO();
 
    if (cX.is_near_int())   // catenate along existing axis
@@ -566,7 +581,8 @@ Bif_COMMA::prepend_scalar(const Cell & cell_A, uAxis axis, const cValue & B)
       {
         Value_P Z(2, LOC);
         Z->next_ravel_Cell(cell_A);
-        Z->next_ravel_Cell(B.get_cfirst());
+        Cell cache;
+        Z->next_ravel_Cell(B.get_cfirst(cache));
         Z->check_value(LOC);
         return Z;
       }
@@ -644,8 +660,9 @@ Bif_F12_COMMA::eval_AB(cValue_R A, cValue_R B) const
   if (A.is_scalar() && B.is_scalar())
      {
        Value_P Z(2, LOC);
-       Z->next_ravel_Cell(A.get_cscalar());
-       Z->next_ravel_Cell(B.get_cscalar());
+       Cell cache_A, cache_B;
+       Z->next_ravel_Cell(A.get_cscalar(cache_A));
+       Z->next_ravel_Cell(B.get_cscalar(cache_B));
        Z->check_value(LOC);
        return Token(TOK_APL_VALUE1, Z);
      }
@@ -712,8 +729,9 @@ Bif_F12_COMMA1::eval_AB(cValue_R A, cValue_R B) const
   if (A.is_scalar() && B.is_scalar())
      {
        Value_P Z(2, LOC);
-       Z->next_ravel_Cell(A.get_cfirst());
-       Z->next_ravel_Cell(B.get_cfirst());
+       Cell cache_A, cache_B;
+       Z->next_ravel_Cell(A.get_cfirst(cache_A));
+       Z->next_ravel_Cell(B.get_cfirst(cache_B));
        Z->check_value(LOC);
        return Token(TOK_APL_VALUE1, Z);
      }

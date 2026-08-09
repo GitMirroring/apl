@@ -159,7 +159,8 @@ APL_Complex bc = iB->get_complex_value();   // the value being decoded
          idxA -= aH;
          cZ -= dZ;
 
-        const Cell & cellA = iA.get_owner().get_cravel(idxA);
+        Cell cache;
+        const Cell & cellA = iA.get_owner().get_cravel(idxA, cache);
         const ComplexCell cC(bc);
         cC.bif_residue(cZ, &cellA);
 
@@ -195,7 +196,8 @@ APL_Float bf = iB->get_real_value();   // the value being decoded
          idxA -= aH;
          cZ -= dZ;
 
-        const Cell & cellA = iA.get_owner().get_cravel(idxA);
+        Cell cache;
+        const Cell & cellA = iA.get_owner().get_cravel(idxA, cache);
         const FloatCell cC(bf);
         cC.bif_residue(cZ, &cellA);
 
@@ -247,7 +249,8 @@ APL_Integer bi = iB->get_int_value();   // the value being decoded
          idxA -= aH;
          cZ -= dZ;
 
-        const Cell & cellA = iA.get_owner().get_cravel(idxA);
+        Cell cache;
+        const Cell & cellA = iA.get_owner().get_cravel(idxA, cache);
         const IntCell cC(bi);
         cC.bif_residue(cZ, &cellA);
 
@@ -287,7 +290,8 @@ const RavelType rt = B.get_ravel_type();
    if (rt == RPT_CELLS)
       { loop(b, B.element_count())
            {
-             const Cell & cell = B.get_cravel(b);
+             Cell cache;
+             const Cell & cell = B.get_cravel(b, cache);
              if (cell.is_integer_cell())
                 {
                   const APL_Integer value = cell.get_int_value();
@@ -459,7 +463,8 @@ ShapeItem idxA = 0;
                 // immediately, before that fallback gets a chance.
                 // Classify as non-integer up front instead so it goes
                 // straight to decode_real()/decode_complex().
-                if (!A.get_cravel(idxA + aa).is_near_int64_t())
+                Cell cache;
+                if (!A.get_cravel(idxA + aa, cache).is_near_int64_t())
                    integer_A = false;
              }
 
@@ -479,7 +484,8 @@ ShapeItem idxA = 0;
                          }
 
                       // see the integer_A classification above.
-                      if (!B.get_cravel(l + bb*l_len_B).is_near_int64_t())
+                      Cell cache;
+                      if (!B.get_cravel(l + bb*l_len_B, cache).is_near_int64_t())
                          integer_B = false;
                     }
 

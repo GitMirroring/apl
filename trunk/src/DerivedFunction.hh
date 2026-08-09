@@ -187,7 +187,7 @@ public:
    : DerivedFunction(&LO, D, &RO, X, loc)
    {
      Log(LOG_FunOperX)   CERR << "Binding: (LO D X RO) at " << loc << endl;
-     Assert(+X);
+     Assert(X);
    }
 
    /// overloaded Function::eval_AXB()
@@ -285,7 +285,7 @@ public:
    : DerivedFunction(0, F, 0, X, loc)
    {
      Log(LOG_FunOperX)   CERR << "Binding: (F rXM) at " << loc << endl;
-     Assert(+X);
+     Assert(X);
    }
 
    /// overloaded Function::eval_AB()

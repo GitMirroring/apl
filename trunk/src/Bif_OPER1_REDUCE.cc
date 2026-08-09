@@ -74,7 +74,10 @@ prim_f2 scalar_LO       = LO->get_scalar_f2();
         // Z[z] = B[b]. We use Z[z] as accumulator for the reduction
         //
         Cell & accu = Z->get_wravel(z);
-        accu.init(B->get_cravel(b), *Z, LOC);
+        {
+          Cell cache;
+          accu.init(B->get_cravel(b, cache), *Z, LOC);
+        }
 
         loop(lo, LO_count)
            {
@@ -83,7 +86,8 @@ prim_f2 scalar_LO       = LO->get_scalar_f2();
 
              // one reduction step (one call of LO)
              //
-             const Cell & cB = B->get_cravel(b);
+             Cell cache;
+             const Cell & cB = B->get_cravel(b, cache);
              if (scalar_LO && accu.is_simple_cell() && cB.is_simple_cell())
                 {
                   const ErrorCode ec = (accu.*scalar_LO)(&accu, &cB);
@@ -258,8 +262,9 @@ const APL_Integer n_wise = A0 < 0 ? neg_A0 : A0;
            {
               Token ident = LO->eval_identity_fun(*B, axis);
               Value_P Z(2, LOC);
-              Z->next_ravel_Cell(ident.get_apl_val()->get_cfirst());
-              Z->next_ravel_Cell(ident.get_apl_val()->get_cfirst());
+              Cell cache;
+              Z->next_ravel_Cell(ident.get_apl_val()->get_cfirst(cache));
+              Z->next_ravel_Cell(ident.get_apl_val()->get_cfirst(cache));
               return Token(TOK_APL_VALUE1, Z);
            }
 
@@ -313,7 +318,8 @@ const APL_Integer n_wise = A0 < 0 ? neg_A0 : A0;
         Shape shape_B1 = B->get_shape().insert_axis(axis, 0);
         shape_B1.increment_shape_item(axis + 1);
         Value_P val(shape_B1, LOC);
-        val->set_ravel_Cell(0, B->get_cproto()); // prototype
+        Cell cache;
+        val->set_ravel_Cell(0, B->get_cproto(cache)); // prototype
 
         Token result = LO->eval_identity_fun(*val, axis);
         return result;
@@ -329,7 +335,8 @@ const APL_Integer n_wise = A0 < 0 ? neg_A0 : A0;
         Shape shape_Z = B->get_shape();
         shape_Z.set_shape_item(axis, 0);
         Value_P Z(shape_Z, LOC);
-        Z->set_ravel_Cell(0, B->get_cproto()); // prototype
+        Cell cache;
+        Z->set_ravel_Cell(0, B->get_cproto(cache)); // prototype
         Z->check_value(LOC);
         return Token(TOK_APL_VALUE1, Z);
       }
@@ -472,7 +479,8 @@ const Shape3 shape_B3(shape_B, axis);
                   loop(l, shape_B3.l())
                      {
                        const ShapeItem src = shape_B3.hml(h, bm, l);
-                       Z->next_ravel_Cell(B.get_cravel(src));
+                       Cell cache;
+                       Z->next_ravel_Cell(B.get_cravel(src, cache));
                      }
                   if (shape_B3.m() > 1)   ++bm;
                 }
@@ -486,7 +494,8 @@ const Shape3 shape_B3(shape_B, axis);
                        // prototype cell instead (confirmed: without this,
                        // shape_B3.hml(h,0,l) reads an out-of-bounds row
                        // and crashes).
-                       const Cell & proto = B.get_cproto();
+                       Cell cache;
+                       const Cell & proto = B.get_cproto(cache);
                        loop(r, -rep)
                        loop(l, shape_B3.l())
                           Z->next_ravel_Proto(proto);
@@ -497,7 +506,8 @@ const Shape3 shape_B3(shape_B, axis);
                        loop(l, shape_B3.l())
                           {
                             const ShapeItem src = shape_B3.hml(h, 0, l);
-                            Z->next_ravel_Proto(B.get_cravel(src));
+                            Cell cache;
+                            Z->next_ravel_Proto(B.get_cravel(src, cache));
                           }
                      }
 

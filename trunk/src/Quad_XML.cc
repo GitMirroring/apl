@@ -673,7 +673,7 @@ XML_node::merge_range(XML_node & start, XML_node & end, XML_node & garbage)
    // the nodes after start from the level of start and make them members
    // of start instead.
    //
-   Assert(+start.APL_value);   // start contains at least its tagname member (⍙)
+   Assert(start.APL_value);   // start contains at least its tagname member (⍙)
    Assert(start.APL_value->is_structured());
 
 size_t position = Workspace::get_IO();   // re-number sub nodes
@@ -686,7 +686,7 @@ size_t position = Workspace::get_IO();   // re-number sub nodes
 
          if (sub.get_node_type() == NT_end_tag)   break;
 
-         Assert(+sub.APL_value);
+         Assert(sub.APL_value);
          switch(sub.get_node_type())
             {
               case NT_text:
@@ -1338,13 +1338,16 @@ bool tag_open = false;
          ShapeItem member_pos;     // the position in the XML file
          Unicode category;
          UCS_string name;
-         const Value & member_name = *B.get_cravel(2*member_indices[m])
-                                       .get_pointer_value();
+         Cell cache_name;
+         const Value & member_name =
+            *B.get_cravel(2*member_indices[m], cache_name).get_pointer_value();
 
          split_name(&category, &member_pos, &name, member_name);
 
-         const Value & member_data = *B.get_cravel(2*member_indices[m] + 1)
-                                      .get_pointer_value();
+         Cell cache_data;
+         const Value & member_data =
+            *B.get_cravel(2*member_indices[m] + 1,
+                          cache_data).get_pointer_value();
 
          // one tag; the member_indices items occur in the following
          // order (also below):
@@ -1735,9 +1738,10 @@ Quad_XML::name_unsplit(const cValue & B)
    if (B.get_rank() != 1)        RANK_ERROR;
    if (B.element_count() != 3)   LENGTH_ERROR;
 
-const Cell & b0 =  B.get_cfirst();
-const Cell & b1 =  B.get_cravel(1);
-const Cell & b2 =  B.get_cravel(2);
+Cell cache_b0, cache_b1, cache_b2;
+const Cell & b0 =  B.get_cfirst(cache_b0);
+const Cell & b1 =  B.get_cravel(1, cache_b1);
+const Cell & b2 =  B.get_cravel(2, cache_b2);
 
 const APL_Integer position = b1.get_int_value();
    if (position < Workspace::get_IO())
@@ -1839,8 +1843,7 @@ const Value & A1 = *A.get_pointer_value(1);
              DOMAIN_ERROR;
            }
 
-        const Cell & cell = B.get_cravel(2*member_indices[0]);
-        Value * name =  cell.get_pointer_value().get();
+        Value * name =  B.get_pointer_value(2*member_indices[0]).get();
         return Token(TOK_APL_VALUE1, CLONE(name, LOC));
       }
 
@@ -1859,7 +1862,8 @@ const ShapeItem path_length = path->element_count();
 const cValue * container = &B;
    for (size_t path_idx = 0; path_idx < size_t(path_length - 1); ++path_idx)
        {
-         const UCS_string member(path->get_cravel(path_idx));
+         Cell cache;
+         const UCS_string member(path->get_cravel(path_idx, cache));
          const Cell * data_cell = container->get_member_data(member);
          if (data_cell == 0)
             {
@@ -1878,9 +1882,11 @@ const cValue * container = &B;
               DOMAIN_ERROR;
             }
        }
+Cell last_path_cache;
 const Value & last_path_item = path_length == 1
                              ? A1
-                             : *path->get_cravel(path_length - 1)
+                             : *path->get_cravel(path_length - 1,
+                                                  last_path_cache)
                                     .get_pointer_value();
 ShapeItem leaf_position;
    {
@@ -1893,7 +1899,8 @@ std::vector<ShapeItem> member_indices;
 
    loop(m, member_indices.size())
       {
-        const Cell & cell = container->get_cravel(2*member_indices[m]);
+        Cell cache;
+        const Cell & cell = container->get_cravel(2*member_indices[m], cache);
         Assert(cell.is_pointer_cell());
 
         Value * name_m =  cell.get_pointer_value().get();
@@ -1951,14 +1958,17 @@ std::vector<const Cell *>member_values;
 
    loop(m, member_indices.size())
       {
-        const Cell & cBname = B.get_cravel(2*member_indices[m]);
-        Assert(cBname.is_pointer_cell());
+        Assert(B.is_pointer_cell(2*member_indices[m]));
         if (flags & tf_with_pos)
-           member_names.push_back(cBname.get_pointer_value()->get_UCS_ravel());
+           member_names.push_back(B.get_pointer_value(2*member_indices[m])
+                                                       ->get_UCS_ravel());
         else
-           member_names.push_back(skip_pos_prefix(cBname.get_pointer_value()
-                                                         ->get_UCS_ravel()));
-        member_values.push_back(&B.get_cravel(2*member_indices[m] + 1));
+           member_names.push_back(skip_pos_prefix(
+                                     B.get_pointer_value(2*member_indices[m])
+                                                       ->get_UCS_ravel()));
+        Cell cache;   // B is structured (nested), so never packed: the
+                      // returned reference does not depend on cache
+        member_values.push_back(&B.get_cravel(2*member_indices[m] + 1, cache));
       }
 
    // add an "empty" line to make z look nicer
@@ -2031,11 +2041,13 @@ UCS_string_vector member_names;
 std::vector<const Cell *>member_values;
    loop(m, member_indices.size())
       {
-        const Cell & cBname = B.get_cravel(2*member_indices[m]);
-        Assert(cBname.is_pointer_cell());
-        const UCS_string member_name = cBname.get_pointer_value()->get_UCS_ravel();
+        Assert(B.is_pointer_cell(2*member_indices[m]));
+        const UCS_string member_name =
+              B.get_pointer_value(2*member_indices[m])->get_UCS_ravel();
         member_names.push_back(member_name);
-        member_values.push_back(&B.get_cravel(2*member_indices[m] + 1));
+        Cell cache;   // B is structured (nested), so never packed: the
+                      // returned reference does not depend on cache
+        member_values.push_back(&B.get_cravel(2*member_indices[m] + 1, cache));
       }
 
    loop(m, member_names.size())

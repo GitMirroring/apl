@@ -108,18 +108,17 @@ Value_P Z(B.get_shape(), LOC);
       {
         loop(v, ec)
            {
-             const Cell & cell_B = B.get_cravel(v);
-             if (cell_B.is_character_cell())   // Unicode to AV index
+             if (B.is_character_cell(v))   // Unicode to AV index
                 {
-                  const Unicode uni = cell_B.get_char_value();
+                  const Unicode uni = B.get_char_value(v);
                   int32_t pos = Avec::find_av_pos(uni);
                   if (pos < 0)   Z->next_ravel_Int(Avec::MAX_AV);
                   else           Z->next_ravel_Int(pos);
                   continue;
                 }
-             if (cell_B.is_integer_cell())
+             if (B.is_integer_cell(v))
                 {
-                  const APL_Integer idx = cell_B.get_near_int();
+                  const APL_Integer idx = B.get_near_int(v);
                   Z->next_ravel_Char(Quad_AV::indexed_at(idx));
                   continue;
                 }
@@ -777,15 +776,14 @@ Quad_EX::eval_B(cValue_R B) const
    // the user if she asks for it with )MORE.
    loop(b, B.element_count())
        {
-         const Cell & cell = B.get_cravel(b);
-         if (!cell.is_character_cell())
+         if (!B.is_character_cell(b))
             {
               MORE_ERROR() << "⎕EX B: non-character in list B "
                               "(of symbol names)";
               break;
             }
 
-        const Unicode uni = cell.get_char_value();
+        const Unicode uni = B.get_char_value(b);
         if (!( Avec::is_symbol_char(uni) ||
                Avec::is_white(uni)       ||
                (uni == UNI_FULLSTOP)))
@@ -1041,11 +1039,12 @@ Quad_INP::get_esc(Value_P A, UCS_string & esc1, UCS_string & esc2)
 
         loop(e, 2)
            {
-             const Cell & cell = A->get_cravel(e);
-             if (cell.is_pointer_cell())   // char vector
+             Cell cache;
+             const Cell & cell = A->get_cravel(e, cache);
+             if (Value_P v = cell.try_pointer_value())   // char vector
                 {
-                  if (e)   esc2 = cell.get_pointer_value()->get_UCS_ravel();
-                  else     esc1 = cell.get_pointer_value()->get_UCS_ravel();
+                  if (e)   esc2 = v->get_UCS_ravel();
+                  else     esc1 = v->get_UCS_ravel();
                 }
              else                          // char scalar
                 {
@@ -1251,7 +1250,7 @@ const Symbol * user_sym = Workspace::lookup_existing_symbol(ucs);
 Token
 Quad_NL::do_quad_NL(Value_P A, Value_P B)
 {
-   if (+A && !A->is_char_string())   DOMAIN_ERROR;
+   if (A && !A->is_char_string())   DOMAIN_ERROR;
    if (B->get_rank() > 1)            RANK_ERROR;
    if (B->element_count() == 0)   // nothing requested
       {
@@ -1259,7 +1258,7 @@ Quad_NL::do_quad_NL(Value_P A, Value_P B)
       }
 
 UCS_string first_chars;
-   if (+A)   first_chars = UCS_string(*A);
+   if (A)   first_chars = UCS_string(*A);
 
    // 1. create a bitmap of ⎕NC values requested in B
    //
@@ -1590,7 +1589,8 @@ const ShapeItem ec = B.element_count();
       {
         loop(v, ec)
            {
-             const Cell & cell_B = B.get_cravel(v);
+             Cell cache;
+             const Cell & cell_B = B.get_cravel(v, cache);
              if (cell_B.is_character_cell())   // char to Unicode
                 {
                   const Unicode uni = cell_B.get_char_value();

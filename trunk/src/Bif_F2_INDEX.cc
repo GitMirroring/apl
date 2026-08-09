@@ -50,14 +50,13 @@ const ShapeItem ec_A = A.element_count();
 IndexExpr index_expr(ASS_none, LOC);
    loop(a, ec_A)
       {
-         const Cell & cell = A.get_cravel(ec_A - a - 1);
-         if (cell.is_pointer_cell())
+        const ShapeItem idx = ec_A - a - 1;
+         if (Value_P val0 = A.try_pointer_value(idx))
             {
-              Value_P val = CLONE_P(cell.get_pointer_value(), LOC);
+              Value_P val = CLONE_P(val0, LOC);
               if (val->compute_depth() > 1)
                  {
-                   MORE_ERROR() << "A⌷B: A[" << (ec_A - a - 1
-                                                 + Workspace::get_IO())
+                   MORE_ERROR() << "A⌷B: A[" << (idx + Workspace::get_IO())
                                 << "] is nested too deeply (expecting a"
                                    " simple index or a simple vector of"
                                    " indices)";
@@ -67,11 +66,11 @@ IndexExpr index_expr(ASS_none, LOC);
             }
         else
             {
-              const APL_Integer I = cell.get_near_int();
+              const APL_Integer I = A.get_near_int(idx);
               if (I < 0)
                  {
                    MORE_ERROR() << "A⌷B: A["
-                                << (ec_A - a - 1 + Workspace::get_IO())
+                                << (idx + Workspace::get_IO())
                                 << "] = " << I << " is negative";
                    DOMAIN_ERROR;
                  }
@@ -134,10 +133,10 @@ ShapeItem a = ec_A;   // index_expr[0] ←→  B[;;;b]
               continue;
             }
 
-         const Cell & cell_A = A.get_cravel(--a);
-          if (cell_A.is_pointer_cell())
+         --a;
+          if (Value_P val0 = A.try_pointer_value(a))
              {
-               Value_P val = CLONE_P(cell_A.get_pointer_value(), LOC);
+               Value_P val = CLONE_P(val0, LOC);
                if (val->compute_depth() > 1)
                   {
                     MORE_ERROR() << "A⌷[X]B: A[" << (a + Workspace::get_IO())
@@ -150,7 +149,7 @@ ShapeItem a = ec_A;   // index_expr[0] ←→  B[;;;b]
              }
          else   // single index
              {
-               const APL_Integer I = cell_A.get_near_int();
+               const APL_Integer I = A.get_near_int(a);
                if (I < 0)
                   {
                     MORE_ERROR() << "A⌷[X]B: A[" << (a + Workspace::get_IO())

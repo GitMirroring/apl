@@ -64,7 +64,7 @@ IndexExpr::~IndexExpr()
 {
    if (value_count)
       {
-        loop(r, rank)   if (+values[r])   values[r].reset();
+        loop(r, rank)   if (values[r])   values[r].reset();
       }
 }
 //────────────────────────────────────────────────────────────────────────────

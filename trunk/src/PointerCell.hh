@@ -48,17 +48,18 @@ public:
    /// @param magic magic number permitting simple-scalar values
    PointerCell(Value * val, Value & cell_owner, uint32_t magic);
 
-   /// return the owner of this PointerCell
-   Value * get_cell_owner() const
+   /// overloaded Cell::get_cell_owner()
+   virtual Value * get_cell_owner() const
       { return value.pval.owner; }
 
    /// overloaded Cell::is_pointer_cell()
    virtual bool is_pointer_cell() const   { return true; }
 
-   /// isolate value.pval.valp (make \b value.pval the sole owner)
+   /// overloaded Cell::isolate(): isolate value.pval.valp (make
+   /// \b value.pval the sole owner)
    /// @param loc caller location for diagnostics
-   void isolate(const char * loc)
-      { if (+value.pval.valp)   value.pval.valp.isolate(LOC); }
+   virtual void isolate(const char * loc)
+      { if (value.pval.valp)   value.pval.valp.isolate(LOC); }
 
    /// the Quad_CR representation of this cell
    /// @param pcx print context controlling formatting options
@@ -90,9 +91,10 @@ public:
    /// overloaded Cell::is_member_anchor()
    virtual bool is_member_anchor() const;
 
-   /// isolate this value and all of its sub values
+   /// overloaded Cell::isolate_deep(): isolate this value and all of its
+   /// sub values
    /// @param loc caller location for diagnostics
-   void isolate_deep(const char * loc);
+   virtual void isolate_deep(const char * loc);
 
    /// overloaded Cell::release()
    /// @param loc caller location for diagnostics

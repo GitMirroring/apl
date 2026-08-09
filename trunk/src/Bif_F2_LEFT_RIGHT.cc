@@ -90,13 +90,14 @@ const Shape * shape_Z = &A.get_shape();   // last resort if X and B are scalar
    else if (inc_B)   shape_Z = &B.get_shape();
 
 Value_P Z(*shape_Z, LOC);
+Cell cache;
    loop(z, shape_Z->get_volume())
        {
         const APL_Integer xz = X.get_int_value(z*inc_X);   // X[z]
         if (xz == 0)        // take A[z]
-           Z->next_ravel_Cell(A.get_cravel(z*inc_A));
+           Z->next_ravel_Cell(A.get_cravel(z*inc_A, cache));
         else if (xz == 1)   // take B[z]
-           Z->next_ravel_Cell(B.get_cravel(z*inc_B));
+           Z->next_ravel_Cell(B.get_cravel(z*inc_B, cache));
         else
            {
              MORE_ERROR() << "A⊢[X]B: X[" << (z + Workspace::get_IO())

@@ -650,8 +650,7 @@ Executable::unmark_all_values() const
         const Token & tok = body[b];
         if (tok.get_ValueType() == TV_VAL)
            {
-             Value_P value = tok.get_apl_val();
-             if (+value)   value->unmark();
+             if (Value_P value = tok.get_apl_val())   value->unmark();
            }
 
         if (tok.get_ValueType() == TV_FUN)
@@ -1667,7 +1666,7 @@ StatementList * fun = new StatementList(data, loc);
         CERR << "fun->body.size() is " << fun->body.size() << endl;
       }
 
-   if (+literal)
+   if (literal)
       {
         bool found_marker = false;
         loop(b, fun->body.size())

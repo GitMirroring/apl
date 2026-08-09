@@ -72,7 +72,11 @@ LvalCell::check_consistency() const
 {
   if (value.lval)                      // valid owner
      {
-        const Cell * C0 = &value.pval.owner->get_cfirst();
+        // a value with LvalCells can never be packed (try_pack() bails on
+        // any non-simple cell type), so this fetch never touches cache
+        // and C0 is always the real ravel address.
+        Cell cache;
+        const Cell * C0 = &value.pval.owner->get_cfirst(cache);
         const Cell * CN = C0 + value.pval.owner->nz_element_count();
        if (value.lval < C0 || value.lval >= CN)   // wrong owner
           {

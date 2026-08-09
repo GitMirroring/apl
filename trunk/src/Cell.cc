@@ -108,6 +108,12 @@ Cell::get_pointer_value() const
    DOMAIN_ERROR;
 }
 //────────────────────────────────────────────────────────────────────────────
+Value_P
+Cell::try_pointer_value() const
+{
+   return is_pointer_cell() ? get_pointer_value() : Value_P();
+}
+//────────────────────────────────────────────────────────────────────────────
 bool
 Cell::greater(const Cell & other) const
 {
@@ -139,7 +145,8 @@ Cell::init_from_value(Value * value, Value & cell_owner, const char * loc)
 {
    if (value->is_simple_scalar())
       {
-        value->get_cfirst().init_other(this, cell_owner, loc);
+        Cell cache;
+        value->get_cfirst(cache).init_other(this, cell_owner, loc);
       }
    else
       {
@@ -199,7 +206,8 @@ Cell::copy(Value & val, const cValue & src, ShapeItem & idx, ShapeItem count)
    loop(c, count)
       {
         Assert1(val.more());
-        val.next_ravel_Cell(src.get_cravel(idx++));
+        Cell cache;
+        val.next_ravel_Cell(src.get_cravel(idx++, cache));
       }
 }
 //────────────────────────────────────────────────────────────────────────────

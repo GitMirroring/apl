@@ -96,19 +96,25 @@ ErrorCode (Cell::*assoc_f2)(Cell *, const Cell *) const = LO->get_assoc();
             {
               if (m == 0)   // first item in scanned vector
                  {
-                   Z->next_ravel_Cell(B->get_cravel(bI++));
+                   Cell cache;
+                   Z->next_ravel_Cell(B->get_cravel(bI++, cache));
                  }
               else          // subsequent item in scanned vector
                  {
-                   const Cell & prev_Z = Z->get_cravel(z - shape_Z3.l());
+                   Cell cache_Z;
+                   const Cell & prev_Z = Z->get_cravel(z - shape_Z3.l(),
+                                                        cache_Z);
 
                    Value_P AA(prev_Z, LOC);              // AA is Z[h; m-1; l]
-                   Value_P BB(B->get_cravel(bI++), LOC); // BB is B[h; m  ; l]
+                   Cell cache_B;
+                   Value_P BB(B->get_cravel(bI++, cache_B), LOC);
+                                                          // BB is B[h; m; l]
 
                    Token tok = LO->eval_AB(*AA, *BB);
                    if (!tok.is_apl_val())   return tok;   // error in AA LO BB
 
-                   Z->next_ravel_Cell(tok.get_apl_val()->get_cscalar());
+                   Cell cache_tok;
+                   Z->next_ravel_Cell(tok.get_apl_val()->get_cscalar(cache_tok));
                  }
               ++z;
             }
@@ -240,7 +246,11 @@ ShapeItem bI = 0;
            {
              if (rep_counts[m] == 1)   // copy items from B
                 {
-                  loop(l, shape_Z3.l())   Z->next_ravel_Cell(B.get_cravel(bI + l));
+                  loop(l, shape_Z3.l())
+                     {
+                       Cell cache;
+                       Z->next_ravel_Cell(B.get_cravel(bI + l, cache));
+                     }
                   bI += inc_1;
                 }
              else                      // init items
@@ -254,12 +264,17 @@ ShapeItem bI = 0;
                        // B has no row at all along the expand axis, so
                        // there is no real B item at fillI+l to copy the
                        // type from -- use B's prototype cell instead.
-                       const Cell & proto = B.get_cproto();
+                       Cell cache;
+                       const Cell & proto = B.get_cproto(cache);
                        loop(l, shape_Z3.l())   Z->next_ravel_Proto(proto);
                      }
                   else
                      {
-                       loop(l, shape_Z3.l())   Z->next_ravel_Proto(B.get_cravel(fillI + l));
+                       loop(l, shape_Z3.l())
+                          {
+                            Cell cache;
+                            Z->next_ravel_Proto(B.get_cravel(fillI + l, cache));
+                          }
                      }
                 }
            }

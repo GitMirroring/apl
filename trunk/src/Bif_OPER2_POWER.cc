@@ -62,7 +62,8 @@ Bif_OPER2_POWER::unstrand_RO_B(const UCS_string & LO_name, Value_P N_B,
         LENGTH_ERROR;
       }
 
-const Cell & first = N_B->get_cfirst();
+Cell cache;
+const Cell & first = N_B->get_cfirst(cache);
    if (!(first.is_numeric() && first.is_near_int()))
       {
         MORE_ERROR() << LO_name << "⍣N B: Bad type of argument N"
@@ -71,7 +72,8 @@ const Cell & first = N_B->get_cfirst();
       }
 
    N = IntScalar(first.get_int_value(), LOC);
-const Cell & second = N_B->get_cravel(1);
+Cell cache2;
+const Cell & second = N_B->get_cravel(1, cache2);
    B = Value_P(LOC);
    B->next_ravel_Cell(second);
    B->check_value(LOC);
@@ -106,7 +108,7 @@ Bif_OPER2_POWER::eval_form_1(Value_P A, Token & _LO, Value_P N, Value_P B)
 cFunction_P LO = _LO.get_function();
    Assert(LO);
 
-   Assert(+N);
+   Assert(N);
    if (N->element_count() != 1)
       {
         if (N->get_rank() > 1)
@@ -129,7 +131,8 @@ cFunction_P LO = _LO.get_function();
         MORE_ERROR() << "f⍣N B: N is not an integer";
         DOMAIN_ERROR;
       }
-ShapeItem repeat_cnt = N->get_cfirst().get_checked_near_int();
+Cell cache;
+ShapeItem repeat_cnt = N->get_cfirst(cache).get_checked_near_int();
 
    // special cases: 0, negative, and 1
    //

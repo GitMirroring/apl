@@ -60,7 +60,7 @@ PrintBuffer
 PointerCell::character_representation(const PrintContext & pctx) const
 {
 Value_P val = get_pointer_value();
-   Assert(+val);
+   Assert(val);
 
    if (pctx.get_style() & PST_QUOTE_CHARS)
       {
@@ -101,7 +101,8 @@ Value_P val = get_pointer_value();
              ucs << UNI_L_PARENT;
              loop(e, ec)
                 {
-                  PrintBuffer pb = val->get_cravel(e).
+                  Cell cache;
+                  PrintBuffer pb = val->get_cravel(e, cache).
                         character_representation(pctx);
                   ucs << UCS_string(pb, 0, Workspace::get_PW());
 
@@ -168,7 +169,8 @@ PrintBuffer ret(*val, pctx, 0);
              bool has_numbers = false;
              loop(e, ec)
                  {
-                   const Cell & cell = val->get_cravel(e);
+                   Cell cache;
+                   const Cell & cell = val->get_cravel(e, cache);
                    if      (cell.is_pointer_cell())     is_simple = false;
                    else if (cell.is_character_cell())   has_chars = true;
                    else if (cell.is_numeric())          has_numbers = true;
@@ -227,7 +229,9 @@ Value_P v2 = other.get_pointer_value();
    //
    loop(e, v1->nz_element_count())
       {
-        if (const Comp_result comp = v1->get_cravel(e).compare(v2->get_cravel(e)))
+        Cell cache1, cache2;
+        if (const Comp_result comp = v1->get_cravel(e, cache1)
+                                        .compare(v2->get_cravel(e, cache2)))
            return  comp;
       }
 
@@ -248,7 +252,11 @@ Value_P B = other.get_pointer_value();
 
 const ShapeItem count = A->nz_element_count();
    loop(c, count)
-       if (!A->get_cravel(c).equal(B->get_cravel(c), qct))   return false;
+       {
+         Cell cache_A, cache_B;
+         if (!A->get_cravel(c, cache_A).equal(B->get_cravel(c, cache_B), qct))
+            return false;
+       }
 
    return true;
 }
@@ -278,7 +286,7 @@ PointerCell::init_other(void * other, Value & other_owner,
 Value_P sub;   // instantiate beforehand so that sub is 0 if clone() fails
 
    sub = CLONE_P(get_pointer_value(), loc);
-   Assert(+sub);
+   Assert(sub);
    new (other) PointerCell(sub.get(), other_owner);
 }
 //────────────────────────────────────────────────────────────────────────────
@@ -300,8 +308,7 @@ Value * val = value.pval.valp.get();
             Cell & cell = val->get_wravel(j);
             if (cell.is_pointer_cell())
                {
-                 PointerCell & ptr = reinterpret_cast<PointerCell &>(cell);
-                 ptr.isolate_deep(loc);
+                 cell.isolate_deep(loc);
                }
           }
 }

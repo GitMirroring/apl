@@ -170,8 +170,7 @@ const Function * function = obj->get_function();
 
    if (const Symbol * symbol = obj->get_symbol())
       {
-        Value_P value = symbol->get_apl_value();
-        if (+value)   return tf1(name, value);
+        if (Value_P value = symbol->get_apl_value())   return tf1(name, value);
 
         /* not a variable: fall through */
       }
@@ -208,8 +207,7 @@ const Function * function = obj->get_function();
 const Symbol * symbol = obj->get_symbol();
    if (symbol)
       {
-        Value_P value = symbol->get_apl_value();
-        if (+value)   return tf2_var(name, *value);
+        if (Value_P value = symbol->get_apl_value())   return tf2_var(name, *value);
 
         /* not a variable: fall through */
       }
@@ -455,7 +453,8 @@ Quad_TF::tf2_value(int level, UCS_string & ucs, const cValue & value,
    if (value.is_empty() && nesting == 0 &&
        value.get_rank() == 1 && value.get_shape_item(0) == 0)
       {
-        const Cell & cell = value.get_cfirst();
+        Cell cache;
+        const Cell & cell = value.get_cfirst(cache);
         if (cell.is_character_cell())
            {
              ucs << UNI_L_PARENT << UNI_SINGLE_QUOTE
@@ -503,9 +502,8 @@ const bool structured = B.is_member();
 UCS_string ucs_value; /// the right hand side of VAR←VALUE
    if (B.is_scalar() && !B.is_simple_scalar())
       {
-        const Cell & cell = B.get_cfirst();
-        Assert(cell.is_pointer_cell());
-        tf2_value(0, ucs_value, *cell.get_pointer_value(), 1);
+        Assert(B.is_pointer_cell(0));
+        tf2_value(0, ucs_value, *B.get_pointer_value(0), 1);
       }
    else
       {
@@ -603,11 +601,11 @@ Quad_TF::tf2_ravel(int level, UCS_string & ucs, const ShapeItem len,
    loop(e, len)
        {
          if (e)   ucs << UNI_SPACE;
-         const Cell & cell = V.get_cravel(idx++);
+         Cell cache;
+         const Cell & cell = V.get_cravel(idx++, cache);
 
-         if (cell.is_pointer_cell())
+         if (Value_P sub_val = cell.try_pointer_value())
             {
-              Value_P sub_val = cell.get_pointer_value();
               ShapeItem nesting = 0;
               while (sub_val->is_scalar())
                     {
@@ -755,7 +753,8 @@ const ShapeItem ec = val->element_count();
            {
              loop(e, ec)
                 {
-                  const Cell & cell = val->get_cravel(e);
+                  Cell cache;
+                  const Cell & cell = val->get_cravel(e, cache);
                   if (!cell.is_character_cell())   return  Str0(LOC);
                   ucs << cell.get_char_value();
                 }
@@ -781,7 +780,8 @@ const ShapeItem ec = val->element_count();
              loop(e, ec)
                 {
                   ucs << UNI_SPACE;
-                  const Cell & cell = val->get_cravel(e);
+                  Cell cache;
+                  const Cell & cell = val->get_cravel(e, cache);
                   if (cell.is_integer_cell())
                      {
                        const int sign_pos = ucs.size();
@@ -1320,9 +1320,10 @@ ShapeItem skipped = 0;
              continue;
            }
 
-        const APL_Integer N = tos[s].get_apl_val()->get_cfirst()
+        Cell cache_N, cache_K;
+        const APL_Integer N = tos[s].get_apl_val()->get_cfirst(cache_N)
                                     .get_int_value();
-        const APL_Integer K = tos[s + 5].get_apl_val()->get_cfirst()
+        const APL_Integer K = tos[s + 5].get_apl_val()->get_cfirst(cache_K)
                                         .get_int_value();
 
         loop(j, 6)   tos[s + j].clear(LOC);
@@ -1377,11 +1378,12 @@ ShapeItem skipped = 0;
              continue;
            }
 
-        const APL_Integer N = tos[s].get_apl_val()->get_cfirst()
+        Cell cache_N, cache_M, cache_K;
+        const APL_Integer N = tos[s].get_apl_val()->get_cfirst(cache_N)
                                     .get_int_value();
-        const APL_Integer M = tos[s + 2].get_apl_val()->get_cfirst()
+        const APL_Integer M = tos[s + 2].get_apl_val()->get_cfirst(cache_M)
                                         .get_int_value();
-        const APL_Integer K = tos[s + 7].get_apl_val()->get_cfirst()
+        const APL_Integer K = tos[s + 7].get_apl_val()->get_cfirst(cache_K)
                                         .get_int_value();
 
         loop(j, 8)   tos[s + j].clear(LOC);
@@ -1524,9 +1526,15 @@ ShapeItem skipped = 0;
                   Assert(B->get_rank() <= 1);
                   Value_P Z(A->element_count() + B->element_count(), LOC);
                   loop(a, A->element_count())
-                     Z->next_ravel_Cell(A->get_cravel(a));
+                     {
+                       Cell cache;
+                       Z->next_ravel_Cell(A->get_cravel(a, cache));
+                     }
                   loop(b, B->element_count())
-                     Z->next_ravel_Cell(B->get_cravel(b));
+                     {
+                       Cell cache;
+                       Z->next_ravel_Cell(B->get_cravel(b, cache));
+                     }
 
                   tos[s + 1].clear(LOC);
                   Token tok_AB(TOK_APL_VALUE1, Z);
@@ -1706,18 +1714,17 @@ const RavelType rt = val.get_ravel_type();
       {
         loop(e, ec)
            {
-             const Cell & cell = val.get_cravel(e);
-             if (cell.is_character_cell())       // char → integer
+             if (val.is_character_cell(e))       // char → integer
                 {
-                  val.set_ravel_Int(e, cell.get_char_value());
+                  val.set_ravel_Int(e, val.get_char_value(e));
                 }
-             else if (cell.is_integer_cell())   // integer → char
+             else if (val.is_integer_cell(e))   // integer → char
                 {
-                  val.set_ravel_Char(e, Unicode(cell.get_int_value()));
+                  val.set_ravel_Char(e, Unicode(val.get_int_value(e)));
                 }
-             else if (cell.is_pointer_cell())   // nested
+             else if (val.is_pointer_cell(e))   // nested
                 {
-                  error_count += tf2_toggle_UCS(*cell.get_pointer_value());
+                  error_count += tf2_toggle_UCS(*val.get_pointer_value(e));
                 }
              else
                 {

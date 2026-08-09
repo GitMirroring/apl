@@ -228,7 +228,8 @@ Quad_CT::assign(Value_P B, bool clone, const char * loc)
         else                         LENGTH_ERROR;
       }
 
-const Cell & cell = B->get_cfirst();
+Cell cache;
+const Cell & cell = B->get_cfirst(cache);
    if (!cell.is_numeric())             DOMAIN_ERROR;
    if (cell.get_imag_value() != 0.0)   DOMAIN_ERROR;
 
@@ -915,7 +916,7 @@ Quad_SYL::assign(Value_P B, bool clone, const char * loc)
    // Quad_SYL is mostly read-only, so we only allow assign_indexed() with
    // certain values.
    //
-   if (+B)   SYNTAX_ERROR;
+   if (B)   SYNTAX_ERROR;
 
    // this assign is called from the constructor in order to trigger the
    // creation of a symbol for Quad_SYL.
@@ -1163,7 +1164,8 @@ Quad_TZ::assign(Value_P B, bool clone, const char * loc)
 
    // ignore values outside [-12 ... 14], DOMAIN ERROR for bad types.
 
-const Cell & cell = B->get_cfirst();
+Cell cache;
+const Cell & cell = B->get_cfirst(cache);
    if (cell.is_integer_cell())
       {
         const APL_Integer ival = cell.get_near_int();

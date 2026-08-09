@@ -223,7 +223,8 @@ Polynomial::Polynomial(const cValue & value)
    reserve(40);
    loop(v, value.element_count())
        {
-         const Cell & cell = value.get_cravel(v);
+         Cell cache;
+         const Cell & cell = value.get_cravel(v, cache);
          if (cell.is_near_zero())   continue;
 
          const Complex coeff(cell.get_real_value(),

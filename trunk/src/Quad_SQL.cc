@@ -554,7 +554,8 @@ const RavelType rt = B.get_ravel_type();
 
     loop (i, num_args)
          {
-           const Cell & cell = B.get_cravel(start + i);
+           Cell cache;
+           const Cell & cell = B.get_cravel(start + i, cache);
            if (cell.is_integer_cell())
               {
                 arg_list->append_long(cell.get_int_value(), i);
