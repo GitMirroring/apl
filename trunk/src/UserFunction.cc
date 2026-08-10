@@ -1203,66 +1203,6 @@ std::vector<bool> ts_lines;
 
    parse_body(LOC, false);
 }
-//────────────────────────────────────────────────────────────────────────────
-// Vestigial: loads a function from the legacy binary workspace format
-// (workspaces/<ws>/<func>.fun).  Not called anywhere in the current source.
-UserFunction *
-UserFunction::do_load(const char * workspace, const char * function)
-{
-char filename[FILENAME_MAX + 1];
-   SPRINTF(filename, "workspaces/%s/%s.fun", workspace, function);
-
-   if (strlen(filename) > FILENAME_MAX)
-      {
-        CERR << "file name '" << filename << "' is too long" << endl;
-        throw_apl_error(E_SYS_LIMIT_FILENAME, LOC);
-      }
-
-int fd = open(filename, O_RDONLY);
-   if (fd == -1)
-      {
-        CERR << "Can't open() workspace file '" 
-             << filename << "': " << strerror(errno) << endl;
-        throw_apl_error(E_WS_OPEN, LOC);
-      }
-
-off_t len = 0;
-   {
-     struct stat st;
-     if (fstat(fd, &st) == -1)
-        {
-          CERR << "Can't fstat() workspace file '" 
-               << filename << "': " << strerror(errno) << endl;
-          close(fd);
-          throw_apl_error(E_WS_FSTAT, LOC);
-        }
-    
-       len = st.st_size;
-   }
-
-const UTF8 * start = Sys::mmap(fd, len);
-   if (start == 0)
-      {
-        CERR << "Can't mmap() workspace file '" 
-             << filename << "': " << strerror(errno) << endl;
-        close(fd);
-        throw_apl_error(E_WS_MMAP, LOC);
-      }
-
-UTF8_string utf(start, len);
-
-   // skip trailing \r and \n.
-   //
-   while (utf.size() &&
-          (utf.back() == '\r' || utf.back() == '\n'))   utf.pop_back();
-
-   Sys::munmap(start, len);
-   close(fd);
-
-const UCS_string ucs(utf);
-int error_line = -1;
-   return fix(ucs, error_line, false, LOC, filename);
-}
 //════════════════════════════════════════════════════════════════════════════
 UserFunction *
 UserFunction::fix(const UCS_string & text, int & err_line,
@@ -1500,34 +1440,6 @@ vector<Symbol *> local_vars;
 
    return new UserFunction(Fun_signature(signature), LAMBDA_NUM_0,
                                          body_text, body, local_vars);
-}
-//────────────────────────────────────────────────────────────────────────────
-// Vestigial: wrapper around do_load(); not called anywhere in the current source.
-UserFunction *
-UserFunction::load(const char * workspace, const char * function)
-{
-UserFunction * fun = 0;
-
-   try
-      {
-        fun = do_load(workspace, function);
-      }
-   catch (Error & err)
-      {
-        delete fun;
-
-        err.print(CERR, LOC);
-      }
-   catch (std::bad_alloc &)
-      {
-        delete fun;
-        CERR << "Caught unexpected exception at " << LOC << endl;
-        return 0;
-      }
-   catch (...)
-      { FIXME; }
-
-   return fun;
 }
 //────────────────────────────────────────────────────────────────────────────
 // constructor for a normal (non-lambda) define function

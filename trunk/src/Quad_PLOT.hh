@@ -28,6 +28,8 @@
 #include <math.h>
 #include <pthread.h>
 #include <semaphore.h>
+#include <string.h>
+#include <time.h>
 
 #include "Common.hh"
 #include "QuadFunction.hh"
@@ -36,31 +38,133 @@
 class Plot_window_properties;
 class Plot_data;
 
-/// sem_wait() that retries on EINTR, except for the user's own ^C. A
-/// plain sem_wait() returns prematurely (with the semaphore left
-/// un-posted) if a signal arrives while blocked -- including a signal
-/// with nothing to do with ⎕PLOT. All of ⎕PLOT's semaphores exist
-/// specifically to make the caller wait for some other thread to reach
-/// a certain point (e.g. gtk_main() actually running its event loop)
-/// before touching GTK from here; a premature, signal-triggered return
-/// silently reintroduces exactly the race the wait exists to prevent,
-/// since nothing checks sem_wait()'s return value. This is most likely
-/// to actually matter on a slow system (e.g. 32-bit), where the real
-/// wait is long enough for an unrelated signal to plausibly land before
-/// it's satisfied -- so incidental signals are retried transparently.
-/// But if the wait is never satisfied at all (a genuine deadlock in the
+/// how long sem_wait_safe() waits for a ⎕PLOT semaphore before giving up.
+/// All of the waits it guards (GTK/XCB event loop startup, a plot window
+/// being shown, a quick lock/unlock of all_PLOT_windows) normally take
+/// well under a second even on a slow (e.g. 32-bit) system; this is
+/// generous enough to never fire under legitimate load, while still
+/// turning a genuine hang (Bill Heagy, 2026-08-09, /tmp/trouble.eml --
+/// on his system the underlying wait was never satisfied at all, for
+/// reasons unrelated to speed) into a bounded, reportable failure
+/// instead of an indefinite one that only ^C could escape.
+enum { PLOT_SEM_TIMEOUT_SECONDS = 15 };
+
+/// outcome of sem_wait_safe(): why the wait ended.
+enum PLOT_wait_result
+{
+   PLOT_WAIT_OK = 0,     ///< the semaphore was actually posted
+   PLOT_WAIT_CTRL_C,     ///< the user hit ^C while waiting
+   PLOT_WAIT_TIMEOUT,    ///< PLOT_SEM_TIMEOUT_SECONDS elapsed unposted
+   PLOT_WAIT_ERROR,      ///< sem_timedwait() itself failed unexpectedly
+};
+
+/// sem_wait() that (a) retries on EINTR, except for the user's own ^C,
+/// and (b) gives up after PLOT_SEM_TIMEOUT_SECONDS instead of blocking
+/// forever if the wait is never satisfied at all. A plain sem_wait()
+/// returns prematurely (with the semaphore left un-posted) if a signal
+/// arrives while blocked -- including a signal with nothing to do with
+/// ⎕PLOT. All of ⎕PLOT's semaphores exist specifically to make the
+/// caller wait for some other thread to reach a certain point (e.g.
+/// gtk_main() actually running its event loop) before touching GTK from
+/// here; a premature, signal-triggered return silently reintroduces
+/// exactly the race the wait exists to prevent, since nothing checks
+/// sem_wait()'s return value. This is most likely to actually matter on
+/// a slow system (e.g. 32-bit), where the real wait is long enough for
+/// an unrelated signal to plausibly land before it's satisfied -- so
+/// incidental signals are retried transparently. But if the wait is
+/// never satisfied at all (a genuine deadlock or lost wakeup in the
 /// other thread), blindly retrying forever would make that hang
 /// un-interruptible, which is worse than the original race: the user's
 /// own ^C (GNU APL installs a real SIGINT handler, see main.cc) must
 /// still be able to break out, so EINTR caused by an already-raised
-/// attention ends the wait instead of being retried.
-inline void
-sem_wait_safe(sem_t * sema)
+/// attention ends the wait instead of being retried -- and so must a
+/// wait that is simply never going to be satisfied.
+///
+/// This function is called from both the interpreter thread and from
+/// the GTK/XCB driver's own callback/event-loop threads, so it must
+/// never raise a C++/APL exception itself (Workspace/SI access is not
+/// safe from those threads). It returns PLOT_WAIT_OK if the semaphore
+/// was actually posted, or a specific PLOT_WAIT_xxx reason otherwise --
+/// logged to CERR either way since that is safe from any thread.
+/// Callers running on the interpreter thread that want a proper APL
+/// error on failure should use sem_wait_safe_I() below instead.
+/// @param sema the semaphore to wait for
+/// @param what human-readable description of what is being waited for,
+///        used only in the CERR diagnostic printed on failure
+inline PLOT_wait_result
+sem_wait_safe(sem_t * sema, const char * what)
 {
-   while (sem_wait(sema) == -1 && errno == EINTR)
+   struct timespec deadline;
+   clock_gettime(CLOCK_REALTIME, &deadline);
+   deadline.tv_sec += PLOT_SEM_TIMEOUT_SECONDS;
+
+   for (;;)
       {
-        if (InterruptContext::attention_is_raised())   break;
+        if (sem_timedwait(sema, &deadline) == 0)   return PLOT_WAIT_OK;
+
+        if (errno == EINTR)
+           {
+             if (InterruptContext::attention_is_raised())
+                {
+                  CERR << "*** ⎕PLOT: ^C hit while waiting in "
+                          "sem_timedwait() for " << what << endl;
+                  return PLOT_WAIT_CTRL_C;
+                }
+             continue;
+           }
+
+        if (errno == ETIMEDOUT)
+           {
+             CERR << "*** ⎕PLOT: timed out after " << PLOT_SEM_TIMEOUT_SECONDS
+                  << "s waiting for " << what << endl;
+             return PLOT_WAIT_TIMEOUT;
+           }
+
+        CERR << "*** ⎕PLOT: sem_timedwait() while waiting for " << what
+             << " failed unexpectedly: " << strerror(errno) << endl;
+        return PLOT_WAIT_ERROR;
       }
+}
+
+/// like sem_wait_safe() above, but for call sites that run on the
+/// interpreter thread (i.e. reached directly from Quad_PLOT::eval_AB()/
+/// eval_B(), never from a driver callback thread): raise a DOMAIN_ERROR
+/// with a MORE_ERROR() hint instead of silently returning on ^C/timeout.
+/// Must NOT be used from a GTK/XCB driver-owned thread -- throwing a
+/// C++/APL exception there is not safe, see sem_wait_safe() above.
+inline void
+sem_wait_safe_I(sem_t * sema, const char * what)
+{
+const PLOT_wait_result result = sem_wait_safe(sema, what);
+   if (result == PLOT_WAIT_OK)   return;
+
+   switch (result)
+      {
+        case PLOT_WAIT_CTRL_C:
+             MORE_ERROR() << "A ⎕PLOT B: ^C was needed to escape "
+                             "sem_timedwait() while waiting for " << what
+                          << ". Like a timeout, this normally means a "
+                             "⎕PLOT driver thread got stuck or died "
+                             "unexpectedly -- ^C only ended the wait "
+                             "sooner than the " << PLOT_SEM_TIMEOUT_SECONDS
+                          << "s timeout would have.";
+             break;
+
+        case PLOT_WAIT_TIMEOUT:
+             MORE_ERROR() << "A ⎕PLOT B: timed out after "
+                          << PLOT_SEM_TIMEOUT_SECONDS << "s while waiting "
+                             "for " << what << ". This normally means a "
+                             "⎕PLOT driver thread got stuck or died "
+                             "unexpectedly.";
+             break;
+
+        default:
+             MORE_ERROR() << "A ⎕PLOT B: unexpected internal error while "
+                             "waiting for " << what << " (see the *** "
+                             "⎕PLOT: ... message on stderr for detail).";
+             break;
+      }
+   DOMAIN_ERROR;
 }
 
 /// ⎕PLOT verbosity bitmap

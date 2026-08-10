@@ -1969,14 +1969,37 @@ Plot_window_properties & w_props =
         g_idle_add(post_gtk_started, &gtk_started_sema);
 
         pthread_t thread = 0;
-        pthread_create(&thread, 0, gtk_main_wrapper, 0);
+        const int perr = pthread_create(&thread, 0, gtk_main_wrapper, 0);
+        if (perr)
+           {
+             // Bill Heagy, 2026-08-09 (/tmp/trouble.eml): on his 32-bit
+             // system, ⎕PLOT hangs (^C needed to escape) with no crash.
+             // Reproduced locally by forcing this pthread_create() to fail:
+             // with the old unconditional code, the un-postable
+             // gtk_started_sema wait below hung until ^C, and start_GUI()'s
+             // own sem_wait_safe(expose_sema) right after this function
+             // returns hung the exact same way -- ^C only ever escapes the
+             // *current* wait, so the caller needed one ^C per queued
+             // semaphore to get out at all, and the ⎕PLOT call never
+             // actually completed or raised a proper error either way.
+             // gtk_init_done was already set (just above) before we knew
+             // this would fail; reset it so a later ⎕PLOT retries the
+             // whole gtk_init()/pthread_create() sequence instead of
+             // skipping straight to g_idle_add() for a loop that was
+             // never started.
+             //
+             gtk_init_done = false;
+             MORE_ERROR() << "A ⎕PLOT B: pthread_create() for the GTK event "
+                             "loop thread failed: " << strerror(perr);
+             DOMAIN_ERROR;
+           }
 
 # if HAVE_PTHREAD_SETNAME_NP
-         // show with e.g.   ps H -o 'pid tid cmd comm'
-         pthread_setname_np(thread, "apl/GTK");
+        // show with e.g.   ps H -o 'pid tid cmd comm'
+        pthread_setname_np(thread, "apl/GTK");
 # endif
 
-        sem_wait_safe(&gtk_started_sema);   // block until gtk_main() loop is running
+        sem_wait_safe_I(&gtk_started_sema, "the GTK event loop to start");
       }
 
    // Marshal window creation onto the gtk_main() thread via g_idle_add(),

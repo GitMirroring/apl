@@ -58,8 +58,7 @@ public:
      valid_ravel_items(0),
      nz_subcell_count(0),
      alloc_cells(0),
-     cells(0),
-     fetch_cache(0)
+     cells(0)
    {}
 
    /// No-op constructor used by subclass placement-new upgrades.
@@ -312,11 +311,6 @@ protected:
 
    /// inline storage for short (≤ cfg_SHORT_VALUE_LENGTH_WANTED) ravels.
    Cell short_value[cfg_SHORT_VALUE_LENGTH_WANTED];
-
-   /// per-ravel scratch int64 used by fetch_ravel_i64() for sub-word types
-   /// (RPT_BOOL, RPT_UNICODE16, RPT_UNICODE32) that cannot return a direct
-   /// pointer.
-   mutable int64_t fetch_cache;
 };
 //════════════════════════════════════════════════════════════════════════════
 /// A Ravel whose storage holds a packed int64_t array (RPT_INT64).

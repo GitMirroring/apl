@@ -339,21 +339,10 @@ public:
    /// overloaded Executable::remove_TOK_VOID()
    virtual VoidCount remove_TOK_VOID();
 
-   /// )SAVE this function in the workspace named \b workspace
-   /// (in the file system).
-   /// @param workspace filesystem name of the workspace to save to
-   /// @param function name of the function to save
-   void save(const char * workspace, const char * function);
-
    /// set trace or stop vector
    /// @param lines function line numbers to set as trace or stop points
    /// @param stop true to set stop lines, false to set trace lines
    void set_trace_stop(const std::vector<Function_Line> & lines, bool stop);
-
-   /// Load this function into the workspace named \b workspace.
-   /// @param workspace filesystem name of the workspace to load from
-   /// @param function name of the function to load
-   static UserFunction * do_load(const char * workspace, const char * function);
 
    /// create a user defined function according to \b data of length \b len
    /// in workspace \b w.
@@ -371,12 +360,6 @@ public:
    /// @param var symbol to which the lambda will be bound
    /// @param text source text of the lambda expression
    static UserFunction * fix_lambda(Symbol & var, const UCS_string & text);
-
-   /// )LOAD this function into the workspace named \b workspace.
-   /// Return a pounter to this newly created function (or 0 on error).
-   /// @param workspace filesystem name of the workspace to load from
-   /// @param function name of the function to load
-   static UserFunction * load(const char * workspace, const char * function);
 
 protected:
    /// constructor for a normal (i.e. non-lambda) user defined function

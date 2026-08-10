@@ -1440,10 +1440,10 @@ vector<const Cell *> cells_A;
 vector<const Cell *> cells_Z;
 vector<const Cell *> cells_B;
 
-   // For packed ravels get_cravel() materialises into a shared fetch_cache,
-   // so all pointers would alias the same address.  Use per-element stable
-   // storage for packed operands so that the pointers remain valid after the
-   // loop and the final compare_ptr sort reconstructs A's original order.
+   // cells_A/cells_B/cells_Z below store raw Cell pointers that must stay
+   // valid after this loop (the final compare_ptr sort reconstructs A's
+   // original order), so a single reused cache slot won't do. Use
+   // per-element stable storage for packed operands instead.
    //
 vector<char> stable_A_mem, stable_B_mem;
 

@@ -95,7 +95,24 @@ START_dir=$(pwd)      # e.g. /etc/cron.daily
 
 cd "$SCRIPT_DIR"
 TOP_BUILD_dir=$(pwd)
+ROOT_dir=$(dirname $TOP_BUILD_dir)
+
+# svnversion reports "Unversioned directory" here: this tree was extracted
+# from a tarball (see the self-refresh block above), never an svn checkout,
+# so there is no .svn metadata for it to read. Fall back to exported_from,
+# a marker file written into the tarball (by "make DIST"/"make server72")
+# from the exporting machine's own svnversion, so the nightly report still
+# shows a real revision instead of "Unversioned directory".
+#
 SVN_VERSION=$(svnversion)
+case "$SVN_VERSION" in
+   *[Uu]nversioned*|"")
+      if [ -f "$ROOT_dir/exported_from" ]
+      then
+         SVN_VERSION=$(sed 's/^.*SVN version *//' "$ROOT_dir/exported_from")
+      fi
+      ;;
+esac
 
 # -j1 is safe on all hosts including server72 (848 MB RAM, 1 core).
 J8="-j1"
@@ -103,7 +120,6 @@ J8="-j1"
 # TOP_LOG_dir="/tmp"       # where to store longer build logs
 TOP_LOG_dir="$TOP_BUILD_dir"   # where to store longer build logs
 
-ROOT_dir=$(dirname $TOP_BUILD_dir)
 APL_VERSION=$(basename $ROOT_dir)
 
 # some counters for what happens

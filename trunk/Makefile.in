@@ -1295,6 +1295,8 @@ DIST:	dist Makefile.dist
 	mkdir -p tmp
 	cd tmp; tar xzf ../apl-$(VERSION).tar.gz;		\
 	cp -f ../Makefile.dist apl-$(VERSION)/Makefile;		\
+	echo "exported from SVN version " `svnversion` > \
+	    apl-$(VERSION)/exported_from;			\
 	tar czf ../apl-$(VERSION).tar.gz apl-$(VERSION)
 	rm -Rf tmp
 

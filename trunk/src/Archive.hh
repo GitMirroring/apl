@@ -634,14 +634,6 @@ protected:
    /// @param input pointer to the UTF-8 encoded attribute value in the file buffer
    const UTF8 * read_XML_string(UCS_string & ucs, const UTF8 * input);
 
-   /// show some characters starting at the current position.
-   /// Debug function, currently defined but not used.
-   void where();
-
-   /// show attributes of current tag
-   /// Debug function, currently defined but not used.
-   void where_att();
-
    /// the names of objects (empty if all)
    UCS_string_vector allowed_objects;
 

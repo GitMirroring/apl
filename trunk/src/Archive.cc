@@ -3569,29 +3569,5 @@ XML_Loading_Archive::read_XML_string(UCS_string & ucs, const UTF8 * utf)
 
    return utf;
 }
-//────────────────────────────────────────────────────────────────────────────
-void
-XML_Loading_Archive::where()
-{
-   err << "line=" << line_no << "+" << (data - line_start) << " '";
-
-   loop(j, 40)   { if (data[j] == 0x0A)   break;   err << data[j]; }
-   err << "'" << endl;
-}
-//────────────────────────────────────────────────────────────────────────────
-void
-XML_Loading_Archive::where_att()
-{
-   err << "line=" << line_no << "+" << (attributes - line_start) << " '";
-
-   loop(j, 40)
-      {
-        if (attributes[j] == 0x0A)        break;
-        if (attributes + j >= end_attr)   break;
-        err << attributes[j];
-      }
-
-   err << "'" << endl;
-}
 //════════════════════════════════════════════════════════════════════════════
 

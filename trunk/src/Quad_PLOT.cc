@@ -23,6 +23,7 @@
 
 #include <errno.h>
 #include <signal.h>
+#include <string.h>
 
 #include <iostream>
 #include <iomanip>
@@ -175,7 +176,18 @@ Quad_PLOT::PLOT_context::remove_handle(Handle handle)
    // own thread -- concurrently with window_control() (interpreter thread)
    // reading/mutating the same vector. Same lock as window_control().
    //
-   sem_wait_safe(all_PLOT_windows_sema);
+   if (sem_wait_safe(all_PLOT_windows_sema, "the ⎕PLOT window list lock "
+                      "(remove_handle)") != PLOT_WAIT_OK)
+      {
+        // a driver callback thread like this one must not raise a C++/APL
+        // exception on failure (see sem_wait_safe()'s comment); give up on
+        // this particular removal instead. A stale entry left behind in
+        // all_PLOT_windows is far less harmful than touching the vector
+        // without actually holding its semaphore.
+        //
+        return 0;
+      }
+
    loop(h, all_PLOT_windows.size())
       {
         if (all_PLOT_windows[h]->handle == handle)
@@ -223,7 +235,7 @@ const string driver_attr = w_props->get_gui_driver();
         // its plot window was exposed.
         //
         plot_main_GTK(w_props, handle);
-        sem_wait_safe(expose_sema);   // blocks until window shown
+        sem_wait_safe_I(expose_sema, "the GTK plot window to be shown");
         sem_post(expose_sema);   // for the next window (if any)
         Log(LOG_Quad_PLOT)   CERR << "Plot driver GTK loaded." << endl;
         return;
@@ -243,8 +255,18 @@ const string driver_attr = w_props->get_gui_driver();
         // expose_sema after its plot window was exposed.
         //
         pthread_t th;
-        pthread_create(&th, 0, plot_main_XCB, w_props);
-        sem_wait_safe(expose_sema);   // blocks until window shown
+        const int perr = pthread_create(&th, 0, plot_main_XCB, w_props);
+        if (perr)
+           {
+             // same unchecked-pthread_create() hang as plot_main_GTK() (see
+             // its comment) -- an un-postable expose_sema wait right below
+             // would hang until ^C without this check.
+             //
+             MORE_ERROR() << "A ⎕PLOT B: pthread_create() for the XCB event "
+                             "loop thread failed: " << strerror(perr);
+             DOMAIN_ERROR;
+           }
+        sem_wait_safe_I(expose_sema, "the XCB plot window to be shown");
         sem_post(expose_sema);   // for the next window (if any)
         Log(LOG_Quad_PLOT)   CERR << "Plot driver XCB loaded." << endl;
         return;
@@ -264,7 +286,7 @@ const string driver_attr = w_props->get_gui_driver();
         // its plot window was exposed.
         //
         plot_main_WIN32(w_props, handle);
-        sem_wait_safe(expose_sema);   // blocks until window shown
+        sem_wait_safe_I(expose_sema, "the WIN32 plot window to be shown");
         sem_post(expose_sema);   // for the next window (if any)
         Log(LOG_Quad_PLOT)   CERR << "Plot driver WIN32 loaded." << endl;
         return;
@@ -443,7 +465,8 @@ Quad_PLOT::window_control(APL_Integer B0) const
          // the single-handle close path below already uses, so the two
          // don't race on the vector.
          //
-         sem_wait_safe(all_PLOT_windows_sema);
+         sem_wait_safe_I(all_PLOT_windows_sema, "the ⎕PLOT window list lock "
+                         "(close all windows)");
          loop(h, all_PLOT_windows.size())
             {
               all_PLOT_windows[h]->plot_stop();
@@ -490,7 +513,8 @@ Quad_PLOT::window_control(APL_Integer B0) const
    //
 bool found = false;
 
-   sem_wait_safe(all_PLOT_windows_sema);
+   sem_wait_safe_I(all_PLOT_windows_sema, "the ⎕PLOT window list lock "
+                   "(close one window)");
        loop(w, Quad_PLOT::all_PLOT_windows.size())
            {
              if (all_PLOT_windows[w]->handle != B0)   continue;
@@ -596,8 +620,25 @@ Quad_PLOT::do_plot_data(Plot_window_properties * w_props,
       }
 
 const APL_Integer Z = ++next_handle;
-   sem_wait_safe(all_PLOT_windows_sema);
-       start_GUI(w_props, Z, PltDrv_GTK);
+   sem_wait_safe_I(all_PLOT_windows_sema, "the ⎕PLOT window list lock "
+                   "(new window)");
+       // start_GUI() throws DOMAIN_ERROR on several paths (invalid/missing
+       // gui_driver, and -- since 2026-08-09, Bill Heagy, /tmp/trouble.eml --
+       // a failed pthread_create() for the GTK/XCB event-loop thread). Any
+       // of those must still release all_PLOT_windows_sema on the way out,
+       // or every later ⎕PLOT (including "⎕PLOT ¯3", close all windows)
+       // deadlocks forever on the next sem_wait_safe(all_PLOT_windows_sema)
+       // -- confirmed live via the pthread_create fix above.
+       //
+       try
+          {
+            start_GUI(w_props, Z, PltDrv_GTK);
+          }
+       catch (...)
+          {
+            sem_post(all_PLOT_windows_sema);
+            throw;
+          }
    sem_post(all_PLOT_windows_sema);
 
    if (w_props->get_with_border())

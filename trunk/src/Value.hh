@@ -1180,25 +1180,6 @@ public:
    /// sub-value of that depth.  Call BEFORE the actual write.
    inline void depth_update_for_overwrite(ShapeItem offset, int new_sub_depth);
 
-   /// return a read-only int64_t pointer to ravel[i] for any ravel type.
-   /// For sub-word types (RPT_BOOL, RPT_UNICODE16, RPT_UNICODE32) the value is
-   /// materialized into ravel.fetch_cache and a pointer to that cache is
-   /// returned; the caller must not hold the pointer past the next call.
-   /// For RPT_INT64/RPT_FLOAT64 a direct pointer into the ravel is returned.
-   /// For RPT_COMPLEX a pointer to the real part (imag follows) is returned.
-   /// For RPT_CELLS a pointer past the vtable to the Cell value field is returned.
-   /// @param i ravel index (0-based)
-   inline const int64_t * fetch_ravel_i64(ShapeItem i) const;
-
-   /// return a write int64_t pointer to ravel[i] for any ravel type.
-   /// For sub-word types the returned pointer is int64_t-aligned and the
-   /// caller uses the lower bits of i to locate the item within the word:
-   ///   RPT_BOOL:      lower 6 bits of i give the bit position (0-63)
-   ///   RPT_UNICODE16: lower 2 bits of i give the slot  (0-3, each 16 bits)
-   ///   RPT_UNICODE32: lower 1 bit  of i gives the slot (0-1, each 32 bits)
-   /// @param i ravel index (0-based)
-   inline int64_t * wfetch_ravel_i64(ShapeItem i);
-
    /// returen \b true if \b sub == \b val or sub is contained in \b val
    /// @param val outer value to search within
    /// @param sub candidate sub-value to look for
