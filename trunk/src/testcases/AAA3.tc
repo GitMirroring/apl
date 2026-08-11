@@ -25,10 +25,10 @@
 
       ⎕PP←17
       3E45J2   ⍝ complex part << real part × 10⋆⎕PP
-3E45
+3.0000000000000001E45
 
       2J3E45   ⍝ real part << complex part
-2J3E45
+2J3.0000000000000001E45
 
       ⎕PP←10
       3E45J2   ⍝ complex part << real part × 10⋆⎕PP

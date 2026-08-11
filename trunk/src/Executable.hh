@@ -63,10 +63,6 @@ public:
    /// destructor: release values held by the body
    virtual ~Executable();
 
-   /// return true iff this Executable cannot be suspended
-   virtual bool cannot_suspend() const
-      { return false; }
-
    /// return the body of this executable
    const Token_string & get_body() const
       { return body; }

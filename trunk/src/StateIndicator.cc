@@ -69,6 +69,17 @@ StateIndicator::~StateIndicator()
       }
 }
 //────────────────────────────────────────────────────────────────────────────
+bool
+StateIndicator::get_inherited_exec_property(int idx) const
+{
+   for (const StateIndicator * si = this; si; si = si->parent)
+       {
+         const UserFunction * ufun = si->executable->get_exec_ufun();
+         if (ufun && ufun->get_exec_properties()[idx])   return true;
+       }
+   return false;
+}
+//────────────────────────────────────────────────────────────────────────────
 UCS_string
 StateIndicator::function_name() const
 {
@@ -223,7 +234,7 @@ StateIndicator::list(ostream & out, SI_mode mode) const
              break;
 
         case PM_STATEMENT_LIST:
-             out << "⋆";
+             out << "*";
              if (mode & SIM_statements)   // )SIS
                 {
                   if (!executable)      break;
@@ -237,7 +248,7 @@ StateIndicator::list(ostream & out, SI_mode mode) const
              break;
 
         case PM_EXECUTE:
-             out << "⋆⋆  ";
+             out << "**  ";
              if (mode & SIM_statements)   // )SIS
                 {
                   if (!executable)   break;
@@ -529,7 +540,12 @@ StateIndicator::statement_result(const Token & result, bool trace)
    if (trace)
       {
         const UserFunction * ufun = executable->get_exec_ufun();
-        if (ufun && (ufun->get_exec_properties()[0] == 0))
+        // property 0 (locked) is inherited from every calling )SI entry
+        // too (apl2lrm.txt p.360-361 "or-ing"): "may not be ... traced"
+        // applies even if only a caller, not this function itself, is
+        // locked.
+        //
+        if (ufun && !get_inherited_exec_property(0))
            {
              const Function_Line line =
                    executable->get_line(Function_PC(get_PC() - 1));

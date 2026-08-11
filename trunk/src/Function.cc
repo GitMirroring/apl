@@ -483,6 +483,14 @@ UCS_string & more = MORE_ERROR();
 
    more << "'. The phrase may be valid in general, but not for function "
         << get_name();
+
+   // apl2lrm.txt "Conditions for Axis Specification" (p.45): axis brackets
+   // are always syntactically legal, but if the function/operator is not
+   // one that supports axis specification (i.e. this phrase's own missing
+   // signature bit is SIG_X, not e.g. a genuine arity mismatch), the LRM
+   // requires AXIS ERROR rather than VALENCE ERROR.
+   //
+   if (signature & SIG_X)   AXIS_ERROR;
    VALENCE_ERROR;
 }
 //════════════════════════════════════════════════════════════════════════════

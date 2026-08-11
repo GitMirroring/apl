@@ -97,9 +97,19 @@ DOMAIN ERROR+
   ¯2.5784E 01   3.4000E¯03
 
       ⍝ Format char '8' ----------------------------------
-
+      ⍝
+      ⍝ Regression (Blake McBride, LanguageVariances.md #13, 2026-08-10):
+      ⍝ ⎕FC's default fill character for '8' positions used
+      ⍝ UNI_STAR_OPERATOR (⋆, U+22C6, GNU APL's own canonical glyph for
+      ⍝ the power primitive) instead of the ASCII asterisk (apl2lrm.txt
+      ⍝ Figure 33 p.291 gives the default ⎕FC as `.,*0_¯`). Fixed to use
+      ⍝ the already-existing UNI_ASTERISK constant (U+002A, tagged
+      ⍝ F12_POWER same as UNI_STAR_OPERATOR -- both were already
+      ⍝ recognized as alternate input glyphs for power, just the wrong
+      ⍝ one was used as ⎕FC's default).
+      ⍝
       '  85555.50'⍕17.3 56.43
-  ⋆⋆⋆17.30  ⋆⋆⋆56.43
+  ***17.30  ***56.43
 
       ⎕FC[3]←'∘'
       '  85555.50'⍕17.3 56.43
@@ -174,4 +184,46 @@ DOMAIN ERROR+
 
       '9E9'⍕0
  E0
+
+      ⍝ ⎕FC[5] print-as-blank (Blake McBride, LanguageVariances.md #14,
+      ⍝ 2026-08-10) ----------------------------------
+      ⍝
+      ⍝ apl2lrm.txt p.141: ⎕FC[5] (default '_') marks a fixed separator
+      ⍝ position within a picture's digit group -- it must not terminate
+      ⍝ the digit group early (Bif_F12_FORMAT::is_control_char() didn't
+      ⍝ recognize it at all, so the parser treated it as a trailing
+      ⍝ decorator and truncated the digit group there) and must render
+      ⍝ as a literal space without consuming a value digit.
+      ⍝
+      '555_555_5555'⍕8324632190
+832 463 2190
+
+      ⍝ print-as-blank in both the integer and fractional parts
+      ⍝
+      '55_55.55_55'⍕1234.5678
+12 34.56 78
+
+      ⍝ leading print-as-blank
+      ⍝
+      '_55555'⍕123
+   123
+
+      ⍝ regression for the fix's own self-referential trap: is_control_
+      ⍝ char() is also used by Quad_FC::assign() to validate a *proposed*
+      ⍝ ⎕FC[5] value (SystemVariable.cc) -- an earlier version of this
+      ⍝ fix folded the ⎕FC[5] check directly into is_control_char(),
+      ⍝ which made that validation self-referential: ⎕FC←'' (reset to
+      ⍝ defaults) checked its own new '_' default against the *current*
+      ⍝ ⎕FC[5] (already '_'), matched, and silently replaced it with a
+      ⍝ space. Confirmed live before the fix (cross-testcase-file state:
+      ⍝ ⎕FC[5] showed as space, not '_', partway through a full `make
+      ⍝ test` run) and fixed by adding a separate is_picture_char() used
+      ⍝ only by the picture parser, leaving is_control_char() untouched.
+      ⍝
+      ⎕FC←''
+      ⎕FC
+.,*0_¯
+
+      '555_555_5555'⍕8324632190
+832 463 2190
 

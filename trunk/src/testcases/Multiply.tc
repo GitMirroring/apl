@@ -52,19 +52,19 @@
       ⍝ product crosses the conservative threshold: promoted to float,
       ⍝ even though the exact integer product would still fit in int64
       1000000000×9200000001
-9.2000000010000011E18
+9.2000000009999995E18
       26⎕CR 1000000000×9200000001
 32
 
       ⍝ clear overflow (positive): promoted to float
       9223372036854775807×10
-9.2233720368547782E19
+9.2233720368547758E19
       26⎕CR 9223372036854775807×10
 32
 
       ⍝ clear overflow (negative): promoted to float
       ¯9223372036854775807×10
-¯9.2233720368547782E19
+¯9.2233720368547758E19
       26⎕CR ¯9223372036854775807×10
 32
 

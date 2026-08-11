@@ -1373,7 +1373,9 @@ Symbol::resolve_lv(const char * loc)
       {
         value_stack.back().isolate_deep(loc);
         Value_P Z = get_var_value();
-        return Token(TOK_APL_VALUE1, Z->get_cellrefs(loc));
+        Value_P refs = Z->get_cellrefs(loc);
+        refs->set_lval_whole_symbol(this);
+        return Token(TOK_APL_VALUE1, refs);
       }
 
    MORE_ERROR() << "Symbol '" << get_name()

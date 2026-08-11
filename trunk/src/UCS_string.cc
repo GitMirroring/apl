@@ -158,102 +158,57 @@ int quad_pp = pctx.get_PP();
 const bool negative = (value < 0.0);
    if (negative)   value = -value;
 
-int expo = 0;
-
-   if (value >= 10.0)   // large number, positive exponent
+   if (value == 0.0)   // zero: make it 0
       {
-        if (value > BIG_FLOAT || !isnormal(value))   // something odd
-           {
-            if (isnormal(value) || isinf(value))   // rather large
-               {
-                 if (negative)   *this << "¯∞";
-                 else            *this << "∞";
-                 FloatCell::map_FC(*this);
-               }
-           else
-               {
-                 *this << "-nan-";
-               }
-             return;
-           }
-
-       while (value >= 1e16)   { value *= 1e-16;   expo += 16; }
-       while (value >= 1e4)    { value *= 1e-4;    expo +=  4; }
-       while (value >= 1e1)    { value *= 1e-1;    ++expo;     }
-      }
-   else if (value < 1.0)   // small number, negative exponent
-      {
-       if (value == 0.0)   // zero: make it 0
-          {
-            *this << UNI_0;
-            return;
-          }
-
-       while (value < 1e-16)   { value *= 1e16;   expo -= 16; }
-       while (value < 1e-4)    { value *= 1e4;    expo -=  4; }
-       while (value < 1.0)     { value *= 10.0;   --expo;     }
+        *this << UNI_0;
+        return;
       }
 
-   // In theory, at this point, 1.0 ≤ value < 10.0. In reality value can
-   // be outside, though, due to rounding errors.
-
-   // create a string with quad_pp + 1 significant digits.
-   // The last digit is used for rounding and then discarded.
-   //
-UCS_string digits;
-   loop(d, (quad_pp + 2))
+   if (!isfinite(value))   // ∞ or NaN
       {
-        if (value >= 10.0)
+        if (isnan(value))
            {
-             // 10.0 or more is a rounding error from 9,999...
-             digits << Unicode(10 + '0');
-             while (digits.ssize() < (quad_pp + 2))   digits << UNI_0;
-             break;
-           }
-        else if (value < 0.0)
-           {
-             // less than 0.0 is a rounding error from 0.000...
-             while (digits.ssize() < (quad_pp + 2))   digits << UNI_0;
-             break;
+             *this << "-nan-";
            }
         else
            {
-             const int dig = int(value);
-             value -= dig;
-             value *= 10.0;
-             digits << Unicode(dig + '0');
+             if (negative)   *this << "¯∞";
+             else            *this << "∞";
+             FloatCell::map_FC(*this);
            }
+        return;
       }
 
-   if (digits[0] != '0')   digits.pop_back();
-
-   // round last digit
+   // Extract quad_pp significant digits and a decimal exponent from
+   // value via the C library's %e conversion, which -- unlike the manual
+   // digit-by-digit extraction this replaced (repeated multiplication/
+   // division by powers of 10 to normalize value into [1, 10), then
+   // peeling off one decimal digit at a time) -- is correctly rounded
+   // per C99/IEEE-754 across the *entire* finite double range. The old
+   // approach accumulated several ULP of error for extreme exponents
+   // (e.g. 1E¯100 displayed as 9.9999999999999982E¯101 instead of
+   // 1E¯100), and separately relied on a BIG_FLOAT threshold (1.7976e308,
+   // only 5 significant digits) that was far below the true finite
+   // double range (up to ~1.7976931348623157e308), wrongly printing
+   // legitimate large finite values as ∞ (Blake McBride,
+   // LanguageVariances.md #39).
    //
-const Unicode last = digits.back();
-   digits.pop_back();
+char sbuf[64];
+   snprintf(sbuf, sizeof(sbuf), "%.*e", quad_pp - 1, double(value));
 
-   if (last >= '5')   digits.back() = Unicode(digits.back() + 1);
- 
-   // adjust carries of 2nd to last digit
-   //
-   for (int d = digits.size() - 1; d > 0; --d)   // all but first
-       {
-        if (digits[d] > '9')
-           {
-             digits[d] =     Unicode(digits[d]     - 10);
-             digits[d - 1] = Unicode(digits[d - 1] +  1);
-           }
-       }
-
-   // adjust carry of 1st digit
-   //
-   if (digits[0] > '9')
-      {
-        digits[0] = Unicode(digits[0] - 10);
-        digits.insert(0, UNI_1);
-        ++expo;
-        digits.pop_back();
-      }
+UCS_string digits;
+int expo = 0;
+   {
+     const char * p = sbuf;
+     digits << Unicode(*p++);          // leading (units) digit
+     if (*p == '.')
+        {
+          ++p;
+          while (*p != 'e' && *p != 'E')   digits << Unicode(*p++);
+        }
+     Assert(*p == 'e' || *p == 'E');
+     expo = ::atoi(p + 1);              // skip 'e', parse signed exponent
+   }
 
    // remove trailing zeros
    //
@@ -1494,25 +1449,27 @@ UCS_string::from_big(APL_Float & val)
 {
    Assert(val >= 0.0);
 
-long double value = val;
-int digits[320];   // DBL_MAX is 1.79769313486231470E+308
-int * d = digits;
+   // correctly-rounded integer-digit extraction via libc's snprintf(),
+   // same fix idea as the (already fixed, see Quad_PP.tc) hand-rolled
+   // repeated ×/÷-by-10 digit extraction in the exponential-display
+   // path: modf()'s integer/fractional split is exact (no decimal
+   // rounding, both parts individually exactly representable), so all
+   // that remains is formatting the now-whole-number int_part, which
+   // glibc's %.0f does correctly across the entire finite double range
+   // -- unlike the previous loop here, which re-derived each decimal
+   // digit one at a time via modf(value/10.0,...) and a "+.02" rounding
+   // fudge factor, accumulating error over many digits (e.g. 2⋆70, an
+   // exactly-representable 22-digit integer, lost its last few digits).
+   //
+double int_part;
+   val = modf(val, &int_part);   // val ← fractional part (kept for caller)
 
-const long double initial_fract = modf(value, &value);
-long double fract;
-   for (; value >= 1.0; ++d)
-      {
-         fract = modf(value / 10.0, &value);   // U.x -> .U
-         *d = int((fract + .02) * 10.0);
-         fract -= 0.1 * *d;
-      }
-
-   val = initial_fract;
+char buf[400];   // DBL_MAX needs 309 integer digits
+const int len = snprintf(buf, sizeof(buf), "%.0f", int_part);
+   Assert(len > 0 && len < int(sizeof(buf)));
 
 UCS_string ret;
-   if (d == digits)   ret << UNI_0;   // 0.xxx
-
-   while (d > digits)   ret << Unicode(UNI_0 + *--d);
+   loop(i, len)   ret << Unicode(buf[i]);
    return ret;
 }
 //────────────────────────────────────────────────────────────────────────────

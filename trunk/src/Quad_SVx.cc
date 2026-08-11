@@ -222,10 +222,15 @@ Value_P Z(sh_Z, LOC);
    loop(z, var_count)
       {
         Symbol * sym = Workspace::lookup_existing_symbol(vars[z]);
-        if (sym == 0)   Error::throw_symbol_error(vars[z], LOC);
 
-        const SV_key key = sym->get_SV_key();
-        const Svar_Control control = Svar_DB::get_control(key);
+        // an undefined name is trivially "not shared with anyone" --
+        // same all-false control state as an existing, ordinary
+        // (non-shared) variable, not an error (LRM p.323,
+        // LanguageVariances.md #41).
+        //
+        const Svar_Control control = sym
+                                    ? Svar_DB::get_control(sym->get_SV_key())
+                                    : Svar_Control(0);
 
         Z->next_ravel_Int(control & SET_BY_1 ? 1 : 0);
         Z->next_ravel_Int(control & SET_BY_2 ? 1 : 0);
@@ -724,10 +729,14 @@ Value_P Z(sh_Z, LOC);
    loop(z, var_count)
       {
         Symbol * sym = Workspace::lookup_existing_symbol(vars[z]);
-        if (sym == 0)   Error::throw_symbol_error(vars[z], LOC);
 
-        const SV_key key = sym->get_SV_key();
-        const Svar_state state = Svar_DB::get_state(key);
+        // see the matching comment in Quad_SVC::eval_B() above --
+        // an undefined name is trivially "not shared", not an error
+        // (LRM p.323, LanguageVariances.md #41).
+        //
+        const Svar_state state = sym
+                                ? Svar_DB::get_state(sym->get_SV_key())
+                                : Svar_state(0);
 
         Z->next_ravel_Int(int(state) & int(SET_BY_1) ? 1 : 0);
         Z->next_ravel_Int(int(state) & int(SET_BY_2) ? 1 : 0);

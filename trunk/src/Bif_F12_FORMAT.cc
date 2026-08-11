@@ -54,6 +54,12 @@ int d = 0;
               if (d < data.ssize())   ucs << data[d++];
               else                    break;
             }
+         else if (format_char == Workspace::get_FC(4))
+            {
+              // ⎕FC[5]: print-as-blank -- a fixed separator position that
+              // never consumes a data digit (apl2lrm.txt p.141).
+              ucs << UNI_SPACE;
+            }
          else
             {
               CERR << "Offending format char [" << f << "] : '"
@@ -123,6 +129,13 @@ size_t d = data.size();
               if (d)                    ucs << data[--d];
               else if (f >= fill_pos)   ucs << fill_char;
               else                      break;
+            }
+         else if (format_char == Workspace::get_FC(4))
+            {
+              // ⎕FC[5]: print-as-blank -- always a literal space,
+              // never consumes a data digit, regardless of fill/
+              // overflow state (apl2lrm.txt p.141).
+              ucs << UNI_SPACE;
             }
          else
             {
@@ -206,7 +219,7 @@ bool exponent_requested = false;   // set at exponent_part: (see below)
 // left_decorator:
    while (f < format.ssize())
       {
-        if (is_control_char(format[f]))   goto integral_part;
+        if (is_picture_char(format[f]))   goto integral_part;
         else                              left_deco.format << format[f++];
       }
    goto fields_done;
@@ -222,7 +235,7 @@ integral_part:
              goto fractional_part;
            }
         if (cc == UNI_E)          goto exponent_part;
-        if (is_control_char(cc))
+        if (is_picture_char(cc))
            {
              int_part.format << cc;
              if (cc == UNI_6)          goto right_decorator;
@@ -241,7 +254,7 @@ fractional_part:
         const Unicode cc = format[f++];
         if (cc == UNI_7)          exponent_pending = true;
 
-        if (is_control_char(cc))
+        if (is_picture_char(cc))
            {
              fract_part.format << cc;
              if (cc == UNI_6)     goto right_decorator;
@@ -261,7 +274,7 @@ exponent_decorator:
       {
         const Unicode cc = format[f++];
 
-        if (!is_control_char(cc))
+        if (!is_picture_char(cc))
            {
              expo_deco.format << cc;
            }
@@ -291,7 +304,7 @@ exponent_part:
       {
         const Unicode cc = format[f++];
 
-        if (is_control_char(cc))
+        if (is_picture_char(cc))
            {
              exponent.format << cc;
              if (cc == UNI_6)          goto right_decorator;
@@ -706,7 +719,16 @@ PrintBuffer pb;
                                                    B, col,
                                                    cols_B, rows_B));
 
-         bool insert_space_left = col_width == 0;   // automatic col width
+         // automatic col width normally reserves a leading separator
+         // space, but that's meaningless for the very first column --
+         // there is no preceding column to separate from (Blake
+         // McBride, LanguageVariances.md #15: 0⍕A added a spurious
+         // leading blank to column 0 specifically because col_width==0
+         // for every column under an all-automatic-width spec like
+         // `0⍕A`, and the content-based re-check just below only runs
+         // for col>0).
+         //
+         bool insert_space_left = col && (col_width == 0);
 
          if (col)   // subsequent column: insert space if needed
             {
@@ -745,6 +767,22 @@ Bif_F12_FORMAT::is_control_char(Unicode uni)
    return Avec::is_digit(uni)      ||
           (uni == UNI_COMMA) ||
           (uni == UNI_FULLSTOP);
+}
+//────────────────────────────────────────────────────────────────────────────
+bool
+Bif_F12_FORMAT::is_picture_char(Unicode uni)
+{
+   // like is_control_char(), but for parsing a format-by-example picture
+   // string specifically: also recognizes ⎕FC[5] (print-as-blank,
+   // apl2lrm.txt p.141) as a digit-group control character. Deliberately
+   // NOT folded into is_control_char() itself -- that function is also
+   // used by Quad_FC::assign()/assign_indexed() (SystemVariable.cc) to
+   // validate a *proposed* ⎕FC[5] value, where checking "does this equal
+   // the *current* ⎕FC[5]" would be self-referential and wrong (e.g.
+   // ⎕FC←'' silently turned its own '_' default into a space, since the
+   // current ⎕FC[5] was already '_').
+   //
+   return is_control_char(uni) || (uni == Workspace::get_FC(4));
 }
 //────────────────────────────────────────────────────────────────────────────
 Value_P

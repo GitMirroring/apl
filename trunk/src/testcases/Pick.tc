@@ -338,6 +338,31 @@ G
 ┃  ┗ϵ━━━━━┛ ┗ϵ━━━━━━━━━━━┛┃
 ┗ϵϵ━━━━━━━━━━━━━━━━━━━━━━━┛
 
+      ⍝ Regression (Blake McBride, LanguageVariances.md #4, 2026-08-10):
+      ⍝ (⍳0)⊃V is the only case where Pick returns the whole array to
+      ⍝ which it is applied (LRM p.42); as a selective specification
+      ⍝ target this must replace the named variable's entire value
+      ⍝ (shape and type included, no conformance check), same as a
+      ⍝ plain V←new_value -- not the ordinary per-cell selective
+      ⍝ specification that every other selector uses.
+      ⍝
+      A←'ABCD'
+      ((⍳0)⊃A)←10 20 30
+      A
+10 20 30
+
+      C←5 6 7
+      ((⍳0)⊃C)←(⊂1 2 3)
+      C
+ 1 2 3 
+
+      ⍝ ordinary (non-assignment) value use is unaffected
+      (⍳0)⊃A
+10 20 30
+
+      )ERASE A
+      )ERASE C
+
       ⍝ ==================================
 
       )SI

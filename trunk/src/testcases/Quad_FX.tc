@@ -41,7 +41,7 @@ FUNC[3]  !¯3
 
       )SI
 FUNC[3]
-⋆
+*
 
       →4
 4
@@ -87,7 +87,7 @@ bar[1]  ++
       )SI
 bar[1]
 foo[2]
-⋆
+*
 
       )SIC
       0 1 0 0 ⎕FX 'bar' '++'
@@ -101,7 +101,7 @@ VALENCE ERROR+
 
       )SI
 foo[2]
-⋆
+*
 
       )SIC
       )ERASE foo bar
@@ -137,6 +137,41 @@ DOMAIN ERROR+
 INDEX[1]  Z←R[L]
             ^^
       →
+
+      ⍝ Regression (Blake McBride, LanguageVariances.md #30, 2026-08-10):
+      ⍝ execution properties must be inherited ("or-ed") from every
+      ⍝ CALLING function too (apl2lrm.txt p.360-361), not just applied to
+      ⍝ the function that carries them -- distinct from the "0 1 0 0 bar"
+      ⍝ case above, where bar's OWN nonsuspendable property does NOT
+      ⍝ propagate back up to its caller foo. Here it is the CALLER (CV /
+      ⍝ FF2) that carries the property, and it must propagate DOWN to the
+      ⍝ callee (GG) it invokes.
+      ⍝
+      )ERASE GG CV
+      ⊣⎕FX 'GG' 'ZZZUNDEF'
+      ⊣0 0 0 1 ⎕FX 'CV' 'GG'      ⍝ CV converts non-resource errors to DOMAIN
+      CV
+DOMAIN ERROR+
+GG[1]  ZZZUNDEF
+       ^
+
+      ⎕ET
+5 4
+
+      →
+
+      )ERASE GG FF2
+      ⊣⎕FX 'GG' '!¯3'
+      ⊣0 1 0 0 ⎕FX 'FF2' 'GG'     ⍝ FF2 is nonsuspendable
+      FF2
+DOMAIN ERROR
+      GG
+      ^^
+
+      ⍝ nothing suspended: FF2's nonsuspendable property propagated to GG
+      ⍝
+      )SI
+*
 
       )CHECK
 OK      - no stale functions

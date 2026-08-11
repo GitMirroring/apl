@@ -178,3 +178,15 @@
 ¯8J¯1 ¯0.9923935736J8.061317821
 ¯8J¯8  ¯7.968811272J8.031310796
 
+      ⍝ Regression (Blake McBride, LanguageVariances.md #6, 2026-08-10):
+      ⍝ Bif_F12_CIRCLE (○) was the only scalar function missing its
+      ⍝ eval_AXB() override, so a dyadic axis specification fell through
+      ⍝ to Function::phrase_error() -- VALENCE ERROR -- even though every
+      ⍝ dyadic scalar function is required to accept an axis (apl2lrm.txt
+      ⍝ Figure 7 p.45, Figure 9 p.51). Added the same eval_AXB() every
+      ⍝ other scalar function class already has.
+      ⍝
+      1 2○[1]2 3⍴⍳6
+ 0.8414709848 0.9092974268 0.1411200081
+¯0.6536436209 0.2836621855 0.9601702867
+

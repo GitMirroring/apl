@@ -769,6 +769,17 @@ PrintBuffer::pad_to_spaces()
       if (is_iPAD_char(get_char(x, y)))   set_char(x, y, UNI_SPACE);
 }
 //────────────────────────────────────────────────────────────────────────────
+// The →/↓/∼/+/∊/¯ frame decorators below follow IBM's DISPLAY workspace
+// convention, documented in devel_doc/apl2lrm.txt, "Picture of an Array's
+// Structure" (Chapter 2, p.9): →/↓ indicate rank, and exactly one of
+// ∼ (numeric) / + (mixed) / no symbol (character) / ∊ (nested) / ¯ (scalar
+// blank) indicates a box's own data type on its bottom border. GNU APL
+// uses ϵ (U+03F5) rather than the LRM's actual ∊ (U+220A) to avoid
+// colliding with the real Enlist/Member primitive glyph, and extends the
+// single flag into a repeated depth counter (ϵ, ϵϵ, ϵϵϵ, ...) -- the LRM's
+// own convention has no such counter; it says depth is read by counting
+// box borders crossed while tracing inward from the outside.
+//
 void
 PrintBuffer::add_frame(PrintStyle style, const Shape & shape, int depth)
 {

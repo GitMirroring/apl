@@ -22,6 +22,7 @@
 */
 
 #include "Assert.hh"
+#include "Avec.hh"
 #include "Bif_F12_RHO.hh"
 #include "CDR.hh"
 #include "CharCell.hh"
@@ -465,9 +466,49 @@ Quad_TF::tf2_value(int level, UCS_string & ucs, const cValue & value,
 
 const ShapeItem ec = value.nz_element_count();
 
+   // a rank-1, simple (non-nested), unenclosed value's own bare literal
+   // or strand ravel already has this exact shape when re-parsed, so an
+   // explicit reshape is redundant (LanguageVariances.md #34b, e.g.
+   // 'ABC' or 1 2 3 rather than 3⍴'ABC' / 3⍴1 2 3). Lengths 0 and 1 are
+   // the two exceptions: a bare single-item literal like 'b' or 5 parses
+   // back as a *scalar* (rank 0), not a 1-element vector -- confirmed
+   // live (⍴'b' is empty, ⍴,'b' is 1); a bare *empty* numeric literal
+   // doesn't exist at all in APL syntax (unlike '' for characters,
+   // already handled separately above) -- dropping the 0⍴ prefix left
+   // nothing meaningful to write, corrupting the value on re-evaluation
+   // (⍳0 round-tripped as scalar 0 instead of an empty vector, caught by
+   // testcases/Quad_TF.tc's own test_2TF round-trip check). So the
+   // explicit N⍴ reshape is still required for length 0 or 1 (caught by
+   // testcases/ZZ64_Regression.tc's structured-value round trip before
+   // landing this).
+   //
+   // A third exception: a character vector containing any codepoint
+   // outside ⎕AV is encoded by tf2_all_char_ravel() below as ⎕UCS N1 N2
+   // ... rather than a quoted literal. Plain ⍎ of the resulting text
+   // round-trips fine either way, but 2⎕TF's own inverse parser
+   // (tf2_inverse() / tf2_reduce_UCS()) only successfully folds the
+   // "⎕UCS value" pair back into a clean VAR←VALUE pair when it is
+   // wrapped in an explicit N⍴(...); without the wrapper the inverse
+   // direction silently fails. Caught by testcases/Quad_TF.tc's Kanji
+   // ⎕UCS round-trip case (test_2TF ⎕UCS 256⊥¨...).
+   //
+bool needs_UCS = false;
+   if (!value.NOTCHAR())
+      {
+        loop(e, ec)
+           {
+             if (Avec::need_UCS(value.get_char_value(e)))
+                { needs_UCS = true;   break; }
+           }
+      }
+
+const bool omit_reshape = nesting == 0 && value.get_rank() == 1 &&
+                          value.get_shape_item(0) > 1 && value.is_simple() &&
+                          !needs_UCS;
+
    // emit e.g. ( shape ⍴
    //
-   tf2_shape(ucs, value.get_shape(), nesting);
+   tf2_shape(ucs, value.get_shape(), nesting, omit_reshape);
    if (value.NOTCHAR())   tf2_ravel(level, ucs, ec, value, 0);
    else                   tf2_all_char_ravel(level, ucs, value);
    ucs << UNI_R_PARENT;   // close corresponding '(' from tf2_shape()
@@ -573,14 +614,18 @@ const Symbol * symbol = obj->get_symbol();
 }
 //════════════════════════════════════════════════════════════════════════════
 void
-Quad_TF::tf2_shape(UCS_string & ucs, const Shape & shape, ShapeItem nesting)
+Quad_TF::tf2_shape(UCS_string & ucs, const Shape & shape, ShapeItem nesting,
+                   bool omit_reshape)
 {
    ucs << UNI_L_PARENT;
    loop(n, nesting)   ucs << UNI_SUBSET;   // ⊂...
 
-   // scalars are ''⍴SCALAR but ''⍴ has no effect and can be omitted
+   // scalars are ''⍴SCALAR but ''⍴ has no effect and can be omitted;
+   // likewise a rank-1 shape whose own bare literal/strand ravel already
+   // has that shape (omit_reshape, set by the caller for simple,
+   // unenclosed values -- see its own declaration)
 
-   if (shape.get_rank())   // non-scalar
+   if (shape.get_rank() && !omit_reshape)   // non-scalar
       {
         loop(r, shape.get_rank())
             {
@@ -763,16 +808,19 @@ const ShapeItem ec = val->element_count();
    else   // number
       {
         // Bugs9 #6 (Blake McBride): the char branch above always emits a
-        // separator after the shape (even when ec == 0), but this branch
-        // relied on each element's own leading space to double as that
-        // separator -- so an empty numeric array (ec == 0) emitted none,
-        // and its own inverse then rejected the record ("missing space (in
-        // shape)"), since the shape reader requires a space after every
-        // shape item including the last. A doubled space before the first
-        // element (non-empty case) is harmless -- the reader below
-        // tokenizes the data with the normal APL tokenizer, which is
-        // whitespace-insensitive.
-        ucs << UNI_SPACE;
+        // separator after the shape, but this branch relies on each
+        // element's own leading space to double as that separator -- so
+        // an empty numeric array (ec == 0) emitted none, and its own
+        // inverse then rejected the record ("missing space (in shape)"),
+        // since the shape reader requires a space after every shape item
+        // including the last. Only ec == 0 actually needs the extra
+        // separator here (LanguageVariances.md #34c: unconditionally
+        // adding it doubled the space before the first element whenever
+        // ec > 0 -- harmless for GNU APL's own whitespace-insensitive
+        // reader, but a needless deviation from the LRM's single-space
+        // form).
+        //
+        if (ec == 0)   ucs << UNI_SPACE;
 
         const RavelType rt = val->get_ravel_type();
         if (rt == RPT_CELLS)
@@ -807,8 +855,14 @@ const ShapeItem ec = val->element_count();
                      }
                   else
                      {
-                       MORE_ERROR() << "Non-number in 1 ⎕TF N record";
-                       return Value_P();
+                       // 1⎕TF's migration/N-record format has no way to
+                       // represent a nested value; the LRM (p.338) says
+                       // this shall silently yield '' rather than an
+                       // error (LanguageVariances.md #35) -- same
+                       // convention already used by the character-array
+                       // branch above for the same "can't represent
+                       // this" situation.
+                       return Str0(LOC);
                      }
                 }
            }

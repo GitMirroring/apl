@@ -600,6 +600,11 @@ const ShapeItem len_X = X.element_count();
 
    loop(iX, len_X)
        {
+         // apl2lrm.txt "Conditions for Axis Specification" (p.45): axis
+         // evaluation requires the bracket data to be "the proper type"
+         // (near-integer); otherwise AXIS ERROR, not the DOMAIN ERROR
+         // that a raw get_near_int() would throw for e.g. a character.
+         if (!X.is_near_int(iX))           AXIS_ERROR;
          APL_Integer i = X.get_near_int(iX) - qio;
          if (i < 0)                        AXIS_ERROR;   // axis i too small
          if (i >= rank_A && i >= rank_B)   AXIS_ERROR;   // axis i too large
@@ -1405,29 +1410,25 @@ Token
 Bif_F12_WITHOUT::eval_identity_fun(cValue_R B, sAxis axis) const
 {
    // axis is already normalized to IO←0
-   // return Z←,/B0 where (B0 , B) is B.
+
+   // Figure 28 (apl2lrm.txt p.212): the identity item for ∼ (Without)
+   // is ⍳0 -- i.e. the identity is simply B itself, unchanged (same
+   // reasoning as Bif_F12_PICK::eval_identity_fun(): a Without-reduce
+   // over an empty axis just returns the (already empty) right
+   // argument). Previously this built a shape_Z-shaped (B's shape with
+   // the reduced axis removed) array filled with B's prototype -- the
+   // generic NonscalarFunction_default_identity pattern, wrong here
+   // since it produces a plain scalar (e.g. 0) instead of an empty
+   // array, and its own DOMAIN_ERROR guard (shape_Z.get_volume()>0)
+   // fired even for legitimate cases: removing the sole axis of a
+   // rank-1 B gives a scalar shape_Z, whose volume is 1 (scalars are
+   // never volume 0), not 0.
 
 const sRank rank_B = B.get_rank();
    if (rank_B < 1)       RANK_ERROR;   // identity restriction, lrm p. 212
    if (axis >= rank_B)   RANK_ERROR;
 
-const Shape shape_Z = B.get_shape().without_axis(axis);
-
-   /* the removal of the reduction axis must not create a non-empty result.
-
-      In IBM APL2:
-
-                 ┌───── reduction axis
-            ⍴ ,/ 0 0⍴42   → 0
-            ⍴ ,/ 0 3⍴42   → 0
-            ⍴ ,/ 3 0⍴42   → DOMAIN ERROR (shape would be 3)
-    */
-   if (shape_Z.get_volume() > 0)   DOMAIN_ERROR;
-
-Value_P Z(shape_Z, LOC);
-   Z->set_default(B, LOC);
-   Z->check_value(LOC);
-   return Token(TOK_APL_VALUE1, Z);
+   return Token(TOK_APL_VALUE1, CLONE(&B, LOC));
 }
 //────────────────────────────────────────────────────────────────────────────
 Value_P

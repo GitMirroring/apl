@@ -168,6 +168,21 @@ public:
    /// @param B     the right APL argument value
    /// @param axis  the axis along which to apply the identity
    static Token do_eval_identity_fun(cValue_R B, sAxis axis);
+
+   /// shared helper for the several Figure 28 (apl2lrm.txt p.212)
+   /// identity items that are simply ⊂B (Reshape, Transpose, Take,
+   /// Catenate) -- B is guaranteed non-scalar here (eval_identity_fun()
+   /// is only ever called for an axis of length 0, which requires B to
+   /// have at least that one axis), so no "enclose of a simple scalar
+   /// is identity" special-casing is needed.
+   /// @param B  the right APL argument value
+   static Token enclosed_identity(cValue_R B)
+      {
+        Value_P Z(LOC);   // a scalar
+        Z->next_ravel_Pointer(CLONE(&B, LOC).get());
+        Z->check_value(LOC);
+        return Token(TOK_APL_VALUE1, Z);
+      }
 };
 //════════════════════════════════════════════════════════════════════════════
 

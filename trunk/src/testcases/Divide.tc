@@ -63,7 +63,7 @@
       M1←¯9○M ◊ M2←¯11○M ◊ V1←¯9○V ◊ V2←¯11○V
 
       0 2⍕Q←V ⌹ M               ⍝ complex V ⌹ complex M
- 1.20J2.23 ¯.30J.64 ¯1.44J¯1.82 .54J¯.21 .84J¯.77
+1.20J2.23 ¯.30J.64 ¯1.44J¯1.82 .54J¯.21 .84J¯.77
 
       ⍝ Precision ? As to precision in general, different APL_Float and complex
       ⍝ variants produce slightly different results. We therefore check that the
@@ -84,11 +84,11 @@
       Q22 ← V2 ⌹ M2
 
       0 2⍕Q11,Q12,Q21,⍪Q22
-  1.20J2.23   2.23J¯1.20 ¯2.23J1.20   1.20J2.23
-  ¯.30J.64     .64J.30    ¯.64J¯.30   ¯.30J.64
- ¯1.44J¯1.82 ¯1.82J1.44   1.82J¯1.44 ¯1.44J¯1.82
-   .54J¯.21   ¯.21J¯.54    .21J.54     .54J¯.21
-   .84J¯.77   ¯.77J¯.84    .77J.84     .84J¯.77
+ 1.20J2.23   2.23J¯1.20 ¯2.23J1.20   1.20J2.23
+ ¯.30J.64     .64J.30    ¯.64J¯.30   ¯.30J.64
+¯1.44J¯1.82 ¯1.82J1.44   1.82J¯1.44 ¯1.44J¯1.82
+  .54J¯.21   ¯.21J¯.54    .21J.54     .54J¯.21
+  .84J¯.77   ¯.77J¯.84    .77J.84     .84J¯.77
 
       ⍝ precisions...
       P11 ← +/ V1 - M1 +.× Q11
@@ -108,10 +108,10 @@
       ⍝
       MM←5 4⍴M
        0 2⍕Q ← V ⌹ MM
- 1.38J.88 ¯1.38J.35 .31J¯.06 .50J¯1.04
+1.38J.88 ¯1.38J.35 .31J¯.06 .50J¯1.04
 
       0 4⍕ +/ V - MM +.× Q    ⍝ precision ? (large since over specified)
- ¯.0188J¯.0168
+¯.0188J¯.0168
 
 
       ⍝ under specified MM

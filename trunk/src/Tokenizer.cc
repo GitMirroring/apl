@@ -302,7 +302,14 @@ size_t skipped_int_digits = 0;
            1. input was correct (e.g. 0. ), but the 0 was skipped above.;
            2. syntax error by the user ( . without digits)
          */
-        if (skipped_0)    return Int_or_Double(APL_Integer(0));   // case 1
+        if (skipped_0)                  // case 1
+           {
+             // an explicit decimal point (0., .0, 0.00, ...) is the
+             // user's own choice of storage class, kept even though the
+             // value happens to be 0 -- see the dot_seen note below.
+             if (dot_seen)   return Int_or_Double(APL_Float(0.0));
+             return Int_or_Double(APL_Integer(0));
+           }
 
         MORE_ERROR() << "expecting 0. or .0 but not . without digits.";
         return Int_or_Double();                     // case 2: syntax error
@@ -425,6 +432,20 @@ size_t skipped_int_digits = 0;
                  }
             }
       }
+
+   // an explicit decimal point is the user's own choice between integer
+   // and real storage (LanguageVariances.md #1/V1) -- keep it real even
+   // when 1d. above stripped every fractional digit away as trailing
+   // zeros (e.g. 456789.0): demoting such a literal to integer storage
+   // gains precision (an int64 mantissa is wider than a double's) but
+   // silently overrides the user's own explicit choice and defeats
+   // small-⎕PP scaled display for values the user deliberately wrote as
+   // real. A value that ends up demoted anyway -- e.g. via later
+   // arithmetic on a real result -- is a separate, implicit decision
+   // and not affected by this: this only concerns how a *literal* is
+   // tokenized.
+   //
+   if (dot_seen)   need_float = true;
 
    // construct a C string according to the APL string
    //

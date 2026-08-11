@@ -80,7 +80,7 @@ OK      - no duplicate parents
       FN
 0 0
 5
-2 6658
+0 0
 0 0
 
 
@@ -95,17 +95,16 @@ OK      - no duplicate parents
 0.3333333333
 
       RECIP 0
-Unknown error (major 13, minor 17) in ⎕ES B
       RECIP 0
       ^     ^
 
       ⎕EM
-Unknown error (major 13, minor 17) in ⎕ES B
-      RECIP 0                              
-      ^     ^                              
+             
+      RECIP 0
+      ^     ^
 
       ⍴⎕EM
-3 43
+3 13
 
       ⎕ET
 13 17
@@ -175,9 +174,54 @@ ZERO INVALID
       FN
 0 0
 5
-2 6658
+0 0
 0 0
 DONE
+
+      ⍝ Regression (Blake McBride, LanguageVariances.md #29, 2026-08-10):
+      ⍝ ⎕ES's LRM-recommended idiom (Figure 40, p.353) for giving a
+      ⍝ defined function a VALENCE ERROR when called with the wrong
+      ⍝ number of arguments -- ⎕ES(2≠⎕NC 'Y')/5 1 -- used to fail when Y
+      ⍝ (the declared but, in a monadic call, unsupplied left argument)
+      ⍝ was still reachable from UserFunction::set_locked_error_info():
+      ⍝ it unconditionally called Symbol::get_apl_value() on Y, which
+      ⍝ throws VALUE ERROR for an unbound symbol, silently replacing the
+      ⍝ intended ⎕ES-simulated error.
+      ⍝
+      )ERASE ROUND2
+∇Z←Y ROUND2 X
+ ⎕ES(2≠⎕NC 'Y')/5 1  ⍝SIGNAL VALENCE ERROR
+ Z←(10*-Y)×⌊.5+X×10*Y
+∇
+
+      3 ROUND2 4.5677887
+4.568
+
+      ROUND2 4.5677887
+VALENCE ERROR
+      ROUND2 4.5677887
+      ^              ^
+
+      ⎕ET
+5 1
+
+      →
+
+      )ERASE ROUND3
+∇Z←Y ROUND3 X
+ ⎕ES(2≠⎕NC 'Y')/5 4  ⍝SIGNAL DOMAIN ERROR
+ Z←X
+∇
+
+      ROUND3 4.5677887
+DOMAIN ERROR
+      ROUND3 4.5677887
+      ^              ^
+
+      ⎕ET
+5 4
+
+      →
 
       ]EXPECT 1
 

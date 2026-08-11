@@ -126,6 +126,14 @@ size_t elem_size = 0;   // 0 means: checked separately below (or unsupported)
              LENGTH_ERROR;
            }
       }
+   else if (vtype == CDR_PROG64)   // fixed-size body: first + increment
+      {
+        if (header_len + 8 > cdr.size())
+           {
+             MORE_ERROR() << "CDR PROG64 data (8 bytes) exceeds buffer";
+             LENGTH_ERROR;
+           }
+      }
    else if (elem_size
          && (header_len + elem_size*size_t(nelm) > cdr.size()))
       {
@@ -191,6 +199,15 @@ const uint8_t * ravel = data + 16 + 4*rank;
              const uint32_t d = *reinterpret_cast<const uint32_t *>(ravel+4*n);
              Z->next_ravel_Char(Unicode(d));
            }
+      }
+   else if (vtype == CDR_PROG64)   // arithmetic progression: first, incr
+      {
+        APL_Integer first = *reinterpret_cast<const uint32_t *>(ravel);
+        if (first & 0x80000000)   first |= 0xFFFFFFFF00000000ULL;
+        APL_Integer incr = *reinterpret_cast<const uint32_t *>(ravel + 4);
+        if (incr & 0x80000000)    incr  |= 0xFFFFFFFF00000000ULL;
+
+        loop(n, nelm)   Z->next_ravel_Int(first + n*incr);
       }
    else if (vtype == CDR_NEST32)   // packed vector with 4 bytes offsets.
       {
@@ -299,21 +316,20 @@ const uint8_t * ravel = data + 16 + 4*rank;
               //
               if (sub_vtype == 6)        // arithmetic progression vector
                  {
-                   // arithmetic progression vectors (APVs) are not well
-                   // described. Normally a progression vector is a triple
-                   //
-                   // { initial-value, element-count, increment }
-                   //
-                   // But: we have only 8 bytes = 2 integers. We therefore
-                   // assume that element-count == nelm so that the two
-                   // integers are initial-value and increment.
+                   // an APV's body is { first, increment } (2 4-byte ints,
+                   // 8 bytes total, matching CDR::fill()'s type 6 writer
+                   // above and the count coming from the header's own
+                   // nelm/shape, per apl2lrm.txt Appendix B's
+                   // "first|incr×⎕IO|⍳count" transfer-form definition).
                    //
                    // sub_rank (an unvalidated attacker byte, 0-255) drives
-                   // the shape-item loop below; the offset+14 guard above
-                   // only validates 14 bytes, but this loop reads up to
-                   // offset+16+4*sub_rank -- validate that full extent
-                   // first (mirroring the scalar-branch guard above).
-                   if (size_t(offset) + 16 + 4*size_t(sub_rank) > cdr.size())
+                   // the shape-item loop below, and the 8-byte body follows
+                   // the shape; the offset+14 guard above only validates 14
+                   // bytes, but this reads up to offset+16+4*sub_rank+8 --
+                   // validate that full extent first (mirroring the
+                   // scalar-branch guard above).
+                   if (size_t(offset) + 16 + 4*size_t(sub_rank) + 8
+                       > cdr.size())
                       {
                         MORE_ERROR() << "CDR nested APV (sub_rank "
                                      << sub_rank << ") at offset " << offset
@@ -325,11 +341,18 @@ const uint8_t * ravel = data + 16 + 4*rank;
                    loop(r, sub_rank)
                       sh.add_shape_item(get_4_be(sub_data + 16 + 4*r));
 
+                   const uint8_t * sub_body = sub_data + 16 + 4*sub_rank;
+                   APL_Integer first =
+                        *reinterpret_cast<const uint32_t *>(sub_body);
+                   if (first & 0x80000000)   first |= 0xFFFFFFFF00000000ULL;
+                   APL_Integer incr =
+                        *reinterpret_cast<const uint32_t *>(sub_body + 4);
+                   if (incr & 0x80000000)    incr  |= 0xFFFFFFFF00000000ULL;
+
                    Value_P sub_val(sh, LOC);
-                   const APL_Integer qio = Workspace::get_IO();
                    loop(v, sh.get_volume())
                        {
-                         sub_val->next_ravel_Int(v + qio);
+                         sub_val->next_ravel_Int(first + v*incr);
                        }
 
                    sub_val->check_value(LOC);

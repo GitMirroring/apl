@@ -120,5 +120,61 @@ REACHED: FOO(LP)
 
       →
 
+      ⍝ regression (Blake McBride, LanguageVariances.md #27, 2026-08-11):
+      ⍝ lrm p.278-279: "Executes R. If R fails or is interrupted,
+      ⍝ executes L." A branch inside R that lands outside its caller's
+      ⍝ own range (here: immediate execution, so any →N is "outside")
+      ⍝ must fall back to L, per lrm p.349 Figure 38 ("0 or any other
+      ⍝ line number not within the function... flow of execution
+      ⍝ returns to the invoking expression"). handle_QUAD_ES_BRA()
+      ⍝ (Prefix.cc) used to just discard StateIndicator::jump()'s
+      ⍝ result instead of acting on it, silently dropping the branch.
+      ⍝
+      Z←'3×2' ⎕EA '→0'
+      Z
+6
+
+      ⍝ regression: L, executed as the fallback, itself failing with a
+      ⍝ real error is handled correctly (handle_QUAD_ES_ERR).
+      ⍝
+      Z←'!¯3' ⎕EA '!¯5'
+DOMAIN ERROR
+      !¯3
+      ^
+
+      →
+
+      ⍝ regression (Blake McBride, LanguageVariances.md #27, 2026-08-11):
+      ⍝ R fails, falls back to L, and L itself is a branch with nowhere
+      ⍝ real to go (immediate execution, no suspended function) -- lrm
+      ⍝ p.349 Figure 38 says this means "flow of execution returns to
+      ⍝ the invoking expression", i.e. a clean, valueless completion,
+      ⍝ not an error. Bif_F1_EXECUTE::execute_statement('→0') pushes a
+      ⍝ real )SI for the branch (unlike a foldable value expression);
+      ⍝ that )SI is now marked via StateIndicator::set_void_on_orphan_
+      ⍝ branch() so Command.cc's ordinarily-correct "→N without
+      ⍝ function" SYNTAX ERROR check treats it as void instead.
+      ⍝
+      '→0' ⎕EA 'Z←!¯3'
+      1+1
+2
+
+      ⍝ regression: the fallback L branching to a REAL, in-range label
+      ⍝ of the calling function must still work normally (confirms the
+      ⍝ new void-on-orphan-branch marker only fires when there is truly
+      ⍝ nothing to resume into, not whenever L happens to be a branch).
+      ⍝
+      )ERASE G8
+∇Z←G8 X
+ Z←'→L1' ⎕EA 'UNDEFINED_NAME_XYZ'
+ Z←999
+ →0
+L1: Z←-1
+∇
+      G8 5
+¯1
+
+      )ERASE G8
+
       ⍝ ==================================
 

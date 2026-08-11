@@ -51,10 +51,6 @@ public:
    /// Destructor.
    ~UserFunction();
 
-   /// ovewrloaded Executable::cannot_suspend
-   virtual bool cannot_suspend() const
-      { return exec_properties[1] != 0; }
-
    /// return the entity that has created the function
    const UTF8_string get_creator() const
       { return creator; }

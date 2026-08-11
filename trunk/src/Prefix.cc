@@ -1516,15 +1516,57 @@ Prefix::handle_QUAD_ES_BRA(const Token & result)
 
    Workspace::pop_SI(LOC);   // discard the ⎕EA/⎕EB context
 
+const cValue & QES_val = *result.get_apl_val();
+
+   // ⎕EA's BRA payload is 100 $FFFD (⊂,A) RES (4 items, A included, see
+   // Macro.def); ⎕EB's is 100 $FFFD RES (3 items, no A -- ⎕EB always
+   // executes A unconditionally itself via its own "⍎A", so it has no
+   // use for a fallback here). Tell them apart by length rather than
+   // touching ⎕EB's independent macro/semantics.
+   //
+   if (QES_val.element_count() < 4)   // ⎕EB: unchanged historical behaviour
+      {
+        Cell cache;
+        const Cell & QES_line = QES_val.get_cravel(2, cache);
+        Value_P v_line = IntScalar(QES_line.get_int_value(), LOC);
+        Workspace::SI_top()->jump(*v_line);
+        return;
+      }
+
+UCS_string statement_A(*QES_val.get_pointer_value(2));
 Cell cache;
-const Cell & QES_arg2 = result.get_apl_val()->get_cravel(2, cache);
-const APL_Integer line = QES_arg2.get_int_value();
+const Cell & QES_line = QES_val.get_cravel(3, cache);
+const APL_Integer line = QES_line.get_int_value();
 
-const Token & si_pushed = Workspace::SI_top()->get_prefix().at0();
-   Assert(si_pushed.get_tag() == TOK_SI_PUSHED);
-
+StateIndicator * caller = Workspace::SI_top();
 Value_P v_line = IntScalar(line, LOC);
-   Workspace::SI_top()->jump(*v_line);
+
+   // StateIndicator::jump() only computes what should happen and
+   // returns a Token describing it (see its own comment) -- the actual
+   // jump is performed by whoever called it. The two normal (non-⎕EA)
+   // call sites in this file (reduce_END_GOTO_B_/reduce_LABEL_GOTO_B_)
+   // act on that Token themselves; this one used to just discard it,
+   // silently dropping the branch instead of propagating it (Blake
+   // McBride, LanguageVariances.md #27).
+   //
+const Token jump_result = caller->jump(*v_line);
+
+   if (jump_result.get_tag() == TOK_VOID)   // a real →N within the caller
+      {
+        // goto_PC() already updated the caller's PC as a side effect;
+        // abandon the statement that called ⎕EA so the caller resumes
+        // at the new PC instead.
+        //
+        caller->get_prefix().reset(LOC);
+        return;
+      }
+
+   // out of range for the caller too (e.g. →0, or →N nowhere in it):
+   // per lrm p.349 Figure 38, that means "flow of execution returns to
+   // the invoking expression" -- fall back to A, exactly as if B had
+   // failed outright (handle_QUAD_ES_ERR() below).
+   //
+   execute_EA_fallback(statement_A, E_SYNTAX_ERROR);
 }
 //════════════════════════════════════════════════════════════════════════════
 void
@@ -1537,10 +1579,6 @@ Prefix::handle_QUAD_ES_ERR(const Token & result)
    if (Workspace::SI_top()->function_name()[0] != UNI_MUE)   DOMAIN_ERROR;
 
    Workspace::pop_SI(LOC);   // discard the ⎕EA/⎕EB context
-StateIndicator * top = Workspace::SI_top();
-
-const Token & si_pushed = top->get_prefix().at0();
-   Assert(si_pushed.get_tag() == TOK_SI_PUSHED);
 
 const cValue & QES_val = *result.get_apl_val();
 UCS_string statement_A(  *QES_val.get_pointer_value(2));
@@ -1548,13 +1586,39 @@ const APL_Integer major = QES_val.get_int_value(3);
 const APL_Integer minor = QES_val.get_int_value(4);
 const ErrorCode ec      = ErrorCode(major << 16 | minor);
 
+   execute_EA_fallback(statement_A, ec);
+}
+//════════════════════════════════════════════════════════════════════════════
+void
+Prefix::execute_EA_fallback(UCS_string statement_A,
+                            ErrorCode ec_on_failure)
+{
+StateIndicator * top = Workspace::SI_top();
+Token & si_pushed = top->get_prefix().at0();
+   Assert(si_pushed.get_tag() == TOK_SI_PUSHED);
+
 Token result_A = Bif_F1_EXECUTE::execute_statement(statement_A);
-   if (result_A.get_Class() == TC_VALUE)   // ⍎ literal
+   if (result_A.get_Class() == TC_VALUE)   // A is a plain (foldable) value
       {
-        Workspace::SI_top()->get_prefix().at0().move_from(result_A, LOC);
+        si_pushed.move_from(result_A, LOC);
         return;
       }
-   new (&StateIndicator::get_error(top)) Error(ec, LOC);
+
+   if (result_A.get_tag() == TOK_SI_PUSHED)
+      {
+        // A needed real execution (e.g. it is itself a branch/escape
+        // statement, not a foldable value expression): let it run
+        // normally, but mark its pushed )SI so that if its own →N/→
+        // has nowhere real to go, that is a clean no-value completion
+        // (lrm p.349 Figure 38: "flow of execution returns to the
+        // invoking expression") instead of Command.cc's ordinarily
+        // correct "→N without function" SYNTAX ERROR.
+        //
+        Workspace::SI_top()->set_void_on_orphan_branch();
+        return;
+      }
+
+   new (&StateIndicator::get_error(top)) Error(ec_on_failure, LOC);
 }
 //════════════════════════════════════════════════════════════════════════════
 void
@@ -3003,8 +3067,11 @@ const bool trace = at0().get_Class() == TC_END && (at0().get_int_val() & 1);
    //
    if (at1().get_tag() == TOK_STOP_LINE)   // S∆ line
       {
-        const UserFunction * ufun = si.get_executable()->get_exec_ufun();
-        if (ufun && ufun->get_exec_properties()[2])
+        // property 2 (ignore-attention) is inherited from every calling
+        // )SI entry too (apl2lrm.txt p.360-361 "or-ing"), not just this
+        // function's own.
+        //
+        if (si.get_inherited_exec_property(2))
            {
               // the function ignores attention (aka. weak interrupt)
               //

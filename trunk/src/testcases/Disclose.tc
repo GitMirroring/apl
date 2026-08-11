@@ -79,14 +79,11 @@ FORTUNE
       ⍝ Regression
 
       4 ⎕CR ⊃(⊂1⍴0)((1 1)⍴0)
-┏→┓
-↓0┃
-┃ ┃
-┃0┃
-┗∼┛
+┏→━━┓
+↓┏→┓┃
+┃┃0┃┃
+┃┗∼┛┃
+┃   ┃
 ┃  0┃
-Non-APL character+
-Non-APL character+
-VALUE ERROR+
-      Non-APL character+
-                       ^
+┗ϵ━━┛
+

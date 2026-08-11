@@ -190,21 +190,20 @@ Value::next_ravel_Pointer(Value * value, uint32_t magic)
 void
 Value::next_ravel_Value(Value * value)
 {
-   // A *scalar* value (simple OR nested, e.g. ⊂1 2 3) already fits into a
-   // single ravel cell as-is -- reuse its own sole cell (next_ravel_Cell
-   // handles both the copy and the depth-dirty marking for a nested cell).
-   // Only a genuine non-scalar (rank >= 1) needs a fresh PointerCell to be
-   // boxed into one cell. The previous is_simple_scalar() check missed the
-   // nested-scalar case, wrapping it in a *second*, redundant PointerCell:
-   // confirmed directly (1 (⊂1 2 3) 2 stored position 2 as pointer→(⊂1 2 3)
-   // instead of pointer→(1 2 3), so 2⊃(1 (⊂1 2 3) 2) came back still boxed
-   // -- depth 2 instead of 1 -- while 1 (1 2 3) 2, without the explicit ⊂,
-   // was unaffected). This is the vector/strand-literal construction path
-   // (Parser::create_vector_value), so the bug affects any "A (⊂X) B"
-   // strand with non-scalar X -- a common way to explicitly box a value
-   // for a nested array literal.
+   // Strand-notation construction: A B C ←→ (⊂A),(⊂B),⊂C (ISO/IEC 13751
+   // 10.2.26, IBM APL2 LRM p.14/136). ⊂ (enclose) is the identity ONLY on
+   // a *simple* scalar (depth 0); a nested/enclosed scalar (e.g. X←⊂1 2 3,
+   // depth 2) is NOT its own enclose -- ⊂X must add one more level of
+   // nesting, same as an explicit ⊂X would. A value->is_scalar() check
+   // here (accepting simple OR nested scalars) therefore drops that extra
+   // level for any strand item that is already an enclosed scalar:
+   // confirmed directly against both the LRM (p.136, "B←(2 3 4) 5
+   // (⊂7 8 (9 10 11))" wants ≡B=4, GNU APL gave 3) and the ISO/IEC 13751
+   // depth definition (10.2.5) by hand. Only a *simple* scalar's sole
+   // cell can be safely reused as-is; anything else, including an
+   // already-nested scalar, needs a fresh PointerCell.
    //
-   if (value->is_scalar())
+   if (value->is_simple_scalar())
       { Cell cache; next_ravel_Cell(value->get_cfirst(cache)); }
    else
       {

@@ -317,7 +317,7 @@ Quad_FC::Quad_FC() : SystemVariable(ID_Quad_FC)
 Value_P Z(6, LOC);
    Z->next_ravel_Char(UNI_FULLSTOP);
    Z->next_ravel_Char(UNI_COMMA);
-   Z->next_ravel_Char(UNI_STAR_OPERATOR);
+   Z->next_ravel_Char(UNI_ASTERISK);
    Z->next_ravel_Char(UNI_0);
    Z->next_ravel_Char(UNI_UNDERSCORE);
    Z->next_ravel_Char(UNI_OVERBAR);
@@ -334,7 +334,7 @@ Quad_FC::push()
 Value_P QFC(6, LOC);
    QFC->next_ravel_Char(UNI_FULLSTOP);
    QFC->next_ravel_Char(UNI_COMMA);
-   QFC->next_ravel_Char(UNI_STAR_OPERATOR);
+   QFC->next_ravel_Char(UNI_ASTERISK);
    QFC->next_ravel_Char(UNI_0);
    QFC->next_ravel_Char(UNI_UNDERSCORE);
    QFC->next_ravel_Char(UNI_OVERBAR);
@@ -356,7 +356,7 @@ ShapeItem value_len = B->element_count();
 
    // new value is correct. 
    //
-Unicode fc[6] = { UNI_FULLSTOP, UNI_COMMA,      UNI_STAR_OPERATOR,
+Unicode fc[6] = { UNI_FULLSTOP, UNI_COMMA,      UNI_ASTERISK,
                   UNI_0,        UNI_UNDERSCORE, UNI_OVERBAR };
 
    loop(c, 6)   if (c < value_len)

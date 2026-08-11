@@ -42,6 +42,7 @@ class Error;
 class IndexExpr;
 class PrintBuffer;
 class ScalarFunction;
+class Symbol;
 class Value_P;
 class Thread_context;
 class Value;   // forward declaration for cValue parameter types
@@ -909,6 +910,25 @@ public:
    /// @param loc caller location for diagnostics
    Value_P get_cellrefs(const char * loc);
 
+   /// mark \b this (an lvalue returned by Symbol::resolve_lv(), i.e. the
+   /// entire, still unmodified, current value of \b sym) so that
+   /// Bif_F12_PICK::eval_AB() can recognize an empty-left-argument Pick
+   /// applied directly to it (LRM: "Pick with an empty left argument ...
+   /// causes the whole array associated with the assigned name to be
+   /// replaced") and Value::assign_cellrefs() can special-case it as a
+   /// plain Symbol::assign() instead of a shape-conforming per-cell copy.
+   /// Every other lvalue-producing function returns a freshly built Value
+   /// that never carries this marker, so it only ever survives an
+   /// unbroken chain of empty-Pick applications straight through to the
+   /// assignment -- any intervening function drops it automatically.
+   /// @param sym the symbol whose entire current value \b this represents
+   void set_lval_whole_symbol(Symbol * sym)
+      { lval_whole_symbol = sym; }
+
+   /// see set_lval_whole_symbol()
+   Symbol * get_lval_whole_symbol() const
+      { return lval_whole_symbol; }
+
    /// assign \b val to the cell references in this value.
    /// @param val value whose elements are assigned to the cell references
    void assign_cellrefs(Value_P val);
@@ -1425,6 +1445,11 @@ protected:
 
    /// number of Value_P objects pointing to this value
    int owner_count;
+
+   /// see set_lval_whole_symbol(); 0 for every Value except a top-level
+   /// Symbol::resolve_lv() result that has not (yet) been narrowed by any
+   /// other lvalue-producing function.
+   Symbol * lval_whole_symbol = 0;
 
    /// a linked list of values that have been deleted
    static _deleted_value * deleted_values;

@@ -124,6 +124,13 @@ public:
    virtual Token eval_B(cValue_R B) const
       { return Token(TOK_APL_VALUE1, disclose(B, true)); }
 
+   /// overloaded Function::eval_identity_fun(). Figure 28 (apl2lrm.txt
+   /// p.212): the identity item for ⊃ is ⍳0 -- i.e. pick with an empty
+   /// left argument already returns the whole right argument (LRM
+   /// p.42), so the reduce-identity for ⊃ is simply B itself, unchanged.
+   virtual Token eval_identity_fun(cValue_R B, sAxis axis) const
+      { return Token(TOK_APL_VALUE1, CLONE(&B, LOC)); }
+
    /// ⊃B
    /// @param B right argument APL value
    /// @param rank_tolerant if true, allow rank mismatches when padding items

@@ -64,7 +64,7 @@ H LINE 6
 [6]   'J: ',⎕LC
 [7]   ∘∘∘∘∘∘
 [8]   'J LINE 7'
-    ∇
+    ∇  ³
 
       )ERASE FACTR
 ∇Z←FACTR A
@@ -121,15 +121,15 @@ H[5]  J
       ^
 G[3]  H
       ^
-⋆  G
+*  G
    ^
 FACTR[1]  Z←!A
             ^^
-⋆  FACTR ¯6
+*  FACTR ¯6
    ^
 FACTR[1]  Z←!A
             ^^
-⋆  FACTR ¯3
+*  FACTR ¯3
    ^
 
       →

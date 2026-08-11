@@ -59,6 +59,11 @@ public:
    /// @param B right argument APL value
    virtual Token eval_XB(cValue_R X, cValue_R B) const;
 
+   /// overloaded NonscalarFunction_default_identity::eval_identity_fun().
+   /// Figure 28 (apl2lrm.txt p.212): the identity item for ↑ is ⊂B.
+   virtual Token eval_identity_fun(cValue_R B, sAxis axis) const
+      { return enclosed_identity(B); }
+
    /// Take from B according to ravel_A
    /// @param shape_Zi shape of the result
    /// @param B right argument APL value to take from
@@ -107,6 +112,19 @@ public:
    /// @param X axis specification APL value
    /// @param B right argument APL value to drop from
    virtual Token eval_AXB(cValue_R A, cValue_R X, cValue_R B) const;
+
+   /// overloaded Function::eval_identity_fun(). Figure 28 (apl2lrm.txt
+   /// p.212): the identity item for ↓ is B's own prototype, taken as a
+   /// bare scalar (unlike ⍴/⍉/↑/, whose identity is ⊂B -- confirmed
+   /// against the LRM's own worked example, LanguageVariances.md #19).
+   virtual Token eval_identity_fun(cValue_R B, sAxis axis) const
+      {
+        Cell cache;
+        const Cell & proto = B.get_cproto(cache);
+        Value_P Z(proto, LOC);
+        Z->check_value(LOC);
+        return Token(TOK_APL_VALUE1, Z);
+      }
 
    static Bif_F12_DROP  fun;   ///< Built-in function
 

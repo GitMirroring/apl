@@ -174,6 +174,12 @@ public:
    /// @param uni Unicode character to test
    static bool is_control_char(Unicode uni);
 
+   /// Like is_control_char(), but also recognizes ⎕FC[5] (print-as-
+   /// blank); for parsing a format-by-example picture string only, NOT
+   /// for validating a proposed ⎕FC[5] value (see the .cc definition).
+   /// @param uni Unicode character to test
+   static bool is_picture_char(Unicode uni);
+
    /// A character array with the display of B
    /// @param B APL value to format
    static Value_P monadic_format(cValue_R B);

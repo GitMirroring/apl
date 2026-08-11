@@ -98,8 +98,12 @@ protected:
    /// @param ucs output string being built
    /// @param shape APL array shape to encode
    /// @param nesting current nesting level in the output
+   /// @param omit_reshape true to skip the "N⍴" prefix (rank-1, simple,
+   ///        unenclosed values: their bare literal/strand ravel already
+   ///        has the right shape on its own, so an explicit reshape is
+   ///        redundant, per LanguageVariances.md #34b)
    static void tf2_shape(UCS_string & ucs, const Shape & shape,
-                         ShapeItem nesting);
+                         ShapeItem nesting, bool omit_reshape = false);
 
    /// append ravel \b cells in tf2_format to \b ucs.
    /// @param level current nesting depth for formatting

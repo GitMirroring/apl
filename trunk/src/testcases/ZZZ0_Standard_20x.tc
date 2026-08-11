@@ -29,8 +29,8 @@
 
       ⎕PP←999
       ⍕D
-0.7 0.8 0.9 0.7 0.8 0.9
-
+0.69999999999999996 0.80000000000000004 0.90000000000000002 0.69999999999999996 
+      0.80000000000000004 0.90000000000000002
       ⍝ APL2 says 0 0 0 0 0 0, ISO differs slightly
       D-⍎⍕D
 0 0 0 0 0 0
@@ -68,8 +68,14 @@
       ⍴1 0 2 0 4 0 8 0⍕0 4⍴1
 0 15
 
+      ⍝ Regression (Blake McBride, LanguageVariances.md #12, 2026-08-10):
+      ⍝ see testcases/Format_by_spec.tc for the root cause (UCS_string::
+      ⍝ from_big()'s hand-rolled digit extraction losing precision on
+      ⍝ large exact integers). Expected value independently verified via
+      ⍝ Python's exact integer arithmetic (2**100).
+      ⍝
       31 0 ⍕ 2⋆100
-1267650600228229401300000000000
+1267650600228229401496703205376
 
       31 20 ⍕ .07
           .07000000000000000⁰

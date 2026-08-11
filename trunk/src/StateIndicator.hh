@@ -77,6 +77,18 @@ public:
    StateIndicator * get_parent() const
       { return parent; }
 
+   /// return execution property \b idx (0=locked, 1=nonsuspendable,
+   /// 2=ignore-attention, 3=convert-errors-to-DOMAIN-ERROR), OR-ed with
+   /// the same property of every calling (enclosing) )SI entry -- per
+   /// apl2lrm.txt p.360-361: "The execution properties of a called
+   /// function or operator during an execution sequence are determined
+   /// by 'or-ing' its properties with those of the calling function or
+   /// operator ... if a locked function calls an unlocked function, the
+   /// unlocked function behaves as though it were locked." Entries with
+   /// no user function (e.g. the top-level immediate-execution context)
+   /// contribute nothing and are simply skipped.
+   bool get_inherited_exec_property(int idx) const;
+
    /// return the current PC
    Function_PC get_PC() const
       { return current_stack.get_PC(); }
@@ -117,6 +129,20 @@ public:
         if (parent)  safe_execution_depth = parent->safe_execution_depth + 1;
         else         safe_execution_depth = 1;
       }
+
+   /// mark this )SI entry as an isolated one-statement execution (e.g.
+   /// ⎕EA's fallback argument, run via Bif_F1_EXECUTE::execute_statement())
+   /// whose own →N/→ has nowhere real to go: apl2lrm.txt p.349 Figure 38
+   /// says such a branch/escape means "flow of execution returns to the
+   /// invoking expression", i.e. this )SI entry simply completes with no
+   /// explicit result, rather than Command.cc's normal (and normally
+   /// correct) "→N without function" SYNTAX ERROR for an orphan branch.
+   void set_void_on_orphan_branch()
+      { void_on_orphan_branch = true; }
+
+   /// see set_void_on_orphan_branch()
+   bool get_void_on_orphan_branch() const
+      { return void_on_orphan_branch; }
 
    /// return the error related info in this context
    static const Error & get_error(const StateIndicator * si)
@@ -236,6 +262,9 @@ protected:
           initiated ⎕ES (and to which the )SI stack shall be popped on error.
     */
    int safe_execution_depth;
+
+   /// see set_void_on_orphan_branch()
+   bool void_on_orphan_branch = false;
 
    /// The nesting level (of sub-executions)
    const SI_level level;

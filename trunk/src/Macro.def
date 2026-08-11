@@ -224,7 +224,16 @@ mac_def(Z__A_Quad_EA_B,
 "ERR: ⎕ES 100 $FFFF,  (⊂,A),  ET     ⍝ error\n"
 "VAL: Z←RES      ◊ →0                ⍝ non-committed value\n"
 "COM: ⎕ES 100 $FFFE   RES            ⍝ committed value\n"
-"BRA: ⎕ES 100 $FFFD   RES            ⍝ →N\n"
+  // A is added to BRA's payload (unlike the original, RES-only form)
+  // so that handle_QUAD_ES_BRA() (Prefix.cc) can fall back to
+  // executing A itself when the →N in B turns out to be out of range
+  // for ⎕EA's caller too (lrm p.349 Figure 38: "0 or any other line
+  // number not within the function... flow of execution returns to
+  // the invoking expression" -- i.e. B "failed" from ⎕EA's own point
+  // of view, same as if it had errored; a →N that IS within the
+  // caller's own range is simply taken directly, A never enters into
+  // it -- see Blake McBride, LanguageVariances.md #27).
+"BRA: ⎕ES 100 $FFFD,  (⊂,A),  RES    ⍝ →N\n"
 "ESC: ⎕ES 100 $FFFC                  ⍝ →\n")
 
 /// ⎕EB (Execute Both) helper

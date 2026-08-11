@@ -122,3 +122,38 @@
       +/0 0⍴0
 
 
+
+      ⍝ Regression (Blake McBride, LanguageVariances.md #19, 2026-08-10):
+      ⍝ identity items of Figure 28 (apl2lrm.txt p.212) for the primitive
+      ⍝ NONSCALAR dyadic functions, applied when reduce hits a length-0
+      ⍝ axis. ⊃/↓/∼ had no identity function at all (DOMAIN ERROR);
+      ⍝ ⍴/,/⍉/↑/⌹ inherited a generic "fill with prototype" fallback that
+      ⍝ gave a bare scalar 0 for all five instead of each function's own
+      ⍝ distinct Figure 28 value. Expected values are B unchanged for
+      ⍝ ⊃/∼, B's own prototype as a scalar for ↓, ⊂B (depth 2, nested
+      ⍝ empty) for ⍴/,/⍉/↑, and ⊂(0 0⍴prototype) for ⌹.
+      ⍝
+      ⊃/⍳0
+
+      ↓/⍳0
+0
+
+      ∼/⍳0
+
+      ⍴/⍳0
+  
+
+      ,/⍳0
+  
+
+      ⍉/⍳0
+  
+
+      ↑/⍳0
+  
+
+      ⌹/⍳0
+
+      ⍴⊃⌹/⍳0
+0 0
+

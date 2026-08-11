@@ -102,7 +102,17 @@ Value_P Z(B.get_shape(), LOC);
    else if (rt & RPT_integer)   // all integer — AV index to char
       {
         loop(v, ec)
-            Z->next_ravel_Char(Quad_AV::indexed_at(B.get_near_int(v)));
+           {
+             const APL_Integer idx = B.get_near_int(v);
+             // LRM p.268: "Integers in R must be nonnegative and less
+             // than 2*31" (LanguageVariances.md #37) -- indexed_at()
+             // itself silently maps anything outside ⎕AV's actual 256
+             // entries to the same "not in ⎕AV" placeholder (◌) it
+             // uses for legitimate mid-range gaps, so a negative or
+             // ≥2*31 index needs to be caught here instead.
+             if (idx < 0 || idx >= (APL_Integer(1) << 31))   DOMAIN_ERROR;
+             Z->next_ravel_Char(Quad_AV::indexed_at(idx));
+           }
       }
    else
       {
@@ -119,6 +129,7 @@ Value_P Z(B.get_shape(), LOC);
              if (B.is_integer_cell(v))
                 {
                   const APL_Integer idx = B.get_near_int(v);
+                  if (idx < 0 || idx >= (APL_Integer(1) << 31))   DOMAIN_ERROR;
                   Z->next_ravel_Char(Quad_AV::indexed_at(idx));
                   continue;
                 }
@@ -634,16 +645,39 @@ const ErrorCode ec = get_error_code(B);
       }
    else                                   //  ⎕ES B with unknown major/minor B
       {
-        char cc[58];
-        SPRINTF(cc, "Unknown error (major %d, minor %d) in ⎕ES B",
-                    error.get_error_code() >> 16,
-                    error.get_error_code() & 0xFFFF);
-        error.set_error_line_1(cc);
+        // LRM p.284: "An event simulation is generated ... but no
+        // message is reported" for an event code with no defined
+        // ⎕ET text (LanguageVariances.md #28). ⎕ET/⎕EM[2],[3] (the
+        // failed statement + caret) still get set normally below;
+        // only the message line itself is suppressed.
+        error.clear_error_line_1();
       }
 
    error.set_show_locked(true);
 
    Assert(Workspace::SI_top());
+
+   // ⎕ES simulates the event "as though the function were primitive"
+   // (lrm p.282), which is why the code below hunts for the nearest real
+   // (user-visible) calling context to blame instead of the frame that
+   // literally called ⎕ES. But GNU APL also implements several
+   // primitives/operators (⍎¨, +.× with primitive operands, n-wise
+   // reduce, ...) via hidden internal macros (UserFunctions with
+   // is_macro() true, see Macro.def) that themselves call ⎕ES to signal
+   // LRM-documented error conditions. Those macro frames are pure
+   // implementation detail -- never meant to be user-visible -- so pop
+   // any of them off the top of the SI stack first; this makes the
+   // unchanged logic below see the nearest real user function or the
+   // top-level statement, exactly as if the macro's own primitive-like
+   // effect (not its internal APL source) had failed directly.
+   //
+   while (const UserFunction * top_ufun =
+          Workspace::SI_top()->get_executable()->get_exec_ufun())
+      {
+        if (!top_ufun->is_macro())   break;
+        Workspace::pop_SI(LOC);
+      }
+
    if (StateIndicator * si = Workspace::SI_top()->get_parent())
       {
         const UserFunction * ufun = si->get_executable()->get_exec_ufun();
@@ -703,7 +737,11 @@ const APL_Integer err = (B->get_near_int(0) << 16)
         const ShapeItem len_B = B->element_count();
         if (err == E_QUAD_ES_COM && len_B == 3)   return E_QUAD_ES_COM;
         if (err == E_QUAD_ES_ERR && len_B == 5)   return E_QUAD_ES_ERR;
-        if (err == E_QUAD_ES_BRA && len_B == 3)   return E_QUAD_ES_BRA;
+        // len_B==3 is ⎕EB's BRA payload (100 $FFFD RES, no fallback);
+        // len_B==4 is ⎕EA's (100 $FFFD (⊂,A) RES, A included so
+        // handle_QUAD_ES_BRA() can fall back to it -- Macro.def).
+        if (err == E_QUAD_ES_BRA && (len_B == 3 || len_B == 4))
+           return E_QUAD_ES_BRA;
         if (err == E_QUAD_ES_ESC && len_B == 2)   return E_QUAD_ES_ESC;
         DOMAIN_ERROR;
       }
@@ -1205,6 +1243,21 @@ const Unicode uni = ucs[0];
         {
           int len = 0;   // set by Workspace::get_quad()
           const Token tok = Workspace::get_quad(ucs, len);
+
+          if (tok.is_function())   // system function (⎕EA, ⎕FX, ...): these
+             {                     // are QuadFunction objects, not Symbols,
+                                    // so they never reach the sys/TC_SYMBOL
+                                    // path below -- ISO 13751 11.5.2 and
+                                    // NC_SYSTEM_FUN (NamedObject.hh) agree
+                                    // this class is 6, not "invalid".
+               // same prefix-tolerance issue as the TC_SYMBOL case below
+               // (e.g. ⎕FFTxyz would otherwise match the valid ⎕FFT).
+               //
+               if (tok.get_function()->get_name().size() != ucs.size())
+                  return NC_INVALID;
+               return NC_SYSTEM_FUN;
+             }
+
           if (tok.get_Class() != TC_SYMBOL)   return NC_INVALID;
 
           // NOTE: Workspace::get_quad() tolerates prefixes (e.g ⎕FFTxyz

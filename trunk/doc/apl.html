@@ -73,7 +73,7 @@ Next: <a href="#Installing-and-Starting-GNU-APL" accesskey="n" rel="next">Instal
 </div>
 <span id="GNU-APL-Reference-Manual"></span><h1 class="top">GNU APL Reference Manual</h1>
 
-<p>August 7, 2026.
+<p>August 11, 2026.
 This manual briefly documents GNU APL, an interpreter for APL as described
 in ISO standard 13751, aka. &quot;Programming Language APL, Extended&quot;.
 </p>
@@ -373,6 +373,7 @@ therefore it must be expanded with e.g. <b>gunzip</b> before it can be read.
   <ul class="no-bullet">
     <li><a id="toc-System-Limits-1" href="#System-Limits">3.1 System Limits</a></li>
     <li><a id="toc-Shared-Variables-1" href="#Shared-Variables">3.2 Shared Variables</a></li>
+    <li><a id="toc-Known-Differences-between-IBM-APL2-and-GNU-APL-1" href="#Known-Differences-between-IBM-APL2-and-GNU-APL">3.3 Known Differences between IBM APL2 and GNU APL</a></li>
   </ul></li>
   <li><a id="toc-Internationalization-1" href="#Internationalization">4 Internationalization</a></li>
   <li><a id="toc-Vector-Notation-1" href="#Vector-Notation">5 Vector Notation</a>
@@ -649,7 +650,7 @@ to identify share partners.
 </p>
 </li><li> <code>--LX expr</code>
 
-<p>Execute <b>expr</b> first. The workspace behaves as if ⎕LX (latent
+<p>Execute <b>expr</b> first. The workspace behaves as if <b>⎕LX</b> (latent
 expression) were set to <b>expr</b> in the workspace. This can be used,
 for example, to start the same workspace with different start-up values.
 </p>
@@ -704,7 +705,7 @@ is the given amount in kB, MB, or GB.
 other processes consuming the available free memory sometime later.
 </p>
 <p>If that happens (and according to the rules above the user has the
-responsibility to prevent it), then ⎕WA becomes unreliable and the
+responsibility to prevent it), then <b>⎕WA</b> becomes unreliable and the
 interpreter may crash badly (i.e. without a WS FULL error, and without
 any chance to )SAVE the workspace) when the available memory is exhausted.
 </p>
@@ -759,7 +760,7 @@ is determined at <code>./configure</code> time
 </p>
 </li><li> <code>--PW COLS</code>
 
-<p>set the initial value of ⎕PW to COLS (min. 30, max. 10000)
+<p>set the initial value of <b>⎕PW</b> to COLS (min. 30, max. 10000)
 </p>
 </li><li> <code>--[no]SV</code>
 
@@ -908,7 +909,7 @@ started together with this interpreter time to initialize themselves.
 </li><li> <code>-</code>
 
 <p>End of command line options for the interpreter. GNU APL provides the system
-variable ⎕ARG that returns all command line options with which the GNU APL
+variable <b>⎕ARG</b> that returns all command line options with which the GNU APL
 interpreter was invoked (similar to variable argv in main(int argc,
 char * argv[]) in C/C++). Option <code>-</code> can be used to separate command line
 options for the APL interpreter from command line options understood by APL
@@ -921,7 +922,7 @@ applications.
 <p><code>(⎕ARG ⍳ ⊂'--') ↓ ⎕ARG</code> returns the options for the APL application.
 </p>
 <p>All command line options after <code>-</code> are ignored by the interpreter
-(except for including them in ⎕ARG).
+(except for including them in <b>⎕ARG</b>).
 </p>
 </li></ul>
 
@@ -1541,7 +1542,7 @@ to start APL can later be retrieved with the system variable <b>⎕ARG</b> in AP
 </p>
 <p>Example 1: APL started directly
 </p>
-<p>We start APL with some command line options and display them with ⎕ARG.
+<p>We start APL with some command line options and display them with <b>⎕ARG</b>.
 The command line options for the interpreter are &ndash;silent, -l, and 37,
 while the options app1 and app2 are for the APL application:
 </p>
@@ -1603,7 +1604,7 @@ with GNU APL):
 </pre></div>
 
 <p>Then the following output, which shows the order of command line options
-as seen by ⎕ARG, is produced:
+as seen by <b>⎕ARG</b>, is produced:
 </p>
 <div class="example">
 <pre class="example">--script    
@@ -1629,7 +1630,7 @@ sarg2
       argument).
 </li></ul>
 
-<p>⎕ARG shows the arguments in the shebang line and in the command line in
+<p><b>⎕ARG</b> shows the arguments in the shebang line and in the command line in
 the following order:
 </p>
 <ol>
@@ -1660,7 +1661,7 @@ understood:
 <p>The recommended form is: <code>|/usr/local/bin/apl --script|</code>.
 </p>
 <p>Note that <code>-</code> and any options that follow it in the shebang line
-MAY OR MAY NOT be included in ⎕ARG (this depends on the platform used).
+MAY OR MAY NOT be included in <b>⎕ARG</b> (this depends on the platform used).
 In contrast, options that follow <code>-</code> in the script command line
 WILL BE shown since this is controlled by GNU APL and not by the platform.
 There is normally no point in passing any application options in the shebang
@@ -1674,7 +1675,7 @@ manually.
 subsequent options in the shebang line from being interpreted as APL command
 line options (and, more importantly, from causing <b>unknown option</b> errors
 when GNU APL starts). At least under GNU/Linux with <b>bash</b> the subsequent
-options will be passed to the APL application via ⎕ARG.
+options will be passed to the APL application via <b>⎕ARG</b>.
 </p>
 <p>Depending on this exact behavior cannot be recommended. A cleaner approach
 is to use options starting with - or <code>-</code> only for the interpreter
@@ -1683,9 +1684,9 @@ work on all platforms because for strings, say, APLOPT, ARG1, ARG2, ...,
 which contain no whitespace:
 </p>
 <ul>
-<li> <b>+APLOPT</b> is ignored, although shown in ⎕ARG,
-</li><li> <b>++APLOPT ARG1</b> is ignored, although shown in ⎕ARG,
-</li><li> <b>+++APLOPT ARG1 ARG2</b> is ignored, although shown in ⎕ARG,
+<li> <b>+APLOPT</b> is ignored, although shown in <b>⎕ARG</b>,
+</li><li> <b>++APLOPT ARG1</b> is ignored, although shown in <b>⎕ARG</b>,
+</li><li> <b>+++APLOPT ARG1 ARG2</b> is ignored, although shown in <b>⎕ARG</b>,
 </li><li> <b>...</b>
 </li></ul>
 
@@ -1702,10 +1703,10 @@ Next: <a href="#Double_002dquoted-Strings" accesskey="n" rel="next">Double-quote
 useful for scripting:
 </p>
 <ul>
-<li> ⎕ARG: access to the command line arguments given to the interpreter,
-</li><li> ⎕ENV: access to the environment variables of the process running the
+<li> <b>⎕ARG</b>: access to the command line arguments given to the interpreter,
+</li><li> <b>⎕ENV</b>: access to the environment variables of the process running the
         interpreter, and
-</li><li> ⎕INP: Here-Document-alike function for creating large text variables
+</li><li> <b>⎕INP</b>: Here-Document-alike function for creating large text variables
 </li></ul>
 
 <ul class="section-toc">
@@ -1721,7 +1722,7 @@ Next: <a href="#g_t_2395ENV" accesskey="n" rel="next">⎕ENV</a>, Up: <a href="#
 </div>
 <span id="g_t_005b_003f_005dARG"></span><h4 class="subsubsection">2.1.6.1 ⎕ARG</h4>
 
-<p>The system variable ⎕ARG contains all command line arguments passed to the
+<p>The system variable <b>⎕ARG</b> contains all command line arguments passed to the
 interpreter. In the initial example above this would be a nested 3-element
 vector:
 </p>
@@ -1745,13 +1746,13 @@ Next: <a href="#g_t_2395INP" accesskey="n" rel="next">⎕INP</a>, Previous: <a h
 </li><li> by means of environment variables
 </li></ul>
 
-<p>Just as the system variable ⎕ARG makes the command line options used
-available to APL, so does the system function ⎕ENV make the environment
+<p>Just as the system variable <b>⎕ARG</b> makes the command line options used
+available to APL, so does the system function <b>⎕ENV</b> make the environment
 variables available to APL. Since there normally exist far more
-environment variables than command line options, ⎕ENV is a monadic function
+environment variables than command line options, <b>⎕ENV</b> is a monadic function
 whose argument is a filter for the name(s) of the variable(s) to be retrieved.
 </p>
-<p>⎕ENV B returns all environment variables whose name starts with B.
+<p><b>⎕ENV</b> B returns all environment variables whose name starts with B.
 If ⍴B is 0, like:
 </p>
 <div class="example">
@@ -1761,19 +1762,19 @@ If ⍴B is 0, like:
 <p>then <b>all</b> environment variables of the process running GNU APL are
 returned.
 </p>
-<p>The result of ⎕ENV is a (possibly empty) N×2 matrix. The first column
+<p>The result of <b>⎕ENV</b> is a (possibly empty) N×2 matrix. The first column
 contains the name(s) of the environment variable(s), while the second
 column contains their value(s). The name and the value are both strings.
 </p>
-<p>The number N of environment variables returned by ⎕ENV obviously depends on
+<p>The number N of environment variables returned by <b>⎕ENV</b> obviously depends on
 the number of environment variables whose name begins with the prefix
 given in B; shorter prefixes B therefore result in higher counts N. B is case
 sensitive; by convention the names of environment variables are all uppercase.
 Note the subtle difference between shell variables and environment variables
-in shells like <b>bash</b>: ⎕ENV returns only environment variables (which
+in shells like <b>bash</b>: <b>⎕ENV</b> returns only environment variables (which
 are set with command <b>setenv</b> in bash), but not shell variables (which
 are set with command <b>set</b> in bash). For a shell variable to occur
-in ⎕ENV it must be <b>export</b>ed into the environment of the process
+in <b>⎕ENV</b> it must be <b>export</b>ed into the environment of the process
 before the GNU APL interpreter is started.
 </p>
 <hr>
@@ -1807,10 +1808,10 @@ Third line
 END-OF-⎕INP
 </pre></div>
 
-<p>This works like &quot;Here documents&quot; in <b>bash</b>. The right argument of ⎕INP is
+<p>This works like &quot;Here documents&quot; in <b>bash</b>. The right argument of <b>⎕INP</b> is
 the end of text marker.
 </p>
-<p>⎕INP also has a dyadic form where the left argument specifies an escape
+<p><b>⎕INP</b> also has a dyadic form where the left argument specifies an escape
 sequence from text to APL and back to the text, similar to PHP scripts.
 For example:
 </p>
@@ -1834,10 +1835,10 @@ Third line
 ...         
 </pre></div>
 
-<p>It should be noted that, while ⎕INP simplifies the construction of multi-line
+<p>It should be noted that, while <b>⎕INP</b> simplifies the construction of multi-line
 strings compared to standard APL, it has come of age and these days an even
 simpler feature - Multi-line strings as described below - is provided for the
-same purpose. The monadic ⎕INP has therefore become obsolete.
+same purpose. The monadic <b>⎕INP</b> has therefore become obsolete.
 </p>
 <hr>
 </div>
@@ -2036,7 +2037,7 @@ ABC
 <p>When entering new-style multi-line strings, the prompt is prefixed by → to
 indicate that a Multi-Line String is being entered.
 </p>
-<p>⎕INP and old-style strings will coexist for a while, but may eventually
+<p><b>⎕INP</b> and old-style strings will coexist for a while, but may eventually
 disappear at some point in time.
 </p>
 <hr>
@@ -2464,7 +2465,7 @@ Previous: <a href="#Automatic-_0029MORE" accesskey="p" rel="prev">Automatic )MOR
 <span id="Script-Example-1"></span><h4 class="subsection">2.1.11 Script Example</h4>
 
 <p>Note that the two different ways of running an APL script have an impact on
-what ⎕ARG looks like. If stdin is redirected then there is only one (possibly
+what <b>⎕ARG</b> looks like. If stdin is redirected then there is only one (possibly
 empty) set of command line options. Otherwise there are two sets of command
 line options: command line options for the apl interpreter and command line
 options for the script.
@@ -2520,7 +2521,7 @@ input lines for the interpreter are no longer echoed to the output.
 This is most likely what you want when writing a script.
 </p>
 <p>Also, the first line of the script is no longer ignored as a comment,
-but controls the command line argument (and thus ⎕ARG) of the interpreter.
+but controls the command line argument (and thus <b>⎕ARG</b>) of the interpreter.
 The additional command line argument <samp>../workspaces/SCRIPT.apl</samp>
 comes from function execve (see &rsquo;man 2 execve&rsquo;).
 </p>
@@ -2530,7 +2531,7 @@ comes from function execve (see &rsquo;man 2 execve&rsquo;).
 <pre class="example">../workspaces/SCRIPT.apl SCRIPTARG
 </pre></div>
 
-<p>then it shows up at the end of ⎕ARG:
+<p>then it shows up at the end of <b>⎕ARG</b>:
 </p>
 <div class="example">
 <pre class="example"> /usr/local/bin/apl --script ../workspaces/SCRIPT.apl SCRIPTARG 
@@ -2851,7 +2852,7 @@ first differing shape item (from the left) decides.
 
 </li><li> Comparison of ravel elements: at this point (⍴A) ≡ (⍴B). If all
 corresponding ravel elements of A and B are equal (i.e. tolerantly equal
-within ⎕CT as defined in the ISO standard) then A = B.
+within <b>⎕CT</b> as defined in the ISO standard) then A = B.
 
 <p>Otherwise let A1 and B1 be the first corresponding ravel elements of A and B
 with A1 ≠ B1. If A1 &lt; B1 then A &lt; B and vice versa. The comparison A1 &lt; B1
@@ -2871,7 +2872,7 @@ rules 5 - 8 below and vice versa.
 </li></ul>
 
 </li><li> Comparison by Unicode: if A1 and B1 are both character values and
-(⎕UCS A1) &lt; (⎕UCS B1) then A &lt; B and vice versa.
+(<b>⎕UCS</b> A1) &lt; (<b>⎕UCS</b> B1) then A &lt; B and vice versa.
 
 </li><li> Comparison by type: If A1 is a character and B1 is numeric, then A &lt; B
 and vice versa.
@@ -2940,7 +2941,7 @@ though one might expect the opposite.
 
 <p>This pitfall can be avoided by enforcing the same length for all strings
 being compared or sorted. A simple way to achieve that is the use of
-<b>⊂[2]⊃</b> like this (assuming ⎕IO←1):
+<b>⊂[2]⊃</b> like this (assuming <b>⎕IO</b>←1):
 </p>
 <div class="example">
 <pre class="example">      Z[⍋Z ← ⊂[2]⊃ 'Adam' 'Zoo']
@@ -3071,7 +3072,7 @@ the form:
 <pre class="example">      FUN ← { body_expression }
 </pre></div>
 
-<p>is translated to a two-line function ⎕FX &rsquo;lambda_header&rsquo; &rsquo;body_expression&rsquo;.
+<p>is translated to a two-line function <b>⎕FX</b> &rsquo;lambda_header&rsquo; &rsquo;body_expression&rsquo;.
 </p>
 <p>For example:
 </p>
@@ -3160,7 +3161,7 @@ For example:
 <p>Unnamed lambdas are automatically local in scope (similar to labels). They can
 be passed as function arguments to operators. However, unnamed lambdas are NOT
 inserted into the symbol table of the interpreter. They are therefore not
-visible to functions like ⎕CR or by the ∇-editor. Occasionally the names λ1,
+visible to functions like <b>⎕CR</b> or by the ∇-editor. Occasionally the names λ1,
 λ2, ... may show up in commands like )SIS. These names are automatically
 generated for unnamed lambdas in order to provide a name in places where a
 function name is needed.
@@ -4189,7 +4190,7 @@ arguments to functions. <b>Nota bene</b>: Some GNU APL operators are implemented
 as macros (i.e. internal defined APL functions). The macros may call APL
 primitives that invalidate the fact that a value is structured and, as a
 consequence, the operator results may become plain APL values. If this happens,
-the structured nature of a plain APL value can be restored with 38 ⎕CR.
+the structured nature of a plain APL value can be restored with 38 <b>⎕CR</b>.
 </p>
 <p>A structured variable is created by assigning a value to one of its members.
 For example:
@@ -4432,7 +4433,7 @@ when the number of members in the variable reaches its current capacity.
 For this reason, if a structured variable is used as an associative array,
 e.g. as a database, then it is better to not rely on the (automatic)
 reorganization of the variable, but to create a large enough variable
-(with 38 ⎕CR) from the beginning.
+(with 38 <b>⎕CR</b>) from the beginning.
 </p>
 <p>If that is not possible (because the (performance-) problem has occurred after
 the variable was created, then one can manually increase the capacity like this:
@@ -4549,7 +4550,7 @@ the more customary Boolean functions XOR and XNOR respectively. In this context
 = and ≠ are treated as Boolean functions even though they accept non-Boolean
 arguments,
 </p>
-<p>For example, using  5 ⎕CR (4⍴256)⊤X to display X in hex:
+<p>For example, using  5 <b>⎕CR</b> (4⍴256)⊤X to display X in hex:
 </p>
 <div class="example">
 <pre class="example">      5 ⎕CR (4⍴256)⊤   A←$ABBADEAD
@@ -4657,7 +4658,7 @@ function.
 </pre></div>
 
 <p>As a matter of fact, <b>⊤∨</b> works for all near-Gaussian complex numbers,
-but the effect is not visible with 26 ⎕CR since Gaussian and non-Gaussian
+but the effect is not visible with 26 <b>⎕CR</b> since Gaussian and non-Gaussian
 complex numbers have the same cell type in GNU APL.
 </p>
 <hr>
@@ -4678,7 +4679,7 @@ tolerance</b> in ISO and <b>system tolerance</b> in IBM APL2. The <b>integer
 tolerance</b> is typically platform dependent (1E¯10 in GNU APL).
 
 </li><li> the real number R is said to be <b>equal to integer I within ⎕CT</b> if the
-absolute value of (I-R)/I is smaller than ⎕CT.
+absolute value of (I-R)/I is smaller than <b>⎕CT</b>.
 </li></ul>
 
 <p>The first concept is an absolute distance from a real R to a nearby integer I
@@ -4691,12 +4692,12 @@ if their arguments are real or complex, then the smallest distance to
 a (nearby) integer must not exceed the <b>integer tolerance</b>. In some contexts
 that could be difficult to achieve and for that reason GNU APL provides
 monadic ⊤∧ which works like ⊤∨ except that the permitted distance from a
-nearby integer is now controlled by ⎕CT rather than by the integer tolerance.
+nearby integer is now controlled by <b>⎕CT</b> rather than by the integer tolerance.
 </p>
 <p>All bit-wise logical functions throw a DOMAIN ERROR if an argument is not close
-enough to an integer. The <b>integer tolerance</b> is typically smaller than ⎕CT
+enough to an integer. The <b>integer tolerance</b> is typically smaller than <b>⎕CT</b>
 and in that case ⊤∧ is a little more tolerant than ⊤∨ regarding the distance
-to nearby integers. In addition ⊤∧ gives the user (via ⎕CT) more control over
+to nearby integers. In addition ⊤∧ gives the user (via <b>⎕CT</b>) more control over
 the permitted tolerance for real numbers in the neighborhood of integers.
 </p>
 <hr>
@@ -4895,7 +4896,7 @@ Previous: <a href="#Generalized-monadic-_2373" accesskey="p" rel="prev">Generali
 <p>The standard function <b>Index Of</b> (Z←A⍳B) requires its left argument A to be
 a scalar or a vector of rank 1. The items of the result Z are the (first)
 positions (= indices) of the matching items of B in A (for the items found
-in A) or else ⎕IO+⍴A (which is an invalid index of A) for the items of B that
+in A) or else <b>⎕IO</b>+⍴A (which is an invalid index of A) for the items of B that
 are not found in A.
 </p>
 <p>Generalized dyadic ⍳ extends this concept to find the (first) indices of the
@@ -5783,7 +5784,7 @@ abcdefghijklmnopqrstuvwxyz
 </pre></div>
 
 <p>A special case is <b>⎕CC ⍬</b> (or <b>⎕CC ⍳0</b>: it prints the available
-character classes for ⎕CC:
+character classes for <b>⎕CC</b>:
 </p>
 <div class="example">
 <pre class="example">      ⎕CC ⍬
@@ -6042,7 +6043,7 @@ Next: <a href="#g_t_2395ARG-_002d-Interpreter-command-line-arguments" accesskey=
 <p>A Native Function is a function that can be called in APL like a normal user
 defined APL function, but is implemented in C++.
 </p>
-<p>A native function is created with A ⎕FX B. A is a string that is the
+<p>A native function is created with A <b>⎕FX</b> B. A is a string that is the
 path of a shared library and B is the name of the function in APL.
 </p>
 <p>The GNU APL package contains a shared library file_io.so that contains the
@@ -6080,16 +6081,16 @@ FILE_IO
 </pre></div>
 
 <p>Recent versions of GNU APL have replaced the native FILE_IO function above by
-the system function ⎕FIO. ⎕FIO need not be ⎕FX&rsquo;ed and is otherwise backward
+the system function <b>⎕FIO</b>. <b>⎕FIO</b> need not be <b>⎕FX</b>&rsquo;ed and is otherwise backward
 compatible to the native function. New function numbers are, however, only
-added to ⎕FIO and not to the old native function FILE_IO. The parameters of
+added to <b>⎕FIO</b> and not to the old native function FILE_IO. The parameters of
 the functions are described in the man pages for, e.g. strerror, fopen, ...
 and are fairly obvious.
 </p>
 <p>Many functions in FILE_IO have byte vectors as arguments or return byte 
 vectors. A byte vector is an integer vector whose numbers fit into a byte
-(so they are integers between -128 and 255). Often ⎕UCS and the functions in
-dyadic ⎕CR are used to convert such byte vectors to/from, for example,
+(so they are integers between -128 and 255). Often <b>⎕UCS</b> and the functions in
+dyadic <b>⎕CR</b> are used to convert such byte vectors to/from, for example,
 Unicode strings.
 </p>
 <p>The GNU APL package also contains other shared libraries as templates
@@ -6101,14 +6102,14 @@ or src/native/template_OP2/cc (for dyadic native operators) to your own
 .cc file and adjust src/native/Makefile.am accordingly.
 </p>
 <p>Note: The )IN and )OUT commands of GNU APL support native functions, but
-to do so they have to use dyadic ⎕FX. This renders the workspace
+to do so they have to use dyadic <b>⎕FX</b>. This renders the workspace
 interchange file (.atf files) written by )OUT incompatible with all other
 APL interpreters if the workspace contains native functions. The )OUT 
 command prints a warning when it is used with a workspace that contains
 native functions.
 </p>
 <p>Note: As of GNU APL 1.6, the native function FILE_IO has been turned into the
-system function ⎕FIO. The syntax of ⎕FIO is the same as for FILE_IO. The
+system function <b>⎕FIO</b>. The syntax of <b>⎕FIO</b> is the same as for FILE_IO. The
 )CLEAR workspace command will close all open files. 
 </p>
 
@@ -6133,19 +6134,19 @@ Next: <a href="#g_t_2395ENV-_002d-Environment-Variables" accesskey="n" rel="next
 </div>
 <span id="g_t_005b_003f_005dDLX-_002d-Knuth_0027s-Dancing-Links-Algorithm"></span><h3 class="section">2.28 ⎕DLX - Knuth&rsquo;s Dancing Links Algorithm</h3>
 
-<p>⎕DLX is an implementation of Donald Knuth&rsquo;s Dancing Links Algorithm (called
+<p><b>⎕DLX</b> is an implementation of Donald Knuth&rsquo;s Dancing Links Algorithm (called
 DLX by Knuth himself, but is sometimes also referred to as Knuth&rsquo;s Algorithm X).
-⎕DLX is a generic backtracking machine that can be used to dramatically
+<b>⎕DLX</b> is a generic backtracking machine that can be used to dramatically
 simplify problems like the 8 queens problem on a chess board or sudokus.
 </p>
-<p>The monadic form of ⎕DLX, i.e. ⎕DLX B, is a shortcut for 0 ⎕DLX B. It
+<p>The monadic form of <b>⎕DLX</b>, i.e. <b>⎕DLX</b> B, is a shortcut for 0 <b>⎕DLX</b> B. It
 computes the first solution for the constraint matrix B.
 </p>
-<p>The dyadic form of ⎕DLX, i.e. A ⎕DLX B, has an integer scalar A as left
+<p>The dyadic form of <b>⎕DLX</b>, i.e. A <b>⎕DLX</b> B, has an integer scalar A as left
 argument which determines the details of the computation as follows:
 </p>
 <p>A &gt; 0: The algorithm tries to find all solutions, but stops when A solutions
-have been found. This is handy while debugging code using ⎕DLX. The
+have been found. This is handy while debugging code using <b>⎕DLX</b>. The
 result is a nested vector with one vector item per solution.
 </p>
 <p>A = 0: The algorithm stops when the first solution was found. In this case
@@ -6162,8 +6163,8 @@ solutions, the number of backtracks, and the number of link dances is
 returned as a 3-element numeric vector.
 </p>
 <p>A = ¯4: A number of single steps in Knuth&rsquo;s Algorithm are performed. Let e.g.
-A←¯4 r1 r2 r3. Then Z←A ⎕DLX B is the matrix B after 3 steps r1, r2, and r3
-have been performed. r1, r2, and r3 are valid (as per ⎕IO) row numbers of B,
+A←¯4 r1 r2 r3. Then Z←A <b>⎕DLX</b> B is the matrix B after 3 steps r1, r2, and r3
+have been performed. r1, r2, and r3 are valid (as per <b>⎕IO</b>) row numbers of B,
 and a step with a given row changes B as follows:
 </p><ul>
 <li> the given row is set to 0 (this row becomes part of the final result),
@@ -6173,17 +6174,17 @@ and are therefore removed from B), and
 </li><li> all columns that have no 1s or 2s left are removed from B (these columns have
 a 1 or 2 in B and the constraint is therefore satisfied).
 </li></ul>
-<p>The purpose of ¯4 ⎕DLX is:
+<p>The purpose of ¯4 <b>⎕DLX</b> is:
 </p><ul>
 <li> To demonstrate how Knuth&rsquo;s algorithm works, and/or
 </li><li> To preset some initial values in B. For example, one can first initialize
 the constraints for an empty Sudoku (which is the same matrix for all Sudokus)
-and then enter the initial digits of a particular Sudoku using 4 ⎕DLX. If there are, say, 20 initial digits in the Sudoku then A has 21 elements (¯4 plus the
-20 rows representing the 20 initial digits. The result of ¯4 ⎕DLX B has the
+and then enter the initial digits of a particular Sudoku using 4 <b>⎕DLX</b>. If there are, say, 20 initial digits in the Sudoku then A has 21 elements (¯4 plus the
+20 rows representing the 20 initial digits. The result of ¯4 <b>⎕DLX</b> B has the
 same number of rows as B (with some rows now cleared), but fewer columns than B.
 </li></ul>
 
-<p>The right argument B of ⎕DLX B or A ⎕DLX B is a constraints matrix whose
+<p>The right argument B of <b>⎕DLX</b> B or A <b>⎕DLX</b> B is a constraints matrix whose
 columns consist of either 0s and 1s (called a primary column) or 0s and 2s
 (called secondary columns). The 0s, 1s and 2s can be the integers 0, 1, or 2,
 characters &rsquo;0&rsquo;, &rsquo;1&rsquo;, or &rsquo;2&rsquo; respectively, or &rsquo; &rsquo; meaning &rsquo;0&rsquo;. The character
@@ -6191,22 +6192,22 @@ representation is useful when B becomes large and shall be printed because
 the spaces in the numerical variant will not be printed. In the following,
 B is assumed to be numeric.
 </p>
-<p>Let Z←A ⎕DLX B, and let R be a solution in Z, that is, Z itself (A = 0) or
+<p>Let Z←A <b>⎕DLX</b> B, and let R be a solution in Z, that is, Z itself (A = 0) or
 R is Z[k] for some k if A ≠ 0. And let S←+⌿B[R].
 </p>
 <p>Then S = s1 s2 s3, ... sN where N is the number of columns in B and sj=1
 if j is a primary column of B and sj∈0 1 if j is a secondary column of B.
 </p>
-<p>In other words, ⎕DLX B computes a subset of the rows of B in such a way that
+<p>In other words, <b>⎕DLX</b> B computes a subset of the rows of B in such a way that
 for every column j of B exactly one (for primary column j) or at most one
 (for a secondary column) of the rows in a solution has its j&rsquo;th element set
 to 1 and all other words set their j&rsquo;th element set to 0.
 </p>
-<p>In yet other words, for every solution returned by ⎕DLX B, a 1 in one row
+<p>In yet other words, for every solution returned by <b>⎕DLX</b> B, a 1 in one row
 prevents all other rows that also have a 1 in that column, and all rows
 together have exactly one 1 in every primary column and at most one 1 in
 every secondary column. In the absence of secondary columns, the problem
-solved by ⎕DLX is also known as the &quot;exact cover problem&quot;
+solved by <b>⎕DLX</b> is also known as the &quot;exact cover problem&quot;
 </p>
 <p>If all that sounds weird and useless, consider the following APL program
 for finding all solutions of the 8 Queens problem on a chess board (which
@@ -6246,7 +6247,7 @@ field number counting from left to right and from bottom to top).
 The next 8 columns of Q8 are constraints that prevent more than one Queen
 from being placed in the same column of the chess board.
 </p>
-<p>If we would call ⎕DLX with only these constraints, i.e. ⎕DLX T8←64 16↑Q8,
+<p>If we would call <b>⎕DLX</b> with only these constraints, i.e. <b>⎕DLX</b> T8←64 16↑Q8,
 then we would get the solutions of the 8 tower problem. However, we continue
 and add 15 more constraints for each of the two diagonals. The resulting
 constraint matrix Q8 is this:
@@ -6353,19 +6354,19 @@ to the constraints matrix Q8:
       1 0 0 0 0 1
 </pre></div>
 
-<p>And that&rsquo;s it: call ⎕DLX to get the solution(s). In general all problems that
-can be solved by ⎕DLX contain 3 steps:
+<p>And that&rsquo;s it: call <b>⎕DLX</b> to get the solution(s). In general all problems that
+can be solved by <b>⎕DLX</b> contain 3 steps:
 </p>
 <ul>
 <li> translate the problem into a constraints matrix B,
-</li><li> Z←⎕DLX B, and
+</li><li> Z←<b>⎕DLX</b> B, and
 </li><li> translate the result Z back into the problem domain.
 </li></ul>
 
-<p>Another application of ⎕DLX is solving sudokus. The constraints matrix is
+<p>Another application of <b>⎕DLX</b> is solving sudokus. The constraints matrix is
 a little more complicated, but the principle is the same. GNU APL is shipped
-with two workspaces: sudoku.apl (which solves sudokus without using ⎕DLX) and
-sudoku_DLX.apl (which solves sudokus using ⎕DLX).
+with two workspaces: sudoku.apl (which solves sudokus without using <b>⎕DLX</b>) and
+sudoku_DLX.apl (which solves sudokus using <b>⎕DLX</b>).
 </p>
 
 <hr>
@@ -6377,7 +6378,7 @@ Next: <a href="#g_t_2395FIO-_002d-File-I_002fO-Functions" accesskey="n" rel="nex
 </div>
 <span id="g_t_005b_003f_005dENV-_002d-Environment-Variables"></span><h3 class="section">2.29 ⎕ENV - Environment Variables</h3>
 
-<p>⎕ENV contains the environment variables of the process that is running
+<p><b>⎕ENV</b> contains the environment variables of the process that is running
 GNU APL. See <a href="#APL-Scripting">APL Scripting</a>.
 </p>
 <hr>
@@ -6390,16 +6391,16 @@ Next: <a href="#g_t_2395FFT-_002d-Fast-Fourier-Transform" accesskey="n" rel="nex
 <span id="g_t_005b_003f_005dFIO-_002d-File-I_002fO-Functions"></span><h3 class="section">2.30 ⎕FIO - File I/O Functions</h3>
 
 <p>As of GNU APL 1.6, the native function FILE_IO has been replaced by the
-system function ⎕FIO. ⎕FIO normally takes a numeric axis argument which
+system function <b>⎕FIO</b>. <b>⎕FIO</b> normally takes a numeric axis argument which
 selects one of many different functions, most of which are contained in
 the standard C library. The arguments for these functions are usually the same
 as the corresponding C functions and the man page for each function describes
 the meaning of the arguments.
 </p>
-<p>For example, ⎕FIO[3] corresponds to fopen() and &rsquo;man fopen&rsquo; explains what fopen does (opening a file).
+<p>For example, <b>⎕FIO</b>[3] corresponds to fopen() and &rsquo;man fopen&rsquo; explains what fopen does (opening a file).
 </p>
-<p>Calling ⎕FIO monadically without an axis and with an empty right argument
-shows a list of all functions provided by ⎕FIO:
+<p>Calling <b>⎕FIO</b> monadically without an axis and with an empty right argument
+shows a list of all functions provided by <b>⎕FIO</b>:
 </p>
 <div class="example">
 <pre class="example">      ⎕FIO ''
@@ -6506,8 +6507,8 @@ Benchmarking functions:
         Ai ⎕FIO[203] Bs    set dyadic parallel threshold for primitive Bs
 </pre></div>
 
-<p>A new feature of ⎕FIO (which is not available with the native function FILE_IO)
-is ⎕FIO[49]. ⎕FIO[49] is a monadic operator which takes a monadic conversion
+<p>A new feature of <b>⎕FIO</b> (which is not available with the native function FILE_IO)
+is <b>⎕FIO</b>[49]. <b>⎕FIO</b>[49] is a monadic operator which takes a monadic conversion
 function as function argument. For example:
 </p>
 <div class="example">
@@ -6538,12 +6539,12 @@ Next: <a href="#g_t_2395GTK-_002d-GTK-Interface" accesskey="n" rel="next">⎕GTK
 </div>
 <span id="g_t_005b_003f_005dFFT-_002d-Fast-Fourier-Transform"></span><h3 class="section">2.31 ⎕FFT - Fast Fourier Transform</h3>
 
-<p>For those interested in signal processing and the like, GNU APL provides ⎕FFT:
+<p>For those interested in signal processing and the like, GNU APL provides <b>⎕FFT</b>:
 </p>
-<p>The monadic form ⎕FFT B is a shortcut for the dyadic form 0 ⎕FFT B. It computes
+<p>The monadic form <b>⎕FFT</b> B is a shortcut for the dyadic form 0 <b>⎕FFT</b> B. It computes
 the FFT of complex or real B without applying a window function.
 </p>
-<p>The dyadic form A ⎕FFT B provides more control over what ⎕FFT computes. A is
+<p>The dyadic form A <b>⎕FFT</b> B provides more control over what <b>⎕FFT</b> computes. A is
 an integer scalar which falls into one of three ranges.
 </p>
 <p>The first range from ¯15 to ¯10 does not compute an FFT, but returns the result
@@ -6564,8 +6565,8 @@ analyzing or troubleshooting FFTs:
 FFTs:
 </p>
 <ul>
-<li> 0 ⎕FFT B returns the &quot;normal&quot; (aka. forward) FFT of the numeric array B.
-</li><li> ¯1 ⎕FFT B returns the inverse FFT of the numeric array B.
+<li> 0 <b>⎕FFT</b> B returns the &quot;normal&quot; (aka. forward) FFT of the numeric array B.
+</li><li> ¯1 <b>⎕FFT</b> B returns the inverse FFT of the numeric array B.
 </li></ul>
 
 <p>The third range from 10 to 15 corresponds to the first range and first
@@ -6581,13 +6582,13 @@ multiplies B with a window function and then computes the FFT:
 </li></ul>
 
 <p>⍴⍴B can be 1 (one-dimensional FFT, the most common case) or more. The
-implementation of ⎕FFT uses libfftw3, aka. &quot;The fastest Fourier Transform in
+implementation of <b>⎕FFT</b> uses libfftw3, aka. &quot;The fastest Fourier Transform in
 the West.&quot; GNU APL checks the presence of libfftw3 when it is ./configure&rsquo;d.
-If libfftw3 is present then ⎕FFT will hopefully return the expected result;
-if not then a SYNTAX ERROR will be raised when ⎕FFT is used.
+If libfftw3 is present then <b>⎕FFT</b> will hopefully return the expected result;
+if not then a SYNTAX ERROR will be raised when <b>⎕FFT</b> is used.
 </p>
-<p>⎕FFT honors the presence of /etc/fftw/wisdom (see man fftw-wisdom) to speed
-up the computations performed by ⎕FFT. Creating /etc/fftw/wisdom will take a
+<p><b>⎕FFT</b> honors the presence of /etc/fftw/wisdom (see man fftw-wisdom) to speed
+up the computations performed by <b>⎕FFT</b>. Creating /etc/fftw/wisdom will take a
 few hours, though, so that creating it will not pay off for most mortals.
 </p>
 
@@ -6601,12 +6602,12 @@ Next: <a href="#g_t_2395JSON-_002d-JSON-Parsing" accesskey="n" rel="next">⎕JSO
 <span id="g_t_005b_003f_005dGTK-_002d-GTK-Interface"></span><h3 class="section">2.32 ⎕GTK - GTK Interface</h3>
 
 <p>GTK (Gimp ToolKit) is a rather powerful library for creating graphical user
-interfaces (GUIs). ⎕GTK makes a subset of the almost 10000 functions in the
-different GTK libraries available to GNU APL programs. With ⎕GTK a GNU APL
+interfaces (GUIs). <b>⎕GTK</b> makes a subset of the almost 10000 functions in the
+different GTK libraries available to GNU APL programs. With <b>⎕GTK</b> a GNU APL
 program can, for example, replace the somewhat crude ⎕ or ⍞ input methods
 of standard APL with a more intuitive GUI.
 </p>
-<p>The details of using ⎕GTK would go far beyond the scope of this info manual
+<p>The details of using <b>⎕GTK</b> would go far beyond the scope of this info manual
 and has therefore been put into a separate document.
 See: <b>HOWTOs/Quad-GTK.html</b>.
 </p>
@@ -6619,7 +6620,7 @@ Next: <a href="#g_t_2395MAP-_002d-Map-Value" accesskey="n" rel="next">⎕MAP  - 
 </div>
 <span id="g_t_005b_003f_005dJSON-_002d-JSON-Parsing"></span><h3 class="section">2.33 ⎕JSON - JSON Parsing</h3>
 
-<p>GNU APL provides ⎕JSON for decoding and encoding JSON strings and files.
+<p>GNU APL provides <b>⎕JSON</b> for decoding and encoding JSON strings and files.
 A (valid) JSON string is mapped to an APL value as follows:
 </p>
 <ul>
@@ -6644,7 +6645,7 @@ Next: <a href="#Dyadic-_2395JSON" accesskey="n" rel="next">Dyadic ⎕JSON</a>, U
 </div>
 <span id="Monadic-_005b_003f_005dJSON"></span><h4 class="subsection">2.33.1 Monadic ⎕JSON</h4>
 
-<p>Z←⎕JSON B converts the string B into an APL value according to the mapping
+<p>Z←<b>⎕JSON</b> B converts the string B into an APL value according to the mapping
 above. If that fails then command )MORE provides information about the error
 and where in B the error was detected.
 </p>
@@ -6657,18 +6658,18 @@ Previous: <a href="#Monadic-_2395JSON" accesskey="p" rel="prev">Monadic ⎕JSON<
 </div>
 <span id="Dyadic-_005b_003f_005dJSON"></span><h4 class="subsection">2.33.2 Dyadic ⎕JSON</h4>
 
-<p>Z←A ⎕JSON B performs one of the following conversions:
+<p>Z←A <b>⎕JSON</b> B performs one of the following conversions:
 </p>
 <ul>
-<li> <b>Z←0 ⎕JSON B</b> is the same as monadic Z←⎕JSON B.
+<li> <b>Z←0 ⎕JSON B</b> is the same as monadic Z←<b>⎕JSON</b> B.
 
-</li><li> <b>Z←1 ⎕JSON B</b> is like Z←0 ⎕XML B, except that B is not the JSON
+</li><li> <b>Z←1 ⎕JSON B</b> is like Z←0 <b>⎕XML</b> B, except that B is not the JSON
 string itself but the name of a file from which a JSON string is read.
 
-</li><li> <b>Z←2 ⎕JSON B</b> is the inverse of Z←0 ⎕XML B. It converts an APL
+</li><li> <b>Z←2 ⎕JSON B</b> is the inverse of Z←0 <b>⎕XML</b> B. It converts an APL
 value to a JSON string.
 
-</li><li> <b>Z←3 ⎕JSON B</b> is like 2 ⎕JSON B, except that the member names
+</li><li> <b>Z←3 ⎕JSON B</b> is like 2 <b>⎕JSON</b> B, except that the member names
 (keys) of all JSON objects are sorted alphabetically. That is of little use
 (but costs performance) if Z is not displayed but processed further, but
 it could help troubleshooting when Z is displayed and the number of keys in Z
@@ -6686,10 +6687,10 @@ Next: <a href="#g_t_2395MX-_002d-Matrix_002fStatistics" accesskey="n" rel="next"
 </div>
 <span id="g_t_005b_003f_005dMAP-_002d-Map-Value"></span><h3 class="section">2.34 ⎕MAP  - Map Value</h3>
 
-<p>⎕MAP changes the ravel items of its right argument according to a mapping
-table provided as its left argument. Let Z←A ⎕MAP B.
+<p><b>⎕MAP</b> changes the ravel items of its right argument according to a mapping
+table provided as its left argument. Let Z←A <b>⎕MAP</b> B.
 </p>
-<p>The left argument A of Z←A ⎕MAP B shall be a N×2 matrix. Each 2-element row of
+<p>The left argument A of Z←A <b>⎕MAP</b> B shall be a N×2 matrix. Each 2-element row of
 A, say A[J;], specifies a separate mapping A[J;1] → A[J;2]. The result Z has
 the same shape as the right argument B. The items Z[...] of their result are
 constructed from their corresponding items B[...] in B as follows:
@@ -6706,9 +6707,9 @@ mapped item A[;2].
 </p>
 <p>In practice the left argument A is frequently created from a literal APL value
 such as 5 2⍴&rsquo;eEwWaAzZ92&rsquo; in the example below. To simplify these cases,
-A ⎕MAP B also accepts a vector instead of a N×2 matrix:
+A <b>⎕MAP</b> B also accepts a vector instead of a N×2 matrix:
 </p>
-<p>A ⎕MAP B   ←→   ((N 2)⍴A) ⎕MAP B   if (2×N)   ←→    ⍴A
+<p>A <b>⎕MAP</b> B   ←→   ((N 2)⍴A) <b>⎕MAP</b> B   if (2×N)   ←→    ⍴A
 </p>
 <p>Examples:
 </p>
@@ -6750,7 +6751,7 @@ also nested) item in B, then the corresponding item in the result will be
 A[N;2] (which may or may not be nested). If a (nested or not nested) key A[N;1]
 is equal to an item in B, then the corresponding item in the result will be
 nested if A[N;2] is nested. If, for some N, the depths of A[N;1] and A[N;2]
-differ, then depths of B and A ⎕MAP B may differ as well. That is, ⎕MAP
+differ, then depths of B and A <b>⎕MAP</b> B may differ as well. That is, <b>⎕MAP</b>
 conserves the shape of B, but not necessarily the depth of B.
 
 </li><li> By default the mapping of B is non-recursive, i.e. the top-level items of
@@ -6790,9 +6791,9 @@ Next: <a href="#g_t_2395PLOT-_002d-Plot-Data" accesskey="n" rel="next">⎕PLOT -
 </div>
 <span id="g_t_005b_003f_005dMX-_002d-Matrix_002fStatistics"></span><h3 class="section">2.35 ⎕MX - Matrix/Statistics</h3>
 
-<p>⎕MX was kindly contributed by Henrik Moller
+<p><b>⎕MX</b> was kindly contributed by Henrik Moller
 </p>
-<p>⎕MX[x] is a system function that provides a collection of matrix and
+<p><b>⎕MX</b>[x] is a system function that provides a collection of matrix and
 statistical operations such as covariance, eigensystems, and so on, along
 with random number generation in several statistical distributions. Particular
 operations are selected through the use of the axis specifier <b>x</b>:
@@ -6814,7 +6815,7 @@ operations are selected through the use of the axis specifier <b>x</b>:
             ⎕MX[14] B      (monadic) Set RNG seed
 </pre></div>
 
-<p>(These may by shown by entering ⎕MX &rdquo; or ⎕MX[0]0 on the APL command line.)
+<p>(These may by shown by entering <b>⎕MX</b> &rdquo; or <b>⎕MX</b>[0]0 on the APL command line.)
 In the function list above, <b>A</b> indicates a mandatory left argument,
 while (<b>A</b>) indicates an optional left argument. The right argument <b>B</b>
 of <b>⎕MX[X]</b> is always mandatory.
@@ -6842,7 +6843,7 @@ Next: <a href="#Cross-Product" accesskey="n" rel="next">Cross Product</a>, Up: <
 </div>
 <span id="Determinant-1"></span><h4 class="subsection">2.35.1 Determinant</h4>
 
-<p>The determinant operation, ⎕MX[1], is monadic and is valid only for
+<p>The determinant operation, <b>⎕MX</b>[1], is monadic and is valid only for
 numeric arguments (real or complex) where ⍴⍴B = 2 and (1↑⍴B) = (¯1↑⍴B)
 (i.e. a square matrix). For Example:
 </p>
@@ -6860,7 +6861,7 @@ Next: <a href="#Vector-Angle" accesskey="n" rel="next">Vector Angle</a>, Previou
 </div>
 <span id="Cross-Product-1"></span><h4 class="subsection">2.35.2 Cross Product</h4>
 
-<p>The cross product operation, ⎕MX[2], is nomadic. In monadic form, it
+<p>The cross product operation, <b>⎕MX</b>[2], is nomadic. In monadic form, it
 requires a numeric argument (real or complex) where ⍴⍴B = 2 and
 (↑⍴B)+1 = (1↓⍴B), (i.e. a matrix of N-1 rows of length-N vectors).
 For Example:
@@ -6876,7 +6877,7 @@ For Example:
 
 <p>For reasons I&rsquo;m not enough of a mathematician to understand, cross
 products are only valid in 3-space and 7-space, so the only valid monadic
-arguments are matrices of shapes [2 3] or [6 7]. However, ⎕MX, doesn&rsquo;t
+arguments are matrices of shapes [2 3] or [6 7]. However, <b>⎕MX</b>, doesn&rsquo;t
 check this and will happily give you a result in any dimensionality thus
 leaving it to your imagination what it may mean. I&rsquo;m also not enough of a
 mathematician to know what the significance may be of cross products
@@ -6900,7 +6901,7 @@ Next: <a href="#Eigenvector" accesskey="n" rel="next">Eigenvector</a>, Previous:
 </div>
 <span id="Vector-Angle-1"></span><h4 class="subsection">2.35.3 Vector Angle</h4>
 
-<p>The vector angle operation ⎕MX[3] is dyadic and returns the angle between
+<p>The vector angle operation <b>⎕MX</b>[3] is dyadic and returns the angle between
 two isomorphic real or complex vectors where ⍴⍴A = 1, ⍴⍴B = 1, and ⍴A = ⍴B:
 </p>
 <div class="example">
@@ -6917,7 +6918,7 @@ Next: <a href="#Eigenvalue" accesskey="n" rel="next">Eigenvalue</a>, Previous: <
 </div>
 <span id="Eigenvector-1"></span><h4 class="subsection">2.35.4 Eigenvector</h4>
 
-<p>The eigenvector operation, ⎕MX[4], is monadic and returns the complex
+<p>The eigenvector operation, <b>⎕MX</b>[4], is monadic and returns the complex
 eigenvectors of real non-symetric square matrices:
 </p>
 <div class="example">
@@ -6958,7 +6959,7 @@ Next: <a href="#Ident" accesskey="n" rel="next">Ident</a>, Previous: <a href="#E
 </div>
 <span id="Eigenvalue-1"></span><h4 class="subsection">2.35.5 Eigenvalue</h4>
 
-<p>The eigenvalue operation, ⎕MX[5], is also monadic with an argument of
+<p>The eigenvalue operation, <b>⎕MX</b>[5], is also monadic with an argument of
 the same shape as that of the argument of the eigenvector operation. It
 returns a sorted complex vector of eigenvalues of the matrix argument:
 </p>
@@ -7009,7 +7010,7 @@ Next: <a href="#Rotation" accesskey="n" rel="next">Rotation</a>, Previous: <a hr
 </div>
 <span id="Ident-1"></span><h4 class="subsection">2.35.6 Ident</h4>
 
-<p>The monadic ident operation, ⎕MX[6], takes a scalar real integer argument
+<p>The monadic ident operation, <b>⎕MX</b>[6], takes a scalar real integer argument
 and returns a square identity matrix of that size:
 </p>
 <div class="example">
@@ -7029,7 +7030,7 @@ Next: <a href="#Homogeneous-transform" accesskey="n" rel="next">Homogeneous tran
 </div>
 <span id="Rotation-1"></span><h4 class="subsection">2.35.7 Rotation</h4>
 
-<p>The rotation operation, ⎕MX[7], is monadic and takes a real or complex
+<p>The rotation operation, <b>⎕MX</b>[7], is monadic and takes a real or complex
 scalar angle and returns a 2-space rotation matrix:
 </p>
 <div class="example">
@@ -7047,7 +7048,7 @@ Next: <a href="#Norm" accesskey="n" rel="next">Norm</a>, Previous: <a href="#Rot
 </div>
 <span id="Homogeneous-transform-1"></span><h4 class="subsection">2.35.8 Homogeneous transform</h4>
 
-<p>The homogeneous operation ⎕MX[8] is dyadic and takes as its left argument
+<p>The homogeneous operation <b>⎕MX</b>[8] is dyadic and takes as its left argument
 a 3-space displacement vector and, as its right argument, a 3-space
 elemental rotation (i.e., independent rotations around the X, Y, and Z axes
 respectively) and returns the corresponding homogeneous matrix:
@@ -7069,7 +7070,7 @@ Next: <a href="#Randoms" accesskey="n" rel="next">Randoms</a>, Previous: <a href
 </div>
 <span id="Norm-1"></span><h4 class="subsection">2.35.9 Norm</h4>
 
-<p>The monadic norm operation, ⎕MX[9], takes a real or complex non-scalar
+<p>The monadic norm operation, <b>⎕MX</b>[9], takes a real or complex non-scalar
 numeric argument and returns a result of the same shape such that the sum
 of the squares of the elements equals 1:
 </p>
@@ -7175,7 +7176,7 @@ Next: <a href="#Histograms" accesskey="n" rel="next">Histograms</a>, Previous: <
 </div>
 <span id="Covariance-1"></span><h4 class="subsection">2.35.11 Covariance</h4>
 
-<p>The covariance operation, ⎕MX[11], is nomadic. In monadic form, it
+<p>The covariance operation, <b>⎕MX</b>[11], is nomadic. In monadic form, it
 interprets each row of a matrix argument as samples of a given
 variable, computes the covariance of each sample set with respect to
 every other sample set, and presents the covariances as a matrix. For
@@ -7220,7 +7221,7 @@ Next: <a href="#Print" accesskey="n" rel="next">Print</a>, Previous: <a href="#C
 </div>
 <span id="Histograms-1"></span><h4 class="subsection">2.35.12 Histograms</h4>
 
-<p>The histogram operation, ⎕MX[12], is dyadic and requires a single integer
+<p>The histogram operation, <b>⎕MX</b>[12], is dyadic and requires a single integer
 left argument (the number of buckets) and a real or complex vector as a
 right argument (the samples). It then creates an equal-width-partition
 histogram of the samples contained in the right-argument vector. The width
@@ -7251,7 +7252,7 @@ Previous: <a href="#Histograms" accesskey="p" rel="prev">Histograms</a>, Up: <a 
 </div>
 <span id="Print-1"></span><h4 class="subsection">2.35.13 Print</h4>
 
-<p>The print operation, ⎕MX[13], is dyadic and provides an easy way to
+<p>The print operation, <b>⎕MX</b>[13], is dyadic and provides an easy way to
 dump large quantities of data to files. It&rsquo;s left argument is a
 string containing the file name to be created or, if the name starts
 with a &ldquo;&gt;&rdquo;, appended to. The right argument may be a scalar, a
@@ -7343,12 +7344,12 @@ Next: <a href="#g_t_2395PNG-_002d-Portable-Network-Graphics" accesskey="n" rel="
 </div>
 <span id="g_t_005b_003f_005dPLOT-_002d-Plot-Data"></span><h3 class="section">2.36 ⎕PLOT - Plot Data</h3>
 
-<p>⎕PLOT is a function for visualizing numerical APL values. The values to be
-plotted are provided as the right argument of ⎕PLOT while the optional
+<p><b>⎕PLOT</b> is a function for visualizing numerical APL values. The values to be
+plotted are provided as the right argument of <b>⎕PLOT</b> while the optional
 left argument controls details of the output, such as the plot window size,
 colors for plot lines, points, and grids, etc.
 </p>
-<p>The general syntax of ⎕PLOT is:
+<p>The general syntax of <b>⎕PLOT</b> is:
 </p>
 <div class="example">
 <pre class="example">   ⎕PLOT ⍬       ⍝ show a list of attributes and their default values
@@ -7384,7 +7385,7 @@ point in the plot. The points that are adjacent in a row of the matrix are
 connected by lines. By default plotted points are black and the lines
 connecting them are green (for the first plot line). However, all colors
 used, all diameters of points, and all thicknesses of the lines can be
-fine-tuned by overriding the default values (see dyadic A ⎕PLOT B below).
+fine-tuned by overriding the default values (see dyadic A <b>⎕PLOT</b> B below).
 </p>
 <ul class="section-toc">
 <li><a href="#Complex-Plot-Data-B" accesskey="1">Complex Plot Data B</a></li>
@@ -7433,7 +7434,7 @@ Previous: <a href="#Complex-Plot-Data-B" accesskey="p" rel="prev">Complex Plot D
 
 <p>On the other hand, if a data item B[N] or B[row;N] is <b>real</b>, then it is
 placed at position (N, x) of the plot. The X-range is then
-[⎕IO ... ⎕IO + ¯1↑⍴B] and the Y-range [Y<sub>min</sub> ... Y<sub>max</sub>] of the
+[<b>⎕IO</b> ... <b>⎕IO</b> + ¯1↑⍴B] and the Y-range [Y<sub>min</sub> ... Y<sub>max</sub>] of the
 plot is determined by the values of B. That is:
 </p>
 <div class="example">
@@ -7668,7 +7669,7 @@ See <a href="#Eigenvector">Eigenvector</a> below.
 
 <p>writes the plot of a zigzag curve to file <b>/tmp/bitmap.png</b>.
 </p>
-<p><b>Caution</b>: ⎕PLOT with attribute <b>output_filename</b> overwrites existing
+<p><b>Caution</b>: <b>⎕PLOT</b> with attribute <b>output_filename</b> overwrites existing
 files without any warning). Errors, most likely lack of permissions to write
 the output file, raises a DOMAIN ERROR with )MORE possibly providing details
 as to why the file could not be written.
@@ -7686,7 +7687,7 @@ _N suffix.
 Attributes.line_width_2 ← 4   ⍝ except plot line 2: 4 pixels thick
 </pre></div>
 
-<p>As of GNU APL 1.9, ⎕PLOT legends may be dragged to other locations within a
+<p>As of GNU APL 1.9, <b>⎕PLOT</b> legends may be dragged to other locations within a
 plot window using the usual click and drag GUI technique.
 </p>
 <ul class="section-toc">
@@ -7767,8 +7768,8 @@ Next: <a href="#Output-File-Format" accesskey="n" rel="next">Output File Format<
 </div>
 <span id="Plot-Window-Handling-1"></span><h4 class="subsection">2.36.3 Plot Window Handling</h4>
 
-<p>Each call of ⎕PLOT with some plot data <b>B</b> opens a separate window in the X
-server (which implies that ⎕PLOT requires X). That window runs in its own
+<p>Each call of <b>⎕PLOT</b> with some plot data <b>B</b> opens a separate window in the X
+server (which implies that <b>⎕PLOT</b> requires X). That window runs in its own
 thread until it is closed. A plot window can be closed in different ways:
 </p>
 <ul>
@@ -7799,8 +7800,8 @@ Next: <a href="#GUI-driver" accesskey="n" rel="next">GUI driver</a>, Previous: <
 </div>
 <span id="Output-File-Format-1"></span><h4 class="subsection">2.36.4 Output File Format</h4>
 
-<p>Early versions of ⎕PLOT were using <b>libxcb</b> to display the results of
-⎕PLOT while recent versions use <b>libgtk-3</b>. The primary driver for this
+<p>Early versions of <b>⎕PLOT</b> were using <b>libxcb</b> to display the results of
+<b>⎕PLOT</b> while recent versions use <b>libgtk-3</b>. The primary driver for this
 change was the lack of full Unicode support in <b>libxcb</b> which made it,
 for example, difficult to properly display APL characters in window captions
 or in plot line legends.
@@ -7816,7 +7817,7 @@ graphics). There are tools like <b>convert</b> from package <b>imagemagick</b>
 that can be used to convert different image file formats into each other
 and therefore this incompatibility should not cause too much trouble.
 </p>
-<p>For backward compatibility, the <b>libxcb</b> option for ⎕PLOT will continue
+<p>For backward compatibility, the <b>libxcb</b> option for <b>⎕PLOT</b> will continue
 to exist for some time, but bug fixes and new features will only be made for
 the <b>libgtk-3</b> option.
 </p>
@@ -7911,7 +7912,7 @@ of the terminal (so that the last columns in not written).
 </p>
 <p>Another preference for the ASCII driver that might be of interest is
 <b>plot-ASCII-background</b>. It sets the background color for the terminal
-if the Plot attribute canvas-color is not provided (e.g. in monadic ⎕PLOT
+if the Plot attribute canvas-color is not provided (e.g. in monadic <b>⎕PLOT</b>
 which has no plot attributes).
 </p>
 <p>The <b>XCB</b> driver was the first driver for <b>⎕PLOT</b> but has since become
@@ -8024,7 +8025,7 @@ these 15 combinations further to the 4 general types with the following rules:
 <li> On input, i.e. when reading a PNG image file and producing the APL
 array described above, the different resolutions allowed by the PNG standard
 are normalized to a single range of real numbers between 0.0 and 1.0 (this
-is by chance also the range used in the GTK standard used in ⎕PNG and ⎕PLOT).
+is by chance also the range used in the GTK standard used in <b>⎕PNG</b> and <b>⎕PLOT</b>).
 </li><li> Also on input, images that use color tables (for compressing the
 image to reduce the file size) are automatically expanded. The resulting
 APL value is therefore independent of the use of color tables.
@@ -8065,45 +8066,45 @@ Next: <a href="#Dyadic-_2395PNG" accesskey="n" rel="next">Dyadic ⎕PNG</a>, Pre
 </div>
 <span id="Monadic-_005b_003f_005dPNG"></span><h4 class="subsection">2.37.2 Monadic ⎕PNG</h4>
 
-<p>Monadic ⎕PNG, i.e. ⎕PNG B is used for 3 purposes:
+<p>Monadic <b>⎕PNG</b>, i.e. <b>⎕PNG</b> B is used for 3 purposes:
 </p>
 <ol>
 <li> Conversion of PNG files into the GNU APL color model,
 </li><li> Display of an APL array (in the GNU APL color model) in a window on
 the screen (interactive use of PNG), and
-</li><li> Controlling of ⎕PNG itself.
+</li><li> Controlling of <b>⎕PNG</b> itself.
 </li></ol>
 
 <p>The desired purpose is dictated by the properties of <strong>B</strong>:
 </p>
 <ol>
 <li> Any APL text vector (i.e. a string) <strong>B</strong> is taken as the name of
-  a file that supposedly contains an image in the PNG format. ⎕PNG will
+  a file that supposedly contains an image in the PNG format. <b>⎕PNG</b> will
   read the file and return the pixels in it as a numeric APL array of rank 3.
   The array contains the color components of the image in the file as
   described above.
 </li><li> Any array <strong>B</strong> with rank 3 must be numeric (with values from
   0.0 to 1.0) and is then assumed to be an array in the GNU APL color model
   (such as the result of the case above). This image is displayed in a new
-  window on the screen; the window survives even after ⎕PNG has returned.
-  The result returned by ⎕PNG is a window handle (a positive integer
+  window on the screen; the window survives even after <b>⎕PNG</b> has returned.
+  The result returned by <b>⎕PNG</b> is a window handle (a positive integer
   identifying the window) which may later be used (in the case described
   below) to close the window programmatically from APL. Alternatively the
   window can also be closed interactively by the user via its close button.
-</li><li> Finally, if <strong>B</strong> is a numeric scalar it fine-tunes the ⎕PNG
+</li><li> Finally, if <strong>B</strong> is a numeric scalar it fine-tunes the <b>⎕PNG</b>
 behaviour:
 
 <ul>
-<li> ⎕PNG N with N ≥ 1 (as returned in the case above) closes the window 
+<li> <b>⎕PNG</b> N with N ≥ 1 (as returned in the case above) closes the window 
        with handle N programmatically.
 
-</li><li> ⎕PNG 0 disables all debug printouts related to ⎕PNG.
-</li><li> ⎕PNG ¯1 turns on a debug printout related to ⎕PNG (X events).
-</li><li> ⎕PNG ¯2 turns on a debug printout related to ⎕PNG (image data).
-</li><li> ⎕PNG ¯3 closes all open ⎕PNG windows.
-</li><li> ⎕PNG ¯4 turns on a debug printout related to ⎕PNG (GTK drawing).
-</li><li> ⎕PNG ¯5 turns on a debug printout related to ⎕PNG (function calls).
-</li><li> ⎕PNG ¯6 returns a vector of all open ⎕PNG window handles.
+</li><li> <b>⎕PNG</b> 0 disables all debug printouts related to <b>⎕PNG</b>.
+</li><li> <b>⎕PNG</b> ¯1 turns on a debug printout related to <b>⎕PNG</b> (X events).
+</li><li> <b>⎕PNG</b> ¯2 turns on a debug printout related to <b>⎕PNG</b> (image data).
+</li><li> <b>⎕PNG</b> ¯3 closes all open <b>⎕PNG</b> windows.
+</li><li> <b>⎕PNG</b> ¯4 turns on a debug printout related to <b>⎕PNG</b> (GTK drawing).
+</li><li> <b>⎕PNG</b> ¯5 turns on a debug printout related to <b>⎕PNG</b> (function calls).
+</li><li> <b>⎕PNG</b> ¯6 returns a vector of all open <b>⎕PNG</b> window handles.
 </li></ul>
 </li></ol>
 
@@ -8179,27 +8180,27 @@ Next: <a href="#g_t_2395RE-_002d-Regular-Expressions" accesskey="n" rel="next">�
 </div>
 <span id="g_t_005b_003f_005dPS-_002d-Print-Style"></span><h3 class="section">2.38 ⎕PS - Print Style</h3>
 
-<p>⎕PS is an integer vector that currently (read: as of SVN 982) contains
+<p><b>⎕PS</b> is an integer vector that currently (read: as of SVN 982) contains
 two integers which control some details of how APL values are printed.
-The default value of ⎕PS is 0 0. ⎕PS is a session variable which survives
+The default value of <b>⎕PS</b> is 0 0. <b>⎕PS</b> is a session variable which survives
 the <strong>)LOAD</strong>ing of workspaces.
 </p>
-<p>⎕PS[1] = 0: print rational quotients as normal floating point numbers
+<p><b>⎕PS</b>[1] = 0: print rational quotients as normal floating point numbers
 (digits, fractional point, possibly an exponent).
 </p>
-<p>⎕PS[1] = 1: print rational quotients as Numerator÷Denominator.
+<p><b>⎕PS</b>[1] = 1: print rational quotients as Numerator÷Denominator.
 </p>
-<p>Note: ⎕PS[1] has no effect if rational numbers were not ./configure&rsquo;d.
+<p>Note: <b>⎕PS</b>[1] has no effect if rational numbers were not ./configure&rsquo;d.
 </p>
-<p>⎕PS[2] = 0: no &quot;boxing&quot; of APL values
+<p><b>⎕PS</b>[2] = 0: no &quot;boxing&quot; of APL values
 </p>
-<p>⎕PS[2] &gt; 0: &quot;boxing&quot; of APL values according to ⎕PS[2].
+<p><b>⎕PS</b>[2] &gt; 0: &quot;boxing&quot; of APL values according to <b>⎕PS</b>[2].
 </p>
-<p>Setting ⎕PS[2] has the same effect as the debug command ]BOXING and uses
+<p>Setting <b>⎕PS</b>[2] has the same effect as the debug command ]BOXING and uses
 the same values.
 </p>
 <p>Note: For compatibility with older workspaces, assigning a single value to
-⎕PS assigns that value to ⎕PS[2] and sets ⎕PS[1] to 0.
+<b>⎕PS</b> assigns that value to <b>⎕PS</b>[2] and sets <b>⎕PS</b>[1] to 0.
 </p>
 
 <hr>
@@ -8211,7 +8212,7 @@ Next: <a href="#g_t_2395RVAL-_002d-Random-APL-value" accesskey="n" rel="next">�
 </div>
 <span id="g_t_005b_003f_005dRE-_002d-Regular-Expressions"></span><h3 class="section">2.39 ⎕RE - Regular Expressions</h3>
 
-<p>⎕RE is a function that provides access to a subset of libpcre2, which is a
+<p><b>⎕RE</b> is a function that provides access to a subset of libpcre2, which is a
 powerful regular expression matching library. &quot;pcre&quot; is an acronym for &quot;Perl
 compatible regular expressions&quot;. libpcre2 is Copyright (c) 1997-2017
 University of Cambridge, England.
@@ -8234,10 +8235,10 @@ Next: <a href="#g_t_2395RE-Syntax" accesskey="n" rel="next">⎕RE Syntax</a>, Up
 
 <p>libpcre2 is NOT shipped with GNU APL but must be installed before the GNU APL
 ./configure script is executed. The ./configure script tries to locate
-libpcre2 and enables ⎕RE if the library (and its header files) are found.
+libpcre2 and enables <b>⎕RE</b> if the library (and its header files) are found.
 </p>
-<p>If ./configure does not find libpcre2, then ⎕RE will raise a SYNTAX ERROR when
-⎕RE is used in an APL program.
+<p>If ./configure does not find libpcre2, then <b>⎕RE</b> will raise a SYNTAX ERROR when
+<b>⎕RE</b> is used in an APL program.
 </p>
 <hr>
 </div>
@@ -8248,9 +8249,9 @@ Next: <a href="#The-Regular-Expression-A" accesskey="n" rel="next">The Regular E
 </div>
 <span id="g_t_005b_003f_005dRE-Syntax"></span><h4 class="subsection">2.39.2 ⎕RE Syntax</h4>
 
-<p>⎕RE has two forms. The short form (without an axis argument) is intended to
-cover the most likely use cases of ⎕RE, while the long form gives more control
-over the format of the result produced by ⎕RE:
+<p><b>⎕RE</b> has two forms. The short form (without an axis argument) is intended to
+cover the most likely use cases of <b>⎕RE</b>, while the long form gives more control
+over the format of the result produced by <b>⎕RE</b>:
 </p>
 <div class="example">
 <pre class="example">Z ← A ⎕RE B      (short form, no axis)
@@ -8276,10 +8277,10 @@ Next: <a href="#The-String_0028s_0029-B-Being-Matched" accesskey="n" rel="next">
 <span id="The-Regular-Expression-A-1"></span><h4 class="subsection">2.39.3 The Regular Expression A</h4>
 
 <p>A is a simple character vector which is expected to be a regular expression
-as defined for the libpcre2 library. ⎕RE passes its left argument A unmodified
+as defined for the libpcre2 library. <b>⎕RE</b> passes its left argument A unmodified
 to libpcre2. The format of A ranges from very simple REs to very complex REs.
 In fact, regular expressions are a language of their own, and it is unnecessary
-to describe them here. The user of ⎕RE is referred to the description that
+to describe them here. The user of <b>⎕RE</b> is referred to the description that
 comes with libpcre2.
 </p>
 <p>See in particular: <b>man pcre2pattern</b>
@@ -8302,8 +8303,8 @@ to libpcre2), or
 </li><li> a (nested) APL array consisting of simple character vectors.
 </li></ol>
 
-<p>In the second case above, the result of ⎕RE is conceptually the same as if
-the EACH operator had been applied to ⎕RE:
+<p>In the second case above, the result of <b>⎕RE</b> is conceptually the same as if
+the EACH operator had been applied to <b>⎕RE</b>:
 </p>
 <div class="example">
 <pre class="example">    A ⎕RE B   ←→   A ⎕RE ¨ B
@@ -8312,13 +8313,13 @@ the EACH operator had been applied to ⎕RE:
 <p>The libpcre2 first compiles A into an internal representation that improves
 the speed of matching B. As a consequence, if several strings shall be matched
 with the same regular expression A, then it is (sometimes considerably) faster
-to A ⎕RE B once with several items of a nested B, than to A ⎕RE B multiple
+to A <b>⎕RE</b> B once with several items of a nested B, than to A <b>⎕RE</b> B multiple
 times with the same A but different Bs. This is especially true when longer
 text files with many lines will be matched.
 </p>
 <p>If multiple (nested) strings B are used then A is compiled once and after that
 the different ⊃B[i] in B are passed unmodified to libpcre2. In that case the
-result Z is nested and (⍴B) ≡ (⍴Z←A ⎕RE[X] B). We can therefore limit the
+result Z is nested and (⍴B) ≡ (⍴Z←A <b>⎕RE</b>[X] B). We can therefore limit the
 description to the case where B is a simple character vector.
 </p>
 <p>Any string B that is passed to libpcre2 is called &quot;Subject&quot; in the
@@ -8334,16 +8335,16 @@ Next: <a href="#Complex-Matches" accesskey="n" rel="next">Complex Matches</a>, P
 <span id="The-Flags-X-1"></span><h4 class="subsection">2.39.5 The Flags X</h4>
 
 <p>By default, i.e. without an axis argument X or - equivalently - with an empty
-string X←<b>&quot;&quot;</b> as axis argument, ⎕RE returns the first match of the regular
+string X←<b>&quot;&quot;</b> as axis argument, <b>⎕RE</b> returns the first match of the regular
 expression A in the string B as an APL string.
 </p>
 <p>By means of the optional axis argument <b>X ≢ &quot;&quot;</b> (called flags below) one may
 override the default behavior to adapt various aspects of the matching to
-satisfy the requirements that the user of ⎕RE may have.
+satisfy the requirements that the user of <b>⎕RE</b> may have.
 </p>
 <p>The X argument of <b>A⎕RE[X] B</b> is a character vector where each character
 is a flag. Each flag is either understood by (and then passed unmodified to)
-libpcre2 or else understood by ⎕RE itself (and then not passed to libpcre2).
+libpcre2 or else understood by <b>⎕RE</b> itself (and then not passed to libpcre2).
 </p>
 <ul class="section-toc">
 <li><a href="#The-libpcre2-flags-_002d-i-m-s-and-x" accesskey="1">The libpcre2 flags: i, m, s, and x</a></li>
@@ -8359,7 +8360,7 @@ Next: <a href="#The-_2395RE-_0028APL-output-format_0029-flags-_2193-_2282-and-_0
 </div>
 <span id="The-libpcre2-flags_003a-i_002c-m_002c-s_002c-and-x"></span><h4 class="subsubsection">2.39.5.1 The libpcre2 flags: i, m, s, and x</h4>
 
-<p>The libpcre2 flags accepted by ⎕RE are: i, m, s, and x. They correspond to the
+<p>The libpcre2 flags accepted by <b>⎕RE</b> are: i, m, s, and x. They correspond to the
 following libpcre2 flags:
 </p>
 <ul>
@@ -8381,22 +8382,22 @@ Next: <a href="#the-_2395RE-global-flag-g" accesskey="n" rel="next">the ⎕RE gl
 </div>
 <span id="The-_005b_003f_005dRE-_0028APL-output-format_0029-flags-_007c_002c-_005b_003f_005d_002c-and-_002f"></span><h4 class="subsubsection">2.39.5.2 The ⎕RE (APL output format) flags ↓, ⊂, and /</h4>
 
-<p>⎕RE provides different output formats, some of which are tailored to different
-APL functions, so that these other APL functions can use the result of ⎕RE
+<p><b>⎕RE</b> provides different output formats, some of which are tailored to different
+APL functions, so that these other APL functions can use the result of <b>⎕RE</b>
 without major conversions. There are currently 4 different output formats:
 </p>
 <ul>
-<li> no ⎕RE flag: ⎕RE returns the matching sub-string(s) of B.
+<li> no <b>⎕RE</b> flag: <b>⎕RE</b> returns the matching sub-string(s) of B.
 
-</li><li> ↓ flag: ⎕RE returns the position(s) and the length(s) of the matched
+</li><li> ↓ flag: <b>⎕RE</b> returns the position(s) and the length(s) of the matched
 sub-string of B, Like other left arguments of ↑ or ↓, the string position(s)
-in the result start at 0 (i.e. not at ⎕IO) and can therefore be used directly
+in the result start at 0 (i.e. not at <b>⎕IO</b>) and can therefore be used directly
 by dyadic ↓ and ↑. For instance to cut out the matched pieces.
 
-</li><li> ⊂ flag: ⎕RE returns an integer vector suitable as the left argument of 
+</li><li> ⊂ flag: <b>⎕RE</b> returns an integer vector suitable as the left argument of 
 partition (dyadic ⊂).
 
-</li><li> / flag: ⎕RE returns a Boolean vector suitable as the left argument of 
+</li><li> / flag: <b>⎕RE</b> returns a Boolean vector suitable as the left argument of 
 compress (dyadic /).
 </li></ul>
 
@@ -8440,8 +8441,8 @@ Next: <a href="#the-_2395RE-error-flag-E" accesskey="n" rel="next">the ⎕RE err
 </div>
 <span id="the-_005b_003f_005dRE-global-flag-g"></span><h4 class="subsubsection">2.39.5.3 the ⎕RE global flag g</h4>
 
-<p>The default behavior of ⎕RE is to return only the first match of A in B.
-The &rsquo;g&rsquo; flag causes ⎕RE to return all matches instead. For example:
+<p>The default behavior of <b>⎕RE</b> is to return only the first match of A in B.
+The &rsquo;g&rsquo; flag causes <b>⎕RE</b> to return all matches instead. For example:
 </p>
 <div class="example">
 <pre class="example">      ⍝ return first match as string
@@ -8517,7 +8518,7 @@ Previous: <a href="#the-_2395RE-global-flag-g" accesskey="p" rel="prev">the ⎕R
 </div>
 <span id="the-_005b_003f_005dRE-error-flag-E"></span><h4 class="subsubsection">2.39.5.4 the ⎕RE error flag E</h4>
 
-<p>The default behavior of ⎕RE is to return an empty result if no match of
+<p>The default behavior of <b>⎕RE</b> is to return an empty result if no match of
 the regular expression A is found in B. It is sometimes more convenient to
 raise an error if no match is found. This can be achieved with the E flag:
 </p>
@@ -8557,11 +8558,11 @@ Previous: <a href="#The-Flags-X" accesskey="p" rel="prev">The Flags X</a>, Up: <
 <p>The regular expressions considered so far were simple, which means that they
 did not have (regular) sub-expressions. In other words, the regular expression
 A did not contain non-literal (unquoted) parentheses. However, the libpcre2
-allows sub-expressions and ⎕RE follows suit to a certain extent. If A contains
-sub-expressions, the result of A ⎕RE B becomes deeper and the structure of the
+allows sub-expressions and <b>⎕RE</b> follows suit to a certain extent. If A contains
+sub-expressions, the result of A <b>⎕RE</b> B becomes deeper and the structure of the
 result is determined by the structure of the parentheses in A.
 </p>
-<p>The result of a general regular expression A is recursively constructed by ⎕RE
+<p>The result of a general regular expression A is recursively constructed by <b>⎕RE</b>
 as follows:
 </p>
 <p>1. If A contains no sub-expressions then the result is constructed as described
@@ -8646,8 +8647,8 @@ only affects the ravel elements themselves, but also other aspects like:
 </li><li> the depth (nesting) of the values.
 </li></ul>
 
-<p>Such values can be produced with system function ⎕RVAL. The main use case for
-⎕RVAL is the production of test data for the interpreter, but ⎕RVAL might be
+<p>Such values can be produced with system function <b>⎕RVAL</b>. The main use case for
+<b>⎕RVAL</b> is the production of test data for the interpreter, but <b>⎕RVAL</b> might be
 useful for other purposes as well.
 </p>
 <ul class="section-toc">
@@ -8664,16 +8665,16 @@ Next: <a href="#Dyadic-_2395RVAL" accesskey="n" rel="next">Dyadic ⎕RVAL</a>, U
 </div>
 <span id="General-1"></span><h4 class="subsection">2.40.1 General</h4>
 
-<p>In general, monadic ⎕RVAL B, returns a single random APL value Z,
-while dyadic A ⎕RVAL B is used to control the properties of
-subsequently generated random APL values returned by monadic ⎕RVAL.
+<p>In general, monadic <b>⎕RVAL</b> B, returns a single random APL value Z,
+while dyadic A <b>⎕RVAL</b> B is used to control the properties of
+subsequently generated random APL values returned by monadic <b>⎕RVAL</b>.
 </p>
-<p>The typical use of ⎕RVAL is to first call A ⎕RVAL B zero or more times to
+<p>The typical use of <b>⎕RVAL</b> is to first call A <b>⎕RVAL</b> B zero or more times to
 override individual default properties of the subsequently produced values,
-followed by one or more calls of monadic ⎕RVAL B.
+followed by one or more calls of monadic <b>⎕RVAL</b> B.
 </p>
 <p>The default properties, i.e. the properties used unless they were overridden
-by dyadic A ⎕RVAL B, are:
+by dyadic A <b>⎕RVAL</b> B, are:
 </p>
 <div class="example">
 <pre class="example">Rank:  0
@@ -8683,7 +8684,7 @@ Max. Depth: 4          (initially irrelevant since type = 0 1 0 0 0)
 Max. Element Count: 0  (unlimited)
 </pre></div>
 
-<p>With these default properties, every call of monadic ⎕RVAL B returns an
+<p>With these default properties, every call of monadic <b>⎕RVAL</b> B returns an
 integer scalar.
 </p>
 <hr>
@@ -8695,7 +8696,7 @@ Next: <a href="#monadic-_2395RVAL-B" accesskey="n" rel="next">monadic ⎕RVAL B<
 </div>
 <span id="Dyadic-_005b_003f_005dRVAL"></span><h4 class="subsection">2.40.2 Dyadic ⎕RVAL</h4>
 
-<p>The left argument A of A ⎕RVAL B determines which aspect of the
+<p>The left argument A of A <b>⎕RVAL</b> B determines which aspect of the
 subsequent random APL values shall be controlled. A is an integer scalar:
 </p>
 <ul>
@@ -8736,7 +8737,7 @@ Next: <a href="#Control-of-the-ranks-_002d-1-_2395RVAL-B" accesskey="n" rel="nex
 
 <p>Every random number generator has a state (similar to <b>⎕RL</b> for <b>&rsquo;?&rsquo;</b>).
 While the primitive <b>?</b> keeps its state in <b>⎕RL</b>, i.e. in the workspace,
-⎕RVAL has no associated system variable like <b>⎕RL</b> which keeps its state.
+<b>⎕RVAL</b> has no associated system variable like <b>⎕RL</b> which keeps its state.
 Instead, the user needs to store the state of <b>⎕RVAL</b> in a workspace
 variable if the workspace shall be stored and continued at a later point.
 This rarely happens, therefore no effort was spent on implementing another
@@ -8750,7 +8751,7 @@ with:
 <pre class="example">      STATE ← 0 ⎕RVAL ''
 </pre></div>
 
-<p>The state changes with every call of monadic ⎕RVAL. The random number generator
+<p>The state changes with every call of monadic <b>⎕RVAL</b>. The random number generator
 can later be restored to the same state like this:
 </p>
 <div class="example">
@@ -8758,7 +8759,7 @@ can later be restored to the same state like this:
 </pre></div>
 
 <p>Restoring the state is needed when the same sequence of random values shall
-be generated again. The random number generators of ? and ⎕RVAL are
+be generated again. The random number generators of ? and <b>⎕RVAL</b> are
 independent; generating a random number or random value with one does not
 change the state of the other.
 </p>
@@ -8777,7 +8778,7 @@ Next: <a href="#Control-of-the-shapes-_002d-2-_2395RVAL-B" accesskey="n" rel="ne
 <span id="Control-of-the-ranks_003a-1-_005b_003f_005dRVAL-B"></span><h4 class="subsubsection">2.40.2.2 Control of the ranks: 1 ⎕RVAL B</h4>
 
 <p>The rank of subsequently generated random values can be controlled with
-1 ⎕RVAL B as follows:
+1 <b>⎕RVAL</b> B as follows:
 </p>
 <ul>
 <li> If B is a non-negative scalar with 0 ≤ B &lt; MAX_RANK then the subsequently
@@ -8796,19 +8797,19 @@ MAX_RANK) are set to 0.
 
 </li></ul>
 
-<p>1 ⎕RVAL always returns its previous setting (i.e. before applying B).
-An empty B, e.g. 1 ⎕RVAL ⍬ will not change anything and can be used to
-query the current setting for 1 ⎕RVAL.
+<p>1 <b>⎕RVAL</b> always returns its previous setting (i.e. before applying B).
+An empty B, e.g. 1 <b>⎕RVAL</b> ⍬ will not change anything and can be used to
+query the current setting for 1 <b>⎕RVAL</b>.
 </p>
 <p>Examples:
 </p>
 <ul>
-<li> 1 ⎕RVAL 2 will produce only matrices,
+<li> 1 <b>⎕RVAL</b> 2 will produce only matrices,
 
-</li><li> 1 ⎕RVAL ¯2 will produce scalars, vectors or matrices, each with a
+</li><li> 1 <b>⎕RVAL</b> ¯2 will produce scalars, vectors or matrices, each with a
 probability of 100÷3 %, and
 
-</li><li> 1 ⎕RVAL 50 30 20 will produce scalars with probability 50%, vectors
+</li><li> 1 <b>⎕RVAL</b> 50 30 20 will produce scalars with probability 50%, vectors
 with probability 30%, and matrices with probability 20%. The numbers
 need not add up to 100, but will be scaled accordingly.
 </li></ul>
@@ -8823,7 +8824,7 @@ Next: <a href="#Control-of-the-data-types-_002d-3-_2395RVAL-B" accesskey="n" rel
 <span id="Control-of-the-shapes_003a-2-_005b_003f_005dRVAL-B"></span><h4 class="subsubsection">2.40.2.3 Control of the shapes: 2 ⎕RVAL B</h4>
 
 <p>The shapes of subsequently generated random values can be controlled with
-2 ⎕RVAL B as follows.
+2 <b>⎕RVAL</b> B as follows.
 </p>
 <p>B must be a vector of positive or negative integers. Vectors longer than
 MAX_RANK will give a LENGTH ERROR while vectors shorter than MAX_RANK
@@ -8836,9 +8837,9 @@ a probability of 1÷B<sub>i</sub>. Note that the same B can still produce differ
 shapes even if all  B<sub>i</sub> are ≥ 0 (i.e. if the rank is also chosen at
 random).
 </p>
-<p>2 ⎕RVAL always returns its previous setting (i.e. before applying B).
-An empty B, e.g. 2 ⎕RVAL ⍬, will not change anything and can be used to
-query the current setting for 2 ⎕RVAL.
+<p>2 <b>⎕RVAL</b> always returns its previous setting (i.e. before applying B).
+An empty B, e.g. 2 <b>⎕RVAL</b> ⍬, will not change anything and can be used to
+query the current setting for 2 <b>⎕RVAL</b>.
 </p>
 <p>Example:
 </p>
@@ -8860,7 +8861,7 @@ Next: <a href="#Control-of-a-maximum-depth-_002d-4-_2395RVAL-B" accesskey="n" re
 <span id="Control-of-the-data-types_003a-3-_005b_003f_005dRVAL-B"></span><h4 class="subsubsection">2.40.2.4 Control of the data types: 3 ⎕RVAL B</h4>
 
 <p>The types (i.e. CHARACTER, INTEGER, REAL, COMPLEX, or NESTED) of subsequently
-generated random values can be controlled with 3 ⎕RVAL B as follows.
+generated random values can be controlled with 3 <b>⎕RVAL</b> B as follows.
 </p>
 <p>B must be a vector with up to 5 positive numbers, corresponding to the types.
 Shorter vectors are filled with 0 (the corresponding types will not occur) and
@@ -8869,9 +8870,9 @@ longer vectors will raise a LENGTH error.
 <p>Once the type was chosen, the ravel item will be:
 </p>
 <ul>
-<li> for type CHARACTER: a random character with ⎕UCS between 0 and $3000
+<li> for type CHARACTER: a random character with <b>⎕UCS</b> between 0 and $3000
 (exclusive). Larger Unicodes typically cause display problems. If you need
-larger Unicodes, use ⎕UCS with random integers.
+larger Unicodes, use <b>⎕UCS</b> with random integers.
 
 </li><li> for type INTEGER: a random 64-bit integer between -$8000000000000000 and
 $7FFFFFFFFFFFFFFF.
@@ -8885,9 +8886,9 @@ between 0.0 and 1.0 (exclusive), and
 and type) as their parent.
 </li></ul>
 
-<p>3 ⎕RVAL always returns its previous setting (i.e. before applying B).
-An empty B, e.g. 3 ⎕RVAL ⍬ will not change anything and can be used to
-query the current setting for 3 ⎕RVAL.
+<p>3 <b>⎕RVAL</b> always returns its previous setting (i.e. before applying B).
+An empty B, e.g. 3 <b>⎕RVAL</b> ⍬ will not change anything and can be used to
+query the current setting for 3 <b>⎕RVAL</b>.
 </p>
 <p>Example:
 </p>
@@ -8912,14 +8913,14 @@ Next: <a href="#Control-of-the-element-count-_002d-5-_2395RVAL-B" accesskey="n" 
 <p>If the probability of generating a nested value is &gt; 0 then the depth of
 random values can become arbitrarily large and could therefore exceed the
 system limit for the depth of the random value being produced. This can be
-prevented by setting a maximum depth for every value generated. ⎕RVAL sets
+prevented by setting a maximum depth for every value generated. <b>⎕RVAL</b> sets
 the probability of the deepest allowed depth to 0.
 </p>
-<p>4 ⎕RVAL B expects B to be a non-negative integer which is the deepest allowed
+<p>4 <b>⎕RVAL</b> B expects B to be a non-negative integer which is the deepest allowed
 depth (0 suppresses nesting entirely regardless of the type distribution);
 </p>
-<p>An empty B, e.g. 4 ⎕RVAL ⍬, will not change anything and can be used to
-query the current setting for 4 ⎕RVAL.
+<p>An empty B, e.g. 4 <b>⎕RVAL</b> ⍬, will not change anything and can be used to
+query the current setting for 4 <b>⎕RVAL</b>.
 </p>
 <hr>
 </div>
@@ -9013,7 +9014,7 @@ Next: <a href="#Syntax-Alternatives" accesskey="n" rel="next">Syntax Alternative
 </div>
 <span id="monadic-_005b_003f_005dRVAL-B"></span><h4 class="subsection">2.40.3 monadic ⎕RVAL B</h4>
 
-<p>Calling ⎕RVAL monadically either produces one new random APL value or displays
+<p>Calling <b>⎕RVAL</b> monadically either produces one new random APL value or displays
 a list of arguments for dyadic <b>⎕RVAL</b>:
 </p>
 <ul>
@@ -9025,7 +9026,7 @@ a list of arguments for dyadic <b>⎕RVAL</b>:
 </li></ul>
 
 <p>The properties of that next value can be controlled by the dyadic calls
-of ⎕RVAL as described above. If no prior dyadic call of ⎕RVAL was made then
+of <b>⎕RVAL</b> as described above. If no prior dyadic call of <b>⎕RVAL</b> was made then
 the properties have the following defaults:
 </p>
 <div class="example">
@@ -9094,7 +9095,7 @@ Previous: <a href="#monadic-_2395RVAL-B" accesskey="p" rel="prev">monadic ⎕RVA
 </div>
 <span id="Syntax-Alternatives-1"></span><h4 class="subsection">2.40.4 Syntax Alternatives</h4>
 
-<p>For an improved readability, ⎕RVAL also accepts string arguments for its left
+<p>For an improved readability, <b>⎕RVAL</b> also accepts string arguments for its left
 argument A and also the sub-function notation:
 </p>
 <div class="example">
@@ -9117,7 +9118,7 @@ Next: <a href="#g_t_2395SQL-_002d-SQL-Database-Interface" accesskey="n" rel="nex
 </div>
 <span id="g_t_005b_003f_005dSI-_002d-State-Indicator"></span><h3 class="section">2.41 ⎕SI - State Indicator</h3>
 
-<p>⎕SI returns aspects of the current State Indicator, similar to the standard
+<p><b>⎕SI</b> returns aspects of the current State Indicator, similar to the standard
 command )SI. This can be used, for example, to create debug functions similar
 to the assert() macro in C/C++:
 </p>
@@ -9143,36 +9144,36 @@ to the assert() macro in C/C++:
 ∇
 </pre></div>
 
-<p>The right argument of ⎕SI specifies which aspect of the State Indicator
+<p>The right argument of <b>⎕SI</b> specifies which aspect of the State Indicator
 shall be returned:
 </p>
 <ul>
-<li> ⎕SI 1: The name of the context. That name is either:
+<li> <b>⎕SI</b> 1: The name of the context. That name is either:
 <ul>
 <li> the name of a defined function, or
 </li><li> ◊ for an immediate execution context, or
 </li><li> ⍎ for an execute context.
 </li></ul>
 
-</li><li> ⎕SI 2: The line number (of a defined function) or 0 for immediate execution
+</li><li> <b>⎕SI</b> 2: The line number (of a defined function) or 0 for immediate execution
 and execute contexts.
 
-</li><li> ⎕SI 3: The function name and line number in square brackets, for example:
+</li><li> <b>⎕SI</b> 3: The function name and line number in square brackets, for example:
 <b>&quot;FOO[3]&quot;</b>
 
-</li><li> ⎕SI 4: Either the statement text of the function line or the error text of
+</li><li> <b>⎕SI</b> 4: Either the statement text of the function line or the error text of
  an error that has occurred on the line
 
-</li><li> ⎕SI 5: The program counter (= token number counted from the start of the
+</li><li> <b>⎕SI</b> 5: The program counter (= token number counted from the start of the
 function text)
 
-</li><li> ⎕SI 6: the parse mode of the context (immediate execution, execute, or
+</li><li> <b>⎕SI</b> 6: the parse mode of the context (immediate execution, execute, or
 defined function).
 
 </li></ul>
 
-<p>If no left argument is provided then the result of ⎕SI is a vector with
-one entry per State Indicator level (and hence ⍴⎕SI B is the depth of the SI
+<p>If no left argument is provided then the result of <b>⎕SI</b> is a vector with
+one entry per State Indicator level (and hence ⍴<b>⎕SI</b> B is the depth of the SI
 stack).
 </p>
 <p>If the optional left argument A is provided then it specifies a particular
@@ -9180,7 +9181,7 @@ level of the SI instead of the entire SI. A should be an integer scalar.
 If A is positive then the level is counted from the oldest entry to the latest,
 while negative A counts from the latest to the oldest level.
 </p>
-<p>For example, ¯1 ⎕SI refers to the currently executing context, ¯2 ⎕SI is
+<p>For example, ¯1 <b>⎕SI</b> refers to the currently executing context, ¯2 <b>⎕SI</b> is
 the caller, and so on.
 </p>
 
@@ -9193,11 +9194,11 @@ Next: <a href="#g_t_2395SYL-_002d-System-limits" accesskey="n" rel="next">⎕SYL
 </div>
 <span id="g_t_005b_003f_005dSQL-_002d-SQL-Database-Interface"></span><h3 class="section">2.42 ⎕SQL - SQL Database Interface</h3>
 
-<p>⎕SQL was kindly contributed by Elias Mårtenson.
+<p><b>⎕SQL</b> was kindly contributed by Elias Mårtenson.
 </p>
 <p>As of GNU APL 1.6, the native function SQL has been replaced by the
-system function ⎕SQL, described below. ⎕SQL has an axis argument that
-selects a sub-function of ⎕SQL.
+system function <b>⎕SQL</b>, described below. <b>⎕SQL</b> has an axis argument that
+selects a sub-function of <b>⎕SQL</b>.
 </p>
 <ul class="section-toc">
 <li><a href="#g_t_2395SQL_005b0_005d-_236c-_002d-display-sub_002dfunction-numbers" accesskey="1">⎕SQL[0] ⍬ : display sub-function numbers</a></li>
@@ -9224,8 +9225,8 @@ Next: <a href="#g_t_2395SQL_005b0_005d-_0027_0027-_002d-display-sub_002dfunction
 </div>
 <span id="g_t_005b_003f_005dSQL_005b0_005d-_005b_003f_005d-_003a-display-sub_002dfunction-numbers"></span><h4 class="subsection">2.42.1 ⎕SQL[0] ⍬ : display sub-function numbers</h4>
 
-<p>The system function ⎕SQL is divided into a number of sub-functions. The
-desired sub-function of ⎕SQL is selected by means of a numeric axis argument:
+<p>The system function <b>⎕SQL</b> is divided into a number of sub-functions. The
+desired sub-function of <b>⎕SQL</b> is selected by means of a numeric axis argument:
 </p>
 <div class="example">
 <pre class="example">    Valid (sub-)function numbers for ⎕SQL:
@@ -9265,7 +9266,7 @@ Next: <a href="#ref-_2190-A-_2395SQL_005b1_005d-B-_002d-open-database" accesskey
 </div>
 <span id="g_t_005b_003f_005dSQL_005b0_005d-_0027_0027-_003a-display-sub_002dfunction-names"></span><h4 class="subsection">2.42.2 ⎕SQL[0] <code>''</code> : display sub-function names</h4>
 
-<p>As of <b>SVN version 1901</b>, ⎕SQL has been promoted to be a function group.
+<p>As of <b>SVN version 1901</b>, <b>⎕SQL</b> has been promoted to be a function group.
 Instead of the function nunbers above, one can therefore also use function
 names with the following syntax:
 </p>
@@ -9322,7 +9323,7 @@ Next: <a href="#g_t_2395SQL_005b2_005d-B-_002d-close-database" accesskey="n" rel
 </pre></div>
 
 <p>Connect to database of type A using connection arguments B. The result is a
-database handle <b>ref</b> to be used in the other ⎕SQL functions.
+database handle <b>ref</b> to be used in the other <b>⎕SQL</b> functions.
 </p>
 <p><b>A</b> must be a string indicating the database type. Currently supported
 values are &rsquo;postgresql&rsquo; and &rsquo;sqlite&rsquo;.
@@ -9358,7 +9359,7 @@ Next: <a href="#Z-_2190-A-_2395SQL_005b3-ref_005d-B-_002d-database-query-_0028wi
 </p>
 <p>B is the database handle that should be disconnected. After this
 function has been called, no further operations are to be performed
-on this handle. Future calls to ⎕SQL[1] may reuse previously
+on this handle. Future calls to <b>⎕SQL</b>[1] may reuse previously
 disconnected handles.
 </p>
 <hr>
@@ -9501,7 +9502,7 @@ Next: <a href="#Z-_2190-_2395SQL_005b11_005d-B-_002d-library-version-string" acc
 
 <p>Return the version number (integer scalar) of the library that was used
 to implement the database type <b>B</b>. Depending on the SQL libraries
-detected by ./configure, ⎕SQL may support no, one, or more than one
+detected by ./configure, <b>⎕SQL</b> may support no, one, or more than one
 kind of SQL database type (the database type is sometimes refered to as
 &quot;SQL provider).
 </p>
@@ -9516,7 +9517,7 @@ Next: <a href="#SQLite-Quickstart" accesskey="n" rel="next">SQLite Quickstart</a
 
 <p>Return the version string of the library that was used to implement the
 database type <b>B</b>. Depending on the SQL libraries
-detected by ./configure, ⎕SQL may support no, one, or more than one
+detected by ./configure, <b>⎕SQL</b> may support no, one, or more than one
 kind of SQL database type (the database type is sometimes refered to as
 &quot;SQL provider).
 </p>
@@ -9645,7 +9646,7 @@ CLEAR WS
 <b>⎕SQL.open</b> simply connects to it and returns a handle (a small integer)
 for the connection. The handle is used like a file descri[tor for an open
 file in the operating system. The handle is later used for subsequent database
-operations of ⎕SQL (until the connection is closed).
+operations of <b>⎕SQL</b> (until the connection is closed).
 </p>
 <p>If no file with the given <b>Filename</b> exists, then <b>⎕SQL.open</b>
 creates a file with than name and then connects to it. It is possible to have
@@ -9732,7 +9733,7 @@ inside (quoted) APL strings we have quoted the multi-line query string with
 ««« ... »»» instead of &quot;&quot;&quot; ... &quot;&quot;&quot; or &rdquo;&rsquo; ... &rdquo;&rsquo;.
 </p>
 <p>The right argument of <b>⎕SQL.query</b> is <b>DB ⍬</b> (and not simply <b>DB</b> as
-in other ⎕SQL functions). This is because an SQL query string can have
+in other <b>⎕SQL</b> functions). This is because an SQL query string can have
 parameters as we will see below. The query string above has no parameters and
 therefore the parameter list for the query string is <b>⍬</b> aka. <b>⍳0</b>.
 </p>
@@ -9799,9 +9800,9 @@ before the result of each replacement is sent as a (static) query to the
 database machinery. This feature makes it rather simple to write an APL
 matrix (= query parameter) to the database.
 </p>
-<p>Dynamic query strings are allowed in two ⎕SQL sub-functions: in function 3
-(⎕SQL.query) and in function 4 (⎕SQL.update). The syntax differs slightly
-beween ⎕SQL function numbers and ⎕SQL function names:
+<p>Dynamic query strings are allowed in two <b>⎕SQL</b> sub-functions: in function 3
+(<b>⎕SQL</b>.query) and in function 4 (<b>⎕SQL</b>.update). The syntax differs slightly
+beween <b>⎕SQL</b> function numbers and <b>⎕SQL</b> function names:
 </p>
 <div class="example">
 <pre class="example">      Qs ⎕SQL.query DB PARAMS       ⍝ ⎕SQL sub-function name
@@ -9935,7 +9936,7 @@ Previous: <a href="#Reading-a-Database-Table-into-an-APL-Matrix" accesskey="p" r
 </div>
 <span id="Updating-a-Database-Table-1"></span><h4 class="subsubsection">2.42.14.7 Updating a Database Table</h4>
 
-<p>The ⎕SQL sub-function introduced so far suffice, at least in principle. The
+<p>The <b>⎕SQL</b> sub-function introduced so far suffice, at least in principle. The
 APL programmer can read a table from the database into APL, analyse and/or
 modify it in APL, and optionally write it back into the database.
 </p>
@@ -10034,7 +10035,7 @@ Next: <a href="#g_t_2395XML-_002d-XML-Parsing" accesskey="n" rel="next">⎕XML  
 </div>
 <span id="g_t_005b_003f_005dSYL-_002d-System-limits"></span><h3 class="section">2.43 ⎕SYL - System limits</h3>
 
-<p>System variable ⎕SYL shows a number of system limits when referenced:
+<p>System variable <b>⎕SYL</b> shows a number of system limits when referenced:
 </p>
 <div class="example">
 <pre class="example">      ⎕SYL
@@ -10066,8 +10067,8 @@ Next: <a href="#g_t_2395XML-_002d-XML-Parsing" accesskey="n" rel="next">⎕XML  
  print length limit (0 = no limit)                         0 
 </pre></div>
 
-<p>Most system limits are read-only; attempting to assign ⎕SYL will result
-in a SYNTAX ERROR. Indexed assignment to ⎕SYL will result in an
+<p>Most system limits are read-only; attempting to assign <b>⎕SYL</b> will result
+in a SYNTAX ERROR. Indexed assignment to <b>⎕SYL</b> will result in an
 INDEX ERROR unless the limit is writable. Some read-only limits can
 be changed at compile-time via ./configure
 </p>
@@ -10098,7 +10099,7 @@ if:
 is reported and the limit is reset to 0 (meaning no limit) in order
 to prevent the interpreter from locking up.
 </p>
-<p>The main use of ⎕SYL is to troubleshoot infinite recursion in user-defined
+<p>The main use of <b>⎕SYL</b> is to troubleshoot infinite recursion in user-defined
 function that would otherwise cause the machine to start swapping or to
 become non-responding.
 </p>
@@ -10155,7 +10156,7 @@ Previous: <a href="#g_t_2395SYL_005b24-25-26_003b_005d" accesskey="p" rel="prev"
 size of APL values when printed as statement results. It is fairly easy
 in APL to create huge APL values by mistake. During development it can
 be useful to limit the amount of data printed. If the ravel length of,
-say, VALUE exceeds ⎕SYL[27;2] (i.e. if ⎕SYL[27;2] ≤ ⍴,VALUE) then SH↑VALUE
+say, VALUE exceeds <b>⎕SYL</b>[27;2] (i.e. if <b>⎕SYL</b>[27;2] ≤ ⍴,VALUE) then SH↑VALUE
 is printed instead of VALUE. The shape SH is computed like this:
 </p>
 <div class="example">
@@ -10189,7 +10190,7 @@ Next: <a href="#Some-XML-Terminology" accesskey="n" rel="next">Some XML Terminol
 </div>
 <span id="Purpose-1"></span><h4 class="subsection">2.44.1 Purpose</h4>
 
-<p>GNU APL provides ⎕XML as a means of performing <b>elementary</b>
+<p>GNU APL provides <b>⎕XML</b> as a means of performing <b>elementary</b>
 manipulations of APL character strings that are formatted according
 to the XML standard. The anticipated procedure for such modifications
 is something like:
@@ -10207,7 +10208,7 @@ Hello
 &lt;A&gt;&lt;B&gt;&lt;C&gt;Hello World&lt;/C&gt;&lt;/B&gt;&lt;/A&gt;&quot;
 </pre></div>
 
-<p>The scope (functionality) of ⎕XML is then:
+<p>The scope (functionality) of <b>⎕XML</b> is then:
 </p>
 <ul>
 <li> Conversion of (valid) XML strings to associative APL arrays that can be
@@ -10215,7 +10216,7 @@ Hello
 </li><li> Conversion of associative APL arrays back to valid XML strings,
 </li><li> Simple (at APL level) access to the data contained in XML strings, and
 </li><li> Transparent access to those (mostly XML specific) portions of the XML
-  string that are not (yet) handled by ⎕XML; this means that the user of ⎕XML
+  string that are not (yet) handled by <b>⎕XML</b>; this means that the user of <b>⎕XML</b>
   shall be able to handle advanced XML aspects (like document type
   declarations (DTDs), document validation, etc.) in APL without much overhead.
 </li></ul>
@@ -10307,9 +10308,9 @@ preserved.
 <p>Processing instructions and declarations are typically located at the
 beginning of the XML document and at the same level as the root of the tree
 defined by the document. Document type declarations are preserved (so that
-they can be processed in APL), but are currently ignored by ⎕XML. As a
+they can be processed in APL), but are currently ignored by <b>⎕XML</b>. As a
 consequence, entity declarations have no effect and only the predefined XML
-entities (i.e. &amp;, &lt;, &gt;, &rsquo;, and &quot;) are recognized (and translated) by ⎕XML.
+entities (i.e. &amp;, &lt;, &gt;, &rsquo;, and &quot;) are recognized (and translated) by <b>⎕XML</b>.
 </p>
 <hr>
 </div>
@@ -10358,7 +10359,7 @@ work because:
  between XML documents that are equivalent from an XML perspective.
 
 </li><li> Conflicts between tag names and attribute names. In XML, the same name
-  can designate an attribute in one node and a tag in another node. ⎕XML keeps
+  can designate an attribute in one node and a tag in another node. <b>⎕XML</b> keeps
   all information from the &lt; of a start tag to the &gt; of an end tag in a single
   associative array, therefore the attribute names must somehow differ from
   the (sub-) tag names.
@@ -10372,8 +10373,8 @@ work because:
   be preserved.
 </li></ul>
 
-<p>⎕XML solves these issues with a simple naming convention for all member names
-in the (recursive) associative array that is produced by monadic ⎕XML. Every
+<p><b>⎕XML</b> solves these issues with a simple naming convention for all member names
+in the (recursive) associative array that is produced by monadic <b>⎕XML</b>. Every
 member name consists of 3 components that together yield a valid APL variable
 name (and therefore a valid member name that is understood by the APL parser):
 </p>
@@ -10387,7 +10388,7 @@ name (and therefore a valid member name that is understood by the APL parser):
   in every associative array below the top-level and whose value is the
   original XML tag name of a tag, or
 
-</li><li> the character ∆ characterizes a name that was synthesized by ⎕XML
+</li><li> the character ∆ characterizes a name that was synthesized by <b>⎕XML</b>
   itself to tag a text (sub-) segment that has no tag of its own. The
   corresponding XML entity was not a tag (and therefore had no tag name), or
 
@@ -10398,10 +10399,10 @@ name (and therefore a valid member name that is understood by the APL parser):
 
 </li><li> a position prefix of the form <b>NN</b>, where NN is the position
  of the member in relation to the tag to which it belongs. The numbering
- starts at ⎕IO and restarts at every XML start or leaf tag.
+ starts at <b>⎕IO</b> and restarts at every XML start or leaf tag.
 
 </li><li> the attribute name or tag name. For those parts of an XML entity that
-  do not have a tag name, the member name is synthesized by ⎕XML and the
+  do not have a tag name, the member name is synthesized by <b>⎕XML</b> and the
   member value will be the text in the XML document with predefined XML
   entities replaced by their single characters, i.e.:
   <ul>
@@ -10410,13 +10411,13 @@ name (and therefore a valid member name that is understood by the APL parser):
   </li><li> &gt; for &amp;gt,
   </li><li> &rsquo; for &amp;apos,
   </li><li> &quot; for &amp;quot,
-  </li><li> ⎕UCS nnn for &amp;#nnn, and
-  </li><li> ⎕UCS $xxx for &amp;#xxx
+  </li><li> <b>⎕UCS</b> nnn for &amp;#nnn, and
+  </li><li> <b>⎕UCS</b> $xxx for &amp;#xxx
   </li></ul>
 </li></ul>
 
 <p>Let NN be a sequence of decimal digits. Then only the following 4
-synthesized names are produced by ⎕XML:
+synthesized names are produced by <b>⎕XML</b>:
 </p>
 <ul>
 <li> <b>∆NNcomment</b> for XML comments, i.e. &lt;!&mdash; ... &mdash;&gt; in XML,
@@ -10436,7 +10437,7 @@ node or document, i.e. the attributes inside a tag, the sub-nodes between a
 start tag and its corresponding end tag (if any), declarations, etc. will
 be contained in a single associative array.
 </p>
-<p>Examples of APL member names (assuming ⎕IO←1):
+<p>Examples of APL member names (assuming <b>⎕IO</b>←1):
 </p>
 <div class="example">
 <pre class="example">      ⍙1              ⍝ the first member in every XML node. Its value is the node tag.
@@ -10463,13 +10464,13 @@ to an associative APL array Z and vice versa.
 <p><b>Note</b>: If you convert an associative APL array back to a an XML document,
 the result is a possibly very long string containing several linefeed
 characters. That is OK if the string is written to a file, but causes problems
-when the string is displayed and longer than ⎕PW. The standard APL
-folding of output near ⎕PW make the string then look somewhat garbled.
+when the string is displayed and longer than <b>⎕PW</b>. The standard APL
+folding of output near <b>⎕PW</b> make the string then look somewhat garbled.
 This effect can be suppressed in 2 ways:
 </p>
 <ol>
-<li> set ⎕PW large enough, or
-</li><li> prefix the string with ⊃35⎕CR as in the examples below.
+<li> set <b>⎕PW</b> large enough, or
+</li><li> prefix the string with ⊃35<b>⎕CR</b> as in the examples below.
 </li></ol>
 
 <hr>
@@ -10506,9 +10507,9 @@ APL←⎕XML XML
 <p>Then
 </p>
 <ul>
-<li> <b>Z←0 ⎕XML B</b> is the same as monadic Z←⎕XML B.
+<li> <b>Z←0 ⎕XML B</b> is the same as monadic Z←<b>⎕XML</b> B.
 
-</li><li> <b>Z←1 ⎕XML B</b> is like 0 ⎕XML B, except that B is not the XML
+</li><li> <b>Z←1 ⎕XML B</b> is like 0 <b>⎕XML</b> B, except that B is not the XML
 document (string) itself but the name of a file from which an XML document
 is read.
 
@@ -10518,10 +10519,10 @@ the APL primitive PICK (i.e. Z←P⊃APL or (P⊃APL)←value and can be used to
 address the data in an XML node.
 
 </li><li> <b>Z←3 ⎕XML B</b> splits an APL member name (as produced by e.g.
-monadic ⎕XML into a 3-item vector Z. Z[1] is a single character indicating
+monadic <b>⎕XML</b> into a 3-item vector Z. Z[1] is a single character indicating
 the category (i.e. a character scalar ∆, ⍙, or _). Z[2] is the position (an
-integer scalar ≥ ⎕IO). Z[3] is a (nested) APL string. 3 ⎕XML has an
-inverse function ¯3 ⎕XML which converts a 3-item vector as produced by 3 ⎕XML
+integer scalar ≥ <b>⎕IO</b>). Z[3] is a (nested) APL string. 3 <b>⎕XML</b> has an
+inverse function ¯3 <b>⎕XML</b> which converts a 3-item vector as produced by 3 <b>⎕XML</b>
 back into an APL member name indicating the category (i.e. _, ∆, or ⍙)
 and the name from the XML tag:
 
@@ -10558,7 +10559,7 @@ XML
              └─── Subtag
 </pre></div>
 
-</li><li> <b>Z←5 ⎕XML B</b> is like 4 ⎕XML but displays not only the XML tags but
+</li><li> <b>Z←5 ⎕XML B</b> is like 4 <b>⎕XML</b> but displays not only the XML tags but
 also other XML nodes (declarations, attributes, etc.):
 
 <div class="example">
@@ -10584,7 +10585,7 @@ XML
        └─── _3∆text               
 </pre></div>
 
-</li><li> <b>Z←6 ⎕XML B</b> is like 4 ⎕XML but displays not only the member
+</li><li> <b>Z←6 ⎕XML B</b> is like 4 <b>⎕XML</b> but displays not only the member
 name but the entire path to the member:
 
 <div class="example">
@@ -10626,7 +10627,7 @@ filter out items along the way).
 ._3_Document._2_Tag1._4_Subtag._3∆text   
 </pre></div>
 
-</li><li> <b>Z←8 ⎕XML B</b> is like Z←7 ⎕XML B, except that only the subset of
+</li><li> <b>Z←8 ⎕XML B</b> is like Z←7 <b>⎕XML</b> B, except that only the subset of
 those members that are related to tags (the tag name ⍙ and tag attributes)
 are returned:
 
@@ -10639,7 +10640,7 @@ are returned:
 ._3Document._2Tag1._4Subtag.⍙2name
 </pre></div>
 
-</li><li> <b>Z←9 ⎕XML B</b> is like Z←7 ⎕XML B, except that only the subset of
+</li><li> <b>Z←9 ⎕XML B</b> is like Z←7 <b>⎕XML</b> B, except that only the subset of
 synthesized members other than ∆text are returned:
 
 <div class="example">
@@ -10649,7 +10650,7 @@ synthesized members other than ∆text are returned:
 ._3Document._2Tag1._4Subtag.∆2comment
 </pre></div>
 
-</li><li> <b>Z←10 ⎕XML B</b> is like Z←7 ⎕XML B, except that only the subset of
+</li><li> <b>Z←10 ⎕XML B</b> is like Z←7 <b>⎕XML</b> B, except that only the subset of
 synthesized ∆text members are returned:
 
 <div class="example">
@@ -10664,7 +10665,7 @@ synthesized ∆text members are returned:
 .∆18text··························
 </pre></div>
 
-</li><li> <b>Z←11 ⎕XML B</b> is like Z←7 ⎕XML B, except that only the tag
+</li><li> <b>Z←11 ⎕XML B</b> is like Z←7 <b>⎕XML</b> B, except that only the tag
 names are returned:
 
 <div class="example">
@@ -10674,7 +10675,7 @@ names are returned:
 ._3Document._2Tag1._4Subtag
 </pre></div>
 
-</li><li> <b>Z←12 ⎕XML B</b> is like Z←7 ⎕XML B, except that all member
+</li><li> <b>Z←12 ⎕XML B</b> is like Z←7 <b>⎕XML</b> B, except that all member
 names of B are returned without descending into the sub-tree:
 
 <div class="example">
@@ -10686,7 +10687,7 @@ names of B are returned without descending into the sub-tree:
 </pre></div>
 
 <p>This variant may also be useful for structured variables that were not
-created by ⎕XML.
+created by <b>⎕XML</b>.
 </p>
 </li><li> <b>Z←13 ⎕XML B</b> shows the (flat) tag names in B, but but does
 not descend into any sub-tree of B.
@@ -10724,18 +10725,18 @@ Previous: <a href="#Dyadic-_2395XML" accesskey="p" rel="prev">Dyadic ⎕XML</a>,
 </div>
 <span id="XML-Queries-1"></span><h4 class="subsection">2.44.6 XML Queries</h4>
 
-<p>The different functions in dyadic ⎕XML are intended to construct XML queries.
+<p>The different functions in dyadic <b>⎕XML</b> are intended to construct XML queries.
 An XML query extracts information from, or modifies information in, an XML
 document. XML queries may differ considerably in their details, but usually
 follow these top-level steps:
 </p>
 <ol>
-<li> Read an XML document into, say, APL (APL←0 ⎕XML B or APL←1 ⎕XML B)
-</li><li> Optionally, display the structure of the document (3, 4, or 5 ⎕XML APL)
-</li><li> Select a subset of XML nodes (= GNU APL member names, 6 ⎕XML APL)
+<li> Read an XML document into, say, APL (APL←0 <b>⎕XML</b> B or APL←1 <b>⎕XML</b> B)
+</li><li> Optionally, display the structure of the document (3, 4, or 5 <b>⎕XML</b> APL)
+</li><li> Select a subset of XML nodes (= GNU APL member names, 6 <b>⎕XML</b> APL)
 </li><li> retrieve or modify the data in the selected XML nodes
- (with something like MEMBERS←(⊂APL) FUN¨6⎕XML APL←⎕XML followed by MEMBER⊃ )
-</li><li> Optionally, convert the modified XML document back to XML (0 ⎕XML APL)
+ (with something like MEMBERS←(⊂APL) FUN¨6<b>⎕XML</b> APL←<b>⎕XML</b> followed by MEMBER⊃ )
+</li><li> Optionally, convert the modified XML document back to XML (0 <b>⎕XML</b> APL)
 </li></ol>
 
 <hr>
@@ -11292,6 +11293,7 @@ an up-to-date description of limitations.
 <ul class="section-toc">
 <li><a href="#System-Limits" accesskey="1">System Limits</a></li>
 <li><a href="#Shared-Variables" accesskey="2">Shared Variables</a></li>
+<li><a href="#Known-Differences-between-IBM-APL2-and-GNU-APL" accesskey="3">Known Differences between IBM APL2 and GNU APL</a></li>
 </ul>
 <hr>
 <div class="section" id="System-Limits">
@@ -11329,12 +11331,12 @@ by means of ./configure (see README-2-configure).
 <div class="section" id="Shared-Variables">
 <div class="header">
 <p>
-Previous: <a href="#System-Limits" accesskey="p" rel="prev">System Limits</a>, Up: <a href="#Limitations-and-Missing-Features" accesskey="u" rel="up">Limitations and Missing Features</a> &nbsp; [<a href="#SEC_Contents" title="Table of contents" rel="contents">Contents</a>]</p>
+Next: <a href="#Known-Differences-between-IBM-APL2-and-GNU-APL" accesskey="n" rel="next">Known Differences between IBM APL2 and GNU APL</a>, Previous: <a href="#System-Limits" accesskey="p" rel="prev">System Limits</a>, Up: <a href="#Limitations-and-Missing-Features" accesskey="u" rel="up">Limitations and Missing Features</a> &nbsp; [<a href="#SEC_Contents" title="Table of contents" rel="contents">Contents</a>]</p>
 </div>
 <span id="Shared-Variables-1"></span><h3 class="section">3.2 Shared Variables</h3>
 
-<p>The system functions and variables related to shared variables, i.e. ⎕SVO,
-⎕SVR, ⎕SVC, ⎕SVS, and ⎕SVQ, are implemented.
+<p>The system functions and variables related to shared variables, i.e. <b>⎕SVO</b>,
+<b>⎕SVR</b>, <b>⎕SVC</b>, <b>⎕SVS</b>, and <b>⎕SVQ</b>, are implemented.
 </p>
 <p>Communication between two workspaces is supported, but with some
 limitations. Two workspaces can only communicate via shared variables if they
@@ -11352,6 +11354,123 @@ functionality of the interpreter.
 convenient to add your own commands or your own system variables to the
 APL interpreter rather than adding auxiliary processors.
 </p>
+<hr>
+</div>
+<div class="section" id="Known-Differences-between-IBM-APL2-and-GNU-APL">
+<div class="header">
+<p>
+Previous: <a href="#Shared-Variables" accesskey="p" rel="prev">Shared Variables</a>, Up: <a href="#Limitations-and-Missing-Features" accesskey="u" rel="up">Limitations and Missing Features</a> &nbsp; [<a href="#SEC_Contents" title="Table of contents" rel="contents">Contents</a>]</p>
+</div>
+<span id="Known-Differences-between-IBM-APL2-and-GNU-APL-1"></span><h3 class="section">3.3 Known Differences between IBM APL2 and GNU APL</h3>
+
+<p>We have received a thorough 49-item list of differences between IBM
+APL2 and GNU APL, compiled by <b>Blake McBride</b> against the IBM APL2
+Language Reference Manual and tested by him against GNU APL SVN
+r2057. We audited and verified every item on the list carefully
+against the current interpreter, and the majority of them have since
+been fixed (in the apl-2.0 tree starting around SVN r3565).
+</p>
+<p>The items that remain are, for the most part, small GNU APL
+extensions that are not documented anywhere else in this manual:
+cases where GNU APL is deliberately more permissive than the LRM
+requires (e.g. accepting syntax IBM APL2 rejects), generalizations
+that widen a documented limit rather than narrow it, and a handful of
+display/formatting choices where GNU APL&rsquo;s output was judged more
+readable on a screen than IBM APL2&rsquo;s line-printer-era convention. A
+few are genuine gaps that are simply not implemented (an alternate
+line editor, symbol-table resizing) because they no longer serve a
+purpose in a modern, source-available interpreter. A very small
+number are acknowledged, unresolved differences that are difficult to
+reverse-engineer from the LRM&rsquo;s text alone without access to IBM&rsquo;s
+own (proprietary, unavailable) source code, and are left as an open
+question for now.
+</p>
+<p>The table below lists every item that is still different today. For
+each one, column 1 names the construct, column 2 shows IBM APL2&rsquo;s
+documented behavior, and column 3 shows GNU APL&rsquo;s actual behavior.
+</p>
+<span id="Syntax-and-Expressions"></span><h4 class="subheading">Syntax and Expressions</h4>
+
+<table>
+<thead><tr><th width="34%">Issue</th><th width="30%">IBM APL2</th><th width="36%">GNU APL</th></tr></thead>
+<tr><td width="34%"><code>((A←2)↑A)←0</code></td><td width="30%">Succeeds; <code>A</code> becomes <code>0 0 3 4 5 6 7 8 9 10</code></td><td width="36%">SYNTAX ERROR (assignment embedded in a selective-specification
+selector is not yet supported)</td></tr>
+<tr><td width="34%"><code>⎕FOO B</code> (<b>⎕FOO</b> undefined or misspelled)</td><td width="30%">SYNTAX ERROR</td><td width="36%">Parsed as <code>⎕ FOO B</code>: a bare <b>⎕</b> (evaluated input) immediately
+followed by a function name, an established GNU APL idiom that the
+tokenizer cannot distinguish from a typo</td></tr>
+<tr><td width="34%"><code>3FN⍳5</code> (a number immediately followed by a name,
+no space)</td><td width="30%">SYNTAX ERROR (a space is required)</td><td width="36%">Accepted; parsed as the strand <code>3 FN</code> &ndash; kept for backward
+compatibility with non-IBM APL dialects that also allow it</td></tr>
+</table>
+
+<span id="Primitive-Functions-and-Display"></span><h4 class="subheading">Primitive Functions and Display</h4>
+
+<table>
+<thead><tr><th width="34%">Issue</th><th width="30%">IBM APL2</th><th width="36%">GNU APL</th></tr></thead>
+<tr><td width="34%"><code>S[2]←'NONE'</code> (indexed assignment, shape mismatch)</td><td width="30%">RANK ERROR</td><td width="36%">LENGTH ERROR (consistent with GNU APL&rsquo;s own acceptance of a
+length-1 vector wherever a scalar is expected)</td></tr>
+<tr><td width="34%">Complex-number column padding</td><td width="30%">Left-justifies the real part within its field, e.g. <code>2  J3</code></td><td width="36%">Right-justifies it, e.g. <code>  2J3</code> &ndash; the <b>J</b> lands in the same
+column either way, only the padding side differs</td></tr>
+<tr><td width="34%">Nested/mixed-array column spacing</td><td width="30%">Follows the LRM&rsquo;s own documented spacing formula</td><td width="36%">Occasionally wider (extra blank columns) in specific cases mixing a
+character header with numeric data; the underlying IBM formula could
+not be fully reverse-engineered from the LRM&rsquo;s text alone</td></tr>
+<tr><td width="34%"><b>⎕PW</b>-folded matrix display</td><td width="30%">Folds page-major: the first line-width chunk of every row, then the
+second chunk of every row, and so on</td><td width="36%">Folds row-major: each row is completed before the next one starts,
+considered more readable when reading wrapped text on a screen</td></tr>
+<tr><td width="34%"><b>⎕PW</b>-folded long numeric string</td><td width="30%">Exact-width fill; may split a number across two lines</td><td width="36%">Wraps at the nearest preceding space; never splits a number
+mid-digit-string</td></tr>
+<tr><td width="34%"><code>⍎</code> error report</td><td width="30%">Shows the 3 standard error lines, plus 2 more naming the outer
+statement that called <code>⍎</code></td><td width="36%">Shows the 3 standard error lines only</td></tr>
+<tr><td width="34%"><code>⍎¨</code> applied to a branch</td><td width="30%">DOMAIN ERROR (&quot;APPLIED WITH OPERATOR&quot;)</td><td width="36%">SYNTAX ERROR</td></tr>
+<tr><td width="34%">Error carets</td><td width="30%">Two carets: one marking how far execution progressed, one marking
+the likely error point (occasionally coinciding, shown adjacent)</td><td width="36%">Usually a single caret; the column position can also differ in some
+cases</td></tr>
+</table>
+
+<span id="System-Variables"></span><h4 class="subheading">System Variables</h4>
+
+<table>
+<thead><tr><th width="34%">Issue</th><th width="30%">IBM APL2</th><th width="36%">GNU APL</th></tr></thead>
+<tr><td width="34%"><b>⎕AI</b></td><td width="30%">A 4-item vector</td><td width="36%">A 5-item vector; the 5th item is a running count of executed APL
+expression lines, used internally by GNU APL&rsquo;s own test suite</td></tr>
+<tr><td width="34%"><code>4⎕AT</code> byte count for an arithmetic-progression integer
+vector (e.g. <code>10 20 30</code>)</td><td width="30%">Uses a compact &quot;arithmetic progression vector&quot; transfer-form
+encoding, giving a smaller byte count</td><td width="36%">Always uses the general per-item integer encoding; GNU APL&rsquo;s own
+auxiliary-processor wire protocol does not understand the compact
+form, so it is never emitted</td></tr>
+<tr><td width="34%"><code>⍴1⎕AT 'name'</code></td><td width="30%">A vector</td><td width="36%">A 1-row matrix &ndash; an extension analogous to IBM APL2&rsquo;s own
+&quot;a 1-element vector behaves like a scalar&quot; convention</td></tr>
+<tr><td width="34%"><code>⎕EX '⎕IO'</code> (expunging a system variable)</td><td width="30%">Succeeds, returns 1</td><td width="36%">Refused, returns 0 &ndash; avoids a value silently reverting or erroring
+the next time it is used</td></tr>
+<tr><td width="34%"><code>⎕CT←0.5 ⋄ ⎕CT</code></td><td width="30%"><code>0.5</code> (the LRM only discourages, but does not forbid, values
+above <code>1E¯9</code>)</td><td width="36%"><code>1E¯9</code> &ndash; the discouraged limit is enforced as a hard clamp</td></tr>
+<tr><td width="34%"><code>⎕IO←5</code>, <code>⎕PP←0</code>, etc. (an implicit-argument
+variable assigned an out-of-domain value)</td><td width="30%">Accepted immediately; the error is deferred to the next implicit use</td><td width="36%">Rejected immediately &ndash; fails fast, at the point of the actual mistake</td></tr>
+<tr><td width="34%"><b>⎕PP</b> / <b>⎕PW</b> maximum</td><td width="30%"><b>⎕PP</b> max 16; <b>⎕PW</b> max 254</td><td width="36%"><b>⎕PP</b> max 17; <b>⎕PW</b> unbounded &ndash; some strings need a very wide
+<b>⎕PW</b> to print readably as a single line</td></tr>
+</table>
+
+<span id="System-Commands-and-the-_005b_003f_005d_002dEditor"></span><h4 class="subheading">System Commands and the ∇-Editor</h4>
+
+<table>
+<thead><tr><th width="34%">Issue</th><th width="30%">IBM APL2</th><th width="36%">GNU APL</th></tr></thead>
+<tr><td width="34%">Editing a function that is currently suspended</td><td width="30%">Allowed, with an <code>SI WARNING</code> notice</td><td width="36%">Refused with DEFN ERROR &ndash; an interactive edit is never allowed to
+invalidate in-flight execution state</td></tr>
+<tr><td width="34%">∇-editor bracket commands, e.g. <code>[∆N M ...]</code>,
+<code>[∆-N]</code>, <code>[⎕N-]</code></td><td width="30%">Supported: list-form and open-ended delete/display forms</td><td width="36%">Only the single-line and explicit-range forms are supported &ndash; the
+∇-editor&rsquo;s interactive command set was always deliberately
+minimal (just enough to define functions); writing functions in an
+external editor is the intended workflow for anything more</td></tr>
+<tr><td width="34%"><code>)EDITOR 1</code></td><td width="30%">Selects or queries the active line editor</td><td width="36%">BAD COMMAND &ndash; not implemented; GNU APL has only the ∇-editor,
+so there is nothing to select</td></tr>
+<tr><td width="34%"><code>)SYMBOLS n</code></td><td width="30%">Resizes the symbol table</td><td width="36%">BAD COMMAND &ndash; not implemented; GNU APL&rsquo;s symbol table is not a
+fixed, pre-allocated size that would need resizing</td></tr>
+<tr><td width="34%"><code>SYSTEM LIMIT</code> message</td><td width="30%">Bare <code>SYSTEM LIMIT+</code> (detail available via <code>)MORE</code>)</td><td width="36%">Always qualified inline, e.g. <code>SYSTEM LIMIT (rank)</code></td></tr>
+<tr><td width="34%">Bad or unrecognized system command</td><td width="30%"><code>INCORRECT COMMAND</code></td><td width="36%"><code>BAD COMMAND</code></td></tr>
+<tr><td width="34%">Certain lexical/tokenizer errors</td><td width="30%">Generic <code>ENTRY ERROR</code> / <code>SYNTAX ERROR</code></td><td width="36%">More specific text, e.g. <code>Non-APL character</code>, <code>Bad number</code>,
+<code>No string end found</code></td></tr>
+</table>
+
 <hr>
 </div>
 </div>

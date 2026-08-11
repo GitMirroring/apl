@@ -398,6 +398,22 @@ check_EOC:
 
               if (si == 0)
                  {
+                   // an orphan branch (nothing suspended to resume into)
+                   // is normally invalid (lrm p.357: → in immediate
+                   // execution resumes a suspended statement, nothing
+                   // else) -- but an isolated one-statement execution
+                   // explicitly marked as such (Prefix::execute_EA_
+                   // fallback(), lrm p.349 Figure 38: such a branch
+                   // means "flow of execution returns to the invoking
+                   // expression") should simply complete with no
+                   // explicit result instead of erroring.
+                   //
+                   if (Workspace::SI_top()->get_void_on_orphan_branch())
+                      {
+                        token = Token(TOK_VOID);
+                        goto check_EOC;
+                      }
+
                     MORE_ERROR() <<
                     "branch back into function (→N) without suspended function";
                     SYNTAX_ERROR;   // →N without function,
@@ -471,13 +487,16 @@ check_EOC:
                   }
 
               // if suspend is not allowed then pop all SI entries that
-              // don't allow suspend
+              // don't allow suspend. Property 1 (nonsuspendable) is
+              // inherited from every calling )SI entry too (apl2lrm.txt
+              // p.360-361 "or-ing"), not just each entry's own -- so a
+              // whole chain of callers under a nonsuspendable one must
+              // unwind together, not just the innermost frame.
               //
-              if (Workspace::SI_top()->get_executable()->cannot_suspend())
+              if (Workspace::SI_top()->get_inherited_exec_property(1))
                  {
                     Error err = StateIndicator::get_error(Workspace::SI_top());
-                    while (Workspace::SI_top()->get_executable()
-                                              ->cannot_suspend())
+                    while (Workspace::SI_top()->get_inherited_exec_property(1))
                        {
                          Workspace::pop_SI(LOC);
                        }

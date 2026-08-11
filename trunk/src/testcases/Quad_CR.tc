@@ -765,6 +765,27 @@ integer 256 is too large (> 255) for a byte value
       ⍴⊃43 ⎕CR '(2 3⍴⍳6)'
 6 2
 
+      ⍝ regression (Blake McBride, LanguageVariances.md #23, 2026-08-11):
+      ⍝ GNU APL never emits CDR type 6 (arithmetic progression vector,
+      ⍝ IBM's "APV") itself -- 11⎕CR always uses the plain per-item
+      ⍝ integer encoding, one byte cost, no wire-format surprises for
+      ⍝ other CDR consumers (confirmed against a real AP210 shared-
+      ⍝ variable round trip, which broke when GNU APL briefly did emit
+      ⍝ type 6). But GNU APL still understands type 6 on input: a hand-
+      ⍝ crafted top-level CDR record (rank 1, nelm 3, type 6, body =
+      ⍝ first=10/increment=10, i.e. IBM's "10|10דIO|⍳3") decodes to
+      ⍝ 10 20 30, not the old placeholder's wrong ⎕IO,⎕IO+1,⎕IO+2. Same
+      ⍝ check nested inside a general array (type 7), the only place a
+      ⍝ real APV sub-item could previously appear at all.
+      ⍝
+      RAW←⎕UCS 0 0 32 32 0 0 0 32 0 0 0 3 6 1 0 0 0 0 0 3 10 0 0 0 10 0 0 0 0 0 0 0
+      12 ⎕CR RAW
+10 20 30
+
+      NRAW←⎕UCS 0 0 32 32 0 0 0 64 0 0 0 1 7 1 0 0 0 0 0 1 32 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 3 6 1 0 0 0 0 0 3 10 0 0 0 10 0 0 0 0 0 0 0
+      ⊃12 ⎕CR NRAW
+10 20 30
+
       )SIC
 
 

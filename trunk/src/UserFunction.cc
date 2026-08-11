@@ -663,7 +663,18 @@ UserFunction::set_locked_error_info(Error & error) const
 UCS_string message_2(error.get_error_line_2());
 
 #define SHORT 0
-   if (header.A())
+   // header.A()/header.B() are non-zero whenever the function's HEADER
+   // declares a left/right argument name -- regardless of whether this
+   // particular call actually supplied one. A monadic call of a function
+   // declared with a left argument (e.g. the LRM's own "signal VALENCE
+   // ERROR via ⎕ES" idiom, p.353) leaves A declared but unbound
+   // (NC_UNUSED_USER_NAME, not NC_VARIABLE); Symbol::get_apl_value()
+   // throws VALUE_ERROR for exactly that case, which used to escape from
+   // here and silently replace whatever error (e.g. the ⎕ES-simulated
+   // VALENCE ERROR) this function was in the middle of reporting.
+   // Guarded the same way get_apl_value() itself decides bound-ness.
+   //
+   if (header.A() && header.A()->get_NC() == NC_VARIABLE)
       {
 #if SHORT
         message_2.append(header.A()->get_name());
@@ -680,7 +691,7 @@ UCS_string message_2(error.get_error_line_2());
 
    message_2 << header.get_name();
 
-   if (header.B())
+   if (header.B() && header.B()->get_NC() == NC_VARIABLE)
       {
 #if SHORT
         message_2 << UNI_SPACE << header.B()->get_name();

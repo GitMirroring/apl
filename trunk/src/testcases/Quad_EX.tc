@@ -62,7 +62,7 @@ SQUARE[1]  Z←R⋆2
       )SIS
 SQUARE[1]  Z←R⋆2
              ^^
-⋆  SQUARE T
+*  SQUARE T
    ^
 
       ⎕EX 'SQUARE'
@@ -72,7 +72,7 @@ SQUARE[1]  Z←R⋆2
       )SIS
 SQUARE[1]  Z←R⋆2
              ^^
-⋆  SQUARE T
+*  SQUARE T
    ^
 
       SQUARE 5

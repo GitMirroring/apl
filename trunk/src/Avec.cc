@@ -499,7 +499,7 @@ Avec::IBM_quad_AV()
    return reinterpret_cast<const Unicode *>(ibm_av);
 }
 //────────────────────────────────────────────────────────────────────────────
-Avec::Unicode_to_IBM_codepoint Avec::inverse_ibm_av[256] =
+Avec::Unicode_to_IBM_codepoint Avec::inverse_ibm_av[] =
 {
   { 0x0000, 0   }, { 0x0001, 1   }, { 0x0002, 2   }, { 0x0003, 3   },
   { 0x0004, 4   }, { 0x0005, 5   }, { 0x0006, 6   }, { 0x0007, 7   },
@@ -545,7 +545,8 @@ Avec::Unicode_to_IBM_codepoint Avec::inverse_ibm_av[256] =
   { 0x00F6, 148 }, { 0x00F7, 246 }, { 0x00F8, 155 }, { 0x00F9, 151 },
   { 0x00FA, 163 }, { 0x00FB, 150 }, { 0x00FC, 129 }, { 0x03F5, 238 },
   { 0x2190, 189 }, { 0x2191, 198 }, { 0x2192, 184 }, { 0x2193, 199 },
-  { 0x2206, 182 }, { 0x2207, 183 }, { 0x2218, 248 }, { 0x2228, 235 },
+  { 0x2206, 182 }, { 0x2207, 183 }, { 0x220A, 238 }, { 0x2218, 248 },
+  { 0x2228, 235 },
   { 0x2229, 239 }, { 0x222A, 172 }, { 0x2235, 210 }, { 0x2260, 244 },
   { 0x2261, 207 }, { 0x2264, 243 }, { 0x2265, 242 }, { 0x2282, 226 },
   { 0x2283, 227 }, { 0x2296, 233 }, { 0x22A2, 214 }, { 0x22A3, 215 },
@@ -580,7 +581,9 @@ Avec::unicode_to_cp(Unicode uni)
 static vector<Unicode_to_IBM_codepoint> inverse;
    if (inverse.size() == 0)
       {
-        loop(j, 256)   inverse.push_back(inverse_ibm_av[j]);
+        const int inverse_ibm_av_count =
+              sizeof(inverse_ibm_av) / sizeof(*inverse_ibm_av);
+        loop(j, inverse_ibm_av_count)   inverse.push_back(inverse_ibm_av[j]);
       }
 const void * where = Heapsort<Unicode_to_IBM_codepoint>
                      ::search<uint32_t>(uni, inverse, compare_uni, 0);

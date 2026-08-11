@@ -34,7 +34,7 @@
 
       ⍝ one more: difference overflows int64, promoted to float
       9223372036854775807-¯1
-9.2233720368547765E18
+9.2233720368547758E18
       26⎕CR 9223372036854775807-¯1
 32
 
@@ -46,7 +46,7 @@
 
       ⍝ one more negative: difference overflows int64, promoted to float
       ¯9223372036854775808-1
-¯9.2233720368547765E18
+¯9.2233720368547758E18
       26⎕CR ¯9223372036854775808-1
 32
 

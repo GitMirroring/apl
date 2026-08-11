@@ -436,7 +436,7 @@ Cmd_WS::cmd_SAVE(ostream & out, const UCS_string_vector & args)
    if (Workspace::is_CLEAR_WS())
       {
         // don't save CLEAR WS
-        COUT << "NOT SAVED: THIS WS IS CLEAR WS+" << endl;
+        COUT << "NOT SAVED, THIS WS IS CLEAR WS+" << endl;
         MORE_ERROR() <<
         "the workspace was not saved because 'CLEAR WS' is a special\n"
         "workspace name that cannot be saved. "

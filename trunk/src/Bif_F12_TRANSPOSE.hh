@@ -48,6 +48,11 @@ public:
    /// @param B  the right APL argument value (array to transpose)
    virtual Token eval_AB(cValue_R A, cValue_R B) const;
 
+   /// overloaded NonscalarFunction_default_identity::eval_identity_fun().
+   /// Figure 28 (apl2lrm.txt p.212): the identity item for ⍉ is ⊂B.
+   virtual Token eval_identity_fun(cValue_R B, sAxis axis) const
+      { return enclosed_identity(B); }
+
    /// implementation of eval_B()
    /// @param B  the APL array to reverse-transpose (raw pointer)
    static Token do_eval_B(cValue_R B);

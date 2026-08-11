@@ -1504,6 +1504,11 @@ protected:
       { return inverse ? &Cell::bif_circle_fun_inverse
                        : &Cell::bif_circle_fun; }
 
+   /// overloaded Function::eval_AXB().
+   virtual Token eval_AXB(cValue_R A, cValue_R X, cValue_R B) const
+      { return eval_scalar_AXB(A, X, B, inverse ? &Cell::bif_circle_fun_inverse
+                                                 : &Cell::bif_circle_fun); }
+
    /// overloaded Function::get_monadic_inverse()
    virtual cFunction_P get_monadic_inverse() const;
 

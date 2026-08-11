@@ -436,6 +436,15 @@ protected:
    /// ⎕ES result helper
    static void handle_QUAD_ES_ERR(const Token & result);
 
+   /// ⎕EA helper shared by handle_QUAD_ES_ERR() and handle_QUAD_ES_BRA():
+   /// execute statement_A (⎕EA's left/fallback argument) and place its
+   /// value at the top of the caller's pending call site, or raise
+   /// ec_on_failure if A itself does not yield a plain value.
+   /// @param statement_A source text of ⎕EA's left argument
+   /// @param ec_on_failure error to raise if A doesn't yield a value
+   static void execute_EA_fallback(UCS_string statement_A,
+                                   ErrorCode ec_on_failure);
+
    /// the StateIndicator that contains this parser
    StateIndicator & si;
 

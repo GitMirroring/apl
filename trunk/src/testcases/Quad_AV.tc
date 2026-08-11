@@ -27,7 +27,7 @@
  p q r s t u v w x y z { | } ~ ☹
  ¥ € ⇄ ∧ ∼ « ⋆ ⋸ ⌸ ² ⌼ μ ⍁ » ⍣ ⍅
  ⎕ ⍞ ⌹ ⍆ ⍤ ⍇ ⍈ ⍊ ⊤ λ ⍍ ⍏ £ ⊥ ⍶ ⌶
- ⍐ ⍑ χ ≢ ⍖ ⍗ ⍘ ⍚ ⍛ ⌈ ⍜ ⍢ ∪ ⍨ ⍕ ⍎
+ ⍐ ⍑ χ ≢ ⍖ ⍗ ⍘ ∊ ⍛ ⌈ ⍜ ⍢ ∪ ⍨ ⍕ ⍎
  ⍬ ⍪ ∣ │ ┤ ⍟ ∆ ∇ → ╣ ║ ╗ ╝ ← ⌊ ┐
  └ ┴ ┬ ├ ─ ┼ ↑ ↓ ╔ ╚ ╩ ╦ ╠ ═ ╬ ≡
  ⍸ ⍷ ∵ ⌷ ⍂ ⌻ ⊢ ⊣ ◊ ┘ ┌ █ ▄ ▌ ▐ ▀
@@ -47,6 +47,32 @@
 1
 
       ⎕IO←1
+
+      ⍝ Regression (Blake McBride, LanguageVariances.md #36, 2026-08-10):
+      ⍝ ⎕AV omitted the Member/Enlist symbol ∊ (U+220A) entirely, one of
+      ⍝ the APL2 primitive characters apl2lrm.txt p.273/Appendix A says
+      ⍝ must be present -- GNU APL's own primary glyph for this primitive
+      ⍝ is ϵ (U+03F5, still unchanged below), but ∊ must also be
+      ⍝ representable. Took over the ⎕AV slot vacated by demoting the
+      ⍝ unused legacy IBM filler character DIAMOND_UNDERBAR (⍚).
+      ⍝
+      ⍴⎕AV
+256
+
+      '∊'∊⎕AV
+1
+
+      'ϵ'∊⎕AV
+1
+
+      ⍝ this also fixes LanguageVariances.md #34a (2⎕TF needlessly
+      ⍝ escaping ∊ via ⎕UCS, since it wasn't in ⎕AV before)
+      ⍝
+      ⎕FX 'Z←E1 R' 'Z←0∊R'
+E1
+
+      2 ⎕TF 'E1'
+⎕FX 'Z←E1 R' 'Z←0∊R'
 
       ⍝ ==================================
 

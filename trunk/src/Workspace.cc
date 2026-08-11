@@ -692,7 +692,7 @@ const UTF8_string filename =
                // names differ. Complain.
                //
                const UCS_string & wsid = the_workspace.WS_id.get_name();
-               out << "NOT SAVED: THIS WS IS " << wsid << endl;
+               out << "NOT SAVED, THIS WS IS " << wsid << endl;
     
                MORE_ERROR() <<
                   "the workspace was not saved because"

@@ -77,7 +77,7 @@
       ⍝ compute via uint64_t (well-defined wraparound) first.
       ⍝
       9223372036854775807+1
-9.2233720368547765E18
+9.2233720368547758E18
       26⎕CR 9223372036854775807+1
 32
 
@@ -89,9 +89,21 @@
 
       ⍝ one more negative: sum overflows int64, promoted to float
       ¯9223372036854775808+¯1
-¯9.2233720368547765E18
+¯9.2233720368547758E18
       26⎕CR ¯9223372036854775808+¯1
 32
 
       ⎕PP←10
+
+      ⍝ Regression (Blake McBride, LanguageVariances.md #7, 2026-08-10):
+      ⍝ a non-numeric axis fell through to Cell::get_near_int()'s own
+      ⍝ generic DOMAIN ERROR instead of the AXIS ERROR that apl2lrm.txt's
+      ⍝ "Conditions for Axis Specification" (p.45) requires whenever the
+      ⍝ bracket data isn't "the proper type".
+      ⍝
+      M←2 3⍴⍳6
+      M+['a']1 2
+AXIS ERROR
+      M+['a']1 2
+      ^     ^
 

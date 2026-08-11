@@ -54,6 +54,19 @@ public:
    /// @param B right argument APL value
    virtual Token eval_AXB(cValue_R A, cValue_R X, cValue_R B) const;
 
+   /// overloaded NonscalarFunction_default_identity::eval_identity_fun().
+   /// Figure 28 (apl2lrm.txt p.212): the identity item for ⌹ is
+   /// ⊂(0 0⍴prototype-of-B) -- a scalar containing an empty 0×0 matrix
+   /// (degenerate since an entirely empty B gives no basis to infer any
+   /// other matrix size), unlike ⍴/⍉/↑/,'s plain ⊂B.
+   virtual Token eval_identity_fun(cValue_R B, sAxis axis) const
+      {
+        Value_P M(0, 0, LOC);
+        M->set_default(B, LOC);
+        M->check_value(LOC);
+        return enclosed_identity(*M);
+      }
+
    /// overloaded Function::eval_AB()
    /// @param A left argument APL value
    /// @param B right argument APL value

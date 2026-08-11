@@ -133,4 +133,18 @@ INDEX ERROR+
       A←⎕IO+64|3×⍳64 ⋄ B←⍳6 ⋄ B≡A[A⍳B]
 1
 
+      ⍝ Regression (Blake McBride, LanguageVariances.md #7, 2026-08-10):
+      ⍝ ⍳ (Index Of) is not one of the axis-taking functions in
+      ⍝ apl2lrm.txt Figure 7 (p.45), so an axis on it must give AXIS
+      ⍝ ERROR per the manual's "Conditions for Axis Specification" --
+      ⍝ Function::phrase_error()'s generic "phrase not implemented"
+      ⍝ fallback used to always throw VALENCE ERROR regardless of
+      ⍝ whether the missing capability was specifically axis support.
+      ⍝
+      M←2 3⍴⍳6
+      M⍳[1]2
+AXIS ERROR+
+      M⍳[1]2
+      ^ ^
+
 

@@ -44,6 +44,13 @@ public:
    /// overloaded Function::eval_B()
    virtual Token eval_B(cValue_R B) const;
 
+   /// overloaded NonscalarFunction_default_identity::eval_identity_fun().
+   /// Figure 28 (apl2lrm.txt p.212): the identity item for ⍴ is ⊂B (the
+   /// generic default-fill fallback this class normally inherits gives
+   /// a bare prototype scalar instead, which is wrong here).
+   virtual Token eval_identity_fun(cValue_R B, sAxis axis) const
+      { return enclosed_identity(B); }
+
    /// Reshape B according to rank and shape
    static Token do_reshape(const Shape & shape, const cValue & B);
 

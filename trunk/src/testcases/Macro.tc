@@ -47,7 +47,7 @@ NEG_ERR5[2]  ←
       )SI
 NEG_ERR5[2]
 μ-Z__LO_EACH_B[2]
-⋆
+*
 
       vB←3×vA←4 3⍴⍳sA←23+sB←40
       (sA MINUS ¨ sB) ≡ sA -¨ sB
@@ -120,7 +120,7 @@ OK      - no duplicate parents
       )SI
 NEG_ERR5[2]
 μ-Z__LO_EACH_B[2]
-⋆
+*
 
       )SIC
       )CHECK

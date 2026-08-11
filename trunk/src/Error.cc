@@ -129,7 +129,14 @@ Error::print_em(ostream & out, const char * loc)
       }
 
    print_loc = loc;
-   out << get_error_line_1() << endl;
+
+   // an empty line 1 means "no message" (LanguageVariances.md #28,
+   // e.g. ⎕ES with an event code that has no defined ⎕ET text) --
+   // skip it entirely rather than printing a blank line; ⎕EM itself
+   // is unaffected (still a fixed 3-row matrix, see Quad_EM).
+   //
+const UCS_string line_1 = get_error_line_1();
+   if (line_1.size())   out << line_1 << endl;
 
    out << get_error_line_2() << endl
        << get_error_line_3() << endl;
@@ -247,7 +254,12 @@ Error::update_error_info(StateIndicator * si)
    if (const UserFunction * ufun = si->get_executable()->get_exec_ufun())
       {
         // ufun->print_line_PCs(LOC);
-        if (get_show_locked() || ufun->get_exec_properties()[1])
+        // property 1 (nonsuspendable) is inherited from every calling
+        // )SI entry too (apl2lrm.txt p.360-361 "or-ing"), not just ufun's
+        // own: a function called (directly or transitively) by a
+        // nonsuspendable one must behave as nonsuspendable itself.
+        //
+        if (get_show_locked() || si->get_inherited_exec_property(1))
            {
              set_error_line_2("      ");   // the APL prompt
              set_left_caret(6);            // first char after the APL prompt
@@ -319,13 +331,13 @@ StateIndicator * si = Workspace::SI_top();   // the current )SI entry
         if (!(si && si->get_safe_execution_depth()))   BACKTRACE
       }
 
-   // maybe map error to DOMAIN ERROR.
+   // maybe map error to DOMAIN ERROR. Property 3 (error conversion) is
+   // inherited from every calling )SI entry too (apl2lrm.txt p.360-361
+   // "or-ing"), not just the current function's own -- a function called
+   // (directly or transitively) by an error-converting one must convert
+   // its own errors the same way.
    //
-   if (si)
-      {
-        const UserFunction * ufun = si->get_executable()->get_exec_ufun();
-        if (ufun && ufun->get_exec_properties()[3])   code = E_DOMAIN_ERROR;
-      }
+   if (si && si->get_inherited_exec_property(3))   code = E_DOMAIN_ERROR;
 
 Error error(code, loc);
    if (si)   error.update_error_info(si);
@@ -416,12 +428,20 @@ Error::throw_symbol_error(const UCS_string & sym_name, const char * loc)
 
    Log(LOG_verbose_error)     BACKTRACE
 
-Error err(E_VALUE_ERROR, loc);
+StateIndicator * si = Workspace::SI_top();
+
+   // maybe map error to DOMAIN ERROR, same as throw_apl_error() -- this
+   // function is a separate VALUE_ERROR throw site (undefined symbol
+   // reference) that does NOT go through throw_apl_error() at all, so it
+   // needs its own copy of the property-3 (error conversion) inheritance
+   // check (apl2lrm.txt p.360-361 "or-ing").
+   //
+Error err((si && si->get_inherited_exec_property(3)) ? E_DOMAIN_ERROR
+                                                       : E_VALUE_ERROR, loc);
 UTF8_string sym_name_utf(sym_name);
    SPRINTF(err.symbol_name, "%s", sym_name_utf.c_str());
 
-   if (StateIndicator * si = Workspace::SI_top())   // )SI not empty
-      err.update_error_info(si);
+   if (si)   err.update_error_info(si);   // )SI not empty
 
 const Error & eref = err;
    throw eref;

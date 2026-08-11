@@ -45,6 +45,7 @@
 #include "PrintOperator.hh"
 #include "Quad_XML.hh"
 #include "StateIndicator.hh"
+#include "Symbol.hh"
 #include "SystemVariable.hh"
 #include "UCS_string.hh"
 #include "UserFunction.hh"
@@ -354,6 +355,22 @@ void
 Value::assign_cellrefs(Value_P new_value)
 {
    // assign new_value to this (left-) value
+
+   // LRM: "Pick with an empty left argument ... causes the whole array
+   // associated with the assigned name to be replaced", e.g.
+   // ((⍳0)⊃A)←new_value ←→ A←new_value, with none of the shape/count
+   // conformance that an ordinary selective specification requires. This
+   // marker (see set_lval_whole_symbol()) only survives an unbroken chain
+   // of empty-Pick applications straight from Symbol::resolve_lv() through
+   // to this assignment; anything else in between returns a fresh Value
+   // that never carries it, so the ordinary per-cell path below still
+   // applies to every other selective specification.
+   //
+   if (Symbol * sym = get_lval_whole_symbol())
+      {
+        sym->assign(new_value, true, LOC);
+        return;
+      }
 
 const ShapeItem new_value_count = new_value->nz_element_count();
 const ShapeItem dest_count  = element_count();

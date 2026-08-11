@@ -577,23 +577,17 @@ bool hdr_has_vars;
            current_text and then 
          */
          while (c.has_more())   current_text << c.next();
-         execute_oper();
-         return 0;   // OK
+         return execute_oper();
       }
 
    if (c.has_more())
       {
         if (ecmd == ECMD_NOP)    return 0;
         if (ecmd != ECMD_SHOW)   return "illegal command between ∇ ... ∇";
-        if (const char * loc = execute_oper())
-           UERR << "execute_oper() failed at " << loc << endl;
-        return 0;   // OK
+        return execute_oper();
       }
 
-   if (const char * loc = execute_oper())
-      UERR << "execute_oper() failed at " << loc << endl;
-
-   return 0;   // no error
+   return execute_oper();
 }
 //════════════════════════════════════════════════════════════════════════════
 const char *
@@ -850,7 +844,26 @@ const LineLabel user_edit_to = edit_to;
       COUT << "    ∇" << endl;
    for (int e = idx_from; e <= idx_to; ++e)   lines[e].print(COUT);
    if (idx_to == int(lines.size() - 1))   // then print last line
-      COUT << "    ∇" << endl;
+      {
+        // LRM pp.346,349: the closing ∇ of a full [⎕]-style display is
+        // followed by the function's creation time stamp
+        // (LanguageVariances.md #47) -- only when this is an already-
+        // established function (function_existed, matching how
+        // 2⎕AT/⎕NC already report it elsewhere), not one still being
+        // defined for the first time in this very editing session.
+        //
+        cFunction_P fun = function_existed ? fun_symbol->get_function() : 0;
+        if (fun && fun->get_creation_time())
+           {
+             COUT << "    ∇  ";
+             Workspace::get_v_Quad_TZ().print_timestamp(COUT,
+                                          fun->get_creation_time()) << endl;
+           }
+        else
+           {
+             COUT << "    ∇" << endl;
+           }
+      }
 
    if (user_edit_to.valid())   // eg. [⎕42] or [2⎕42]
       {
