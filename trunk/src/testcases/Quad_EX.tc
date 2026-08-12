@@ -57,11 +57,11 @@ HITS
       SQUARE T
 DOMAIN ERROR
 SQUARE[1]  Z←R⋆2
-             ^^
+             ^ ^
 
       )SIS
 SQUARE[1]  Z←R⋆2
-             ^^
+             ^ ^
 *  SQUARE T
    ^
 
@@ -71,7 +71,7 @@ SQUARE[1]  Z←R⋆2
 
       )SIS
 SQUARE[1]  Z←R⋆2
-             ^^
+             ^ ^
 *  SQUARE T
    ^
 

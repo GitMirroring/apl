@@ -9,13 +9,13 @@ CLEAR WS
       ⍕'PI' ○1
 DOMAIN ERROR
       ⍕'PI'○1
-       ^   ^
+       ^    ^
 
 
       ⍕'PI' ○1
 DOMAIN ERROR
       ⍕'PI'○1
-       ^   ^
+       ^    ^
 
       )SIC
       )CHECK

@@ -67,7 +67,7 @@ CLEAR WS
       2J3⍴5
 DOMAIN ERROR
       2J3⍴5
-      ^  ^
+      ^   ^
       2J3↑⍳5
 DOMAIN ERROR
       2J3↑⍳5
@@ -79,11 +79,11 @@ DOMAIN ERROR
       ⍳2J3
 DOMAIN ERROR
       ⍳2J3
-      ^
+      ^^
       2J3/1 2
 DOMAIN ERROR
       2J3/1 2
-      ^  ^
+      ^   ^
       2J0⍴5
 5 5
       )SIC
@@ -113,7 +113,7 @@ Bad number+
       1E300∧1E30
 DOMAIN ERROR
       1E300∧1E30
-      ^    ^
+      ^     ^
       4∧6
 12
       1.5∧2.5
@@ -172,11 +172,11 @@ X←2.5E¯306
       0 ⎕XML ⎕XML '<a><b>text</b>'
 DOMAIN ERROR+
       0 ⎕XML ⎕XML '<a><b>text</b>'
-             ^
+             ^    ^
       0 ⎕XML ⎕XML '<a>hello'
 DOMAIN ERROR+
       0 ⎕XML ⎕XML '<a>hello'
-             ^
+             ^    ^
       )SIC
 
       ⍝ Bugs13 #7 (Blake McBride): Quad_JSON.cc's APL_to_JSON_string() hit
@@ -196,7 +196,7 @@ DOMAIN ERROR+
       2 ⎕JSON ⊂⊂2 2⍴'ab'
 DOMAIN ERROR+
       2 ⎕JSON⊂⊂2 2⍴'ab'
-             ^^
+             ^ ^
       2 ⎕JSON ⊂⊂'true'
 true
       )SIC

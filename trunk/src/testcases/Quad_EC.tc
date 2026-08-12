@@ -6,7 +6,7 @@
       ⎕EC 'ι4.5'
  0  5 4  DOMAIN ERROR 
                ⍳4.5   
-               ^      
+               ^^     
 
       ⎕EC '2+3'
  1  0 0  5 
@@ -39,7 +39,7 @@
       foo_fails 2
 DOMAIN ERROR
 foo_fails[1]  ÷0
-              ^
+              ^^
       ⎕SI 2
 0 2 2 1 0
 

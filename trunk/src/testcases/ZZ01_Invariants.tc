@@ -357,11 +357,11 @@ COMMENT «««
       L←4∣L                     ⍝ L shall be small (for longer partitions)
       L←(¯1↑⍴R)⍴L               ⍝ ⍴L must match the last axis of R
       "L:" L
- L:  ⁰ 
+ L:  ³
       "⍴L:" (⍴L) "≡L:" (≡L)
- ⍴L:  1  ≡L: 1 
+ ⍴L:  ⁰  ≡L: 1 
       "⍴R:" (⍴R) "≡R:" (≡R)
- ⍴R:  1  ≡R: 1 
+ ⍴R:  ³
 
       Z←L⊂R
 COMMENT «««

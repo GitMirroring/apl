@@ -9,7 +9,7 @@
 ⎕XML "  ", ⎕UCS20, "  "
 DOMAIN ERROR+
       ⎕XML '  ',⎕UCS 20,'  '
-      ^
+      ^    ^
 )MORE
 ⎕XML B: Invalid XML character U+0014 at B[3]
 )SIC
@@ -19,7 +19,7 @@ DOMAIN ERROR+
 ⎕XML " "
 DOMAIN ERROR+
       ⎕XML ' '
-      ^
+      ^    ^
 )MORE
 ⎕XML B: no XML root element in B
 )SIC
@@ -29,7 +29,7 @@ DOMAIN ERROR+
 ⎕XML "<TAG attribute='25'"
 DOMAIN ERROR+
       ⎕XML '<TAG attribute=''25'''
-      ^
+      ^    ^
 )MORE
 No tag end found in: <TAG attribute='25'
 )SIC
@@ -39,7 +39,7 @@ No tag end found in: <TAG attribute='25'
       ⎕XML "<root><sub "
 DOMAIN ERROR+
       ⎕XML '<root><sub '
-      ^
+      ^    ^
 )MORE
 No tag end found in: <sub 
 )SIC
@@ -49,7 +49,7 @@ No tag end found in: <sub
       ⎕XML "<root><s"
 DOMAIN ERROR+
       ⎕XML '<root><s'
-      ^
+      ^    ^
 )MORE
 No tag end found in: <s
 )MORE
@@ -59,7 +59,7 @@ No tag end found in: <s
 ⎕XML "<root><!--->"
 DOMAIN ERROR+
       ⎕XML '<root><!--->'
-      ^
+      ^    ^
 )MORE
 ⎕XML: comment not properly terminated: <!--->
 )SIC
@@ -69,7 +69,7 @@ DOMAIN ERROR+
 ⎕XML '<root></#>'
 DOMAIN ERROR+
       ⎕XML '<root></#>'
-      ^
+      ^    ^
       )MORE
 ⎕XML: bad tag name in end tag : </#>
 )SIC
@@ -78,7 +78,7 @@ DOMAIN ERROR+
       ⎕XML '<root><#/>'
 DOMAIN ERROR+
       ⎕XML '<root><#/>'
-      ^
+      ^    ^
 )MORE
 ⎕XML: bad tag name in empty (-leaf) tag: <#/>
 )SIC
@@ -88,7 +88,7 @@ DOMAIN ERROR+
 ⎕XML '<root><#>'
 DOMAIN ERROR+
       ⎕XML '<root><#>'
-      ^
+      ^    ^
 )MORE
 ⎕XML: bad tag name in start tag: <#>
 )SIC
@@ -98,7 +98,7 @@ DOMAIN ERROR+
       ⎕XML "<root na<me='' >"
 DOMAIN ERROR+
       ⎕XML '<root na<me='''' >'
-      ^
+      ^    ^
       )more
 ⎕XML B: Unescaped '<' in attribute name: '<root na<me='' >'...
 )SIC
@@ -108,7 +108,7 @@ DOMAIN ERROR+
 ⎕XML "<root name='val<ue' >"
 DOMAIN ERROR+
       ⎕XML '<root name=''val<ue'' >'
-      ^
+      ^    ^
       )MORE
 ⎕XML B: Unescaped '<' in attribute value: '<root name='val<ue' '...
 )SIC

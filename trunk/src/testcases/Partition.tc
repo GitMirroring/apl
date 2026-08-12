@@ -20,7 +20,7 @@
       1 0 1⊂'ABCD'   ⍝ mismatch of argument lengths
 LENGTH ERROR+
       1 0 1⊂'ABCD'
-      ^    ^
+      ^     ^
 
       →
 
@@ -42,7 +42,7 @@ LENGTH ERROR+
       1 0 1⊂'ABCD'
 LENGTH ERROR+
       1 0 1⊂'ABCD'
-      ^    ^
+      ^     ^
 
       →
 

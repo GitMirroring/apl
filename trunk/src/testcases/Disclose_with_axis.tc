@@ -183,7 +183,7 @@ G  H  I  J K L
       ⊃[5]2 3⍴⍳6
 AXIS ERROR+
       ⊃[5]2 3⍴⍳6
-      ^^
+      ^   ^
       )MORE
 ⊃[X]B: X[1] = 5 is not a valid axis (expecting 1≤X[1]<3).
       )SIC
@@ -191,7 +191,7 @@ AXIS ERROR+
       ⊃[1 1]2 3⍴⍳6
 AXIS ERROR+
       ⊃[1 1]2 3⍴⍳6
-      ^    ^
+      ^     ^
       )MORE
 ⊃[X]B: X[2] = 1 is a duplicate axis.
       )SIC
@@ -200,7 +200,7 @@ AXIS ERROR+
       ⊃[2]2 3⍴⍳6
 AXIS ERROR+
       ⊃[2]2 3⍴⍳6
-      ^^
+      ^   ^
       )MORE
 ⊃[X]B: X[0] = 2 is not a valid axis (expecting 0≤X[0]<2). Note: ⎕IO=0.
       )SIC

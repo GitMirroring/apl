@@ -116,12 +116,12 @@ OK      - no duplicate parents
       'ERROR SIMULATION' ⎕ES 101 9
 ERROR SIMULATION
       'ERROR SIMULATION' ⎕ES 101 9
-      ^                  ^
+      ^                      ^
 
       ⎕EM
 ERROR SIMULATION                  
       'ERROR SIMULATION' ⎕ES 101 9
-      ^                  ^        
+      ^                      ^    
 
       ⎕ET
 101 9

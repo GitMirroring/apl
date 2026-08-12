@@ -30,7 +30,7 @@
       3 0 2 ∘./ 5 1 7   ⍝ do not follow Dyalog, IBM APL2 gives a SYNTAX ERROR
 SYNTAX ERROR+
       3 0 2∘./5 1 7
-      ^      ^
+             ^^
 
       )SIC
 

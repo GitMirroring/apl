@@ -355,8 +355,13 @@ apl.lines2:	../tools/filter_apl_lines2 apl
 # non-reproducible across developer machines (Blake McBride, Bugs6 #8).
 
 # run all testcases, continue after errors
+#
+# NB: the glob is *\.tc (escaped dot), not *tc -- an unescaped *tc also
+# matches any stray non-.tc file ending in "tc" (e.g. a typo'd filename
+# with a comma instead of a period), silently running it as its own
+# testcase against whatever stale content it happens to contain.
 test: all
-	H=$$(mktemp -d); HOME=$$H ./apl --id 1010 -T testcases/*tc; \
+	H=$$(mktemp -d); HOME=$$H ./apl --id 1010 -T testcases/*\.tc; \
 	RC=$$?; rm -rf "$$H"; exit $$RC
 
 # run all testcases, stop after the first error
@@ -365,12 +370,12 @@ test1: all
 	RC=$$?; rm -rf "$$H"; exit $$RC
 
 test2: all
-	H=$$(mktemp -d); HOME=$$H ./apl --id 1010 --TR -T testcases/*tc; \
+	H=$$(mktemp -d); HOME=$$H ./apl --id 1010 --TR -T testcases/*\.tc; \
 	RC=$$?; rm -rf "$$H"; exit $$RC
 
 # run testcases related to APs
 testAP: all
-	H=$$(mktemp -d); HOME=$$H ./apl --id 1010 -T testcases/AP*tc; \
+	H=$$(mktemp -d); HOME=$$H ./apl --id 1010 -T testcases/AP*\.tc; \
 	RC=$$?; rm -rf "$$H"; exit $$RC
 
 # run the ⎕GTK TLV round-trip regression test (requires X display and GTK support)
@@ -381,7 +386,7 @@ testGTK: all
 # run all testcases, except slow ones
 test3: all
 	H=$$(mktemp -d); \
-	HOME=$$H ./apl --id 1010 -T testcases_3/*tc; \
+	HOME=$$H ./apl --id 1010 -T testcases_3/*\.tc; \
 	RC=$$?; rm -rf "$$H"; stty sane; \
 	if [ $$RC -ne 0 ]; then \
 	  D=/tmp/apl-test3-$$(date +%Y%m%d_%H%M%S); \
@@ -394,7 +399,7 @@ test3: all
 
 # run only invariant testcases
 test4: all
-	H=$$(mktemp -d); HOME=$$H ./apl --id 1010 -T testcases/invariants/*tc || true; \
+	H=$$(mktemp -d); HOME=$$H ./apl --id 1010 -T testcases/invariants/*\.tc || true; \
 	rm -rf "$$H"
 	stty sane
 

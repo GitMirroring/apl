@@ -1352,6 +1352,25 @@ const int fd = open(filename, O_RDONLY);
           return;
         }
 
+     // a directory opens() and fstat()s just fine (with a non-zero
+     // st_size), but cannot be mmap()ed (Linux: EACCES, "fd refers to a
+     // non-regular file") -- handle it directly here rather than let the
+     // resulting mmap() failure be misdiagnosed as WS_FULL below (Roy
+     // Tobin, )COPY / )LOAD on /, a directory instead of a workspace
+     // file). Same shape as the empty-file case just below.
+     //
+     if (S_ISDIR(st.st_mode))
+        {
+          close(fd);
+          static const UTF8 empty_file[1] = { 0 };
+          file_start = empty_file;
+          file_end = empty_file;
+          err << "file " << filename << " is a directory, not " << endl
+               << "a GNU APL .xml or .apl file" << endl;
+          valid_format = false;
+          return;
+        }
+
      file_length = st.st_size;
    }
 

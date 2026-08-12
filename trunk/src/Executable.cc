@@ -158,19 +158,19 @@ Executable::get_statement_end(Function_PC pc) const
    while (pc < Function_PC(body.size())   &&
           body[pc].get_Class() != TC_END  &&
           body[pc].get_tag() != TOK_RETURN_EXEC)   ++pc;
-   if (pc >= Function_PC(body.size()))   pc = Function_PC(body.size() - 1);
+   Assert(pc < Function_PC(body.size()));
    return pc;
 }
 //────────────────────────────────────────────────────────────────────────────
 Function_PC
 Executable::get_statement_start(Function_PC pc) const
 {
-   // this function is used in error reporting so it should
-   // not Assert() and the like as to avoid infinite recursion.
+   // this function is used in error reporting; do_Assert() itself guards
+   // against re-entrant failures (see Assert.cc), so Assert() here is safe.
    //
    // given pc, return the start of the statement to which pc belongs
 
-   if (pc >= Function_PC(body.size()))   pc = Function_PC(body.size() - 1);
+   Assert(pc < Function_PC(body.size()));
 
    // if we are at the end of the statement, move back.
    //
@@ -370,8 +370,8 @@ Executable::set_error_info(Error & error, Function_PC2 body_from_to) const
    // which are unchecked and would underflow on -1, e.g. when an error
    // is raised with an empty prefix FIFO).
    //
-   if (body_from_to.low == -1)    body_from_to.low = Function_PC_0;
-   if (body_from_to.high == -1)   body_from_to.high = Function_PC(body.size() - 1);
+   Assert(body_from_to.low  != -1);
+   Assert(body_from_to.high != -1);
 
    // decrement body_from_to.high if it points to the end of
    // the function.
@@ -384,7 +384,7 @@ Function_PC end = get_statement_end(body_from_to.high);
 
    Assert(start   <= body_from_to.low);
    Assert(body_from_to.low  <= body_from_to.high);
-   if (body_from_to.high > end)   body_from_to.high = end;
+   Assert(body_from_to.high <= end);
 
    Log(LOG_prefix__location_info)
       {
@@ -481,22 +481,6 @@ Executable::set_error_info(Error & error,
                            const Token_string & failed_statement, 
                            Function_PC2 range) const
 {
-   /* if the error was caused by some function being executed, say f in
-      A f B then the right arg B of the function f was OK and we skip 
-      Thus:     A f B
-                ^   ^
-
-      becomes:  A f B
-                ^ ^
-
-      IOW: a Value B can never be wrong.
-    */
-   if (range.low < Function_PC(failed_statement.size()) &&
-       failed_statement[range.low].get_Class() == TC_VALUE)
-      {
-         ++range.low;
-      }
-
    if (error.get_error_code() == E_SYNTAX_ERROR)
       {
         Prefix::adjust_right_caret(range, failed_statement);

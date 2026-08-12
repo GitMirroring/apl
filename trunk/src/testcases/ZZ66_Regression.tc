@@ -36,14 +36,14 @@ SAVED 20⁰-⁰-⁰ ⁰:⁰:⁰ (GMT⁵⁰)
       ⍸ 4 ⍴ 4611686018427387904
 WS FULL
       ⍸4⍴4611686018427387904
-      ^
+      ^^
 
       ⍝ #3: 1 ⎕TF inverse rank/shape parsing had no overflow bound --
       ⍝ a claimed rank/shape item could wrap and silently misparse.
       1 ⎕TF 'CX 65536 a'
 DOMAIN ERROR+
       1 ⎕TF 'CX 65536 a'
-      ^ ^
+      ^     ^
       )SIC
 
       ⍝ #4: CDR CHAR8 decode sign-extended bytes 128-255.

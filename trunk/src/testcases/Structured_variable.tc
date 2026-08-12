@@ -68,7 +68,7 @@ Doe
       A.b←42                  ⍝ will fail since a.b is not a leaf
 DOMAIN ERROR+
       A.b←42
-       ^ ^
+       ^  ^
       )MORE
 member access: cannot override non-leaf member A.b
       )ERASE or ⎕EX that member first.
@@ -87,7 +87,7 @@ leaf-Cde
       (↑A.b)←2
 DOMAIN ERROR+
       (↑A.b)←2
-         ^  ^
+         ^   ^
       )more
 member access: cannot use non-leaf member A.b in selective specification.
       )ERASE or ⎕EX that member first.

@@ -88,7 +88,7 @@ CLEAR WS
       ⎕FX'λ←Test ⍵ ;C;D ⍝⍝ π times Ʃ⍵' 'λ←○+/⍵'
 DEFN ERROR+
       ⎕FX 'λ←Test ⍵ ;C;D ⍝⍝ π times Ʃ⍵' 'λ←○+/⍵'
-      ^
+      ^   ^
 
       )MORE
 Attempt (of ⎕FX) to create or edit a lambda. Use { ... } instead.

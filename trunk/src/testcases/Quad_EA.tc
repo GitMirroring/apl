@@ -13,7 +13,7 @@
       '⍳3.3' ⎕EA '⍳4.5'
 DOMAIN ERROR
       ⍳3.3
-      ^
+      ^^
       ⍝     '⍳3.3' ⎕EA '⍳4.5'
       ⍝     ^      ^
 
@@ -43,7 +43,7 @@ ERR
       foo_fails 2
 DOMAIN ERROR
 foo_fails[1]  ÷0
-              ^
+              ^^
       ⎕SI 2
 0 2 2 1 0
 
@@ -140,7 +140,7 @@ REACHED: FOO(LP)
       Z←'!¯3' ⎕EA '!¯5'
 DOMAIN ERROR
       !¯3
-      ^
+      ^^
 
       →
 

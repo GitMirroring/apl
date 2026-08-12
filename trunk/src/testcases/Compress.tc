@@ -38,7 +38,7 @@ AB
       (1 1/M)←2 3⍴'ABCD'         ⍝ shall fail (like IBM APL2)
 LENGTH ERROR+
       (1 1/M)←2 3⍴'ABCD'
-      ^      ^
+      ^       ^
 
       )SIC
 

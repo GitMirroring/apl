@@ -378,6 +378,7 @@ dist_noinst_DATA = \
         APnnn.tc                                \
         APnnn_1011.sh                           \
         APnnn_1011.tc2                          \
+        apl2lrm.tc                              \
         Binding.tc                              \
         Branch.tc                               \
         Binomial.tc                             \

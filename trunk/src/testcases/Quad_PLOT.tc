@@ -55,12 +55,12 @@ NO )MORE ERROR INFO
       ⎕PLOT 0 5⍴0
 LENGTH ERROR
       ⎕PLOT 0 5⍴0
-      ^
+      ^     ^
 
       ⎕PLOT 0 0⍴0
 LENGTH ERROR
       ⎕PLOT 0 0⍴0
-      ^
+      ^     ^
 
       ⍝ clear the SI left behind by the LENGTH ERRORs above
       ⍝

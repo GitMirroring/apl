@@ -30,7 +30,7 @@ RANK ERROR+
       1 2 3+1 2
 LENGTH ERROR+
       1 2 3+1 2
-      ^    ^
+      ^     ^
 
       )SIC
 
@@ -60,7 +60,7 @@ LENGTH ERROR+
       ÷0
 DOMAIN ERROR
       ÷0
-      ^
+      ^^
 
       )SIC
 

@@ -8,7 +8,7 @@
       ⎕JSON ' 33 44 '
 LENGTH ERROR+
       ⎕JSON ' 33 44 '
-      ^
+      ^     ^
       )MORE
 ⎕JSON B: there were extra tokens in B (tokenized: 2, but processed: 1).
     The JSON string must be one serialized value.
@@ -18,7 +18,7 @@ LENGTH ERROR+
       ⎕JSON '[42 52]'
 DOMAIN ERROR+
       ⎕JSON '[42 52]'
-      ^
+      ^     ^
       )MORE
 ⎕JSON B: Got '5' when expecting ',' at 4↓B
 
