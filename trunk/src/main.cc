@@ -33,6 +33,10 @@
 #include <string.h>
 #include <sys/stat.h>
 
+#ifdef __linux__
+# include <sys/prctl.h>   // for PR_SET_PTRACER, see main() below
+#endif
+
 #if HAVE_EXECINFO_H
 # include <execinfo.h>    // for backtrace() warm-up call, see below
 #endif
@@ -702,6 +706,24 @@ main(int argc, const char *argv[])
    { WSADATA wsa; WSAStartup(MAKEWORD(2, 2), &wsa); }
 #endif
 //════════════════════════════════════════════════════════════════════════════
+
+#ifdef __linux__
+   // Allow any OTHER process owned by this user to ptrace-attach to this
+   // one (e.g. 'gdb -p <pid>'), overriding the Yama LSM's ptrace_scope=1
+   // default (Ubuntu/Debian since ~10.10), which otherwise only allows a
+   // real parent to attach to its own child -- confirmed empirically to
+   // block a plain 'gdb -p <pid>' from an unrelated sibling process
+   // outright ("Could not attach to process") without this. Needed so
+   // Automated_Test_Report.sh's run_apl_hang_safe() can get a live
+   // backtrace of a genuinely hung run without ever sending it a signal
+   // (^C/SIGINT included) that this process's own signal handlers would
+   // see and act on -- exactly the kind of unrelated interference a
+   // hang investigation should avoid. Harmless if nothing ever tries to
+   // attach; a no-op under a stricter ptrace_scope (2 or 3) or as
+   // non-root there, and this whole block does not exist on non-Linux
+   // builds.
+   prctl(PR_SET_PTRACER, PR_SET_PTRACER_ANY, 0, 0, 0);
+#endif
 
 std::vector<const char *> args(argc);
    loop(a, argc)   args[a] = argv[a];

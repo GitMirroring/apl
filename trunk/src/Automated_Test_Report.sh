@@ -12,13 +12,24 @@
 # findings (culprits.log plus the failing testcase's own .tc.log) are
 # archived into culprits.tar.gz for emailing to bug-apl@gnu.org.
 #
-# Usage: (from the src/ directory, after 'make test' or 'make test3' has
-# produced a summary.log with a failure in it)
-#   ./Automated_Test_Report.sh [logdir] [selection]
+# Usage: (from the src/ directory; './apl' must already be built)
+#   ./Automated_Test_Report.sh [--svn-bisect] [logdir] [selection]
 #
-# logdir defaults to "testcases" and must contain a summary.log (as written
-# by e.g. 'make test' -> testcases/summary.log, or 'make test3' ->
-# testcases_3/summary.log).
+# --svn-bisect, if given (anywhere on the command line), additionally
+# searches backward through SVN history (see Step "bisect SVN history"
+# below) for the last revision that did NOT have the fault, once a
+# minimal reproducer has been found and verified. This does a full
+# 'svn export' + 'autoreconf' + './configure' + 'make' for every
+# revision it tests -- off by default, since it can take a long time;
+# on by request, since collecting this information was explicitly said
+# to not be time critical.
+#
+# logdir defaults to "testcases" and must contain the .tc files to run --
+# e.g. "testcases" (-> 'make test's set) or "testcases_3" (-> 'make test3's
+# set). This script runs every *.tc file in logdir itself (see Step 1) to
+# produce a fresh summary.log there; it does NOT read/trust one left behind
+# by an earlier, separate 'make test'/'make test3' invocation, since that
+# could be stale relative to the current build, sources, or SVN revision.
 #
 # selection is only used when summary.log has more than one failing
 # testcase (see step 2b below): a 1-based number picking which one to
@@ -27,7 +38,8 @@
 # or CI) instead of being asked.
 #
 # Algorithm (see plan.txt):
-#   1. Locate summary.log.
+#   1. Run every .tc file in logdir fresh, to produce an up-to-date
+#      summary.log.
 #   2. Parse it for the ordered list of testcases that were run, each
 #      one's error count, and every one with a nonzero error count -- this
 #      list is kept as an in-memory array throughout, never re-derived
@@ -50,6 +62,15 @@
 #   5. Bisect: repeatedly try halving the remaining candidate set.
 #   6. Remove candidates one at a time until every remaining one is
 #      individually required to reproduce the same failure.
+#   7. Build and verify a standalone .apl reproducer from the minimal set.
+#   8. (--svn-bisect only) Search backward through SVN history for the
+#      last revision without the fault, using a dual-slope search: double
+#      the step backward until a passing revision is found, then halve the
+#      step, walking forward, until the good/bad boundary is pinned down
+#      exactly. Every revision tested gets its own build (see Step
+#      "bisect SVN history" for why one revision at a time, reusing a
+#      single scratch directory that is wiped before each one, was chosen
+#      over the faster alternatives).
 #
 # Every step below is narrated as Step / Action / Boundary Condition /
 # Consequence -- see plan.txt for the intent: a reader of culprits.log
@@ -167,6 +188,21 @@ consequence()
 }
 
 # ---------------------------------------------------------------------------
+# 0. pull --svn-bisect out of the argument list, wherever it appears, before
+# any positional ($1=logdir, $2=selection) parsing happens below.
+# ---------------------------------------------------------------------------
+SVN_BISECT=no
+args=()
+for a in "$@"; do
+   if [[ "$a" == "--svn-bisect" ]]; then
+      SVN_BISECT=yes
+   else
+      args+=("$a")
+   fi
+done
+set -- "${args[@]+"${args[@]}"}"
+
+# ---------------------------------------------------------------------------
 # 1. must be run from src/
 # ---------------------------------------------------------------------------
 if [[ ! -x ./apl || ! -d testcases ]]; then
@@ -176,8 +212,201 @@ if [[ ! -x ./apl || ! -d testcases ]]; then
 fi
 
 SRC_DIR=$(pwd)
+ROOT_DIR=$(cd "$SRC_DIR/.." && pwd)
 WORK=$SRC_DIR/tmp/testcases
 RUN_COUNT=0
+
+# a short, filesystem-safe tag identifying THIS machine, used in the final
+# tarball's name (see Step 10) so that reports from several different
+# machines -- e.g. a 32-bit box and a 64-bit/avx2 box hitting different
+# faults -- never collide or get confused with one another when several
+# are attached to the same email or saved into the same downloads folder.
+# Falls back to "unknown-host" rather than failing outright if neither
+# 'hostname' nor 'uname -n' is usable for some reason.
+MACHINE_TAG=$(hostname 2>/dev/null || uname -n 2>/dev/null)
+# plain bash substitution, not 'tr' -- 'tr' would translate hostname's own
+# trailing newline into a literal '_' as part of the character-class
+# substitution, and by then it is no longer a newline for $(...) to strip
+MACHINE_TAG=${MACHINE_TAG//[^A-Za-z0-9._-]/_}
+[[ -z "$MACHINE_TAG" ]] && MACHINE_TAG=unknown-host
+
+# how long (seconds) any single apl invocation below is given before being
+# treated as hung rather than just slow -- generous on purpose (a full
+# testcases_3 run, or a from-scratch rebuild's own test, can legitimately
+# take a while on a slow machine), overridable via the environment for a
+# machine known to need more (or less).
+: "${AUTOMATED_TEST_REPORT_TIMEOUT:=300}"
+
+# run_apl_hang_safe RC_VAR LOGFILE TIMEOUT_SECONDS HOMEDIR -- APL_BIN ARGS...
+#
+# Runs "HOME=HOMEDIR APL_BIN ARGS... <<< ')OFF' > LOGFILE 2>&1" in the
+# background and waits for it, but only up to TIMEOUT_SECONDS.
+#
+# If it is still running after that, this is treated as a genuine HANG,
+# not a slow-but-progressing run -- and specifically NOT handled by
+# sending it ^C/SIGINT or any other signal. Bill Heagy's own ⎕PLOT reports
+# are the exact reason why: GNU APL's sem_wait_safe() EINTR-retry logic
+# has already shown that a signal arriving while a wait is blocked can
+# change behavior in confusing, hard-to-reproduce ways, on top of
+# whatever caused the hang in the first place -- introducing a NEW signal
+# here, purely to end an automated diagnostic run, would risk manufacturing
+# a second, unrelated issue on top of the one actually being investigated.
+#
+# Instead: gdb attaches to the still-RUNNING process via -p (ptrace-based,
+# not a signal) and takes two full-thread backtrace samples a few seconds
+# apart -- two, not one, so a reader can tell a genuinely STUCK wait/loop
+# (same location both times) from a merely slow, still-progressing
+# computation (a different location the second time) -- before the
+# process is terminated with SIGKILL, the one signal that cannot be
+# caught, blocked, or ignored, so ending the hung run this way can never
+# itself run any of the target's own (possibly buggy) signal-handling
+# code. The backtrace(s) are written to LOGFILE.hang_gdb.txt.
+#
+# 'gdb -p PID' attaching to an unrelated (non-child) process is blocked
+# outright on a stock Ubuntu/Debian system by the Yama LSM's default
+# ptrace_scope=1 -- confirmed empirically ("Could not attach to process")
+# -- so this relies on apl's own main() calling
+# prctl(PR_SET_PTRACER, PR_SET_PTRACER_ANY, ...) at startup (main.cc) to
+# allow it; an apl built without that call will simply produce no
+# backtrace here (gdb's own attach failure is not treated as fatal by
+# this function, see below), same as when gdb itself is not installed.
+# A two-sample design driven by keeping ONE gdb session alive across a
+# 'continue' and re-interrupting it externally was tried first and found
+# unreliable (a second external SIGINT sent to gdb sporadically lands in
+# its own embedded Python I/O layer instead of stopping the inferior,
+# confirmed by direct testing) -- two independent, short-lived attach/
+# detach cycles, as used here, have no such race and are what "most
+# stable, not fastest" actually means in this specific case.
+#
+# Sets RC_VAR to the real exit status if the run finished within the
+# timeout, or the literal string "hung" if it had to be force-terminated.
+run_apl_hang_safe()
+{
+   local -n hs_rc=$1
+   local logfile=$2 timeout_s=$3 homedir=$4
+   shift 4
+
+   HOME="$homedir" "$@" <<< ')OFF' > "$logfile" 2>&1 &
+   local pid=$!
+
+   local waited=0
+   while kill -0 "$pid" 2>/dev/null; do
+      sleep 2
+      waited=$(( waited + 2 ))
+      (( waited >= timeout_s )) && break
+   done
+
+   if kill -0 "$pid" 2>/dev/null; then
+      if command -v gdb > /dev/null 2>&1; then
+         local hang_log="$logfile.hang_gdb.txt" sample
+         : > "$hang_log.new"
+         for sample in 1 2; do
+            {
+               echo "═══ sample $sample of 2, $(date '+%H:%M:%S') ═══"
+               gdb --batch -q -p "$pid" \
+                   -ex 'set pagination off' \
+                   -ex 'thread apply all bt full' \
+                   -ex detach \
+                   -ex quit 2>&1
+               echo
+            } >> "$hang_log.new"
+            kill -0 "$pid" 2>/dev/null || break   # it ended on its own
+            (( sample < 2 )) && sleep 5
+         done
+         mv -f "$hang_log.new" "$hang_log"
+      fi
+      kill -KILL "$pid" 2>/dev/null
+      wait "$pid" 2>/dev/null
+      hs_rc=hung
+   else
+      wait "$pid"
+      hs_rc=$?
+   fi
+}
+
+# write_env_file OUTPATH -- collect environment/library-version info
+# (machine, CPU, memory, word size, compiler, glibc, GTK/XCB/glib/X11/
+# cairo/pango) into OUTPATH, atomically (built under OUTPATH.new first).
+# Shared by Step 10's normal packaging and Step 1's early hang-exit
+# packaging (see there) -- useful whenever the fault might depend on the
+# specific machine rather than being a bug in GNU APL's own portable
+# logic, e.g. a segfault that turns out to be a stale/ABI-mismatched
+# native .so, or a hang that only occurs on 32-bit.
+write_env_file()
+{
+   local out=$1
+   {
+      echo "=== uname -a ==="
+      uname -a 2>&1
+      echo
+      echo "=== word size / endianness ==="
+      echo "LONG_BIT: $(getconf LONG_BIT 2>&1)"
+      echo "byte order: $(lscpu 2>/dev/null | awk -F: '/Byte Order/{gsub(/^[ \t]+/,"",$2); print $2}')"
+      echo
+      echo "=== CPU ==="
+      if [[ -r /proc/cpuinfo ]]; then
+         echo "model name: $(awk -F: '/model name/{gsub(/^ /,"",$2); print $2; exit}' /proc/cpuinfo)"
+         echo "CPU(s):     $(grep -c '^processor' /proc/cpuinfo 2>/dev/null)"
+         echo -n "relevant flags:"
+         for f in avx avx2 avx512f sse4_1 sse4_2 fma; do
+            grep -qw "$f" /proc/cpuinfo 2>/dev/null && echo -n " $f"
+         done
+         echo
+      else
+         echo "(/proc/cpuinfo not available)"
+      fi
+      echo
+      echo "=== memory ==="
+      if command -v free > /dev/null 2>&1; then
+         free -h 2>&1
+      elif [[ -r /proc/meminfo ]]; then
+         grep -E '^(MemTotal|SwapTotal):' /proc/meminfo
+      else
+         echo "(neither free nor /proc/meminfo available)"
+      fi
+      echo
+      echo "=== \$DISPLAY ==="
+      echo "${DISPLAY:-<unset>}"
+      echo
+      echo "=== ./apl --cfg ==="
+      ./apl --cfg 2>&1
+      echo
+      echo "=== compiler ==="
+      if command -v "${CXX:-g++}" > /dev/null 2>&1; then
+         "${CXX:-g++}" --version 2>&1 | head -1
+      else
+         echo "(${CXX:-g++} not found)"
+      fi
+      echo
+      echo "=== glibc ==="
+      if command -v ldd > /dev/null 2>&1; then
+         ldd --version 2>&1 | head -1
+      else
+         getconf GNU_LIBC_VERSION 2>&1
+      fi
+      echo
+      echo "=== GTK/GDK/glib/X11/XCB/cairo/pango versions (pkg-config) ==="
+      if command -v pkg-config > /dev/null 2>&1; then
+         for pkg in gtk+-3.0 gdk-3.0 glib-2.0 gobject-2.0 cairo pango x11 \
+                    xcb xcb-image xcb-icccm; do
+            pkg-config --exists "$pkg" 2>/dev/null \
+               && printf '%-14s %s\n' "$pkg" "$(pkg-config --modversion "$pkg")"
+         done
+      else
+         echo "(pkg-config not available)"
+      fi
+      echo
+      echo "=== relevant installed packages (dpkg, if available) ==="
+      if command -v dpkg-query > /dev/null 2>&1; then
+         dpkg-query -W -f='${Package} ${Version}\n' 2>/dev/null \
+            | grep -E '^(libgtk|libgdk|libglib|libx11|libxcb|libcairo|libpango|libc6)' \
+            | sort
+      else
+         echo "(dpkg-query not available)"
+      fi
+   } > "$out.new" 2>&1
+   mv -f "$out.new" "$out"
+}
 
 # set by Step 4 if the log-derived candidate set does not reproduce right
 # now (a flaky/non-deterministic failure, e.g. a crash inside a
@@ -188,7 +417,7 @@ RUN_COUNT=0
 # behind on disk -- see Step 4, 8, 9, 10 below.
 DEGRADED=no
 
-step "locate summary.log"
+step "run the test suite fresh, to produce an up-to-date summary.log"
 
 action "check the command line for an explicit logdir argument"
 if (( $# > 0 )); then
@@ -203,6 +432,20 @@ consequence "logdir = '$LOGDIR'"
 SUMMARY=$SRC_DIR/$LOGDIR/summary.log
 CULPRITS_LOG=$SRC_DIR/$LOGDIR/culprits.log
 
+action "check whether '$LOGDIR' exists and contains testcases (*.tc) to run"
+shopt -s nullglob
+tc_files=("$LOGDIR"/*.tc)
+shopt -u nullglob
+if [[ -d "$SRC_DIR/$LOGDIR" ]] && (( ${#tc_files[@]} > 0 )); then
+   boundary "found ${#tc_files[@]} .tc file(s) in '$LOGDIR'"
+   consequence "logging this run to $CULPRITS_LOG"
+else
+   boundary "'$LOGDIR' does not exist, or contains no .tc files"
+   consequence "aborting -- nothing to run"
+   echo "Automated_Test_Report.sh: no .tc files found in '$SRC_DIR/$LOGDIR'" >&2
+   exit 1
+fi
+
 # log every action (the same text shown on the terminal below) into
 # culprits.log.new next to summary.log, in addition to printing it. Save
 # the real stdout/stderr on fd 3/4 first so logging can be switched off
@@ -211,32 +454,19 @@ CULPRITS_LOG=$SRC_DIR/$LOGDIR/culprits.log
 # run's culprits.log is never deleted or left truncated, only atomically
 # replaced once its successor is fully written.
 exec 3>&1 4>&2
-if [[ -d "$SRC_DIR/$LOGDIR" ]]; then
-   exec > >(tee "$CULPRITS_LOG.new") 2>&1
-   # clean up the scratch file on any exit that doesn't reach its rename
-   # to culprits.log (e.g. aborting early below); replaced with a wider
-   # trap further down once there is more to clean up on exit too -- this
-   # one never touches the user-facing culprits.log itself.
-   trap 'rm -f "$CULPRITS_LOG.new"' EXIT
-fi
-
-action "check whether '$SUMMARY' exists"
-if [[ -f "$SUMMARY" ]]; then
-   boundary "the file exists"
-   consequence "using $SUMMARY, logging this run to $CULPRITS_LOG"
-else
-   boundary "the file does not exist"
-   consequence "aborting -- run 'make test' (or 'make test3', with" \
-               "logdir=testcases_3) first"
-   echo "Automated_Test_Report.sh: '$SUMMARY' not found" >&2
-   exit 1
-fi
+exec > >(tee "$CULPRITS_LOG.new") 2>&1
+# clean up the scratch file on any exit that doesn't reach its rename
+# to culprits.log (e.g. aborting early below); replaced with a wider
+# trap further down once there is more to clean up on exit too -- this
+# one never touches the user-facing culprits.log itself.
+trap 'rm -f "$CULPRITS_LOG.new"' EXIT
 
 # apl -T unconditionally truncates the hardcoded path "testcases/summary.log"
 # (relative to CWD) as soon as -T is parsed, regardless of which files -T
-# actually names (UserPreferences.cc). Since every apl invocation below uses
-# -T, that would otherwise silently wipe out the very log we're reading from
-# (or clobber it even when LOGDIR is something else). Back it up now and
+# actually names (UserPreferences.cc). Since the fresh run below (and every
+# apl invocation further down) uses -T, that would otherwise silently wipe
+# out testcases/summary.log even when LOGDIR is something else (e.g.
+# testcases_3). Back it up now, before that first -T invocation, and
 # restore it on exit, however this script ends. Also clean up
 # culprits.log.new on any exit that doesn't reach its rename to
 # culprits.log (e.g. this script aborting early) -- it is our own scratch
@@ -248,6 +478,108 @@ if [[ -f "$SRC_DIR/testcases/summary.log" ]]; then
          rm -f "$CULPRITS_LOG.new"' EXIT
 else
    trap 'rm -f "$SRC_DIR/testcases/summary.log" "$CULPRITS_LOG.new"' EXIT
+fi
+
+# a summary.log left over from an earlier run (possibly hours or days old,
+# against a different build, a different set of local edits, or even a
+# different SVN revision) says nothing reliable about what THIS machine's
+# CURRENT build actually does right now -- and cross-machine failure
+# reports (e.g. several people on different distros/architectures hitting
+# "similar but not identical" problems) are exactly where trusting a stale
+# log leads to chasing the wrong thing. So run every .tc file in $LOGDIR
+# ourselves, the same way 'make test'/'make test3' would (see Makefile.am),
+# and use THAT summary.log from here on -- never one left behind by an
+# earlier, unrelated invocation.
+action "run every .tc file in '$LOGDIR' (as 'make test'/'make test3'" \
+       "would), to produce a summary.log that reflects the current build" \
+       "and sources on THIS machine -- if any single testcase hangs" \
+       "rather than failing outright, this will be caught (not" \
+       "^C'd) after $AUTOMATED_TEST_REPORT_TIMEOUT seconds; see" \
+       "run_apl_hang_safe's own header comment for why"
+run_home=$(mktemp -d)
+run_log=$SRC_DIR/$LOGDIR/culprits_run1.log
+run_apl_hang_safe run_rc "$run_log" "$AUTOMATED_TEST_REPORT_TIMEOUT" \
+   "$run_home" ./apl --id 1010 -T "${tc_files[@]}"
+rm -rf "$run_home"
+
+if [[ "$run_rc" == hung ]]; then
+   boundary "no testcase finished within $AUTOMATED_TEST_REPORT_TIMEOUT" \
+            "seconds -- treated as a hang, not a slow run"
+   consequence "gdb backtrace(s) captured to $run_log.hang_gdb.txt" \
+               "(if gdb is available); the hung apl process was" \
+               "terminated with SIGKILL, never sent ^C/SIGINT"
+
+   # a hung testcase never gets its own entry written to summary.log (it
+   # never finished), so it cannot become $target through the normal,
+   # error-count-driven Step 2/2b selection below -- minimization itself
+   # (Steps 3-6) also fundamentally does not apply: it works by re-running
+   # subsets to completion many times, which a genuine hang, by
+   # definition, never does. So package what was actually asked for here
+   # (a real backtrace of where the hang is) right now and stop, rather
+   # than attempting a downstream step this run categorically cannot
+   # reach.
+   step "package the hang evidence and stop (minimization does not" \
+        "apply to a hang)"
+
+   action "identify which testcase was running when the hang occurred," \
+          "from the last 'Testfile:' banner apl printed before it" \
+          "stopped responding"
+   hung_tc=$(sed -n 's/^ *## *Testfile: *\([^ ]*\.tc\).*$/\1/p' \
+             "$run_log" | tail -1)
+   if [[ -n "$hung_tc" ]]; then
+      boundary "$hung_tc"
+      consequence "this is the testcase to report as hanging"
+   else
+      boundary "no 'Testfile:' banner found in $run_log"
+      consequence "could not identify which specific testcase hung --" \
+                  "the backtrace(s) still show exactly where, which is" \
+                  "the important part"
+   fi
+
+   HANG_ENV_FILE=$SRC_DIR/$LOGDIR/culprits_env.txt
+   write_env_file "$HANG_ENV_FILE"
+
+   HANG_TARFILE=$SRC_DIR/$LOGDIR/culprits_$MACHINE_TAG.tar.new
+   HANG_TARBALL=$SRC_DIR/$LOGDIR/culprits_$MACHINE_TAG.tar.gz
+   rm -f "$HANG_TARFILE" "$HANG_TARFILE.gz"
+
+   action "assemble $(basename "$HANG_TARBALL"): the gdb backtrace(s)," \
+          "environment info, and whatever partial summary.log/run" \
+          "narration exist so far"
+   tar -cf "$HANG_TARFILE" -C "$(dirname "$HANG_ENV_FILE")" \
+       "$(basename "$HANG_ENV_FILE")"
+   if [[ -f "$run_log.hang_gdb.txt" ]]; then
+      tar -rf "$HANG_TARFILE" -C "$(dirname "$run_log")" \
+          "$(basename "$run_log.hang_gdb.txt")"
+   fi
+   if [[ -f "$SUMMARY" ]]; then
+      tar -rf "$HANG_TARFILE" -C "$(dirname "$SUMMARY")" \
+          "$(basename "$SUMMARY")"
+   fi
+   gzip -f "$HANG_TARFILE"
+   mv -f "$HANG_TARFILE.gz" "$HANG_TARBALL"
+   rm -f "$HANG_ENV_FILE"
+   boundary "packaged"
+   consequence "$HANG_TARBALL"
+
+   echo
+   echo "Testcase hang detected${hung_tc:+ in $hung_tc}; gdb backtrace(s)" \
+        "captured instead of interrupting it. Artifacts for emailing to" \
+        "bug-apl@gnu.org: $HANG_TARBALL"
+   exit 0
+fi
+
+boundary "apl exited with status $run_rc after running" \
+         "${#tc_files[@]} testcase(s)"
+
+if [[ -f "$SUMMARY" ]]; then
+   consequence "$SUMMARY written"
+else
+   consequence "aborting -- apl did not produce '$SUMMARY' at all (an" \
+               "unexpectedly early crash, a hang with nothing written" \
+               "yet, or './apl' itself is broken)"
+   echo "Automated_Test_Report.sh: '$SUMMARY' not found after running apl" >&2
+   exit 1
 fi
 
 # ---------------------------------------------------------------------------
@@ -469,8 +801,9 @@ run_apl_and_check()
    run_home=$(mktemp -d)
    local logfile
    logfile=$(mktemp)
-   HOME="$run_home" ./apl --id 1010 --noColor -T "$@" \
-      <<< ')OFF' > "$logfile" 2>&1
+   local run_rc
+   run_apl_hang_safe run_rc "$logfile" "$AUTOMATED_TEST_REPORT_TIMEOUT" \
+      "$run_home" ./apl --id 1010 --noColor -T "$@"
    rm -rf "$run_home"
 
    # apl -T always (re)writes a summary.log next to the given testcase
@@ -496,23 +829,34 @@ run_apl_and_check()
    fi
 
    if [[ -z "$errs" ]]; then
-      # $target's own entry never made it into summary.log -- apl most
-      # likely crashed partway through and never got as far as writing
-      # it. The last "Testfile:" banner in the raw transcript names
-      # whichever testcase was actually running when that happened.
-      local crashed_on
-      crashed_on=$(sed -n 's/^ *## *Testfile: *\([^ ]*\.tc\).*$/\1/p' \
+      # $target's own entry never made it into summary.log -- either apl
+      # crashed partway through, or (run_rc == hung) it was force-
+      # terminated after a hang timeout, and either way never got as far
+      # as writing it. The last "Testfile:" banner in the raw transcript
+      # names whichever testcase was actually running at that moment.
+      local stopped_on
+      stopped_on=$(sed -n 's/^ *## *Testfile: *\([^ ]*\.tc\).*$/\1/p' \
                    "$logfile" | tail -1)
-      if [[ -n "$crashed_on" ]] && [[ "$(basename "$crashed_on")" == "$target" ]]
+      if [[ -n "$stopped_on" ]] && [[ "$(basename "$stopped_on")" == "$target" ]]
       then
-         errs="crashed"
+         if [[ "$run_rc" == hung ]]; then errs="hung"
+         else                             errs="crashed"
+         fi
       fi
-      # otherwise leave errs empty: apl crashed on some OTHER (earlier)
+      # otherwise leave errs empty: apl stopped on some OTHER (earlier)
       # file, or exited before reaching $target for some other reason --
       # $target's own status here is simply unknown/not applicable.
    fi
 
-   rm -f "$logfile"
+   if [[ "$errs" == hung ]] && [[ -f "$logfile.hang_gdb.txt" ]]; then
+      # preserve this trial's own hang backtrace next to $target's usual
+      # .log artifact rather than letting it get discarded with $logfile
+      # below -- Step 7/10 already know to look for "$WORK/$target.log"-
+      # adjacent files when packaging.
+      cp -f "$logfile.hang_gdb.txt" "$WORK/$target.hang_gdb.txt" 2>/dev/null
+   fi
+
+   rm -f "$logfile" "$logfile.hang_gdb.txt"
    out_ref=$errs
 }
 
@@ -545,6 +889,12 @@ reproduces()
    if [[ "$rp_errs" == crashed ]]; then
       RESULT_TEXT="$target itself crashed apl (terminated abnormally" \
                   " while $target was running)"
+      return 0
+   fi
+
+   if [[ "$rp_errs" == hung ]]; then
+      RESULT_TEXT="$target itself hung (no ^C sent -- see" \
+                  " $WORK/$target.hang_gdb.txt for where)"
       return 0
    fi
 
@@ -849,14 +1199,43 @@ else
 mapfile -t bad_values < <(sed -n 's/^apl: ⋅⋅⋅\(.*\)⋅⋅⋅$/\1/p' "$target_log_path")
 
 verify_home=$(mktemp -d)
-verify_out=$(HOME="$verify_home" ./apl --id 1010 --noColor --TM 3 \
-             -f "$APL_FILE" <<< ')OFF' 2>&1)
-verify_rc=$?
+verify_logfile=$(mktemp)
+verify_rc_raw=""
+run_apl_hang_safe verify_rc_raw "$verify_logfile" \
+   "$AUTOMATED_TEST_REPORT_TIMEOUT" "$verify_home" \
+   ./apl --id 1010 --noColor --TM 3 -f "$APL_FILE"
 rm -rf "$verify_home"
+verify_out=$(cat "$verify_logfile")
+
+# verify_hung is tracked SEPARATELY from verify_rc (kept numeric, 0 in
+# this case) so Step 9 below -- which does its own, unrelated,
+# NOT-hang-protected gdb crash-backtrace by re-running $APL_FILE under
+# 'gdb -ex run' from scratch -- knows to skip that entirely rather than
+# risk hanging a second time on the exact same bug; the backtrace
+# run_apl_hang_safe already captured just above is used instead (see
+# VERIFY_HANG_FILE, packaged in Step 10).
+verify_hung=no
+VERIFY_HANG_FILE=""
+if [[ "$verify_rc_raw" == hung ]]; then
+   verify_hung=yes
+   verify_rc=0
+   if [[ -f "$verify_logfile.hang_gdb.txt" ]]; then
+      VERIFY_HANG_FILE=$SRC_DIR/$LOGDIR/culprits_verify_hang_gdb.txt
+      cp -f "$verify_logfile.hang_gdb.txt" "$VERIFY_HANG_FILE.new"
+      mv -f "$VERIFY_HANG_FILE.new" "$VERIFY_HANG_FILE"
+   fi
+else
+   verify_rc=$verify_rc_raw
+fi
+rm -f "$verify_logfile"
 
 reproduced=no
 reason=""
-if (( verify_rc != 0 )); then
+if [[ "$verify_hung" == yes ]]; then
+   reproduced=yes
+   reason="apl hung (no ^C sent -- gdb backtrace captured instead," \
+          " see culprits_verify_hang_gdb.txt once packaged)"
+elif (( verify_rc != 0 )); then
    reproduced=yes
    reason="apl exited with status $verify_rc (abnormal termination)"
 else
@@ -911,7 +1290,19 @@ if [[ "$DEGRADED" == yes ]]; then
    fi
 fi
 
-if [[ "$DEGRADED" == no ]]; then
+if [[ "$DEGRADED" == no && "$verify_hung" == yes ]]; then
+   action "check whether Step 8's verification run hung instead of" \
+          "crashing"
+   boundary "it did -- \$VERIFY_HANG_FILE already has a live-process" \
+            "backtrace from run_apl_hang_safe"
+   consequence "skipping this step's own (unrelated, NOT hang-" \
+               "protected) crash-backtrace mechanism entirely --" \
+               "re-running \$APL_FILE under 'gdb -ex run' from" \
+               "scratch here would risk hanging a second time on the" \
+               "exact same bug, with no timeout to catch it"
+fi
+
+if [[ "$DEGRADED" == no && "$verify_hung" == no ]]; then
 
 action "check whether Step 8's verification run actually crashed --" \
        "only that is worth a gdb backtrace; an ordinary wrong-output" \
@@ -1069,7 +1460,270 @@ if (( verify_rc != 0 )); then
    fi
 fi
 
-fi   # DEGRADED == no
+fi   # DEGRADED == no && verify_hung == no
+
+# ---------------------------------------------------------------------------
+# 8. (--svn-bisect only) search SVN history for the last revision without
+# the fault, using $APL_FILE (Step 7's verified standalone reproducer) as
+# the fixed yardstick against which every tested revision's own freshly
+# built apl is checked -- no need to re-run the minimal .tc set itself
+# per revision.
+#
+# Design choices, and why (per explicit user direction: prioritize
+# stability over speed here, since repeated SVN operations + full rebuilds
+# are exactly the kind of thing that can go wrong in ways that are hard to
+# notice half-way through a long unattended run):
+#   - ONE scratch directory, reused for every revision tested (wiped with
+#     rm -rf and rebuilt from scratch each time), never several at once --
+#     keeps disk/memory usage flat regardless of how many revisions end up
+#     being tested, important on small machines.
+#   - A full 'svn export' (not 'svn switch'/'svn up' inside a single
+#     persistent checkout) for every revision -- more network/disk traffic
+#     than an incremental update, but leaves zero generated state (old
+#     .deps/*.Po files, a stale configure script, ...) behind from the
+#     previous revision to possibly interact badly with the new one; this
+#     is the exact same class of problem diagnosed independently for
+#     David Alden's SVN r2071 build failure (a stale .deps/apl-Archive.Po
+#     left over from an earlier build in the same directory) -- avoided
+#     here by construction rather than by hoping 'make clean' catches
+#     everything.
+#   - 'autoreconf -fi' before './configure' every time, since 'configure'
+#      itself is generated and NOT under SVN control (confirmed via
+#      'svn status configure' showing '?') -- a plain export has no
+#      configure script to run at all.
+#   - the exact './configure' arguments used for the CURRENT build are
+#     replayed via 'config.status --config', so every tested revision is
+#     built the same way the live tree was.
+#   - a dual-slope search: double the backward step until a passing
+#     revision is found (no known-good revision is assumed to exist),
+#     then halve the step, walking forward from that known-good point,
+#     until the good/bad boundary is pinned down exactly. This finds the
+#     boundary in a small number of full rebuilds without needing a
+#     pre-supplied lower bound.
+#   - any SVN or build failure at a given revision is treated as
+#     inconclusive (narrated, artifacts kept for inspection) rather than
+#     aborting the whole search -- one flaky revision should not throw
+#     away everything already found.
+# ---------------------------------------------------------------------------
+step "bisect SVN history for the last revision without the fault"
+
+SVN_SCRATCH=$SRC_DIR/tmp/svn_bisect
+BISECT_DIR=$SRC_DIR/$LOGDIR/culprits_svn
+
+# test_svn_revision REV -- builds REV from a fresh 'svn export' into
+# $SVN_SCRATCH (wiped first) and runs $APL_FILE against it, using the same
+# known-bad-value/exit-status signature Step 7 already verified. Sets
+# SVN_TEST_RESULT to one of: pass / fail / svn_failed / build_failed.
+# Always stages whatever it learned under $BISECT_DIR/r<REV>/, win or lose,
+# so a partial/inconclusive run still leaves useful evidence behind.
+test_svn_revision()
+{
+   local rev=$1
+   SVN_TEST_RESULT=""
+   local stage=$BISECT_DIR/r$rev
+   mkdir -p "$stage"
+
+   rm -rf "$SVN_SCRATCH"
+   if ! svn export -q -r "$rev" "$REPO_URL" "$SVN_SCRATCH" \
+        > "$stage/svn_export.log" 2>&1
+   then
+      SVN_TEST_RESULT=svn_failed
+      return
+   fi
+
+   ( cd "$SVN_SCRATCH" && autoreconf -fi
+   ) > "$stage/autoreconf.log" 2>&1
+   ( cd "$SVN_SCRATCH" && eval ./configure "$CONFIGURE_ARGS"
+   ) > "$stage/configure.log" 2>&1
+   ( cd "$SVN_SCRATCH" && make -C src
+   ) > "$stage/make.log" 2>&1
+
+   if [[ ! -x "$SVN_SCRATCH/src/apl" ]]; then
+      SVN_TEST_RESULT=build_failed
+      rm -rf "$SVN_SCRATCH"
+      return
+   fi
+
+   # note: this revision's OWN apl binary is what gets run here, which
+   # -- for any revision predating this session's prctl(PR_SET_PTRACER)
+   # addition to main.cc -- means a gdb -p attach below may simply fail
+   # on a stock ptrace_scope=1 system (same as before that fix existed);
+   # run_apl_hang_safe tolerates that already (no backtrace, still
+   # correctly reports "hung"), so bisection itself is unaffected either
+   # way, just without a backtrace for revisions old enough to lack it.
+   local probe_home probe_logfile probe_rc
+   probe_home=$(mktemp -d)
+   probe_logfile=$(mktemp)
+   run_apl_hang_safe probe_rc "$probe_logfile" \
+      "$AUTOMATED_TEST_REPORT_TIMEOUT" "$probe_home" \
+      "$SVN_SCRATCH/src/apl" --id 1010 --noColor --TM 3 -f "$APL_FILE"
+   rm -rf "$probe_home"
+   local probe_out
+   probe_out=$(cat "$probe_logfile")
+   cp -f "$probe_logfile" "$stage/apl_output.log"
+   if [[ -f "$probe_logfile.hang_gdb.txt" ]]; then
+      cp -f "$probe_logfile.hang_gdb.txt" "$stage/hang_gdb.txt"
+   fi
+   rm -f "$probe_logfile" "$probe_logfile.hang_gdb.txt"
+
+   local reproduced=no bv
+   if [[ "$probe_rc" == hung ]]; then
+      reproduced=yes
+   elif (( probe_rc != 0 )); then
+      reproduced=yes
+   else
+      for bv in "${bad_values[@]}"; do
+         if [[ -n "$bv" ]] && grep -qF "$bv" <<< "$probe_out"; then
+            reproduced=yes
+            break
+         fi
+      done
+   fi
+
+   {
+      echo "SVN revision: $rev"
+      echo "apl exit status: $probe_rc"
+      echo "fault reproduced: $reproduced"
+   } > "$stage/summary.log"
+
+   rm -rf "$SVN_SCRATCH"
+   if [[ "$reproduced" == yes ]]; then SVN_TEST_RESULT=fail
+   else                                SVN_TEST_RESULT=pass
+   fi
+}
+
+action "check preconditions: --svn-bisect requested, a verified" \
+       "standalone reproducer (Step 7) available, and a reliable" \
+       "(non-degraded) run to begin with"
+if [[ "$SVN_BISECT" != yes ]]; then
+   boundary "--svn-bisect was not given on the command line"
+   consequence "skipped -- this step does a full rebuild per revision" \
+               "tested and can take a long time"
+elif [[ "$DEGRADED" == yes ]]; then
+   boundary "this run is in degraded mode (Step 4 could not confirm" \
+            "reproduction)"
+   consequence "skipped -- bisection needs the same reliable" \
+               "reproduction signal degraded mode never had"
+elif [[ -z "$APL_FILE" || ! -f "$APL_FILE" ]]; then
+   boundary "no verified standalone reproducer from Step 7 is available"
+   consequence "skipped -- nothing to test each revision against"
+else
+   boundary "all preconditions met"
+   consequence "proceeding"
+
+   action "check that this tree is under SVN and svn is available"
+   REPO_URL=$(cd "$ROOT_DIR" && svn info --show-item url 2>/dev/null)
+   if [[ -z "$REPO_URL" ]] || ! command -v svn > /dev/null 2>&1; then
+      boundary "svn is not available, or '$ROOT_DIR' is not an SVN" \
+               "working copy"
+      consequence "skipped -- cannot bisect"
+   else
+      boundary "repository URL: $REPO_URL"
+      consequence "proceeding"
+
+      CUR_REV=$(cd "$ROOT_DIR" && svn info --show-item revision 2>/dev/null)
+      CONFIGURE_ARGS=$(cd "$ROOT_DIR" && ./config.status --config 2>/dev/null)
+      mkdir -p "$BISECT_DIR"
+
+      action "confirm \$APL_FILE reproduces the fault when built from the" \
+             "CURRENT committed revision (r$CUR_REV), before searching" \
+             "further back -- this also rules out the fault depending" \
+             "on uncommitted local changes only, which no SVN revision" \
+             "could ever match"
+      test_svn_revision "$CUR_REV"
+      if [[ "$SVN_TEST_RESULT" != fail ]]; then
+         boundary "r$CUR_REV result: $SVN_TEST_RESULT (expected: fail)"
+         consequence "skipped -- either r$CUR_REV alone does not" \
+                     "reproduce the fault (it may need the uncommitted" \
+                     "local changes in this working copy too), or its" \
+                     "own export/build failed; SVN history bisection" \
+                     "would not be meaningful here"
+      else
+         boundary "r$CUR_REV: fault confirmed present from a clean" \
+                  "export + rebuild"
+         consequence "searching backward for the last revision without it"
+
+         bad_rev=$CUR_REV
+         good_rev=""
+         delta=10
+
+         action "phase 1: double the step backward from r$bad_rev until" \
+                "a passing revision is found"
+         while [[ -z "$good_rev" ]] && (( bad_rev - delta >= 1 )); do
+            probe=$(( bad_rev - delta ))
+            test_svn_revision "$probe"
+            boundary "r$probe: $SVN_TEST_RESULT"
+            case "$SVN_TEST_RESULT" in
+               fail)
+                  bad_rev=$probe
+                  consequence "still fails -- doubling the step to" \
+                              "$(( delta * 2 ))"
+                  delta=$(( delta * 2 ))
+                  ;;
+               pass)
+                  good_rev=$probe
+                  consequence "passes -- switching to phase 2 (halving)"
+                  ;;
+               *)
+                  consequence "export or build failed at r$probe --" \
+                              "inconclusive, nudging one revision closer" \
+                              "and retrying at the same distance"
+                  (( bad_rev -= 1 ))
+                  ;;
+            esac
+         done
+
+         if [[ -z "$good_rev" ]]; then
+            action "check whether phase 1 reached the beginning of the" \
+                   "searched range without finding a passing revision"
+            floor=$(( bad_rev - delta )); (( floor < 1 )) && floor=1
+            boundary "no passing revision found down to r$floor"
+            consequence "the fault appears to predate the revisions" \
+                        "tested -- reporting r$bad_rev as the oldest" \
+                        "confirmed-bad revision found; no last-good" \
+                        "boundary identified"
+         else
+            action "phase 2: halve the step, walking forward from the" \
+                   "known-good r$good_rev, until the good/bad boundary" \
+                   "is exactly one revision wide"
+            step_size=$(( delta / 2 ))
+            while (( step_size >= 1 )); do
+               probe=$(( good_rev + step_size ))
+               if (( probe < bad_rev )); then
+                  test_svn_revision "$probe"
+                  boundary "r$probe: $SVN_TEST_RESULT"
+                  case "$SVN_TEST_RESULT" in
+                     fail)
+                        bad_rev=$probe
+                        consequence "fails -- known-bad boundary moves" \
+                                    "down to r$bad_rev, halving the step"
+                        ;;
+                     pass)
+                        good_rev=$probe
+                        consequence "passes -- known-good boundary" \
+                                    "moves up to r$good_rev, halving" \
+                                    "the step"
+                        ;;
+                     *)
+                        consequence "export or build failed at r$probe" \
+                                    "-- inconclusive, halving the step" \
+                                    "without moving either boundary"
+                        ;;
+                  esac
+               fi
+               step_size=$(( step_size / 2 ))
+            done
+
+            action "report the boundary found"
+            boundary "r$good_rev: last known-good revision" \
+                     "r$bad_rev: first known-bad revision"
+            consequence "regression introduced between r$good_rev and" \
+                        "r$bad_rev; per-revision evidence staged under" \
+                        "$BISECT_DIR"
+         fi
+      fi
+   fi
+fi
 
 # ---------------------------------------------------------------------------
 # 10. package diagnostic artifacts into a tarball the user can email us.
@@ -1080,16 +1734,19 @@ fi   # DEGRADED == no
 # as the very last step -- more artifacts can be added the same way
 # later without needing to touch the compression step at all.
 #
-# culprits.tar.gz (FINAL_TARBALL) is the user-facing artifact from a
-# previous run and must never be deleted or left in a half-written state
-# -- so the new archive is built entirely under a .new name (TARFILE) and
-# only the finished culprits.tar.gz.new is renamed onto culprits.tar.gz,
-# atomically, once compression has actually succeeded.
+# culprits_<machine>.tar.gz (FINAL_TARBALL) is the user-facing artifact
+# from a previous run and must never be deleted or left in a half-written
+# state -- so the new archive is built entirely under a .new name
+# (TARFILE) and only the finished .tar.new.gz is renamed onto it,
+# atomically, once compression has actually succeeded. The machine tag in
+# the name (see MACHINE_TAG above) means reports from several different
+# machines can be collected side by side -- and attached to the same
+# email -- without one overwriting another.
 # ---------------------------------------------------------------------------
 step "package diagnostic artifacts for reporting"
 
-TARFILE=$SRC_DIR/$LOGDIR/culprits.tar.new
-FINAL_TARBALL=$SRC_DIR/$LOGDIR/culprits.tar.gz
+TARFILE=$SRC_DIR/$LOGDIR/culprits_$MACHINE_TAG.tar.new
+FINAL_TARBALL=$SRC_DIR/$LOGDIR/culprits_$MACHINE_TAG.tar.gz
 rm -f "$TARFILE" "$TARFILE.gz"
 
 # add_artifact SRC_PATH -- append SRC_PATH (by basename) to $TARFILE,
@@ -1137,6 +1794,17 @@ else
    consequence "skipped -- nothing to add"
 fi
 
+action "add culprits_verify_hang_gdb.txt, the live-process backtrace" \
+       "captured in Step 8 if the verification run itself hung"
+if [[ -n "$VERIFY_HANG_FILE" && -f "$VERIFY_HANG_FILE" ]]; then
+   boundary "$VERIFY_HANG_FILE exists"
+   add_artifact "$VERIFY_HANG_FILE"
+   consequence "added to $TARFILE"
+else
+   boundary "the verification run did not hang"
+   consequence "skipped -- nothing to add"
+fi
+
 action "add culprits_backtrace.txt, the interpreter's own persisted" \
        "crash-time backtrace found in Step 9 (degraded mode only)"
 if [[ -n "$BACKTRACE_FILE" && -f "$BACKTRACE_FILE" ]]; then
@@ -1170,41 +1838,25 @@ fi
 
 action "add culprits_env.txt, environment/library-version info --" \
        "useful when the fault lives in third-party library code (GTK," \
-       "GDK, glib, X11, ...) rather than in GNU APL's own"
+       "GDK, glib, X11, XCB, ...), depends on available memory, or" \
+       "is specific to a CPU feature (e.g. AVX2) or word size" \
+       "rather than being a bug in GNU APL's own portable logic"
 ENV_FILE=$SRC_DIR/$LOGDIR/culprits_env.txt
-{
-   echo "=== uname -a ==="
-   uname -a 2>&1
-   echo
-   echo "=== \$DISPLAY ==="
-   echo "${DISPLAY:-<unset>}"
-   echo
-   echo "=== ./apl --cfg ==="
-   ./apl --cfg 2>&1
-   echo
-   echo "=== GTK/GDK/glib/X11/cairo/pango versions (pkg-config) ==="
-   if command -v pkg-config > /dev/null 2>&1; then
-      for pkg in gtk+-3.0 gdk-3.0 glib-2.0 gobject-2.0 cairo pango x11; do
-         pkg-config --exists "$pkg" 2>/dev/null \
-            && printf '%-14s %s\n' "$pkg" "$(pkg-config --modversion "$pkg")"
-      done
-   else
-      echo "(pkg-config not available)"
-   fi
-   echo
-   echo "=== relevant installed packages (dpkg, if available) ==="
-   if command -v dpkg-query > /dev/null 2>&1; then
-      dpkg-query -W -f='${Package} ${Version}\n' 2>/dev/null \
-         | grep -E '^(libgtk|libgdk|libglib|libx11|libcairo|libpango)' \
-         | sort
-   else
-      echo "(dpkg-query not available)"
-   fi
-} > "$ENV_FILE.new" 2>&1
-mv -f "$ENV_FILE.new" "$ENV_FILE"
+write_env_file "$ENV_FILE"
 boundary "wrote $ENV_FILE"
 add_artifact "$ENV_FILE"
 consequence "added to $TARFILE"
+
+action "add culprits_svn/, the per-revision SVN bisection evidence" \
+       "(--svn-bisect only)"
+if [[ -d "$BISECT_DIR" ]] && [[ -n "$(ls -A "$BISECT_DIR" 2>/dev/null)" ]]; then
+   boundary "$BISECT_DIR exists and is non-empty"
+   add_artifact "$BISECT_DIR"
+   consequence "added to $TARFILE (one subdirectory per revision tested)"
+else
+   boundary "--svn-bisect was not used, or nothing was staged"
+   consequence "skipped -- nothing to add"
+fi
 
 action "add culprits.log, this run's own narration, to the tar"
 boundary "this is the last line culprits.log will contain -- it can" \
@@ -1229,7 +1881,7 @@ wait
 mv -f "$CULPRITS_LOG.new" "$CULPRITS_LOG"
 add_artifact "$CULPRITS_LOG"
 
-action "compress $TARFILE and replace culprits.tar.gz"
+action "compress $TARFILE and replace $(basename "$FINAL_TARBALL")"
 gzip -f "$TARFILE"
 
 # only now, with the new archive fully built and compressed, replace the
@@ -1258,12 +1910,17 @@ step "remove now-redundant loose files"
 action "delete the loose copies of everything just packaged above --" \
        "their content survives inside $FINAL_TARBALL"
 removed=()
-for f in "$APL_FILE" "$GDB_FILE" "$BACKTRACE_FILE" "$ENV_FILE" "$SUMMARY_COPY"; do
+for f in "$APL_FILE" "$GDB_FILE" "$BACKTRACE_FILE" "$VERIFY_HANG_FILE" \
+         "$ENV_FILE" "$SUMMARY_COPY"; do
    if [[ -n "$f" && -f "$f" ]]; then
       rm -f "$f"
       removed+=("$(basename "$f")")
    fi
 done
+if [[ -d "$BISECT_DIR" ]]; then
+   rm -rf "$BISECT_DIR"
+   removed+=("$(basename "$BISECT_DIR")/")
+fi
 if (( ${#removed[@]} )); then
    boundary "removed: ${removed[*]}"
 else
