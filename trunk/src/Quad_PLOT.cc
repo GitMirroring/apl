@@ -131,7 +131,12 @@ int Quad_PLOT::verbosity = 0;
 
 #if MINGW_SRC
 const Quad_PLOT::Plot_driver default_plot_driver = Quad_PLOT::PltDrv_WIN32;
-#elif apl_GTK3
+#elif apl_GTK3 && apl_X11
+   // matches the runtime gate in start_GUI(): the PltDrv_GTK case there is
+   // only implemented '#if apl_GTK3 && apl_X11' (Bill Heagy, /tmp/trouble1.eml,
+   // 2026-08-12: a build with GTK3 but no X11 picked PltDrv_GTK here anyway,
+   // so every attribute-but-no-gui_driver ⎕PLOT hit start_GUI()'s "GTK was
+   // not completely installed" DOMAIN_ERROR instead of falling back to ASCII)
 const Quad_PLOT::Plot_driver default_plot_driver = Quad_PLOT::PltDrv_GTK;
 #elif apl_XCB
 const Quad_PLOT::Plot_driver default_plot_driver = Quad_PLOT::PltDrv_XCB;

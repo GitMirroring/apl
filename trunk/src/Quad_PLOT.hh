@@ -224,7 +224,7 @@ enum { SAVE_BORDER_DELAY_ms = 100 };
     A \b default_plot_driver is chosen at compile time based on the
     ./configure result (i.e. \b config.h).
 
-    default_plot_driver = PltDrv_GTK    if GTK is avaliable, otherwise
+    default_plot_driver = PltDrv_GTK    if GTK AND X11 are avaliable, otherwise
     default_plot_driver = PltDrv_XCB    if XCB is avaiable, otherwise
     PltDrv_ASCII        = PltDrv_ASCII.
 
