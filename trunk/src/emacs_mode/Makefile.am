@@ -33,6 +33,14 @@ libemacs_la_SOURCES =						\
 		VariablesCommand.cc	VariablesCommand.hh	\
 		VersionCommand.cc	VersionCommand.hh
 
+# copy the freshly built .so next to the apl binary (..) so that
+# the interpreter can be run and tested from the build tree without a
+# prior 'make install'.
+all-local: $(pkglib_LTLIBRARIES)
+	@for so in .libs/*.so ; do \
+	   test -f "$$so" && cp -fp "$$so" .. ; \
+	done
+
 .PHONY: git-pull
 git-pull:
 	rm -Rf tmp

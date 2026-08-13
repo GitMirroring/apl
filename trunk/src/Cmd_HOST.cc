@@ -128,7 +128,8 @@ const int len = capa.size();
    else
       {
         if (len == 3 && capa.starts_iwith("GSL"))        return apl_GSL;
-        if (len == 3 && capa.starts_iwith("GTK"))        return apl_GTK3;
+        if (len == 3 && capa.starts_iwith("GTK"))
+           return apl_GTK3 && apl_X11;
         if (len == 3 && capa.starts_iwith("GUI"))        return apl_GUI;
         if (len == 8 && capa.starts_iwith("POSTGRES"))   return apl_POSTGRES;
         if (len == 7 && capa.starts_iwith("SQLITE3"))    return apl_SQLITE3;

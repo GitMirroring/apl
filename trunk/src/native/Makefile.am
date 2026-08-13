@@ -41,3 +41,11 @@ lib_template_OP2_la_SOURCES = template_OP2.cc template.hh
 lib_template_OP2_la_CXXFLAGS = $(AM_CXXFLAGS)
 lib_template_OP2_la_LDFLAGS = $(common_LDFLAGS)
 
+# copy the freshly built .so files next to the apl binary (..) so that
+# the interpreter can be run and tested from the build tree without a
+# prior 'make install'.
+all-local: $(pkglib_LTLIBRARIES)
+	@for so in .libs/*.so ; do \
+	   test -f "$$so" && cp -fp "$$so" .. ; \
+	done
+

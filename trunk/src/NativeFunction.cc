@@ -32,9 +32,11 @@
 
 #include <errno.h>
 #include <string.h>
+#include <sys/stat.h>
 
 #include "Common.hh"
 #include "Error.hh"
+#include "LibPaths.hh"
 #include "NativeFunction.hh"
 #include "Native_interface.hh"
 #include "Symbol.hh"
@@ -328,61 +330,25 @@ NativeFunction::~NativeFunction()
    if (handle)   { dlclose(handle);   handle = 0; }
 }
 //────────────────────────────────────────────────────────────────────────────
-void *
-NativeFunction::open_so_file(UCS_string & t4, UCS_string & so_path)
+/// search \b dir_count directories in \b dirs for \b so_name (trying the
+/// name as given, then with .so, then with .dylib appended, unless it
+/// already has one of those extensions), WITHOUT opening it. Returns
+/// true and sets \b resolved on the first existing + readable match; t4
+/// accumulates a "directories/files tried" diagnostic for every miss
+/// (only ever shown to the user if the whole open_so_file() search
+/// ultimately fails).
+static bool
+find_so_candidate(const char * const * dirs, int dir_count,
+                  const UTF8_string & so_name, UCS_string & t4,
+                  UTF8_string & resolved)
 {
-   // prepare a )MORE error message containing the file names tried.
-   //
-   t4.clear();
-   t4 << "Could not find shared library '" << so_path << "'\n"
-         "The following directories and file names were tried:\n";
-
-   // if the name starts with / (or \ on Windows) or .
-   // then take it as is without changes.
-   //
-   if (so_path[0] == UNI_SLASH     ||
-       so_path[0] == UNI_BACKSLASH ||
-       so_path[0] == UNI_FULLSTOP)
-      {
-        UTF8_string filename(so_path);
-        void * handle = try_one_file(filename.c_str(), t4);
-
-        if (handle == 0)
-           {
-             t4 << "NOTE: Filename extensions are NOT automatically added "
-                   "when a full path\n"
-                   "      (i.e. a path starting with / or .) is used.";
-           }
-        return handle;
-      }
-
-   // otherwise try apl_DIR__pkglib, /usr/lib/apl and /usr/local/lib/apl,
-   // avoiding duplicates
-   //
-UTF8_string utf_so_path(so_path);
-const char * dirs[] =
-{
-  apl_DIR__pkglib,    // the normal case
-  "/usr/lib/apl",
-  "/usr/local/lib/apl",
-  ".",
-  "./native",             // if make install was not performed
-  "./emacs_mode",         // if make install was not performed
-};
-
-   // most likely apl_DIR__pkglib is /usr/lib/apl or /usr/local/lib/apl.
-   // don't try them twice.
-   //
-   if (!strcmp(apl_DIR__pkglib, dirs[1]))   dirs[1] = 0;
-   if (!strcmp(apl_DIR__pkglib, dirs[2]))   dirs[2] = 0;
-
-   loop(d, sizeof(dirs) / sizeof(*dirs))
+   loop(d, dir_count)
        {
-         if (dirs[d] == 0)   continue;
+         if (dirs[d] == 0 || dirs[d][0] == 0)   continue;
 
          UTF8_string dir_so_path(dirs[d]);
          dir_so_path += '/';
-         dir_so_path << utf_so_path;
+         dir_so_path << so_name;
 
          UTF8_string dir_only(dir_so_path);
          dir_only[strrchr(dir_only.c_str(), '/') - dir_only.c_str()] = 0;
@@ -420,14 +386,128 @@ const char * dirs[] =
                UTF8_string filename(dir_so_path);
                if (exts[e])   filename << UTF8_string(exts[e]);
 
-               void * handle = try_one_file(filename.c_str(), t4);
-               if (handle)   // found library
+               if (access(filename.c_str(), R_OK) == 0)
                   {
-                    so_path = UCS_string(filename);   // update so_path
-                    return handle;
+                    resolved = filename;
+                    return true;
                   }
+
+               const int t4_len = t4.size();
+               t4 << "    file " << filename.c_str();
+               while (t4.ssize() < t4_len + 44)     t4 << UNI_SPACE;
+               t4 << " (" << strerror(errno) << ")\n";
              }
        }
+
+   return false;
+}
+//────────────────────────────────────────────────────────────────────────────
+void *
+NativeFunction::open_so_file(UCS_string & t4, UCS_string & so_path)
+{
+   // prepare a )MORE error message containing the file names tried.
+   //
+   t4.clear();
+   t4 << "Could not find shared library '" << so_path << "'\n"
+         "The following directories and file names were tried:\n";
+
+   // if the name starts with / (or \ on Windows) or .
+   // then take it as is without changes.
+   //
+   if (so_path[0] == UNI_SLASH     ||
+       so_path[0] == UNI_BACKSLASH ||
+       so_path[0] == UNI_FULLSTOP)
+      {
+        UTF8_string filename(so_path);
+        void * handle = try_one_file(filename.c_str(), t4);
+
+        if (handle == 0)
+           {
+             t4 << "NOTE: Filename extensions are NOT automatically added "
+                   "when a full path\n"
+                   "      (i.e. a path starting with / or .) is used.";
+           }
+        return handle;
+      }
+
+   // otherwise search two groups of directories: the traditional
+   // installed locations, and (Bill Heagy: "have apl look for libraries
+   // relative to its location, rather than absolute, so that I don't
+   // have to install to test") a location next to the running apl
+   // binary itself. The latter is an ADDITION, not a replacement --
+   // installing .so files directly next to the binary (e.g. in
+   // /usr/local/bin) would violate the Filesystem Hierarchy Standard,
+   // so the installed locations must still be searched too. When both
+   // groups have a matching file, the more recently modified one wins
+   // (so a fresh build-tree .so found next to the binary is preferred
+   // over a stale installed one, without silently ignoring an installed
+   // one that happens to be newer, e.g. after a real upgrade).
+   //
+UTF8_string utf_so_path(so_path);
+
+const char * std_dirs[] =
+{
+  apl_DIR__pkglib,    // the normal case
+  "/usr/lib/apl",
+  "/usr/local/lib/apl",
+  ".",
+  "./native",             // if make install was not performed
+  "./native/.libs",       // libtool's actual .so lives here, not directly
+                          // in ./native, until 'make install' copies it
+  "./emacs_mode",
+  "./emacs_mode/.libs",
+};
+
+   // most likely apl_DIR__pkglib is /usr/lib/apl or /usr/local/lib/apl.
+   // don't try them twice.
+   //
+   if (!strcmp(apl_DIR__pkglib, std_dirs[1]))   std_dirs[1] = 0;
+   if (!strcmp(apl_DIR__pkglib, std_dirs[2]))   std_dirs[2] = 0;
+
+const std::string bin_path(LibPaths::get_APL_bin_path());
+const std::string bin_native      = bin_path + "/native";
+const std::string bin_native_libs = bin_path + "/native/.libs";
+const std::string bin_emacs       = bin_path + "/emacs_mode";
+const std::string bin_emacs_libs  = bin_path + "/emacs_mode/.libs";
+const char * bin_dirs[] =
+{
+  bin_path.c_str(),
+  bin_native.c_str(),
+  bin_native_libs.c_str(),
+  bin_emacs.c_str(),
+  bin_emacs_libs.c_str(),
+};
+
+UTF8_string std_resolved, bin_resolved;
+const bool std_found = find_so_candidate(std_dirs, 8, utf_so_path,
+                                         t4, std_resolved);
+const bool bin_found = find_so_candidate(bin_dirs, 5, utf_so_path,
+                                         t4, bin_resolved);
+
+const UTF8_string * winner = 0;
+   if (std_found && bin_found)
+      {
+        struct stat st_std, st_bin;
+        winner = &std_resolved;   // default/fallback if either stat() fails
+        if (stat(std_resolved.c_str(), &st_std) == 0 &&
+            stat(bin_resolved.c_str(), &st_bin)  == 0 &&
+            st_bin.st_mtime > st_std.st_mtime)
+           {
+             winner = &bin_resolved;
+           }
+      }
+   else if (std_found)   winner = &std_resolved;
+   else if (bin_found)   winner = &bin_resolved;
+
+   if (winner)
+      {
+        void * handle = try_one_file(winner->c_str(), t4);
+        if (handle)
+           {
+             so_path = UCS_string(*winner);   // update so_path
+             return handle;
+           }
+      }
 
    return 0;
 }
