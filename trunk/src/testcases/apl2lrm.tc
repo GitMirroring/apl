@@ -266,10 +266,14 @@ DOMAIN ERROR
     ∇  ³
       )ERASE APL2LRM47
 
-⍝ #49 -- message texts, LRM pp.462-469. Only the comma-vs-colon typo
-⍝ in the )SAVE-of-CLEAR-WS message was fixed 2026-08-11 (Workspace.cc,
-⍝ Cmd_WS.cc); the other 4 sub-differences (qualified SYSTEM LIMIT,
-⍝ BAD COMMAND vs INCORRECT COMMAND, non-APL2 lexical error texts) are
+⍝ #49 -- message texts, LRM pp.462-469. The comma-vs-colon typo in the
+⍝ )SAVE-of-CLEAR-WS message was fixed 2026-08-11 (Workspace.cc,
+⍝ Cmd_WS.cc); "BAD COMMAND" for an unrecognized system command was
+⍝ changed to match the LRM's own "INCORRECT COMMAND" 2026-08-13
+⍝ (Command.cc, the unknown-)command fallback -- the other ~17 BAD
+⍝ COMMAND sites are a different case, malformed arguments to a KNOWN
+⍝ command, not covered by this item). The remaining 2 sub-differences
+⍝ (qualified SYSTEM LIMIT, non-APL2 lexical error texts) are
 ⍝ intentionally left as-is -- more specific/helpful wording, not a
 ⍝ correctness issue, consistent with #28's message-text philosophy.
       )SAVE

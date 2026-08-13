@@ -35,20 +35,37 @@ uint32_t r, g, b;
 
    if (const char * h = strchr(str, '#'))
       {
+        // '#' is located anywhere in str via strchr(), and the length
+        // checks below are relative to h -- but the digits used to be
+        // parsed from str + 1, which is only correct when '#' happens to
+        // be str[0]. For any attribute value where it is not (e.g.
+        // "color_level-50: x#FF8000"), strtoll() was handed a string
+        // starting with '#', parsed no digits, returned 0, and the
+        // colour was silently accepted as black instead of erroring
+        // (Blake McBride, Bugs16 #9). Parse from h + 1 instead, and use
+        // strtoll()'s endptr to detect exactly that "no digits consumed"
+        // case and report it instead of silently returning black.
+        //
+        char * end = 0;
         if (strlen(h) == 4)   // #RGB
            {
-             const int v = strtoll(str + 1, 0, 16);
+             const int v = strtoll(h + 1, &end, 16);
+             if (end == h + 1)   { error = "Bad color format"; return 0; }
              return (0x11*(v >> 8 & 0x0F)) << 16
                   | (0x11*(v >> 4 & 0x0F)) << 8
                   | (0x11*(v      & 0x0F)  << 0);
            }
         else if (strlen(h) == 7)   // #RRGGBB
            {
-             return strtoll(str + 1, 0, 16);
+             const Color v = strtoll(h + 1, &end, 16);
+             if (end == h + 1)   { error = "Bad color format"; return 0; }
+             return v;
            }
         else if (strlen(h) == 9)   // #xxRRGGBB
            {
-             return strtoll(str + 1, 0, 16);
+             const Color v = strtoll(h + 1, &end, 16);
+             if (end == h + 1)   { error = "Bad color format"; return 0; }
+             return v;
            }
       }
 

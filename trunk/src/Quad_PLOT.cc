@@ -273,6 +273,19 @@ const string driver_attr = w_props->get_gui_driver();
            }
         sem_wait_safe_I(expose_sema, "the XCB plot window to be shown");
         sem_post(expose_sema);   // for the next window (if any)
+
+        // plot_main_XCB() could not start (e.g. no X-server): it recorded
+        // the reason in w_props (Bugs16 #1) instead of throwing across the
+        // pthread entry function, and is raised here, back on the
+        // interpreter thread, once safe to do so.
+        //
+        if (w_props->get_gui_thread_error().size())
+           {
+             MORE_ERROR() << "A ⎕PLOT B: "
+                          << w_props->get_gui_thread_error().c_str();
+             DOMAIN_ERROR;
+           }
+
         Log(LOG_Quad_PLOT)   CERR << "Plot driver XCB loaded." << endl;
         return;
 #else   // not apl_XCB

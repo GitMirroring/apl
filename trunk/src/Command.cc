@@ -189,7 +189,7 @@ UCS_string_vector args = split_arg(arg);
             }
        }
 
-     out << "BAD COMMAND" << endl;
+     out << "INCORRECT COMMAND" << endl;
      return false;
 }
 //────────────────────────────────────────────────────────────────────────────

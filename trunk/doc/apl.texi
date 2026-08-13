@@ -3221,12 +3221,12 @@ line after the ]PUSHFILE command.
 @node History and TAB completion
 @section History and TAB completion
 
-Until GNU APL 1.4 / SVN 465, GNU APL used libreadline for interactive user
+Until GNU APL 1.4 / @b{SVN 465}, GNU APL used libreadline for interactive user
 input. libreadline did provide two useful features: tab expansion (the tab
 key would expand file names) and history (the cursor up/down keys would recall
 previously entered lines).
 
-Since SVN 465 libreadline was removed and the standard TAB expansion and
+Since @b{SVN 465} libreadline was removed and the standard TAB expansion and
 history of libreadline were replaced by more context sensitive (i.e. APL
 aware) implementations:
 
@@ -7022,7 +7022,7 @@ the GNU APL color model into a PNG file.
 @node ⎕PS - Print Style
 @section ⎕PS - Print Style
 
-@b{⎕PS} is an integer vector that currently (read: as of SVN 982) contains
+@b{⎕PS} is an integer vector that currently (read: as of @b{SVN 982}) contains
 two integers which control some details of how APL values are printed.
 The default value of @b{⎕PS} is 0 0. @b{⎕PS} is a session variable which survives
 the @strong{)LOAD}ing of workspaces.
@@ -7311,14 +7311,20 @@ DOMAIN ERROR+
 No match
 @end example
 
-The 'E' flag has no effect if the 'g' flag is also given because in that case
-it is natural to check the length of the result:
+The 'E' flag still applies when the 'g' flag is also given: it raises an error
+if the regular expression does not match B @b{at all}. It has no further effect
+once at least one match was found, since a global search simply stops once
+there is no more match; @code{4 ⎕CR 'g..' ⎕RE['g'] B} (checking the length of
+the result) remains the natural way to tell "one match" from "several matches"
+from "no more matches after some were found":
 
 @example
       4 ⎕CR 'g..' ⎕RE['Eg'] '__foo___fun____fox'
-┏⊖┓
-┃0┃
-┗━┛
+DOMAIN ERROR+
+      4 ⎕CR 'g..' ⎕RE['Eg']'__foo___fun____fox'
+            ^              ^
+      )MORE
+No match
 @end example
 
 @c ............................................................................
@@ -9787,11 +9793,11 @@ APL interpreter rather than adding auxiliary processors.
 @section Known Differences between IBM APL2 and GNU APL
 
 We have received a thorough 49-item list of differences between IBM
-APL2 and GNU APL, compiled by @b{Blake McBride} against the IBM APL2
-Language Reference Manual and tested by him against GNU APL SVN
-r2057. We audited and verified every item on the list carefully
-against the current interpreter, and the majority of them have since
-been fixed (in the apl-2.0 tree starting around SVN r3565).
+APL2 and GNU APL, kindly provided by @b{Blake McBride} against the IBM APL2
+Language Reference Manual and tested by him against GNU APL @b{SVN 2057}.
+We audited and verified every item on the list carefully against the
+current interpreter, and the majority of them have since been fixed
+(starting around @b{SVN 2072}).
 
 The items that remain are, for the most part, small GNU APL
 extensions that are not documented anywhere else in this manual:
@@ -9810,136 +9816,202 @@ question for now.
 
 The table below lists every item that is still different today. For
 each one, column 1 names the construct, column 2 shows IBM APL2's
-documented behavior, and column 3 shows GNU APL's actual behavior.
+documented behavior, column 3 gives a short code for @emph{why} GNU
+APL differs, and column 4 shows GNU APL's actual behavior.
+
+@b{Note:} the ISO standard itself explicitly permits this. ISO/IEC
+13751:2000(E) §4.2.1 states that ``a conforming-program shall not
+depend on the signalling of any error by a conforming-implementation'',
+with the accompanying note explaining why: ``conforming-programs cannot
+depend on error behaviour, since consistent-extensions that replace
+errors are permitted in conforming-implementations.'' Several of the
+differences below (marked @code{EX}) are exactly that: GNU APL replaces
+an LRM-mandated error with defined, useful behavior where we judged
+that to be a better choice than raising the error.
+
+@subheading Legend
+
+@multitable @columnfractions .08 .92
+@headitem Reason @tab Meaning
+@item EX @tab
+Extension -- GNU APL is deliberately more permissive than the LRM
+requires, or generalizes/widens a documented limit rather than
+narrowing it.
+@item IR @tab
+Improved readability -- a display, formatting, or message choice
+judged clearer, especially on a modern screen rather than a
+line-printer.
+@item CO @tab
+Consistency -- follows a GNU APL rule or convention that is already
+applied elsewhere in the interpreter.
+@item RO @tab
+Robustness -- refuses an operation or fails immediately rather than
+risking a silent, delayed, or hard-to-diagnose error.
+@item NI @tab
+Not (yet) implemented -- a genuine feature gap, in some cases a
+deliberate scope choice rather than an oversight.
+@item NU @tab
+Not used -- the underlying mechanism is implemented, but GNU APL
+deliberately never exercises it for this particular direction/purpose.
+@item DP @tab
+Dangerous programming practice -- the construct is inherently
+ambiguous or its result unobvious to a reader, so GNU APL declines to
+give it a defined meaning rather than picking one arbitrarily.
+@item OP @tab
+Open issue -- a difference we have not been able to explain or
+resolve, e.g. because the LRM's exact intent could not be
+reverse-engineered without access to IBM's own source code.
+@end multitable
 
 @subheading Syntax and Expressions
 
-@multitable @columnfractions .34 .30 .36
-@headitem Issue @tab IBM APL2 @tab GNU APL
+@multitable @columnfractions .30 .24 .08 .38
+@headitem Issue @tab IBM APL2 @tab Reason @tab GNU APL
 @item @code{((A←2)↑A)←0} @tab
 Succeeds; @code{A} becomes @code{0 0 3 4 5 6 7 8 9 10} @tab
-SYNTAX ERROR (assignment embedded in a selective-specification
-selector is not yet supported)
+DP @tab
+SYNTAX ERROR (deliberate: reassigning a variable that is itself in the
+process of being selectively specified is neither obvious to a reader
+nor clearly defined -- e.g. it is not settled what should happen if
+the new value's shape does not match what the selective specification
+then needs)
 @item @code{⎕FOO B} (@b{⎕FOO} undefined or misspelled) @tab
 SYNTAX ERROR @tab
+EX @tab
 Parsed as @code{⎕ FOO B}: a bare @b{⎕} (evaluated input) immediately
 followed by a function name, an established GNU APL idiom that the
 tokenizer cannot distinguish from a typo
 @item @code{3FN⍳5} (a number immediately followed by a name,
 no space) @tab
 SYNTAX ERROR (a space is required) @tab
+EX @tab
 Accepted; parsed as the strand @code{3 FN} -- kept for backward
 compatibility with non-IBM APL dialects that also allow it
 @end multitable
 
 @subheading Primitive Functions and Display
 
-@multitable @columnfractions .34 .30 .36
-@headitem Issue @tab IBM APL2 @tab GNU APL
+@multitable @columnfractions .30 .24 .08 .38
+@headitem Issue @tab IBM APL2 @tab Reason @tab GNU APL
 @item @code{S[2]←'NONE'} (indexed assignment, shape mismatch) @tab
 RANK ERROR @tab
-LENGTH ERROR (consistent with GNU APL's own acceptance of a
-length-1 vector wherever a scalar is expected)
-@item Complex-number column padding @tab
-Left-justifies the real part within its field, e.g. @code{2  J3} @tab
-Right-justifies it, e.g. @code{  2J3} -- the @b{J} lands in the same
-column either way, only the padding side differs
+CO @tab
+LENGTH ERROR (since @code{S[2]←,'N'} (rank 1, length 1) is valid)
 @item Nested/mixed-array column spacing @tab
 Follows the LRM's own documented spacing formula @tab
+OP @tab
 Occasionally wider (extra blank columns) in specific cases mixing a
 character header with numeric data; the underlying IBM formula could
 not be fully reverse-engineered from the LRM's text alone
 @item @b{⎕PW}-folded matrix display @tab
 Folds page-major: the first line-width chunk of every row, then the
 second chunk of every row, and so on @tab
+IR @tab
 Folds row-major: each row is completed before the next one starts,
 considered more readable when reading wrapped text on a screen
 @item @b{⎕PW}-folded long numeric string @tab
 Exact-width fill; may split a number across two lines @tab
+IR @tab
 Wraps at the nearest preceding space; never splits a number
 mid-digit-string
 @item @code{⍎} error report @tab
 Shows the 3 standard error lines, plus 2 more naming the outer
 statement that called @code{⍎} @tab
+OP @tab
 Shows the 3 standard error lines only
 @item @code{⍎¨} applied to a branch @tab
 DOMAIN ERROR ("APPLIED WITH OPERATOR") @tab
+OP @tab
 SYNTAX ERROR
 @item Error carets @tab
-Two carets: one marking how far execution progressed, one marking
-the likely error point (occasionally coinciding, shown adjacent) @tab
-Usually a single caret; the column position can also differ in some
-cases
+Occasionally just a single caret (the LRM itself says so); the right
+caret points at the failed primitive itself, e.g. @code{+} in
+@code{A+B} @tab
+IR @tab
+Usually two carets, not a single one; the right caret marks the
+entire failed phrase rather than just the primitive -- e.g. it
+points to @code{B}, highlighting all of @code{A+B}
 @end multitable
 
 @subheading System Variables
 
-@multitable @columnfractions .34 .30 .36
-@headitem Issue @tab IBM APL2 @tab GNU APL
+@multitable @columnfractions .30 .24 .08 .38
+@headitem Issue @tab IBM APL2 @tab Reason @tab GNU APL
 @item @b{⎕AI} @tab
 A 4-item vector @tab
+EX @tab
 A 5-item vector; the 5th item is a running count of executed APL
 expression lines, used internally by GNU APL's own test suite
 @item @code{4⎕AT} byte count for an arithmetic-progression integer
 vector (e.g. @code{10 20 30}) @tab
 Uses a compact "arithmetic progression vector" transfer-form
 encoding, giving a smaller byte count @tab
-Always uses the general per-item integer encoding; GNU APL's own
-auxiliary-processor wire protocol does not understand the compact
-form, so it is never emitted
+NU @tab
+Always uses the general per-item integer encoding; the compact
+progression form (CDR type 6) @emph{is} understood -- GNU APL decodes
+it fine on input -- but the encoder always chooses the general form
+for output, so it is never emitted by GNU APL itself
 @item @code{⍴1⎕AT 'name'} @tab
 A vector @tab
+CO @tab
 A 1-row matrix -- an extension analogous to IBM APL2's own
 "a 1-element vector behaves like a scalar" convention
 @item @code{⎕EX '⎕IO'} (expunging a system variable) @tab
 Succeeds, returns 1 @tab
+RO @tab
 Refused, returns 0 -- avoids a value silently reverting or erroring
 the next time it is used
 @item @code{⎕CT←0.5 ⋄ ⎕CT} @tab
 @code{0.5} (the LRM only discourages, but does not forbid, values
 above @code{1E¯9}) @tab
+RO @tab
 @code{1E¯9} -- the discouraged limit is enforced as a hard clamp
 @item @code{⎕IO←5}, @code{⎕PP←0}, etc. (an implicit-argument
 variable assigned an out-of-domain value) @tab
 Accepted immediately; the error is deferred to the next implicit use @tab
+RO @tab
 Rejected immediately -- fails fast, at the point of the actual mistake
 @item @b{⎕PP} / @b{⎕PW} maximum @tab
 @b{⎕PP} max 16; @b{⎕PW} max 254 @tab
+IR @tab
 @b{⎕PP} max 17; @b{⎕PW} unbounded -- some strings need a very wide
 @b{⎕PW} to print readably as a single line
 @end multitable
 
 @subheading System Commands and the ∇-Editor
 
-@multitable @columnfractions .34 .30 .36
-@headitem Issue @tab IBM APL2 @tab GNU APL
+@multitable @columnfractions .30 .24 .08 .38
+@headitem Issue @tab IBM APL2 @tab Reason @tab GNU APL
 @item Editing a function that is currently suspended @tab
 Allowed, with an @code{SI WARNING} notice @tab
+RO @tab
 Refused with DEFN ERROR -- an interactive edit is never allowed to
 invalidate in-flight execution state
 @item ∇-editor bracket commands, e.g. @code{[∆N M ...]},
 @code{[∆-N]}, @code{[⎕N-]} @tab
 Supported: list-form and open-ended delete/display forms @tab
+NI @tab
 Only the single-line and explicit-range forms are supported -- the
 ∇-editor's interactive command set was always deliberately
 minimal (just enough to define functions); writing functions in an
 external editor is the intended workflow for anything more
 @item @code{)EDITOR 1} @tab
 Selects or queries the active line editor @tab
+NI @tab
 BAD COMMAND -- not implemented; GNU APL has only the ∇-editor,
 so there is nothing to select
 @item @code{)SYMBOLS n} @tab
 Resizes the symbol table @tab
+NI @tab
 BAD COMMAND -- not implemented; GNU APL's symbol table is not a
 fixed, pre-allocated size that would need resizing
 @item @code{SYSTEM LIMIT} message @tab
 Bare @code{SYSTEM LIMIT+} (detail available via @code{)MORE}) @tab
+IR @tab
 Always qualified inline, e.g. @code{SYSTEM LIMIT (rank)}
-@item Bad or unrecognized system command @tab
-@code{INCORRECT COMMAND} @tab
-@code{BAD COMMAND}
 @item Certain lexical/tokenizer errors @tab
 Generic @code{ENTRY ERROR} / @code{SYNTAX ERROR} @tab
+IR @tab
 More specific text, e.g. @code{Non-APL character}, @code{Bad number},
 @code{No string end found}
 @end multitable

@@ -16,7 +16,7 @@ File: apl.info,  Node: Top,  Next: Installing and Starting GNU APL,  Up: (dir)
 GNU APL Reference Manual
 ************************
 
-August 11, 2026.  This manual briefly documents GNU APL, an interpreter
+August 13, 2026.  This manual briefly documents GNU APL, an interpreter
 for APL as described in ISO standard 13751, aka.  "Programming Language
 APL, Extended".
 
@@ -7306,13 +7306,20 @@ flag:
            )MORE
      No match
 
-   The ’E’ flag has no effect if the ’g’ flag is also given because in
-that case it is natural to check the length of the result:
+   The ’E’ flag still applies when the ’g’ flag is also given: it raises
+an error if the regular expression does not match B at all.  It has no
+further effect once at least one match was found, since a global search
+simply stops once there is no more match; ‘4 ⎕CR 'g..' ⎕RE['g'] B’
+(checking the length of the result) remains the natural way to tell "one
+match" from "several matches" from "no more matches after some were
+found":
 
            4 ⎕CR 'g..' ⎕RE['Eg'] '__foo___fun____fox'
-     ┏⊖┓
-     ┃0┃
-     ┗━┛
+     DOMAIN ERROR+
+           4 ⎕CR 'g..' ⎕RE['Eg']'__foo___fun____fox'
+                 ^              ^
+           )MORE
+     No match
 
 
 File: apl.info,  Node: Complex Matches,  Prev: The Flags X,  Up: ⎕RE - Regular Expressions
@@ -9768,11 +9775,11 @@ File: apl.info,  Node: Known Differences between IBM APL2 and GNU APL,  Prev: Sh
 ==================================================
 
 We have received a thorough 49-item list of differences between IBM APL2
-and GNU APL, compiled by Blake McBride against the IBM APL2 Language
-Reference Manual and tested by him against GNU APL SVN r2057.  We
-audited and verified every item on the list carefully against the
-current interpreter, and the majority of them have since been fixed (in
-the apl-2.0 tree starting around SVN r3565).
+and GNU APL, kindly provided by Blake McBride against the IBM APL2
+Language Reference Manual and tested by him against GNU APL SVN 2057.
+We audited and verified every item on the list carefully against the
+current interpreter, and the majority of them have since been fixed
+(starting around SVN 2072).
 
    The items that remain are, for the most part, small GNU APL
 extensions that are not documented anywhere else in this manual: cases
@@ -9791,144 +9798,191 @@ for now.
 
    The table below lists every item that is still different today.  For
 each one, column 1 names the construct, column 2 shows IBM APL2’s
-documented behavior, and column 3 shows GNU APL’s actual behavior.
+documented behavior, column 3 gives a short code for _why_ GNU APL
+differs, and column 4 shows GNU APL’s actual behavior.
+
+   Note: the ISO standard itself explicitly permits this.  ISO/IEC
+13751:2000(E) §4.2.1 states that “a conforming-program shall not depend
+on the signalling of any error by a conforming-implementation”, with the
+accompanying note explaining why: “conforming-programs cannot depend on
+error behaviour, since consistent-extensions that replace errors are
+permitted in conforming-implementations.” Several of the differences
+below (marked ‘EX’) are exactly that: GNU APL replaces an LRM-mandated
+error with defined, useful behavior where we judged that to be a better
+choice than raising the error.
+
+Legend
+------
+
+Reason Meaning
+--------------------------------------------------------------------------
+EX     Extension – GNU APL is deliberately more permissive than the LRM
+       requires, or generalizes/widens a documented limit rather than
+       narrowing it.
+IR     Improved readability – a display, formatting, or message choice
+       judged clearer, especially on a modern screen rather than a
+       line-printer.
+CO     Consistency – follows a GNU APL rule or convention that is
+       already applied elsewhere in the interpreter.
+RO     Robustness – refuses an operation or fails immediately rather
+       than risking a silent, delayed, or hard-to-diagnose error.
+NI     Not (yet) implemented – a genuine feature gap, in some cases a
+       deliberate scope choice rather than an oversight.
+NU     Not used – the underlying mechanism is implemented, but GNU APL
+       deliberately never exercises it for this particular
+       direction/purpose.
+DP     Dangerous programming practice – the construct is inherently
+       ambiguous or its result unobvious to a reader, so GNU APL
+       declines to give it a defined meaning rather than picking one
+       arbitrarily.
+OP     Open issue – a difference we have not been able to explain or
+       resolve, e.g.  because the LRM’s exact intent could not be
+       reverse-engineered without access to IBM’s own source code.
 
 Syntax and Expressions
 ----------------------
 
-Issue                    IBM APL2               GNU APL
----------------------------------------------------------------------------
-‘((A←2)↑A)←0’            Succeeds; ‘A’          SYNTAX ERROR (assignment
-                         becomes ‘0 0 3 4 5 6   embedded in a
-                         7 8 9 10’              selective-specification
-                                                selector is not yet
-                                                supported)
-‘⎕FOO B’ (⎕FOO           SYNTAX ERROR           Parsed as ‘⎕ FOO B’: a
+Issue                  IBM APL2          Reason GNU APL
+----------------------------------------------------------------------------
+‘((A←2)↑A)←0’          Succeeds; ‘A’     DP     SYNTAX ERROR (deliberate:
+                       becomes ‘0 0 3           reassigning a variable
+                       4 5 6 7 8 9 10’          that is itself in the
+                                                process of being
+                                                selectively specified is
+                                                neither obvious to a
+                                                reader nor clearly
+                                                defined – e.g.  it is not
+                                                settled what should
+                                                happen if the new value’s
+                                                shape does not match what
+                                                the selective
+                                                specification then needs)
+‘⎕FOO B’ (⎕FOO         SYNTAX ERROR      EX     Parsed as ‘⎕ FOO B’: a
 undefined or                                    bare ⎕ (evaluated input)
-misspelled)                                     immediately followed by
-                                                a function name, an
-                                                established GNU APL
-                                                idiom that the tokenizer
-                                                cannot distinguish from
-                                                a typo
-‘3FN⍳5’ (a number        SYNTAX ERROR (a        Accepted; parsed as the
-immediately followed     space is required)     strand ‘3 FN’ – kept for
-by a name, no space)                            backward compatibility
-                                                with non-IBM APL
-                                                dialects that also allow
-                                                it
+misspelled)                                     immediately followed by a
+                                                function name, an
+                                                established GNU APL idiom
+                                                that the tokenizer cannot
+                                                distinguish from a typo
+‘3FN⍳5’ (a number      SYNTAX ERROR (a   EX     Accepted; parsed as the
+immediately followed   space is                 strand ‘3 FN’ – kept for
+by a name, no space)   required)                backward compatibility
+                                                with non-IBM APL dialects
+                                                that also allow it
 
 Primitive Functions and Display
 -------------------------------
 
-Issue                    IBM APL2               GNU APL
----------------------------------------------------------------------------
-‘S[2]←'NONE'’ (indexed   RANK ERROR             LENGTH ERROR (consistent
-assignment, shape                               with GNU APL’s own
-mismatch)                                       acceptance of a length-1
-                                                vector wherever a scalar
-                                                is expected)
-Complex-number column    Left-justifies the     Right-justifies it, e.g.
-padding                  real part within its   ‘ 2J3’ – the J lands in
-                         field, e.g.  ‘2 J3’    the same column either
-                                                way, only the padding
-                                                side differs
-Nested/mixed-array       Follows the LRM’s      Occasionally wider
-column spacing           own documented         (extra blank columns) in
-                         spacing formula        specific cases mixing a
-                                                character header with
+Issue                  IBM APL2          Reason GNU APL
+----------------------------------------------------------------------------
+‘S[2]←'NONE'’          RANK ERROR        CO     LENGTH ERROR (since
+(indexed assignment,                            ‘S[2]←,'N'’ (rank 1,
+shape mismatch)                                 length 1) is valid)
+Nested/mixed-array     Follows the       OP     Occasionally wider (extra
+column spacing         LRM’s own                blank columns) in
+                       documented               specific cases mixing a
+                       spacing formula          character header with
                                                 numeric data; the
                                                 underlying IBM formula
                                                 could not be fully
                                                 reverse-engineered from
                                                 the LRM’s text alone
-⎕PW-folded matrix        Folds page-major:      Folds row-major: each
-display                  the first line-width   row is completed before
-                         chunk of every row,    the next one starts,
-                         then the second        considered more readable
-                         chunk of every row,    when reading wrapped
-                         and so on              text on a screen
-⎕PW-folded long          Exact-width fill;      Wraps at the nearest
-numeric string           may split a number     preceding space; never
-                         across two lines       splits a number
-                                                mid-digit-string
-‘⍎’ error report         Shows the 3 standard   Shows the 3 standard
-                         error lines, plus 2    error lines only
-                         more naming the
-                         outer statement that
-                         called ‘⍎’
-‘⍎¨’ applied to a        DOMAIN ERROR           SYNTAX ERROR
-branch                   ("APPLIED WITH
-                         OPERATOR")
-Error carets             Two carets: one        Usually a single caret;
-                         marking how far        the column position can
-                         execution              also differ in some
-                         progressed, one        cases
-                         marking the likely
-                         error point
-                         (occasionally
-                         coinciding, shown
-                         adjacent)
+⎕PW-folded matrix      Folds             IR     Folds row-major: each row
+display                page-major: the          is completed before the
+                       first                    next one starts,
+                       line-width               considered more readable
+                       chunk of every           when reading wrapped text
+                       row, then the            on a screen
+                       second chunk of
+                       every row, and
+                       so on
+⎕PW-folded long        Exact-width       IR     Wraps at the nearest
+numeric string         fill; may split          preceding space; never
+                       a number across          splits a number
+                       two lines                mid-digit-string
+‘⍎’ error report       Shows the 3       OP     Shows the 3 standard
+                       standard error           error lines only
+                       lines, plus 2
+                       more naming the
+                       outer statement
+                       that called ‘⍎’
+‘⍎¨’ applied to a      DOMAIN ERROR      OP     SYNTAX ERROR
+branch                 ("APPLIED WITH
+                       OPERATOR")
+Error carets           Occasionally      IR     Usually two carets, not a
+                       just a single            single one; the right
+                       caret (the LRM           caret marks the entire
+                       itself says              failed phrase rather than
+                       so); the right           just the primitive – e.g.
+                       caret points at          it points to ‘B’,
+                       the failed               highlighting all of ‘A+B’
+                       primitive
+                       itself, e.g.
+                       ‘+’ in ‘A+B’
 
 System Variables
 ----------------
 
-Issue                    IBM APL2               GNU APL
----------------------------------------------------------------------------
-⎕AI                      A 4-item vector        A 5-item vector; the 5th
+Issue                  IBM APL2          Reason GNU APL
+----------------------------------------------------------------------------
+⎕AI                    A 4-item vector   EX     A 5-item vector; the 5th
                                                 item is a running count
                                                 of executed APL
                                                 expression lines, used
                                                 internally by GNU APL’s
                                                 own test suite
-‘4⎕AT’ byte count for    Uses a compact         Always uses the general
-an                       "arithmetic            per-item integer
-arithmetic-progression   progression vector"    encoding; GNU APL’s own
-integer vector (e.g.     transfer-form          auxiliary-processor wire
-‘10 20 30’)              encoding, giving a     protocol does not
-                         smaller byte count     understand the compact
-                                                form, so it is never
-                                                emitted
-‘⍴1⎕AT 'name'’           A vector               A 1-row matrix – an
+‘4⎕AT’ byte count      Uses a compact    NU     Always uses the general
+for an                 "arithmetic              per-item integer
+arithmetic-progression progression              encoding; the compact
+integer vector (e.g.   vector"                  progression form (CDR
+‘10 20 30’)            transfer-form            type 6) _is_ understood –
+                       encoding,                GNU APL decodes it fine
+                       giving a                 on input – but the
+                       smaller byte             encoder always chooses
+                       count                    the general form for
+                                                output, so it is never
+                                                emitted by GNU APL itself
+‘⍴1⎕AT 'name'’         A vector          CO     A 1-row matrix – an
                                                 extension analogous to
                                                 IBM APL2’s own "a
                                                 1-element vector behaves
-                                                like a scalar"
-                                                convention
-‘⎕EX '⎕IO'’ (expunging   Succeeds, returns 1    Refused, returns 0 –
-a system variable)                              avoids a value silently
-                                                reverting or erroring
-                                                the next time it is used
-‘⎕CT←0.5 ⋄ ⎕CT’          ‘0.5’ (the LRM only    ‘1E¯9’ – the discouraged
-                         discourages, but       limit is enforced as a
-                         does not forbid,       hard clamp
-                         values above ‘1E¯9’)
-‘⎕IO←5’, ‘⎕PP←0’, etc.   Accepted               Rejected immediately –
-(an implicit-argument    immediately; the       fails fast, at the point
-variable assigned an     error is deferred to   of the actual mistake
-out-of-domain value)     the next implicit
-                         use
-⎕PP / ⎕PW maximum        ⎕PP max 16; ⎕PW max    ⎕PP max 17; ⎕PW
-                         254                    unbounded – some strings
-                                                need a very wide ⎕PW to
-                                                print readably as a
-                                                single line
+                                                like a scalar" convention
+‘⎕EX '⎕IO'’            Succeeds,         RO     Refused, returns 0 –
+(expunging a system    returns 1                avoids a value silently
+variable)                                       reverting or erroring the
+                                                next time it is used
+‘⎕CT←0.5 ⋄ ⎕CT’        ‘0.5’ (the LRM    RO     ‘1E¯9’ – the discouraged
+                       only                     limit is enforced as a
+                       discourages,             hard clamp
+                       but does not
+                       forbid, values
+                       above ‘1E¯9’)
+‘⎕IO←5’, ‘⎕PP←0’,      Accepted          RO     Rejected immediately –
+etc.  (an              immediately;             fails fast, at the point
+implicit-argument      the error is             of the actual mistake
+variable assigned an   deferred to the
+out-of-domain value)   next implicit
+                       use
+⎕PP / ⎕PW maximum      ⎕PP max 16; ⎕PW   IR     ⎕PP max 17; ⎕PW unbounded
+                       max 254                  – some strings need a
+                                                very wide ⎕PW to print
+                                                readably as a single line
 
 System Commands and the ∇-Editor
 --------------------------------
 
-Issue                    IBM APL2               GNU APL
----------------------------------------------------------------------------
-Editing a function       Allowed, with an ‘SI   Refused with DEFN ERROR
-that is currently        WARNING’ notice        – an interactive edit is
-suspended                                       never allowed to
+Issue                  IBM APL2          Reason GNU APL
+----------------------------------------------------------------------------
+Editing a function     Allowed, with     RO     Refused with DEFN ERROR –
+that is currently      an ‘SI WARNING’          an interactive edit is
+suspended              notice                   never allowed to
                                                 invalidate in-flight
                                                 execution state
-∇-editor bracket         Supported: list-form   Only the single-line and
-commands, e.g.  ‘[∆N M   and open-ended         explicit-range forms are
-...]’, ‘[∆-N]’,          delete/display forms   supported – the
-‘[⎕N-]’                                         ∇-editor’s interactive
-                                                command set was always
+∇-editor bracket       Supported:        NI     Only the single-line and
+commands, e.g.  ‘[∆N   list-form and            explicit-range forms are
+M ...]’, ‘[∆-N]’,      open-ended               supported – the
+‘[⎕N-]’                delete/display           ∇-editor’s interactive
+                       forms                    command set was always
                                                 deliberately minimal
                                                 (just enough to define
                                                 functions); writing
@@ -9936,26 +9990,24 @@ commands, e.g.  ‘[∆N M   and open-ended         explicit-range forms are
                                                 editor is the intended
                                                 workflow for anything
                                                 more
-‘)EDITOR 1’              Selects or queries     BAD COMMAND – not
-                         the active line        implemented; GNU APL has
-                         editor                 only the ∇-editor, so
-                                                there is nothing to
+‘)EDITOR 1’            Selects or        NI     BAD COMMAND – not
+                       queries the              implemented; GNU APL has
+                       active line              only the ∇-editor, so
+                       editor                   there is nothing to
                                                 select
-‘)SYMBOLS n’             Resizes the symbol     BAD COMMAND – not
-                         table                  implemented; GNU APL’s
+‘)SYMBOLS n’           Resizes the       NI     BAD COMMAND – not
+                       symbol table             implemented; GNU APL’s
                                                 symbol table is not a
-                                                fixed, pre-allocated
-                                                size that would need
-                                                resizing
-‘SYSTEM LIMIT’ message   Bare ‘SYSTEM LIMIT+’   Always qualified inline,
-                         (detail available      e.g.  ‘SYSTEM LIMIT
-                         via ‘)MORE’)           (rank)’
-Bad or unrecognized      ‘INCORRECT COMMAND’    ‘BAD COMMAND’
-system command
-Certain                  Generic ‘ENTRY         More specific text, e.g.
-lexical/tokenizer        ERROR’ / ‘SYNTAX       ‘Non-APL character’,
-errors                   ERROR’                 ‘Bad number’, ‘No string
-                                                end found’
+                                                fixed, pre-allocated size
+                                                that would need resizing
+‘SYSTEM LIMIT’         Bare ‘SYSTEM      IR     Always qualified inline,
+message                LIMIT+’ (detail          e.g.  ‘SYSTEM LIMIT
+                       available via            (rank)’
+                       ‘)MORE’)
+Certain                Generic ‘ENTRY    IR     More specific text, e.g.
+lexical/tokenizer      ERROR’ /                 ‘Non-APL character’, ‘Bad
+errors                 ‘SYNTAX ERROR’           number’, ‘No string end
+                                                found’
 
 
 File: apl.info,  Node: Internationalization,  Next: Vector Notation,  Prev: Limitations and Missing Features,  Up: Top
@@ -12201,91 +12253,91 @@ Node: The libpcre2 flags - i m s and x304059
 Node: The ⎕RE (APL output format) flags ↓ ⊂ and /304727
 Node: the ⎕RE global flag g307207
 Node: the ⎕RE error flag E310712
-Node: Complex Matches311616
-Node: ⎕RVAL - Random APL value316106
-Node: General317140
-Node: Dyadic ⎕RVAL318128
-Node: Control of the underlying random number generator - 0 ⎕RVAL B319352
-Node: Control of the ranks - 1 ⎕RVAL B320977
-Node: Control of the shapes - 2 ⎕RVAL B322685
-Node: Control of the data types - 3 ⎕RVAL B324131
-Node: Control of a maximum depth - 4 ⎕RVAL B325970
-Node: Control of the element count - 5 ⎕RVAL B326887
-Node: The primitive table - 6 ⎕RVAL B328617
-Node: monadic ⎕RVAL B330047
-Node: Syntax Alternatives332422
-Node: ⎕SI - State Indicator333264
-Node: ⎕SQL - SQL Database Interface335512
-Node: ⎕SQL[0] ⍬ - display sub-function numbers336611
-Node: ⎕SQL[0] '' - display sub-function names338522
-Node: ref ← A ⎕SQL[1] B - open database341304
-Node: ⎕SQL[2] B - close database342364
-Node: Z ← A ⎕SQL[3 ref] B - database query (with result)342921
-Node: Z ← A ⎕SQL[4 ref] B - database query (w/o result)343904
-Node: ⎕SQL[5] B - start transaction344478
-Node: ⎕SQL[6] B - commit transaction344805
-Node: ⎕SQL[7] B - rollback transaction345116
-Node: Z←⎕SQL[8] B - table names345443
-Node: Z←⎕SQL[9] B - column names345773
-Node: Z ← ⎕SQL[10] B - library version number346291
-Node: Z ← ⎕SQL[11] B - library version string346887
-Node: SQLite Quickstart347453
-Node: Deleting a Database349398
-Node: Creating a new Database350808
-Node: Creating a Database Table352557
-Node: Excursus - Dynamic Query Strings355914
-Node: Writing an APL matrix into a Database Table358862
-Node: Reading a Database Table into an APL Matrix361264
-Node: Updating a Database Table363035
-Node: Deleting Rows From a Database Table365664
-Node: ⎕SYL - System limits366436
-Node: ⎕SYL[1 2 3 4 5 6;]368852
-Node: ⎕SYL[7 8 9 10 11 12 13 14 15 16 17 18 19 20 21 22 23;]370247
-Node: ⎕SYL[24 25 26;]370731
-Node: ⎕SYL[27;]371043
-Node: ⎕XML - XML Parsing371726
-Node: Purpose372060
-Node: Some XML Terminology373636
-Node: How ⎕XML maps XML documents to APL Values377084
-Node: Monadic ⎕XML383747
-Node: Dyadic ⎕XML384560
-Node: XML Queries392853
-Node: Conditionals393723
-Node: Design considerations.394153
-Node: Syntax401551
-Node: A Possible Pitfall404704
-Node: Matrix Product408961
-Node: Monadic ≠ (Nub Sieve)412264
-Node: Limitations and Missing Features412812
-Node: System Limits413298
-Node: Shared Variables414600
-Node: Known Differences between IBM APL2 and GNU APL415737
-Node: Internationalization427631
-Node: Vector Notation428812
-Node: History429407
-Node: Standardization430145
-Node: Quotes from the lrm430652
-Node: Some APL2 Tests432811
-Node: Test 1 - Binding strength of []433228
-Node: Test 2 - Binding strength of the left operand434068
-Node: Definitions438849
-Node: Unexpected Stranding441874
-Node: GNU APL Vector Notation450640
-Node: GNU APL Project Structure456628
-Node: The sub-directory src458156
-Node: The sub-directory support-files459528
-Node: The sub-directory doc459947
-Node: The sub-directory HOWTOs460251
-Node: The sub-directories workspaces and wslib2 ... wslib5460996
-Node: The sub-directory m4461556
-Node: The sub-directories debian and debian_tmp462428
-Node: The sub-directory tools462925
-Node: Libraries Contributed by GNU APL Users463388
-Node: The GNU APL Community Webpage463865
-Node: Core Libraries464602
-Node: Licenses for this GNU APL Manual and for GNU APL465483
-Node: The GNU Free Documentation License466028
-Node: The GNU GENERAL PUBLIC LICENSE491422
+Node: Complex Matches312024
+Node: ⎕RVAL - Random APL value316514
+Node: General317548
+Node: Dyadic ⎕RVAL318536
+Node: Control of the underlying random number generator - 0 ⎕RVAL B319760
+Node: Control of the ranks - 1 ⎕RVAL B321385
+Node: Control of the shapes - 2 ⎕RVAL B323093
+Node: Control of the data types - 3 ⎕RVAL B324539
+Node: Control of a maximum depth - 4 ⎕RVAL B326378
+Node: Control of the element count - 5 ⎕RVAL B327295
+Node: The primitive table - 6 ⎕RVAL B329025
+Node: monadic ⎕RVAL B330455
+Node: Syntax Alternatives332830
+Node: ⎕SI - State Indicator333672
+Node: ⎕SQL - SQL Database Interface335920
+Node: ⎕SQL[0] ⍬ - display sub-function numbers337019
+Node: ⎕SQL[0] '' - display sub-function names338930
+Node: ref ← A ⎕SQL[1] B - open database341712
+Node: ⎕SQL[2] B - close database342772
+Node: Z ← A ⎕SQL[3 ref] B - database query (with result)343329
+Node: Z ← A ⎕SQL[4 ref] B - database query (w/o result)344312
+Node: ⎕SQL[5] B - start transaction344886
+Node: ⎕SQL[6] B - commit transaction345213
+Node: ⎕SQL[7] B - rollback transaction345524
+Node: Z←⎕SQL[8] B - table names345851
+Node: Z←⎕SQL[9] B - column names346181
+Node: Z ← ⎕SQL[10] B - library version number346699
+Node: Z ← ⎕SQL[11] B - library version string347295
+Node: SQLite Quickstart347861
+Node: Deleting a Database349806
+Node: Creating a new Database351216
+Node: Creating a Database Table352965
+Node: Excursus - Dynamic Query Strings356322
+Node: Writing an APL matrix into a Database Table359270
+Node: Reading a Database Table into an APL Matrix361672
+Node: Updating a Database Table363443
+Node: Deleting Rows From a Database Table366072
+Node: ⎕SYL - System limits366844
+Node: ⎕SYL[1 2 3 4 5 6;]369260
+Node: ⎕SYL[7 8 9 10 11 12 13 14 15 16 17 18 19 20 21 22 23;]370655
+Node: ⎕SYL[24 25 26;]371139
+Node: ⎕SYL[27;]371451
+Node: ⎕XML - XML Parsing372134
+Node: Purpose372468
+Node: Some XML Terminology374044
+Node: How ⎕XML maps XML documents to APL Values377492
+Node: Monadic ⎕XML384155
+Node: Dyadic ⎕XML384968
+Node: XML Queries393261
+Node: Conditionals394131
+Node: Design considerations.394561
+Node: Syntax401959
+Node: A Possible Pitfall405112
+Node: Matrix Product409369
+Node: Monadic ≠ (Nub Sieve)412672
+Node: Limitations and Missing Features413220
+Node: System Limits413706
+Node: Shared Variables415008
+Node: Known Differences between IBM APL2 and GNU APL416145
+Node: Internationalization430522
+Node: Vector Notation431703
+Node: History432298
+Node: Standardization433036
+Node: Quotes from the lrm433543
+Node: Some APL2 Tests435702
+Node: Test 1 - Binding strength of []436119
+Node: Test 2 - Binding strength of the left operand436959
+Node: Definitions441740
+Node: Unexpected Stranding444765
+Node: GNU APL Vector Notation453531
+Node: GNU APL Project Structure459519
+Node: The sub-directory src461047
+Node: The sub-directory support-files462419
+Node: The sub-directory doc462838
+Node: The sub-directory HOWTOs463142
+Node: The sub-directories workspaces and wslib2 ... wslib5463887
+Node: The sub-directory m4464447
+Node: The sub-directories debian and debian_tmp465319
+Node: The sub-directory tools465816
+Node: Libraries Contributed by GNU APL Users466279
+Node: The GNU APL Community Webpage466756
+Node: Core Libraries467493
+Node: Licenses for this GNU APL Manual and for GNU APL468374
+Node: The GNU Free Documentation License468919
+Node: The GNU GENERAL PUBLIC LICENSE494313
 
 End Tag Table
 

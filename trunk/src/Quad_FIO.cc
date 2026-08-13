@@ -25,6 +25,7 @@
 
 #include <errno.h>
 #include <fcntl.h>
+#include <limits.h>
 #include <signal.h>
 #include <stdio.h>
 #include <string.h>
@@ -2257,9 +2258,15 @@ Quad_FIO::eval_AXB__6(Value_P A, Value_P B)
 {
    errno = 0;
    // see eval_AXB__37 above: A->get_near_int(0) is signed and has no
-   // lower bound when copied straight into a size_t.
+   // lower bound when copied straight into a size_t. Also bounded like
+   // the sibling eval_AXB__8() (sized fgets) below: an oversized request
+   // here isn't unsafe (vector<char>'s bad_alloc already turns it into a
+   // controlled WS FULL, Blake McBride, Bugs16 minor), but there is no
+   // reason to let a single ⎕FIO[6] ask for e.g. petabytes before finding
+   // that out.
+   //
 const APL_Integer bytes_signed = A->get_near_int(0);
-   if (bytes_signed < 0)   LENGTH_ERROR;
+   if (bytes_signed < 0 || bytes_signed > 100000000)   LENGTH_ERROR;
 const size_t bytes = bytes_signed;
 FILE * file = get_FILE(*B);
    clearerr(file);
@@ -3514,12 +3521,21 @@ const struct {
                int max_val;
              } range[6] =
              {
-               { "year",   0, 2037 },
-               { "month",  1,   11 },
-               { "day",    1,   31 },
-               { "hour",   0,   23 },
-               { "minute", 0,   59 },
-               { "second", 0,   60 },
+               // year has no real upper bound of its own (the previous
+               // 2037 cap was a 32-bit time_t artifact that the sibling
+               // ⎕FIO[51] does not impose either, Blake McBride, Bugs16
+               // #6); mktime()'s own time_t(-1) check below is what
+               // actually bounds it.
+               { "year",   0, INT_MAX },
+               { "month",  1,      12 },   // was 1-11 (Bugs16 #6): this
+                                            // table validates the APL value
+                                            // (1-12, see tm_mon below), not
+                                            // the tm range (0-11), so month
+                                            // 12 (December) was refused
+               { "day",    1,      31 },
+               { "hour",   0,      23 },
+               { "minute", 0,      59 },
+               { "second", 0,      60 },
              };
 
 int Bv[6];  // values as provided in B
@@ -3529,7 +3545,7 @@ int Bv[6];  // values as provided in B
          else              Bv[b] = B.get_int_value(b);
          if (Bv[b] < range[b].min_val)
             {
-              MORE_ERROR() << "In ⎕FX.secs_epoch : B["
+              MORE_ERROR() << "⎕FIO[61]: B["
                            << (b + Workspace::get_IO())
                            <<  "] (aka. " << range[b].name
                            << ") is too small (the valid range is "
@@ -3539,7 +3555,7 @@ int Bv[6];  // values as provided in B
             }
          else if (Bv[b] > range[b].max_val)
             {
-              MORE_ERROR() << "In ⎕FX.secs_epoch : B["
+              MORE_ERROR() << "⎕FIO[61]: B["
                            << (b + Workspace::get_IO())
                            <<  "] (aka. " << range[b].name
                            << ") is too large (the valid range is "
@@ -3561,10 +3577,20 @@ tm tm;
    tm.tm_mon  = Bv[1] - 1;        // Month             1-12       (0-11)
    tm.tm_year = Bv[0] - 1900;     // Year              2000...    1900...
 
+   // B does not (and, unlike ⎕FIO[51], cannot) specify DST, so let
+   // mktime() determine it -- tm.tm_isdst was uninitialized here before
+   // (Blake McBride, Bugs16 #2): mktime() reads it to decide whether the
+   // supplied fields are DST or standard time, so the result depended on
+   // whatever indeterminate value was on the stack, e.g. the same call
+   // evaluated twice in one statement could return two different answers.
+   // matches the sibling eval_XB__51()'s no-DST-provided default.
+   //
+   tm.tm_isdst = -1;
+
 const time_t z = mktime(&tm);
    if (z != time_t(-1))   return APL_Integer(z);
 
-   MORE_ERROR() << "⎕FIO B: bad B";
+   MORE_ERROR() << "⎕FIO[61]: bad B";
    DOMAIN_ERROR;
 }
 //════════════════════════════════════════════════════════════════════════════

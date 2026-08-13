@@ -1224,6 +1224,16 @@ bool has_complex = false;
              {
                UCS_string real_imag = pb_real.get_line(r);
                UCS_string imag = pb_imag.get_line(r);
+               // pb_real's own internal column alignment (e.g. lining up
+               // the 'E' of scientific notation across rows of differing
+               // exponent width) can leave trailing padding on a row's
+               // real part; strip it before appending 'J' + imag, or that
+               // padding becomes a stray blank between the real and
+               // imaginary parts, e.g. "2.00E0 J3.00E0" instead of
+               // "2.00E0J3.00E0" (a formatting bug, not a real gap).
+               // Symmetric with imag's own leading-whitespace strip below.
+               //
+               real_imag.remove_trailing_whitespaces();
                imag.remove_leading_whitespaces();
                if (imag.size())
                   {

@@ -44,12 +44,14 @@
 # include "Workspace.hh"
 
 // UTF8 support for XCB windows needs additional libraries that may
-// not be present. You can enable that with: XCB_WINDOWS_WITH_UTF8_CAPTIONS 1
-// in this file or better:
+// not be present. You can disable that with:
+// CXXFLAGS=-D XCB_WINDOWS_WITH_UTF8_CAPTIONS=0 ./configure
 //
-//  CXXFLAGS=-D XCB_WINDOWS_WITH_UTF8_CAPTIONS=1 ./configure. The
-//
-// default is disabled.
+// The default is enabled (Blake McBride, Bugs16 minor: this comment
+// used to say "default is disabled", which was backwards -- the #define
+// right below it has always defaulted to 1, so the XOpenDisplay()/
+// XGetXCBConnection() path fixed in Bugs16 #1 is the default build,
+// not an opt-in one).
 //
 # ifndef XCB_WINDOWS_WITH_UTF8_CAPTIONS
    /// undefined → 1
@@ -105,14 +107,26 @@ public:
      caption(0),
      w_props(props),
      window_goon(true),
-     file_saved(false)
+     file_saved(false),
+     connected(false)
    {}
 
    /// destructor
    virtual ~XCB_context()
       {
         free(const_cast<char *>(caption));
-        delete &w_props;
+
+        // only take ownership of (and delete) w_props once the X-server
+        // connection actually succeeded: on the connection-failure path
+        // (Bugs16 #1) this destructor runs immediately, while start_GUI()
+        // (on the interpreter thread) still needs to read
+        // w_props.get_gui_thread_error() afterwards -- deleting it here
+        // would be a use-after-free there. w_props is intentionally
+        // leaked on that path instead (same as the pre-existing
+        // pthread_create()-failure paths in start_GUI(), none of which
+        // delete w_props either).
+        //
+        if (connected)   delete &w_props;
       }
 
    /// overloaded PLOT_context::plot_stop()
@@ -152,6 +166,10 @@ public:
 
    /// plot window was written to an output file
    bool file_saved;
+
+   /// true once the X-server connection succeeded and this context has
+   /// taken ownership of w_props (see the destructor)
+   bool connected;
 };
 //════════════════════════════════════════════════════════════════════════════
 /// the supposed width and the height of a string (in pixels)
@@ -1337,7 +1355,11 @@ const Plot_data & data = w_props.get_plot_data();
    //
    pctx.display = XOpenDisplay(0);
 # if XCB_WINDOWS_WITH_UTF8_CAPTIONS
-   pctx.conn = XGetXCBConnection(pctx.display);
+   // XOpenDisplay() returns 0 when DISPLAY is unset, empty, or names an
+   // unreachable server (Blake McBride, Bugs16 #1); XGetXCBConnection(0)
+   // would dereference that null pointer immediately, before the
+   // connection-error check below ever runs.
+   pctx.conn = pctx.display ? XGetXCBConnection(pctx.display) : 0;
 
 # else   // not XCB_WINDOWS_WITH_UTF8_CAPTIONS
    pctx.conn = xcb_connect(0, 0);
@@ -1345,10 +1367,44 @@ const Plot_data & data = w_props.get_plot_data();
 
    if (pctx.conn == 0 || xcb_connection_has_error(pctx.conn))
       {
-        xcb_disconnect(pctx.conn);
-        MORE_ERROR() << "could not connect to the X-server ";
-        DOMAIN_ERROR;
+        if (pctx.conn)   xcb_disconnect(pctx.conn);
+
+        // undo the push_back() above: pctx is about to be destroyed (we
+        // are returning without ever reaching the X main loop below,
+        // which is what normally keeps this stack frame -- and therefore
+        // pctx -- alive for the life of the window), so leaving &pctx in
+        // all_PLOT_windows would dangle for e.g. the next "⎕PLOT ¯3" or
+        // window-close-by-handle lookup.
+        //
+        loop(h, Quad_PLOT::all_PLOT_windows.size())
+           {
+             if (Quad_PLOT::all_PLOT_windows[h] == &pctx)
+                {
+                  Quad_PLOT::all_PLOT_windows[h] =
+                     Quad_PLOT::all_PLOT_windows.back();
+                  Quad_PLOT::all_PLOT_windows.pop_back();
+                  break;
+                }
+           }
+
+        // plot_main_XCB() is a pthread start routine (pthread_create() in
+        // Quad_PLOT::start_GUI()), not the interpreter thread: throwing
+        // DOMAIN_ERROR here would escape the thread entry function and
+        // call std::terminate() instead of unwinding, and would skip the
+        // sem_post() below, hanging start_GUI()'s
+        // sem_wait_safe_I(expose_sema, ...) forever (Blake McBride,
+        // Bugs16 #1 -- the XCB-side twin of Bill Heagy's GTK pthread_create()
+        // hang fixed in r2070/r2072). Record the error in w_props instead
+        // and let start_GUI() raise it once back on the interpreter thread.
+        // (pctx.connected is still false, so ~XCB_context() below will not
+        // delete w_props -- start_GUI() still needs to read it.)
+        //
+        w_props.set_gui_thread_error("could not connect to the X-server");
+        sem_post(Quad_PLOT::expose_sema);   // unleash the interpreter
+        return vp_props;
       }
+
+   pctx.connected = true;   // ~XCB_context() may now delete w_props
 
    // get the first screen
    //

@@ -334,7 +334,12 @@ int fd = open(filename, O_RDONLY);
    if (fd == -1)   return false;
 
 char buf[2];
-const size_t len = read(fd, buf, sizeof(buf));
+   // read() returns ssize_t (-1 on error); assigning that to a size_t
+   // (Blake McBride, Bugs16 minor) made a read() error become SIZE_MAX,
+   // which the "!= 2" check below happened to still handle correctly,
+   // but only by accident of unsigned wraparound.
+   //
+const ssize_t len = read(fd, buf, sizeof(buf));
    close(fd);
 
    if (len != 2)        return false;

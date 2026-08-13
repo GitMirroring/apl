@@ -167,6 +167,12 @@ const ShapeItem B0 = b;
         ++b;   // skip UNI_E / UNI_e
         if (ucs_B[b] == UNI_MINUS)          ++b;
         else if (ucs_B[b] == UNI_OVERBAR)   ++b;
+        // RFC 8259: exp = ("e" / "E") ["-" / "+"] 1*DIGIT -- a '+' sign
+        // was not accepted (Blake McBride, Bugs16 #5), even though it is
+        // exactly what glibc's "%g" (used by this file's own JSON writer,
+        // APL_to_JSON_string()) emits for positive exponents, so e.g.
+        // ⎕JSON 2⎕JSON 1E300 could not read back its own output.
+        else if (ucs_B[b] == UNI_PLUS)      ++b;
        while (uint32_t(ucs_B[b] - UNI_0) < 10)   ++b;
       }
 
@@ -436,6 +442,26 @@ bool expect_colon = true;
 
                  case UNI_COLON:
                       if (stack.size() > 1)   continue;
+                      if (start == UNI_L_BRACK)
+                         {
+                           // ':' is only legal inside a JSON *object*
+                           // ({"name": value, ...}); this arm used to
+                           // check only expect_colon (which starts true
+                           // regardless of [ vs {), so the first ':' at
+                           // the top level of a JSON *array* was silently
+                           // accepted, e.g. "[1:2]" (Blake McBride, Bugs16
+                           // #3) -- comma_count() then returned commas==0
+                           // (no top-level ',' was ever seen), so
+                           // parse_array() took its "one element" branch,
+                           // parsed only the "1", and tripped its own
+                           // Assert(token0 == token_from) on the leftover
+                           // ":2" instead of reporting a clean error.
+                           //
+                           MORE_ERROR() << "⎕JSON B: Got unexpected ':' "
+                                           "inside a JSON array at "
+                                        <<  tokens_B[token0] << "↓B";
+                           DOMAIN_ERROR;
+                         }
                       if (!expect_comma)
                          {
                            MORE_ERROR() << "⎕JSON B: Got unexpected ':' at "
@@ -598,6 +624,25 @@ size_t token0 = 0;
 
    Assert(Z->is_scalar());
    Assert(Z->is_pointer_cell(0));
+
+   // a bare top-level literal (true/false/null) must keep BOTH enclosure
+   // levels that parse_literal() built (Z ≡ ⊂⊂'true'), matching exactly
+   // what the same literal gets as an array/object element -- that double
+   // enclosure is APL_to_JSON_string()'s own marker for "this is a JSON
+   // literal, not a string" (see its error message: "JSON literals are
+   // encoded as ⊂'true'/⊂'false'/⊂'null'"). The generic peel below is
+   // correct for every OTHER top-level result (plain strings, arrays,
+   // objects), but was also stripping the one level that distinguishes a
+   // literal from an ordinary string, so e.g. 2⎕JSON ⎕JSON 'true' wrote
+   // "true" back out as a quoted JSON string instead of the bare literal
+   // true (Blake McBride, Bugs16 #8).
+   //
+   if (tokens_B.size())
+      {
+        const Unicode first = ucs_B[tokens_B[0]];
+        if (first == UNI_t || first == UNI_f || first == UNI_n)   return Z;
+      }
+
    return Z->get_pointer_value(0);
 }
 //────────────────────────────────────────────────────────────────────────────
@@ -656,7 +701,15 @@ const size_t commas = comma_count(ucs_B, tokens_B, token0);
       }
 
    ++token0;   // skip final ]
-   Assert(token0 == token_from);
+   if (token0 != token_from)
+      {
+        // reachable from malformed user input, not just internal
+        // inconsistency (Blake McBride, Bugs16 #3): was an unconditional
+        // Assert(), which dumped a backtrace for what is simply bad JSON.
+        //
+        MORE_ERROR() << "⎕JSON B: malformed JSON array";
+        DOMAIN_ERROR;
+      }
 }
 //────────────────────────────────────────────────────────────────────────────
 void
@@ -735,6 +788,10 @@ double dval = 0;
            {
              need_fract = true;
              ++b;   cc[cc_len++] = '-'; }
+        else if (ucs_B[b] == UNI_PLUS)   // '+' exponent (Bugs16 #5): see
+           {                             // number_len()'s matching fix
+             ++b;
+           }
              while (ucs_B[b] >= UNI_0 && ucs_B[b] <= UNI_9)
                    {
                      if (cc_len >= MAX_NUMLEN)   goto number_too_long;
@@ -823,7 +880,13 @@ Value_P assoc_array = EmptyStruct(LOC);
       }
 
    ++token0;   // skip final }
-   Assert(token0 == token_from);
+   if (token0 != token_from)
+      {
+        // see the twin check in parse_array() (Blake McBride, Bugs16 #3)
+        //
+        MORE_ERROR() << "⎕JSON B: malformed JSON object";
+        DOMAIN_ERROR;
+      }
 }
 //────────────────────────────────────────────────────────────────────────────
 void

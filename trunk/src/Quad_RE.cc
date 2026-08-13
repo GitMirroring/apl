@@ -287,6 +287,7 @@ Value_P Z(len, LOC);
 PCRE2_SIZE B_offset = 0;
 ShapeItem match_id_partition = 1;
 ShapeItem match_id_compress  = 1;
+bool any_match = false;
 
 ShapeItem & match_id = X.get_result_type() == RST_partition
                      ? match_id_partition : match_id_compress;
@@ -303,6 +304,7 @@ PCRE2_SIZE last_end = 0;
        {
          RegexpMatch rem(A.get_code(), B, B_offset);
          if (!rem.is_match())   break;
+         any_match = true;
 
          const PCRE2_SIZE * ovector = rem.get_ovector();
          const PCRE2_SIZE start = ovector[0];
@@ -321,6 +323,21 @@ PCRE2_SIZE last_end = 0;
          //
          B_offset = (end == start) ? end + 1 : end;
        }
+
+   // this function drives its own (single-call) global search internally,
+   // unlike string_result()/index_result() which are called repeatedly by
+   // an external driver loop -- so there is no separate "first_call" to
+   // track; "no match anywhere in B at all" is the equivalent condition,
+   // and E previously had no effect at all here (Blake McBride, Bugs16
+   // #7): 'xyz' ⎕RE['E⊂']'abc' and 'xyz' ⎕RE['E/']'abc' silently returned
+   // an all-zero result instead of raising, unlike plain 'E' (string
+   // result) on the same non-matching B.
+   //
+   if (!any_match && X.get_error_on_no_match())
+      {
+        MORE_ERROR() << "No match";
+        DOMAIN_ERROR;
+      }
 
    while (Z->more())   Z->next_ravel_0();
    Z->check_value(LOC);
@@ -434,9 +451,18 @@ Quad_RE::index_result(const Regexp & A, const Flags & X,
 RegexpMatch rem(A.get_code(), B, B_offset);
    if (!rem.is_match())
       {
+        // same first_call treatment as string_result() (Bugs10 #11): the
+        // g early-return below ends a global search once at least one
+        // match was found, but must not pre-empt the E (error-on-no-
+        // match) check on the first call, when there were genuinely no
+        // matches at all. Previously missing here (Blake McBride, Bugs16
+        // #7), so 'gE' silently returned empty while plain 'E' (no g)
+        // correctly raised on the very same B.
+        //
+        const bool first_call = (B_offset == 0);
         B_offset = -1;
-        if (X.get_global())               return Value_P();
-        if (!X.get_error_on_no_match())   return Idx0(LOC);
+        if (X.get_global() && !first_call)   return Value_P();
+        if (!X.get_error_on_no_match())      return Idx0(LOC);
         MORE_ERROR() << "No match";
         DOMAIN_ERROR;
       }

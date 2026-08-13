@@ -279,7 +279,15 @@ tm t;
    t.tm_sec   = second;
    t.tm_isdst = 0;
 
-APL_time_us ret =  mktime(&t);
+   // the constructor above (YMDhmsu(APL_time_us)) fills year..second via
+   // gmtime(), i.e. as UTC fields -- so the inverse must be timegm(), not
+   // mktime() (which interprets t as LOCAL time). The mismatch made
+   // YMDhmsu(x).get() == x hold only when TZ=UTC; e.g. )IN restoring a
+   // defined function's creation timestamp (the sole caller of get(),
+   // Cmd_IN.cc) shifted it by the local UTC offset everywhere else
+   // (Blake McBride, Bugs16 #4, "related (latent)").
+   //
+APL_time_us ret =  timegm(&t);
    ret *= 1000000;
    ret += micro;
    return ret;

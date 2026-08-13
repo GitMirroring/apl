@@ -256,6 +256,22 @@ public:
         legend_Y += dy;
       }
 
+   /// record an error from a GUI driver's background thread (e.g. the
+   /// XCB event loop thread), so that the interpreter thread can raise
+   /// it after rendezvous-ing on \b Quad_PLOT::expose_sema instead of
+   /// throwing an APL error across the pthread entry function itself
+   /// (Blake McBride, Bugs16 #1: an uncaught throw there calls
+   /// std::terminate() rather than unwinding, and skips the sem_post()
+   /// that the interpreter thread is waiting for).
+   /// @param msg the error message
+   void set_gui_thread_error(const String & msg)
+      { gui_thread_error = msg; }
+
+   /// the error recorded by set_gui_thread_error(), or empty if the
+   /// GUI driver's background thread started up cleanly
+   const String & get_gui_thread_error() const
+      { return gui_thread_error; }
+
 protected:
    /// the number of plot lines
    const int line_count;
@@ -276,6 +292,9 @@ protected:
 
    /// whether the window caption was dictated by the user
    bool user_caption;
+
+   /// an error recorded by set_gui_thread_error(), or empty
+   String gui_thread_error;
 
    /// the width of the plot window
    Pixel_X window_width;

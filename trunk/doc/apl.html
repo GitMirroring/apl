@@ -48,6 +48,9 @@ pre.example { font-family: "Courier New", monospace;
 code { font-family: "Courier New", monospace;
        font-size: 16 px; font-weight: bold; }
 
+table { border-collapse: collapse; }
+th, td { border: 1px solid #999; padding: 0.3em 0.6em; }
+
 
 
 -->
@@ -73,7 +76,7 @@ Next: <a href="#Installing-and-Starting-GNU-APL" accesskey="n" rel="next">Instal
 </div>
 <span id="GNU-APL-Reference-Manual"></span><h1 class="top">GNU APL Reference Manual</h1>
 
-<p>August 11, 2026.
+<p>August 13, 2026.
 This manual briefly documents GNU APL, an interpreter for APL as described
 in ISO standard 13751, aka. &quot;Programming Language APL, Extended&quot;.
 </p>
@@ -3942,12 +3945,12 @@ Next: <a href="#Logging-Facilities" accesskey="n" rel="next">Logging Facilities<
 </div>
 <span id="History-and-TAB-completion-1"></span><h3 class="section">2.13 History and TAB completion</h3>
 
-<p>Until GNU APL 1.4 / SVN 465, GNU APL used libreadline for interactive user
+<p>Until GNU APL 1.4 / <b>SVN 465</b>, GNU APL used libreadline for interactive user
 input. libreadline did provide two useful features: tab expansion (the tab
 key would expand file names) and history (the cursor up/down keys would recall
 previously entered lines).
 </p>
-<p>Since SVN 465 libreadline was removed and the standard TAB expansion and
+<p>Since <b>SVN 465</b> libreadline was removed and the standard TAB expansion and
 history of libreadline were replaced by more context sensitive (i.e. APL
 aware) implementations:
 </p>
@@ -8180,7 +8183,7 @@ Next: <a href="#g_t_2395RE-_002d-Regular-Expressions" accesskey="n" rel="next">�
 </div>
 <span id="g_t_005b_003f_005dPS-_002d-Print-Style"></span><h3 class="section">2.38 ⎕PS - Print Style</h3>
 
-<p><b>⎕PS</b> is an integer vector that currently (read: as of SVN 982) contains
+<p><b>⎕PS</b> is an integer vector that currently (read: as of <b>SVN 982</b>) contains
 two integers which control some details of how APL values are printed.
 The default value of <b>⎕PS</b> is 0 0. <b>⎕PS</b> is a session variable which survives
 the <strong>)LOAD</strong>ing of workspaces.
@@ -8535,14 +8538,20 @@ DOMAIN ERROR+
 No match
 </pre></div>
 
-<p>The &rsquo;E&rsquo; flag has no effect if the &rsquo;g&rsquo; flag is also given because in that case
-it is natural to check the length of the result:
+<p>The &rsquo;E&rsquo; flag still applies when the &rsquo;g&rsquo; flag is also given: it raises an error
+if the regular expression does not match B <b>at all</b>. It has no further effect
+once at least one match was found, since a global search simply stops once
+there is no more match; <code>4 ⎕CR 'g..' ⎕RE['g'] B</code> (checking the length of
+the result) remains the natural way to tell &quot;one match&quot; from &quot;several matches&quot;
+from &quot;no more matches after some were found&quot;:
 </p>
 <div class="example">
 <pre class="example">      4 ⎕CR 'g..' ⎕RE['Eg'] '__foo___fun____fox'
-┏⊖┓
-┃0┃
-┗━┛
+DOMAIN ERROR+
+      4 ⎕CR 'g..' ⎕RE['Eg']'__foo___fun____fox'
+            ^              ^
+      )MORE
+No match
 </pre></div>
 
 <hr>
@@ -11364,11 +11373,11 @@ Previous: <a href="#Shared-Variables" accesskey="p" rel="prev">Shared Variables<
 <span id="Known-Differences-between-IBM-APL2-and-GNU-APL-1"></span><h3 class="section">3.3 Known Differences between IBM APL2 and GNU APL</h3>
 
 <p>We have received a thorough 49-item list of differences between IBM
-APL2 and GNU APL, compiled by <b>Blake McBride</b> against the IBM APL2
-Language Reference Manual and tested by him against GNU APL SVN
-r2057. We audited and verified every item on the list carefully
-against the current interpreter, and the majority of them have since
-been fixed (in the apl-2.0 tree starting around SVN r3565).
+APL2 and GNU APL, kindly provided by <b>Blake McBride</b> against the IBM APL2
+Language Reference Manual and tested by him against GNU APL <b>SVN 2057</b>.
+We audited and verified every item on the list carefully against the
+current interpreter, and the majority of them have since been fixed
+(starting around <b>SVN 2072</b>).
 </p>
 <p>The items that remain are, for the most part, small GNU APL
 extensions that are not documented anywhere else in this manual:
@@ -11387,87 +11396,126 @@ question for now.
 </p>
 <p>The table below lists every item that is still different today. For
 each one, column 1 names the construct, column 2 shows IBM APL2&rsquo;s
-documented behavior, and column 3 shows GNU APL&rsquo;s actual behavior.
+documented behavior, column 3 gives a short code for <em>why</em> GNU
+APL differs, and column 4 shows GNU APL&rsquo;s actual behavior.
 </p>
+<p><b>Note:</b> the ISO standard itself explicitly permits this. ISO/IEC
+13751:2000(E) §4.2.1 states that &ldquo;a conforming-program shall not
+depend on the signalling of any error by a conforming-implementation&rdquo;,
+with the accompanying note explaining why: &ldquo;conforming-programs cannot
+depend on error behaviour, since consistent-extensions that replace
+errors are permitted in conforming-implementations.&rdquo; Several of the
+differences below (marked <code>EX</code>) are exactly that: GNU APL replaces
+an LRM-mandated error with defined, useful behavior where we judged
+that to be a better choice than raising the error.
+</p>
+<span id="Legend"></span><h4 class="subheading">Legend</h4>
+
+<table>
+<thead><tr><th width="8%">Reason</th><th width="92%">Meaning</th></tr></thead>
+<tr><td width="8%">EX</td><td width="92%">Extension &ndash; GNU APL is deliberately more permissive than the LRM
+requires, or generalizes/widens a documented limit rather than
+narrowing it.</td></tr>
+<tr><td width="8%">IR</td><td width="92%">Improved readability &ndash; a display, formatting, or message choice
+judged clearer, especially on a modern screen rather than a
+line-printer.</td></tr>
+<tr><td width="8%">CO</td><td width="92%">Consistency &ndash; follows a GNU APL rule or convention that is already
+applied elsewhere in the interpreter.</td></tr>
+<tr><td width="8%">RO</td><td width="92%">Robustness &ndash; refuses an operation or fails immediately rather than
+risking a silent, delayed, or hard-to-diagnose error.</td></tr>
+<tr><td width="8%">NI</td><td width="92%">Not (yet) implemented &ndash; a genuine feature gap, in some cases a
+deliberate scope choice rather than an oversight.</td></tr>
+<tr><td width="8%">NU</td><td width="92%">Not used &ndash; the underlying mechanism is implemented, but GNU APL
+deliberately never exercises it for this particular direction/purpose.</td></tr>
+<tr><td width="8%">DP</td><td width="92%">Dangerous programming practice &ndash; the construct is inherently
+ambiguous or its result unobvious to a reader, so GNU APL declines to
+give it a defined meaning rather than picking one arbitrarily.</td></tr>
+<tr><td width="8%">OP</td><td width="92%">Open issue &ndash; a difference we have not been able to explain or
+resolve, e.g. because the LRM&rsquo;s exact intent could not be
+reverse-engineered without access to IBM&rsquo;s own source code.</td></tr>
+</table>
+
 <span id="Syntax-and-Expressions"></span><h4 class="subheading">Syntax and Expressions</h4>
 
 <table>
-<thead><tr><th width="34%">Issue</th><th width="30%">IBM APL2</th><th width="36%">GNU APL</th></tr></thead>
-<tr><td width="34%"><code>((A←2)↑A)←0</code></td><td width="30%">Succeeds; <code>A</code> becomes <code>0 0 3 4 5 6 7 8 9 10</code></td><td width="36%">SYNTAX ERROR (assignment embedded in a selective-specification
-selector is not yet supported)</td></tr>
-<tr><td width="34%"><code>⎕FOO B</code> (<b>⎕FOO</b> undefined or misspelled)</td><td width="30%">SYNTAX ERROR</td><td width="36%">Parsed as <code>⎕ FOO B</code>: a bare <b>⎕</b> (evaluated input) immediately
+<thead><tr><th width="30%">Issue</th><th width="24%">IBM APL2</th><th width="8%">Reason</th><th width="38%">GNU APL</th></tr></thead>
+<tr><td width="30%"><code>((A←2)↑A)←0</code></td><td width="24%">Succeeds; <code>A</code> becomes <code>0 0 3 4 5 6 7 8 9 10</code></td><td width="8%">DP</td><td width="38%">SYNTAX ERROR (deliberate: reassigning a variable that is itself in the
+process of being selectively specified is neither obvious to a reader
+nor clearly defined &ndash; e.g. it is not settled what should happen if
+the new value&rsquo;s shape does not match what the selective specification
+then needs)</td></tr>
+<tr><td width="30%"><code>⎕FOO B</code> (<b>⎕FOO</b> undefined or misspelled)</td><td width="24%">SYNTAX ERROR</td><td width="8%">EX</td><td width="38%">Parsed as <code>⎕ FOO B</code>: a bare <b>⎕</b> (evaluated input) immediately
 followed by a function name, an established GNU APL idiom that the
 tokenizer cannot distinguish from a typo</td></tr>
-<tr><td width="34%"><code>3FN⍳5</code> (a number immediately followed by a name,
-no space)</td><td width="30%">SYNTAX ERROR (a space is required)</td><td width="36%">Accepted; parsed as the strand <code>3 FN</code> &ndash; kept for backward
+<tr><td width="30%"><code>3FN⍳5</code> (a number immediately followed by a name,
+no space)</td><td width="24%">SYNTAX ERROR (a space is required)</td><td width="8%">EX</td><td width="38%">Accepted; parsed as the strand <code>3 FN</code> &ndash; kept for backward
 compatibility with non-IBM APL dialects that also allow it</td></tr>
 </table>
 
 <span id="Primitive-Functions-and-Display"></span><h4 class="subheading">Primitive Functions and Display</h4>
 
 <table>
-<thead><tr><th width="34%">Issue</th><th width="30%">IBM APL2</th><th width="36%">GNU APL</th></tr></thead>
-<tr><td width="34%"><code>S[2]←'NONE'</code> (indexed assignment, shape mismatch)</td><td width="30%">RANK ERROR</td><td width="36%">LENGTH ERROR (consistent with GNU APL&rsquo;s own acceptance of a
-length-1 vector wherever a scalar is expected)</td></tr>
-<tr><td width="34%">Complex-number column padding</td><td width="30%">Left-justifies the real part within its field, e.g. <code>2  J3</code></td><td width="36%">Right-justifies it, e.g. <code>  2J3</code> &ndash; the <b>J</b> lands in the same
-column either way, only the padding side differs</td></tr>
-<tr><td width="34%">Nested/mixed-array column spacing</td><td width="30%">Follows the LRM&rsquo;s own documented spacing formula</td><td width="36%">Occasionally wider (extra blank columns) in specific cases mixing a
+<thead><tr><th width="30%">Issue</th><th width="24%">IBM APL2</th><th width="8%">Reason</th><th width="38%">GNU APL</th></tr></thead>
+<tr><td width="30%"><code>S[2]←'NONE'</code> (indexed assignment, shape mismatch)</td><td width="24%">RANK ERROR</td><td width="8%">CO</td><td width="38%">LENGTH ERROR (since <code>S[2]←,'N'</code> (rank 1, length 1) is valid)</td></tr>
+<tr><td width="30%">Nested/mixed-array column spacing</td><td width="24%">Follows the LRM&rsquo;s own documented spacing formula</td><td width="8%">OP</td><td width="38%">Occasionally wider (extra blank columns) in specific cases mixing a
 character header with numeric data; the underlying IBM formula could
 not be fully reverse-engineered from the LRM&rsquo;s text alone</td></tr>
-<tr><td width="34%"><b>⎕PW</b>-folded matrix display</td><td width="30%">Folds page-major: the first line-width chunk of every row, then the
-second chunk of every row, and so on</td><td width="36%">Folds row-major: each row is completed before the next one starts,
+<tr><td width="30%"><b>⎕PW</b>-folded matrix display</td><td width="24%">Folds page-major: the first line-width chunk of every row, then the
+second chunk of every row, and so on</td><td width="8%">IR</td><td width="38%">Folds row-major: each row is completed before the next one starts,
 considered more readable when reading wrapped text on a screen</td></tr>
-<tr><td width="34%"><b>⎕PW</b>-folded long numeric string</td><td width="30%">Exact-width fill; may split a number across two lines</td><td width="36%">Wraps at the nearest preceding space; never splits a number
+<tr><td width="30%"><b>⎕PW</b>-folded long numeric string</td><td width="24%">Exact-width fill; may split a number across two lines</td><td width="8%">IR</td><td width="38%">Wraps at the nearest preceding space; never splits a number
 mid-digit-string</td></tr>
-<tr><td width="34%"><code>⍎</code> error report</td><td width="30%">Shows the 3 standard error lines, plus 2 more naming the outer
-statement that called <code>⍎</code></td><td width="36%">Shows the 3 standard error lines only</td></tr>
-<tr><td width="34%"><code>⍎¨</code> applied to a branch</td><td width="30%">DOMAIN ERROR (&quot;APPLIED WITH OPERATOR&quot;)</td><td width="36%">SYNTAX ERROR</td></tr>
-<tr><td width="34%">Error carets</td><td width="30%">Two carets: one marking how far execution progressed, one marking
-the likely error point (occasionally coinciding, shown adjacent)</td><td width="36%">Usually a single caret; the column position can also differ in some
-cases</td></tr>
+<tr><td width="30%"><code>⍎</code> error report</td><td width="24%">Shows the 3 standard error lines, plus 2 more naming the outer
+statement that called <code>⍎</code></td><td width="8%">OP</td><td width="38%">Shows the 3 standard error lines only</td></tr>
+<tr><td width="30%"><code>⍎¨</code> applied to a branch</td><td width="24%">DOMAIN ERROR (&quot;APPLIED WITH OPERATOR&quot;)</td><td width="8%">OP</td><td width="38%">SYNTAX ERROR</td></tr>
+<tr><td width="30%">Error carets</td><td width="24%">Occasionally just a single caret (the LRM itself says so); the right
+caret points at the failed primitive itself, e.g. <code>+</code> in
+<code>A+B</code></td><td width="8%">IR</td><td width="38%">Usually two carets, not a single one; the right caret marks the
+entire failed phrase rather than just the primitive &ndash; e.g. it
+points to <code>B</code>, highlighting all of <code>A+B</code></td></tr>
 </table>
 
 <span id="System-Variables"></span><h4 class="subheading">System Variables</h4>
 
 <table>
-<thead><tr><th width="34%">Issue</th><th width="30%">IBM APL2</th><th width="36%">GNU APL</th></tr></thead>
-<tr><td width="34%"><b>⎕AI</b></td><td width="30%">A 4-item vector</td><td width="36%">A 5-item vector; the 5th item is a running count of executed APL
+<thead><tr><th width="30%">Issue</th><th width="24%">IBM APL2</th><th width="8%">Reason</th><th width="38%">GNU APL</th></tr></thead>
+<tr><td width="30%"><b>⎕AI</b></td><td width="24%">A 4-item vector</td><td width="8%">EX</td><td width="38%">A 5-item vector; the 5th item is a running count of executed APL
 expression lines, used internally by GNU APL&rsquo;s own test suite</td></tr>
-<tr><td width="34%"><code>4⎕AT</code> byte count for an arithmetic-progression integer
-vector (e.g. <code>10 20 30</code>)</td><td width="30%">Uses a compact &quot;arithmetic progression vector&quot; transfer-form
-encoding, giving a smaller byte count</td><td width="36%">Always uses the general per-item integer encoding; GNU APL&rsquo;s own
-auxiliary-processor wire protocol does not understand the compact
-form, so it is never emitted</td></tr>
-<tr><td width="34%"><code>⍴1⎕AT 'name'</code></td><td width="30%">A vector</td><td width="36%">A 1-row matrix &ndash; an extension analogous to IBM APL2&rsquo;s own
+<tr><td width="30%"><code>4⎕AT</code> byte count for an arithmetic-progression integer
+vector (e.g. <code>10 20 30</code>)</td><td width="24%">Uses a compact &quot;arithmetic progression vector&quot; transfer-form
+encoding, giving a smaller byte count</td><td width="8%">NU</td><td width="38%">Always uses the general per-item integer encoding; the compact
+progression form (CDR type 6) <em>is</em> understood &ndash; GNU APL decodes
+it fine on input &ndash; but the encoder always chooses the general form
+for output, so it is never emitted by GNU APL itself</td></tr>
+<tr><td width="30%"><code>⍴1⎕AT 'name'</code></td><td width="24%">A vector</td><td width="8%">CO</td><td width="38%">A 1-row matrix &ndash; an extension analogous to IBM APL2&rsquo;s own
 &quot;a 1-element vector behaves like a scalar&quot; convention</td></tr>
-<tr><td width="34%"><code>⎕EX '⎕IO'</code> (expunging a system variable)</td><td width="30%">Succeeds, returns 1</td><td width="36%">Refused, returns 0 &ndash; avoids a value silently reverting or erroring
+<tr><td width="30%"><code>⎕EX '⎕IO'</code> (expunging a system variable)</td><td width="24%">Succeeds, returns 1</td><td width="8%">RO</td><td width="38%">Refused, returns 0 &ndash; avoids a value silently reverting or erroring
 the next time it is used</td></tr>
-<tr><td width="34%"><code>⎕CT←0.5 ⋄ ⎕CT</code></td><td width="30%"><code>0.5</code> (the LRM only discourages, but does not forbid, values
-above <code>1E¯9</code>)</td><td width="36%"><code>1E¯9</code> &ndash; the discouraged limit is enforced as a hard clamp</td></tr>
-<tr><td width="34%"><code>⎕IO←5</code>, <code>⎕PP←0</code>, etc. (an implicit-argument
-variable assigned an out-of-domain value)</td><td width="30%">Accepted immediately; the error is deferred to the next implicit use</td><td width="36%">Rejected immediately &ndash; fails fast, at the point of the actual mistake</td></tr>
-<tr><td width="34%"><b>⎕PP</b> / <b>⎕PW</b> maximum</td><td width="30%"><b>⎕PP</b> max 16; <b>⎕PW</b> max 254</td><td width="36%"><b>⎕PP</b> max 17; <b>⎕PW</b> unbounded &ndash; some strings need a very wide
+<tr><td width="30%"><code>⎕CT←0.5 ⋄ ⎕CT</code></td><td width="24%"><code>0.5</code> (the LRM only discourages, but does not forbid, values
+above <code>1E¯9</code>)</td><td width="8%">RO</td><td width="38%"><code>1E¯9</code> &ndash; the discouraged limit is enforced as a hard clamp</td></tr>
+<tr><td width="30%"><code>⎕IO←5</code>, <code>⎕PP←0</code>, etc. (an implicit-argument
+variable assigned an out-of-domain value)</td><td width="24%">Accepted immediately; the error is deferred to the next implicit use</td><td width="8%">RO</td><td width="38%">Rejected immediately &ndash; fails fast, at the point of the actual mistake</td></tr>
+<tr><td width="30%"><b>⎕PP</b> / <b>⎕PW</b> maximum</td><td width="24%"><b>⎕PP</b> max 16; <b>⎕PW</b> max 254</td><td width="8%">IR</td><td width="38%"><b>⎕PP</b> max 17; <b>⎕PW</b> unbounded &ndash; some strings need a very wide
 <b>⎕PW</b> to print readably as a single line</td></tr>
 </table>
 
 <span id="System-Commands-and-the-_005b_003f_005d_002dEditor"></span><h4 class="subheading">System Commands and the ∇-Editor</h4>
 
 <table>
-<thead><tr><th width="34%">Issue</th><th width="30%">IBM APL2</th><th width="36%">GNU APL</th></tr></thead>
-<tr><td width="34%">Editing a function that is currently suspended</td><td width="30%">Allowed, with an <code>SI WARNING</code> notice</td><td width="36%">Refused with DEFN ERROR &ndash; an interactive edit is never allowed to
+<thead><tr><th width="30%">Issue</th><th width="24%">IBM APL2</th><th width="8%">Reason</th><th width="38%">GNU APL</th></tr></thead>
+<tr><td width="30%">Editing a function that is currently suspended</td><td width="24%">Allowed, with an <code>SI WARNING</code> notice</td><td width="8%">RO</td><td width="38%">Refused with DEFN ERROR &ndash; an interactive edit is never allowed to
 invalidate in-flight execution state</td></tr>
-<tr><td width="34%">∇-editor bracket commands, e.g. <code>[∆N M ...]</code>,
-<code>[∆-N]</code>, <code>[⎕N-]</code></td><td width="30%">Supported: list-form and open-ended delete/display forms</td><td width="36%">Only the single-line and explicit-range forms are supported &ndash; the
+<tr><td width="30%">∇-editor bracket commands, e.g. <code>[∆N M ...]</code>,
+<code>[∆-N]</code>, <code>[⎕N-]</code></td><td width="24%">Supported: list-form and open-ended delete/display forms</td><td width="8%">NI</td><td width="38%">Only the single-line and explicit-range forms are supported &ndash; the
 ∇-editor&rsquo;s interactive command set was always deliberately
 minimal (just enough to define functions); writing functions in an
 external editor is the intended workflow for anything more</td></tr>
-<tr><td width="34%"><code>)EDITOR 1</code></td><td width="30%">Selects or queries the active line editor</td><td width="36%">BAD COMMAND &ndash; not implemented; GNU APL has only the ∇-editor,
+<tr><td width="30%"><code>)EDITOR 1</code></td><td width="24%">Selects or queries the active line editor</td><td width="8%">NI</td><td width="38%">BAD COMMAND &ndash; not implemented; GNU APL has only the ∇-editor,
 so there is nothing to select</td></tr>
-<tr><td width="34%"><code>)SYMBOLS n</code></td><td width="30%">Resizes the symbol table</td><td width="36%">BAD COMMAND &ndash; not implemented; GNU APL&rsquo;s symbol table is not a
+<tr><td width="30%"><code>)SYMBOLS n</code></td><td width="24%">Resizes the symbol table</td><td width="8%">NI</td><td width="38%">BAD COMMAND &ndash; not implemented; GNU APL&rsquo;s symbol table is not a
 fixed, pre-allocated size that would need resizing</td></tr>
-<tr><td width="34%"><code>SYSTEM LIMIT</code> message</td><td width="30%">Bare <code>SYSTEM LIMIT+</code> (detail available via <code>)MORE</code>)</td><td width="36%">Always qualified inline, e.g. <code>SYSTEM LIMIT (rank)</code></td></tr>
-<tr><td width="34%">Bad or unrecognized system command</td><td width="30%"><code>INCORRECT COMMAND</code></td><td width="36%"><code>BAD COMMAND</code></td></tr>
-<tr><td width="34%">Certain lexical/tokenizer errors</td><td width="30%">Generic <code>ENTRY ERROR</code> / <code>SYNTAX ERROR</code></td><td width="36%">More specific text, e.g. <code>Non-APL character</code>, <code>Bad number</code>,
+<tr><td width="30%"><code>SYSTEM LIMIT</code> message</td><td width="24%">Bare <code>SYSTEM LIMIT+</code> (detail available via <code>)MORE</code>)</td><td width="8%">IR</td><td width="38%">Always qualified inline, e.g. <code>SYSTEM LIMIT (rank)</code></td></tr>
+<tr><td width="30%">Certain lexical/tokenizer errors</td><td width="24%">Generic <code>ENTRY ERROR</code> / <code>SYNTAX ERROR</code></td><td width="8%">IR</td><td width="38%">More specific text, e.g. <code>Non-APL character</code>, <code>Bad number</code>,
 <code>No string end found</code></td></tr>
 </table>
 

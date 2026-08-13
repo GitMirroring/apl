@@ -365,10 +365,14 @@ Executable::set_error_info(Error & error, Function_PC2 body_from_to) const
         if (body.size())   Q1(body[0])
       }
 
-   // resolve the -1 ("unset") sentinels to sensible defaults *before*
-   // indexing body[] or calling get_statement_end() with them (both of
-   // which are unchecked and would underflow on -1, e.g. when an error
-   // is raised with an empty prefix FIFO).
+   // body_from_to.low/high must not be -1 ("unset") here: body[] is
+   // indexed and get_statement_end() is called with them below, both
+   // unchecked and would underflow on -1, e.g. when an error is raised
+   // with an empty prefix FIFO. This used to silently clamp -1 to a
+   // default instead of asserting (stale comment fixed, Blake McBride,
+   // Bugs16 minor: this only runs while an error is already being
+   // reported, so an assertion failure here is louder than the silent
+   // clamp was, not a new failure mode).
    //
    Assert(body_from_to.low  != -1);
    Assert(body_from_to.high != -1);

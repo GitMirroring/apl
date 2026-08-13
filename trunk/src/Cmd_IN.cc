@@ -103,25 +103,36 @@ const char sub_type = record[1];
 
    if (rec_type == '*')   // comment or similar
       {
+        // parsing the *(...) timestamp record is a side effect, not a log
+        // message, and must run unconditionally: it used to be nested
+        // inside Log(LOG_command_IN), which expands to 'if (x)'
+        // (Logging.hh:60), and LOG_command_IN is off in every release
+        // build (tools/check_src requires every Logging.def facility to
+        // be shipped off) -- so )IN never restored a function's/variable's
+        // creation timestamp written by )OUT, even though )OUT wrote the
+        // *(YYYY MM DD hh mm ss uuuuuu) record correctly (Blake McBride,
+        // Bugs16 #4).
+        //
+        if (sub_type == '(')   // timestamp
+           {
+             YMDhmsu t(now());   // fallback if sscanf() != 7
+             if (7 == u8::sscanf(record + 1,
+                             "(%d %d %d %d %d %d %d)",
+                             &t.year, &t.month, &t.day,
+                             &t.hour, &t.minute, &t.second,
+                             &t.micro))
+                {
+                  timestamp = t.get();
+                }
+           }
+
         Log(LOG_command_IN)
            {
              const char * stype = " *** bad sub-record of *";
              switch(sub_type)
                 {
                   case ' ': stype = " comment";     break;
-                  case '(': {
-                              stype = " timestamp";
-                              YMDhmsu t(now());   // fallback if sscanf() != 7
-                              if (7 == u8::sscanf(record + 1,
-                                              "(%d %d %d %d %d %d %d)",
-                                              &t.year, &t.month, &t.day,
-                                              &t.hour, &t.minute, &t.second,
-                                              &t.micro))
-                                  {
-                                    timestamp = t.get();
-                                  }
-                            }
-                            break;
+                  case '(': stype = " timestamp";   break;
                   case 'I': stype = " imbed";       break;
                 }
 

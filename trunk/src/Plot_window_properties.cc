@@ -604,6 +604,13 @@ const int odd = nz > 1 ? 1 : 0;
 
 tm rounded;   // tile rounded up
    memset(&rounded, 0, sizeof(rounded));
+   rounded.tm_mday = 1;   // 0 is not a valid day-of-month for mktime()
+                          // below: the hour/minute branches leave
+                          // tm_mday at the memset()'d 0, which mktime()
+                          // normalizes to the LAST day of the PREVIOUS
+                          // month instead of the intended day (Blake
+                          // McBride, Bugs16 minor); the day/month/year
+                          // branches overwrite this default as before.
 
    /* NOTE (man mktime):
 
