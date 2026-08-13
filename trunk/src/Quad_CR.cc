@@ -1777,14 +1777,14 @@ Value_P Z(shape_Z, LOC);
              UCS_string name(B.get_char_value(2*r));
              Cell * data = Z->get_new_member(name);
              Cell cache;
-             data->init(B.get_cravel(2*r + 1, cache), *Z, LOC);
+             B.get_cravel(2*r + 1, cache).init_other(data, *Z, LOC);
            }
         else if (B.is_pointer_cell(2*r)) // valid row (string member)
            {
              UCS_string name(*B.get_pointer_value(2*r));
              Cell * data = Z->get_new_member(name);
              Cell cache;
-             data->init(B.get_cravel(2*r + 1, cache), *Z, LOC);
+             B.get_cravel(2*r + 1, cache).init_other(data, *Z, LOC);
            }
       }
 

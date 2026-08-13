@@ -2136,7 +2136,7 @@ Value_P top_val = top_sym->get_var_value();
         if (B->is_simple_scalar())
            {
              Cell cache;
-             member_cell->init(B->get_cfirst(cache), *member_owner, LOC);
+             B->get_cfirst(cache).init_other(member_cell, *member_owner, LOC);
            }
         else
            {

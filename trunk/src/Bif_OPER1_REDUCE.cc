@@ -76,7 +76,13 @@ prim_f2 scalar_LO       = LO->get_scalar_f2();
         Cell & accu = Z->get_wravel(z);
         {
           Cell cache;
-          accu.init(B->get_cravel(b, cache), *Z, LOC);
+          // accu is freshly-obtained ravel storage (Z->get_wravel(z),
+          // above), not yet a live Cell -- init_other(), called on the
+          // live source, is the correct direction, not a non-static
+          // member call on accu (Blake McBride, Bugs15 #12, UBSan-
+          // confirmed via n-wise reduce/overtaking take).
+          //
+          B->get_cravel(b, cache).init_other(&accu, *Z, LOC);
         }
 
         loop(lo, LO_count)

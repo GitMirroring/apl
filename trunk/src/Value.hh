@@ -1494,7 +1494,19 @@ protected:
            }
         else                                             // no more space
            {
-             free(ptr);
+             // operator new() above (the slow-path branch) allocates via
+             // ::operator new(), so the matching release is ::operator
+             // delete(), not free() -- pairing them is UB (only benign as
+             // long as nobody replaces the global operator new, which this
+             // project itself does elsewhere, and as long as the allocator
+             // doesn't keep separate books for the two families -- ASan,
+             // tcmalloc's debug mode etc. all do). Blake McBride, Bugs15
+             // #2: only reached once the recycle pool (deleted_values_MAX
+             // entries) is full, so it never fires in the ordinary
+             // testcase suite but does under any real workload that frees
+             // a large nested value in one go.
+             //
+             ::operator delete(ptr);
            }
       }
 

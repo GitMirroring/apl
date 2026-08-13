@@ -479,7 +479,7 @@ const int src_incr  = (new_value->nz_element_count() == 1) ? 0 : 1;
                          owner.depth_update_for_overwrite(target - owner.ravel.cells,
                                     right_cell.is_pointer_cell() ? 0 : -1);
                          target->release(LOC);   // free sub-values etc.
-                         target->init(right_cell, owner, LOC);
+                         right_cell.init_other(target, owner, LOC);
                        }
                   }
            }
@@ -491,7 +491,7 @@ const int src_incr  = (new_value->nz_element_count() == 1) ? 0 : 1;
                   owner.depth_update_for_overwrite(target - owner.ravel.cells,
                                     src.is_pointer_cell() ? 0 : -1);
                   target->release(LOC);   // free sub-values etc (if any)
-                  target->init(src, owner, LOC);
+                  src.init_other(target, owner, LOC);
                 }
            }
         else   LEFT_SYNTAX_ERROR;
@@ -1730,7 +1730,7 @@ Value::assign_cell(ShapeItem offset, const Cell & C, const char * loc)
    //
    depth_update_for_overwrite(offset, C.is_pointer_cell() ? 0 : -1);
    ravel.cells[offset].release(loc);
-   ravel.cells[offset].init(C, *this, loc);
+   C.init_other(&ravel.cells[offset], *this, loc);
 }
 //────────────────────────────────────────────────────────────────────────────
 int

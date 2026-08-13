@@ -1499,12 +1499,31 @@ UCS_string current_SVN(UTF8_string(ARCHIVE_SVN));
       }
 }
 //────────────────────────────────────────────────────────────────────────────
+/// like u8::strstr(), but never reads at or past \b end: the mmap'd
+/// workspace file is not NUL-terminated (Sys.hh's non-mmap #else branch is
+/// the only one that appends one), so the ordinary strstr()-family
+/// functions used elsewhere in this function would scan past file_end
+/// once file_length happens to be an exact page multiple and there is no
+/// kernel zero-fill tail to save them (Blake McBride, Bugs15 #3).
+static const UTF8 *
+bounded_strstr(const UTF8 * start, const UTF8 * end, const char * needle)
+{
+const size_t needle_len = strlen(needle);
+   if (needle_len == 0 || start >= end)   return 0;
+
+   for (const UTF8 * c = start; c + needle_len <= end; ++c)
+       {
+         if (!u8::strncmp(c, needle, needle_len))   return c;
+       }
+   return 0;
+}
+//────────────────────────────────────────────────────────────────────────────
 XML_Loading_Archive::ChecksumStatus
 XML_Loading_Archive::get_checksum_status(uint32_t & stored_crc,
                                          uint32_t & computed_crc) const
 {
 const char * const ws_open = "<Workspace ";
-const UTF8 * open_pos = u8::strstr(file_start, ws_open);
+const UTF8 * open_pos = bounded_strstr(file_start, file_end, ws_open);
    if (open_pos == 0)   return CS_NO_WORKSPACE;
 
    // find the LAST "</Workspace>" (mirrors the file_is_complete scan in
@@ -1514,19 +1533,32 @@ const UTF8 * open_pos = u8::strstr(file_start, ws_open);
 const char * const ws_close = "</Workspace>";
 const size_t ws_close_len = strlen(ws_close);
 const UTF8 * close_pos = 0;
-   for (const UTF8 * c = file_end - ws_close_len;
-        (c > open_pos) && (c > file_end - 1000); --c)
-       {
-         if (!u8::strncmp(c, ws_close, ws_close_len))   { close_pos = c; break; }
-       }
+   // file_end - ws_close_len would form a pointer before file_start (UB,
+   // even though the loop's own c > open_pos guard would stop it from
+   // ever being dereferenced) for a file shorter than ws_close_len bytes
+   // (Blake McBride, Bugs15 #3, minor note).
+   //
+   if (size_t(file_end - file_start) >= ws_close_len)
+      {
+        for (const UTF8 * c = file_end - ws_close_len;
+             (c > open_pos) && (c > file_end - 1000); --c)
+            {
+              if (!u8::strncmp(c, ws_close, ws_close_len))
+                 { close_pos = c; break; }
+            }
+      }
    if (close_pos == 0)   return CS_NO_WORKSPACE;
 
 const UTF8 * after_close = close_pos + ws_close_len;
-const UTF8 * cs = u8::strstr(after_close, checksum_prefix());
+const UTF8 * cs = bounded_strstr(after_close, file_end, checksum_prefix());
    if (cs == 0)   return CS_NO_CHECKSUM;   // no checksum in this file
 
    cs += strlen(checksum_prefix());
-   if (u8::sscanf(cs, "%8X", &stored_crc) != 1)   return CS_NO_CHECKSUM;
+   // "%8X" itself never reads more than 8 characters, so bounding the call
+   // by requiring 8 real bytes before file_end is sufficient to keep it
+   // inside the mapping.
+   if (cs + 8 > file_end)                          return CS_NO_CHECKSUM;
+   if (u8::sscanf(cs, "%8X", &stored_crc) != 1)     return CS_NO_CHECKSUM;
 
 const size_t ws_len = (after_close - open_pos);
 const string normalized =

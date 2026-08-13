@@ -798,7 +798,7 @@ Value_P Z(shape_Z, LOC);
 
    if (Z->is_empty())
       {
-        Z->get_wproto().init(FI0, *Z, LOC);
+        FI0.init_other(&Z->get_wproto(), *Z, LOC);
       }
    else
       {

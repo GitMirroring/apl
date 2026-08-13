@@ -251,7 +251,13 @@ public:
    const T * raw() const
       {
         Assert(sizeof(T) == sizeof(Unicode));
-        return reinterpret_cast<const T *>(&front());
+        // &front() is UB (reference binding to a null pointer) when this
+        // is empty -- front() dereferences the (null) start iterator of
+        // an empty vector (Blake McBride, Bugs15 #11, UBSan-confirmed via
+        // 'a*' ⎕RE ''). data() is well-defined for an empty vector too
+        // (may itself be null, but taking that address is not UB).
+        //
+        return reinterpret_cast<const T *>(data());
       }
 
    /// overload vector::size() so that it returns a signed length

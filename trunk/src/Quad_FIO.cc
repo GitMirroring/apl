@@ -1406,15 +1406,38 @@ pad_and_append(UCS_string & UZ, const UCS_string & content,
                const char * fmt, unsigned int fm)
 {
 bool left = false;
-int width = 0;
+   // fmt can carry up to ~36 user-supplied digits (Quad_FIO.cc's fmt[40]
+   // accumulator), so the plain 'int width' this used to accumulate into
+   // would overflow (UB) long before the loop ends, wrapping to a
+   // negative value that silently suppressed padding instead of erroring
+   // (Blake McBride, Bugs15 #8; the numeric %d/%f/etc. conversions were
+   // hardened against the same class of problem in round 8, by letting
+   // snprintf(0,0,...) size the field and reject an over-large one -- %s/
+   // %c/%m have no such delegate since their content isn't a plain C
+   // string, so the accumulation itself needs the same bound here).
+   //
+int64_t width = 0;
    for (unsigned int f = 1; f < fm; ++f)
        {
          if (fmt[f] == '-')                         left = true;
          else if (fmt[f] >= '0' && fmt[f] <= '9')
-            width = width*10 + (fmt[f] - '0');
+            {
+              width = width*10 + (fmt[f] - '0');
+              // keep well clear of int64_t overflow even for fmt's full
+              // ~36-digit capacity (checked every digit, not just once at
+              // the end, so the accumulation itself never overflows).
+              //
+              if (width > 1000000000)
+                 {
+                   MORE_ERROR() << "⎕FIO printf: field width in format '"
+                                << fmt << "' is too large";
+                   DOMAIN_ERROR;
+                 }
+            }
        }
 
-const int pad = width - int(content.size());
+const int64_t pad = width - int64_t(content.size());
+   if (pad > 0 && Value::check_WS_FULL("⎕FIO printf", pad, LOC))   WS_FULL;
    if (pad > 0 && !left)   loop(p, pad)   UZ << UNI_SPACE;
    UZ << content;
    if (pad > 0 && left)    loop(p, pad)   UZ << UNI_SPACE;
@@ -3310,9 +3333,16 @@ Value_P Z(9, LOC);
 Token
 Quad_FIO::eval_XB__54(Value_P B)
 {
+   // was "errno = chdir(...)": chdir() returns 0/-1, not an error number,
+   // so this overwrote the real errno with -1 on every failure (Blake
+   // McBride, Bugs15 #7) -- the function then always returned 1 instead
+   // of the actual -errno, inverting the documented sign convention and
+   // losing the real failure reason.
+   //
+   errno = 0;
 const UCS_string path_ucs(*B.get());
 const UTF8_string path(path_ucs);
-   errno = chdir(path.c_str());
+   chdir(path.c_str());
    return Token(TOK_APL_VALUE1, IntScalar(-errno, LOC));
 }
 //────────────────────────────────────────────────────────────────────────────

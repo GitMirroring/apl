@@ -451,8 +451,15 @@ const int t4_len = t4.size();
 
    if (void * handle = dlopen(filename, RTLD_LAZY))   return handle;
 
+   // dlerror() returns 0 when no error is pending. POSIX guarantees a
+   // message "since the last call to dlerror()" after a failed dlopen(),
+   // but that contract is easy to lose (e.g. an intervening dlerror()
+   // call elsewhere, a threaded caller) -- a null here previously crashed
+   // inside strrchr() (Blake McBride, Bugs15 #15).
+   //
 const char * err = dlerror();
-   if (strrchr(err, ':'))   err = 1 + strrchr(err, ':');
+   if (err == 0)             err = "dlopen() failed";
+   else if (strrchr(err, ':'))   err = 1 + strrchr(err, ':');
 
    while (t4.ssize() < t4_len + 44)     t4 << UNI_SPACE;
    t4 << " (" << err << " )\n";

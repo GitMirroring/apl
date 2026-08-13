@@ -155,7 +155,8 @@ Cell::init_from_value(Value * value, Value & cell_owner, const char * loc)
 }
 //────────────────────────────────────────────────────────────────────────────
 void
-Cell::init_type(const Cell & other, Value & cell_owner, const char * loc)
+Cell::init_type_at(void * dest, const Cell & other, Value & cell_owner,
+                   const char * loc)
 {
    if (other.is_pointer_cell())
       {
@@ -165,11 +166,11 @@ Cell::init_type(const Cell & other, Value & cell_owner, const char * loc)
         Value_P proto = other.get_pointer_value()->clone(loc);
         Assert(!proto->is_simple_scalar());
         proto->to_type(false);
-        new (this) PointerCell(proto.get(), cell_owner);
+        new (dest) PointerCell(proto.get(), cell_owner);
       }
-   else if (other.is_lval_cell())      new (this) LvalCell(0, 0);
-   else if (other.is_character_cell()) new (this) CharCell(UNI_SPACE);
-   else                                new (this) IntCell(0);
+   else if (other.is_lval_cell())      new (dest) LvalCell(0, 0);
+   else if (other.is_character_cell()) new (dest) CharCell(UNI_SPACE);
+   else                                new (dest) IntCell(0);
 }
 //────────────────────────────────────────────────────────────────────────────
 void *

@@ -21,6 +21,7 @@
 /** @file
 */
 
+#include <ctype.h>
 #include <errno.h>
 #include <string.h>
 
@@ -531,11 +532,17 @@ bool expect_colon = true;
 Unicode
 Quad_JSON::decode_UUUU(const UCS_string & ucs_B, ShapeItem b)
 {
+   // Returns Invalid_Unicode (NOT Unicode_0) on failure: Unicode_0 is also
+   // the legitimate result of decoding U+0000, so returning it for both
+   // made a well-formed U+0000 escape indistinguishable from a malformed
+   // one, and every caller that checked "== Unicode_0" to detect failure
+   // treated the former as the latter (Blake McBride, Bugs15 #10).
+   //
    // need 6 chars: \, u, and 4 hex digits.
    //
-   if (b < 0 || b + 6 > ucs_B.ssize())   return Unicode_0;
-   if (ucs_B[b++] != UNI_BACKSLASH)   return Unicode_0;
-   if (ucs_B[b++] != UNI_u)           return Unicode_0;
+   if (b < 0 || b + 6 > ucs_B.ssize())   return Invalid_Unicode;
+   if (ucs_B[b++] != UNI_BACKSLASH)   return Invalid_Unicode;
+   if (ucs_B[b++] != UNI_u)           return Invalid_Unicode;
 
 char cc[5];
    cc[0] = ucs_B[b++];
@@ -543,6 +550,10 @@ char cc[5];
    cc[2] = ucs_B[b++];
    cc[3] = ucs_B[b++];
    cc[4] = 0;
+   loop(i, 4)
+      {
+        if (!isxdigit(uint8_t(cc[i])))   return Invalid_Unicode;
+      }
 
    return Unicode(strtoll(cc, 0, 16));
 }
@@ -582,8 +593,10 @@ std::vector<ShapeItem> tokens_B;
               case UNI_R_CURLY: continue;       // the six structural chars
 
               case UNI_f: b += 4;   continue;   // literal false
-              case UNI_n:                       // literal true
-              case UNI_t: b += 3;   continue;   // literal null
+              case UNI_n:                       // literal null (Bugs15 #9:
+                                                 // this comment and the one
+                                                 // below were swapped)
+              case UNI_t: b += 3;   continue;   // literal true
 
               case UNI_MINUS:
               case UNI_OVERBAR:
@@ -967,7 +980,7 @@ UCS_string member_name;
 
      Cell * member_data = Z.get_new_member(member_name);
      Cell cache;
-     member_data->init(Zsub->get_cfirst(cache), Z, LOC);
+     Zsub->get_cfirst(cache).init_other(member_data, Z, LOC);
    }
 
    // check member-seperator (or end of object).
@@ -1021,7 +1034,29 @@ UCS_string result;
                                              "in object member name";
                              DOMAIN_ERROR;
                            }
-                        else if (uni != Unicode_0)   // normal \uUUUU
+                        else if (uni == Invalid_Unicode)
+                           {
+                             // used to be indistinguishable from a
+                             // well-formed U+0000 (both decode_UUUU()
+                             // returned Unicode_0), so this genuinely
+                             // malformed escape was silently accepted:
+                             // uni (0) was appended to result and bb was
+                             // NOT advanced past the 4 hex digits, so they
+                             // got re-processed as literal text on the
+                             // next iteration (Blake McBride, Bugs15 #10).
+                             //
+                             MORE_ERROR() << "⎕JSON B: bad escape sequence "
+                                             "in object member name";
+                             DOMAIN_ERROR;
+                           }
+                        else if (uni == Unicode_0)   // well-formed U+0000
+                           {
+                             MORE_ERROR() << "⎕JSON B: NUL characters "
+                                             "(\\u0000) are not supported "
+                                             "in object member names";
+                             DOMAIN_ERROR;
+                           }
+                        else   // normal (non-surrogate) \uUUUU
                            {
                              bb += 4;
                            }
@@ -1074,11 +1109,15 @@ Value_P Zsub(content_len, LOC);
                              "⎕JSON B: No low surrogate at " << bb << "↓B";
                              DOMAIN_ERROR;
                            }
-                        else if (uni == Unicode_0)   // decode_UUUU() failed
+                        else if (uni == Invalid_Unicode)   // decode_UUUU()
+                                                            // genuinely failed
                            {
                              FIXME;   // since skip_string() should have failed
                            }
-                        else   // normal (non-surrogate) \uUUUU
+                        else   // normal (non-surrogate) \uUUUU, possibly
+                               // Unicode_0 -- skip_string() already
+                               // rejected that case before parse_string()
+                               // is ever reached
                            {
                              bb += 4;
                            }
@@ -1189,7 +1228,7 @@ ShapeItem content_len = 0;
              if (safe_at(b + 1) == UNI_u)   // \uUUUU
                 {
                   const Unicode u1 = decode_UUUU(ucs_B, b);
-                  if (u1 == Unicode_0)   // decode_UUUU() failed
+                  if (u1 == Invalid_Unicode)   // decode_UUUU() genuinely failed
                      {
                        MORE_ERROR() << "⎕JSON B: bad escape sequence "
                                     << safe_at(b    ) << safe_at(b + 1)
@@ -1198,17 +1237,39 @@ ShapeItem content_len = 0;
                                     << " at " << b << "↓B";
                        DOMAIN_ERROR;
                      }
+                  if (u1 == Unicode_0)   // well-formed \u0000
+                     {
+                       // Unicode_0 is used throughout this file as an
+                       // internal end-of-buffer sentinel (see
+                       // JSON_to_APL()'s "0-terminate ucs_B" comment), so a
+                       // real embedded NUL can't safely round-trip; this
+                       // used to be indistinguishable from a genuinely
+                       // malformed escape and reported as one (Blake
+                       // McBride, Bugs15 #10) -- now a distinct, honest
+                       // message instead of a wrong one.
+                       //
+                       MORE_ERROR() << "⎕JSON B: NUL characters (\\u0000) "
+                                       "are not supported, at " << b << "↓B";
+                       DOMAIN_ERROR;
+                     }
 
                   if (is_high_surrogate(u1))
                      {
                        const Unicode u2 = decode_UUUU(ucs_B, b + 6);
-                       if (u2 == Unicode_0)   // decode_UUUU() failed
+                       if (u2 == Invalid_Unicode)   // genuinely failed
                           {
                             MORE_ERROR() << "⎕JSON B: bad escape sequence "
                                          << safe_at(b +  6) << safe_at(b +  7)
                                          << safe_at(b +  8) << safe_at(b +  9)
                                          << safe_at(b + 10) << safe_at(b + 11)
                                          << " at " << (b + 6) << "↓B";
+                            DOMAIN_ERROR;
+                          }
+                       if (u2 == Unicode_0)   // well-formed low surrogate \u0000
+                          {
+                            MORE_ERROR() << "⎕JSON B: NUL characters "
+                                            "(\\u0000) are not supported, "
+                                            "at " << (b + 6) << "↓B";
                             DOMAIN_ERROR;
                           }
                        b += 11;

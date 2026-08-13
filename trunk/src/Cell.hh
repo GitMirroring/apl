@@ -506,13 +506,6 @@ public:
    virtual APL_Integer get_denominator() const { FIXME }
 #endif
 
-   /// init \b this Cell from a (possibly deep) copy of \b other
-   /// @param other  source cell to copy from
-   /// @param this_owner  value that owns this cell
-   /// @param loc  caller location for diagnostics
-   void init(const Cell & other, Value & this_owner, const char * loc)
-      { other.init_other(this, this_owner, loc); }
-
    /// Release content pointed to (complex, APL value)
    virtual void release(const char * loc) {}
 
@@ -648,11 +641,21 @@ public:
    /// @param loc  caller location for diagnostics
    void init_from_value(Value * value, Value & cell_owner, const char * loc);
 
-   /// init \b this cell to be the type of \b other
+   /// placement-construct, at \b dest, a cell of the type of \b other.
+   /// Static (unlike init_other(), which this mirrors) because \b dest is
+   /// raw ravel storage with no Cell object yet: the previous non-static
+   /// init_type(), called as "next_ravel()->init_type(...)"/"get_wproto()
+   /// .init_type(...)", called a non-static member function on a glvalue
+   /// that did not yet designate an object of the (polymorphic) Cell
+   /// type -- UB per [basic.life], UBSan-confirmed (Blake McBride, Bugs15
+   /// #12) even though today's non-virtual, immediately-placement-new
+   /// implementation happens to generate correct code regardless.
+   /// @param dest  target memory address (raw storage, no live Cell yet)
    /// @param other  cell whose type to replicate
    /// @param cell_owner  value that owns this cell
    /// @param loc  caller location for diagnostics
-   void init_type(const Cell & other, Value & cell_owner, const char * loc);
+   static void init_type_at(void * dest, const Cell & other,
+                            Value & cell_owner, const char * loc);
 
    /// placement new
    /// @param s  required allocation size (ignored for placement)

@@ -45,14 +45,18 @@ static int var_count_210 = 0;
 
 enum { ALL_RW = S_IRUSR | S_IWUSR | S_IRGRP | S_IWGRP | S_IROTH | S_IWOTH };
 
+/// look up the Coupled_var with the given \b key in the global coupled_vars
+/// (defined below, after coupled_vars itself is declared).
+Coupled_var & find_coupled_var(SV_key key);
+
 /// data related to one AP210 instance
 struct SVAR_context
 {
    /// constructor
    SVAR_context(FILE * f, int c, Coupled_var & vC, Coupled_var & vD, bool wr)
    : file(f),
-     var_C(vC),
-     var_D(vD),
+     key_C(vC.key),
+     key_D(vD.key),
      write(wr),
      encoding(c),
      rec_num(0),
@@ -64,14 +68,26 @@ struct SVAR_context
    ~SVAR_context()
       { assert(file == 0); }
 
+   /// the (shared) CTL variable for the file. Looked up by key on every
+   /// call rather than cached as a reference/pointer: SVAR_context can
+   /// outlive a reallocation of the global coupled_vars vector (⎕SVO
+   /// while a file is open push_back()s it, ⎕SVR erase()s from it), which
+   /// would otherwise leave var_C/var_D dangling (Blake McBride, Bugs15
+   /// #4). The linear lookup is fine here -- coupled_vars is small and
+   /// these calls are not on a hot path.
+   Coupled_var & var_C() const   { return find_coupled_var(key_C); }
+
+   /// the (shared) DAT variable for the file, see var_C() above.
+   Coupled_var & var_D() const   { return find_coupled_var(key_D); }
+
    /// the (open) file to be read or written
    FILE * file;
 
-   /// the (shared) CTL variable for the file
-   Coupled_var & var_C;
+   /// the key (in Svar_DB / coupled_vars) of the CTL variable for the file
+   SV_key key_C;
 
-   /// the (shared) DAT variable for the file
-   Coupled_var & var_D;
+   /// the key (in Svar_DB / coupled_vars) of the DAT variable for the file
+   SV_key key_D;
 
    /// true if file is to be written (as opposed to being read).
    const bool write;
@@ -91,6 +107,23 @@ struct SVAR_context
    /// state changes of DAT variable
    Svar_state state_D;
 };
+//────────────────────────────────────────────────────────────────────────────
+Coupled_var &
+find_coupled_var(SV_key key)
+{
+   loop(c, coupled_vars.size())
+      {
+        if (coupled_vars[c].key == key)   return coupled_vars[c];
+      }
+
+   // a Coupled_var whose key no longer exists in coupled_vars means the
+   // variable was ⎕SVR'd (retracted) while a file was still open on it --
+   // not expected via normal APL use (retracting the CTL/DAT variable of
+   // an open AP210 file), but fail loudly rather than dereference garbage.
+   //
+   assert(0 && "find_coupled_var(): key not found");
+   __builtin_unreachable();
+}
 
 //════════════════════════════════════════════════════════════════════════════
 const char * prog_name()
@@ -270,22 +303,22 @@ sub_command(SVAR_context & ctx)
 int op = -1;
 int result;
 
-   assert(ctx.var_C.data);
+   assert(ctx.var_C().data);
 
-const CDR_string & cdr = *ctx.var_C.data;
+const CDR_string & cdr = *ctx.var_C().data;
 
    if (cdr.check())
       {
         get_CERR() << "Bad CDR record:" << endl;
         cdr.debug(get_CERR(), LOC);
-        set_ACK(ctx.var_C, -47);
+        set_ACK(ctx.var_C(), -47);
         return;
       }
 
    if (cdr.get_rank() > 1)   // not a scalar or vector
       {
         get_CERR() << "Bad CDR rank (" << cdr.get_rank() << endl;
-        set_ACK(ctx.var_C, -32);   // C rank error
+        set_ACK(ctx.var_C(), -32);   // C rank error
         return;
       }
 
@@ -297,8 +330,8 @@ const int nelm = cdr.header().get_nelm();
         ctx.file = 0;
 
         // return to command mode
-        ctx.var_C.context = ctx.var_D.context = 0;
-        set_ACK(ctx.var_C, 0);
+        ctx.var_C().context = ctx.var_D().context = 0;
+        set_ACK(ctx.var_C(), 0);
 
         delete &ctx;
         return;
@@ -306,7 +339,7 @@ const int nelm = cdr.header().get_nelm();
 
    if (nelm  > 3)
       {
-        set_ACK(ctx.var_C, -33);   // C length error
+        set_ACK(ctx.var_C(), -33);   // C length error
         return;
       }
 
@@ -327,7 +360,7 @@ const int nelm = cdr.header().get_nelm();
       }
    else   // neither int nor bool:
       {
-        set_ACK(ctx.var_C, -31);    // C domain error 
+        set_ACK(ctx.var_C(), -31);    // C domain error 
         return;
       }
 
@@ -335,25 +368,25 @@ const int nelm = cdr.header().get_nelm();
       {
         case 0:  // read fixed-len record
                  get_CERR() << " INVALID SUBCOMMAND at " << LOC << endl;
-                 set_ACK(ctx.var_C, -47);    // -47 := INVALID SUBCOMMAND
+                 set_ACK(ctx.var_C(), -47);    // -47 := INVALID SUBCOMMAND
                  return;
                  break;
 
         case 1:  // write fixed-len record
                  get_CERR() << " INVALID SUBCOMMAND at " << LOC << endl;
-                 set_ACK(ctx.var_C, -47);    // -47 := INVALID SUBCOMMAND
+                 set_ACK(ctx.var_C(), -47);    // -47 := INVALID SUBCOMMAND
                  return;
                  break;
 
         case 2:  // read direct
                  get_CERR() << " INVALID SUBCOMMAND at " << LOC << endl;
-                 set_ACK(ctx.var_C, -47);    // -47 := INVALID SUBCOMMAND
+                 set_ACK(ctx.var_C(), -47);    // -47 := INVALID SUBCOMMAND
                  return;
                  break;
 
         case 3:  // write direct
                  get_CERR() << " INVALID SUBCOMMAND at " << LOC << endl;
-                 set_ACK(ctx.var_C, -47);    // -47 := INVALID SUBCOMMAND
+                 set_ACK(ctx.var_C(), -47);    // -47 := INVALID SUBCOMMAND
                  return;
                  break;
 
@@ -361,14 +394,14 @@ const int nelm = cdr.header().get_nelm();
                  if (ctx.write)
                     {
                       get_CERR() << " INVALID SUBCOMMAND at " << LOC << endl;
-                      set_ACK(ctx.var_C, -47);    // -47 INVALID SUBCOMMAND
+                      set_ACK(ctx.var_C(), -47);    // -47 INVALID SUBCOMMAND
                       return;
                     }
 
-                 result = read_variable(ctx.file, ctx.encoding, ctx.var_D,
+                 result = read_variable(ctx.file, ctx.encoding, ctx.var_D(),
                                         ctx.filepos, ctx.rec_num,
                                         ctx.rec_size, false);
-                 set_ACK(ctx.var_C, result);
+                 set_ACK(ctx.var_C(), result);
                  ctx.state_D = SVS_OFF_HAS_SET;
                  if (result)   return;
                  ctx.rec_num = ctx.filepos;
@@ -378,13 +411,13 @@ const int nelm = cdr.header().get_nelm();
                  if (!ctx.write)
                     {
                       get_CERR() << " INVALID SUBCOMMAND at " << LOC << endl;
-                      set_ACK(ctx.var_C, -47);    // -47 INVALID SUBCOMMAND
+                      set_ACK(ctx.var_C(), -47);    // -47 INVALID SUBCOMMAND
                       return;
                     }
 
-                 result = write_variable(ctx.file, ctx.encoding, ctx.var_D,
+                 result = write_variable(ctx.file, ctx.encoding, ctx.var_D(),
                                         ctx.filepos, ctx.rec_num, ctx.rec_size);
-                 set_ACK(ctx.var_C, result);
+                 set_ACK(ctx.var_C(), result);
                  ctx.state_D = SVS_IDLE;
                  if (result)   return;
                  ctx.rec_num = ctx.filepos;
@@ -392,11 +425,11 @@ const int nelm = cdr.header().get_nelm();
 
         case 6:  // read variable (APL object or line) without CR/LF
                  get_CERR() << " INVALID SUBCOMMAND at " << LOC << endl;
-                 set_ACK(ctx.var_C, -47);    // -47 := INVALID SUBCOMMAND
+                 set_ACK(ctx.var_C(), -47);    // -47 := INVALID SUBCOMMAND
                  return;
                        break;
 
-        default: set_ACK(ctx.var_C, -47);    // -47 := INVALID SUBCOMMAND
+        default: set_ACK(ctx.var_C(), -47);    // -47 := INVALID SUBCOMMAND
                  get_CERR() << " INVALID SUBCOMMAND at " << LOC << endl;
                  return;
       }
@@ -555,7 +588,8 @@ const int ret = rename(from, to) ? errno : 0;
 }
 //════════════════════════════════════════════════════════════════════════════
 bool
-parse_arg(const char * & cmd, char * arg, int arglen, int minlen)
+parse_arg(const char * & cmd, const char * cmd_end, char * arg,
+         int arglen, int minlen)
 {
 int arg_chars = 0;
 bool error = false;
@@ -563,7 +597,7 @@ bool quoted = false;
 
    while (!error)
       {
-         if (*cmd == 0)              // end of cmd string reached
+         if (cmd >= cmd_end || *cmd == 0)   // end of cmd string reached
             {
               error = quoted;   // error iff quote is missing
               break;
@@ -596,13 +630,26 @@ handle_cmd(const char * cmd, int len, Coupled_var & var_C, Coupled_var & var_D)
    // cmd is a string containing 1, 2, or 3 arguments separated by commas.
    // parse the arguments.
    //
-char arg1[3];
+   // Blake McBride, Bugs15 #13: this used to keep going after a
+   // parse_arg() failure -- the error ACK it set was simply overwritten
+   // by the next set_ACK() call (including the one at the very end of
+   // this function on an unrecognized arg1), so a rejected command still
+   // executed, with truncated/partial arguments, and reported success.
+   // Now returns immediately instead. arg1 is zero-initialized so arg1[1]
+   // is never read uninitialized when parse_arg() writes zero characters
+   // into it (arg_chars == 0, only arg[0] gets explicitly set to 0).
+   //
+char arg1[3] = { 0, 0, 0 };
 char arg2[FILENAME_MAX+2];
 char arg3[FILENAME_MAX+2];
+const char * const cmd_end = cmd + len;
 
-   if (parse_arg(cmd, arg1, sizeof(arg1) - 1, 2))   set_ACK(var_C, 401);
-   if (parse_arg(cmd, arg2, sizeof(arg2) - 1, 1))   set_ACK(var_C, 402);
-   if (parse_arg(cmd, arg3, sizeof(arg3) - 1, 0))   set_ACK(var_C, 403);
+   if (parse_arg(cmd, cmd_end, arg1, sizeof(arg1) - 1, 2))
+      { set_ACK(var_C, 401);   return; }
+   if (parse_arg(cmd, cmd_end, arg2, sizeof(arg2) - 1, 1))
+      { set_ACK(var_C, 402);   return; }
+   if (parse_arg(cmd, cmd_end, arg3, sizeof(arg3) - 1, 0))
+      { set_ACK(var_C, 403);   return; }
 
 const char c0 = arg1[0];
 const char c1 = arg1[1];
@@ -720,12 +767,21 @@ SVAR_context * ctx = var.context;
         ctx->state_D = SVS_NOT_SHARED;
         sub_command(*ctx);
 
+        // sub_command() deletes ctx on the "close file" sub-command (nelm
+        // == 0), after first clearing var_C.context/var_D.context to 0 --
+        // ctx is a use-after-free below unless we notice that (Blake
+        // McBride, Bugs15 #1). var IS ctx's var_C (both alias the same
+        // Coupled_var element of coupled_vars, see the CTL/DAT dispatch
+        // above), so var.context reflects that clear directly.
+        //
+        if (var.context == 0)   ctx = 0;
+
         // a sub-command was triggered by a write to C, so C is always written.
         // in addition D may have been read  or written.
         //
         Svar_DB::set_state(var.key, false, LOC);
 
-        if (ctx->state_D != SVS_NOT_SHARED)   // var D read or written
+        if (ctx && ctx->state_D != SVS_NOT_SHARED)   // var D read or written
            {
              if (!Svar_DB::get_svar_name(key_D)) { error_loc = LOC;
                                                    return E_VALUE_ERROR; }
@@ -734,8 +790,20 @@ SVAR_context * ctx = var.context;
       }
    else
       {
-        const char * cmd = reinterpret_cast<const char *>(header + 1) + 4*rank;
-        handle_cmd(cmd, data.size(), var, *var_D);
+        // header + 1 + 4*rank must not exceed the end of data: rank comes
+        // straight from the (untrusted) CDR payload, and cmd is otherwise
+        // handed to handle_cmd()/parse_arg() on the assumption that it
+        // points somewhere inside data's own NUL-terminated buffer (Blake
+        // McBride, Bugs15 #13) -- "happens to stay inside the owning
+        // std::string's buffer today" per the report is not a guarantee.
+        //
+        const char * const cmd_start =
+           reinterpret_cast<const char *>(header + 1) + 4*rank;
+        const char * const data_end = data.c_str() + data.size();
+        if (cmd_start < data.c_str() || cmd_start > data_end)
+           { error_loc = LOC;   return E_LENGTH_ERROR; }
+
+        handle_cmd(cmd_start, int(data_end - cmd_start), var, *var_D);
         if (!Svar_DB::get_svar_name(key_D))
            {
              error_loc = LOC;
@@ -761,16 +829,39 @@ get_value(Coupled_var & var, string & data)
 void
 retract(Coupled_var & var)
 {
+   // Coupled_var is a plain aggregate with no destructor, so its payload
+   // must be freed explicitly here -- it never was (Blake McBride, Bugs15
+   // #14), leaking one CDR_string per retracted variable.
+   //
+   delete var.data;
+   var.data = 0;
+
 SVAR_context * ctx = var.context;
    if (ctx)
       {
         if (ctx->file)   fclose(ctx->file);
         ctx->file = 0;
 
-        ctx->var_C.context = ctx->var_D.context = 0;
+        ctx->var_C().context = ctx->var_D().context = 0;
         delete ctx;
-        --var_count_210;
-        if (var_count_210 == 0)   exit(0);
+      }
+
+   // var_count_210 is incremented in initialize() for every 'C' variable
+   // offered, regardless of whether a file is ever opened on it, but was
+   // only ever decremented here when ctx existed, i.e. only when a file
+   // HAD been opened (Blake McBride, Bugs15 #14): retracting a control
+   // variable that never opened a file left the count permanently above
+   // zero, so the exit(0) below could never fire again and this
+   // auto-started AP210 process would linger forever. Match initialize()'s
+   // own condition instead of ctx's.
+   //
+   if (const uint32_t * varname = Svar_DB::get_svar_name(var.key))
+      {
+        if (*varname == 'C')
+           {
+             --var_count_210;
+             if (var_count_210 == 0)   exit(0);
+           }
       }
 
 }

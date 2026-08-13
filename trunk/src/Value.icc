@@ -61,7 +61,8 @@ Value::set_default(const Value & B, const char * loc)
        Cell cache;
        const Cell & cell = B.get_cproto(cache);
        if (cell.is_lval_cell())   new (&get_wproto()) LvalCell(0, 0);
-       else                       get_wproto().init_type(cell, *this, loc);
+       else                       Cell::init_type_at(&get_wproto(), cell,
+                                                      *this, loc);
      }
 }
 //──────────────────────────────────────────────────────────────────────────
@@ -75,7 +76,8 @@ Value::set_default(const cValue & B, const char * loc)
        Cell cache;
        const Cell & cell = B.get_cproto(cache);
        if (cell.is_lval_cell())   new (&get_wproto()) LvalCell(0, 0);
-       else                       get_wproto().init_type(cell, *this, loc);
+       else                       Cell::init_type_at(&get_wproto(), cell,
+                                                      *this, loc);
      }
 }
 //──────────────────────────────────────────────────────────────────────────
@@ -85,7 +87,7 @@ Value::set_default(const Cell & cB, const char * loc)
    Cell proto_cache;
    Assert1(this->get_cproto(proto_cache).is_integer_cell());   // by constructor
    if (cB.is_lval_cell())   new (&get_wproto()) LvalCell(0, 0);
-   else                     get_wproto().init_type(cB, *this, loc);
+   else                     Cell::init_type_at(&get_wproto(), cB, *this, loc);
 }
 //──────────────────────────────────────────────────────────────────────────
 void
@@ -228,7 +230,7 @@ Value::next_ravel_Cell(const Cell & other)
 void
 Value::next_ravel_Proto(const Cell & cell)
 {
-  next_ravel()->init_type(cell, *this, LOC);
+  Cell::init_type_at(next_ravel(), cell, *this, LOC);
 }
 //──────────────────────────────────────────────────────────────────────────
 //──────────────────────────────────────────────────────────────────────────
@@ -264,7 +266,11 @@ void
 Value::set_ravel_Cell(ShapeItem offset, const Cell & cell)
 {
    depth_update_for_overwrite(offset, cell.is_pointer_cell() ? 0 : -1);
-   get_wravel(offset).init(cell, *this, LOC);
+   // get_wravel(offset) is raw ravel storage with no live Cell yet --
+   // init_other() (called on the live source) is the safe direction,
+   // not a non-static member call on the destination (Bugs15 #12).
+   //
+   cell.init_other(&get_wravel(offset), *this, LOC);
 }
 //──────────────────────────────────────────────────────────────────────────
 void
@@ -282,7 +288,7 @@ Value::set_ravel_Value(ShapeItem offset, Value * value)
       {
         depth_update_for_overwrite(offset, -1);
         Cell cache;
-        get_wravel(offset).init(value->get_cfirst(cache), *this, LOC);
+        value->get_cfirst(cache).init_other(&get_wravel(offset), *this, LOC);
       }
    else
       {

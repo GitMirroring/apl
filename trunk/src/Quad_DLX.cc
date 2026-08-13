@@ -753,7 +753,7 @@ DLX_Node * h = right;
                Assert(h->col == v->col);
                Cell cache;
                const Cell & src = B_mat.get_cravel(h->col + cols*v->row, cache);
-               Z->get_wravel(col + cols_Z*v->row).init(src, *Z, LOC);
+               src.init_other(&Z->get_wravel(col + cols_Z*v->row), *Z, LOC);
              }
          h = h->right;
        }

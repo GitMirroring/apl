@@ -154,7 +154,7 @@ const ShapeItem len_B = B.element_count();
               if (cell_A.is_pointer_cell())
                  {
                    Cell & cell_Z0 = Z->get_wproto();
-                   cell_Z0.init(cell_A, *Z, LOC);
+                   cell_A.init_other(&cell_Z0, *Z, LOC);
                    cell_Z0.get_pointer_value()->to_type(false);
                  }
               else if (cell_A.is_character_cell())

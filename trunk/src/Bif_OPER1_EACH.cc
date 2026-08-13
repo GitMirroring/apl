@@ -197,12 +197,21 @@ cFunction_P LO = _LO.get_function();
                 {
                   Value_P A1(LOC);   // A1 ← , A
                   Cell cache_A;
-                  A1->get_wscalar().init(A.get_cscalar(cache_A), *A1, LOC);
+                  // was "A1->get_wscalar().init(...)": a non-static
+                  // member call on get_wscalar()'s raw, not-yet-
+                  // constructed storage -- UB per [basic.life], mirrors
+                  // Bugs15 #12's Cell::init_type() finding. init_other()
+                  // is the established pattern for this (called on the
+                  // live source, destination passed as void*).
+                  //
+                  A.get_cscalar(cache_A).init_other(&A1->get_wscalar(),
+                                                    *A1, LOC);
                   A1->check_value(LOC);
 
                   Value_P B1(LOC);   // B1 ← , B
                   Cell cache_B;
-                  B1->get_wscalar().init(B.get_cscalar(cache_B), *B1, LOC);
+                  B.get_cscalar(cache_B).init_other(&B1->get_wscalar(),
+                                                    *B1, LOC);
                   B1->check_value(LOC);
 
                   return macro->eval_ALB(*A1, _LO, *B1);
@@ -211,7 +220,8 @@ cFunction_P LO = _LO.get_function();
                 {
                   Value_P A1(LOC);
                   Cell cache;
-                  A1->get_wscalar().init(A.get_cfirst(cache), *A1, LOC);
+                  A.get_cfirst(cache).init_other(&A1->get_wscalar(),
+                                                 *A1, LOC);
                   A1->check_value(LOC);
 
                   return macro->eval_ALB(*A1, _LO, B);
@@ -221,7 +231,7 @@ cFunction_P LO = _LO.get_function();
            {
              Value_P B1(LOC);
              Cell cache;
-             B1->get_wscalar().init(B.get_cfirst(cache), *B1, LOC);
+             B.get_cfirst(cache).init_other(&B1->get_wscalar(), *B1, LOC);
              B1->check_value(LOC);
 
              return macro->eval_ALB(A, _LO, *B1);
