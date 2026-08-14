@@ -651,7 +651,7 @@ AP3_fd * ap_fd = 0;
                      (request->get__GET_OFFERING_PROCS__offered_to_proc());
                vector<AP_num> processors;
                db.get_offering_processors(to_proc, processors);
-               string sprocs(reinterpret_cast<const char *>(&processors[0]),
+               string sprocs(reinterpret_cast<const char *>(processors.data()),
                              processors.size()*sizeof(AP_num));
                OFFERING_PROCS_ARE_c(fd, sprocs);
              }
@@ -665,7 +665,7 @@ AP3_fd * ap_fd = 0;
                      (request->get__GET_OFFERED_VARS__accepted_by_proc());
                vector<uint32_t> varnames;
                db.get_offered_variables(to_proc, from_proc, varnames);
-               string svars(reinterpret_cast<const char *>(&varnames[0]),
+               string svars(reinterpret_cast<const char *>(varnames.data()),
                             varnames.size()*sizeof(uint32_t));
                OFFERED_VARS_ARE_c(fd, svars);
              }

@@ -1797,47 +1797,52 @@ const uint64_t to = cycle_counter();
 Token
 Quad_FIO::eval_AXB__13(Value_P A, Value_P B)
 {
-   errno = 0;
+   // errno reset moved next to the actual syscall, and the return value
+   // checked before consulting errno (Blake McBride, Bugs17 #7: same
+   // idiom as Bugs15 #7's chdir() fix -- get_FILE()/get_near_int() sat
+   // between the old errno=0 and the call and could disturb it).
 FILE * file = get_FILE(*B);
 const APL_Integer pos = A->get_near_int(0);
-   fseek(file, pos, SEEK_SET);
-   return Token(TOK_APL_VALUE1, IntScalar(-errno, LOC));
+   errno = 0;
+const int err = fseek(file, pos, SEEK_SET);
+   return Token(TOK_APL_VALUE1, IntScalar(err ? -errno : 0, LOC));
 }
 //────────────────────────────────────────────────────────────────────────────
 Token
 Quad_FIO::eval_AXB__14(Value_P A, Value_P B)
 {
-   errno = 0;
 FILE * file = get_FILE(*B);
 const APL_Integer pos = A->get_near_int(0);
-   fseek(file, pos, SEEK_CUR);
-   return Token(TOK_APL_VALUE1, IntScalar(-errno, LOC));
+   errno = 0;
+const int err = fseek(file, pos, SEEK_CUR);
+   return Token(TOK_APL_VALUE1, IntScalar(err ? -errno : 0, LOC));
 }
 //────────────────────────────────────────────────────────────────────────────
 Token
 Quad_FIO::eval_AXB__15(Value_P A, Value_P B)
 {
-   errno = 0;
 FILE * file = get_FILE(*B);
 const APL_Integer pos = A->get_near_int(0);
-   fseek(file, pos, SEEK_END);
-   return Token(TOK_APL_VALUE1, IntScalar(-errno, LOC));
+   errno = 0;
+const int err = fseek(file, pos, SEEK_END);
+   return Token(TOK_APL_VALUE1, IntScalar(err ? -errno : 0, LOC));
 }
 //────────────────────────────────────────────────────────────────────────────
 Token
 Quad_FIO::eval_AXB__20(Value_P A, Value_P B)
 {
-   errno = 0;
 const UCS_string path_ucs(*B.get());
 const UTF8_string path(path_ucs);
 #if MINGW_SRC
-   mkdir(path.c_str());
+   errno = 0;
+const int err = mkdir(path.c_str());
 #else // ! MINGW_SRC
 const int mask = A->get_near_int(0);
-   mkdir(path.c_str(), mask);
+   errno = 0;
+const int err = mkdir(path.c_str(), mask);
 #endif // ! MINGW_SRC
-   if (errno == EEXIST)   errno = 0;   // frequent non-error
-   return Token(TOK_APL_VALUE1, IntScalar(-errno, LOC));
+   if (err && errno == EEXIST)   errno = 0;   // frequent non-error
+   return Token(TOK_APL_VALUE1, IntScalar(err ? -errno : 0, LOC));
 }
 //────────────────────────────────────────────────────────────────────────────
 Token
@@ -2003,9 +2008,12 @@ SockAddr addr;
    addr.inet.sin_family      = A->get_int_value(0);
    addr.inet.sin_addr.s_addr = htonl(A->get_int_value(1));
    addr.inet.sin_port        = htons(A->get_int_value(2));
+   // return value now checked, not just inferred from errno being
+   // nonzero (Blake McBride, Bugs17 #7): a successful call is explicitly
+   // permitted to leave errno set from something earlier.
    errno = 0;
-   bind(fd, &addr.addr, sizeof(addr.inet));
-   return Token(TOK_APL_VALUE1, IntScalar(-errno, LOC));
+const int err = bind(fd, &addr.addr, sizeof(addr.inet));
+   return Token(TOK_APL_VALUE1, IntScalar(err ? -errno : 0, LOC));
 }
 //────────────────────────────────────────────────────────────────────────────
 Token
@@ -2016,15 +2024,14 @@ APL_Integer backlog = 10;
    if (A->element_count() > 0)
       backlog = A->get_int_value(0);
    errno = 0;
-   listen(fd, backlog);
-   return Token(TOK_APL_VALUE1, IntScalar(-errno, LOC));
+const int err = listen(fd, backlog);
+   return Token(TOK_APL_VALUE1, IntScalar(err ? -errno : 0, LOC));
 }
 //────────────────────────────────────────────────────────────────────────────
 Token
 Quad_FIO::eval_AXB__36(Value_P A, Value_P B)
 {
 const int fd = get_fd(*B.get());
-   errno = 0;
 SockAddr addr;
    memset(&addr, 0, sizeof(addr.inet));
    addr.inet.sin_family      = A->get_int_value(0);
@@ -2037,8 +2044,11 @@ SockAddr addr;
    // bytes were never written by memset() or the assignments above
    // either. bind() a few lines above already gets this right with
    // sizeof(addr.inet); match it here.
-   connect(fd, &addr.addr, sizeof(addr.inet));
-   return Token(TOK_APL_VALUE1, IntScalar(-errno, LOC));
+   //
+   // Return value now checked, not just inferred from errno (Blake
+   // McBride, Bugs17 #7).
+const int err = connect(fd, &addr.addr, sizeof(addr.inet));
+   return Token(TOK_APL_VALUE1, IntScalar(err ? -errno : 0, LOC));
 }
 //────────────────────────────────────────────────────────────────────────────
 Token
@@ -3339,11 +3349,17 @@ Quad_FIO::eval_XB__54(Value_P B)
    // of the actual -errno, inverting the documented sign convention and
    // losing the real failure reason.
    //
-   errno = 0;
 const UCS_string path_ucs(*B.get());
 const UTF8_string path(path_ucs);
-   chdir(path.c_str());
-   return Token(TOK_APL_VALUE1, IntScalar(-errno, LOC));
+   // errno = 0 immediately before the call, and the return value checked
+   // before consulting errno at all: POSIX only guarantees errno is *set*
+   // on failure, a successful call may still leave it non-zero, and the
+   // two string conversions above (between an earlier errno reset and the
+   // syscall) could otherwise leave something in errno that gets
+   // misattributed to chdir() (Blake McBride, Bugs17 #7).
+   errno = 0;
+const int err = chdir(path.c_str());
+   return Token(TOK_APL_VALUE1, IntScalar(err ? -errno : 0, LOC));
 }
 //────────────────────────────────────────────────────────────────────────────
 Token

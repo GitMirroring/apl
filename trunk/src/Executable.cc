@@ -1500,6 +1500,11 @@ Token tok_ufun = ufun->get_token();
 void
 Executable::reverse_all_tokens(Token_string & tos)
 {
+   // on an empty tos both initialisers below are UB (&tos[0] is out of
+   // range, and tos.size() - 1 underflows) before the t1 < t2 guard can
+   // help (Blake McBride, Bugs17 #6, related finding).
+   if (tos.size() == 0)   return;
+
    for (Token * t1 = &tos[0], * t2 = &tos[tos.size() - 1]; t1 < t2;)
        t1++->swap_token(*t2--);
 }

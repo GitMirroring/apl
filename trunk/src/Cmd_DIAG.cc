@@ -122,7 +122,10 @@ bool show_OK = true;   // assume more verbose output
 
      // 4b. sort vector<val_val> val_vals by address so that we can search it.
      //
-     Heapsort<val_val>::sort(&val_vals.front(), val_vals.size(), 0,
+     // .data() (not .front()) since val_vals can legitimately be empty
+     // (Blake McBride, Bugs17 #6, related finding) -- .data() is well
+     // defined on an empty vector, .front() is not.
+     Heapsort<val_val>::sort(val_vals.data(), val_vals.size(), 0,
                              &val_val::greater);
      loop(v, (val_vals.size() - 1))
          Assert(&val_vals[v].child < &val_vals[v + 1].child);

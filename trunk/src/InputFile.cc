@@ -118,6 +118,7 @@ const Unicode u1 = ucs_line.size() ? ucs_line.back()  : Invalid_Unicode;
 
              ucs_line.resize(u);
              ucs_line.remove_leading_and_trailing_whitespaces();
+             break;
            }
       }
    else                                                       // something else

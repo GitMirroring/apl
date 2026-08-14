@@ -1439,6 +1439,11 @@ XML_Loading_Archive::~XML_Loading_Archive()
    Sys::munmap(file_start, file_length);
 }
 //────────────────────────────────────────────────────────────────────────────
+// see the definition (with the full explanation) further below, next to
+// bounded_strstr() / bounded_strtoll() / bounded_strtod()
+static size_t bounded_copy(const UTF8 * start, const UTF8 * limit,
+                            char * buf, size_t bufsize);
+//────────────────────────────────────────────────────────────────────────────
 void
 XML_Loading_Archive::check_compatibility()
 {
@@ -1449,7 +1454,12 @@ XML_Loading_Archive::check_compatibility()
         unsigned int major = 0;
         unsigned int minor = 0;
         unsigned int other  = 0;
-        u8::sscanf(syntax, "%u.%u.%u", &major, &minor, &other);
+        // same unbounded-read class as get_checksum_status()'s sscanf()
+        // (Bugs17 #5, found incidentally): syntax comes from the same
+        // non-NUL-terminated mmap'd buffer.
+        char buf[32];   // "N.N.N" is short
+        bounded_copy(syntax, file_end, buf, sizeof(buf));
+        ::sscanf(buf, "%u.%u.%u", &major, &minor, &other);
         if (major == ASX_MAJOR && minor == ASX_MINOR)   return;
         if (major == ASX_MAJOR)
            {
@@ -1518,6 +1528,72 @@ const size_t needle_len = strlen(needle);
    return 0;
 }
 //────────────────────────────────────────────────────────────────────────────
+/// copies at most \b bufsize - 1 bytes starting at \b start, stopping at
+/// \b limit, into \b buf, and NUL-terminates it. Returns the number of
+/// bytes copied. Used to give strtoll()/strtod()/sscanf() a small
+/// NUL-terminated buffer to work on instead of the raw mmap'd (not
+/// NUL-terminated) workspace file: those libc functions effectively
+/// strlen() their input up front regardless of any field width or count
+/// given to them, so a bounds check at the call site alone (as an earlier
+/// fix here assumed for sscanf()) is not sufficient -- confirmed with
+/// guard-page probes, both faults occurring past the intended bound
+/// (Blake McBride, Bugs17 #5). A literal longer than \b bufsize - 1 is
+/// truncated rather than read out of bounds; on already-corrupted input
+/// that is a harmless parsing degradation, not a memory-safety issue.
+static size_t
+bounded_copy(const UTF8 * start, const UTF8 * limit, char * buf, size_t bufsize)
+{
+   if (start >= limit || bufsize == 0)   { if (bufsize)  buf[0] = 0;  return 0; }
+
+size_t len = limit - start;
+   if (len > bufsize - 1)   len = bufsize - 1;
+   memcpy(buf, start, len);
+   buf[len] = 0;
+   return len;
+}
+//────────────────────────────────────────────────────────────────────────────
+enum { BOUNDED_NUM_MAX = 63 };   ///< longest plausible numeric literal here
+
+/// like u8::strtoll(), but never reads at or past \b limit (see
+/// bounded_copy() above). \b endptr, if given, is translated back into the
+/// original [start,limit) buffer.
+static int64_t
+bounded_strtoll(const UTF8 * start, const UTF8 * limit, UTF8 ** endptr, int base)
+{
+char buf[BOUNDED_NUM_MAX + 1];
+const size_t len = bounded_copy(start, limit, buf, sizeof(buf));
+
+char * bend = 0;
+const int64_t val = ::strtoll(buf, &bend, base);
+   if (endptr)
+      {
+        size_t consumed = bend - buf;
+        if (consumed > len)   consumed = len;   // defensive
+        *endptr = const_cast<UTF8 *>(start) + consumed;
+      }
+   return val;
+}
+//────────────────────────────────────────────────────────────────────────────
+/// like u8::strtod(), but never reads at or past \b limit (see
+/// bounded_copy() above). \b endptr, if given, is translated back into the
+/// original [start,limit) buffer.
+static double
+bounded_strtod(const UTF8 * start, const UTF8 * limit, UTF8 ** endptr)
+{
+char buf[BOUNDED_NUM_MAX + 1];
+const size_t len = bounded_copy(start, limit, buf, sizeof(buf));
+
+char * bend = 0;
+const double val = ::strtod(buf, &bend);
+   if (endptr)
+      {
+        size_t consumed = bend - buf;
+        if (consumed > len)   consumed = len;   // defensive
+        *endptr = const_cast<UTF8 *>(start) + consumed;
+      }
+   return val;
+}
+//────────────────────────────────────────────────────────────────────────────
 XML_Loading_Archive::ChecksumStatus
 XML_Loading_Archive::get_checksum_status(uint32_t & stored_crc,
                                          uint32_t & computed_crc) const
@@ -1554,11 +1630,16 @@ const UTF8 * cs = bounded_strstr(after_close, file_end, checksum_prefix());
    if (cs == 0)   return CS_NO_CHECKSUM;   // no checksum in this file
 
    cs += strlen(checksum_prefix());
-   // "%8X" itself never reads more than 8 characters, so bounding the call
-   // by requiring 8 real bytes before file_end is sufficient to keep it
-   // inside the mapping.
    if (cs + 8 > file_end)                          return CS_NO_CHECKSUM;
-   if (u8::sscanf(cs, "%8X", &stored_crc) != 1)     return CS_NO_CHECKSUM;
+
+   // "%8X" bounds what is *converted*, not what sscanf() reads to get
+   // there (see bounded_copy() above) -- copy the (already known-present)
+   // 8 bytes into a local NUL-terminated buffer first.
+   {
+     char buf[9];
+     bounded_copy(cs, file_end, buf, sizeof(buf));
+     if (::sscanf(buf, "%8X", &stored_crc) != 1)    return CS_NO_CHECKSUM;
+   }
 
 const size_t ws_len = (after_close - open_pos);
 const string normalized =
@@ -1811,7 +1892,7 @@ const char ** tag_pos = tag_order;
 
    for (;;)
        {
-         next_tag(LOC);
+         if (next_tag(LOC))   break;   // EOF / undecodable: stop
 
          // make sure that we do not move backwards in tag_order
          //
@@ -2027,7 +2108,7 @@ APL_Float
 XML_Loading_Archive::find_float_attr(const char * attrib)
 {
 const UTF8 * value = find_mandatory_attr(attrib);
-const APL_Float val = u8::strtod(value, nullptr);
+const APL_Float val = bounded_strtod(value, file_end, 0);
    return val;
 }
 //────────────────────────────────────────────────────────────────────────────
@@ -2055,7 +2136,7 @@ XML_Loading_Archive::find_int_attr(const char * attrib, bool optional, int base)
 const UTF8 * value = find_attr(attrib, optional);
    if (value == 0)   return -1;   // not found
 
-const int64_t val = u8::strtoll(value, nullptr, base);
+const int64_t val = bounded_strtoll(value, file_end, 0, base);
    return val;
 }
 //────────────────────────────────────────────────────────────────────────────
@@ -2261,7 +2342,8 @@ UTF8 * end = 0;
 
         case UNI_PAD_U3: // integer,                e.g. ³
              {
-               const APL_Integer val = u8::strtoll(input, &end, 10);
+               const APL_Integer val = bounded_strtoll(input, file_end,
+                                                        &end, 10);
                Z.next_ravel_Int(val);
                input = end;
              }
@@ -2269,7 +2351,7 @@ UTF8 * end = 0;
 
         case UNI_PAD_U4: // real,                   e.g. ⁴6675.79
              {
-               const APL_Float val = u8::strtod(input, &end);
+               const APL_Float val = bounded_strtod(input, file_end, &end);
                Z.next_ravel_Float(val);
                input = end;
              }
@@ -2277,19 +2359,21 @@ UTF8 * end = 0;
 
         case UNI_PAD_U5: // complex,                e.g. ⁵
              {
-               const APL_Float real = u8::strtod(input, &end);
+               const APL_Float real = bounded_strtod(input, file_end, &end);
                // Assert() alone is a no-op at ASSERT_LEVEL 0: a missing
                // 'J' separator (crafted/corrupted workspace XML) left
                // the imaginary part parsed from whatever byte followed
-               // instead of being caught.
-               if (*end != 'J')
+               // instead of being caught. `end` can legitimately equal
+               // file_end (number ran to the very end of the mapping), so
+               // check that before dereferencing it.
+               if (end >= file_end || *end != 'J')
                   {
                     MORE_ERROR() << "corrupt workspace: expected 'J' in "
                                     "complex cell";
                     DOMAIN_ERROR;
                   }
                ++end;
-               const APL_Float imag = u8::strtod(end, &end);
+               const APL_Float imag = bounded_strtod(end, file_end, &end);
                Z.next_ravel_Complex(real, imag);
                input = end;
              }
@@ -2297,7 +2381,7 @@ UTF8 * end = 0;
 
         case UNI_PAD_U6: // pointer,                e.g. ⁶1525 (vid)
              {
-               const int vid = u8::strtoll(input, &end, 10);
+               const int vid = bounded_strtoll(input, file_end, &end, 10);
                // Assert() is a no-op at the documented default assert
                // level, so it cannot be relied on to reject an
                // out-of-range vid coming from (possibly hand-edited or
@@ -2339,7 +2423,7 @@ UTF8 * end = 0;
                   // "silently wrong" bug into a hard DOMAIN ERROR on any
                   // workspace GNU APL itself saved containing such a
                   // selective-assignment lvalue.
-                  const int vid = u8::strtoll(input, &end, 10);
+                  const int vid = bounded_strtoll(input, file_end, &end, 10);
                   if (vid < 0 || vid >= int(values.size()))
                      {
                        MORE_ERROR() << "corrupt workspace: cellref vid="
@@ -2347,15 +2431,16 @@ UTF8 * end = 0;
                                     << (int(values.size()) - 1) << ")";
                        DOMAIN_ERROR;
                      }
-                  if (*end != '[')
+                  if (end >= file_end || *end != '[')
                      {
                        MORE_ERROR() << "corrupt workspace: malformed "
                                        "cellref (expected '[')";
                        DOMAIN_ERROR;
                      }
                   ++end;
-                  const ShapeItem offset = u8::strtoll(end, &end, 10);
-                  if (*end != ']')
+                  const ShapeItem offset = bounded_strtoll(end, file_end,
+                                                            &end, 10);
+                  if (end >= file_end || *end != ']')
                      {
                        MORE_ERROR() << "corrupt workspace: malformed "
                                        "cellref (expected ']')";
@@ -2386,7 +2471,8 @@ UTF8 * end = 0;
              // not ./configured for them.
              //
              {
-               const uint64_t numer = u8::strtoll(input, &end, 10);
+               const uint64_t numer = bounded_strtoll(input, file_end,
+                                                       &end, 10);
 
                // skip ÷ (which is is C3 B7 in UTF8). Assert() alone is a
                // no-op at ASSERT_LEVEL 0, and (even when enabled) its
@@ -2394,14 +2480,18 @@ UTF8 * end = 0;
                // the byte actually matched -- a missing/malformed
                // separator let strtoll() below read from a shifted,
                // essentially arbitrary position instead of being caught.
-               if ((*end & 0xFF) != 0xC3 || (*(end+1) & 0xFF) != 0xB7)
+               // `end + 1` can legitimately reach file_end, so bound the
+               // 2-byte read before dereferencing it.
+               if (end + 1 >= file_end ||
+                   (*end & 0xFF) != 0xC3 || (*(end+1) & 0xFF) != 0xB7)
                   {
                     MORE_ERROR() << "corrupt workspace: expected '÷' in "
                                     "rational cell";
                     DOMAIN_ERROR;
                   }
                end += 2;
-               const uint64_t denom = u8::strtoll(end, &end, 10);
+               const uint64_t denom = bounded_strtoll(end, file_end,
+                                                        &end, 10);
                if (denom == 0)
                   {
                     MORE_ERROR() << "corrupt workspace: zero denominator "
@@ -2612,7 +2702,12 @@ int eprops[4] = { 0, 0, 0, 0 };
 
    if (const UTF8 * ep = find_optional_attr("exec-properties"))
       {
-        u8::sscanf(ep, "%d,%d,%d,%d",
+        // same unbounded-read class as get_checksum_status()'s sscanf()
+        // (Bugs17 #5, found incidentally while fixing that one): ep comes
+        // from the same non-NUL-terminated mmap'd buffer.
+        char buf[32];   // "N,N,N,N" is short; matches the writer's format
+        bounded_copy(ep, file_end, buf, sizeof(buf));
+        ::sscanf(buf, "%d,%d,%d,%d",
                eprops, eprops + 1, eprops + 2, eprops+ 3);
       }
 
@@ -3316,7 +3411,8 @@ const TokenTag tag = TokenTag(find_int_attr("tag", false, 16));
                          Assert1(*vids == 'i');   ++vids;
                          Assert1(*vids == 'd');   ++vids;
                          Assert1(*vids == '_');   ++vids;
-                         const int vid = u8::strtoll(vids, &end, 10);
+                         const int vid = bounded_strtoll(vids, file_end,
+                                                          &end, 10);
                          if (vid < 0 || vid >= int(values.size()))
                             DOMAIN_ERROR;
                          idx.add_index(values[vid]);
@@ -3569,7 +3665,7 @@ XML_Loading_Archive::read_XML_string(UCS_string & ucs, const UTF8 * utf)
             {
               char_mode = false;
               UTF8 * end = 0;
-              const int hex = u8::strtoll(utf, &end, 16);
+              const int hex = bounded_strtoll(utf, file_end, &end, 16);
               ucs << Unicode(hex);
               utf = end;
               continue;

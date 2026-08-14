@@ -319,6 +319,7 @@ NativeFunction::~NativeFunction()
         if (valid_functions[v] == this)
            {
              valid_functions.erase(valid_functions.begin() + v);
+             break;   // there is at most one entry for `this`
            }
       }
 

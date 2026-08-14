@@ -200,14 +200,18 @@ vector<AP_num> procs;
          //
          processors.push_back(smallest);
 
-         // remove smallest
+         // remove smallest (all occurrences)
          //
-          loop(p, procs.size())
+          for (size_t p = 0; p < procs.size(); )
               {
                 if (smallest == procs[p])
                    {
                      procs[p] = procs.back();
                      procs.pop_back();
+                   }
+                else
+                   {
+                     ++p;
                    }
               }
        }
