@@ -236,40 +236,31 @@ Quad_MX::eval_B(cValue_R B) const
 vector<Quad_MX::Dcomplex>
 Quad_MX::getCross(GSL_Matrix *mtx)
 {
-Dcomplex det(0.0, 0.0);
+   // The generalised cross product of n-1 vectors in R^n expands a
+   // formal n×n determinant along its first (formal-basis) row. genMtx()
+   // pads its caller's n-1 given vectors with exactly one extra row of
+   // 1s, so mtx here is square (n×n) *provided* the caller actually
+   // supplied exactly n-1 vectors -- which callers now enforce (see
+   // monadicCrossProduct()'s tightened precondition), fixing Bugs18 #10/
+   // the earlier M7 attempt at its root instead of trying to recover a
+   // square matrix here after the fact (that approach -- an extra
+   // column-drop in this function -- double-shrinks an already-correctly
+   // -sized mtx and corrupts genCofactor()'s cofactor buffer; tried and
+   // reverted while fixing this).
+   //
+   // rc is sized by columns, not rows, so the loop below must be too:
+   // genCofactor(mtx,0,k) removes row 0 and column k, i.e. k indexes a
+   // *column*, and for square input mtx->rows()==mtx->cols() anyway.
+   //
 vector<Dcomplex> rc(mtx->cols());
-   // M7 REVERTED: removing this rows()==2 special case (and adding a
-   // rows()==1 base case to getDet() below) looked right in isolation
-   // -- the special case computed det and never stored it into rc, so
-   // rc stayed all-zero for a 2-row B (Blake's reported bug). But
-   // genCofactor(mtx,0,k) shrinks BOTH rows and cols by 1 each call, so
-   // for the (n-1)*n matrices this function is meant for, the
-   // recursion never reaches a square 1x1 -- it bottoms out at a
-   // 1-row, 2-column matrix. Treating that as "rows()==1 => scalar"
-   // silently drops the second column and, for at least one real
-   // ⎕MX[11] input, produced a NaN that (via int(NaN) UB in
-   // UCS_string's float formatter) corrupted the printed output.
-   // A correct fix needs a column-only cofactor step to first shrink
-   // mtx to square before handing off to getDet()'s row+column
-   // recursion; that's a bigger change than a quick patch warrants,
-   // so this reverts to the original (known-incomplete: still returns
-   // 0 0 for a 2-row B) behavior until it can be redone properly.
-   if (mtx->rows() == 2)
-      {
-        det = (mtx->val(0, 0) * mtx->val(1,1))
-            - (mtx->val(0, 1) * mtx->val(1,0));
-      }
-   else
-     {
-       loop(k, mtx->rows())
-           {
-             const int sign = k & 1 ? -1 : 1;
-             GSL_Matrix * cf = genCofactor(mtx, 0, k);
-             const Dcomplex id = getDet(cf);
-             delete cf;
-             rc[k] = sign > 0 ? id : -id;
-           }
-     }
+   loop(k, mtx->cols())
+       {
+         const int sign = k & 1 ? -1 : 1;
+         GSL_Matrix * cf = genCofactor(mtx, 0, k);
+         const Dcomplex id = getDet(cf);
+         delete cf;
+         rc[k] = sign > 0 ? id : -id;
+       }
 
   return rc;
 }
@@ -776,13 +767,26 @@ Quad_MX::monadicCrossProduct(Value_P B)
 
 const ShapeItem rows = B->get_rows();
 const ShapeItem cols = B->get_cols();
-   if (rows >= cols)
+   // the generalised cross product needs *exactly* n-1 vectors in ℝⁿ
+   // (rows == cols-1): genMtx(B,true) pads B with one extra row of 1s,
+   // so this makes the resulting mtx square by construction. The
+   // earlier rows >= cols check silently accepted fewer, leaving
+   // getCross() to feed a non-square matrix into genCofactor()'s
+   // square-only cofactor recursion -- for a rank<cols-1 B the trailing
+   // rc[] components stayed at their vector<Dcomplex> zero-init instead
+   // of being computed at all (Bugs18 #10; the crash-prone "shrink to
+   // square inside getCross()" alternative was tried and reverted while
+   // fixing this).
+   //
+   if (rows != cols - 1)
       {
-        MORE_ERROR() << "too many vectors in cross product. "
-                         "Max. is n-1 vectors in ℝⁿ resp. ℂⁿ ";
+        MORE_ERROR() << "⎕MX.cross_product B: expecting exactly n-1 "
+                         "vectors in ℝⁿ resp. ℂⁿ (⍴B is " << B->get_shape()
+                      << ", so n-1 must be " << (cols - 1) << ", not "
+                      << rows << ")";
         LENGTH_ERROR;
       }
-     
+
 GSL_Matrix * mtx = genMtx(B, true);
 vector<Dcomplex> cp = getCross(mtx);
 Value_P Z(mtx->cols(), LOC);

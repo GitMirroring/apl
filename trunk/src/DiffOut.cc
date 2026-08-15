@@ -33,13 +33,25 @@
 bool
 DiffOut::different(const UTF8 * apl, const UTF8 * ref, size_t & pos)
 {
+   // apl/ref are always NUL-terminated C strings here (built by the test
+   // harness from complete in-memory strings, unlike Archive.cc's mmap'd
+   // file content), so toUni() without an end bound was already safe in
+   // practice -- a NUL byte is never a valid UTF-8 continuation byte, so
+   // decoding always stops at or before the terminator regardless. Still,
+   // passing the bound costs one strlen() up front and matches the
+   // pattern used everywhere else UTF-8 gets decoded (Bugs15 #21's
+   // documented-but-not-fixed gap).
+   //
+const UTF8 * const apl_end = apl + strlen(charP(apl));
+const UTF8 * const ref_end = ref + strlen(charP(ref));
+
    for (pos = 0;; ++pos)   // compare position in ref
        {
          int len_apl;   // length of the UTF8 encoding
          int len_ref;   // length of the UTF8 encoding
 
-         const Unicode a = UTF8_string::toUni(apl, len_apl, true);
-         const Unicode r = UTF8_string::toUni(ref, len_ref, true);
+         const Unicode a = UTF8_string::toUni(apl, len_apl, true, apl_end);
+         const Unicode r = UTF8_string::toUni(ref, len_ref, true, ref_end);
          apl += len_apl;   // skip a in apl
          ref += len_ref;   // skip r in ref
 
@@ -88,7 +100,8 @@ DiffOut::different(const UTF8 * apl, const UTF8 * ref, size_t & pos)
                    else
                       {
                          int len;
-                         if (UTF8_string::toUni(apl, len, true) == UNI_OVERBAR)
+                         if (UTF8_string::toUni(apl, len, true, apl_end)
+                             == UNI_OVERBAR)
                             {
                               apl += len;
                               continue;
