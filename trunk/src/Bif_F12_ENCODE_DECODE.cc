@@ -258,10 +258,12 @@ APL_Integer bi = iB->get_int_value();   // the value being decoded
            {
              bi = 0;
            }
-         else
+         else if (cellA.get_int_value() == -1)
            {
-             bi -= cZ->get_int_value();
-
+             // X|¯1 (the residue computed above) is always 0, so bi is
+             // unchanged by the subtraction step here -- no precision
+             // hazard in this branch (see the else branch below for that).
+             //
              // bi /= -1 traps (hardware #DE / SIGFPE) for the single
              // combination bi == INT64_MIN, since -INT64_MIN is not
              // representable as APL_Integer (confirmed directly:
@@ -271,10 +273,28 @@ APL_Integer bi = iB->get_int_value();   // the value being decoded
              // representable x, INT64_MIN included (same on-the-wire result
              // dividing by -1 would give: bi unchanged, the standard
              // fixed-width wraparound also used elsewhere in encode/decode).
-             if (cellA.get_int_value() == -1)
-                bi = APL_Integer(0 - uint64_t(bi));
-             else
-                bi /= cellA.get_int_value();
+             bi = APL_Integer(0 - uint64_t(bi));
+           }
+         else
+           {
+             // The intermediate dividend (bi - residue) can need up to
+             // ~65 bits: cZ (the residue) has the sign of the radix a, so
+             // for a large |bi| and a large negative a the difference can
+             // approach 2×INT64_MAX in magnitude. A plain uint64_t
+             // wraparound subtraction cures only the *UB* here, not the
+             // actual precision loss: dividing the truncated 64-bit
+             // dividend still yields a wrong digit (Bugs18 #6; confirmed
+             // the wraparound-only fix reproduces the exact same wrong
+             // high digit as the original UB build for
+             // (2⍴¯5000000000000000000) ⊤ 8000000000000000000, which
+             // should be ¯2 ¯2000000000000000000). __int128 has ample
+             // headroom for the ~65 bits actually needed, and the
+             // division below brings the magnitude back into ordinary
+             // digit range before narrowing back to bi.
+             //
+             const __int128 wide_bi =
+                __int128(bi) - __int128(cZ->get_int_value());
+             bi = APL_Integer(wide_bi / cellA.get_int_value());
            }
        }
 }

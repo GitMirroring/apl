@@ -551,7 +551,21 @@ ScalarFunction::eval_scalar_AB(cValue_R A, cValue_R B, prim_f2 fun) const
 PERFORMANCE_START(start)
 
 ErrorCode ec = E_NO_ERROR;
-Value_P Z = do_scalar_AB(ec, A, B, fun);
+Value_P Z;
+   try
+      {
+        Z = do_scalar_AB(ec, A, B, fun);
+      }
+   catch (...)
+      {
+        // DOMAIN_ERROR and friends thrown from deep inside a scalar
+        // cell-op (e.g. 'a'∨1) unwind straight past the ec != E_NO_ERROR
+        // check below, so without this catch the retained jobs/current_job
+        // (see PJob::cancel_jobs()) are never released -- Bugs18 #3.
+        //
+        Thread_context::cancel_all_dyadic_jobs();
+        throw;
+      }
    if (ec != E_NO_ERROR)
       {
         Thread_context::cancel_all_dyadic_jobs();
@@ -710,7 +724,18 @@ const ShapeItem len_Z = B.element_count();
 PERFORMANCE_START(start)
 
 ErrorCode ec = E_NO_ERROR;
-Value_P Z = do_scalar_B(ec, B, fun);   // sets ec
+Value_P Z;
+   try
+      {
+        Z = do_scalar_B(ec, B, fun);   // sets ec
+      }
+   catch (...)
+      {
+        // see the matching catch in eval_scalar_AB() -- Bugs18 #3.
+        //
+        Thread_context::cancel_all_monadic_jobs();
+        throw;
+      }
    if (ec != E_NO_ERROR)
       {
         Thread_context::cancel_all_monadic_jobs();

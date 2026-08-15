@@ -110,7 +110,25 @@ Value_P Z(shape_A1 + shape_B1, LOC);
    //
    job.LO = LO->get_scalar_f2();
    job.RO = RO->get_scalar_f2();
-   if (job.LO && job.RO && A.is_simple() && B.is_simple() && len_A)
+
+   // must match the element_count()==1 test job.incA uses below (not
+   // A.is_scalar(), i.e. rank==0): a 1-element but non-scalar A (e.g.
+   // (1⍴5), rank 1) is scalar-extended by incA==0 below but was sized
+   // as if it weren't here, truncating the inner product to LO_len==1
+   // term. (1⍴5)+.×1 2 3 gave 5 instead of 30.
+   //
+const ShapeItem fast_LO_len = (len_A == 1) ? len_B : len_A;
+
+   // fast_LO_len == 0 only when len_A == 1 (len_A itself is nonzero, per
+   // the len_A check below) and len_B == 0: a 1-element/scalar A with a
+   // 0-length inner axis on B. That reduces over zero terms, which has a
+   // well-defined identity-element result, but the loop in
+   // PF_scalar_inner_product() below writes nothing when LO_len == 0, so
+   // route it through the general (enclose + Bif_OPER1_REDUCE) path
+   // instead, which already handles empty-axis reduction correctly.
+   //
+   if (job.LO && job.RO && A.is_simple() && B.is_simple() && len_A
+       && fast_LO_len)
       {
         job.incA   = (A.element_count() == 1) ? 0 : 1;
         job.incB   = (B.element_count() == 1) ? 0 : 1;
@@ -130,12 +148,7 @@ Value_P Z(shape_A1 + shape_B1, LOC);
         job.VA     = &A;
         job.idxA   = 0;
         job.ZAh    = items_A1;
-        // must match the element_count()==1 test job.incA uses above
-        // (not A.is_scalar(), i.e. rank==0): a 1-element but non-scalar
-        // A (e.g. (1⍴5), rank 1) is scalar-extended by incA==0 above but
-        // was sized as if it weren't here, truncating the inner product
-        // to LO_len==1 term. (1⍴5)+.×1 2 3 gave 5 instead of 30.
-        job.LO_len = (len_A == 1) ? len_B : len_A;
+        job.LO_len = fast_LO_len;
         job.VB     = &B;
         job.idxB   = 0;
         job.ZBl    = items_B1;

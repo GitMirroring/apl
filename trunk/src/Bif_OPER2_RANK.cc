@@ -254,9 +254,16 @@ const ShapeItem B_len = length - y123_len;
 Token
 Bif_OPER2_RANK::eval_ALRB(cValue_R A, Token & LO, Token & y, cValue_R B) const
 {
+// B_hold_ is function-scoped (not block-scoped) so it actually
+   // outlives pB, matching Quad_MAP.cc's version of this same pattern.
+   // The block-scoped version was safe only because B (a cValue_R
+   // parameter) itself outlives the call regardless -- the "hold" did
+   // nothing (Bugs18 #15).
+   //
+Value_P B_hold_;
 const cValue * pB = &B;
    if (pB->element_count() == 1 && pB->is_pointer_cell(0))
-   { Value_P B_hold_ = pB->get_pointer_value(0); pB = B_hold_.get(); }
+      { B_hold_ = pB->get_pointer_value(0); pB = B_hold_.get(); }
 
 sRank rank_chunk_A = A.get_rank();
 sRank rank_chunk_B = pB->get_rank();
@@ -269,9 +276,12 @@ Token
 Bif_OPER2_RANK::eval_ALRXB(cValue_R A, Token & LO, Token & y,
                            cValue_R X, cValue_R B) const
 {
+// see eval_ALRB() above for why B_hold_ is function- not block-scoped.
+   //
+Value_P B_hold_;
 const cValue * pB = &B;
    if (pB->element_count() == 1 && pB->is_pointer_cell(0))
-   { Value_P B_hold_ = pB->get_pointer_value(0); pB = B_hold_.get(); }
+      { B_hold_ = pB->get_pointer_value(0); pB = B_hold_.get(); }
 
 sRank rank_chunk_A = A.get_rank();
 sRank rank_chunk_B = pB->get_rank();
@@ -284,9 +294,12 @@ sRank rank_chunk_B = pB->get_rank();
 Token
 Bif_OPER2_RANK::eval_LRB(Token & LO, Token & y, cValue_R B) const
 {
+// see eval_ALRB() above for why B_hold_ is function- not block-scoped.
+   //
+Value_P B_hold_;
 const cValue * pB = &B;
    if (pB->element_count() == 1 && pB->is_pointer_cell(0))
-   { Value_P B_hold_ = pB->get_pointer_value(0); pB = B_hold_.get(); }
+      { B_hold_ = pB->get_pointer_value(0); pB = B_hold_.get(); }
 
 const sRank rank_chunk_B = y123_to_chunk_B_rank(LO.get_function()->get_name(),
                                                  y.get_apl_val().get(),
@@ -297,9 +310,12 @@ const sRank rank_chunk_B = y123_to_chunk_B_rank(LO.get_function()->get_name(),
 Token
 Bif_OPER2_RANK::eval_LRXB(Token & LO, Token & y, cValue_R X, cValue_R B) const
 {
+// see eval_ALRB() above for why B_hold_ is function- not block-scoped.
+   //
+Value_P B_hold_;
 const cValue * pB = &B;
    if (pB->element_count() == 1 && pB->is_pointer_cell(0))
-   { Value_P B_hold_ = pB->get_pointer_value(0); pB = B_hold_.get(); }
+      { B_hold_ = pB->get_pointer_value(0); pB = B_hold_.get(); }
 
 const sRank rank_chunk_B = y123_to_chunk_B_rank(LO.get_function()->get_name(),
                                                  y.get_apl_val().get(),

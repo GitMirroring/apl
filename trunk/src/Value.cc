@@ -1259,6 +1259,21 @@ Value::try_implode()
     */
 const ShapeItem N = element_count();
 const ShapeItem Z_len = (N + 63) >> 6;   // number of uint64 chunks
+
+   // validate before packing (two-pass): the packing loop below writes
+   // each fully-accumulated 64-bit chunk into the Cell buffer *before* it
+   // can discover a non-boolean cell in a *later* chunk, so a single-pass
+   // version corrupts the ravel on its own failure path -- with ≥65
+   // elements where the first 64 are boolean and a later one is not,
+   // dst[0] would already have overwritten the first 8 bytes of
+   // ravel.cells[0] by the time the non-boolean item is found, and the
+   // function returns leaving flags.ravel_type unchanged, i.e. a
+   // RPT_CELLS value whose first Cell has been destroyed (Bugs18 #11).
+   //
+   loop(b, N)
+      if (!ravel.cells[b].is_near_bool())
+         return "value has non-boolean items";
+
 auto dst = reinterpret_cast<uint64_t *>(ravel.cells);
 
    loop(c, Z_len)
@@ -1268,8 +1283,6 @@ auto dst = reinterpret_cast<uint64_t *>(ravel.cells);
          const ShapeItem lim  = std::min(base + 64, N);
          for (ShapeItem b = base; b < lim; ++b)
              {
-               if (!ravel.cells[b].is_near_bool())
-                  return "value has non-boolean items";
                if (ravel.cells[b].get_near_bool())
                   chunk |= uint64_t(1) << (b - base);
              }
@@ -1531,6 +1544,17 @@ const ShapeItem N = nz_element_count();
 
         case RPT_INT64:
              {
+               // validate before writing in place: a non-integer cell's
+               // get_int_value() throws DOMAIN_ERROR, and this loop had
+               // no such guard, so a throw mid-loop left the ravel half
+               // packed / half (destroyed) Cells with flags.ravel_type
+               // still RPT_CELLS (Bugs18 #11; every current caller is
+               // safe since Z is always a permutation or copy of B, but
+               // nothing enforced that).
+               //
+               loop(i, N)
+                  if (!ravel.cells[i].is_integer_cell())   return;
+
                auto dst = reinterpret_cast<int64_t *>(ravel.cells);
                loop(i, N)   dst[i] = ravel.cells[i].get_int_value();
                ravel.fetcher           = &Ravel::int64_fetcher;
@@ -1543,6 +1567,12 @@ const ShapeItem N = nz_element_count();
 
         case RPT_FLOAT64:
              {
+               // validate before writing in place -- see the RPT_INT64
+               // case above (Bugs18 #11).
+               //
+               loop(i, N)
+                  if (!ravel.cells[i].is_numeric())   return;
+
                auto dst = reinterpret_cast<double *>(ravel.cells);
                loop(i, N)   dst[i] = ravel.cells[i].get_real_value();
                ravel.fetcher           = &Ravel::float64_fetcher;
@@ -1555,6 +1585,12 @@ const ShapeItem N = nz_element_count();
 
         case RPT_COMPLEX:
              {
+               // validate before writing in place -- see the RPT_INT64
+               // case above (Bugs18 #11).
+               //
+               loop(i, N)
+                  if (!ravel.cells[i].is_numeric())   return;
+
                auto dst = reinterpret_cast<double *>(ravel.cells);
                // read both parts into locals BEFORE writing dst[2*i]:
                // dst aliases ravel.cells (in place), and dst[2*i]'s first
@@ -1580,6 +1616,12 @@ const ShapeItem N = nz_element_count();
 
         case RPT_UNICODE32:
              {
+               // validate before writing in place -- see the RPT_INT64
+               // case above (Bugs18 #11).
+               //
+               loop(i, N)
+                  if (!ravel.cells[i].is_character_cell())   return;
+
                auto dst = reinterpret_cast<Unicode *>(ravel.cells);
                loop(i, N)   dst[i] = ravel.cells[i].get_char_value();
                ravel.fetcher           = &Ravel::char32_fetcher;
@@ -1592,6 +1634,12 @@ const ShapeItem N = nz_element_count();
 
         case RPT_UNICODE16:
              {
+               // validate before writing in place -- see the RPT_INT64
+               // case above (Bugs18 #11).
+               //
+               loop(i, N)
+                  if (!ravel.cells[i].is_character_cell())   return;
+
                auto dst = reinterpret_cast<uint16_t *>(ravel.cells);
                loop(i, N)   dst[i] = uint16_t(ravel.cells[i].get_char_value());
                ravel.fetcher           = &Ravel::char16_fetcher;

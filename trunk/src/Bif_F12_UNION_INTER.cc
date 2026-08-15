@@ -84,8 +84,17 @@ const ShapeItem len_B = B.element_count();
    // 1. create a vector with all cells of B and sort it.
    //
 vector<const Cell *> cells_B;
-   cells_B.reserve(len_B);
-vector<uint8_t> stable_B_mem(len_B * sizeof(Cell));
+vector<uint8_t> stable_B_mem;
+   // matching Bif_F2_INTER::eval_AB()'s guard just below in this file:
+   // a bare reserve()/resize() on a very large B raises a C++
+   // std::bad_alloc instead of the APL WS FULL its sibling produces
+   // (Bugs18 #16).
+   //
+   try {
+         cells_B.reserve(len_B);
+         stable_B_mem.resize(len_B * sizeof(Cell));
+       } catch (std::bad_alloc &) { WS_FULL; }
+         catch (...)              { FIXME; }
 
    {
      Cell * p = reinterpret_cast<Cell *>(stable_B_mem.data());

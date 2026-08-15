@@ -296,6 +296,7 @@ public:
    void cancel_jobs()
       {
         jobs.clear();
+        current_job = T();   // give up ownership of Value_P members, if any
         started_loc = 0;
       }
 

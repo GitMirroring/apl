@@ -417,10 +417,13 @@ ShapeItem ones = 0;
                 }
 
 
-             if (rm == n)
-                rm = new (n++)   DLX_Node(false, r, c, hdr.up, &hdr, rm, lm);
-             else
-                rm = new (n++)   DLX_Node(false, r, c, hdr.up, &hdr, rm, lm);
+             // for the leftmost node in a row, rm == lm == n here, so the
+             // DLX_Node constructor self-links it -- correct for a
+             // one-element circular list. Both arms of the former if/else
+             // were byte-identical (Bugs18 #13); collapsed to the one
+             // statement both cases actually need.
+             //
+             rm = new (n++)   DLX_Node(false, r, c, hdr.up, &hdr, rm, lm);
              ++headers[c].count;
            }
       }

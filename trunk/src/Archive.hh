@@ -76,7 +76,7 @@ protected:
       {
         ASX_MAJOR =  1,   ///< ++ if incompatible XML file format change
         ASX_MINOR = 12,  ///< ++ if backward compatible XML file format change
-        ASX_OTHER =  6,   ///< ++ if no XML file format change (code cleanup)
+        ASX_OTHER =  7,   ///< ++ if no XML file format change (code cleanup)
       };
 
    /// where to send error messages
@@ -119,7 +119,15 @@ public:
    ~XML_Saving_Archive()   { outf.close(); }
 
    /// an index for \b values
-   enum Vid { INVALID_VID = -1 };
+   //
+   // fixed underlying type: this enum's only enumerator is -1, so an
+   // unscoped enum with no fixed type would take its legal range from
+   // that (i.e. [-1, 0]) even though real (pointer-derived) Vids are
+   // stored here -- UB on every load of an in-range-looking but
+   // non-sentinel value (Bugs18 #7, confirmed via UBSan on the plain
+   // testcase suite).
+   //
+   enum Vid : int64_t { INVALID_VID = -1 };
 
    /// a value and its parent (if the parent is nested, -1 if not)
    struct _val_par
@@ -408,10 +416,14 @@ public:
 
 protected:
    /// a value ID in a )SAVEd workspace
-   enum Vid { NO_VID = int(-1) };   ///< no (invalid) value ID
+   //
+   // fixed underlying type -- see XML_Saving_Archive::Vid above; the same
+   // hazard applies on the )LOAD side (Bugs18 #7).
+   //
+   enum Vid : int64_t { NO_VID = int64_t(-1) };   ///< no (invalid) value ID
 
    /// the address of a function in a )SAVEd workspace
-   enum Fid { NO_FID = int(-1) };   ///< no (invalid) function ID
+   enum Fid : int64_t { NO_FID = int64_t(-1) };   ///< no (invalid) function ID
 
    /// a value ID and the ID of its parent
    struct _vid_pvid

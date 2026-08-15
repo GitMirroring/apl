@@ -292,8 +292,22 @@ Shape shape;
    //
    if (budget >= 0 && rank > 0)
       {
+        // saturate rather than compute shape's raw (potentially huge)
+        // volume unchecked: a randomly drawn rank-N shape can overflow
+        // ShapeItem (confirmed via UBSan/AllPrimitives.tc), and a wrapped
+        // (possibly negative) ec_trial can then fail "ec_trial > budget"
+        // immediately, skipping the whole shrinking loop below and
+        // handing an enormous shape downstream -- exactly the failure
+        // mode this loop exists to prevent (Bugs18 #9).
+        //
         ShapeItem ec_trial = 1;
-        loop(r, rank)   ec_trial *= shape.get_shape_item(r);
+        loop(r, rank)
+            {
+              const ShapeItem s = shape.get_shape_item(r);
+              if (s == 0)   { ec_trial = 0;   break; }
+              if (ec_trial > budget / s)   { ec_trial = budget + 1;   break; }
+              ec_trial *= s;
+            }
         while (ec_trial > budget)
            {
              sRank biggest = 0;

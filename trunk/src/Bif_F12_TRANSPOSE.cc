@@ -107,7 +107,18 @@ Shape shape_A;
    loop(r, B.get_rank())   shape_A.add_shape_item(B.get_rank() - r - 1);
 
 Value_P Z = transpose(shape_A, B);
-   Z->set_default(B, LOC);
+
+   // see the matching comment in eval_AB() above: transpose()'s rank<=1
+   // fast path returns CLONE(&B, LOC) -- not a copy -- so an unconditional
+   // set_default() here would overwrite B's own already-live prototype
+   // (Bugs18 #5).
+   //
+   if (Z->is_empty())
+      {
+        Cell cache;
+        if (Z->get_cproto(cache).is_integer_cell())   Z->set_default(B, LOC);
+      }
+
    Z->check_value(LOC);
    return Token(TOK_APL_VALUE1, Z);
 }

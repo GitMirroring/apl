@@ -66,8 +66,9 @@ std::string UnixSocketListener::start( void )
     unlink( filename.c_str() );
 
     struct sockaddr_un addr;
+    memset( &addr, 0, sizeof( addr ) );
     addr.sun_family = AF_UNIX;
-    strncpy( addr.sun_path, filename.c_str(), sizeof( addr.sun_path ) );
+    strncpy( addr.sun_path, filename.c_str(), sizeof( addr.sun_path ) - 1 );
     if(::bind(server_socket, reinterpret_cast<sockaddr *>(&addr),
               sizeof(addr)) == -1) {
         stringstream errmsg;

@@ -311,8 +311,6 @@ Bif_COMMA::catenate(const char * where, const cValue & A, sAxis axis,
 
         Value_P Z(shape_Z, LOC);
 
-        Z->set_default(B, LOC);
-
         const Shape3 shape_A3(A.get_shape(), axis);
         const ShapeItem slice_a = shape_A3.l() * A.get_shape_item(axis);
         const ShapeItem slice_b = shape_A3.l();

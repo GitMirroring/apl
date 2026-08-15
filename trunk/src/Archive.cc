@@ -611,7 +611,7 @@ int space = do_indent();
    {
      // print the start of the XML element
      char cc[80];
-     SPRINTF(cc, "<Ravel vid=\"%d\" depth=\"%d\" cells=\"", vid, depth);
+     SPRINTF(cc, "<Ravel vid=\"%d\" depth=\"%d\" cells=\"", int(vid), depth);
      outf << decr(space, cc);
    }
 
@@ -955,7 +955,7 @@ char cc[80];
              space -= leave_char_mode();
              {
                const Vid vid = find_vid(cell.get_pointer_value().get());
-               SPRINTF(cc, "%d", vid);
+               SPRINTF(cc, "%d", int(vid));
                NEED(1 + strlen(cc)) << UNI_PAD_U6 << decr(--space, cc);
              }
              break;
@@ -968,7 +968,7 @@ char cc[80];
                   const cValue * owner = cell.get_cell_owner();
                   const long long offset = owner->get_offset(&cell);
                   const Vid vid = find_vid(owner);
-                  SPRINTF(cc, "%d[%lld]", vid, offset);
+                  SPRINTF(cc, "%d[%lld]", int(vid), offset);
                   NEED(1 + strlen(cc)) << UNI_PAD_U7 << decr(--space, cc);
                 }
              else     // 0-cell-pointer (from selective assignment)

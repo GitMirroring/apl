@@ -730,8 +730,8 @@ PrintBuffer pb;
          //
          bool insert_space_left = col && (col_width == 0);
 
-         if (col)   // subsequent column: insert space if needed
-            {
+         if (col && pb_col.get_column_count() > 0)   // subsequent column:
+            {                                         // insert space if needed
               loop(y, pb_col.get_row_count())
                   {
                     if (pb_col.get_char(0, y) != UNI_SPACE)

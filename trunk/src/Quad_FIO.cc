@@ -1167,7 +1167,7 @@ Unicode lookahead = input.get_next();
         if (fmt_ch1 == UNI_PERCENT)   goto match;   // double % is %
 
         Unicode conv = Unicode_0;   // no conversion specifier
-        int conv_len = 0;
+        int64_t conv_len = 0;
         bool suppress = false;
         for (;f < format.ssize(); ++f)
            {
@@ -1189,7 +1189,21 @@ Unicode lookahead = input.get_next();
 
              if (strchr("0123456789", cc))   // field length
                 {
+                  // accumulate in int64_t and bound it, same pattern (and
+                  // same class of bug, Bugs15 #8) as pad_and_append()'s
+                  // printf-side field width just below: an unbounded
+                  // plain int here overflows (UB) for a user-supplied
+                  // field width with enough digits, wrapping to a
+                  // negative conv_len that silently changes the %c/%s
+                  // conversion instead of erroring (Bugs18 #8).
+                  //
                   conv_len = 10*conv_len + (cc - '0');
+                  if (conv_len > 1000000000)
+                     {
+                       MORE_ERROR() << "⎕FIO scanf: field width in format '"
+                                    << format << "' is too large";
+                       DOMAIN_ERROR;
+                     }
                   continue;
                 }
 
