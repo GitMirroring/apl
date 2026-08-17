@@ -311,7 +311,7 @@ CELL_PERFORMANCE_END(get_statistics_AB(), start_fast_AB, false)
                         Value_P B1 = cell_B.get_pointer_value();
                         const Shape * sh_Z1 =
                               conforming_shape(ec, conforming_where(this).c_str(),
-                                              B1->get_shape(), A1->get_shape());
+                                              A1->get_shape(), B1->get_shape());
                         if (ec)   return Value_P();
 
                         const ShapeItem len_Z1 = sh_Z1->get_volume();
@@ -968,7 +968,7 @@ CELL_PERFORMANCE_END(job_AB->fun->get_statistics_AB(), start_2, z)
                    const Shape * sh_Z1 =
                          conforming_shape(job_AB->error,
                                          conforming_where(job_AB->fun).c_str(),
-                                         B1->get_shape(), A1->get_shape());
+                                         A1->get_shape(), B1->get_shape());
                    if (job_AB->error)
                       {
                         Parallel::release_lock(jobs_lock);

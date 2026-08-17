@@ -825,26 +825,21 @@ const ShapeItem A_count = A->element_count();
         LENGTH_ERROR;
       }
 
-   // JSA: handle len > 3 cases in monadicCrossProduct()
-   //
+   // The dyadic form only ever builds a 2×A_count matrix BB and hands it
+   // to monadicCrossProduct(), whose own precondition (rows == cols - 1)
+   // reduces to A_count == 3 for that shape -- exactly the case this
+   // branch used to exclude, so the old A_count != 3 fallback could never
+   // reach anything but LENGTH_ERROR there anyway. Raise it here directly
+   // instead, with a message that actually names what the caller passed
+   // (⍴A, not the monadic form's ⍴B).
    if (A_count != 3)
       {
-        Value_P BB(2, A_count, LOC);
-        Cell * cell_BB = &BB->get_wfirst();
-
-        loop(a, A_count)
-            {
-              Cell cache;
-              A->get_cravel(a, cache).init_other(cell_BB++, *BB, LOC);
-            }
-        loop(b, A_count)
-            {
-              Cell cache;
-              B->get_cravel(b, cache).init_other(cell_BB++, *BB, LOC);
-            }
-
-        BB->check_value(LOC);
-        return monadicCrossProduct(BB);
+        MORE_ERROR() << "A ⎕MX.cross_product B: the dyadic cross product is "
+                        "defined only for 3-element vectors (⍴A is "
+                     << A_count << "); use the monadic form "
+                        "⎕MX.cross_product B with an (n-1)×n matrix B for "
+                        "the generalised cross product in ℝⁿ";
+        LENGTH_ERROR;
       }
 
 GSL_Matrix * mtx = new GSL_Matrix(3, 3);

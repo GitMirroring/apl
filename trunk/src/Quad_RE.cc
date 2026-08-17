@@ -48,8 +48,12 @@ Flags flags(X.get_UCS_ravel());
 Regexp regexp(A.get_UCS_ravel(), flags.get_compflags());
 
 const Shape & shape = B.get_shape();
-    if (shape.get_rank() == 0)
-        return Token(TOK_APL_VALUE1, Idx0(LOC));
+    // NOTE: a character scalar satisfies is_char_string() (rank <= 1) and
+    // is handled correctly by the branch below as a one-element string;
+    // there used to be an early rank==0 special case here that returned
+    // ⍬ unconditionally, silently bypassing the 'E' (error-on-no-match)
+    // flag and making a matching and a non-matching pattern
+    // indistinguishable.
 
     if (B.is_char_string())
        {
@@ -477,7 +481,12 @@ const PCRE2_SIZE * ovector = rem.get_ovector();
    //
    if (ovector[1] == ovector[0])   ++B_offset;
 
-   if (rem.num_matches() == 1)   // simple match
+   // disabled for the same reason as string_result() above (Bugs10 #7):
+   // num_matches()==1 also fires when only group 0 participated, which
+   // silently drops the non-participating group placeholders the caller
+   // expects -- fall through to the deep_value() path instead so both
+   // result forms agree.
+   if (0 && rem.num_matches() == 1)   // simple match
       {
         // single string
         //

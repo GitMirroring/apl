@@ -1706,7 +1706,9 @@ int conversion_count_A = 0;   // the number of conversions (in A_format)
 
                      case 'm':
                           {
-                            COUNT_ARG;
+                            // %m (insert strerror(errno)) takes no argument
+                            // of its own, so it must not be counted as a
+                            // conversion that consumes one.
                             SPRINTF(numbuf, "%s", strerror(errno));
                             const UTF8_string utf(numbuf);
                             const UCS_string content(utf);

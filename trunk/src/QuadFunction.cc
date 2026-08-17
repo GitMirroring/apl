@@ -681,7 +681,18 @@ const ErrorCode ec = get_error_code(B);
    if (StateIndicator * si = Workspace::SI_top()->get_parent())
       {
         const UserFunction * ufun = si->get_executable()->get_exec_ufun();
-        if (ufun)
+
+        // Skip this branch (and fall through to the general
+        // update_error_info() path below, the same one the top level
+        // already uses) when the current frame is itself where ⎕EC's
+        // safe execution started -- popping it here would remove the
+        // very frame Command.cc's safe-execution unwind later looks at,
+        // silently defeating ⎕EC/⎕EA for this error. Also skip macro
+        // ufuns (e.g. ⎕EA's own implementation, Z__A_Quad_EA_B) so an
+        // internal macro frame is never blamed as a user-visible
+        // defined function.
+        if (ufun && !ufun->is_macro() &&
+            !Workspace::SI_top()->is_safe_execution_start())
            {
              // lrm p 282: When ⎕ES is executed from within a defined function
              // and B is not empty, the event action is generated as though

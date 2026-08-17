@@ -154,13 +154,32 @@ const ShapeItem B0 = b;
    if (ucs_B[b] == UNI_MINUS)          ++b;
    else if (ucs_B[b] == UNI_OVERBAR)   ++b;
 
-   // mandatory integral part
+   // Integral part. Strict RFC 8259 (int = zero / (digit1-9 *DIGIT))
+   // requires at least one digit here, but GNU APL's own ⎕JSON testsuite
+   // (Quad_JSON.tc) already relies on also accepting a leading '.' with
+   // no integer digit at all, e.g. ".3" -- so the digit requirement below
+   // is checked jointly with the fractional part, not on the integral
+   // part alone: reject only a mantissa with *no* digits anywhere
+   // (neither int nor frac), which is what Blake McBride's Bugs19 #5
+   // examples ("[1,-,2]", "-.") actually are.
+   const ShapeItem int_start = b;
    while (uint32_t(ucs_B[b] - UNI_0) < 10)   ++b;
+   const bool any_int_digit = (b != int_start);
 
+   bool any_frac_digit = false;
    if (ucs_B[b] == UNI_FULLSTOP)   // optional fractional part
       {
         ++b;   // skip UNI_FULLSTOP
+        const ShapeItem frac_start = b;
        while (uint32_t(ucs_B[b] - UNI_0) < 10)   ++b;
+        any_frac_digit = (b != frac_start);
+      }
+
+   if (!any_int_digit && !any_frac_digit)
+      {
+        MORE_ERROR() << "⎕JSON B: malformed number (no digits) at "
+                     << B0 << "↓B";
+        DOMAIN_ERROR;
       }
 
    if (ucs_B[b] == UNI_E || ucs_B[b] == UNI_e)   // optional exponent
@@ -174,7 +193,16 @@ const ShapeItem B0 = b;
         // APL_to_JSON_string()) emits for positive exponents, so e.g.
         // ⎕JSON 2⎕JSON 1E300 could not read back its own output.
         else if (ucs_B[b] == UNI_PLUS)      ++b;
-       while (uint32_t(ucs_B[b] - UNI_0) < 10)   ++b;
+
+        // RFC 8259 also requires at least one exponent digit (Bugs19 #5)
+        const ShapeItem exp_start = b;
+        while (uint32_t(ucs_B[b] - UNI_0) < 10)   ++b;
+        if (b == exp_start)
+           {
+             MORE_ERROR() << "⎕JSON B: malformed number (no exponent "
+                             "digits) at " << B0 << "↓B";
+             DOMAIN_ERROR;
+           }
       }
 
    return b - B0;
@@ -609,9 +637,6 @@ std::vector<ShapeItem> tokens_B;
                    MORE_ERROR() << "⎕JSON B: Got '" << uni <<
                    "' when expecting a JSON token at " << b << "↓B";
                    DOMAIN_ERROR;
-                   MORE_ERROR() << "⎕JSON B: Got '" << uni <<
-                   "' when expecting a JSON token at " << b << "↓B";
-                   DOMAIN_ERROR;
             }
        }
 
@@ -762,6 +787,11 @@ size_t cc_len = 0;
 bool need_fract = false;
 bool have_expo = false;
 double dval = 0;
+   // digit-presence tracking for the "malformed number" check below
+   // (Bugs19 #5, Blake McBride) -- declared here, not in a nested scope,
+   // so they stay valid across the goto number_too_long jumps below.
+bool any_int_digit = false;
+bool any_frac_digit = false;
 
    if (ucs_B[b] == UNI_MINUS || ucs_B[b] == UNI_OVERBAR)
       { ++b;   cc[cc_len++] = '-'; }
@@ -770,6 +800,7 @@ double dval = 0;
    //
    while (ucs_B[b] >= UNI_0 && ucs_B[b] <= UNI_9)
          {
+           any_int_digit = true;
            if (cc_len >= MAX_NUMLEN)   goto number_too_long;
            cc[cc_len++] = ucs_B[b++];
          }
@@ -784,9 +815,23 @@ double dval = 0;
         ++b;
         while (ucs_B[b] >= UNI_0 && ucs_B[b] <= UNI_9)
               {
+                any_frac_digit = true;
                 if (cc_len >= MAX_NUMLEN)   goto number_too_long;
                 cc[cc_len++] = ucs_B[b++];
               }
+      }
+
+   // Strict RFC 8259 (int = zero / (digit1-9 *DIGIT)) requires at least
+   // one integer digit, but GNU APL's own ⎕JSON testsuite already relies
+   // on also accepting a leading '.' with no integer digit, e.g. ".3" --
+   // so (matching number_len()'s check above) reject only a mantissa
+   // with *no* digits anywhere, neither int nor frac (Bugs19 #5, Blake
+   // McBride: "[1,-,2]", "-.").
+   if (!any_int_digit && !any_frac_digit)
+      {
+        MORE_ERROR() << "⎕JSON B: malformed number (no digits) at "
+                     << b << "↓B";
+        DOMAIN_ERROR;
       }
 
    // maybe copy exponent part to cc...
@@ -800,16 +845,28 @@ double dval = 0;
         if (ucs_B[b] == UNI_MINUS || ucs_B[b] == UNI_OVERBAR)   // negative expo
            {
              need_fract = true;
+             if (cc_len >= MAX_NUMLEN)   goto number_too_long;
              ++b;   cc[cc_len++] = '-'; }
         else if (ucs_B[b] == UNI_PLUS)   // '+' exponent (Bugs16 #5): see
            {                             // number_len()'s matching fix
              ++b;
            }
-             while (ucs_B[b] >= UNI_0 && ucs_B[b] <= UNI_9)
-                   {
-                     if (cc_len >= MAX_NUMLEN)   goto number_too_long;
-                      cc[cc_len++] = ucs_B[b++];
-                   }
+        {
+          // RFC 8259: at least one exponent digit is mandatory (Bugs19 #5,
+          // Blake McBride) -- must match number_len()'s check above.
+          const size_t exp_start = cc_len;
+          while (ucs_B[b] >= UNI_0 && ucs_B[b] <= UNI_9)
+                {
+                  if (cc_len >= MAX_NUMLEN)   goto number_too_long;
+                   cc[cc_len++] = ucs_B[b++];
+                }
+          if (cc_len == exp_start)
+             {
+               MORE_ERROR() << "⎕JSON B: malformed number (no exponent "
+                               "digits) at " << b << "↓B";
+               DOMAIN_ERROR;
+             }
+        }
       }
    cc[cc_len++] = 0;
 

@@ -111,11 +111,9 @@ std::vector<ShapeItem> line_starts;
 Value_P Z(ShapeItem(line_starts.size() - 1), LOC);
    loop(l, line_starts.size() - 1)
       {
-        ShapeItem len;
-        if (l < ShapeItem(line_starts.size() - 1))
-           len = line_starts[l + 1] - line_starts[l] - 1;
-        else
-           len = result_utf8.size() - line_starts[l];
+        // loop(l, line_starts.size() - 1) never reaches the last index of
+        // line_starts, so line_starts[l + 1] is always valid here.
+        const ShapeItem len = line_starts[l + 1] - line_starts[l] - 1;
 
         const UTF8_string line_utf8(&result_utf8[line_starts[l]], len);
         const UCS_string line_ucs(line_utf8);

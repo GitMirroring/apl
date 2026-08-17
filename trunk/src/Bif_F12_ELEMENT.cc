@@ -59,7 +59,12 @@ const ShapeItem len_A = A.element_count();
         const ShapeItem len_B = B.element_count();
 
         std::unordered_set<int64_t> set_B;
-        set_B.reserve(len_B * 2);
+        // matching Bif_F2_INTER::eval_AB()'s guard: a bare reserve() on a
+        // very large B raises a C++ std::bad_alloc instead of the APL
+        // WS FULL its sibling produces (Bugs18 #16, same class here).
+        try { set_B.reserve(len_B * 2); }
+        catch (std::bad_alloc &) { WS_FULL; }
+        catch (...)              { FIXME; }
         loop(b, len_B)   set_B.insert(pB[b]);
 
         uint64_t * pZ = reinterpret_cast<uint64_t *>(&Z->get_wfirst());

@@ -54,7 +54,8 @@ sf( F2_AND_B           , "⊤∧"          ,         )
 pp( APL_VALUE4         , ---          ,          )
                                     
 sf( F12_BINOM          , "!"          , = 0x4201 )   // B...
-st( BRANCH             , "→"          ,          )
+st( BRANCH             , "→"          ,          )   // e.g. → 4
+st( BRANCH_LAB         , "→"          ,          )   // e.g. → L4
                                     
 pp( CHARACTER          , ---          , = 0x4301 )   // C...
 sf( F12_CIRCLE         , "○"          ,          )
