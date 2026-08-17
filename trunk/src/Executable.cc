@@ -1119,8 +1119,8 @@ ShapeItem insertion_point = b;
               // diamonds inside {} to TOK_END before compute_lambda_body()
               // runs.  Keep the case as documentation.
               case TOK_DIAMOND:
-              // TOK_BRANCH is the resolved branch token.  Always illegal.
-              case TOK_BRANCH:
+              // TOK_BRANCH_INT is the resolved branch token.  Always illegal.
+              case TOK_BRANCH_INT:
                    MORE_ERROR() << "→ is not allowed in λ expression ";
                    DEFN_ERROR;
 

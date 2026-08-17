@@ -443,7 +443,7 @@ StateIndicator::jump(cValue_R B)
 {
    // perform a jump. We either remain in the current function (and then
    // return TOK_VOID), or we (want to) jump back into the calling
-   // function (and then return TOK_BRANCH.). The jump itself (if any)
+   // function (and then return TOK_BRANCH_INT.). The jump itself (if any)
    // is executed in Prefix.cc.
    //
    if (B.get_rank() > 1)   RANK_ERROR;
@@ -454,7 +454,7 @@ StateIndicator::jump(cValue_R B)
         // →'' on ⍎ or defined functions means do nothing
         //
         if (get_parse_mode() == PM_STATEMENT_LIST)
-           return Token(TOK_BRANCH, int64_t(Function_Retry));
+           return Token(TOK_BRANCH_INT, int64_t(Function_Retry));
 
         return Token(TOK_NOBRANCH);           // stay in context
       }
@@ -476,7 +476,7 @@ StateIndicator::jump_to_line(Function_Line line)
 
    // →N in ⍎ or ◊ context (i.e. to start of line 0)
    //
-   return Token(TOK_BRANCH, int64_t(line < 0 ? Function_Line_0 : line));
+   return Token(TOK_BRANCH_INT, int64_t(line < 0 ? Function_Line_0 : line));
 }
 //────────────────────────────────────────────────────────────────────────────
 void

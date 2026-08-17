@@ -169,7 +169,14 @@ const TokenTag tag = token.get_tag();
         case TOK_ERROR:
              return out << Error::error_name( ErrorCode(token.get_int_val()));
 
-        case TOK_BRANCH:
+        case TOK_BRANCH_INT:
+             // ↦ (U+21A6) rather than plain → so debug printouts can
+             // tell an int/computed branch target apart from a label
+             // one (TOK_BRANCH_LAB, which keeps the ordinary →) at a
+             // glance; same Arrows block as → for font coverage.
+             return out << "↦" << token.get_int_val();
+
+        case TOK_BRANCH_LAB:
              return out << token.get_Id() << token.get_int_val();
 
         case  TOK_GOTO_PC:
@@ -629,7 +636,11 @@ UCS_string fn = fun_name;
         case TOK_APL_VALUE3:
              break;   // continue below
 
-        case TOK_BRANCH:
+        case TOK_BRANCH_INT:
+             out << "↦" << get_int_val() << endl;   // see Token::print()
+             return;
+
+        case TOK_BRANCH_LAB:
              out << "→" << get_int_val() << endl;
              return;
 

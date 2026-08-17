@@ -183,7 +183,7 @@ bool do_display = false;
         exec_result = PyTuple_Pack(2, code, Py_None);
         Py_DECREF(code);
       }
-   else if (tag == TOK_BRANCH)                           // →N
+   else if (tag == TOK_BRANCH_INT || tag == TOK_BRANCH_LAB)   // →N or →LAB
       {
         PyObject * code = PyLong_FromLong(4);
         PyObject * val = PyLong_FromLong(result.get_int_val());

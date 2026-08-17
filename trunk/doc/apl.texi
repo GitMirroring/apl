@@ -4079,6 +4079,89 @@ if the item was not found).
 
 
 @c ----------------------------------------------------------------------------
+@node Dyadic A→B
+@section Dyadic A→B
+
+Compared to other languages, APL is unique in having only one construct
+for all types of program flow: the computed branch @b{→B}. It is used for
+individual decisions (if/else in C/C++), jump tables (switch in C/C++), and
+loops (for/while in C/C++). However, this generality has a cost.
+
+The vast majority of APL loops end with something like
+@b{→(MAX_N>N←N+1)/LABEL} or @b{→(MAX_N>N←N+1)⍴LABEL}. Whether a programmer
+prefers @b{⍴} over @b{/} makes no difference here, and more exotic
+primitives such as @b{↑} or @b{↓} are also seen occasionally. Abbreviated
+conditions such as @b{(N←N-1)} instead of @b{(0>N←N-1)} look simpler, but
+the branch vector itself -- of which only its length (zero or not) and,
+if non-empty, its first item matter -- is longer for the abbreviated form.
+
+Monadic @b{→B} has two downsides. First, the number of tokens: since the
+branch condition is the left argument of a primitive (@b{⍴} or @b{/} above),
+it has to be parenthesized, and every parenthesized phrase is looked up at
+runtime. Second, the computation itself: evaluating that primitive
+produces a fully-fledged APL value with a shape, a rank, and a ravel,
+where all that is actually needed is a single integer -- the line to
+which the branch may or may not be taken.
+
+In a tight inner loop the performance cost of both downsides is
+measurable. GNU APL's dyadic @b{A→B} addresses both:
+
+@example
+    N→COND        ⍝ same as →(COND)/(⎕LC+N)
+    LABEL→COND    ⍝ same as →(COND)/LABEL
+@end example
+
+Since @b{COND} is now the right argument of @b{→} directly, no
+parentheses are needed around it, and no intermediate branch vector is
+computed at all -- @b{A} and @b{COND} are each plain scalars.
+
+There is a subtle, and for a GNU-specific extension unfamiliar to most
+APL programmers potentially misleading, difference between the two forms
+above (and, correspondingly, between monadic @b{→B} and dyadic
+@b{A→B}): if @b{A} is a direct reference to a @i{label} of the enclosing
+defined function, the branch -- if taken -- goes to that label's own
+line, exactly as monadic @b{→LABEL} would. But if @b{A} is a literal, a
+variable, or the result of a computation, the branch is @i{relative} to
+the current line instead: @b{0→COND} retries the current line,
+@b{1→COND} branches to the next line, @b{¯1→COND} branches to the
+previous line, and so on. @b{It is easy to assume, wrongly, that
+@code{A→B} always branches to the absolute line @code{A} -- it only does
+so when @code{A} is a label.} Assigning a label's value to a variable and
+branching via that variable does @i{not} count as a direct reference, and
+is therefore relative, like any other computed value, not absolute.
+
+Since a relative branch needs no label, it can be used anywhere a
+"current line" is well defined -- inside a defined function, inside a
+lambda, and at top-level immediate execution, where @b{0→COND} is a
+common way to write a fast, compact one-line loop. It also works when the
+branch is evaluated via @b{⍎}, @b{⍎¨}, @b{⎕EC}, @b{⎕EA}, or @b{⎕EB}: since
+the evaluated string has no line of its own, @b{A→COND} there is relative
+to the line @i{containing} the @b{⍎} (or similar) call, in the numbering
+of the nearest enclosing defined function -- exactly as if @b{A→COND} had
+been written directly on that line instead of inside the evaluated
+string. A direct label reference works the same way via @b{⍎} as
+everywhere else: absolute, to that label's own line. Only a nonzero
+@b{A} with no enclosing defined function at all -- e.g. @b{⍎'1→COND'} at
+top-level, with nothing suspended -- has no line to be relative to; GNU
+APL raises a @b{SYNTAX ERROR} in that case. @b{A→COND} with @b{A=0} is
+unaffected by any of this, since it needs no line lookup at all.
+
+Another difference between @b{→B} and @b{A→B} is how each handles a
+branch target outside the function's valid line range. Monadic @b{→B}
+(with @b{N≤0} or @b{N} past the last line) is the standard "return from
+the function" idiom, and is unaffected by any of the above. Dyadic
+@b{A→B}, however, raises a @b{DOMAIN ERROR} for an out-of-range target
+instead of returning: since @b{A} is so often computed as an offset
+relative to the current line, an out-of-range target -- for example
+after a line is inserted or deleted between the branch and its intended
+destination -- is far more likely to be an accident than an intentional
+return, and silently returning would hide exactly the kind of mistake
+that is hardest to catch after the fact.
+
+Dyadic @b{A→B} is currently experimental; use it with care and avoid it
+if portability is a concern.
+
+@c ----------------------------------------------------------------------------
 @node ⌹[X] - Miscellaneous Matrix and Vector Operations
 @section ⌹[X] - Miscellaneous Matrix and Vector Operations
 

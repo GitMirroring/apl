@@ -386,6 +386,7 @@ Value_P Z2(2, LOC);
         case TOK_APL_VALUE1:
         case TOK_APL_VALUE3:
         case TOK_APL_VALUE4:
+        case TOK_APL_VALUE5:
              Z->next_ravel_1();
              Z->next_ravel_Pointer(Z2.get());
              Z->next_ravel_Value(result.get_apl_val().get());
@@ -404,7 +405,8 @@ Value_P Z2(2, LOC);
              Z->next_ravel_Pointer(Idx0_0(LOC).get());
              break;
 
-        case TOK_BRANCH:
+        case TOK_BRANCH_INT:
+        case TOK_BRANCH_LAB:
              Z->next_ravel_Int(4);
              Z->next_ravel_Pointer(Z2.get());
              Z->next_ravel_Int(result.get_int_val());

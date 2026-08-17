@@ -182,7 +182,7 @@ public:
 
    /// return \b true if \b token is for a label of \b this function
    /// @param tok lexical token to test
-   bool is_label(const Token & tok)
+   bool is_label(const Token & tok) const
       { return tok.get_Class() == TC_SYMBOL && is_label(tok.get_sym_ptr()); }
 
    /// return \b true if \b token is for a label of \b this function
@@ -294,6 +294,19 @@ public:
    /// return the pc of the first token in line l (valid line), or
    /// the pc of the last token in the function (invalid line)
    Function_PC pc_for_line(Function_Line line) const;
+
+   /// return true iff \b line is a real line of this function (i.e.
+   /// pc_for_line(line) would return that line's own first token,
+   /// rather than silently falling back to the end-of-function PC).
+   /// Line 0 (the conventional "return" target for monadic →0) is
+   /// deliberately NOT counted as real here.
+   bool is_valid_line(Function_Line line) const
+      { return line > Function_Line_0 &&
+               line < Function_Line(line_starts.size()); }
+
+   /// return the last real line number of this function
+   Function_Line get_last_line() const
+      { return Function_Line(line_starts.size() - 1); }
 
    /// overloaded Executable::print()
    virtual ostream & print(ostream & out) const;

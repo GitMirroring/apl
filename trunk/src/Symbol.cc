@@ -1402,8 +1402,14 @@ const ValueStackItem & vs = value_stack.back();
 
         case NC_LABEL:
              {
+               // TOK_APL_VALUE5 rather than the ordinary TOK_APL_VALUE1:
+               // carries "this integer came directly from a label" forward
+               // with the value itself, so any later consumer (⌹, →, ...)
+               // can tell a label-derived branch target apart from a
+               // literal/computed one without having to re-derive its
+               // provenance from source position bookkeeping.
                Value_P value = IntScalar(vs.get_label(), LOC);
-               Token t(TOK_APL_VALUE1, value);
+               Token t(TOK_APL_VALUE5, value);
                tok.move_from(t, LOC);
              }
              return;

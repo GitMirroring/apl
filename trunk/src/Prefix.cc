@@ -485,7 +485,7 @@ const uint64_t inst = instance;
              LOG_prefix_parser && CERR << "RA_RETURN" << endl;
 
              // the reduce_fun() has decided to leave this Prefix.
-             // The result of this Prefix is e.g. the TOK_VOID or TOK_BRANCH
+             // The result of this Prefix is e.g. the TOK_VOID or TOK_BRANCH_INT
              // that was returned by StateIndicator::jump(). pop() the
              // result from this Prefix and return it to the calling Prefix.
              //
@@ -1544,7 +1544,7 @@ Value_P v_line = IntScalar(line, LOC);
    // StateIndicator::jump() only computes what should happen and
    // returns a Token describing it (see its own comment) -- the actual
    // jump is performed by whoever called it. The two normal (non-⎕EA)
-   // call sites in this file (reduce_END_GOTO_B_/reduce_LABEL_GOTO_B_)
+   // call sites in this file (reduce_END_GOTO_B_/reduce_RETC_GOTO_B_)
    // act on that Token themselves; this one used to just discard it,
    // silently dropping the branch instead of propagating it (Blake
    // McBride, LanguageVariances.md #27).
@@ -3017,7 +3017,7 @@ Prefix::reduce_END_GOTO__()   // Escape ( → )
        Normally:
 
        1a. reduce_END_GOTO__ happens for APL → aka. ESC
-       1b. tokens TOK_BRANCH and TOK_NOBRANCH are local result token
+       1b. tokens TOK_BRANCH_INT and TOK_NOBRANCH are local result token
            returned by si.jump(line) in reduce_END_GOTO_B_(), where
            si.jump() also modifies the PC.
 
@@ -3095,6 +3095,7 @@ const bool trace = at0().get_Class() == TC_END && (at0().get_int_val() & 1);
       }
 }
 //────────────────────────────────────────────────────────────────────────────
+//────────────────────────────────────────────────────────────────────────────
 void
 Prefix::reduce_END_GOTO_B_()
 {
@@ -3110,6 +3111,14 @@ Prefix::reduce_END_GOTO_B_()
 const bool end_of_line = at0().get_tag() == TOK_ENDL;
 const bool trace = end_of_line && (at0().get_int_val() & 1);
 
+   // →LAB vs →4/→2+2: si.jump() below always tags a real branch-back
+   // result as TOK_BRANCH_INT since it only ever sees the resolved
+   // integer value; the label/non-label distinction is determined here
+   // instead (Symbol::resolve_right()'s NC_LABEL case tags a label's
+   // resolved value TOK_APL_VALUE5 rather than the ordinary
+   // TOK_APL_VALUE1, so the provenance travels with the value itself),
+   // and applied to the result afterwards.
+const bool is_label = at2().get_tag() == TOK_APL_VALUE5;
 const cValue * line = at2().get_apl_val().get();
 
    // produce ⎕TRACE output if enabled and branch is not empty
@@ -3117,20 +3126,22 @@ const cValue * line = at2().get_apl_val().get();
    if (trace && line->element_count() > 0)
       {
         const ShapeItem line_num = line->get_line_number();
-        Token bra(TOK_BRANCH, line_num);
+        Token bra(is_label ? TOK_BRANCH_LAB : TOK_BRANCH_INT, line_num);
         si.statement_result(bra, true);   // display trace line
       }
 
 const Token result = si.jump(*line);   // may change the PC
 
-   if (result.get_tag() == TOK_BRANCH)   // branch back into a function
+   if (result.get_tag() == TOK_BRANCH_INT)   // branch back into a function
       {
         Log(LOG_prefix_parser)
            {
              CERR << "Leaving context after " << result << endl;
            }
 
-        pop_args_push_result(result);
+        const Token tagged(is_label ? TOK_BRANCH_LAB : TOK_BRANCH_INT,
+                            result.get_int_val());
+        pop_args_push_result(tagged);
         set_action(RA_RETURN);            // return from context;
         return;
       }
@@ -3145,7 +3156,7 @@ const Token result = si.jump(*line);   // may change the PC
 
    reset(LOC);   // branch taken: terminate current statement
 
-   /* NOTE: the →N cases with N≤0 or N≥↑⍴⎕CR 'FUNCTION' are handled in 
+   /* NOTE: the →N cases with N≤0 or N≥↑⍴⎕CR 'FUNCTION' are handled in
       UserFunction::pc_for_line(). pc_for_line() sets the PC to the end
       of the function (which then returns):
 
@@ -3196,12 +3207,53 @@ const APL_Integer jump_offset = A0.get_near_int();
    if (const UserFunction * ufun = si.get_executable()->get_exec_ufun())
       {
         // A → B in a ∇-context (lambda or ∇-function)
-     
-        // PC was already incremented and now points to the next token
-        // after the branch. In order to compute the proper line number,
-        // we have to use the PC BEFORE the branch.
         //
-        const int function_line = ufun->get_line(PC - prefix_len) + jump_offset;
+        // If A came directly from a label symbol (LAB→B), it is tagged
+        // TOK_APL_VALUE5 (Symbol::resolve_right()'s NC_LABEL case), and
+        // that label's own value already IS the absolute target line --
+        // branch there directly, exactly like monadic →LAB, matching
+        // the naive (and, for a GNU extension nobody but us has seen
+        // before, entirely reasonable) assumption that "LAB→B jumps to
+        // LAB". A literal or computed A (0→cond, (N+1)→cond, ...) keeps
+        // its existing, established meaning: an offset relative to the
+        // current line -- this is what the fast 1-line-loop idiom
+        // (0→MAX_N>N←N+1) still relies on. Labels can only occur in a
+        // real defined function's own body (never a lambda's -- lambdas
+        // have no labels -- and never reachable here at all via ⍎,
+        // which SYNTAX_ERRORs on nonzero A before this point), so no
+        // further guarding is needed: reaching here with a
+        // TOK_APL_VALUE5 A always means a genuine label of *this*
+        // function.
+        //
+        // PC was already incremented and now points to the next token
+        // after the branch. In order to compute the proper RELATIVE
+        // line number, we have to use the PC BEFORE the branch.
+        //
+        const bool A_is_label = at0().get_tag() == TOK_APL_VALUE5;
+        const int function_line = A_is_label
+                                 ? int(jump_offset)   // absolute: LAB's own line
+                                 : ufun->get_line(PC - prefix_len) + jump_offset;
+
+        // Unlike monadic →0/→N, where landing at or past the end of the
+        // function is the standard, deliberate "return" idiom, an
+        // out-of-range target here is far more likely to be an
+        // accident: A→B's relative offset silently points somewhere
+        // different every time a line is added or removed between the
+        // branch and its intended target, and a label can be misspelled
+        // or the wrong one referenced. Letting that silently "return"
+        // instead of erroring would hide exactly the kind of mistake
+        // that's hardest to catch after the fact -- so, deliberately
+        // unlike monadic →, any out-of-range A→B target is a DOMAIN
+        // ERROR instead.
+        if (!ufun->is_valid_line(Function_Line(function_line)))
+           {
+             MORE_ERROR() << "A → B: branch target line " << function_line
+                          << " is outside " << ufun->get_name()
+                          << "'s valid line range 1.."
+                          << ufun->get_last_line();
+             DOMAIN_ERROR;
+           }
+
         si.jump_to_line(Function_Line(function_line));   // changes the PC
         branch_within_function(true);   // check ^C and set_action(RA_PUSH_NEXT)
         reset(LOC);                     // abort the current statement
@@ -3216,23 +3268,79 @@ const APL_Integer jump_offset = A0.get_near_int();
              PC = Function_PC(body.ssize() -1);
            }
       }
-   else         // ⍎ or ◊ context
+   else         // ⍎ (or ⍎¨, ⎕EC, ⎕EA, ⎕EB, which all bottom out in the same
+                // ExecuteList-based mechanism) or plain top-level immediate
+                // execution (◊)
       {
-        // A → B in ⍎ or ◊ context. Unlike ∇-contexts, the line number is
-        // always 0 and →0 does NOT return and non-zero jump_offsets are
-        // not permitted.
-        //
-        if (jump_offset)   // function_line is 0 in ⍎ or ◊ contexts
+        if (jump_offset == 0)
            {
-             MORE_ERROR() << "A → B with non-zero A is only permitted "
-                             "inside a defined function";
+             // the supported "retry this statement" idiom (e.g. Branch.tc's
+             // "0→0<N←⎕←N-1") -- restart the ⍎'d string itself, cheaply, by
+             // resetting this context's own PC. No enclosing function's
+             // line table is involved, so this is unaffected by the below.
+             //
+             goto_PC(Function_PC_0);   // calls reset(), so don't pop_args()!
+             set_action(RA_PUSH_NEXT);   // aka. SHIFT
+             return;
+           }
+
+        // nonzero A: this needs an enclosing DEFINED FUNCTION to be
+        // relative to (or, for a label, to belong to). get_exec_ufun()
+        // on this context (⍎'s own, synthetic ExecuteList body) is
+        // always 0, so it can't by itself distinguish "genuinely
+        // top-level, no enclosing function at all" from "running inside
+        // a defined function, just indirectly via ⍎/⎕EC/⎕EA/⎕EB's own
+        // separate body, whose tokens have no line numbers of the
+        // enclosing function's own". Workspace::SI_top_fun() answers
+        // that properly: it walks up the )SI, past any number of nested
+        // ⍎/◊ frames, to the nearest real function (if any) -- exactly
+        // the same lookup Command.cc's TOK_BRANCH_INT handler performs
+        // when it later APPLIES the jump (via si->goon()), so "compute"
+        // here and "apply" there always agree on which function, and
+        // which of its lines, A is relative to -- however deep the ⍎
+        // nesting. TOK_BRANCH_INT/TOK_BRANCH_LAB always carry an
+        // ABSOLUTE line number (see StateIndicator::jump_to_line()), so
+        // once function_line below is computed there is nothing left to
+        // do here but hand it off the same way monadic →LAB/→N already
+        // does from ⍎ context: pop_args_push_result() + RA_RETURN, and
+        // let it bubble up to be applied there.
+        //
+        const bool A_is_label = at0().get_tag() == TOK_APL_VALUE5;
+        StateIndicator * fsi = Workspace::SI_top_fun();
+
+        if (fsi == 0)
+           {
+             MORE_ERROR() << "A → B: nonzero A is not permitted when "
+                             "evaluated via ⍎, ⍎¨, ⎕EC, ⎕EA, or ⎕EB with no "
+                             "enclosing defined function -- there is no "
+                             "line for A to be relative to (or, for a "
+                             "label, no function it could belong to).";
+             SYNTAX_ERROR;
+           }
+
+        const UserFunction * fun = fsi->get_executable()->get_exec_ufun();
+        Assert(fun);
+        const int64_t function_line = A_is_label
+                                 ? jump_offset   // absolute: LAB's own line
+                                 : fsi->get_line() + jump_offset;
+
+        // see the matching comment in the ∇-context branch above: an
+        // out-of-range A → B target is deliberately a DOMAIN ERROR rather
+        // than a silent return, regardless of how many ⍎ levels deep it
+        // was evaluated from.
+        if (!fun->is_valid_line(Function_Line(function_line)))
+           {
+             MORE_ERROR() << "A → B: branch target line " << function_line
+                          << " is outside " << fun->get_name()
+                          << "'s valid line range 1.."
+                          << fun->get_last_line();
              DOMAIN_ERROR;
            }
 
-        // jump to same line (but outside a defined function)
-        //
-        goto_PC(Function_PC_0);   // calls reset(), so don't pop_args() !
-        set_action(RA_PUSH_NEXT);   // aka. SHIFT
+        const Token tagged(A_is_label ? TOK_BRANCH_LAB : TOK_BRANCH_INT,
+                            function_line);
+        pop_args_push_result(tagged);
+        set_action(RA_RETURN);            // return from context;
       }
 }
 //────────────────────────────────────────────────────────────────────────────
@@ -3390,6 +3498,8 @@ Prefix::reduce_RETC_GOTO_B_()
 const bool end_of_line = at0().get_tag() == TOK_ENDL;
 const bool trace = end_of_line && (at0().get_int_val() & 1);
 
+   // see the matching comment in reduce_END_GOTO_B_()
+const bool is_label = at2().get_tag() == TOK_APL_VALUE5;
 const cValue * line = at2().get_apl_val().get();
 
    // produce ⎕TRACE output if enabled and branch is not empty
@@ -3397,20 +3507,22 @@ const cValue * line = at2().get_apl_val().get();
    if (trace && line->element_count() > 0)
       {
         const ShapeItem line_num = line->get_line_number();
-        Token bra(TOK_BRANCH, line_num);
+        Token bra(is_label ? TOK_BRANCH_LAB : TOK_BRANCH_INT, line_num);
         si.statement_result(bra, true);   // display trace line
       }
 
 const Token result = si.jump(*line);   // may change the PC
 
-   if (result.get_tag() == TOK_BRANCH)   // branch back into a function
+   if (result.get_tag() == TOK_BRANCH_INT)   // branch back into a function
       {
         Log(LOG_prefix_parser)
            {
              CERR << "Leaving context after " << result << endl;
            }
 
-        pop_args_push_result(result);
+        const Token tagged(is_label ? TOK_BRANCH_LAB : TOK_BRANCH_INT,
+                            result.get_int_val());
+        pop_args_push_result(tagged);
         set_action(RA_RETURN);            // return from context;
         return;
       }

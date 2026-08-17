@@ -382,7 +382,8 @@ check_EOC:
               continue;
             }
 
-         if (token.get_tag() == TOK_BRANCH)
+         if (token.get_tag() == TOK_BRANCH_INT ||
+             token.get_tag() == TOK_BRANCH_LAB)
             {
               const Function_Line line = Function_Line(token.get_int_val());
               if (line == Function_Retry                                     &&
