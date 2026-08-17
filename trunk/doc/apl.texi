@@ -4243,6 +4243,23 @@ matrix @b{B} then there are two possibilities:
       significant rounding errors in the result.
 @end enumerate
 
+There is a third, distinct reason for a @b{DOMAIN ERROR} in @b{A⌹B} or
+@b{⌹B}, unrelated to linear dependence: @b{B} containing both very large
+and very small (but nonzero) elements at the same time. Before the actual
+rank estimation, GNU APL rescales @b{B} as a whole if it is uniformly far
+too large or far too small (to protect intermediate computations from
+overflow or underflow) -- but that rescaling multiplies every element of
+@b{B} by the same constant, so it cannot narrow the ratio between @b{B}'s
+own largest and smallest elements. If that ratio is finer than @b{⎕CT}
+can resolve, ordinary IEEE double precision can no longer reliably
+distinguish @b{B}'s genuine rank from rounding noise, and GNU APL refuses
+the computation rather than risk a silently wrong result. @b{Unlike case 2
+above, decreasing ⎕CT does not help here} -- the limit being hit is how
+finely a magnitude ratio can be represented at all, not the tolerance used
+to judge near-dependence. There is no workaround short of rescaling the
+offending rows or columns of @b{B} to a common order of magnitude before
+calling @b{A⌹B}/@b{⌹B}.
+
 @node ⌹[X] B - Various Factorizations of B
 @subsubsection ⌹[X] B: Various Factorizations of B
 

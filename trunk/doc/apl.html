@@ -76,7 +76,7 @@ Next: <a href="#Installing-and-Starting-GNU-APL" accesskey="n" rel="next">Instal
 </div>
 <span id="GNU-APL-Reference-Manual"></span><h1 class="top">GNU APL Reference Manual</h1>
 
-<p>August 13, 2026.
+<p>August 17, 2026.
 This manual briefly documents GNU APL, an interpreter for APL as described
 in ISO standard 13751, aka. &quot;Programming Language APL, Extended&quot;.
 </p>
@@ -5110,6 +5110,23 @@ matrix <b>B</b> then there are two possibilities:
       significant rounding errors in the result.
 </li></ol>
 
+<p>There is a third, distinct reason for a <b>DOMAIN ERROR</b> in <b>A⌹B</b> or
+<b>⌹B</b>, unrelated to linear dependence: <b>B</b> containing both very large
+and very small (but nonzero) elements at the same time. Before the actual
+rank estimation, GNU APL rescales <b>B</b> as a whole if it is uniformly far
+too large or far too small (to protect intermediate computations from
+overflow or underflow) &ndash; but that rescaling multiplies every element of
+<b>B</b> by the same constant, so it cannot narrow the ratio between <b>B</b>&rsquo;s
+own largest and smallest elements. If that ratio is finer than <b>⎕CT</b>
+can resolve, ordinary IEEE double precision can no longer reliably
+distinguish <b>B</b>&rsquo;s genuine rank from rounding noise, and GNU APL refuses
+the computation rather than risk a silently wrong result. <b>Unlike case 2
+above, decreasing ⎕CT does not help here</b> &ndash; the limit being hit is how
+finely a magnitude ratio can be represented at all, not the tolerance used
+to judge near-dependence. There is no workaround short of rescaling the
+offending rows or columns of <b>B</b> to a common order of magnitude before
+calling <b>A⌹B</b>/<b>⌹B</b>.
+</p>
 <hr>
 </div>
 <div class="subsubsection" id="g_t_2339_005bX_005d-B-_002d-Various-Factorizations-of-B">
