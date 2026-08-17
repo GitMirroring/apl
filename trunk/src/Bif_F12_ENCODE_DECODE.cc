@@ -277,24 +277,27 @@ APL_Integer bi = iB->get_int_value();   // the value being decoded
            }
          else
            {
-             // The intermediate dividend (bi - residue) can need up to
-             // ~65 bits: cZ (the residue) has the sign of the radix a, so
-             // for a large |bi| and a large negative a the difference can
-             // approach 2×INT64_MAX in magnitude. A plain uint64_t
-             // wraparound subtraction cures only the *UB* here, not the
-             // actual precision loss: dividing the truncated 64-bit
-             // dividend still yields a wrong digit (Bugs18 #6; confirmed
-             // the wraparound-only fix reproduces the exact same wrong
-             // high digit as the original UB build for
-             // (2⍴¯5000000000000000000) ⊤ 8000000000000000000, which
-             // should be ¯2 ¯2000000000000000000). __int128 has ample
-             // headroom for the ~65 bits actually needed, and the
-             // division below brings the magnitude back into ordinary
-             // digit range before narrowing back to bi.
-             //
-             const __int128 wide_bi =
-                __int128(bi) - __int128(cZ->get_int_value());
-             bi = APL_Integer(wide_bi / cellA.get_int_value());
+             // bi - residue can need up to ~65 bits (cZ has the sign of
+             // the radix a, so for a large |bi| and a large negative a
+             // the difference can approach 2×INT64_MAX), which used to
+             // be handled by widening to __int128 before dividing.
+             // __int128 is a GCC/Clang extension unavailable on 32-bit
+             // targets though (reported: compile failure on 32-bit
+             // Debian), so avoid the wide intermediate entirely instead:
+             // IntCell::bif_residue_ii() defines cZ with the same sign
+             // as a (the standard floored-division remainder
+             // convention), which means (bi - cZ)/a is exactly
+             // ⌊bi ÷ a⌋ under that same convention -- computable
+             // directly from bi and a via ordinary 64-bit truncating /
+             // and % plus the textbook trunc-to-floor correction, with
+             // no wide type needed on any platform. a==0 was excluded
+             // above and a==-1 is excluded by this branch, so neither
+             // bi/a nor bi%a can hit the INT64_MIN/-1 trap.
+             const APL_Integer a = cellA.get_int_value();
+             const APL_Integer trunc_q = bi / a;
+             const APL_Integer trunc_r = bi % a;
+             bi = trunc_q - ((trunc_r != 0 && ((trunc_r < 0) != (a < 0)))
+                              ? 1 : 0);
            }
        }
 }
