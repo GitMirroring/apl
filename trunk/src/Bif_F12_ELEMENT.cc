@@ -62,9 +62,14 @@ const ShapeItem len_A = A.element_count();
         // matching Bif_F2_INTER::eval_AB()'s guard: a bare reserve() on a
         // very large B raises a C++ std::bad_alloc instead of the APL
         // WS FULL its sibling produces (Bugs18 #16, same class here).
+        // catch (...) rather than catch (std::bad_alloc &) alone: an
+        // over-large reserve() may also throw std::length_error, which
+        // is likewise an allocation-site failure and should also mean
+        // WS FULL, not FIXME's internal-error abort (Blake McBride,
+        // Bugs20 #8c).
+        //
         try { set_B.reserve(len_B * 2); }
-        catch (std::bad_alloc &) { WS_FULL; }
-        catch (...)              { FIXME; }
+        catch (...) { WS_FULL; }
         loop(b, len_B)   set_B.insert(pB[b]);
 
         uint64_t * pZ = reinterpret_cast<uint64_t *>(&Z->get_wfirst());

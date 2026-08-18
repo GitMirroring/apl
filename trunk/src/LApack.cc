@@ -637,47 +637,12 @@ const size_t items_A      = rows;
 const size_t items_B      = rows * cols_B;
 const size_t items_result = cols_A * cols_B;
 
-   // B's own internal magnitude spread can make its rank undetectable
-   // reliably, independent of any near-singularity: gelsy()'s own
-   // pre-scaling (LA_pack::gelsy() above) only guards against B being
-   // uniformly too large or too small as a whole (to avoid hardware
-   // overflow/underflow); it multiplies every element by one constant,
-   // which cannot narrow B's internal largest/smallest ratio at all.
-   // If that ratio is finer than ⎕CT can resolve, the QR factorization's
-   // rank-revealing pivoting is comparing quantities that plain IEEE
-   // double precision can no longer tell apart from rounding noise, and
-   // gelsy() may report a wrong rank without any other symptom. Refuse
-   // up front rather than risk a silently wrong result -- checked once
-   // here since B (unlike A) is unchanged across the ALL_COLS(cols_A)
-   // loop below.
-   {
-     double min_abs = 0.0, max_abs = 0.0;
-     bool any = false;
-     loop(idx, items_B)
-        {
-          const double re = VB.get_real_value(idx);
-          const double im = VB.get_imag_value(idx);
-          const double mag = sqrt(re*re + im*im);
-          if (mag == 0.0)   continue;   // structural zeros don't count
-          if (!any || mag > max_abs)   max_abs = mag;
-          if (!any || mag < min_abs)   min_abs = mag;
-          any = true;
-        }
-
-     if (any && min_abs < rcond * max_abs)
-        {
-          MORE_ERROR() << "A⌹B: B's elements span too wide a magnitude "
-                          "range to determine its rank reliably "
-                          "(smallest/largest nonzero |element| ratio is "
-                       << (min_abs / max_abs) << ", finer than ⎕CT="
-                       << rcond << " can resolve); the result would be "
-                          "dominated by rounding error. Unlike an "
-                          "ordinary near-singular B, decreasing ⎕CT does "
-                          "not help here -- this is a magnitude-"
-                          "representation limit, not a rank/tolerance one";
-          DOMAIN_ERROR;
-        }
-   }
+   // Rank-revealing is gelsy()'s job (below, via rcond): it compares
+   // singular values, which is the textbook test. An element-magnitude
+   // ratio pre-check was tried here (r2085) but is not a valid proxy for
+   // conditioning -- a matrix can have an enormous spread of element
+   // magnitudes and still be perfectly well-conditioned (Blake McBride,
+   // Bugs20 #1) -- so it was removed again.
 
 const size_t bytes_A      = items_A      * sizeof(t0);
 const size_t bytes_B      = items_B      * sizeof(t0);

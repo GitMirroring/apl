@@ -317,9 +317,22 @@ Shape shape;
 
              if (shape.get_shape_item(biggest) <= 1)   break;   // every axis is 1
 
-             ec_trial /= shape.get_shape_item(biggest);
              shape.set_shape_item(biggest, shape.get_shape_item(biggest) - 1);
-             ec_trial *= shape.get_shape_item(biggest);
+
+             // Recompute the (saturating) volume from scratch rather than
+             // rescale ec_trial in place: ec_trial may have started life
+             // as the sentinel budget+1 (set above when the raw volume
+             // overflowed the saturation check), not the real volume, and
+             // rescaling that sentinel via /=/*= let this loop exit with a
+             // shape still enormously over budget (Blake McBride, Bugs20 #3).
+             //
+             ec_trial = 1;
+             loop(r, rank)
+                {
+                  const ShapeItem s = shape.get_shape_item(r);
+                  if (ec_trial > budget / s)   { ec_trial = budget + 1;   break; }
+                  ec_trial *= s;
+                }
            }
       }
 

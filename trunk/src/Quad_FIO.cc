@@ -1431,29 +1431,108 @@ bool left = false;
    // string, so the accumulation itself needs the same bound here).
    //
 int64_t width = 0;
+int64_t precision = -1;   // -1 means "no precision given"
+bool in_precision = false;
    for (unsigned int f = 1; f < fm; ++f)
        {
          if (fmt[f] == '-')                         left = true;
+         else if (fmt[f] == '.')
+            {
+              in_precision = true;
+              precision = 0;
+            }
          else if (fmt[f] >= '0' && fmt[f] <= '9')
             {
-              width = width*10 + (fmt[f] - '0');
+              int64_t & digits = in_precision ? precision : width;
+              digits = digits*10 + (fmt[f] - '0');
               // keep well clear of int64_t overflow even for fmt's full
               // ~36-digit capacity (checked every digit, not just once at
               // the end, so the accumulation itself never overflows).
               //
-              if (width > 1000000000)
+              if (digits > 1000000000)
                  {
-                   MORE_ERROR() << "⎕FIO printf: field width in format '"
-                                << fmt << "' is too large";
+                   MORE_ERROR() << "⎕FIO printf: field width/precision in "
+                                   "format '" << fmt << "' is too large";
                    DOMAIN_ERROR;
                  }
             }
        }
 
-const int64_t pad = width - int64_t(content.size());
+UCS_string truncated;
+const UCS_string * cont = &content;
+   if (precision >= 0 && precision < int64_t(content.size()))
+      {
+        truncated = UCS_string(content, 0, precision);
+        cont = &truncated;
+      }
+
+const int64_t pad = width - int64_t(cont->size());
    if (pad > 0 && Value::check_WS_FULL("⎕FIO printf", pad, LOC))   WS_FULL;
    if (pad > 0 && !left)   loop(p, pad)   UZ << UNI_SPACE;
-   UZ << content;
+   UZ << *cont;
+   if (pad > 0 && left)    loop(p, pad)   UZ << UNI_SPACE;
+}
+//────────────────────────────────────────────────────────────────────────────
+/// format \b val with \b fmt (a complete, already flags/width/precision/
+/// length-modifier-assembled printf() conversion spec of length \b fm,
+/// as built up by do_snprintf() below), insert thousands' separators,
+/// and pad the *grouped* result to the field width encoded in \b fmt --
+/// appending to \b UZ. Width/zero-flag/conversion are re-derived from
+/// \b fmt itself rather than threaded through separately.
+template<typename T>
+void
+Quad_FIO::group_thousands_width(UCS_string & UZ, const char * fmt,
+                                unsigned int fm, T val, bool flt)
+{
+   // Build fmt without the width digits (and without the zero-flag,
+   // which is just another digit at this point -- see below) so that
+   // snprintf() below produces the bare, natural-length digit string:
+   // grouping THAT (rather than the already width/zero-padded string
+   // the old code grouped) means the separators can't blow the field
+   // past the requested width (Blake McBride, Bugs20 #6).
+   //
+   // Per the printf() grammar, digits before the first '.' are either
+   // the zero-flag or width -- either way they must not survive into
+   // fmt_nw. Digits after '.' are precision and must be kept.
+   //
+char fmt_nw[40];
+unsigned int fm_nw = 0;
+bool left = false;
+int64_t width = 0;
+bool seen_dot = false;
+   for (unsigned int f = 0; f < fm; ++f)
+       {
+         const char c = fmt[f];
+         if (c == '-')   left = true;
+         if (!seen_dot && c >= '0' && c <= '9')
+            {
+              width = width*10 + (c - '0');   // 0-flag contributes 0*10+0
+              continue;                       // drop from fmt_nw
+            }
+         if (c == '.')   seen_dot = true;
+         fmt_nw[fm_nw++] = c;
+       }
+   fmt_nw[fm_nw] = 0;
+
+const int need = snprintf(0, 0, fmt_nw, val);
+   if (need < 0)
+      {
+        MORE_ERROR() << "⎕FIO printf: format '" << fmt_nw
+                     << "' rejected by snprintf() (width/precision too"
+                        " large)";
+        DOMAIN_ERROR;
+      }
+   if (Value::check_WS_FULL("⎕FIO printf", need, LOC))   WS_FULL;
+vector<char> buf(need + 1);
+   snprintf(&buf[0], buf.size(), fmt_nw, val);
+
+UCS_string grouped;
+   Quad_FIO::group_thousands(grouped, &buf[0], flt);
+
+const int64_t pad = width - int64_t(grouped.size());
+   if (pad > 0 && Value::check_WS_FULL("⎕FIO printf", pad, LOC))   WS_FULL;
+   if (pad > 0 && !left)   loop(p, pad)   UZ << UNI_SPACE;
+   UZ << grouped;
    if (pad > 0 && left)    loop(p, pad)   UZ << UNI_SPACE;
 }
 //────────────────────────────────────────────────────────────────────────────
@@ -1634,8 +1713,11 @@ int conversion_count_A = 0;   // the number of conversions (in A_format)
 
                             vector<char> dynbuf(need + 1);
                             snprintf(&dynbuf[0], dynbuf.size(), fmt, int_val);
-                            if (thousands)  group_thousands(UZ, &dynbuf[0], false);
-                            else            UZ << &dynbuf[0];
+                            if (thousands)
+                               group_thousands_width(UZ, fmt, fm, int_val,
+                                                      false);
+                            else
+                               UZ << &dynbuf[0];
                           }
                           goto field_done;
 
@@ -1664,7 +1746,8 @@ int conversion_count_A = 0;   // the number of conversions (in A_format)
                             char * const numbuf = &dynbuf[0];
                             if (thousands)
                                {
-                                 group_thousands(UZ, numbuf, true);
+                                 group_thousands_width(UZ, fmt, fm, float_val,
+                                                        true);
                                }
                             else if (char * const dot = strchr(numbuf, '.'))
                                {

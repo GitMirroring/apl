@@ -494,6 +494,18 @@ protected:
    /// @param flt true if the number is floating-point
    static void group_thousands(UCS_string & dest, char * buffer, bool flt);
 
+   /// format \b val with \b fmt (a complete printf() conversion spec of
+   /// length \b fm), insert thousands' separators, and pad the *grouped*
+   /// result to the field width encoded in \b fmt -- appending to \b UZ.
+   /// @param UZ destination string to append to
+   /// @param fmt the printf() conversion spec, e.g. "%012lld"
+   /// @param fm length of \b fmt
+   /// @param val the value to format (APL_Integer or APL_Float)
+   /// @param flt true if \b val is floating-point
+   template<typename T>
+   static void group_thousands_width(UCS_string & UZ, const char * fmt,
+                                     unsigned int fm, T val, bool flt);
+
    /// for Date/Time Bv. return its seconds since midnight Jan 1, 1970
    /// @param B APL value containing a date/time vector
    static APL_Integer secs_epoch(const cValue & B);

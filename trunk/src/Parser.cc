@@ -1798,9 +1798,22 @@ bool progress = false;
                     tag0 == TOK_Quad_MX    ||
                     tag0 == TOK_Quad_RVAL))   // functions with a plain axis
                  {
+                   const Function * topfun = tos[t].get_function();
+
+                   // ⎕MX and ⎕FFT are compiled out (as plain, non-group
+                   // Functions) when GSL resp. FFTW are unavailable; their
+                   // stub constructors never call init_function_group(), so
+                   // group_name stays 0. bad_subfun_name_ERROR() below would
+                   // then dereference that null pointer. Treat "no
+                   // subfunctions at all" the same as "not a group",
+                   // i.e. fall through to ordinary SYNTAX ERROR handling
+                   // instead of attempting the member-syntax rewrite
+                   // (Blake McBride, Bugs20 #2).
+                   //
+                   if (!topfun->has_subfuns())   continue;
+
                    const Symbol * subfun_symbol = tos[t + 2].get_sym_ptr();
                    const UCS_string sub_name = subfun_symbol->get_name();
-                   const Function * topfun = tos[t].get_function();
                    const sAxis axis = topfun->subfun_to_axis(sub_name);
                    if (axis < 0)   topfun->bad_subfun_name_ERROR(sub_name);
 

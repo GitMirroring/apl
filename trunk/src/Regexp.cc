@@ -62,7 +62,17 @@ RegexpMatch::RegexpMatch(pcre2_code * code, const UCS_string & B,
       }
     else   // match_result < 0
       {
-        MORE_ERROR() << "libpcre error: " << Regexp::pcre_error(match_result);
+        // PCRE2_ERROR_NOMATCH is an entirely ordinary "the pattern did
+        // not match" outcome, not an error -- ⎕RE (without the E flag)
+        // returns ⍬ for it without raising anything. Setting )MORE text
+        // here left every subsequent (successful!) statement's )MORE
+        // claiming a bogus "libpcre error: no match", clobbering any
+        // real )MORE text from an actual, earlier error (Blake McBride,
+        // Bugs20 #7).
+        //
+        if (match_result != PCRE2_ERROR_NOMATCH)
+           MORE_ERROR() << "libpcre error: "
+                        << Regexp::pcre_error(match_result);
         ovector_count = 0;
         ovector = 0;
       }

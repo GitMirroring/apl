@@ -481,24 +481,6 @@ const PCRE2_SIZE * ovector = rem.get_ovector();
    //
    if (ovector[1] == ovector[0])   ++B_offset;
 
-   // disabled for the same reason as string_result() above (Bugs10 #7):
-   // num_matches()==1 also fires when only group 0 participated, which
-   // silently drops the non-participating group placeholders the caller
-   // expects -- fall through to the deep_value() path instead so both
-   // result forms agree.
-   if (0 && rem.num_matches() == 1)   // simple match
-      {
-        // single string
-        //
-        Value_P Z(2, LOC);
-        const PCRE2_SIZE start = ovector[0];
-        const PCRE2_SIZE end   = ovector[1];
-        Z->next_ravel_Int(start);
-        Z->next_ravel_Int(end - start);
-        Z->check_value(LOC);
-        return Z;
-      }
-
 // num_matches() (== pcre2_match's own return value, "the number of
 // pairs that have been set") tells us how much of ovector is safe to
 // read; get_ovector_count() is the ovector's *allocated capacity*

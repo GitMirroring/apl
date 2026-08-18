@@ -882,9 +882,12 @@ with_gnu_ld
 with_sysroot
 enable_libtool_lock
 with_x
+with_fftw
+with_png
 with_sqlite3
 with_postgresql
 with_pcre
+with_gsl
 with_gtk3
 with_ctrld_del
 with_optional_libs
@@ -1587,12 +1590,16 @@ Optional Packages:
   --with-sysroot[=DIR]    Search for dependent libraries within DIR (or the
                           compiler's sysroot if not specified).
   --with-x                use the X Window System
+  --with-fftw             enable ⎕FFT (needs libfftw3)
+  --with-png              enable ⎕PNG (needs libpng and libz)
   --with-sqlite3=[PATH]   use SQLite 3 library [default=yes], optionally
                           specify the PATH for sqlite3 library
   --with-postgresql=[PATH]
                           use PostgreSQL library [default=yes], optionally
                           specify the PATH to pg_config
   --with-pcre[=prefix]    enable ⎕RE (needs libpcre2)
+  --with-gsl              enable GSL-based extras (⌹ rank/condition
+                          estimate, ⎕MX; needs libgsl)
   --with-gtk3             enable ⎕GTK (interface to GTK+ version 3; needs
                           libgtk-3 and more)
   --with-ctrld_del        enable to use ^D as del-char, ^Z as EOT
@@ -20592,6 +20599,28 @@ dash_test_FFT()
 { {
 apl_FFT=no   # assume error
 
+
+# Check whether --with-fftw was given.
+if test ${with_fftw+y}
+then :
+  withval=$with_fftw;
+fi
+
+    #
+    # ./configure --with-fftw="no"   →    $with_fftw: "no"
+    # ./configure --without-fftw     →    $with_fftw: "no"
+    # ./configure                    →    $with_fftw: "yes"
+    # ./configure --with-fftw        →    $with_fftw: "yes"
+    # ./configure --with-fftw=yes    →    $with_fftw: "yes"
+    #
+if test "x$with_fftw" = "xno"; then      # user has explicitly disabled FFTW
+   { printf "%s\n" "$as_me:${as_lineno-$LINENO}: checking for FFTW" >&5
+printf %s "checking for FFTW... " >&6; }
+   { printf "%s\n" "$as_me:${as_lineno-$LINENO}: result: no - (explicitly disabled by user)" >&5
+printf "%s\n" "no - (explicitly disabled by user)" >&6; }
+   return
+fi
+
 ac_fn_cxx_check_header_compile "$LINENO" "fftw3.h" "ac_cv_header_fftw3_h" "$ac_includes_default"
 if test "x$ac_cv_header_fftw3_h" = xyes
 then :
@@ -20663,6 +20692,28 @@ dash_test_PNG()
 { {
 local apl_have_opt_lib
 apl_PNG=no
+
+
+# Check whether --with-png was given.
+if test ${with_png+y}
+then :
+  withval=$with_png;
+fi
+
+    #
+    # ./configure --with-png="no"   →    $with_png: "no"
+    # ./configure --without-png     →    $with_png: "no"
+    # ./configure                   →    $with_png: "yes"
+    # ./configure --with-png        →    $with_png: "yes"
+    # ./configure --with-png=yes    →    $with_png: "yes"
+    #
+if test "x$with_png" = "xno"; then       # user has explicitly disabled PNG
+   { printf "%s\n" "$as_me:${as_lineno-$LINENO}: checking for PNG" >&5
+printf %s "checking for PNG... " >&6; }
+   { printf "%s\n" "$as_me:${as_lineno-$LINENO}: result: no - (explicitly disabled by user)" >&5
+printf "%s\n" "no - (explicitly disabled by user)" >&6; }
+   return
+fi
 
 ac_fn_cxx_check_header_compile "$LINENO" "png.h" "ac_cv_header_png_h" "$ac_includes_default"
 if test "x$ac_cv_header_png_h" = xyes
@@ -21485,8 +21536,29 @@ dash_test_PCRE   # set apl_PCRE to yes or no.
 # we believe that function gsl_linalg_QL_decomp() was added in libgsl 2.7.
 # So we simply check the version with the presence of gsl_linalg_QL_decomp().
 
-apl_GSL=yes
-{ printf "%s\n" "$as_me:${as_lineno-$LINENO}: checking for cblas_cgemv in -lgslcblas" >&5
+
+# Check whether --with-gsl was given.
+if test ${with_gsl+y}
+then :
+  withval=$with_gsl;
+fi
+
+    #
+    # ./configure --with-gsl="no"   →    $with_gsl: "no"
+    # ./configure --without-gsl     →    $with_gsl: "no"
+    # ./configure                   →    $with_gsl: "yes"
+    # ./configure --with-gsl        →    $with_gsl: "yes"
+    # ./configure --with-gsl=yes    →    $with_gsl: "yes"
+    #
+apl_GSL=no
+if test "x$with_gsl" = "xno"; then       # user has explicitly disabled GSL
+   { printf "%s\n" "$as_me:${as_lineno-$LINENO}: checking for GSL" >&5
+printf %s "checking for GSL... " >&6; }
+   { printf "%s\n" "$as_me:${as_lineno-$LINENO}: result: no - (explicitly disabled by user)" >&5
+printf "%s\n" "no - (explicitly disabled by user)" >&6; }
+else
+   apl_GSL=yes
+   { printf "%s\n" "$as_me:${as_lineno-$LINENO}: checking for cblas_cgemv in -lgslcblas" >&5
 printf %s "checking for cblas_cgemv in -lgslcblas... " >&6; }
 if test ${ac_cv_lib_gslcblas_cblas_cgemv+y}
 then :
@@ -21530,7 +21602,7 @@ else $as_nop
   apl_GSL=no
 fi
 
-ac_fn_cxx_check_header_compile "$LINENO" "gsl/gsl_blas.h" "ac_cv_header_gsl_gsl_blas_h" "$ac_includes_default"
+   ac_fn_cxx_check_header_compile "$LINENO" "gsl/gsl_blas.h" "ac_cv_header_gsl_gsl_blas_h" "$ac_includes_default"
 if test "x$ac_cv_header_gsl_gsl_blas_h" = xyes
 then :
 
@@ -21538,7 +21610,7 @@ else $as_nop
   apl_GSL=no
 fi
 
-{ printf "%s\n" "$as_me:${as_lineno-$LINENO}: checking for gsl_linalg_QL_decomp in -lgsl" >&5
+   { printf "%s\n" "$as_me:${as_lineno-$LINENO}: checking for gsl_linalg_QL_decomp in -lgsl" >&5
 printf %s "checking for gsl_linalg_QL_decomp in -lgsl... " >&6; }
 if test ${ac_cv_lib_gsl_gsl_linalg_QL_decomp+y}
 then :
@@ -21582,7 +21654,7 @@ else $as_nop
   apl_GSL=no
 fi
 
-ac_fn_cxx_check_header_compile "$LINENO" "gsl/gsl_version.h" "ac_cv_header_gsl_gsl_version_h" "$ac_includes_default"
+   ac_fn_cxx_check_header_compile "$LINENO" "gsl/gsl_version.h" "ac_cv_header_gsl_gsl_version_h" "$ac_includes_default"
 if test "x$ac_cv_header_gsl_gsl_version_h" = xyes
 then :
 
@@ -21590,6 +21662,7 @@ else $as_nop
   apl_GSL=no
 fi
 
+fi
  if test "x$apl_GSL" = "xyes"; then
   apl_GSL_TRUE=
   apl_GSL_FALSE='#'

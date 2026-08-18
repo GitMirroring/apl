@@ -116,6 +116,18 @@ public:
       {
         if (shape_A.get_rank() == 0)     return &shape_B;
         if (shape_B.get_rank() == 0)     return &shape_A;
+
+        // Both singleton extension rules (volume 1) can apply at once
+        // when A and B are both one-element arrays of different rank;
+        // testing them in a fixed order made the result shape (and
+        // therefore e.g. ⍴A+B vs ⍴B+A for commutative functions like +)
+        // depend on argument order. Per APL2/ISO 13751 singleton
+        // extension, the result takes the shape of the higher-rank
+        // argument (Blake McBride, Bugs20 #5).
+        //
+        if (shape_A.get_volume() == 1 && shape_B.get_volume() == 1)
+           return shape_A.get_rank() >= shape_B.get_rank() ? &shape_A
+                                                             : &shape_B;
         if (shape_A.get_volume() == 1)   return &shape_B;
         if (shape_B.get_volume() == 1)   return &shape_A;
         if (shape_A == shape_B)          return &shape_A;

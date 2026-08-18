@@ -9,6 +9,22 @@ dash_test_PNG()
 local apl_have_opt_lib
 apl_PNG=no
 
+AC_ARG_WITH([png],
+    AS_HELP_STRING([--with-png],
+    [enable ⎕PNG (needs libpng and libz)]))
+    #
+    # ./configure --with-png="no"   →    $with_png: "no"
+    # ./configure --without-png     →    $with_png: "no"
+    # ./configure                   →    $with_png: "yes"
+    # ./configure --with-png        →    $with_png: "yes"
+    # ./configure --with-png=yes    →    $with_png: "yes"
+    #
+if apl_NO($with_png); then       # user has explicitly disabled PNG
+   AC_MSG_CHECKING([for PNG])
+   AC_MSG_RESULT([no - (explicitly disabled by user)])
+   return
+fi
+
 AC_CHECK_HEADER([png.h], , return)
 AC_CHECK_HEADER([zlib.h], , return)
 
