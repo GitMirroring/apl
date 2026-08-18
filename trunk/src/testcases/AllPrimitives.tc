@@ -243,20 +243,20 @@ NOSUMMARY:
  for writing as ⍝-comment lines in a reproducer script.
 »»»
 
- ⊣««« ⍝ TRIM: found (via this very function, live) that ⌽ on a boolean
-  vector is unreliable -- {(⌽∨\⌽⍵≠' ')/⍵}, the standard trailing-
-  space-trim idiom, intermittently returned garbage-short results for
-  a fixed input across repeated calls in a tight loop (100% reproducible
-  once warmed up, e.g. 'DOMAIN ERROR' → 'DOMAIN '), root cause not yet
-  chased into the interpreter (suspect packed-BOOL ravel handling in
-  Bif_ROTATE::reverse / Value::try_implode). TRIM below avoids ⌽
-  entirely: ⍸ locates non-space positions, ⌈/ finds the last one (0
-  prepended so an all-space string takes 0 instead of erroring on
-  ⌈/⍬), and ↑ takes that many characters from the front.
+ ⊣««« ⍝ TRIM: standard trailing-space-trim idiom. An earlier version of
+  this comment reported ⌽ on a boolean vector as unreliable (suspected
+  packed-BOOL ravel handling in Bif_ROTATE::reverse / Value::try_implode)
+  and had TRIM avoid ⌽ entirely via ⍸/⌈//↑ instead. That was traced to
+  Value::try_implode()'s single-pass validation, which could corrupt
+  ravel.cells[0] before discovering a later non-boolean cell -- already
+  fixed (Bugs18 #11, now two-pass). Re-verified: ~3.8M targeted
+  iterations of {(⌽∨\⌽⍵≠' ')/⍵} plus a full instrumented AllPrimitives
+  fuzz run (comparing both forms on every TRIM call) found zero
+  mismatches, so reverted to the plain idiom.
  »»»
 
 ∇Z←TRIM S
- Z←(⌈/0,⍸S≠' ')↑S
+ Z←(⌽∨\⌽S≠' ')/S
 ∇
 
 ∇Z←STAGE DESCRIBE_ERR ARGS;RC;RES;R1;R4

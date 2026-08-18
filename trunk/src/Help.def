@@ -586,9 +586,21 @@ help_def(2, "←", "I-Beam",
          "Not used in GNU APL",
          "")
 
-help_def(1, "→", "Goto",
-         "Go to line B",
-         "")
+help_def(-6, "→", "Branch",
+         "\n      →LABEL          Branch to the line of LABEL\n"
+         "      →N              Branch to (absolute (!)) line N\n"
+         "      →(COND)/LABEL   Typical conditional branch\n"
+         "      →(COND)⍴LABEL   Typical conditional branch (⍴ same as /)\n"
+         "\n"
+         "      LABEL→COND      GNU extension: fast dyadic branch,\n"
+         "                      same as monadic →(COND)/LABEL\n"
+         "                      (absolute, faster)\n"
+         "      N→COND          GNU extension: fast dyadic branch,\n"
+         "                      relative (!) to the current line\n"
+         "                      (0→COND retries it)\n",
+         "→ is a branch-arrow (ISO 13751, Delimiter metaclass),\n"
+         "not a primitive function -- it has no assignable\n"
+         "result.")
 
 help_def(-6, "∇", "Defined Function editor",
        "\n      ∇{A} FUN {B}         Create and edit function FUN\n"
