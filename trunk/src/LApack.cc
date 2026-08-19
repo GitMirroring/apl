@@ -207,6 +207,15 @@ static const APL_Float big_number   = 1.0 / small_number;     // 9.97923E291
 static const APL_Float pos_safe_min =  dlamch_S / dlamch_E;   // 2.00417E¯292
 static const APL_Float neg_safe_min =  -dlamch_S / dlamch_E;  // -2.00417E¯292
 static const APL_Float tol3z        = sqrt(dlamch_E);         // 1.05367E¯8
+
+/// the smallest ⎕CT (aka. RCOND, see divide_matrix() below) that
+/// estimate_rank()'s incremental condition estimation can meaningfully
+/// use: below machine precision, R's diagonal entries that SHOULD be
+/// exactly 0 for a genuinely singular B are indistinguishable from
+/// ordinary floating-point rounding noise, so the rank-deficiency test
+/// (smax*rcond > smin) can never fire no matter how singular B truly
+/// is -- see divide_matrix()'s rcond check.
+static const APL_Float min_rcond = dlamch_E;                  // ≈1.11022E¯16, machine epsilon
 #undef dlamch_S
 #undef dlamch_P
 
@@ -633,9 +642,6 @@ LA_pack::divide_matrix(Value & Z, Crow rows,
 
 const T t0(0.0);
 const APL_Float rcond = Workspace::get_CT();
-const size_t items_A      = rows;
-const size_t items_B      = rows * cols_B;
-const size_t items_result = cols_A * cols_B;
 
    // Rank-revealing is gelsy()'s job (below, via rcond): it compares
    // singular values, which is the textbook test. An element-magnitude
@@ -643,6 +649,43 @@ const size_t items_result = cols_A * cols_B;
    // conditioning -- a matrix can have an enormous spread of element
    // magnitudes and still be perfectly well-conditioned (Blake McBride,
    // Bugs20 #1) -- so it was removed again.
+   //
+   // ⎕CT here is not "comparison tolerance" in its usual sense -- it is
+   // reused (by design, not by accident) as gelsy()'s RCOND parameter,
+   // the standard LAPACK rank-revealing-QR control value (real LAPACK's
+   // DGELSY takes the same RCOND, unvalidated, from its caller). RCOND
+   // values below machine precision are not valid input to the
+   // incremental condition estimate below: R's diagonal can carry
+   // rounding noise on the order of machine epsilon even for an exactly
+   // singular B (a mathematically-zero pivot does not come out as
+   // literal 0.0 after floating-point Householder elimination), so an
+   // RCOND that small can never let the rank-deficiency test tell that
+   // noise apart from a real singular value -- estimate_rank() then
+   // reports full rank regardless of B, and the caller gets a finite
+   // but meaningless result instead of the DOMAIN ERROR a singular B
+   // should always produce. Reject up front rather than silently
+   // substitute a usable value: an invalid RCOND must never be allowed
+   // to reach the rank prediction unchallenged, and (per this
+   // interpreter's convention) a clear error beats a silently-adjusted
+   // value the user has no way to notice.
+   if (rcond < min_rcond)
+      {
+        MORE_ERROR() << "A⌹B: here ⎕CT is used as RCOND (not as an "
+                        "ordinary comparison tolerance); its valid range "
+                        "for A⌹B/⌹B is ⎕CT≥" << min_rcond << " (≈ "
+                        "machine precision). The given ⎕CT=" << rcond
+                     << " is below that: floating-point rounding noise "
+                        "in the matrix factorization could then no "
+                        "longer be told apart from genuine singularity, "
+                        "making the rank estimate meaningless. See "
+                        "\"The Impact of ⎕CT for ⌹\" in the GNU APL "
+                        "manual for details";
+        DOMAIN_ERROR;
+      }
+
+const size_t items_A      = rows;
+const size_t items_B      = rows * cols_B;
+const size_t items_result = cols_A * cols_B;
 
 const size_t bytes_A      = items_A      * sizeof(t0);
 const size_t bytes_B      = items_B      * sizeof(t0);

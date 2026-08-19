@@ -16,7 +16,7 @@ File: apl.info,  Node: Top,  Next: Installing and Starting GNU APL,  Up: (dir)
 GNU APL Reference Manual
 ************************
 
-August 17, 2026.  This manual briefly documents GNU APL, an interpreter
+August 19, 2026.  This manual briefly documents GNU APL, an interpreter
 for APL as described in ISO standard 13751, aka.  "Programming Language
 APL, Extended".
 
@@ -4350,21 +4350,25 @@ columns of some matrix B then there are two possibilities:
      significant rounding errors in the result.
 
    There is a third, distinct reason for a DOMAIN ERROR in A⌹B or ⌹B,
-unrelated to linear dependence: B containing both very large and very
-small (but nonzero) elements at the same time.  Before the actual rank
-estimation, GNU APL rescales B as a whole if it is uniformly far too
-large or far too small (to protect intermediate computations from
-overflow or underflow) – but that rescaling multiplies every element of
-B by the same constant, so it cannot narrow the ratio between B’s own
-largest and smallest elements.  If that ratio is finer than ⎕CT can
-resolve, ordinary IEEE double precision can no longer reliably
-distinguish B’s genuine rank from rounding noise, and GNU APL refuses
-the computation rather than risk a silently wrong result.  Unlike case 2
-above, decreasing ⎕CT does not help here – the limit being hit is how
-finely a magnitude ratio can be represented at all, not the tolerance
-used to judge near-dependence.  There is no workaround short of
-rescaling the offending rows or columns of B to a common order of
-magnitude before calling A⌹B/⌹B.
+unrelated to linear dependence: ⎕CT being too small to use.  In A⌹B/⌹B
+(unlike its usual role as a comparison tolerance elsewhere in GNU APL),
+⎕CT doubles as the RCOND parameter of the underlying LAPACK-derived
+rank-revealing QR factorization (gelsy()) – it directly controls how
+small a diagonal entry of the intermediate triangular factor may be
+before that column is judged linearly dependent.  A matrix that is
+genuinely, exactly singular does not, after floating-point QR
+factorization, produce a diagonal entry of exactly 0.0 – ordinary
+rounding leaves a residual on the order of the machine epsilon
+(≈1.11E¯16) instead.  If ⎕CT is set below that machine epsilon, GNU APL
+can no longer tell that residual apart from a genuine (nonzero) singular
+value, so the rank test could never detect any singular matrix, however
+obviously singular, and would instead return a finite but numerically
+meaningless result.  To avoid that, GNU APL raises DOMAIN ERROR up front
+whenever ⎕CT is smaller than this machine-epsilon floor, for any A⌹B or
+⌹B call, before looking at B at all – even for a B that would otherwise
+have been perfectly well-conditioned.  Unlike case 2 above, decreasing
+⎕CT further never helps here – quite the opposite: the fix is to
+increase ⎕CT back above the machine-epsilon floor.
 
 
 File: apl.info,  Node: ⌹[X] B - Various Factorizations of B,  Next: Matrix Inverse,  Prev: A⌹B and ⌹B,  Up: The Impact of ⎕CT for ⌹
@@ -12292,153 +12296,153 @@ Node: ⌹[X] - Miscellaneous Matrix and Vector Operations178296
 Node: ⌹[1] and ⌹[2] - QR Factorizations178662
 Node: The Impact of ⎕CT for ⌹183944
 Node: A⌹B and ⌹B184703
-Node: ⌹[X] B - Various Factorizations of B188020
-Node: Matrix Inverse190801
-Node: ⌹[7] B - Print Polynomial B191574
-Node: A ⌹[8] B - Multiply Polynomials A and B194758
-Node: A ⌹[9] B - Divide Polynomial A by Polynomial B (univariate)196082
-Node: A ⌹[10] B - Divide Polynomial A by Polynomial B (multivariate)197272
-Node: A ⌹[11] B - Divide Polynomial A by Polynomial B (with order)203435
-Node: ⌹[11] B Scan Polynomial B206254
-Node: A ⌹[20] B - Integral B208275
-Node: ⎕CC - Character Classes211070
-Node: monadic ⎕CC B - Return character class211610
-Node: dyadic A ⎕CC B - Test character class214538
-Node: Dyadic ⎕CR215292
-Node: Dyadic ⎕FX (Native Functions)222019
-Node: ⎕ARG - Interpreter command line arguments225462
-Node: ⎕DLX - Knuth's Dancing Links Algorithm225853
-Node: ⎕ENV - Environment Variables236803
-Node: ⎕FIO - File I/O Functions237158
-Node: ⎕FFT - Fast Fourier Transform244283
-Node: ⎕GTK - GTK Interface246801
-Node: ⎕JSON - JSON Parsing247529
-Node: Monadic ⎕JSON248271
-Node: Dyadic ⎕JSON248607
-Node: ⎕MAP - Map Value249463
-Node: ⎕MX - Matrix/Statistics253436
-Node: Determinant255214
-Node: Cross Product255599
-Node: Vector Angle256895
-Node: Eigenvector257283
-Node: Eigenvalue258443
-Node: Ident260941
-Node: Rotation261271
-Node: Homogeneous transform261608
-Node: Norm262230
-Node: Randoms263167
-Node: Covariance265028
-Node: Histograms266105
-Node: Print267025
-Node: ⎕PLOT - Plot Data269461
-Node: The Plot Data B270755
-Node: Complex Plot Data B271544
-Node: Real Plot Data B272540
-Node: The Plot Attributes A273617
-Node: Plot Window Handling287149
-Node: Output File Format288487
-Node: GUI driver289717
-Node: ⎕PNG - Portable Network Graphics293806
-Node: The GNU APL Color Model294373
-Node: Monadic ⎕PNG299886
-Node: Dyadic ⎕PNG302103
-Node: APL Examples302930
-Node: ⎕PS - Print Style303866
-Node: ⎕RE - Regular Expressions304949
-Node: Preconditions305571
-Node: ⎕RE Syntax306054
-Node: The Regular Expression A306752
-Node: The String(s) B Being Matched307419
-Node: The Flags X308821
-Node: The libpcre2 flags - i m s and x309801
-Node: The ⎕RE (APL output format) flags ↓ ⊂ and /310469
-Node: the ⎕RE global flag g312949
-Node: the ⎕RE error flag E316454
-Node: Complex Matches317766
-Node: ⎕RVAL - Random APL value322256
-Node: General323290
-Node: Dyadic ⎕RVAL324278
-Node: Control of the underlying random number generator - 0 ⎕RVAL B325502
-Node: Control of the ranks - 1 ⎕RVAL B327127
-Node: Control of the shapes - 2 ⎕RVAL B328835
-Node: Control of the data types - 3 ⎕RVAL B330281
-Node: Control of a maximum depth - 4 ⎕RVAL B332120
-Node: Control of the element count - 5 ⎕RVAL B333037
-Node: The primitive table - 6 ⎕RVAL B334767
-Node: monadic ⎕RVAL B336197
-Node: Syntax Alternatives338572
-Node: ⎕SI - State Indicator339414
-Node: ⎕SQL - SQL Database Interface341662
-Node: ⎕SQL[0] ⍬ - display sub-function numbers342761
-Node: ⎕SQL[0] '' - display sub-function names344672
-Node: ref ← A ⎕SQL[1] B - open database347454
-Node: ⎕SQL[2] B - close database348514
-Node: Z ← A ⎕SQL[3 ref] B - database query (with result)349071
-Node: Z ← A ⎕SQL[4 ref] B - database query (w/o result)350054
-Node: ⎕SQL[5] B - start transaction350628
-Node: ⎕SQL[6] B - commit transaction350955
-Node: ⎕SQL[7] B - rollback transaction351266
-Node: Z←⎕SQL[8] B - table names351593
-Node: Z←⎕SQL[9] B - column names351923
-Node: Z ← ⎕SQL[10] B - library version number352441
-Node: Z ← ⎕SQL[11] B - library version string353037
-Node: SQLite Quickstart353603
-Node: Deleting a Database355548
-Node: Creating a new Database356958
-Node: Creating a Database Table358707
-Node: Excursus - Dynamic Query Strings362064
-Node: Writing an APL matrix into a Database Table365012
-Node: Reading a Database Table into an APL Matrix367414
-Node: Updating a Database Table369185
-Node: Deleting Rows From a Database Table371814
-Node: ⎕SYL - System limits372586
-Node: ⎕SYL[1 2 3 4 5 6;]375002
-Node: ⎕SYL[7 8 9 10 11 12 13 14 15 16 17 18 19 20 21 22 23;]376397
-Node: ⎕SYL[24 25 26;]376881
-Node: ⎕SYL[27;]377193
-Node: ⎕XML - XML Parsing377876
-Node: Purpose378210
-Node: Some XML Terminology379786
-Node: How ⎕XML maps XML documents to APL Values383234
-Node: Monadic ⎕XML389897
-Node: Dyadic ⎕XML390710
-Node: XML Queries399003
-Node: Conditionals399873
-Node: Design considerations.400303
-Node: Syntax407701
-Node: A Possible Pitfall410854
-Node: Matrix Product415111
-Node: Monadic ≠ (Nub Sieve)418414
-Node: Limitations and Missing Features418962
-Node: System Limits419448
-Node: Shared Variables420750
-Node: Known Differences between IBM APL2 and GNU APL421887
-Node: Internationalization436264
-Node: Vector Notation437445
-Node: History438040
-Node: Standardization438778
-Node: Quotes from the lrm439285
-Node: Some APL2 Tests441444
-Node: Test 1 - Binding strength of []441861
-Node: Test 2 - Binding strength of the left operand442701
-Node: Definitions447482
-Node: Unexpected Stranding450507
-Node: GNU APL Vector Notation459273
-Node: GNU APL Project Structure465261
-Node: The sub-directory src466789
-Node: The sub-directory support-files468161
-Node: The sub-directory doc468580
-Node: The sub-directory HOWTOs468884
-Node: The sub-directories workspaces and wslib2 ... wslib5469629
-Node: The sub-directory m4470189
-Node: The sub-directories debian and debian_tmp471061
-Node: The sub-directory tools471558
-Node: Libraries Contributed by GNU APL Users472021
-Node: The GNU APL Community Webpage472498
-Node: Core Libraries473235
-Node: Licenses for this GNU APL Manual and for GNU APL474116
-Node: The GNU Free Documentation License474661
-Node: The GNU GENERAL PUBLIC LICENSE500055
+Node: ⌹[X] B - Various Factorizations of B188337
+Node: Matrix Inverse191118
+Node: ⌹[7] B - Print Polynomial B191891
+Node: A ⌹[8] B - Multiply Polynomials A and B195075
+Node: A ⌹[9] B - Divide Polynomial A by Polynomial B (univariate)196399
+Node: A ⌹[10] B - Divide Polynomial A by Polynomial B (multivariate)197589
+Node: A ⌹[11] B - Divide Polynomial A by Polynomial B (with order)203752
+Node: ⌹[11] B Scan Polynomial B206571
+Node: A ⌹[20] B - Integral B208592
+Node: ⎕CC - Character Classes211387
+Node: monadic ⎕CC B - Return character class211927
+Node: dyadic A ⎕CC B - Test character class214855
+Node: Dyadic ⎕CR215609
+Node: Dyadic ⎕FX (Native Functions)222336
+Node: ⎕ARG - Interpreter command line arguments225779
+Node: ⎕DLX - Knuth's Dancing Links Algorithm226170
+Node: ⎕ENV - Environment Variables237120
+Node: ⎕FIO - File I/O Functions237475
+Node: ⎕FFT - Fast Fourier Transform244600
+Node: ⎕GTK - GTK Interface247118
+Node: ⎕JSON - JSON Parsing247846
+Node: Monadic ⎕JSON248588
+Node: Dyadic ⎕JSON248924
+Node: ⎕MAP - Map Value249780
+Node: ⎕MX - Matrix/Statistics253753
+Node: Determinant255531
+Node: Cross Product255916
+Node: Vector Angle257212
+Node: Eigenvector257600
+Node: Eigenvalue258760
+Node: Ident261258
+Node: Rotation261588
+Node: Homogeneous transform261925
+Node: Norm262547
+Node: Randoms263484
+Node: Covariance265345
+Node: Histograms266422
+Node: Print267342
+Node: ⎕PLOT - Plot Data269778
+Node: The Plot Data B271072
+Node: Complex Plot Data B271861
+Node: Real Plot Data B272857
+Node: The Plot Attributes A273934
+Node: Plot Window Handling287466
+Node: Output File Format288804
+Node: GUI driver290034
+Node: ⎕PNG - Portable Network Graphics294123
+Node: The GNU APL Color Model294690
+Node: Monadic ⎕PNG300203
+Node: Dyadic ⎕PNG302420
+Node: APL Examples303247
+Node: ⎕PS - Print Style304183
+Node: ⎕RE - Regular Expressions305266
+Node: Preconditions305888
+Node: ⎕RE Syntax306371
+Node: The Regular Expression A307069
+Node: The String(s) B Being Matched307736
+Node: The Flags X309138
+Node: The libpcre2 flags - i m s and x310118
+Node: The ⎕RE (APL output format) flags ↓ ⊂ and /310786
+Node: the ⎕RE global flag g313266
+Node: the ⎕RE error flag E316771
+Node: Complex Matches318083
+Node: ⎕RVAL - Random APL value322573
+Node: General323607
+Node: Dyadic ⎕RVAL324595
+Node: Control of the underlying random number generator - 0 ⎕RVAL B325819
+Node: Control of the ranks - 1 ⎕RVAL B327444
+Node: Control of the shapes - 2 ⎕RVAL B329152
+Node: Control of the data types - 3 ⎕RVAL B330598
+Node: Control of a maximum depth - 4 ⎕RVAL B332437
+Node: Control of the element count - 5 ⎕RVAL B333354
+Node: The primitive table - 6 ⎕RVAL B335084
+Node: monadic ⎕RVAL B336514
+Node: Syntax Alternatives338889
+Node: ⎕SI - State Indicator339731
+Node: ⎕SQL - SQL Database Interface341979
+Node: ⎕SQL[0] ⍬ - display sub-function numbers343078
+Node: ⎕SQL[0] '' - display sub-function names344989
+Node: ref ← A ⎕SQL[1] B - open database347771
+Node: ⎕SQL[2] B - close database348831
+Node: Z ← A ⎕SQL[3 ref] B - database query (with result)349388
+Node: Z ← A ⎕SQL[4 ref] B - database query (w/o result)350371
+Node: ⎕SQL[5] B - start transaction350945
+Node: ⎕SQL[6] B - commit transaction351272
+Node: ⎕SQL[7] B - rollback transaction351583
+Node: Z←⎕SQL[8] B - table names351910
+Node: Z←⎕SQL[9] B - column names352240
+Node: Z ← ⎕SQL[10] B - library version number352758
+Node: Z ← ⎕SQL[11] B - library version string353354
+Node: SQLite Quickstart353920
+Node: Deleting a Database355865
+Node: Creating a new Database357275
+Node: Creating a Database Table359024
+Node: Excursus - Dynamic Query Strings362381
+Node: Writing an APL matrix into a Database Table365329
+Node: Reading a Database Table into an APL Matrix367731
+Node: Updating a Database Table369502
+Node: Deleting Rows From a Database Table372131
+Node: ⎕SYL - System limits372903
+Node: ⎕SYL[1 2 3 4 5 6;]375319
+Node: ⎕SYL[7 8 9 10 11 12 13 14 15 16 17 18 19 20 21 22 23;]376714
+Node: ⎕SYL[24 25 26;]377198
+Node: ⎕SYL[27;]377510
+Node: ⎕XML - XML Parsing378193
+Node: Purpose378527
+Node: Some XML Terminology380103
+Node: How ⎕XML maps XML documents to APL Values383551
+Node: Monadic ⎕XML390214
+Node: Dyadic ⎕XML391027
+Node: XML Queries399320
+Node: Conditionals400190
+Node: Design considerations.400620
+Node: Syntax408018
+Node: A Possible Pitfall411171
+Node: Matrix Product415428
+Node: Monadic ≠ (Nub Sieve)418731
+Node: Limitations and Missing Features419279
+Node: System Limits419765
+Node: Shared Variables421067
+Node: Known Differences between IBM APL2 and GNU APL422204
+Node: Internationalization436581
+Node: Vector Notation437762
+Node: History438357
+Node: Standardization439095
+Node: Quotes from the lrm439602
+Node: Some APL2 Tests441761
+Node: Test 1 - Binding strength of []442178
+Node: Test 2 - Binding strength of the left operand443018
+Node: Definitions447799
+Node: Unexpected Stranding450824
+Node: GNU APL Vector Notation459590
+Node: GNU APL Project Structure465578
+Node: The sub-directory src467106
+Node: The sub-directory support-files468478
+Node: The sub-directory doc468897
+Node: The sub-directory HOWTOs469201
+Node: The sub-directories workspaces and wslib2 ... wslib5469946
+Node: The sub-directory m4470506
+Node: The sub-directories debian and debian_tmp471378
+Node: The sub-directory tools471875
+Node: Libraries Contributed by GNU APL Users472338
+Node: The GNU APL Community Webpage472815
+Node: Core Libraries473552
+Node: Licenses for this GNU APL Manual and for GNU APL474433
+Node: The GNU Free Documentation License474978
+Node: The GNU GENERAL PUBLIC LICENSE500372
 
 End Tag Table
 

@@ -184,3 +184,49 @@ SYNTAX ERROR+
 DOMAIN ERROR+
       ⌹MM
       ^^
+
+      ⍝ ⎕CT/RCOND lower-bound regression: in A⌹B/⌹B, ⎕CT doubles as
+      ⍝ gelsy()'s RCOND parameter (not an ordinary comparison tolerance).
+      ⍝ Below machine epsilon, a genuinely singular B's post-QR diagonal
+      ⍝ residual (pure rounding noise, ≈ machine epsilon) can no longer
+      ⍝ be told apart from a real singular value, so the rank test could
+      ⍝ never detect ANY singular matrix. GNU APL now rejects such a ⎕CT
+      ⍝ up front, before even looking at B. (Before this fix, ⌹MM below
+      ⍝ silently returned a large-magnitude but meaningless "inverse"
+      ⍝ instead of failing -- confirmed MM+.×⌹MM was nowhere near the
+      ⍝ identity.)
+      ⍝
+      ⎕CT←0
+      MM←2 2⍴1 2 2 4          ⍝ exactly singular: det=0, row2=2×row1
+      ⌹MM
+DOMAIN ERROR+
+      ⌹MM
+      ^^
+
+      )SIC
+
+      ⍝ same, with a tiny but nonzero ⎕CT -- still below the floor
+      ⍝
+      ⎕CT←1E¯300
+      ⌹MM
+DOMAIN ERROR+
+      ⌹MM
+      ^^
+
+      )SIC
+
+      ⍝ the floor applies regardless of B, even to a trivially
+      ⍝ well-conditioned matrix -- ⎕CT here is RCOND, an algorithm
+      ⍝ input, not a promise about THIS particular B's achievable
+      ⍝ accuracy
+      ⍝
+      ⌹2 2⍴1 0 0 1
+DOMAIN ERROR+
+      ⌹2 2⍴1 0 0 1
+      ^^
+
+      )SIC
+
+      ⍝ restore
+      ⍝
+      ⎕CT←SAVE_CT
