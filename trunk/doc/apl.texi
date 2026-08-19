@@ -4293,7 +4293,7 @@ smaller than the total number of columns (IOW some columns of @b{B} are
 linearly dependent) then a @b{DOMAIN ERROR} is raised before the computation
 of @b{⌹B} starts. Although @b{B} may be over-determined (so it may have more
 rows than columns and in that case the rows of @b{B} cannot be linearly
-independent) it may @i{not} have linearly dependent columns.
+independent) it @i{must not} have linearly dependent columns.
 
 Now, for every real or complex number @b{⍺} does @b{⎕CT} define a range
 of nearby numbers that are considered equal to @b{⍺} even though they are,
@@ -4307,6 +4307,26 @@ that the columns of @b{B} are strictly linearly independent decreases
 as the size of the matrix grows. If a matrix has linearly dependent
 columns, then every new row added to the matrix can make it linearly
 independent, but not the other way around.
+
+This "range of nearby matrices" is not just a loose figure of speech --
+it has an exact meaning. For a matrix @b{B}, define its @i{condition
+number} @b{κ(B)} as the ratio of its largest to its smallest singular
+value. A classical fact of numerical linear algebra (via the singular
+value decomposition) is that @b{1/κ(B)} equals the @i{relative distance}
+from @b{B} to the nearest singular matrix: zero out @b{B}'s smallest
+singular value and what remains is both singular and, relatively
+speaking, as close to @b{B} as any singular matrix can be. So every
+singular matrix has a neighbourhood of nearby non-singular matrices
+around it, exactly as the paragraphs above describe -- and @b{⎕CT}
+(acting as @b{RCOND}, see below) is precisely what sets how @i{wide}
+that neighbourhood is when @b{⌹} decides whether to trust @b{B} as full
+rank. A larger @b{⎕CT} widens the neighbourhood (more matrices near the
+singular case get rejected as too close to call); a smaller @b{⎕CT}
+narrows it (only matrices extremely close to actually singular get
+rejected). This is the same relationship @b{⎕CT} already has to ordinary
+scalar comparisons -- @b{a} and @b{b} are treated equal when @b{a} is
+within relative distance @b{⎕CT} of @b{b} -- just applied to matrices and
+singularity instead of numbers and equality.
 
 The consequence for the user of GNU APL is the following. If GNU APL raises
 a @b{DOMAIN ERROR} caused by the supposedly linearly dependent columns of some
@@ -4347,6 +4367,18 @@ looking at @b{B} at all -- even for a @b{B} that would otherwise have
 been perfectly well-conditioned. @b{Unlike case 2 above, decreasing ⎕CT
 further never helps here} -- quite the opposite: the fix is to increase
 @b{⎕CT} back above the machine-epsilon floor.
+
+In terms of the neighbourhood picture above: @b{⎕CT←0} does not merely
+narrow the neighbourhood around each singular matrix -- it shrinks it to
+the singular matrix itself, width zero. That is still a meaningful
+request in principle ("reject only matrices that are @i{exactly}
+singular, nothing merely close"), but @b{⌹} never gets to look at the
+exact matrix, only at a @i{measurement} of it (the QR factorization),
+and that measurement is itself blurred by about one machine epsilon of
+rounding. A zero-width neighbourhood measured with a blurred ruler
+catches nothing -- even a matrix sitting exactly on the singular surface
+gets measured as if it were just outside it. The floor simply refuses a
+neighbourhood narrower than the ruler's own blur.
 
 @node ⌹[X] B - Various Factorizations of B
 @subsubsection ⌹[X] B: Various Factorizations of B
