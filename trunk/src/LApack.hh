@@ -543,16 +543,27 @@ public:
   //════════════════════════════════════════════════════════════════════════════
   // (static) functions ported from LAPACK (FORTRAN) .f files...
 public:
-  /// return ║ vec ║²
+  /// return ║ vec ║ (the actual 2-norm, NOT squared -- see below)
   static APL_Float norm_2(const DD * vec, size_t len)
      {
         // Naive sum-of-squares overflows to +Inf once an element exceeds
         // ~1.34E154 (its square alone already exceeds DBL_MAX), silently
         // turning e.g. a singular matrix into one gelsy()/estimate_rank()
         // reports as full rank. Scale by the largest magnitude first
-        // (DNRM2-style) so no individual term is ever squared while > 1;
-        // the result (max² * Σ(x/max)²) is mathematically identical to
-        // the naive sum for well-scaled input, but immune to overflow.
+        // (DNRM2-style) so no individual term is ever squared while > 1.
+        //
+        // IMPORTANT: this used to return the SQUARED norm (║vec║²,
+        // via `sum * square(scale)`), matching its old name/doc comment.
+        // That final `square(scale)` re-introduced the very overflow the
+        // scaling was meant to avoid -- safe for scale up to sqrt(DBL_MAX)
+        // (~1.34E154), Inf beyond it (exactly Blake McBride's H17e report,
+        // "leaves 1.34e154 .. 9.98e291 unprotected"). Every one of this
+        // function's 4 call sites immediately took sqrt() of the result
+        // anyway, so there was no reason to square-then-later-unsquare in
+        // the first place. Returning `scale * sqrt(sum)` instead (like
+        // real BLAS DNRM2) needs no such squaring-back-in step and is
+        // therefore safe for the full representable double range, not
+        // just its square root.
         APL_Float scale = 0.0;
         loop(j, len)
             { const APL_Float a = abs(vec[j]);
@@ -561,13 +572,15 @@ public:
 
         APL_Float sum = 0.0;
         loop(j, len)   sum += square(get_real(vec[j]) / scale);
-        return sum * square(scale);
+        return scale * sqrt(sum);
      }
 
-     /// return ║ vec ║²
+     /// return ║ vec ║ (the actual 2-norm, NOT squared -- see the DD
+     /// overload above)
   static APL_Float norm_2(const ZZ * vec, size_t len)
         {
-          // see the DD overload above for why this is scaled, not naive.
+          // see the DD overload above for why this is scaled, not naive,
+          // and returns the plain norm, not its square.
           // NOTE: scale is found via max(|re|,|im|) per element (a cheap
           // Chebyshev/L∞ bound), not abs(ZZ) -- abs(ZZ) itself squares
           // re/im internally (sqrt(re²+im²)) and would overflow for the
@@ -587,7 +600,7 @@ public:
                sum += square(get_real(vec[j]) / scale);
                sum += square(get_imag(vec[j]) / scale);
              }
-          return sum * square(scale);
+          return scale * sqrt(sum);
         }
 
    /// LApack function unm2r. Apply reflectors A(i) to matrix C.
