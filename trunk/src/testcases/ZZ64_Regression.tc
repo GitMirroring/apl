@@ -96,8 +96,8 @@ DOMAIN ERROR
       ⍝ to 0 (e.g. 1E¯999) is benign and unaffected. Fixed in Tokenizer.cc.
       1E999
 Bad number+
-      ¯1E999
-Bad number+
+      1E999
+      ^    ^
       1E¯999
 0
       ¯1E¯999

@@ -173,10 +173,12 @@ public:
             } value;
       };
 
-   /// tokenize UTF-8 string \b input into token string \b tos.
+   /// tokenize UTF-8 string \b input into token string \b tos. Throws an
+   /// Error (with error_message_2/left_caret/right_caret already set to a
+   /// precise per-lexeme range) on any lexical failure.
    /// @param input UCS string of APL source to tokenize
    /// @param tos token string that receives the resulting tokens
-   ErrorCode tokenize(const UCS_string & input, Token_string & tos) const;
+   void tokenize(const UCS_string & input, Token_string & tos) const;
 
    /// tokenize a primitive (1-character) function
    /// @param uni Unicode character representing the primitive function

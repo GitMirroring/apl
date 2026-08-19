@@ -1914,9 +1914,19 @@ Token_string tos;
    if (parse)   // parse ucs
       {
         Parser parser(PM_EXECUTE, LOC, false);
-        if (const ErrorCode ec = parser.parse(ucs, tos, /* optimize */ true))
+        try
            {
-             MORE_ERROR() << "the parser returned error code: " << ec;
+             if (const ErrorCode ec = parser.parse(ucs, tos,
+                                                    /* optimize */ true))
+                {
+                  MORE_ERROR() << "the parser returned error code: " << ec;
+                  DOMAIN_ERROR;
+                }
+           }
+        catch (const Error & err)
+           {
+             MORE_ERROR() << "the parser returned error code: "
+                          << err.get_error_code();
              DOMAIN_ERROR;
            }
       }
@@ -1924,9 +1934,11 @@ Token_string tos;
       {
         Tokenizer tokenizer(PM_FUNCTION, LOC, /* macro */ false);
 
-        if (const ErrorCode ec = tokenizer.tokenize(ucs, tos))
+        try   { tokenizer.tokenize(ucs, tos); }
+        catch (const Error & err)
            {
-             MORE_ERROR() << "the tokenizer returned error code: " << ec;
+             MORE_ERROR() << "the tokenizer returned error code: "
+                          << err.get_error_code();
              DOMAIN_ERROR;
            }
       }

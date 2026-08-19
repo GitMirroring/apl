@@ -190,6 +190,24 @@ public:
    static void throw_parse_error(ErrorCode code, const char * par_loc,
                                  const char * loc) GNUC__noreturn;
 
+   /// throw a lexical/parse error together with a precise error range:
+   /// error_message_2 becomes line[start:end] (the offending lexeme,
+   /// dropping earlier context -- a Tokenizer.cc SYNTAX ERROR concerns
+   /// exactly one lexeme in isolation, never an inter-token relationship,
+   /// see devel_doc/Carets.txt "Known gaps" #1), left_caret is set to 0
+   /// (the start of that fragment), and right_caret to the fragment's
+   /// length (one past its last character).
+   /// @param code error code to throw
+   /// @param line full source line being tokenized
+   /// @param start start offset (in line) of the offending lexeme
+   /// @param end end offset (in line), one past the last character
+   ///        consumed while attempting to lex it
+   /// @param par_loc parser source location where the error was detected
+   /// @param loc caller location for diagnostics
+   static void throw_parse_error(ErrorCode code, const UCS_string & line,
+                                 int start, int end, const char * par_loc,
+                                 const char * loc) GNUC__noreturn;
+
    /// throw an Error related to \b Symbol \b symbol
    /// @param symbol name of the offending symbol
    /// @param loc caller location for diagnostics

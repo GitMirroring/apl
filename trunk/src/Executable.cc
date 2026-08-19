@@ -268,7 +268,20 @@ UCS_string failed_statement;
    // into orig (in APL order)
 const Parser parser(get_parse_mode(), LOC, false);
 Token_string orig;
-const ErrorCode ec = parser.parse(failed_statement, orig, false);
+ErrorCode ec = E_NO_ERROR;
+   try   { ec = parser.parse(failed_statement, orig, false); }
+   catch (const Error &)
+      {
+        // parser.parse() now throws (rather than returning a code) for
+        // lexical failures -- but we are already in the middle of
+        // building the display for a DIFFERENT, already-pending error
+        // (this function runs before that error's own throw, from
+        // update_error_info()); letting a fresh exception escape here
+        // would silently replace the error being reported. Fall through
+        // to the same "parsing failed_statement failed" recovery below
+        // that a nonzero ec already triggered.
+        ec = E_SYNTAX_ERROR;
+      }
    if (ec == E_NO_ERROR)   // failed_statement could be parsed
       {
         // revert orig, starting after label (if eny)
@@ -541,10 +554,21 @@ UCS_string message_2(error.get_error_line_2());
    //
    error.set_left_caret(error.get_left_caret() + len_left);
 
-   if (range.high != range.low)   // two carets
-      {
-        error.set_right_caret(error.get_left_caret() + len_between);
-      }
+   // Always set right_caret; do NOT special-case range.high == range.low
+   // here. When range.high == range.low, every token in the rev_loop
+   // above satisfies either "q > range.high" or "q <= range.low" (the
+   // two conditions become the same test), so the "else if (q >
+   // range.low)" branch that accumulates len_between is never taken and
+   // len_between is provably 0 -- giving right_caret == left_caret.
+   // That is exactly the input Error::get_error_line_3() needs to decide
+   // (via its own "diff <= 0" check) that only one caret should be
+   // printed. Leaving right_caret unset (-1) here used to make that the
+   // SAME decision by a different route (right_caret - left_caret then
+   // being trivially negative) -- two independent "one caret vs two"
+   // checks that happened to agree rather than one. See devel_doc/
+   // Carets.txt, "Known gaps" #2.
+   //
+   error.set_right_caret(error.get_left_caret() + len_between);
 }
 //────────────────────────────────────────────────────────────────────────────
 int

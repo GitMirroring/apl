@@ -1053,7 +1053,8 @@ Value_P Z(lines.size(), LOC);
    loop(z, lines.size())
       {
          Token_string tos;
-         parser.parse(lines[z], tos, true);
+         try   { parser.parse(lines[z], tos, true); }
+         catch (const Error &)   { /* already validated above; ignore */ }
          const ShapeItem val_count = (tos.size() + 1)/2;
          Value_P ZZ(val_count, LOC);
          loop(v, val_count)

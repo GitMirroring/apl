@@ -150,8 +150,8 @@ DOMAIN ERROR+
 A⌹B : Bad rank 4 of complex argument B (expecting rank ≥ 5 for ⍴B = 5 5; is B linearly dependent? the estimated rank is controlled by ⎕CT)
       NOTE that the estimated rank is controlled by ⎕CT.
 SYNTAX ERROR+
-      )SIC
-
+      .
+      ^^
       ⍝ Regression...
 
       ⍝ N÷0 variants

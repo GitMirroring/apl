@@ -168,8 +168,8 @@ Token_string tos1;
 
    {
      Tokenizer tokenizer(pmode, LOC, macro);
-     if (const ErrorCode ec = tokenizer.tokenize(input, tos1))   return ec;
-     if (const ErrorCode ec = tos1.all_brackets_closed())        return ec;
+     tokenizer.tokenize(input, tos1);      // throws on lexical failure
+     tos1.all_brackets_closed();           // throws on bracket mismatch
    }
 
    // special case: single token (to speed up ⍎)

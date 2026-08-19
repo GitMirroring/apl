@@ -220,7 +220,16 @@ try_again:
             }
          catch (Error & err)
             {
-              if (InputFile::running_script())   throw;
+              // running_script() alone misses -T testcase files
+              // (is_validating(): files_todo[0].is_script is false
+              // there) -- without also checking it here, the new
+              // throw_edit_error() escalation in edit_body_line() above
+              // gets silently caught and swallowed right here instead
+              // of escaping this while loop, and the loop just keeps
+              // reading (and misinterpreting) whatever comes next.
+              //
+              if (InputFile::running_script() ||
+                  InputFile::is_validating())   throw;
               if (!err.get_print_loc())   err.print_em(COUT, LOC);
               Output::set_color_mode(Output::COLM_INPUT);
             }
@@ -1035,7 +1044,10 @@ UCS_string parse_text = current_text;   // a copy that can be modified.
         const Parser parser(PM_FUNCTION, LOC, false);
         Token_string in;
 
-        ErrorCode ec = parser.parse(parse_text, in, true);
+        ErrorCode ec = E_NO_ERROR;
+        try   { ec = parser.parse(parse_text, in, true); }
+        catch (const Error & err)   { ec = err.get_error_code(); }
+
         if ((ec == E_NO_STRING_END) &&
             UserPreferences::uprefs.old_multi_line_strings)
            {
@@ -1045,6 +1057,31 @@ UCS_string parse_text = current_text;   // a copy that can be modified.
 
         if (ec)
            {
+             // Staying in the editor loop so an interactive user can
+             // retry the same line is correct -- but from a script (or
+             // a -T testcase file: is_validating(), not running_script()
+             // -- confirmed live that -T's files_todo entries have
+             // is_script false) there is no user to fix it, and the
+             // caller's while loop (Nabla::edit()) would otherwise keep
+             // reading and discarding whatever comes next from the
+             // input stream as further retry attempts for this same
+             // broken line, forever (or until a lone ∇ happens to
+             // appear). Confirmed live: a bracket-mismatch SYNTAX ERROR
+             // on a ∇-edited body line, from a -T testcase, silently
+             // swallowed the opening line and first body line of the
+             // NEXT function definition in the same test run into this
+             // stuck retry loop instead of executing them
+             // (devel_doc/Carets.txt gap #1's Nabla.cc note). Nabla::
+             // edit() itself already has this exact InputFile::
+             // running_script() escalation for a sibling failure (the
+             // whole function failing to compile once fully typed, see
+             // below) -- apply the same one here too (extended to also
+             // cover -T), before the per-line retry gets a chance to
+             // consume anything else.
+             //
+             if (InputFile::running_script() || InputFile::is_validating())
+                throw_edit_error("SYNTAX ERROR in function line");
+
              CERR << "SYNTAX ERROR";
              if (Workspace::more_error().size())
                 {

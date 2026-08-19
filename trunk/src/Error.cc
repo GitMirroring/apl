@@ -209,6 +209,16 @@ Error::set_error_line_2(const char * msg_2)
 void
 Error::set_error_line_2(const UCS_string & ucs, int lcaret, int rcaret)
 {
+   // line 2 and the carets are meant to be collected exactly once, at
+   // the single point (Tokenizer.cc lexical error, Token_string bracket
+   // mismatch, ...) that actually knows the precise range -- never
+   // blindly overwritten by an outer/later layer that only has a bare
+   // ErrorCode to work with. Path A's update_error_info() does NOT use
+   // this overload (it seeds line 2 via the 1-arg set_error_line_2() and
+   // adjusts the carets incrementally via set_left_caret()/
+   // set_right_caret()), so this Assert is not in its way.
+   Assert(left_caret == -1);
+
 UTF8_string utf(ucs);
    strncpy(error_message_2, utf.c_str(), sizeof(error_message_2));
    error_message_2[sizeof(error_message_2) - 1] = 0;
@@ -245,9 +255,20 @@ Error::update_error_info(StateIndicator * si)
              occasion, the two carets overlap so that only one is displayed.)"
     */
 
-   set_error_line_2("      ");   // the APL prompt
+   // the "      " 6-space literal this used to hardcode here (and
+   // below) happens to match Workspace::get_prompt()'s only live value
+   // (Workspace.cc's constructor has an alternate, 6-*character* but
+   // non-blank "  ∇   " prompt behind a permanently-false "#if 0 &&
+   // MINGW_SRC", and a longer, fully commented-out "-----> " one) --
+   // derive it from get_prompt() directly instead of duplicating
+   // whatever its current value happens to be (user, 2026-08-19).
+   //
+   {
+     const UTF8_string prompt_utf(Workspace::get_prompt());
+     set_error_line_2(prompt_utf.c_str());
+   }
    set_right_caret(-1);
-   set_left_caret(6);            // first char after the APL prompt
+   set_left_caret(Workspace::get_prompt().size());   // first char after the prompt
 
    // prepare the second error line (= display of the failed statement)
    //
@@ -261,8 +282,11 @@ Error::update_error_info(StateIndicator * si)
         //
         if (get_show_locked() || si->get_inherited_exec_property(1))
            {
-             set_error_line_2("      ");   // the APL prompt
-             set_left_caret(6);            // first char after the APL prompt
+             {
+               const UTF8_string prompt_utf(Workspace::get_prompt());
+               set_error_line_2(prompt_utf.c_str());
+             }
+             set_left_caret(Workspace::get_prompt().size());
              ufun->set_locked_error_info(*this);
              goto out;   // maybe print
            }
@@ -312,6 +336,21 @@ Error::error_name(ErrorCode err)
    return "Unknown Error";
 }
 //════════════════════════════════════════════════════════════════════════════
+/// map \b code to DOMAIN ERROR if property 3 (error conversion) is set on
+/// \b si or inherited from any of its calling )SI entries (apl2lrm.txt
+/// p.360-361 "or-ing", not just the current function's own -- a function
+/// called (directly or transitively) by an error-converting one must
+/// convert its own errors the same way). Shared by throw_apl_error() and
+/// Error::throw_symbol_error(), which is a separate VALUE_ERROR throw
+/// site that does not go through throw_apl_error() at all and therefore
+/// needs the same check applied to its own base error code.
+static ErrorCode
+maybe_convert_to_domain_error(ErrorCode code, StateIndicator * si)
+{
+   if (si && si->get_inherited_exec_property(3))   return E_DOMAIN_ERROR;
+   return code;
+}
+//════════════════════════════════════════════════════════════════════════════
 void
 throw_apl_error(ErrorCode code, const char * loc)
 {
@@ -331,13 +370,7 @@ StateIndicator * si = Workspace::SI_top();   // the current )SI entry
         if (!(si && si->get_safe_execution_depth()))   BACKTRACE
       }
 
-   // maybe map error to DOMAIN ERROR. Property 3 (error conversion) is
-   // inherited from every calling )SI entry too (apl2lrm.txt p.360-361
-   // "or-ing"), not just the current function's own -- a function called
-   // (directly or transitively) by an error-converting one must convert
-   // its own errors the same way.
-   //
-   if (si && si->get_inherited_exec_property(3))   code = E_DOMAIN_ERROR;
+   code = maybe_convert_to_domain_error(code, si);
 
 Error error(code, loc);
    if (si)   error.update_error_info(si);
@@ -401,6 +434,40 @@ const Error & eref = error;
 }
 //────────────────────────────────────────────────────────────────────────────
 void
+Error::throw_parse_error(ErrorCode code, const UCS_string & line,
+                         int start, int end, const char * par_loc,
+                         const char * loc)
+{
+   Log(LOG_error_throw)
+      {
+        CERR << "\nthrowing " << Error::error_name(code)
+             << " at " << loc << endl;
+      }
+
+   Log(LOG_verbose_error)   BACKTRACE
+
+   // set )MORE error (unless the caller has done so)
+   if (Workspace::more_error().size() == 0)   // no )MORE info yet
+      {
+        MORE_ERROR() << Error::error_name(code);
+      }
+
+Error error(code, loc);
+   error.parser_loc = par_loc;
+
+   if (start < 0)                    start = 0;
+   if (end < start)                  end = start;
+   if (end > int(line.size()))       end = int(line.size());
+
+UCS_string fragment;
+   for (int p = start; p < end; ++p)   fragment << line[p];
+   error.set_error_line_2(fragment, 0, fragment.size());
+
+const Error & eref = error;
+   throw eref;
+}
+//────────────────────────────────────────────────────────────────────────────
+void
 Error::throw_symbol_error(const UCS_string & sym_name, const char * loc)
 {
    Log(LOG_error_throw)   
@@ -430,14 +497,7 @@ Error::throw_symbol_error(const UCS_string & sym_name, const char * loc)
 
 StateIndicator * si = Workspace::SI_top();
 
-   // maybe map error to DOMAIN ERROR, same as throw_apl_error() -- this
-   // function is a separate VALUE_ERROR throw site (undefined symbol
-   // reference) that does NOT go through throw_apl_error() at all, so it
-   // needs its own copy of the property-3 (error conversion) inheritance
-   // check (apl2lrm.txt p.360-361 "or-ing").
-   //
-Error err((si && si->get_inherited_exec_property(3)) ? E_DOMAIN_ERROR
-                                                       : E_VALUE_ERROR, loc);
+Error err(maybe_convert_to_domain_error(E_VALUE_ERROR, si), loc);
 UTF8_string sym_name_utf(sym_name);
    SPRINTF(err.symbol_name, "%s", sym_name_utf.c_str());
 

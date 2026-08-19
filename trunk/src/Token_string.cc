@@ -21,12 +21,21 @@
 /** @file
 */
 #include "Token_string.hh"
+#include "Workspace.hh"
 
 //════════════════════════════════════════════════════════════════════════════
-ErrorCode
+void
 Token_string::all_brackets_closed() const
 {
-vector<TokenTag> expected;
+   /// an opener still waiting for its closer: its token index (for the
+   /// caret) and the closing tag it expects
+   struct Open_bracket
+      {
+        int       pos;        ///< index of the opening token in *this
+        TokenTag  closer;     ///< the matching closing tag
+      };
+
+vector<Open_bracket> expected;
 
    loop(s, size())
       {
@@ -36,21 +45,70 @@ vector<TokenTag> expected;
            {
              default: continue;   // not (, ), [, ], {, ot }.
 
-             case TOK_L_BRACK:  expected.push_back(TOK_R_BRACK);    continue;
-             case TOK_L_CURLY:  expected.push_back(TOK_R_CURLY);    continue;
-             case TOK_L_PARENT: expected.push_back(TOK_R_PARENT);   continue;
+             case TOK_L_BRACK:
+                  expected.push_back({int(s), TOK_R_BRACK});    continue;
+             case TOK_L_CURLY:
+                  expected.push_back({int(s), TOK_R_CURLY});    continue;
+             case TOK_L_PARENT:
+                  expected.push_back({int(s), TOK_R_PARENT});   continue;
 
              case TOK_R_BRACK:  ec = E_UNBALANCED_R_BRACK;    break;
              case TOK_R_CURLY:  ec = E_UNBALANCED_R_CURLY;    break;
              case TOK_R_PARENT: ec = E_UNBALANCED_R_PARENT;   break;
            }
 
-        if (expected.size() == 0)     return ec;   // error: no opener at all
-        if (tag != expected.back())   return ec;   // error: wrong opener
-        expected.pop_back();   // level done
+        if (expected.size() && tag == expected.back().closer)
+           {
+             expected.pop_back();   // level done
+             continue;
+           }
+
+        // error: either no opener at all (highlight just the offending
+        // closer), or the wrong opener (highlight opener..closer, same
+        // fashion as a Prefix.cc/Path A error -- see build_error_line_2()).
+        //
+        const int lo = expected.size() ? expected.back().pos : int(s);
+
+        if (Workspace::more_error().size() == 0)
+           MORE_ERROR() << Error::error_name(ec);
+        Error error(ec, LOC);
+        build_error_line_2(error, lo, int(s));
+        throw error;
+      }
+}
+//────────────────────────────────────────────────────────────────────────────
+void
+Token_string::build_error_line_2(Error & error, int lo, int hi) const
+{
+UCS_string message_2;
+int left_caret = -1;
+int right_caret = -1;
+
+   loop(q, size())
+      {
+        int alen;   // chars added by this token itself (a leading
+                    // space, if any, belongs to the gap before it)
+        if (q == 0)   // Token::error_info() assumes a non-empty ucs
+                      // (it checks ucs.back() to decide on a leading
+                      // space) -- nothing precedes the first token, so
+                      // append its canonical text directly.
+           {
+             const UCS_string canon = at(q).canonical(PR_APL_FUN)
+                                            .remove_pad();
+             message_2 << canon;
+             alen = canon.size();
+           }
+        else
+           {
+             const int len = at(q).error_info(message_2);
+             alen = len < 0 ? -len : len;
+           }
+
+        if (q == lo)   left_caret  = message_2.size() - alen;
+        if (q == hi)   right_caret = message_2.size();
       }
 
-   return E_NO_ERROR;   // OK
+   error.set_error_line_2(message_2, left_caret, right_caret);
 }
 //────────────────────────────────────────────────────────────────────────────
 int

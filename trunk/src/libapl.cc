@@ -604,7 +604,8 @@ UCS_string function_ucs;
 
 Tokenizer  tokenizer(PM_EXECUTE, LOC, false);
 Token_string tos;
-   if (tokenizer.tokenize(function_ucs, tos) != E_NO_ERROR)   return 0;
+   try   { tokenizer.tokenize(function_ucs, tos); }
+   catch (const Error &)   { return 0; }
 
    // resolve user defined names to user defined functions
    //

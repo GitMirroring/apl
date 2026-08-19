@@ -256,7 +256,8 @@ Token_string tos;
    {
      UCS_string data1(data, idx);
      Tokenizer tokenizer(PM_EXECUTE, LOC, false);
-     if (tokenizer.tokenize(data1, tos) != E_NO_ERROR)   return;
+     try   { tokenizer.tokenize(data1, tos); }
+     catch (const Error &)   { return; }
    }
  
    if (tos.ssize() != shape.get_volume())   return;

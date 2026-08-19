@@ -710,7 +710,17 @@ UCS_string message_2(error.get_error_line_2());
      error.set_error_line_2(utf.c_str());
    }
 
-   error.set_right_caret(error.get_left_caret() + message_2.size() - 7);
+   // right_caret is an absolute column index into message_2 (like
+   // left_caret; see Error::get_error_line_3()), not relative to
+   // left_caret -- point it at message_2's own last character (under
+   // the last character of "[A] NAME [B]") directly, rather than via
+   // the previous "left_caret + message_2.size() - 7", which only
+   // worked because the caller (Error::update_error_info()) happens to
+   // always set left_caret to 6 before calling this function (making
+   // left_caret - 7 == -1): correct today by coincidence, silently
+   // wrong for any left_caret other than 6.
+   //
+   error.set_right_caret(message_2.size() - 1);
 }
 //────────────────────────────────────────────────────────────────────────────
 void
@@ -1411,9 +1421,19 @@ const Parser parser(PM_FUNCTION, LOC, false);
 Token_string body;
    // if parsing fails at this point, then something is wrong in )SAVE
    //
-   if (const ErrorCode ec = parser.parse(body_text, body, true))
+   try
       {
-        CERR << "Parsing '" << body_text << "' failed (" << ec << ")." << endl;
+        if (const ErrorCode ec = parser.parse(body_text, body, true))
+           {
+             CERR << "Parsing '" << body_text << "' failed (" << ec << ")."
+                  << endl;
+             return 0;
+           }
+      }
+   catch (const Error & err)
+      {
+        CERR << "Parsing '" << body_text << "' failed ("
+             << err.get_error_code() << ")." << endl;
         return 0;
       }
 

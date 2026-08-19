@@ -24,6 +24,7 @@
 #ifndef __TOKEN_STRING_HH_DEFINED__
 #define __TOKEN_STRING_HH_DEFINED__
 
+#include "Error.hh"
 #include "Token.hh"
 
 //════════════════════════════════════════════════════════════════════════════
@@ -52,8 +53,23 @@ public:
       { return ShapeItem(vector<Token>::size()); }
 
    /// check that every [, (, resp. { has a matching ], ), resp. },
-   /// and no invalid combination like [ ( ] ) is present.
-   ErrorCode all_brackets_closed() const;
+   /// and no invalid combination like [ ( ] ) is present. Throws an
+   /// Error (full statement text + carets, same visual convention as
+   /// Prefix.cc/Path A errors -- see build_error_line_2() below and
+   /// devel_doc/Carets.txt) if not.
+   void all_brackets_closed() const;
+
+   /// build error_message_2 (rendered token text of *this) and the
+   /// left_caret/right_caret positions for tokens [lo, hi] (inclusive,
+   /// plain left-to-right index order, i.e. the order a freshly
+   /// tokenized statement is naturally in -- unlike the reordered
+   /// representation Executable::set_error_info() expects, see
+   /// devel_doc/Carets.txt). A single point (lo == hi) yields one
+   /// highlighted token.
+   /// @param error error to fill in
+   /// @param lo index of the leftmost token to highlight
+   /// @param hi index of the rightmost token to highlight
+   void build_error_line_2(Error & error, int lo, int hi) const;
 
    /// find the closing bracket for \b tos[pos]; throw error if not found
    /// @param pos  position of the opening bracket token

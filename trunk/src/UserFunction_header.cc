@@ -269,9 +269,10 @@ UserFunction_header::init_signature(const UCS_string & text, bool macro)
 Token_string tos;
    {
      const Tokenizer tokenizer(PM_FUNCTION, LOC, macro);
-     if (const ErrorCode err = tokenizer.tokenize(text, tos))
+     try   { tokenizer.tokenize(text, tos); }
+     catch (const Error & err)
         {
-          error = err;
+          error = err.get_error_code();
           return "Tokenize error (function signature)";
         }
    }
@@ -432,9 +433,10 @@ Token_string tos;
    {
 
      const Tokenizer tokenizer(PM_FUNCTION, LOC, macro);
-     if (const ErrorCode err = tokenizer.tokenize(text, tos))
+     try   { tokenizer.tokenize(text, tos); }
+     catch (const Error & err)
         {
-          error = err;
+          error = err.get_error_code();
           return "Tokenize error (local variables)";
         }
    }

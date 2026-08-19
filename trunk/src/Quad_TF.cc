@@ -1118,7 +1118,8 @@ const int data_chars = len - idx;
         UCS_string data(ravel, idx, len - idx);
         Tokenizer tokenizer(PM_EXECUTE, LOC, false);
         Token_string tos;
-        if (tokenizer.tokenize(data, tos) != E_NO_ERROR)
+        try   { tokenizer.tokenize(data, tos); }
+        catch (const Error &)
            {
              MORE_ERROR() << "tokenization failed in 1 ⎕TF N record";
              return Value_P();

@@ -63,13 +63,13 @@ foo_fails[1]  ÷0
 
       ⎕EC¨'1¯' 
   1  0 0  1    0  2 1538  Bad number  
-                                      
-                                      
+                          ¯           
+                          ^^          
 
       ⎕EC¨'¯1'
   0  2 1538  Bad number    1  0 0  1  
-                                      
-                                      
+             ¯                        
+             ^^                       
 
       )ERASE f
 

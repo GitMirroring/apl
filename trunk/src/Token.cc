@@ -281,6 +281,10 @@ UCS_string ucs;
              ucs << UNI_RIGHT_ARROW;
              break;
 
+        case TC_COLON:
+             ucs << UNI_COLON;
+             break;
+
         case TC_L_BRACK:
              if (get_tag() == TOK_L_BRACK)        ucs << UNI_L_BRACK;
              else if (get_tag() == TOK_SEMICOL)   ucs << UNI_SEMICOLON;
@@ -293,7 +297,16 @@ UCS_string ucs;
              break;
 
         case TC_END:
-             ucs << UNI_DIAMOND;
+             switch(get_tag())
+                {
+                  case TOK_IF_THEN:  ucs << UNI_RIGHT_ARROW
+                                          << UNI_RIGHT_ARROW;   break;
+                  case TOK_IF_ELSE:  ucs << UNI_LEFT_ARROW
+                                          << UNI_RIGHT_ARROW;   break;
+                  case TOK_IF_END:   ucs << UNI_LEFT_ARROW
+                                          << UNI_LEFT_ARROW;    break;
+                  default:           ucs << UNI_DIAMOND;
+                }
              break;
 
         case TC_RETURN:                                                  break;
@@ -311,6 +324,45 @@ UCS_string ucs;
 
         case TC_SYMBOL:
              ucs << get_sym_ptr()->get_name();
+             break;
+
+        case TC_LIT_ITEM:
+             // a raw scalar literal (TOK_INTEGER/TOK_REAL/TOK_COMPLEX)
+             // as produced directly by the Tokenizer, before
+             // optimize_short_primitives() packs runs of these into a
+             // TC_VALUE token holding an actual Value_P (the case
+             // above). A Token_string in this pre-packed state occurs
+             // e.g. right after Tokenizer::tokenize(), which is what
+             // Token_string::all_brackets_closed() operates on.
+             {
+               const PrintContext pctx(style, DEFAULT_Quad_PP,
+                                       DEFAULT_Quad_PW);
+               switch(get_ValueType())
+                  {
+                    case TV_INT:
+                         ucs << get_int_val();
+                         break;
+
+                    case TV_FLT:
+                         {
+                           bool scaled = false;
+                           ucs << UCS_string(get_flt_val(), scaled, pctx);
+                         }
+                         break;
+
+                    case TV_CPX:
+                         {
+                           bool scaled = false;
+                           ucs << UCS_string(get_cpx_real(), scaled, pctx);
+                           ucs << UNI_J;
+                           ucs << UCS_string(get_cpx_imag(), scaled, pctx);
+                         }
+                         break;
+
+                    default:
+                         FIXME;
+                  }
+             }
              break;
 
         case TC_R_PARENT:

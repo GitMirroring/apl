@@ -72,33 +72,20 @@ inline ostream & operator << (ostream & out, const Unicode_source & src)
 /** convert \b UCS_string input into a Token_string tos.
 */
 //════════════════════════════════════════════════════════════════════════════
-ErrorCode
+void
 Tokenizer::tokenize(const UCS_string & input, Token_string & tos) const
 {
 size_t rest_2 = 0;
-   try {
-         do_tokenize(input, tos, rest_2);
-       }
-   catch (Error & err)
-       {
-         // catch by reference, not by value: set_error_line_2() below
-         // mutates err's own error_message_2/left_caret/right_caret
-         // fields -- catching by value made that mutation apply to a
-         // throwaway local copy, discarded when this catch block ends,
-         // so the corrected line/caret info the code below computes
-         // never reached whatever later reports the error to the user.
-         const int caret_1 = input.size();            // end of input
-         const int caret_2 = input.size() - rest_2;    // consumed so far
-         // caret_2 <= caret_1 (consumed-so-far is never past the end),
-         // and set_error_line_2()'s (lcaret, rcaret) contract expects
-         // left <= right (Error.cc: "diff = right_caret - left_caret" is
-         // used as a non-negative span width) -- these were passed
-         // reversed.
-         err.set_error_line_2(input, caret_2, caret_1);
-         return err.get_error_code();
-       }
-
-   return E_NO_ERROR;
+   do_tokenize(input, tos, rest_2);
+   // any lexical failure throws (see throw_parse_error() call sites in
+   // do_tokenize()/tokenize_string1()/tokenize_string2()/tokenize_number(),
+   // each of which sets error_message_2/left_caret/right_caret to a
+   // precise per-lexeme range before throwing) -- there is no ErrorCode
+   // to reduce that Error to here. Reducing it used to be exactly the
+   // "double indirection" bug documented in devel_doc/Carets.txt: the
+   // rich Error this function used to build was thrown away in favour of
+   // a bare code, and every caller up the chain had no choice but to
+   // reconstruct an empty one. Let it propagate instead.
 }
 //────────────────────────────────────────────────────────────────────────────
 Token
@@ -568,8 +555,9 @@ Unicode_source src(input);
                      SPRINTF(cc, "U+%4.4X (", uni);
                      MORE_ERROR() << "Tokenizer: No token for Unicode "
                                   <<  cc << uni << ")\nInput was: " << input;
-                     Error error(E_NO_TOKEN, LOC);
-                     throw error;
+                     const int char_start = src.get_pos();
+                     Error::throw_parse_error(E_NO_TOKEN, input, char_start,
+                                              char_start + 1, LOC, loc);
                    }
                    break;
 
@@ -579,6 +567,7 @@ Unicode_source src(input);
               case TC_INDEX:
                    if (uni == UNI_AT_SIGN)   // marker
                       {
+                        const int marker_start = src.get_pos();
                         ++src;
                         int64_t idx = 0;
                         while (src.has_more() && Avec::is_digit(*src))
@@ -592,6 +581,9 @@ Unicode_source src(input);
                                    {
                                      MORE_ERROR() << "marker index too large.";
                                      Error::throw_parse_error(E_SYNTAX_ERROR,
+                                                              input,
+                                                              marker_start,
+                                                              src.get_pos(),
                                                               LOC, loc);
                                    }
                                 idx = 10 * idx + digit;
@@ -600,7 +592,9 @@ Unicode_source src(input);
                            {
                              // this may occur if a user types e.g. @123
                              MORE_ERROR() << "No second '@' in marker.";
-                             Error::throw_parse_error(E_SYNTAX_ERROR, LOC, loc);
+                             Error::throw_parse_error(E_SYNTAX_ERROR, input,
+                                                      marker_start,
+                                                      src.get_pos(), LOC, loc);
                            }
                         tos.push_back(Token(TOK_MARKER, idx));
                         break;
@@ -628,7 +622,9 @@ Unicode_source src(input);
                                 << endl;
                       }
                    rest_2 = src.rest_len();
-                   Error::throw_parse_error(E_NON_APL_CHAR, LOC, loc);
+                   Error::throw_parse_error(E_NON_APL_CHAR, input,
+                                            src.get_pos(), src.get_pos() + 1,
+                                            LOC, loc);
                    break;
 
               case TC_VOID:
@@ -638,7 +634,9 @@ Unicode_source src(input);
                    Log(LOG_error_throw)
                       UERR << "Unknown APL character: " << uni
                            << " (" << UNI(uni) << ")" << endl;
-                   Error::throw_parse_error(E_NON_APL_CHAR, LOC, loc);
+                   Error::throw_parse_error(E_NON_APL_CHAR, input,
+                                            src.get_pos(), src.get_pos() + 1,
+                                            LOC, loc);
                    break;
 
               case TC_SYMBOL:
@@ -723,7 +721,10 @@ Unicode_source src(input);
                         if (src.rest_len() == 1)   // case 3: syntax error
                            {
                              MORE_ERROR() << "no digit before or after '.'.";
-                             Error::throw_parse_error(E_SYNTAX_ERROR, LOC, loc);
+                             Error::throw_parse_error(E_SYNTAX_ERROR, input,
+                                                      src.get_pos(),
+                                                      src.get_pos() + 1,
+                                                      LOC, loc);
                            }
 
                         Unicode uni_1 = src[1];
@@ -822,9 +823,13 @@ Unicode_source src(input);
                         rest_2 = src.rest_len();
                         if (pmode == PM_EXECUTE)
                            Error::throw_parse_error(E_ILLEGAL_COLON_EXEC,
+                                                    input, src.get_pos(),
+                                                    src.get_pos() + 1,
                                                     LOC, loc);
                         else
                            Error::throw_parse_error(E_ILLEGAL_COLON_STAT,
+                                                    input, src.get_pos(),
+                                                    src.get_pos() + 1,
                                                     LOC, loc);
                       }
 
@@ -945,7 +950,8 @@ bool got_end = false;
          else if (uni == UNI_LF)
             {
               rest_2 = src.rest_len();
-              Error::throw_parse_error(E_NO_STRING_END, LOC, loc);
+              Error::throw_parse_error(E_NO_STRING_END, src.data(),
+                                       start_pos, src.get_pos(), LOC, loc);
             }
          else
             {
@@ -962,7 +968,8 @@ bool got_end = false;
         const int pos = start_pos + Workspace::get_IO();
         MORE_ERROR() << "Standard APL string (i.e. '...'): start at "
                         "column (prompt+" << pos << "), but no end.";
-        Error::throw_parse_error(E_NO_STRING_END, LOC, loc);
+        Error::throw_parse_error(E_NO_STRING_END, src.data(), start_pos,
+                                 src.get_pos(), LOC, loc);
       }
 
    if (string_value.size() == 1)   // scalar
@@ -1040,7 +1047,8 @@ bool got_end = false;
               if (UserPreferences::uprefs.old_multi_line_strings)
                  break;   // while (src.has_more())
               else
-                 Error::throw_parse_error(E_NO_STRING_END, LOC, loc);
+                 Error::throw_parse_error(E_NO_STRING_END, src.data(),
+                                          start_pos, src.get_pos(), LOC, loc);
             }
          else if (uni == UNI_BACKSLASH)   // backslash
             {
@@ -1051,7 +1059,8 @@ bool got_end = false;
               // level, so an untrusted trailing backslash would read
               // one past the end of the underlying UCS_string.
               if (!src.has_more())
-                 Error::throw_parse_error(E_NO_STRING_END, LOC, loc);
+                 Error::throw_parse_error(E_NO_STRING_END, src.data(),
+                                          start_pos, src.get_pos(), LOC, loc);
 
               const Unicode uni1 = src.get();
               switch(uni1)
@@ -1076,7 +1085,8 @@ bool got_end = false;
          else if (uni == UNI_LEFT_DAQ)   // « another
             {
               MORE_ERROR() << "Invalid start of « string inside a « string";
-              Error::throw_parse_error(E_NESTED_DAQ_STRING, LOC, loc);
+              Error::throw_parse_error(E_NESTED_DAQ_STRING, src.data(),
+                                       start_pos, src.get_pos(), LOC, loc);
             }
          else
             {
@@ -1095,18 +1105,21 @@ bool got_end = false;
            {
              MORE_ERROR() << "Double quoted string (i.e. \"...\"): start at "
                              "column (prompt+" << pos << "), but no end.";
-             Error::throw_parse_error(E_NO_STRING_END, LOC, loc);
+             Error::throw_parse_error(E_NO_STRING_END, src.data(), start_pos,
+                                      src.get_pos(), LOC, loc);
            }
         if (first == UNI_LEFT_DAQ)
            {
              MORE_ERROR() << "DAQ string (i.e. «...»): start « at column "
                              "(prompt+" << pos << "), but no ending ».";
-             Error::throw_parse_error(E_NO_STRING_END, LOC, loc);
+             Error::throw_parse_error(E_NO_STRING_END, src.data(), start_pos,
+                                      src.get_pos(), LOC, loc);
            }
 
         MORE_ERROR() << "DAQ string (i.e. «...»): end » at column (prompt+"
                      << pos << "), but no starting «.";
-        Error::throw_parse_error(E_NO_STRING_START, LOC, loc);
+        Error::throw_parse_error(E_NO_STRING_START, src.data(), start_pos,
+                                 src.get_pos(), LOC, loc);
       }
 
    if (got_end || UserPreferences::uprefs.old_multi_line_strings)
@@ -1115,7 +1128,8 @@ bool got_end = false;
       }
    else
       {
-        Error::throw_parse_error(E_NO_STRING_END, LOC, loc);
+        Error::throw_parse_error(E_NO_STRING_END, src.data(), start_pos,
+                                 src.get_pos(), LOC, loc);
       }
 }
 //────────────────────────────────────────────────────────────────────────────
@@ -1124,6 +1138,8 @@ Tokenizer::tokenize_number(Unicode_source & src, Token_string & tos,
                            size_t & rest_2) const
 {
    Log(LOG_tokenize)   CERR << "tokenize_number(" << src << ")" << endl;
+
+const int start_pos = src.get_pos();
 
    // numbers:
    // real
@@ -1135,7 +1151,8 @@ const Int_or_Double real_val = tokenize_real(src);
    if (!real_val.is_valid)   // tokenize_real() sets )MORE info
       {
         rest_2 = src.rest_len();
-        Error::throw_parse_error(E_BAD_NUMBER, LOC, loc);
+        Error::throw_parse_error(E_BAD_NUMBER, src.data(), start_pos,
+                                 src.get_pos(), LOC, loc);
       }
 
    if (src.skip_if(UNI_J) || src.skip_if(UNI_j))   // e.g. 3J4
@@ -1146,7 +1163,8 @@ const Int_or_Double real_val = tokenize_real(src);
            {
              MORE_ERROR() << "Missing imaginary part I"
                              " in complex number RjI.";
-             Error::throw_parse_error(E_BAD_NUMBER, LOC, loc);
+             Error::throw_parse_error(E_BAD_NUMBER, src.data(), start_pos,
+                                      src.get_pos(), LOC, loc);
            }
 
         const Int_or_Double imag_val = tokenize_real(src);
@@ -1183,7 +1201,8 @@ const Int_or_Double real_val = tokenize_real(src);
         if (!(src.has_more() && Avec::is_number(*src)))
            {
              MORE_ERROR() << "Missing angle D in complex number MdD.";
-             Error::throw_parse_error(E_BAD_NUMBER, LOC, loc);
+             Error::throw_parse_error(E_BAD_NUMBER, src.data(), start_pos,
+                                      src.get_pos(), LOC, loc);
            }
 
         const Int_or_Double degrees = tokenize_real(src);
@@ -1225,7 +1244,8 @@ const Int_or_Double real_val = tokenize_real(src);
         if (!(src.has_more() && Avec::is_number(*src)))
            {
              MORE_ERROR() << "Missing angle R in complex number MrR.";
-             Error::throw_parse_error(E_BAD_NUMBER, LOC, loc);
+             Error::throw_parse_error(E_BAD_NUMBER, src.data(), start_pos,
+                                      src.get_pos(), LOC, loc);
            }
 
         const Int_or_Double radian = tokenize_real(src);
@@ -1309,7 +1329,8 @@ done:
       {
         if (*src == UNI_OVERBAR ||   // e.g 10¯10
             *src == '.')             // e.g. 10.10.10
-           Error::throw_parse_error(E_BAD_NUMBER, LOC, loc);
+           Error::throw_parse_error(E_BAD_NUMBER, src.data(), start_pos,
+                                    src.get_pos(), LOC, loc);
       }
 }
 //────────────────────────────────────────────────────────────────────────────
