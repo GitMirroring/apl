@@ -1495,7 +1495,7 @@ const Ccol N = A.get_column_count();
         ALL_COLS(N)
            {
              ptvvy.pivot[col] = col;
-             ptvvy.vn1[col] = ptvvy.vn2[col] = sqrt(norm_2(&A.at(0, col), M));
+             ptvvy.vn1[col] = ptvvy.vn2[col] = norm_2(&A.at(0, col), M);
            }
       }
 
@@ -1604,7 +1604,7 @@ const Cdia D = min(M, N);
                         // vn1[c] = length of the column vector in A that
                         // starts at row s_X and columns c.
                         //
-                        ptvvy.vn1[c] = sqrt(norm_2(&A.at(s_X, c), M - s_X));
+                        ptvvy.vn1[c] = norm_2(&A.at(s_X, c), M - s_X);
                       }
                    ptvvy.vn2[c] = ptvvy.vn1[c];
                  }
@@ -1988,6 +1988,26 @@ const APL_Float test = 1.0 + 2.0*(zeta1 - zeta2)*(zeta1 + zeta2);
    set ALPHA inside larfg() rather than setting it before calling larfg()
    and passing it as parameter to larfg.
  */
+/** Safely compute sqrt(a² + b² + c²) for arbitrary finite a, b, c
+    (all assumed already non-negative, as every caller here passes
+    |something|), without ever squaring any of them directly -- unlike
+    a naive sqrt(a*a + b*b + c*c), this stays correct up to the full
+    representable double range instead of overflowing once any of
+    a, b, c exceeds sqrt(DBL_MAX) (~1.34E154). Same scaled-hypot
+    technique as the fixed norm_2() above (scale by the largest
+    magnitude, sum squares of ratios ≤1, multiply the single sqrt by
+    scale once at the end -- never scale²).
+ */
+static APL_Float scaled_hypot3(APL_Float a, APL_Float b, APL_Float c)
+{
+const APL_Float scale = max(a, max(b, c));
+   if (scale == 0.0)   return 0.0;
+const APL_Float ra = a/scale;
+const APL_Float rb = b/scale;
+const APL_Float rc = c/scale;
+   return scale * sqrt(ra*ra + rb*rb + rc*rc);
+}
+//────────────────────────────────────────────────────────────────────────────
 template<typename T>
 T LA_pack::larfg(T * X, Crow len_X)
 {
@@ -2008,23 +2028,29 @@ T & ALPHA = X[-1];   // ⍺ is the diagonal element of A above X
 
 APL_Float ALPHA_r = get_real(ALPHA);
 APL_Float ALPHA_i = get_imag(ALPHA);
-const APL_Float norm2_X = norm_2(X, len_X);   // ║X║²
+const APL_Float XNORM = norm_2(X, len_X);   // ║X║ (NOT squared, see norm_2())
 
-   if (ALPHA_i == 0.0 &&                  // ALPHA is real, and
-       norm2_X == 0.0)   return T(0.0);   // all x are 0, then H = I.
+   if (ALPHA_i == 0.0 &&                 // ALPHA is real, and
+       XNORM == 0.0)   return T(0.0);    // all x are 0, then H = I.
 
-APL_Float BETA_r = sqrt(square(ALPHA) + norm2_X);   // length of ║ALPHA, X║
+   // BETA = length of ║ALPHA, X║ = sqrt(ALPHA_r² + ALPHA_i² + XNORM²).
+   // Naive sqrt(square(ALPHA) + norm2_X) overflowed to +Inf (then, a few
+   // lines later, tau = (BETA_r-ALPHA_r)/BETA_r = Inf/Inf = NaN) once any
+   // of ALPHA_r/ALPHA_i/XNORM exceeded ~1.34E154 -- Blake McBride's H17e,
+   // e.g. ⌹2 2⍴1E160 1 1E160 1 (genuinely singular) silently returned
+   // -nan- instead of DOMAIN ERROR. scaled_hypot3() (above) is immune.
+APL_Float BETA_r = scaled_hypot3(fabs(ALPHA_r), fabs(ALPHA_i), XNORM);
    if (ALPHA_r > 0.0)   BETA_r = -BETA_r;           // opposite sign of ALPHA
 
-   // square(ALPHA)/norm2_X are naive (unscaled) sums of squares: for a
-   // denormal-scale ALPHA/X (e.g. 1E-200J1E-200) both underflow to exactly
-   // 0.0, so BETA_r itself becomes exactly 0.0 -- which the "scale small
-   // BETA" loop below can never move away from 0 (0.0 * anything is still
-   // 0.0), so its "BETA_r > neg_safe_min && BETA_r < pos_safe_min" exit
-   // condition holds forever. Reproduced: ⌹ 2 2⍴1J1 0 0 1E¯200J1E¯200
-   // hangs at 100% CPU. Only ALPHA_i==0.0 exactly short-circuits above;
-   // guard the general BETA_r==0.0 case here too (H = I is the correct,
-   // same degenerate answer as that earlier check).
+   // ALPHA_r/ALPHA_i/XNORM can all underflow to exactly 0.0 for a
+   // denormal-scale ALPHA/X (e.g. 1E-200J1E-200), making BETA_r itself
+   // exactly 0.0 -- which the "scale small BETA" loop below can never
+   // move away from 0 (0.0 * anything is still 0.0), so its
+   // "BETA_r > neg_safe_min && BETA_r < pos_safe_min" exit condition
+   // holds forever. Reproduced: ⌹ 2 2⍴1J1 0 0 1E¯200J1E¯200 hangs at
+   // 100% CPU. Only ALPHA_i==0.0 exactly short-circuits above; guard
+   // the general BETA_r==0.0 case here too (H = I is the correct, same
+   // degenerate answer as that earlier check).
    if (BETA_r == 0.0)   return T(0.0);
 
    // scale small BETA (and, with it, X) so that it can be used safely
@@ -2044,7 +2070,7 @@ int kcnt = 0;
 
         set_real(ALPHA, ALPHA_r);   // update ALPHA
         set_imag(ALPHA, ALPHA_i);   // update ALPHA
-        BETA_r = sqrt(square(ALPHA) + norm_2(X, len_X));
+        BETA_r = scaled_hypot3(fabs(ALPHA_r), fabs(ALPHA_i), norm_2(X, len_X));
         if (ALPHA_r > 0.0)   BETA_r = -BETA_r;           // opposite sign of ⍺
       }
 
