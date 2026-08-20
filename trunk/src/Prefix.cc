@@ -71,6 +71,31 @@ Prefix::clean_up()
    put = 0;
 }
 //────────────────────────────────────────────────────────────────────────────
+void
+Prefix::reset(const char * loc)
+{
+   clean_up();
+   put = 0;
+   assign_state = ASS_none;
+   clear_MISC(loc);
+   prefix_len = 0;
+
+   // The statement being reset here is abandoned outright -- e.g. by
+   // A→B (including the same-line "0→COND" retry idiom, see apl.texi's
+   // "Dyadic A→B" section), which never lets the statement reach
+   // StateIndicator::statement_result() (the normal end-of-statement
+   // path, and otherwise the only place fun_oper_cache is reset). Any
+   // DerivedFunction slot (e.g. from f⍨, f¨, f.g) allocated while
+   // evaluating the now-discarded statement would otherwise never be
+   // freed: a tight A→B retry loop containing such an operator leaks
+   // one slot per iteration and hits SYSTEM LIMIT (fun_oper) after
+   // MAX_FUN_OPER iterations, regardless of the statement's own,
+   // genuinely small operator count (reported by David Alden,
+   // 2026-08-19).
+   //
+   si.fun_oper_cache.reset();
+}
+//────────────────────────────────────────────────────────────────────────────
 bool
 Prefix::uses_function(const UserFunction * ufun) const
 {

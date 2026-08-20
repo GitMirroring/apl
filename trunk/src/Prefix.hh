@@ -204,11 +204,7 @@ public:
 
    /// reset statement to empty state (e.g. after →N)
    /// @param loc caller location for diagnostics
-   void reset(const char * loc)
-      { clean_up();   put = 0;   assign_state = ASS_none;
-        clear_MISC(loc);
-        prefix_len = 0;
-      }
+   void reset(const char * loc);
 
    /// return the current PC
    Function_PC get_PC() const
