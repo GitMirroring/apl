@@ -63,8 +63,8 @@ enum Unicode
    UNI_PAD_r_VALUE   = UNI_PAD_U5,   // value separator
    UNI_PAD_b_ROW     = UNI_PAD_U6,   // pad to max_row_height
    UNI_PAD_r_MAX     = UNI_PAD_U7,   // pad to max_spacing
-   UNI_PAD_l_DEPTH   = UNI_PAD_U8,   // depth indicator
-   UNI_PAD_r_DEPTH   = UNI_PAD_U9,   // depth indicator
+   UNI_PAD_l_DEPTH   = UNI_PAD_U8,   // (left) depth indicator
+   UNI_PAD_r_DEPTH   = UNI_PAD_U9,   // (right) depth indicator
 
    UNI_PAD_y_AXIS    = UNI_PAD_L0,   // interdimensional spacing (rank > 2)
    UNI_PAD_r_oCol    = UNI_PAD_L1,   // pad new line to column width

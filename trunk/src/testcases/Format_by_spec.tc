@@ -67,10 +67,10 @@
 
       A←4 2ρ'AMT' 'PERCENT' 5 26.31 6 31.5 8 42.11
       A
- AMT    PERCENT 
-   5      26.31 
-   6      31.5  
-   8      42.11 
+ AMT PERCENT 
+   5   26.31 
+   6   31.5  
+   8   42.11 
 
       3 0 9 2⍕A
 AMT  PERCENT
@@ -86,10 +86,10 @@ AMT PERCENT
 
       D←'ITEM' 'PENS' 'BOOKS' 'PAPER',A
       D
- ITEM  AMT    PERCENT 
- PENS    5      26.31 
- BOOKS   6      31.5  
- PAPER   8      42.11 
+ ITEM  AMT PERCENT 
+ PENS    5   26.31 
+ BOOKS   6   31.5  
+ PAPER   8   42.11 
 
 
       5 0 5 0 9 2⍕D

@@ -386,6 +386,51 @@ vector<PrintBuffer> pcols;    pcols.reserve(cols);
          if (col_info_x.real_len<(col_info_x.int_len + col_info_x.denom_len))
             col_info_x.real_len = col_info_x.int_len + col_info_x.denom_len;
 
+        // If this column mixes numeric items with non-numeric (character
+        // or nested) items, then col_info_x.int_len above is contaminated:
+        // ColInfo::consider() merged "digits before the decimal point"
+        // (from numeric items) and "own total width" (from non-numeric
+        // items, which (ab)use int_len for that -- see the dual meaning
+        // documented in PrintBuffer.hh) as if they were one quantity, so a
+        // wide non-numeric item's width can leak into int_len and then get
+        // a fraction width appended after it as if it were a digit count.
+        //
+        // Recompute the numeric items' own width cleanly (ignoring the
+        // non-numeric items) and float the result against the widest
+        // non-numeric item's own width instead, per ISO/IEC 13751
+        // 15.4.1's note on mixed-type arrays: "provide enough space in
+        // each column to contain the widest element" -- no more, no less.
+        // (Complex columns are excluded: the same note gives them their
+        // own, different rule, and are left untouched here.)
+        //
+        if ((col_info_x.flags & CT_NUMERIC)
+            && (col_info_x.flags & (CT_CHAR | CT_POINTER))
+            && !(col_info_x.flags & has_j))
+           {
+             ColInfo numeric_only;
+             int nonnum_len = 0;
+             loop(y, rows)
+                {
+                  const ColInfo & ci = item_matrix[y*cols + x].get_info();
+                  if (ci.flags & CT_NUMERIC)   numeric_only.consider(ci);
+                  else if (nonnum_len < ci.real_len)
+                     nonnum_len = ci.real_len;
+                }
+
+             col_info_x.int_len   = numeric_only.int_len;
+             col_info_x.fract_len = numeric_only.fract_len;
+             col_info_x.real_len  = numeric_only.real_len;
+             col_info_x.denom_len = numeric_only.denom_len;
+             col_info_x.imag_len  = numeric_only.imag_len;
+
+             if (nonnum_len > col_info_x.real_len)
+                {
+                  const int extra = nonnum_len - col_info_x.real_len;
+                  col_info_x.int_len  += extra;
+                  col_info_x.real_len += extra;
+                }
+           }
+
         loop(y, rows)
             {
               if (huge_interrupted)   return true;
@@ -1311,15 +1356,23 @@ PrintBuffer::align_dot(const ColInfo & COL_INFO)
 
    Assert(buffer.size() > 0);
 
-   // make sure that consider() has worked.
+   // make sure that consider() has worked. real_len is always a genuine
+   // upper bound (the widest element in the column, numeric or not, per
+   // do_PrintBuffer()'s reconciliation). int_len/fract_len/denom_len are
+   // only guaranteed to bound a NUMERIC item's own int_len/fract_len/
+   // denom_len -- for a non-numeric item, its own int_len (ab)used to
+   // hold that item's total width (see PrintBuffer.hh's documented dual
+   // meaning), a different quantity from COL_INFO.int_len's "digits
+   // before the decimal point" once the column is mixed, so the two are
+   // not comparable there.
    //
-   Assert(COL_INFO.int_len    >= col_info.int_len);
-   Assert(COL_INFO.fract_len  >= col_info.fract_len);
    Assert(COL_INFO.real_len   >= col_info.real_len);
-   Assert(COL_INFO.denom_len  >= col_info.denom_len);
 
    if (col_info.flags & CT_NUMERIC)
       {
+        Assert(COL_INFO.int_len    >= col_info.int_len);
+        Assert(COL_INFO.fract_len  >= col_info.fract_len);
+        Assert(COL_INFO.denom_len  >= col_info.denom_len);
         // numeric items are aligned at the decimal dot. First pad the
         // integer part with spaces to the left
         //

@@ -24,6 +24,8 @@
 #include <math.h>
 #include <string.h>
 
+#include "config.h"   // for cfg_VISIBLE_MARKERS_WANTED
+
 #include "Backtrace.hh"
 #include "Common.hh"
 #include "FloatCell.hh"
@@ -36,8 +38,24 @@
 #include "UTF8_string.hh"
 #include "Value.hh"
 
-/// uncomment to NOT replace iPAD chars with blanks
-//#define KEEP_iPAD_characters
+#if cfg_VISIBLE_MARKERS_WANTED
+   /* formatting markers shall be visible Unicodes (⁰ ¹ ²... ₀ ₁ ₂)
+      this is for debugging only since no distinction is made between regular
+      APL output and markers. IOW if the markers are output by apl itself, then
+      the APL output of ⎕←'⁰¹²' would become '   ' when the markers are being 
+      replaced at the end of the output formatting.
+    */
+
+   // if visible markers are wanted then removing them makes little sense
+   //
+#  define KEEP_iPAD_characters
+
+#else // ! cfg_VISIBLE_MARKERS_WANTED
+   /* formatting markers shall be invisible Unicodes (Unicode private range)
+      In that case keeping them makes little sense
+    */ 
+// #undef KEEP_iPAD_characters
+#endif // ! cfg_VISIBLE_MARKERS_WANTED
 
 ShapeItem UCS_string::total_count = 0;
 ShapeItem UCS_string::total_id = 0;
