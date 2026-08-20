@@ -330,6 +330,7 @@ Shape shape;
              loop(r, rank)
                 {
                   const ShapeItem s = shape.get_shape_item(r);
+                  if (s == 0)   { ec_trial = 0;   break; }
                   if (ec_trial > budget / s)   { ec_trial = budget + 1;   break; }
                   ec_trial *= s;
                 }

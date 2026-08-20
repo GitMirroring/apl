@@ -127,6 +127,15 @@ const ShapeItem ebytes = B.packed_bytes_per_item();
             {
               ShapeItem src = gsh;
               if (!src)   src = A.get_near_int(l + h*shape_B3.l());
+              // reduce BEFORE adding m: src is the user's rotate amount
+              // and may be any int64_t, so adding m first can overflow
+              // (UB, wraps to a wrong offset) whenever src is within m
+              // of INT64_MAX -- the same class of bug as the "+
+              // shape_B3.m()" overflow fixed below for Bugs14 #8, just
+              // one line earlier (Blake McBride, Bugs21 #2). Reducing
+              // first keeps |src| < shape_B3.m() so "src += m" below
+              // cannot overflow.
+              src %= shape_B3.m();
               src += m;
               // normalize src into [0, shape_B3.m()) in O(1). A naive
               // while-loop here (adding/subtracting shape_B3.m() one
@@ -158,6 +167,15 @@ const ShapeItem ebytes = B.packed_bytes_per_item();
             {
               ShapeItem src = gsh;
               if (!src)   src = A.get_near_int(l + h*shape_B3.l());
+              // reduce BEFORE adding m: src is the user's rotate amount
+              // and may be any int64_t, so adding m first can overflow
+              // (UB, wraps to a wrong offset) whenever src is within m
+              // of INT64_MAX -- the same class of bug as the "+
+              // shape_B3.m()" overflow fixed below for Bugs14 #8, just
+              // one line earlier (Blake McBride, Bugs21 #2). Reducing
+              // first keeps |src| < shape_B3.m() so "src += m" below
+              // cannot overflow.
+              src %= shape_B3.m();
               src += m;
               // normalize src into [0, shape_B3.m()) in O(1). A naive
               // while-loop here (adding/subtracting shape_B3.m() one

@@ -687,9 +687,27 @@ Executable::clear_body()
         if (body[b].is_function())
            {
              cFunction_P fun = body[b].get_function();
-             const UserFunction * ufun = fun->get_func_ufun();
-             if (ufun && ufun->is_lambda())
-                const_cast<UserFunction *>(ufun)->decrement_refcount(LOC);
+
+             // fun->get_func_ufun() below is virtual, but by the time
+             // clear_body() runs from ~Workspace() during )OFF, the
+             // statically-allocated primitive/system function singletons
+             // (Bif_F12_PLUS::fun etc.) have already been destroyed --
+             // they are constructed after, hence destroyed before, the
+             // static Workspace. A user-defined function body can still
+             // hold Function* tokens pointing at those dead singletons,
+             // so a virtual call through fun would be UB (Blake McBride,
+             // Bugs21 #3). is_user_defined() only reads the plain,
+             // non-virtual Id set at construction time, so it is safe to
+             // call here even if fun's own vtable is gone; only
+             // UserFunction (which includes lambdas) is ever constructed
+             // with ID_USER_SYMBOL, so primitives are correctly skipped.
+             //
+             if (fun->is_user_defined())
+                {
+                  const UserFunction * ufun = fun->get_func_ufun();
+                  if (ufun && ufun->is_lambda())
+                     const_cast<UserFunction *>(ufun)->decrement_refcount(LOC);
+                }
              new (&body[b]) Token();
            }
       }

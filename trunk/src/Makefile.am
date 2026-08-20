@@ -404,13 +404,18 @@ test4: all
 	stty sane
 
 # Create/refresh testcases_3/ and testcases_4/ symlink directories from ⍝@ markers.
-# install-data-hook calls this so 'make install' (typically run as root) sets them up;
-# chown restores ownership to match the src directory.
+# install-data-hook calls this so 'make install' (typically run as root, e.g.
+# 'sudo make install' -- needed for /etc and friends) sets them up; chown
+# restores ownership to match the src directory so the symlinks stay owned
+# by the actual user, not root. This must run LAST: it used to run before
+# the ln -sf loops below, so it could only fix ownership of entries that
+# already existed -- any symlink created or refreshed by those loops
+# afterward was left root-owned again, since the recipe is still running
+# under the same 'sudo make install' invocation at that point.
 .PHONY:	install-testlinks
 install-data-hook: install-testlinks
 install-testlinks:
 	$(MKDIR_P) testcases_3 testcases_4
-	chown -R "$$(stat -c '%u:%g' .)" testcases_3 testcases_4
 	for f in testcases/*.tc; do \
 	  name=$$(basename "$$f"); \
 	  if head -10 "$$f" | grep -q '@ test3\.'; then \
@@ -426,6 +431,7 @@ install-testlinks:
 	    ln -sf "../testcases/invariants/$$name" "testcases_4/$$name"; \
 	  fi; \
 	done
+	chown -R "$$(stat -c '%u:%g' .)" testcases_3 testcases_4
 
 # Bootstrap testcases_3/ from scratch (same ⍝@ test3. marker selection as
 # install-testlinks above), for a fresh checkout/tarball that cannot

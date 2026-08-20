@@ -118,5 +118,21 @@ MOTHER
       ¯99999999999⌽1 2 3 4 5
 2 3 4 5 1
 
+      ⍝ signed overflow regression (Blake McBride, Bugs21 #2) ------
+      ⍝ src += m ran before src %= shape_B3.m(), so a rotate amount
+      ⍝ within m of INT64_MAX overflowed (UB, wrapped to a wrong
+      ⍝ offset) and produced a result that was not even a permutation
+      ⍝ of B -- elements silently duplicated and dropped. Fixed to
+      ⍝ reduce modulo first. INT64_MAX itself is the smallest amount
+      ⍝ that triggers it for these shapes.
+
+      9223372036854775807⌽⍳10
+8 9 10 1 2 3 4 5 6 7
+
+      9223372036854775807⊖3 4⍴⍳12
+5  6  7  8
+9 10 11 12
+1  2  3  4
+
       ⍝ ==================================
 

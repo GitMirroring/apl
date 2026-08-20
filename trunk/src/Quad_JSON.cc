@@ -166,6 +166,17 @@ const ShapeItem B0 = b;
    while (uint32_t(ucs_B[b] - UNI_0) < 10)   ++b;
    const bool any_int_digit = (b != int_start);
 
+   // RFC 8259: int = zero / (digit1-9 *DIGIT) -- a leading zero is only
+   // allowed as the entire integral part ("0"), never followed by more
+   // digits ("01", "0123"); this was silently accepted and the extra
+   // digits kept (Blake McBride, Bugs21 #4b).
+   if (any_int_digit && (b - int_start) > 1 && ucs_B[int_start] == UNI_0)
+      {
+        MORE_ERROR() << "⎕JSON B: malformed number (leading zero) at "
+                     << B0 << "↓B";
+        DOMAIN_ERROR;
+      }
+
    bool any_frac_digit = false;
    if (ucs_B[b] == UNI_FULLSTOP)   // optional fractional part
       {
@@ -1338,6 +1349,30 @@ ShapeItem content_len = 0;
                 }
              else                     // 1-character escape
                 {
+                  // RFC 8259 permits exactly \" \\ \/ \b \f \n \r \t (plus
+                  // \uXXXX, handled above); anything else was silently
+                  // accepted and decoded as the literal character itself
+                  // (Blake McBride, Bugs21 #4a) -- reject it instead, so
+                  // this validator matches the care already taken over
+                  // \uXXXX just above.
+                  //
+                  switch (safe_at(b + 1))
+                     {
+                       case UNI_DOUBLE_QUOTE:
+                       case UNI_BACKSLASH:
+                       case UNI_SLASH:
+                       case Unicode('b'):
+                       case Unicode('f'):
+                       case Unicode('n'):
+                       case Unicode('r'):
+                       case Unicode('t'):
+                            break;
+
+                       default:
+                            MORE_ERROR() << "⎕JSON B: invalid escape sequence \\"
+                                         << safe_at(b + 1) << " at " << b << "↓B";
+                            DOMAIN_ERROR;
+                     }
                   ++b;   // the escaped character
                 }
            }

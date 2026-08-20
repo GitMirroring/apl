@@ -1988,8 +1988,16 @@ Value_P Z(get_shape(), loc);
              // raw bytes instead of materialising and re-storing one Cell
              // at a time.
              Z->commit_ravel_like(*this, count);
+             // bool: copy whole 64-bit words, not just ceil(count/8) bytes
+             // -- see the identical fix/rationale in Bif_F12_ELEMENT.cc's
+             // ∊B packed fast path (Blake McBride, Bugs21 #5): Z is fresh,
+             // non-zeroed memory, and a RPT_BOOL ravel's "tail bits are
+             // always zero" invariant (ScalarFunction.hh) must hold for
+             // the whole last word, not just its first ceil(count/8)
+             // bytes. The source ravel is always allocated to a whole-
+             // word size, so the wider read stays in bounds.
              const size_t nbytes = (get_ravel_type() == RPT_BOOL)
-                                  ? (size_t(count) + 7) / 8
+                                  ? (size_t(count) + 63) / 64 * 8
                                   : size_t(count) * packed_bytes_per_item();
              // cast to void*: this is a bulk raw-byte copy of packed
              // storage, not construction of Cell objects (see the packed

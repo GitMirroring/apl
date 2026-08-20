@@ -159,8 +159,17 @@ Bif_F12_ELEMENT::do_eval_B(cValue_R B)
         Value_P Z(count, LOC);
         uint8_t * pZ = reinterpret_cast<uint8_t *>(&Z->get_wfirst());
         const ShapeItem ebytes = B.packed_bytes_per_item();
+        // bool: copy whole 64-bit words, not just ceil(count/8) bytes --
+        // a RPT_BOOL ravel is addressed (and its "tail bits are always
+        // zero" invariant maintained, see ScalarFunction.hh) as uint64_t
+        // words, but the destination here is freshly allocated, non-
+        // zeroed memory; copying only the partial last byte would leave
+        // bits [count..63] of the last word as uninitialised garbage
+        // instead of the required zero (Blake McBride, Bugs21 #5). The
+        // source ravel is always allocated to a whole-word size, so the
+        // wider read stays in bounds.
         const ShapeItem nbytes = ebytes > 0 ? count * ebytes
-                                            : (count + 7) / 8;   // bool: bits
+                                            : (count + 63) / 64 * 8;
         memcpy(pZ, B.cravel_packed(), nbytes);
         Z->commit_ravel_like(B, count);
         Z->check_value(LOC);
