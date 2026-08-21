@@ -1280,6 +1280,19 @@ ShapeItem content_len = 0;
          const Unicode uni = ucs_B[b];
          if (uni == UNI_DOUBLE_QUOTE)   return content_len;
 
+         // RFC 8259 §7: U+0000..U+001F MUST be escaped inside a string
+         // (Blake McBride, Bugs22 #6) -- the escape table below is
+         // already validated; this is the unescaped half of the same
+         // rule.
+         if (uni < UNI_SPACE)
+            {
+              char cc[20];
+              SPRINTF(cc, "U+%4.4X", uni);
+              MORE_ERROR() << "⎕JSON B: unescaped control character "
+                           << cc << " in string at " << b << "↓B";
+              DOMAIN_ERROR;
+            }
+
         ++content_len;
         if (uni == UNI_BACKSLASH)   // skip the escaped part...
            {

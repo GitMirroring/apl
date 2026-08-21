@@ -749,6 +749,8 @@ const APL_Float quotient = P / Q;
 
    {
      const double qct = Workspace::get_CT();
+     // (Blake McBride, Bugs22 #1 -- see Cell::integral_within()'s own
+     // fix for the actual near-zero-quotient bug this guards against.)
      if ((qct != 0) && Cell::integral_within(quotient, qct))   return 0.0;
    }
 

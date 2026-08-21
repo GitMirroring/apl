@@ -87,6 +87,19 @@ public:
 class PrintBuffer
 {
 public:
+   /// maximum nesting depth this class will attempt to print. Printing
+   /// a value recurses mutually with PointerCell::character_representation()
+   /// once per nesting level, with no depth counter of its own; a
+   /// sufficiently deep value (observed at ~11000 on an 8MB stack, far
+   /// less on a constrained one) exhausts the C++ call stack with a
+   /// hard SIGSEGV instead of a catchable APL error (Blake McBride,
+   /// Bugs22 #4). This bound is deliberately conservative -- safely
+   /// below that failure threshold even on a small (e.g. 512KB
+   /// secondary-thread) stack -- since genuine APL values printed
+   /// interactively are essentially never this deep.
+   enum { MAX_PRINT_NESTING_DEPTH = 500 };
+
+
    /// contructor: empty PrintBuffer
    PrintBuffer();
 

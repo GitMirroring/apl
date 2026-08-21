@@ -299,6 +299,7 @@ size_t pos = start;                 // distance from  start
 
 const size_t end = src_pos + src_len;   // end of tag
 size_t attribute_count = Workspace::get_IO();   // "⍙" gets ⎕IO
+std::vector<UCS_string> seen_attribute_names;
    for (;;)
       {
         // skip leading whitespace
@@ -311,6 +312,21 @@ size_t attribute_count = Workspace::get_IO();   // "⍙" gets ⎕IO
         const size_t attname = pos;
         while (pos < end && is_name_char(src[pos]))   ++pos;
         UCS_string attribute_name(src, attname, pos - attname);
+
+        // XML 1.0 §3.1 WFC "Unique Att Spec": an attribute name must
+        // not appear more than once in the same tag. The generated
+        // APL member name is prefixed with a running position
+        // (⍙2b, ⍙3b, ...), so a repeat never collided there and went
+        // unnoticed (Blake McBride, Bugs22 #7).
+        //
+        loop(s, seen_attribute_names.size())
+           if (seen_attribute_names[s] == attribute_name)
+              {
+                MORE_ERROR() << "⎕XML B: duplicate attribute name '"
+                             << attribute_name << "' in the same tag";
+                return true;
+              }
+        seen_attribute_names.push_back(attribute_name);
 
         // skip whitespace before =
         //

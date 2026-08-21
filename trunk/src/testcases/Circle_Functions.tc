@@ -190,3 +190,17 @@
  0.8414709848 0.9092974268 0.1411200081
 ¯0.6536436209 0.2836621855 0.9601702867
 
+      ⍝ Regression (Blake McBride, Bugs22 #3): ¯12○B (and the latent
+      ⍝ ¯8○B) discarded do_bif_circle_fun()'s ErrorCode and always
+      ⍝ reported success, so an overflowing result silently became 0
+      ⍝ instead of DOMAIN ERROR.
+      ⍝
+      ⎕PP←17
+      ¯12○0J¯700
+1.0142320547350045E304
+
+      ¯12○0J¯710
+DOMAIN ERROR
+      ¯12○0J¯710
+      ^   ^
+      )SIC

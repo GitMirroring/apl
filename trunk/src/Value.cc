@@ -639,6 +639,7 @@ Value::get_new_member(const UCS_string & new_member_name)
                     // caught instead of silently allowed.
                     name_val->try_pack(true);
                     name_val->upgrade_member_name();
+                    invalidate_depth();   // growing an existing value
                     new (cell) PointerCell(name_val.get(), *this);
                     return cell + 1;
                   }
@@ -783,6 +784,7 @@ Cell * data = get_member(members, member_owner, false);
    // releasing first leaked the old sub-tree's reference (never
    // decremented) and could double-count pointer_cell_count.
    data->release(LOC);
+   invalidate_depth();   // (re-)setting an existing value's member
    new (data) PointerCell(member_value, *this);
 }
 //────────────────────────────────────────────────────────────────────────────
@@ -1338,7 +1340,16 @@ bool has_inexact_int = false;   // any seen INT64 not exactly representable as d
                    { const APL_Integer v = c.get_int_value();
                      const RavelType item_t = (v == 0 || v == 1) ? RPT_BOOL : RPT_INT64;
                      if (t == RPT_BOOL && item_t == RPT_INT64)   t = RPT_INT64;
-                     else if (t == RPT_FLOAT64 || t == RPT_COMPLEX)
+                     else if (t == RPT_FLOAT64)
+                        // an INT mixed into an otherwise-all-float
+                        // ravel would demote it to a packed double,
+                        // silently losing its exact-integer type on
+                        // readback for any later exact-integer
+                        // primitive (!, *, ...) -- same class of bug
+                        // as the CT_FLOAT case below, just the mirror
+                        // direction (Blake McBride, Bugs22 #5).
+                        return;
+                     else if (t == RPT_COMPLEX)
                         { if (v > (1LL << 53) || v < -(1LL << 53))   return; }
                      else if (t != RPT_BOOL && t != RPT_INT64)
                         return;   // numeric + char → mixed
@@ -1351,8 +1362,16 @@ bool has_inexact_int = false;   // any seen INT64 not exactly representable as d
               case CT_FLOAT:
                    if (t == RPT_BOOL || t == RPT_INT64)
                       {
-                        if (has_inexact_int)   return;   // would lose int precision
-                        t = RPT_FLOAT64;
+                        // don't escalate an int-only ravel to
+                        // RPT_FLOAT64 just because one float cell
+                        // showed up: that would silently demote every
+                        // exact IntCell already seen to a packed
+                        // double, losing exact-integer results from
+                        // later primitives (!, *, ...) that stay exact
+                        // only for a genuine IntCell -- observable by
+                        // crossing ⎕SYL[34;2] (Blake McBride, Bugs22
+                        // #5). Leave the whole ravel unpacked instead.
+                        return;
                       }
                    else if (t != RPT_FLOAT64 && t != RPT_COMPLEX)   return;
                    break;

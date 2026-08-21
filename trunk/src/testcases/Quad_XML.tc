@@ -371,3 +371,27 @@ A ⎕XML B: Bad function number A=15
 _11l
 
 
+      ⍝ Regression (Blake McBride, Bugs22 #7): ⎕XML accepted duplicate
+      ⍝ attribute names in the same tag (XML 1.0 §3.1 WFC "Unique Att
+      ⍝ Spec"), silently building two members for the same attribute.
+      ⍝
+      ⎕XML '<a b="1" b="2"/>'
+DOMAIN ERROR+
+      ⎕XML '<a b="1" b="2"/>'
+      ^    ^
+      )SIC
+
+      ⎕XML '<a b="1" c="2"/>'
+._1a: □
+._1a.⍙1:  ┌→┐
+          │a│
+          └─┘
+
+._1a.⍙2b: ┌→┐
+          │1│
+          └─┘
+
+._1a.⍙3c: ┌→┐
+          │2│
+          └─┘
+

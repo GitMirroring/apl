@@ -53,6 +53,7 @@ err_def(SYS_LIMIT_SIDEPTH,   "SYSTEM LIMIT (SI depth)"         ,   1,    100 )
 err_def(SYS_LIMIT_VALCOUNT,  "SYSTEM LIMIT (value count)"      ,   1,    101 )
 err_def(SYS_LIMIT_RAVELSIZE, "SYSTEM LIMIT (ravel size)"       ,   1,    102 )
 err_def(SYS_LIMIT_SVAR,      "SYSTEM LIMIT (shared var size)"  ,   1,    103 )
+err_def(SYS_LIMIT_NESTING,   "SYSTEM LIMIT (nesting depth)"    ,   1,    104 )
 err_def(ATTENTION,           "ATTENTION"                       ,   1,     17 )
 err_def(STOP_LINE,           "STOP_LINE"                       ,   1,     18 )
 

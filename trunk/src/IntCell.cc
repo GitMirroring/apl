@@ -505,12 +505,21 @@ IntCell::bif_residue(Cell * Z, const Cell * A) const
                                            APL_Complex(value.ival, 0));
 
 const APL_Float a = A->get_real_value();
-   // for a near INT64 limit, use float arithmetic
-   if (a > (BIG_INT64_F - 1E10) || a < (1E10 - BIG_INT64_F))
-      return FloatCell::bif_residue_ff(Z, a, APL_Float(value.ival));
 
+   // an exact IntCell A always takes the exact int64 '%' path below,
+   // however large -- checked before the near-INT64-limit float
+   // fallback rather than after it, since converting an A that is
+   // already an exact IntCell to double is precisely where that
+   // fallback loses the most precision (a double's 53-bit mantissa
+   // cannot even distinguish adjacent int64 values up here), turning
+   // what should be the best-case input into the worst case (Blake
+   // McBride, Bugs22 #1).
    if (A->is_integer_cell())
       return IntCell::bif_residue_ii(Z, A->get_int_value(), value.ival);
+
+   // for a genuinely non-integer A near INT64 limit, use float arithmetic
+   if (a > (BIG_INT64_F - 1E10) || a < (1E10 - BIG_INT64_F))
+      return FloatCell::bif_residue_ff(Z, a, APL_Float(value.ival));
 
    // non-integer float A: use CT tolerance check and near-zero guard
    // (mirrors the original IntCell::bif_residue for float A)
@@ -522,9 +531,13 @@ const APL_Float qf = floor(quot);
 const double qct = Workspace::get_CT();
    if (qct != 0)
       {
+        // a nearby integer of 0 is never a match here either -- same
+        // near-zero-quotient bug and fix as Cell::integral_within(),
+        // whose two branches this duplicates by hand (Blake McBride,
+        // Bugs22 #1).
         const APL_Float qc = ceil(quot);
-        if (quot > qc - qct)   return IntCell::z0(Z);
-        if (quot < qf + qct)   return IntCell::z0(Z);
+        if (qc != 0.0 && quot > qc - qct)   return IntCell::z0(Z);
+        if (qf != 0.0 && quot < qf + qct)   return IntCell::z0(Z);
       }
 
 APL_Float z = value.ival - a * qf;

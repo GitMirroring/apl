@@ -581,12 +581,24 @@ ShapeItem count = ec;
 APL_types::Depth
 cValue::compute_depth() const
 {
-   // For depth 0 or 1, no PointerCells exist, so the cache is always reliable.
-   // For depth ≥ 2, sub-values may have been modified via selective assignment
-   // without the parent's cache being invalidated (stale-parent problem: no
-   // parent pointers available).  Always recompute for depth ≥ 2 to guarantee
-   // correctness.  Sub-values with depth ≤ 1 return instantly (O(1) cached),
-   // so the total cost is O(top-level element count), not O(total sub-tree).
+   // For depth 0 or 1, no PointerCells exist, so the cache is always
+   // reliable: any mutation that could change it necessarily overwrites one
+   // of THIS value's own ravel cells, which is always caught by
+   // depth_update_for_overwrite() / next_ravel_Pointer() / next_ravel_Value()
+   // / invalidate_depth() (see Value::add_member(), Value::get_new_member(),
+   // Cell::init_from_value()).
+   //
+   // For depth ≥ 2, sub-values can be mutated in place (selective/indexed/
+   // member assignment on a nested sub-value, e.g. (2↑¨v)←6) while THIS
+   // value's own ravel is untouched; that mutation dirties the sub-value's
+   // own cache correctly, but there are no parent pointers to propagate the
+   // invalidation up to every ancestor whose cached depth it may affect
+   // (confirmed by ZZ49_Regression.tc's "selective specification with
+   // dyadic ¨" case, which silently kept reporting the pre-mutation depth
+   // once caching was extended to depth ≥ 2). So depth ≥ 2 is deliberately
+   // never cached; always recomputing keeps it correct. Sub-values with
+   // depth ≤ 1 still return in O(1), so the total cost remains
+   // O(top-level element count), not O(total sub-tree).
    if (flags.value_depth <= 1)   return flags.value_depth;
 
    APL_types::Depth depth;
@@ -614,9 +626,7 @@ cValue::compute_depth() const
       }
 
    if (depth <= 1)   flags.value_depth = uint8_t(depth);
-   // depth ≥ 2 intentionally not cached: sub-values may be modified later
-   // without invalidating this cache (no parent pointers); always recomputing
-   // keeps results correct at O(top-level count) per call.
+   // depth ≥ 2 intentionally not cached, see the comment above.
    return depth;
 }
 //────────────────────────────────────────────────────────────────────────────

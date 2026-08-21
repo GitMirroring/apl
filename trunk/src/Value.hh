@@ -278,9 +278,17 @@ public:
    bool is_complete() const
       { return flags.complete; }
 
-   /// return the cached nesting depth (VF_DEPTH_DIRTY means cache is invalid)
-   uint8_t get_value_depth() const
-      { return flags.value_depth; }
+   /// mark the cached ≡ depth as invalid. Needed whenever a Cell owned by
+   /// this value is replaced (in-place, i.e. after this value may already
+   /// have a cached depth) by something that could change the depth of
+   /// this value, e.g. indexed/selective/member assignment. Front-door
+   /// ravel mutators (next_ravel_Pointer(), set_ravel_Pointer(), ...) and
+   /// assign_cellrefs() already call this internally; only call it
+   /// directly when adding a new PointerCell to an existing value outside
+   /// of those paths (see Value::add_member(), Value::get_new_member(),
+   /// Cell::init_from_value()).
+   void invalidate_depth() const
+      { flags.value_depth = VF_DEPTH_DIRTY; }
 
    /// return true if this variable is is_member() and a N×2 matrix
    /// with proper keys

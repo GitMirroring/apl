@@ -162,7 +162,12 @@ APL_Complex bc = iB->get_complex_value();   // the value being decoded
         Cell cache;
         const Cell & cellA = iA.get_owner().get_cravel(idxA, cache);
         const ComplexCell cC(bc);
-        cC.bif_residue(cZ, &cellA);
+        // latent (A is validated as numeric before this loop runs, so
+        // bif_residue() cannot actually fail here), propagated while
+        // the discarded-ErrorCode pattern is being cleaned up
+        // (Blake McBride, Bugs22 #3 appendix).
+        const ErrorCode ec = cC.bif_residue(cZ, &cellA);
+        if (ec != E_NO_ERROR)   throw_apl_error(ec, LOC);
 
         if (cellA.is_near_zero())
            {
@@ -199,7 +204,12 @@ APL_Float bf = iB->get_real_value();   // the value being decoded
         Cell cache;
         const Cell & cellA = iA.get_owner().get_cravel(idxA, cache);
         const FloatCell cC(bf);
-        cC.bif_residue(cZ, &cellA);
+        // latent (A is validated as numeric before this loop runs, so
+        // bif_residue() cannot actually fail here), propagated while
+        // the discarded-ErrorCode pattern is being cleaned up
+        // (Blake McBride, Bugs22 #3 appendix).
+        const ErrorCode ec = cC.bif_residue(cZ, &cellA);
+        if (ec != E_NO_ERROR)   throw_apl_error(ec, LOC);
 
         if (cellA.is_near_zero())
            {
@@ -252,7 +262,12 @@ APL_Integer bi = iB->get_int_value();   // the value being decoded
         Cell cache;
         const Cell & cellA = iA.get_owner().get_cravel(idxA, cache);
         const IntCell cC(bi);
-        cC.bif_residue(cZ, &cellA);
+        // latent (A is validated as numeric before this loop runs, so
+        // bif_residue() cannot actually fail here), propagated while
+        // the discarded-ErrorCode pattern is being cleaned up
+        // (Blake McBride, Bugs22 #3 appendix).
+        const ErrorCode ec = cC.bif_residue(cZ, &cellA);
+        if (ec != E_NO_ERROR)   throw_apl_error(ec, LOC);
 
         if (cellA.get_int_value() == 0)
            {

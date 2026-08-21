@@ -77,7 +77,14 @@ Bif_F12_DOMINO::eval_B(cValue_R B) const
         Value_P Z(LOC);
 
         Cell cache;
-        B.get_cscalar(cache).bif_reciprocal(&Z->get_wscalar());
+        // ⌹0 is singular: bif_reciprocal() returns E_DOMAIN_ERROR
+        // without writing Z for a zero operand, and that ErrorCode
+        // was being silently discarded here, so the pre-initialised
+        // (zero) short ravel cell was returned as if it were a valid
+        // result (Blake McBride, Bugs22 #2).
+        const ErrorCode ec = B.get_cscalar(cache)
+                              .bif_reciprocal(&Z->get_wscalar());
+        if (ec != E_NO_ERROR)   throw_apl_error(ec, LOC);
         Z->check_value(LOC);
         return Token(TOK_APL_VALUE1, Z);
       }

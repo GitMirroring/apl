@@ -99,6 +99,15 @@ PrintBuffer::PrintBuffer(const cValue & value, const PrintContext & _pctx,
 {
 PERFORMANCE_START(start_0)
 
+   // bounded, catchable error instead of the mutual recursion with
+   // PointerCell::character_representation() below eventually
+   // exhausting the C++ call stack (Blake McBride, Bugs22 #4). Checked
+   // once per level (this constructor is the only place either side of
+   // that recursion calls back into), so a value within the limit
+   // never pays for more than one compute_depth() call per level.
+   if (value.compute_depth() > PrintBuffer::MAX_PRINT_NESTING_DEPTH)
+      LIMIT_ERROR_NESTING;
+
    // Note: if ostream is non-0 then this value may be incomplete
    // (as indicated by member complete if it is huge). This is to speed
    // up printing if the value is discarded after having been printed

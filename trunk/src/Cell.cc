@@ -143,6 +143,12 @@ Cell::to_value(const char * loc) const
 void
 Cell::init_from_value(Value * value, Value & cell_owner, const char * loc)
 {
+   // this may overwrite a Cell of a value that already has a cached
+   // ≡ depth (e.g. Symbol::assign_indexed()'s member-assignment path);
+   // invalidate unconditionally since callers building a fresh Value
+   // (whose depth cache already starts dirty) pay only a harmless no-op.
+   cell_owner.invalidate_depth();
+
    if (value->is_simple_scalar())
       {
         Cell cache;

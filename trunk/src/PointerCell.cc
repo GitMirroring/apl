@@ -28,9 +28,35 @@
 #include "Workspace.hh"
 
 //════════════════════════════════════════════════════════════════════════════
+/// every PointerCell nests sub_val one level deeper into cell_owner; this
+/// is the single chokepoint all nesting-increasing constructions funnel
+/// through (enclose, strand notation, indexed/selective/member
+/// assignment, ...), so it is where the ≡ depth limit is enforced. Clones
+/// of an already-valid sub_val (whose depth was checked when it was first
+/// nested) re-check harmlessly since cloning does not increase sub_val's
+/// own depth.
+///
+/// Some callers (e.g. Bif_F12_PARTITION::enclose_with_axes()) construct an
+/// empty sub_val, wrap it in a PointerCell immediately, and only populate
+/// its ravel afterwards through the same (now shared) Value object --
+/// sub_val->more() is true while that population is still in progress.
+/// compute_depth() is unsafe to call at that point (the ravel is only
+/// partially, or not yet at all, initialized), so the check below is
+/// skipped for an incomplete sub_val: no useful depth exists yet, and any
+/// PointerCell later copied into sub_val (deepening it) goes back through
+/// this same constructor, so the limit is still enforced by the time
+/// sub_val (and hence cell_owner) is actually used.
+static void
+check_nesting_depth(const Value * sub_val)
+{
+   if (sub_val->more())   return;   // still being populated, see above
+   if (1 + sub_val->compute_depth() > MAX_DEPTH)   LIMIT_ERROR_NESTING;
+}
+//────────────────────────────────────────────────────────────────────────────
 PointerCell::PointerCell(Value * sub_val, Value & cell_owner)
 {
    Assert(!sub_val->is_simple_scalar());
+   check_nesting_depth(sub_val);
 
    new (&value.pval.valp) Value_P(sub_val, LOC);
    value.pval.owner = &cell_owner;

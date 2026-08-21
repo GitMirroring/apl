@@ -281,10 +281,14 @@ const APL_Complex one(1.0, 0.0);
    switch(fun)
       {
         case -12: {
+                    // bif_exponential() returns E_DOMAIN_ERROR for a
+                    // non-finite result without writing Z; that was
+                    // being discarded here, unconditionally reporting
+                    // success even on overflow (Blake McBride, Bugs22
+                    // #3).
                     ComplexCell cb(-b.imag(), b.real());
-                    cb.bif_exponential(Z);
+                    return cb.bif_exponential(Z);
                   }
-                  return E_NO_ERROR;
 
         case -11: return ComplexCell::zC(Z, -b.imag(), b.real());
 
@@ -292,8 +296,13 @@ const APL_Complex one(1.0, 0.0);
 
         case  -9: return ComplexCell::zC(Z, b);
         case  -8: // ¯8○Z ←→ -8○Z
-                  do_bif_circle_fun(Z, 8, b);
-                  return ComplexCell::zC(Z, -Z->get_complex_value());
+                  {
+                    // same discarded-ErrorCode pattern as case -12,
+                    // here on the recursive 8○Z (Bugs22 #3 appendix).
+                    const ErrorCode ec = do_bif_circle_fun(Z, 8, b);
+                    if (ec != E_NO_ERROR)   return ec;
+                    return ComplexCell::zC(Z, -Z->get_complex_value());
+                  }
 
         case  -7: // arctanh(z) = 0.5 (ln(1.0 + z) - ln(1.0 - z))
                   {

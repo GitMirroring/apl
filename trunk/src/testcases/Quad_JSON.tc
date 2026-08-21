@@ -305,3 +305,15 @@ OK      - no duplicate parents
 
 
 
+      ⍝ Regression (Blake McBride, Bugs22 #6): ⎕JSON accepted raw
+      ⍝ (unescaped) control characters U+0000..U+001F inside a JSON
+      ⍝ string, which RFC 8259 §7 forbids.
+      ⍝
+      ⎕JSON ('["a',(⎕UCS 10),'b"]')
+DOMAIN ERROR+
+      ⎕JSON('["a',(⎕UCS 10),'b"]')
+      ^    ^
+      )SIC
+
+      ⎕JSON '["ab"]'
+ ab 
