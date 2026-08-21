@@ -29,27 +29,22 @@
 #include "Workspace.hh"
 
 Macro * Macro::all_macros[MAC_COUNT];
-Symbol * Macro::mue_symbols[MMAC_COUNT + MARG_COUNT + 1];
+Symbol * Macro::mue_symbols[MARG_COUNT + 1];
 bool Macro::mue_ready = false;
 
 //════════════════════════════════════════════════════════════════════════════
 void
 Macro::init()
 {
-   mue_symbols[0] = 0;   // Mue_num 0 is unused
-
-   loop(n, MMAC_COUNT)   // macro-name symbols μ¯1 .. μ¯MMAC_COUNT
-      {
-        UCS_string name;
-        name << UNI_MUE << UNI_OVERBAR << int(n + 1);
-        mue_symbols[n + 1] = Workspace::lookup_symbol(name);
-      }
+   // mue_symbols[0] (Macro_arg_num 0) is intentionally left at its
+   // default-zero-initialised value (static storage duration, no
+   // explicit initialiser) -- see its comment in Macro.hh.
 
    loop(n, MARG_COUNT)   // argument/local-var symbols μ1 .. μMARG_COUNT
       {
         UCS_string name;
         name << UNI_MUE << int(n + 1);
-        mue_symbols[MMAC_COUNT + n + 1] = Workspace::lookup_symbol(name);
+        mue_symbols[n + 1] = Workspace::lookup_symbol(name);
       }
 
    mue_ready = true;

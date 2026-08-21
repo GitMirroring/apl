@@ -53,34 +53,39 @@ SymbolTable::lookup_symbol(const UCS_string & sym_name)
         FIXME;
       }
 
-   // μ¯N or μN (N a decimal integer): one of Macro::mue_symbols' fixed
-   // pre-created symbols (see Macro::Mue_num) rather than an ordinary
-   // user-creatable name -- return the existing Symbol * directly, no
-   // hash-table walk and no create-if-missing, since Macro::init()
-   // already created all of them upfront. Guarded by Macro::mue_ready:
-   // init() itself looks up these same names (through this very
-   // function, via Workspace::lookup_symbol()) while still filling
-   // mue_symbols in, and must fall through to the ordinary path below
-   // exactly as before this feature existed, or it would read back the
-   // not-yet-assigned slot it is in the middle of writing.
+   // μN (N a decimal integer): one of Macro::mue_symbols' fixed
+   // pre-created argument/local-var symbols (see Macro::Macro_arg_num)
+   // rather than an ordinary user-creatable name -- return the existing
+   // Symbol * directly, no hash-table walk and no create-if-missing,
+   // since Macro::init() already created all of them upfront. Guarded by
+   // Macro::mue_ready: init() itself looks up these same names (through
+   // this very function, via Workspace::lookup_symbol()) while still
+   // filling mue_symbols in, and must fall through to the ordinary path
+   // below exactly as before this feature existed, or it would read back
+   // the not-yet-assigned slot it is in the middle of writing.
    //
-   if (Macro::mue_ready && sym_name.size() >= 2 && sym_name[0] == UNI_MUE)
+   // μ¯N (negative, the former macro-name range) is deliberately NOT
+   // special-cased here anymore: no macro body contains "μ¯N" text since
+   // every macro's own header name became plain Macro.def-local text
+   // (see Macro_arg_num's comment in Macro.hh), and mue_symbols no
+   // longer even has a slot for it (see Macro::mue_symbols and
+   // Macro::init()). A stray "μ¯N" lookup instead falls through to the
+   // ordinary path below, which safely creates an ordinary new Symbol
+   // on demand like any other never-before-seen name.
+   //
+   if (Macro::mue_ready && sym_name.size() >= 2 && sym_name[0] == UNI_MUE
+       && sym_name[1] != UNI_OVERBAR)
       {
-        const bool negative = (sym_name[1] == UNI_OVERBAR);
-        ShapeItem p = negative ? 2 : 1;
+        ShapeItem p = 1;
         if (p < sym_name.ssize() && Avec::is_digit(sym_name[p]))
            {
              int32_t N = 0;
              while (p < sym_name.ssize() && Avec::is_digit(sym_name[p]))
                    N = 10*N + (sym_name[p++] - UNI_0);
 
-             if (p == sym_name.ssize())   // the whole name was μ[¯]digits
-                {
-                  if (negative && N >= 1 && N <= Macro::MMAC_COUNT)
-                     return Macro::mue_symbols[N];
-                  if (!negative && N >= 1 && N <= Macro::MARG_COUNT)
-                     return Macro::mue_symbols[Macro::MMAC_COUNT + N];
-                }
+             if (p == sym_name.ssize() &&   // the whole name was μdigits
+                 N >= 1 && N <= Macro::MARG_COUNT)
+                return Macro::mue_symbols[N];
            }
       }
 

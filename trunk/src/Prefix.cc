@@ -1491,13 +1491,25 @@ Prefix::MM_is_FM(Function_PC pc)
        }
 }
 //────────────────────────────────────────────────────────────────────────────
+/// true iff the top of the SI stack is a genuine internal macro (Macro.def).
+/// The ⎕EA/⎕EB helper macros use this to gate the private ⎕ES 100 <magic>
+/// branch/escape/commit/error protocol below -- a capability that must
+/// never be reachable from user code -- via Function::is_macro() rather
+/// than the macro's (cosmetic, Macro.def-only) APL header name.
+static bool
+called_from_macro()
+{
+const UserFunction * ufun = Workspace::SI_top()->get_executable()->get_exec_ufun();
+   return ufun && ufun->is_macro();
+}
+//────────────────────────────────────────────────────────────────────────────
 void
 Prefix::handle_QUAD_ES_COM(const Token & result)
 {
    // make sure that ⎕ES was called from a macro (which implies
    // that it has a parent).
    //
-   if (Workspace::SI_top()->function_name()[0] != UNI_MUE)   DOMAIN_ERROR;
+   if (!called_from_macro())   DOMAIN_ERROR;
 
    Workspace::pop_SI(LOC);   // discard ⎕EA/⎕EB context
 
@@ -1523,7 +1535,7 @@ Prefix::handle_QUAD_ES_ESC()
 {
    // make sure that ⎕ES was called from a macro (implies parent)
    //
-   if (Workspace::SI_top()->function_name()[0] != UNI_MUE)   DOMAIN_ERROR;
+   if (!called_from_macro())   DOMAIN_ERROR;
 
    Workspace::pop_SI(LOC);   // discard the ⎕EA/⎕EB context
 
@@ -1537,7 +1549,7 @@ Prefix::handle_QUAD_ES_BRA(const Token & result)
 {
    // make sure that ⎕ES was called from a macro (implies parent)
    //
-   if (Workspace::SI_top()->function_name()[0] != UNI_MUE)   DOMAIN_ERROR;
+   if (!called_from_macro())   DOMAIN_ERROR;
 
    Workspace::pop_SI(LOC);   // discard the ⎕EA/⎕EB context
 
@@ -1601,7 +1613,7 @@ Prefix::handle_QUAD_ES_ERR(const Token & result)
 
    // make sure that ⎕ES was called from a macro (implies parent)
    //
-   if (Workspace::SI_top()->function_name()[0] != UNI_MUE)   DOMAIN_ERROR;
+   if (!called_from_macro())   DOMAIN_ERROR;
 
    Workspace::pop_SI(LOC);   // discard the ⎕EA/⎕EB context
 

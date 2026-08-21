@@ -40,52 +40,24 @@ public:
         MAC_NONE = -1
       };
 
-   /// A reference to a μ-prefixed macro symbol, used once macro-internal
-   /// names (the macro's own name aside, see Macro_num above) become
-   /// positional rather than named. A single value doubles as both "which
-   /// macro" and "which argument slot" depending on its sign: negative
-   /// values MUE_M1 .. MUE_M29 identify one of the 29 macros (mirroring
-   /// Macro_num's 29 MAC_xxx entries, one-to-one, in the same order), and
-   /// positive values MUE_1 .. MUE_17 identify one of the (at most 17)
-   /// positional argument/local-var slots within whichever macro is
-   /// current -- 17 being the highest count over all macros (in
-   /// Z__pA_LO_REDUCE_X4_B and Z__nA_LO_REDUCE_X4_B: Z A1 LO X4 B rho_B3
-   /// B3 rho_Z rho_Z3 T H M L a N I I_max). 0 is deliberately unused (ne
-   /// either a valid macro nor a valid slot) so it stays available as an
-   /// "unset" sentinel distinct from every real Mue_num value.
+   /// A reference to one of a macro's positional argument/local-var
+   /// symbols μ1 .. μMARG_COUNT -- 18 being the highest slot number used
+   /// by any macro (in Z__pA_LO_REDUCE_X4_B and Z__nA_LO_REDUCE_X4_B: Z
+   /// A1 LO [slot 4/RO unused by these two] X4 B rho_B3 B3 rho_Z rho_Z3 T
+   /// H M L a N I I_max). A macro's own identity is Macro_num, not
+   /// Macro_arg_num -- dispatch is always by Macro_num, and a macro's own
+   /// APL header name (Macro.def-local text, e.g. "LO_EACH_B") has no
+   /// functional significance since nothing ever calls a macro by name.
+   /// Macro_arg_num used to also carry negative values MUE_M1 ..
+   /// MUE_M29, identifying a macro by its former "μ¯N" self-name; since
+   /// no macro body has contained "μ¯N" text since header names became
+   /// plain Macro.def-local text, that range is gone and Macro_arg_num
+   /// is positive-only. 0 is deliberately unused (not a valid slot) so
+   /// it stays available as an "unset" sentinel distinct from every real
+   /// Macro_arg_num value.
    ///
-   enum Mue_num
+   enum Macro_arg_num
       {
-        MUE_M29 = -29,   ///< macro 29 (Z__EXEC_EACH_B)
-        MUE_M28 = -28,   ///< macro 28 (Z__vA_LO_INNER_RO_vB)
-        MUE_M27 = -27,   ///< macro 27 (Z__A_Quad_EB_B)
-        MUE_M26 = -26,   ///< macro 26 (Z__A_Quad_EA_B)
-        MUE_M25 = -25,   ///< macro 25 (Z__Quad_INP_B)
-        MUE_M24 = -24,   ///< macro 24 (Z__A_LO_RANK_X7_B)
-        MUE_M23 = -23,   ///< macro 23 (Z__LO_RANK_X5_B)
-        MUE_M22 = -22,   ///< macro 22 (Z__LO_SCAN_X4_B)
-        MUE_M21 = -21,   ///< macro 21 (Z__nA_LO_REDUCE_X4_B)
-        MUE_M20 = -20,   ///< macro 20 (Z__pA_LO_REDUCE_X4_B)
-        MUE_M19 = -19,   ///< macro 19 (Z__LO_REDUCE_X4_B)
-        MUE_M18 = -18,   ///< macro 18 (Z__A_LO_POWER_RO_B)
-        MUE_M17 = -17,   ///< macro 17 (Z__LO_POWER_RO_B)
-        MUE_M16 = -16,   ///< macro 16 (Z__A_LO_POWER_N_B)
-        MUE_M15 = -15,   ///< macro 15 (Z__LO_POWER_N_B)
-        MUE_M14 = -14,   ///< macro 14 (A_LO_POWER_N_B)
-        MUE_M13 = -13,   ///< macro 13 (LO_POWER_N_B)
-        MUE_M12 = -12,   ///< macro 12 (Z__A_LO_INNER_RO_B)
-        MUE_M11 = -11,   ///< macro 11 (Z__A_LO_OUTER_B)
-        MUE_M10 = -10,   ///< macro 10 (Z__vA_LO_EACH_vB)
-        MUE_M9  =  -9,   ///< macro  9 (Z__vA_LO_EACH_sB)
-        MUE_M8  =  -8,   ///< macro  8 (Z__sA_LO_EACH_vB)
-        MUE_M7  =  -7,   ///< macro  7 (Z__sA_LO_EACH_sB)
-        MUE_M6  =  -6,   ///< macro  6 (Z__LO_EACH_B)
-        MUE_M5  =  -5,   ///< macro  5 (vA_LO_EACH_vB)
-        MUE_M4  =  -4,   ///< macro  4 (vA_LO_EACH_sB)
-        MUE_M3  =  -3,   ///< macro  3 (sA_LO_EACH_vB)
-        MUE_M2  =  -2,   ///< macro  2 (sA_LO_EACH_sB)
-        MUE_M1  =  -1,   ///< macro  1 (LO_EACH_B)
-
         // 0 intentionally unused (see comment above)
 
         MUE_1   =   1,   ///< argument/local-var slot 1
@@ -107,36 +79,32 @@ public:
         MUE_17  =  17,   ///< argument/local-var slot 17
         MUE_18  =  18,   ///< argument/local-var slot 18
 
-        // MMAC_COUNT mirrors Macro_num::MAC_COUNT's value (29, the number
-        // of macros) under a different name: Macro_num and Mue_num, both
-        // plain enums of this same class, share one enumerator namespace,
-        // so re-using the name MAC_COUNT here would be a duplicate-
-        // definition error.
-        //
-        MMAC_COUNT = 29,   ///< the number of macros
         MARG_COUNT = 18,   ///< the number of argument/local-var slots
 
         // aliases for the 6 argument slots whose position and meaning
-        // are consistent across (most) macros, in this fixed order:
-        // B (the fundamental right operand, present in every macro),
-        // A (the left/count argument, present in the dyadic-flavoured
-        // macros), X (the axis/extra parameter X4/X5/X7/N, present in
-        // REDUCE/SCAN/RANK/POWER-with-count), Z (the result-communication
-        // symbol -- a named slot like B/A, not really an "argument", but
-        // treated the same way rather than folded anonymously into the
-        // generic locals below), LO and RO (the operator's own operand
-        // functions). Z's slot number was chosen to come after LO/RO
-        // rather than reordering them (LO=4/RO=5 are already deployed
-        // across all 29 macros) -- conceptually it sits between X and LO,
-        // per Jürgen Sauermann; numerically it's slot 6. Everything from
+        // are consistent across (most) macros: Z (the result-
+        // communication symbol -- a named slot like B/A, not really an
+        // "argument", but treated the same way rather than folded
+        // anonymously into the generic locals below), A (the left/count
+        // argument, present in the dyadic-flavoured macros), LO and RO
+        // (the operator's own operand functions), X (the axis/extra
+        // parameter X4/X5/X7/N, present in REDUCE/SCAN/RANK/POWER-with-
+        // count), B (the fundamental right operand, present in every
+        // macro). Chosen, per Jürgen Sauermann, so that in every macro's
+        // header the μ-slots actually used appear in increasing numeric
+        // order left to right, e.g. Z←A (LO FUN RO)[X] B or Z←A (LO FUN
+        // N) B -- RO and X never both appear in the same macro (they
+        // occupy the same "third operand" header position, just spelled
+        // differently depending on the macro), so their relative order
+        // (4 vs 5) is arbitrary and does not matter. Everything from
         // slot 7 on is just LV_1 .. LV_12 (12 slots, MARG_COUNT - 6).
         //
-        MUE_B   = MUE_1,   ///< the right operand
+        MUE_Z   = MUE_1,   ///< the result-communication symbol
         MUE_A   = MUE_2,   ///< the left/count operand
-        MUE_X   = MUE_3,   ///< the axis/extra parameter
-        MUE_LO  = MUE_4,   ///< the left operand function
-        MUE_RO  = MUE_5,   ///< the right operand function
-        MUE_Z   = MUE_6,   ///< the result-communication symbol
+        MUE_LO  = MUE_3,   ///< the left operand function
+        MUE_RO  = MUE_4,   ///< the right operand function
+        MUE_X   = MUE_5,   ///< the axis/extra parameter
+        MUE_B   = MUE_6,   ///< the right operand
 
         LV_1    = MUE_7,    ///< local var 1
         LV_2    = MUE_8,    ///< local var 2
@@ -154,7 +122,7 @@ public:
 
    /// true once mue_symbols is fully populated (set at the end of
    /// init()). SymbolTable::lookup_symbol() consults this before taking
-   /// its μ¯N/μN fast path: init() itself looks up those very same names
+   /// its μN fast path: init() itself looks up those very same names
    /// (via Workspace::lookup_symbol(), i.e. through that same function)
    /// while filling mue_symbols in, and must not have its own lookups
    /// short-circuited back to the not-yet-assigned array slot it is in
@@ -173,13 +141,11 @@ public:
    /// be able to reference it.
    static void init();
 
-   /// Symbol for every Mue_num value. Indexed as: [0] = 0 (no symbol,
-   /// Mue_num 0 is unused); [1 .. MMAC_COUNT] = the macro-name symbols
-   /// μ¯1 .. μ¯29 (for MUE_M1 .. MUE_M29, i.e. index = -Mue_num);
-   /// [MMAC_COUNT+1 .. MMAC_COUNT+MARG_COUNT] = the argument/local-var
-   /// symbols μ1 .. μ17 (for MUE_1 .. MUE_17, i.e. index = Mue_num +
-   /// MMAC_COUNT).
-   static Symbol * mue_symbols[MMAC_COUNT + MARG_COUNT + 1];
+   /// Symbol for every Macro_arg_num value. Indexed as: [0] = 0 (no
+   /// symbol, Macro_arg_num 0 is unused); [1 .. MARG_COUNT] = the
+   /// argument/local-var symbols μ1 .. μ18 (for MUE_1 .. MUE_18, i.e.
+   /// index = Macro_arg_num).
+   static Symbol * mue_symbols[MARG_COUNT + 1];
 
    /// constructor
    /// @param num unique macro identifier
