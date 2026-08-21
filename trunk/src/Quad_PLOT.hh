@@ -91,6 +91,8 @@ enum PLOT_wait_result
 /// @param sema the semaphore to wait for
 /// @param what human-readable description of what is being waited for,
 ///        used only in the CERR diagnostic printed on failure
+#if HAVE_SEM_TIMEDWAIT
+
 inline PLOT_wait_result
 sem_wait_safe(sem_t * sema, const char * what)
 {
@@ -125,6 +127,60 @@ sem_wait_safe(sem_t * sema, const char * what)
         return PLOT_WAIT_ERROR;
       }
 }
+
+#else // !HAVE_SEM_TIMEDWAIT -- e.g. macOS: Darwin's <semaphore.h> declares
+      // sem_wait()/sem_trywait() for unnamed semaphores but never
+      // sem_timedwait() at all (a compile-time absence, not the runtime
+      // one HAVE_SEM_INIT above already works around). Poll sem_trywait()
+      // against a deadline computed the same way, sleeping briefly
+      // between polls instead of blocking natively in the kernel; the
+      // ^C/timeout/error outcomes and their CERR wording are unchanged.
+
+inline PLOT_wait_result
+sem_wait_safe(sem_t * sema, const char * what)
+{
+enum { POLL_NANOSECONDS = 10 * 1000 * 1000 };   // 10ms between polls
+
+   struct timespec deadline;
+   clock_gettime(CLOCK_REALTIME, &deadline);
+   deadline.tv_sec += PLOT_SEM_TIMEOUT_SECONDS;
+
+   for (;;)
+      {
+        if (sem_trywait(sema) == 0)   return PLOT_WAIT_OK;
+
+        if (errno == EINTR)   continue;   // a plain, unrelated signal
+
+        if (errno != EAGAIN)
+           {
+             CERR << "*** ⎕PLOT: sem_trywait() while waiting for " << what
+                  << " failed unexpectedly: " << strerror(errno) << endl;
+             return PLOT_WAIT_ERROR;
+           }
+
+        if (InterruptContext::attention_is_raised())
+           {
+             CERR << "*** ⎕PLOT: ^C hit while waiting in "
+                     "sem_trywait() for " << what << endl;
+             return PLOT_WAIT_CTRL_C;
+           }
+
+        struct timespec now;
+        clock_gettime(CLOCK_REALTIME, &now);
+        if (now.tv_sec > deadline.tv_sec ||
+            (now.tv_sec == deadline.tv_sec && now.tv_nsec >= deadline.tv_nsec))
+           {
+             CERR << "*** ⎕PLOT: timed out after " << PLOT_SEM_TIMEOUT_SECONDS
+                  << "s waiting for " << what << endl;
+             return PLOT_WAIT_TIMEOUT;
+           }
+
+        struct timespec poll_delay = { 0, POLL_NANOSECONDS };
+        nanosleep(&poll_delay, 0);
+      }
+}
+
+#endif // HAVE_SEM_TIMEDWAIT
 
 /// like sem_wait_safe() above, but for call sites that run on the
 /// interpreter thread (i.e. reached directly from Quad_PLOT::eval_AB()/

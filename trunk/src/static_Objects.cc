@@ -86,6 +86,18 @@ Quad_ES Quad_ES   ::fun;
 INFO(CPU_pool::the_CPUs, __LINE__);
 std::vector<CPU_Number> CPU_pool::the_CPUs;
 
+// Macro::mue_symbols must be populated before any macro is itself
+// ⎕FX-equivalently defined below (each Macro constructor parses its own
+// APL source text right there and then) -- this trigger's sole purpose
+// is to run Macro::init() at exactly this point in this translation
+// unit's static-initialization order, which (within one TU) is simply
+// top-to-bottom source order.
+//
+namespace { struct Mue_symbols_trigger
+               { Mue_symbols_trigger() { Macro::init(); } }; }
+INFO(Macro::mue_symbols, __LINE__)
+static Mue_symbols_trigger mue_symbols_trigger;
+
 INFO(Macro::all_macros, __LINE__)
 #define mac_def(name, txt) Macro Macro::name(MAC_ ## name, UTF8_string(txt));
 #include "Macro.def"

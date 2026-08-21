@@ -190,6 +190,9 @@
 /* Define to 1 iff sem_init() works */
 #undef HAVE_SEM_INIT
 
+/* Define to 1 iff sem_timedwait() is declared */
+#undef HAVE_SEM_TIMEDWAIT
+
 /* Define to 1 if you have the `setenv' function. */
 #undef HAVE_SETENV
 

@@ -29,6 +29,7 @@
 #include "Function.hh"
 #include "IndexExpr.hh"
 #include "IntCell.hh"
+#include "Macro.hh"
 #include "Output.hh"
 #include "PrintOperator.hh"
 #include "Symbol.hh"
@@ -50,6 +51,37 @@ SymbolTable::lookup_symbol(const UCS_string & sym_name)
       {
         CERR << "Symbol is: '" << sym_name << "' at " << LOC << endl;
         FIXME;
+      }
+
+   // μ¯N or μN (N a decimal integer): one of Macro::mue_symbols' fixed
+   // pre-created symbols (see Macro::Mue_num) rather than an ordinary
+   // user-creatable name -- return the existing Symbol * directly, no
+   // hash-table walk and no create-if-missing, since Macro::init()
+   // already created all of them upfront. Guarded by Macro::mue_ready:
+   // init() itself looks up these same names (through this very
+   // function, via Workspace::lookup_symbol()) while still filling
+   // mue_symbols in, and must fall through to the ordinary path below
+   // exactly as before this feature existed, or it would read back the
+   // not-yet-assigned slot it is in the middle of writing.
+   //
+   if (Macro::mue_ready && sym_name.size() >= 2 && sym_name[0] == UNI_MUE)
+      {
+        const bool negative = (sym_name[1] == UNI_OVERBAR);
+        ShapeItem p = negative ? 2 : 1;
+        if (p < sym_name.ssize() && Avec::is_digit(sym_name[p]))
+           {
+             int32_t N = 0;
+             while (p < sym_name.ssize() && Avec::is_digit(sym_name[p]))
+                   N = 10*N + (sym_name[p++] - UNI_0);
+
+             if (p == sym_name.ssize())   // the whole name was μ[¯]digits
+                {
+                  if (negative && N >= 1 && N <= Macro::MMAC_COUNT)
+                     return Macro::mue_symbols[N];
+                  if (!negative && N >= 1 && N <= Macro::MARG_COUNT)
+                     return Macro::mue_symbols[Macro::MMAC_COUNT + N];
+                }
+           }
       }
 
 const uint32_t hash = compute_hash(sym_name);

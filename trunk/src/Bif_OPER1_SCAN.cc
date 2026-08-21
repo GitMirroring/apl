@@ -126,18 +126,21 @@ ErrorCode (Cell::*assoc_f2)(Cell *, const Cell *) const = LO->get_assoc();
    // non-trivial reduce (len > 1)
    //
 const Shape3 Z3(B->get_shape(), axis);
-   if (LO->may_push_SI())   // user defined LO
-      {
-        Value_P X4(4, LOC);
-        X4->next_ravel_Int(axis + Workspace::get_IO());
-        X4->next_ravel_Int(Z3.h());
-        X4->next_ravel_Int(Z3.m());
-        X4->next_ravel_Int(Z3.l());
-        X4->check_value(LOC);
-        return Macro::get_macro(Macro::MAC_Z__LO_SCAN_X4_B)
-                                ->eval_LXB(tok_LO, *X4, *B);
-      }
 
+   // B being empty here means some axis OTHER than the scanned one is
+   // 0 (m_len itself, i.e. the scanned axis, was already ruled out above:
+   // m_len==0 returns at the top of this function). This must be checked
+   // BEFORE the macro dispatch just below, not after: MAC_Z__LO_SCAN_X4_B
+   // reshapes B into (H M_max L), whose volume is 0 whenever B itself is
+   // empty, then does I←,⍳⍴Z (an EMPTY index vector) and unconditionally
+   // indexes I[⎕IO] on its very first loop iteration -- INDEX ERROR,
+   // reachable from ordinary APL input (e.g. {⍺+⍵}\(0 3⍴0)), confirmed
+   // live. Checking here matches Bif_REDUCE::reduce_n_wise()'s ordering
+   // (shape_Z.is_empty() before its own may_push_SI() macro dispatch) and
+   // routes the empty case through the correct, already-working logic
+   // below instead, with no effect on the (far more common) non-empty
+   // case, which still reaches the macro exactly as before.
+   //
    if (B->get_shape().is_empty())
       {
         // scan preserves B's shape (unlike reduce, which removes the
@@ -149,6 +152,18 @@ const Shape3 Z3(B->get_shape(), axis);
         Value_P Z(B->get_shape(), LOC);
         Z->check_value(LOC);
         return Token(TOK_APL_VALUE1, Z);
+      }
+
+   if (LO->may_push_SI())   // user defined LO
+      {
+        Value_P X4(4, LOC);
+        X4->next_ravel_Int(axis + Workspace::get_IO());
+        X4->next_ravel_Int(Z3.h());
+        X4->next_ravel_Int(Z3.m());
+        X4->next_ravel_Int(Z3.l());
+        X4->check_value(LOC);
+        return Macro::get_macro(Macro::MAC_Z__LO_SCAN_X4_B)
+                                ->eval_LXB(tok_LO, *X4, *B);
       }
 
    return Bif_REDUCE::do_reduce(B->get_shape(), Z3, -1, LO, B, m_len);

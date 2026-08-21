@@ -1,0 +1,22 @@
+⍝ Quad_RVAL.tc
+⍝ ----------------------------------
+
+⍝@ test3.
+
+      ⍝ zero-axis / ecount-budget regression (Blake McBride, Bugs21 #1)
+      ⍝ ------------------------------------------------------------
+      ⍝ The shape-shrinking code has two copies of the "saturating
+      ⍝ volume" loop; the second one (added by the Bugs20 #3 fix) was
+      ⍝ missing the zero-axis guard the first one already has. A shape
+      ⍝ that survives the first loop's early "saturated" break with a
+      ⍝ still-zero axis then hit budget/0 in the second loop -- SIGFPE,
+      ⍝ killing the interpreter (and, since this also happens inside
+      ⍝ AllPrimitives.tc's own use of ⎕RVAL, aborting the whole shipped
+      ⍝ test suite partway through). Any SIGFPE/crash on the line below
+      ⍝ is a regression; the exact shape/ecount is otherwise arbitrary
+      ⍝ (any shape with a 0-axis that is not the largest axis, combined
+      ⍝ with an ecount budget too small for the loop to reach that
+      ⍝ axis, reproduces it).
+
+      ⍴⎕RVAL 2 (2 0) (0 1 0 0 0) 1 1
+1 0

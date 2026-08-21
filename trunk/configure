@@ -22085,6 +22085,51 @@ CXXFLAGS=$apl_save_CXXFLAGS
 printf "%s\n" "$HAVE_SEM_INIT" >&6; }
 
 
+############################# sem_timedwait() check #############################
+# check if sem_timedwait() is declared (it is not on OS-X: Darwin's
+# <semaphore.h> declares sem_init()/sem_wait()/sem_trywait()/sem_post()
+# for unnamed semaphores but never sem_timedwait() at all -- unlike
+# sem_init() above this is a compile-time absence, not a runtime one
+# (Paul Rockwell, bug-apl@gnu.org, 2026-08-20).
+#
+apl_save_CXXFLAGS=$CXXFLAGS
+CXXFLAGS="-Wall -Werror"
+
+{ printf "%s\n" "$as_me:${as_lineno-$LINENO}: checking whether sem_timedwait() is declared" >&5
+printf %s "checking whether sem_timedwait() is declared... " >&6; }
+cat confdefs.h - <<_ACEOF >conftest.$ac_ext
+/* end confdefs.h.  */
+#include <semaphore.h>
+                            #include <time.h>
+int
+main (void)
+{
+sem_t sema;
+          struct timespec deadline = { 0, 0 };
+          sem_timedwait(&sema, &deadline);
+
+
+  ;
+  return 0;
+}
+_ACEOF
+if ac_fn_cxx_try_compile "$LINENO"
+then :
+  HAVE_SEM_TIMEDWAIT=yes
+else $as_nop
+  HAVE_SEM_TIMEDWAIT=no
+fi
+rm -f core conftest.err conftest.$ac_objext conftest.beam conftest.$ac_ext
+if test "x$HAVE_SEM_TIMEDWAIT" = "xyes"; then
+
+printf "%s\n" "#define HAVE_SEM_TIMEDWAIT 1" >>confdefs.h
+
+fi
+CXXFLAGS=$apl_save_CXXFLAGS
+{ printf "%s\n" "$as_me:${as_lineno-$LINENO}: result: $HAVE_SEM_TIMEDWAIT" >&5
+printf "%s\n" "$HAVE_SEM_TIMEDWAIT" >&6; }
+
+
 ######################## pthread_getaffinity_np() check #######################
 # see if TIOCGWINSZ is available
 #

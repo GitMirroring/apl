@@ -37,17 +37,20 @@ libemacs_la_SOURCES =						\
 # binary (..) so that the interpreter can be run and tested from the
 # build tree without a prior 'make install'.
 #
-# The trailing ': ;' is needed because an unmatched glob (e.g. *.so on
-# MacOS, which builds *.dylib instead) is left as a literal, non-
-# existent filename rather than expanding to nothing; the loop's last
-# command would then be the failing 'test -f', and since that is the
-# exit status Make sees for this recipe line, 'make all' would abort
-# right here with no visible error text. This convenience copy should
-# never be able to fail the build either way, so force success.
+# 'find', not a shell glob, does the matching: an unmatched shell glob
+# (e.g. *.so on MacOS, which builds *.dylib instead) is left as a
+# literal, non-existent filename under sh/bash but is a hard error
+# ("no matches found", aborting the whole command before the loop body
+# ever runs) under zsh's default NOMATCH option -- and 'make' recipes
+# are not guaranteed to run under a NOMATCH-safe shell on every system
+# (Paul Rockwell, bug-apl@gnu.org, 2026-08-20). 'find' never involves
+# shell glob-expansion at all, so it behaves identically everywhere and
+# simply lists nothing when neither suffix exists. The trailing '; :'
+# still forces success regardless, as a second line of defense.
 #
 all-local: $(pkglib_LTLIBRARIES)
-	@for so in .libs/*.so .libs/*.dylib ; do \
-	   test -f "$$so" && cp -fp "$$so" .. ; \
+	@for so in `find .libs -maxdepth 1 \( -name '*.so' -o -name '*.dylib' \) 2>/dev/null` ; do \
+	   cp -fp "$$so" .. ; \
 	done ; :
 
 .PHONY: git-pull

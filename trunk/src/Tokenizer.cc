@@ -542,6 +542,25 @@ Unicode_source src(input);
                          break;
                        }
 
+                   // UNI_MUE (μ) is Avec.def Token END: outside macro mode
+                   // it has no dispatch of its own and falls through to the
+                   // E_NO_TOKEN error below like any other TC_END char (it
+                   // is NOT independently usable as an ordinary identifier
+                   // despite carrying FLG_SYMBOL -- that flag only governs
+                   // is_symbol_char()'s CONTINUATION checks inside
+                   // tokenize_symbol(), once already scanning a symbol; it
+                   // is never consulted for what starts one). In macro
+                   // mode, a leading μ starts one of the positional
+                   // "μ¯N"/"μN" names written directly into Macro.def's
+                   // own source text, so dispatch into the same symbol
+                   // scanner used for any other identifier.
+                   //
+                   if (macro && uni == UNI_MUE)
+                      {
+                        tokenize_symbol(src, tos);
+                        break;
+                      }
+
                    rest_2 = src.rest_len();
                    {
                      Log(LOG_error_throw)
@@ -1370,11 +1389,6 @@ Tokenizer::tokenize_symbol(Unicode_source & src, Token_string & tos) const
    Log(LOG_tokenize)   CERR << "tokenize_symbol() : " << src.rest_len() << endl;
 
 UCS_string symbol;
-   if (macro)
-      {
-        symbol << UNI_MUE;
-        symbol << UNI_MINUS;
-      }
    symbol << src.get();
 
    while (src.has_more())

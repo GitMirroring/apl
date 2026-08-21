@@ -360,6 +360,32 @@ CXXFLAGS=$apl_save_CXXFLAGS
 AC_MSG_RESULT([$HAVE_SEM_INIT])
 
 
+############################# sem_timedwait() check #############################
+# check if sem_timedwait() is declared (it is not on OS-X: Darwin's
+# <semaphore.h> declares sem_init()/sem_wait()/sem_trywait()/sem_post()
+# for unnamed semaphores but never sem_timedwait() at all -- unlike
+# sem_init() above this is a compile-time absence, not a runtime one
+# (Paul Rockwell, bug-apl@gnu.org, 2026-08-20).
+#
+apl_save_CXXFLAGS=$CXXFLAGS
+CXXFLAGS="-Wall -Werror"
+
+AC_MSG_CHECKING([whether sem_timedwait() is declared])
+AC_COMPILE_IFELSE(
+        [AC_LANG_PROGRAM([[#include <semaphore.h>
+                            #include <time.h>]],
+        [[sem_t sema;
+          struct timespec deadline = { 0, 0 };
+          sem_timedwait(&sema, &deadline);
+        ]]
+    )], [HAVE_SEM_TIMEDWAIT=yes], [HAVE_SEM_TIMEDWAIT=no])
+if apl_YES($HAVE_SEM_TIMEDWAIT); then
+   AC_DEFINE(HAVE_SEM_TIMEDWAIT, 1, [Define to 1 iff sem_timedwait() is declared])
+fi
+CXXFLAGS=$apl_save_CXXFLAGS
+AC_MSG_RESULT([$HAVE_SEM_TIMEDWAIT])
+
+
 ######################## pthread_getaffinity_np() check #######################
 # see if TIOCGWINSZ is available
 #
