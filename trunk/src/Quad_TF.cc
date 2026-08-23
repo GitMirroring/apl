@@ -316,7 +316,14 @@ Token_string tos;
         {
           tos[0] = tos[1];   // move VAR
           tos[1] = tos[2];   // move ←
-          tos[2] = Token(TOK_L_PARENT, int64_t(0));
+          // marker value 1 (vs. the 0 used by real parentheses)
+          // distinguishes this synthetic outermost '(' ... ')' pair,
+          // added purely so tf2_reduce() has something to reduce, from
+          // real parentheses written by the user. tf2_reduce_parentheses()
+          // must NOT enclose the value it wraps: unlike a real
+          // parenthesised strand item, this pair is not part of the
+          // transfer form at all (see Blake's Bugs23 #1).
+          tos[2] = Token(TOK_L_PARENT, int64_t(1));
         }
    }
     tos.push_back(Token(TOK_R_PARENT, int64_t(0)));
@@ -1476,9 +1483,12 @@ ShapeItem skipped = 0;
             tos[s + 1].get_Class() == TC_VALUE     &&
             tos[s + 2].get_tag()   == TOK_R_PARENT)   // ( B )
            {
+             // capture the marker before dest.move_from() below, which
+             // (when skipped==0) overwrites tos[s] == dest in place
+             const bool synthetic_outer = tos[s].get_int_val() != 0;
              Token & dest = tos[s - skipped];   // '(' of: '(' B ')'
              dest.move_from(tos[s + 1], LOC);      // move B to '('
-             if (dest.get_tag() == TOK_APL_VALUE3)
+             if (dest.get_tag() == TOK_APL_VALUE3 && !synthetic_outer)
                 {
                   // final result of strand expression: enclose it
                   //

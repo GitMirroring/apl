@@ -1289,9 +1289,18 @@ bool has_complex = false;
             // precision  > 0 is the number of digits AFTER the decimal point
 
             // fix values close to 0 as 0 so that, for example, we never
-            // see ¯.0000 in the formatted output.
+            // see ¯.0000 in the formatted output. The threshold below
+            // which a value actually ROUNDS to all-zero digits at
+            // 'precision' decimals is half a unit in the last place,
+            // i.e. 0.5 x 10^-precision -- the previous 0.01-based
+            // starting point was 50x too small at every precision, so
+            // negative values in that gap escaped the clamp, rounded to
+            // all zero digits anyway, and kept their sign (Blake
+            // McBride, Bugs23 #5 -- e.g. 1⍕¯0.04 gave ¯.0 instead of
+            // .0). Clamping only ever changes the sign here, never a
+            // printed digit, since these values round to zero either way.
             //
-            double minval = 0.01;
+            double minval = 0.5;
             loop(p,  precision)   minval /= 10;
             if (value < minval && value > -minval)   value = 0.0;
 

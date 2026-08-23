@@ -527,6 +527,13 @@ const APL_Float a = A->get_real_value();
    if (value.ival == 0)   return IntCell::z0(Z);
 
 const APL_Float quot = value.ival / a;
+   // same overflow guard as FloatCell::bif_residue_ff(): when |a| is
+   // small enough that B÷a overflows, quot (and qf below) become
+   // +-inf, the ⎕CT tests below compare inf against inf and never
+   // match, and z = B - a*inf silently comes out +-inf instead of 0
+   // (Blake McBride, Bugs23 #4 -- e.g. 1E¯308|2 gave ¯∞).
+   if (!isfinite(quot))        return IntCell::z0(Z);
+   if (fabs(quot) > 4.5E15)    return IntCell::z0(Z);
 const APL_Float qf = floor(quot);
 const double qct = Workspace::get_CT();
    if (qct != 0)

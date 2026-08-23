@@ -159,7 +159,9 @@ public:
 
    /// set the second error line to \b msg_2
    /// @param msg_2 failed-statement text for ⎕EM[2;]
-   void set_error_line_2(const char * msg_2);
+   /// @return the resulting (possibly truncated) character count of
+   ///         error_message_2, so callers can clamp carets against it
+   int set_error_line_2(const char * msg_2);
 
    /// set error line 2, left caret, and right caret
    /// @param ucs failed-statement text

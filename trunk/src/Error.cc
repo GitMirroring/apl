@@ -192,6 +192,36 @@ Error::print(ostream & out, const char * loc) const
       }
 }
 //────────────────────────────────────────────────────────────────────────────
+/// error_message_1/2 are fixed-size byte buffers; a straight strncpy()
+/// truncation has no notion of UTF-8 character boundaries and can chop
+/// a multi-byte glyph in half, leaving a dangling lead byte that later
+/// decodes as private-use-plane garbage (Blake McBride, Bugs23 #6a).
+/// Call this ONLY when \b buf was genuinely truncated (its source was
+/// longer than the buffer) -- on an untruncated, complete string this
+/// would wrongly strip a valid trailing multi-byte character. Returns
+/// the resulting *character* count (not byte count), for caret
+/// clamping by the caller.
+static int
+truncate_utf8_boundary(char * buf)
+{
+int len = strlen(buf);
+
+   // strip trailing continuation bytes (10xxxxxx): they belong to a
+   // multi-byte sequence whose lead byte may or may not still be
+   // present in buf, so keep going until we're clear of all of them
+   while (len > 0 && (buf[len - 1] & 0xC0) == 0x80)   --len;
+
+   // what (if anything) is left at the end is a multi-byte lead byte
+   // whose sequence we just found to be incomplete (all of its
+   // continuation bytes were removed above) -- since the caller only
+   // reaches here when the source was longer than the buffer, that
+   // sequence really was cut short, so drop the lead byte too
+   if (len > 0 && (buf[len - 1] & 0x80) != 0)   --len;
+
+   buf[len] = 0;
+   return len - UTF8_string::bytes_chars(buf);   // byte length → char count
+}
+//────────────────────────────────────────────────────────────────────────────
 void
 Error::set_error_line_1(const char * msg_1)
 {
@@ -199,11 +229,19 @@ Error::set_error_line_1(const char * msg_1)
    error_message_1[sizeof(error_message_1) - 1] = 0;
 }
 //────────────────────────────────────────────────────────────────────────────
-void
+int
 Error::set_error_line_2(const char * msg_2)
 {
+const size_t cap = sizeof(error_message_2) - 1;
+const bool truncated = strlen(msg_2) > cap;
    strncpy(error_message_2, msg_2, sizeof(error_message_2));
-   error_message_2[sizeof(error_message_2) - 1] = 0;
+   error_message_2[cap] = 0;
+   if (truncated)   truncate_utf8_boundary(error_message_2);
+
+   // char count (not byte count) of the (possibly truncated) result,
+   // for callers that need to clamp a caret computed from the
+   // untruncated source text (Blake McBride, Bugs23 #6b).
+   return strlen(error_message_2) - UTF8_string::bytes_chars(error_message_2);
 }
 //────────────────────────────────────────────────────────────────────────────
 void
@@ -220,10 +258,19 @@ Error::set_error_line_2(const UCS_string & ucs, int lcaret, int rcaret)
    Assert(left_caret == -1);
 
 UTF8_string utf(ucs);
+const size_t cap = sizeof(error_message_2) - 1;
+const bool truncated = utf.size() > cap;
    strncpy(error_message_2, utf.c_str(), sizeof(error_message_2));
-   error_message_2[sizeof(error_message_2) - 1] = 0;
-   left_caret = lcaret;
-   right_caret = rcaret;
+   error_message_2[cap] = 0;
+
+   // clamp the carets to line 2's actual (possibly truncated) character
+   // count: without this, a caret set from the untruncated ucs can
+   // point tens of columns past the end of the text ⎕EM[2;] ever shows
+   // (Blake McBride, Bugs23 #6b).
+const int nchars = truncated ? truncate_utf8_boundary(error_message_2)
+                              : ucs.size();
+   left_caret = lcaret > nchars ? nchars : lcaret;
+   right_caret = rcaret > nchars ? nchars : rcaret;
 }
 //────────────────────────────────────────────────────────────────────────────
 void
@@ -265,10 +312,13 @@ Error::update_error_info(StateIndicator * si)
    //
    {
      const UTF8_string prompt_utf(Workspace::get_prompt());
-     set_error_line_2(prompt_utf.c_str());
+     const int nchars = set_error_line_2(prompt_utf.c_str());
+     set_right_caret(-1);
+     // first char after the prompt, clamped to the (possibly truncated)
+     // line 2 (Bugs23 #6b)
+     const int after_prompt = Workspace::get_prompt().size();
+     set_left_caret(after_prompt > nchars ? nchars : after_prompt);
    }
-   set_right_caret(-1);
-   set_left_caret(Workspace::get_prompt().size());   // first char after the prompt
 
    // prepare the second error line (= display of the failed statement)
    //
@@ -284,9 +334,10 @@ Error::update_error_info(StateIndicator * si)
            {
              {
                const UTF8_string prompt_utf(Workspace::get_prompt());
-               set_error_line_2(prompt_utf.c_str());
+               const int nchars = set_error_line_2(prompt_utf.c_str());
+               const int after_prompt = Workspace::get_prompt().size();
+               set_left_caret(after_prompt > nchars ? nchars : after_prompt);
              }
-             set_left_caret(Workspace::get_prompt().size());
              ufun->set_locked_error_info(*this);
              goto out;   // maybe print
            }
@@ -294,8 +345,12 @@ Error::update_error_info(StateIndicator * si)
         UCS_string ucs(ufun->get_name_and_line(si->get_PC()));
         ucs << UNI_SPACE << UNI_SPACE;
         const UTF8_string utf(ucs);
-        set_error_line_2(utf.c_str());
-        set_left_caret(ucs.size());
+        const int nchars = set_error_line_2(utf.c_str());
+        // clamp to the (possibly truncated) line 2 (Blake McBride,
+        // Bugs23 #6b): an untruncated ucs.size() can point tens of
+        // columns past the end of the text ⎕EM[2;] ever shows.
+        const int wanted = ucs.size();
+        set_left_caret(wanted > nchars ? nchars : wanted);
       }
 
    {

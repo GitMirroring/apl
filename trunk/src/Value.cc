@@ -1317,11 +1317,9 @@ const ShapeItem N = element_count();
    //
 const Cell & c0 = ravel.cells[0];
 RavelType t;
-bool has_inexact_int = false;   // any seen INT64 not exactly representable as double
    if (c0.is_integer_cell())
       { const APL_Integer v = c0.get_int_value();
         t = (v == 0 || v == 1) ? RPT_BOOL : RPT_INT64;
-        if (v > (1LL << 53) || v < -(1LL << 53))   has_inexact_int = true;
       }
    else if (c0.is_float_cell())      t = RPT_FLOAT64;
    else if (c0.is_complex_cell())    t = RPT_COMPLEX;
@@ -1350,12 +1348,17 @@ bool has_inexact_int = false;   // any seen INT64 not exactly representable as d
                         // direction (Blake McBride, Bugs22 #5).
                         return;
                      else if (t == RPT_COMPLEX)
-                        { if (v > (1LL << 53) || v < -(1LL << 53))   return; }
+                        // an INT cell mixed into an otherwise-all-
+                        // complex ravel (this cell's own IntCell
+                        // identity, not just precision, is what would
+                        // be lost by packing it as a complex double
+                        // pair) -- same class of bug as the CT_COMPLEX
+                        // case below, just the mirror direction (Blake
+                        // McBride, Bugs23 #2). Regardless of magnitude:
+                        // leave the whole ravel unpacked.
+                        return;
                      else if (t != RPT_BOOL && t != RPT_INT64)
                         return;   // numeric + char → mixed
-                     if ((t == RPT_BOOL || t == RPT_INT64)
-                         && (v > (1LL << 53) || v < -(1LL << 53)))
-                        has_inexact_int = true;
                    }
                    break;
 
@@ -1373,23 +1376,30 @@ bool has_inexact_int = false;   // any seen INT64 not exactly representable as d
                         // #5). Leave the whole ravel unpacked instead.
                         return;
                       }
-                   else if (t != RPT_FLOAT64 && t != RPT_COMPLEX)   return;
+                   else if (t == RPT_COMPLEX)
+                        // FloatCell mixed into an otherwise-all-complex
+                        // ravel -- same mirror-direction bug as the INT
+                        // case above (Blake McBride, Bugs23 #2).
+                        return;
+                   else if (t != RPT_FLOAT64)   return;
                    break;
 
               case CT_COMPLEX:
-                   if (t == RPT_BOOL || t == RPT_INT64)
-                      {
-                        // same has_inexact_int guard as the CT_FLOAT case
-                        // above, missing here: INT64->COMPLEX packing
-                        // also stores the integer as a double (the
-                        // complex real part), so an integer beyond
-                        // exact-double range (> 2^53) would silently
-                        // truncate just like the INT64->FLOAT64 case does.
-                        if (has_inexact_int)   return;
-                        t = RPT_COMPLEX;
-                      }
-                   else if (t == RPT_FLOAT64)   t = RPT_COMPLEX;
-                     else if (t != RPT_COMPLEX)   return;   // char + complex → mixed
+                   // an INT or FLOAT cell mixed into an otherwise-all-
+                   // complex ravel would pack as RPT_COMPLEX, silently
+                   // losing its IntCell/FloatCell identity on readback:
+                   // every element then reads back as a ComplexCell
+                   // (26 ⎕CR reports it complex; ⌹/⍟/etc. take the
+                   // complex code path even for a real value with a
+                   // zero imaginary part), and that wrong type identity
+                   // persists through )SAVE/)LOAD and ⎕TF. Same class of
+                   // bug as the CT_INT/CT_FLOAT arms above, just the
+                   // complex direction (Blake McBride, Bugs23 #2) --
+                   // leave the whole ravel unpacked instead of
+                   // escalating to RPT_COMPLEX.
+                   if (t == RPT_BOOL || t == RPT_INT64 || t == RPT_FLOAT64)
+                      return;
+                   else if (t != RPT_COMPLEX)   return;   // char + complex → mixed
                    break;
 
               case CT_CHAR:

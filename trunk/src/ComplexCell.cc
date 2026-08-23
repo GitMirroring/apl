@@ -993,6 +993,16 @@ ComplexCell::bif_magnitude_c(Cell * Z, APL_Complex b)
 ErrorCode
 ComplexCell::bif_nat_log_c(Cell * Z, APL_Complex b)
 {
+   // near-zero check, mirroring bif_reciprocal_c() below: log(0) is
+   // -infinity, and log() of a near-zero-but-not-exactly-zero b is
+   // a huge-magnitude finite value that isfinite() alone wouldn't
+   // catch (Blake McBride, Bugs23 #3a -- ⍟0J0 gave ¯∞ instead of
+   // DOMAIN ERROR, same as the real ⍟0/⍟0.0 cases already reject).
+   //
+   if (b.real() <=  INTEGER_TOLERANCE && b.real() >= -INTEGER_TOLERANCE &&
+       b.imag() <=  INTEGER_TOLERANCE && b.imag() >= -INTEGER_TOLERANCE)
+      return E_DOMAIN_ERROR;
+
    return ComplexCell::zC(Z, log(b));
 }
 //────────────────────────────────────────────────────────────────────────────
@@ -1006,14 +1016,22 @@ ErrorCode
 ComplexCell::bif_pi_times_c(Cell * Z, APL_Complex b)
 {
 const APL_Float pi(M_PI);
-   return ComplexCell::zC(Z, b.real() * pi, b.imag() * pi);
+const APL_Float re = b.real() * pi;
+const APL_Float im = b.imag() * pi;
+   // same overflow guard as FloatCell::bif_pi_times_f() (○1E308 gave ∞
+   // there too, before that fix) -- Blake McBride, Bugs23 #3b.
+   if (!isfinite(re) || !isfinite(im))   return E_DOMAIN_ERROR;
+   return ComplexCell::zC(Z, re, im);
 }
 //────────────────────────────────────────────────────────────────────────────
 ErrorCode
 ComplexCell::bif_pi_times_inverse_c(Cell * Z, APL_Complex b)
 {
 const APL_Float pi(M_PI);
-   return ComplexCell::zC(Z, b.real() / pi, b.imag() / pi);
+const APL_Float re = b.real() / pi;
+const APL_Float im = b.imag() / pi;
+   if (!isfinite(re) || !isfinite(im))   return E_DOMAIN_ERROR;
+   return ComplexCell::zC(Z, re, im);
 }
 //────────────────────────────────────────────────────────────────────────────
 ErrorCode

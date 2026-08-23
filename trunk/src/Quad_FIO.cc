@@ -1043,6 +1043,10 @@ public:
             }
 
          cc[cidx] = 0;
+         // nothing was consumed: not a conversion, and errno alone
+         // can't tell the difference from a genuine strtoll() failure
+         // (Blake McBride, Bugs23 #9).
+         if (cidx == 0)   return 0;
          const int base =  (conv == 'X') || (conv == 'x') ? 16 : 10;
          errno = 0;
          value = strtoll(cc, 0, base);
@@ -1073,21 +1077,39 @@ public:
               cc[cidx++] = '-';
               lookahead = Invalid_Unicode;
             }
-         else if (lookahead != Invalid_Unicode)
+         else if (lookahead > 0 && lookahead < 128 &&
+                  strchr(".0123456789eE-", char(lookahead)))
             {
-              cc[cidx++] = lookahead;
+              // strchr() truncates its int argument to char, so without
+              // the ASCII range check above, any code point whose low
+              // byte happened to match one of these ASCII characters
+              // (e.g. U+012E -> 0x2E '.', U+0130 -> 0x30 '0') was wrongly
+              // accepted and then truncated into cc, feeding a mangled
+              // character to strtod(). Also fixes a ⎕UCS 0 inside B
+              // being accepted (strchr(s, 0) matches the NUL terminator).
+              // (Blake McBride, Bugs23 #9.)
+              cc[cidx++] = char(lookahead);
               lookahead = Invalid_Unicode;
             }
+            // else: a non-numeric lookahead is left untouched here; the
+            // loop below's get_next() will hand it back as its first
+            // character and reject it the same way.
 
          while (cidx < (sizeof(cc)) - 1 && offset < string->ssize())
             {
               const Unicode uni = get_next();
-              if (uni == UNI_OVERBAR)                  cc[cidx++] = '-';   // ¯
-              else if(strchr(".0123456789eE-", uni))   cc[cidx++] = uni;
+              if (uni == UNI_OVERBAR)   cc[cidx++] = '-';   // ¯
+              else if (uni > 0 && uni < 128 &&
+                       strchr(".0123456789eE-", char(uni)))
+                 cc[cidx++] = char(uni);
               else { unget(uni);   break; }
             }
 
          cc[cidx] = 0;
+         // nothing was consumed: not a conversion, and errno alone
+         // can't tell the difference from a genuine strtod() failure
+         // (Blake McBride, Bugs23 #9).
+         if (cidx == 0)   return 0;
          errno = 0;
          value = strtod(cc, 0);
          return errno ? 0 : 1;
@@ -1482,7 +1504,7 @@ const int64_t pad = width - int64_t(cont->size());
 template<typename T>
 void
 Quad_FIO::group_thousands_width(UCS_string & UZ, const char * fmt,
-                                unsigned int fm, T val, bool flt)
+                                unsigned int fm, T val, bool flt, char conv)
 {
    // Build fmt without the width digits (and without the zero-flag,
    // which is just another digit at this point -- see below) so that
@@ -1493,11 +1515,16 @@ Quad_FIO::group_thousands_width(UCS_string & UZ, const char * fmt,
    //
    // Per the printf() grammar, digits before the first '.' are either
    // the zero-flag or width -- either way they must not survive into
-   // fmt_nw. Digits after '.' are precision and must be kept.
+   // fmt_nw. Digits after '.' are precision and must be kept. The
+   // zero-flag itself is exactly the digit run's *first* character
+   // being '0' (a real width can't start with '0'); remembered here so
+   // the padding below can use '0' instead of blank (Bugs23 #7).
    //
 char fmt_nw[40];
 unsigned int fm_nw = 0;
 bool left = false;
+bool zero = false;
+bool first_digit = true;
 int64_t width = 0;
 bool seen_dot = false;
    for (unsigned int f = 0; f < fm; ++f)
@@ -1506,6 +1533,8 @@ bool seen_dot = false;
          if (c == '-')   left = true;
          if (!seen_dot && c >= '0' && c <= '9')
             {
+              if (first_digit && c == '0')   zero = true;
+              first_digit = false;
               width = width*10 + (c - '0');   // 0-flag contributes 0*10+0
               continue;                       // drop from fmt_nw
             }
@@ -1527,13 +1556,36 @@ vector<char> buf(need + 1);
    snprintf(&buf[0], buf.size(), fmt_nw, val);
 
 UCS_string grouped;
-   Quad_FIO::group_thousands(grouped, &buf[0], flt);
+   Quad_FIO::group_thousands(grouped, &buf[0], flt, conv);
 
-const int64_t pad = width - int64_t(grouped.size());
+const int gsize = grouped.size();
+const int64_t pad = width - int64_t(gsize);
    if (pad > 0 && Value::check_WS_FULL("⎕FIO printf", pad, LOC))   WS_FULL;
-   if (pad > 0 && !left)   loop(p, pad)   UZ << UNI_SPACE;
-   UZ << grouped;
-   if (pad > 0 && left)    loop(p, pad)   UZ << UNI_SPACE;
+
+   if (pad > 0 && zero && !left)
+      {
+        // zero-pad *after* any sign or 0x/0X prefix, like C does, and
+        // as plain '0' characters -- not grouped with the digits
+        // (Blake McBride, Bugs23 #7).
+        int insert_at = 0;
+        if (insert_at < gsize &&
+            (grouped[insert_at] == UNI_MINUS || grouped[insert_at] == UNI_PLUS))
+           ++insert_at;
+        if (insert_at + 1 < gsize && grouped[insert_at] == UNI_0 &&
+            (grouped[insert_at + 1] == Unicode('x') ||
+             grouped[insert_at + 1] == Unicode('X')))
+           insert_at += 2;
+
+        loop(p, insert_at)         UZ << grouped[p];
+        loop(p, pad)                UZ << UNI_0;
+        for (int p = insert_at; p < gsize; ++p)   UZ << grouped[p];
+      }
+   else
+      {
+        if (pad > 0 && !left)   loop(p, pad)   UZ << UNI_SPACE;
+        UZ << grouped;
+        if (pad > 0 && left)    loop(p, pad)   UZ << UNI_SPACE;
+      }
 }
 //────────────────────────────────────────────────────────────────────────────
 void
@@ -1715,7 +1767,7 @@ int conversion_count_A = 0;   // the number of conversions (in A_format)
                             snprintf(&dynbuf[0], dynbuf.size(), fmt, int_val);
                             if (thousands)
                                group_thousands_width(UZ, fmt, fm, int_val,
-                                                      false);
+                                                      false, char(uni_1));
                             else
                                UZ << &dynbuf[0];
                           }
@@ -1747,7 +1799,7 @@ int conversion_count_A = 0;   // the number of conversions (in A_format)
                             if (thousands)
                                {
                                  group_thousands_width(UZ, fmt, fm, float_val,
-                                                        true);
+                                                        true, char(uni_1));
                                }
                             else if (char * const dot = strchr(numbuf, '.'))
                                {
@@ -3617,7 +3669,8 @@ const ssize_t bytes = read(device, buffer, len);
 }
 //────────────────────────────────────────────────────────────────────────────
 void
-Quad_FIO::group_thousands(UCS_string & dest, char * buffer, bool flt)
+Quad_FIO::group_thousands(UCS_string & dest, char * buffer, bool flt,
+                          char conv)
 {
    // buffer is the 0-terminated and ASCII-only output of some snprintf("%..."),
    // and the user has requested thousands' separators in the integer part of
@@ -3628,23 +3681,51 @@ Quad_FIO::group_thousands(UCS_string & dest, char * buffer, bool flt)
         if (char * dot = strchr(buffer, '.'))   // buffer has a  fractional part
            {
              *dot = 0;
-             group_thousands(dest, buffer, false);
+             group_thousands(dest, buffer, false, conv);
              dest << Workspace::get_FC(0) << (dot + 1);
              return;
            }
       }
 
-   // at this point, buffer is integer only.
-   //
-int digit_count = 0;
-   for (const char * b = buffer; *b; ++b)
-       if (*b >= '0' && *b <= '9')   ++digit_count;
+   // %p is a pointer, not a number: C does not group it even with the
+   // ' flag, so pass it through unchanged (Blake McBride, Bugs23 #7).
+   if (conv == 'p')
+      {
+        dest << buffer;
+        return;
+      }
 
-   for (const char * b = buffer; *b;)
+   // at this point, buffer is integer only. For x/X, group hex digits
+   // (a-f/A-F count as digits too, in groups of 3, same as C); for
+   // everything else, group decimal digits only (Bugs23 #7).
+   //
+const bool hex = (conv == 'x' || conv == 'X');
+
+   // a #-flag "0x"/"0X" prefix is not part of the number and must be
+   // passed through without being counted or grouped.
+   //
+char * digits = buffer;
+   if (hex && digits[0] == '0' && (digits[1] == 'x' || digits[1] == 'X'))
+      {
+        dest << Unicode(*digits++);
+        dest << Unicode(*digits++);
+      }
+
+int digit_count = 0;
+   for (const char * b = digits; *b; ++b)
+       {
+         const char cc = *b;
+         if ((cc >= '0' && cc <= '9') ||
+             (hex && ((cc >= 'a' && cc <= 'f') || (cc >= 'A' && cc <= 'F'))))
+            ++digit_count;
+       }
+
+   for (const char * b = digits; *b;)
        {
          const char cc = *b++;
          dest << Unicode(cc);
-         if (cc >= '0' && cc <= '9')   // digit
+         if ((cc >= '0' && cc <= '9') ||
+             (hex && ((cc >= 'a' && cc <= 'f') || (cc >= 'A' && cc <= 'F'))))
             {
               if (--digit_count && !(digit_count % 3))
                  dest << Workspace::get_FC(1);

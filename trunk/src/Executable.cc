@@ -545,14 +545,21 @@ UCS_string message_2(error.get_error_line_2());
          else if (q > range.low)   len_between += len;
        }
 
+int nchars;
    {
      const UTF8_string utf(message_2);
-     error.set_error_line_2(utf.c_str());
+     nchars = error.set_error_line_2(utf.c_str());
    }
 
    // Line 3: carets
    //
-   error.set_left_caret(error.get_left_caret() + len_left);
+   // Both carets are offsets into message_2 as just (re)built above; if
+   // that text was longer than ⎕EM[2;] actually shows (truncated to
+   // nchars), clamp both to the truncated length instead of pointing
+   // tens of columns past the end of the printed text (Blake McBride,
+   // Bugs23 #6b).
+const int wanted_left = error.get_left_caret() + len_left;
+   error.set_left_caret(wanted_left > nchars ? nchars : wanted_left);
 
    // Always set right_caret; do NOT special-case range.high == range.low
    // here. When range.high == range.low, every token in the rev_loop
@@ -568,7 +575,8 @@ UCS_string message_2(error.get_error_line_2());
    // checks that happened to agree rather than one. See devel_doc/
    // Carets.txt, "Known gaps" #2.
    //
-   error.set_right_caret(error.get_left_caret() + len_between);
+const int wanted_right = error.get_left_caret() + len_between;
+   error.set_right_caret(wanted_right > nchars ? nchars : wanted_right);
 }
 //────────────────────────────────────────────────────────────────────────────
 int

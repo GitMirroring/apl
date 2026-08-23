@@ -239,10 +239,26 @@ const APL_Float i_B    = get_imag_value();
 const APL_Float i_B__A = i_B - i_A;
 
 const APL_Complex gam_1_a    = ComplexCell::gamma(r_A +    1.0, i_A);
-const APL_Complex gam_1_b    = ComplexCell::gamma(r_B +    1.0, i_B);
-const APL_Complex gam_1_b__a = ComplexCell::gamma(r_B__A + 1.0, i_B__A);
+   if (!isfinite(gam_1_a.real()) || !isfinite(gam_1_a.imag()))
+      return E_DOMAIN_ERROR;
 
-   return ComplexCell::zC(Z, gam_1_b / (gam_1_a * gam_1_b__a));
+const APL_Complex gam_1_b    = ComplexCell::gamma(r_B +    1.0, i_B);
+   if (!isfinite(gam_1_b.real()) || !isfinite(gam_1_b.imag()))
+      return E_DOMAIN_ERROR;
+
+const APL_Complex gam_1_b__a = ComplexCell::gamma(r_B__A + 1.0, i_B__A);
+   if (!isfinite(gam_1_b__a.real()) || !isfinite(gam_1_b__a.imag()))
+      return E_DOMAIN_ERROR;
+
+   // same finiteness guard as NumericCell::real_binomial() above,
+   // applied to all three intermediate gamma results plus the final
+   // division (Blake McBride, Bugs23 #3c -- (0J1)!¯1 gave -nan-J¯∞
+   // instead of DOMAIN ERROR).
+   //
+const APL_Complex z = gam_1_b / (gam_1_a * gam_1_b__a);
+   if (!isfinite(z.real()) || !isfinite(z.imag()))   return E_DOMAIN_ERROR;
+
+   return ComplexCell::zC(Z, z);
 }
 //════════════════════════════════════════════════════════════════════════════
 ErrorCode

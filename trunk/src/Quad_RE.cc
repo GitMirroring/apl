@@ -365,7 +365,12 @@ RegexpMatch rem(A.get_code(), B, B_offset);
         const bool first_call = (B_offset == 0);
         B_offset = -1;   // indicates an error / end of matches
         if (X.get_global() && !first_call)   return Value_P();
-        if (!X.get_error_on_no_match())      return Idx0(LOC);
+        // Str0(), not Idx0(): this function returns the matching
+        // sub-string(s) of B, a character value, so its no-match empty
+        // must be a character empty too, or its prototype (and thus
+        // fills from ↑/↓ and overtake) behaves as numeric (Blake
+        // McBride, Bugs23 #8).
+        if (!X.get_error_on_no_match())      return Str0(LOC);
         MORE_ERROR() << "No match";
         DOMAIN_ERROR;
       }

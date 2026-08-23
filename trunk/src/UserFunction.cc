@@ -705,9 +705,10 @@ UCS_string message_2(error.get_error_line_2());
 #endif
       }
 
+int nchars;
    {
      UTF8_string utf(message_2);
-     error.set_error_line_2(utf.c_str());
+     nchars = error.set_error_line_2(utf.c_str());
    }
 
    // right_caret is an absolute column index into message_2 (like
@@ -720,7 +721,11 @@ UCS_string message_2(error.get_error_line_2());
    // left_caret - 7 == -1): correct today by coincidence, silently
    // wrong for any left_caret other than 6.
    //
-   error.set_right_caret(message_2.size() - 1);
+   // message_2.size() - 1 can point past the end when a printed
+   // argument value made line 2 longer than ⎕EM[2;] actually shows;
+   // clamp to the truncated length (Blake McBride, Bugs23 #6b).
+const int wanted = message_2.size() - 1;
+   error.set_right_caret(wanted > nchars ? nchars : wanted);
 }
 //────────────────────────────────────────────────────────────────────────────
 void

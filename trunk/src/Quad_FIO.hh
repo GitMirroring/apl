@@ -492,7 +492,12 @@ protected:
    /// @param dest destination string to append to
    /// @param buffer ASCII numeric buffer (may be modified in place)
    /// @param flt true if the number is floating-point
-   static void group_thousands(UCS_string & dest, char * buffer, bool flt);
+   /// @param conv the printf() conversion character (d, x, X, p, ...);
+   ///        determines the digit alphabet (hex vs. decimal), whether a
+   ///        leading 0x/0X prefix must be skipped, and whether grouping
+   ///        applies at all (not for 'p', which C does not group)
+   static void group_thousands(UCS_string & dest, char * buffer, bool flt,
+                               char conv);
 
    /// format \b val with \b fmt (a complete printf() conversion spec of
    /// length \b fm), insert thousands' separators, and pad the *grouped*
@@ -502,9 +507,11 @@ protected:
    /// @param fm length of \b fmt
    /// @param val the value to format (APL_Integer or APL_Float)
    /// @param flt true if \b val is floating-point
+   /// @param conv the printf() conversion character, see group_thousands()
    template<typename T>
    static void group_thousands_width(UCS_string & UZ, const char * fmt,
-                                     unsigned int fm, T val, bool flt);
+                                     unsigned int fm, T val, bool flt,
+                                     char conv);
 
    /// for Date/Time Bv. return its seconds since midnight Jan 1, 1970
    /// @param B APL value containing a date/time vector
