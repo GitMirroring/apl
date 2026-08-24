@@ -144,6 +144,19 @@ size_t elem_size = 0;   // 0 means: checked separately below (or unsupported)
 
 Value_P Z(shape, loc);
 
+   // an empty CDR record has no ravel data, so none of the per-type fill
+   // loops below ever runs and Z would keep its default (integer)
+   // prototype regardless of vtype -- set it from vtype instead, so
+   // e.g. a CHAR8/CHAR32 record with nelm == 0 decodes back to '' rather
+   // than ⍬ (Blake McBride, Bugs24 #1). For CDR_NEST32 with nelm == 0
+   // the nested prototype isn't recoverable from the header alone;
+   // set_proto_Int() just preserves prior (already wrong) behaviour there.
+   if (nelm == 0)
+      {
+        if (vtype == CDR_CHAR8 || vtype == CDR_CHAR32)   Z->set_proto_Spc();
+        else                                             Z->set_proto_Int();
+      }
+
 const uint8_t * ravel = data + 16 + 4*rank;
 
    if (vtype == CDR_BOOL1)        // packed bit vector

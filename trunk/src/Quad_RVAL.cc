@@ -981,7 +981,15 @@ Value_P Z(desired_types.size(), LOC);
 // prim_rows[][5]: arity, A_stim, B_stim, X_stim, Z_constraint
 // rval.def stores (arity, B_stim, A_stim, X_stim, constraint), so
 // the macro swaps A_stim and B_stim to put A before B in the matrix.
-#define prim_def(arity, b_stim, a_stim, x_stim, constraint)    { arity, #a_stim, #b_stim, #x_stim, constraint },
+//
+// B_stim/A_stim/X_stim are plain quoted string literals (not stringified
+// macro args) because unquoted APL glyphs -- even the lone ¯ that every
+// row here relies on -- are tokenized by the preprocessor before
+// rval.def's #include ever reaches the macro body, and clang rejects
+// ¯ there outright (gcc happens to tolerate it, but no other glyph on
+// either compiler, see rval.def's own header comment); quoting removes
+// the preprocessor from that path entirely (Paul Rockwell, macOS/clang).
+#define prim_def(arity, b_stim, a_stim, x_stim, constraint)    { arity, a_stim, b_stim, x_stim, constraint },
 static const char * const prim_rows[][5] =
 {
 #include "rval.def"

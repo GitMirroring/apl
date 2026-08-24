@@ -30,6 +30,7 @@
 #include "PointerCell.hh"
 #include "Quad_CR.hh"
 #include "Symbol.hh"
+#include "SystemVariable.hh"
 #include "Tokenizer.hh"
 #include "UCS_string.hh"
 #include "Workspace.hh"
@@ -1378,7 +1379,11 @@ Quad_CR::do_CR48(cValue_R B)
 Value_P
 Quad_CR::do_CR49(cValue_R B)
 {
-   return IntScalar(Value::PACKED_MINIMUM_LENGHT, LOC);
+   // the *effective* threshold, which ⎕SYL[34;2] and --pack_min can
+   // change at runtime -- not the compile-time default
+   // Value::PACKED_MINIMUM_LENGHT that it is merely initialised from
+   // (Blake McBride, Bugs24 #4).
+   return IntScalar(Quad_SYL::pack_min_length, LOC);
 }
 //────────────────────────────────────────────────────────────────────────────
 Value_P

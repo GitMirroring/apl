@@ -3647,7 +3647,7 @@ const ssize_t bytes = read(device, buffer, len);
    if (bytes != len)
       {
         MORE_ERROR() << "⎕FIO[60]: short read from /dev/urandom ("
-                     << bytes << " of " << len << " bytes)";
+                     << ShapeItem(bytes) << " of " << len << " bytes)";
         DOMAIN_ERROR;
       }
 

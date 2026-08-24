@@ -225,7 +225,13 @@ Executable * statements = 0;
                   << "      " << err.get_error_line_3() << endl;
            }
 
-        err.print(UERR, LOC);
+        // err.print() prints nothing further here in a non-verbose
+        // build (its body is gated behind Log(LOG_verbose_error),
+        // dead code in production) -- its only *reachable* effect was
+        // leaking the internal "*** Error printed twice ***"
+        // diagnostic to the user whenever err.print_loc happened to
+        // already be set (Blake McBride, Bugs24 #2), which the lines
+        // above already printed everything this call would have.
         delete statements;
         return;
       }

@@ -30,6 +30,7 @@
  fio_def(27, rename      )
  fio_def(28, read_dir    )
  fio_def(29, dir_files   )
+ fio_def(30, getcwd      )
  fio_def(31, access      )
  fio_def(32, socket      )
  fio_def(33, bind        )

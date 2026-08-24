@@ -212,7 +212,17 @@ FunctionGroup::bad_subfun_name_ERROR(const UCS_string sub_name) const
    MORE_ERROR() << sub_name << " is not a valid subfunction of " << group_name
                 << ".\nSee: " << group_name << " '' "
                    "or: " << group_name << " ⍬ for a list of valid names.";
-   SYNTAX_ERROR;
+
+   // this is thrown while the *new* statement is still being parsed,
+   // before it has an Executable/StateIndicator of its own -- the
+   // SYNTAX_ERROR macro (-> throw_apl_error() -> update_error_info())
+   // would instead describe whatever statement Workspace::SI_top()
+   // currently happens to point to, which after a prior suspended
+   // top-level error is a leftover, unrelated statement (Blake
+   // McBride, Bugs24 #2: wrong statement/carets shown, then printed
+   // again via the stale "already printed" latch it carries along).
+   // throw_parse_error() correctly does not consult SI_top() at all.
+   Error::throw_parse_error(E_SYNTAX_ERROR, LOC, LOC);
 }
 //────────────────────────────────────────────────────────────────────────────
 void

@@ -475,6 +475,13 @@ IO_Files::end_of_current_file()
                   current_testreport << endl;
                 }
              apl_error(LOC);
+
+             // do not let one testcase file's dirty )SI leak into the
+             // next one and be reported (and charged) there too, and
+             // in every file after it -- mirrors the stale-value
+             // check below, which already recovers the same way
+             // (Blake McBride, Bugs24 #3).
+             Workspace::clear_SI(CERR);
            }
 
         // check for stale values and indices
