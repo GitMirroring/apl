@@ -298,5 +298,59 @@ OK      - no duplicate parents
       ⎕EX 'BUGS6_5_BAR'
 1
 
+      ⍝ Regression: Bugs25 #2 (Blake McBride). A float or complex literal
+      ⍝ in [ ] (axis or index) was rejected at parse time with a bare
+      ⍝ DOMAIN ERROR, even when the equivalent variable works fine --
+      ⍝ Parser::optimize_literal_axes() called Cell::get_int_value()
+      ⍝ (IntCell-only) instead of Cell::get_near_int() (any near-int
+      ⍝ numeric cell) on a literal already established as near-int.
+      ⍝ Fixed in Parser.cc; a near-int literal too large to fit an
+      ⍝ int64_t (e.g. 1E30) must still not be taken down the sAxis fast
+      ⍝ path (Parser.cc), and must not crash Token::canonical() when
+      ⍝ later rendering the caret line for the resulting runtime error
+      ⍝ (Token.cc -- get_near_int() there can throw too, and naively
+      ⍝ catching that throw does not help, since Error::update_error_info()
+      ⍝ recurses through plain calls, not exception unwinding).
+      ⍝
+      ⌽[2.0](2 2⍴⍳4)
+2 1
+4 3
+
+      (1 2 3)[2.0]
+2
+
+      (1 2 3)[1J0]
+1
+
+      1↑[1J0](2 2⍴⍳4)
+1 2
+
+      ⌽[1E10](2 2⍴⍳4)
+AXIS ERROR+
+      ⌽[10000000000](2 2⍴⍳4)
+      ^             ^
+
+      )SIC
+
+      (1 2 3)[1E30]
+DOMAIN ERROR
+      1 2 3[?]
+      ^    ^
+
+      )SIC
+
+      ⎕FX 'Z←FOO' 'Z←(1 2 3)[1E30]'
+FOO
+
+      FOO
+DOMAIN ERROR
+FOO[1]  Z←1 2 3[?]
+          ^    ^
+
+      )SIC
+
+      ⎕EX 'FOO'
+1
+
 
 

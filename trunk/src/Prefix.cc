@@ -1827,12 +1827,24 @@ Value_P B = at2().get_apl_val();
    //
    if (saved_MISC.get_Class() == TC_FUN12)
       {
-        // C may have more than one item, so we should call get_sole_integer()
-        // only after having checked that M is ⎕FIO The subfunction which is
-        // an operator is ⎕FIO[49] aka. ⎕FIO,read_text
+        // C may have more than one item (e.g. a subfunction name like
+        // 'strerror' or 'getcwd' -- ⎕FIO axes can be spelled either way,
+        // see Quad_FIO::value_to_subfun()), so we should call
+        // get_sole_integer() only after having checked that M is ⎕FIO
+        // *and* that C actually has exactly one item -- get_sole_integer()
+        // itself throws LENGTH_ERROR for anything else, which used to
+        // fire here for every multi-character ⎕FIO axis name as soon as
+        // any function/operand preceded the M[C]B phrase (this specific
+        // F-C-B reduce phrase is only reached in that case; the plain
+        // M[C]B phrase, with nothing to its left, uses a different,
+        // unaffected reduce path -- confirmed live: `⎕FIO['strerror'] 0`
+        // alone works, but e.g. `⍴⎕FIO['strerror'] 0` raised a spurious
+        // LENGTH ERROR before this fix). The subfunction which is an
+        // operator is ⎕FIO[49] aka. ⎕FIO.read_text.
         //
         const TokenTag tag_M = at0().get_tag();
-        if (tag_M == TOK_Quad_FIO && C->get_sole_integer() == 49)
+        if (tag_M == TOK_Quad_FIO && C->element_count() == 1 &&
+            C->get_sole_integer() == 49)
            {
              Token & LO = saved_MISC.get_token();
              DerivedFunction * derived = get_fun_oper_slot(LOC);
@@ -2837,7 +2849,7 @@ vector<Symbol *> symbols;
              // selective specification
              //
              bool selective_spec = false;
-             for (int pc = PC + 1; pc < body.ssize();)
+             for (int pc = PC; pc < body.ssize();)
                  {
                    const Token tok = body[pc++];
                    const TokenClass tc = tok.get_Class();
@@ -2850,6 +2862,37 @@ vector<Symbol *> symbols;
                             tc == TC_END)
                       {
                         break;   // so selective_spec remains false
+                      }
+                   else if (tc == TC_R_BRACK)
+                      {
+                        // a function axis or value index, e.g. the [1] in
+                        // (1↓[1]V)←...: its contents are not a stranded
+                        // value sitting between V and its selecting
+                        // function, they are part of that function's own
+                        // syntax. Skip over the whole [...] group (same
+                        // idiom as value_expected() above) rather than
+                        // examining its contents.
+                        //
+                        pc += tok.get_int_val2();
+                      }
+                   else if (tc == TC_VALUE)
+                      {
+                        // a value (e.g. a literal) sits between here and
+                        // whatever function turns up further left -- that
+                        // function, if any, would end up applying to a
+                        // *strand* containing V rather than to V alone
+                        // (e.g. (∊2 V)←¯1: ∊ would apply to the stranded
+                        // pair 2 V, not to V by itself). Scanning past
+                        // this and accepting anyway used to let such a
+                        // strand form at all, whose lval cells (V's, real)
+                        // ended up mixed with the literal's (not real) --
+                        // the actual root cause behind Blake McBride's
+                        // Bugs25 #1 crash, several layers further down in
+                        // cValue::enlist_left()/get_lval_cellowner(). Not
+                        // a legal selective specification; stop here so
+                        // selective_spec remains false.
+                        //
+                        break;
                       }
                  }
 
@@ -2893,6 +2936,24 @@ vector<Symbol *> symbols;
 
    // cases 1. or 2. (vector assugnment)
    //
+   // collect_symbols() only ever stops at the first non-symbol token; it
+   // does not by itself confirm that token is the '(' a genuine (A B
+   // ...)← vector assignment requires. Without this check, something
+   // like (∊V W)←C collects [W, V] (2 symbols, so this branch runs) with
+   // the leading ∊ simply never examined, so vector_assignment() below
+   // would silently overwrite both V and W as if ∊ were not there at
+   // all, before any error about the leftover, unconsumed ∊ token could
+   // fire (Blake McBride, Bugs25 #1 follow-up -- same "must not mutate
+   // anything before the syntax is known to be legal" principle as the
+   // symbols.size()==1 case above, just unchecked here previously).
+   //
+   if (PC >= body.ssize() || body[PC].get_Class() != TC_L_PARENT)
+      {
+        MORE_ERROR() <<
+        "Malformed selective specification or vector specification";
+        LEFT_SYNTAX_ERROR;
+      }
+
 Value_P B = at3().get_apl_val();
    Symbol::vector_assignment(symbols, B);
 

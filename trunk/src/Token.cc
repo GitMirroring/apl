@@ -389,7 +389,30 @@ UCS_string ucs;
                   //
                   if (const cValue * axis = get_apl_val().get())
                      {
-                      ret << ShapeItem(axis->get_int_value(0));
+                      // axis may be a near-int float (e.g. a literal axis
+                      // like [1E10] that Parser::optimize_literal_axes()
+                      // deferred to the value-axis/IndexExpr path because
+                      // it was too large for sAxis) -- get_int_value()
+                      // throws DOMAIN_ERROR on anything but a genuine
+                      // IntCell, which recurses back into this very error
+                      // formatting code and stack-overflows. get_near_int()
+                      // accepts near-int floats too, but still throws
+                      // DOMAIN_ERROR if the value is too large to fit an
+                      // int64_t (e.g. [1E30]). A try/catch here would NOT
+                      // help: throw_apl_error() calls
+                      // Error::update_error_info() -- which is what got us
+                      // into this very function -- *before* it actually
+                      // throws, so the "error" never unwinds back to a
+                      // catch here; it just recurses through plain calls
+                      // until the stack overflows. So check first, with a
+                      // predicate that cannot throw, instead of catching
+                      // after the fact.
+                      Cell cache;
+                      const Cell & c = axis->get_cscalar(cache);
+                      if (c.is_near_int64_t())
+                         ret << ShapeItem(c.get_near_int());
+                      else
+                         ret << "?";
                      }
                   ret << "]";
                   return ret;

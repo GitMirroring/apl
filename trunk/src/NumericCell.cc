@@ -177,7 +177,28 @@ const char chow = how[row];
    //
 const APL_Integer K = A->get_checked_near_int();
 const APL_Integer N =    get_checked_near_int();
-   switch(row)
+
+   // row was classified from the raw (pre-rounding) r_A/r_B above, but
+   // K33_binomial() below is called with the *rounded* K/N -- for a
+   // value very close to zero from the negative side (e.g. ¯1E¯300),
+   // the raw sign says "negative" (row picks the row-3/row-6 negative-
+   // binomial identity) while the rounded value is genuinely 0
+   // (non-negative), so the identity's own Assert(N>=K)/Assert(K>=0)
+   // preconditions -- which assume row and K/N agree -- fire instead of
+   // returning a result (Blake McBride, Bugs25 #6). Reclassify using
+   // the same rounded K/N the identities actually use; row2==row except
+   // at this boundary. how[row2]=='?' cannot occur here for the same
+   // algebraic reason it cannot occur for the original row (row indices
+   // 2 and 5 require N<0≤K with N≥K, or N≥0>K with N<K, both
+   // contradictions).
+   //
+const int row2 = (K < 0   ? 4 : 0)
+                | (N < 0   ? 2 : 0)
+                | (N < K   ? 1 : 0);
+   if (how[row2] == '0')   return IntCell::z0(Z);
+   Assert(how[row2] == '-');
+
+   switch(row2)
       {
         case 0:  return K33_binomial(Z, N, K, false);
 

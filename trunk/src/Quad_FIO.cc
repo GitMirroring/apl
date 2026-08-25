@@ -421,6 +421,16 @@ Value_P B_vp = CLONE(&B, LOC);
          case 1:   // return (last) errno
               goto out_errno;
 
+         case 30:   // getcwd(); B is ignored, same as the ⎕FIO 30 form.
+                    // fio_def(30, getcwd) in Quad_FIO.def advertises
+                    // ⎕FIO[30]/⎕FIO['getcwd']/⎕FIO.getcwd as equivalent
+                    // to ⎕FIO 30 (via ⎕FIO ⍬'s listing and the name
+                    // lookup table), but only eval_B() had a case for
+                    // it -- the three axis/name spellings all fell into
+                    // default: and reported themselves as invalid
+                    // (Blake McBride, Bugs25 #9).
+              return eval_B__30(B_vp);
+
          case 2:   // return strerror(B)
               return eval_XB__2(B_vp);
 
@@ -1020,23 +1030,41 @@ public:
 
          // string input...
          //
+         const bool hex = (conv == 'X') || (conv == 'x');
          char cc[40];
          unsigned int cidx = 0;
-         if (lookahead == UNI_OVERBAR)
+         if (lookahead == UNI_OVERBAR || lookahead == UNI_MINUS)
             {
               cc[cidx++] = '-';
               lookahead = Invalid_Unicode;
             }
-         else if (lookahead != Invalid_Unicode)
+         else if (hex ? Avec::is_hex_digit(lookahead)
+                      : Avec::is_digit(lookahead))
             {
+              // caution: the lookahead was accepted unconditionally here
+              // (any character, not just a digit), so e.g. 'x' became
+              // cc = "x" and strtoll("x", ...) reports "no digits
+              // converted" only via errno, which strtoll() does NOT set
+              // for that case (only for overflow) -- so a failed
+              // conversion silently returned 0, a value never in the
+              // input (Blake McBride, Bugs25 #4). Filter the lookahead
+              // the same way the loop below already does (and, unlike
+              // the loop below before this fix, accept hex letters for
+              // %x/%X so e.g. 'ff' converts fully instead of stopping
+              // after the first digit).
               cc[cidx++] = lookahead;
               lookahead = Invalid_Unicode;
             }
+            // else: a non-numeric lookahead is left untouched here; the
+            // loop below's get_next() will hand it back as its first
+            // character and reject it the same way.
 
          while (cidx < (sizeof(cc) - 1) && offset < string->ssize())
             {
               const Unicode uni = get_next();
-              if (Avec::is_digit(uni))       cc[cidx++] = uni;   // 0-9
+              if (hex && Avec::is_hex_digit(uni))
+                                              cc[cidx++] = uni;   // 0-9a-fA-F
+              else if (Avec::is_digit(uni))  cc[cidx++] = uni;   // 0-9
               else if (uni == UNI_OVERBAR)   cc[cidx++] = '-';   // ¯
               else if (uni == UNI_MINUS)     cc[cidx++] = '-';   // -
               else { unget(uni);   break; }
@@ -1049,7 +1077,9 @@ public:
          if (cidx == 0)   return 0;
          const int base =  (conv == 'X') || (conv == 'x') ? 16 : 10;
          errno = 0;
-         value = strtoll(cc, 0, base);
+         char * endptr = cc;
+         value = strtoll(cc, &endptr, base);
+         if (endptr == cc)   return 0;   // no digits converted (Bugs25 #4)
          return errno ? 0 : 1;
       }
 
@@ -1779,6 +1809,31 @@ int conversion_count_A = 0;   // the number of conversions (in A_format)
                             COUNT_ARG;
                             const APL_Float float_val =
                                   B.get_real_value(off_B++);
+
+                            // APL floats are passed as a plain double;
+                            // drop any user-supplied length modifier the
+                            // same way the integer case above does. Left
+                            // in place, e.g. '%Lf' tells snprintf() to
+                            // read a long double off the vararg slot --
+                            // undefined behaviour for a double argument
+                            // (Blake McBride, Bugs25 #5, confirmed via
+                            // ASan's printf interceptor). Unlike the
+                            // integer case, no replacement modifier is
+                            // added: no modifier is exactly right for a
+                            // plain double.
+                            //
+                            unsigned int fm2 = 1;   // keep the leading '%'
+                            for (unsigned int f = 1; f < fm; ++f)
+                                {
+                                  switch (fmt[f])
+                                     {
+                                       case 'h': case 'l': case 'L':
+                                       case 'q': case 'j': case 'z':
+                                       case 't': continue;   // drop
+                                       default:  fmt[fm2++] = fmt[f];
+                                     }
+                                }
+                            fm = fm2;
                             fmt[fm++] = uni_1;   fmt[fm] = 0;
 
                             int need = snprintf(0, 0, fmt, float_val);
@@ -2010,8 +2065,22 @@ cFunction_P fun = 0;
    else
       {
         const Unicode prim = B->get_char_value(0);
+
+        // tokenize_function(Unicode) is written for characters the
+        // tokenizer has already classified as functions; its
+        // fall-through is Assert(0 && "Missing Function"), reached for
+        // exactly the invalid-character inputs the is_function() check
+        // below was meant to catch (making that check unreachable dead
+        // code). Pre-filter with the same test tokenize_function() uses
+        // internally (Avec::uni_to_token()), which only needs the
+        // token's tag -- not its (not yet initialised) function
+        // pointer -- so is_function() is safe to call on it directly
+        // (Blake McBride, Bugs25 #8).
+        //
+        Unicode prim_copy = prim;   // uni_to_token() may rewrite its arg
+        if (!Avec::uni_to_token(prim_copy, LOC).is_function())
+           DOMAIN_ERROR;
         const Token tok = Tokenizer::tokenize_function(prim);
-        if (!tok.is_function())   DOMAIN_ERROR;
         fun = tok.get_function();
       }
    if (fun == 0)   DOMAIN_ERROR;
@@ -2886,8 +2955,16 @@ const Function * fun = 0;
    else
       {
         const Unicode prim = B->get_char_value(0);
+
+        // see the matching comment in eval_AXB__202() above (Blake
+        // McBride, Bugs25 #8): tokenize_function()'s own is_function()
+        // check on the next line is unreachable dead code -- its
+        // fall-through asserts first. Pre-filter instead.
+        //
+        Unicode prim_copy = prim;   // uni_to_token() may rewrite its arg
+        if (!Avec::uni_to_token(prim_copy, LOC).is_function())
+           DOMAIN_ERROR;
         const Token tok = Tokenizer::tokenize_function(prim);
-        if (!tok.is_function())   DOMAIN_ERROR;
         fun = tok.get_function();
       }
    if (fun == 0)   DOMAIN_ERROR;

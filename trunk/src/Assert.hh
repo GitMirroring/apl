@@ -39,7 +39,7 @@
    That is, higher cfg_ASSERT_LEVEL_WANTED will raise more complaints.
 
    The default ./configure (intended for normal users) will have
-   cfg_ASSERT_LEVEL_WANTED = 0.
+   cfg_ASSERT_LEVEL_WANTED = 1.
 
    The ./configure DEVELOP_WANTED=yes (aka. make develop) will have
    cfg_ASSERT_LEVEL_WANTED = 2.

@@ -700,6 +700,16 @@ cValue::enlist_right(Value & Z) const
    // Z is a new (un-initialized) Value that shall be (recursively)
    // initialized with the (non-pointer) items of this (right-) value
    //
+   // An LvalCell can legitimately reach here too: this path is also
+   // taken (via Bif_F12_ELEMENT::do_eval_B()) for a strand whose
+   // get_lval_cellowner() rejected it as not purely derived from one
+   // left-value name (e.g. ∊2 V, mixing a literal with a variable) --
+   // in that case some cells genuinely are LvalCells (V's) and some are
+   // not (the literal's). Copying the LvalCell through unchanged, same
+   // as an ordinary cell, is what lets Value::assign_cellrefs()'s own
+   // per-cell is_lval_cell() check correctly reject the mixed result
+   // later, the same way it already does for e.g. (⊃2 V)←C -- rather
+   // than asserting here as if this could never happen.
    //
    loop(c, element_count())
        {
@@ -709,11 +719,10 @@ cValue::enlist_right(Value & Z) const
             {
               v->enlist_right(Z);
             }
-         else if (!cell.is_lval_cell())
+         else
             {
               Z.next_ravel_Cell(cell);
             }
-         else   FIXME;
        }
 }
 //────────────────────────────────────────────────────────────────────────────
@@ -1476,24 +1485,47 @@ cValue::get_lval_cellowner() const
       2a. valid LvalCells (from get_cellrefs()), or
       2b. invalid LvalCells(0, 0) (e.g. from ↑ overtake).
 
-      The first case 1. or 2a. (if any) determines the cellowner
+      A cell of any other kind -- a plain, non-pointer, non-lval cell,
+      e.g. a literal stranded alongside a variable as in ∊2 V -- means
+      this Value is not *purely* derived from one left-value name and
+      must not be treated as a left value at all: silently returning
+      whichever owner was found first (the original behaviour here)
+      let enlist_left() wrap that plain cell in a synthetic LvalCell
+      owned by the strand temporary itself, and assign_cellrefs() would
+      later write through it into a Value already destroyed by the time
+      the assignment ran (Blake McBride, Bugs25 #1, `(∊2 V)←¯1`). The
+      same reasoning requires every found owner to agree with the
+      others: a strand of lval cells from two *different* variables is
+      likewise not derived from a single name.
     */
+Value * owner = 0;
    loop(e, nz_element_count())
       {
         Cell cache;
         const Cell & cell = get_cravel(e, cache);
         if (Value_P v = cell.try_pointer_value())   // case 1.
            {
-             return v->get_lval_cellowner();
+             Value * sub_owner = v->get_lval_cellowner();
+             if (sub_owner == 0)                 return 0;
+             if (owner && owner != sub_owner)    return 0;
+             owner = sub_owner;
+             continue;
            }
 
         if (cell.is_lval_cell())      // case 2a. or 2b.
            {
-             if (cell.get_cell_owner())   return cell.get_cell_owner();
+             if (Value * cell_owner = cell.get_cell_owner())
+                {
+                  if (owner && owner != cell_owner)   return 0;
+                  owner = cell_owner;
+                }
+             continue;
            }
+
+        return 0;   // plain cell: not purely a left-value
       }
 
-   return 0;   // not found (this is most likely not a left value)
+   return owner;   // 0 if nothing (lval-ish) was found
 }
 //────────────────────────────────────────────────────────────────────────────
 bool

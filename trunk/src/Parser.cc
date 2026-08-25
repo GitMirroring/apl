@@ -501,9 +501,21 @@ bool progress = false;
               // of raising AXIS_ERROR, same for a huge ,[N] axis. Only
               // take this shortcut when N actually fits in sAxis; leave
               // out-of-range N for the (checked) Prefix-parser path.
-              const APL_Integer wide_axis = T1.get_apl_val()
-                                          ->get_int_value(0);
+              //
+              // N itself may be near-int but too large to even fit an
+              // int64_t (e.g. 1E30): get_near_int() throws DOMAIN_ERROR
+              // in that case (unlike is_int_scalar()/is_near_int(), which
+              // consider it int-like since its fractional part rounds off
+              // to nothing) -- so only call get_near_int() once N is known
+              // to fit, and treat "doesn't fit" the same as "too large for
+              // sAxis": defer to the value axis / Prefix-parser path.
+              Cell cache;
+              const Cell & c1 = T1.get_apl_val()->get_cscalar(cache);
+              const bool fits_int64 = c1.is_near_int64_t();
+              const APL_Integer wide_axis = fits_int64 ? c1.get_near_int()
+                                                         : 0;
               if (src > 0 && tos[src - 1].is_function()   // function axis
+                  && fits_int64
                   && wide_axis >= -32000 && wide_axis <= 32000)
                  {
                    const sAxis function_axis = wide_axis;

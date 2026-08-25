@@ -157,3 +157,25 @@
       ⍴⊃⌹/⍳0
 0 0
 
+      ⍝ Regression: Bugs25 #7 (Blake McBride). The A f⌿B (n_wise==0)
+      ⍝ scalar-B shortcut passed the bare scalar B straight to
+      ⍝ LO->eval_identity_fun(), but eval_identity_fun() (via
+      ⍝ NonscalarFunction_default_identity::enclosed_identity(),
+      ⍝ PrimitiveFunction.hh) documents and relies on B being genuinely
+      ⍝ non-scalar, and asserts on a simple scalar. The rank>=1 branch a
+      ⍝ few lines below already wraps B in a length-0 axis first; fixed
+      ⍝ by doing the same in the scalar shortcut (Bif_OPER1_REDUCE.cc).
+      ⍝
+      0⍉⌿0
+    
+      0,⌿0
+    
+      0⍪⌿0
+    
+      0↑⌿0
+    
+      0⍴⌿0
+    
+      (0⍉⌿(≥⍀0))⌈[1](1 1 1⍴1)
+    
+

@@ -207,4 +207,35 @@
 33                  48       1093260079344
 33                  66 7219428434016265740
 
+      ⍝ Regression: Bugs25 #6 (Blake McBride). NumericCell::bif_binomial()
+      ⍝ picks its ISO case table row from the raw (pre-rounding)
+      ⍝ floating-point signs of A and B, but the actual K33_binomial()
+      ⍝ call further down uses the ⎕CT-tolerant *rounded* K/N. For B
+      ⍝ very close to zero from the negative side (e.g. ¯1E¯300), the
+      ⍝ raw sign says "negative" (picks the row-3/row-6 negative-
+      ⍝ binomial identity) while the rounded value is genuinely 0, so
+      ⍝ K33_binomial()'s own Assert(N>=K)/Assert(K>=0) preconditions --
+      ⍝ which assume the row and the rounded K/N agree -- aborted the
+      ⍝ interpreter instead of returning a result. Fixed in
+      ⍝ NumericCell.cc by reclassifying the row from the same rounded
+      ⍝ K/N the identities use.
+      ⍝
+      1!¯1E¯300
+0
+
+      0!¯1E¯300
+1
+
+      2!¯1E¯20
+0
+
+      ¯1E¯300!¯1E¯300
+1
+
+      ¯5!¯3
+6
+
+      3!¯5
+¯35
+
 

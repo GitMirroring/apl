@@ -227,3 +227,43 @@ DOMAIN ERROR+
       '555_555_5555'⍕8324632190
 832 463 2190
 
+      ⍝ Regression: Bugs25 #3 (Blake McBride). A '0'/'9' zero-fill digit
+      ⍝ combined with a ',' (or other non-digit decoration) in the same
+      ⍝ sub-field always raised a bare DOMAIN ERROR -- Format_sub::
+      ⍝ map_field() seeded/decremented min_len over *character* count
+      ⍝ (including the comma) instead of *digit* count, so the field's
+      ⍝ minimum digit requirement came out one too high and
+      ⍝ insert_int_commas() ran out of digit slots. Fixed in
+      ⍝ Bif_F12_FORMAT.cc by counting only Avec::is_digit() positions.
+      ⍝
+      '0,000'⍕1234
+1,234
+
+      '9,999'⍕1234
+1,234
+
+      '99,999'⍕1234
+01,234
+
+      '$9,999'⍕1234
+$1,234
+
+      '0,000.00'⍕1234.5
+1,234.50
+
+      ⍝ Regression: Bugs25 #3b, same root cause: fill_data_fields()'s
+      ⍝ integer-part overflow check compared the digit count against
+      ⍝ out_len (output *character* width, includes commas) instead of
+      ⍝ the number of digit positions, so an overflowing value with a
+      ⍝ comma in its picture slipped past the check and died later
+      ⍝ inside insert_int_commas() with no )MORE explanation instead of
+      ⍝ the proper "integer part exceeds A specification" message. Fixed
+      ⍝ by comparing against the new Format_sub::digit_count instead.
+      ⍝
+      '5,555'⍕12345
+DOMAIN ERROR+
+      '5,555'⍕12345
+      ^       ^
+      )MORE
+A⍕B : Bad value 12345 (integer part exceeds A specification)
+

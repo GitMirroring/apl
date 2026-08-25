@@ -352,8 +352,13 @@ Cell * cell = &val->get_wravel(idx);
 
    if (new_value->is_simple_scalar())   // e.g. ⊂5 is 5
       {
+        // Cell::init() no longer exists (Blake McBride, Bugs25 #10);
+        // init_other() is its replacement, called on the source cell
+        // with the (uninitialized) destination and its owner Value --
+        // mirrors Value.cc's own src.init_other(target, owner, LOC).
+        //
         Cell cache;
-        cell->init(new_value->get_cfirst(cache), *val, LOC);
+        new_value->get_cfirst(cache).init_other(cell, *val, LOC);
       }
    else if (new_value->is_scalar())     // e.g. ⊂⊂5 is ⊂5
       {

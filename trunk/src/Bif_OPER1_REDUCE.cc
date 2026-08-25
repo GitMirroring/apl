@@ -266,9 +266,23 @@ const APL_Integer n_wise = A0 < 0 ? neg_A0 : A0;
            }
         if (n_wise == 0)
            {
-              Token ident = LO->eval_identity_fun(*B, axis);
-              Value_P Z(2, LOC);
+              // eval_identity_fun() (via NonscalarFunction_default_
+              // identity::enclosed_identity(), PrimitiveFunction.hh)
+              // documents and relies on B being genuinely non-scalar --
+              // it does Z->next_ravel_Pointer(CLONE(&B, LOC).get()),
+              // which asserts on a simple scalar. The rank>=1 branch
+              // further down honours this by wrapping B in a length-0
+              // axis before calling eval_identity_fun(); do the same
+              // here instead of passing the bare scalar B (Blake
+              // McBride, Bugs25 #7).
+              //
+              Shape shape_B1;
+              shape_B1.add_shape_item(0);
+              Value_P val(shape_B1, LOC);
               Cell cache;
+              val->set_ravel_Cell(0, B->get_cproto(cache)); // prototype
+              Token ident = LO->eval_identity_fun(*val, 0);
+              Value_P Z(2, LOC);
               Z->next_ravel_Cell(ident.get_apl_val()->get_cfirst(cache));
               Z->next_ravel_Cell(ident.get_apl_val()->get_cfirst(cache));
               return Token(TOK_APL_VALUE1, Z);

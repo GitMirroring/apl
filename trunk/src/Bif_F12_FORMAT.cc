@@ -180,16 +180,19 @@ int flt_cnt = 0;
            }
       }
 
+   loop(f, format.ssize())
+       if (Avec::is_digit(format[f]))   ++digit_count;
+
    if (flt_mask & (BIT_0 | BIT_9))
       {
-        min_len = format.ssize();
+        min_len = digit_count;
         loop(f, format.ssize())
             {
               const size_t pos = (type == 1) ? format.ssize() - f - 1 : f;
               const Unicode uni = format[pos];
               if (uni == UNI_0)   break;
               if (uni == UNI_9)   break;
-              --min_len;
+              if (Avec::is_digit(uni))   --min_len;
             }
       }
 
@@ -478,7 +481,7 @@ char * fract_end = 0;
         //
         const char * dot = strchr(data_buf, '.');
         const int ilen = dot ? (dot - data_buf) : strlen(data_buf);
-        if (ilen > int_part.out_len)
+        if (ilen > int_part.digit_count)
            {
              if (Workspace::get_FC(3) == UNI_0)
                 {

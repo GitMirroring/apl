@@ -37,7 +37,8 @@ struct Format_sub
    Format_sub()
    : out_len(0),
      flt_mask(0),
-     min_len(0)
+     min_len(0),
+     digit_count(0)
    {}
 
    /// return true if the decorator is floating floating
@@ -88,6 +89,9 @@ struct Format_sub
    int             out_len;        ///< the length in the output
    uint32_t        flt_mask;       ///< decorator floating mode
    int             min_len;        ///< the minimum length in the output
+   int             digit_count;    ///< the number of digit positions
+                                    ///< (unlike out_len, excludes commas
+                                    ///< and other non-digit decorations)
 };
 //════════════════════════════════════════════════════════════════════════════
 /** System function format

@@ -611,7 +611,15 @@ const ErrorCode ec = get_error_code(B);
    if (ec == E_QUAD_ES_ERR)   return Token(TOK_QUAD_ES_ERR, CLONE_P(B, LOC));
    if (ec == E_QUAD_ES_ESC)   return Token(TOK_QUAD_ES_ESC, CLONE_P(B, LOC));
 
-   new (&error)   Error(ec, error.get_throw_loc());
+   // copy the throw location out before the placement-new below
+   // reconstructs error in place -- reading error.get_throw_loc() as a
+   // constructor argument for the object it is itself about to
+   // reinitialize triggers a (believed false-positive, per Blake
+   // McBride, Bugs25 minor observations) -Wmaybe-uninitialized on some
+   // compilers.
+   //
+const char * const throw_loc = error.get_throw_loc();
+   new (&error)   Error(ec, throw_loc);
 
    if (error.get_error_code() == E_NO_ERROR)   // B = 0 0: reset ⎕ET and ⎕EM.
       {
