@@ -1187,24 +1187,17 @@ const Int_or_Double real_val = tokenize_real(src);
            }
 
         const Int_or_Double imag_val = tokenize_real(src);
-        if (!imag_val.is_valid)   // not a complex number
+        if (!imag_val.is_valid)   // malformed imaginary part.
            {
-             --src;   // undo skip 'J'
-             if (real_val.is_double)
-                {
-                  tos.push_back(Token(TOK_REAL, real_val.value.APL_flt));
-                  Log(LOG_tokenize)
-                     CERR << "  tokenize_number: real "
-                          << real_val.value.APL_flt << endl;
-                }
-             else
-                {
-                  tos.push_back(Token(TOK_INTEGER, real_val.value.APL_int));
-                  Log(LOG_tokenize)
-                     CERR << "  tokenize_number: integer "
-                          << real_val.value.APL_int << endl;
-                }
-             goto done;
+             // tokenize_real() has already consumed at least one digit of
+             // the imaginary part (guaranteed by the Avec::is_number()
+             // check above) before failing, so there is no way to
+             // un-consume just that and fall back to treating real_val as
+             // a standalone number without silently dropping input;
+             // tokenize_real() has already set )MORE text explaining why.
+             //
+             Error::throw_parse_error(E_BAD_NUMBER, src.data(), start_pos,
+                                      src.get_pos(), LOC, loc);
            }
 
         tos.push_back(Token(TOK_COMPLEX, real_val.get_double(),
@@ -1225,25 +1218,11 @@ const Int_or_Double real_val = tokenize_real(src);
            }
 
         const Int_or_Double degrees = tokenize_real(src);
-        if (!degrees.is_valid)   // not a complex number
+        if (!degrees.is_valid)   // malformed angle: see the 'J' branch
+                                  // above for why this cannot recover.
            {
-             --src;   // undo skip 'D'
-             if (real_val.is_double)
-                {
-                 tos.push_back(Token(TOK_REAL, real_val.value.APL_flt));
-                  Log(LOG_tokenize)
-                     CERR << "  tokenize_number: real "
-                          << real_val.value.APL_flt << endl;
-
-                }
-             else
-                {
-                  tos.push_back(Token(TOK_INTEGER, real_val.value.APL_int));
-                  Log(LOG_tokenize)
-                     CERR << "  tokenize_number: integer "
-                          << real_val.value.APL_int << endl;
-                }
-             goto done;
+             Error::throw_parse_error(E_BAD_NUMBER, src.data(), start_pos,
+                                      src.get_pos(), LOC, loc);
            }
 
         // real_flt is the magnitude and the angle is in degrees.
@@ -1268,24 +1247,11 @@ const Int_or_Double real_val = tokenize_real(src);
            }
 
         const Int_or_Double radian = tokenize_real(src);
-        if (!radian.is_valid)   // not a complex number
+        if (!radian.is_valid)   // malformed angle: see the 'J' branch
+                                 // above for why this cannot recover.
            {
-             --src;   // undo skip 'R'
-             if (real_val.is_double)
-                {
-                  tos.push_back(Token(TOK_REAL, real_val.value.APL_flt));
-                  Log(LOG_tokenize)
-                     CERR << "  tokenize_number: real "
-                          << real_val.value.APL_flt << endl;
-                }
-             else
-                {
-                  tos.push_back(Token(TOK_INTEGER, real_val.value.APL_int));
-                  Log(LOG_tokenize)
-                     CERR << "  tokenize_number: integer "
-                          << real_val.value.APL_int << endl;
-                }
-             goto done;;
+             Error::throw_parse_error(E_BAD_NUMBER, src.data(), start_pos,
+                                      src.get_pos(), LOC, loc);
            }
 
         // real_flt is the magnitude and the angle is in radian.
@@ -1314,7 +1280,6 @@ const Int_or_Double real_val = tokenize_real(src);
            }
       }
 
-done:
    /* ISO 13751 does:
 
       A. require a space between two numeric-scalar-literals (page 42), but

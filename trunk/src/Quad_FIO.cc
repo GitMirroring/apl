@@ -2163,7 +2163,7 @@ SockAddr addr;
    // nonzero (Blake McBride, Bugs17 #7): a successful call is explicitly
    // permitted to leave errno set from something earlier.
    errno = 0;
-const int err = bind(fd, &addr.addr, sizeof(addr.inet));
+const int err = ::bind(fd, &addr.addr, sizeof(addr.inet));
    return Token(TOK_APL_VALUE1, IntScalar(err ? -errno : 0, LOC));
 }
 //────────────────────────────────────────────────────────────────────────────
