@@ -28,6 +28,7 @@
 
 #include "Common.hh"
 #include "Parallel.hh"
+#include "Sys.hh"
 #include "SystemVariable.hh"
 #include "Thread_context.hh"
 #include "UserPreferences.hh"
@@ -349,6 +350,15 @@ CPU_pool::unlock_pool(bool logit)
             sem_post(&Thread_context::get_context(CoreNumber(a))->pool_sema);
        }
 }
+/// how long Parallel::init() waits for a newly created worker thread to
+/// post pthread_create_sema (i.e. to reach its work loop) before giving
+/// up. A worker that never posts -- e.g. it crashed or was killed right
+/// after pthread_create() succeeded -- would otherwise hang this wait
+/// forever, with no way even for ^C to help since nothing was checking
+/// sem_wait()'s return value; bounding it turns that into a diagnosable
+/// fallback to single-threaded execution instead.
+enum { THREAD_START_TIMEOUT_SECONDS = 15 };
+
 //════════════════════════════════════════════════════════════════════════════
 void
 Parallel::init(bool logit)
@@ -393,8 +403,20 @@ Parallel::init(bool logit)
          char worker_name[40];   // max 16 chars!
          SPRINTF(worker_name, "apl/pool-%d", w);
          pthread_setname_np(tctx->thread, worker_name);
+
          // wait until new thread has reached its work loop
-         sem_wait(pthread_create_sema);
+         if (Sys::sem_wait_safe(pthread_create_sema,
+                                "a newly created worker thread to reach "
+                                "its work loop", THREAD_START_TIMEOUT_SECONDS)
+             != Sys::WAIT_OK)
+            {
+              CERR << "*** Parallel::init(): worker thread #" << w
+                   << " did not confirm startup within "
+                   << THREAD_START_TIMEOUT_SECONDS << "s; falling back to "
+                      "single-threaded execution" << endl;
+              Thread_context::set_active_core_count(CCNT_1);
+              return;
+            }
        }
 
    // bind threads to cores

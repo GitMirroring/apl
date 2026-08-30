@@ -963,7 +963,7 @@ CELL_PERFORMANCE_END(job_AB->fun->get_statistics_AB(), start_2, z)
                  }
               else                // nested A and nested B
                  {
-                   Value_P A1(cell_A, LOC);
+                   Value_P A1 = cell_A.get_pointer_value();
                    Value_P B1 = cell_B.get_pointer_value();
                    const Shape * sh_Z1 =
                          conforming_shape(job_AB->error,

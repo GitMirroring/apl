@@ -147,7 +147,7 @@ public:
 
    /// execute one context (user defined function or operator, execute,
    /// or immediate execution)
-   Token reduce_statements();
+   Token reduce_body();
 
    /// return the number of tokens currently in the FIFO
    int ssize() const
@@ -378,11 +378,11 @@ protected:
       };
 
    /// push the next token onto the stack. Return \b true iff )SI was pushed.
-   //  called often but from the same place in reduce_statements()
+   //  called often but from the same place in reduce_body()
    inline bool push_next_token();
 
    /// find a phrase that matches the current stack. Return \b true iff found.
-   //  called often but from the same place in reduce_statements()
+   //  called often but from the same place in reduce_body()
    inline void find_best_phrase();
 
    /// return true iff the next token binds stronger (so we need to shift).

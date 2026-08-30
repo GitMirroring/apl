@@ -366,7 +366,7 @@ const Prefix::Phrase Prefix::hash_table[] =
 };
 
 Token
-Prefix::reduce_statements()
+Prefix::reduce_body()
 {
    Log(LOG_Reduce_XXX)
       {
@@ -1492,7 +1492,7 @@ Prefix::MM_is_FM(Function_PC pc)
 }
 //────────────────────────────────────────────────────────────────────────────
 /// true iff the top of the SI stack is a genuine internal macro (Macro.def).
-/// The ⎕EA/⎕EB helper macros use this to gate the private ⎕ES 100 <magic>
+/// The ⎕EA/⎕EB helper macros use this to gate the private ⎕ES 100 \<magic\>
 /// branch/escape/commit/error protocol below -- a capability that must
 /// never be reachable from user code -- via Function::is_macro() rather
 /// than the macro's (cosmetic, Macro.def-only) APL header name.
@@ -2018,7 +2018,7 @@ Prefix::reduce_D_V__()
 
       Prefix::reduce_D_V__() is called from two places:
 
-      case 1. from reduce_statements() with prefix D V and (therefore
+      case 1. from reduce_body() with prefix D V and (therefore
                prefix_len == 2), or else
 
       case 2. from reduce_D_V_ASS_B() and therefore prefix_len == 4.

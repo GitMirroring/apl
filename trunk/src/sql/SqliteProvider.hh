@@ -24,6 +24,7 @@
 #include "Provider.hh"
 
 //════════════════════════════════════════════════════════════════════════════
+/// the Sqlite Provider
 class SqliteProvider : public Provider
 {
 public:

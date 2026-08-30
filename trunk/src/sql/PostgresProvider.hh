@@ -24,6 +24,7 @@
 #include "Provider.hh"
 
 //════════════════════════════════════════════════════════════════════════════
+/// the Postgres Provider
 class PostgresProvider : public Provider {
 public:
 

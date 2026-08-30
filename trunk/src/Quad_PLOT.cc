@@ -181,11 +181,12 @@ Quad_PLOT::PLOT_context::remove_handle(Handle handle)
    // own thread -- concurrently with window_control() (interpreter thread)
    // reading/mutating the same vector. Same lock as window_control().
    //
-   if (sem_wait_safe(all_PLOT_windows_sema, "the ⎕PLOT window list lock "
-                      "(remove_handle)") != PLOT_WAIT_OK)
+   if (Sys::sem_wait_safe(all_PLOT_windows_sema, "the ⎕PLOT window list lock "
+                          "(remove_handle)", PLOT_SEM_TIMEOUT_SECONDS)
+       != Sys::WAIT_OK)
       {
         // a driver callback thread like this one must not raise a C++/APL
-        // exception on failure (see sem_wait_safe()'s comment); give up on
+        // exception on failure (see Sys::sem_wait_safe()'s comment); give up on
         // this particular removal instead. A stale entry left behind in
         // all_PLOT_windows is far less harmful than touching the vector
         // without actually holding its semaphore.

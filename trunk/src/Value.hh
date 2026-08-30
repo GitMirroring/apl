@@ -406,7 +406,7 @@ public:
 
    /// like get_pointer_value(idx), but returns an empty (null) Value_P
    /// instead of throwing DOMAIN_ERROR when the cell at idx is not a
-   /// pointer cell -- see Ravel::try_pointer_value()/Cell::try_pointer_value().
+   /// pointer cell -- see Ravel::try_pointer_value() and Cell::try_pointer_value().
    /// Lets callers write if (Value_P v = X.try_pointer_value(idx)) { ... }
    /// instead of a separate is_pointer_cell(idx) check first.
    Value_P try_pointer_value(ShapeItem idx) const

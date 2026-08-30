@@ -32,9 +32,11 @@
 #include <vector>
 
 //════════════════════════════════════════════════════════════════════════════
+/// the name and SQL type of one column, as reported by fill_cols()
 class ColumnDescriptor
 {
 public:
+    /// constructor
     ColumnDescriptor(const string &name_in, const string &type_in)
     : name( name_in ),
       type( type_in )
@@ -47,9 +49,11 @@ public:
     // McBride, Bugs14 #13). Delete it rather than pretend it works.
     ColumnDescriptor & operator=(const ColumnDescriptor &) = delete;
 
+    /// the column name
     const string & get_name()
         { return name; }
 
+    /// the column's SQL type name
     const string & get_type()
         { return type; }
 
@@ -61,22 +65,50 @@ private:
     const string type;
 };
 //════════════════════════════════════════════════════════════════════════════
+/// abstract base for a database connection (one concrete subclass per
+/// ⎕SQL provider, e.g. Sqlite/Postgres)
 class Connection
 {
 public:
+    /// destructor
     virtual ~Connection() {}
+
+    /// prepare \b sql (a SELECT) and return an ArgListBuilder for binding
+    /// its arguments and running it
     virtual ArgListBuilder *make_prepared_query(const string & sql)  = 0;
+
+    /// prepare \b sql (an INSERT/UPDATE/DELETE) and return an
+    /// ArgListBuilder for binding its arguments and running it
     virtual ArgListBuilder *make_prepared_update(const string & sql) = 0;
+
+    /// begin a transaction
     virtual void transaction_begin()                                 = 0;
+
+    /// commit the current transaction
     virtual void transaction_commit()                                = 0;
+
+    /// roll back the current transaction
     virtual void transaction_rollback()                              = 0;
+
+    /// append the names of all tables in the database to \b tables
     virtual void fill_tables(vector<string> & tables)                = 0;
+
+    /// append the column descriptors of \b table to \b cols
     virtual void fill_cols(const string & table,
                            vector<ColumnDescriptor> & cols)          = 0;
+
+    /// the provider-specific placeholder syntax for bind position \b pos
+    /// (0-based), e.g. "?" for Sqlite or "$1", "$2", ... for Postgres
     virtual const string make_positional_param(int pos)              = 0;
+
+    /// human-readable provider name, e.g. "Sqlite" or "Postgres"
     virtual const char * get_provider_name() const                   = 0;
+
+    /// provider type tag used by ⎕SQL to select this Connection
     virtual const char * get_provider_type() const                   = 0;
 
+    /// return \b sql with every '?' placeholder rewritten to this
+    /// provider's own positional-parameter syntax via make_positional_param()
     virtual const string replace_bind_args(const string & sql);
 };
 //════════════════════════════════════════════════════════════════════════════

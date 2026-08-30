@@ -5,6 +5,7 @@
 #include "Plot_line_properties.hh"
 #include "Plot_window_properties.hh"
 #include "Unicode.hh"
+#include "UserPreferences.hh"
 
 /// basic colors (1 bit RGB)
 enum VT100_color
@@ -92,6 +93,22 @@ uint32_t best_sq = 0x40000;   // > 3*FF*FF
 
    return VT100_RGB[best_idx].vt100;
 };
+//════════════════════════════════════════════════════════════════════════════
+/// the ASCII driver's own background color: canvas_color, unless the user
+/// left it at its default (i.e. did not write "canvas_color: ..." into A)
+/// AND set the ASCII-only "plot-ASCII-background" preference -- in which
+/// case that preference wins, but only for the ASCII driver.
+static uint32_t
+ascii_canvas_color(const Plot_window_properties & w_props)
+{
+   if (!w_props.get_canvas_color_provided())
+      {
+        const int pref = UserPreferences::uprefs.plot_ASCII_background;
+        if (pref != -1)   return pref;
+      }
+
+   return w_props.get_canvas_color();
+}
 //════════════════════════════════════════════════════════════════════════════
 struct ASCII_Point
 {
@@ -298,7 +315,7 @@ const VT100_color color = round_color(lp.get_point_color());
 void
 ASCII_canvas::emit(ostream & out, const Plot_window_properties & w_props)
 {
-VT100_color bg_color = round_color(w_props.get_canvas_color());
+VT100_color bg_color = round_color(ascii_canvas_color(w_props));
 
    // reset all character attributes and set the background color
    cerr << "\x1B[0;" << (40 + bg_color) << 'm';
@@ -353,7 +370,7 @@ Value_P Z(shape_Z, LOC);
 
    // vt100 background color plane
    //
-const VT100_color color = round_color(w_props.get_canvas_color());
+const VT100_color color = round_color(ascii_canvas_color(w_props));
    loop(h, H)
    loop(w, W)
        {

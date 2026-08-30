@@ -154,7 +154,7 @@ protected:
    /// the possible "values" of a symbol
    union _sym_val
       {
-        cFunction_P    function;   ///< if \b Symbol is a function
+        cFunction_P   function;    ///< if \b Symbol is a function
         Function_Line label;       ///< if \b Symbol is a label
         SV_key        sv_key;      ///< if \b Symbol is a shared variable
       };

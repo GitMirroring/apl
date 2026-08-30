@@ -208,7 +208,6 @@ common_SOURCES += Svar_DB.cc							Svar_DB.hh
 common_SOURCES += Svar_record.cc						Svar_record.hh
 common_SOURCES += tcp_signal.m4		Svar_signals.def	Svar_signals.hh
 common_SOURCES += Symbol.cc					    		Symbol.hh
-common_SOURCES +=          					    		Simple_string.hh
 common_SOURCES += SymbolTable.cc						SymbolTable.hh
 common_SOURCES += 					SystemLimits.def	SystemLimits.hh
 common_SOURCES += Sys.cc 								Sys.hh

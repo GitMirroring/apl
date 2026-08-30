@@ -254,15 +254,15 @@ am__lib_gnu_apl_la_SOURCES_DIST = Plot_ascii.cc Plot_gtk.cc \
 	Security.hh StateIndicator.cc StateIndicator.hh Svar_DB.cc \
 	Svar_DB.hh Svar_record.cc Svar_record.hh tcp_signal.m4 \
 	Svar_signals.def Svar_signals.hh Symbol.cc Symbol.hh \
-	Simple_string.hh SymbolTable.cc SymbolTable.hh \
-	SystemLimits.def SystemLimits.hh Sys.cc Sys.hh \
-	SystemVariable.cc SystemVariable.def SystemVariable.hh \
-	TabExpansion.cc TabExpansion.hh Thread_context.cc \
-	Thread_context.hh Token.cc Token.def Token.hh Token_string.cc \
-	Token_string.hh TokenEnums.hh Tokenizer.cc Tokenizer.hh \
-	u8_string.hh UCS_string.cc UCS_string.hh UCS_string_vector.cc \
-	UCS_string_vector.hh Unicode.hh UserFunction.cc \
-	UserFunction.hh UserFunction_header.cc UserFunction_header.hh \
+	SymbolTable.cc SymbolTable.hh SystemLimits.def SystemLimits.hh \
+	Sys.cc Sys.hh SystemVariable.cc SystemVariable.def \
+	SystemVariable.hh TabExpansion.cc TabExpansion.hh \
+	Thread_context.cc Thread_context.hh Token.cc Token.def \
+	Token.hh Token_string.cc Token_string.hh TokenEnums.hh \
+	Tokenizer.cc Tokenizer.hh u8_string.hh UCS_string.cc \
+	UCS_string.hh UCS_string_vector.cc UCS_string_vector.hh \
+	Unicode.hh UserFunction.cc UserFunction.hh \
+	UserFunction_header.cc UserFunction_header.hh \
 	UserPreferences.cc UserPreferences.hh UTF8_string.cc \
 	UTF8_string.hh Ravel.cc Ravel.hh Value.cc Value.icc Value.hh \
 	cValue.cc Value_P.icc Value_P.hh ValueHistory.cc \
@@ -465,15 +465,15 @@ am__libapl_la_SOURCES_DIST = Plot_ascii.cc Plot_gtk.cc Plot_xcb.cc \
 	Security.hh StateIndicator.cc StateIndicator.hh Svar_DB.cc \
 	Svar_DB.hh Svar_record.cc Svar_record.hh tcp_signal.m4 \
 	Svar_signals.def Svar_signals.hh Symbol.cc Symbol.hh \
-	Simple_string.hh SymbolTable.cc SymbolTable.hh \
-	SystemLimits.def SystemLimits.hh Sys.cc Sys.hh \
-	SystemVariable.cc SystemVariable.def SystemVariable.hh \
-	TabExpansion.cc TabExpansion.hh Thread_context.cc \
-	Thread_context.hh Token.cc Token.def Token.hh Token_string.cc \
-	Token_string.hh TokenEnums.hh Tokenizer.cc Tokenizer.hh \
-	u8_string.hh UCS_string.cc UCS_string.hh UCS_string_vector.cc \
-	UCS_string_vector.hh Unicode.hh UserFunction.cc \
-	UserFunction.hh UserFunction_header.cc UserFunction_header.hh \
+	SymbolTable.cc SymbolTable.hh SystemLimits.def SystemLimits.hh \
+	Sys.cc Sys.hh SystemVariable.cc SystemVariable.def \
+	SystemVariable.hh TabExpansion.cc TabExpansion.hh \
+	Thread_context.cc Thread_context.hh Token.cc Token.def \
+	Token.hh Token_string.cc Token_string.hh TokenEnums.hh \
+	Tokenizer.cc Tokenizer.hh u8_string.hh UCS_string.cc \
+	UCS_string.hh UCS_string_vector.cc UCS_string_vector.hh \
+	Unicode.hh UserFunction.cc UserFunction.hh \
+	UserFunction_header.cc UserFunction_header.hh \
 	UserPreferences.cc UserPreferences.hh UTF8_string.cc \
 	UTF8_string.hh Ravel.cc Ravel.hh Value.cc Value.icc Value.hh \
 	cValue.cc Value_P.icc Value_P.hh ValueHistory.cc \
@@ -648,15 +648,15 @@ am__apl_SOURCES_DIST = main.cc Plot_ascii.cc Plot_gtk.cc Plot_xcb.cc \
 	Security.hh StateIndicator.cc StateIndicator.hh Svar_DB.cc \
 	Svar_DB.hh Svar_record.cc Svar_record.hh tcp_signal.m4 \
 	Svar_signals.def Svar_signals.hh Symbol.cc Symbol.hh \
-	Simple_string.hh SymbolTable.cc SymbolTable.hh \
-	SystemLimits.def SystemLimits.hh Sys.cc Sys.hh \
-	SystemVariable.cc SystemVariable.def SystemVariable.hh \
-	TabExpansion.cc TabExpansion.hh Thread_context.cc \
-	Thread_context.hh Token.cc Token.def Token.hh Token_string.cc \
-	Token_string.hh TokenEnums.hh Tokenizer.cc Tokenizer.hh \
-	u8_string.hh UCS_string.cc UCS_string.hh UCS_string_vector.cc \
-	UCS_string_vector.hh Unicode.hh UserFunction.cc \
-	UserFunction.hh UserFunction_header.cc UserFunction_header.hh \
+	SymbolTable.cc SymbolTable.hh SystemLimits.def SystemLimits.hh \
+	Sys.cc Sys.hh SystemVariable.cc SystemVariable.def \
+	SystemVariable.hh TabExpansion.cc TabExpansion.hh \
+	Thread_context.cc Thread_context.hh Token.cc Token.def \
+	Token.hh Token_string.cc Token_string.hh TokenEnums.hh \
+	Tokenizer.cc Tokenizer.hh u8_string.hh UCS_string.cc \
+	UCS_string.hh UCS_string_vector.cc UCS_string_vector.hh \
+	Unicode.hh UserFunction.cc UserFunction.hh \
+	UserFunction_header.cc UserFunction_header.hh \
 	UserPreferences.cc UserPreferences.hh UTF8_string.cc \
 	UTF8_string.hh Ravel.cc Ravel.hh Value.cc Value.icc Value.hh \
 	cValue.cc Value_P.icc Value_P.hh ValueHistory.cc \
@@ -1570,15 +1570,15 @@ common_SOURCES = $(plot_SOURCES) ../config.h APL_Float_as_class.hh \
 	Security.hh StateIndicator.cc StateIndicator.hh Svar_DB.cc \
 	Svar_DB.hh Svar_record.cc Svar_record.hh tcp_signal.m4 \
 	Svar_signals.def Svar_signals.hh Symbol.cc Symbol.hh \
-	Simple_string.hh SymbolTable.cc SymbolTable.hh \
-	SystemLimits.def SystemLimits.hh Sys.cc Sys.hh \
-	SystemVariable.cc SystemVariable.def SystemVariable.hh \
-	TabExpansion.cc TabExpansion.hh Thread_context.cc \
-	Thread_context.hh Token.cc Token.def Token.hh Token_string.cc \
-	Token_string.hh TokenEnums.hh Tokenizer.cc Tokenizer.hh \
-	u8_string.hh UCS_string.cc UCS_string.hh UCS_string_vector.cc \
-	UCS_string_vector.hh Unicode.hh UserFunction.cc \
-	UserFunction.hh UserFunction_header.cc UserFunction_header.hh \
+	SymbolTable.cc SymbolTable.hh SystemLimits.def SystemLimits.hh \
+	Sys.cc Sys.hh SystemVariable.cc SystemVariable.def \
+	SystemVariable.hh TabExpansion.cc TabExpansion.hh \
+	Thread_context.cc Thread_context.hh Token.cc Token.def \
+	Token.hh Token_string.cc Token_string.hh TokenEnums.hh \
+	Tokenizer.cc Tokenizer.hh u8_string.hh UCS_string.cc \
+	UCS_string.hh UCS_string_vector.cc UCS_string_vector.hh \
+	Unicode.hh UserFunction.cc UserFunction.hh \
+	UserFunction_header.cc UserFunction_header.hh \
 	UserPreferences.cc UserPreferences.hh UTF8_string.cc \
 	UTF8_string.hh Ravel.cc Ravel.hh Value.cc Value.icc Value.hh \
 	cValue.cc Value_P.icc Value_P.hh ValueHistory.cc \

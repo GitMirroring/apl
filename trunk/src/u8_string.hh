@@ -44,7 +44,8 @@ atoll(const UTF8 * s)
    return ::atoll(charP(s));
 }
 
-/// scan \b s according to \b fmt (like ::sscanf); delegates to vsscanf.
+/// scan \b s according to \b fmt (like the C library's sscanf); delegates
+/// to vsscanf.
 /// @param s   null-terminated UTF-8 input string
 /// @param fmt printf-style format string
 /// @return    number of items successfully matched and assigned

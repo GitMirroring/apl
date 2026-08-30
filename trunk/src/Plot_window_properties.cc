@@ -67,10 +67,15 @@ Plot_window_properties::Plot_window_properties(const Plot_data * data,
       terminal_rows = value;
    if (const int value = UserPreferences::uprefs.plot_ASCII_columns)
       terminal_cols = value;
-   {
-     const int value = UserPreferences::uprefs.plot_ASCII_background;
-     if (value != -1)   canvas_color = value;
-   }
+
+   // plot_ASCII_background is deliberately NOT applied to canvas_color
+   // here: canvas_color is shared by every driver (GTK, XCB, ASCII), but
+   // this preference is documented as -- and named for -- the ASCII
+   // driver only. Applying it unconditionally at construction time made
+   // it leak into GTK/XCB plots too, turning their background blue for
+   // anyone who had it set (e.g. in ~/.config/gnu-apl/preferences) for
+   // ASCII plots alone. Plot_ascii.cc's own ascii_canvas_color() applies
+   // it instead, at the one place it is actually documented to apply.
 
    if (verbosity & SHOW_DRAW)
       CERR << setw(20) << "min_X: " << min_X << endl

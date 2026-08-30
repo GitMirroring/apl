@@ -304,7 +304,7 @@ public:
 
    /// append integer \b num. On LP64 (Linux) this is a distinct type from
    /// (and therefore does not conflict with) operator <<(unsigned long)
-   /// above; on Windows' LLP64 data model, size_t/std::vector::size_type
+   /// above; on Windows' LLP64 data model, size_t/%std::vector::size_type
    /// *is* unsigned long long (not unsigned long, which is only 32 bits
    /// there), so without this overload every "<< some_container.size()"
    /// is ambiguous between the four overloads above.

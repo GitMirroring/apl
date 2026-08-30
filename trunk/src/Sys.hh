@@ -29,7 +29,10 @@
 
 #include <cstdint>
 #include <cstdio>
+#include <cstring>
 
+#include <semaphore.h>
+#include <time.h>
 #include <unistd.h>
 #include <signal.h>
 
@@ -39,6 +42,8 @@
 # include <sys/mman.h>   // must be at file scope: its extern "C" block
                           // cannot appear inside a class body
 #endif
+
+#include "Common.hh"   // for CERR and InterruptContext
 
 //════════════════════════════════════════════════════════════════════════════
 /// A FILE * that pclose()s itself FILE * when destructed.
@@ -126,6 +131,143 @@ public:
    /// @param blocks number of 64-bit blocks to probe
    /// @param verbosity level of diagnostic output
    static int64_t probe_memory(uint64_t * base, uint64_t blocks, int verbosity);
+
+   /// outcome of sem_wait_safe(): why the wait ended.
+   enum Wait_result
+      {
+        WAIT_OK = 0,     ///< the semaphore was actually posted
+        WAIT_CTRL_C,     ///< the user hit ^C while waiting
+        WAIT_TIMEOUT,    ///< timeout_seconds elapsed unposted
+        WAIT_ERROR,      ///< sem_timedwait() itself failed unexpectedly
+      };
+
+   /// sem_wait() that (a) retries on EINTR, except for the user's own ^C,
+   /// and (b) gives up after timeout_seconds instead of blocking forever
+   /// if the wait is never satisfied at all. A plain sem_wait() returns
+   /// prematurely (with the semaphore left un-posted) if a signal arrives
+   /// while blocked, regardless of what that signal is about; a premature,
+   /// signal-triggered return silently reintroduces exactly the race the
+   /// wait exists to prevent unless the caller checks sem_wait()'s return
+   /// value, which most callers don't. Incidental signals are therefore
+   /// retried transparently -- but if the wait is never satisfied at all
+   /// (a genuine deadlock or lost wakeup on the other side), blindly
+   /// retrying forever would make that hang un-interruptible, which is
+   /// worse than the original race: the user's own ^C (GNU APL installs a
+   /// real SIGINT handler, see main.cc) must still be able to break out,
+   /// so EINTR caused by an already-raised attention ends the wait instead
+   /// of being retried -- and so must a wait that is simply never going
+   /// to be satisfied.
+   ///
+   /// This function may be called from threads other than the interpreter
+   /// thread (e.g. a GUI driver's own callback/event-loop threads), so it
+   /// must never raise a C++/APL exception itself (Workspace/SI access is
+   /// not safe from those threads). It returns WAIT_OK if the semaphore
+   /// was actually posted, or a specific WAIT_xxx reason otherwise --
+   /// logged to CERR either way since that is safe from any thread.
+   /// Callers running on the interpreter thread that want a proper APL
+   /// error on failure should catch the non-WAIT_OK outcomes themselves
+   /// and raise their own error (see Quad_PLOT::sem_wait_safe_I() for an
+   /// example).
+   /// @param sema the semaphore to wait for
+   /// @param what human-readable description of what is being waited
+   ///        for, used only in the CERR diagnostic printed on failure
+   /// @param timeout_seconds how long to wait before giving up
+#if HAVE_SEM_TIMEDWAIT
+
+   static inline Wait_result
+   sem_wait_safe(sem_t * sema, const char * what, int timeout_seconds)
+      {
+        struct timespec deadline;
+        clock_gettime(CLOCK_REALTIME, &deadline);
+        deadline.tv_sec += timeout_seconds;
+
+        for (;;)
+           {
+             if (sem_timedwait(sema, &deadline) == 0)   return WAIT_OK;
+
+             if (errno == EINTR)
+                {
+                  if (InterruptContext::attention_is_raised())
+                     {
+                       CERR << "*** Sys::sem_wait_safe(): ^C hit while "
+                               "waiting in sem_timedwait() for " << what
+                            << endl;
+                       return WAIT_CTRL_C;
+                     }
+                  continue;
+                }
+
+             if (errno == ETIMEDOUT)
+                {
+                  CERR << "*** Sys::sem_wait_safe(): timed out after "
+                       << timeout_seconds << "s waiting for " << what
+                       << endl;
+                  return WAIT_TIMEOUT;
+                }
+
+             CERR << "*** Sys::sem_wait_safe(): sem_timedwait() while "
+                     "waiting for " << what << " failed unexpectedly: "
+                  << strerror(errno) << endl;
+             return WAIT_ERROR;
+           }
+      }
+
+#else // !HAVE_SEM_TIMEDWAIT -- e.g. macOS: Darwin's <semaphore.h> declares
+      // sem_wait()/sem_trywait() for unnamed semaphores but never
+      // sem_timedwait() at all (a compile-time absence, not the runtime
+      // one HAVE_SEM_INIT works around). Poll sem_trywait() against a
+      // deadline computed the same way, sleeping briefly between polls
+      // instead of blocking natively in the kernel; the ^C/timeout/error
+      // outcomes and their CERR wording are unchanged.
+
+   static inline Wait_result
+   sem_wait_safe(sem_t * sema, const char * what, int timeout_seconds)
+      {
+      enum { POLL_NANOSECONDS = 10 * 1000 * 1000 };   // 10ms between polls
+
+        struct timespec deadline;
+        clock_gettime(CLOCK_REALTIME, &deadline);
+        deadline.tv_sec += timeout_seconds;
+
+        for (;;)
+           {
+             if (sem_trywait(sema) == 0)   return WAIT_OK;
+
+             if (errno == EINTR)   continue;   // a plain, unrelated signal
+
+             if (errno != EAGAIN)
+                {
+                  CERR << "*** Sys::sem_wait_safe(): sem_trywait() while "
+                          "waiting for " << what << " failed unexpectedly: "
+                       << strerror(errno) << endl;
+                  return WAIT_ERROR;
+                }
+
+             if (InterruptContext::attention_is_raised())
+                {
+                  CERR << "*** Sys::sem_wait_safe(): ^C hit while waiting "
+                          "in sem_trywait() for " << what << endl;
+                  return WAIT_CTRL_C;
+                }
+
+             struct timespec now;
+             clock_gettime(CLOCK_REALTIME, &now);
+             if (now.tv_sec > deadline.tv_sec ||
+                 (now.tv_sec == deadline.tv_sec &&
+                  now.tv_nsec >= deadline.tv_nsec))
+                {
+                  CERR << "*** Sys::sem_wait_safe(): timed out after "
+                       << timeout_seconds << "s waiting for " << what
+                       << endl;
+                  return WAIT_TIMEOUT;
+                }
+
+             struct timespec poll_delay = { 0, POLL_NANOSECONDS };
+             nanosleep(&poll_delay, 0);
+           }
+      }
+
+#endif // HAVE_SEM_TIMEDWAIT
 };
 //────────────────────────────────────────────────────────────────────────────
 /// open a pipe for reading or writing

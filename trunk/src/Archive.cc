@@ -1510,7 +1510,7 @@ UCS_string current_SVN(UTF8_string(ARCHIVE_SVN));
 }
 //────────────────────────────────────────────────────────────────────────────
 /// like u8::strstr(), but never reads at or past \b end: the mmap'd
-/// workspace file is not NUL-terminated (Sys.hh's non-mmap #else branch is
+/// workspace file is not NUL-terminated (Sys.hh's non-mmap #%else branch is
 /// the only one that appends one), so the ordinary strstr()-family
 /// functions used elsewhere in this function would scan past file_end
 /// once file_length happens to be an exact page multiple and there is no

@@ -86,11 +86,11 @@ protected:
    ostream & out;
 
    /// the fixed text that starts the checksum comment written after
-   /// </Workspace> (shared between the writer and the verifier)
+   /// \</Workspace\> (shared between the writer and the verifier)
    static const char * checksum_prefix()
       { return "<!-- checksum: crc32="; }
 
-   /// normalize \b data (the <Workspace>...</Workspace> region of a
+   /// normalize \b data (the \<Workspace\>...\</Workspace\> region of a
    /// )SAVEd .xml file) for checksum purposes: strip the leading and
    /// trailing whitespace of every physical line and treat \\n, \\r,
    /// and \\r\\n alike as line boundaries, so that a text editor's
@@ -290,8 +290,8 @@ protected:
    void write_XML_header();
 
    /// append a "<!-- checksum: crc32=XXXXXXXX -->" comment after the
-   /// </Workspace> line already written to outf, computed over the
-   /// normalize_for_checksum()d <Workspace>...</Workspace> region.
+   /// \</Workspace\> line already written to outf, computed over the
+   /// normalize_for_checksum()d \<Workspace\>...\</Workspace\> region.
    /// Re-reads the file just written (simplest way to get at the exact
    /// bytes without threading a tee through every outf << call in
    /// save()).
@@ -369,8 +369,8 @@ public:
    void check_compatibility();
 
    /// if a "<!-- checksum: crc32=XXXXXXXX -->" comment is present after
-   /// </Workspace>, recompute it over the normalize_for_checksum()d
-   /// <Workspace>...</Workspace> region and warn (but still accept the
+   /// \</Workspace\>, recompute it over the normalize_for_checksum()d
+   /// \<Workspace\>...\</Workspace\> region and warn (but still accept the
    /// workspace) if it does not match. Silently does nothing if no such
    /// comment is present (e.g. an older file, or one not written by
    /// GNU APL).
@@ -379,7 +379,7 @@ public:
    /// outcome of get_checksum_status()
    enum ChecksumStatus
       {
-        CS_NO_WORKSPACE,   ///< no <Workspace>...</Workspace> found
+        CS_NO_WORKSPACE,   ///< no \<Workspace\>...\</Workspace\> found
         CS_NO_CHECKSUM,    ///< no checksum comment (e.g. an older file)
         CS_OK,             ///< checksum present and matching
         CS_MISMATCH,       ///< checksum present but not matching

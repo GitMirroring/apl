@@ -1633,15 +1633,17 @@ const xcb_get_input_focus_reply_t * focusReply =
                        //
                        // this runs on the XCB driver's own per-window
                        // thread, so it must not raise a C++/APL exception
-                       // on failure (see sem_wait_safe()'s comment); if the
-                       // lock can't be acquired in time, just leave our
-                       // entry in all_PLOT_windows behind (stale but
+                       // on failure (see Sys::sem_wait_safe()'s comment);
+                       // if the lock can't be acquired in time, just leave
+                       // our entry in all_PLOT_windows behind (stale but
                        // harmless) instead of touching the vector without
                        // holding its semaphore.
                        //
-                       if (sem_wait_safe(Quad_PLOT::all_PLOT_windows_sema,
+                       if (Sys::sem_wait_safe(Quad_PLOT::all_PLOT_windows_sema,
                                           "the ⎕PLOT window list lock "
-                                          "(XCB window close)") == PLOT_WAIT_OK)
+                                          "(XCB window close)",
+                                          PLOT_SEM_TIMEOUT_SECONDS)
+                           == Sys::WAIT_OK)
                           {
                             const int count = Quad_PLOT::all_PLOT_windows.size();
                             const pthread_t thread = pthread_self();

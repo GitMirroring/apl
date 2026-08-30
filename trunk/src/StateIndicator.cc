@@ -489,10 +489,10 @@ StateIndicator::retry(const char * loc)
 Token
 StateIndicator::run()
 {
-Token result = current_stack.reduce_statements();
+Token result = current_stack.reduce_body();
 
    Log(LOG_prefix_parser)
-      CERR << "Prefix::reduce_statements(si=" << level << ") returned "
+      CERR << "Prefix::reduce_body(si=" << level << ") returned "
            << result << " in StateIndicator::run()" << endl;
    return result;
 }
