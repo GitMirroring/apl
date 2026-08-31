@@ -1,0 +1,92 @@
+⍝ OperPower.tc
+⍝ ----------------------------------
+
+⍝@ test3.
+
+      PLUS  ← { ⍺ + ⍵ }
+      EQUIV ← { ⍺ ≡ ⍵ }
+      EQUAL ← { ⍺ = ⍵ }
+
+      ⍝ numeric RO
+      ⍝
+      2 (+ ⍣ 40) 5
+85
+
+      ⍝ numeric RO w/o parentheses (GNU APL extension)
+      ⍝
+      2 + ⍣ 40 5
+85
+
+      ⍝ numeric RO defined function LO
+      ⍝
+      2 (PLUS ⍣ 40) 5
+85
+
+      ⍝ numeric RO defined function LO w/o parentheses
+      ⍝
+      2 PLUS ⍣ 40 5
+85
+
+      ⍝ primitive RO
+      ⍝
+      ({2+⍵÷2}⍣≡) 9
+4
+      ({2+⍵÷2}⍣=) 9
+4
+
+      ⍝ defined RO
+      ⍝
+      ({2+⍵÷2}⍣EQUIV) 9
+4
+      ({2+⍵÷2}⍣EQUAL) 9
+4
+
+      ⍝ inverse (integer N < 0)
+      ⍝
+      2 (+ ⍣ 40) 5
+85
+      2 (+ ⍣ ¯40) 85
+5
+
+      2 (- ⍣ ¯40) 5
+85
+      2 (- ⍣ ¯40) 5
+85
+
+      ⍝ Dyalog examples (MasterinDyalogAPL.pdf)
+      ⍝
+
+      ⍝ 8.3 - Left Argument (All Forms) p. 417
+      3(×⍣4)2
+162
+
+      ⍝ Spe-3.1 p. 427
+      ⎕RL ← 1
+      Stupid ← {? ⍺ + ⍵ ⊣ ⎕←'⍺=',(⍕⍺),' ⍵=',⍕⍵}
+      10 (Stupid ⍣ <) 20
+⍺=10 ⍵=20
+12
+
+      ⍝ dito w/o parentheses
+      ⎕RL ← 1
+      10 Stupid ⍣ < 20
+⍺=10 ⍵=20
+12
+
+      ⍝ https://aplwiki.com/wiki/Strand_notation
+      ⍝
+      2 (×⍣3) 2
+16
+
+      2×⍣3 ⊢2
+16
+
+      ⍝ regression
+      ⍝
+      {1+÷⍵}⍣2 ⊢ 2 
+1.666666667
+
+      )CHECK BRIEF
+
+      ⍝ ==================================
+

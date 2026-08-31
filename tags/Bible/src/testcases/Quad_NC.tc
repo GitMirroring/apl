@@ -1,0 +1,75 @@
+⍝ Quad_NC
+⍝ ----------------------------------
+
+⍝@ test3.
+
+      )CLEAR
+CLEAR WS
+
+      A←1
+
+      )ERASE OP1
+∇A (LO OP1 RO) B
+∇
+
+      )ERASE LL
+
+      )ERASE FOO
+∇FOO
+LL: ⎕NC 6 3⍴' ÷ ÷  LL A  FOOOP1'
+∇
+
+      FOO
+¯1 ¯1 1 2 3 4
+
+      ⎕NC 6 3⍴' ÷ ÷  LL A  FOOOP1'
+¯1 ¯1 0 2 3 4
+
+      ⍝ lambda stuff
+      ⍝
+      ⎕NC ⍪'⎕λ⍺⍶χ⍵⍹'
+5 6 6 6 6 6 6
+
+      ⎕NC 6 2⍴ 'λ_⍺_⍶_χ_⍵_⍹_'
+¯1 ¯1 ¯1 ¯1 ¯1 ¯1
+
+      ⎕NC '⎕X'
+5
+
+      ⎕NC '⎕XX'
+¯1
+
+      ⎕NC'⎕'
+5
+
+      ⎕NC'⍞'
+5
+
+      ⎕NC'⍞_'
+¯1
+
+      ⍝ Regression (Blake McBride, LanguageVariances.md #24, 2026-08-10):
+      ⍝ ⎕NC of a system FUNCTION name (⎕EA, ⎕FX, ...) gave ¯1 (invalid)
+      ⍝ instead of 6, because Workspace::get_quad() returns a function
+      ⍝ token (not a Symbol) for these, and get_NC() only ever checked
+      ⍝ the Symbol/TC_SYMBOL path. Per ISO/IEC 13751 11.5.2, 5=system
+      ⍝ variable, 6=system function.
+      ⍝
+      ⎕NC 3 3⍴'⎕EA⎕IO⎕KZ'
+6 5 ¯1
+
+      ⎕NC 3⍴'⎕FX'
+6
+
+      ⎕NC 4⍴'⎕FFT'
+6
+
+      ⍝ prefix-tolerance must still be rejected for functions too
+      ⍝ (same rule as the existing '⎕XX' case above, for variables)
+      ⍝
+      ⎕NC 7⍴'⎕FFTxyz'
+¯1
+
+      ⍝ ==================================
+
+

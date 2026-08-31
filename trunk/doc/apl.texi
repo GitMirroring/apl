@@ -10299,7 +10299,9 @@ RANK ERROR
       ⍝ Test 1c.
       ⍝
       'abc'[b][2]
-b
+VALUE ERROR
+      'abc'[b][2]
+             ^
 @end example
 
 @b{Test 1a}: no surprise. @b{[]} has the strongest binding and raises a

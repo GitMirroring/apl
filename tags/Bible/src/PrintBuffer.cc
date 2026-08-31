@@ -1,0 +1,1605 @@
+/*
+    This file is part of GNU APL, a free implementation of the
+    ISO/IEC Standard 13751, "Programming Language APL, Extended"
+
+    Copyright © 2008-2026  Dr. Jürgen Sauermann
+
+    This program is free software: you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation, either version 3 of the License, or
+    (at your option) any later version.
+
+    This program is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU General Public License for more details.
+
+    You should have received a copy of the GNU General Public License
+    along with this program.  If not, see <http://www.gnu.org/licenses/>.
+*/
+
+/** @file
+*/
+
+#include <stdio.h>
+#include <string.h>
+
+#include "Function.hh"
+#include "Output.hh"
+#include "Performance.hh"
+#include "PointerCell.hh"
+#include "PrintBuffer.hh"
+#include "PrintOperator.hh"
+#include "Value.hh"
+#include "Workspace.hh"
+
+/// max sizes for arrays on the stack. Larger values are allocated with new()
+enum
+{
+   PB_MAX_COLS   = 200,
+   PB_MAX_ROWS   = 100,
+   PB_MAX_ITEMS  = PB_MAX_COLS * PB_MAX_ROWS,
+   PB_MAX_CHUNKS = 200,
+};
+
+//════════════════════════════════════════════════════════════════════════════
+void
+ColInfo::consider(const ColInfo & item)
+{
+   // this is the collective ColInfo of an entire column, and item
+   // is a new, not yet considered item in the columns.
+   //
+   flags |= item.flags;
+   if (item.imag_len)   flags |= has_j;
+
+   if (int_len < item.int_len)
+      {
+        real_len += item.int_len - int_len;
+        int_len = item.int_len;
+      }
+
+   if (item.denom_len)
+      {
+        if (denom_len < item.denom_len)   denom_len = item.denom_len;
+        if (real_len < int_len + denom_len)   real_len = int_len + denom_len;
+      }
+   else
+      {
+        const int EXPO_LEN = real_len - fract_len - int_len;
+        const int expo_len = item.real_len - item.fract_len - item.int_len;
+
+        if (fract_len < item.fract_len)
+           {
+             fract_len = item.fract_len;
+             if (fract_len + expo_len > denom_len)
+             real_len = int_len + fract_len + EXPO_LEN;
+           }
+
+        if (EXPO_LEN < expo_len)    real_len += expo_len - EXPO_LEN;
+      }
+
+   if (imag_len  < item.imag_len)    imag_len  = item.imag_len;
+}
+//════════════════════════════════════════════════════════════════════════════
+PrintBuffer::PrintBuffer()
+   : complete(true)
+{
+}
+//────────────────────────────────────────────────────────────────────────────
+PrintBuffer::PrintBuffer(const UCS_string & ucs, const ColInfo & ci)
+   : col_info(ci),
+     complete(true)
+{
+   buffer.push_back(ucs);
+}
+//────────────────────────────────────────────────────────────────────────────
+PrintBuffer::PrintBuffer(const cValue & value, const PrintContext & _pctx,
+                         ostream * out)
+   : complete(false)
+{
+PERFORMANCE_START(start_0)
+
+   // bounded, catchable error instead of the mutual recursion with
+   // PointerCell::character_representation() below eventually
+   // exhausting the C++ call stack (Blake McBride, Bugs22 #4). Checked
+   // once per level (this constructor is the only place either side of
+   // that recursion calls back into), so a value within the limit
+   // never pays for more than one compute_depth() call per level.
+   if (value.compute_depth() > PrintBuffer::MAX_PRINT_NESTING_DEPTH)
+      LIMIT_ERROR_NESTING;
+
+   // Note: if ostream is non-0 then this value may be incomplete
+   // (as indicated by member complete if it is huge). This is to speed
+   // up printing if the value is discarded after having been printed
+
+const PrintStyle outer_style = _pctx.get_style();
+const bool framed = outer_style & (PST_CS_MASK | PST_CS_OUTER);
+PrintContext pctx(_pctx);
+   pctx.set_style(PrintStyle(outer_style &~ PST_CS_OUTER));
+
+const ShapeItem ec = value.element_count();
+
+   if (value.is_scalar())
+      {
+        PERFORMANCE_START(start_1)
+        Cell cache;
+        const Cell & cell = value.get_cfirst(cache);
+        PrintContext pctx1(pctx);
+        if (cell.need_scaling(pctx))   pctx1.set_scaled();
+
+        *this = cell.character_representation(pctx1);
+
+        // pad the value unless it is framed
+        if (value.compute_depth() > 1 && !framed)
+           {
+             pad_l(UNI_PAD_l_VALUE, 1);
+             pad_r(UNI_PAD_r_VALUE, 1);
+           }
+
+        add_outer_frame(outer_style);
+
+        if (out)
+           {
+             UCS_string ucs(*this, value.get_rank(), _pctx.get_PW());
+             if (ucs.size())   *out << ucs << endl;
+            }
+        complete = true;
+        PERFORMANCE_END(fs_PrintBuffer1_B, start_1, ec)
+        return;
+      }
+
+   if (pctx.get_style() & PST_QUOTE_CHARS)
+      {
+        if (value.is_char_vector())
+           {
+             UCS_string ucs;
+             ucs << UNI_DOUBLE_QUOTE;
+             loop(v, ec)   ucs << value.get_char_value(v);
+             ucs << UNI_DOUBLE_QUOTE;
+             append_ucs(ucs);
+             update_info();
+             complete = true;
+             return;
+           }
+
+        if (value.is_char_array())
+           {
+             pctx.set_style(PR_BOXED_GRAPHIC2);
+             new (this)   PrintBuffer(value, pctx, out);
+             return;
+           }
+      }
+
+   if (ec == 0)   // empty value of any dimension
+      {
+        pb_empty(value, pctx, outer_style);
+        if (out)
+           {
+             UCS_string ucs(*this, value.get_rank(), _pctx.get_PW());
+             if (ucs.size())   *out << ucs << endl;
+            }
+        update_info();
+        complete = true;
+        return;
+      }
+
+   if (pctx.get_style() == PR_APL_FUN)
+      {
+        pb_for_function(value, pctx, outer_style);
+        if (out)
+           {
+             UCS_string ucs(*this, value.get_rank(), _pctx.get_PW());
+             if (ucs.size())   *out << ucs << endl;
+            }
+        update_info();
+        complete = true;
+        return;
+      }
+
+   if (value.is_char_vector())
+      {
+        // fast path: a simple (non-nested) character vector's per-cell
+        // representation (CharCell::character_representation() for the
+        // default, non-quoted style handled above) is always exactly
+        // the one character itself -- no scaling, no column alignment
+        // is ever needed. The general path below builds one heap-
+        // allocated PrintBuffer/UCS_string *per character* via an
+        // ec-element item_matrix; for a long line that cost ~100x the
+        // payload size in peak RSS and was clearly superlinear in time
+        // (Blake McBride, Bugs6 #6). Assemble the single row directly
+        // instead, matching the same shortcut already taken above for
+        // PST_QUOTE_CHARS and in pb_for_function().
+        //
+        UCS_string ucs;
+        ucs.reserve(ec);
+        const bool pretty = pctx.get_style() & PST_PRETTY;
+        loop(e, ec)
+           {
+             Unicode uni = value.get_char_value(e);
+             if (pretty && uni < UNI_SPACE)   uni = Unicode(uni + 0x2400);
+             ucs << uni;
+           }
+        append_ucs(ucs);
+        add_outer_frame(outer_style);
+
+        if (ec > 10000 && out)
+           print_interruptible(*out, value.get_rank(), pctx.get_PW());
+        else if (out)
+           {
+             UCS_string out_ucs(*this, value.get_rank(), pctx.get_PW());
+             if (out_ucs.size())   *out << out_ucs << endl;
+           }
+
+        update_info();
+        complete = true;
+        return;
+      }
+
+   // non-trivial PrintBuffer
+   //
+const ShapeItem cols = value.get_last_shape_item();
+
+PrintBuffer * item_matrix = 0;
+   try { item_matrix = new PrintBuffer[ec]; }
+   catch (std::bad_alloc &)
+      {
+        MORE_ERROR() << "value too large to print ("
+                     << cols << " columns, " << ec << " items)";
+        WS_FULL;
+      }
+   catch (...)
+      { FIXME; }
+
+   // do_PrintBuffer() can itself throw (e.g. WS_FULL from a nested
+   // PrintBuffer of a PointerCell under memory pressure); without this
+   // guard, item_matrix (and every UCS_string row already built inside
+   // it) would leak, worsening the very WS_FULL that caused it.
+   //
+bool interrupted = false;
+   try            { interrupted = do_PrintBuffer(value, pctx, out,
+                                                 outer_style, item_matrix); }
+   catch (...)   { delete [] item_matrix;   throw; }
+
+   if (interrupted)   // ^C hit
+      {
+        // the user has interrupted the construction
+        //
+        InterruptContext::clear_attention_raised(LOC);
+        InterruptContext::clear_interrupt_raised(LOC);
+        if (out)   *out << endl << "INTERRUPT" << endl;
+      }
+
+   delete [] item_matrix;
+
+   PERFORMANCE_END(fs_PrintBuffer_B, start_0, ec)
+}
+//────────────────────────────────────────────────────────────────────────────
+bool
+PrintBuffer::do_PrintBuffer(const cValue & value, const PrintContext & pctx,
+                            ostream * out, PrintStyle outer_style,
+                            PrintBuffer * item_matrix)
+{
+const bool framed = outer_style & (PST_CS_MASK | PST_CS_OUTER);
+const ShapeItem ec = value.element_count();
+const uint64_t ii_count = InterruptContext::get_interrupt_count();
+const bool huge = out && ec > 10000;
+const bool nested = !value.is_simple();
+const ShapeItem cols = value.get_last_shape_item();
+const ShapeItem rows = ec/cols;
+vector<bool> scaling;         scaling.reserve(cols);
+vector<PrintBuffer> pcols;    pcols.reserve(cols);
+   loop(c, cols)
+       {
+         scaling.push_back(false);
+         pcols.push_back(PrintBuffer());
+       }
+
+   // 1. init scaling, a vector with a bool per column that tells if the
+   //    column needs scaling (i.e. exponential format) or not. If there is
+   //    one item in a column that needs scaling, then the entire column shall
+   //    use the scaled format.
+   //
+#define huge_interrupted \
+   (huge && (ii_count != InterruptContext::get_interrupt_count()))
+
+   loop(x, cols)
+   loop(y, rows)
+       {
+         if (huge_interrupted)   return true;
+         Cell cache;
+         if (value.get_cravel(x + y*cols, cache).need_scaling(pctx))
+            {
+              scaling[x] = true;
+              break;
+            }
+       }
+
+   /* 2. create a matrix of items.
+
+         An item of the matrix is a PrintBuffer for a (possibly nested)
+         top-level cell. The item matrix therefore has (⍴,value) == rows×cols
+         items. Every items is a PrintBuffer and therefore rectangular.
+
+              value          =>              item matrix
+         ──────────────────      ───────────────────────────────────────
+         Cell Cell ... Cell      PrintBuffer PrintBuffer ... PrintBuffer
+         Cell Cell ... Cell      PrintBuffer PrintBuffer ... PrintBuffer
+         ...                     ...
+         Cell Cell ... Cell      PrintBuffer PrintBuffer ... PrintBuffer
+    */
+   PERFORMANCE_START(start_2)
+   vector<sRank> max_row_ranks;
+   max_row_ranks.reserve(rows);
+   loop(y, rows)
+      {
+        ShapeItem max_row_height = 0;
+        max_row_ranks.push_back(0);
+
+        loop(x, cols)
+            {
+              if (huge_interrupted)   return true;
+
+              PrintBuffer & item = item_matrix[y*cols + x];
+              PrintContext pctx1 = pctx;
+              if (scaling[x])   pctx1.set_scaled();
+              Cell cache;
+              const Cell & cell = value.get_cravel(x + y*cols, cache);
+              item = cell.character_representation(pctx1);
+              if (!item.get_row_count())
+                 {
+                   UCS_string empty;
+                   item.append_ucs(empty);
+                 }
+
+              if (Value_P sub = cell.try_pointer_value())
+                 {
+                   const sRank sub_rank = sub->get_rank();
+                   if (max_row_ranks.back() < sub_rank)
+                      max_row_ranks.back() = sub_rank;
+                 }
+
+              if (max_row_height < item.get_row_count())
+                 max_row_height = item.get_row_count();
+
+              Assert1(item.is_rectangular());
+            }
+
+// loop(y, rows) loop(x, cols) CERR << item_matrix[y*cols + x] << endl;
+
+        // pad all items to the same height
+        //
+        loop(x, cols)
+           {
+              PrintBuffer & item = item_matrix[y*cols + x];
+              if (huge_interrupted)   return true;
+
+             item.pad_height(UNI_PAD_b_ROW, max_row_height);
+             Assert1(item.is_rectangular());
+           }
+      }
+   PERFORMANCE_END(fs_PrintBuffer2_B, start_2, ec)
+
+   // 3. align all columns (which pads them to the same width).
+   //
+   PERFORMANCE_START(start_3)
+   loop(x, cols)
+      {
+        ColInfo col_info_x;
+        loop(y, rows)
+            {
+              if (huge_interrupted)   return true;
+
+              PrintBuffer * item_row = item_matrix + y*cols;
+              col_info_x.consider(item_row[x].get_info());
+            }
+         if (col_info_x.real_len<(col_info_x.int_len + col_info_x.denom_len))
+            col_info_x.real_len = col_info_x.int_len + col_info_x.denom_len;
+
+        // If this column mixes numeric items with non-numeric (character
+        // or nested) items, then col_info_x.int_len above is contaminated:
+        // ColInfo::consider() merged "digits before the decimal point"
+        // (from numeric items) and "own total width" (from non-numeric
+        // items, which (ab)use int_len for that -- see the dual meaning
+        // documented in PrintBuffer.hh) as if they were one quantity, so a
+        // wide non-numeric item's width can leak into int_len and then get
+        // a fraction width appended after it as if it were a digit count.
+        //
+        // Recompute the numeric items' own width cleanly (ignoring the
+        // non-numeric items) and float the result against the widest
+        // non-numeric item's own width instead, per ISO/IEC 13751
+        // 15.4.1's note on mixed-type arrays: "provide enough space in
+        // each column to contain the widest element" -- no more, no less.
+        // (Complex columns are excluded: the same note gives them their
+        // own, different rule, and are left untouched here.)
+        //
+        if ((col_info_x.flags & CT_NUMERIC)
+            && (col_info_x.flags & (CT_CHAR | CT_POINTER))
+            && !(col_info_x.flags & has_j))
+           {
+             ColInfo numeric_only;
+             int nonnum_len = 0;
+             loop(y, rows)
+                {
+                  const ColInfo & ci = item_matrix[y*cols + x].get_info();
+                  if (ci.flags & CT_NUMERIC)   numeric_only.consider(ci);
+                  else if (nonnum_len < ci.real_len)
+                     nonnum_len = ci.real_len;
+                }
+
+             col_info_x.int_len   = numeric_only.int_len;
+             col_info_x.fract_len = numeric_only.fract_len;
+             col_info_x.real_len  = numeric_only.real_len;
+             col_info_x.denom_len = numeric_only.denom_len;
+             col_info_x.imag_len  = numeric_only.imag_len;
+
+             if (nonnum_len > col_info_x.real_len)
+                {
+                  const int extra = nonnum_len - col_info_x.real_len;
+                  col_info_x.int_len  += extra;
+                  col_info_x.real_len += extra;
+                }
+           }
+
+        loop(y, rows)
+            {
+              if (huge_interrupted)   return true;
+
+              PrintBuffer * item_row = item_matrix + y*cols;
+              item_row[x].align(col_info_x);
+            }
+      }
+   PERFORMANCE_END(fs_PrintBuffer3_B, start_3, ec)
+
+// loop(y, rows) loop(x, cols) CERR << item_matrix[y*cols + x] << endl;
+
+   // 4. collect columm items. That is, merge all PrintBuffers of each
+   //    column into a single PrintBuffer for that column.
+   //
+   PERFORMANCE_START(start_4)
+
+   int last_col_spacing = 0;    // the col_spacing of the previous column
+   bool last_NOTCHAR = false;   // the notchar property of the previous column
+
+   loop(x, cols)
+      {
+        // merge column x of the item_matrix into one
+        // PrintBuffer pcol. Insert separator rows as needed.
+        //
+        PrintBuffer & dest = pcols[x];
+        pcols[x] = PrintBuffer();
+
+        // compute the final height of dest and reserve enough rows as to
+        // avoid unnecessary copies
+        //
+        {
+          ShapeItem dest_height = 0;
+          loop(y, rows)
+             {
+               const sRank Rk_y_1 = y ? max_row_ranks[y - 1] : 0;
+               const ShapeItem sepa_rows =
+                     separator_rows(y, value, nested, max_row_ranks[y], Rk_y_1);
+               const ShapeItem item_rows =
+                               item_matrix[y*cols + x].get_row_count();
+               Assert(item_rows);
+               dest_height += sepa_rows + item_rows;
+             }
+          dest.buffer.reserve(dest_height);
+        }
+
+        loop(y, rows)
+            {
+              if (huge_interrupted)   return true;
+
+              // insert separator row(s)
+              //
+              if (const ShapeItem sepa_rows =
+                        separator_rows(y, value, nested, max_row_ranks[y],
+                                       y ? max_row_ranks[y - 1] : 0))
+                 {
+                  const UCS_string sepa_row(dest.get_column_count(),
+                                            UNI_PAD_y_AXIS);
+                  loop(r, sepa_rows)   dest.append_ucs(sepa_row);
+                 }
+
+              const PrintBuffer & src = item_matrix[y*cols + x];
+              dest.add_row(src);
+            }
+
+        bool NOTCHAR = false;   // determined by Value::get_col_spacing()
+        const int col_spacing = value.get_col_spacing(NOTCHAR, x, framed);
+
+        const int max_spacing = (col_spacing > last_col_spacing) 
+                                  ?  col_spacing : last_col_spacing;
+        int NOTCHAR_spaces = 0;   // the number of spaces added for NOTCHAR
+
+        if (huge_interrupted)  return true;
+
+        if (x)   // subsequent column
+           {
+             if (last_NOTCHAR)
+                {
+                  // the previous column was NOTCHAR, therefore so we append
+                  // one pad char to the previous column.
+                  //
+                  pcols[x - 1].pad_r(UNI_PAD_r_NOTCHAR, 1);
+                  ++NOTCHAR_spaces;
+                }
+             else if (NOTCHAR)
+                {
+                  // the current column is NOTCHAR, therefore so we prepend
+                  // one pad to the current column.
+                  //
+                  dest.pad_l(UNI_PAD_l_NOTCHAR, 1);
+                  ++NOTCHAR_spaces;
+                }
+
+             // we want a total spacing of 'max_spacing', but we
+             // do not count the 'NOTCHAR_spaces' chars ² and ³
+             // that were appended above.
+             //
+             if (const int u7_pad_len = max_spacing - NOTCHAR_spaces)
+                {
+                   pcols[x - 1].pad_r(UNI_PAD_r_MAX, u7_pad_len);
+                }
+           }
+
+        if (huge_interrupted)   return true;
+
+        last_col_spacing = col_spacing;
+        last_NOTCHAR = NOTCHAR;
+      }
+
+#undef huge_interrupted
+
+   // 5. combine pcols. That is, take the first PrintBuffer pcols[0] and append
+   //    all subsequenct PrintBuffers pcol[N], N ≥ 1, to it. 
+   //    the f
+   //
+   for (int dx = 1; dx < cols; dx += dx)
+   for (int xx = dx; xx < cols; xx += dx)
+       {
+         pcols[xx - dx].append_col(pcols[xx]);
+       }
+   *this = pcols[0];
+
+   if (value.compute_depth() > 1 && !framed)
+      {
+        pad_l(UNI_PAD_l_DEPTH,  1);
+        pad_r(UNI_PAD_r_DEPTH, 1);
+      }
+
+   if (!is_rectangular())   // should not happen
+      {
+        Q1(get_row_count())
+        loop(h, get_row_count())   CERR << "w=" << get_column_count(h)
+                                        << "*" << endl;
+        loop(h, get_row_count())   CERR << "*"  << get_line(h)
+                                        << "*" << endl;
+      }
+
+   Assert(is_rectangular());
+   add_outer_frame(outer_style);
+
+   PERFORMANCE_END(fs_PrintBuffer4_B, start_4, ec)
+   
+   PERFORMANCE_START(start_5)
+
+   if (huge)   // ergo: out
+      {
+        print_interruptible(*out, value.get_rank(), pctx.get_PW());
+      }
+   else if (out)
+      {
+        UCS_string ucs(*this, value.get_rank(), pctx.get_PW());
+        if (ucs.size())   *out << ucs << endl;
+      }
+
+   PERFORMANCE_END(fs_PrintBuffer5_B, start_5, ec)
+   
+   complete = true;
+   update_info();
+   return false;   // OK
+}
+//════════════════════════════════════════════════════════════════════════════
+void
+PrintBuffer::pb_for_function(const cValue & value, PrintContext pctx, 
+                             PrintStyle outer_style)
+{
+const ShapeItem ec = value.element_count();
+UCS_string ucs;
+
+   if (value.is_char_vector())
+      {
+        ucs << UNI_SINGLE_QUOTE;
+        loop(e, ec)
+           {
+             const Unicode uni = value.get_char_value(e);
+             ucs << uni;
+             if (uni == UNI_SINGLE_QUOTE)   ucs << uni;   // ' -> ''
+           }
+        ucs << UNI_SINGLE_QUOTE;
+      }
+   else
+      {
+        loop(e, ec)
+           {
+             Cell cache;
+             PrintBuffer pb = value.get_cravel(e, cache)
+                                          .character_representation(pctx);
+             if (e)   ucs << UNI_SPACE;
+             ucs << UCS_string(pb, 0, pctx.get_PW());
+           }
+      }
+
+ColInfo ci;
+   *this = PrintBuffer(ucs, ci);
+   add_outer_frame(outer_style);
+}
+//────────────────────────────────────────────────────────────────────────────
+void
+PrintBuffer::pb_empty(const cValue & value, PrintContext pctx, 
+                             PrintStyle outer_style)
+{
+   if (value.get_rank() == 1)   // vector: 1 line
+      {
+        if (pctx.get_style() == PR_APL_FUN)
+           {
+             if (value.is_character_cell(0))   // ''
+                {
+                  UCS_string ucs(U"''");
+                  ColInfo ci;
+                  *this = PrintBuffer(ucs, ci);
+                  add_outer_frame(outer_style);
+                  return;
+                }
+
+             if (value.is_numeric(0))   // ⍬
+                {
+                  UTF8_string utf("⍬");
+                  UCS_string ucs(utf);
+                  ColInfo ci;
+                  *this = PrintBuffer(ucs, ci);
+                  add_outer_frame(outer_style);
+                  return;
+                }
+           }
+
+        UCS_string ucs;   // empty
+        append_ucs(ucs);
+        add_outer_frame(outer_style);
+        return;   // 1 row
+      }
+
+const Shape sh = value.get_shape().without_last_axis();
+   if (sh.get_volume() <= 1)   // empty vector
+      {
+        add_outer_frame(outer_style);
+        return;   // 0 rows
+      }
+
+   // value has > 0 rows. Compute how many lines we need.
+   //
+ShapeItem lines = sh.get_volume();
+   loop(s, sh.get_rank())
+      lines += s * (sh.get_shape_item(sh.get_rank() - s - 1));
+
+   buffer.resize(lines);
+   add_outer_frame(outer_style);
+}
+//────────────────────────────────────────────────────────────────────────────
+void
+PrintBuffer::print_interruptible(ostream & out, sRank rank, int quad_PW)
+{
+   if (get_row_count() == 0)   return;      // empty PrintBuffer
+
+   // lines may be (very) long (compared to ⎕PW) and if they are then they
+   // need to be broken into 2 or more chunks. A chunk is smaller than ⎕PW;
+   // the first chunk is printed un-indented, while subsequent chunk are
+   // indented by 6 blanks.
+   //
+const int total_width = get_column_count();
+
+vector<ShapeItem> chunk_lengths;
+   if (quad_PW)   // APL folding of lines near ⎕PW
+      {
+        const int max_breaks = 2 + total_width/quad_PW;   // a first guess
+
+        chunk_lengths.reserve(max_breaks + 1);
+
+        // initialize chunk_lengths based on the first row of the PrintBuffer.
+        // All subsequent rows are aligned to the first row, therefore the
+        // first row can be taken as a prototype for all rows.
+        //
+        for (int col = 0; col < total_width;)
+            {
+              const ShapeItem chunk_len =
+                      get_line(0).compute_chunk_length(quad_PW, col);
+              chunk_lengths.push_back(chunk_len);
+              col += chunk_len;
+            }
+       }
+    else          // no APL wrap around
+       {
+         chunk_lengths.push_back(total_width);
+       }
+
+   // print rows, breaking each row at chunk_lengths
+   //
+   loop(row, get_row_count())
+       {
+         int brk_idx = 0;   // chunk_lengths index
+
+         for (int col = 0; col < total_width;)
+            {
+              if (col)   out << endl << "      ";
+
+              const size_t chunk_len = chunk_lengths[brk_idx++];
+              UCS_string trow(get_line(row), col, chunk_len);
+              trow.remove_trailing_padchars();
+
+              loop(t, trow.size())
+                  {
+                     const Unicode uni = trow[t];
+                     if (is_iPAD_char(uni))   out << " ";
+                     else                     out << uni;
+                  }
+              col += chunk_len;
+
+              if (InterruptContext::interrupt_is_raised())
+                 {
+                   out << endl << "INTERRUPT" << endl;
+                   InterruptContext::clear_attention_raised(LOC);
+                   InterruptContext::clear_interrupt_raised(LOC);
+                   return;
+                 }
+            }
+
+         out << endl;   // end of row
+       }
+}
+//────────────────────────────────────────────────────────────────────────────
+void
+PrintBuffer::set_char(int x, int y, Unicode uc)
+{
+   Assert(y < int(buffer.size()));
+   Assert(x < int(buffer[y].size()));
+   buffer[y][x] = uc;
+}
+//────────────────────────────────────────────────────────────────────────────
+Unicode
+PrintBuffer::get_char(int x, int y) const
+{ 
+   Assert(y < int(buffer.size()));
+   Assert(x < int(buffer[y].size()));
+   return buffer[y][x];
+}
+//────────────────────────────────────────────────────────────────────────────
+void
+PrintBuffer::pad_l(Unicode pad, ShapeItem count)
+{
+   if (count == 1)
+      {
+        loop(y, get_row_count())   buffer[y].prepend(pad);
+      }
+   else
+      {
+        UCS_string pads(count, pad);
+        loop(y, get_row_count())   buffer[y] = pads + buffer[y];
+      }
+}
+//────────────────────────────────────────────────────────────────────────────
+void
+PrintBuffer::pad_r(Unicode pad, ShapeItem count)
+{
+UCS_string ucs(count, pad);
+   loop(y, get_row_count())   buffer[y] << ucs;
+}
+//────────────────────────────────────────────────────────────────────────────
+void
+PrintBuffer::pad_height(Unicode pad, ShapeItem height)
+{
+   if (height > get_row_count())
+      {
+        UCS_string ucs(get_column_count(), pad);
+        while (height > get_row_count())   buffer.push_back(ucs);
+      }
+}
+//────────────────────────────────────────────────────────────────────────────
+void
+PrintBuffer::pad_height_above(Unicode pad, ShapeItem height)
+{
+   if (height > get_row_count())
+      {
+        UCS_string ucs(get_column_count(), pad);
+        while (height > get_row_count())   buffer.insert(0, ucs);
+      }
+}
+//────────────────────────────────────────────────────────────────────────────
+void
+PrintBuffer::pad_to_spaces()
+{
+   loop(y, get_row_count())
+   loop(x, get_column_count(y))
+      if (is_iPAD_char(get_char(x, y)))   set_char(x, y, UNI_SPACE);
+}
+//────────────────────────────────────────────────────────────────────────────
+// The →/↓/∼/+/∊/¯ frame decorators below follow IBM's DISPLAY workspace
+// convention, documented in devel_doc/apl2lrm.txt, "Picture of an Array's
+// Structure" (Chapter 2, p.9): →/↓ indicate rank, and exactly one of
+// ∼ (numeric) / + (mixed) / no symbol (character) / ∊ (nested) / ¯ (scalar
+// blank) indicates a box's own data type on its bottom border. GNU APL
+// uses ϵ (U+03F5) rather than the LRM's actual ∊ (U+220A) to avoid
+// colliding with the real Enlist/Member primitive glyph, and extends the
+// single flag into a repeated depth counter (ϵ, ϵϵ, ϵϵϵ, ...) -- the LRM's
+// own convention has no such counter; it says depth is read by counting
+// box borders crossed while tracing inward from the outside.
+//
+void
+PrintBuffer::add_frame(PrintStyle style, const Shape & shape, int depth)
+{
+   Assert(is_rectangular());
+
+Unicode HORI, VERT, NW, NE, SE, SW;
+   get_frame_chars(style, HORI, VERT, NW, NE, SE, SW);
+
+   if (get_row_count() == 0)   // empty
+      {
+        UCS_string upper;
+        upper << NE << NW;
+        buffer.push_back(upper);
+
+        UCS_string lower;
+        lower << SE << SW;
+        buffer.push_back(lower);
+
+        Assert(is_rectangular());
+        return;
+      }
+
+   // draw │ on the left and on the right
+   //
+   loop(y, get_row_count())
+      {
+        buffer[y].prepend(VERT);
+        buffer[y] << VERT;
+
+        // change internal pad characters to SPACE so that they will
+        // not be removed later and the frame is printed correctly
+        //
+        buffer[y].map_pad();
+
+      }
+
+   // draw ─ above the top and nelow the bottom.
+   //
+UCS_string hori(get_column_count(), HORI);
+
+   buffer.insert(0, hori);
+   buffer.push_back(hori);
+
+   // draw the corners ┌, └, ┐, and ┘
+   //
+   {
+     const int XX = get_column_count() - 1;
+     const int YY = get_row_count() - 1;
+     set_char(0,  0, NE);   // e.g. ╔
+     set_char(0,  YY,SE);   // e.g. ╚
+     set_char(XX, 0, NW);   // e.g. ╗
+     set_char(XX, YY,SW);   // e.g. ╝
+   }
+
+   // maybe draw frame decorators
+   //
+    if (style & PST_PLAIN)   // no decorators
+       {
+         Assert(is_rectangular());
+         return;
+       }
+
+   if (shape.get_rank() > 0)               // → on top frame line
+      {
+        if (style & PST_NARS)   // digit(s) indicating axis lengths
+           {
+             UCS_string ucs;
+             ucs << shape.get_last_shape_item();
+             if (ucs.ssize() < (get_column_count() - 2))
+                {
+                  loop(u, ucs.ssize())   set_char(u + 1, 0, ucs[u]);
+                }
+           }
+        else   // IBM DISPLAY workspace style
+           {
+             set_char(1, 0, UNI_RIGHT_ARROW);
+           }
+      }
+   
+   if (shape.get_rank() > 1)               // ↓ on left frame line
+      {
+        if (style & PST_NARS)
+           {
+             UCS_string ucs;
+             loop(r, shape.get_rank() - 1)
+                {
+                  if (r)   ucs << VERT;
+                  ucs << shape.get_shape_item(r);
+                }
+             if (ucs.ssize() < get_row_count() - 2)
+                {
+                  loop(u, ucs.size())   set_char(0, u + 1, ucs[u]);
+                }
+           }
+        else   // IBM DISPLAY workspace style
+           {
+             set_char(0, 1, UNI_DOWN_ARROW);
+           }
+      }
+
+   if (depth > 1)                      // one or more ϵ on bottom frame line
+      {
+        loop(d, depth - 1)
+            if (d + 1 < get_column_count() - 1)
+               set_char(1 + d, get_row_count() - 1, UNI_ELEMENT);
+      }
+   else if (style & PST_SIMPLE_NUMER)   // simple numeric
+     {
+        set_char(1, get_row_count() - 1, UNI_TILDE_OPERATOR);   // ∼
+     }
+   else if (style & PST_SIMPLE_MIXED)   // simple numeric
+     {
+        set_char(1, get_row_count() - 1, UNI_PLUS);   // +
+     }
+   
+   if (style & PST_EMPTY_LAST)   // last (X-) dimension is empty
+      {
+        set_char(1, 0, UNI_CIRCLE_BAR);   // ⊖
+      }
+   
+   if (style & PST_EMPTY_NLAST)   // a non-last (Y-) dimension is empty
+      {
+        set_char(0, 1, UNI_CIRCLE_STILE);   // ⌽
+      }
+   
+
+   Assert(is_rectangular());
+}
+//────────────────────────────────────────────────────────────────────────────
+void
+PrintBuffer::add_outer_frame(PrintStyle style)
+{
+   style = PrintStyle(style >> 4 & PST_CS_MASK);
+   if (style == PST_CS_NONE)   return;
+
+Unicode HORI, VERT, NW, NE, SE, SW;
+   get_frame_chars(style, HORI, VERT, NW, NE, SE, SW);
+
+   if (get_row_count() == 0)   // empty
+      {
+        UCS_string upper;
+        upper << NE << NW;
+        buffer.push_back(upper);
+
+        UCS_string lower;
+        lower << SE << SW;
+        buffer.push_back(lower);
+
+        Assert(is_rectangular());
+        return;
+      }
+
+   // draw a bar left and right
+   //
+   loop(y, get_row_count())
+      {
+        buffer[y].prepend(VERT);
+        buffer[y] << VERT;
+
+        // change internal pad characters to SPACE so that they will
+        // not be removed later and the frame is printed correctly
+        //
+        buffer[y].map_pad();
+      }
+
+   // draw a bar on top and bottom.
+   //
+UCS_string hori(get_column_count(), HORI);
+
+   buffer.insert(0, hori);
+   buffer.push_back(hori);
+
+   // draw the corners
+   //
+   set_char(0,                       0,                   NE);
+   set_char(0,                       get_row_count() - 1, SE);
+   set_char(get_column_count() - 1, 0,                   NW);
+   set_char(get_column_count() - 1, get_row_count() - 1, SW);
+
+   Assert(is_rectangular());
+}
+//────────────────────────────────────────────────────────────────────────────
+ostream &
+PrintBuffer::debug(ostream & out, const char * title) const
+{
+   if (title)   out << title << endl;
+
+   if (get_row_count() == 0)
+      {
+        out << UNI_LINE_DOWN_RIGHT << UNI_LINE_DOWN_LEFT << endl
+            << UNI_LINE_UP_RIGHT   << UNI_LINE_UP_LEFT
+            << "  flags=" << HEX(col_info.flags)
+            << "  len="  << col_info.int_len
+            << "."   << col_info.fract_len
+            << endl << endl;
+        return out;
+      }
+
+   out << UNI_LINE_DOWN_RIGHT;
+   loop(w, get_column_count())   out << UNI_LINE_HORI;
+   out << UNI_LINE_DOWN_LEFT << endl;
+
+   loop(y, get_row_count())
+   out << UNI_LINE_VERT << buffer[y] << UNI_LINE_VERT << endl;
+
+   out << UNI_LINE_UP_RIGHT;
+   loop(w, get_column_count())   out << UNI_LINE_HORI;
+   out << UNI_LINE_UP_LEFT
+       << " flg=" << HEX(col_info.flags)
+       << " il="  << col_info.int_len
+       << " fl="   << col_info.fract_len
+       << " rl="   << col_info.real_len
+       << " ÷l="   << col_info.denom_len
+       << endl << endl;
+
+   return out;
+}
+//────────────────────────────────────────────────────────────────────────────
+void
+PrintBuffer::append_col(const PrintBuffer & pb1)
+{
+   Assert(get_row_count() == pb1.get_row_count());
+
+   loop(h, get_row_count())   buffer[h] << pb1.buffer[h];
+}
+//────────────────────────────────────────────────────────────────────────────
+void
+PrintBuffer::append_ucs(const UCS_string & ucs)
+{
+   if (buffer.size() == 0)   // empty buffer (no lines yet) : add ucs
+      {
+        buffer.push_back(ucs);
+        return;
+      }
+
+const int size = ucs.size();
+   if (size < get_column_count())  // new line is shorter: pad it)
+      {
+        UCS_string ucs1(ucs);
+        UCS_string pad(get_column_count() - size, UNI_PAD_r_oCol);
+        ucs1 << pad;
+        buffer.push_back(ucs1);
+        return;
+      }
+
+   if (size > get_column_count())   // new line is longer: pad PrintBufer
+      {
+        UCS_string pad(ucs.size() - get_column_count(), UNI_PAD_r_nCol);
+        loop(h, get_row_count())   buffer[h] << pad;
+        buffer.push_back(ucs);
+        return;
+      }
+
+   buffer.push_back(ucs);
+}
+//────────────────────────────────────────────────────────────────────────────
+void
+PrintBuffer::append_aligned(const UCS_string & ucs, Unicode align)
+{
+   Assert(is_rectangular());
+
+int ucs_pos = -1;
+   loop(u, ucs.size())
+      {
+        if (ucs[u] == align)
+           {
+             ucs_pos = u;
+             break;
+           }
+      }
+
+int this_pos = -1;
+   loop(y, buffer.size())
+      {
+        const UCS_string & row = buffer[y];
+        loop(u, row.size())
+          {
+            if (row[u] == align)
+               {
+                 this_pos = u;
+                 break;
+               }
+          }
+        if (this_pos != -1)   break;
+      }
+
+const int ucs_w = ucs.size();
+const int this_w = get_column_count();
+
+int ucs_l = 0;    // padding left of ucs
+int ucs_r = 0;    // padding right of ucs
+int this_l = 0;   // padding left of this
+int this_r = 0;   // padding right of this
+
+   if (ucs_pos == -1)       // no align char in ucs
+      if (this_pos == -1)   // no align char in this pb
+         {
+           // no align char at all: align at right border
+           //
+           //      TTTTttt
+           //      UUUUuuu
+           //
+           if (this_w > ucs_w)   ucs_l = this_w - ucs_w;
+           else                  this_l = ucs_w - this_w;
+         }
+      else                  // align char only in this pb
+         {
+           //
+           //      TTTTttt.ttt
+           //      UUUUuuu
+           //
+           ucs_r = this_w - this_pos;
+           if (this_pos > ucs_w)   ucs_l = this_pos - ucs_w;
+           else                    this_l = ucs_w - this_pos;
+         }
+   else                     // align char in ucs
+      if (this_pos == -1)   // no align char in this pb
+         {
+           //
+           //      TTTTttt
+           //      UUUUuuu.uuu
+           //
+           this_r = ucs_w - ucs_pos;
+           if (ucs_pos > this_w)   this_l = ucs_pos - this_w;
+           else                    ucs_l = this_w - ucs_pos;
+         }
+      else                  // align char in this pb
+         {
+           //
+           //      TTTTttt.tttTTTT
+           //      UUUUuuu.uuuUUUU
+           //
+           if (ucs_pos > this_pos)   this_l = ucs_pos - this_pos;
+           else                      ucs_l = this_pos - ucs_pos;
+           const int uu = ucs_w - ucs_pos;
+           const int tt = this_w - this_pos;
+           if (uu > tt)   this_r = uu - tt;
+           else           ucs_r = tt - uu;
+         }
+
+   Assert(ucs_l >= 0);
+   Assert(ucs_r >= 0);
+   Assert(this_l >= 0);
+   Assert(this_r >= 0);
+
+UCS_string ucs1;
+
+   if (ucs_l > 0)   ucs1 << UCS_string(ucs_l, UNI_SPACE);
+   ucs1 << ucs;
+   if (ucs_r > 0)   ucs1 << UCS_string(ucs_r, UNI_SPACE);
+
+   if (this_l > 0)   pad_l(UNI_SPACE, this_l);
+   if (this_r > 0)   pad_r(UNI_SPACE, this_r);
+
+   buffer.push_back(ucs1);
+
+   Assert(is_rectangular());
+}
+//────────────────────────────────────────────────────────────────────────────
+void
+PrintBuffer::add_column(Unicode pad, int32_t pad_count, const PrintBuffer & pb)
+{
+   if (get_row_count() != pb.get_row_count())
+      {
+         debug(CERR, "this");
+         pb.debug(CERR, "pb");
+      }
+
+   Assert(get_row_count() == pb.get_row_count());
+
+   if (pad_count)
+      {
+        UCS_string ucs(pad_count, pad);
+        loop(y, get_row_count())   buffer[y] << ucs;
+      }
+
+   loop(y, get_row_count())   buffer[y] << pb.buffer[y];
+}
+//────────────────────────────────────────────────────────────────────────────
+void PrintBuffer::add_row(const PrintBuffer & pb)
+{
+   buffer.reserve(buffer.size() + pb.get_row_count());
+   loop(h, pb.get_row_count())   buffer.push_back(pb.buffer[h]);
+}
+//────────────────────────────────────────────────────────────────────────────
+bool
+PrintBuffer::is_rectangular() const
+{
+   if (get_row_count())
+      {
+        const ShapeItem w = get_column_count();
+        loop(h, get_row_count())
+           {
+             if (get_column_count(h) != w)    return false;
+           }
+      }
+
+   return true;
+}
+//────────────────────────────────────────────────────────────────────────────
+void
+PrintBuffer::get_frame_chars(PrintStyle pst,
+                             Unicode & HORI, Unicode & VERT,
+                             Unicode & NW, Unicode & NE,
+                             Unicode & SE, Unicode & SW)
+{
+   switch(pst & PST_CS_MASK)
+      {
+        case PST_CS_ASCII:
+             HORI = UNI_MINUS;
+             VERT = UNI_BAR;
+             NW   = UNI_FULLSTOP;
+             NE   = UNI_FULLSTOP;
+             SE   = UNI_SINGLE_QUOTE;
+             SW   = UNI_SINGLE_QUOTE;
+             break;
+
+        case PST_CS_THIN:
+             HORI = UNI_LINE_HORI;
+             VERT = UNI_LINE_VERT;
+             NW   = UNI_LINE_DOWN_LEFT;
+             NE   = UNI_LINE_DOWN_RIGHT;
+             SE   = UNI_LINE_UP_RIGHT;
+             SW   = UNI_LINE_UP_LEFT;
+             break;
+
+        case PST_CS_THICK:
+             HORI = UNI_LINE_HORI2;
+             VERT = UNI_LINE_VERT2;
+             NW   = UNI_LINE_DOWN2_LEFT2;
+             NE   = UNI_LINE_DOWN2_RIGHT2;
+             SE   = UNI_LINE_UP2_RIGHT2;
+             SW   = UNI_LINE_UP2_LEFT2;
+             break;
+
+        case PST_CS_DOUBLE:
+             HORI = UNI_LINE2_HORI;
+             VERT = UNI_LINE2_VERT;
+             NW   = UNI_LINE2_DOWN_LEFT;
+             NE   = UNI_LINE2_DOWN_RIGHT;
+             SE   = UNI_LINE2_UP_RIGHT;
+             SW   = UNI_LINE2_UP_LEFT;
+             break;
+
+        default:
+             HORI = Unicode_0;
+             VERT = Unicode_0;
+             NW   = Unicode_0;
+             NE   = Unicode_0;
+             SE   = Unicode_0;
+             SW   = Unicode_0;
+             FIXME;
+      }
+}
+//────────────────────────────────────────────────────────────────────────────
+void
+PrintBuffer::align(ColInfo & cols)
+{
+   // this PrintBuffer is one (possibly nested) APL value.
+   // Align the buffer:
+   //
+   // to the J (in a column containing complex numbers), or
+   // to the decimal point (in a column containing non-complex numbers), or
+   // to the left (in a column containing text or nested values).
+   //
+   // make sure that the item is (and remains) rectangular).
+   //
+   Assert(is_rectangular());
+
+   if      (cols.flags & has_j)          align_j(cols);
+   else if ((cols.flags & CT_NUMERIC))   align_dot(cols);
+   else                                  align_left(cols);
+
+   Assert(is_rectangular());
+}
+//────────────────────────────────────────────────────────────────────────────
+void
+PrintBuffer::align_left(const ColInfo & COL_INFO)
+{
+   Log(LOG_printbuf_align)
+      {
+        CERR << "before align_left(), COL_INFO = " << COL_INFO.int_len
+             << ":" << COL_INFO.fract_len
+             << ":" << COL_INFO.real_len
+             << ", this col = " << col_info.int_len
+             << ":" << col_info.fract_len
+             << ":" << col_info.real_len << endl;
+        debug(CERR, 0);
+      }
+
+   if (col_info.int_len == COL_INFO.int_len)   return;   // no padding needed.
+
+   Assert(col_info.int_len < COL_INFO.int_len);
+
+const size_t diff = COL_INFO.int_len - col_info.int_len;
+
+   if (buffer.size())   pad_r(UNI_PAD_l_INT, diff);
+   else                 buffer.push_back(UCS_string(diff, UNI_PAD_l_INT));
+
+   col_info.int_len = COL_INFO.int_len;
+
+   Log(LOG_printbuf_align)   debug(CERR, "after align_left()");
+}
+//────────────────────────────────────────────────────────────────────────────
+void
+PrintBuffer::align_dot(const ColInfo & COL_INFO)
+{
+   // align this PrintBuffer (one value) at the decimal dot of COL_INFO.
+   //
+   // COL_INFO is the desired ColInfo of the entire column while
+   // col_info (a member of this PrintBuffer) is the (smaller) item
+   // being aligned
+   //
+   Log(LOG_printbuf_align)
+      {
+        CERR << "before align_dot():" << endl
+             << "desired COL_INFO = "
+                "i-"  << COL_INFO.int_len
+             << " f-" << COL_INFO.fract_len
+             << " r-" << COL_INFO.real_len
+             << " ÷"  << COL_INFO.denom_len << endl
+             << "this row         = "
+                "i-"  << col_info.int_len
+             << " f-" << col_info.fract_len
+             << " r-" << col_info.real_len
+             << " ÷"  << col_info.denom_len << endl;
+        debug(CERR, 0);
+      }
+
+   Assert(buffer.size() > 0);
+
+   // make sure that consider() has worked. real_len is always a genuine
+   // upper bound (the widest element in the column, numeric or not, per
+   // do_PrintBuffer()'s reconciliation). int_len/fract_len/denom_len are
+   // only guaranteed to bound a NUMERIC item's own int_len/fract_len/
+   // denom_len -- for a non-numeric item, its own int_len (ab)used to
+   // hold that item's total width (see PrintBuffer.hh's documented dual
+   // meaning), a different quantity from COL_INFO.int_len's "digits
+   // before the decimal point" once the column is mixed, so the two are
+   // not comparable there.
+   //
+   Assert(COL_INFO.real_len   >= col_info.real_len);
+
+   if (col_info.flags & CT_NUMERIC)
+      {
+        Assert(COL_INFO.int_len    >= col_info.int_len);
+        Assert(COL_INFO.fract_len  >= col_info.fract_len);
+        Assert(COL_INFO.denom_len  >= col_info.denom_len);
+        // numeric items are aligned at the decimal dot. First pad the
+        // integer part with spaces to the left
+        //
+        if (COL_INFO.int_len > col_info.int_len)
+           {
+             const size_t diff = COL_INFO.int_len - col_info.int_len;
+             pad_l(UNI_PAD_l_INT, diff);
+             col_info.real_len += diff;
+             col_info.int_len  += diff;
+           }
+
+        if (col_info.denom_len)   // quotient: maybe pad right with spaces
+           {
+             const size_t diff = COL_INFO.real_len - col_info.real_len;
+             if (diff)
+                {
+                  pad_r(UNI_PAD_r_FRACT, diff);
+                  col_info.real_len += diff;
+                }
+           }
+        else
+           {
+             if (COL_INFO.fract_len > col_info.fract_len)
+                {
+                  pad_fraction(COL_INFO.fract_len, COL_INFO.have_expo());
+                }
+
+             if (COL_INFO.real_len > col_info.real_len)
+                {
+                  const size_t diff = COL_INFO.real_len - col_info.real_len;
+                  if (!(COL_INFO.flags & (real_has_E | imag_has_E))
+                   || col_info.have_expo())       // or has one already 
+                     {
+                       pad_r(UNI_PAD_r_FRACT, diff);
+                     }
+                  else                        // no expo yet: create one
+                     {
+                       Assert1(diff >= 2);
+                       pad_r(UNI_E, 1);
+                       pad_r(UNI_0, 1);
+                       pad_r(UNI_PAD_r_FRACT, diff - 2);
+                     }
+                  col_info.real_len = COL_INFO.real_len;
+                }
+           }
+      }
+   else
+      {
+        // char items are right aligned
+        //
+        size_t LEN = COL_INFO.total_len();
+        size_t len = col_info.total_len();
+        if (LEN > len)
+           {
+             const size_t diff = LEN - len;
+             pad_l(UNI_PAD_l_STRING, diff);
+             col_info.int_len   = COL_INFO.int_len;
+             col_info.fract_len = COL_INFO.fract_len;
+             col_info.real_len = COL_INFO.real_len;
+           }
+      }
+
+   Log(LOG_printbuf_align)   debug(CERR, "after align_dot()");
+}
+//────────────────────────────────────────────────────────────────────────────
+void
+PrintBuffer::align_j(const ColInfo & COL_INFO)
+{
+   // align all items in this PrintBuffer (= one APL output column)
+   // at the complex J.
+   //
+   Log(LOG_printbuf_align)
+      {
+        CERR << "before align_j(), COL_INFO = " << COL_INFO.int_len
+             << ":" << COL_INFO.fract_len
+             << ":" << COL_INFO.real_len
+             << ", this col = " << col_info.int_len
+             << ":" << col_info.fract_len
+             << ":" << col_info.real_len << endl;
+        debug(CERR, 0);
+      }
+
+   Assert(buffer.size() > 0);
+
+   Assert(COL_INFO.real_len >= col_info.real_len);
+   Assert(COL_INFO.imag_len >= col_info.imag_len);
+
+   if (col_info.flags & CT_NUMERIC)
+      {
+        // J-align numeric items
+        if (COL_INFO.real_len > col_info.real_len)
+           {
+             const size_t diff = COL_INFO.real_len - col_info.real_len;
+             pad_l(UNI_PAD_l_INT, diff);
+             col_info.real_len = COL_INFO.real_len;
+           }
+
+        if (COL_INFO.imag_len > col_info.imag_len)
+           {
+             const size_t diff = COL_INFO.imag_len - col_info.imag_len;
+             pad_r(UNI_PAD_r_FRACT, diff);
+             col_info.imag_len = COL_INFO.imag_len;
+           }
+      }
+   else
+      {
+        // right-align char items
+        size_t LEN = COL_INFO.real_len + COL_INFO.imag_len;
+        size_t len = col_info.real_len + col_info.imag_len;
+        if (LEN > len)
+           {
+             const size_t diff = LEN - len;
+             pad_l(UNI_PAD_l_STRING, diff);
+             col_info.real_len = COL_INFO.real_len;
+             col_info.imag_len = COL_INFO.imag_len;
+           }
+      }
+
+   Log(LOG_printbuf_align)   debug(CERR, "after align_j()");
+}
+//────────────────────────────────────────────────────────────────────────────
+void
+PrintBuffer::pad_fraction(int wanted_fract_len, bool want_expo)
+{
+const int diff = wanted_fract_len - col_info.fract_len;
+   Assert1(diff > 0);
+
+      // copy integer part of this PrintBuffer to to new_buf
+      //
+UCS_string new_buf(buffer[0], 0, col_info.int_len);
+
+      // copy fractional part to new_buf. If the number has no exponent part,
+      // then we fill with spaces. Otherwise fill with '0', possibly inserting
+      // a decimal point.
+      //
+      loop(f, col_info.fract_len)
+          new_buf << buffer[0][col_info.int_len + f];
+      if (!want_expo)                     // no exponent, e.g. 1,0
+         {
+           loop(d, diff)   new_buf << UNI_PAD_r_FRACT;
+         }
+      else if (col_info.fract_len == 0)   // no fractional part (yet), e.g. 1E2
+         {
+           new_buf << UNI_FULLSTOP;
+           loop(d, diff - 1)   new_buf << UNI_0;
+         }
+      else
+         {
+           loop(d, diff)   new_buf << UNI_0;
+         }
+
+   // copy exponent part
+   //
+   for (int ex = col_info.int_len + col_info.fract_len;
+        ex < buffer[0].ssize(); ++ex)
+       new_buf << buffer[0][ex];
+
+   col_info.fract_len = wanted_fract_len;
+   col_info.real_len += diff;
+
+   buffer[0] = new_buf;
+
+   // if buffer is multi-len then pad remaining line to new length
+   //
+   for (ShapeItem h = 1; h < get_row_count(); ++h)
+      {
+        const int diff = new_buf.size() - get_column_count(h);
+        if (diff > 0)   buffer[h] << UCS_string(diff, UNI_PAD_r_FRACT);
+      }
+}
+//────────────────────────────────────────────────────────────────────────────
+ShapeItem
+PrintBuffer::separator_rows(ShapeItem y, const cValue & value, bool nested,
+                            sRank rk1, sRank rk2)
+{
+   if (y == 0)   return 0;
+
+const Shape & shape = value.get_shape();
+
+ShapeItem prod = 1;
+ShapeItem ret = 0;
+   loop(r, shape.get_rank() - 2)
+       {
+         prod *= shape.get_shape_item(shape.get_rank() - r - 2);
+         if (y % prod == 0)   ++ret;
+         else                 break;
+       }
+
+   if (nested)   // see lrm p. 138
+      {
+        /* lrm p. 138. Indeed, examples with IBM APL2 show that:
+
+        N←⊂ 3 3⍴'abcdefghi'   ⍝ nested
+        Q←3 3⍴⍳9 ◊ Q[2;2] ← N ◊ Q
+
+        gives:
+
+ 1    2  3 
+
+ 4  abc  6 
+    def    
+    ghi    
+
+ 7    8  9 
+
+        i.e. with one blank line before and after the nested N.
+
+         */
+        const int max_rk = max(rk1, rk2);
+        if (max_rk > 1)   ret += max_rk - 1;
+      }
+
+   return ret;
+}
+//════════════════════════════════════════════════════════════════════════════
+ostream &
+operator << (ostream & out, const PrintBuffer & pb)
+{
+   out << endl;   return pb.debug(out);
+}
+//════════════════════════════════════════════════════════════════════════════

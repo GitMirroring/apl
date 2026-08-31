@@ -1,0 +1,70 @@
+⍝ Each_monadic.tc
+⍝ ----------------------------------
+
+⍝@ test3.
+
+      Z←ρ¨'TOM' 'DICK'
+      Z
+ 3  4 
+      ρZ
+2
+      ≡Z
+2
+      W←ι¨1 2 3 4
+      W
+ 1  1 2  1 2 3  1 2 3 4 
+      ρW
+4
+      ≡W
+2
+
+      ⍝ regression ----------------------------------
+
+∇Z←depth B
+ Z←≡B
+∇
+
+∇Z←A depth_dya B
+ Z←≡B
+∇
+
+      BB←B B←0⍴('foo' 'bar')
+      ≡B
+2
+      ≡BB
+3
+      ≡¨BB
+2 2
+
+      depth¨BB
+2 2
+
+      ⍝ dyadic defined functions should make no difference
+      ⍝
+      ((⍴BB)⍴'x') depth_dya¨BB
+2 2
+
+      ⍝ regression (Blake McBride, Bugs12.md #2, 2026-08-06): f¨ on an
+      ⍝ empty nested array whose (disclosed) prototype item has more
+      ⍝ than one element used to build a result with uninitialized
+      ⍝ Cells (aborts via Cell::init_other()'s assert, or dispatches a
+      ⍝ garbage vtable call with asserts off). ScalarFunction.cc's
+      ⍝ do_eval_fill_B() only ever wrote cell 0 of the fill result,
+      ⍝ regardless of how many cells the (possibly non-scalar)
+      ⍝ prototype item actually needed.
+      ⍝
+      Z1←+¨ 0⍴⊂⍳3
+      ⍴⍴Z1
+1
+      ⍴Z1
+0
+
+      Z2←-¨ 0⍴⊂⍳3
+      ⍴Z2
+0
+
+      ⍝ previously-working single-element-prototype case: still correct
+      ⍝
+      Z3←+¨0⍴⊂1
+      ⍴Z3
+0

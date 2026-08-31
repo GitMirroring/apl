@@ -1,0 +1,7 @@
+'./native/.libs/lib_template_OP2.so' ⎕FX 'NATIVE_OP2'
+NATIVE_OP2
+A←B←X←1
++ NATIVE_OP2 × B
+)OFF
+8 3 768614336404564651 ↑ 0
+2305843009213693953 / (8⍴5)

@@ -1,0 +1,65 @@
+
+GNU APL can be compiled as a Python module.
+The basic build procedure is this:
+
+    ./configure --with-python [ other ./configure options ...]
+    make
+    sudo make install
+
+This installs a shared object file named 'lib_gnu_apl.so' in the place where
+GNU APL installs its libraries (typically /usr/local/lib/apl or /usr/lib/apl).
+
+The shared object file must then be copied to the directory where Python keeps
+its extension modules.  The exact path and file name depend on the Python
+version and platform.  To find the correct target directory, run:
+
+    python3 -c "import sysconfig; print(sysconfig.get_path('platlib'))"
+
+The target file name must match Python's ABI tag.  To find it, run:
+
+    python3 -c "import sysconfig; print(sysconfig.get_config_var('EXT_SUFFIX'))"
+
+For example, on a typical 64-bit Linux system with Python 3.10 the commands
+above might output:
+
+    /usr/lib/python3/dist-packages
+    .cpython-310-x86_64-linux-gnu.so
+
+In that case the copy command would be:
+
+    sudo cp /usr/local/lib/apl/lib_gnu_apl.so \
+            /usr/lib/python3/dist-packages/gnu_apl.cpython-310-x86_64-linux-gnu.so
+
+NOTA BENE: the target directory can be either under /usr/lib or /usr/local/lib
+depending on your system configuration.  If you get an error like:
+
+ModuleNotFoundError: No module named 'gnu_apl'
+
+use the sysconfig commands above to find the correct path on your system.
+
+After that, one can import GNU APL in Python and call Python functions
+provided by gnu_apl:
+
+>>> import gnu_apl
+>>> gnu_apl.exec("4 4⍴1+2")
+3 3 3 3
+3 3 3 3
+3 3 3 3
+3 3 3 3
+0
+>>> gnu_apl.command(")WSID")
+'IS CLEAR WS\n'
+
+The output above is a mix of APL output and Python output, which is more often
+than not a bad idea. A better approach is to generate no APL output (i.e. the
+results of APL expressions should be assigned to variables and the variables ⎕
+and ⍞ should not be used). Alternatively, you can change the default print
+behavior in Python with gnu_apl.set_display(mode). See, for example,
+gnu_apl.help('set_display').
+
+After a sucessful installation you can display the documentation of all Python
+functions in an interactive Python session like this:
+
+>>> import gnu_apl
+>>> gnu_apl.help('all')
+

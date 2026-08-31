@@ -1,0 +1,492 @@
+\input texinfo
+@documentencoding UTF-8
+@setfilename libapl.info
+@settitle libAPL
+
+
+@dircategory GNU programming tools
+@direntry
+* libAPL: (libapl).            call the GNU APL interpreter.
+
+@end direntry
+
+@ifnottex
+@paragraphindent 0
+@end ifnottex
+@node Top
+@top libAPL
+
+@b{libapl} is a C library that was kindly contributed to the GNU APL project by
+@b{Dr. Dirk Laurie}. @b{libapl} gives C programs access to GNU APL.
+
+Almost everything that a user can do interactively with GNU APL can also be
+done programmatically with libapl. You can )LOAD and )SAVE workspaces,
+evaluate APL expression, create Variables, and even call APL primitives
+directly with values originating from in your C code.
+
+The main facilities provided by libapl are listed in the following.
+
+Some functions come in two flavours: one whose argument is a (0-terminated and
+UTF8-encoded) C-string (that is, a @b{const char *}), and one whose argument
+is a @b{const unsigned int *} to a 0-terminated array of Unicodes.
+
+@table @asis
+@item @code{apl_exec(const char * line_utf8)}
+@item @code{apl_exec_ucs(const unsigned int * line_ucs)}
+pass a line to the interpreter for immediate execution as APL code. For example,
+
+apl_exec("1 2 3 + 4 5 6")
+
+should return the APL vector 5 7 9, which can then be accessed with other
+libapl functions such as get_rank(), get_axis(), etc.
+
+@item @code{apl_command(const char * line_utf8)}
+@item @code{apl_command_ucs(const unsigned int * line_ucs)}
+pass an APL command to the command processor and return its output. For example,
+
+apl_command(")CLEAR")
+
+should clear the current workspace and return "CLEAR WS".
+
+@item @code{APL_value}
+APL_value is a convenience typedef for a pointer to an opaque structure Value, supported by over 30 functions allowing one to construct a new Value and to gain access to its rank, shape and ravel. In this document, the terms "Value" and "APL value" are not interchangeable; they refer respectively to a structure and to a pointer.
+
+@item @code{APL_function}
+APL_function is a convenience typedef for a pointer to an opaque structure Function, which is a defined APL function or a built-in function of the interpreter. This pointer provides direct access of the eval__XXX() functions that are impemented by the function. In this document, the terms "Function" and "APL function" are not interchangeable; they refer respectively to a structure and to a pointer. Every function implements a (typically small) subset of eval__XXX() functions that differ by the arguments that the take. The XXX stands for the signature of the function, e.g. eval__fun_B for a monadic function, eval__A_fun_B for a dyafic function, and so on. The possible arguments (in that order are: A (left value), L (left function of a dyadic operator), R (right function of an operator), X (axis argument of a function or operator), and B (right value).
+
+@item @code{eval__fun(APL_function fun)}
+@item @code{eval__A_fun_B(APL_function fun, APL_value B)}
+@item @code{eval__A_fun_B(APL_value A, APL_function fun, APL_value B)}
+@item @code{eval__A_L_oper_B(APL_value A, APL_function L, APL_function fun, APL_value B)}
+@item @code{eval__A_fun_X_B(APL_value A, APL_function fun, APL_value X, APL_value B)}
+@item @code{eval__A_L_oper_R_B(APL_value A, APL_function L, APL_function fun, APL_function R, APL_value B)}
+@item @code{eval__A_L_oper_R_X_B(APL_value A, APL_function L, APL_function fun, APL_function R, APL_value X, APL_value B)}
+@item @code{eval__fun_B(APL_function fun, APL_value B)}
+@item @code{eval__fun_B(APL_function fun, APL_value B)}
+@item @code{eval__L_oper_B(APL_function L, APL_function fun, APL_value B)}
+@item @code{eval__fun_X_B(APL_function fun, APL_value X, APL_value B)}
+@item @code{eval__L_oper_R_B(APL_value A, APL_function L, APL_function fun, APL_function R, APL_value B)}
+@item @code{eval__L_oper_R_X_B(APL_function L, APL_function fun, APL_function R, APL_value X, APL_value B)}
+These are the possible eval functions. The APL_value returned by an eval__XXX() function shall be released with release_value() by the caller.
+
+@item @code{fix_function(const char ** function_lines_utf8)}
+@item @code{fix_function_NL(const char * function_lines_utf8)}
+These functions create a new defined APL function in the workspace, which
+can then be called in APL, or with suitable eval_XXX() functions in C/C++.
+fix_function() expects an array of strings, one string per APL line, and
+terminated with NULL. fix_function() is a front-end for fix_function_NL().
+fix_function_NL() expects a signle string with function lines separated by
+newline (line feed, 0x0A). In both cases the first line becomes the function
+header and the subsequent lines become the function body. Existing functions
+with the same name in the function header will be replaced without warning.
+Examples:
+
+@verbatim
+const char * foo[] = { "Z←A FOO B",     // function header
+                       "Z←A ⍴ B",       // one body line
+                       NULL             // sentinel
+                     };
+  fix_function(foo);
+
+const char * bar = "Z←A BAR B\n"        // function header
+                   "Z←A ≠ B\n";         // one body line
+  fix_function_NL(bar);
+@end verbatim
+
+should create dyadic defined functions FOO and BAR. fix_function_NL() is
+easier to use with e.g. C string literals, while fix_function() is more
+convenient if (some of) the function lines are being computed.
+
+@item @code{get_var_value(const char * var_name_utf8, const char * loc)}
+return an APL value pointing to the contents of a variable in the current workspace.
+
+@item @code{set_var_value(const char * var_name_utf8, const APL_value new_value, const char * loc)}
+set the contents of a variable in the workspace to that of the given APL value.
+
+@item @code{expand_LF_to_CRLF}
+this function controls whether linefeed (LF) characters shall be expanded to CR/LF on output. The default is no expansion. Please note that LF expansion may be triggered in other places, therefore expand_LF_to_CRLF(0) alone does not guarantee that no CR characters are being printed.
+
+@item @code{SYNC_APL_SCRIPTS} and @code{repl}
+See @ref{#non-atomic-operations, Non-atomic Operations}
+
+@end table
+
+No other GNU APL header is exposed.
+
+This document will not tell you much about APL. For more details about the language, consult an APL reference manual such as those recommended in the file @code{README-7-more-info}, which are probably installed in @code{/usr/share/doc/apl} or @code{/usr/local/share/doc/apl}.
+@menu
+* Vague details of the GNU APL implementation::
+* Summary of functions::
+* Programming notes::
+@end menu
+
+@node Vague details of the GNU APL implementation
+@chapter Vague details of the GNU APL implementation
+@anchor{#vague-details-of-the-gnu-apl-implementation}
+Although the implementation is hidden from the API, the programmer needs to know a little about it.
+
+Only one workspace, simply known as "the workspace", is active at any time. The workspace may be cleared, named, saved and restored by calls to @code{apl_command}.
+
+The workspace contains a collection of symbols of various kinds. Apart from @code{apl_exec} and @code{apl_command}, which behave as if entered from the keyboard in an interactive APL session, this API gives access only to APL variables, i.e. symbols associated with Values.
+
+A Value is a multidimensional array of cells. It has three visible components: rank, shape and ravel.
+
+The shape is a vector of integers, giving the number of elements along each axis of the array. The number of shape items is known as the rank. There is an upper bound to the rank, configurable when GNU APL is built, which is displayed as a message by @code{apl_exec("⎕SYL[7;]")}.
+
+The ravel is a vector of cells, accessed in APL by a multi-index but in the API by a single index starting at 0. As one progresses along the ravel, the multi-index is ordered lexicographically, e.g. in a clear workspace, the multi-index of an array of shape @code{2 3} would successively be @code{1 1}, @code{1 2}, @code{1 3}, @code{2 1}, @code{2 2}, @code{2 3}. The index origin in APL may be changed by @code{apl_exec("⎕IO←0")}, but in the API the ravel is always indexed from 0.
+
+The number of elements in the ravel is given by the product of the shape items. An empty product is of course equal to 1, thus this calculation is also valid for a scalar, which has rank 0.
+
+A cell can hold any of several kinds of objects:
+
+@enumerate 
+@item
+A scalar, i.e. either a number or a single 32-bit Unicode character. The number may be stored internally as a 64-bit integer, a @code{double}, or a @code{complex<double>}.
+@item
+An APL value. This allows nested arrays to be represented.
+@item
+None of the above, i.e. information not accessible from the API.
+@end enumerate
+
+The API does not give direct access to cell objects. The user must know what is in a particular cell and retrieve it by supplying its position in the ravel, using a specialized access method for cells of that particular type. To this end, the cell type can be queried. This is an integer treated as a bit string. The bits denoting cells accessible from the API have predefined names.
+
+@verbatim
+CCT_CHAR    = 0x02
+CCT_POINTER = 0x04
+CCT_INT     = 0x10
+CCT_FLOAT   = 0x20
+CCT_COMPLEX = 0x40
+CCT_NUMERIC = CCT_INT | CCT_FLOAT | CCT_COMPLEX
+@end verbatim
+
+Attempting to retrieve the contents of a cell by the wrong access method is an error that will crash the program.
+@menu
+* Lifespan of Values::
+@end menu
+
+@node Lifespan of Values
+@section Lifespan of Values
+@anchor{#lifespan-of-values}
+@enumerate 
+@item
+All Values are invisible to the API. Internally, they contain a reference count, and are scheduled for destruction when the reference count reaches zero. The actual destruction might not happen immediately. The fact that one succeeded in accessing a Value does not prove that it is still alive, it merely means that it has not yet been destructed.
+
+@item
+All API functions that return an APL value increment the reference count. It is your responsibility to decrement the reference count using @code{release_value} when the Value is no longer needed. Failure to do so will cause memory leaks.
+
+@item
+The APL value provided in the argument list of @code{res_callback} (see @ref{#interface-to-apl-interpreter,Interface to APL interpreter}) has a particularly brief lifespan. The execution of that function is your only chance of accessing it. Its reference count is not increased before the call, so you must not release it.
+
+@item
+The type-specific @code{set_} functions change one element only. Other references to the Value concerned will also reflect the change; for example, if the APL value was returned by @code{get_var_value}, a following call to @code{get_var_value} with the same variable name will show the change.
+
+@item
+@code{set_value} and @code{set_var_value} make a new deep copy of a non-scalar Value. The reference count of the original Value is not increased. Cloning (which is deliberately discouraged in the API by not providing a copy constructor) can be simulated with the aid of either of these. The details are left to the persevering user.
+
+@end enumerate
+
+@node Summary of functions
+@chapter Summary of functions
+@anchor{#summary-of-functions}
+This section is an aide-memoire, not a manual: consult the comments preceding each function for details. See @ref{#programming-notes,Programming notes} for information on the @code{loc} parameter.
+
+The other parameter values have the following types:
+
+@multitable {@code{k},@code{n1},@code{n2},@code{n2}} {A UTF-8 encoded @code{char*}} 
+@item 
+@code{val}
+ @tab The main APL value
+@item 
+@code{pval}
+ @tab A secondary APL value
+@item 
+@code{cval}
+ @tab A 32-bit Unicode character
+@item 
+@code{ival}
+ @tab A 64-bit integer
+@item 
+@code{xval},@code{yval}
+ @tab A 64-bit double
+@item 
+@code{sval}
+ @tab A UTF-8 encoded @code{char*}
+@item 
+@code{i}
+ @tab A 64-bit index
+@item 
+@code{k},@code{n1},@code{n2},@code{n2}
+ @tab A 32-bit index
+@end multitable
+
+@menu
+* Library Initialization::
+* Constructor functions::
+* Read access to Values::
+* Write access to cells::
+* Interface to APL interpreter::
+* Destructor function::
+* Print support::
+@end menu
+
+@node Library Initialization
+@section Library Initialization
+@anchor{#library-initialization}
+
+For the correct operation of @b{libapl} it is mandatory to first initialize it.
+This is accomplished by calling the libapl function
+@b{init_libapl(const char * prog, int su_log)} once, and before any other
+libapl function.
+
+The first argument @b{prog} is, by convention, the name of the binary program
+that uses libapl. This name is used in some of the printouts produced by libapl.
+
+The second argument @b{su_log} controls whether libapl shall emit startup
+logging messages (su_log ≠ 0) or not (su_log = 0).
+
+For example:
+@verbatim
+#include "apl/libapl.h"
+
+int
+main(int argc, char * argv[])
+{
+   init_libapl(argv[0], /* no startup logging */ 0);
+   return apl_exec("⎕←2 3⍴⍳6");
+}
+@end verbatim
+
+See also section @b{liba[l} in the document
+@b{HOWTOS/APL-Communication-Cookbook.html}
+
+@node Constructor functions
+@section Constructor functions
+@anchor{#constructor-functions}
+Each of these functions returns an APL value and has a name descriptive of its argument list.
+
+@code{int_scalar(ival,loc)}, @code{double_scalar(xval,loc)}, @code{complex_scalar(xval,yval,loc)} and @code{char_scalar(cval,loc)} initialize to a given C value.
+
+@code{char_vector(sval,loc)} initializes from a UTF-8 encoded C string to an array of rank 1 containing Unicode characters.
+
+@code{apl_scalar(loc)}, @code{apl_vector(n1)}, @code{apl_matrix(n1,n2)} and @code{apl_cube(n1,n2,n3)} initialize to arrays of rank 0,1,2,3; @code{apl_value(shape,loc)} initializes to an array of arbitrary shape. All cells in these arrays are initialized to 0.
+
+@node Read access to Values
+@section Read access to Values
+@anchor{#read-access-to-values}
+@code{get_rank(val)}, @code{get_axis(val,k)} and @code{get_element_count(val)} give information about the shape,
+
+@code{get_type(val,i)} returns the cell type of a ravel element. The predefined names can be used in e.g. a @code{switch} statement on the cell type.
+
+@code{is_char(val,i)}, @code{is_int(val,i)}, @code{is_double(val,i)}, @code{is_complex(val,i)} and @code{is_value(val,i)} are conveniently named front-ends to @code{get_type} that do not require the user to examine the cell type.
+
+@code{is_string(val)} tests whether the entire value is a simple character vector. If so, @code{print_value_to_string} can be used to convert it to a UTF-8 encoded C string.
+
+@code{get_char(val,i)}, @code{get_int(val,i)}, @code{get_real(val,i)}, @code{get_imag(val,i)} and @code{get_value(val,i)} retrieve the actual contents of a cell of which the type is already known, if necessary by having called @code{get_type} or one of its front-ends. For example @code{get_real} can be used if @code{get_type(val,i) & (CCT_FLOAT@ | CCT_COMPLEX)} is nonzero.
+
+@node Write access to cells
+@section Write access to cells
+@anchor{#write-access-to-cells}
+Cells can be accessed only via an APL value pointing to their containing Value.
+
+@code{set_char(cval,val,i)}, @code{set_int(ival,val,i)}, @code{set_real(xval,val,i)}, @code{set_imag(yval,val,i)} and @code{set_value(pval,val,i)} replace the contents of cell @code{i} of @code{val}.
+
+It is not possible to change the shape of an APL value.
+
+@node Interface to APL interpreter
+@section Interface to APL interpreter
+@anchor{#interface-to-apl-interpreter}
+@code{set_var_value(name,val,loc)} and @code{get_var_value(name,val,loc)} save and retrieve values to the workspace under specified names.
+
+An external function pointer @code{res_callback} is called just before @code{apl_exec} exits. To exploit it, assign a suitable user-written function to it, e.g.
+
+@verbatim
+/* callback to print every value */
+static int always_print(const APL_value apl,int committed) {
+  return 1;
+}
+
+/* callback to save a copy in the workspace under the name "_" */
+static int save_to_workspace(const APL_value apl,int committed) {
+  set_var_value("_",apl,LOC);
+  return !committed;
+}
+
+/* One-off declaration statement, must not be inside a function */
+result_callback res_callback = always_print_it;
+...
+/* A later assignment statement may be anywhere */
+res_callback = save_to_workspace;  
+...
+res_callback = NULL;      /* disables callback feature */
+@end verbatim
+
+Here @code{apl} is the anonymous value to which the APL expression evaluates. You are granted access to it just before its brief lifespan expires. @code{committed} is a C boolean (only 0 is false) reporting whether that value was stored to a variable. Your return value is a C boolean telling whether the value should be printed by the APL interpreter.
+
+The value @code{*apl} (which the API cannot see) will be scheduled for destruction as soon as you exit @code{res_callback}. Don't release it yourself.
+
+@node Destructor function
+@section Destructor function
+@anchor{#destructor-function}
+@code{release_value(val,loc)} decrements the reference count of @code{*val} as explained in @ref{#lifespan-of-values,Lifespan of Values}/
+
+@node Print support
+@section Print support
+@anchor{#print-support}
+@code{print_value(value,file)}, @code{print_value_to_string(value)} filter an APL value through the APL formatting routines. Their behaviour depends on several system variables, such as @code{⎕FC}, @code{⎕PP}, @code{⎕PW}.
+
+@code{UTF8_to_Unicode}, @code{Unicode_to_UTF8} are provided because @code{get_char} and @code{set_char} work with 32-bit Unicode, whereas many other user interfaces use UTF-8.
+
+@node Programming notes
+@chapter Programming notes
+@anchor{#programming-notes}
+The typical application would start with:
+
+@verbatim
+#include <stdio.h>
+#include <stdint.h>
+#include <apl/libapl.h>
+@end verbatim
+
+This interface can be called from C, but since GNU APL is a C++ package. the C++ library must be explicitly loaded, e.g. in Linux:
+
+@verbatim
+cc myprog.c -lapl -lstdc++ -o myprog
+@end verbatim
+
+@menu
+* The loc parameter and LOC macro::
+* Non-atomic Operations::
+@end menu
+
+@node The loc parameter and LOC macro
+@section The @code{loc} parameter and @code{LOC} macro
+@anchor{#the-loc-parameter-and-loc-macro}
+All the functions that return APL values, as well as @code{release_value} and @code{set_var_value}, contain a parameter @code{const char* loc}. This parameter is used to keep track of changes to a Value and may be displayed by certain debugging services. You can put in anything you like, but most convenient is @code{LOC}, a macro that expands to the file name and line number.
+
+@node Non-atomic Operations
+@section Non-atomic Operations
+@anchor{#non-atomic-operations}
+@subsection Architecture of the GNU APL interpreter
+
+The "normal" GNU APL interpreter has, simplified, the following architecture:
+
+@verbatim
+              ╔═══════════╗               ╔════════════════╗
+              ║ Frontend  ║               ║    File-I/O    ║
+              ║           ║    .apl       ║                ║
+  stdin  ─────╢  ┌────┐   ╠═══════════════╣ .apl Scripts   ║ 
+  stdout ─────╢  │REPL│   ║               ║ .xml Snapshots ║
+              ║  └────┘   ║               ║                ║
+              ╚═════╤═════╝               ╚═══════╦════════╝
+                    │                             ║
+              ╔═════╧═════╗                       ║
+              ║  Backend  ║    .xml               ║
+              ║───────────╠═══════════════════════╝
+              ║ (APL Core)║
+              ╚═══════════╝
+@end verbatim
+
+The @b{backend} handles most of the APL commands and the interpretation of APL programs. By definition (e.g. in the ISO APL standard) the backend works in a strict line-by-line fashion. @b{REPL} is an abbreviation for @b{R}ead/@b{E}valuate/@b{P}rint/@b{L}oop, a construct present in almost every interactive interpreter.
+
+The @b{frontend} is responsible for:
+
+@itemize
+@item pushing individual lines from @b{stdin} into the backend, and/or
+@item chopping .apl scripts into individual lines and pushing them, line-by-line,  into the backend, and after that
+@item displaying the output from the backend (if any) on @b{stdout}.
+@end itemize
+
+In the special case of a @b{)COPY} command of an .apl file (as opposed to an .xml file) the backend opens the .apl file whereas the frontend then pushes the content of the file into the backend. For that reason, )COPY of an .xml files is atomic in the sense defined below, while )COPY of an .apl file is not. @i{This subtle difference is sometimes missed by libapl users}.
+
+@subsection Architecture of the libapl library
+
+@b{libapl} is a thin API towards the backend. It can be used by applications written in other languages (primarily C/C++) to obtain services from the backend. Every such application replaces the frontend and must therefore follow the same as the (now removed) frontend:
+
+@verbatim
+              ╔═════════════╗               ╔════════════════╗
+              ║ Application ║      ← ←      ║    File-I/O    ║
+              ║──────┬──────║     .apl      ║                ║
+              ║      │      ╠═══════════════╣ .apl Scripts   ║ 
+              ║  ┌───┴──┐   ║               ║ .xml Snapshots ║
+              ║  │libapl│   ║               ║                ║
+              ╚══╧═══╤══╧═══╝               ╚═══════╦════════╝
+                     │                              ║
+              ╔══════╧══════╗     ← →     → →       ║
+              ║   Backend   ║    .xml    .apl       ║
+              ║─────────────╠═══════════════════════╝
+              ║  (APL Core) ║
+              ╚═════════════╝
+@end verbatim
+
+In particular, every application may or may not need to provide its own REPL loop. This may be tricky for programmers that are not entirely familiar with the internals of the GNU APL code. Therefore libapl also provides functions that simplify the construction of a suitable REPL loop.
+
+@subsection Atomic vs. Non-Atomic Operations
+
+The vast majority of GNU APL commands are @b{atomic}, which shall mean that the command is a single line passed to the APL core (by means of the libapl functions @b{apl_command()} or @b{apl_command_ucs()}) and the result is a (typically short) response string. An atomic command ends before any other command or APL code is being executed.
+
+Also, lines entered in immediate execution mode are atomic (unless, of course,  they execute (⍎) a non-atomic GNU APL command). Note that ⍎ of commands is a non-standard GNU APL feature.
+
+Some commands, most importantly )COPY of .apl files, are not atomic since the (top-level) )COPY command may invoke other commands before it completes. That is:
+
+@itemize
+@item )COPY of .apl files is non-atomic,
+@item )COPY of .xml files is atomic,
+@item The ∇-editor is is non-atomic,
+@item ⎕FX is atomic, and
+@item )SAVE, )DUMP, and )DUMP-HTML are atomic.
+@end itemize
+
+As the list above shows, every non-atomic operation has an atomic alternative.
+
+It is essential to keep in mind that, in the case of )COPY with .apl files, the )COPY command itself merely opens the .apl file but does NOT pass the lines of the just opened .apl file to the backend. The REPL loop of a "normal" GNU APL interpreter pushes the lines of .apl files into the backeend and displays their result. In contrast, libapl has no REPL loop itself but instead provides a helper macro and a helper function for constructing proper REPL loops in the application that uses libapl.
+
+First of all, libapl.h @b{#define}s the convenience macro @b{SYNC_APL_SCRIPTS} which is a loop around the more fine-grained libapl function @b{repl()}:
+
+@verbatim
+#define SYNC_APL_SCRIPTS   { do ; while(repl(0, 0, 0, 0, 0)); }
+@end verbatim
+
+The libapl function @b{repl()} fetches one line of APL and passes it to the APL core. It returns non-zero as long as there are more APL lines available. The caller of @b{repl()} may, primarily for debugging purposes, provide buffers into which @b{repl()} will store the input to and the output of the APL core.
+
+Normally REPL loops are flat (non-recursive) and run forever. In contrast, SYNC_APL_SCRIPTS is a per file REPL loop that is recursive. If, for example, a )COPY opens an .apl  file that contains another )COPY command, then SYNC_APL_SCRIPTS returns only after both files were processed) and stops at the end of the first (top-level) .apl file.
+
+The overall purpose and effect of @b{SYNC_APL_SCRIPTS} is that all open APL
+scripts are being executed line-by-line.
+
+The rules for @b{SYNC_APL_SCRIPTS} and @b{repl()} are:
+
+@itemize
+@item every non-atomic operation requires SYNC_APL_SCRIPTS immediatly after it. For example:
+@verbatim
+  apl_command(")COPY ./foo.apl");   /* open the script foo.apl  */
+  SYNC_APL_SCRIPTS                  /* execute lines in foo.apl */
+@end verbatim
+
+@item @b{SYNC_APL_SCRIPTS} does no harm; using it after an atomic command is far better than not using it after a non-atomic command.
+@item @b{repl()} essentially performs one iteration of a REPL loop and therefore
+SYNC_APL_SCRIPTS is an entire REPL loop.
+@item @b{repl()} returns 0 if there are no more .apl files to process and otherwise an identifier > 0 that identifies an .apl file (in the order discovered).
+@item the libapl can avoid the need for @b{SYNC_APL_SCRIPTS} entirely by using only .xml workspaces instead of .apl scripts.
+@item the )LOAD command is essentially )CLEAR followed by )COPY, therefore the difference between .apl and .xml files applies as well.
+@end itemize
+
+The declaration of function @b{repl()} is:
+
+@verbatim
+extern long repl(char * input_buffer,  int * input_bufsize,
+                 char * output_buffer, int * output_bufsize,
+                 LIBAPL_error * error);
+@end verbatim
+
+and the following rules apply:
+
+@itemize
+@item a non-zero @b{input_buffer} causes @b{repl()} to copy the input line that is passed to the APL core into @b{input_buffer}. In that case @b{input_bufsize} must also be non-zero and point to an integer that is the size of the @b{input_buffer}. Many programmers follow the @b{GNU APL Coding Standard} which suggests that source code lines should not have more than 79 characters. In that case an input_buffer of 400 bytes should suffice (considering that the input buffer is UTF8-encoded so that an 80-character line may require more than 80 bytes).
+@item @b{input_bufsize} is initially the size of the @b{input_buffer}. Calling @b{repl()} will update it to the size of the line that was read from some .apl file and passed to the APL core.
+@item a non-zero @b{output_buffer} causes @b{repl()} to copy the output line(s) of the APL core into @b{output_buffer}. In that case @b{output_bufsize} must also be non-zero and point to an integer that is the size of the @b{output_buffer}. If @b{⎕PW} is known beforehand then @b{4×⎕PW} might be a proper value for the size of the @b{output_buffer} (considering that the output buffer is UTF8-encoded).
+@item after @b{repl()} returns, the input and output buffers are 0-terminated and the sizes are the numbers of valid bytes (not characters!) in the respective buffer.
+@item a non-zero @b{LIBAPL_error * error} causes @b{repl()} to store an error code in that location. The error (if any) refers to @b{repl()} itself (possibly LAE_IN_BUFFER_OVERFLOW or LAE_OUT_BUFFER_OVERFLOW if the buffers were truncated). In that case @b{input_bufsize} and @b{output_bufsize} are the sizes that, similar to @b{snprinf()}, @i{would have been} returned if the buffers were large enough.
+@item Errors detected by the APL core are NOT set in @b{*error}; the caller may decode @b{output_buffer} in order to detect them.
+@end itemize
+
+@bye

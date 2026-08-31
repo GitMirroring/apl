@@ -1,0 +1,1450 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.1//EN"
+    "http://www.w3.org/TR/xhtml11/DTD/xhtml11.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en">
+<head>
+<meta http-equiv="Content-Type" content="application/xhtml+xml; charset=UTF-8" />
+<meta name="generator" content="AsciiDoc 10.1.2" />
+<title>GNU APL on Windows 11</title>
+<style type="text/css">
+/* Shared CSS for AsciiDoc xhtml11 and html5 backends */
+
+/* Default font. */
+body {
+  font-family: Georgia,serif;
+}
+
+/* Title font. */
+h1, h2, h3, h4, h5, h6,
+div.title, caption.title,
+thead, p.table.header,
+#toctitle,
+#author, #revnumber, #revdate, #revremark,
+#footer {
+  font-family: Arial,Helvetica,sans-serif;
+}
+
+body {
+  margin: 1em 5% 1em 5%;
+}
+
+a {
+  color: blue;
+  text-decoration: underline;
+}
+a:visited {
+  color: fuchsia;
+}
+
+em {
+  font-style: italic;
+  color: navy;
+}
+
+strong {
+  font-weight: bold;
+  color: #083194;
+}
+
+h1, h2, h3, h4, h5, h6 {
+  color: #527bbd;
+  margin-top: 1.2em;
+  margin-bottom: 0.5em;
+  line-height: 1.3;
+}
+
+h1, h2, h3 {
+  border-bottom: 2px solid silver;
+}
+h2 {
+  padding-top: 0.5em;
+}
+h3 {
+  float: left;
+}
+h3 + * {
+  clear: left;
+}
+h5 {
+  font-size: 1.0em;
+}
+
+div.sectionbody {
+  margin-left: 0;
+}
+
+hr {
+  border: 1px solid silver;
+}
+
+p {
+  margin-top: 0.5em;
+  margin-bottom: 0.5em;
+}
+
+ul, ol, li > p {
+  margin-top: 0;
+}
+ul > li     { color: #aaa; }
+ul > li > * { color: black; }
+
+.monospaced, code, pre {
+  font-family: "Courier New", Courier, monospace;
+  font-size: inherit;
+  color: navy;
+  padding: 0;
+  margin: 0;
+}
+pre {
+  white-space: pre-wrap;
+}
+
+#author {
+  color: #527bbd;
+  font-weight: bold;
+  font-size: 1.1em;
+}
+#email {
+}
+#revnumber, #revdate, #revremark {
+}
+
+#footer {
+  font-size: small;
+  border-top: 2px solid silver;
+  padding-top: 0.5em;
+  margin-top: 4.0em;
+}
+#footer-text {
+  float: left;
+  padding-bottom: 0.5em;
+}
+#footer-badges {
+  float: right;
+  padding-bottom: 0.5em;
+}
+
+#preamble {
+  margin-top: 1.5em;
+  margin-bottom: 1.5em;
+}
+div.imageblock, div.exampleblock, div.verseblock,
+div.quoteblock, div.literalblock, div.listingblock, div.sidebarblock,
+div.admonitionblock {
+  margin-top: 1.0em;
+  margin-bottom: 1.5em;
+}
+div.admonitionblock {
+  margin-top: 2.0em;
+  margin-bottom: 2.0em;
+  margin-right: 10%;
+  color: #606060;
+}
+
+div.content { /* Block element content. */
+  padding: 0;
+}
+
+/* Block element titles. */
+div.title, caption.title {
+  color: #527bbd;
+  font-weight: bold;
+  text-align: left;
+  margin-top: 1.0em;
+  margin-bottom: 0.5em;
+}
+div.title + * {
+  margin-top: 0;
+}
+
+td div.title:first-child {
+  margin-top: 0.0em;
+}
+div.content div.title:first-child {
+  margin-top: 0.0em;
+}
+div.content + div.title {
+  margin-top: 0.0em;
+}
+
+div.sidebarblock > div.content {
+  background: #ffffee;
+  border: 1px solid #dddddd;
+  border-left: 4px solid #f0f0f0;
+  padding: 0.5em;
+}
+
+div.listingblock > div.content {
+  border: 1px solid #dddddd;
+  border-left: 5px solid #f0f0f0;
+  background: #f8f8f8;
+  padding: 0.5em;
+}
+
+div.quoteblock, div.verseblock {
+  padding-left: 1.0em;
+  margin-left: 1.0em;
+  margin-right: 10%;
+  border-left: 5px solid #f0f0f0;
+  color: #888;
+}
+
+div.quoteblock > div.attribution {
+  padding-top: 0.5em;
+  text-align: right;
+}
+
+div.verseblock > pre.content {
+  font-family: inherit;
+  font-size: inherit;
+}
+div.verseblock > div.attribution {
+  padding-top: 0.75em;
+  text-align: left;
+}
+/* DEPRECATED: Pre version 8.2.7 verse style literal block. */
+div.verseblock + div.attribution {
+  text-align: left;
+}
+
+div.admonitionblock .icon {
+  vertical-align: top;
+  font-size: 1.1em;
+  font-weight: bold;
+  text-decoration: underline;
+  color: #527bbd;
+  padding-right: 0.5em;
+}
+div.admonitionblock td.content {
+  padding-left: 0.5em;
+  border-left: 3px solid #dddddd;
+}
+
+div.exampleblock > div.content {
+  border-left: 3px solid #dddddd;
+  padding-left: 0.5em;
+}
+
+div.imageblock div.content { padding-left: 0; }
+span.image img { border-style: none; vertical-align: text-bottom; }
+a.image:visited { color: white; }
+
+dl {
+  margin-top: 0.8em;
+  margin-bottom: 0.8em;
+}
+dt {
+  margin-top: 0.5em;
+  margin-bottom: 0;
+  font-style: normal;
+  color: navy;
+}
+dd > *:first-child {
+  margin-top: 0.1em;
+}
+
+ul, ol {
+    list-style-position: outside;
+}
+ol.arabic {
+  list-style-type: decimal;
+}
+ol.loweralpha {
+  list-style-type: lower-alpha;
+}
+ol.upperalpha {
+  list-style-type: upper-alpha;
+}
+ol.lowerroman {
+  list-style-type: lower-roman;
+}
+ol.upperroman {
+  list-style-type: upper-roman;
+}
+
+div.compact ul, div.compact ol,
+div.compact p, div.compact p,
+div.compact div, div.compact div {
+  margin-top: 0.1em;
+  margin-bottom: 0.1em;
+}
+
+tfoot {
+  font-weight: bold;
+}
+td > div.verse {
+  white-space: pre;
+}
+
+div.hdlist {
+  margin-top: 0.8em;
+  margin-bottom: 0.8em;
+}
+div.hdlist tr {
+  padding-bottom: 15px;
+}
+dt.hdlist1.strong, td.hdlist1.strong {
+  font-weight: bold;
+}
+td.hdlist1 {
+  vertical-align: top;
+  font-style: normal;
+  padding-right: 0.8em;
+  color: navy;
+}
+td.hdlist2 {
+  vertical-align: top;
+}
+div.hdlist.compact tr {
+  margin: 0;
+  padding-bottom: 0;
+}
+
+.comment {
+  background: yellow;
+}
+
+.footnote, .footnoteref {
+  font-size: 0.8em;
+}
+
+span.footnote, span.footnoteref {
+  vertical-align: super;
+}
+
+#footnotes {
+  margin: 20px 0 20px 0;
+  padding: 7px 0 0 0;
+}
+
+#footnotes div.footnote {
+  margin: 0 0 5px 0;
+}
+
+#footnotes hr {
+  border: none;
+  border-top: 1px solid silver;
+  height: 1px;
+  text-align: left;
+  margin-left: 0;
+  width: 20%;
+  min-width: 100px;
+}
+
+div.colist td {
+  padding-right: 0.5em;
+  padding-bottom: 0.3em;
+  vertical-align: top;
+}
+div.colist td img {
+  margin-top: 0.3em;
+}
+
+@media print {
+  #footer-badges { display: none; }
+}
+
+#toc {
+  margin-bottom: 2.5em;
+}
+
+#toctitle {
+  color: #527bbd;
+  font-size: 1.1em;
+  font-weight: bold;
+  margin-top: 1.0em;
+  margin-bottom: 0.1em;
+}
+
+div.toclevel0, div.toclevel1, div.toclevel2, div.toclevel3, div.toclevel4 {
+  margin-top: 0;
+  margin-bottom: 0;
+}
+div.toclevel2 {
+  margin-left: 2em;
+  font-size: 0.9em;
+}
+div.toclevel3 {
+  margin-left: 4em;
+  font-size: 0.9em;
+}
+div.toclevel4 {
+  margin-left: 6em;
+  font-size: 0.9em;
+}
+
+span.aqua { color: aqua; }
+span.black { color: black; }
+span.blue { color: blue; }
+span.fuchsia { color: fuchsia; }
+span.gray { color: gray; }
+span.green { color: green; }
+span.lime { color: lime; }
+span.maroon { color: maroon; }
+span.navy { color: navy; }
+span.olive { color: olive; }
+span.purple { color: purple; }
+span.red { color: red; }
+span.silver { color: silver; }
+span.teal { color: teal; }
+span.white { color: white; }
+span.yellow { color: yellow; }
+
+span.aqua-background { background: aqua; }
+span.black-background { background: black; }
+span.blue-background { background: blue; }
+span.fuchsia-background { background: fuchsia; }
+span.gray-background { background: gray; }
+span.green-background { background: green; }
+span.lime-background { background: lime; }
+span.maroon-background { background: maroon; }
+span.navy-background { background: navy; }
+span.olive-background { background: olive; }
+span.purple-background { background: purple; }
+span.red-background { background: red; }
+span.silver-background { background: silver; }
+span.teal-background { background: teal; }
+span.white-background { background: white; }
+span.yellow-background { background: yellow; }
+
+span.big { font-size: 2em; }
+span.small { font-size: 0.6em; }
+
+span.underline { text-decoration: underline; }
+span.overline { text-decoration: overline; }
+span.line-through { text-decoration: line-through; }
+
+div.unbreakable { page-break-inside: avoid; }
+
+
+/*
+ * xhtml11 specific
+ *
+ * */
+
+div.tableblock {
+  margin-top: 1.0em;
+  margin-bottom: 1.5em;
+}
+div.tableblock > table {
+  border: 3px solid #527bbd;
+}
+thead, p.table.header {
+  font-weight: bold;
+  color: #527bbd;
+}
+p.table {
+  margin-top: 0;
+}
+/* Because the table frame attribute is overridden by CSS in most browsers. */
+div.tableblock > table[frame="void"] {
+  border-style: none;
+}
+div.tableblock > table[frame="hsides"] {
+  border-left-style: none;
+  border-right-style: none;
+}
+div.tableblock > table[frame="vsides"] {
+  border-top-style: none;
+  border-bottom-style: none;
+}
+
+
+/*
+ * html5 specific
+ *
+ * */
+
+table.tableblock {
+  margin-top: 1.0em;
+  margin-bottom: 1.5em;
+}
+thead, p.tableblock.header {
+  font-weight: bold;
+  color: #527bbd;
+}
+p.tableblock {
+  margin-top: 0;
+}
+table.tableblock {
+  border-width: 3px;
+  border-spacing: 0px;
+  border-style: solid;
+  border-color: #527bbd;
+  border-collapse: collapse;
+}
+th.tableblock, td.tableblock {
+  border-width: 1px;
+  padding: 4px;
+  border-style: solid;
+  border-color: #527bbd;
+}
+
+table.tableblock.frame-topbot {
+  border-left-style: hidden;
+  border-right-style: hidden;
+}
+table.tableblock.frame-sides {
+  border-top-style: hidden;
+  border-bottom-style: hidden;
+}
+table.tableblock.frame-none {
+  border-style: hidden;
+}
+
+th.tableblock.halign-left, td.tableblock.halign-left {
+  text-align: left;
+}
+th.tableblock.halign-center, td.tableblock.halign-center {
+  text-align: center;
+}
+th.tableblock.halign-right, td.tableblock.halign-right {
+  text-align: right;
+}
+
+th.tableblock.valign-top, td.tableblock.valign-top {
+  vertical-align: top;
+}
+th.tableblock.valign-middle, td.tableblock.valign-middle {
+  vertical-align: middle;
+}
+th.tableblock.valign-bottom, td.tableblock.valign-bottom {
+  vertical-align: bottom;
+}
+
+
+/*
+ * manpage specific
+ *
+ * */
+
+body.manpage h1 {
+  padding-top: 0.5em;
+  padding-bottom: 0.5em;
+  border-top: 2px solid silver;
+  border-bottom: 2px solid silver;
+}
+body.manpage h2 {
+  border-style: none;
+}
+body.manpage div.sectionbody {
+  margin-left: 3em;
+}
+
+@media print {
+  body.manpage div#toc { display: none; }
+}
+
+
+</style>
+<script type="text/javascript">
+/*<![CDATA[*/
+var asciidoc = {  // Namespace.
+
+/////////////////////////////////////////////////////////////////////
+// Table Of Contents generator
+/////////////////////////////////////////////////////////////////////
+
+/* Author: Mihai Bazon, September 2002
+ * http://students.infoiasi.ro/~mishoo
+ *
+ * Table Of Content generator
+ * Version: 0.4
+ *
+ * Feel free to use this script under the terms of the GNU General Public
+ * License, as long as you do not remove or alter this notice.
+ */
+
+ /* modified by Troy D. Hanson, September 2006. License: GPL */
+ /* modified by Stuart Rackham, 2006, 2009. License: GPL */
+
+// toclevels = 1..4.
+toc: function (toclevels) {
+
+  function getText(el) {
+    var text = "";
+    for (var i = el.firstChild; i != null; i = i.nextSibling) {
+      if (i.nodeType == 3 /* Node.TEXT_NODE */) // IE doesn't speak constants.
+        text += i.data;
+      else if (i.firstChild != null)
+        text += getText(i);
+    }
+    return text;
+  }
+
+  function TocEntry(el, text, toclevel) {
+    this.element = el;
+    this.text = text;
+    this.toclevel = toclevel;
+  }
+
+  function tocEntries(el, toclevels) {
+    var result = new Array;
+    var re = new RegExp('[hH]([1-'+(toclevels+1)+'])');
+    // Function that scans the DOM tree for header elements (the DOM2
+    // nodeIterator API would be a better technique but not supported by all
+    // browsers).
+    var iterate = function (el) {
+      for (var i = el.firstChild; i != null; i = i.nextSibling) {
+        if (i.nodeType == 1 /* Node.ELEMENT_NODE */) {
+          var mo = re.exec(i.tagName);
+          if (mo && (i.getAttribute("class") || i.getAttribute("className")) != "float") {
+            result[result.length] = new TocEntry(i, getText(i), mo[1]-1);
+          }
+          iterate(i);
+        }
+      }
+    }
+    iterate(el);
+    return result;
+  }
+
+  var toc = document.getElementById("toc");
+  if (!toc) {
+    return;
+  }
+
+  // Delete existing TOC entries in case we're reloading the TOC.
+  var tocEntriesToRemove = [];
+  var i;
+  for (i = 0; i < toc.childNodes.length; i++) {
+    var entry = toc.childNodes[i];
+    if (entry.nodeName.toLowerCase() == 'div'
+     && entry.getAttribute("class")
+     && entry.getAttribute("class").match(/^toclevel/))
+      tocEntriesToRemove.push(entry);
+  }
+  for (i = 0; i < tocEntriesToRemove.length; i++) {
+    toc.removeChild(tocEntriesToRemove[i]);
+  }
+
+  // Rebuild TOC entries.
+  var entries = tocEntries(document.getElementById("content"), toclevels);
+  for (var i = 0; i < entries.length; ++i) {
+    var entry = entries[i];
+    if (entry.element.id == "")
+      entry.element.id = "_toc_" + i;
+    var a = document.createElement("a");
+    a.href = "#" + entry.element.id;
+    a.appendChild(document.createTextNode(entry.text));
+    var div = document.createElement("div");
+    div.appendChild(a);
+    div.className = "toclevel" + entry.toclevel;
+    toc.appendChild(div);
+  }
+  if (entries.length == 0)
+    toc.parentNode.removeChild(toc);
+},
+
+
+/////////////////////////////////////////////////////////////////////
+// Footnotes generator
+/////////////////////////////////////////////////////////////////////
+
+/* Based on footnote generation code from:
+ * http://www.brandspankingnew.net/archive/2005/07/format_footnote.html
+ */
+
+footnotes: function () {
+  // Delete existing footnote entries in case we're reloading the footnodes.
+  var i;
+  var noteholder = document.getElementById("footnotes");
+  if (!noteholder) {
+    return;
+  }
+  var entriesToRemove = [];
+  for (i = 0; i < noteholder.childNodes.length; i++) {
+    var entry = noteholder.childNodes[i];
+    if (entry.nodeName.toLowerCase() == 'div' && entry.getAttribute("class") == "footnote")
+      entriesToRemove.push(entry);
+  }
+  for (i = 0; i < entriesToRemove.length; i++) {
+    noteholder.removeChild(entriesToRemove[i]);
+  }
+
+  // Rebuild footnote entries.
+  var cont = document.getElementById("content");
+  var spans = cont.getElementsByTagName("span");
+  var refs = {};
+  var n = 0;
+  for (i=0; i<spans.length; i++) {
+    if (spans[i].className == "footnote") {
+      n++;
+      var note = spans[i].getAttribute("data-note");
+      if (!note) {
+        // Use [\s\S] in place of . so multi-line matches work.
+        // Because JavaScript has no s (dotall) regex flag.
+        note = spans[i].innerHTML.match(/\s*\[([\s\S]*)]\s*/)[1];
+        spans[i].innerHTML =
+          "[<a id='_footnoteref_" + n + "' href='#_footnote_" + n +
+          "' title='View footnote' class='footnote'>" + n + "</a>]";
+        spans[i].setAttribute("data-note", note);
+      }
+      noteholder.innerHTML +=
+        "<div class='footnote' id='_footnote_" + n + "'>" +
+        "<a href='#_footnoteref_" + n + "' title='Return to text'>" +
+        n + "</a>. " + note + "</div>";
+      var id =spans[i].getAttribute("id");
+      if (id != null) refs["#"+id] = n;
+    }
+  }
+  if (n == 0)
+    noteholder.parentNode.removeChild(noteholder);
+  else {
+    // Process footnoterefs.
+    for (i=0; i<spans.length; i++) {
+      if (spans[i].className == "footnoteref") {
+        var href = spans[i].getElementsByTagName("a")[0].getAttribute("href");
+        href = href.match(/#.*/)[0];  // Because IE return full URL.
+        n = refs[href];
+        spans[i].innerHTML =
+          "[<a href='#_footnote_" + n +
+          "' title='View footnote' class='footnote'>" + n + "</a>]";
+      }
+    }
+  }
+},
+
+install: function(toclevels) {
+  var timerId;
+
+  function reinstall() {
+    asciidoc.footnotes();
+    if (toclevels) {
+      asciidoc.toc(toclevels);
+    }
+  }
+
+  function reinstallAndRemoveTimer() {
+    clearInterval(timerId);
+    reinstall();
+  }
+
+  timerId = setInterval(reinstall, 500);
+  if (document.addEventListener)
+    document.addEventListener("DOMContentLoaded", reinstallAndRemoveTimer, false);
+  else
+    window.onload = reinstallAndRemoveTimer;
+}
+
+}
+asciidoc.install(4);
+/*]]>*/
+</script>
+</head>
+<body class="article">
+<div id="header">
+<h1>GNU APL on Windows 11</h1>
+<div id="toc">
+  <div id="toctitle">Table of Contents</div>
+  <noscript><p><b>JavaScript must be enabled in your browser to display the table of contents.</b></p></noscript>
+</div>
+</div>
+<div id="content">
+<div class="sect1">
+<h2 id="_abstract">Abstract</h2>
+<div class="sectionbody">
+<div class="paragraph"><p>This document contains hints for installing GNU APL under Windows 11.</p></div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="_introduction">Introduction</h2>
+<div class="sectionbody">
+<div class="paragraph"><p>GNU APL has to be compiled from the GNU APL source code (in directory <strong>src</strong>).
+Many system functions of GNU APL depend on external libraries that may
+or may not be installed on the user&#8217;s machine. The <strong>./configure</strong> script of
+GNU APL determines which of these libraries are present on the user&#8217;s machine
+and compiles and links GNU APL accordingly. The multitude of available or not
+available libraries on a Windows machine makes it unfeasible to generate a
+single binary GNU APL version that accommodates all possible combinations of
+libraries.</p></div>
+<div class="paragraph"><p>On the GNU/Linux operating system, compiling GNU APL is relatively easy. The
+requirements of GNU APL on its environment - the display of APL characters
+on the screen and the generation of APL characters by the keyboard - are
+already satisfied by almost all modern GNU/Linux distribution and the missing
+pieces can easily be added via the package manager of the linux distribution.</p></div>
+<div class="paragraph"><p>Even for the latest Windows version - Windows 11 as of this writing -
+the situation is more complicated. On Windows the user has to install a
+suitable APL font to display APL characters and have a way to enter them
+from the keyboard. Both are handled by the Windows installer: it installs
+the GNU_APL font and provides built-in Right Alt (AltGr) keyboard support
+directly in <strong>apl.exe</strong>. Pressing <strong>Right Alt + key</strong> produces the corresponding
+APL character, so no additional keyboard software needs to be installed.</p></div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="_two_ways_to_get_gnu_apl_on_windows">Two Ways to Get GNU APL on Windows</h2>
+<div class="sectionbody">
+<div class="paragraph"><p>There are two distinct paths to GNU APL on Windows, depending on whether
+you just want to <strong>use</strong> it or want to <strong>build</strong> it yourself:</p></div>
+<div class="listingblock">
+<div class="content">
+<pre><code>GNU APL on Windows: which path do you need?
+│
+├─ Build it yourself
+│  │
+│  ▼
+│  ┌─────────────────────────────────────────────┐
+│  │ Fetch the source from Savannah (svn or git) │
+│  └─────────────────────────────────────────────┘
+│  │
+│  ▼
+│  ./configure --with-mingw &amp;&amp; make &amp;&amp; make install
+│  (cross-compiles apl.exe from Linux; see "For developers" below)
+│
+└─ Run a pre-built copy (no build tools needed)
+   │
+   ▼
+   ┌──────────────────────────────────────┐
+   │ Fetch an installer from a GNU mirror │
+   └──────────────────────────────────────┘
+   │
+   ├─ Need everything (apl.exe + font + library directories)
+   │  │
+   │  ▼
+   │  GNU_APL_2_0_Setup.exe   (the full installer)
+   │
+   └─ Already have apl.exe, just need the font
+      │
+      ▼
+      GNU_APL_Font_Setup.exe   (GUI installer), or
+      install_GNU_APL_font.bat (no-GUI script)</code></pre>
+</div></div>
+<div class="sect2">
+<h3 id="_for_windows_users_install_a_pre_built_release">For Windows users: install a pre-built release</h3>
+<div class="paragraph"><p>If you only want to run GNU APL and do not need to compile it yourself,
+fetch a pre-built installer from a GNU mirror (the canonical location is
+<a href="https://ftp.gnu.org/gnu/apl/">https://ftp.gnu.org/gnu/apl/</a>; see <a href="https://www.gnu.org/prep/ftp.html">https://www.gnu.org/prep/ftp.html</a> for
+the full mirror list). Two installers are provided:</p></div>
+<div class="olist arabic"><ol class="arabic">
+<li>
+<p>
+<strong>GNU_APL_2_0_Setup.exe</strong> - the full installer (the <strong>2.0</strong> is the GNU APL
+  version, so that installers for different releases can coexist on the
+  mirror). It installs <strong>apl.exe</strong>, the library directory structure
+  (<strong>workspaces</strong> and <strong>wslib1</strong> to <strong>wslib5</strong>), the default preferences file,
+  and the GNU_APL font, all under <strong>%USERPROFILE%\gnu-apl.d</strong>. No
+  administrator rights are required.
+</p>
+</li>
+<li>
+<p>
+<strong>GNU_APL_Font_Setup.exe</strong> - installs only the GNU_APL font. Use this one
+  instead of the full installer if you already have an <strong>apl.exe</strong> from
+  elsewhere (e.g. copied from another machine, or built yourself) and just
+  need the font.
+</p>
+</li>
+</ol></div>
+<div class="admonitionblock">
+<table><tr>
+<td class="icon">
+<div class="title">Note</div>
+</td>
+<td class="content">As explained in the Introduction above, <strong>apl.exe</strong> is built against
+whatever optional libraries happen to be available in the (cross-)
+compilation environment used to build it. The pre-built <strong>apl.exe</strong> on the
+GNU mirror is unlikely to have been linked against all of them, so some
+⎕-functions that depend on an optional library - for example <strong>⎕SQL</strong>
+(needs SQLite/PostgreSQL), <strong>⎕GTK</strong> and <strong>⎕PLOT</strong> (need GTK), or <strong>⎕FFT</strong>
+(needs FFTW) - may not be available in it, even though the same functions
+work fine in a GNU/Linux build where those libraries are routinely
+installed. If you need one of these, you will have to build GNU APL
+yourself with that library available; see "For developers" below.</td>
+</tr></table>
+</div>
+<div class="paragraph"><p>The full installer creates a <strong>GNU APL</strong> shortcut in the Start Menu that
+launches <strong>apl.exe</strong> with its working directory set to the install location.
+This matters: <strong>apl.exe</strong> currently looks for its library directories
+(<strong>workspaces</strong>, <strong>wslib1</strong>, etc.) relative to its current working directory,
+not relative to the location of the <strong>.exe</strong> file itself, so launching
+<strong>apl.exe</strong> directly from a different working directory will not find them.</p></div>
+<div class="paragraph"><p>The GNU_APL font installer can also be fetched directly from the GNU
+Savannah Subversion repository with a plain web browser, without needing
+an SVN or git client:</p></div>
+<div class="literalblock">
+<div class="content">
+<pre><code>http://svn.savannah.gnu.org/viewvc/apl/trunk</code></pre>
+</div></div>
+<div class="paragraph"><p>Look under <strong>support-files/fonts/</strong> for the font installer (NOTE: like any
+public server, this one occasionally returns a temporary error - e.g. a
+503 - under heavy load; if that happens, just retry later or use the GNU
+mirror above instead).</p></div>
+</div>
+<div class="sect2">
+<h3 id="_for_developers_build_from_source">For developers: build from source</h3>
+<div class="paragraph"><p>If you want to modify GNU APL, or simply prefer to build it yourself,
+fetch the sources from Savannah (Subversion is preferred; Git is also
+available) and build as usual:</p></div>
+<div class="literalblock">
+<div class="content">
+<pre><code>svn co http://svn.savannah.gnu.org/svn/apl/trunk apl-2.0</code></pre>
+</div></div>
+<div class="paragraph"><p>or</p></div>
+<div class="literalblock">
+<div class="content">
+<pre><code>git clone https://git.savannah.gnu.org/git/apl.git apl-2.0</code></pre>
+</div></div>
+<div class="paragraph"><p>then:</p></div>
+<div class="literalblock">
+<div class="content">
+<pre><code>cd apl-2.0
+./configure
+make
+make install</code></pre>
+</div></div>
+<div class="paragraph"><p>This is the same procedure used on GNU/Linux, and is also what you would
+use to build and run GNU APL <strong>on</strong> Windows itself (via Cygwin or WSL); see
+the rest of this document for the additional steps needed for that.</p></div>
+<div class="paragraph"><p>To instead <strong>cross-compile</strong> a native Windows <strong>apl.exe</strong> from a GNU/Linux
+machine (e.g. to produce the pre-built binary mentioned above), use
+<strong>--with-mingw</strong> instead of a plain <strong>./configure</strong>:</p></div>
+<div class="literalblock">
+<div class="content">
+<pre><code>./configure --with-mingw
+make</code></pre>
+</div></div>
+<div class="paragraph"><p>This presets the MinGW-w64 cross-compiler (<strong>x86_64-w64-mingw32-g++</strong>) and
+related flags, and disables libraries that are impractical to
+cross-compile (e.g. SQLite/PostgreSQL, hence no <strong>⎕SQL</strong> - see the NOTE
+above). <strong>make install</strong> does not apply when cross-compiling; the build
+just leaves a working <strong>src/apl.exe</strong>. To turn that into a release artifact
+for the GNU mirror, use one of:</p></div>
+<div class="olist arabic"><ol class="arabic">
+<li>
+<p>
+<strong>make -C src windows-release</strong> - copies <strong>apl.exe</strong> to
+  <strong>apl-2.0.exe</strong> (the <strong>2.0</strong> is the GNU APL version, so that mirrored
+  binaries from different releases do not overwrite each other).
+</p>
+</li>
+<li>
+<p>
+<strong>make windows-installer</strong> (run from the top-level source directory,
+  after placing the cross-compiled <strong>apl.exe</strong> into
+  <strong>support-files/windows-installer/</strong>) - packages <strong>apl.exe</strong> together with
+  the font and library directories into <strong>GNU_APL_2_0_Setup.exe</strong>, see
+  the top-level <strong>Makefile.am</strong> for details.
+</p>
+</li>
+</ol></div>
+</div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="_top_level_installation_procedure">Top-level Installation Procedure</h2>
+<div class="sectionbody">
+<div class="paragraph"><p>A full installation of GNU APL on Windows 11 requires essentially 3
+sub-installations:</p></div>
+<div class="olist arabic"><ol class="arabic">
+<li>
+<p>
+Installation of a development environment (compiler, linker, make),
+</p>
+</li>
+<li>
+<p>
+Installation of an APL font. This step is needed for the WSL environment,
+  but not for Cygwin.
+</p>
+</li>
+<li>
+<p>
+Installation of a keyboard mapping. This step is needed for the WSL
+  environment, but not for Cygwin.
+</p>
+</li>
+</ol></div>
+<div class="paragraph"><p>These 3 sub-installations are independent of each other and the third is
+somewhat optional (the pre-built <strong>apl.exe</strong> already has Right Alt keyboard
+support built in, so no separate keyboard mapping step is needed when using
+the installer).</p></div>
+<div class="sect2">
+<h3 id="_installation_of_a_development_environment">Installation of a development environment</h3>
+<div class="paragraph"><p>GNU APL is a standard C++ program. In theory there are 3 development
+environments that could be used to compile GNU APL:</p></div>
+<div class="olist arabic"><ol class="arabic">
+<li>
+<p>
+A native Microsoft C++ compiler (Visual Studio, Visual C++, etc.), or
+</p>
+</li>
+<li>
+<p>
+the <strong>Cygwin</strong> Environment, or
+</p>
+</li>
+<li>
+<p>
+the Microsoft <strong>WSL</strong> (aka. <strong>W</strong>indows <strong>S</strong>ubsystem for <strong>L</strong>inux)
+  Environment.
+</p>
+</li>
+</ol></div>
+<div class="paragraph"><p>The author has tested all these environments with the following results.</p></div>
+<div class="olist arabic"><ol class="arabic">
+<li>
+<p>
+The Microsoft C++ compiler failed completely. The compiler emitted thousands
+  of warnings and errors, most of them bogus. The sheer amount of warnings
+  made it impossible to get GNU APL compiled with a native C++ compiler under
+  Windows.
+</p>
+</li>
+<li>
+<p>
+The <strong>Cygwin</strong> environment works well these days. There was a short period
+  when GNU APL had problems being compiled in Cygwin, but these problems seem
+  to no longer exist. Whether the problems were related to the Windows
+  version or to the Cygwin version is not known.
+</p>
+</li>
+<li>
+<p>
+The <strong>WSL</strong> environment also works quite well. Some things that work in
+  <strong>Cygwin</strong> out-of-the-box need to be fixed in <strong>WSL</strong>, in particular the APL
+  font and the keyboard mapping.
+</p>
+</li>
+</ol></div>
+<div class="paragraph"><p>So the user has to choose between <strong>Cygwin</strong> and <strong>WSL</strong>. In the arguable
+opinion of the author:</p></div>
+<div class="olist arabic"><ol class="arabic">
+<li>
+<p>
+<strong>WSL</strong> seems to be a little more lightweight than <strong>Cygwin</strong>. If the user has
+  already installed one of them then she should go for it.
+</p>
+</li>
+<li>
+<p>
+<strong>Cygwin</strong> is a little harder to install than <strong>WSL</strong>. Also, the addition of
+  packages is a little more cumbersome in <strong>Cygwin</strong> than in <strong>WSL</strong>.
+</p>
+</li>
+<li>
+<p>
+<strong>Cygwin</strong> is fine-grained and lets you choose the version of each package
+  that you install. <strong>WSL</strong> is coarse-grained and lets you only choose the
+  GNU/Linux distribution that it tries to emulate. After that it is up to
+  the package manager of the chosen distribution to handle package versions.
+</p>
+</li>
+<li>
+<p>
+On the other hand, <strong>Cygwin</strong> seems to be a little closer to GNU/Linux than
+  <strong>WSL</strong>. In particular the fonts shipped with <strong>Cygwin</strong> support APL
+  out-of-the-box while in <strong>WSL</strong> they need to be installed and enabled in the
+  terminal emulator in which GNU APL runs.
+</p>
+</li>
+<li>
+<p>
+In older Windows and/or <strong>Cygwin</strong> versions the usual keyboard mapping
+  programs like <strong>xmodmap</strong> or <strong>compxkb</strong> also worked out-of-the-box. In the
+  current Windows 11/<strong>Cygwin</strong> they do not. For example, <strong>xmodmap</strong> reports
+  an error <em>xmodmap:  unable to open display</em>. <strong>xmodmap</strong> and <strong>compxkb</strong> also
+  fail in <strong>WSL</strong>. The reason might be the same (lack of an X server).
+</p>
+</li>
+<li>
+<p>
+Interestingly, <strong>WSL</strong> lets you choose the GNU/Linux version that it emulates.
+  But then the same GNU/Linux version that works fine on a true GNU/Linux
+  version fails under <strong>WSL</strong>. IOW <strong>WSL</strong> seems to be somewhat half-hearted
+</p>
+</li>
+</ol></div>
+<div class="sect3">
+<h4 id="_cygwin_installation">Cygwin Installation</h4>
+<div class="olist arabic"><ol class="arabic">
+<li>
+<p>
+Visit <a href="https://cygwin.org/">https://cygwin.org/</a> and follow the steps under <em>Installing Cygwin</em>.
+  Make sure that you enable the placement of icons on your desktop so that
+  you do not need to search for them later on.
+</p>
+</li>
+<li>
+<p>
+Then open the <strong>Cygwin</strong> setup program and install the following packages:
+</p>
+<div class="olist loweralpha"><ol class="loweralpha">
+<li>
+<p>
+<strong>subversion</strong> (for fetching the GNU APL sources)
+</p>
+</li>
+<li>
+<p>
+<strong>make</strong> (for building GNU APL).
+</p>
+</li>
+<li>
+<p>
+<strong>g<code></strong> (the C</code> compiler for compiling and linking GNU APL)
+</p>
+</li>
+</ol></div>
+</li>
+</ol></div>
+</div>
+<div class="sect3">
+<h4 id="_wsl_installation">WSL Installation</h4>
+<div class="olist arabic"><ol class="arabic">
+<li>
+<p>
+Open the Windows Command Prompt (i.e. <strong>cmd.exe</strong>) and enter <strong>wsl --install</strong>.
+  That should install the <strong>WSL</strong>.
+</p>
+</li>
+<li>
+<p>
+Enter <strong>bash</strong>. That should enter the <strong>WSL</strong> environment.
+</p>
+</li>
+<li>
+<p>
+Install the tools needed for fetching and compiling GNU APL:
+</p>
+<div class="olist loweralpha"><ol class="loweralpha">
+<li>
+<p>
+<strong>apt install subversion</strong>   # for fetching the GNU APL source code
+</p>
+</li>
+<li>
+<p>
+<strong>apt install make</strong>         # for building GNU APL
+</p>
+</li>
+<li>
+<p>
+<strong>apt install g++</strong>          # for compiling and linking GNU APL
+</p>
+</li>
+</ol></div>
+</li>
+<li>
+<p>
+Close the Windows Command Prompt: <strong>exit</strong>.
+</p>
+</li>
+</ol></div>
+<div class="paragraph"><p>After having installed <strong>WSL</strong>, GNU APL can be compiled as usual:</p></div>
+<div class="olist arabic"><ol class="arabic">
+<li>
+<p>
+Open the Windows Command Prompt (<strong>cmd.exe</strong>) and enter <strong>bash</strong>.
+  That should enter the <strong>WSL</strong>.
+</p>
+<div class="olist loweralpha"><ol class="loweralpha">
+<li>
+<p>
+<strong>svn co <a href="http://svn.savannah.gnu.org/svn/apl/trunk">http://svn.savannah.gnu.org/svn/apl/trunk</a> apl-2.0</strong> # fetch GNU APL
+</p>
+</li>
+<li>
+<p>
+<strong>cd apl-2.0</strong>
+</p>
+</li>
+<li>
+<p>
+<strong>./configure ALT_MAP_WANTED=1</strong>
+</p>
+</li>
+<li>
+<p>
+<strong>make</strong>
+</p>
+</li>
+<li>
+<p>
+<strong>make install</strong>
+</p>
+</li>
+</ol></div>
+</li>
+</ol></div>
+</div>
+</div>
+<div class="sect2">
+<h3 id="_installation_of_an_apl_font">Installation of an APL font</h3>
+<div class="paragraph"><p>This step is only needed for <strong>WSL</strong> and not for <strong>Cygwin</strong>.</p></div>
+<div class="paragraph"><p>The recommended font for GNU APL on Windows is <strong>GNU_APL</strong>, a TrueType font
+covering all APL characters in their standard Unicode positions. It is a
+derivative of the open-source <strong>BQN386 Unicode</strong> font (originally designed
+for the BQN programming language; see <strong>support-files/fonts/COPYRIGHT_NOTICE</strong>
+for attribution and licensing) with added glyphs (e.g. <strong>∈</strong> and <strong>⊗</strong>) and
+fixed display-width bugs for several characters that rendered too wide in
+the Windows console with the original font.</p></div>
+<div class="sect3">
+<h4 id="_step_1_install_the_font">Step 1: Install the font</h4>
+<div class="paragraph"><p>Use one of the two GNU_APL font installers described in
+"<a href="#_two_ways_to_get_gnu_apl_on_windows">Two Ways to Get GNU APL on Windows</a>" above (<strong>GNU_APL_Font_Setup.exe</strong> or
+<strong>install_GNU_APL_font.bat</strong>). Both install the font for the current user
+only, without requiring administrator privileges.</p></div>
+</div>
+<div class="sect3">
+<h4 id="_step_2_register_the_font_for_use_in_the_windows_console">Step 2: Register the font for use in the Windows console</h4>
+<div class="paragraph"><p>Windows only allows a short pre-approved list of fonts in the <strong>cmd.exe</strong>
+font picker. <strong>GNU_APL</strong> must be added to a registry key before it
+appears there (the font installers above do not do this automatically).
+This step requires administrator privileges.</p></div>
+<div class="admonitionblock">
+<table><tr>
+<td class="icon">
+<div class="title">Note</div>
+</td>
+<td class="content">The <code>Console\TrueTypeFont</code> registry key often does <strong>not</strong> exist on a
+fresh Windows installation.  The <code>reg add</code> command below creates it
+automatically if it is absent.</td>
+</tr></table>
+</div>
+<div class="paragraph"><p>Open a Command Prompt <strong>as administrator</strong> (search for <strong>cmd</strong>, right-click →
+<strong>Run as administrator</strong>) and run:</p></div>
+<div class="literalblock">
+<div class="content">
+<pre><code>reg add "HKLM\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Console\TrueTypeFont" /v 0 /t REG_SZ /d "GNU_APL" /f</code></pre>
+</div></div>
+</div>
+<div class="sect3">
+<h4 id="_step_3_select_the_font_in_cmd_exe">Step 3: Select the font in cmd.exe</h4>
+<div class="olist arabic"><ol class="arabic">
+<li>
+<p>
+Open a <strong>cmd.exe</strong> window (<strong>Win+R</strong> → type <strong>cmd</strong> → <strong>Enter</strong>).
+</p>
+</li>
+<li>
+<p>
+Right-click the title bar and choose <strong>Properties</strong>.
+</p>
+</li>
+<li>
+<p>
+Select the <strong>Font</strong> tab.
+</p>
+</li>
+<li>
+<p>
+In the font list, choose <strong>GNU_APL</strong>.
+</p>
+</li>
+<li>
+<p>
+Choose a size large enough to distinguish APL characters - <strong>14pt</strong> is
+  the minimum for that, <strong>18pt</strong> is more comfortable.
+</p>
+</li>
+<li>
+<p>
+Click <strong>OK</strong>.
+</p>
+</li>
+</ol></div>
+<div class="paragraph"><p>To make the selection permanent for all future <strong>cmd.exe</strong> windows, use
+<strong>Defaults</strong> instead of <strong>Properties</strong> in step 2, or when prompted choose
+<strong>Modify shortcut that started this window</strong>.</p></div>
+<div class="admonitionblock">
+<table><tr>
+<td class="icon">
+<div class="title">Note</div>
+</td>
+<td class="content">An index of alternative APL fonts (in case GNU_APL does not suit
+your needs) is maintained at <a href="https://sigapl.org/fonts/FontsIndex.php">https://sigapl.org/fonts/FontsIndex.php</a></td>
+</tr></table>
+</div>
+</div>
+</div>
+<div class="sect2">
+<h3 id="_installation_of_a_keyboard_mapping">Installation of a keyboard mapping</h3>
+<div class="paragraph"><p>At this point you have a working GNU APL interpreter. APL characters can
+be entered in several ways:</p></div>
+<div class="olist arabic"><ol class="arabic">
+<li>
+<p>
+<strong>Right Alt + key</strong> (the primary method in the pre-built <strong>apl.exe</strong>).
+  The <strong>Right Alt</strong> key (sometimes labelled <strong>AltGr</strong> on European keyboards) is
+  used as the APL shift key. Holding <strong>Right Alt</strong> and pressing a letter or
+  punctuation key produces the corresponding APL character.  For example,
+  <strong>Right Alt + r</strong> gives <strong>⍴</strong>, <strong>Right Alt + i</strong> gives <strong>⍳</strong>, and so on.
+  The layout follows the standard GNU APL keyboard (see <strong>]KEYB</strong> inside APL).
+  This mapping is built into <strong>apl.exe</strong> itself and requires no additional
+  software or administrator rights.
+</p>
+</li>
+<li>
+<p>
+<strong>Copying and pasting</strong> APL characters (Ctrl+C / Ctrl+V). The command
+  <strong>]KEYB</strong> inside APL displays the keyboard layout; you can copy characters
+  from it. The command <strong>]AV</strong> prints the entire APL character set (<strong>⎕AV</strong>)
+  and is useful for characters not shown by <strong>]KEYB</strong>.
+</p>
+</li>
+<li>
+<p>
+<strong>Running APL scripts or workspaces</strong>. The <strong>)LOAD</strong>, <strong>)COPY</strong>, and <strong>OFF</strong>
+  commands need no APL characters and work without any keyboard mapping.
+</p>
+</li>
+<li>
+<p>
+<strong>The built-in Ctrl+O / Ctrl+N mapper</strong> (secondary method, described
+  below).
+</p>
+</li>
+</ol></div>
+</div>
+<div class="sect2">
+<h3 id="_the_gnu_apl_built_in_ascii_to_apl_mapper">The GNU APL Built-in ASCII to APL Mapper</h3>
+<div class="paragraph"><p>In addition to the Right Alt mapping above, GNU APL provides a second
+mechanism based on ASCII control characters, recalling how APL characters
+were entered on 1970s terminals:</p></div>
+<div class="olist arabic"><ol class="arabic">
+<li>
+<p>
+Typing <code>^O</code> (Windows) or <code>^A</code> (Linux/macOS) maps the <strong>next</strong> character
+  typed to APL.
+</p>
+</li>
+<li>
+<p>
+Typing <code>^N</code> toggles a permanent APL mode: all subsequent characters are
+  mapped to APL until <code>^N</code> is typed again.
+</p>
+</li>
+</ol></div>
+<div class="admonitionblock">
+<table><tr>
+<td class="icon">
+<div class="title">Note</div>
+</td>
+<td class="content">On Windows, <code>^O</code> is used as the single-character trigger instead of
+<code>^A</code>, because the Windows 10/11 console intercepts <code>^A</code> as "select all"
+before GNU APL sees it.</td>
+</tr></table>
+</div>
+<div class="paragraph"><p>Both the Right Alt mapping and the <code>^O</code>/<code>^N</code> mapper are enabled in the
+pre-built <strong>apl.exe</strong> (compiled with <strong>ALT_MAP_WANTED=1</strong>). They use profile 1,
+which maps a US keyboard to the standard GNU APL layout (map <strong>r</strong> to <strong>⍴</strong>,
+<strong>i</strong> to <strong>⍳</strong>, and so on). To build with a different profile or to define your
+own mapping, see <strong>src/LineInput.cc</strong> and search for <strong>cfg_ALT_MAP_WANTED</strong>.</p></div>
+<div class="paragraph"><p>When building from source, enable the mapper with:</p></div>
+<div class="literalblock">
+<div class="content">
+<pre><code>./configure ALT_MAP_WANTED=1</code></pre>
+</div></div>
+</div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="_building_the_windows_installer">Appendix A: Building the Windows Installer</h2>
+<div class="sectionbody">
+<div class="paragraph"><p>This appendix is for GNU APL maintainers who need to cross-compile the
+Windows installer on a Linux host using MinGW.</p></div>
+<div class="paragraph"><p>The build uses two SVN working copies side by side:</p></div>
+<div class="ulist"><ul>
+<li>
+<p>
+<strong>LEFT window</strong>: <code>~/apl-2.0/</code> — source edits, SVN commits
+</p>
+</li>
+<li>
+<p>
+<strong>RIGHT window</strong>: <code>~/mingw-apl/</code> — MinGW cross-compilation, installer build
+</p>
+</li>
+</ul></div>
+<div class="paragraph"><p>The binary is cross-compiled in the RIGHT window.
+The workspace library and NSIS script live in the LEFT window.
+<code>make windows-release</code> in the RIGHT window drives the whole process.</p></div>
+<div class="paragraph"><p><code>apl.exe</code> links statically against <code>libgcc</code>/<code>libstdc++</code> but requires
+<code>libwinpthread-1.dll</code> at runtime (bundled by the installer).
+Windows system DLLs (<code>KERNEL32</code>, <code>WS2_32</code>, <code>msvcrt</code>) are always present.</p></div>
+<div class="sect2">
+<h3 id="_step_1_commit_changes_left_window_only_when_code_was_changed">Step 1 — Commit changes (LEFT window, only when code was changed)</h3>
+<div class="listingblock">
+<div class="content"></div></div>
+</div>
+<div class="sect2">
+<h3 id="_step_2_update_and_reconfigure_right_window_only_after_step_1">Step 2 — Update and reconfigure (RIGHT window, only after Step 1)</h3>
+<div class="listingblock">
+<div class="content"></div></div>
+<div class="paragraph"><p><code>ALT_MAP_WANTED=1</code> enables the <code>^O</code> (map next char) / <code>^N</code> (toggle map-all)
+APL keyboard input shortcuts.</p></div>
+<div class="paragraph"><p>The two <code>sed</code> lines fix libtool 2.4.6 cross-compilation bugs:</p></div>
+<div class="olist arabic"><ol class="arabic">
+<li>
+<p>
+The lt-wrapper template does not include <code>&lt;process.h&gt;</code>/<code>&lt;io.h&gt;</code> for
+  <code>\__MINGW32__</code> (only for <code>_MSC_VER</code>), causing <code>_P_WAIT</code> undeclared errors.
+</p>
+</li>
+<li>
+<p>
+The wrapper is compiled with <code>$LTCC</code> (native gcc) instead of <code>$CC</code> (the
+  cross-compiler), so Windows-specific headers are not found.
+</p>
+</li>
+</ol></div>
+<div class="paragraph"><p>Both must be re-applied after every <code>./configure</code> run.</p></div>
+</div>
+<div class="sect2">
+<h3 id="_step_3_force_relink_right_window_only_after_configure_changes">Step 3 — Force relink (RIGHT window, only after configure changes)</h3>
+<div class="listingblock">
+<div class="content"></div></div>
+<div class="paragraph"><p><code>make</code> only relinks when source files change, not when linker flags change.
+Removing <code>src/.libs/apl.exe</code> forces the full libtool link step; without it
+libtool may skip relinking and <code>src/apl-2.0.exe</code> (the file copied into the
+installer) will never be created.
+Skip this step if only APL workspace files were edited.</p></div>
+</div>
+<div class="sect2">
+<h3 id="_step_4_build_the_installer_right_window">Step 4 — Build the installer (RIGHT window)</h3>
+<div class="listingblock">
+<div class="content"></div></div>
+<div class="paragraph"><p>This does everything automatically:</p></div>
+<div class="ulist"><ul>
+<li>
+<p>
+compiles <code>src/apl.exe</code> and <code>src/apl-2.0.exe</code>
+</p>
+</li>
+<li>
+<p>
+copies <code>src/apl-2.0.exe</code> into <code>support-files/windows-installer/</code>
+</p>
+</li>
+<li>
+<p>
+stages workspaces, runs <code>makensis</code>, and copies the finished installer
+  here as <code>GNU_APL_2_0_Setup.exe</code>
+</p>
+</li>
+</ul></div>
+</div>
+<div class="sect2">
+<h3 id="_step_5_transfer_and_test_windows">Step 5 — Transfer and test (Windows)</h3>
+<div class="paragraph"><p>Copy <code>~/mingw-apl/GNU_APL_2_0_Setup.exe</code> to Windows and run it.
+The installer requires no administrator rights and installs to
+<code>%USERPROFILE%\gnu-apl.d\</code>.</p></div>
+<div class="paragraph"><p>Quick smoke test in the APL session:</p></div>
+<div class="listingblock">
+<div class="content"></div></div>
+<div class="paragraph"><p><code>)lib</code> should list <code>wslib1</code> through <code>wslib5</code>; <code>)copy 3 meta</code> tests the
+library path via <code>wslib3/meta.apl</code>; the last line reads back system variables.</p></div>
+</div>
+</div>
+</div>
+</div>
+<div id="footnotes"><hr /></div>
+<div id="footer">
+<div id="footer-text">
+Last updated
+ 2026-06-26 16:04:26 CEST
+</div>
+</div>
+</body>
+</html>

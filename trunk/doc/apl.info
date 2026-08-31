@@ -16,7 +16,7 @@ File: apl.info,  Node: Top,  Next: Installing and Starting GNU APL,  Up: (dir)
 GNU APL Reference Manual
 ************************
 
-August 19, 2026.  This manual briefly documents GNU APL, an interpreter
+August 31, 2026.  This manual briefly documents GNU APL, an interpreter
 for APL as described in ISO standard 13751, aka.  "Programming Language
 APL, Extended".
 
@@ -10311,7 +10311,9 @@ File: apl.info,  Node: Test 1 - Binding strength of [],  Next: Test 2 - Binding 
            ⍝ Test 1c.
            ⍝
            'abc'[b][2]
-     b
+     VALUE ERROR
+           'abc'[b][2]
+                  ^
 
    Test 1a: no surprise.  [] has the strongest binding and raises a RANK
 ERROR when indexing the scalar 3.
@@ -12455,25 +12457,25 @@ Node: Standardization441091
 Node: Quotes from the lrm441598
 Node: Some APL2 Tests443757
 Node: Test 1 - Binding strength of []444174
-Node: Test 2 - Binding strength of the left operand445014
-Node: Definitions449795
-Node: Unexpected Stranding452820
-Node: GNU APL Vector Notation461586
-Node: GNU APL Project Structure467574
-Node: The sub-directory src469102
-Node: The sub-directory support-files470474
-Node: The sub-directory doc470893
-Node: The sub-directory HOWTOs471197
-Node: The sub-directories workspaces and wslib2 ... wslib5471942
-Node: The sub-directory m4472502
-Node: The sub-directories debian and debian_tmp473374
-Node: The sub-directory tools473871
-Node: Libraries Contributed by GNU APL Users474334
-Node: The GNU APL Community Webpage474811
-Node: Core Libraries475548
-Node: Licenses for this GNU APL Manual and for GNU APL476429
-Node: The GNU Free Documentation License476974
-Node: The GNU GENERAL PUBLIC LICENSE502368
+Node: Test 2 - Binding strength of the left operand445067
+Node: Definitions449848
+Node: Unexpected Stranding452873
+Node: GNU APL Vector Notation461639
+Node: GNU APL Project Structure467627
+Node: The sub-directory src469155
+Node: The sub-directory support-files470527
+Node: The sub-directory doc470946
+Node: The sub-directory HOWTOs471250
+Node: The sub-directories workspaces and wslib2 ... wslib5471995
+Node: The sub-directory m4472555
+Node: The sub-directories debian and debian_tmp473427
+Node: The sub-directory tools473924
+Node: Libraries Contributed by GNU APL Users474387
+Node: The GNU APL Community Webpage474864
+Node: Core Libraries475601
+Node: Licenses for this GNU APL Manual and for GNU APL476482
+Node: The GNU Free Documentation License477027
+Node: The GNU GENERAL PUBLIC LICENSE502421
 
 End Tag Table
 

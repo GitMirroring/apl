@@ -1,0 +1,811 @@
+/*
+    This file is part of GNU APL, a free implementation of the
+    ISO/IEC Standard 13751, "Programming Language APL, Extended"
+
+    Copyright © 2008-2026  Dr. Jürgen Sauermann
+
+    This program is free software: you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation, either version 3 of the License, or
+    (at your option) any later version.
+
+    This program is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU General Public License for more details.
+
+    You should have received a copy of the GNU General Public License
+    along with this program.  If not, see <http://www.gnu.org/licenses/>.
+*/
+
+/** @file
+*/
+
+#ifndef __BIF_F12_DOMINO_HH_DEFINED__
+#define __BIF_F12_DOMINO_HH_DEFINED__
+
+#include "Assert.hh"
+#include "Common.hh"
+#include "PrimitiveFunction.hh"
+
+//════════════════════════════════════════════════════════════════════════════
+/** primitive functions matrix divide and matrix inverti (and a number
+    of nonstandard GNMNU APL functions 
+ */
+/// The class implementing ⌹.
+class Bif_F12_DOMINO : public NonscalarFunction_default_identity
+{
+public:
+   /// Constructor
+   Bif_F12_DOMINO();
+
+   /// overloaded Function::eval_B()
+   /// @param B right argument APL value
+   virtual Token eval_B(cValue_R B) const;
+
+   /// overloaded Function::eval_XB()
+   /// @param X axis specification value
+   /// @param B right argument APL value
+   virtual Token eval_XB(cValue_R X, cValue_R B) const;
+
+   /// overloaded Function::eval_AXB()
+   /// @param A left argument APL value
+   /// @param X axis specification value
+   /// @param B right argument APL value
+   virtual Token eval_AXB(cValue_R A, cValue_R X, cValue_R B) const;
+
+   /// overloaded NonscalarFunction_default_identity::eval_identity_fun().
+   /// Figure 28 (apl2lrm.txt p.212): the identity item for ⌹ is
+   /// ⊂(0 0⍴prototype-of-B) -- a scalar containing an empty 0×0 matrix
+   /// (degenerate since an entirely empty B gives no basis to infer any
+   /// other matrix size), unlike ⍴/⍉/↑/,'s plain ⊂B.
+   virtual Token eval_identity_fun(cValue_R B, sAxis axis) const
+      {
+        Value_P M(0, 0, LOC);
+        M->set_default(B, LOC);
+        M->check_value(LOC);
+        return enclosed_identity(*M);
+      }
+
+   /// overloaded Function::eval_AB()
+   /// @param A left argument APL value
+   /// @param B right argument APL value
+   virtual Token eval_AB(cValue_R A, cValue_R B) const;
+
+   static Bif_F12_DOMINO  fun;   ///< Built-in function
+
+   /// overloaded Function::eval_fill_B()
+   /// @param B right argument APL value
+   virtual Token eval_fill_B(cValue_R B) const;
+
+   /// overloaded Function::eval_fill_AB()
+   /// @param A left argument APL value
+   /// @param B right argument APL value
+   virtual Token eval_fill_AB(cValue_R A, cValue_R B) const;
+
+protected:
+   /// a mapping between function names and function numbers
+   static const FunctionGroup::function_info subfunction_infos[];
+
+   /// overloaded FunctionGroup::print_fun_syntax()
+   /// @param out output stream to write to
+   /// @param info function descriptor entry
+  virtual void print_fun_syntax(ostream & out,
+                                const function_info & info) const;
+
+   /// overloaded FunctionGroup::print_map_syntax()
+   /// @param out output stream to write to
+   /// @param info function descriptor entry
+   virtual void print_map_syntax(ostream & out,
+                                 const function_info & info) const;
+
+   /// compute the Q matrix of B = QR
+   /// @param Z output value to receive the Q matrix
+   /// @param need_complex true if complex arithmetic is required
+   /// @param rows number of matrix rows
+   /// @param cols number of matrix columns
+   /// @param B source value containing the input ravel
+   /// @param idx starting index into B's ravel
+   /// @param EPS epsilon tolerance for near-zero detection
+   static void QR_Helzer(Value_P Z, bool need_complex, ShapeItem rows,
+                         ShapeItem cols, cValue_R B, ShapeItem idx, double EPS);
+
+   /// compute the householder transformation Q of B = QR
+   /// @param B input/output matrix data buffer
+   /// @param rows number of matrix rows
+   /// @param cols number of matrix columns
+   /// @param Q output buffer for the Q orthogonal matrix
+   /// @param Q1 scratch buffer for intermediate Q factor
+   /// @param R output buffer for the R upper-triangular matrix
+   /// @param S scratch buffer used during computation
+   /// @param EPS epsilon tolerance for near-zero detection
+   template<bool cplx>
+   static double * householder(double * B, ShapeItem rows, ShapeItem cols,
+                           double * Q, double * Q1, double * R, double * S,
+                           double EPS);
+
+   /// return the polynomial B with indeterminant A as APL string
+   /// @param A value providing the indeterminant name(s)
+   /// @param B coefficient array of the polynomial
+   static Value_P print_polynomial(const cValue & A, const cValue & B);
+
+   /// return the polynomial B with indeterminant A as APL string
+   /// @param vars vector of variable name strings
+   /// @param B coefficient array of the polynomial
+   static UCS_string print_polynomial(const UCS_string_vector & vars,
+                                      const cValue & B);
+
+   /// return the polynomial B with indeterminant 'x' as APL string
+   /// @param B coefficient array of the polynomial
+   static Value_P print_polynomial(const cValue & B);
+
+   /// return the product A×B of polynomilals A and B
+   /// @param A left polynomial coefficient array
+   /// @param B right polynomial coefficient array
+   static Value_P polynomial_product(const cValue & A, const cValue & B);
+
+   /// return the quotient A÷B of polynomilals A and B (1 indeterminant)
+   /// @param A dividend polynomial coefficient array
+   /// @param B divisor polynomial coefficient array
+   static Value_P poly_quotient(const cValue & A, const cValue & B);
+
+   /// return the quotient A÷B of polynomilals A and B (with orders)
+   /// @param A dividend polynomial coefficient array
+   /// @param B divisor polynomial coefficient array
+   /// @param optional_order_A optional order override for A (may be null)
+   /// @param optional_order_B optional order override for B (may be null)
+   static Value_P poly_quotient_NO(const cValue & A, const cValue & B,
+                                   const cValue * optional_order_A,
+                                   const cValue * optional_order_B);
+
+   /// return the quotient A÷B of polynomilals A and B
+   /// @param A dividend polynomial coefficient array
+   /// @param B divisor polynomial coefficient array
+   static Value_P poly_quotient_N(const cValue & A, const cValue & B);
+
+   /// return the polynomial B with indeterminant 'x' as APL string
+   /// @param A value providing the indeterminant name(s)
+   /// @param B coefficient array of the polynomial
+   static Value_P scan_polynomial(const cValue & A, const cValue & B);
+
+   /// return the polynomial B with indeterminant 'x' as APL string
+   /// @param B coefficient array of the polynomial
+   static Value_P scan_polynomial(const cValue & B);
+
+   /// return the polynomial B with indeterminant A as APL string
+   /// @param vars vector of variable name strings
+   /// @param B coefficient array of the polynomial
+   static Value_P scan_polynomial(const UCS_string_vector & vars,
+                                  const cValue & B);
+
+   /// run (python-) script \b script with command line arguments \b args
+   /// @param script path or name of the script to execute
+   /// @param args command-line arguments passed to the script
+   /// @param result output lines collected from the script's stdout
+   static void run_script(const UTF8_string & script, const UTF8_string & args,
+                          UCS_string_vector & result);
+
+   /// return the integral for B.
+   /// @param A optional integration bounds or variable (may be null)
+   /// @param B polynomial coefficient array to integrate
+   static Value_P integral(const cValue * A, const cValue & B);
+
+   /// initialize complex D from V.get_cravel(idx..idx+count-1)
+   /// @param V source value
+   /// @param idx starting index into V's ravel
+   /// @param D destination double buffer (interleaved real/imag pairs)
+   /// @param count number of cells to copy
+   static void setup_complex_B(cValue_R V, ShapeItem idx, double * D,
+                                ShapeItem count);
+
+   /// initialize real D from V.get_cravel(idx..idx+count-1)
+   /// @param V source value
+   /// @param idx starting index into V's ravel
+   /// @param D destination double buffer
+   /// @param count number of cells to copy
+   static void setup_real_B(cValue_R V, ShapeItem idx, double * D,
+                             ShapeItem count);
+
+   /** a real or complex matrix. Unlike "normal" matrices where the matrix rows
+       are adjacent, this matrix class separates the number of columns and the
+       distance between column elements in order to avoid unnecessary copies of
+       sub matrices (which are frequent in householder transformations).
+
+       Also, the matrix does no memory allocation but operates on a double *
+       provided in the constructor.
+    **/
+
+    /// different norm varieties
+    struct norm_result
+       {
+         double norm2_real;     ///< sum of the squares of the real parts
+         double norm2_imag;     ///< sum of the squares of the imag parts
+         double norm_real;      ///< sqrt(this->norm2_real)
+         double norm_imag;      ///< sqrt(this->norm2_imag)
+         double norm__2_real;   ///< 2.0 ÷ this->norm_real
+         double norm__2_imag;   ///< 2.0 ÷ this->norm_imag
+       };
+
+   /// Matrix is a helper class that makes a plain double * look like
+   /// a real (cplx = false) or complex (cplx = true) matrix.
+public:
+   template<bool cplx>
+   class Matrix
+     {
+       public:
+       enum { dpi = cplx ? 2 : 1 };   ///< doubles per item
+
+       /// check that cond is true
+//     void matrix_assert(bool cond) const {}
+#define matrix_assert(x) Assert(x)
+
+       /// constructor: M×N matrix with the default vertical item spacings dY
+       /// @param pdata pointer to the backing double array
+       /// @param uM number of rows
+       /// @param uN number of columns
+       Matrix(double * pdata, ShapeItem uM, ShapeItem uN)
+       : data(pdata),
+         M(uM),
+         N(uN),
+         dY(dpi*uN)
+       {}
+
+       /// constructor: M×1 matrix (aka. column vector) from a matrix column
+       /// @param pdata pointer to the backing double array
+       /// @param uM number of rows
+       /// @param uN number of columns
+       /// @param udY vertical stride in doubles between successive rows
+       Matrix(double * pdata, ShapeItem uM, ShapeItem uN, ShapeItem udY)
+       : data(pdata),
+         M(uM),
+         N(uN),
+         dY(udY)
+       {}
+
+       /// transpose the upper left M×M submatrix of this matrix
+       /// @param M size of the square submatrix to transpose
+       inline void transpose(ShapeItem M);
+
+       /// set this matrix to A +.× B
+       /// @param src_A left matrix operand
+       /// @param src_B right matrix operand
+       inline void init_inner_product(const Matrix<cplx> & src_A,
+                                      const Matrix<cplx> & src_B);
+
+       /// resize a (nulti-purpose) matrix to size M×N
+       /// @param M new number of rows
+       /// @param N new number of columns
+       inline void resize(ShapeItem M, ShapeItem N)
+          { this->M = M;   this->N = N;   dY = dpi*N; }
+
+       /// return the real part of A[x;y]
+       /// @param y row index (0-based)
+       /// @param x column index (0-based)
+       double & real(ShapeItem y, ShapeItem x)
+          {
+             matrix_assert(x >= 0);
+             matrix_assert(x <  N);
+             matrix_assert(y >= 0);
+             matrix_assert(y <  M);
+             return data[x*dpi + y*dY];
+          }
+
+       /// initialize this matrix to the identity matrix
+       /// @param rows size of the square identity matrix to initialize
+       inline void init_identity(ShapeItem rows);
+
+       /// imbed matrix S into this matrix
+       /// @param S smaller matrix to embed in the lower-right corner
+       inline void imbed(const Matrix<cplx> & S);
+
+       /// initialize this matrix to be the outer product of the first
+       /// column of src with itself
+       /// @param scale precomputed norm values used as scaling factors
+       /// @param src source matrix whose first column is used
+       inline void init_outer_product(const norm_result & scale,
+                                      const Matrix<cplx> & src);
+
+       /// assign matrix other to this matrix
+       /// @param other source matrix to copy from
+       inline void operator =(const Matrix<cplx> & other);
+
+       /// return the elements of matrix 1 1↓this
+       inline double * drop_1_1()
+          { data = data + dpi*(N + 1);   // uses old N; must run before N--
+            --M;
+            --N;                         // dY (stride) is unchanged
+            return data; }
+
+       /// return the real part of A[x;y]
+       /// @param y row index (0-based)
+       /// @param x column index (0-based)
+       const double & real(ShapeItem y, ShapeItem x) const
+          {
+             matrix_assert(x >= 0);   matrix_assert(x <  N);
+             matrix_assert(y >= 0);   matrix_assert(y <  M);
+             return data[x*dpi + y*dY];
+          }
+
+       /// return the imaginary part of A[x;y]
+       /// @param y row index (0-based)
+       /// @param x column index (0-based)
+       double & imag(ShapeItem y, ShapeItem x)
+          {
+             matrix_assert(x >= 0);   matrix_assert(x <  N);
+             matrix_assert(y >= 0);   matrix_assert(y <  M);
+             return data[x*dpi + y*dY + 1];
+          }
+
+       /// return the imaginary part of A[x;y]
+       /// @param y row index (0-based)
+       /// @param x column index (0-based)
+       const double & imag(ShapeItem y, ShapeItem x) const
+          {
+             matrix_assert(x >= 0);   matrix_assert(x <  N);
+             matrix_assert(y >= 0);   matrix_assert(y <  M);
+             return data[x*dpi + y*dY + 1];
+          }
+
+       /// return the complex number at row y, column x of this matrix
+       /// @param y row index (0-based)
+       /// @param x column index (0-based)
+       inline complex<double> get_Z(ShapeItem y, ShapeItem x) const
+          {
+             matrix_assert(x >= 0);   matrix_assert(x <  N);
+             matrix_assert(y >= 0);   matrix_assert(y <  M);
+             const ShapeItem offset = x*dpi + y*dY;
+             return complex<double>(data[offset], data[offset + 1]);
+          }
+
+       /// set the complex number at row y, column x of this matrix
+       /// @param y row index (0-based)
+       /// @param x column index (0-based)
+       /// @param val complex value to store
+       inline void set_Z(ShapeItem y, ShapeItem x, complex<double> val)
+          {
+             matrix_assert(x >= 0);   matrix_assert(x <  N);
+             matrix_assert(y >= 0);   matrix_assert(y <  M);
+             const ShapeItem offset = x*dpi + y*dY;
+             data[offset]     = val.real();
+             data[offset + 1] = val.imag();
+          }
+
+       /// subtract val from the matrix element at row y, column x.
+       /// @param y row index (0-based)
+       /// @param x column index (0-based)
+       /// @param val complex value to subtract
+       inline void sub_Z(ShapeItem y, ShapeItem x, complex<double> val)
+          {
+             matrix_assert(x >= 0);   matrix_assert(x <  N);
+             matrix_assert(y >= 0);   matrix_assert(y <  M);
+             const ShapeItem offset = x*dpi + y*dY;
+             data[offset]     -= val.real();
+             data[offset + 1] -= val.imag();
+          }
+
+       /// divide the matrix element at row y, col x by val.
+       /// @param y row index (0-based)
+       /// @param x column index (0-based)
+       /// @param val complex divisor
+       inline void div_Z(ShapeItem y, ShapeItem x, complex<double> val)
+          {
+             matrix_assert(x >= 0);   matrix_assert(x <  N);
+             matrix_assert(y >= 0);   matrix_assert(y <  M);
+             const ShapeItem offset = x*dpi + y*dY;
+             const complex<double> quot =
+                         complex<double>(data[offset], data[offset + 1]) / val;
+             data[offset]     = quot.real();
+             data[offset + 1] = quot.imag();
+          }
+
+       /// true if this matrix is significant with respect to bmax and eps
+       /// @param bmax reference maximum value for the significance test
+       /// @param eps absolute epsilon tolerance
+       inline bool significant(double bmax, double eps) const
+          {
+            const double bmax_eps = bmax + eps;
+            const double diff = bmax - bmax_eps;
+            const double diff2 = diff * diff;   // square diff since abs2 is
+            for (ShapeItem y = 1; y < M; ++y)
+                {
+                  // column 0, matching col1_norm() above (also "column 1"
+                  // in 1-based terms); the old "abs2(y,1)" read column 1
+                  // instead. The old two-sided check (abs<diff2 OR
+                  // abs>diff2) was true for any abs != diff2, including
+                  // abs==0 (i.e. "non-zero" for an actually-zero item) --
+                  // only a value close to bmax's own scale is genuinely
+                  // insignificant, so this must be one-sided.
+                  if (abs2(y, 0) > diff2)   return true;   // non-zero
+                }
+
+            return false;   // all items below A[0;0] are (close to) 0
+          }
+
+       /// return the square of the length of the item at row x column y
+       /// @param y row index (0-based)
+       /// @param x column index (0-based)
+       inline double abs2(ShapeItem y, ShapeItem x) const;
+
+       /// add or subtract val to/from a so that the result has the largest
+       /// length.
+       /// @param V11 pointer to the value to be adjusted in place
+       /// @param W11 pointer to the reference value
+       static inline void add_sub(double * V11, const double * W11);
+
+       /// return the lengts of the first column(-vector) in different forms
+       /// @param result structure to receive the computed norm values
+       inline void col1_norm(norm_result & result) const;
+
+       /// print this matrix boxed with name
+       /// @param name label string printed above the matrix
+       void debug(const char * name) const;
+
+       protected:
+       /// the matrix elements
+       double * data;
+
+       public:
+       /// the number of matrix rows
+       ShapeItem M;
+
+       /// the number of matrix columns
+       ShapeItem N;
+
+       /// the distance (in doubles) between  A[i;j] and A[i+1;j]
+       ShapeItem dY;
+     };
+};
+//════════════════════════════════════════════════════════════════════════════
+/// compute norm variants of column 1 of \b this real marix
+template<>
+inline void
+Bif_F12_DOMINO::Matrix<false>::col1_norm(norm_result & result) const
+{
+double sum = 0;
+
+   loop(y, M)
+       {
+         const double r = real(y, 0);
+         sum += r*r;
+       }
+   result.norm2_real   = sum;
+   result.norm2_imag   = 0;
+   result.norm_real     = sqrt(sum);
+   result.norm_imag    = 0;
+
+   result.norm__2_real = 2.0 / result.norm2_real;
+   result.norm__2_imag = 0.0;
+}
+//────────────────────────────────────────────────────────────────────────────
+/// compute norm variants of column 1 of \b this complex marix
+template<>
+inline void
+Bif_F12_DOMINO::Matrix<true>::col1_norm(norm_result & result) const
+{
+double sum_real = 0;
+double sum_imag = 0;
+
+   loop(y, M)
+       {
+         const double r = real(y, 0);
+         const double i = imag(y, 0);
+         sum_real += r*r - i*i;
+         sum_imag += 2*r*i;
+       }
+
+const complex<double> sum(sum_real, sum_imag);
+   result.norm2_real = sum.real();
+   result.norm2_imag = sum.imag();
+const complex<double> root = sqrt(sum);
+   result.norm_real  = root.real();
+   result.norm_imag  = root.imag();
+
+const complex<double> _2__sum = 2.0 / sum;
+   result.norm__2_real = _2__sum.real();
+   result.norm__2_imag = _2__sum.imag();
+}
+//────────────────────────────────────────────────────────────────────────────
+/// compute the square of the real item at row y, columns x
+template<>
+inline double
+Bif_F12_DOMINO::Matrix<false>::abs2(ShapeItem y, ShapeItem x) const
+{
+const ShapeItem b = x*dpi + y*dY;
+   return data[b]*data[b];
+}
+//────────────────────────────────────────────────────────────────────────────
+/// compute the square of the complex item at row y, columns x
+template<>
+inline double
+Bif_F12_DOMINO::Matrix<true>::abs2(ShapeItem y, ShapeItem x) const
+{
+const ShapeItem b = x*dpi + y*dY;
+   return data[b]*data[b] + data[b+1]*data[b+1];
+}
+//────────────────────────────────────────────────────────────────────────────
+/// increase real *W11 by +/- real *V11
+template<>
+inline void
+Bif_F12_DOMINO::Matrix<false>::add_sub(double * V11, const double * W11)
+{
+double w11 = *W11;
+   if (w11 < 0.0)   w11 = -w11;   // make w11 positive
+   if (*V11 < 0)      *V11 -= w11;
+   else               *V11 += w11;
+}
+//────────────────────────────────────────────────────────────────────────────
+/// increase complex *W11 by +/- complex *V11
+template<>
+inline void
+Bif_F12_DOMINO::Matrix<true>::add_sub(double * V11, const double * W11)
+{
+bool add = false;
+   if      (V11[0] >= 0 && W11[0] >= 0)   add = true;
+   else if (V11[0] < 0  && W11[0] < 0)    add = true;
+
+   if (add)   { V11[0] += W11[0];   V11[1] += W11[1]; }
+   else       { V11[0] -= W11[0];   V11[1] -= W11[1]; }
+}
+//────────────────────────────────────────────────────────────────────────────
+/// increase complex *W11 by +/- *V11
+template<>
+inline void Bif_F12_DOMINO::Matrix<false>::init_identity(ShapeItem rows)
+{
+   matrix_assert(rows == M);
+   matrix_assert(rows == N);
+
+   // off-diagonal elements...
+   //
+   loop(y, rows) loop(x, y)   real(x, y) = real(y, x) = 0.0;
+
+   // diagonal elements...
+   //
+   loop(y, rows)              real(y, y) = 1.0;
+}
+//────────────────────────────────────────────────────────────────────────────
+/// initialize \b this complex matrix to the unit matrix
+template<>
+inline void Bif_F12_DOMINO::Matrix<true>::init_identity(ShapeItem rows)
+{
+   matrix_assert(rows == M);
+   matrix_assert(rows == N);
+
+   // off-diagonal elements...
+   //
+   loop(y, rows) loop(x, y)
+       real(x, y) = real(y, x) = imag(x, y) = imag(y, x) = 0.0;
+
+   // diagonal elements...
+   //
+   loop(y, rows)   { real(y, y) = 1.0;   imag(y, y) = 0.0; }
+}
+//────────────────────────────────────────────────────────────────────────────
+/// insert S into \b this real matrix
+template<>
+inline void Bif_F12_DOMINO::Matrix<false>::imbed(const Matrix<false>& S)
+{
+   matrix_assert(  M ==   N);   // Qi is quadratic (N×N)
+   matrix_assert(S.M == S.N);   // S  is quadratic (M×M)
+   matrix_assert(S.M <=   M);   // S is smaller than Qi
+
+const ShapeItem iN = M - S.M;   // the number of rows and columns from ID N
+
+   loop(y, M)
+   loop(x, N)
+      {
+         if (y < iN || x < iN)         // upper row or left col: init from ID N
+            real(x, y) = real(y, x) = 0.0;
+         else                          // lower row and right col: init from S
+            real(y, x) = S.real(y - iN, x - iN);
+      }
+
+   // upper diagonal
+   //
+   loop(y, iN)   real(y,y) = 1.0;
+}
+//────────────────────────────────────────────────────────────────────────────
+/// insert S into \b this complex matrix
+template<>
+inline void Bif_F12_DOMINO::Matrix<true>::imbed(const Matrix<true>& S)
+{
+   matrix_assert(  M ==   N);   // Qi is quadratic (N×N)
+   matrix_assert(S.M == S.N);   // S  is quadratic (M×M)
+   matrix_assert(S.M <=   M);   // S is smaller than Qi
+
+const ShapeItem iN = M - S.M;   // the number of rows and columns from ID N
+
+   loop(y, M)
+      {
+         if (y < iN)   // upper row: init from identity matrix
+            {
+              loop(x, N)   real(y, x) = imag(y, x) = 0.0;
+              real(y, y) = 1.0;   // diagonal
+            }
+         else          // lower row: maybe init from S
+            {
+              loop(x, N)
+                  {
+                    if (x < iN)   // left columns: init from identity matrix
+                       real(y, x) = imag(y, x) = 0.0;
+                    else          // right columns: init from S
+                       {
+                         real(y, x) = S.real(y - iN, x - iN);
+                         imag(y, x) = S.imag(y - iN, x - iN);
+                       }
+                  }
+            }
+      }
+}
+//────────────────────────────────────────────────────────────────────────────
+/// initialize this real matrix to be the outer product of the first
+/// column of the real matrix \b src with itself
+template<>
+inline void
+Bif_F12_DOMINO::Matrix<false>::init_outer_product(const norm_result & scale,
+                                                  const Matrix<false> & src)
+{
+   // the resulting matrix is symmetric, so we can take advantage of that
+   // by computing every value only once,
+   //
+   matrix_assert(M == N);
+
+   // off-diagonal elements...
+   //
+   for (ShapeItem y = 1; y < M; ++y)   // for every row below the first
+   loop(x, y)                          // for every column left of the diagonal
+       real(x, y) = real(y, x)
+                  = scale.norm__2_real * src.real(y, 0) * src.real(x, 0);
+
+   // diagonal elements...
+   //
+   loop(y, M)
+       real(y, y) = scale.norm__2_real * src.real(y, 0) * src.real(y, 0);
+
+}
+//────────────────────────────────────────────────────────────────────────────
+/// initialize this complex matrix to be the outer product of the first
+/// column of the complex matrix \b src with itself
+template<>
+inline void
+Bif_F12_DOMINO::Matrix<true>::init_outer_product(const norm_result & scale,
+                                                 const Matrix<true> & src)
+{
+   // the resulting matrix is symmetric, so we can take advantage of that
+   // by computing every value only once,
+   //
+   matrix_assert(M == N);
+
+const complex<double> sc(scale.norm__2_real, scale.norm__2_imag);
+
+   // off-diagonal elements...
+   //
+   for (ShapeItem y = 1; y < M; ++y)   // for every row below the first
+   loop(x, y)                          // for every column left of the diagonal
+       {
+         const complex<double> sx(src.real(x, 0), src.imag(x, 0));
+         const complex<double> sy(src.real(y, 0), src.imag(y, 0));
+         const complex<double> prod = sc*sx*sy;
+         real(x, y) = real(y, x) = prod.real();
+         imag(x, y) = imag(y, x) = prod.imag();
+       }
+
+   // diagonal elements...
+   //
+   loop(y, M)
+       {
+         const complex<double> sd(src.real(y, 0), src.imag(y, 0));
+         const complex<double> prod = sc*sd*sd;
+         real(y, y) = prod.real();
+         imag(y, y) = prod.imag();
+       }
+}
+//────────────────────────────────────────────────────────────────────────────
+/// assign real matrix src to this real matrix
+template<>
+inline void
+Bif_F12_DOMINO::Matrix<false>::operator =(const Matrix<false> & src)
+{
+   matrix_assert(M == src.M);
+   matrix_assert(N == src.N);
+   loop(y, src.M) loop(x, src.N)
+       {
+         real(y, x) = src.real(y, x);
+       }
+}
+//────────────────────────────────────────────────────────────────────────────
+/// assign complex matrix src to this complex matrix
+template<>
+inline void
+Bif_F12_DOMINO::Matrix<true>::operator =(const Matrix<true> & src)
+{
+   matrix_assert(M == src.M);
+   matrix_assert(N == src.N);
+   M = src.M;
+   N = src.N;
+   dY = dpi*N;
+   loop(y, src.M) loop(x, src.N)
+       {
+         real(y, x) = src.real(y, x);
+         imag(y, x) = src.imag(y, x);
+       }
+}
+//────────────────────────────────────────────────────────────────────────────
+/// set this matrix to A +.× B
+template<>
+inline void
+Bif_F12_DOMINO::Matrix<false>::init_inner_product(const Matrix<false> & src_A,
+                                                  const Matrix<false> & src_B)
+{
+const ShapeItem Z = src_A.N;
+   matrix_assert(M == src_A.M);
+   matrix_assert(N == src_B.N);
+   matrix_assert(Z == src_A.N);
+   matrix_assert(Z == src_B.M);
+
+   loop(y, src_A.M)   // for every row of src_A
+   loop(x, src_B.N)   // for every column of src_B
+       {
+         double sum = 0.0;
+         loop(z, Z)   sum += src_A.real(y, z) * src_B.real(z, x);
+         real(y, x) = sum;
+       }
+}
+//────────────────────────────────────────────────────────────────────────────
+/// set this matrix to A +.× B
+template<>
+inline void
+Bif_F12_DOMINO::Matrix<true>::init_inner_product(const Matrix<true> & src_A,
+                                                 const Matrix<true> & src_B)
+{
+const ShapeItem Z = src_A.N;
+   matrix_assert(M == src_A.M);
+   matrix_assert(N == src_B.N);
+   matrix_assert(Z == src_A.N);
+   matrix_assert(Z == src_B.M);
+   M = src_A.M;
+   N = src_B.N;
+   dY = dpi*N;
+
+   loop(y, src_A.M)   // for every row y of src_A
+   loop(x, src_B.N)   // for every column x of src_B
+       {
+         complex<double> sum(0.0, 0.0);
+         loop(z, Z)
+             {
+               const complex<double> row_a(src_A.real(y, z), src_A.imag(y, z));
+               const complex<double> col_b(src_B.real(z, x), src_B.imag(z, x));
+                 sum += row_a * col_b;
+             }
+         real(y, x) = sum.real();
+         imag(y, x) = sum.imag();
+       }
+}
+//────────────────────────────────────────────────────────────────────────────
+/// transpose the upper left M×M submatrix of this real matrix
+template<>
+inline void
+Bif_F12_DOMINO::Matrix<false>::transpose(ShapeItem M)
+{
+   for (ShapeItem y = 1; y < M; ++y)   // for every row below the first
+   loop(x, y)                          // for every column left of the diagonal
+      {
+        double r = real(y, x); real(y, x) = real(x, y); real(x, y) = r;
+      }
+}
+//────────────────────────────────────────────────────────────────────────────
+/// transpose the upper left M×M submatrix of this complex matrix
+template<>
+inline void
+Bif_F12_DOMINO::Matrix<true>::transpose(ShapeItem M)
+{
+   for (ShapeItem y = 1; y < M; ++y)   // for every row below the first
+   loop(x, y)                          // for every column left of the diagonal
+      {
+        double t = real(y, x);   real(y, x) = real(x, y);   real(x, y) = t;
+               t = imag(y, x);   imag(y, x) = imag(x, y);   imag(x, y) = t;
+      }
+}
+//────────────────────────────────────────────────────────────────────────────
+
+#endif // __BIF_F12_DOMINO_HH_DEFINED__
+

@@ -1,0 +1,498 @@
+
+# NOTE: without 'no-dependencies' make target distclean won't work.
+# AUTOMAKE_OPTIONS = no-dependencies
+
+# integral.py is a support script that ⌹ (matrix divide, see Bif_F12_DOMINO.cc)
+# pipes through python3.  It is data, not an executable, so it is installed
+# below $(pkgdatadir) rather than in $(bindir).  PythonPipe.cc locates it via
+# apl_DIR__pkgdata (from config.h, i.e. ./configure --datarootdir).
+dist_pkgdata_DATA = integral.py
+
+EXTRA_DIRS =
+if ! apl_TARGET_ANDROID
+EXTRA_DIRS += APs sql workspaces
+
+EXTRA_DIRS += emacs_mode
+endif
+
+if apl_TARGET_MINGW
+SUBDIRS = $(EXTRA_DIRS)
+else
+SUBDIRS = native $(EXTRA_DIRS)
+endif
+
+EXTRA_apl_SOURCES = 
+plot_SOURCES = Plot_ascii.cc
+if apl_GTK3
+SUBDIRS += Gtk	# for ⎕GTK
+   plot_SOURCES      += Plot_gtk.cc
+   plot_CXXFLAGS     = -Wno-parentheses
+else
+   EXTRA_apl_SOURCES += Plot_gtk.cc
+endif
+
+if apl_XCB
+   plot_SOURCES      += Plot_xcb.cc
+else
+   EXTRA_apl_SOURCES += Plot_xcb.cc
+endif
+
+if apl_TARGET_MINGW
+   plot_SOURCES      += Plot_win32.cc
+else
+   EXTRA_apl_SOURCES += Plot_win32.cc
+endif
+
+dist_noinst_DATA = valgrind.supp rval.def
+
+# testcase-debugging helpers: not installed, but shipped in the source
+# tarball so they are available wherever the tree is (see plan.txt).
+# Automated_Test_Report.sh narrows a 'make test'/'make test3' failure down to a
+# minimal reproducing subset of testcases; verify_TM3_exit.sh is its
+# regression test (--TM 3 abnormal-exit-code guarantee, see
+# Error_macros.hh's fixme_exit_code()).
+dist_noinst_SCRIPTS = Automated_Test_Report.sh verify_TM3_exit.sh
+
+DIST_SUBDIRS = $(SUBDIRS) testcases
+
+datadir = @datadir@
+localedir = $(datadir)/locale
+host_os = @host_os@
+
+# common means common to the apl and libapl builds
+#
+common_CXXFLAGS = -Wall -O2 $(plot_CXXFLAGS) -I $(srcdir)/sql -I $(abs_top_srcdir) $(CXX_WERROR)
+common_CXXFLAGS += $(GTK_CFLAGS) $(GTK_LIBS)
+common_CXXFLAGS += $(PYTHON_CFLAGS)
+common_LDFLAGS  = -L/usr/local/lib -export-dynamic $(GTK_LDFLAGS)
+
+common_SOURCES  = $(plot_SOURCES) 
+common_SOURCES +=										../config.h
+common_SOURCES +=										APL_Float_as_class.hh
+common_SOURCES +=										APL_types.hh
+common_SOURCES +=										APL_enums.hh
+common_SOURCES += Archive.cc							Archive.hh
+common_SOURCES +=										ArgCheck.hh
+common_SOURCES +=										ArrayIterator.hh
+common_SOURCES += Assert.cc								Assert.hh
+common_SOURCES += Avec.cc				Avec.def		Avec.hh
+common_SOURCES += Backtrace.cc							Backtrace.hh
+common_SOURCES += Bif_F0_ZILDE.cc						Bif_F0_ZILDE.hh
+common_SOURCES += Bif_F12_COMMA.cc						Bif_F12_COMMA.hh
+common_SOURCES += Bif_F12_DOMINO.cc						Bif_F12_DOMINO.hh
+common_SOURCES += Bif_F12_ELEMENT.cc						Bif_F12_ELEMENT.hh
+common_SOURCES += Bif_F12_ENCODE_DECODE.cc				Bif_F12_ENCODE_DECODE.hh
+common_SOURCES += Bif_F12_EQUIV.cc						Bif_F12_EQUIV.hh
+common_SOURCES += Bif_F12_INDEX_OF.cc					Bif_F12_INDEX_OF.hh
+common_SOURCES += Bif_F12_INTERVAL_INDEX.cc				Bif_F12_INTERVAL_INDEX.hh
+common_SOURCES += Bif_F12_FORMAT.cc						Bif_F12_FORMAT.hh
+common_SOURCES += Bif_F12_PARTITION_PICK.cc				Bif_F12_PARTITION_PICK.hh
+common_SOURCES += Bif_F12_RHO.cc						Bif_F12_RHO.hh
+common_SOURCES += Bif_F12_ROTATE.cc						Bif_F12_ROTATE.hh
+common_SOURCES += Bif_F12_SORT.cc						Bif_F12_SORT.hh
+common_SOURCES += Bif_F12_TAKE_DROP.cc					Bif_F12_TAKE_DROP.hh
+common_SOURCES += Bif_F12_TRANSPOSE.cc					Bif_F12_TRANSPOSE.hh
+common_SOURCES += Bif_F12_UNION_INTER.cc					Bif_F12_UNION_INTER.hh
+common_SOURCES += Bif_F1_EXECUTE.cc						Bif_F1_EXECUTE.hh
+common_SOURCES += Bif_F2_INDEX.cc						Bif_F2_INDEX.hh
+common_SOURCES += Bif_F2_LEFT_RIGHT.cc					Bif_F2_LEFT_RIGHT.hh
+common_SOURCES += Bif_OPER1_COMMUTE.cc					Bif_OPER1_COMMUTE.hh
+common_SOURCES += Bif_OPER1_EACH.cc						Bif_OPER1_EACH.hh
+common_SOURCES += Bif_OPER2_POWER.cc					Bif_OPER2_POWER.hh
+common_SOURCES += Bif_OPER2_INNER.cc					Bif_OPER2_INNER.hh
+common_SOURCES += Bif_OPER2_OUTER.cc					Bif_OPER2_OUTER.hh
+common_SOURCES += Bif_OPER2_RANK.cc						Bif_OPER2_RANK.hh
+common_SOURCES += Bif_OPER1_REDUCE.cc					Bif_OPER1_REDUCE.hh
+common_SOURCES += Bif_OPER1_SCAN.cc						Bif_OPER1_SCAN.hh
+common_SOURCES += CDR.cc								CDR.hh
+common_SOURCES +=										CRC32.hh
+common_SOURCES += Cell.cc			Cell.icc			Cell.hh
+common_SOURCES += Cmd_KEYB.cc
+common_SOURCES += Cmd_LIB.cc
+common_SOURCES += Cmd_IN.cc
+common_SOURCES += Cmd_DIAG.cc							Cmd_DIAG.hh
+common_SOURCES += Cmd_HELP.cc							Cmd_HELP.hh
+common_SOURCES += Cmd_HOST.cc							Cmd_HOST.hh
+common_SOURCES += Cmd_LISTING.cc						Cmd_LISTING.hh
+common_SOURCES += Cmd_SESSION.cc						Cmd_SESSION.hh
+common_SOURCES += Cmd_SI.cc							Cmd_SI.hh
+common_SOURCES += Cmd_USERCMD.cc						Cmd_USERCMD.hh
+common_SOURCES += Cmd_WS.cc							Cmd_WS.hh
+common_SOURCES += Doxy.cc								Doxy.hh
+common_SOURCES += CharCell.cc							CharCell.hh
+common_SOURCES += Command.cc		Command.def			Command.hh
+common_SOURCES += Common.cc								Common.hh
+common_SOURCES += ComplexCell.cc						ComplexCell.hh
+common_SOURCES += 										ConstCell_P.hh
+common_SOURCES += DerivedFunction.cc					DerivedFunction.hh
+common_SOURCES += DiffOut.cc							DiffOut.hh
+common_SOURCES += DynamicObject.cc						DynamicObject.hh
+common_SOURCES += Error.cc			Error.def			Error.hh
+common_SOURCES +=										Error_macros.hh
+common_SOURCES +=										ErrorCode.hh
+common_SOURCES += Executable.cc							Executable.hh
+common_SOURCES += 										FileBuffers.hh
+common_SOURCES += FloatCell.cc							FloatCell.hh
+common_SOURCES +=					Focus.icc
+common_SOURCES += Function.cc							Function.hh
+common_SOURCES +=					Help.def
+common_SOURCES +=										Heapsort.hh
+common_SOURCES +=Id.cc				Id.def				Id.hh
+common_SOURCES +=										IdEnums.hh
+common_SOURCES += IndexExpr.cc							IndexExpr.hh
+common_SOURCES += IndexIterator.cc						IndexIterator.hh
+common_SOURCES += InputFile.cc							InputFile.hh
+common_SOURCES += IntCell.cc							IntCell.hh
+common_SOURCES += IO_Files.cc							IO_Files.hh
+common_SOURCES += LApack.cc			LAdebug.icc			LApack.hh
+common_SOURCES += LibPaths.cc							LibPaths.hh
+common_SOURCES += LineInput.cc							LineInput.hh
+common_SOURCES += Logging.cc		Logging.def			Logging.hh
+common_SOURCES += LvalCell.cc							LvalCell.hh
+common_SOURCES += Malloc_hooks.cc
+common_SOURCES += Nabla.cc								Nabla.hh
+common_SOURCES += Macro.cc			Macro.def			Macro.hh
+common_SOURCES += Missing_Libraries.cc
+common_SOURCES += NamedObject.cc						NamedObject.hh
+common_SOURCES += NativeFunction.cc						NativeFunction.hh
+common_SOURCES += 										Native_interface.hh
+common_SOURCES += NumericCell.cc	NumericCell.icc		NumericCell.hh
+common_SOURCES += Output.cc								Output.hh
+common_SOURCES += 										PJob.hh
+common_SOURCES += Parallel.cc							Parallel.hh
+common_SOURCES += Parser.cc								Parser.hh
+common_SOURCES += Performance.cc	Performance.def		Performance.hh
+common_SOURCES += PointerCell.cc						PointerCell.hh
+common_SOURCES += Prefix.cc			Prefix.def			Prefix.hh
+common_SOURCES += Plot_line_properties.cc				Plot_line_properties.hh
+common_SOURCES += Plot_data.cc							Plot_data.hh
+common_SOURCES += Plot_window_properties.cc				Plot_window_properties.hh
+common_SOURCES += 										PrimitiveFunction.hh
+common_SOURCES += 										PrimitiveOperator.hh
+common_SOURCES += PrintBuffer.cc						PrintBuffer.hh
+common_SOURCES += 										PrintContext.hh
+common_SOURCES += Polynomial.cc							Polynomial.hh
+common_SOURCES += 										PrintOperator.hh
+common_SOURCES += PythonPipe.cc							PythonPipe.hh
+common_SOURCES += QR_factorization_GSL.cc               QR_factorization_GSL.hh
+common_SOURCES += QuadFunction.cc						QuadFunction.hh
+common_SOURCES += ProcessorID.cc						ProcessorID.hh
+common_SOURCES += Quad_CC.cc							Quad_CC.hh
+common_SOURCES += Quad_CR.cc		Quad_CR.def			Quad_CR.hh
+common_SOURCES += Quad_DLX.cc							Quad_DLX.hh
+common_SOURCES += Quad_FFT.cc							Quad_FFT.hh
+common_SOURCES += Quad_FIO.cc		Quad_FIO.def		Quad_FIO.hh
+common_SOURCES += Quad_FX.cc							Quad_FX.hh
+common_SOURCES += Quad_GTK.cc							Quad_GTK.hh
+common_SOURCES += Quad_JSON.cc							Quad_JSON.hh
+common_SOURCES += Quad_MAP.cc							Quad_MAP.hh
+common_SOURCES += Quad_MX.cc		Quad_MX.def			Quad_MX.hh
+common_SOURCES += Quad_PLOT.cc		Quad_PLOT.def		Quad_PLOT.hh
+common_SOURCES += Quad_PNG.cc							Quad_PNG.hh
+common_SOURCES += Quad_RE.cc							Quad_RE.hh
+common_SOURCES += Quad_RL.cc							Quad_RL.hh
+common_SOURCES += Quad_RVAL.cc							Quad_RVAL.hh
+common_SOURCES += Quad_SQL.cc							Quad_SQL.hh
+common_SOURCES += Quad_SVx.cc							Quad_SVx.hh
+common_SOURCES += Quad_TF.cc							Quad_TF.hh
+common_SOURCES += Quad_WA.cc							Quad_WA.hh
+common_SOURCES += Quad_XML.cc							Quad_XML.hh
+common_SOURCES += RealCell.cc							RealCell.hh
+common_SOURCES += sbrk.cc
+common_SOURCES += Shape.cc					    		Shape.hh
+common_SOURCES += ScalarFunction.cc						ScalarFunction.hh
+common_SOURCES +=									ScalarOps.hh
+common_SOURCES += Security.cc		Security.def		Security.hh
+common_SOURCES += StateIndicator.cc						StateIndicator.hh
+common_SOURCES += Svar_DB.cc							Svar_DB.hh
+common_SOURCES += Svar_record.cc						Svar_record.hh
+common_SOURCES += tcp_signal.m4		Svar_signals.def	Svar_signals.hh
+common_SOURCES += Symbol.cc					    		Symbol.hh
+common_SOURCES += SymbolTable.cc						SymbolTable.hh
+common_SOURCES += 					SystemLimits.def	SystemLimits.hh
+common_SOURCES += Sys.cc 								Sys.hh
+common_SOURCES += SystemVariable.cc	SystemVariable.def	SystemVariable.hh
+common_SOURCES += TabExpansion.cc						TabExpansion.hh
+common_SOURCES += Thread_context.cc						Thread_context.hh
+common_SOURCES += Token.cc			Token.def			Token.hh
+common_SOURCES += Token_string.cc						Token_string.hh
+common_SOURCES += 						        		TokenEnums.hh
+common_SOURCES += Tokenizer.cc							Tokenizer.hh
+common_SOURCES += 						        		u8_string.hh
+common_SOURCES += UCS_string.cc							UCS_string.hh
+common_SOURCES += UCS_string_vector.cc					UCS_string_vector.hh
+common_SOURCES += 						        		Unicode.hh
+common_SOURCES += UserFunction.cc						UserFunction.hh
+common_SOURCES += UserFunction_header.cc				UserFunction_header.hh
+common_SOURCES += UserPreferences.cc					UserPreferences.hh
+common_SOURCES += UTF8_string.cc						UTF8_string.hh
+common_SOURCES += Ravel.cc								Ravel.hh
+common_SOURCES += Value.cc		Value.icc				Value.hh
+common_SOURCES += cValue.cc
+common_SOURCES += 			    Value_P.icc				Value_P.hh
+common_SOURCES += ValueHistory.cc						ValueHistory.hh
+common_SOURCES += Workspace.cc	Workspace.icc			Workspace.hh
+common_SOURCES += static_Objects.cc						static_Objects.hh
+
+if apl_PCRE
+common_SOURCES += Regexp.cc								Regexp.hh
+endif
+
+# Quad_SQL.cc (⎕SQL) is compiled unconditionally and includes
+# sql/Connection.hh regardless of which (if any) database backend is
+# configured. Connection.hh declares replace_bind_args() non-inline, so
+# its definition in sql/Connection.cc is Connection's vtable/typeinfo
+# key function (Connection.{hh,cc} need neither library, so this is
+# always safe to compile). Without it, a build with neither backend
+# fails to link with "undefined reference to typeinfo for Connection"
+# (Blake McBride, Bugs14 #13); it used to be compiled only as a side
+# effect of enabling one of the two backends below.
+common_SOURCES += sql/Connection.cc
+
+if apl_SQLITE3
+common_CXXFLAGS += $(SQLITE3_CFLAGS)
+common_LDFLAGS  += $(SQLITE3_LDFLAGS)
+common_SOURCES  += sql/SqliteArgListBuilder.cc			sql/SqliteArgListBuilder.hh
+common_SOURCES += sql/SqliteConnection.cc				sql/SqliteConnection.hh
+common_SOURCES += sql/SqliteResultValue.cc				sql/SqliteResultValue.hh
+common_SOURCES += sql/SqliteProvider.cc					sql/SqliteProvider.hh
+endif
+
+if apl_POSTGRES
+common_CXXFLAGS += $(POSTGRESQL_CFLAGS)
+common_LDFLAGS  += $(POSTGRESQL_LDFLAGS)
+common_SOURCES += sql/PostgresArgListBuilder.cc 		sql/PostgresArgListBuilder.hh
+common_SOURCES += sql/PostgresConnection.cc     		sql/PostgresConnection.hh
+common_SOURCES += sql/PostgresProvider.cc       		sql/PostgresProvider.hh
+endif
+
+pkglib_LTLIBRARIES =
+if apl_TARGET_LIBAPL
+pkglib_LTLIBRARIES += libapl.la
+pkginclude_HEADERS = libapl.h Error.def
+libapl_la_SOURCES = $(common_SOURCES) libapl.h libapl.cc
+libapl_la_LDFLAGS = $(common_LDFLAGS)
+libapl_la_LDFLAGS += -avoid-version
+# libapl_la_LDFLAGS += -module
+# libapl_la_LDFLAGS += -shared
+# libapl_la_LDFLAGS += -export-dynamic
+libapl_la_CXXFLAGS = $(common_CXXFLAGS)
+libapl_la_CXXFLAGS += $(GCOV_WANTED) $(GPROF_WANTED) $(CXX_RDYNAMIC)
+
+# pkg-config support for libapl.so, so that external programs embedding
+# it (see README-2-configure's --with-libapl / init_libapl() section) can
+# find its CFLAGS/LIBS via `pkg-config --cflags --libs libapl` instead of
+# hard-coding $(pkgincludedir)/$(pkglibdir). libapl.pc itself is always
+# generated by ./configure (see configure.ac's AC_CONFIG_FILES), but only
+# installed here, i.e. when libapl.so itself is actually built.
+#
+pkgconfigdir = $(libdir)/pkgconfig
+pkgconfig_DATA = libapl.pc
+
+else
+if apl_TARGET_PYTHON
+
+pkglib_LTLIBRARIES += lib_gnu_apl.la
+lib_gnu_apl_la_SOURCES   = $(common_SOURCES) python_apl.cc
+lib_gnu_apl_la_LDFLAGS   = $(common_LDFLAGS)
+lib_gnu_apl_la_LDFLAGS  += -avoid-version
+lib_gnu_apl_la_CXXFLAGS  = $(common_CXXFLAGS)
+lib_gnu_apl_la_CXXFLAGS += $(GCOV_WANTED) $(GPROF_WANTED) $(CXX_RDYNAMIC)
+lib_gnu_apl_la_CXXFLAGS += -DNDEBUG
+lib_gnu_apl_la_CXXFLAGS += -D_FORTIFY_SOURCE=2
+lib_gnu_apl_la_CXXFLAGS += -fwrapv
+lib_gnu_apl_la_CXXFLAGS += -fPIC
+lib_gnu_apl_la_CXXFLAGS += -fstack-protector
+lib_gnu_apl_la_CXXFLAGS += --param=ssp-buffer-size=4
+lib_gnu_apl_la_CXXFLAGS += -I/usr/include/python3.6m   # server68
+lib_gnu_apl_la_CXXFLAGS += -I/usr/include/python3.12   # server72
+
+else
+
+bin_PROGRAMS = apl
+apl_SOURCES = main.cc $(common_SOURCES)
+apl_CXXFLAGS = $(common_CXXFLAGS)
+apl_CXXFLAGS += $(GCOV_WANTED) $(GPROF_WANTED) $(CXX_RDYNAMIC)
+apl_LDFLAGS = $(common_LDFLAGS)
+if apl_TARGET_MINGW
+# Cross-compiled Windows binary: suppress libtool's lt-apl.c wrapper, which
+# uses _spawnv/_P_WAIT without including <process.h> and fails to compile.
+apl_LDFLAGS += -no-install
+endif
+
+endif
+endif
+
+# normally we would say:
+#
+# Svar_signals.hh: Svar_signals.def tcp_signal.m4
+#
+# but what if m4 is missing? So we explicitly 'make update-svar_signals'
+# when Svar_signals.def or tcp_signal.m4 have changed (which rarely happens)
+#
+.PHONY:	update-svar_signals
+update-svar_signals:
+	m4 -D protocol=Svar_signals tcp_signal.m4 > Svar_signals.hh
+
+apl_LDADD = $(LIBS)
+
+apl.lines: apl
+	objdump --section=.text --line-numbers --disassemble $< > $@
+
+apl.lines1: ../tools/filter_apl_lines apl.lines
+	../tools/filter_apl_lines < apl.lines > $@
+
+apl.lines2:	../tools/filter_apl_lines2 apl
+	objdump --line-numbers --dwarf=decodedline ./apl \
+	| ../tools/filter_apl_lines2 | sort | uniq > $@
+
+# All test* targets below run with HOME pointed at a fresh, empty scratch
+# directory (removed afterwards) rather than the developer's real $HOME:
+# a $HOME/.gnu-apl/preferences with e.g. DISCARD-INDENTATION or LIBREF-0
+# set changes ⎕FX/⎕CR/∇ and )COPY behaviour, which invalidates the
+# expected output baked into several testcases and makes results
+# non-reproducible across developer machines (Blake McBride, Bugs6 #8).
+
+# run all testcases, continue after errors
+#
+# NB: the glob is *\.tc (escaped dot), not *tc -- an unescaped *tc also
+# matches any stray non-.tc file ending in "tc" (e.g. a typo'd filename
+# with a comma instead of a period), silently running it as its own
+# testcase against whatever stale content it happens to contain.
+test: all
+	H=$$(mktemp -d); HOME=$$H ./apl --id 1010 -T testcases/*\.tc; \
+	RC=$$?; rm -rf "$$H"; exit $$RC
+
+# run all testcases, stop after the first error
+test1: all
+	H=$$(mktemp -d); HOME=$$H ./apl --id 1010 --TM 3 -T testcases/*\.tc; \
+	RC=$$?; rm -rf "$$H"; exit $$RC
+
+test2: all
+	H=$$(mktemp -d); HOME=$$H ./apl --id 1010 --TR -T testcases/*\.tc; \
+	RC=$$?; rm -rf "$$H"; exit $$RC
+
+# run testcases related to APs
+testAP: all
+	H=$$(mktemp -d); HOME=$$H ./apl --id 1010 -T testcases/AP*\.tc; \
+	RC=$$?; rm -rf "$$H"; exit $$RC
+
+# run the ⎕GTK TLV round-trip regression test (requires X display and GTK support)
+testGTK: all
+	H=$$(mktemp -d); HOME=$$H ./apl --id 1010 -T testcases/ZZ02_GTK.tc; \
+	RC=$$?; rm -rf "$$H"; exit $$RC
+
+# run all testcases, except slow ones
+test3: all
+	H=$$(mktemp -d); \
+	HOME=$$H ./apl --id 1010 -T testcases_3/*\.tc; \
+	RC=$$?; rm -rf "$$H"; stty sane; \
+	if [ $$RC -ne 0 ]; then \
+	  D=/tmp/apl-test3-$$(date +%Y%m%d_%H%M%S); \
+	  mkdir "$$D"; \
+	  cp testcases_3/summary.log "$$D/"; \
+	  awk '$$1+0>0 && NF==4 {print $$4 ".log"}' testcases_3/summary.log \
+	    | xargs -r cp -t "$$D"; \
+	  echo "$(MAKE): $$RC failure(s) -- logs saved to $$D"; \
+	fi
+
+# run only invariant testcases
+test4: all
+	H=$$(mktemp -d); HOME=$$H ./apl --id 1010 -T testcases/invariants/*\.tc || true; \
+	rm -rf "$$H"
+	stty sane
+
+# Create/refresh testcases_3/ and testcases_4/ symlink directories from ⍝@ markers.
+# install-data-hook calls this so 'make install' (typically run as root, e.g.
+# 'sudo make install' -- needed for /etc and friends) sets them up; chown
+# restores ownership to match the src directory so the symlinks stay owned
+# by the actual user, not root. This must run LAST: it used to run before
+# the ln -sf loops below, so it could only fix ownership of entries that
+# already existed -- any symlink created or refreshed by those loops
+# afterward was left root-owned again, since the recipe is still running
+# under the same 'sudo make install' invocation at that point.
+.PHONY:	install-testlinks
+install-data-hook: install-testlinks
+install-testlinks:
+	$(MKDIR_P) testcases_3 testcases_4
+	for f in testcases/*.tc; do \
+	  name=$$(basename "$$f"); \
+	  if head -10 "$$f" | grep -q '@ test3\.'; then \
+	    ln -sf "../testcases/$$name" "testcases_3/$$name"; \
+	  fi; \
+	  if head -10 "$$f" | grep -q '@ test4\.'; then \
+	    ln -sf "../testcases/$$name" "testcases_4/$$name"; \
+	  fi; \
+	done
+	for f in testcases/invariants/*.tc; do \
+	  name=$$(basename "$$f"); \
+	  if head -10 "$$f" | grep -q '@ test4\.'; then \
+	    ln -sf "../testcases/invariants/$$name" "testcases_4/$$name"; \
+	  fi; \
+	done
+	chown -R "$$(stat -c '%u:%g' .)" testcases_3 testcases_4
+
+# Bootstrap testcases_3/ from scratch (same ⍝@ test3. marker selection as
+# install-testlinks above), for a fresh checkout/tarball that cannot
+# portably carry symlinks in SVN/git. Unlike install-testlinks -- which
+# always refreshes, and only ever runs as a side effect of 'make install'
+# (typically as root) -- this is meant to be run directly and is a strict
+# no-op if testcases_3 already exists, so it never touches or refreshes a
+# directory that is already set up (and possibly hand-modified since).
+.PHONY:	test3_symlinks
+test3_symlinks:
+	if [ -d testcases_3 ]; then \
+	  echo "test3_symlinks: testcases_3 already exists, doing nothing"; \
+	else \
+	  $(MKDIR_P) testcases_3; \
+	  for f in testcases/*.tc; do \
+	    name=$$(basename "$$f"); \
+	    if head -10 "$$f" | grep -q '@ test3\.'; then \
+	      ln -sf "../testcases/$$name" "testcases_3/$$name"; \
+	    fi; \
+	  done; \
+	fi
+
+perf: apl
+	./apl --id 1010 --TM 3 -T testcases/Performance.pt
+
+if apl_TARGET_MINGW
+# On MinGW builds apl-VERSION.exe is the primary deliverable.  Build it
+# automatically as part of 'make all'.
+# Libtool places the real binary in .libs/apl.exe; apl.exe in the build
+# directory is a libtool wrapper that spawns .libs/apl.exe and is only
+# useful for in-tree testing.  Copy the real binary for the installer.
+#
+all-local: $(bin_PROGRAMS)
+	cp .libs/apl.exe apl-$(VERSION).exe
+
+apl-$(VERSION).exe: $(bin_PROGRAMS)
+	cp .libs/apl.exe apl-$(VERSION).exe
+
+CLEANFILES = apl-$(VERSION).exe
+
+windows-release: apl-$(VERSION).exe
+	cp apl-$(VERSION).exe ../support-files/windows-installer/
+	cp APs/.libs/APserver.exe ../support-files/windows-installer/
+	cp APs/.libs/AP100.exe    ../support-files/windows-installer/
+	cp APs/.libs/AP210.exe    ../support-files/windows-installer/
+endif
+
+
+.PHONY:	patch
+patch:
+	mkdir -p patches
+	svn diff > patches/`date +patch_%F-%R.diff`
+
+.PHONY:	help
+help:
+	@echo ""
+	@echo ""
+	@echo "in addition to standard targets (all, install, clean, ...) "
+	@echo "the following make targets may be supported (at this level):"
+	@echo ""
+	@echo "    make help                    - print this text"
+	@echo "    make git-pull                - pull sql and emacs subdirs"
+	@echo "    make update-svar_signals     - remake Svar_signals.hh"
+	@echo ""
+

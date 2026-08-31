@@ -1,0 +1,46 @@
+⍝ Quad_EB.tc
+⍝ ----------------------------------
+
+⍝@ test3.
+
+      '"CLEAN-UP"' ⎕EB '⍳4.5'
+CLEAN-UP
+DOMAIN ERROR
+      '"CLEAN-UP"' ⎕EB '⍳4.5'
+      ^
+
+      )SIC
+      )ERASE FOO
+
+∇FOO
+   '"CLEAN-UP"' ⎕EB '→L3'
+   NOT REACHED
+L3: 'GOON'
+∇
+
+      FOO
+CLEAN-UP
+GOON
+
+      )SIC
+      )ERASE FOO
+
+∇FOO
+   '"CLEAN-UP"' ⎕EB '→'
+   NOT REACHED
+∇
+
+      FOO
+CLEAN-UP
+
+      )SI
+
+      )CHECK
+OK      - no stale functions
+OK      - no stale values
+OK      - no stale indices
+OK      - no duplicate parents
+
+
+      ⍝ ==================================
+

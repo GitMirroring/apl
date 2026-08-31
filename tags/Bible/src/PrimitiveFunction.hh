@@ -1,0 +1,189 @@
+/*
+    This file is part of GNU APL, a free implementation of the
+    ISO/IEC Standard 13751, "Programming Language APL, Extended"
+
+    Copyright © 2008-2026  Dr. Jürgen Sauermann
+
+    This program is free software: you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation, either version 3 of the License, or
+    (at your option) any later version.
+
+    This program is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU General Public License for more details.
+
+    You should have received a copy of the GNU General Public License
+    along with this program.  If not, see <http://www.gnu.org/licenses/>.
+*/
+
+/** @file
+*/
+
+#ifndef __PRIMITIVE_FUNCTION_HH_DEFINED__
+#define __PRIMITIVE_FUNCTION_HH_DEFINED__
+
+#include "Common.hh"
+#include "Function.hh"
+#include "Performance.hh"
+#include "Value.hh"
+#include "Id.hh"
+
+//════════════════════════════════════════════════════════════════════════════
+/**
+    Base class for the APL system functions (Quad functions and primitives
+    like +, -, ...) and operators
+
+    The individual system functions are derived from this class
+ */
+/// Base class for all internal functions of the interpreter
+class PrimitiveFunction : public Function
+{
+public:
+   /// Construct a PrimitiveFunction with \b TokenTag \b tag
+   /// @param tag      the token tag identifying this primitive
+   /// @param stat_AB  optional dyadic cell-function statistics object
+   /// @param stat_B   optional monadic cell-function statistics object
+   PrimitiveFunction(TokenTag tag,
+                     CellFunctionStatistics * stat_AB = 0,
+                     CellFunctionStatistics * stat_B = 0)
+   : Function(tag),
+       statistics_AB(stat_AB),
+       statistics_B(stat_B)
+   {}
+
+   /// return the dyadic cell statistics of \b this (scalar) function
+   CellFunctionStatistics *
+   get_statistics_AB() const   { return statistics_AB; }
+
+   /// return the monadic cell statistics of \b this (scalar) function
+   CellFunctionStatistics *
+   get_statistics_B() const   { return statistics_B; }
+
+   /// overloaded Function::has_result()
+   virtual bool has_result() const   { return true; }
+
+   /// overloaded Function::eval_fill_AB()
+   /// @param A  the left APL argument value
+   /// @param B  the right APL argument value
+   virtual Token eval_fill_AB(cValue_R A, cValue_R B) const
+      { return eval_AB(A, B); }
+
+protected:
+   /// overloaded Function::eval_fill_B()
+   /// @param B  the right APL argument value
+   virtual Token eval_fill_B(cValue_R B) const
+      { return eval_B(B); }
+
+   /// Print the name of \b this PrimitiveFunction to \b out
+   /// @param out  output stream to print the function name to
+   virtual ostream & print(ostream & out) const
+      { return out << get_Id(); }
+
+   /// overloaded Function::print_properties()
+   /// @param out     output stream for property display
+   /// @param indent  indentation level for nested output
+   virtual void print_properties(ostream & out, int indent) const
+      {
+        UCS_string ind(indent, UNI_SPACE);
+        out << ind << "System Function ";
+        print(out);
+        out << endl;
+      }
+
+   /// performance statistics for eval_B()
+   CellFunctionStatistics * statistics_AB;
+
+   /// performance statistics for dyadic calls
+   CellFunctionStatistics * statistics_B;
+};
+//────────────────────────────────────────────────────────────────────────────
+/// Base class for all internal non-scalar functions of the interpreter
+class NonscalarFunction : public PrimitiveFunction
+{
+public:
+   /// Constructor
+   /// @param tag  the token tag identifying this non-scalar function
+   NonscalarFunction(TokenTag tag)
+   : PrimitiveFunction(tag)
+   {}
+};
+//────────────────────────────────────────────────────────────────────────────
+/// Base class for all internal non-scalar functions of the interpreter
+// that have the default identity function
+class NonscalarFunction_default_identity : public NonscalarFunction
+{
+public:
+   /// Constructor
+   /// @param tag  the token tag identifying this function
+   NonscalarFunction_default_identity(TokenTag tag)
+   : NonscalarFunction(tag)
+   {}
+
+   /// Overloaded Function::eval_identity_fun()
+   /// @param B     the right APL argument value
+   /// @param axis  the axis along which to apply the identity
+   virtual Token eval_identity_fun(cValue_R B, sAxis axis) const
+      {
+        // axis is already normalized to IO←0
+        // return Z←,/B0 where (B0 , B) is B.
+
+        const Shape & shape_B = B.get_shape();
+        const sRank rank_B = shape_B.get_rank();
+        if (rank_B < 1)       RANK_ERROR;   // identity restriction, lrm p. 212
+        if (axis >= rank_B)   RANK_ERROR;
+
+        // eval_identity_fun() is supposedly only called when the length of
+        // axis is 0
+        const ShapeItem axis_len = shape_B.get_shape_item(axis);
+        Assert(axis_len == 0);
+
+        const Shape shape_Z = shape_B.without_axis(axis);
+
+        /* the removal of the reduction axis must not create a non-empty
+           result.
+
+           In IBM APL2:
+
+                        ┌───── reduction axis
+                        │
+                 ⍴ ,/ 0 0⍴42   → 0
+                 ⍴ ,/ 0 3⍴42   → 0 (not happening here since axis_len == 0)
+                 ⍴ ,/ 3 0⍴42   → DOMAIN ERROR (volume would be 3)
+                 ⍴ ,/   0⍴42   → DOMAIN ERROR (volume would be 1)
+           but:  ⍴ +/   0⍴42   → ⍬   and +/   0⍴42   → 0 (integer scalar 0)
+                 ⍴ ×/   0⍴42   → ⍬   and +/   0⍴42   → 1 (integer scalar 1)
+         */
+        if (shape_Z.get_rank() && shape_Z.get_volume() > 0)   DOMAIN_ERROR;
+
+        Value_P Z(shape_Z, LOC);
+        Z->set_default(B, LOC);
+        Z->check_value(LOC);
+        return Token(TOK_APL_VALUE1, Z);
+      }
+
+   /// implementation of eval_identity_fun(), so that non-derived functions
+   /// may use it as well.
+   /// @param B     the right APL argument value
+   /// @param axis  the axis along which to apply the identity
+   static Token do_eval_identity_fun(cValue_R B, sAxis axis);
+
+   /// shared helper for the several Figure 28 (apl2lrm.txt p.212)
+   /// identity items that are simply ⊂B (Reshape, Transpose, Take,
+   /// Catenate) -- B is guaranteed non-scalar here (eval_identity_fun()
+   /// is only ever called for an axis of length 0, which requires B to
+   /// have at least that one axis), so no "enclose of a simple scalar
+   /// is identity" special-casing is needed.
+   /// @param B  the right APL argument value
+   static Token enclosed_identity(cValue_R B)
+      {
+        Value_P Z(LOC);   // a scalar
+        Z->next_ravel_Pointer(CLONE(&B, LOC).get());
+        Z->check_value(LOC);
+        return Token(TOK_APL_VALUE1, Z);
+      }
+};
+//════════════════════════════════════════════════════════════════════════════
+
+#endif // __PRIMITIVE_FUNCTION_HH_DEFINED__

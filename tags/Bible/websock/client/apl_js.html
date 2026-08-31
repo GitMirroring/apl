@@ -1,0 +1,188 @@
+<!DOCTYPE html>
+<html>
+ <head>
+ <meta charset="UTF-8">
+ <title>try-GNU-APL</title>
+ <style>
+  H1      { margin: 0; padding: 0;  text-align: center     }
+  BODY    { background-color: #9EE; margin: 0; padding: 0;
+            min-width: 1640px; min-height: 640px; }
+  .footer { text-align: center;     font-style: italic     }
+
+  TABLE       { border-collapse: collapse; }
+  TD.i        { border:0;  padding: 0; font-family: monospace; width: 60em; }
+  TD.o        { border:0;  padding: 0; font-family: monospace; width: 60em; }
+  TD.e        { border:0;  padding: 0; font-family: monospace; width: 60em; }
+  #APL_entry  { font-family: monospace }
+
+  .w_screen     { font-family: monospace; width: 80em  }
+  .w_space      { font-family: monospace; width:   2em }
+  .w_links      { font-family: monospace; width:  30em }
+
+  /* output channel coloring (in/out/error) */
+  .i   { background-color: #DDD; color: #00F }
+  .o   { background-color: #FFF; color: #000 }
+  .e   { background-color: #FFF; color: #F00 }
+ </style>
+
+  <script>
+
+    function init()
+    {
+      host = 'server57';
+      host = window.location.hostname;
+      var address = "ws://" + host + ":42424";
+      var protocol = "apl-protocol";
+      // document.getElementById("location").innerHTML = address;
+      web_socket = new WebSocket(address, protocol);
+      web_socket.onmessage = function(e)
+         {
+           if (typeof e.data === 'string')
+              {
+                var lines = e.data.split('\n');
+                lines[0] = carry + lines[0];
+                carry = lines.pop();
+                if (carry.charAt(0) == "⓪")   carry = "";   // discard prompt
+                for (var j = 0; j < lines.length; ++j)
+                    output_line(lines[j], "o");
+              }
+         };
+
+      input_form = document.forms["APL_form"]["in_form"];
+      channel = "o";
+      prompt = false;
+      carry = "";   // carry from one message to the next
+    }
+
+    function to_HTML(text)
+    {
+      var ret = "";
+      for (var j = 0; j < text.length; ++j)
+          {
+            var cc = text.charAt(j);
+            switch(cc)
+               {
+                 case ' ': ret += "&nbsp;";   break;
+                 case '&': ret += "&amp;";    break;
+                 case '<': ret += "&lt;";     break;
+                 case '>': ret += "&gt;";     break;
+                 case '"': ret += "&quot;";   break;
+                 case "'": ret += "&apos;";   break;
+                 case '⓪':                    break;
+                 case '①':                    break;
+                 case '②':                    break;
+                 default:  ret += cc;
+               }
+          }
+      return ret;
+    }
+
+    // append line to the output table
+    //
+    function output_line(line, ioe)
+    {
+      if (line == '      ' && !prompt)   // most likely a prompt
+         {
+           prompt = true;
+           return;
+         }
+
+      if (prompt)   // false prompt
+         {
+           do_output_line('  ..  ', "o");
+           prompt = false;
+         }
+
+      do_output_line(line, ioe);
+    }
+
+    function do_output_line(line, ioe)
+    {
+      if (line.charAt(0) == "⓪")        // input echo: ignore
+         return;
+
+      if (line.charAt(0) == "①")        // output channel
+         {
+           channel = "o";
+           line = line.slice(1);   // remove ①
+         }
+      else if (line.charAt(0) == "②")   // error channel
+         {
+           channel = "e";
+           line = line.slice(1);   // remove ②
+         }
+      var screen =  document.getElementById("screen");
+      var row = screen.insertRow(-1);   // insert at the end
+      if (ioe == 'i')   row.className = "i";
+      else              row.className = channel;
+      var cell = row.insertCell(0);
+      cell.innerHTML = to_HTML(line);
+      if (ioe == 'i')   cell.className = "i";
+      else              cell.className = channel;
+    }
+
+    function process_line()
+    {
+      // the user has entered something in her browser...
+      //
+      var user_input = input_form.value;
+      input_form.value = "";
+      prompt = false;
+      output_line('      ' + user_input, "i");   // input echo
+      web_socket.send(user_input + "\n");
+      return false;
+    }
+  </script>
+ </head>
+
+ <body onload="init()">
+
+  <H1>Welcome to try-GNU-APL (version 1)</H1>
+  <HR>
+  <TABLE>
+   <TR>
+    <TD class=w_screen><TABLE id=screen class=i></TABLE></TD>
+    <TD class=w_space>&nbsp;</TD>
+    <TD class=w_links><TABLE class=info>
+         <TR><TH><H3>Useful GNU APL Links</H3></TD></TR>
+         <TR><TD><A href=http://www.gnu.org/software/apl>
+                          The GNU APL Homepage</A></TD></TR>
+         <TR><TD><A href=http://lists.gnu.org/archive/html/bug-apl/>
+                          The GNU APL Mailing List</A></TD></TR>
+         <TR><TD><A href=http://www.gnu.org/software/apl/apl.html>
+                          The GNU APL Info Manual</A></TD></TR>
+         <TR><TD><A href=http://svn.savannah.gnu.org/viewvc/apl/>
+                          GNU APL Sources (Subversion)</A></TD></TR>
+         <TR><TD><A href="https://savannah.gnu.org/svn/?group=apl">
+                          Help for GNU APL Subversion</A></TD></TR>
+         <TR><TD><A href=http://www.gnu.org/software/apl/Community.html>
+                          The GNU APL Community</A></TD></TR>
+         <TR><TD><A href=http://www.gnu.org/home.html>
+                          The GNU Project</A></TD></TR>
+        </TABLE>
+   </TR>
+  </TABLE>
+  <HR>
+  <form name="APL_form" id="APL_form"
+        onsubmit="return process_line()" method="post">
+   <STRONG>APL Input:</STRONG>
+  <input type="text" id="APL_entry" name="in_form" size=60>
+  <input type="submit" value="Enter">
+  <input type="button" value="Show an APL Keyboard"
+         onclick='window.open("APL_keyboard2.html", "APL Keyboard2", "width=850,height=500"); return false;'>
+  <input type="button" value="Show a static (for cut-and-paste) APL Keyboard"
+         onclick='window.open("APL_keyboard.html", "APL Keyboard", "width=930,height=500"); return false;'>
+  </form>
+  <HR>
+  <div class="footer">
+      This page is fed from GNU APL,
+      <A href=http://www.gnu.org/software/apl>
+              http://www.gnu.org/software/apl</A>,<br>
+      Contact: <A href=mailto:bug-apl@gnu.org>
+              mailto:bug-apl@gnu.org</A>.<br>
+  </div>
+  <div class="footer" id="location">
+  </div>
+ </body>
+</html>
+

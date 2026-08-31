@@ -1,0 +1,129 @@
+
+/*
+    This file is part of GNU APL, a free implementation of the
+    ISO/IEC Standard 13751, "Programming Language APL, Extended"
+
+    Copyright © 2008-2025  Dr. Jürgen Sauermann
+
+    This program is free software: you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation, either version 3 of the License, or
+    (at your option) any later version.
+
+    This program is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU General Public License for more details.
+
+    You should have received a copy of the GNU General Public License
+    along with this program.  If not, see <http://www.gnu.org/licenses/>.
+*/
+
+/** @file
+*/
+
+#ifndef __CELL_ICC_DEFINED__
+#define __CELL_ICC_DEFINED__
+
+//════════════════════════════════════════════════════════════════════════════
+inline bool
+Cell::tolerantly_equal(APL_Float A, APL_Float B, double C)
+{
+   // if the signs of A and B differ then they are unequal (ISO standard
+   // page 19). We treat exact 0.0 as having both signs
+   //
+   if (A == B)               return true;
+   if (A < 0.0 && B > 0.0)   return false;
+   if (A > 0.0 && B < 0.0)   return false;
+
+const APL_Float mag_A = A < 0.0 ? APL_Float(-A) : A;
+const APL_Float mag_B = B < 0.0 ? APL_Float(-B) : B;
+const APL_Float mag_max = mag_A > mag_B ? mag_A : mag_B;
+
+const APL_Float dist_A_B = A > B ? (A - B) : (B - A);
+
+   return dist_A_B < C*mag_max;
+}
+//──────────────────────────────────────────────────────────────────────────
+inline bool
+Cell::same_half_plane(APL_Complex A, APL_Complex B)
+{
+   if (A.real() > 0.0 && B.real() > 0.0)   return true;
+   if (A.real() < 0.0 && B.real() < 0.0)   return true;
+
+   if (A.imag() > 0.0 && B.imag() > 0.0)   return true;
+   if (A.imag() < 0.0 && B.imag() < 0.0)   return true;
+
+   return false;
+}
+//──────────────────────────────────────────────────────────────────────────
+inline bool
+Cell::tolerantly_equal(APL_Complex A, APL_Complex B, double C)
+{
+   // ISO/IEC 13751 p.19, "A is Tolerantly-Equal to B Within C":
+   // Z is one if the distance-between A and B (i.e. mag(A-B)) is less
+   // than C times the larger-magnitude of A and B (i.e. C×max(mag(A),
+   // mag(B))). The standard's half-plane pre-check is deliberately NOT
+   // applied here: it breaks complex modulo of Gaussian integers (see
+   // NumericCell::cpx_gcd()).
+   //
+   // IBM APL2's apl2lrm.pdf phrases this differently ("real and
+   // imaginary parts are equal"), which read literally would compare
+   // the real and imaginary parts independently, each against its own
+   // (possibly tiny) scale rather than one scale shared by both. That
+   // reading conflicts with testcases/Boolean.tc's own
+   // `1J1E¯15 = 1J1E¯14` (expected: 1), which only holds if the tiny
+   // imaginary difference is judged against the dominant (~1) overall
+   // magnitude rather than against the imaginary parts' own scale -
+   // deliberately kept as ISO's shared-scale formula for that reason.
+   //
+   if (A == B)   return true;
+
+   // Compare squared magnitudes instead of mag(A-B) < C×max(mag(A),mag(B))
+   // to avoid two sqrt() calls; squaring both (non-negative) sides of that
+   // inequality gives mag²(A-B) < C²×max(mag(A),mag(B))² , and since
+   // squaring is monotonic, max(mag(A),mag(B))² == max(mag²(A), mag²(B)).
+   // (An earlier version of this code mistakenly scaled by C instead of
+   // C², making it roughly 1/C times too permissive.)
+   //
+const APL_Complex A_B = A - B;
+const APL_Float dist2_A_B = A_B.real()*A_B.real() + A_B.imag()*A_B.imag();
+
+const APL_Float mag2_A = A.real()*A.real() + A.imag()*A.imag();
+const APL_Float mag2_B = B.real()*B.real() + B.imag()*B.imag();
+const APL_Float mag2_max = mag2_A > mag2_B ? mag2_A : mag2_B;
+
+   return dist2_A_B < (C*C)*mag2_max;
+}
+//════════════════════════════════════════════════════════════════════════════
+inline bool
+Cell::integral_within(APL_Float A, double qct)
+{
+   // A nearby integer of 0 is never a match: ⎕CT never tolerantly
+   // equates a nonzero value with zero (APL's rule for comparison
+   // against zero is exact), so the floor-anchor is skipped when it is
+   // 0 and the ceil-anchor is skipped when it is 0 -- distinct from
+   // skipping whenever |A|<1, which would also suppress the legitimate
+   // match against a nonzero neighbour (e.g. A=0.99999999999995 should
+   // still match ceil(A)=1) (Blake McBride, Bugs22 #1).
+   if (floor(A) != 0.0 && A < (floor(A) + qct))   return true;
+   if (ceil(A)  != 0.0 && A > (ceil(A)  - qct))   return true;
+   return false;
+
+   // Note: despite its name (coming from the ISO standard) this implementation
+   // of integral_within is NOT the one described in the ISO standard. The
+   // description in the standard was leading to problems in bif_residue
+   //
+   // 1, scale qct to the magnitude of A
+   //
+   qct = A * A * qct;
+
+const APL_Float real_up = ceil (A) - qct;
+const APL_Float real_dn = floor(A) + qct;
+
+   return A > real_up || A < real_dn;
+}
+//════════════════════════════════════════════════════════════════════════════
+
+#endif // __CELL_ICC_DEFINED__
+

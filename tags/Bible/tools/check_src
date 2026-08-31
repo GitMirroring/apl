@@ -1,0 +1,73 @@
+#!/bin/bash
+
+# this script checks for bad settings when exporting a package.
+# It shall be run executed the top-level directory.
+
+################################################################################
+logging_facilities_check()
+{
+echo -n "checking that all logging facilities are turned off ... "
+
+local cnt1=$(grep -c "log_def("   src/Logging.def)
+local cnt2=$(grep -c "log_def(0" src/Logging.def)
+
+if [ $cnt1 != $cnt2 ]
+then
+   echo "
+***
+*** Cannot build packages because one or more logging facility
+*** is ON in file src/Logging.def
+***
+"
+   exit 1
+fi
+echo "OK."
+}
+
+################################################################################
+Q_check()
+{
+echo -n "checking that all Q() macros were removed ... "
+
+local files_cc=$(find src -name '*.cc'   -exec echo -n " {}" \;)
+local files_hh=$(find src -name '*.hh'   -exec echo -n " {}" \;)
+local files_icc=$(find src -name '*.icc' -exec echo -n " {}" \;)
+local files="$files_cc $files_hh $files_icc"
+
+# match a standalone Q( macro call, not an identifier ending in "Q"
+# followed by "(" (e.g. grab_Q(), XXX_Q()): Q must be at the start of
+# the line or preceded by a non-identifier character.
+local q=$(grep -E '(^|[^A-Za-z0-9_])Q\(' $files | grep -v '#define Q(x)')
+
+if [ -n "$q" ]
+then
+echo "
+***
+*** Cannot build packages because some Q() macros were not removed:
+***
+$q
+"
+  exit 1
+fi
+echo "OK."
+}
+
+################################################################################
+# main()...
+
+if [  -d tools -a -d src  ]
+then true
+else
+   echo "
+***
+*** error: run this script from the GNU APL toplevel directory !
+***
+"
+   exit 1
+fi
+
+logging_facilities_check
+Q_check
+
+exit 0
+

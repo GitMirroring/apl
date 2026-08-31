@@ -1,0 +1,393 @@
+The GNU APL interpreter can be configured by means of ./configure options.
+The standard ./configure options are described in file INSTALL in this
+directory.
+
+In addition to the standard options provided by ./configure the following GNU
+APL specific ./configure options are recognized. If an option is NOT given
+on the ./configure command line, then either the default value for the option
+is used (if the option has one), or else the behavior described below for
+the option will not occur.
+
+--with-android
+   This option prevents the instantiation of CIN, COUT, and CERR. This may
+   be needed when GNU APL is compiled for Android, since Android applications
+   use a different I/O model than standard C++ programs.
+
+--with-libapl
+   This option builds GNU APL as a shared library (libapl.so) rather than an
+   executable program. This option is often combined with option
+   --with-android, and is automatically set by option --with-erlang. The
+   --with-libapl option not only creates appropriate Makefiles, but it also
+   changes the GNU APL code in some places.
+
+   It is important to note that the libapl.so library needs to be initialized
+   with its function init_libapl() before calling any of its other functions.
+   IOW: the top-level main() function of an executable that uses libapl.so
+   should look like this:
+
+   int
+   main(int argc, char * argv[])
+   {
+     init_libapl(argv[0], /* no start-up-logging */ 0);
+     ...
+     return 0;
+   }
+
+   The first argument of init_libapl() is, by convention, the name of the
+   executable program. The second argument, if non-zero, enables start-up
+   logging of the interpreter (for debugging purposes).
+
+   When --with-libapl is given (directly, or implied by --with-erlang),
+   'make install' also installs a pkg-config file libapl.pc, so that
+   programs embedding libapl.so can find its compile/link flags with
+   'pkg-config --cflags --libs libapl' instead of hard-coding the
+   $(includedir)/apl and $(libdir)/apl paths.
+
+--with-sqlite3=[ARG]
+   Build the native function for SQL using sqlite3. ARG may provide the
+   non-default location of the sqlite3 library.
+
+--with-postgresql=[ARG]
+   Build the native function for SQL using PostgreSQL. ARG may provide the
+   non-default location of the postgresql library.
+
+ASSERT_LEVEL_WANTED=n
+   There are numerous Assert() and Assert1() macros in the source code of the
+   APL interpreter. These macros check more (Assert1) or less (Assert)
+   obvious assumptions that throw exceptions if they turn out to be wrong.
+   Like for dynamic logging, these macros have negative performance impacts
+   and they can be disabled.
+
+   By default, ASSERT_LEVEL_WANTED=1 and that disables the Assert1() macro
+   and enables the Assert() macro
+
+   ASSERT_LEVEL_WANTED=2 enables both macros.
+   ASSERT_LEVEL_WANTED=1 (default) enable Assert(), but disable Assert1().
+   ASSERT_LEVEL_WANTED=0 disable both macros; this gives the maximum
+   performance, but at the same time bears the risk that internal errors
+   of the APL interpreter are not being detected. Example:
+
+    ./configure ASSERT_LEVEL_WANTED=2
+
+SECURITY_LEVEL_WANTED=n
+   Some capabilities of the APL interpreter can be disabled to improve the
+   security of, for example, a web server that uses CGI scripts written in APL.
+   SECURITY_LEVEL_WANTED=2 disables all capabilities that can be disabled
+   SECURITY_LEVEL_WANTED=1 disables those capabilities that are configured in
+                           one of the preferences files.
+   SECURITY_LEVEL_WANTED=0 enables all capabilities. This level is the default
+                           and gives the maximum performance of the interpreter.
+
+APSERVER_TRANSPORT
+APSERVER_PORT
+APSERVER_PATH
+   APserver is a program that is needed to support shared variables. APserver
+   is started automatically and maintains a communication channel to every APL
+   interpreter instance and to every AP started (manually or automatically
+   by an APL interpreter instance). The communication channel can be TCP,
+   abstract Unix domain sockets, or normal Unix domain sockets.
+
+   1. TCP communication is the default communication channel that is also
+      used when APSERVER_TRANSPORT is not ./configured. APserver listens on
+      port number 16366 by default; this can be changed via APSERVER_PORT
+      like this:
+
+      ./configure APSERVER_TRANSPORT=TCP   APSERVER_PORT=40000
+
+   2. Abstract Unix domain sockets are a GNU/linux specific socket variant
+      that pretty much works like standard Unix domain sockets, but do not
+      need an actual file in the the underlying file system.
+      APserver listens on a socket named "/tmp/GNU-APL/APserver" by default;
+      the name can be changed with APSERVER_PATH like this:
+
+      ./configure APSERVER_TRANSPORT=LINUX   APSERVER_PATH=my-APserver-path
+
+   3. Normal Unix domain sockets are a socket variant that requires a file name
+      in the local file system to work. The permissions of that file control
+      which programs can connect to APserver (BUT MAY ALSO PREVENT APserver
+      FROM OPERATING PROPERLY!). Due to the many different possibilities for
+      the ownership and permissions for the file, GNU APL does not create the
+      file but leaves that to the user. By default APserver listens on the
+      socket named "/tmp/GNU-APL/APserver" (and a file with that name
+      needs to exist before APL is started); the name can be changed with
+      APSERVER_PATH like this:
+
+      ./configure APSERVER_TRANSPORT=UNIX   APSERVER_PATH=my-APserver-path
+
+CORE_COUNT_WANTED
+   This experimental option specifies the number of CPU cores the
+   interpreter shall use. The value is either a number, or else one of
+   the strings 'all', 'argv', or 'syl' (without quotes). For some of its
+   primitives the GNU APL interpreter has both sequential and parallel code
+   which is selected with ./configure as follows:
+
+   ╔═════════════════╤════════════╤═══════════════════════════════════════════╗
+   ║  ./configure    │  APL code  │ Comment                                   ║
+   ║ string │ number │            │                                           ║
+   ╟────────┼────────┼────────────┼───────────────────────────────────────────╢
+   ║        │   0    │ sequential │ one core is used (default)                ║
+   ╟────────┼────────┼────────────┼───────────────────────────────────────────╢
+   ║        │   1    │ parallel   │ one core is used                          ║
+   ╟────────┼────────┼────────────┼───────────────────────────────────────────╢
+   ║        │   N    │ parallel   │ N > 0 cores are used                      ║
+   ╟────────┼────────┼────────────┼───────────────────────────────────────────╢
+   ║ all    │  -1    │ parallel   │ all existing cores are being used,        ║
+   ╟────────┼────────┼────────────┼───────────────────────────────────────────╢
+   ║ argv   │  -2    │ parallel   │ the number of cores can be set by command ║
+   ║        │        │            │ line option -cc N (default: all)          ║
+   ╟────────┼────────┼────────────┼───────────────────────────────────────────╢
+   ║ syl    │  -3    │            │ initially 1 core is used, but the number  ║
+   ║        │        │ parallel   │ of cores can be later be increased        ║
+   ║        │        │            │ dynamically in APL via ⎕SYL;              ║
+   ╚════════╧════════╧════════════╧═══════════════════════════════════════════╝
+
+   Example:
+
+   ./configure CORE_COUNT_WANTED=4
+
+   CIN_COLOR_WANTED
+  CERR_COLOR_WANTED
+  COUT_COLOR_WANTED
+RESET_COLORS_WANTED
+   CLEAR_EOL_WANTED
+   These now obsolete options were used in GNU APL 1.0 to configure output
+   coloring. Output coloring can now be specified in GNU APL's preference
+   file, which is more flexible than configuring the colors at compile time.
+
+DYNAMIC_LOG_WANTED=yes
+   The APL interpreter has more than 40 log categories. Each log category can
+   be turned on or off if needed in order to troubleshoot the APL interpreter.
+   There are two ways to control the logging categories: statically or
+   dynamically.
+
+   Statically means that it is decided at compile time if a log category
+   shall be on or off. Dynamically means that a log category can be turned
+   on or off at run-time (with the debug command ]LOG).
+
+   Dynamic logging has a small performance penalty since every potential log
+   printout is controlled by an if () statement that checks if the log
+   category is turned on or off. With static logging this if () statement
+   has a constant value that will be optimized away by the C++ compiler.
+   Dynamic logging also slightly increases the size of the APL interpreter.
+
+   In both cases (static or dynamic logging), the file src/Logging.def defines
+   the logging categories at start-up of the APL interpreter. If the first 
+   argument of the log_def() macro is 0 then the log category is initially
+   disabled (and remains disabled if static logging is used); if it is 1 
+   then the log category is initially enabled. The default for this option
+   is static logging. Example:
+
+   ./configure DYNAMIC_LOG_WANTED=yes
+
+CXX_WERROR=yes/no
+   Do/do not add the C++ compiler flag -Werror. The -Werror compile flag
+   turns compiler warnings into compiler errors. By default GNU APL is
+   being compiled without -Werror, making it more portable on different
+   platforms/compilers.
+   Up to SVN version 1304 the default was CXX_WERROR=yes, but due to a
+   recent inflation of bogus compiler warnings this default was changed 
+   to CXX_WERROR=no.
+
+    The old behaviour can be reestablished by, for example:
+
+    ./configure CXX_WERROR=yes
+
+    Note that `make develop' also sets CXX_WERROR=yes.
+
+DEVELOP_WANTED
+    This option enables a number of internal checks in the GNU APL interpreter
+    that are useful for maintainers of GNU APL.
+
+    Example:
+    ./configure DEVELOP_WANTED=yes
+
+    Users who wish to submit patches for GNU APL should compile and test the
+    patched interpreter with DEVELOP_WANTED=yes.
+
+MAX_RANK_WANTED=n
+    Set the maximum rank of APL values to n. The default value is 8. Max ranks
+    smaller than 4 should be avoided. There is no performance penalty for
+    increasing the max. rank, but every additional dimension takes 4-8 bytes
+    of memory for every APL value (even those with a smaller rank), Example:
+
+    ./configure MAX_RANK_WANTED=10
+
+ALT_MAP_WANTED=n
+    Enable an APL input mechanism that allows the input of APL characters
+    without installing a keyboard mapping. This is primarily for Windows
+    machines where no reliable mechanism for entering APL characters exists.
+    The parameter n specifies a profile as follows:
+
+    n=0 : disable the mecxhanism
+    n=1 : ^A (ASCII SOH) maps the next ASCII character to an APL character
+          ^N (ASCII SO)  maps all subsequenct ASCII characters (until ^N is
+                         entered again). Like CAPS LOCK for mapping lowercase
+                         characters to uppercase.
+
+    Example:
+
+    ./configure ALT_MAP_WANTED=1
+
+
+PRINT_SEMA_WANTED=yes
+   This option is now obsolete.
+
+
+VALUE_CHECK_WANTED=yes
+    There is a function called check_value() that checks every new APL value
+    for completeness. This check helps finding faults in the interpreter, but
+    decreases its performance. Example:
+
+    ./configure VALUE_CHECK_WANTED=yes
+
+VALUE_HISTORY_WANTED=yes
+    There is a macro called ADD_EVENT that records the history of APL values.
+    This history helps finding faults in the interpreter, but
+    decreases its performance. Example:
+
+    ./configure VALUE_HISTORY_WANTED=yes
+
+
+PERFORMANCE_COUNTERS_WANTED=yes
+    GNU APL has some build-in counters for performace measurements. These
+    counters are normally disabled, but can be enabled via this option.
+    Example:
+
+    ./configure PERFORMANCE_COUNTERS_WANTED=yes
+
+
+VF_TRACING_WANTED=yes
+   You can enable tracing of changes to value flags. This creates a lot of
+   debug output and consequently has considerable performance impacts. Example:
+
+    ./configure VF_TRACING_WANTED=yes
+
+
+SHORT_VALUE_LENGTH_WANTED=12
+   The interpreter distinguishes between long and short APL values. Short
+   values are allocated with a single call to "new" that allocates the Shape of
+   the value and its ravel. Long values allocate the value header with one call
+   to "new" and then the ravel with another call to "new". Long values are
+   therefore a little slower than short values. By increasing
+   SHORT_VALUE_LENGTH_WANTED you get fewer new calls (and consequently better
+   performance) at the cost of more memory. Example:
+
+    ./configure SHORT_VALUE_LENGTH_WANTED=42
+
+
+GPROF_WANTED=yes
+    Setting GPROF_WANTED adds the flag -pg to CXXFLAGS and LDFLAGS and that
+    enables support for gprof profiling of the apl interpreter. Example:
+
+    ./configure GPROF_WANTED=yes
+    make clean all
+    cd src; ./apl -f file...
+
+    The above will create a profile named 'gmon.out' that can then be analysed
+    with the utility gprof, for example:
+
+    gprof -b ./apl
+
+GCOV_WANTED=yes
+   Setting GCOV_WANTED adds the flags -fprofile-arcs and -ftest-coverage
+   to CXXFLAGS and that enables support for gcov coverage testing of the apl
+   interpreter. Example:
+
+    ./configure GCOV_WANTED=yes
+    make clean all
+    cd src; ./apl -f file...
+    gcov  *.gcda   # convert .gcda files to .gcov files
+
+VISIBLE_MARKERS_WANTED=yes
+   GNU APL uses a handful of Unicode characters as internal pad characters
+   when formatting its output. Normally these pad characters are in a private
+   Unicode range to minimize the chance that they are output on purpose.
+   Unfortunately that makes debugging of the output formatting difficult.
+   With VISIBLE_MARKERS_WANTED=yes, visible characters ⁰, ¹, ... are used as
+   internal pad characters. The internal pad characters are always replaced
+   by blanks in normal APL output, but using visible pad characters
+   simplifies the debugging of the internal APL formatting considerably.
+
+    ./configure VISIBLE_MARKERS_WANTED=yes
+
+RATIONAL_NUMBERS_WANTED=yes
+   This enables support for rational numbers in GNU APL. The precision of some
+   computations is increased while having a negative impact on performance.
+   This feature is currently experimental. Example:
+
+    ./configure RATIONAL_NUMBERS_WANTED=yes
+
+without-optional_libs
+   This option pretends that any of the optional library is missing.
+   It patches the config.h file produced by ./configure (though not the LIBS
+   shell variable set by ./configure). IOW: the compiler is told that these
+   libraries are not available, but the liker will still link agains them
+   (with no effect). The purpose of this option is to compile (for test
+   purposes) also those paths in the GNU APL source code that were disabled
+   by the presence of an optional library. Examples:
+
+    ./configure --without-optional_libs
+
+    ./configure --without-optional_libs  \
+                --enable-maintainer-mode \
+                 DEVELOP_WANTED=yes      \
+                 DYNAMIC_LOG_WANTED=yes  \
+                 CXX_WERROR=yes
+
+-------------------------------------------------------------------------------
+
+The typical setting for users that are not interested in troubleshooting
+the APL interpreter is to not use any options, i.e:
+
+    ./configure
+
+The typical setting for software development of the APL interpreter is:
+
+    ./configure DEVELOP_WANTED=yes
+
+which is a shortcut for:
+
+    ./configure VALUE_CHECK_WANTED=yes          \
+                VALUE_HISTORY_WANTED=yes        \
+                PERFORMANCE_COUNTERS_WANTED=yes \
+                DYNAMIC_LOG_WANTED=yes          \
+                ASSERT_LEVEL_WANTED=2
+
+After the first ./configure run (which is needed to create the top level
+Makefile) you can invoke:
+
+    make develop
+
+which runs ./configure with the typical development options above.
+
+-------------------------------------------------------------------------------
+
+Some ./configure tips...
+
+Occasionally it could happen that the different tools involved in building
+GNU APL (primarily autoconf, automake, libtool) get out-of sync. This then
+creates problems already before the compilation and the linking of GNU APL
+starts.
+
+If that happens, you may want to follow some of the recommendations given here:
+
+    https://stackoverflow.com/questions/3096989/libtool-version-mismatch-error
+
+The most promising proposal from the link above (and the one that the author
+usually tries first) is this:
+
+autoreconf --force --install
+./configure
+make
+
+Other measures that may be helpful are these (all run in the top-level
+directory of the GNU APL package):
+
+make maintainer-clean
+make mrproper
+
+libtoolize
+
+Sometimes the above need to be executed in a particular (and somewhat obscure)
+order, so keep trying.
+

@@ -76,7 +76,7 @@ Next: <a href="#Installing-and-Starting-GNU-APL" accesskey="n" rel="next">Instal
 </div>
 <span id="GNU-APL-Reference-Manual"></span><h1 class="top">GNU APL Reference Manual</h1>
 
-<p>August 19, 2026.
+<p>August 31, 2026.
 This manual briefly documents GNU APL, an interpreter for APL as described
 in ISO standard 13751, aka. &quot;Programming Language APL, Extended&quot;.
 </p>
@@ -11855,7 +11855,9 @@ RANK ERROR
       ⍝ Test 1c.
       ⍝
       'abc'[b][2]
-b
+VALUE ERROR
+      'abc'[b][2]
+             ^
 </pre></div>
 
 <p><b>Test 1a</b>: no surprise. <b>[]</b> has the strongest binding and raises a

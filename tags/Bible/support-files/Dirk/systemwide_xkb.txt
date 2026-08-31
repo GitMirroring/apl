@@ -1,0 +1,105 @@
+Keyboard
+========
+
+For a really luxurious keyboard experience, the APL keyboard should be
+installed system-wide. The instructions below apply to Ubuntu 14.04 and 16.04
+LTS, for which 
+
+    XKB=/usr/share/X11/xkb 
+
+For other systems, adapt the instructions after reading [Daniel 
+O'Donnell's informative tutorial](http://people.uleth.ca/~daniel.odonnell/Blog/custom-keyboard-in-linuxx11).
+
+Unified US APL keyboard
+-----------------------
+
+The following files for use with `setxkbmap` are provided:
+
+`system-apl`
+:   Defines `apl` to have variants `APL_on_3rd` (APL characters are 3rd
+    and 4th level symbols) and `line_drawing` (line drawing symbols are 
+    on numeric keypad, for easy use with NumLock). The keyboard layout 
+    is the one shown by the GNU APL system command `]KEYB`.
+`system-us`
+:   Defines `us` to have variant `usapl`, which loads the preceding
+    two variants on top of a default US keyboard and sets LeftAlt
+    as the Level 3 selector.
+`rules-evdev.xml`
+:   Make variant `usapl` selectable from the "Text Entry Settings"
+    menu under the name "APL (3rd/4th level)".
+`rules-evdev.lst`
+:   This is a human-friendly list of variants, not actually used by 
+    any program.
+
+Now backup the current files and replaced them by the new ones. That is,
+from the directory containing the file you are reading now, run
+
+    sudo cp $XKB/symbols/apl $XKB/symbols/apl.orig
+    sudo cp symbols-apl $XKB/symbols/apl
+    sudo cp $XKB/symbols/us $XKB/symbols/us.orig
+    sudo cp symbols-us $XKB/symbols/us
+    sudo cp $XKB/rules/evdev.lst  $XKB/rules/evdev.lst.orig
+    sudo cp rules-evdev.lst $XKB/rules/evdev.lst
+    sudo cp $XKB/rules/evdev.xml  $XKB/rules/evdev.xml.orig
+    sudo cp rules-evdev.xml $XKB/rules/evdev.xml
+
+In order to delete previous instances of the keyboard and to register 
+the changes  with the X server, run
+    
+    sudo rm /var/lib/xkb/server-*
+    udevadm trigger --subsystem-match=input --action=change
+
+You can now load the US APL keyboard with
+
+    setxkbmap us usapl
+
+If it does not work immediately, read the next paragraph.
+
+Level 3 and Compose keys
+------------------------
+
+The new APL keyboard is only available if you have a Level 3 selector
+key. This is set, as is the Compose key, when you install Ubuntu.
+In a running session, you can override those settings from the System 
+Settings menu (see the last section below).
+
+But unfortunately the change lasts only until the next reboot. To make
+then last, you need to change the power-on settings in 
+`/etc/default/keyboard`. There is a comment in there asking you to 
+read a certain file, which recommends that you should run
+`dpkg-reconfigure`.  
+
+I found it easier to edit `/etc/default/keyboard` so that it has:
+
+    XKBLAYOUT="us"
+    XKBVARIANT="usapl"
+    XKBOPTIONS="lv3:lalt_switch,compose:ralt"
+
+You will need to reboot for these changes to take effect.
+
+If your APL keyboard still does not work
+----------------------------------------
+
+Changing the default settings is not enough if your preferred Level 3 
+and Compose keys have been grabbed by Unity (Ubuntu's desktop manager) 
+for its own purposes. One should run `ccsm` and select `Ubuntu Unity 
+Plugin` to seize them back. For example, I changed "Key to show the 
+menu bar while pressed" to "Menu" (which I find more logical than the 
+default "Alt") in order to free up LeftAlt.
+
+Choosing the APL keyboard from the Language icon
+------------------------------------------------
+
+The menu used by `Text Entry Settings` is accessible from the 
+language icon on the top bar. One can add several keyboards, and 
+switch between them by clicking the language icon and making one's 
+selection. The changed files in the `$XKB` will offer an option
+`APL (3rd/4th level)`, available in the "Input sources", but only 
+properly displayed in the Language Icon after the X server has 
+been restarted, for example by rebooting.
+
+The language icon can display the layout of the selected keyboard
+from the language icon. This layout is the one defined in the files
+under `$XKB/symbols` and does not reflect temporary changes that you
+may have made manually by `xmodmap` or `setxkbmap`.
+    
