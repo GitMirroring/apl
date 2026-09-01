@@ -429,6 +429,21 @@ std::vector<ShapeItem> stack;
    return E_NO_ERROR;
 }
 //────────────────────────────────────────────────────────────────────────────
+/// return true iff tos[pos] is (the end of) a function, seeing through
+/// any chain of closing parens -- e.g. tos[pos] == ) in (+/)[1] correctly
+/// sees the / inside. Deliberately does not special-case TC_SYMBOL (the
+/// way plan.txt's /⌿\⍀ rules would), so it stays safe to call this
+/// early in Parser.cc, before symbols carry their resolved (TOK_P_SYMB
+/// etc.) tag.
+static bool
+ends_in_function(const Token_string & tos, int pos)
+{
+   if (tos[pos].is_function())          return true;
+   if (tos[pos].get_Class() != TC_R_PARENT)   return false;
+   if (pos == 0)                        return false;   // syntax error
+   return ends_in_function(tos, pos - 1);
+}
+//────────────────────────────────────────────────────────────────────────────
 bool
 Parser::optimize_literal_axes(Token_string & tos)
 {
@@ -514,7 +529,32 @@ bool progress = false;
               const bool fits_int64 = c1.is_near_int64_t();
               const APL_Integer wide_axis = fits_int64 ? c1.get_near_int()
                                                          : 0;
-              if (src > 0 && tos[src - 1].is_function()   // function axis
+              // tos[src-1].is_function() alone only looks at the single
+              // token immediately left of [, so a parenthesized derived
+              // function -- (+/)[1], as opposed to the bare +/[1] -- had
+              // ) there instead of a function-typed token, failed this
+              // check, and fell through to the value-index path below
+              // instead. Since indexing a function value isn't otherwise
+              // meaningful, the axis was then silently dropped rather
+              // than erroring, and (+/)[1]/(+/)[2] on a matrix both
+              // silently reduced the same (last) axis regardless of
+              // which was asked for -- found investigating Bugs26 #5
+              // (same root cause: a naive one-token-back check that
+              // doesn't see through a closing paren to the real function
+              // underneath). ends_in_function() peels through a chain of
+              // closing parens; an earlier version of this fix tried
+              // reusing the (now-deleted, and long-dead-code even before
+              // that: unreferenced anywhere since before this repo's own
+              // history begins) Parser::check_if_value(), which did the
+              // same paren-peeling for the unrelated /⌿\⍀ decision -- but
+              // its TC_SYMBOL case assumed symbols already carry their
+              // resolved tag (TOK_P_SYMB etc.), true only once Prefix.cc
+              // runs, not yet at this early Parser.cc pass. Reusing it
+              // misread a bare, not-yet-tagged variable reference like
+              // the A in Z←A[3] as a function instead of a value,
+              // turning plain value-indexing into a bogus SYNTAX ERROR
+              // (Bracket_Index.tc regression, caught by the full suite).
+              if (src > 0 && ends_in_function(tos, src - 1)   // function axis
                   && fits_int64
                   && wide_axis >= -32000 && wide_axis <= 32000)
                  {
@@ -1242,52 +1282,6 @@ Multiline_status current = MLS_APL_text;
 }
 //────────────────────────────────────────────────────────────────────────────
 bool
-Parser::check_if_value(const Token_string & tos, int pos)
-{
-   // figure if tos[pos] (the token left of /. ⌿. \. or ⍀) is the end of a
-   // function (and then return false) or the end of a value (and then
-   // return true).
-   //
-   switch(tos[pos].get_Class())
-      {
-        case TC_ASSIGN:     // e.g. ←/       (actually syntax error)
-        case TC_R_ARROW:    // e.g. →/       (actually syntax error)
-        case TC_L_BRACK:    // e.g. [/       (actually syntax error)
-        case TC_END:        // e.g.  /       (actually syntax error)
-        case TC_L_PARENT:   // e.g. (/       (actually syntax error)
-        case TC_VALUE:      // e.g. 5/
-        case TC_RETURN:     // e.g.  /       (actually syntax error)
-        case TC_OPER2:      // e.g. ./
-             return true;   // tos[pos] is at the end of a value
-
-        case TC_R_BRACK:    // e.g. +[1]/2 or 2/[1]2
-             {
-               const int pos1 = tos.find_opening_bracket(pos);
-               if (pos1 == 0)   return true;   // this is a syntax error
-               return check_if_value(tos, pos1 - 1);
-             }
-
-        case TC_R_PARENT:   // e.g. (2+3)/2 or 1 2 3 (2+3)/2
-             {
-               if (pos == 0)   return true;   // (actually syntax error)
-               return check_if_value(tos, pos - 1);
-             }
-
-        case TC_SYMBOL:     // e.g. A/2 or FOO/2
-             if (tos[pos].get_tag() == TOK_ALPHA)     return true;
-             if (tos[pos].get_tag() == TOK_CHI)       return true;
-             if (tos[pos].get_tag() == TOK_OMEGA)     return true;
-             if (tos[pos].get_tag() == TOK_ALPHA_U)   return false;
-             if (tos[pos].get_tag() == TOK_OMEGA_U)   return false;
-             return (tos[pos].get_tag() == TOK_P_SYMB);   // if value
-
-        default: break;
-      }
-
-   return false;   // tos[pos] is at the end of a function
-}
-//────────────────────────────────────────────────────────────────────────────
-bool
 Parser::collect_constants(Token_string & tos)
 {
 bool progress = false;
@@ -1610,6 +1604,20 @@ bool progress = false;
            int pos_LO = pos_POWER - 1;
            if (pos_LO < 0)   continue;   // ⍣ at the very start of the
                                           // statement: no LO to parenthesize
+
+           // LO itself can be a derived function, e.g. +/⍣2: walk back
+           // past any chain of monadic operators (F M, F M M, ...) to
+           // the base function/parenthesized/curly group they are
+           // applied to, instead of grabbing just the one token
+           // immediately left of ⍣ -- otherwise only the trailing
+           // operator (here /) got parenthesized with ⍣, splitting the
+           // derived function apart instead of keeping it whole.
+           // Reproduced: `+/⍣2⊢1 2 3` gave SYNTAX ERROR, with the
+           // parser's own inserted-parens error display showing exactly
+           // the wrong split: `+(/⍣2)⊢1 2 3` (want 6, i.e. +/ applied
+           // twice: +/1 2 3 is 6, +/6 is 6). (Blake McBride, Bugs26 #5)
+           while (pos_LO > 0 && tos[pos_LO].get_Class() == TC_OPER1)   --pos_LO;
+
            if (tos[pos_LO].get_Class() == TC_R_PARENT)   // ( LO )
               {
                 pos_LO = tos.find_opening_parent(pos_LO);
@@ -1721,6 +1729,23 @@ bool progress = false;
            int pos_LO = pos_RANK - 1;
            if (pos_LO < 0)   continue;   // ⍤ at the very start of the
                                           // statement: no LO to parenthesize
+
+           // LO itself can be a derived function, e.g. +/⍤1: walk back
+           // past any chain of monadic operators (F M, F M M, ...) to
+           // the base function/parenthesized/curly group they are
+           // applied to, instead of grabbing just the one token
+           // immediately left of ⍤ -- otherwise only the trailing
+           // operator (here /) got parenthesized with ⍤, splitting the
+           // derived function apart instead of keeping it whole.
+           // Reproduced: `+/⍤1⊢2 3⍴⍳6` gave SYNTAX ERROR, with the
+           // parser's own inserted-parens error display showing exactly
+           // the wrong split: `+(/⍤1)⊢2 3⍴⍳6` (want 6 15, i.e. +/
+           // applied to each of the matrix's 2 rows). Same bug, same
+           // fix, in fix_POWER_syntax() above for ⍣ (e.g. +/⍣2).
+           // (Blake McBride, Bugs26 #5)
+           while (pos_LO > 0 && tos[pos_LO].get_Class() == TC_OPER1)
+              --pos_LO;
+
            if (tos[pos_LO].get_Class() == TC_R_PARENT)   // ( LO )
               {
                 pos_LO = tos.find_opening_parent(pos_LO);

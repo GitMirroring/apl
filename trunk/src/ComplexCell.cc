@@ -337,10 +337,35 @@ const APL_Complex one(1.0, 0.0);
                     return ComplexCell::zC(Z, loga);
                   }
 
-        case  -4: if (b.real() >= 0.0 ||
-                      (b.real() > -1.0 && Cell::is_near_zero(b.imag()))
-                     )   return ComplexCell::zC(Z,  complex_sqrt(b*b - one));
-                  else   return ComplexCell::zC(Z, -complex_sqrt(b*b - one));
+        case  -4:
+             {
+               // (¯1+B⋆2)⋆0.5, the APL2 convention (always the +
+               // branch of sqrt): RealCell::do_bif_circle_fun() already
+               // uses exactly this form for real B, but this complex
+               // path used to negate when b.real() < -1 (the ISO
+               // (B+1)×((B-1)÷(B+1))^0.5 convention instead), so the
+               // answer depended on whether the value happened to be
+               // stored as a FloatCell or a ComplexCell. Standardized
+               // on the APL2 form to agree with RealCell (Blake
+               // McBride, Bugs26 #4a).
+               //
+               // For b with an exactly-zero imaginary part (i.e. a
+               // real value that reached this complex path only
+               // because RealCell delegates here for |b|<1), compute
+               // b*b-1 with real arithmetic instead of complex b*b:
+               // squaring b as a complex number can produce a -0.0
+               // imaginary part purely from floating-point sign-of-
+               // zero rules (e.g. b=(-0.5,0.0) gives b*b=(0.25,-0.0)),
+               // and complex_sqrt() respects that sign as a branch-cut
+               // side even though a real b was never actually
+               // approaching the cut from either side -- flipping the
+               // resulting branch for no mathematical reason (Blake
+               // McBride, Bugs26 #4b).
+               const APL_Complex arg = Cell::is_near_zero(b.imag())
+                                      ? APL_Complex(b.real()*b.real() - 1.0, 0.0)
+                                      : b*b - one;
+               return ComplexCell::zC(Z, complex_sqrt(arg));
+             }
 
         case  -3: // arctan(z) = i/2 (ln(1 - iz) - ln(1 + iz))
                   {
@@ -354,15 +379,24 @@ const APL_Complex one(1.0, 0.0);
                     return ComplexCell::zC(Z, prod);
                   }
 
-        case  -2: // arccos(z) = -i (ln( z + sqrt(z^2 - 1)))
+        case  -2: // arccos(z) = π/2 - arcsin(z), using the already-
+                  // correct arcsin(z) = -i(ln(iz + sqrt(1-z^2))) from
+                  // case -1 below. The previous direct formula,
+                  // arccos(z) = -i(ln(z + sqrt(z^2-1))), picks
+                  // sqrt(z^2-1) which is not always the same branch as
+                  // i*sqrt(1-z^2) -- the two differ in sign exactly
+                  // where the identity arcsin(z)+arccos(z) = π/2 broke
+                  // (every real |B| > 1, and a large part of the
+                  // complex plane) (Blake McBride, Bugs26 #3).
                   {
                     const APL_Complex b2 = b*b;
-                    const APL_Complex diff = b2 - ONE();
+                    const APL_Complex diff = ONE() - b2;
                     const APL_Complex root = complex_sqrt(diff);
-                    const APL_Complex sum = b + root;
+                    const APL_Complex sum  = APL_Complex(-b.imag(), b.real())
+                                           + root;
                     const APL_Complex loga = log(sum);
-                    const APL_Complex prod = MINUS_i() * loga;
-                    return ComplexCell::zC(Z, prod);
+                    const APL_Complex asin_b = MINUS_i() * loga;
+                    return ComplexCell::zC(Z, APL_Complex(M_PI/2, 0) - asin_b);
                   }
 
         case  -1: // arcsin(z) = -i (ln(iz + sqrt(1 - z^2)))
@@ -797,10 +831,14 @@ ComplexCell::bif_logarithm_cc(Cell * Z, APL_Complex a, APL_Complex b)
 {
    // a = base (A), b = argument (B = this)
    //
-   if (b == a)   return IntCell::z1(Z);
-   if (b.real() == 0.0 && b.imag() == 0.0)   return E_DOMAIN_ERROR;
+   // Base validity (a == 0 or a == 1) must be checked before the b==a
+   // short-circuit below -- see FloatCell::bif_logarithm_ff() for the
+   // real-cell version of the same bug (Blake McBride, Bugs26 #2).
+   if (a.real() == 0.0 && a.imag() == 0.0)   return E_DOMAIN_ERROR;
    if (fabs(a.real() - 1.0) <= INTEGER_TOLERANCE &&
        fabs(a.imag())        <= INTEGER_TOLERANCE)   return E_DOMAIN_ERROR;
+   if (b == a)   return IntCell::z1(Z);
+   if (b.real() == 0.0 && b.imag() == 0.0)   return E_DOMAIN_ERROR;
 
    if (a.imag() == 0.0)
       {

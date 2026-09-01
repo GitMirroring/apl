@@ -12,70 +12,71 @@
    ║   0  │                      │ 0 │               ║
    ║   1  │  (    VAL  )         │ 3 │               ║
    ║   2  │  (    F   )          │ 3 │ LPAR_B_RPAR_  ║
-   ║   3  │  F0                  │ 1 │               ║
-   ║   4  │  ←    F   VAL        │ 3 │               ║
-   ║   5  │  →    F   VAL        │ 3 │               ║
-   ║   6  │  F   F   VAL         │ 3 │               ║
-   ║   7  │  [ ;  F   VAL        │ 3 │               ║
-   ║   8  │  END  F   VAL        │ 3 │               ║
-   ║   9  │  (    F   VAL        │ 3 │               ║
-   ║  10  │  [X]  F   VAL        │ 3 │               ║
-   ║  11  │  RET  F   VAL        │ 3 │               ║
-   ║  12  │  OP1  F   VAL        │ 3 │               ║
-   ║  13  │  ←    F   [X]  VAL   │ 4 │               ║
-   ║  14  │  →    F   [X]  VAL   │ 4 │               ║
-   ║  15  │  F   F   [X]  VAL    │ 4 │               ║
-   ║  16  │  [ ;  F   [X]  VAL   │ 4 │               ║
-   ║  17  │  END  F   [X]  VAL   │ 4 │               ║
-   ║  18  │  (    F   [X]  VAL   │ 4 │               ║
-   ║  19  │  [X]  F   [X]  VAL   │ 4 │               ║
-   ║  20  │  RET  F   [X]  VAL   │ 4 │               ║
-   ║  21  │  OP1  F   [X]  VAL   │ 4 │               ║
-   ║  22  │  VAL  F   VAL        │ 3 │               ║
-   ║  23  │  VAL  OP1  VAL       │ 3 │               ║
-   ║  24  │  VAL  F   [X]  VAL   │ 4 │               ║
-   ║  25  │  VAL  OP1  [X]  VAL  │ 4 │               ║
-   ║  26  │  F   OP1             │ 2 │               ║
-   ║  27  │  OP1  OP1            │ 2 │               ║
-   ║  28  │  F   OP1  [X]        │ 3 │               ║
-   ║  29  │  F   [X]  OP1        │ 3 │               ║
-   ║  30  │  F   [X]  OP1  [X]   │ 4 │               ║
-   ║  31  │  OP2  SYM            │ 2 │               ║
-   ║  32  │  VAL  OP2  VAL       │ 3 │ F_D_G_        ║
-   ║  33  │  VAL  OP2  F         │ 3 │ F_D_G_        ║
-   ║  34  │  F   OP2  VAL        │ 3 │               ║
-   ║  35  │  F   OP2  F          │ 3 │               ║
-   ║  36  │  F   OP2  [X]  VAL   │ 4 │               ║
-   ║  37  │  VAL  [X]            │ 2 │               ║
-   ║  38  │  SYM  [X]            │ 2 │               ║
-   ║  39  │  SYM  [X]  ←    VAL  │ 4 │               ║
-   ║  40  │  F   SYM             │ 2 │               ║
-   ║  41  │  VAL  ←    VAL       │ 3 │               ║
-   ║  42  │  SYM  ←    VAL       │ 3 │               ║
-   ║  43  │  OP2  SYM  ←    VAL  │ 4 │               ║
-   ║  44  │  SYM  ←    F         │ 3 │               ║
-   ║  45  │  SYM  ←    F0        │ 3 │ V_ASS_F_      ║
-   ║  46  │  SYM  ←    OP1       │ 3 │ V_ASS_F_      ║
-   ║  47  │  SYM  ←    OP2       │ 3 │ V_ASS_F_      ║
-   ║  48  │  ]                   │ 1 │               ║
-   ║  49  │  [ ;  PIDX           │ 2 │               ║
-   ║  50  │  [ ;  VAL  PIDX      │ 3 │               ║
-   ║  51  │  VAL  VAL            │ 2 │               ║
-   ║  52  │  SYM  )    ←    VAL  │ 4 │               ║
-   ║  53  │  END                 │ 1 │               ║
-   ║  54  │  END  VOID           │ 2 │               ║
-   ║  55  │  END  VAL            │ 2 │               ║
-   ║  56  │  END  →              │ 2 │               ║
-   ║  57  │  END  →    VAL       │ 3 │               ║
-   ║  58  │  F   →    VAL        │ 3 │ END_GOTO_B_   ║
-   ║  59  │  OP1  →    VAL       │ 3 │ END_GOTO_B_   ║
-   ║  60  │  VAL  →    VAL       │ 3 │               ║
-   ║  61  │  RET                 │ 1 │               ║
-   ║  62  │  RET  VOID           │ 2 │               ║
-   ║  63  │  RET  VAL            │ 2 │               ║
-   ║  64  │  RET  →              │ 2 │               ║
-   ║  65  │  RET  →    VAL       │ 3 │               ║
-   ║  66  │  RET  VAL  →    VAL  │ 4 │               ║
+   ║   3  │  (    F   [X]  )     │ 4 │               ║
+   ║   4  │  F0                  │ 1 │               ║
+   ║   5  │  ←    F   VAL        │ 3 │               ║
+   ║   6  │  →    F   VAL        │ 3 │               ║
+   ║   7  │  F   F   VAL         │ 3 │               ║
+   ║   8  │  [ ;  F   VAL        │ 3 │               ║
+   ║   9  │  END  F   VAL        │ 3 │               ║
+   ║  10  │  (    F   VAL        │ 3 │               ║
+   ║  11  │  [X]  F   VAL        │ 3 │               ║
+   ║  12  │  RET  F   VAL        │ 3 │               ║
+   ║  13  │  OP1  F   VAL        │ 3 │               ║
+   ║  14  │  ←    F   [X]  VAL   │ 4 │               ║
+   ║  15  │  →    F   [X]  VAL   │ 4 │               ║
+   ║  16  │  F   F   [X]  VAL    │ 4 │               ║
+   ║  17  │  [ ;  F   [X]  VAL   │ 4 │               ║
+   ║  18  │  END  F   [X]  VAL   │ 4 │               ║
+   ║  19  │  (    F   [X]  VAL   │ 4 │               ║
+   ║  20  │  [X]  F   [X]  VAL   │ 4 │               ║
+   ║  21  │  RET  F   [X]  VAL   │ 4 │               ║
+   ║  22  │  OP1  F   [X]  VAL   │ 4 │               ║
+   ║  23  │  VAL  F   VAL        │ 3 │               ║
+   ║  24  │  VAL  OP1  VAL       │ 3 │               ║
+   ║  25  │  VAL  F   [X]  VAL   │ 4 │               ║
+   ║  26  │  VAL  OP1  [X]  VAL  │ 4 │               ║
+   ║  27  │  F   OP1             │ 2 │               ║
+   ║  28  │  OP1  OP1            │ 2 │               ║
+   ║  29  │  F   OP1  [X]        │ 3 │               ║
+   ║  30  │  F   [X]  OP1        │ 3 │               ║
+   ║  31  │  F   [X]  OP1  [X]   │ 4 │               ║
+   ║  32  │  OP2  SYM            │ 2 │               ║
+   ║  33  │  VAL  OP2  VAL       │ 3 │ F_D_G_        ║
+   ║  34  │  VAL  OP2  F         │ 3 │ F_D_G_        ║
+   ║  35  │  F   OP2  VAL        │ 3 │               ║
+   ║  36  │  F   OP2  F          │ 3 │               ║
+   ║  37  │  F   OP2  [X]  VAL   │ 4 │               ║
+   ║  38  │  VAL  [X]            │ 2 │               ║
+   ║  39  │  SYM  [X]            │ 2 │               ║
+   ║  40  │  SYM  [X]  ←    VAL  │ 4 │               ║
+   ║  41  │  F   SYM             │ 2 │               ║
+   ║  42  │  VAL  ←    VAL       │ 3 │               ║
+   ║  43  │  SYM  ←    VAL       │ 3 │               ║
+   ║  44  │  OP2  SYM  ←    VAL  │ 4 │               ║
+   ║  45  │  SYM  ←    F         │ 3 │               ║
+   ║  46  │  SYM  ←    F0        │ 3 │ V_ASS_F_      ║
+   ║  47  │  SYM  ←    OP1       │ 3 │ V_ASS_F_      ║
+   ║  48  │  SYM  ←    OP2       │ 3 │ V_ASS_F_      ║
+   ║  49  │  ]                   │ 1 │               ║
+   ║  50  │  [ ;  PIDX           │ 2 │               ║
+   ║  51  │  [ ;  VAL  PIDX      │ 3 │               ║
+   ║  52  │  VAL  VAL            │ 2 │               ║
+   ║  53  │  SYM  )    ←    VAL  │ 4 │               ║
+   ║  54  │  END                 │ 1 │               ║
+   ║  55  │  END  VOID           │ 2 │               ║
+   ║  56  │  END  VAL            │ 2 │               ║
+   ║  57  │  END  →              │ 2 │               ║
+   ║  58  │  END  →    VAL       │ 3 │               ║
+   ║  59  │  F   →    VAL        │ 3 │ END_GOTO_B_   ║
+   ║  60  │  OP1  →    VAL       │ 3 │ END_GOTO_B_   ║
+   ║  61  │  VAL  →    VAL       │ 3 │               ║
+   ║  62  │  RET                 │ 1 │               ║
+   ║  63  │  RET  VOID           │ 2 │               ║
+   ║  64  │  RET  VAL            │ 2 │               ║
+   ║  65  │  RET  →              │ 2 │               ║
+   ║  66  │  RET  →    VAL       │ 3 │               ║
+   ║  67  │  RET  VAL  →    VAL  │ 4 │               ║
    ╚══════╧══════════════════════╧═══╧═══════════════╝
  */
 
@@ -86,6 +87,7 @@
 
    void reduce____();                ///< reduce phrase 
    void reduce_LPAR_B_RPAR_();       ///< reduce phrase LPAR B RPAR
+   void reduce_LPAR_F_C_RPAR();      ///< reduce phrase LPAR F C RPAR
    void reduce_N___();               ///< reduce phrase N
    void reduce_MISC_F_B_();          ///< reduce phrase ASS F B
    void reduce_MISC_F_C_B();         ///< reduce phrase ASS F C B
@@ -128,7 +130,7 @@
    void reduce_RETC_GOTO_B_();       ///< reduce phrase RETC GOTO B
    void reduce_RETC_A_GOTO_B();      ///< reduce phrase RETC A GOTO B
 
-   enum { PHRASE_COUNT   = 67,      ///< number of phrases
+   enum { PHRASE_COUNT   = 68,      ///< number of phrases
           PHRASE_MODU    = 519,     ///< hash table size
           MAX_PHRASE_LEN = 4 };     ///< max. number of token in a phrase
 
@@ -595,7 +597,7 @@
   PH(                , ___           , 0x00000 ,   0  ,   0  ,  0),  // [1C5]
   PH(                , ___           , 0x00000 ,   0  ,   0  ,  0),  // [1C6]
   PH( F V            , F_V__         , 0x001C7 ,  22  ,   0  ,  2),  // [1C7]
-  PH(                , ___           , 0x00000 ,   0  ,   0  ,  0),  // [1C8]
+  PH( LPAR F C RPAR  , LPAR_F_C_RPAR , 0x620EB ,   4  ,   0  ,  4),  // [1C8]
   PH(                , ___           , 0x00000 ,   0  ,   0  ,  0),  // [1C9]
   PH( D V            , D_V__         , 0x001CA ,  62  ,   0  ,  2),  // [1CA]
   PH(                , ___           , 0x00000 ,   0  ,   0  ,  0),  // [1CB]

@@ -140,6 +140,7 @@ Value_P Z(B.get_shape(), LOC);
               else if (z == len_A)   // not found: set result item to ⍬
                  {
                    Value_P zilde(ShapeItem(0), LOC);
+                   zilde->check_value(LOC);
                    Z->next_ravel_Pointer(zilde.get());
                  }
               else                   // element found (first at z (+⎕IO)
@@ -170,6 +171,7 @@ Value_P Z(B.get_shape(), LOC);
               else if (z == len_A)   // not found: set result item to ⍬
                  {
                    Value_P zilde(ShapeItem(0), LOC);
+                   zilde->check_value(LOC);
                    Z->next_ravel_Pointer(zilde.get());
                  }
               else                   // element found (first at z (+⎕IO)

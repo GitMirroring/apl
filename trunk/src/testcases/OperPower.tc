@@ -83,8 +83,19 @@
 
       ⍝ regression
       ⍝
-      {1+÷⍵}⍣2 ⊢ 2 
+      {1+÷⍵}⍣2 ⊢ 2
 1.666666667
+
+      ⍝ regression (Blake McBride, Bugs26 #5): same bug as Rank.tc's ⍤
+      ⍝ case, but in fix_POWER_syntax() for ⍣ -- pos_LO = pos_POWER - 1
+      ⍝ grabbed only the trailing operator (/), not the whole derived
+      ⍝ function +/, so +/⍣2 B parenthesized itself as +(/⍣2) B instead
+      ⍝ of (+/)⍣2 B -- reported as SYNTAX ERROR.
+      ⍝
+      +/⍣2⊢1 2 3
+6
+      (+/)⍣2⊢1 2 3
+6
 
       )CHECK BRIEF
 

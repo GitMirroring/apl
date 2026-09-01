@@ -487,6 +487,22 @@ cFunction_P LO = _LO.get_function();
    // split shape of B into high (=frame) and low (= chunk) shapes.
    //
 const sRank frame_B_rank = B->get_rank() - rank_chunk_B;
+
+   // if the frame rank is 0 (i.e. the chunk rank already covers all of
+   // B), there is exactly one chunk -- the whole of B -- so LO⍤y B is
+   // simply LO B; mirrors the analogous (and already-existing)
+   // frame_A_rank==0 && frame_B_rank==0 fast path a few dozen lines
+   // below in the dyadic do_ALyXB() sibling of this function, which
+   // this monadic do_LyXB() was missing. Without it, every f⍤k B --
+   // including the trivial case where k already equals B's own rank,
+   // e.g. (÷⍤0)0 -- always went through Macro::MAC_Z__LO_RANK_X5_B,
+   // so any error LO raised suspended showing that internal macro's
+   // own μ-variable pseudocode and left it stuck on )SI, instead of
+   // reporting DOMAIN ERROR etc. against the user's own expression the
+   // way (LO¨)B and (LO⍣N)B already do for the same trivial case
+   // (Blake McBride, Bugs26 #7).
+   if (frame_B_rank == 0)   return LO->eval_B(*B);
+
 const Shape shape_Z = B->get_shape().frame_shape(frame_B_rank);
    if (shape_Z.is_empty())
       {

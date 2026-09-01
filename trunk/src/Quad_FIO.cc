@@ -3738,6 +3738,7 @@ const ssize_t bytes = read(device, buffer, len);
       {
         Value_P Z(len, LOC);
         loop(l, len)   Z->next_ravel_Int(buffer[l] & 0xFF);
+        Z->check_value(LOC);
          return Z;
       }
 

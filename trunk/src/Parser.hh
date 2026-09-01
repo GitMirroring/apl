@@ -245,11 +245,6 @@ public:
 
 protected:
 
-   /// check if tos[pos] is the end of a value or of a function
-   /// @param tos token string being examined
-   /// @param pos index of the token to classify
-   static bool check_if_value(const Token_string & tos, int pos);
-
    /// Collect consecutive smaller APL values or value token into vectors
    /// @param tos token string modified in place
    static bool collect_constants(Token_string & tos);

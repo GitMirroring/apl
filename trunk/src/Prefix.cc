@@ -1021,6 +1021,26 @@ TokenClass next = body[pc].get_Class();
         if (pc >= Function_PC(body.ssize()))   return true;   // syntax error
         next = body[pc].get_Class();
       }
+   else if (next == TC_INDEX && body[pc].get_tag() == TOK_FAXIS)
+      {
+        // skip a literal function axis, e.g. (⌽[1]). Parser::
+        // optimize_literal_axes() already collapsed the [ ... ] triple
+        // above into this single TOK_FAXIS token before Prefix.cc ever
+        // runs, so the TC_R_BRACK case above (which expects the
+        // original, unoptimized triple) never matches it. Without this,
+        // next stayed TC_INDEX, matched none of the checks below, and
+        // fell through to the final "return true" -- misclassifying
+        // (⌽[1]) as a value parenthesis, deferring reduction of
+        // whatever dyadic expression is next in the wrong direction
+        // (e.g. (⌽[1])2 3⍴⍳6 silently reduced as (⌽[1])2 first, giving
+        // 3 2⍴⍳6 instead of (⌽[1])(2 3⍴⍳6)). Found via the new (F C)
+        // grammar phrase below/Bugs26 #5, which is what first made
+        // (⌽[1]) reducible at all instead of an immediate SYNTAX ERROR.
+        //
+        ++pc;
+        if (pc >= Function_PC(body.ssize()))   return true;   // syntax error
+        next = body[pc].get_Class();
+      }
 
    if (next == TC_SYMBOL)   // resolve symbol if necessary
       {
@@ -1682,10 +1702,37 @@ Prefix::reduce_LPAR_B_RPAR_()
       }
    else
       {
-        const Token & result = at1(); 
+        const Token & result = at1();
         pop_args_push_result(result);
       }
 
+   set_action(RA_CONTINUE);
+}
+//────────────────────────────────────────────────────────────────────────────
+void
+Prefix::reduce_LPAR_F_C_RPAR()
+{
+   Assert1(prefix_len == 4);
+
+   // a parenthesized function bound to its own axis, e.g. (⌽[1]), needs
+   // to collapse to a single (derived) function, the same way (F) alone
+   // does above via reduce_LPAR_B_RPAR_() -- so it can be used the same
+   // way as a bare F elsewhere, in particular as the LO of an operator:
+   // (⌽[1])⌿B. Without this phrase, "F C" alone (nothing after C to
+   // complete some other, longer phrase, e.g. F C M) never reduces to
+   // anything by itself, so the shift-reduce engine ran off the end of
+   // the statement with "( F C )" still unreduced on the stack and no
+   // matching phrase -- SYNTAX ERROR, even for the plain call (⌽[1])B
+   // with no operator at all involved. Found investigating Blake
+   // McBride's Bugs26 #5 (same area, unrelated root cause).
+   //
+cFunction_P F = at1().get_function();
+Value_P     C = at2().get_function_axis();
+
+DerivedFunction * derived = get_fun_oper_slot(LOC);
+   new (derived) Derived_F_X(F, C, LOC);
+
+   pop_args_push_result(Token(TOK_FUN2, derived));
    set_action(RA_CONTINUE);
 }
 //────────────────────────────────────────────────────────────────────────────

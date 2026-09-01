@@ -1645,7 +1645,7 @@ const ShapeItem ec = B.element_count();
            {
              const APL_Integer bint = B.get_near_int(v);
              if (bint < -0x80)        DOMAIN_ERROR;
-             if (bint > 0x7FFFDFFF)   DOMAIN_ERROR;
+             if (bint > 0x7FFFFFFF)   DOMAIN_ERROR;
              Z->next_ravel_Char(Unicode(bint));
            }
       }
@@ -1684,7 +1684,7 @@ const ShapeItem ec = B.element_count();
                 {
                   const APL_Integer bint = cell_B.get_near_int();
                   if (bint < -0x80)        DOMAIN_ERROR;
-                  if (bint > 0x7FFFDFFF)   DOMAIN_ERROR;
+                  if (bint > 0x7FFFFFFF)   DOMAIN_ERROR;
                   Z->next_ravel_Char(Unicode(bint));
                   continue;
                 }
@@ -1764,6 +1764,7 @@ Value_P Z(lines.size(), LOC);
 
    loop(z, lines.size())   Z->next_ravel_Int(lines[z]);
 
+   Z->check_value(LOC);
    if (assigned)   return Token(TOK_APL_VALUE2, Z);
    else            return Token(TOK_APL_VALUE1, Z);
 }

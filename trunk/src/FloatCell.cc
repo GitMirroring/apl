@@ -702,9 +702,17 @@ FloatCell::bif_logarithm_ff(Cell * Z, APL_Float a, APL_Float b)
 {
    // a = base (A), b = argument (B = this)
    //
+   // Base validity (a == 0 or a == 1) must be checked before the b==a
+   // short-circuit below -- otherwise 0⍟0 and 1⍟1 both incorrectly
+   // return 1 despite an illegal base (1⍟5, with the same illegal base
+   // 1, does raise DOMAIN ERROR -- internally inconsistent). a == 0 also
+   // needs its own explicit guard: log(0.0) is -inf, so log(b)/-inf is
+   // -0.0, which passes the isfinite() check below and returns 0
+   // instead of erroring (Blake McBride, Bugs26 #2).
+   if (a == 0.0)                             return E_DOMAIN_ERROR;
+   if (fabs(a - 1.0) <= INTEGER_TOLERANCE)   return E_DOMAIN_ERROR;
    if (b == a)    return IntCell::z1(Z);
    if (b == 0.0)  return E_DOMAIN_ERROR;
-   if (fabs(a - 1.0) <= INTEGER_TOLERANCE)   return E_DOMAIN_ERROR;
 
    if (a >= 0.0 && b >= 0.0)
       {

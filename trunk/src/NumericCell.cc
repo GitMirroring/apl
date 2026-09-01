@@ -141,111 +141,105 @@ NumericCell::bif_binomial(Cell * Z, const Cell * A) const
    //
 const APL_Float r_A = A->get_real_value();
 const APL_Float r_B =    get_real_value();
-const int row = (r_A < 0   ? 4 : 0)
-              | (r_B < 0   ? 2 : 0)
-              | (r_B < r_A ? 1 : 0);
 
-   // handle the 0 and the impossible (e.g. A≥0, B<0, but B-A≥0) cases.
-   // ISO wants DOMAIN ERROR for the impossible cases but they cannot occur
-   // anyway.
-   //
 const char * how = "-0?-0?-0";   // '?' means case cannot occur
-const char chow = how[row];
-   if (chow == '0')   // cases 1, 4, and 7
-      {
-        // The '0' entries model poles of the Gamma function, which only
-        // exist for *integer* N/K -- this table is keyed purely on sign
-        // (A<0, B<0, B<A), evaluated before any integrality test, so a
-        // non-integer A/B landing in one of these sign patterns was
-        // returning 0 unconditionally instead of the general Gamma-based
-        // real_binomial() result. Reproduced: 2!0.5 gave 0 (want -0.125);
-        // 0.5!0.2 gave 0 (want ~0.798).
-        if (A->is_near_int() && is_near_int())   return IntCell::z0(Z);
-        return real_binomial(Z, A);
-      }
-   Assert(chow == '-');                        // cases 0, 3, and 6
 
    // is_near_int64_t(), not is_near_int(): the latter is also true for
    // magnitudes that don't fit in int64_t (by design, see its doc
    // comment), which get_checked_near_int() below then casts unchecked
    // (UB) instead of routing through real_binomial() as intended.
-   if (!   is_near_int64_t())   return real_binomial(Z, A);
-   if (!A->is_near_int64_t())   return real_binomial(Z, A);
-
-   // at this point both A and B are integer (possibly negative) and
-   // actually representable as int64_t.
    //
+   // Classify with the *rounded* K/N up front whenever both fit in
+   // int64_t, rather than with the raw (pre-rounding) r_A/r_B sign --
+   // K33_binomial() below is called with the rounded K/N, so for a
+   // value very close to zero from the negative side (e.g. ¯1E¯300),
+   // the raw sign says "negative" while the rounded value is genuinely
+   // 0 (non-negative). Classifying from the raw sign used to send this
+   // straight to the (raw-sign) '0' case below and return 0
+   // unconditionally, without ever getting a chance to notice the
+   // rounded K/N actually belong in a '-' row (Blake McBride, Bugs26
+   // #1) -- the previous fix for this same raw-vs-rounded mismatch
+   // (Bugs25 #6) only reclassified the '-' rows' own row2, reached
+   // *after* the raw row had already been checked for '0'. Doing the
+   // reclassification first, before any '0'-vs-'-' branch at all, fixes
+   // both directions at once.
+   if (A->is_near_int64_t() && is_near_int64_t())
+      {
 const APL_Integer K = A->get_checked_near_int();
 const APL_Integer N =    get_checked_near_int();
-
-   // row was classified from the raw (pre-rounding) r_A/r_B above, but
-   // K33_binomial() below is called with the *rounded* K/N -- for a
-   // value very close to zero from the negative side (e.g. ¯1E¯300),
-   // the raw sign says "negative" (row picks the row-3/row-6 negative-
-   // binomial identity) while the rounded value is genuinely 0
-   // (non-negative), so the identity's own Assert(N>=K)/Assert(K>=0)
-   // preconditions -- which assume row and K/N agree -- fire instead of
-   // returning a result (Blake McBride, Bugs25 #6). Reclassify using
-   // the same rounded K/N the identities actually use; row2==row except
-   // at this boundary. how[row2]=='?' cannot occur here for the same
-   // algebraic reason it cannot occur for the original row (row indices
-   // 2 and 5 require N<0≤K with N≥K, or N≥0>K with N<K, both
-   // contradictions).
-   //
 const int row2 = (K < 0   ? 4 : 0)
                 | (N < 0   ? 2 : 0)
                 | (N < K   ? 1 : 0);
-   if (how[row2] == '0')   return IntCell::z0(Z);
-   Assert(how[row2] == '-');
+        if (how[row2] == '0')   return IntCell::z0(Z);
+        Assert(how[row2] == '-');
 
-   switch(row2)
-      {
-        case 0:  return K33_binomial(Z, N, K, false);
-
-        case 3:
+        switch(row2)
            {
-             // row 3 (A=K≥0, B=N<0) uses the identity
-             //   (N over K) = (-1)^K × (K-N-1 over K)
-             // i.e. calls K33_binomial with N' = K-(N+1). N and K are
-             // themselves resonable int64 values (get_checked_near_int()
-             // already bounds them), but N+1 and K-(N+1) can each
-             // overflow int64 for extreme N/K (e.g. K=int64 max,
-             // N=int64 min) -- the true (N over K) is astronomically
-             // large in that regime regardless (K33_binomial's own
-             // Assert(N'>=K') relies on this subtraction NOT
-             // overflowing, so check first rather than let a wrapped,
-             // wrong N' reach it and trip the assertion).
-             //
-             const APL_Integer N1 = N + 1;
-             if (Cell::sum_overflow(N1, N, 1))    return E_DOMAIN_ERROR;
-             const APL_Integer NK = K - N1;
-             if (Cell::diff_overflow(NK, K, N1))  return E_DOMAIN_ERROR;
-             return K33_binomial(Z, NK, K, K & 1);
+             case 0:  return K33_binomial(Z, N, K, false);
+
+             case 3:
+                {
+                  // row 3 (A=K≥0, B=N<0) uses the identity
+                  //   (N over K) = (-1)^K × (K-N-1 over K)
+                  // i.e. calls K33_binomial with N' = K-(N+1). N and K
+                  // are themselves resonable int64 values
+                  // (get_checked_near_int() already bounds them), but
+                  // N+1 and K-(N+1) can each overflow int64 for extreme
+                  // N/K (e.g. K=int64 max, N=int64 min) -- the true
+                  // (N over K) is astronomically large in that regime
+                  // regardless (K33_binomial's own Assert(N'>=K')
+                  // relies on this subtraction NOT overflowing, so
+                  // check first rather than let a wrapped, wrong N'
+                  // reach it and trip the assertion).
+                  //
+                  const APL_Integer N1 = N + 1;
+                  if (Cell::sum_overflow(N1, N, 1))    return E_DOMAIN_ERROR;
+                  const APL_Integer NK = K - N1;
+                  if (Cell::diff_overflow(NK, K, N1))  return E_DOMAIN_ERROR;
+                  return K33_binomial(Z, NK, K, K & 1);
+                }
+
+             case 6:
+                {
+                  // row 6 (A=K<0, B=N<0, N≥K) uses the identity
+                  //   (N over K) = (-1)^(N-K) × (-K-1 over -N-1)
+                  // Same overflow risk as row 3, this time in the two
+                  // negations -K-1 and -N-1 (K+1/N+1 can themselves
+                  // overflow, and even when they don't, negating int64
+                  // min has no representable result).
+                  //
+                  const APL_Integer K1 = K + 1;
+                  if (Cell::sum_overflow(K1, K, 1))        return E_DOMAIN_ERROR;
+                  const APL_Integer neg_K1 = -K1;
+                  if (Cell::diff_overflow(neg_K1, 0, K1))  return E_DOMAIN_ERROR;
+                  const APL_Integer N1 = N + 1;
+                  if (Cell::sum_overflow(N1, N, 1))        return E_DOMAIN_ERROR;
+                  const APL_Integer neg_N1 = -N1;
+                  if (Cell::diff_overflow(neg_N1, 0, N1))  return E_DOMAIN_ERROR;
+                  return K33_binomial(Z, neg_K1, neg_N1, (N - K) & 1);
+                }
            }
 
-        case 6:
-           {
-             // row 6 (A=K<0, B=N<0, N≥K) uses the identity
-             //   (N over K) = (-1)^(N-K) × (-K-1 over -N-1)
-             // Same overflow risk as row 3, this time in the two
-             // negations -K-1 and -N-1 (K+1/N+1 can themselves
-             // overflow, and even when they don't, negating int64 min
-             // has no representable result).
-             //
-             const APL_Integer K1 = K + 1;
-             if (Cell::sum_overflow(K1, K, 1))           return E_DOMAIN_ERROR;
-             const APL_Integer neg_K1 = -K1;
-             if (Cell::diff_overflow(neg_K1, 0, K1))     return E_DOMAIN_ERROR;
-             const APL_Integer N1 = N + 1;
-             if (Cell::sum_overflow(N1, N, 1))           return E_DOMAIN_ERROR;
-             const APL_Integer neg_N1 = -N1;
-             if (Cell::diff_overflow(neg_N1, 0, N1))     return E_DOMAIN_ERROR;
-             return K33_binomial(Z, neg_K1, neg_N1, (N - K) & 1);
-           }
+        FIXME;
+        return E_NO_ERROR;
       }
 
-   FIXME;
-   return E_NO_ERROR;
+   // not both integer (or too large for int64_t): only the raw sign of
+   // A/B is available, so classify with that instead. This matches the
+   // original (pre-Bugs26 #1) behaviour exactly for this regime: huge
+   // near-integer magnitudes that fall in a '0' row still return 0
+   // outright (K33_binomial can't take them either way), everything
+   // else -- genuinely fractional A/B, or a '-' row too large for
+   // int64_t -- goes through the general Gamma-based real_binomial().
+   //
+const int row = (r_A < 0   ? 4 : 0)
+              | (r_B < 0   ? 2 : 0)
+              | (r_B < r_A ? 1 : 0);
+const char chow = how[row];
+   if (chow == '0' && A->is_near_int() && is_near_int())
+      return IntCell::z0(Z);
+   Assert(chow == '0' || chow == '-');
+   return real_binomial(Z, A);
 }
 //────────────────────────────────────────────────────────────────────────────
 ErrorCode

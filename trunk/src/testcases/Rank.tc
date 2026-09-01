@@ -171,6 +171,123 @@ a b c d e f
       ASSERT ( 2 2 2⊤⍤1 0 N5 ) ≡ ( 2 2 2(⊤⍤(1 0))  N5 )      ⍝ (⍤ (y))
       ASSERT ( 2 2 2⊤⍤1 0 N5 ) ≡ ( 2 2 2(⊤⍤(,1 0)) N5 )      ⍝ (⍤ (,y))
 
+      ⍝ regression (Blake McBride, Bugs26 #5): LO could be a plain
+      ⍝ function to the left of ⍤ with a literal y (F⍤y), but not a
+      ⍝ derived function built from a monadic operator (F M⍤y, e.g.
+      ⍝ +/⍤1) without manually parenthesizing it first.
+      ⍝ Parser::fix_RANK_syntax()'s pos_LO = pos_RANK - 1 grabbed only
+      ⍝ the trailing operator (/), not the whole derived function +/,
+      ⍝ so +/⍤1 B parenthesized itself as +(/⍤1) B instead of (+/)⍤1 B
+      ⍝ -- reported as SYNTAX ERROR.
+      ⍝
+      ASSERT ( +/⍤1⊢2 3⍴⍳6 )   ≡ ( (+/)⍤1⊢2 3⍴⍳6 )            ⍝ F M ⍤ y
+      ASSERT ( +/⍤1⊢2 3⍴⍳6 )   ≡ 6 15
+      ASSERT ( +\⍤1⊢2 3⍴⍳6 )   ≡ ( (+\)⍤1⊢2 3⍴⍳6 )            ⍝ F M ⍤ y
+      ASSERT ( +⌿⍤1⊢2 3⍴⍳6 )   ≡ ( (+⌿)⍤1⊢2 3⍴⍳6 )            ⍝ F M ⍤ y
+      ASSERT ( {⍵}¨⍤1⊢2 3⍴⍳6 ) ≡ ( ({⍵}¨)⍤1⊢2 3⍴⍳6 )          ⍝ F M ⍤ y
+
+      ⍝ regression (found while investigating Blake McBride's Bugs26
+      ⍝ #5, same "one token back" bug class but in a different place,
+      ⍝ this time with two separate bugs stacked on top of each other):
+      ⍝ (+/)[1]M silently ignored the [1] and always reduced the last
+      ⍝ axis instead (same wrong result as (+/)[2]M or plain (+/)M).
+      ⍝
+      ⍝ Bug 1 (Parser.cc): optimize_literal_axes() decided function-axis
+      ⍝ vs. value-index via tos[src-1].is_function(), which only looks
+      ⍝ at the single token left of [ -- for (+/)[1] that is ), not a
+      ⍝ function-typed token, so it silently fell through to the value-
+      ⍝ index path (indexing a function value is meaningless, so the
+      ⍝ axis got dropped instead of erroring). Fixed with a small local
+      ⍝ ends_in_function() helper that peels through a chain of closing
+      ⍝ parens, e.g. seeing the / inside (+/). Parser::check_if_value()
+      ⍝ did something similar for the unrelated /⌿\⍀ decision, and was
+      ⍝ tried first, but was NOT reusable here: its TC_SYMBOL case
+      ⍝ assumed symbols already carry their resolved tag (TOK_P_SYMB
+      ⍝ etc.), true only once Prefix.cc runs -- reusing it this early
+      ⍝ misread a plain not-yet-tagged variable, e.g. A in Z←A[3], as a
+      ⍝ function instead of a value, breaking ordinary value indexing
+      ⍝ (caught by Bracket_Index.tc via the full suite, not this file).
+      ⍝
+      ⍝ Bug 2 (DerivedFunction.cc), only exposed once bug 1 was fixed:
+      ⍝ (+/) itself reduces to an axis-less Derived_LO_M (Prefix.cc
+      ⍝ reduce_F_M__()), and the trailing [1] then reaches it only as
+      ⍝ the X parameter of eval_XB() -- which checked its own (always
+      ⍝ unset, for this class) member "axis" instead of the X it was
+      ⍝ actually given, silently discarding X either way. Same latent
+      ⍝ bug existed in Derived_LO_M_X::eval_XB(), fixed identically
+      ⍝ though not known to be reachable there. +/[1]M never hit any of
+      ⍝ this: adjacency lets reduce_F_M_C_() build an axis-aware
+      ⍝ Derived_LO_M_X up front instead.
+      ⍝
+      ASSERT ( +/[1]2 3⍴⍳6 )   ≡ ( (+/)[1]2 3⍴⍳6 )              ⍝ (F M)[y]
+      ASSERT ( +/[1]2 3⍴⍳6 )   ≡ 5 7 9
+      ASSERT ( +/[2]2 3⍴⍳6 )   ≡ ( (+/)[2]2 3⍴⍳6 )              ⍝ (F M)[y]
+      ASSERT ( +\[1]2 3⍴⍳6 )   ≡ ( (+\)[1]2 3⍴⍳6 )              ⍝ (F M)[y]
+      ASSERT ( +⌿[1]2 3⍴⍳6 )   ≡ ( (+⌿)[1]2 3⍴⍳6 )              ⍝ (F M)[y]
+
+      ⍝ regression (found investigating Blake McBride's Bugs26 #5, same
+      ⍝ area, unrelated root cause): (⌽[1])B, a parenthesized function
+      ⍝ bound to its own literal axis, was a SYNTAX ERROR even for this
+      ⍝ plain call with no operator at all involved -- "F C" (function,
+      ⍝ axis) alone, with nothing after C to complete some other, longer
+      ⍝ phrase (e.g. F C M), never reduced to anything by itself, so the
+      ⍝ shift-reduce engine ran off the end of the statement with the
+      ⍝ closing ) still unable to match any phrase. Fixed by adding a
+      ⍝ new "LPAR F C RPAR" grammar phrase (tools/phrase_gen.def, Bif
+      ⍝ Prefix.cc reduce_LPAR_F_C_RPAR()) that collapses it to a single
+      ⍝ derived function, the same way the existing "LPAR F RPAR" phrase
+      ⍝ already does for a plain (F).
+      ⍝
+      ⍝ That fix then exposed a second, previously-dormant bug: once
+      ⍝ (⌽[1]) could reduce, (⌽[1])2 3⍴⍳6 mis-bound as (⌽[1])2 3⍴⍳6,
+      ⍝ i.e. (⌽[1]) applied only to "2 3" (reversing it to "3 2") before
+      ⍝ the dyadic ⍴ ever got its real arguments, giving 3 2⍴⍳6 instead
+      ⍝ of (⌽[1])(2 3⍴⍳6). Root cause: Prefix::is_value_parenthesis(),
+      ⍝ used to decide whether an upcoming (...) is a value or a
+      ⍝ function (to resolve exactly this kind of shift/reduce
+      ⍝ priority conflict), already had one fix for a parenthesized
+      ⍝ function-with-axis ("was missing: landed on '[' itself instead
+      ⍝ of past it, misclassifying e.g. (⌽[X]) as a value instead of a
+      ⍝ function") -- but that fix only recognized the raw, unoptimized
+      ⍝ [ ... ] token triple. Parser::optimize_literal_axes() (a
+      ⍝ Parser.cc pass that runs before Prefix.cc ever sees the tokens)
+      ⍝ already collapses a literal [1] into a single TOK_FAXIS token,
+      ⍝ so that fix's TC_R_BRACK check never matched, next stayed
+      ⍝ TC_INDEX, and is_value_parenthesis() fell through to its
+      ⍝ default "return true" (value), causing the wrong shift/reduce
+      ⍝ decision. Latent since TOK_FAXIS was introduced; invisible until
+      ⍝ now because (⌽[1]) itself was always a SYNTAX ERROR before this
+      ⍝ session's grammar-phrase fix made it reducible at all.
+      ⍝
+      ASSERT ( ⌽[1]2 3⍴⍳6 )    ≡ ( (⌽[1])2 3⍴⍳6 )                ⍝ (F C) B
+      ASSERT ( ⌽[1]2 3⍴⍳6 )    ≡ 2 3⍴4 5 6 1 2 3
+      ASSERT ( ,[1]2 3⍴⍳6 )    ≡ ( (,[1])2 3⍴⍳6 )                ⍝ (F C) B
+
+      ⍝ regression: same as the literal-N assertions just above, but
+      ⍝ with a symbolic (variable) axis instead of a literal one. All
+      ⍝ the literal-N assertions above only exercise the OPTIONAL
+      ⍝ Parser::optimize_literal_axes() path (DO_FT_LITERAL_AXIS, a
+      ⍝ compile-time-tunable optimization that only fires for a literal
+      ⍝ N, and could be disabled entirely) -- a variable axis bypasses
+      ⍝ that pass completely, since Parser.cc cannot resolve a symbol's
+      ⍝ value at parse time, so the raw [ ... ] tokens reach Prefix.cc
+      ⍝ unresolved and go through a wholly different, always-present
+      ⍝ path: Prefix::is_value_parenthesis()'s pre-existing TC_R_BRACK
+      ⍝ case (unaffected by this session's TOK_FAXIS fix above, and
+      ⍝ already correct before this session), DerivedFunction.cc's
+      ⍝ eval_XB() fix, and the new LPAR F C RPAR grammar phrase, all
+      ⍝ still needed even here since (F)/(F C) still has to reduce and
+      ⍝ still has to correctly thread the [N]/axis through. Confirmed
+      ⍝ this symbolic path is independently correct, not just the
+      ⍝ literal one -- and confirmed via full reverts that it is the
+      ⍝ eval_XB() and grammar-phrase fixes doing the real work here,
+      ⍝ not the (here: inapplicable) optimize_literal_axes()/
+      ⍝ is_value_parenthesis() TOK_FAXIS fixes.
+      ⍝
+      N ← 1 ◊ ASSERT ( ⌽[N]2 3⍴⍳6 )  ≡ ( (⌽[N])2 3⍴⍳6 )            ⍝ (F C) B, symbolic C
+      N ← 1 ◊ ASSERT ( +/[N]2 3⍴⍳6 ) ≡ ( (+/)[N]2 3⍴⍳6 )           ⍝ (F M)[y], symbolic y
+      N ← 2 ◊ ASSERT ( +/[N]2 3⍴⍳6 ) ≡ ( (+/)[N]2 3⍴⍳6 )           ⍝ (F M)[y], symbolic y
+
       )CHECK BRIEF
       )CLEAR
 CLEAR WS

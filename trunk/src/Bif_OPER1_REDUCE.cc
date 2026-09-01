@@ -285,6 +285,7 @@ const APL_Integer n_wise = A0 < 0 ? neg_A0 : A0;
               Value_P Z(2, LOC);
               Z->next_ravel_Cell(ident.get_apl_val()->get_cfirst(cache));
               Z->next_ravel_Cell(ident.get_apl_val()->get_cfirst(cache));
+              Z->check_value(LOC);
               return Token(TOK_APL_VALUE1, Z);
            }
 

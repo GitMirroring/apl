@@ -10404,8 +10404,8 @@ to its dyadic operator. Test @b{2c.} demonstrates how the binding strengths
 can be undermined with parentheses.
 
 Test @b{2d.} proves that the right operand binds stronger than vector notation.
-However, this case is interesting from an @b{iso}. Page 126 of @b{iso} gives
-the following example for the dyadic rank operator:
+However, this case is interesting from an @b{ISO} point of view.
+Page 126 of @b{iso} gives the following example for the dyadic rank operator:
 
 @example
       ⍝ example from ISO/IEC 13751 p.126

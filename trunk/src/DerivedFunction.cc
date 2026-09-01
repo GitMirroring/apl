@@ -279,17 +279,27 @@ Derived_LO_M::eval_XB(cValue_R X, cValue_R B) const
 {
    Log(LOG_FunOperX)   entering("Derived_LO_M", "eval_XB");
 
+   // Use the call-time axis X, not the (always unset for this class --
+   // see the constructor) member axis. This was the actual bug behind
+   // (+/)[1]M silently ignoring [1] and always reducing the last axis
+   // (same result as (+/)[2]M or plain (+/)M): a parenthesized F M,
+   // e.g. (+/), is reduced to a bare axis-less Derived_LO_M (Prefix.cc
+   // reduce_F_M__()) *before* Prefix.cc ever sees the trailing [1], so
+   // the axis only reaches this function as the X parameter here, via
+   // reduce_MISC_F_C_B() -- unlike the unparenthesized +/[1]M, where
+   // fix_RANK_syntax()-style adjacency lets reduce_F_M_C_() build an
+   // axis-aware Derived_LO_M_X up front. Checking member axis instead
+   // of X silently discarded it, since it is never set on this class.
+   //
    if (left_arg.is_function())   // normal operator
       {
         Token & left = const_cast<Token &>(left_arg);
-        if (!axis)   return oper->eval_LB(left, B);
-        else         return oper->eval_LXB(left, *axis, B);
+        return oper->eval_LXB(left, X, B);
       }
    else                         // operator with left value operand
       {
         Value_P A = left_arg.get_apl_val();
-        if (!axis)   return oper->eval_AB(*A, B);
-        else         return oper->eval_AXB(*A, *axis, B);
+        return oper->eval_AXB(*A, X, B);
       }
 }
 //════════════════════════════════════════════════════════════════════════════
@@ -345,17 +355,23 @@ Derived_LO_M_X::eval_XB(cValue_R X, cValue_R B) const
 {
    Log(LOG_FunOperX)   entering("Derived_LO_M_X", "eval_XB");
 
+   // same fix as Derived_LO_M::eval_XB() above, and same reasoning:
+   // honor the call-time axis X, not the (here: already-baked-in, from
+   // the constructor) member axis. Not currently known to be reachable
+   // with a member axis already set (that would mean two axes on the
+   // same derived function), but eval_XB()'s whole contract is "apply
+   // X now" -- silently preferring a stale member over the axis the
+   // caller just handed us is the same class of bug either way.
+   //
    if (left_arg.is_function())   // normal operator
       {
         Token & left = const_cast<Token &>(left_arg);
-        if (!axis)   return oper->eval_LB(left, B);
-        else         return oper->eval_LXB(left, *axis, B);
+        return oper->eval_LXB(left, X, B);
       }
    else                         // operator with left value operand
       {
         Value_P A = left_arg.get_apl_val();
-        if (!axis)   return oper->eval_AB(*A, B);
-        else         return oper->eval_AXB(*A, *axis, B);
+        return oper->eval_AXB(*A, X, B);
       }
 }
 //════════════════════════════════════════════════════════════════════════════
