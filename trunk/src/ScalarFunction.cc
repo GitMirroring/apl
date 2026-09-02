@@ -317,8 +317,20 @@ CELL_PERFORMANCE_END(get_statistics_AB(), start_fast_AB, false)
                         const ShapeItem len_Z1 = sh_Z1->get_volume();
                         if (len_Z1 == 0)
                            {
+                             // unlike every sibling branch here (both-simple,
+                             // A-only-nested, B-only-nested, all of which
+                             // write cell_Z in place via placement new),
+                             // this one used to append to value_Z's *next*
+                             // free ravel slot instead of writing cell_Z
+                             // (position z) directly -- landing the result
+                             // in slot 0 (or wherever an earlier empty pair
+                             // had already advanced valid_ravel_items to)
+                             // and leaving the real slot z uninitialised.
+                             // See Bugs27 #10.
+                             //
                              Value_P Z1 = do_eval_fill_AB(*A1, *B1).get_apl_val();
-                             job_AB->value_Z->next_ravel_Pointer(Z1.get());
+                             new (&cell_Z) PointerCell(Z1.get(),
+                                                       *job_AB->value_Z);
                              continue;
                            }
 
@@ -1293,14 +1305,14 @@ cFunction_P
 Bif_F12_MINUS::get_monadic_inverse() const
 {
    // - is self-inverse: B = --B
-   return &Bif_F12_PLUS::fun;
+   return &Bif_F12_MINUS::fun;
 }
 //────────────────────────────────────────────────────────────────────────────
 cFunction_P
 Bif_F12_MINUS::get_dyadic_inverse() const
 {
    // - is self-inverse: B = (A-(A-B))
-   return &Bif_F12_PLUS::fun;
+   return &Bif_F12_MINUS::fun;
 }
 //════════════════════════════════════════════════════════════════════════════
 Token

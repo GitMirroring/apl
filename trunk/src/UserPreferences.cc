@@ -1682,7 +1682,17 @@ int file_profile = 0;   // the current profile in the preferences file
             }
          else if (!strcasecmp(opt, "READLINE_HISTORY_LEN"))
             {
-              line_history_len = atoi(arg);
+              const int n = atoi(arg);
+              if (n < 0)
+                 {
+                   CERR << "READLINE_HISTORY_LEN value must be >= 0 "
+                           "(ignored) at line " << line << " of config "
+                           "file " << filename << endl;
+                 }
+              else
+                 {
+                   line_history_len = n;
+                 }
             }
          else if (!strcasecmp(opt, "READLINE_HISTORY_PATH"))
             {
@@ -1726,11 +1736,23 @@ int file_profile = 0;   // the current profile in the preferences file
             }
          else if (!strcasecmp(opt, "plot-ASCII-rows"))
             {
-              plot_ASCII_rows = atoi(arg);
+              const int n = atoi(arg);
+              if (n < 0)
+                 CERR << "plot-ASCII-rows value must be >= 0 (ignored) "
+                         "at line " << line << " of config file "
+                      << filename << endl;
+              else
+                 plot_ASCII_rows = n;
             }
          else if (!strcasecmp(opt, "plot-ASCII-columns"))
             {
-              plot_ASCII_columns = atoi(arg);
+              const int n = atoi(arg);
+              if (n < 0)
+                 CERR << "plot-ASCII-columns value must be >= 0 (ignored) "
+                         "at line " << line << " of config file "
+                      << filename << endl;
+              else
+                 plot_ASCII_columns = n;
             }
          else if (!strcasecmp(opt, "plot-ASCII-background"))
             {
@@ -1806,7 +1828,7 @@ int file_profile = 0;   // the current profile in the preferences file
 
          else
             {
-              CERR << "Invalid option '" << opt << " in preferences file "
+              CERR << "Invalid option '" << opt << "' in preferences file "
                    << filename << " (ignored)" << endl;
             }
        }

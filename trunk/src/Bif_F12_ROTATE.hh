@@ -39,6 +39,28 @@ public:
    : NonscalarFunction_default_identity(tag)
    {}
 
+   /// overloaded NonscalarFunction_default_identity::eval_identity_fun().
+   /// Figure 28 (apl2lrm.txt p.212): the identity item for ⌽/⊖ is B's
+   /// own prototype, one bare (not enclosed) item per position of the
+   /// axes NOT being reduced -- rotating/reversing an empty (0-length)
+   /// slice by any amount is a no-op, giving back that same empty slice,
+   /// so per remaining-axis position the result is just B's prototype
+   /// value -- same convention and same frame fix as ↓ (Bif_F12_DROP)
+   /// above. The inherited default (a plain scalar, or DOMAIN ERROR for
+   /// any non-empty frame) is wrong here: e.g. ⌽/3 0⍴0 used to raise
+   /// DOMAIN ERROR instead of returning 3⍴0. See Bugs27 #27.
+   virtual Token eval_identity_fun(cValue_R B, sAxis axis) const
+      {
+        const Shape shape_Z = B.get_shape().without_axis(axis);
+        Cell cache;
+        const Cell & proto = B.get_cproto(cache);
+
+        Value_P Z(shape_Z, LOC);
+        loop(z, shape_Z.get_volume())   Z->next_ravel_Cell(proto);
+        Z->check_value(LOC);
+        return Token(TOK_APL_VALUE1, Z);
+      }
+
 protected:
    /// Reverse B along axis
    /// @param B     the right APL argument value (array to reverse)

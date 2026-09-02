@@ -361,7 +361,14 @@ mac_def(  Z__LO_POWER_RO_B,
 "⍝ ║μ7 │ T │ the condition result (Z RO B)                          ║\n"
 "⍝ ╚═══╧═══╧════════════════════════════════════════════════════════╝\n"
 "⍝\n"
-"μ1←μ3 μ6 ◊ μ7←μ1 μ4 μ6 ◊ μ6←μ1 ◊ 0 →(,μ7)≢,1\n")
+"⍝ RO's result must be all-Boolean (⎕ES 5,4 aka DOMAIN ERROR if not --\n"
+"⍝ ∧ silently computes LCM for non-Boolean numeric args, so validating\n"
+"⍝ with ∊0 1 first, rather than trusting a bare ∧/,μ7, is required, not\n"
+"⍝ just belt-and-braces) before ∧/ can safely decide whether every item\n"
+"⍝ is 1 (stop). Unvalidated, a condition that is never exactly (,1) (a\n"
+"⍝ non-scalar RO result, e.g.) used to loop forever.\n"
+"μ1←μ3 μ6 ◊ μ7←μ1 μ4 μ6 ◊ μ6←μ1 ◊ 1 →∧/(,μ7)∊0 1 ◊ ⎕ES 5,4\n"
+"¯1 →~∧/,μ7\n")
 
 /// monadic power with condition function RO and result
 //
@@ -383,7 +390,10 @@ mac_def(  Z__A_LO_POWER_RO_B,
 "⍝ ║μ7 │ T │ the condition result (Z RO B)                          ║\n"
 "⍝ ╚═══╧═══╧════════════════════════════════════════════════════════╝\n"
 "⍝\n"
-"μ1←μ2 μ3 μ6 ◊ μ7←μ1 μ4 μ6 ◊ μ6←μ1 ◊ 0 → (,μ7)≢,1\n")
+"⍝ see Z__LO_POWER_RO_B's comment (same file) for why the validation +\n"
+"⍝ ∧/ two-step, rather than a bare ∧/,μ7, is required here.\n"
+"μ1←μ2 μ3 μ6 ◊ μ7←μ1 μ4 μ6 ◊ μ6←μ1 ◊ 1 →∧/(,μ7)∊0 1 ◊ ⎕ES 5,4\n"
+"¯1 →~∧/,μ7\n")
 
 /// reduce: Z←LO/[X] B
 //

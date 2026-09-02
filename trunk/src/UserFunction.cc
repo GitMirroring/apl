@@ -1313,6 +1313,14 @@ const UserFunction * old_ufun = 0;
                        << "' (function already exists, and " << reason << endl;
                 }
 
+             // was logged only under LOG_UserFunction__fix (a debug flag,
+             // never user-visible) -- the caller (⎕FX) had nothing to
+             // show but its own generic "row 1 is bad"-looking error
+             // code, indistinguishable from an actual bad header. See
+             // Bugs27 #35.
+             MORE_ERROR() << "'" << ufun->header.get_name()
+                          << "' was not (re-)defined: " << reason;
+
              err_line = 0;
              delete ufun;
              return 0;

@@ -517,6 +517,40 @@ const APL_Float a = A->get_real_value();
    if (A->is_integer_cell())
       return IntCell::bif_residue_ii(Z, A->get_int_value(), value.ival);
 
+   // A FloatCell whose value happens to be integral (e.g. a literal like
+   // 10.0, or any computed float) should get the same exact treatment
+   // as a genuine IntCell A: without this, e.g. 10.0|123456789012345678
+   // fell through to the float-quotient path below, where converting
+   // the int64 B to double first (quot = value.ival / a) already loses
+   // precision, and then the |quot| > 4.5E15 "tiny A" overflow guard
+   // (Bugs23 #4, meant for a genuinely near-zero A) fires on this
+   // unrelated large-but-finite quotient too, silently returning 0. See
+   // Bugs27 #25.
+   //
+   // is_near_int64_t(), not is_near_int(): the latter also returns true
+   // for an A beyond int64 range (e.g. 1E200 -- nothing left to round
+   // off at that magnitude), which near_int() below would then reject
+   // with its own DOMAIN_ERROR (confirmed via Residue.tc's A∘.|A over
+   // ±1E100/±1E200: this raised exactly that DOMAIN_ERROR before the
+   // fix). is_near_int64_t() is the one that actually agrees with what
+   // near_int() can convert; a genuinely huge A already falls through
+   // correctly to the float path below.
+   //
+   // a == nearbyint(a), not just is_near_int64_t(a): the latter allows
+   // a to be within INTEGER_TOLERANCE (a fixed absolute epsilon) of an
+   // integer, not only EXACTLY one -- for a value deliberately offset by
+   // a tiny amount to probe ⎕CT (e.g. 12.000000000001, 1E¯12 away from
+   // 12), rounding it down to the exact integer 12 here discarded
+   // exactly the precision a tight ⎕CT comparison needed, changing
+   // 12.000000000001|12 from the correct 12 (12 < the modulus, so no
+   // reduction) to 0 (as if the modulus genuinely were 12). Confirmed
+   // via Quad_CT.tc's ∣ CT_OP regression. Requiring exact equality
+   // keeps the fix scoped to values like 10.0 that really are integers,
+   // not merely close to one.
+   //
+   if (Cell::is_near_int64_t(a) && a == nearbyint(a))
+      return IntCell::bif_residue_ii(Z, APL_Integer(a), value.ival);
+
    // for a genuinely non-integer A near INT64 limit, use float arithmetic
    if (a > (BIG_INT64_F - 1E10) || a < (1E10 - BIG_INT64_F))
       return FloatCell::bif_residue_ff(Z, a, APL_Float(value.ival));
@@ -883,7 +917,14 @@ APL_Integer zi = 1;
              if (b1 == 1)   break;
            }
 
-        if (a_2_n >= 100000000LL)
+        // a_2_n *= a_2_n below must not overflow int64: the real bound is
+        // ⌊√INT64_MAX⌋ = 3037000499, not the far tighter 1E8 this used to
+        // check -- 1E8 falsely declared overflow for e.g. 10*16 (needs
+        // a_2_n up to 1E16, which fits easily), silently downgrading an
+        // exact IntCell result to an imprecise FloatCell one. The actual
+        // consumer, zi *= a_2_n a few lines above, already has its own
+        // overflow check. See Bugs27 #43.
+        if (a_2_n >= 3037000500LL)
            {
              overflow = true;
              break;
@@ -899,11 +940,16 @@ APL_Integer zi = 1;
         return E_DOMAIN_ERROR;
       }
 
-   // overflow: use float
+   // overflow: use float. Pass the ORIGINAL (negative, when invert_Z)
+   // exponent to pow() directly rather than computing pow(a,b) and then
+   // inverting: pow(2.0, 1024.0) alone already overflows to inf (b was
+   // negated to a positive 1024 above), and 1.0/inf silently becomes 0
+   // -- even though the true result (2⋆¯1024 = 1/2⋆1024) is a perfectly
+   // representable tiny double. pow(a, -b) computes that directly, with
+   // no intermediate overflow. See Bugs27 #23.
    //
-APL_Float z = pow(APL_Float(a), APL_Float(b));
+APL_Float z = pow(APL_Float(a), invert_Z ? -APL_Float(b) : APL_Float(b));
    if (negate_Z)   z = -z;
-   if (invert_Z)   z = 1.0 / z;
    if (!isfinite(z))   return E_DOMAIN_ERROR;   // 2⋆4096 gave ∞
    return FloatCell::zF(Z, z);
 }

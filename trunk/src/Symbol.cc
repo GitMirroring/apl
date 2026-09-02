@@ -140,21 +140,47 @@ const ValueStackItem & vs = value_stack[0];
                   if (uni == UNI_LF)   break;
                 }
 
-             // skip λ← and spaces
-             while (t < text.ssize() && text[t] <= ' ')   ++t;
-             if    (t < text.ssize() && text[t] == UNI_LAMBDA)   ++t;
-             while (t < text.ssize() && text[t] <= ' ')   ++t;
-             if    (t < text.ssize() && text[t] == UNI_LEFT_ARROW)   ++t;
-             while (t < text.ssize() && text[t] <= ' ')   ++t;
-
-             // copy body
+             // copy body. This used to first skip a λ← right after the
+             // header (lines removed above), which only strips the
+             // synthesized λ← for a SINGLE-statement lambda -- for a
+             // multi-statement one (e.g. {⍺+⍵ ⋄ ⍵}), compute_lambda_
+             // body() (Executable.cc) inserts λ← after the LAST ◊, not
+             // right after the header, so it went uncaught here and
+             // was copied into the dump verbatim; reloading it then
+             // synthesized a SECOND λ← over it, growing by one on every
+             // )DUMP/)LOAD cycle. Find the same insertion point
+             // compute_lambda_body() used (mirroring its own, simple,
+             // not string/brace-aware ◊ scan) and strip it wherever it
+             // actually is. See Bugs27 #37.
              //
+             UCS_string body;
              while (t < text.ssize())
                 {
                    const Unicode uni = text[t++];
                    if (uni == UNI_LF)   break;
-                   out << uni;
+                   body << uni;
                 }
+
+             ShapeItem sols = 0;
+             for (ShapeItem j = body.size() - 1; j >= 0; --j)
+                 {
+                   if (Avec::is_DIAMOND(body[j]))
+                      {
+                        sols = j + 1;
+                        while (sols < body.ssize() &&
+                               body[sols] <= UNI_SPACE)   ++sols;
+                        break;
+                      }
+                 }
+             if (sols + 1 < body.ssize() &&
+                 body[sols] == UNI_LAMBDA &&
+                 body[sols + 1] == UNI_LEFT_ARROW)
+                {
+                  body.erase(sols);
+                  body.erase(sols);
+                }
+
+             out << body;
 
              // append local variables
              //
@@ -626,7 +652,15 @@ Value_P Z = get_apl_value();
    //  X:   X1    ; X2    ; X3
    //  ⍴B:  b1 b2   b3 b4   b5 b6
    //
-   if (!B->is_scalar())
+   // ISO 13751 §10.2.15: a one-element B is scalar-extended just like a
+   // true scalar B, not shape-matched against the selected area -- the
+   // broadcast-capable assignment loop below (incr_B = ec_B==1 ? 0 : 1)
+   // already handles this correctly for ANY B with one element, but the
+   // shape-validation block skipped only for B->is_scalar() (rank 0),
+   // wrongly rejecting e.g. M[1;]←,7 (a 1-element VECTOR) with a RANK
+   // ERROR before ever reaching that loop. See Bugs27 #46.
+   //
+   if (!B->is_scalar() && B->element_count() != 1)
       {
         // remove dimensions with len 1 from the shapes of X and B...
         // if we see an empty Xn then we return.
@@ -769,10 +803,18 @@ const ShapeItem max_idx = Z->element_count();
    if (!X)   // X[] ← B
       {
         // scalar B is scalar extended according to ⍴Z
+        const ShapeItem ec_B = B->element_count();
+        if (ec_B != 1 && ec_B != max_idx)
+           {
+             MORE_ERROR() << "A[]←C: expecting ⍴C to be 1 or " << max_idx
+                          << " (⍴A); ⍴C is " << ec_B;
+             LENGTH_ERROR;
+           }
+
+        const int incr_B = (ec_B == 1) ? 0 : 1;
         Cell cache;
-        const Cell & src = B->get_cfirst(cache);
         loop(a, max_idx)
-            Z->assign_cell(a, src, LOC);
+            Z->assign_cell(a, B->get_cravel(a*incr_B, cache), LOC);
         if (monitor_callback)   monitor_callback(*this, SEV_ASSIGNED);
         return;
       }
@@ -1039,17 +1081,30 @@ ValueStackItem & vs = value_stack.back();
              StateIndicator * oexec = Workspace::oldest_exec(exec);
              if (oexec)
                 {
-                  // ufun is still used on the SI stack. We do not delete ufun,
-                  // but merely remember it for deletion later on.
+                  // ufun is genuinely still on the SI stack (case 1:
+                  // ufun IS the executable of some SI level, i.e. it is
+                  // pendant/suspended there right now) -- refuse, the
+                  // same way )ERASE already does (SymbolTable.cc's
+                  // erase_one_symbol(), via Workspace::is_called()).
+                  // ⎕EX (this function's other caller, QuadFunction.cc's
+                  // Quad_EX::expunge()) used to have no such check at
+                  // all, silently removing the name binding regardless
+                  // (⎕EX 'G4' returning 1/success for a suspended G4,
+                  // while )ERASE G4 correctly refused). Note this is
+                  // deliberately narrower than Workspace::is_called():
+                  // that helper's "case 3" (ufun merely referenced
+                  // somewhere in an ancestor frame's already-compiled
+                  // body, not actually executing) is far broader and,
+                  // tried first here, wrongly refused ⎕EX for a
+                  // function that had already returned but was still
+                  // textually mentioned in the calling function's own
+                  // source (testcases/Quad_CR10.tc: ⊣⎕EX 'Fun' after
+                  // Fun already returned, called from a line above that
+                  // also, textually, calls Fun). See Bugs27 #58.
                   //
-                  // CERR << "⎕EX function " << ufun->get_name()
-                  //      << " is on SI !" << endl;
-                  Workspace::add_expunged_function(ufun);
+                  return 0;
                 }
-             else
-                {
-                  delete ufun;
-                }
+             delete ufun;
            }
         vs.set_NC(NC_UNUSED_USER_NAME);
       }

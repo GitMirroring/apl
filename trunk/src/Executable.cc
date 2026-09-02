@@ -249,18 +249,71 @@ const UCS_string & failed_line = text[line];
 
    // extract the failed statement text from the failed_line
    //
+   // A ⋄ inside a '...' string literal or a {...} lambda body is not a
+   // statement separator at THIS line's level -- counting every ⋄
+   // character regardless of context (the old behaviour) miscounts
+   // statement boundaries for e.g. "(1 {⍵ ⋄ ⍵} 2)" or "'⋄'⊃3 0⍴0",
+   // truncating failed_statement mid-string/mid-lambda so the reparse
+   // below fails, which is fatal in ways set_error_info()'s caller isn't
+   // prepared for (see the callers of reparse()). Track string/brace
+   // context while scanning so only a top-level ⋄ counts.
+   //
 UCS_string failed_statement;
    {
      int l = 0;
+     bool in_string = false;
+     int brace_depth = 0;
 
      loop(f, failed_line.size())
          {
-           if (Avec::is_DIAMOND(failed_line[f]))
+           const Unicode uni = failed_line[f];
+
+           if (in_string)
+              {
+                if (Avec::is_single_quote(uni))
+                   {
+                     // '' inside a string is an escaped quote, not the
+                     // closing delimiter.
+                     if (f + 1 < failed_line.ssize() &&
+                         Avec::is_single_quote(failed_line[f + 1]))
+                        {
+                          if (l == statement)   failed_statement << uni << uni;
+                          ++f;
+                          continue;
+                        }
+                     in_string = false;
+                   }
+                if (l == statement)   failed_statement << uni;
+                continue;
+              }
+
+           if (Avec::is_single_quote(uni))
+              {
+                in_string = true;
+                if (l == statement)   failed_statement << uni;
+                continue;
+              }
+
+           if (uni == UNI_L_CURLY)
+              {
+                ++brace_depth;
+                if (l == statement)   failed_statement << uni;
+                continue;
+              }
+
+           if (uni == UNI_R_CURLY)
+              {
+                if (brace_depth > 0)   --brace_depth;
+                if (l == statement)    failed_statement << uni;
+                continue;
+              }
+
+           if (brace_depth == 0 && Avec::is_DIAMOND(uni))
               { ++l;   continue; }
 
            if (l > statement)   break;      // subsequent line
            if (l < statement)   continue;   // previous line
-           failed_statement << failed_line[f];
+           failed_statement << uni;
          }
    }
 

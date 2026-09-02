@@ -663,14 +663,20 @@ const bool invert_Z = b < 0;
 const bool negate_Z = (a < 0.0) && (b & 1);
    if (a < 0.0)   a = -a;
 
-APL_Float z = pow(a, APL_Float(b));
-   if (!isfinite(z))   return E_DOMAIN_ERROR;
+   // Pass the ORIGINAL (negative, when invert_Z) exponent to pow()
+   // directly rather than computing pow(a,b) and then inverting:
+   // pow(1.5, 2000.0) alone already overflows to inf (b was negated to
+   // a positive 2000 above), which used to fail the isfinite() check
+   // right here and reject with DOMAIN ERROR -- even though the true
+   // result (1.5⋆¯2000 = 1/1.5⋆2000) is representable (≈0, but finite).
+   // See Bugs27 #23.
+   //
+APL_Float z = pow(a, invert_Z ? -APL_Float(b) : APL_Float(b));
    if (negate_Z)   z = -z;
-   if (invert_Z)
-      {
-        if (z == 0.0)   return E_DOMAIN_ERROR;
-        z = 1.0 / z;
-      }
+   // z == 0.0 here is a genuine (if imprecise) representable result --
+   // A⋆¯N underflowing all the way to 0 for a large N, e.g. 1.5⋆¯2000
+   // -- not an error; only non-finite (inf/nan) is. See Bugs27 #23.
+   if (!isfinite(z))   return E_DOMAIN_ERROR;
    return FloatCell::zF(Z, z);
 }
 //────────────────────────────────────────────────────────────────────────────
@@ -689,7 +695,35 @@ FloatCell::bif_power_ff(Cell * Z, APL_Float a, APL_Float b)
         const APL_Float z = pow(a, b);
         return isfinite(z) ? FloatCell::zF(Z, z) : E_DOMAIN_ERROR;
       }
-   // a < 0: complex result
+   // a < 0, b a near-integer FloatCell (e.g. 3.0, or any computed float
+   // that happens to be integral, like 1E14): go through the exact
+   // integer-exponent path (parity trick, repeated squaring) instead of
+   // complex_power()'s exp(b×ln(a)) below. exp(b×ln(a)) needs b×πi's
+   // imaginary part to land back on a real axis exactly for an integral
+   // b, but the absolute rounding error in computing b×π is
+   // proportional to b -- for |b| ≳ 1E14 that error already exceeds 1
+   // radian, so the result is noise (e.g. ¯1*1E14 came out
+   // 0.9999...J¯0.0113... instead of the exact 1), not mere imprecision.
+   // See Bugs27 #24.
+   //
+   // is_near_int64_t(), not is_near_int(): the latter also returns true
+   // for values beyond int64 range (nothing left to round off at that
+   // magnitude), which near_int() below would then reject with its own
+   // DOMAIN_ERROR -- is_near_int64_t() is the one that actually agrees
+   // with what near_int() can convert.
+   //
+   // b == nearbyint(b), not just is_near_int64_t(b): the latter allows b
+   // to be within INTEGER_TOLERANCE of an integer, not only exactly one.
+   // A b that is deliberately, even if very slightly, non-integral
+   // should still go through the genuinely-complex path below rather
+   // than being silently snapped to the nearest integer exponent (see
+   // the matching fix/comment in IntCell::bif_residue for the same
+   // class of bug, caught via Quad_CT.tc regressing).
+   //
+   if (Cell::is_near_int64_t(b) && b == nearbyint(b))
+      return FloatCell::bif_power_fi(Z, a, APL_Integer(b));
+
+   // a < 0, b not an integer: complex result
    //
 const APL_Complex z = complex_power(APL_Complex(a, 0.0), b);
    if (!isfinite(z.real()))   return E_DOMAIN_ERROR;
@@ -809,8 +843,35 @@ APL_Integer bi = b;
    while ((bi - 1) > b)   --bi;
    if (bi == b)   return IntCell::zI(Z, bi);
 
-const APL_Float D = bi - b;
-   if (D >= (1.0 - Workspace::get_CT()))   --bi;
+   // bi is the candidate ceiling (smallest integer >= b). If b is
+   // tolerantly equal to bi-1 (the floor), APL2's tolerant ceiling
+   // snaps down to it -- mirroring the RELATIVE tolerance `=` uses
+   // (ISO 13751 p.19, apl.texi's "equal to integer I within ⎕CT" is
+   // |(I-R)÷I| < ⎕CT), not the ABSOLUTE distance check this replaced
+   // (D >= 1-⎕CT for D = bi-b), which disagreed with `=` on the same
+   // value once b's magnitude made an absolute ⎕CT too tight. See
+   // Bugs27 #41.
+   //
+   // Exception: when bi-1 is 0, a relative tolerance can never match
+   // (dist(b,0) == mag(b), so mag(b) < ⎕CT×mag(b) only for ⎕CT>1) --
+   // same "comparison against zero is exact" rule as tolerantly_equal()
+   // and integral_within(), but ⌊/⌈ still need to snap a value whose
+   // FRACTIONAL part is within ⎕CT of a whole unit even when that
+   // neighbouring integer is 0 (testcases/ZZZ0_Standard_08x.tc, LRM
+   // p.82: ⌊¯0.5E¯10 is 0, not ¯1, at ⎕CT←1E¯10) -- so this one case
+   // keeps the original absolute check on the fractional distance.
+   //
+const APL_Integer floor_candidate = bi - 1;
+   if (floor_candidate == 0)
+      {
+        const APL_Float D = bi - b;
+        if (D >= (1.0 - Workspace::get_CT()))   --bi;
+      }
+   else if (Cell::tolerantly_equal(b, APL_Float(floor_candidate),
+                                    Workspace::get_CT()))
+      {
+        --bi;
+      }
    return IntCell::zI(Z, bi);
 }
 //────────────────────────────────────────────────────────────────────────────
@@ -825,8 +886,20 @@ APL_Integer bi = b;
    while ((bi + 1) < b)   ++bi;
    if (bi == b)   return IntCell::zI(Z, bi);
 
-const APL_Float D = b - bi;
-   if (D >= (1.0 - Workspace::get_CT()))   ++bi;
+   // see bif_ceiling_f() above: relative tolerance, mirroring `=`, with
+   // the same zero-candidate exception. See Bugs27 #41.
+   //
+const APL_Integer ceil_candidate = bi + 1;
+   if (ceil_candidate == 0)
+      {
+        const APL_Float D = b - bi;
+        if (D >= (1.0 - Workspace::get_CT()))   ++bi;
+      }
+   else if (Cell::tolerantly_equal(b, APL_Float(ceil_candidate),
+                                    Workspace::get_CT()))
+      {
+        ++bi;
+      }
    return IntCell::zI(Z, bi);
 }
 //────────────────────────────────────────────────────────────────────────────

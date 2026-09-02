@@ -1,6 +1,7 @@
 
 #include <stdio.h>
 
+#include "Error_macros.hh"
 #include "Plot_data.hh"
 #include "Plot_line_properties.hh"
 #include "Plot_window_properties.hh"
@@ -388,6 +389,19 @@ do_plot_ASCII(const Plot_window_properties & w_props, const Plot_data & data)
    //
 const int H = w_props.get_terminal_rows();
 const int W = w_props.get_terminal_cols();
+
+   // H2 = H - 2 and W2 = W - 2 (the space inside the frame, see
+   // draw_plot_line() below) must be >= 1 for a data point to fit;
+   // terminal_rows/terminal_cols are uint32_t (Quad_PLOT.def) and
+   // unvalidated at every source (the ⎕PLOT attribute, and the
+   // plot-ASCII-rows/plot-ASCII-columns preferences, where a negative
+   // value wraps to a huge unsigned value that then wraps again, sign-
+   // reversing, in the int cast above) -- reject anything too small (or,
+   // via that double wrap, negative) here, the one place both drivers'
+   // worth of values converge before the canvas is built.
+   //
+   if (H < 3 || W < 3)   DOMAIN_ERROR;
+
 ASCII_canvas ctx(H, W);
 
    ctx.draw_grid(w_props);

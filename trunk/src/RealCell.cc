@@ -42,8 +42,13 @@ RealCell::bif_circle_fun(Cell * Z, const Cell * A) const
    // check ComplexCell::bif_circle_fun_c() already applies for the
    // complex-B case, instead of checking isfinite() in every branch.
    //
+   // capture b before z0(Z): Z and this alias for an in-place accumulator
+   // (e.g. Bif_REDUCE's A○/B), so zeroing Z first and reading b afterwards
+   // would silently read back the zero. See Bugs27 #18.
+   //
+const APL_Float b = get_real_value();
    IntCell::z0(Z);
-const ErrorCode ret = do_bif_circle_fun(Z, A->get_checked_near_int());
+const ErrorCode ret = do_bif_circle_fun(Z, A->get_checked_near_int(), b);
    if (!Z->is_finite())   return E_DOMAIN_ERROR;
    return ret;
 }
@@ -53,6 +58,7 @@ RealCell::bif_circle_fun_inverse(Cell * Z, const Cell * A) const
 {
    if (!A->is_near_int())   return E_DOMAIN_ERROR;
 const APL_Integer fun = A->get_checked_near_int();
+const APL_Float b = get_real_value();   // see bif_circle_fun() above
    switch (fun)
       {
         case  1: case -1:
@@ -64,14 +70,14 @@ const APL_Integer fun = A->get_checked_near_int();
         case  7: case -7:
                  {
                    IntCell::z0(Z);
-                   const ErrorCode ret = do_bif_circle_fun(Z, -fun);
+                   const ErrorCode ret = do_bif_circle_fun(Z, -fun, b);
                    if (!Z->is_finite())   return E_DOMAIN_ERROR;
                    return ret;
                  }
         case -10:
                  {
                    IntCell::z0(Z);
-                   const ErrorCode ret = do_bif_circle_fun(Z, fun);
+                   const ErrorCode ret = do_bif_circle_fun(Z, fun, b);
                    if (!Z->is_finite())   return E_DOMAIN_ERROR;
                    return ret;
                  }
@@ -91,10 +97,8 @@ RealCell::bif_logarithm(Cell * Z, const Cell * A) const
 }
 //────────────────────────────────────────────────────────────────────────────
 ErrorCode
-RealCell::do_bif_circle_fun(Cell * Z, int fun) const
+RealCell::do_bif_circle_fun(Cell * Z, int fun, APL_Float b)
 {
-const APL_Float b = get_real_value();
-
    switch(fun)
       {
         case -12:
@@ -132,6 +136,14 @@ const APL_Float b = get_real_value();
 
         case  -6:
               if (b > 1.0)   return FloatCell::zF(Z, acosh(b));
+              // for real b in [¯1,1], acosh(b) is exactly pure
+              // imaginary (0J(acos b)) -- computing it via the general
+              // complex formula (do_bif_circle_fun() below, still used
+              // for b < ¯1) carries floating-point noise on the real
+              // part that should be an exact 0 (e.g. ¯6○0.5 should be
+              // exactly 0J1.047197551, not that plus ~1E¯17 noise).
+              // See Bugs27 #59(b).
+              if (b >= -1.0)   return ComplexCell::zC(Z, 0.0, acos(b));
               return ComplexCell::do_bif_circle_fun(Z, -6, APL_Complex(b));
 
         case -5:

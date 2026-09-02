@@ -49,7 +49,7 @@ public:
    /// generic default-fill fallback this class normally inherits gives
    /// a bare prototype scalar instead, which is wrong here).
    virtual Token eval_identity_fun(cValue_R B, sAxis axis) const
-      { return enclosed_identity(B); }
+      { return enclosed_identity(B, axis); }
 
    /// Reshape B according to rank and shape
    static Token do_reshape(const Shape & shape, const cValue & B);

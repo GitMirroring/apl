@@ -653,7 +653,7 @@ std::vector<ShapeItem> tokens_B;
 
 Value_P Z(LOC);
 size_t token0 = 0;
-   parse_value(*Z, ucs_B, tokens_B, token0);
+   parse_value(*Z, ucs_B, tokens_B, token0, 0);
    Z->check_value(LOC);
 
    if (token0 != tokens_B.size())
@@ -698,8 +698,10 @@ size_t token0 = 0;
 void
 Quad_JSON::parse_array(Value & Z, const UCS_string & ucs_B,
                        const std::vector<ShapeItem> & tokens_B,
-                       size_t & token0)
+                       size_t & token0, size_t depth)
 {
+   if (depth > MAX_DEPTH)   LIMIT_ERROR_NESTING;
+
 size_t token_from = token0;
    Assert(ucs_B[tokens_B[token_from]] == UNI_L_BRACK);   // [
 
@@ -719,7 +721,7 @@ const size_t commas = comma_count(ucs_B, tokens_B, token0);
            {
              // CERR << "One element ARRAY" << std::endl;
              Value_P Zsub(1, LOC);
-             parse_value(*Zsub, ucs_B, tokens_B, token_from);
+             parse_value(*Zsub, ucs_B, tokens_B, token_from, depth + 1);
              Zsub->check_value(LOC);
              Z.next_ravel_Value(Zsub.get());
            }
@@ -733,7 +735,7 @@ const size_t commas = comma_count(ucs_B, tokens_B, token0);
         Value_P Zsub(len, LOC);
         loop(l, len)
             {
-              parse_value(*Zsub, ucs_B, tokens_B, token_from);
+              parse_value(*Zsub, ucs_B, tokens_B, token_from, depth + 1);
               const Unicode uni = ucs_B[tokens_B[token_from]];
               if (uni == UNI_COMMA)           ++token_from;
               else if (uni == UNI_R_BRACK)    ++token_from;
@@ -924,8 +926,10 @@ number_too_long:
 void
 Quad_JSON::parse_object(Value & Z, const UCS_string & ucs_B,
                         const std::vector<ShapeItem> & tokens_B,
-                        size_t & token0)
+                        size_t & token0, size_t depth)
 {
+   if (depth > MAX_DEPTH)   LIMIT_ERROR_NESTING;
+
 size_t token_from = token0;
    Assert(ucs_B[tokens_B[token_from]] == UNI_L_CURLY);   // {
 
@@ -946,7 +950,8 @@ Value_P assoc_array = EmptyStruct(LOC);
         else
            {
              // CERR << "One element OBJECT" << std::endl;
-             parse_object_member(*assoc_array, ucs_B, tokens_B, token_from);
+             parse_object_member(*assoc_array, ucs_B, tokens_B, token_from,
+                                  depth + 1);
            }
       }
    else               // { 'name' : value , 'name' : value... }
@@ -956,7 +961,8 @@ Value_P assoc_array = EmptyStruct(LOC);
 
         loop(it, items)
             {
-              parse_object_member(*assoc_array, ucs_B, tokens_B, token_from);
+              parse_object_member(*assoc_array, ucs_B, tokens_B, token_from,
+                                   depth + 1);
             }
       }
 
@@ -973,7 +979,7 @@ Value_P assoc_array = EmptyStruct(LOC);
 void
 Quad_JSON::parse_object_member(Value & Z, const UCS_string & ucs_B,
                                const std::vector<ShapeItem> & tokens_B,
-                               size_t & token_from)
+                               size_t & token_from, size_t depth)
 {
 const size_t B_start =  tokens_B[token_from];
    if (ucs_B[B_start] != UNI_DOUBLE_QUOTE)
@@ -1043,7 +1049,7 @@ UCS_string member_name;
    // parse the member value
    {
      Value_P Zsub(LOC);
-     parse_value(*Zsub, ucs_B, tokens_B, token_from);
+     parse_value(*Zsub, ucs_B, tokens_B, token_from, depth);
      Zsub->check_value(LOC);
 
      Cell * member_data = Z.get_new_member(member_name);
@@ -1211,7 +1217,8 @@ Value_P Zsub(content_len, LOC);
 //────────────────────────────────────────────────────────────────────────────
 void
 Quad_JSON::parse_value(Value & Z, const UCS_string & ucs_B,
-                      const std::vector<ShapeItem> & tokens_B, size_t & token0)
+                      const std::vector<ShapeItem> & tokens_B, size_t & token0,
+                      size_t depth)
 {
    // tokens_B.at(token0) below throws std::out_of_range for an empty (or
    // exhausted, e.g. a trailing-comma "[1,]") token list -- that is not
@@ -1261,8 +1268,8 @@ const ShapeItem b = tokens_B[token0];
 
         // multi token (they increment token0)...
         //
-        case UNI_L_BRACK: parse_array (Z, ucs_B, tokens_B,  token0);   break;
-        case UNI_L_CURLY: parse_object(Z, ucs_B, tokens_B,  token0);   break;
+        case UNI_L_BRACK: parse_array (Z, ucs_B, tokens_B, token0, depth); break;
+        case UNI_L_CURLY: parse_object(Z, ucs_B, tokens_B, token0, depth); break;
 
         default: FIXME;
       }
@@ -1353,9 +1360,30 @@ ShapeItem content_len = 0;
                                             "at " << (b + 6) << "↓B";
                             DOMAIN_ERROR;
                           }
+                       if (!is_low_surrogate(u2))
+                          {
+                            MORE_ERROR() << "⎕JSON B: No low surrogate "
+                                            "at " << (b + 6) << "↓B";
+                            DOMAIN_ERROR;
+                          }
                        b += 11;
                      }
-                  else   // u1 is not a high surrogate (normal \uUUUU)
+                  else if (is_low_surrogate(u1))
+                     {
+                       // a LONE low surrogate, with no preceding high
+                       // surrogate -- the mirror image of the
+                       // is_high_surrogate(u1) check above (which
+                       // already requires a FOLLOWING low surrogate).
+                       // This used to fall through to the "normal
+                       // \uUUUU" case below and be silently accepted
+                       // as an ordinary (unpaired) code point. See
+                       // Bugs27 #59(h).
+                       //
+                       MORE_ERROR() << "⎕JSON B: lone low surrogate "
+                                       "at " << b << "↓B";
+                       DOMAIN_ERROR;
+                     }
+                  else   // u1 is not a surrogate (normal \uUUUU)
                      {
                        b += 5;
                      }

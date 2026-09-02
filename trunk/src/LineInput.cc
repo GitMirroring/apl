@@ -157,7 +157,7 @@ LineHistory::print_history(ostream & out, const UCS_string & filter) const
 void
 LineHistory::add_line(const UCS_string & line)
 {
-   if (max_lines == 0)      return;   // no history
+   if (max_lines <= 0)      return;   // no history
    if (!line.has_black())   return;   // almost empty
 
    // a repeated cut-and-paste of entire lines increases the indentation every

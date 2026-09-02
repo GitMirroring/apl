@@ -111,20 +111,27 @@ Bif_F12_ELEMENT::do_eval_B(cValue_R B)
    //
    if (B.element_count() == 0)   // empty argument
       {
+        // ⍴⍴Z = 1, ⍴Z = number of simple scalars in B -- 0 for an empty
+        // B (ISO 13751 §8.2.6: 0⍴∊↑,B), not 1: this used to build a
+        // ONE-element vector holding the prototype value instead of a
+        // genuinely EMPTY vector carrying that same value only as its
+        // (unraveled) prototype -- matching the LvalCell branch below,
+        // which already got this right. See Bugs27 #29.
+        //
         Cell cache_C0;
         const Cell & C0 = B.get_cproto(cache_C0);
         if (C0.is_numeric())
            {
-             Value_P Z(1, LOC);
-             Z->next_ravel_Int(0);
+             Value_P Z(ShapeItem(0), LOC);
+             new (&Z->get_wproto()) IntCell(0);
              Z->check_value(LOC);
              return Z;
            }
 
         if (C0.is_character_cell())
            {
-             Value_P Z(1, LOC);
-             Z->next_ravel_Char(UNI_SPACE);
+             Value_P Z(ShapeItem(0), LOC);
+             new (&Z->get_wproto()) CharCell(UNI_SPACE);
              Z->check_value(LOC);
              return Z;
            }
@@ -141,7 +148,22 @@ Bif_F12_ELEMENT::do_eval_B(cValue_R B)
 
         if (Value_P v = C0.try_pointer_value())
             {
-             return do_eval_B(*v);
+             // v (the prototype's own pointee, e.g. the 2 3⍴'a' inside
+             // 0⍴⊂2 3⍴'a') is generally NOT itself empty, so recursing
+             // via do_eval_B(*v) unconditionally enlisted v's real
+             // content (e.g. 6 characters) -- right prototype TYPE, but
+             // wrong: the OUTER B was empty, so the result must still
+             // have 0 elements. Recurse only to learn what a nested
+             // enlist's own prototype cell would be, then build a
+             // genuinely empty vector carrying that as its prototype.
+             //
+             Value_P Z1 = do_eval_B(*v);
+             Cell cache;
+             const Cell & proto = Z1->get_cproto(cache);
+             Value_P Z(ShapeItem(0), LOC);
+             proto.init_other(&Z->get_wproto(), *Z, LOC);
+             Z->check_value(LOC);
+             return Z;
             }
 
 

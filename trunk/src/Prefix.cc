@@ -823,7 +823,7 @@ Prefix::value_expected() const
 void
 Prefix::adjust_right_caret(Function_PC2 & range,
                            const Token_string & failed_statement)
-                           
+
 {
    // called after a SYNTAX ERROR. The right caret may be too far right
    // (in APL order). Try to narrow the range.
@@ -831,6 +831,23 @@ Prefix::adjust_right_caret(Function_PC2 & range,
    // range.low is the right (in APL order) end of the statement,
    // range.high is the left (in APL order) end of the statement,
    //
+   // If something upstream (e.g. missing_files(), Missing_Libraries.cc,
+   // for a ⎕-function whose library isn't compiled in) already set a
+   // specific )MORE message before throwing this SYNTAX ERROR, don't
+   // guess: every branch below used to unconditionally overwrite it
+   // with a generic pattern-matched one (MORE_ERROR() itself clears
+   // any existing text before the caller appends to it -- see
+   // Common.hh), even when that guess is wrong for the real cause (a
+   // dyadic call to a missing-library ⎕-function, e.g. 1 ⎕FFT 1 2 3 4,
+   // LOOKS like "nomadic function without B" to the token-adjacency
+   // check below). The caret-narrowing (range.low/range.high) below is
+   // still useful even when some unrelated )MORE text is already
+   // present (testcases/OuterProduct.tc, Quad_LC.tc, Quad_R.tc all
+   // rely on it), so only the MORE_ERROR() calls themselves are
+   // skipped, not the narrowing. See Bugs27 #53.
+   //
+const bool have_more_error = Workspace::more_error().size();
+
    for (Function_PC pc = range.low; (pc + 1) < range.high; ++pc)
        {
          // find an obviously impossible pattern 
@@ -854,8 +871,9 @@ Prefix::adjust_right_caret(Function_PC2 & range,
                // nomadic function without B, e.g. + )
                //
                const UCS_string name = T1.get_function()->get_name();
-               MORE_ERROR() << name << " B: Nomadic function " << name
-                            << " without right argument B.";
+               if (!have_more_error)
+                  MORE_ERROR() << name << " B: Nomadic function " << name
+                               << " without right argument B.";
                range.low = pc;
                range.high = pc + 1;
                return;
@@ -870,8 +888,9 @@ Prefix::adjust_right_caret(Function_PC2 & range,
                  {
                    // operator f OP without f, e.g. ( ⍣
                    //
-                   MORE_ERROR() << "f " << name << " Operator: " << name
-                                << " without left argument f.";
+                   if (!have_more_error)
+                      MORE_ERROR() << "f " << name << " Operator: " << name
+                                   << " without left argument f.";
                    range.low = pc;
                    range.high = pc + 1;
                    return;
@@ -881,8 +900,9 @@ Prefix::adjust_right_caret(Function_PC2 & range,
                  {
                    // operator f OP with value f, e.g. 4 ⍣
                    //
-                   MORE_ERROR() << "f " << name << ": Operator " << name
-                                << " with left value f.";
+                   if (!have_more_error)
+                      MORE_ERROR() << "f " << name << ": Operator " << name
+                                   << " with left value f.";
                    range.low = pc;
                    range.high = pc + 1;
                    return;
@@ -1044,6 +1064,16 @@ TokenClass next = body[pc].get_Class();
 
    if (next == TC_SYMBOL)   // resolve symbol if necessary
       {
+        // dyadic operator with a variable RO, e.g. Y in (⍴⍤Y) -- mirror
+        // the TC_VALUE-followed-by-TC_OPER2 case below, which already
+        // handles this for a LITERAL RO like (⍴⍤1). Without this, a
+        // variable RO was unconditionally "value", so (⍴⍤Y)2 3⍴⍳6
+        // stranded 2 3⍴⍳6 with the value parenthesis instead of passing
+        // it to the derived function. See Bugs27 #21.
+        //
+        if (pc < Function_PC(body.ssize() - 1) &&
+            body[pc + 1].get_Class() == TC_OPER2)   return false;
+
         const Symbol * sym = body[pc].get_sym_ptr();
         const NameClass nc = sym->get_NC();
 
@@ -2037,7 +2067,7 @@ Prefix::reduce_F_C_M_C()
    Assert1(prefix_len == 4);
 
 cFunction_P F  = at0().get_function();
-Value_P     FX = at1().get_axes();
+Value_P     FX = at1().get_function_axis();
 cMonOP      M  = at2().get_function();
 Value_P     MX = at3().get_function_axis();
 
@@ -2538,7 +2568,36 @@ Value_P Z;
    if (at1().get_tag() == TOK_AXIS)   // [] or [IX]
       {
         Value_P axis = at1().get_apl_val();
-        if (!axis)   Z = CLONE(A.get(), LOC);   // A[] — empty index
+        if (!axis)   // A[] — empty index
+           {
+             // A[] names ONE index position (the elided single-axis
+             // index), valid only for a vector A -- same rule the
+             // A[]←C assignment path already enforces (Symbol.cc's
+             // assign_indexed(), Z->get_rank() != 1 -> RANK_ERROR).
+             // A[] used to skip this check and just return the whole
+             // A regardless of rank.
+             //
+             // Not when A[] is itself the tail of a SELECTIVE
+             // specification (e.g. (⊃E)[]←0: A is then a matrix of
+             // LvalCells mirroring ⊃E's shape, produced via
+             // get_cellrefs(), and [] there means "every position",
+             // valid at any rank -- unlike a plain M[] read/assign on
+             // a named variable). get_assign_state() is NOT a usable
+             // signal here: it is already reset back to ASS_none by
+             // the disclose's own selective-spec handling before this
+             // point is reached, so check the cells themselves
+             // instead. See Bugs27 #45.
+             //
+             if (A->get_rank() != 1 &&
+                 !(A->element_count() > 0 && A->is_lval_cell(0)))
+                {
+                  MORE_ERROR() << "A[]: A[] names one index position"
+                                  " (applies to vector A only); ⍴⍴A is "
+                               << A->get_rank();
+                  RANK_ERROR;
+                }
+             Z = CLONE(A.get(), LOC);
+           }
         else         Z = A->index(*axis);
       }
    else                               // [I1; I2...]

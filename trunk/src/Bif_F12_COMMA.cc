@@ -93,6 +93,24 @@ const APL_Integer qio = Workspace::get_IO();
                           << " is too far from a valid axis of B";
              AXIS_ERROR;
            }
+        // a fractional axis must fall strictly between two of B's
+        // existing (0-based) axis positions, i.e. in the OPEN interval
+        // (-1, ⍴⍴B) -- valid insertion points range from "before axis
+        // 0" (new_axis just above -1) to "after axis ⍴⍴B-1" (new_axis
+        // just below ⍴⍴B). Anything outside that used to be silently
+        // clamped to the first/last axis instead of AXIS ERROR (both
+        // the >32000 guard above and the negative special-case below
+        // only bounded the MAGNITUDE, never checked it was actually a
+        // valid axis of THIS B). See Bugs27 #32.
+        //
+        if (new_axis <= -1.0 || new_axis >= B.get_rank())
+           {
+             MORE_ERROR() << where << ": X = " << (new_axis + qio)
+                          << " is not a valid axis of B (expecting "
+                          << (qio - 1) << "<X<" << (B.get_rank() + qio)
+                          << ")";
+             AXIS_ERROR;
+           }
         sAxis axis = new_axis;   if (new_axis < 0.0)   axis = -1;
         const Shape shape_Z = B.get_shape().insert_axis(axis + 1, 1);
         return ravel(shape_Z, B);
@@ -139,6 +157,25 @@ const ShapeItem to   = axes.get_last_shape_item();
                      << " is not a valid axis of B (expecting " << qio
                      << "≤X<" << (B.get_rank() + qio) << ")"
                      << ArgCheck::index_io0_note(to, B.get_rank());
+        AXIS_ERROR;
+      }
+
+   // from is only checked against the LOWER bound above (>= 0) and to only
+   // against the UPPER bound (< B.get_rank()); the contiguity loop below
+   // then reads B.get_shape_item(from + a) trusting from <= to (i.e. the
+   // axes were given in ascending order) to keep from + a inside
+   // [0, B.get_rank()). A non-ascending X, e.g. ,[2 1]1 2, has from (X's
+   // first item) numerically bigger than to (X's last item) -- from alone
+   // can still individually pass both the >= 0 and < B.get_rank() checks
+   // (they were never cross-checked against each other), so the very
+   // first read below (a=0, using from itself) can still be out of range.
+   //
+   if (from > to)
+      {
+        MORE_ERROR() << where << ": X = " << axes
+                     << " is not ascending (expecting consecutive axes "
+                     << (to + qio) << ".." << (from + qio)
+                     << " listed low to high)";
         AXIS_ERROR;
       }
 
@@ -387,7 +424,13 @@ if (bpi > 0 && rtype == B.get_ravel_type())
            memcpy(pZ + offZ, pB + hz * bytes_b, bytes_b);   offZ += bytes_b;
          }
      Z->commit_ravel_like(A, shape_A3.h() * (slice_a + slice_b));
-     Z->set_default(B, LOC);
+     // ISO §10.2.1: if B is empty, Z's fill/prototype comes from A
+     // instead, at rank >= 2 -- the vector case (rank 1) is
+     // implementation-defined (ISO) and deliberately left as-is here
+     // (testcases/Catenate.tc's '',⍳0 relies on the OLD B-wins
+     // behavior). See Bugs27 #48.
+     if (B.is_empty() && A.get_rank() >= 2)   Z->set_default(A, LOC);
+     else                                     Z->set_default(B, LOC);
      Z->check_value(LOC);
      return Z;
    }
@@ -402,7 +445,8 @@ Value_P Z(shape_Z, LOC);
          Cell::copy(*Z.get(), B, idxB, slice_b);
        }
 
-   Z->set_default(B, LOC);
+   if (B.is_empty() && A.get_rank() >= 2)   Z->set_default(A, LOC);
+   else                                     Z->set_default(B, LOC);
    Z->check_value(LOC);
    return Z;
 }
@@ -500,13 +544,6 @@ Value_P
 Bif_COMMA::catenate_or_laminate(const char * where, const cValue & A,
                                 const cValue & X, const cValue & B)
 {
-   if (A.is_scalar() && B.is_scalar())
-      {
-        MORE_ERROR() << where << ": A and B are both scalars; at least one"
-                        " must be a non-scalar";
-        RANK_ERROR;
-      }
-
    // catenate or laminate
    //
    if (!X.is_scalar_or_len1_vector())
@@ -521,6 +558,25 @@ const APL_Integer qio = Workspace::get_IO();
 
    if (cX.is_near_int())   // catenate along existing axis
       {
+        // catenate genuinely needs two conformable arrays sharing an
+        // existing axis, unlike laminate (below), which forms a new
+        // length-2 axis and legitimately accepts two scalars (APL2
+        // LRM p.169 "If both arguments are scalars, L,[X]R ←→ L,R";
+        // ISO §10.2.1). catenate() itself (see its own leading
+        // comment) relies on this having already been ruled out.
+        // Moved here, out of the shared code above, since it used to
+        // reject two-scalar LAMINATE too (e.g. 1,[0.5]2). See Bugs27
+        // #47.
+        //
+        if (A.is_scalar() && B.is_scalar())
+           {
+             MORE_ERROR() << where << ": A and B are both scalars; at least"
+                             " one must be a non-scalar (catenate, not"
+                             " laminate, since X is an existing/integral"
+                             " axis)";
+             RANK_ERROR;
+           }
+
         // validate in the full-width APL_Integer before narrowing to
         // sAxis (int16_t): narrowing first let a huge axis wrap into
         // the valid range instead of being rejected (M,[65537]M

@@ -64,7 +64,7 @@ public:
         Value_P M(0, 0, LOC);
         M->set_default(B, LOC);
         M->check_value(LOC);
-        return enclosed_identity(*M);
+        return enclosed_identity(B, axis, M);
       }
 
    /// overloaded Function::eval_AB()

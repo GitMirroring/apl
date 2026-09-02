@@ -60,6 +60,16 @@ public:
    static ShapeItem get_APL_expression_count()
       { return APL_expression_count; }
 
+   /// return true iff the most recently completed do_APL_expression()
+   /// (parse-time OR run-time) ended in an APL error. Parse errors are
+   /// caught and printed inside do_APL_expression() itself, and
+   /// run-time errors are settled by the SI machinery as a TOK_ERROR
+   /// result there too -- neither throws back out to a caller, so
+   /// --eval (main.cc), which needs a real exit status, has no other
+   /// way to tell. See Bugs27 #55.
+   static bool last_expression_failed()
+      { return expression_failed; }
+
    /// return the current boxing format
    static int get_boxing_format()
       { return boxing_format; }
@@ -155,6 +165,10 @@ protected:
 
    /// the number of APL expressions entered in immediate execution mode
    static ShapeItem APL_expression_count;
+
+   /// true iff the most recently completed do_APL_expression() ended
+   /// in an APL error. See last_expression_failed() above.
+   static bool expression_failed;
 
    /// line number of miltiline start
    static int multiline_start;

@@ -62,7 +62,7 @@ public:
    /// overloaded NonscalarFunction_default_identity::eval_identity_fun().
    /// Figure 28 (apl2lrm.txt p.212): the identity item for ↑ is ⊂B.
    virtual Token eval_identity_fun(cValue_R B, sAxis axis) const
-      { return enclosed_identity(B); }
+      { return enclosed_identity(B, axis); }
 
    /// Take from B according to ravel_A
    /// @param shape_Zi shape of the result
@@ -119,9 +119,18 @@ public:
    /// against the LRM's own worked example, LanguageVariances.md #19).
    virtual Token eval_identity_fun(cValue_R B, sAxis axis) const
       {
+        // one bare-prototype item per position of the axes NOT being
+        // reduced (⍴Z ←→ (⍴B) without axis), not a single overall
+        // scalar -- same frame fix as enclosed_identity() above, for
+        // ↓'s different (bare, not enclosed) per-item value. See
+        // Bugs27 #27.
+        //
+        const Shape shape_Z = B.get_shape().without_axis(axis);
         Cell cache;
         const Cell & proto = B.get_cproto(cache);
-        Value_P Z(proto, LOC);
+
+        Value_P Z(shape_Z, LOC);
+        loop(z, shape_Z.get_volume())   Z->next_ravel_Cell(proto);
         Z->check_value(LOC);
         return Token(TOK_APL_VALUE1, Z);
       }

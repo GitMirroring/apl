@@ -257,7 +257,16 @@ Quad_FX::do_quad_FX(const int * exec_props, const UCS_string & text,
                     const UTF8_string & creator)
 {
 int error_line = 0;
-UserFunction * fun = UserFunction::fix(text, error_line, false, LOC, creator);
+   // quiet=true: ⎕FX reports a failed parse via its own mechanism
+   // (returning the 1-based error line number, or 2 further up when
+   // that's ¯1) -- UserFunction::fix()'s internal parser debug trace
+   // (line number, offending token, whole statement) is not part of
+   // that contract and used to leak to stderr unconditionally (quiet
+   // defaults to false), before the caller ever saw the return value.
+   // See Bugs27 #59(i).
+   //
+UserFunction * fun =
+   UserFunction::fix(text, error_line, false, LOC, creator, true);
 
    if (fun == 0)   // UserFunction::fix() dailed
       {

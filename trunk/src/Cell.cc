@@ -257,6 +257,72 @@ ShapeItem idxB = B * comp_len;
    return A > B;
 }
 //────────────────────────────────────────────────────────────────────────────
+/// EXACT (non-⎕CT) numeric comparison, shared by greater_cp_exact() and
+/// smaller_cp_exact(): 0 if equal, negative if ca < cb, positive if
+/// ca > cb. Non-numeric or complex cells fall back to the ordinary,
+/// possibly ⎕CT-tolerant Cell::compare() -- ⍋/⍒'s ISO-mandated
+/// exactness (10.1.2: "⎕CT is not an implicit argument" to grading) is
+/// specifically about real numeric magnitude; nothing in Bugs27 #30
+/// exercises complex or mixed-type grading, and compare()'s existing
+/// char/nested/complex ordering rules are unaffected either way.
+static int
+exact_numeric_compare(const Cell & ca, const Cell & cb)
+{
+   if (ca.is_numeric() && cb.is_numeric() &&
+       !ca.is_complex_cell() && !cb.is_complex_cell())
+      {
+        const APL_Float fa = ca.get_real_value();
+        const APL_Float fb = cb.get_real_value();
+        if (fa < fb)   return -1;
+        if (fa > fb)   return 1;
+        return 0;
+      }
+
+   return ca.compare(cb);   // COMP_LT(-1)/COMP_EQ(0)/COMP_GT(1) compatible
+}
+//────────────────────────────────────────────────────────────────────────────
+bool
+Cell::greater_cp_exact(const ShapeItem & A, const ShapeItem & B,
+                       const void * ctx)
+{
+const ravel_comp_len * rcl = reinterpret_cast<const ravel_comp_len *>(ctx);
+const ShapeItem comp_len = rcl->comp_len;
+ShapeItem idxA = A * comp_len;
+ShapeItem idxB = B * comp_len;
+
+   loop(l, comp_len)
+       {
+         Cell cA, cB;
+         if (const int cr = exact_numeric_compare(
+                                rcl->value->get_cravel(idxA++, cA),
+                                rcl->value->get_cravel(idxB++, cB)))
+            return cr > 0;
+       }
+
+   return A > B;
+}
+//────────────────────────────────────────────────────────────────────────────
+bool
+Cell::smaller_cp_exact(const ShapeItem & A, const ShapeItem & B,
+                       const void * ctx)
+{
+const ravel_comp_len * rcl = reinterpret_cast<const ravel_comp_len *>(ctx);
+const ShapeItem comp_len = rcl->comp_len;
+ShapeItem idxA = A * comp_len;
+ShapeItem idxB = B * comp_len;
+
+   loop(l, comp_len)
+       {
+         Cell cA, cB;
+         if (const int cr = exact_numeric_compare(
+                                rcl->value->get_cravel(idxA++, cA),
+                                rcl->value->get_cravel(idxB++, cB)))
+            return cr < 0;
+       }
+
+   return A > B;
+}
+//────────────────────────────────────────────────────────────────────────────
 bool
 Cell::is_near_int(APL_Float value)
 {
@@ -335,7 +401,7 @@ UCS_string ucs(pb, 0, Workspace::get_PW());
 //════════════════════════════════════════════════════════════════════════════
 ErrorCode
 Cell::sorted_indices(vector<ShapeItem> & indices, const cValue & value,
-                     Sort_order order, ShapeItem comp_len)
+                     Sort_order order, ShapeItem comp_len, bool exact)
 {
    Assert(indices.size() == 0);   // initially empty, filled by this function
 
@@ -355,9 +421,11 @@ const ShapeItem rows = value.get_shape_item(0);
    //
 const ravel_comp_len ctx = { &value, comp_len};
    if (order == SORT_ASCENDING)
-      Heapsort<ShapeItem>::sort(indices, &Cell::greater_cp, &ctx);
+      Heapsort<ShapeItem>::sort(indices,
+                    exact ? &Cell::greater_cp_exact : &Cell::greater_cp, &ctx);
    else
-      Heapsort<ShapeItem>::sort(indices, &Cell::smaller_cp, &ctx);
+      Heapsort<ShapeItem>::sort(indices,
+                    exact ? &Cell::smaller_cp_exact : &Cell::smaller_cp, &ctx);
    return E_NO_ERROR;
 }
 //════════════════════════════════════════════════════════════════════════════

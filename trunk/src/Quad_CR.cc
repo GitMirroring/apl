@@ -655,13 +655,48 @@ const Symbol * symbol = Workspace::lookup_existing_symbol(symbol_name);
                          if (uni == UNI_LF)   break;
                        }
 
-
+                    UCS_string body;
                     while (t < text.ssize())   // copy body
                         {
                           const Unicode uni = text[t++];
                           if (uni == UNI_LF)   break;
-                           res << uni;
+                           body << uni;
                         }
+
+                    // text (ufun.canonical()) already has the λ← that
+                    // Executable::compute_lambda_body() synthesizes
+                    // before the last statement baked in as ordinary
+                    // source text (a lambda has no separate "original
+                    // source" the way a ∇-function does). Emitting it
+                    // unstripped meant the tokenizer synthesized a
+                    // SECOND λ← over it on the next )LOAD/⎕FX, growing
+                    // by one λ← on every )DUMP/)LOAD cycle. Find the
+                    // same insertion point compute_lambda_body() used
+                    // (after the last top-level ◊, or the very start if
+                    // none) and strip it back out here, mirroring that
+                    // function's own (deliberately simple, not string-
+                    // or brace-aware) ◊ scan exactly. See Bugs27 #37.
+                    //
+                    ShapeItem sols = 0;
+                    for (ShapeItem j = body.size() - 1; j >= 0; --j)
+                        {
+                          if (Avec::is_DIAMOND(body[j]))
+                             {
+                               sols = j + 1;
+                               while (sols < body.ssize() &&
+                                      body[sols] <= UNI_SPACE)   ++sols;
+                               break;
+                             }
+                        }
+                    if (sols + 1 < body.ssize() &&
+                        body[sols] == UNI_LAMBDA &&
+                        body[sols + 1] == UNI_LEFT_ARROW)
+                       {
+                         body.erase(sols);   // erase() removes 1 char;
+                         body.erase(sols);   // call twice for "λ←"
+                       }
+
+                    res << body;
                     res << (UNI_R_CURLY);
                     result.push_back(res);
                   }

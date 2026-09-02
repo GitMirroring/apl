@@ -27,6 +27,7 @@
 #include <sys/stat.h>
 #include <errno.h>
 
+#include "Avec.hh"
 #include "Backtrace.hh"
 #include "Error.hh"
 #include "Output.hh"
@@ -263,6 +264,32 @@ UserFunction_header::eval_common() const
        label_values[l].sym->push_label(label_values[l].line);
 }
 //────────────────────────────────────────────────────────────────────────────
+/// return true iff \b sym is a system variable (⎕IO, bare ⎕, ...) -- these
+/// are TC_SYMBOL tokens too (see Token.def), so every "is this a symbol"
+/// check in init_signature() below accepts them, but none of the header
+/// positions (function name, Z, A, B, LO, RO, axis) may legally be one:
+/// unlike init_local_vars()'s explicit small whitelist of localizable
+/// system variables (⎕CT, ⎕IO, ...), a header position permanently binds
+/// the name, and a system variable's identity/semantics cannot be
+/// shadowed that way.
+///
+/// Checked by NAME, not by get_NC() == NC_SYSTEM_VAR: at this point in
+/// header parsing the tokens haven't necessarily been resolved against
+/// the real, permanent system-variable Symbol objects yet (the function
+/// *name* specifically is looked up later, in UserFunction::fix(), via
+/// Workspace::lookup_symbol() on the plain name text) -- so a symbol's
+/// NC here can still be unclassified even for ⎕IO. Avec::is_quad() on
+/// the first character is what SymbolTable::lookup_symbol() itself
+/// guards against ("should not be called for ⎕xx"); checking the same
+/// thing here, before that call ever happens, is what actually avoids
+/// hitting that internal-error guard.
+static bool
+is_system_var(const Symbol * sym)
+{
+   const UCS_string & name = sym->get_name();
+   return name.size() && Avec::is_quad(name[0]);
+}
+//────────────────────────────────────────────────────────────────────────────
 const char *
 UserFunction_header::init_signature(const UCS_string & text, bool macro)
 {
@@ -285,6 +312,7 @@ size_t len   = tos.size();
         if (tos[0].get_Class() != TC_SYMBOL)   return "Bad Z in Z ←";
 
         sym_Z = tos[0].get_sym_ptr();   // Z ← or λ ←
+        if (is_system_var(sym_Z))   return "Bad Z in Z ← (system variable)";
         start = 2;
         len -= 2;
       }
@@ -299,6 +327,7 @@ size_t len   = tos.size();
              if (tos[start].get_Class() != TC_SYMBOL)   return "Bad F0";
 
              sym_FUN = tos[start].get_sym_ptr();
+             if (is_system_var(sym_FUN))   return "Bad F0 (system variable)";
              function_name = sym_FUN->get_name();
              return 0;   // OK
            }
@@ -313,6 +342,10 @@ size_t len   = tos.size();
 
              sym_FUN = tos[start].get_sym_ptr();
              sym_B = tos[start + 1].get_sym_ptr();
+             if (is_system_var(sym_FUN))
+                return "Bad F1 in F1 B (system variable)";
+             if (is_system_var(sym_B))
+                return "Bad B in F1 B (system variable)";
              function_name = sym_FUN->get_name();
              return 0;   // OK
            }
@@ -329,6 +362,12 @@ size_t len   = tos.size();
              sym_A   = tos[start]    .get_sym_ptr();
              sym_FUN = tos[start + 1].get_sym_ptr();
              sym_B   = tos[start + 2].get_sym_ptr();
+             if (is_system_var(sym_A))
+                return "Bad A in A F2 B (system variable)";
+             if (is_system_var(sym_FUN))
+                return "Bad F2 in A F2 B (system variable)";
+             if (is_system_var(sym_B))
+                return "Bad B in A F2 B (system variable)";
              function_name = sym_FUN->get_name();
              return 0;   // OK
       }
@@ -339,6 +378,7 @@ size_t len   = tos.size();
    if (tos[start + len - 1].get_Class() != TC_SYMBOL)
       return "Bad B in ... B";
    sym_B   = tos[start + len - 1].get_sym_ptr();
+   if (is_system_var(sym_B))   return "Bad B in ... B (system variable)";
    len--;
 
    // maybe strip off the optional axis [X]
@@ -352,6 +392,8 @@ size_t len   = tos.size();
              return "Bad [ in ... [X] B";
 
         sym_X   = tos[start + len - 2].get_sym_ptr();
+        if (is_system_var(sym_X))
+           return "Bad X in ... [X] B (system variable)";
         len -= 3;
       }
 
@@ -370,6 +412,8 @@ size_t len   = tos.size();
            return "Bad F1 in F1 [X] B";
 
         sym_FUN = tos[start].get_sym_ptr();
+        if (is_system_var(sym_FUN))
+           return "Bad F1 in F1 [X] B (system variable)";
         function_name = sym_FUN->get_name();
         return 0;   // OK
       }
@@ -379,6 +423,8 @@ size_t len   = tos.size();
    if (tos[start].get_Class() == TC_SYMBOL)   // case 2, 3, or 5: strip A
       {
         sym_A = tos[start].get_sym_ptr();
+        if (is_system_var(sym_A))
+           return "Bad A in A F2 [X] B (system variable)";
         ++start;
         --len;
       }
@@ -391,6 +437,8 @@ size_t len   = tos.size();
            return "Bad F2 in A F2 [X] B";
 
         sym_FUN = tos[start].get_sym_ptr();
+        if (is_system_var(sym_FUN))
+           return "Bad F2 in A F2 [X] B (system variable)";
         function_name = sym_FUN->get_name();
         return 0;   // OK
       }
@@ -407,11 +455,15 @@ size_t len   = tos.size();
       return "Bad F2 in (F2 OPn ... )";
 
    sym_LO = tos[start + 1].get_sym_ptr();
+   if (is_system_var(sym_LO))
+      return "Bad F2 in (F2 OPn ... ) (system variable)";
 
    if (tos[start + 2].get_Class() != TC_SYMBOL)   // LO
       return "Bad OPn in (F2 OPn ... )";
 
    sym_FUN = tos[start + 2].get_sym_ptr();
+   if (is_system_var(sym_FUN))
+      return "Bad OPn in (F2 OPn ... ) (system variable)";
    function_name = sym_FUN->get_name();
 
    if (len == 4)   return 0;   // OK: ( LO OP1 )
@@ -423,6 +475,8 @@ size_t len   = tos.size();
       return "Bad G2 in (F2 OP2 G2)";
 
    sym_RO = tos[start + 3].get_sym_ptr();
+   if (is_system_var(sym_RO))
+      return "Bad G2 in (F2 OP2 G2) (system variable)";
    return 0;
 }
 //────────────────────────────────────────────────────────────────────────────

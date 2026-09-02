@@ -27,6 +27,7 @@
 
 #include <errno.h>
 #include <string.h>
+#include <sys/wait.h>
 
 #include "Cmd_HOST.hh"
 #include "Common.hh"
@@ -70,7 +71,15 @@ const int result = reader.close();
                            << errno << " (" << strerror(errno) << ")" << endl;
       }
 
-   out << endl << result << ' ' << endl;
+   // result is pclose()'s raw wait status (WIFEXITED/WEXITSTATUS-
+   // encoded), not the child's exit code directly -- )HOST 'exit 3'
+   // used to print 768 (3<<8) instead of 3. Decode it for a
+   // normally-exited child; fall back to the raw status for a
+   // signal-terminated one (no single "exit code" applies there).
+   // See Bugs27 #59(g).
+   //
+const int exit_code = WIFEXITED(result) ? WEXITSTATUS(result) : result;
+   out << endl << exit_code << ' ' << endl;
 }
 //────────────────────────────────────────────────────────────────────────────
 void

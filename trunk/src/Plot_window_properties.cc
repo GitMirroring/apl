@@ -182,6 +182,15 @@ Plot_window_properties::update(int verbosity)
 double delta_X = max_X - min_X;
 double delta_Y = max_Y - min_Y;
 double delta_Z = max_Z - min_Z;
+
+   if (!isfinite(delta_X) || !isfinite(delta_Y) || !isfinite(delta_Z))
+      {
+        MORE_ERROR() << "non-finite X/Y/Z range in data B of A ⎕PLOT B "
+                        "(delta_X=" << delta_X << " delta_Y=" << delta_Y
+                     << " delta_Z=" << delta_Z << ")";
+        return true;   // error
+      }
+
 const double orig_len = sqrt(origin_X*origin_X + origin_Y*origin_Y);
 
    // first approximation for value → pixel factor
@@ -541,6 +550,18 @@ Plot_window_properties::get_color(double alpha) const
 double
 Plot_window_properties::round_up_1_2_5(double val)
 {
+   // A non-finite val (an overflowed range, e.g. 1E308 - ¯1E308 → inf)
+   // never satisfies `val >= 10`, and a denormal-underflowing-to-0 val
+   // (a tiny range × 10 repeatedly) never satisfies `val < 1` becoming
+   // false, so either loop below runs forever. update() validates the
+   // range that feeds this before calling it (see the isfinite() check
+   // there), but round_up_1_2_5() is a small, separately reusable
+   // utility (also called for a computed tile size, not just directly
+   // from a user range), so it guards itself too rather than trusting
+   // every caller to have validated first.
+   //
+   if (!isfinite(val) || val <= 0)   return 1.0;
+
 int expo = 0;
    while (val >= 10)    { val /= 10;   ++expo; }
    while (val <  1)     { val *= 10;   --expo; }

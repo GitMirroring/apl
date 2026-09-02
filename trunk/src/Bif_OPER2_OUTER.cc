@@ -276,6 +276,7 @@ Value_P RO_B;
            {
              RO_A = Value_P(LOC);   // scalar RO_A
              RO_A->set_ravel_Cell(0, cA);
+             RO_A->check_value(LOC);
            }
 
         if (Value_P v = cB.try_pointer_value())
@@ -286,6 +287,7 @@ Value_P RO_B;
            {
              RO_B = Value_P(LOC);   // scalar RO_B
              RO_B->set_ravel_Cell(0, cB);
+             RO_B->check_value(LOC);
            }
 
         Token result = RO->eval_AB(*RO_A, *RO_B);

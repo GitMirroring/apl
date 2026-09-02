@@ -786,8 +786,6 @@ APL_Complex z;
 ErrorCode
 ComplexCell::bif_power_ci(Cell * Z, APL_Complex a, APL_Integer b)
 {
-   // complex base to integer power (no parity trick, use complex_power)
-   //
 const bool invert_Z = b < 0;
    if (invert_Z)   b = -b;
 
@@ -801,14 +799,59 @@ const bool invert_Z = b < 0;
         return ComplexCell::zC(Z, a.real()/denom, -a.imag()/denom);
       }
 
-const APL_Complex z = complex_power(a, APL_Complex(APL_Float(b), 0.0));
+   // Exact repeated multiplication (binary exponentiation by
+   // squaring) for a moderate positive integer exponent b, mirroring
+   // how IntCell/FloatCell already compute their own integer-exponent
+   // powers essentially exactly -- unlike complex_power() (pow() on
+   // two complex<APL_Float> operands) just below, whose general
+   // exp(b×ln a) formula, needed for a genuinely complex exponent,
+   // carries rounding noise (~1E¯16 scale) even for an exactly
+   // representable integer-exponent result, e.g. (3J4*2) should be
+   // exactly ¯7J24, not ¯7J24 plus noise. Bounded to a moderate b (as
+   // opposed to unconditionally, the way IntCell/FloatCell do it) so
+   // this cannot reintroduce the overflow-before-inversion bug #23
+   // fixed just below for a large exponent: repeated squaring of a
+   // complex value can overflow to inf partway through even when the
+   // final inverted result (A⋆¯N) would be finite. See Bugs27 #59(a).
+   //
+   if (b <= 1024)
+      {
+        APL_Complex zi(1.0, 0.0);
+        APL_Complex a_2_n = a;
+        for (APL_Integer b1 = b; b1; b1 >>= 1)
+            {
+              if (b1 & 1)   zi *= a_2_n;
+              if (b1 == 1)   break;
+              a_2_n *= a_2_n;
+            }
+
+        if (invert_Z)
+           {
+             const APL_Float denom = zi.real()*zi.real()
+                                    + zi.imag()*zi.imag();
+             if (denom == 0.0)   return E_DOMAIN_ERROR;
+             zi = APL_Complex(zi.real()/denom, -zi.imag()/denom);
+           }
+
+        if (!isfinite(zi.real()))   return E_DOMAIN_ERROR;
+        if (!isfinite(zi.imag()))   return E_DOMAIN_ERROR;
+        return ComplexCell::zC(Z, zi);
+      }
+
+   // Pass the ORIGINAL (negative, when invert_Z) exponent to
+   // complex_power() directly rather than computing complex_power(a,b)
+   // and then inverting via denom = |z|^2: that intermediate power alone
+   // can already overflow to inf for a large b (b was negated to
+   // positive above), rejecting with DOMAIN ERROR even when the true
+   // result (A⋆¯N = 1/A⋆N) is representable (possibly ≈0, but finite).
+   // See Bugs27 #23 (mirrors the same fix in IntCell/FloatCell).
+   //
+const APL_Complex z = complex_power(a,
+                          APL_Complex(invert_Z ? -APL_Float(b) : APL_Float(b),
+                                      0.0));
    if (!isfinite(z.real()))   return E_DOMAIN_ERROR;
    if (!isfinite(z.imag()))   return E_DOMAIN_ERROR;
-   if (!invert_Z)   return ComplexCell::zC(Z, z);
-
-const APL_Float denom = z.real()*z.real() + z.imag()*z.imag();
-   if (denom == 0.0)   return E_DOMAIN_ERROR;
-   return ComplexCell::zC(Z, z.real()/denom, -z.imag()/denom);
+   return ComplexCell::zC(Z, z);
 }
 //────────────────────────────────────────────────────────────────────────────
 ErrorCode

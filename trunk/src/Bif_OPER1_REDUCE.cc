@@ -232,7 +232,7 @@ cFunction_P LO = tok_LO.get_function();
                      << A->element_count() << " items";
         LENGTH_ERROR;
       }
-const APL_Integer A0 = A->get_int_value(0);
+const APL_Integer A0 = A->get_near_int(0);
 
    // the number of items (= M1 in ISO). Was 'const int n_wise = ...': A0 is
    // a full APL_Integer (64 bit), so a huge A (e.g. left argument of A f/B

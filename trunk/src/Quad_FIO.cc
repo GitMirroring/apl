@@ -584,7 +584,14 @@ Quad_FIO::clear()
          file_entry & fe = open_files.back();
          if (fe.fe_FILE)   fclose(fe.fe_FILE);   // also closes fe.fe_fd
          else              close(fe.fe_fd);
-         CERR << "WARNING: File " << fe.path << " still open - closing it"
+         // fe.path is empty for a handle opened via popen()/execve()
+         // (⎕FIO[24]/[57], which don't record a path the way a plain
+         // file open does) -- always including the handle number too
+         // keeps this message useful instead of a blank, double-spaced
+         // "File  still open". See Bugs27 #59(d).
+         //
+         CERR << "WARNING: File " << fe.path
+              << " (handle " << fe.fe_fd << ") still open - closing it"
               << endl;
         // fe.fe_fd was already closed above (either via fclose() or the
         // direct close()); closing it again here is a double-close --
@@ -700,7 +707,7 @@ char * from = filename;
    ::close(3);
 
    usleep(100000);
-   CERR << "*** execve() failed in 57 ⎕CR: " << strerror(errno);
+   CERR << "*** execve() failed in 57 ⎕FIO: " << strerror(errno) << endl;
          ) // NOT_MINGW
    exit(-1);
 }
@@ -2122,6 +2129,16 @@ Token
 Quad_FIO::eval_AXB__24(Value_P A, Value_P B)
 {
    CHECK_SECURITY(disable_Quad_FIO__exec);
+
+   // CHECK_SECURITY() above is a no-op unless the interpreter was built
+   // with SECURITY_LEVEL_WANTED=1 or 2 (Security.hh) -- i.e. it does
+   // NOT depend on --safe at the DEFAULT build level. --safe (uprefs.
+   // safe_mode) already blocks )HOST (Cmd_HOST.cc) from spawning a
+   // subprocess; this ⎕FIO function can equally spawn/exec one
+   // (popen()/fork()+execve()), so honour the SAME runtime flag here,
+   // independent of the compile-time security level. See Bugs27 #54.
+   //
+   if (UserPreferences::uprefs.safe_mode)   not_allowed("--safe");
 NOT_MINGW(
    {
      const UCS_string mode_ucs(*A.get());
@@ -2994,6 +3011,16 @@ Token
 Quad_FIO::eval_XB__24(Value_P B)
 {
    CHECK_SECURITY(disable_Quad_FIO__exec);
+
+   // CHECK_SECURITY() above is a no-op unless the interpreter was built
+   // with SECURITY_LEVEL_WANTED=1 or 2 (Security.hh) -- i.e. it does
+   // NOT depend on --safe at the DEFAULT build level. --safe (uprefs.
+   // safe_mode) already blocks )HOST (Cmd_HOST.cc) from spawning a
+   // subprocess; this ⎕FIO function can equally spawn/exec one
+   // (popen()/fork()+execve()), so honour the SAME runtime flag here,
+   // independent of the compile-time security level. See Bugs27 #54.
+   //
+   if (UserPreferences::uprefs.safe_mode)   not_allowed("--safe");
 const UCS_string path_ucs(*B.get());
 const UTF8_string path(path_ucs);
    errno = 0;
@@ -3594,6 +3621,16 @@ Token
 Quad_FIO::eval_XB__57(Value_P B)
 {
    CHECK_SECURITY(disable_Quad_FIO__exec);
+
+   // CHECK_SECURITY() above is a no-op unless the interpreter was built
+   // with SECURITY_LEVEL_WANTED=1 or 2 (Security.hh) -- i.e. it does
+   // NOT depend on --safe at the DEFAULT build level. --safe (uprefs.
+   // safe_mode) already blocks )HOST (Cmd_HOST.cc) from spawning a
+   // subprocess; this ⎕FIO function can equally spawn/exec one
+   // (popen()/fork()+execve()), so honour the SAME runtime flag here,
+   // independent of the compile-time security level. See Bugs27 #54.
+   //
+   if (UserPreferences::uprefs.safe_mode)   not_allowed("--safe");
    errno = 0;
 const int fd = do_FIO_57(*B.get(), 0);
    if (fd == -1)   return Token(TOK_APL_VALUE1, IntScalar(-errno, LOC));

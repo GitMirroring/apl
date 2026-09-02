@@ -42,7 +42,7 @@ public:
    /// Figure 28 (apl2lrm.txt p.212): the identity item for , (and,
    /// sharing this base class, ⍪) is ⊂B.
    virtual Token eval_identity_fun(cValue_R B, sAxis axis) const
-      { return enclosed_identity(B); }
+      { return enclosed_identity(B, axis); }
 
    /// ravel along axis, with axis being the first (⍪( or last (,) axis of B
    /// @param where arity-prefix for )MORE text, e.g. ",[X]B" or "⍪[X]B"

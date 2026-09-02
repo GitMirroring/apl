@@ -222,7 +222,13 @@ int64_t * dst = reinterpret_cast<int64_t *>(&Z->get_wfirst());
       }
 
 vector<ShapeItem> ordered_indices_B;
-   Cell::sorted_indices(ordered_indices_B, B, order, comp_len);
+   // exact = true: ISO 10.1.2 "⎕CT is not an implicit argument" to
+   // grading -- the RPT_INT64/RPT_FLOAT64 fast path above (std::stable_
+   // sort with plain </>) was already exact; this general path used
+   // Cell::compare(), which IS ⎕CT-tolerant (correct for </>/⌈/⌊ etc,
+   // wrong here), giving ⍋/⍒ a result that changed with the packing
+   // threshold. See Bugs27 #30.
+   Cell::sorted_indices(ordered_indices_B, B, order, comp_len, true);
 
    loop(b, len_BZ)   dst[b] = ordered_indices_B[b] + qio;
    Z->commit_ravel_Int64(len_BZ);

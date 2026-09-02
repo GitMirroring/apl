@@ -175,13 +175,45 @@ public:
    /// is only ever called for an axis of length 0, which requires B to
    /// have at least that one axis), so no "enclose of a simple scalar
    /// is identity" special-casing is needed.
-   /// @param B  the right APL argument value
-   static Token enclosed_identity(cValue_R B)
+   ///
+   /// This used to ignore the frame entirely and always return a bare
+   /// scalar ⊂B, e.g. giving ,/3 0⍴0 a single enclosed item instead of a
+   /// 3-item vector (one identity item per position of the axes NOT
+   /// being reduced) -- reduction along an empty axis must give the
+   /// identity item at EVERY position of the remaining axes (⍴Z ←→ (⍴B)
+   /// without the axis), not once overall. Since axis has 0 elements
+   /// regardless of the remaining axes' position, the 1-D slice along
+   /// axis at every position is the SAME empty, B-typed vector -- so
+   /// every item of Z is ⊂ of that one empty vector, repeated shape_Z
+   /// times. See Bugs27 #27.
+   /// @param B     the right APL argument value
+   /// @param axis  the (0-length) axis being reduced
+   /// @param item  the (already-enclosed) identity value for a single
+   ///              position -- callers differ on what this is (plain
+   ///              ⊂B-typed-empty-vector for ,/⍴/⍉/↑, a 0×0 matrix for
+   ///              ⌹), only the repeat-across-the-frame part is shared
+   static Token enclosed_identity(cValue_R B, sAxis axis, Value_P item)
       {
-        Value_P Z(LOC);   // a scalar
-        Z->next_ravel_Pointer(CLONE(&B, LOC).get());
+        const Shape shape_Z = B.get_shape().without_axis(axis);
+
+        Value_P Z(shape_Z, LOC);
+        loop(z, shape_Z.get_volume())
+            Z->next_ravel_Pointer(CLONE(item.get(), LOC).get());
         Z->check_value(LOC);
         return Token(TOK_APL_VALUE1, Z);
+      }
+
+   /// convenience overload of enclosed_identity() above for the common
+   /// case (,/⍴/⍉/↑): the per-position item is ⊂ of an empty, B-typed
+   /// vector (see the general comment above).
+   /// @param B     the right APL argument value
+   /// @param axis  the (0-length) axis being reduced
+   static Token enclosed_identity(cValue_R B, sAxis axis)
+      {
+        Value_P item(Shape(ShapeItem(0)), LOC);   // empty, B-typed vector
+        item->set_default(B, LOC);
+        item->check_value(LOC);
+        return enclosed_identity(B, axis, item);
       }
 };
 //════════════════════════════════════════════════════════════════════════════

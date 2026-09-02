@@ -51,7 +51,7 @@ public:
    /// overloaded NonscalarFunction_default_identity::eval_identity_fun().
    /// Figure 28 (apl2lrm.txt p.212): the identity item for ⍉ is ⊂B.
    virtual Token eval_identity_fun(cValue_R B, sAxis axis) const
-      { return enclosed_identity(B); }
+      { return enclosed_identity(B, axis); }
 
    /// implementation of eval_B()
    /// @param B  the APL array to reverse-transpose (raw pointer)

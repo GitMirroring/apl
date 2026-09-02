@@ -104,31 +104,42 @@ Bif_F12_DOMINO::eval_B(cValue_R B) const
              return Token(TOK_APL_VALUE1, Idx0_0(LOC));
            }
 
+        // Least-squares inversion at the unit sphere is (+B)÷+/|B|⋆2 --
+        // conjugate(B) over the sum of B's SQUARED MAGNITUDES -- matching
+        // what the matrix path and dyadic A⌹B use. This used to instead
+        // accumulate Σ(b×b) (the sum of b SQUARED, not |b|²: genuinely
+        // complex-valued for a complex B, not the always-real quantity
+        // this formula needs) and divide plain B (not its conjugate) by
+        // that, which drops the imaginary parts entirely and never
+        // conjugates. See Bugs27 #26.
+        //
         const double qct = Workspace::get_CT();
         const ShapeItem len = B.get_shape_item(0);
-        APL_Complex r2(0.0);
+        APL_Float r2 = 0.0;   // Σ|b|², always real and >= 0
+        bool b_real = true;
         loop(l, len)
             {
               const APL_Complex b = B.get_complex_value(l);
-              r2 += b*b;
+              r2 += b.real()*b.real() + b.imag()*b.imag();
+              if (b.imag() != 0.0)   b_real = false;
             }
 
-        if (r2.real() < qct && r2.real() > -qct &&
-            r2.imag() < qct && r2.imag() > -qct)
+        if (r2 < qct && r2 > -qct)
            {
-             MORE_ERROR() << "⌹B: B is too close to the origin (+/B×B is 0"
-                             " within ⎕CT) to invert at the unit sphere";
+             MORE_ERROR() << "⌹B: B is too close to the origin (+/|B|⋆2"
+                             " is 0 within ⎕CT) to invert at the unit"
+                             " sphere";
              DOMAIN_ERROR;
            }
 
         Value_P Z(len, LOC);
 
-        if (r2.imag() < qct && r2.imag() > -qct)   // real result
+        if (b_real)   // real B: conjugate(b) == b
            {
              loop(l, len)
                  {
                    const APL_Float b = B.get_real_value(l);
-                   Z->next_ravel_Float(b / r2.real());
+                   Z->next_ravel_Float(b / r2);
                  }
            }
         else                                       // complex result
@@ -136,7 +147,7 @@ Bif_F12_DOMINO::eval_B(cValue_R B) const
              loop(l, len)
                  {
                    const APL_Complex b = B.get_complex_value(l);
-                   Z->next_ravel_Complex(b / r2);
+                   Z->next_ravel_Complex(conj(b) / r2);
                  }
            }
 

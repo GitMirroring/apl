@@ -269,6 +269,63 @@ const UCS_string text = fun.canonical(false);
         return;
       }
 
+   if (fun.is_lambda())
+      {
+        // A lambda has no ⎕FX-style header of its own (unlike a ∇
+        // function, whose first canonical() line already names it) --
+        // wrapping its bare, headerless body in "⎕FX 'line1' 'line2'"
+        // (below) round-trips to an ANONYMOUS λ-named function, losing
+        // fun_name entirely (⍎ of the result then defines "λ", not
+        // e.g. "F1", and F1 stays undefined). A lambda IS an ordinary
+        // value though (like tf2_var()'s VAR←VALUE, which
+        // tf2_inverse() already parses generically), so emit the same
+        // "fun_name←{body}" assignment text ⎕DUMP/⎕SAVE already use
+        // (Symbol::dump()) instead of an ⎕FX call. canonical() bakes a
+        // synthesized λ← into the text for the LAST top-level
+        // statement (Executable::compute_lambda_body()); strip it back
+        // out here the same way, mirroring Symbol::dump()'s own scan,
+        // or it doubles up on every further round-trip. See Bugs27
+        // #52.
+        //
+        int t = 0;
+        while (t < text.ssize())   // skip λ header
+           {
+             const Unicode uni = text[t++];
+             if (uni == UNI_LF)   break;
+           }
+
+        UCS_string body;
+        while (t < text.ssize())   // copy body (one line: no UNI_LF here)
+            {
+              const Unicode uni = text[t++];
+              if (uni == UNI_LF)   break;
+              body << uni;
+            }
+
+        ShapeItem sols = 0;
+        for (ShapeItem j = body.size() - 1; j >= 0; --j)
+            {
+              if (Avec::is_DIAMOND(body[j]))
+                 {
+                   sols = j + 1;
+                   while (sols < body.ssize() &&
+                          body[sols] <= UNI_SPACE)   ++sols;
+                   break;
+                 }
+            }
+        if (sols + 1 < body.ssize() &&
+            body[sols] == UNI_LAMBDA &&
+            body[sols + 1] == UNI_LEFT_ARROW)
+           {
+             body.erase(sols);
+             body.erase(sols);
+           }
+
+        ucs << fun_name << UNI_LEFT_ARROW << UNI_L_CURLY
+            << body << UNI_R_CURLY;
+        return;
+      }
+
 UCS_string_vector lines;
    text.to_vector(lines);
 
@@ -1600,6 +1657,7 @@ ShapeItem skipped = 0;
                        Cell cache;
                        Z->next_ravel_Cell(B->get_cravel(b, cache));
                      }
+                  Z->check_value(LOC);
 
                   tos[s + 1].clear(LOC);
                   Token tok_AB(TOK_APL_VALUE1, Z);

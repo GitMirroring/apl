@@ -82,9 +82,12 @@ SystemVariable::assign(Value_P B, bool clone, const char * loc)
 void
 SystemVariable::assign_indexed(const cValue * X, Value_P B)
 {
-   CERR << "SystemVariable::assign_indexed() not (yet) implemented for "
-        << get_Id() << endl;
-   FIXME;
+   // Every system variable reaching this base-class fallback (i.e. not
+   // overriding assign_indexed() itself) is a scalar, so indexed
+   // assignment is always invalid the same way X[1]←10 is for an
+   // ordinary scalar variable X.
+   //
+   RANK_ERROR;
 }
 //────────────────────────────────────────────────────────────────────────────
 void
@@ -716,13 +719,20 @@ int pw = UserPreferences::uprefs.initial_PW;
 void
 Quad_PW::assign(Value_P B, bool clone, const char * loc)
 {
-const APL_Integer pw = B->get_sole_integer();
+APL_Integer pw = B->get_sole_integer();
 
-   // min. ⎕PW is 30. Ignore smaller values.
-   if (pw < MIN_Quad_PW)   return;
+   // min. ⎕PW is 30. A smaller value used to be silently ignored
+   // (⎕PW←29 / ⎕PW←5 left ⎕PW unchanged with no diagnostic at all),
+   // unlike ⎕PP←0, which correctly raises DOMAIN_ERROR -- mirror that
+   // same convention here instead. (APL2 raises LIMIT ERROR for this,
+   // a distinct error class GNU APL does not define; DOMAIN_ERROR
+   // matches how the sibling ⎕PP already reports its own out-of-range
+   // case.) See Bugs27 #59(c).
+   //
+   if (pw < MIN_Quad_PW)   DOMAIN_ERROR;
 
-   // max val is system specific. Ignore larger values.
-   if (pw > MAX_Quad_PW)   return;
+   // max val is system specific. Clamp larger values, same as ⎕PP.
+   if (pw > MAX_Quad_PW)   pw = MAX_Quad_PW;
 
    Symbol::assign(IntScalar(pw, LOC), false, LOC);
 }
@@ -754,8 +764,15 @@ Token tok_exec(Bif_F1_EXECUTE::execute_statement(line));
 void
 Quad_Quad::assign(Value_P B, bool clone, const char * loc)
 {
-   // write pending LF from  ⍞ (if any)
-   Quad_QUOTE::done(true, LOC);
+   // ⎕←X is defined as identical to the default display of X (lrm
+   // p.190) -- StateIndicator::statement_result(), the default-display
+   // path, calls done(false, ...) (no forced LF, so text right after a
+   // pending ⍞← continues on the same line); this explicit ⎕←X path
+   // used to pass true here instead, breaking that equivalence (⍞←'a'
+   // ⋄ ⎕←5 printed "a" and "5" on separate lines instead of "a5").
+   // See Bugs27 #51.
+   //
+   Quad_QUOTE::done(false, LOC);
 
    B->print(COUT);
 }

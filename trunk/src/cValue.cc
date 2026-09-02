@@ -608,21 +608,26 @@ cValue::compute_depth() const
    // repeated paths (PointerCell's MAX_DEPTH check on every ⊂/strand/
    // selective assignment, PrintBuffer, Bif_F2_INDEX, ...), not just ≡.
    //
-   if (is_packed())
+   if (is_packed() || pointer_cell_count == 0)
       {
         flags.value_depth = is_scalar() ? 0 : 1;
         return flags.value_depth;
       }
 
-   APL_types::Depth depth;
-   if (is_scalar())
+APL_types::Depth depth;
+   if (is_scalar())   // any scalar
       {
-        if (is_pointer_cell(0))
-           depth = 1 + get_pointer_value(0)->compute_depth();
-        else
-           { flags.value_depth = 0; return 0; }   // simple scalar: cache 0
+        if (is_pointer_cell(0))   // nested scalar
+           {
+             depth = 1 + get_pointer_value(0)->compute_depth();
+           }
+        else                      // simple scalar: cache 0
+           {
+             flags.value_depth = 0;
+             return 0;
+           }
       }
-   else
+   else               // not scalar
       {
         APL_types::Depth sub_depth = 0;
         const ShapeItem count = nz_element_count();
@@ -2084,8 +2089,8 @@ Value_P Z(get_shape(), loc);
       Z->flags.value_depth = flags.value_depth;
 
 #ifdef cfg_PERFORMANCE_COUNTERS_WANTED
-const uint64_t end_1 = cycle_counter();
-const uint64_t count1 = nz_element_count();
+   const uint64_t end_1 = cycle_counter();
+   const uint64_t count1 = nz_element_count();
    Performance::fs_clone_B.add_sample(end_1 - start_1, count1);
 #endif
 

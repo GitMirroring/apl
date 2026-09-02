@@ -56,10 +56,18 @@ protected:
    /// @param A cell containing the logarithm base
    virtual ErrorCode bif_logarithm(Cell * Z, const Cell * A) const;
 
-   /// compute circle function \b fun
+   /// compute circle function \b fun of \b b. b is passed in by the
+   /// caller (rather than read from *this here) so that a caller which
+   /// must zero *Z first (IntCell::z0(Z), a safe default before the
+   /// real computation) can capture b beforehand -- when Z and the
+   /// RealCell being operated on are the SAME cell (e.g. Bif_REDUCE's
+   /// in-place accumulator for A○/B), zeroing Z first and reading
+   /// get_real_value() afterwards would silently read back the zero
+   /// instead of the original value. See Bugs27 #18.
    /// @param Z output cell for the result
    /// @param fun circle function index
-   ErrorCode do_bif_circle_fun(Cell * Z, int fun) const;
+   /// @param b the real value the circle function applies to
+   static ErrorCode do_bif_circle_fun(Cell * Z, int fun, APL_Float b);
 };
 //════════════════════════════════════════════════════════════════════════════
 

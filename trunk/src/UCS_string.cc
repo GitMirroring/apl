@@ -228,6 +228,92 @@ int expo = 0;
      expo = ::atoi(p + 1);              // skip 'e', parse signed exponent
    }
 
+   // The %e above rounds an EXACTLY representable tie (2.5 at ⎕PP←1)
+   // using glibc's IEEE-754 round-half-to-even, which disagrees with
+   // the round-half-AWAY-from-zero every other ⍕ path uses
+   // (round_last_digit(), via from_double_to_fixed()/
+   // from_double_to_scaled() for dyadic ⍕) -- e.g. ⍕2.5 gave 2 (of
+   // 2 3) while the same value's dyadic 1 0⍕2.5 gives 3.
+   //
+   // Fix this ONLY for genuine exact ties, detected by requesting many
+   // extra digits and checking that position quad_pp is a literal '5'
+   // followed by nothing but '0's: naively re-rounding just one extra
+   // digit half-away (an earlier version of this fix) double-rounds
+   // and is WRONG whenever the true value merely has an '8' or '9' a
+   // few digits further out that carries into a '5' at quad_pp+1
+   // without the value actually being a tie there (regressed
+   // testcases/Numbers.tc: (○1E10)-1 has digit 12 = 8, which glibc's
+   // own correct rounding at 11 digits turns into ...5 at digit 11,
+   // and blindly rounding THAT away gave a different, wrong, 10-digit
+   // result than rounding the true value directly). See Bugs27 #44.
+   //
+   {
+     char sbuf2[96];
+     const int extra_digits = 24;   // generous slack past MAX_Quad_PP
+                                     // (17): the ties Blake reports
+                                     // (2.5, 12.25, X+0.5) have short
+                                     // exact decimal expansions, so
+                                     // this comfortably distinguishes
+                                     // a real tie from a value that
+                                     // merely happens to be close to
+                                     // one, without needing a double's
+                                     // full (up to ~767-digit) exact
+                                     // decimal expansion.
+     snprintf(sbuf2, sizeof(sbuf2), "%.*e", quad_pp - 1 + extra_digits,
+              double(value));
+
+     UCS_string hi_digits;
+     int hi_expo = 0;
+       {
+         const char * p = sbuf2;
+         hi_digits << Unicode(*p++);
+         if (*p == '.')
+            {
+              ++p;
+              while (*p != 'e' && *p != 'E')   hi_digits << Unicode(*p++);
+            }
+         Assert(*p == 'e' || *p == 'E');
+         hi_expo = ::atoi(p + 1);   // this call's OWN exponent -- may
+                                     // differ from the baseline call's
+                                     // (e.g. 9.5 at quad_pp=1: baseline
+                                     // "%.0e" itself rounds 9.5 up to
+                                     // "1e+01", while this higher-
+                                     // precision call sees "9.5e+00"
+                                     // unrounded) -- so expo must be
+                                     // taken from HERE, not left as
+                                     // the baseline's, whenever this
+                                     // digit string is used instead.
+       }
+
+     if (hi_digits.ssize() > quad_pp &&
+         hi_digits[quad_pp] == Unicode(UNI_0 + 5))
+        {
+          bool tie = true;
+          for (ShapeItem d = quad_pp + 1; d < hi_digits.ssize(); ++d)
+              {
+                if (hi_digits[d] != UNI_0)   { tie = false;   break; }
+              }
+
+          if (tie)
+             {
+               digits = hi_digits;
+               digits.resize(quad_pp + 1);   // keep the tie digit itself
+                                              // -- round_last_digit()
+                                              // pops it off on its own
+               digits.round_last_digit();    // '5' at quad_pp: always
+                                              // rounds up (away from 0)
+               expo = hi_expo;
+               if (digits.ssize() > quad_pp)
+                  {
+                    // carry cascaded past the front (e.g. "95"->"10"):
+                    // one digit too many, new leading 1 + trailing 0s.
+                    digits.pop_back();
+                    ++expo;
+                  }
+             }
+        }
+   }
+
    // remove trailing zeros
    //
    while (digits.size() > 1 && digits.back() == UNI_0)  digits.pop_back();

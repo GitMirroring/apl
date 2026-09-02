@@ -133,8 +133,20 @@ Workspace::push_SI(const Executable * fun, const char * loc)
 
 
         Quad_SYL::si_depth_limit = 0;
+
+        // Setting these flags alone (the old behaviour) is not enough: a
+        // single statement recursing from inside itself (the common
+        // case, e.g. ∇Z←F N ⋄ Z←F N+1 ⋄ ∇) never reaches the end-of-line
+        // check (Prefix::check_interrupt_or_attention()) that would have
+        // consulted them -- push_SI() runs on every call, deep inside
+        // that same still-unfinished statement, so throwing HERE, at the
+        // exact push that would exceed the limit, is what actually stops
+        // the recursion instead of only setting flags nothing reads
+        // until a line boundary that is never reached. See Bugs27 #17.
+        //
         InterruptContext::set_attention_raised(LOC);
         InterruptContext::set_interrupt_raised(LOC);
+        LIMIT_ERROR_SIDEPTH;
       }
 
    if (Value::check_WS_FULL(__FUNCTION__, 1000, LOC))

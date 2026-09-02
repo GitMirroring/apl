@@ -96,7 +96,9 @@ AEI
 IJKL
 
       1 2 3[]
-1 2 3
+RANK ERROR+
+      1 2 3[]
+          ^^
 
       ⍝ repeated index values ----------------------------------
 

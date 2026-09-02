@@ -192,7 +192,7 @@ const double qct = Workspace::get_CT();
         Value_P Z(cells_Z.size(), LOC);
         loop(z, cells_Z.size())   Z->next_ravel_Cell(*cells_Z[z]);
 
-        Z->set_default(B, LOC);
+        Z->set_default(A, LOC);   // prototype from A, not B (Bugs27 #31)
         Z->check_value(LOC);
         return Token(TOK_APL_VALUE1, Z);
       }
@@ -226,7 +226,7 @@ const double qct = Workspace::get_CT();
         loop(z, indices_Z.size())
             Z->next_ravel_Cell(A.get_cravel(indices_Z[z], iz_cache));
 
-        Z->set_default(B, LOC);
+        Z->set_default(A, LOC);   // prototype from A, not B (Bugs27 #31)
         Z->check_value(LOC);
         return Token(TOK_APL_VALUE1, Z);
       }

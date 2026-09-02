@@ -1552,6 +1552,49 @@ Token tok(TOK_APL_VALUE3, Z);
       }
 }
 //────────────────────────────────────────────────────────────────────────────
+/// walk pos_LO (initially the token immediately left of a ⍤/⍣ token)
+/// back to the start of the full LO expression it belongs to, so that
+/// fix_RANK_syntax()/fix_POWER_syntax() below parenthesize the WHOLE
+/// derived function rather than splitting it apart. Handles, looping
+/// since they can combine (e.g. a chain ending in `(F.G)[1]/`):
+///
+///  - a chain of monadic operators (F M, F M M, ...)
+///  - one step of dyadic-operator composition (F.G, e.g. +.× or ∘.f):
+///    landing on G (the right operand) backs up over the operator token
+///    and G itself to F
+///  - a trailing literal axis [N] (e.g. F[1])
+///  - a parenthesized (...) or curly {...} group
+///
+/// Bugs27 #20/#21/#38: the walk-back used to only handle the first of
+/// these (Bugs26 #5's fix), silently mis-splitting or outright failing
+/// to parse an inner/outer-product or bracket-axis LO.
+static int
+walk_back_LO_start(const Token_string & tos, int pos_LO)
+{
+   for (;;)
+       {
+         const int start = pos_LO;
+
+         while (pos_LO > 0 && tos[pos_LO].get_Class() == TC_OPER1)
+            --pos_LO;
+
+         if (pos_LO > 0 && tos[pos_LO - 1].get_Class() == TC_OPER2)
+            pos_LO -= 2;   // skip G (right operand) and the operator itself
+
+         if (pos_LO > 0 && tos[pos_LO].get_tag() == TOK_R_BRACK)
+            pos_LO = tos.find_opening_bracket(pos_LO) - 1;   // skip [N]
+
+         if (pos_LO < 0)   return 0;
+
+         if (tos[pos_LO].get_Class() == TC_R_PARENT)
+            pos_LO = tos.find_opening_parent(pos_LO);
+         else if (tos[pos_LO].get_Class() == TC_R_CURLY)
+            pos_LO = tos.find_opening_curly(pos_LO);
+
+         if (pos_LO == start)   return pos_LO;   // no more progress
+       }
+}
+//────────────────────────────────────────────────────────────────────────────
 bool
 Parser::fix_POWER_syntax(Token_string & tos)
 {
@@ -1605,27 +1648,16 @@ bool progress = false;
            if (pos_LO < 0)   continue;   // ⍣ at the very start of the
                                           // statement: no LO to parenthesize
 
-           // LO itself can be a derived function, e.g. +/⍣2: walk back
-           // past any chain of monadic operators (F M, F M M, ...) to
-           // the base function/parenthesized/curly group they are
-           // applied to, instead of grabbing just the one token
-           // immediately left of ⍣ -- otherwise only the trailing
-           // operator (here /) got parenthesized with ⍣, splitting the
-           // derived function apart instead of keeping it whole.
-           // Reproduced: `+/⍣2⊢1 2 3` gave SYNTAX ERROR, with the
-           // parser's own inserted-parens error display showing exactly
-           // the wrong split: `+(/⍣2)⊢1 2 3` (want 6, i.e. +/ applied
-           // twice: +/1 2 3 is 6, +/6 is 6). (Blake McBride, Bugs26 #5)
-           while (pos_LO > 0 && tos[pos_LO].get_Class() == TC_OPER1)   --pos_LO;
-
-           if (tos[pos_LO].get_Class() == TC_R_PARENT)   // ( LO )
-              {
-                pos_LO = tos.find_opening_parent(pos_LO);
-              }
-           else if (tos[pos_LO].get_Class() == TC_R_CURLY)   // ( LO )
-              {
-                pos_LO = tos.find_opening_curly(pos_LO);
-              }
+           // LO itself can be a derived function, e.g. +/⍣2 or
+           // 1 2 3+.×⍣2: walk back past any chain of monadic operators,
+           // one level of dyadic-operator composition (F.G), a literal
+           // axis [N], and a parenthesized/curly group to the true start
+           // of LO, instead of grabbing just the one token immediately
+           // left of ⍣ -- otherwise only the trailing piece got
+           // parenthesized with ⍣, splitting the derived function apart
+           // instead of keeping it whole. (Blake McBride, Bugs26 #5,
+           // extended for Bugs27 #20/#38.)
+           pos_LO = walk_back_LO_start(tos, pos_LO);
 
            tos.insert_1(pos_LO - 1);   // - 1 means insert before
            new (&tos[pos_LO])   Token(TOK_L_PARENT, int64_t(0));
@@ -1730,30 +1762,16 @@ bool progress = false;
            if (pos_LO < 0)   continue;   // ⍤ at the very start of the
                                           // statement: no LO to parenthesize
 
-           // LO itself can be a derived function, e.g. +/⍤1: walk back
-           // past any chain of monadic operators (F M, F M M, ...) to
-           // the base function/parenthesized/curly group they are
-           // applied to, instead of grabbing just the one token
-           // immediately left of ⍤ -- otherwise only the trailing
-           // operator (here /) got parenthesized with ⍤, splitting the
-           // derived function apart instead of keeping it whole.
-           // Reproduced: `+/⍤1⊢2 3⍴⍳6` gave SYNTAX ERROR, with the
-           // parser's own inserted-parens error display showing exactly
-           // the wrong split: `+(/⍤1)⊢2 3⍴⍳6` (want 6 15, i.e. +/
-           // applied to each of the matrix's 2 rows). Same bug, same
-           // fix, in fix_POWER_syntax() above for ⍣ (e.g. +/⍣2).
-           // (Blake McBride, Bugs26 #5)
-           while (pos_LO > 0 && tos[pos_LO].get_Class() == TC_OPER1)
-              --pos_LO;
-
-           if (tos[pos_LO].get_Class() == TC_R_PARENT)   // ( LO )
-              {
-                pos_LO = tos.find_opening_parent(pos_LO);
-              }
-           else if (tos[pos_LO].get_Class() == TC_R_CURLY)   // ( LO )
-              {
-                pos_LO = tos.find_opening_curly(pos_LO);
-              }
+           // LO itself can be a derived function, e.g. +/⍤1 or
+           // 1 2 3+.×⍤1: walk back past any chain of monadic operators,
+           // one level of dyadic-operator composition (F.G), a literal
+           // axis [N], and a parenthesized/curly group to the true start
+           // of LO, instead of grabbing just the one token immediately
+           // left of ⍤ -- otherwise only the trailing piece got
+           // parenthesized with ⍤, splitting the derived function apart
+           // instead of keeping it whole. (Blake McBride, Bugs26 #5,
+           // extended for Bugs27 #20/#38.)
+           pos_LO = walk_back_LO_start(tos, pos_LO);
 
            tos.insert_1(pos_LO - 1);   // - 1 means insert before
            new (&tos[pos_LO])   Token(TOK_L_PARENT, int64_t(0));
@@ -2097,6 +2115,32 @@ Parser::parse_log(int N, const Token_string & tos)
 ErrorCode
 Parser::parse_statement(Token_string & tos, bool optimize)
 {
+   // Unbalanced-paren/bracket/curly pre-check, before any step below
+   // that could itself throw on the same imbalance. remove_nongrouping_
+   // parantheses() (next) calls Token_string::find_closing_parent(),
+   // which throws a raw SYNTAX_ERROR directly (Token_string.cc) rather
+   // than returning an ErrorCode -- for a genuinely malformed statement
+   // being parsed for the first time, that throw happens before this
+   // statement has an SI entry, so Error::update_error_info() ends up
+   // copying the caret/text of the PREVIOUS immediate-execution error
+   // instead (reported twice: once under the old statement, once under
+   // the new one, and the correct "Unbalanced left parenthesis" message
+   // from match_par_bra() below -- the real, ErrorCode-returning check
+   // -- never even runs). Running match_par_bra() here first, before
+   // any mutating step, reports the SAME imbalance cleanly instead.
+   // (match_par_bra() also runs again, unchanged, at the end of this
+   // function on the fully-optimized tos: its int_val2 side effect
+   // (paren/bracket distances) must reflect the FINAL token positions,
+   // not these pre-optimization ones, so this early call's side effect
+   // is deliberately allowed to be overwritten by the later one.)
+   // See Bugs27 #49.
+   //
+   if (const ErrorCode ec = match_par_bra(tos, false))
+      {
+        loop(t, tos.ssize())   tos[t].clear(LOC);
+        return ec;
+      }
+
    bool has_power_op = false;
    if (fix_RANK_syntax(tos, has_power_op))   parse_log(2, tos);
 

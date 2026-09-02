@@ -469,6 +469,20 @@ UCS_string arg;   // ""
       }
    else                        // )WSID lib wsname
       {
+        // args.front()[0] - '0' assumed the first word was always a
+        // single digit; for anything else (e.g. )WSID a b, a genuine
+        // library name typo) it silently computed garbage instead --
+        // 'a'-'0' = 49 -- reported downstream as "Bad library
+        // reference '49'", which looks like a real (if out-of-range)
+        // number the user typed rather than the actual problem (the
+        // first word isn't a library digit at all). Report the actual
+        // bad word directly instead. See Bugs27 #59(j).
+        //
+        if (args.front().size() != 1 || !Avec::is_digit(args.front()[0]))
+           {
+             out << "Bad library reference '" << args.front() << "'" << endl;
+             return;
+           }
         lib = LibRef(args.front()[0] - '0');
         arg = args[1];   // ""
       }

@@ -76,6 +76,7 @@ int  Command::multiline_start = -1;   // read in IO_Files.cc
 
 int Command::boxing_format = 0;
 ShapeItem Command::APL_expression_count = 0;
+bool Command::expression_failed = false;
 
 UCS_string_vector Command::copy_once_table;
 
@@ -197,6 +198,7 @@ void
 Command::do_APL_expression(const UCS_string & line, Value_P literal)
 {
    ++APL_expression_count;
+   expression_failed = false;
 
    // see the comment in do_APL_command() above
    COUT << reset_format;
@@ -209,6 +211,7 @@ Executable * statements = 0;
       }
    catch (const Error & err)
       {
+        expression_failed = true;
         bool plus = Workspace::more_error().size();   // assume + needed
         const char * error_name = Error::error_name(err.get_error_code());
         if (strchr(error_name, UNI_PLUS))   plus = false;   // not needed
@@ -247,6 +250,7 @@ Executable * statements = 0;
 
    if (statements == 0)   // StatementList::fix() failed
       {
+        expression_failed = true;
         COUT << "main: Parse error";
         if (Workspace::more_error().size())   COUT << "+";
         else                                  COUT << ".";
@@ -462,6 +466,8 @@ check_EOC:
                    Workspace::push_Command(pushed_command);   // clear in
                    return;
                  }
+
+              expression_failed = true;
 
               // clear attention and interrupt flags
               //

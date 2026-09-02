@@ -120,9 +120,10 @@ protected:
    /// @param ucs_B JSON source text
    /// @param tokens_B token start positions within ucs_B
    /// @param token0 index of the current token; advanced on return
+   /// @param depth current nesting depth (see parse_value())
    static void parse_array(Value & Z, const UCS_string & ucs_B,
                            const std::vector<ShapeItem> & tokens_B,
-                           size_t & token0);
+                           size_t & token0, size_t depth);
 
    /// parse a JSON literal (false, null, or true)
    /// @param Z APL output value receiving the parsed literal
@@ -143,9 +144,10 @@ protected:
    /// @param ucs_B JSON source text
    /// @param tokens_B token start positions within ucs_B
    /// @param token0 index of the current token; advanced on return
+   /// @param depth current nesting depth (see parse_value())
    static void parse_object(Value & Z, const UCS_string & ucs_B,
                            const std::vector<ShapeItem> & tokens_B,
-                           size_t & token0);
+                           size_t & token0, size_t depth);
 
    /// parse a JSON object member: "name" : value , ; and increment token0
    /// along the way.
@@ -153,9 +155,10 @@ protected:
    /// @param ucs_B JSON source text
    /// @param tokens_B token start positions within ucs_B
    /// @param token0 index of the current token; advanced on return
+   /// @param depth current nesting depth (see parse_value())
    static void parse_object_member(Value & Z, const UCS_string & ucs_B,
                                    const std::vector<ShapeItem> & tokens_B,
-                                   size_t & token0);
+                                   size_t & token0, size_t depth);
 
    /// parse a JSON string
    /// @param Z APL output value receiving the parsed string
@@ -177,9 +180,15 @@ protected:
    /// @param ucs_B JSON source text
    /// @param tokens_B token start positions within ucs_B
    /// @param token0 index of the current token; advanced on return
+   /// @param depth current nesting depth: 0 at the top-level call, +1 for
+   ///        every array/object level entered along the way, checked
+   ///        against MAX_DEPTH here to raise SYSTEM LIMIT (nesting depth)
+   ///        before the recursion itself can overflow the C++ stack --
+   ///        see PointerCell.cc's constructor for the equivalent, later
+   ///        check on the resulting APL value, which this pre-empts.
    static void parse_value(Value & Z, const UCS_string & ucs_B,
                            const std::vector<ShapeItem> & tokens_B,
-                           size_t & token0);
+                           size_t & token0, size_t depth);
 
    /** skip the string literal that starts at ucs_B[b].
        Return the content length and increment b.

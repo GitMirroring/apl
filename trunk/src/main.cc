@@ -737,7 +737,25 @@ std::vector<const char *> args(argc);
               const UTF8_string expr_utf(expr);
               UCS_string expr_ucs(expr_utf);
               try
-                 { Command::process_line(expr_ucs, 0); }
+                 {
+                   Command::process_line(expr_ucs, 0);
+                   // process_line() does not throw for an ordinary APL
+                   // error (SYNTAX ERROR, VALUE ERROR, a user ⎕ES, ...):
+                   // parse errors are caught and printed inside
+                   // Command::do_APL_expression() itself, and run-time
+                   // errors are settled by the SI as a TOK_ERROR result
+                   // there too, so this try/catch alone only ever saw
+                   // errors thrown from OUTSIDE process_line() (e.g. the
+                   // ∇ editor) -- letting --eval exit 0 after a failed
+                   // expression, indistinguishable from success to a
+                   // calling script. See Bugs27 #55.
+                   //
+                   if (Command::last_expression_failed())
+                      {
+                        CERR << "*** --eval '" << expr << "' failed.";
+                        Command::cmd_OFF(6);
+                      }
+                 }
               catch (Error &)
                  {
                    CERR << "*** --eval '" << expr << "' failed.";

@@ -156,7 +156,21 @@ public:
 
    /// return true if more indices are coming
    bool has_more() const
-      { return highest_it && highest_it->has_more(); }
+      {
+        // highest_it->has_more() alone only reflects the highest
+        // dimension's own count/pos; a LOWER dimension with count == 0
+        // (an empty explicit index like Z[1;⍬], or an elided index over
+        // a shape-0 axis like Z[;] on a 2 0-shaped Z) still lets this
+        // return true whenever the highest dimension itself isn't
+        // exhausted, and operator++(int) then reads that empty lower
+        // iterator's get_ivalue() at pos 0 with count 0 -- out of range.
+        // A multi-index with ANY empty axis has NO elements at all
+        // (Cartesian product with an empty factor is empty), which is
+        // exactly what the constructor already computes into `empty` --
+        // it was just never consulted here. See Bugs27 #16.
+        //
+        return highest_it && !empty && highest_it->has_more();
+      }
 
    /// get the current index (offset into a ravel) and increment iterators
    ShapeItem operator ++(int);

@@ -555,7 +555,7 @@ Value_P X5(5, LOC);
    else if (X->is_simple_scalar())   // X → ,X
       {
         Value_P X1(1, LOC);
-        X1->next_ravel_Int(X->get_int_value(0));
+        X1->next_ravel_Int(X->get_near_int(0));
         X1->check_value(LOC);
         X5->next_ravel_Pointer(X1.get());   // with X: f ⍤[X] y B
       }

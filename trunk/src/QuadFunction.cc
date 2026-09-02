@@ -780,7 +780,16 @@ Quad_EX::expunge(const UCS_string & name)
    if (!name.contains(UNI_FULLSTOP))   // unless member access
       {
         Symbol * symbol = Workspace::lookup_existing_symbol(name);
-        if (symbol == 0)   return 0;
+        // ISO/APL2: ⎕EX of a name that was never defined already
+        // satisfies ⎕EX's own postcondition (the name is unbound and
+        // available) -- so it is success (1), not failure (0). Only
+        // for a genuine user name though: lookup_existing_symbol()
+        // also returns 0 for a system name like ⎕NC (not resolved the
+        // same way as a user symbol), but that name is never
+        // "available" for (re)definition the way a plain user name
+        // is, and testcases/Quad_EX.tc already pins ⎕EX '⎕NC' at 0
+        // (failure). See Bugs27 #58.
+        if (symbol == 0)   return Avec::is_quad(name[0]) ? 0 : 1;
         return symbol->expunge();
       }
 

@@ -47,9 +47,21 @@ public:
    static Bif_OPER2_RANK  fun;      ///< Built-in function
 
 protected:
-   /// overloaded Function::may_push_SI()
+   /// overloaded Function::may_push_SI(). f⍤y is implemented via the
+   /// Z__LO_RANK_X5_B / Z__A_LO_RANK_X7_B macros (a defined function that
+   /// pushes an SI entry) except for the frame-rank-0 shortcut, which is
+   /// only known to apply once the actual argument shape is available at
+   /// eval time -- not here, where only the operand/derived-function is
+   /// known. Every operator that branches on may_push_SI() (EACH, POWER,
+   /// REDUCE, OUTER, INNER, ...) uses it to choose, ahead of evaluation,
+   /// between a primitive fast path and its own macro path; answering
+   /// `false` here claimed f⍤y as an operand never pushes SI, so those
+   /// callers took the fast path and got back TOK_SI_PUSHED unexpectedly
+   /// whenever the shortcut did NOT apply -- see Bugs27 #11. Conservative
+   /// `true` costs those callers their own fast path when ⍤ happens to
+   /// take the shortcut too, but that's a missed optimization, not a bug.
    virtual bool may_push_SI() const
-      { return false; }
+      { return true; }
 
    /// overloaded Function::eval_ALRB()
    /// @param A   left value argument

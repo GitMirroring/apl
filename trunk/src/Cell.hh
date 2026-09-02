@@ -693,6 +693,16 @@ public:
    static bool greater_cp(const ShapeItem & a, const ShapeItem & b,
                            const void * cells);
 
+   /// like greater_cp(), but exact (not ⎕CT-tolerant) for numeric
+   /// cells -- used by ⍋/⍒ (Bif_F12_SORT.cc), which ISO 10.1.2 requires
+   /// to grade exactly regardless of ⎕CT. See Bugs27 #30.
+   static bool greater_cp_exact(const ShapeItem & a, const ShapeItem & b,
+                                const void * cells);
+
+   /// like smaller_cp(), but exact -- see greater_cp_exact() above.
+   static bool smaller_cp_exact(const ShapeItem & a, const ShapeItem & b,
+                                const void * cells);
+
    /// ISO p. 19: A is integral (close to a Gaussian Integer) within qct
    /// @param A  real value to test
    /// @param qct  comparison tolerance (⎕CT)
@@ -718,9 +728,14 @@ public:
 
    /// return 0-based indices i1, i2, ... iN so that
    /// value[i1] < value[i2] < ... < value[iN].
+   /// @param exact  if true, use greater_cp_exact()/smaller_cp_exact()
+   ///               (no ⎕CT tolerance) instead of the default,
+   ///               ⎕CT-tolerant greater_cp()/smaller_cp() -- ⍋/⍒ need
+   ///               this (Bugs27 #30); other callers (e.g. dyadic ⍳'s
+   ///               binary-search setup) keep the tolerant default.
    static ErrorCode sorted_indices(vector<ShapeItem> & indices,
                                      const cValue & value, Sort_order order,
-                                     ShapeItem comp_len);
+                                     ShapeItem comp_len, bool exact = false);
 
    /// ISO p.19: return \b true if real A is tolerantly equal to real B within C
    /// @param A  first real value

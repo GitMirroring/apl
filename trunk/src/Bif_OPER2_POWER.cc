@@ -144,7 +144,16 @@ ShapeItem repeat_cnt = N->get_cfirst(cache).get_checked_near_int();
 
    if (repeat_cnt < 0)   // inverse
       {
-        cFunction_P inverse = LO->get_dyadic_inverse();
+        // A monadic call (!A) needs LO's MONADIC inverse, not its dyadic
+        // one -- the two can differ (e.g. × has a real dyadic inverse,
+        // A÷B, but no monadic one: signum isn't invertible). Using
+        // get_dyadic_inverse() unconditionally here borrowed the dyadic
+        // inverse and applied it monadically below, silently succeeding
+        // with a meaningless result instead of the DOMAIN ERROR a
+        // missing monadic inverse should give. See Bugs27 #22.
+        //
+        cFunction_P inverse = A ? LO->get_dyadic_inverse()
+                                 : LO->get_monadic_inverse();
         if (inverse == 0)
            {
              MORE_ERROR() << "f⍣N B: f has no known inverse (needed for"
@@ -249,9 +258,14 @@ cFunction_P RO = _RO.get_function();   Assert(RO);
 
          Assert(result_RO.get_Class() == TC_VALUE);
          Value_P condition = result_RO.get_apl_val();
-         if (condition->is_scalar_extensible() &&
-             condition->is_near_bool(0) &&
-             condition->get_near_int(0) == 1)
+         if (!condition->is_scalar_extensible() || !condition->is_near_bool(0))
+            {
+              MORE_ERROR() << "(LO⍣RO)B: the condition function RO must "
+                              "return a Boolean scalar; ⍴,RO's result is "
+                           << condition->get_shape();
+              DOMAIN_ERROR;
+            }
+         if (condition->get_near_int(0) == 1)
             return Token(TOK_APL_VALUE1, LO_Z);
 
          if (InterruptContext::interrupt_is_raised())

@@ -793,7 +793,15 @@ Bif_F12_FORMAT::monadic_format(cValue_R B)
 {
    Assert(B.get_rank() <= 2);
 
-const PrintStyle style(PrintStyle(PR_APL | PST_NO_FRACT_0));
+   // PST_NO_EXPO_0 (drop a redundant E0) matches the display path
+   // (cValue.cc's PR_APL_MIN), which already carries it; without it
+   // here, a complex value with one part dropped as insignificant
+   // (ComplexCell::character_representation()'s dominant-part
+   // shortcut) prints an E0 that never appears on screen -- e.g.
+   // ⍕1E¯16J2 gave 0J2E0 while the same value simply displayed as
+   // 0J2. See Bugs27 #42.
+   //
+const PrintStyle style(PrintStyle(PR_APL | PST_NO_FRACT_0 | PST_NO_EXPO_0));
 const PrintContext pctx = Workspace::get_PrintContext(style);
 
 const PrintBuffer pb(B, pctx, 0);

@@ -117,6 +117,24 @@ const ShapeItem ec_A = A.element_count();
         RANK_ERROR;
       }
 
+   // axis_to_pos[axis] = the position in X (and, since ⍴A = ⍴X, in A
+   // too) that names this 0-based axis of B -- axes_X above only
+   // records WHICH axes are present (a bitmap), discarding the ORDER
+   // they were written in, so the main loop below used to just consume
+   // A's items sequentially in ascending-axis-number order regardless
+   // of how X was actually written: A[1] paired with axis X's SMALLEST
+   // value, never necessarily X[1]'s own axis. See Bugs27 #34 (LRM
+   // p.163: "L[i] selects along axis X[i]").
+   //
+const int qio = Workspace::get_IO();
+vector<ShapeItem> axis_to_pos(B.get_rank(), -1);
+   loop(e, X.element_count())
+       {
+         Cell cache;
+         const APL_Integer axis = X.get_cravel(e, cache).get_near_int() - qio;
+         axis_to_pos[axis] = e;
+       }
+
    // construct an IndexExpr in index (= parse-) order (i.e. the index_expr[0]
    // corresponds to the lasr axis ¯1↑⍴B of B). We therefore move backwards
    // from the end of A resp. X.
@@ -124,7 +142,6 @@ const ShapeItem ec_A = A.element_count();
 IndexExpr index_expr(ASS_none, LOC);   // start with an empty IndexExpr
    index_expr.quad_io = Workspace::get_IO();
 
-ShapeItem a = ec_A;   // index_expr[0] ←→  B[;;;b]
    for (sAxis b = B.get_rank() - 1; b >= 0; --b)
        {
          if (!(axes_X & 1 << b))   // Axis  b was not in X: elided idx
@@ -133,7 +150,7 @@ ShapeItem a = ec_A;   // index_expr[0] ←→  B[;;;b]
               continue;
             }
 
-         --a;
+         const ShapeItem a = axis_to_pos[b];
           if (Value_P val0 = A.try_pointer_value(a))
              {
                Value_P val = CLONE_P(val0, LOC);
@@ -164,7 +181,15 @@ ShapeItem a = ec_A;   // index_expr[0] ←→  B[;;;b]
    if (index_expr.is_axis())   // Z←B[x] or Z←B[]
       {
         Value_P single_index = index_expr.extract_axis();
-        Value_P Z = B.index(*single_index);
+
+        // single_index is null when the sole index was elided (A and X
+        // both empty, e.g. ⍬⌷[⍬]B) -- B.index(Value_P) requires a real
+        // Value, so *single_index on the null Value_P used to dereference
+        // a null pointer (Bugs27 #12). Elided means "this axis unchanged",
+        // i.e. the whole of B, same as any other elided-index B[] result.
+        //
+        Value_P Z = single_index ? B.index(*single_index)
+                                  : CLONE(&B, LOC);
 
         Z->check_value(LOC);
         return Token(TOK_APL_VALUE1, Z);
