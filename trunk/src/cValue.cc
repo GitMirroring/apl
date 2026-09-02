@@ -581,25 +581,38 @@ ShapeItem count = ec;
 APL_types::Depth
 cValue::compute_depth() const
 {
-   // For depth 0 or 1, no PointerCells exist, so the cache is always
-   // reliable: any mutation that could change it necessarily overwrites one
-   // of THIS value's own ravel cells, which is always caught by
-   // depth_update_for_overwrite() / next_ravel_Pointer() / next_ravel_Value()
-   // / invalidate_depth() (see Value::add_member(), Value::get_new_member(),
-   // Cell::init_from_value()).
+   // The cache is reliable for the full 0..254 range, not just depth ≤ 1:
+   // every mutation that could change ANY value's depth -- its own ravel
+   // being overwritten, or a nested sub-value reachable from it being
+   // mutated in place (selective/indexed/member assignment, left-value ⊃,
+   // ...) -- invalidates the whole chain from wherever the mutating
+   // assignment started down to the actual write, not just the immediate
+   // owner. See plan.txt's 2026-09-01 analysis for why a naive "only
+   // invalidate the direct owner" scheme is NOT sufficient (that was tried
+   // once before and reverted: ZZ49_Regression.tc's "selective
+   // specification with dyadic ¨" case silently kept the pre-mutation
+   // depth once caching was extended to depth ≥ 2 without whole-chain
+   // invalidation) -- and why piggybacking full-chain invalidation onto
+   // the mandatory isolate_deep() COW walk (Value_P_Base::isolate_deep(),
+   // PointerCell::isolate_deep()) fixes that, at no extra traversal cost.
    //
-   // For depth ≥ 2, sub-values can be mutated in place (selective/indexed/
-   // member assignment on a nested sub-value, e.g. (2↑¨v)←6) while THIS
-   // value's own ravel is untouched; that mutation dirties the sub-value's
-   // own cache correctly, but there are no parent pointers to propagate the
-   // invalidation up to every ancestor whose cached depth it may affect
-   // (confirmed by ZZ49_Regression.tc's "selective specification with
-   // dyadic ¨" case, which silently kept reporting the pre-mutation depth
-   // once caching was extended to depth ≥ 2). So depth ≥ 2 is deliberately
-   // never cached; always recomputing keeps it correct. Sub-values with
-   // depth ≤ 1 still return in O(1), so the total cost remains
-   // O(top-level element count), not O(total sub-tree).
-   if (flags.value_depth <= 1)   return flags.value_depth;
+   if (flags.value_depth != VF_DEPTH_DIRTY)   return flags.value_depth;
+
+   // Packed ravels store cells in a compact non-Cell representation (bool/
+   // int/float/unicode arrays, see Ravel.hh) and can therefore never
+   // contain a PointerCell -- every packed subtype overrides
+   // is_pointer_cell(idx) to unconditionally return false. So a packed
+   // value's depth is decided by its rank alone, with no need to scan the
+   // (possibly large) ravel at all: 0 for a scalar, 1 otherwise. This
+   // matters because compute_depth() gets called from hot, frequently-
+   // repeated paths (PointerCell's MAX_DEPTH check on every ⊂/strand/
+   // selective assignment, PrintBuffer, Bif_F2_INDEX, ...), not just ≡.
+   //
+   if (is_packed())
+      {
+        flags.value_depth = is_scalar() ? 0 : 1;
+        return flags.value_depth;
+      }
 
    APL_types::Depth depth;
    if (is_scalar())
@@ -625,8 +638,7 @@ cValue::compute_depth() const
         depth = sub_depth + 1;
       }
 
-   if (depth <= 1)   flags.value_depth = uint8_t(depth);
-   // depth ≥ 2 intentionally not cached, see the comment above.
+   flags.value_depth = uint8_t(depth);   // depth is always ≤ MAX_DEPTH (254)
    return depth;
 }
 //────────────────────────────────────────────────────────────────────────────

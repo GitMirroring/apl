@@ -303,6 +303,20 @@ const ShapeItem length = nz_element_count();
 Value_P
 Value::get_cellrefs(const char * loc)
 {
+   // Defense in depth for depth-cache invalidation (see plan.txt's
+   // 2026-09-01 analysis): every caller that reaches this point is about
+   // to hand out direct write access into this value's ravel, so this is
+   // always at least a *candidate* mutation site. The real invalidation
+   // guarantee comes from isolate_deep() (called upstream of every left-
+   // value construction, unconditionally, over the whole tree) -- this
+   // call is deliberately redundant with that, not a replacement for it:
+   // it costs one already-cache-resident byte write here, in exchange for
+   // catching any future left-value mechanism that reaches a nested
+   // sub-value via get_cellrefs() without having gone through
+   // isolate_deep() first.
+   //
+   invalidate_depth();
+
    // LvalCell stores a Cell * address; that requires an unpacked (Cell-array)
    // ravel.  Explode here so that every get_wravel() below returns a valid
    // Cell reference regardless of how the value was constructed.

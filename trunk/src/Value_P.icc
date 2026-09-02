@@ -326,6 +326,18 @@ Value_P_Base::isolate_deep(const char * loc)
 #ifdef NEW_CLONE
    isolate(LOC);
 
+   // This walk is the anchor point for depth-cache invalidation (see
+   // plan.txt's 2026-09-01 analysis): every node visited here is a node
+   // that could subsequently be mutated by whatever left-value assignment
+   // is calling isolate_deep(), so marking each one dirty here is both
+   // necessary (nothing outside this walk needs invalidating -- COW
+   // guarantees a mutation can never reach a node this walk didn't visit)
+   // and sufficient (every level between the top and the eventual write
+   // gets invalidated, not just the endpoints). Free: the walk itself is
+   // mandatory for COW correctness regardless of depth caching.
+   //
+   if (value_p)   value_p->invalidate_depth();
+
    // Packed ravels contain no PointerCells, so there is nothing to recurse
    // into.  Also, get_wravel(j) indexes 24-byte Cell slots which goes out of
    // bounds for sub-Cell packings (uint16_t, uint32_t, …).  Skip the loop.

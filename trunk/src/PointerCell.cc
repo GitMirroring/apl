@@ -328,6 +328,10 @@ PointerCell::isolate_deep(const char * loc)
 {
    isolate(loc);
 Value * val = value.pval.valp.get();
+   // depth-cache invalidation piggybacks on this walk -- see the matching
+   // comment in Value_P_Base::isolate_deep() (Value_P.icc), which is where
+   // this recursion is entered from at the top level.
+   if (val)   val->invalidate_depth();
    if (val && !val->is_packed())
       loop(j, val->nz_element_count())
           {

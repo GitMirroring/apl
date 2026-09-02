@@ -2213,6 +2213,24 @@ Value_P top_val = top_sym->get_var_value();
 
    if (member_assign)   // (direct) member assignment e.g. A.B.C←V
       {
+        // Depth-cache invalidation for the whole member chain (see
+        // plan.txt's 2026-09-01 analysis): member access does not go
+        // through Symbol::resolve_lv(), so it needs its own call to the
+        // same isolate_deep() mechanism every other left-value form
+        // relies on. Must happen before get_member() below takes a
+        // pointer into top_val's structure -- isolate_deep() may clone a
+        // shared node in place, which would leave a pointer obtained
+        // beforehand dangling into the discarded original.
+        //
+        // top_val is a local Value_P copy (from get_var_value()), not the
+        // Symbol's own stored one, so isolating top_val itself would clone
+        // it without ever writing the clone back into top_sym -- the same
+        // mistake resolve_lv() avoids by isolating value_stack.back() in
+        // place. Do the same here via top_of_stack(), then re-fetch.
+        //
+        top_sym->top_of_stack()->isolate_deep(LOC);
+        top_val = top_sym->get_var_value();
+
         Value * member_owner = 0;
         Cell * member_cell = top_val->get_member(members, member_owner, true);
         Assert(member_owner);
@@ -2242,6 +2260,27 @@ Value_P top_val = top_sym->get_var_value();
       }
    else                 // member reference (or selective specification)
       {
+        // If this is going to be used as the start of a selective
+        // specification (the ASS_arrow_seen case below), it needs the
+        // same whole-chain depth invalidation as member_assign above, and
+        // for the same reason it must happen before get_existing_member()
+        // takes a pointer into top_val's structure. Checked here, before
+        // that call, rather than down in the ASS_arrow_seen branch below,
+        // specifically to preserve that ordering -- isolating only when
+        // actually needed also avoids paying isolation cost on a plain
+        // (non-assigning) member reference.
+        //
+        const bool will_selectively_assign =
+           (get_assign_state() == ASS_arrow_seen);
+        if (will_selectively_assign)
+           {
+             // See the matching comment above (member_assign branch):
+             // isolate the Symbol's own stored value in place, then
+             // re-fetch, rather than isolating the local top_val copy.
+             top_sym->top_of_stack()->isolate_deep(LOC);
+             top_val = top_sym->get_var_value();
+           }
+
         const Cell * member_cell = top_val->get_existing_member(members);
         Assert(member_cell);
 
