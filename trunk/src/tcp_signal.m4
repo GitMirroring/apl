@@ -284,6 +284,15 @@ define(`typtrans', `ifelse(`$1', `x64',    `uint64_t',
                     ifelse(`$1', `u8',      `uint8_t',
                     ifelse(`$1', `i8',       `int8_t',
                                              `string'))))))))))))))))))')
+# the "not present" return value for get__SIGNAL__field()'s bad_get()
+# fallback: 0 for every integer typtrans() result, but string() (not
+# the integer 0) when typtrans() resolves to `string` -- `return 0;`
+# for a string-returning method constructs a std::string from a null
+# const char* (0 -> null-pointer-constant -> const char*), undefined
+# behavior that glibc/libstdc++ tolerates silently but that a
+# stricter libc++/clang correctly flags (-Wnonnull). See Paul
+# Rockwell's macOS/clang report, 2026-09-04.
+define(`badret', `ifelse(typtrans($1), `string', `string()', `0')')
 define(`sig_args', `,
                 Sig_item_`'$2 _`'$3')
 define(`sig_init', `$3(`_'$3)')
@@ -295,7 +304,7 @@ define(`sig_memb', `   `Sig_item_'$2 $3;   ///< $3
 ')
 define(`sig_load', `$3(buffer)')
 define(`sig_bad', `   virtual typtrans($2) get__$1__$3() const   ///< dito
-      { bad_get("$1", "$3"); return 0; }
+      { bad_get("$1", "$3"); return badret($2); }
 ')
 define(`sig_good', `  /// return item $3 of this signal 
    virtual typtrans($2) get__$1__$3() const { return $3.get_value(); }
