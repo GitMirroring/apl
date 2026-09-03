@@ -280,7 +280,15 @@ const APL_Integer n_wise = A0 < 0 ? neg_A0 : A0;
               shape_B1.add_shape_item(0);
               Value_P val(shape_B1, LOC);
               Cell cache;
-              val->set_ravel_Cell(0, B->get_cproto(cache)); // prototype
+              // set_default(), NOT get_cproto(): B is a real (non-empty)
+              // scalar here, so get_cproto()/get_cravel(0,...) would
+              // return B's actual VALUE (e.g. 0⌽/5 wrongly seeding the
+              // identity with 5) -- set_default() derives a type-correct
+              // default cell (0 for numeric, space for char, ...) from
+              // B via Cell::init_type_at(), ignoring B's value entirely,
+              // which is what an identity element actually needs. See
+              // Bugs27 #27 (0⌽/⍳5-style residual).
+              val->set_default(*B, LOC);
               Token ident = LO->eval_identity_fun(*val, 0);
               Value_P Z(2, LOC);
               Z->next_ravel_Cell(ident.get_apl_val()->get_cfirst(cache));
@@ -339,8 +347,15 @@ const APL_Integer n_wise = A0 < 0 ? neg_A0 : A0;
         Shape shape_B1 = B->get_shape().insert_axis(axis, 0);
         shape_B1.increment_shape_item(axis + 1);
         Value_P val(shape_B1, LOC);
-        Cell cache;
-        val->set_ravel_Cell(0, B->get_cproto(cache)); // prototype
+        // set_default(), NOT get_cproto(): B is genuinely non-empty
+        // here (e.g. 0⌽/⍳5), so get_cproto()/get_cravel(0,...) would
+        // return B's actual first ELEMENT (1, under ⎕IO←1) instead of
+        // a true identity/default value -- set_default() derives a
+        // type-correct default cell (0 for numeric, space for char,
+        // ...) from B via Cell::init_type_at(), ignoring B's actual
+        // content, matching what eval_identity_fun() already does for
+        // a genuinely empty B (e.g. ⌽/3 0⍴0). See Bugs27 #27 residual.
+        val->set_default(*B, LOC);
 
         Token result = LO->eval_identity_fun(*val, axis);
         return result;
@@ -356,8 +371,7 @@ const APL_Integer n_wise = A0 < 0 ? neg_A0 : A0;
         Shape shape_Z = B->get_shape();
         shape_Z.set_shape_item(axis, 0);
         Value_P Z(shape_Z, LOC);
-        Cell cache;
-        Z->set_ravel_Cell(0, B->get_cproto(cache)); // prototype
+        Z->set_default(*B, LOC);   // see Bugs27 #27 residual, above
         Z->check_value(LOC);
         return Token(TOK_APL_VALUE1, Z);
       }

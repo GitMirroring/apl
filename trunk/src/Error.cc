@@ -322,15 +322,39 @@ Error::update_error_info(StateIndicator * si)
 
    // prepare the second error line (= display of the failed statement)
    //
-   if (const UserFunction * ufun = si->get_executable()->get_exec_ufun())
+   // Walk up past any macro frame(s) (e.g. Z__LO_RANK_X5_B, pushed for
+   // f⍤y/f⍣n/¨/∘. with a user-defined -- or, for a frame-rank ≥1 ⍤,
+   // even a *primitive* -- operand) to the nearest real caller before
+   // building the displayed statement: a macro's own internal
+   // bookkeeping statement (e.g. "μ1[μ10]←⊂μ3 μ8⍴μ6[μ10;]") is a GNU
+   // APL implementation detail the user never wrote and means nothing
+   // to them, the same principle already applied to hide macro frames
+   // from )SI (StateIndicator::list()) and to rename a lambda operand
+   // away from its macro parameter name (find_lambda_name()) -- this
+   // is the same fix for the *statement line* of the error message
+   // itself, which neither of those touches. `si` itself (used below
+   // for the actual stored Error, the prefix/error_range, and the
+   // safe-execution walk) is intentionally left unchanged: the error
+   // genuinely occurred in the macro's frame, only its DISPLAY is
+   // redirected. See Bugs27 #56 residual.
+   //
+   const StateIndicator * display_si = si;
+   while (display_si && display_si->get_executable() &&
+          display_si->get_executable()->get_exec_ufun() &&
+          display_si->get_executable()->get_exec_ufun()->is_macro())
+      display_si = display_si->get_parent();
+
+   if (display_si && display_si->get_executable() &&
+       display_si->get_executable()->get_exec_ufun())
       {
+        const UserFunction * ufun = display_si->get_executable()->get_exec_ufun();
         // ufun->print_line_PCs(LOC);
         // property 1 (nonsuspendable) is inherited from every calling
         // )SI entry too (apl2lrm.txt p.360-361 "or-ing"), not just ufun's
         // own: a function called (directly or transitively) by a
         // nonsuspendable one must behave as nonsuspendable itself.
         //
-        if (get_show_locked() || si->get_inherited_exec_property(1))
+        if (get_show_locked() || display_si->get_inherited_exec_property(1))
            {
              {
                const UTF8_string prompt_utf(Workspace::get_prompt());
@@ -342,7 +366,7 @@ Error::update_error_info(StateIndicator * si)
              goto out;   // maybe print
            }
 
-        UCS_string ucs(ufun->get_name_and_line(si->get_PC()));
+        UCS_string ucs(ufun->get_name_and_line(display_si->get_PC()));
         ucs << UNI_SPACE << UNI_SPACE;
         const UTF8_string utf(ucs);
         const int nchars = set_error_line_2(utf.c_str());
@@ -353,14 +377,25 @@ Error::update_error_info(StateIndicator * si)
         set_left_caret(wanted > nchars ? nchars : wanted);
       }
 
-   {
-     const Prefix & prefix = si->get_prefix();
-     const Function_PC from = prefix.get_range_low();
-     const Function_PC to   = prefix.get_range_high();
-     const Function_PC2 error_range(from, to);
+   // Function_PC2 positions are only meaningful within the SAME
+   // Executable they were read from, so this must use display_si (the
+   // same frame the statement text above was built from), not si --
+   // si's own prefix positions index into the MACRO's body, and
+   // set_error_info() below would re-derive and overwrite line 2/3
+   // with the macro's raw internal statement all over again (undoing
+   // the display_si substitution above) if left as si. Skipped
+   // entirely when there is no non-macro display_si to fall back to.
+   // See Bugs27 #56 residual.
+   //
+   if (display_si)
+      {
+        const Prefix & prefix = display_si->get_prefix();
+        const Function_PC from = prefix.get_range_low();
+        const Function_PC to   = prefix.get_range_high();
+        const Function_PC2 error_range(from, to);
 
-     si->get_executable()->set_error_info(*this, error_range);
-   }
+        display_si->get_executable()->set_error_info(*this, error_range);
+      }
 
    // print error, unless we are in safe execution mode.
    //

@@ -255,7 +255,8 @@ protected:
    /// (currently only ESC is understood), a single char (that stands for
    /// itself), or a 2-character hex value
    /// @param strg string token from preferences file to decode
-   static int decode_ASCII(const char * strg);
+   static int decode_ASCII(const char * strg, const char * filename = 0,
+                            int line = 0);
 
    /// return true if file \b filename is an APL script (has execute permission
    /// and starts with #!

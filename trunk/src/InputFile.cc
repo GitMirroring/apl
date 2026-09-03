@@ -179,6 +179,7 @@ InputFile::open_current_file()
              files_todo[0].file = fopen(current_filename(), "r");
 
         files_todo[0].line_no = 0;
+        files_todo[0].bom_checked = false;
       }
 }
 //────────────────────────────────────────────────────────────────────────────

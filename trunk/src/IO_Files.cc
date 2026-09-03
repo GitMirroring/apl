@@ -405,14 +405,20 @@ InputFile * input = InputFile::current_file();
    // file -- some editors/exporters prepend one, and left unstripped it
    // decodes (via UTF8_string/UCS_string's ordinary UTF-8 decoding) to a
    // literal U+FEFF as the first character of the first token, which the
-   // tokenizer doesn't recognize. Checking ftell()==0 (no bytes consumed
-   // from this FILE* yet) rather than current_line_no()==1: line_no's
+   // tokenizer doesn't recognize. Checking input->bom_checked (a flag
+   // reset once per open, see InputFile::open_current_file()) rather
+   // than ftell(input->file)==0: ftell() fails (returns -1, never 0) on
+   // a non-seekable stream -- e.g. a real pipe via `-f -`, as opposed to
+   // a shell `<` redirection of a regular file, which IS seekable and
+   // used to mask this -- silently skipping the BOM strip for that case.
+   // current_line_no()==1 was tried and rejected too: line_no's
    // reset-to-0-on-open (InputFile::open_current_file()) can land AFTER
    // this function's caller already incremented it once, so it is not a
-   // reliable "first byte of the file" signal here. See Bugs27 #59(e).
+   // reliable "first byte of the file" signal either. See Bugs27 #59(e).
    //
-   if (file_line.size() == 0 && ftell(input->file) == 0)
+   if (file_line.size() == 0 && !input->bom_checked)
       {
+        input->bom_checked = true;
         const int b0 = fgetc(input->file);
         if (b0 == 0xEF)
            {

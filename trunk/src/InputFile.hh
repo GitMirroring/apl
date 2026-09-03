@@ -58,6 +58,7 @@ struct InputFile
      is_script(_is_script),
      with_LX  (LX),
      line_no  (0),
+     bom_checked(false),
      in_html  (0),
      from_COPY(false),
      file_seq(++next_file_seq)
@@ -217,6 +218,16 @@ protected:
    bool is_script;       ///< script (override existing functions)
    LX_mode with_LX;      ///< execute ⎕LX at the end
    int  line_no;         ///< line number in file
+
+   /// true once IO_Files::read_file_line() has made its one-time check
+   /// for a leading UTF-8 BOM on this file (set in open_current_file(),
+   /// so it is always correctly reset regardless of the default
+   /// constructor above). Tracked explicitly rather than inferred from
+   /// ftell(file)==0: ftell() fails (returns -1) on a non-seekable
+   /// stream, e.g. a real pipe via `-f -`, which would otherwise leave
+   /// the BOM unstripped for that case. See Bugs27 #59(e).
+   bool bom_checked;
+
    int  in_html;         ///< 0: no HTML, 1: in HTML file 2: in HTML header
 
    /// true if this file comes from a )COPY XXX.apl (but not XXX.xml)

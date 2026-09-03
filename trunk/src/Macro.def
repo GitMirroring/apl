@@ -114,7 +114,7 @@ mac_def(vA_LO_EACH_vB,
 /// monadic EACH with result
 //
 mac_def(Z__LO_EACH_B,
- "μ1←(μ3 Z__LO_EACH_B) μ6;μ7;μ8;μ9\n"
+ "μ1←(μ3 Z__LO_EACH_B) μ6;μ7;μ8;μ9;μ10\n"
  "⍝ called as Bif_OPER1_EACH::eval_LB(_LO, B)\n"
  "⍝\n"
  "⍝ ╔═══╤═════╤════════════════════════════════════════════════════════╗\n"
@@ -126,10 +126,28 @@ mac_def(Z__LO_EACH_B,
  "⍝ ║μ7 │rho_Z│ B's original shape (⍴B, saved before ravel)            ║\n"
  "⍝ ║μ8 │  N  │ loop index                                             ║\n"
  "⍝ ║μ9 │N_max│ loop limit                                             ║\n"
+ "⍝ ║μ10│ ⎕IO0│ ⎕IO as it was on entry (Bugs27 #56 residual, see below) ║\n"
  "⍝ ╚═══╧═════╧════════════════════════════════════════════════════════╝\n"
  "⍝\n"
- "μ7←⍴μ6 ◊ μ8←⎕IO ◊ μ9←μ8+⍴μ6←,μ6 ◊ μ1←μ9⍴0\n"
- "(μ8⊃μ1)←μ3 μ8⊃μ6 ◊ 0 → μ9>μ8←μ8+1\n"
+ "⍝ μ8/μ9 are plain arithmetic counters, immune to ⎕IO -- but every ⊃\n"
+ "⍝ pick/assign below used to index μ6/μ1 with the raw counter μ8\n"
+ "⍝ directly, which is only correct as long as ⎕IO stays exactly what\n"
+ "⍝ it was when μ8 was seeded. LO is user-supplied and may itself\n"
+ "⍝ change ⎕IO (e.g. (LO←{⎕IO←0 ⋄ ...})¨B) -- ⎕IO is a normal global\n"
+ "⍝ system variable, not auto-localized in a lambda, so that change\n"
+ "⍝ persists (correctly) past LO's own call and broke every subsequent\n"
+ "⍝ iteration's indexing, INDEX_ERROR-ing or reading/writing the wrong\n"
+ "⍝ slot. Fixed by never using μ8 as an index directly: (⎕IO+μ8-μ10)\n"
+ "⍝ recomputes the CURRENT-⎕IO-relative position fresh at each use\n"
+ "⍝ (read and write) from the fixed, ⎕IO-independent 0-based offset\n"
+ "⍝ (μ8-μ10), so it stays correct under whatever ⎕IO happens to be at\n"
+ "⍝ that exact moment -- self-correcting like the analogous fix for\n"
+ "⍝ Z__A_LO_INNER_RO_B above, and (unlike that fix) requires no\n"
+ "⍝ ⎕IO reset anywhere, so a real ⎕IO change from LO's last call\n"
+ "⍝ still correctly persists once the loop completes.\n"
+ "⍝\n"
+ "μ7←⍴μ6 ◊ μ10←⎕IO ◊ μ8←μ10 ◊ μ9←μ10+⍴μ6←,μ6 ◊ μ1←μ9⍴0\n"
+ "((⎕IO+μ8-μ10)⊃μ1)←μ3 (⎕IO+μ8-μ10)⊃μ6 ◊ 0 → μ9>μ8←μ8+1\n"
  "μ1←μ7⍴μ1\n")
 
 /// dyadic EACH with result, scalar A, scalar B

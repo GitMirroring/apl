@@ -1560,77 +1560,77 @@ int file_profile = 0;   // the current profile in the preferences file
          else if (!strcasecmp(opt, "CIN-SEQUENCE"))
             {
               loop(sa, sargs_idx)
-                  Output::color_CIN[sa] = decode_ASCII(sargs[sa + 1]);
+                  Output::color_CIN[sa] = decode_ASCII(sargs[sa + 1], filename, line);
             }
          else if (!strcasecmp(opt, "COUT-SEQUENCE"))
             {
               loop(sa, sargs_idx)
-                  Output::color_COUT[sa] = decode_ASCII(sargs[sa + 1]);
+                  Output::color_COUT[sa] = decode_ASCII(sargs[sa + 1], filename, line);
             }
          else if (!strcasecmp(opt, "CERR-SEQUENCE"))
             {
               loop(sa, sargs_idx)
-                  Output::color_CERR[sa] = decode_ASCII(sargs[sa + 1]);
+                  Output::color_CERR[sa] = decode_ASCII(sargs[sa + 1], filename, line);
             }
          else if (!strcasecmp(opt, "UERR-SEQUENCE"))
             {
               loop(sa, sargs_idx)
-                  Output::color_UERR[sa] = decode_ASCII(sargs[sa + 1]);
+                  Output::color_UERR[sa] = decode_ASCII(sargs[sa + 1], filename, line);
             }
          else if (!strcasecmp(opt, "RESET-SEQUENCE"))
             {
               loop(sa, sargs_idx)
-                 Output::color_RESET[sa] = decode_ASCII(sargs[sa + 1]);
+                 Output::color_RESET[sa] = decode_ASCII(sargs[sa + 1], filename, line);
             }
          else if (!strcasecmp(opt, "CLEAR-EOL-SEQUENCE"))
             {
               loop(sa, sargs_idx)
-                 Output::clear_EOL[sa] = decode_ASCII(sargs[sa + 1]);
+                 Output::clear_EOL[sa] = decode_ASCII(sargs[sa + 1], filename, line);
             }
          else if (!strcasecmp(opt, "CLEAR-EOS-SEQUENCE"))
             {
               loop(sa, sargs_idx)
-                 Output::clear_EOS[sa] = decode_ASCII(sargs[sa + 1]);
+                 Output::clear_EOS[sa] = decode_ASCII(sargs[sa + 1], filename, line);
             }
          else if (!strcasecmp(opt, "KEY-CURSOR-UP"))
             {
               loop(sa, sargs_idx)
-                 Output::ESC_CursorUp[sa] = decode_ASCII(sargs[sa + 1]);
+                 Output::ESC_CursorUp[sa] = decode_ASCII(sargs[sa + 1], filename, line);
             }
          else if (!strcasecmp(opt, "KEY-CURSOR-DOWN"))
             {
               loop(sa, sargs_idx)
-                 Output::ESC_CursorDown[sa] = decode_ASCII(sargs[sa + 1]);
+                 Output::ESC_CursorDown[sa] = decode_ASCII(sargs[sa + 1], filename, line);
             }
          else if (!strcasecmp(opt, "KEY-CURSOR-RIGHT"))
             {
               loop(sa, sargs_idx)
-                 Output::ESC_CursorRight[sa] = decode_ASCII(sargs[sa + 1]);
+                 Output::ESC_CursorRight[sa] = decode_ASCII(sargs[sa + 1], filename, line);
             }
          else if (!strcasecmp(opt, "KEY-CURSOR-LEFT"))
             {
               loop(sa, sargs_idx)
-                 Output::ESC_CursorLeft[sa] = decode_ASCII(sargs[sa + 1]);
+                 Output::ESC_CursorLeft[sa] = decode_ASCII(sargs[sa + 1], filename, line);
             }
          else if (!strcasecmp(opt, "KEY-CURSOR-END"))
             {
               loop(sa, sargs_idx)
-                 Output::ESC_CursorEnd[sa] = decode_ASCII(sargs[sa + 1]);
+                 Output::ESC_CursorEnd[sa] = decode_ASCII(sargs[sa + 1], filename, line);
             }
          else if (!strcasecmp(opt, "KEY-CURSOR-HOME"))
             {
               loop(sa, sargs_idx)
-                 Output::ESC_CursorHome[sa] = decode_ASCII(sargs[sa + 1]);
+                 Output::ESC_CursorHome[sa] = decode_ASCII(sargs[sa + 1], filename, line);
             }
          else if (!strcasecmp(opt, "KEY-INSMODE"))
             {
               loop(sa, sargs_idx)
-                 Output::ESC_InsertMode[sa] = decode_ASCII(sargs[sa + 1]);
+                 Output::ESC_InsertMode[sa] = decode_ASCII(sargs[sa + 1], filename, line);
             }
          else if (!strcasecmp(opt, "KEY-DELETE"))
             {
               loop(sa, sargs_idx)
-                 Output::ESC_Delete[sa] = decode_ASCII(sargs[sa + 1]);
+                 Output::ESC_Delete[sa] = decode_ASCII(sargs[sa + 1], filename, line);
             }
          else if (!strcasecmp(opt, "CIN-FOREGROUND"))
             {
@@ -1840,7 +1840,8 @@ int file_profile = 0;   // the current profile in the preferences file
 }
 //────────────────────────────────────────────────────────────────────────────
 int
-UserPreferences::decode_ASCII(const char * strg)
+UserPreferences::decode_ASCII(const char * strg, const char * filename,
+                               int line)
 {
    if (!strcmp(strg, "NUL"))   return 0x00;
    if (!strcmp(strg, "SOH"))   return 0x01;
@@ -1877,7 +1878,11 @@ UserPreferences::decode_ASCII(const char * strg)
 
    if (strlen(strg) == 1)   return *strg;                  // single char
    if (strlen(strg) == 2)   return strtoll(strg, 0, 16);   // hex value, e.g. 4C
-   CERR << "invalid parameter " << strg << " in preferences file" << endl;
+   CERR << "invalid parameter " << strg;
+   if (filename)   CERR << " at line " << line << " of config file "
+                         << filename;
+   else            CERR << " in preferences file";
+   CERR << " (ignored)" << endl;
    return -1;
 }
 //────────────────────────────────────────────────────────────────────────────

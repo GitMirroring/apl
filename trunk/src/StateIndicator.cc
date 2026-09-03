@@ -397,10 +397,24 @@ const Executable * const uexec = ufun;   // cast ufun to uexec
          //
          if (si->current_stack.uses_function(ufun))   return true;
 
-         // case 3: ufun is in the body of si->get_executable(). This crashes
-         // )SAVE since the symbol is already resolved and points to the old
-         // function.
+         // case 3: ufun is in the body of si->get_executable(), AND that
+         // frame is actually suspended/pendent (has a nonzero recorded
+         // error) rather than merely a normal, live caller further up
+         // the currently executing chain. Blocking on a live caller
+         // that only *mentions* ufun's name (e.g. RUN calling ⎕FX to
+         // (re)define GEN, then calling GEN, with RUN's own body
+         // naming GEN) broke the common "generate-then-call" pattern --
+         // APL2 protects only functions that are themselves pendent/
+         // suspended (cases 1/2 above already cover "is ufun itself
+         // actually executing/pending re-entry"; this case 3 is only
+         // about a stale, no-longer-runnable compiled reference to
+         // ufun sitting in a SUSPENDED frame, which really would crash
+         // )SAVE since the symbol there is already resolved and points
+         // to the old function). See Bugs27 #35 residual.
          //
+         if (StateIndicator::get_error(si).get_error_code() == E_NO_ERROR)
+            continue;
+
          const Token_string & body = exec->get_body();
          loop(b, body.size())
              {

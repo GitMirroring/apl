@@ -586,12 +586,15 @@ Quad_FIO::clear()
          else              close(fe.fe_fd);
          // fe.path is empty for a handle opened via popen()/execve()
          // (⎕FIO[24]/[57], which don't record a path the way a plain
-         // file open does) -- always including the handle number too
-         // keeps this message useful instead of a blank, double-spaced
-         // "File  still open". See Bugs27 #59(d).
+         // file open does) -- printing the handle number always keeps
+         // this message useful, and skipping the path clause entirely
+         // when it's empty (rather than printing it unconditionally)
+         // avoids the double-space "File  (handle 4) ..." artifact
+         // that produced. See Bugs27 #59(d).
          //
-         CERR << "WARNING: File " << fe.path
-              << " (handle " << fe.fe_fd << ") still open - closing it"
+         CERR << "WARNING: File ";
+         if (fe.path.size())   CERR << fe.path << " ";
+         CERR << "(handle " << fe.fe_fd << ") still open - closing it"
               << endl;
         // fe.fe_fd was already closed above (either via fclose() or the
         // direct close()); closing it again here is a double-close --
