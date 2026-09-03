@@ -21,6 +21,7 @@
 /** @file
 */
 
+#include <deque>
 #include <vector>
 #include "Logging.hh"
 #include "PointerCell.hh"
@@ -291,11 +292,24 @@ protected:
    /// the number of columns
    const ShapeItem cols;
 
-   /// the column headers
-   std::vector<DLX_Header_Node> headers;
+   /// the column headers. std::deque rather than std::vector: every
+   /// DLX_Node/DLX_Header_Node holds raw up/down/left/right pointers to
+   /// OTHER elements of headers/nodes (the textbook Dancing-Links
+   /// self-referential node array) -- a std::vector reallocation would
+   /// silently invalidate every such pointer. The exact pre-count +
+   /// two-phase construction below (append placeholders first, wire
+   /// them up in a second pass) already made this safe under
+   /// std::vector too, but only by construction discipline with no
+   /// safety net -- one future edit adding a push_back() after wiring
+   /// starts would have silently corrupted every pointer. std::deque's
+   /// push_back()/emplace_back() never invalidate references to
+   /// existing elements, removing that fragility (same fix as
+   /// DerivedFunctionCache, see DerivedFunction.hh, and
+   /// Symbol::value_stack, see Symbol.hh).
+   std::deque<DLX_Header_Node> headers;
 
-   /// the '1's and '2's in the (sparse) matrix
-   std::vector<DLX_Node> nodes;
+   /// the '1's and '2's in the (sparse) matrix -- see headers above
+   std::deque<DLX_Node> nodes;
 
    /// the number of primary columns
    ShapeItem primary_count;
@@ -373,10 +387,11 @@ ShapeItem ones = 0;
 
    Log(LOG_Quad_DLX)   CERR << "Matrix has " << ones << " ones" << endl;
 
-   // set up column headers. std::vector.push_back() may move the headers so
-   // we first append all headers and initialize then
+   // set up column headers: first append all (placeholder) headers,
+   // then initialize them -- see the headers member comment above for
+   // why this two-phase approach is used (still correct, though no
+   // longer strictly required, now that headers is a std::deque).
    //
-   headers.reserve(cols);
    loop (c, cols)   headers.push_back(DLX_Header_Node());
    loop (c, cols)
       {
@@ -384,17 +399,15 @@ ShapeItem ones = 0;
         else   new (&headers[c]) DLX_Header_Node(c, this,            this);
       }
 
-   // set up non-header nodes. std::vector.push_back() may move the headers so
-   // we first append all nodes and initialize then.
+   // set up non-header nodes: same two-phase approach as headers above.
    //
-   nodes.reserve(ones);
    loop(o, ones)   nodes.push_back(DLX_Node(false));
 
-   DLX_Node * n = nodes.data();
+   ShapeItem n_idx = 0;
    loop (r, rows)
       {
-        DLX_Node * const lm = n;   // leftmost item in this row
-        DLX_Node * rm = n;         // rightmost item in this row
+        DLX_Node * const lm = &nodes[n_idx];   // leftmost item in this row
+        DLX_Node * rm = &nodes[n_idx];         // rightmost item in this row
         loop (c, cols)
            {
              DLX_Header_Node & hdr = headers[c];
@@ -417,13 +430,14 @@ ShapeItem ones = 0;
                 }
 
 
-             // for the leftmost node in a row, rm == lm == n here, so the
-             // DLX_Node constructor self-links it -- correct for a
+             // for the leftmost node in a row, rm == lm == &nodes[n_idx]
+             // here, so the DLX_Node constructor self-links it -- correct
+             // for a
              // one-element circular list. Both arms of the former if/else
              // were byte-identical (Bugs18 #13); collapsed to the one
              // statement both cases actually need.
              //
-             rm = new (n++)   DLX_Node(false, r, c, hdr.up, &hdr, rm, lm);
+             rm = new (&nodes[n_idx++])   DLX_Node(false, r, c, hdr.up, &hdr, rm, lm);
              ++headers[c].count;
            }
       }

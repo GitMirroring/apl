@@ -44,9 +44,9 @@ foo_fails[1]  ÷0
 0 2 2 1 0
 
       ⎕EC 'foo_fails 2'
- 0  5 4  DOMAIN ERROR 
-                      
-                      
+ 0  5 4  DOMAIN ERROR     
+         foo_fails[1]  ÷0 
+                       ^^ 
       
       
       ⎕SI 2

@@ -317,9 +317,15 @@ public:
    static Fun_signature get_current_signature();
 
 protected:
-   /// return uninitialized memory for a new derived function
+   /// construct a new derived function and return a pointer to it.
+   /// @param LO token for the left operand (or 0 if absent)
+   /// @param F_or_M_or_D the function, monadic, or dyadic operator
+   /// @param RO token for the right operand (or 0 if absent)
+   /// @param X optional axis value (empty Value_P if absent)
    /// @param loc caller location for diagnostics
-   DerivedFunction * get_fun_oper_slot(const char * loc) const;
+   DerivedFunction * get_fun_oper_slot(Token * LO, cFunction_P F_or_M_or_D,
+                                       Token * RO, Value_P X,
+                                       const char * loc) const;
 
    /// set the prefix parser action
    inline void set_action(R_action ra)
@@ -434,12 +440,19 @@ protected:
 
    /// ⎕EA helper shared by handle_QUAD_ES_ERR() and handle_QUAD_ES_BRA():
    /// execute statement_A (⎕EA's left/fallback argument) and place its
-   /// value at the top of the caller's pending call site, or raise
-   /// ec_on_failure if A itself does not yield a plain value.
+   /// value at the top of the caller's pending call site. Also records
+   /// why B failed onto ⎕ET/⎕EM/)MORE (unconditionally, before A runs)
+   /// so that A -- or whoever later queries ⎕ET/⎕EM -- can see it; if A
+   /// itself subsequently also fails, A's own (nearer) error naturally
+   /// takes precedence over this one, with no extra logic needed here.
+   /// See Bugs27 #36.
    /// @param statement_A source text of ⎕EA's left argument
-   /// @param ec_on_failure error to raise if A doesn't yield a value
+   /// @param ec_on_failure why B failed
+   /// @param why short, human-readable reason for )MORE (e.g. "B failed
+   ///        to execute")
    static void execute_EA_fallback(UCS_string statement_A,
-                                   ErrorCode ec_on_failure);
+                                   ErrorCode ec_on_failure,
+                                   const char * why);
 
    /// the StateIndicator that contains this parser
    StateIndicator & si;

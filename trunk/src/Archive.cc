@@ -2234,6 +2234,7 @@ XML_Loading_Archive::instantiate_derived_functions(bool allocate)
            }
 
         if (!todo.cache)   continue;
+DerivedFunction * const slot = static_cast<DerivedFunction *>(todo.cache);
 
         Assert(todo.LO_fid   != -1);
         cFunction_P LO = find_function(todo.LO_fid);
@@ -2253,8 +2254,8 @@ XML_Loading_Archive::instantiate_derived_functions(bool allocate)
 
              if (todo.AXIS_vid == -1)   // dyadic operator without axis
                 {
-                  new (todo.cache)
-                      Derived_LO_D_RO(tok_LO, OPER, tok_RO, LOC);
+                  DerivedFunctionCache::construct_at(slot, &tok_LO, OPER,
+                                                     &tok_RO, Value_P(), LOC);
                 }
              else                       // dyadic operator with axis
                 {
@@ -2266,15 +2267,16 @@ XML_Loading_Archive::instantiate_derived_functions(bool allocate)
                       size_t(todo.AXIS_vid) >= values.size())
                      DOMAIN_ERROR;
                   Value_P val_X = values[todo.AXIS_vid];
-                  new (todo.cache) Derived_LO_D_X_RO(tok_LO, OPER, val_X,
-                                                     tok_RO, LOC);
+                  DerivedFunctionCache::construct_at(slot, &tok_LO, OPER,
+                                                     &tok_RO, val_X, LOC);
                 }
            }
         else                       // monadic operator
            {
              if (todo.AXIS_vid == -1)   // monadic operator without axis
                 {
-                  new (todo.cache) Derived_LO_M(tok_LO, OPER, LOC);
+                  DerivedFunctionCache::construct_at(slot, &tok_LO, OPER,
+                                                     0, Value_P(), LOC);
                 }
              else                       // monadic operator with axis
                 {
@@ -2283,7 +2285,8 @@ XML_Loading_Archive::instantiate_derived_functions(bool allocate)
                       size_t(todo.AXIS_vid) >= values.size())
                      DOMAIN_ERROR;
                   Value_P X = values[todo.AXIS_vid];
-                  new (todo.cache) Derived_LO_M_X(tok_LO, OPER, X, LOC);
+                  DerivedFunctionCache::construct_at(slot, &tok_LO, OPER,
+                                                     0, X, LOC);
                 }
            }
       }
@@ -2609,7 +2612,7 @@ const Fid LO_fid   = find_Fid_attr("LO-fid",   false, 16);
 const Fid OPER_fid = find_Fid_attr("OPER-fid", false, 16);
 const Fid RO_fid   = find_Fid_attr("RO-fid",   true,  16);
 const Vid AXIS_vid = find_Vid_attr("AXIS-vid", true,  10);
-Function * derived = si.fun_oper_cache.get(LOC);
+Function * derived = si.fun_oper_cache.reserve_slot(LOC);
 
    if (LO_fid == NO_FID)
       {

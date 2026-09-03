@@ -214,14 +214,15 @@ FileReader reader(filename);
 #endif // ! MINGW_SRC
 //────────────────────────────────────────────────────────────────────────────
 void
-Quad_WA::parse_mem(bool log_startup)
+Quad_WA::parse_mem(bool log_startup, const char * opt_name)
 {
 const char * mem_arg = UserPreferences::uprefs.mem_arg;
    Assert(mem_arg);
 
    if (log_startup)
       {
-        CERR << "using --mem with user's value " << mem_arg << endl;
+        CERR << "using " << opt_name << " with user's value "
+             << mem_arg << endl;
       }
 
 const size_t mem_arg_len = strlen(mem_arg);
@@ -231,7 +232,8 @@ const size_t mem_arg_len = strlen(mem_arg);
    // mem_arg[-1].
    if (mem_arg_len == 0)
       {
-        CERR << "*** --mem \"\" (empty) is not a valid memory size" << endl;
+        CERR << "*** " << opt_name
+             << " \"\" (empty) is not a valid memory size" << endl;
         exit(3);
       }
 
@@ -255,7 +257,7 @@ char mem_unit = mem_arg[mem_arg_len - 1];
 
    if (3 != read_meminfo())
       {
-        CERR << "problem with the --mem option: "
+        CERR << "problem with the " << opt_name << " option: "
                 "no readable /proc/meminfo: " << strerror(errno) << endl;
         exit(3);
       }
@@ -266,15 +268,15 @@ uint64_t mem_val = 0;
       {
         if (mem_number < 5)
            {
-             CERR << "*** FATAL ERROR: the --mem value '" << mem_arg
-                  << "' is too small (minimum is: 5%)" << endl;
+             CERR << "*** FATAL ERROR: the " << opt_name << " value '"
+                  << mem_arg << "' is too small (minimum is: 5%)" << endl;
              exit(3);
            }
 
         if (mem_number > 95)
            {
-             CERR << "*** FATAL ERROR: the --mem value '" << mem_arg
-                  << "' is too large (maximum is 95%)" << endl;
+             CERR << "*** FATAL ERROR: the " << opt_name << " value '"
+                  << mem_arg << "' is too large (maximum is 95%)" << endl;
              exit(3);
            }
 
@@ -285,15 +287,16 @@ uint64_t mem_val = 0;
         mem_val = mem_number*1000;
         if (mem_val < 100000000)
            {
-             CERR << "*** FATAL ERROR: the --mem value '" << mem_arg
-                  << "' is too small (minimum is: 100,000k)" << endl;
+             CERR << "*** FATAL ERROR: the " << opt_name << " value '"
+                  << mem_arg << "' is too small (minimum is: 100,000k)"
+                  << endl;
              exit(3);
            }
 
         if (mem_number*1000 > meminfo.MemFree)   // more than we have
            {
-             CERR << "*** FATAL ERROR: the --mem value '" << mem_arg
-                  << "' is too large (max. is MemFree = "
+             CERR << "*** FATAL ERROR: the " << opt_name << " value '"
+                  << mem_arg << "' is too large (max. is MemFree = "
                   << meminfo.MemFree/1000 << " kB)" << endl;
              exit(3);
            }
@@ -304,15 +307,15 @@ uint64_t mem_val = 0;
         mem_val = mem_number*1000000;
         if (mem_val < 100000000)
            {
-             CERR << "*** FATAL ERROR: the --mem value '" << mem_arg
-                  << "' is too small (minimum is: 100M)" << endl;
+             CERR << "*** FATAL ERROR: the " << opt_name << " value '"
+                  << mem_arg << "' is too small (minimum is: 100M)" << endl;
              exit(3);
            }
 
         if (mem_number*1000*1000 > meminfo.MemFree)   // more than we have
            {
-             CERR << "*** FATAL ERROR: the --mem value '" << mem_arg
-                  << "' is too large (max. is MemFree = "
+             CERR << "*** FATAL ERROR: the " << opt_name << " value '"
+                  << mem_arg << "' is too large (max. is MemFree = "
                   << meminfo.MemFree/1000/1000 << " MB)" << endl;
              exit(3);
            }
@@ -322,22 +325,23 @@ uint64_t mem_val = 0;
         mem_val = mem_number*1000000000;
         if (mem_val < 100000000)
            {
-             CERR << "*** FATAL ERROR: the --mem value '" << mem_arg
-                  << "' is too small (minimum is: 100M)" << endl;
+             CERR << "*** FATAL ERROR: the " << opt_name << " value '"
+                  << mem_arg << "' is too small (minimum is: 100M)" << endl;
              exit(3);
            }
 
         if (mem_number*1000*1000*1000 > meminfo.MemFree)   // more than we have
            {
-             CERR << "*** FATAL ERROR: the --mem value '" << mem_arg
-                  << "' is too large (max. is MemFree = "
+             CERR << "*** FATAL ERROR: the " << opt_name << " value '"
+                  << mem_arg << "' is too large (max. is MemFree = "
                   << meminfo.MemFree/1000/1000/1000 << " GB)" << endl;
              exit(3);
            }
       }
    else
       {
-        CERR << "*** FATAL ERROR: invalid unit in --mem value '" << mem_arg
+        CERR << "*** FATAL ERROR: invalid unit in " << opt_name
+             << " value '" << mem_arg
              << "' (not %, k, M, G, kB, MB, or GB)" << endl;
         exit(3);
       }
@@ -347,17 +351,17 @@ uint64_t mem_val = 0;
 const int64_t overcommit = read_procfile("/proc/sys/vm/overcommit_memory");
    if (overcommit == -1)
       {
-        CERR << "*** FATAL ERROR: --mem option used, "
+        CERR << "*** FATAL ERROR: " << opt_name << " option used, "
                 "but /proc/sys/vm/overcommit_memory is not readable" << endl;
          exit(3);
       }
 
    if (overcommit != 2)
       {
-        CERR << "*** FATAL ERROR: the --mem option used with "
+        CERR << "*** FATAL ERROR: the " << opt_name << " option used with "
                 "memory overcommit enabled." << endl
              <<   "    I.e. /proc/sys/vm/overcommit_memory says '" << overcommit
-             <<"' while --mem requires '2'" << endl;
+             << "' while " << opt_name << " requires '2'" << endl;
          exit(3);
       }
 
@@ -367,7 +371,7 @@ const int64_t overcommit = read_procfile("/proc/sys/vm/overcommit_memory");
         << "!!!  was overridden with " << mem_val/1000 << "kB"
            " = " << mem_val/1000000 << "MB"
            " = " << mem_val/1000000000 << "GB"
-               " by the --mem option !!!" << endl;
+               " by the " << opt_name << " option !!!" << endl;
 
    total_memory = mem_val;
    total_memory_by_user = true;

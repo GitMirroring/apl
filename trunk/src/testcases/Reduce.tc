@@ -129,17 +129,20 @@
       ⍝ axis. ⊃/↓/∼ had no identity function at all (DOMAIN ERROR);
       ⍝ ⍴/,/⍉/↑/⌹ inherited a generic "fill with prototype" fallback that
       ⍝ gave a bare scalar 0 for all five instead of each function's own
-      ⍝ distinct Figure 28 value. Expected values are B unchanged for
-      ⍝ ⊃/∼, B's own prototype as a scalar for ↓, ⊂B (depth 2, nested
-      ⍝ empty) for ⍴/,/⍉/↑, and ⊂(0 0⍴prototype) for ⌹.
+      ⍝ distinct Figure 28 value. Expected values are ⊂⍳0 (same
+      ⍝ SR⍴⊂.... broadcast as ⍴/,/⍉/↑, corrected 2026-09-03 -- see
+      ⍝ Bugs27 #27; the table literally gives ⊃'s and ∼'s identity
+      ⍝ FUNCTION as ⍳0, not "B unchanged") for ⊃/∼, B's own prototype
+      ⍝ as a scalar for ↓, ⊂B (depth 2, nested empty) for ⍴/,/⍉/↑, and
+      ⍝ ⊂(0 0⍴prototype) for ⌹.
       ⍝
       ⊃/⍳0
-
+  
       ↓/⍳0
 0
 
       ∼/⍳0
-
+  
       ⍴/⍳0
   
 

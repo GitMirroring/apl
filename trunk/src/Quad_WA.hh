@@ -49,9 +49,12 @@ public:
    /// @param log_startup if true print startup diagnostics
    static void init(bool log_startup);
 
-   /// parse a -mem command line option
+   /// parse a -mem command line option (or an equivalent MEMORY line from
+   /// a preferences file, in which case \b opt_name should identify that
+   /// so its own diagnostics don't misattribute the value to --mem)
    /// @param log_startup if true print startup diagnostics
-   static void parse_mem(bool log_startup);
+   /// @param opt_name    name to use in diagnostics for the value's origin
+   static void parse_mem(bool log_startup, const char * opt_name = "--mem");
 
    /// the memory limit at startup
    static rlim_t initial_rlimit;

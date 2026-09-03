@@ -129,9 +129,9 @@ DerivedFunction::~DerivedFunction()
 }
 //────────────────────────────────────────────────────────────────────────────
 void
-DerivedFunction::entering(const char * class_name, const char * fun_name) const
+DerivedFunction::entering(const char * fun_name) const
 {
-   CERR << "entering " << class_name;
+   CERR << "entering DerivedFunction";
    print(CERR);
    CERR << "::" << fun_name << "() , this = " << voidP(this) << endl;
 }
@@ -158,297 +158,161 @@ UCS_string ind(indent, UNI_SPACE);
    out << endl;
 }
 //════════════════════════════════════════════════════════════════════════════
-Token
-Derived_LO_D_RO::eval_AB(cValue_R A, cValue_R B) const
-{
-   Log(LOG_FunOperX)   entering("Derived_LO_D_RO", "eval_AB");
-
-Token & left  = const_cast<Token &>(left_arg);
-Token & right = const_cast<Token &>(right_arg);
-   return oper->eval_ALRB(A, left, right, B);
-}
+// The 4 eval_XXX() below unify what used to be 5 separate subclasses (see
+// the class comment in DerivedFunction.hh). Each dispatches purely on
+// which of left_arg/right_arg/axis are populated -- exactly reproducing
+// each of the 5 old shapes' behavior:
+//
+//   left_arg   right_arg   axis(member)   old class
+//   --------   ---------   ------------   -----------------
+//   unset      unset       set            Derived_F_X
+//   set        unset       unset          Derived_LO_M
+//   set        unset       set            Derived_LO_M_X
+//   set        set         unset          Derived_LO_D_RO
+//   set        set         set            Derived_LO_D_X_RO
+//
+// eval_XB()/eval_AXB() (the call-time-axis entry points) fall to
+// Function::eval_XB()/eval_AXB()'s phrase_error() default whenever
+// no_call_time_axis() is true, i.e. for Derived_F_X (no left operand at
+// all) and Derived_LO_D_X_RO (already has LO+RO+a member axis) -- neither
+// of those two shapes ever supported a further call-time axis; that
+// non-support is preserved exactly, not "completed".
 //────────────────────────────────────────────────────────────────────────────
 Token
-Derived_LO_D_RO::eval_B(cValue_R B) const
+DerivedFunction::eval_AB(cValue_R A, cValue_R B) const
 {
-   Log(LOG_FunOperX)   entering("Derived_LO_D_RO", "eval_B");
+   Log(LOG_FunOperX)   entering("eval_AB");
 
-Token & left  = const_cast<Token &>(left_arg);
-Token & right = const_cast<Token &>(right_arg);
-   return oper->eval_LRB(left, right, B);
-}
-//────────────────────────────────────────────────────────────────────────────
-Token
-Derived_LO_D_RO::eval_AXB(cValue_R A, cValue_R X, cValue_R B) const
-{
-   Log(LOG_FunOperX)   entering("Derived_LO_D_RO", "eval_AXB");
-
-Token & left  = const_cast<Token &>(left_arg);
-Token & right = const_cast<Token &>(right_arg);
-   return oper->eval_ALRXB(A, left, right, X, B);
-}
-//────────────────────────────────────────────────────────────────────────────
-Token
-Derived_LO_D_RO::eval_XB(cValue_R X, cValue_R B) const
-{
-   Log(LOG_FunOperX)   entering("Derived_LO_D_RO", "eval_XB");
-
-Token & left  = const_cast<Token &>(left_arg);
-Token & right = const_cast<Token &>(right_arg);
-   return oper->eval_LRXB(left, right, X, B);
-}
-//════════════════════════════════════════════════════════════════════════════
-Token
-Derived_LO_D_X_RO::eval_AB(cValue_R A, cValue_R B) const
-{
-   Log(LOG_FunOperX)   entering("Derived_LO_D_X_RO", "eval_AB");
-
-Token & left  = const_cast<Token &>(left_arg);
-Token & right = const_cast<Token &>(right_arg);
-   return oper->eval_ALRXB(A, left, right, *axis, B);
-}
-//────────────────────────────────────────────────────────────────────────────
-Token
-Derived_LO_D_X_RO::eval_B(cValue_R B) const
-{
-   Log(LOG_FunOperX)   entering("Derived_LO_D_X_RO", "eval_B");
-
-Token & left  = const_cast<Token &>(left_arg);
-Token & right = const_cast<Token &>(right_arg);
-   return oper->eval_LRXB(left, right, *axis, B);
-}
-//════════════════════════════════════════════════════════════════════════════
-Token
-Derived_LO_M::eval_AB(cValue_R A, cValue_R B) const
-{
-   Log(LOG_FunOperX)   entering("Derived_LO_M", "eval_AB");
-
-   if (left_arg.is_function())
-      {
-        Token & left  = const_cast<Token &>(left_arg);
-        if (!axis)   return oper->eval_ALB(A, left, B);
-        else         return oper->eval_ALXB(A, left, *axis, B);
-      }
-   else
-      {
-        Value_P A = left_arg.get_apl_val();
-        if (!axis)   return oper->eval_AB(*A, B);
-        else         return oper->eval_AXB(*A, *axis, B);
-      }
-}
-//────────────────────────────────────────────────────────────────────────────
-Token
-Derived_LO_M::eval_B(cValue_R B) const
-{
-   Log(LOG_FunOperX)   entering("Derived_LO_M", "eval_B");
-
-   if (right_arg.get_tag() != TOK_VOID)   // dyadic operator
+   if (right_arg.get_tag() != TOK_VOID)   // dyadic operator (LO D RO)
       {
         Token & left  = const_cast<Token &>(left_arg);
         Token & right = const_cast<Token &>(right_arg);
-        return oper->eval_LRB(left, right, B);
+        if (!axis)   return oper->eval_ALRB(A, left, right, B);
+        else         return oper->eval_ALRXB(A, left, right, *axis, B);
       }
-   else                                   // monadic operator
-      {
-        if (left_arg.is_function())   // normal operator
-           {
-             Token & left = const_cast<Token &>(left_arg);
-             if (!axis)   return oper->eval_LB(left, B);
-             else         return oper->eval_LXB(left, *axis, B);
-           }
-        else                         // operator with left value operand
-           {
-             Value_P A = left_arg.get_apl_val();
-             if (!axis)   return oper->eval_AB(*A, B);
-             else         return oper->eval_AXB(*A, *axis, B);
-           }
-      }
-}
-//────────────────────────────────────────────────────────────────────────────
-Token
-Derived_LO_M::eval_AXB(cValue_R A, cValue_R X, cValue_R B) const
-{
-   Log(LOG_FunOperX)   entering("Derived_LO_M", "eval_AXB");
 
-Token & left  = const_cast<Token &>(left_arg);
-   return oper->eval_ALXB(A, left, X, B);
-}
-//────────────────────────────────────────────────────────────────────────────
-Token
-Derived_LO_M::eval_XB(cValue_R X, cValue_R B) const
-{
-   Log(LOG_FunOperX)   entering("Derived_LO_M", "eval_XB");
-
-   // Use the call-time axis X, not the (always unset for this class --
-   // see the constructor) member axis. This was the actual bug behind
-   // (+/)[1]M silently ignoring [1] and always reducing the last axis
-   // (same result as (+/)[2]M or plain (+/)M): a parenthesized F M,
-   // e.g. (+/), is reduced to a bare axis-less Derived_LO_M (Prefix.cc
-   // reduce_F_M__()) *before* Prefix.cc ever sees the trailing [1], so
-   // the axis only reaches this function as the X parameter here, via
-   // reduce_MISC_F_C_B() -- unlike the unparenthesized +/[1]M, where
-   // fix_RANK_syntax()-style adjacency lets reduce_F_M_C_() build an
-   // axis-aware Derived_LO_M_X up front. Checking member axis instead
-   // of X silently discarded it, since it is never set on this class.
-   //
-   if (left_arg.is_function())   // normal operator
+   if (left_arg.get_tag() != TOK_VOID)   // monadic operator (LO M)
       {
+        // eval_ALB()/eval_ALXB() already push LO as a function OR a
+        // value correctly (UserFunction::eval_ALB()). Bugs27 #50.
         Token & left = const_cast<Token &>(left_arg);
-        return oper->eval_LXB(left, X, B);
+        if (!axis)   return oper->eval_ALB(A, left, B);
+        else         return oper->eval_ALXB(A, left, *axis, B);
       }
-   else                         // operator with left value operand
-      {
-        Value_P A = left_arg.get_apl_val();
-        return oper->eval_AXB(*A, X, B);
-      }
-}
-//════════════════════════════════════════════════════════════════════════════
-Token
-Derived_LO_M_X::eval_AB(cValue_R A, cValue_R B) const
-{
-   Log(LOG_FunOperX)   entering("Derived_LO_M_X", "eval_AB");
 
-   if (left_arg.is_function())
-      {
-        Token & LO  = const_cast<Token &>(left_arg);
-        if (!axis)   return oper->eval_ALB(A, LO, B);
-        else         return oper->eval_ALXB(A, LO, *axis, B);
-      }
-   else
-      {
-        Value_P A = left_arg.get_apl_val();
-        if (!axis)   return oper->eval_AB(*A, B);
-        else         return oper->eval_AXB(*A, *axis, B);
-      }
-}
-//────────────────────────────────────────────────────────────────────────────
-Token
-Derived_LO_M_X::eval_B(cValue_R B) const
-{
-   Log(LOG_FunOperX)   entering("Derived_LO_M_X", "eval_B");
-
-   if (left_arg.is_function())   // normal operator
-      {
-        Token & left = const_cast<Token &>(left_arg);
-        if (!axis)   return oper->eval_LB(left, B);
-        else         return oper->eval_LXB(left, *axis, B);
-      }
-   else                         // operator with left value operand
-      {
-        Value_P A = left_arg.get_apl_val();
-        if (!axis)   return oper->eval_AB(*A, B);
-        else         return oper->eval_AXB(*A, *axis, B);
-      }
-}
-//────────────────────────────────────────────────────────────────────────────
-Token
-Derived_LO_M_X::eval_AXB(cValue_R A, cValue_R X, cValue_R B) const
-{
-   Log(LOG_FunOperX)   entering("Derived_LO_M_X", "eval_AXB");
-
-Token & left  = const_cast<Token &>(left_arg);
-   return oper->eval_ALXB(A, left, X, B);
-}
-//────────────────────────────────────────────────────────────────────────────
-Token
-Derived_LO_M_X::eval_XB(cValue_R X, cValue_R B) const
-{
-   Log(LOG_FunOperX)   entering("Derived_LO_M_X", "eval_XB");
-
-   // same fix as Derived_LO_M::eval_XB() above, and same reasoning:
-   // honor the call-time axis X, not the (here: already-baked-in, from
-   // the constructor) member axis. Not currently known to be reachable
-   // with a member axis already set (that would mean two axes on the
-   // same derived function), but eval_XB()'s whole contract is "apply
-   // X now" -- silently preferring a stale member over the axis the
-   // caller just handed us is the same class of bug either way.
-   //
-   if (left_arg.is_function())   // normal operator
-      {
-        Token & left = const_cast<Token &>(left_arg);
-        return oper->eval_LXB(left, X, B);
-      }
-   else                         // operator with left value operand
-      {
-        Value_P A = left_arg.get_apl_val();
-        return oper->eval_AXB(*A, X, B);
-      }
-}
-//════════════════════════════════════════════════════════════════════════════
-Token
-Derived_F_X::eval_AB(cValue_R A, cValue_R B) const
-{
-   Log(LOG_FunOperX)   entering("Derived_F_X", "eval_AB");
-
+   // plain function bound to an axis, no operator (F X)
    return oper->eval_AXB(A, *axis, B);
 }
 //────────────────────────────────────────────────────────────────────────────
 Token
-Derived_F_X::eval_B(cValue_R B) const
+DerivedFunction::eval_B(cValue_R B) const
 {
-   Log(LOG_FunOperX)   entering("Derived_F_X", "eval_B");
+   Log(LOG_FunOperX)   entering("eval_B");
 
+   if (right_arg.get_tag() != TOK_VOID)   // dyadic operator (LO D RO)
+      {
+        Token & left  = const_cast<Token &>(left_arg);
+        Token & right = const_cast<Token &>(right_arg);
+        if (!axis)   return oper->eval_LRB(left, right, B);
+        else         return oper->eval_LRXB(left, right, *axis, B);
+      }
+
+   if (left_arg.get_tag() != TOK_VOID)   // monadic operator (LO M)
+      {
+        // eval_LB()/eval_LXB() already push LO as a function OR a
+        // value correctly (UserFunction::eval_LB()). Bugs27 #50.
+        Token & left = const_cast<Token &>(left_arg);
+        if (!axis)   return oper->eval_LB(left, B);
+        else         return oper->eval_LXB(left, *axis, B);
+      }
+
+   // plain function bound to an axis, no operator (F X)
    return oper->eval_XB(*axis, B);
 }
+//────────────────────────────────────────────────────────────────────────────
+Token
+DerivedFunction::eval_AXB(cValue_R A, cValue_R X, cValue_R B) const
+{
+   Log(LOG_FunOperX)   entering("eval_AXB");
+
+   if (no_call_time_axis())   return Function::eval_AXB(A, X, B);
+
+   if (right_arg.get_tag() != TOK_VOID)   // dyadic operator (LO D RO)
+      {
+        Token & left  = const_cast<Token &>(left_arg);
+        Token & right = const_cast<Token &>(right_arg);
+        return oper->eval_ALRXB(A, left, right, X, B);
+      }
+
+   // monadic operator (LO M or LO M X); call-time X overrides any
+   // member axis
+   Token & left = const_cast<Token &>(left_arg);
+   return oper->eval_ALXB(A, left, X, B);
+}
+//────────────────────────────────────────────────────────────────────────────
+Token
+DerivedFunction::eval_XB(cValue_R X, cValue_R B) const
+{
+   Log(LOG_FunOperX)   entering("eval_XB");
+
+   if (no_call_time_axis())   return Function::eval_XB(X, B);
+
+   if (right_arg.get_tag() != TOK_VOID)   // dyadic operator (LO D RO)
+      {
+        Token & left  = const_cast<Token &>(left_arg);
+        Token & right = const_cast<Token &>(right_arg);
+        return oper->eval_LRXB(left, right, X, B);
+      }
+
+   // monadic operator (LO M or LO M X). Use the call-time axis X, not
+   // a (possibly unset, or already-baked-in) member axis -- this was
+   // the actual bug behind (+/)[1]M silently ignoring [1]. Bugs27 #50.
+   Token & left = const_cast<Token &>(left_arg);
+   return oper->eval_LXB(left, X, B);
+}
+//────────────────────────────────────────────────────────────────────────────
+Token
+DerivedFunction::eval_fill_AB(cValue_R A, cValue_R B) const
+{
+   // Function's own default (a hard DOMAIN_ERROR) is too conservative
+   // for a simple case like +/, +\, or ⌽¨ used as the LO of an empty-
+   // frame LO⍤y (Bif_OPER2_RANK.cc's do_ALyXB()/do_LyXB()) or similarly
+   // as the RO of an empty A∘.RO B (Bif_OPER2_OUTER.cc) -- those
+   // callers only need the SHAPE of one chunk's result (they reshape
+   // or take a single prototype cell from it afterward, discarding the
+   // actual values), so simply evaluating normally on the placeholder
+   // argument(s) they pass in is safe and correct, mirroring
+   // PrimitiveFunction::eval_fill_AB()'s identical "just evaluate"
+   // approach.
+   //
+   // But it is NOT safe unconditionally: a derived function whose
+   // chain may_push_SI() (e.g. {⍵+1}⍣2 -- LO is a lambda) can, when
+   // actually evaluated here, end up invoking a macro-implemented
+   // operator (Z__LO_POWER_N_B etc.) from deep inside this same call
+   // (do_LyXB() -> eval_fill_B() -> eval_B() -> the macro), a context
+   // the macro's own error-reporting does not expect -- confirmed live
+   // to hit an internal Assert (Executable.cc:443,
+   // body_from_to.low != -1) rather than a clean DOMAIN_ERROR, for
+   // ({⍵+1}⍣2⍤1)0 3⍴0. Falling back to the same hard DOMAIN_ERROR as
+   // before for that shape is not worse than the pre-fix behavior (a
+   // DOMAIN_ERROR either way) -- fixing that macro/nested-SI
+   // interaction for real is a separate, deeper piece of work. See
+   // Bugs27 #28.
+   //
+   if (may_push_SI())   return Function::eval_fill_AB(A, B);
+   return eval_AB(A, B);
+}
+//────────────────────────────────────────────────────────────────────────────
+Token
+DerivedFunction::eval_fill_B(cValue_R B) const
+{
+   // see eval_fill_AB() above for the may_push_SI() guard's rationale.
+   //
+   if (may_push_SI())   return Function::eval_fill_B(B);
+   return eval_B(B);
+}
 //════════════════════════════════════════════════════════════════════════════
-DerivedFunctionCache::DerivedFunctionCache()
-   : idx(0)
-{
-   Log(LOG_FunOperX)
-      {
-         CERR << "DerivedFunctionCache created, cache at "
-              << voidP(cache) << "..."
-              << voidP(cache + MAX_FUN_OPER)
-              << endl;
-      }
-}
-//────────────────────────────────────────────────────────────────────────────
-DerivedFunctionCache::~DerivedFunctionCache()
-{
-   reset();
-   Log(LOG_FunOperX)
-      {
-         CERR << "DerivedFunctionCache deleted, cache at "
-              << voidP(cache) << "..."
-              << voidP(cache + MAX_FUN_OPER)
-              << endl;
-      }
-}
-//────────────────────────────────────────────────────────────────────────────
-DerivedFunction *
-DerivedFunctionCache::get(const char * loc)
-{
-   if (idx >= MAX_FUN_OPER)   LIMIT_ERROR_FUNOPER;
-
-   Log(LOG_FunOperX)
-      {
-         CERR << "DerivedFunctionCache get( " << idx << " ), cache at "
-              << voidP(cache) << "..."
-              << voidP(cache + MAX_FUN_OPER)
-              << " at " << loc << endl;
-      }
-
-   return reinterpret_cast<DerivedFunction *>
-                          (cache + idx++*sizeof(DerivedFunction));
-}
-//────────────────────────────────────────────────────────────────────────────
-void
-DerivedFunctionCache::reset()
-{
-   while (idx)
-       {
-         --idx;   // back to last item
-         get(LOC)->destroy_derived(LOC);
-         --idx;   // undo idx++ by get(LOC)
-       }
-
-   Log(LOG_FunOperX)
-      {
-         CERR << "DerivedFunctionCache reset, cache at "
-              << voidP(cache) << "..."
-              << voidP(cache + MAX_FUN_OPER)
-              << endl;
-      }
-}
+// DerivedFunctionCache's constructor, destructor, get(), reserve_slot(),
+// construct_at(), and reset() are all trivial enough to live inline in
+// DerivedFunction.hh; nothing further to define here.
 //════════════════════════════════════════════════════════════════════════════
-

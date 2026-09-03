@@ -402,11 +402,34 @@ const Shape shape_Z = frame_B_rank ? B->get_shape().frame_shape(frame_B_rank)
 
    if (shape_Z.is_empty())
       {
+        // Fill_A/Fill_B here only ever need to be A SCALAR (Z1 below
+        // becomes Z's prototype cell, not a real result -- shape_Z's
+        // volume is 0 either way), so Bif_F12_TAKE::first() (a single
+        // cell) is right regardless of whether A/B is used as a single
+        // broadcast chunk or is genuinely empty.
+        //
+        // The DOMAIN_ERROR check just below is what actually needs
+        // relaxing: A (resp. B) contributes exactly one chunk to every
+        // application of LO when its OWN frame is empty (frame_A_rank
+        // == 0, i.e. A is not iterated at all -- it IS the chunk,
+        // broadcast the same way scalar extension broadcasts a scalar)
+        // -- that chunk can be any shape, not just a scalar, e.g.
+        // A=1 2 3 with frame_A_rank==0 in (1 2 3)(+⍤1)0 3⍴0 (B's frame
+        // is what's empty here, 0 rows). The old check required A
+        // itself to be a scalar whenever it wasn't literally empty,
+        // DOMAIN_ERROR-ing this completely legitimate case. Only when
+        // A's frame rank is > 0 AND A is not empty do we truly have "a
+        // real chunk exists but some OTHER chunk of the frame is
+        // missing", which is a genuine restriction (Figure 28's
+        // identity items are only defined per-function, not
+        // fabricatable from a fully populated sibling). See Bugs27 #28.
+        //
         Value_P Fill_A = Bif_F12_TAKE::first(*A);
         Value_P Fill_B = Bif_F12_TAKE::first(*B);
         Shape shape_Z;
 
-        if (A->is_empty())          shape_Z = A->get_shape();
+        if (A->is_empty())               shape_Z = A->get_shape();
+        else if (frame_A_rank == 0)      { /* A is one whole chunk, fine */ }
         else if (!A->is_scalar())
            {
              MORE_ERROR() << "A f⍤y B: B's frame is empty and A's item is"
@@ -415,7 +438,8 @@ const Shape shape_Z = frame_B_rank ? B->get_shape().frame_shape(frame_B_rank)
              DOMAIN_ERROR;
            }
 
-        if (B->is_empty())          shape_Z = B->get_shape();
+        if (B->is_empty())               shape_Z = B->get_shape();
+        else if (frame_B_rank == 0)      { /* B is one whole chunk, fine */ }
         else if (!B->is_scalar())
            {
              MORE_ERROR() << "A f⍤y B: A's frame is empty and B's item is"
@@ -506,10 +530,45 @@ const sRank frame_B_rank = B->get_rank() - rank_chunk_B;
 const Shape shape_Z = B->get_shape().frame_shape(frame_B_rank);
    if (shape_Z.is_empty())
       {
-        Value_P Fill_B = Bif_F12_TAKE::first(*B);
+        // PrimitiveFunction::eval_fill_B() (the default every non-scalar
+        // LO here inherits, since none override it) just calls
+        // eval_B(Fill_B) -- so Fill_B must actually BE one properly
+        // shaped chunk (matching B's own chunk_shape) for e.g. ⍴⍤1 to
+        // compute the right per-chunk shape, not merely B's collapsed
+        // scalar prototype (Bif_F12_TAKE::first(*B)), which made ⍴ of
+        // it always ⍬ regardless of the real chunk shape. There is no
+        // real chunk to draw content from (the frame is empty), so
+        // every cell of this placeholder chunk is filled with B's own
+        // prototype cell, mirroring how Value::set_default() already
+        // does the analogous thing for an actually-empty result.
+        // See Bugs27 #28.
+        //
+const Shape chunk_shape_B = B->get_shape().chunk_shape(rank_chunk_B);
+        Value_P Fill_B(chunk_shape_B, LOC);
+        {
+          Cell proto_cache;
+          const Cell & proto = B->get_cproto(proto_cache);
+          loop(z, Fill_B->element_count())
+              Fill_B->next_ravel_Cell(proto);
+        }
+        Fill_B->check_value(LOC);
+
         Token tZ = LO->eval_fill_B(*Fill_B);
         Value_P Z = tZ.get_apl_val();
-        Z->set_shape(B->get_shape());
+
+        // Z's own shape is the result of applying LO's fill/identity to
+        // ONE chunk (e.g. ⍴⍤1's fill on a 3-item row chunk is ,3, shape
+        // (1)) -- the actual result shape is the (empty) frame shape
+        // with that chunk-result shape appended, NOT B's entire
+        // original shape discarding it. This used to force
+        // Z->set_shape(B->get_shape()) unconditionally, e.g. giving
+        // (⍴⍤1)0 3⍴0 shape 0 3 (B's own shape) instead of the correct
+        // 0 1 (0 frame positions, 1-item chunk-shape result) -- compare
+        // the non-degenerate (⍴⍤1)1 3⍴0, whose analogous non-empty-frame
+        // path already correctly gives shape 1 1 (1 frame position, the
+        // same 1-item chunk-shape). See Bugs27 #28.
+        //
+        Z->set_shape(shape_Z + Z->get_shape());
         Z->check_value(LOC);
         return Token(TOK_APL_VALUE1, Z);
       }

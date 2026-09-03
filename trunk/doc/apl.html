@@ -76,7 +76,7 @@ Next: <a href="#Installing-and-Starting-GNU-APL" accesskey="n" rel="next">Instal
 </div>
 <span id="GNU-APL-Reference-Manual"></span><h1 class="top">GNU APL Reference Manual</h1>
 
-<p>September 1, 2026.
+<p>September 3, 2026.
 This manual briefly documents GNU APL, an interpreter for APL as described
 in ISO standard 13751, aka. &quot;Programming Language APL, Extended&quot;.
 </p>
@@ -11552,6 +11552,17 @@ errors are permitted in conforming-implementations.&rdquo; Several of the
 differences below (marked <code>EX</code>) are exactly that: GNU APL replaces
 an LRM-mandated error with defined, useful behavior where we judged
 that to be a better choice than raising the error.
+</p>
+<p><b>Note:</b> beyond the items catalogued below, IBM APL2 and the ISO
+standard itself diverge from each other in various display and
+formatting details that neither document specifies precisely enough
+to reverse-engineer with confidence from worked examples alone &ndash; the
+exact number of blank columns separating items in a nested array
+display is a typical example. Where GNU APL&rsquo;s own choice differs from
+a particular LRM example in a way that is purely cosmetic (no data is
+lost and no incorrect value is produced), such cases are judged
+individually as they are reported rather than catalogued exhaustively
+here, and are not tracked as open defects.
 </p>
 <span id="Legend"></span><h4 class="subheading">Legend</h4>
 

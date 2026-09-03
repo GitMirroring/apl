@@ -1661,13 +1661,22 @@ bool progress = false;
 
            tos.insert_1(pos_LO - 1);   // - 1 means insert before
            new (&tos[pos_LO])   Token(TOK_L_PARENT, int64_t(0));
-           ++pos_B;
+           ++pos_POWER;   // also shifted: it is a position after pos_LO
          }
 
-         // insert a right parenthesis
+         // insert a right parenthesis -- narrower than the (LO ⍣ N)
+         // wrap used to be: close right before ⍣ itself, i.e. (LO) ⍣ N,
+         // not after N. Semantically identical (⍣ binds to whatever
+         // function immediately precedes it either way), but a plain
+         // primitive LO combined with a trailing literal axis (e.g.
+         // ⌽[1]⍣2) hits a separate, deeper parser bug when the whole
+         // "LO⍣N" phrase sits inside one pair of parens -- "(LO)⍣N"
+         // (parenthesizing only LO) parses correctly for the exact same
+         // cases. See Bugs27 #38.
+         //
          {
-           tos.insert_1(pos_B - 1);   // - 1 means insert before
-           new (&tos[pos_B])   Token(TOK_R_PARENT, int64_t(0));
+           tos.insert_1(pos_POWER - 1);   // - 1 means insert before
+           new (&tos[pos_POWER])   Token(TOK_R_PARENT, int64_t(0));
          }
 
          t += 2;   // for the new ( and )
@@ -1775,13 +1784,22 @@ bool progress = false;
 
            tos.insert_1(pos_LO - 1);   // - 1 means insert before
            new (&tos[pos_LO])   Token(TOK_L_PARENT, int64_t(0));
-           ++pos_B;
+           ++pos_RANK;   // also shifted: it is a position after pos_LO
          }
 
-         // insert a right parenthesis
+         // insert a right parenthesis -- narrower than the (LO ⍤ y)
+         // wrap used to be: close right before ⍤ itself, i.e. (LO) ⍤ y,
+         // not after y. Semantically identical (⍤ binds to whatever
+         // function immediately precedes it either way), but a plain
+         // primitive LO combined with a trailing literal axis (e.g.
+         // ⌽[1]⍤2) hits a separate, deeper parser bug when the whole
+         // "LO⍤y" phrase sits inside one pair of parens -- "(LO)⍤y"
+         // (parenthesizing only LO) parses correctly for the exact same
+         // cases. See Bugs27 #38.
+         //
          {
-           tos.insert_1(pos_B - 1);   // - 1 means insert before
-           new (&tos[pos_B])   Token(TOK_R_PARENT, int64_t(0));
+           tos.insert_1(pos_RANK - 1);   // - 1 means insert before
+           new (&tos[pos_RANK])   Token(TOK_R_PARENT, int64_t(0));
          }
 
          t += 2;   // for the new ( and )

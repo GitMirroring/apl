@@ -46,7 +46,6 @@ NEG_ERR5[2]  ←
              ^
       )SI
 NEG_ERR5[2]
-Z__LO_EACH_B[15]
 *
 
       vB←3×vA←4 3⍴⍳sA←23+sB←40
@@ -119,7 +118,6 @@ OK      - no duplicate parents
 
       )SI
 NEG_ERR5[2]
-Z__LO_EACH_B[15]
 *
 
       )SIC

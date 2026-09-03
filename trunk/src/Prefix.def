@@ -38,45 +38,46 @@
    ║  26  │  VAL  OP1  [X]  VAL  │ 4 │               ║
    ║  27  │  F   OP1             │ 2 │               ║
    ║  28  │  OP1  OP1            │ 2 │               ║
-   ║  29  │  F   OP1  [X]        │ 3 │               ║
-   ║  30  │  F   [X]  OP1        │ 3 │               ║
-   ║  31  │  F   [X]  OP1  [X]   │ 4 │               ║
-   ║  32  │  OP2  SYM            │ 2 │               ║
-   ║  33  │  VAL  OP2  VAL       │ 3 │ F_D_G_        ║
-   ║  34  │  VAL  OP2  F         │ 3 │ F_D_G_        ║
-   ║  35  │  F   OP2  VAL        │ 3 │               ║
-   ║  36  │  F   OP2  F          │ 3 │               ║
-   ║  37  │  F   OP2  [X]  VAL   │ 4 │               ║
-   ║  38  │  VAL  [X]            │ 2 │               ║
-   ║  39  │  SYM  [X]            │ 2 │               ║
-   ║  40  │  SYM  [X]  ←    VAL  │ 4 │               ║
-   ║  41  │  F   SYM             │ 2 │               ║
-   ║  42  │  VAL  ←    VAL       │ 3 │               ║
-   ║  43  │  SYM  ←    VAL       │ 3 │               ║
-   ║  44  │  OP2  SYM  ←    VAL  │ 4 │               ║
-   ║  45  │  SYM  ←    F         │ 3 │               ║
-   ║  46  │  SYM  ←    F0        │ 3 │ V_ASS_F_      ║
-   ║  47  │  SYM  ←    OP1       │ 3 │ V_ASS_F_      ║
-   ║  48  │  SYM  ←    OP2       │ 3 │ V_ASS_F_      ║
-   ║  49  │  ]                   │ 1 │               ║
-   ║  50  │  [ ;  PIDX           │ 2 │               ║
-   ║  51  │  [ ;  VAL  PIDX      │ 3 │               ║
-   ║  52  │  VAL  VAL            │ 2 │               ║
-   ║  53  │  SYM  )    ←    VAL  │ 4 │               ║
-   ║  54  │  END                 │ 1 │               ║
-   ║  55  │  END  VOID           │ 2 │               ║
-   ║  56  │  END  VAL            │ 2 │               ║
-   ║  57  │  END  →              │ 2 │               ║
-   ║  58  │  END  →    VAL       │ 3 │               ║
-   ║  59  │  F   →    VAL        │ 3 │ END_GOTO_B_   ║
-   ║  60  │  OP1  →    VAL       │ 3 │ END_GOTO_B_   ║
-   ║  61  │  VAL  →    VAL       │ 3 │               ║
-   ║  62  │  RET                 │ 1 │               ║
-   ║  63  │  RET  VOID           │ 2 │               ║
-   ║  64  │  RET  VAL            │ 2 │               ║
-   ║  65  │  RET  →              │ 2 │               ║
-   ║  66  │  RET  →    VAL       │ 3 │               ║
-   ║  67  │  RET  VAL  →    VAL  │ 4 │               ║
+   ║  29  │  VAL  OP1            │ 2 │               ║
+   ║  30  │  F   OP1  [X]        │ 3 │               ║
+   ║  31  │  F   [X]  OP1        │ 3 │               ║
+   ║  32  │  F   [X]  OP1  [X]   │ 4 │               ║
+   ║  33  │  OP2  SYM            │ 2 │               ║
+   ║  34  │  VAL  OP2  VAL       │ 3 │ F_D_G_        ║
+   ║  35  │  VAL  OP2  F         │ 3 │ F_D_G_        ║
+   ║  36  │  F   OP2  VAL        │ 3 │               ║
+   ║  37  │  F   OP2  F          │ 3 │               ║
+   ║  38  │  F   OP2  [X]  VAL   │ 4 │               ║
+   ║  39  │  VAL  [X]            │ 2 │               ║
+   ║  40  │  SYM  [X]            │ 2 │               ║
+   ║  41  │  SYM  [X]  ←    VAL  │ 4 │               ║
+   ║  42  │  F   SYM             │ 2 │               ║
+   ║  43  │  VAL  ←    VAL       │ 3 │               ║
+   ║  44  │  SYM  ←    VAL       │ 3 │               ║
+   ║  45  │  OP2  SYM  ←    VAL  │ 4 │               ║
+   ║  46  │  SYM  ←    F         │ 3 │               ║
+   ║  47  │  SYM  ←    F0        │ 3 │ V_ASS_F_      ║
+   ║  48  │  SYM  ←    OP1       │ 3 │ V_ASS_F_      ║
+   ║  49  │  SYM  ←    OP2       │ 3 │ V_ASS_F_      ║
+   ║  50  │  ]                   │ 1 │               ║
+   ║  51  │  [ ;  PIDX           │ 2 │               ║
+   ║  52  │  [ ;  VAL  PIDX      │ 3 │               ║
+   ║  53  │  VAL  VAL            │ 2 │               ║
+   ║  54  │  SYM  )    ←    VAL  │ 4 │               ║
+   ║  55  │  END                 │ 1 │               ║
+   ║  56  │  END  VOID           │ 2 │               ║
+   ║  57  │  END  VAL            │ 2 │               ║
+   ║  58  │  END  →              │ 2 │               ║
+   ║  59  │  END  →    VAL       │ 3 │               ║
+   ║  60  │  F   →    VAL        │ 3 │ END_GOTO_B_   ║
+   ║  61  │  OP1  →    VAL       │ 3 │ END_GOTO_B_   ║
+   ║  62  │  VAL  →    VAL       │ 3 │               ║
+   ║  63  │  RET                 │ 1 │               ║
+   ║  64  │  RET  VOID           │ 2 │               ║
+   ║  65  │  RET  VAL            │ 2 │               ║
+   ║  66  │  RET  →              │ 2 │               ║
+   ║  67  │  RET  →    VAL       │ 3 │               ║
+   ║  68  │  RET  VAL  →    VAL  │ 4 │               ║
    ╚══════╧══════════════════════╧═══╧═══════════════╝
  */
 
@@ -97,6 +98,7 @@
    void reduce_A_M_C_B();            ///< reduce phrase A M C B
    void reduce_F_M__();              ///< reduce phrase F M
    void reduce_M_M__();              ///< reduce phrase M M
+   void reduce_A_M__();              ///< reduce phrase A M
    void reduce_F_M_C_();             ///< reduce phrase F M C
    void reduce_F_C_M_();             ///< reduce phrase F C M
    void reduce_F_C_M_C();            ///< reduce phrase F C M C
@@ -130,7 +132,7 @@
    void reduce_RETC_GOTO_B_();       ///< reduce phrase RETC GOTO B
    void reduce_RETC_A_GOTO_B();      ///< reduce phrase RETC A GOTO B
 
-   enum { PHRASE_COUNT   = 68,      ///< number of phrases
+   enum { PHRASE_COUNT   = 69,      ///< number of phrases
           PHRASE_MODU    = 519,     ///< hash table size
           MAX_PHRASE_LEN = 4 };     ///< max. number of token in a phrase
 
@@ -444,7 +446,7 @@
   PH(                , ___           , 0x00000 ,   0  ,   0  ,  0),  // [12C]
   PH(                , ___           , 0x00000 ,   0  ,   0  ,  0),  // [12D]
   PH(                , ___           , 0x00000 ,   0  ,   0  ,  0),  // [12E]
-  PH(                , ___           , 0x00000 ,   0  ,   0  ,  0),  // [12F]
+  PH( A M            , A_M__         , 0x0012F ,  42  ,   0  ,  2),  // [12F]
   PH(                , ___           , 0x00000 ,   0  ,   0  ,  0),  // [130]
   PH(                , ___           , 0x00000 ,   0  ,   0  ,  0),  // [131]
   PH(                , ___           , 0x00000 ,   0  ,   0  ,  0),  // [132]

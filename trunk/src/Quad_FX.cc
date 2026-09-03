@@ -206,8 +206,19 @@ const bool keep_indent = !UserPreferences::uprefs.discard_indentation;
                 }
              else
                 {
-                  line->print_boxed(CERR, 0);
-                  MORE_ERROR() << "bad line at " LOC;
+                  // used to dump the offending value boxed to CERR before
+                  // erroring -- a debug-trace leak, not useful )MORE info
+                  // for the caller. Report the value's shape instead of
+                  // the value itself: unlike the sibling char-scalar
+                  // branch above, line here is not guaranteed to even be
+                  // character data (that's the whole point of this
+                  // branch), so streaming *line -- which goes through
+                  // UCS_string's char-only Value conversion -- would
+                  // itself raise a (misleading) error. See Bugs27 #59(i).
+                  //
+                  MORE_ERROR() << "bad function line (not a character "
+                                  "vector): shape " << line->get_shape()
+                               << " at " LOC;
                   DOMAIN_ERROR;
                 }
 

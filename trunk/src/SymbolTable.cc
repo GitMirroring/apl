@@ -134,6 +134,19 @@ SymbolTable::find_lambda_name(const UserFunction * lambda)
          for (Symbol * sym = symbol_table[s]; sym; sym = sym->next)
              {
                if (sym->is_erased())   continue;
+
+               // skip macros' own internal parameter symbols (μ1, μ2, ...
+               // -- same convention as list()'s "hide macros" above). A
+               // lambda passed as an operand to a macro-implemented
+               // operator (e.g. {...}¨B, EACH) is invoked from inside the
+               // macro's own body via such a symbol, which would
+               // otherwise win here and show up as e.g. "μ3[1]" in error
+               // messages / )SI instead of the lambda's own λN identity
+               // -- an internal implementation detail leaking into
+               // user-visible output. See Bugs27 #56.
+               //
+               if (sym->get_name()[0] == UNI_MUE)   continue;
+
                if (sym->get_exec_ufun_depth(lambda) != -1)
                   return sym->get_name();
              }

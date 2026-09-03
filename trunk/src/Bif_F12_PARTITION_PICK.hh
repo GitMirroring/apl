@@ -125,11 +125,21 @@ public:
       { return Token(TOK_APL_VALUE1, disclose(B, true)); }
 
    /// overloaded Function::eval_identity_fun(). Figure 28 (apl2lrm.txt
-   /// p.212): the identity item for ⊃ is ⍳0 -- i.e. pick with an empty
-   /// left argument already returns the whole right argument (LRM
-   /// p.42), so the reduce-identity for ⊃ is simply B itself, unchanged.
+   /// p.212) literally gives the identity FUNCTION for ⊃ as ⍳0, with the
+   /// table's own Z←SR⍴⊂.... header applying: the actual identity value
+   /// is SR⍴⊂⍳0 (SR = the frame shape, i.e. B's shape without axis) --
+   /// one enclosed empty vector PER remaining position, the same
+   /// per-frame-position broadcast every other Figure 28 identity uses
+   /// (see enclosed_identity() above). This used to return CLONE(&B) --
+   /// B entirely unchanged, rank and all -- based on conflating this
+   /// table entry with a DIFFERENT LRM fact (p.42: dyadic ⍳0⊃B ≡ B, the
+   /// empty-left-argument behavior of Pick itself, not the Figure 28
+   /// reduce-identity). See Bugs27 #27.
    virtual Token eval_identity_fun(cValue_R B, sAxis axis) const
-      { return Token(TOK_APL_VALUE1, CLONE(&B, LOC)); }
+      {
+        return NonscalarFunction_default_identity::enclosed_identity
+                  (B, axis, Idx0(LOC));
+      }
 
    /// ⊃B
    /// @param B right argument APL value

@@ -487,14 +487,29 @@ check_EOC:
                    // (which has set the save execution mode) shall remain
                    // the SI stack.
                    //
+                   // Capture the innermost (about-to-be-popped) frame's
+                   // error and restore it onto the surviving frame once
+                   // unwound, the same way the nonsuspendable-unwind case
+                   // below already does -- without this, Quad_EC::eoc()
+                   // (called via check_EOC right after) read whatever
+                   // stale error happened to already be sitting on the
+                   // surviving frame instead of the one that was actually
+                   // just thrown, showing the wrong ⎕EM[1;] text and/or
+                   // losing ⎕EM[2;]/[3;] whenever evaluating ⎕EC's B
+                   // pushed one or more intermediate SI frames (e.g. any
+                   // real statement execution, or a called function).
+                   // See Bugs27 #57.
+                   //
                    StateIndicator * si = Workspace::SI_top();
                    const int sex_level = si->get_safe_execution_depth();
+                   Error err = StateIndicator::get_error(si);
                    while (si->get_parent() && sex_level ==
                           si->get_parent()->get_safe_execution_depth())
                       {
                         si = si->get_parent();
                         Workspace::pop_SI(LOC);
                       }
+                   StateIndicator::get_error(Workspace::SI_top()) = err;
 
                     goto check_EOC;
                   }

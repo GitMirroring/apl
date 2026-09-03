@@ -26,6 +26,8 @@
 
 #include <stdint.h>
 
+#include <deque>
+
 #include "ErrorCode.hh"
 #include "Function.hh"
 #include "NamedObject.hh"
@@ -465,8 +467,20 @@ protected:
    /// the name of \b this \b Symbol
    UCS_string name;
 
-   /// the value stack of \b this \b Symbol
-   std::vector<ValueStackItem> value_stack;
+   /// the value stack of \b this \b Symbol. std::deque rather than
+   /// std::vector: Archive.cc's )LOAD derived-function reconstruction
+   /// path (read_Function(int, Symbol&)) captures the address of a
+   /// field inside the current top-of-stack item (via top_of_stack()->
+   /// get_function_P()) and writes through it much later, after
+   /// further push()es on the same Symbol may have occurred (e.g. the
+   /// same symbol bound as a derived function at two different
+   /// suspended )SI depths) -- a std::vector reallocation in between
+   /// would silently invalidate that address, turning the later write
+   /// into memory corruption. std::deque's push_back()/pop_back()
+   /// never invalidate references to existing elements, which fixes
+   /// this the same way DerivedFunctionCache was fixed (see
+   /// DerivedFunction.hh).
+   std::deque<ValueStackItem> value_stack;
 };
 //────────────────────────────────────────────────────────────────────────────
 /// lambda result λ

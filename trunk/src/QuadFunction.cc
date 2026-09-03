@@ -348,7 +348,17 @@ Value_P Z(3, LOC);
         const Error & err = StateIndicator::get_error(si);
         const ErrorCode ec = ErrorCode(result.get_int_val());
 
-        UCS_string line_1(UTF8_string(Error::error_name(ec)));
+        // err.get_error_line_1() carries the ACTUAL message (e.g. a
+        // ⎕ES'd string, or A's override text for A ⎕ES B) rather than
+        // just the generic name for ec -- reliable now that Command.cc's
+        // safe-execution SI unwind propagates the innermost frame's
+        // error up to si before eoc() ever runs (Bugs27 #57). Still
+        // gated on the error codes matching as a defensive fallback, in
+        // case some path reaches here without going through that unwind.
+        //
+        UCS_string line_1 = (err.get_error_code() == ec)
+                           ? err.get_error_line_1()
+                           : UCS_string(UTF8_string(Error::error_name(ec)));
         if (more_info.size())   line_1 << UNI_PLUS;
 
         PrintBuffer pb;
@@ -433,6 +443,29 @@ Quad_EC::eval_B(cValue_R B) const
 {
 const UCS_string statement_B(B);
 
+   // Mark the CURRENT frame as safe execution before even attempting to
+   // parse B, and unconditionally restore it right after (regardless of
+   // outcome), rather than only marking a NEW frame after a successful
+   // ExecuteList::fix() below. Error::update_error_info() (called from
+   // inside throw_apl_error(), i.e. before any catch below even runs)
+   // only suppresses printing an error to the console when it finds a
+   // safe-execution frame walking up from where the error occurred --
+   // otherwise it prints immediately. A B that fails to even PARSE
+   // (not just fails at runtime) throws from deep inside
+   // ExecuteList::fix() itself, before this function had ever pushed a
+   // new (and thus protected) frame for B's own execution -- so it use
+   // to print straight to the console, bypassing the catch two lines
+   // below entirely and violating ⎕EC/⎕EA/⎕EB's whole contract that a
+   // failed B is caught and returned as a value, never surfaced
+   // directly. A B that fails at RUNTIME instead (parses fine, then
+   // errors while executing) was never affected: by then a real,
+   // already-protected child frame exists (see the unchanged
+   // set_safe_execution_depth() call on the pushed frame near the end
+   // of this function). See Bugs27 #36.
+   //
+StateIndicator * const top = Workspace::SI_top();
+   top->set_safe_execution_depth();
+
 ExecuteList * fun = 0;
 Error fix_error(E_SYNTAX_ERROR, LOC);   // fallback if nothing better is caught
    try {
@@ -446,6 +479,14 @@ Error fix_error(E_SYNTAX_ERROR, LOC);   // fallback if nothing better is caught
      catch (Error & err)      { fix_error = err; }
      catch (std::bad_alloc &) { WS_FULL; }
      catch (...)              { FIXME; }
+
+   // restore top's own depth to what it was before, either way, and
+   // before doing anything else with it: the (unchanged) success path
+   // below computes the newly pushed frame's OWN depth from top's, so
+   // top must be back to its true value first, or that computation
+   // would double-count the temporary bump above.
+   //
+   top->clear_safe_execution();
 
    if (fun == 0)
       {
@@ -1741,25 +1782,31 @@ Stop_Trace::locate_fun(const cValue & fun_name)
 UCS_string fun_name_ucs(fun_name);
    if (fun_name_ucs.size() == 0)   return 0;
 
+// callers (Quad_STOP/Quad_TRACE eval_AB/eval_B) raise DOMAIN_ERROR once
+// locate_fun() has failed for every candidate value -- report via
+// )MORE instead of printing straight to CERR ahead of that error, which
+// used to leak diagnostic text (e.g. "symbol NONEX not found") before
+// the DOMAIN ERROR was ever raised. See Bugs27 #59(i).
+//
 Symbol * fun_symbol = Workspace::lookup_existing_symbol(fun_name_ucs);
    if (fun_symbol == 0)
       {
-        CERR << "symbol " << fun_name_ucs << " not found" << endl;
+        MORE_ERROR() << "symbol " << fun_name_ucs << " not found";
         return 0;
       }
 
 cFunction_P fun = fun_symbol->get_function();
    if (fun == 0)
       {
-        CERR << "symbol " << fun_name_ucs << " is not a function" << endl;
+        MORE_ERROR() << "symbol " << fun_name_ucs << " is not a function";
         return 0;
       }
 
 const UserFunction * ufun = fun->get_func_ufun();
    if (ufun == 0)
       {
-        CERR << "symbol " << fun_name_ucs
-             << " is not a defined function" << endl;
+        MORE_ERROR() << "symbol " << fun_name_ucs
+                     << " is not a defined function";
         return 0;
       }
 

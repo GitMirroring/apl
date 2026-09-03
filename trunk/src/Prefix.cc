@@ -88,10 +88,9 @@ Prefix::reset(const char * loc)
    // DerivedFunction slot (e.g. from f⍨, f¨, f.g) allocated while
    // evaluating the now-discarded statement would otherwise never be
    // freed: a tight A→B retry loop containing such an operator leaks
-   // one slot per iteration and hits SYSTEM LIMIT (fun_oper) after
-   // MAX_FUN_OPER iterations, regardless of the statement's own,
-   // genuinely small operator count (reported by David Alden,
-   // 2026-08-19).
+   // one slot per iteration, growing fun_oper_cache without bound,
+   // regardless of the statement's own, genuinely small operator count
+   // (reported by David Alden, 2026-08-19).
    //
    si.fun_oper_cache.reset();
 }
@@ -940,9 +939,10 @@ int ret = SIG_NONE;
 }
 //════════════════════════════════════════════════════════════════════════════
 DerivedFunction *
-Prefix::get_fun_oper_slot(const char * loc) const
+Prefix::get_fun_oper_slot(Token * LO, cFunction_P F_or_M_or_D, Token * RO,
+                          Value_P X, const char * loc) const
 {
-   return si.get_fun_oper_slot(LOC);
+   return si.get_fun_oper_slot(LO, F_or_M_or_D, RO, X, loc);
 }
 //────────────────────────────────────────────────────────────────────────────
 void
@@ -1086,9 +1086,26 @@ TokenClass next = body[pc].get_Class();
    if (next == TC_OPER2)   return false;
    if (next == TC_FUN12)   return false;
 
-   if (next == TC_L_PARENT)   // )) XXX
+   // body is walked right-to-left (Prefix's own evaluation order): pc
+   // currently points one past our closing ')', i.e. at the RIGHTMOST
+   // token still INSIDE these parens. For a source "))" (e.g. the RO's
+   // own "(2-1)" ending right where the outer "(⍴⍤(2-1))" also ends),
+   // that rightmost inner token is itself a ')' -- TC_R_PARENT, not
+   // TC_L_PARENT. The class this used to check for doesn't occur here
+   // at all (class token identities are not swapped by the reversal,
+   // only their array order is), so this branch silently never matched
+   // real "))" input; a literal RO like (⍴⍤1) only worked via the
+   // separate TC_VALUE-preceded-by-TC_OPER2 case elsewhere in this
+   // function. See Bugs27 #21.
+   //
+   if (next == TC_R_PARENT)   // )) XXX
       {
-        ++pc;
+        // pc already points at this inner ')' (no extra ++pc first --
+        // that used to skip past it onto an unrelated token, since pc
+        // here is the token TO recurse on, not one before it, tripping
+        // the Assert1(body[pc].get_Class()==TC_R_PARENT) at the top of
+        // this very function on the very first recursive call).
+        //
         if (!is_value_parenthesis(pc))   return false;   // (fun)) XXX
         const int offset = body[pc].get_int_val2();
         pc += offset;
@@ -1653,7 +1670,8 @@ const Token jump_result = caller->jump(*v_line);
    // the invoking expression" -- fall back to A, exactly as if B had
    // failed outright (handle_QUAD_ES_ERR() below).
    //
-   execute_EA_fallback(statement_A, E_SYNTAX_ERROR);
+   execute_EA_fallback(statement_A, E_SYNTAX_ERROR,
+                       "B's →N was out of range for both B and its caller");
 }
 //════════════════════════════════════════════════════════════════════════════
 void
@@ -1673,18 +1691,69 @@ const APL_Integer major = QES_val.get_int_value(3);
 const APL_Integer minor = QES_val.get_int_value(4);
 const ErrorCode ec      = ErrorCode(major << 16 | minor);
 
-   execute_EA_fallback(statement_A, ec);
+   execute_EA_fallback(statement_A, ec, "B failed to execute");
 }
 //════════════════════════════════════════════════════════════════════════════
 void
 Prefix::execute_EA_fallback(UCS_string statement_A,
-                            ErrorCode ec_on_failure)
+                            ErrorCode ec_on_failure,
+                            const char * why)
 {
 StateIndicator * top = Workspace::SI_top();
 Token & si_pushed = top->get_prefix().at0();
    Assert(si_pushed.get_tag() == TOK_SI_PUSHED);
 
 Token result_A = Bif_F1_EXECUTE::execute_statement(statement_A);
+
+   // Record why B failed onto the caller's (this ⎕EA macro's own SI
+   // frame's) error slot, and into )MORE, unconditionally -- timed
+   // AFTER execute_statement() returns, not before: execute_statement()
+   // always calls ExecuteList::fix() (Executable.cc) first, which
+   // unconditionally clears this same slot as its own "clear any errors
+   // that may have occurred before" bookkeeping, so setting it any
+   // earlier gets silently wiped before A ever runs.
+   //
+   // Quad_EM/Quad_ET::get_apl_value() (SystemVariable.cc) walk the
+   // CURRENT SI frame first, then parents, stopping at the first
+   // non-zero error code -- so if A itself folds to a plain value, or
+   // to a child frame that never errors, this slot (the nearest
+   // ancestor with an error) is what they find. If A's own execution
+   // DOES later error, A's own (nearer) frame naturally wins that same
+   // search instead -- "if both A and B fail, the visible error is A's"
+   // falls out for free, no extra logic needed here. Likewise if A
+   // itself fails to even PARSE: execute_statement() throws a real
+   // SYNTAX_ERROR exception in that case (ExecuteList::fix() returning
+   // 0), which unwinds straight past this function without recording
+   // anything here at all, so A's own error is again what becomes
+   // visible.
+   //
+   // The ⎕ET/⎕EM code itself is collapsed to the generic SYNTAX_ERROR
+   // (2 2) whenever ec_on_failure's own major code is SYNTAX_ERROR's:
+   // B's specific parser diagnostic (e.g. UNBALANCED_R_PARENT, major 2
+   // minor 6658 for an unparseable B) is meaningful only within B's own
+   // parsing context, not part of the stable, documented ⎕ET code space
+   // a caller should rely on. That collapse throws away real
+   // information though, so -- and ONLY in that case, i.e. only when
+   // something is actually lost -- the specific reason is preserved in
+   // )MORE. A plain (non-syntax-class) failure like DOMAIN_ERROR
+   // already says everything via its own ⎕ET code, so )MORE is left
+   // alone for it -- setting it unconditionally regressed existing
+   // Quad_EA.tc/Quad_ES.tc cases where A also fails with its own,
+   // unrelated plain error afterward (e.g. '⍳3.3' ⎕EA '⍳4.5'): this
+   // function's own B-related )MORE text has no way to know A is about
+   // to fail too and would linger, misleadingly, next to A's own
+   // (already correct, and DOMAIN_ERROR-class so )MORE-less) error
+   // report.
+   //
+ErrorCode ec_ET = ec_on_failure;
+   if (Error::error_major(ec_on_failure) == Error::error_major(E_SYNTAX_ERROR))
+      {
+        MORE_ERROR() << "A ⎕EA B: " << why << " ("
+                     << Error::error_name(ec_on_failure) << ")";
+        ec_ET = E_SYNTAX_ERROR;
+      }
+   new (&StateIndicator::get_error(top)) Error(ec_ET, LOC);
+
    if (result_A.get_Class() == TC_VALUE)   // A is a plain (foldable) value
       {
         si_pushed.move_from(result_A, LOC);
@@ -1705,7 +1774,10 @@ Token result_A = Bif_F1_EXECUTE::execute_statement(statement_A);
         return;
       }
 
-   new (&StateIndicator::get_error(top)) Error(ec_on_failure, LOC);
+   // execute_statement() only ever returns TC_VALUE or TOK_SI_PUSHED
+   // normally (see above for the exceptional, A-fails-to-parse case).
+   //
+   FIXME;
 }
 //════════════════════════════════════════════════════════════════════════════
 void
@@ -1759,8 +1831,7 @@ Prefix::reduce_LPAR_F_C_RPAR()
 cFunction_P F = at1().get_function();
 Value_P     C = at2().get_function_axis();
 
-DerivedFunction * derived = get_fun_oper_slot(LOC);
-   new (derived) Derived_F_X(F, C, LOC);
+DerivedFunction * derived = get_fun_oper_slot(0, F, 0, C, LOC);
 
    pop_args_push_result(Token(TOK_FUN2, derived));
    set_action(RA_CONTINUE);
@@ -1880,10 +1951,21 @@ Prefix::reduce_MISC_F_C_B()
 {
    Assert1(prefix_len == 3);   // F C B
 
-cMonOP  M = at0().get_function();
-Value_P C = at1().get_function_axis();
-Value_P B = at2().get_apl_val();
-
+   // Resolve the shift/reduce conflict (saved_MISC.get_Class()==TC_INDEX,
+   // i.e. this F's own axis bracket is directly preceded by ANOTHER,
+   // completed-but-not-yet-reduced value index, e.g. Z[1;1] in
+   // "Z[1;1] ⌷[¯1] 1") BEFORE calling at1().get_function_axis() below,
+   // not after. get_function_axis() validates F's axis value and can
+   // itself throw (e.g. AXIS ERROR for ⌷[¯1] applied to a scalar), which
+   // used to unwind out of this function with saved_MISC still holding
+   // the only live reference to Z[1;1]'s IndexExpr -- nothing outside
+   // this function knows to look at saved_MISC on an error unwind, so
+   // it (and its index values) leaked. See Bugs27 #59(k). Checking
+   // first, before anything that can throw, gets Z[1;1] safely back
+   // onto the main stack (where the usual per-reduce_XXX() error
+   // handling, e.g. reduce_A_C__()'s own try/catch, already covers it)
+   // before F's axis is even touched.
+   //
    if (saved_MISC.get_Class() == TC_INDEX)
       {
         if (value_expected())
@@ -1896,6 +1978,10 @@ Value_P B = at2().get_apl_val();
              return;
            }
       }
+
+cMonOP  M = at0().get_function();
+Value_P C = at1().get_function_axis();
+Value_P B = at2().get_apl_val();
 
    // ⎕FIO and ⌹ are primarily functions, but have subfunctions that are
    // operators. If saved_MISC is a function, then M was possibly called
@@ -1924,8 +2010,7 @@ Value_P B = at2().get_apl_val();
             C->get_sole_integer() == 49)
            {
              Token & LO = saved_MISC.get_token();
-             DerivedFunction * derived = get_fun_oper_slot(LOC);
-             new (derived)  Derived_LO_M_X(LO, M, C, LOC);
+             DerivedFunction * derived = get_fun_oper_slot(&LO, M, 0, C, LOC);
              clear_MISC(LOC);
 
              const Function_PC pc_M = at(0).get_PC();   // PC of M
@@ -1965,7 +2050,31 @@ void
 Prefix::reduce_A_M_B_()
 {
    if (at1().is_SLASH_or_BACKSLASH())   return reduce_A_F_B_();
-   syntax_error(LOC);
+
+   // A M B where M is a monadic operator and A is a VALUE (not
+   // function) left operand, e.g. 5 OP1 1 for ∇Z←(LO OP1) B. APL2
+   // (lrm "Operators": an operand may be an array or a function) and
+   // GNU APL's own macros already rely on this (e.g. Macro.def's
+   // μ3 Z__LO_POWER_N_B μ5); the dyadic operator phrase table already
+   // routes an analogous value LO (A D B) to the SAME handler as a
+   // function LO (A D G) -- phrase_gen.def -- but the monadic table
+   // only ever had "F M" (function LO). Mirror reduce_F_M__()'s
+   // construction of a Derived_LO_M, but apply it immediately since
+   // both operands (A as LO, B as the argument) are already on the
+   // stack here, unlike reduce_F_M__() which only builds the derived
+   // function for a LATER application. See Bugs27 #50.
+   //
+Token &  LO = at0();
+cMonOP    M = at1().get_function();
+Value_P   B = at2().get_apl_val();
+
+DerivedFunction * derived = get_fun_oper_slot(&LO, M, 0, Value_P(), LOC);
+
+const Token Z = derived->eval_B(*B);
+   if (push_error(Z))   return;
+
+   pop_args_push_result(Z);
+   set_action(Z);
 }
 //────────────────────────────────────────────────────────────────────────────
 void
@@ -1994,7 +2103,22 @@ void
 Prefix::reduce_A_M_C_B()
 {
    if (at1().is_SLASH_or_BACKSLASH())   return reduce_A_F_C_B();
-   syntax_error(LOC);
+
+   // A M C B: axis-qualified counterpart of reduce_A_M_B_() above, same
+   // fix, same reason -- see Bugs27 #50.
+   //
+Token &  LO = at0();
+cMonOP    M = at1().get_function();
+Value_P   C = at2().get_function_axis();
+Value_P   B = at3().get_apl_val();
+
+DerivedFunction * derived = get_fun_oper_slot(&LO, M, 0, C, LOC);
+
+const Token Z = derived->eval_B(*B);
+   if (push_error(Z))   return;
+
+   pop_args_push_result(Z);
+   set_action(Z);
 }
 //────────────────────────────────────────────────────────────────────────────
 void
@@ -2005,8 +2129,39 @@ Prefix::reduce_F_M__()
 Token & LO_F = at0();
 cMonOP     M = at1().get_function();
 
-DerivedFunction * derived = get_fun_oper_slot(LOC);
-   new (derived) Derived_LO_M(LO_F, M, LOC);
+DerivedFunction * derived = get_fun_oper_slot(&LO_F, M, 0, Value_P(), LOC);
+
+   pop_args_push_result(Token(TOK_FUN2, derived));
+   set_action(RA_CONTINUE);   // match again (w/o SHIFT)
+}
+//────────────────────────────────────────────────────────────────────────────
+void
+Prefix::reduce_A_M__()
+{
+   if (at1().is_SLASH_or_BACKSLASH())
+      {
+        // A slash or A backslash with no B (yet) on the stack, e.g.
+        // inside "(5/)". Unlike A M B, there is no eager eval_AB() we
+        // can perform here (no B), and unlike a genuine custom
+        // operator, value LO + slash/backslash does not have
+        // derived-function semantics of its own (see the
+        // comment in reduce_A_M_B_() above). Do not reduce; keep shifting
+        // so that a later B (if any) is caught by the A M B / A M C B
+        // phrases instead, which already redirect to compress/replicate.
+        //
+        set_action(RA_PUSH_NEXT);
+        return;
+      }
+
+   // A M (parenthesized, standalone, e.g. (5 OP1) B): same value-LO
+   // case as reduce_A_M_B_() above, except the derived function is
+   // only being BUILT here (no B on the stack yet), mirroring
+   // reduce_F_M__()'s function-LO counterpart. See Bugs27 #50.
+   //
+Token &  LO = at0();
+cMonOP    M = at1().get_function();
+
+DerivedFunction * derived = get_fun_oper_slot(&LO, M, 0, Value_P(), LOC);
 
    pop_args_push_result(Token(TOK_FUN2, derived));
    set_action(RA_CONTINUE);   // match again (w/o SHIFT)
@@ -2034,8 +2189,7 @@ Token & LO_F = at0();
 cMonOP     M = at1().get_function();
 Value_P C      = at2().get_function_axis();
 
-DerivedFunction * derived = get_fun_oper_slot(LOC);
-   new (derived) Derived_LO_M_X(LO_F, M, C, LOC);
+DerivedFunction * derived = get_fun_oper_slot(&LO_F, M, 0, C, LOC);
 
    pop_args_push_result(Token(TOK_FUN2, derived));
    set_action(RA_CONTINUE);   // match again (w/o SHIFT)
@@ -2050,12 +2204,10 @@ cFunction_P LO_F = at0().get_function();
 Value_P        C = at1().get_function_axis();
 cMonOP         M = at2().get_function();
 
-DerivedFunction * derived_F_C = get_fun_oper_slot(LOC);
-   new (derived_F_C) Derived_F_X(LO_F, C, LOC);
+DerivedFunction * derived_F_C = get_fun_oper_slot(0, LO_F, 0, C, LOC);
 
 Token tok_F_C(TOK_FUN2, derived_F_C);
-DerivedFunction * derived = get_fun_oper_slot(LOC);
-   new (derived) Derived_LO_M(tok_F_C, M, LOC);
+DerivedFunction * derived = get_fun_oper_slot(&tok_F_C, M, 0, Value_P(), LOC);
 
    pop_args_push_result(Token(TOK_FUN2, derived));
    set_action(RA_CONTINUE);   // match again (w/o SHIFT)
@@ -2071,12 +2223,10 @@ Value_P     FX = at1().get_function_axis();
 cMonOP      M  = at2().get_function();
 Value_P     MX = at3().get_function_axis();
 
-DerivedFunction * derived_F_C = get_fun_oper_slot(LOC);
-   new (derived_F_C) Derived_F_X(F, FX, LOC);
+DerivedFunction * derived_F_C = get_fun_oper_slot(0, F, 0, FX, LOC);
 
 Token tok_F_C(TOK_FUN2, derived_F_C);
-DerivedFunction * derived = get_fun_oper_slot(LOC);
-   new (derived) Derived_LO_M_X(tok_F_C, M, MX, LOC);
+DerivedFunction * derived = get_fun_oper_slot(&tok_F_C, M, 0, MX, LOC);
 
    pop_args_push_result(Token(TOK_FUN2, derived));
    set_action(RA_CONTINUE);   // match again (w/o SHIFT)
@@ -2383,7 +2533,7 @@ const Id id_D = D->get_Id();
       of ⍤ directly.
     */
 Value_P value_B;   // the original B (before stranding RO and B).
-DerivedFunction * derived = get_fun_oper_slot(LOC);
+DerivedFunction * derived;
    {
      Value_P value_RO;   // j123 (for ⍤) or N (for ⍣)
      const UCS_string LO_name = LO_F.get_function()->get_name();
@@ -2393,7 +2543,7 @@ DerivedFunction * derived = get_fun_oper_slot(LOC);
         Bif_OPER2_POWER::unstrand_RO_B(LO_name, RO_B, value_RO, value_B);
 
      Token tok_RO(TOK_APL_VALUE1, value_RO);
-     new (derived) Derived_LO_D_RO(LO_F, D, tok_RO, LOC);
+     derived = get_fun_oper_slot(&LO_F, D, &tok_RO, Value_P(), LOC);
    }
 
    /* for unstrand_RO_B() there are 2 main cases:
@@ -2443,8 +2593,7 @@ Token &     LO_F = at0();
 cFunction_P D    = at1().get_function();
 Token &     RO_G = at2();
 
-DerivedFunction * derived = get_fun_oper_slot(LOC);
-   new (derived) Derived_LO_D_RO(LO_F, D, RO_G, LOC);
+DerivedFunction * derived = get_fun_oper_slot(&LO_F, D, &RO_G, Value_P(), LOC);
 
    pop_args_push_result(Token(TOK_FUN2, derived));
    set_action(RA_CONTINUE);   // match again (w/o SHIFT)
@@ -2485,8 +2634,8 @@ const Function_PC pc_D = at(1).get_PC();
 
    if (D != &Bif_OPER2_RANK::fun)   // the normal case
       {
-        DerivedFunction * derived = get_fun_oper_slot(LOC);
-        new (derived) Derived_LO_D_RO(LO_F, D, at2(), LOC);
+        DerivedFunction * derived =
+                       get_fun_oper_slot(&LO_F, D, &at2(), Value_P(), LOC);
         pop_and_discard();   // pop LO_F
         pop_and_discard();   // pop D
         pop_and_discard();   // pop C
@@ -2510,14 +2659,14 @@ const Function_PC pc_D = at(1).get_PC();
       NARS variant of ⍤ with axes.
     */
 Value_P value_B;   // the original B (before stranding j and B).
-DerivedFunction * derived = get_fun_oper_slot(LOC);
+DerivedFunction * derived;
    {
      Value_P y123;
      Bif_OPER2_RANK::unstrand_RO_B(LO_F.get_function()->get_name(),
                                     RO_B, y123, value_B);
      Token T_y123_orig_RO(TOK_APL_VALUE1, y123);
 
-     new (derived) Derived_LO_D_X_RO(LO_F, D, X_C, T_y123_orig_RO, LOC);
+     derived = get_fun_oper_slot(&LO_F, D, &T_y123_orig_RO, X_C, LOC);
    }
 
    /* for unstrand_RO_B() there are 2 main cases:

@@ -79,6 +79,7 @@ phrase(BS_A_F+4      , A    , M    , C    , B    , DITO )   // A /[X] B
 //
 phrase(BS_LO_OP+2    , F    , M    ,      ,      , DITO )   // +/
 phrase(BS_LO_OP+2    , M    , M    ,      ,      , DITO )   // /¨
+phrase(BS_LO_OP+2    , A    , M    ,      ,      , DITO )   // (5 OP1)
 phrase(BS_LO_OP+3    , F    , M    , C    ,      , DITO )   // +/[2]
 phrase(BS_LO_OP+3    , F    , C    , M    ,      , DITO )   // ,[2]/
 phrase(BS_LO_OP+4    , F    , C    , M    , C    , DITO )   // ,[2]/[2]

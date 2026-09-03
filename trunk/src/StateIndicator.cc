@@ -196,6 +196,18 @@ StateIndicator::list(ostream & out, SI_mode mode) const
       {
         case PM_FUNCTION:
              Assert(executable);
+
+             // hide macro-internal frames (e.g. Z__LO_EACH_B) from )SI/
+             // )SIS/)SINL -- same principle as SymbolTable::list()'s
+             // "hide macros" for )VARS/)FNS/)SYMBOLS: a macro is a real
+             // UserFunction, but its name and line numbers are GNU APL
+             // implementation detail the user never wrote, not
+             // something meaningful to debug against. ]SI/]SIS (the
+             // SIM_debug case above) still show everything. See Bugs27
+             // #56.
+             //
+             if (executable->get_exec_ufun()->is_macro())   return;
+
              if (mode == SIM_SI)   // )SI
                 {
                   out << executable->get_exec_ufun()

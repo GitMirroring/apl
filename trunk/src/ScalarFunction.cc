@@ -1448,24 +1448,29 @@ Bif_F12_WITHOUT::eval_identity_fun(cValue_R B, sAxis axis) const
 {
    // axis is already normalized to IO←0
 
-   // Figure 28 (apl2lrm.txt p.212): the identity item for ∼ (Without)
-   // is ⍳0 -- i.e. the identity is simply B itself, unchanged (same
-   // reasoning as Bif_F12_PICK::eval_identity_fun(): a Without-reduce
-   // over an empty axis just returns the (already empty) right
-   // argument). Previously this built a shape_Z-shaped (B's shape with
-   // the reduced axis removed) array filled with B's prototype -- the
-   // generic NonscalarFunction_default_identity pattern, wrong here
-   // since it produces a plain scalar (e.g. 0) instead of an empty
-   // array, and its own DOMAIN_ERROR guard (shape_Z.get_volume()>0)
-   // fired even for legitimate cases: removing the sole axis of a
-   // rank-1 B gives a scalar shape_Z, whose volume is 1 (scalars are
-   // never volume 0), not 0.
-
+   // Figure 28 (apl2lrm.txt p.212) literally gives the identity FUNCTION
+   // for ∼ as ⍳0, with the table's own Z←SR⍴⊂.... header applying: the
+   // actual identity value is SR⍴⊂⍳0 (SR = the frame shape, i.e. B's
+   // shape without axis) -- one enclosed empty vector PER remaining
+   // position, via the same enclosed_identity() broadcast every other
+   // Figure 28 identity uses (PrimitiveFunction.hh). This used to
+   // return CLONE(&B) -- B entirely unchanged -- based on conflating
+   // this table entry with a DIFFERENT LRM fact (p.42: dyadic ⍳0⊃B ≡ B,
+   // Pick's own empty-left-argument behavior, not the Figure 28
+   // reduce-identity). A prior attempt at fixing this reached for
+   // NonscalarFunction_default_identity::eval_identity_fun() -- the
+   // OTHER, ,-specific default with its own DOMAIN_ERROR volume guard
+   // -- and hit that guard spuriously; enclosed_identity() (the shared
+   // static helper ⍴/,/⍉/↑/⌹ already use) has no such guard, since it
+   // is exactly the general "broadcast one item per frame position"
+   // case with no extra restriction. See Bugs27 #27.
+   //
 const sRank rank_B = B.get_rank();
    if (rank_B < 1)       RANK_ERROR;   // identity restriction, lrm p. 212
    if (axis >= rank_B)   RANK_ERROR;
 
-   return Token(TOK_APL_VALUE1, CLONE(&B, LOC));
+   return NonscalarFunction_default_identity::enclosed_identity
+             (B, axis, Idx0(LOC));
 }
 //────────────────────────────────────────────────────────────────────────────
 Value_P

@@ -115,9 +115,16 @@ public:
         else         safe_execution_depth = 0;
       }
 
-   /// return uninitialized memory for a new derived function
-   DerivedFunction * get_fun_oper_slot(const char * loc)
-      { return fun_oper_cache.get(loc); }
+   /// construct a new derived function and return a pointer to it.
+   /// @param LO token for the left operand (or 0 if absent)
+   /// @param F_or_M_or_D the function, monadic, or dyadic operator
+   /// @param RO token for the right operand (or 0 if absent)
+   /// @param X optional axis value (empty Value_P if absent)
+   /// @param loc caller location for diagnostics
+   DerivedFunction * get_fun_oper_slot(Token * LO, cFunction_P F_or_M_or_D,
+                                       Token * RO, Value_P X,
+                                       const char * loc)
+      { return fun_oper_cache.get(LO, F_or_M_or_D, RO, X, loc); }
 
    /// get the current prefix parser
    Prefix & get_prefix()

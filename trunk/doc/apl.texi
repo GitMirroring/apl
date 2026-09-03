@@ -9966,6 +9966,17 @@ differences below (marked @code{EX}) are exactly that: GNU APL replaces
 an LRM-mandated error with defined, useful behavior where we judged
 that to be a better choice than raising the error.
 
+@b{Note:} beyond the items catalogued below, IBM APL2 and the ISO
+standard itself diverge from each other in various display and
+formatting details that neither document specifies precisely enough
+to reverse-engineer with confidence from worked examples alone -- the
+exact number of blank columns separating items in a nested array
+display is a typical example. Where GNU APL's own choice differs from
+a particular LRM example in a way that is purely cosmetic (no data is
+lost and no incorrect value is produced), such cases are judged
+individually as they are reported rather than catalogued exhaustively
+here, and are not tracked as open defects.
+
 @subheading Legend
 
 @multitable @columnfractions .08 .92

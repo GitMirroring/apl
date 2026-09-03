@@ -400,6 +400,36 @@ void
 IO_Files::read_file_line(UTF8_string & file_line, bool & eof)
 {
 InputFile * input = InputFile::current_file();
+
+   // skip a UTF-8 BOM (EF BB BF) at the very start of a freshly opened
+   // file -- some editors/exporters prepend one, and left unstripped it
+   // decodes (via UTF8_string/UCS_string's ordinary UTF-8 decoding) to a
+   // literal U+FEFF as the first character of the first token, which the
+   // tokenizer doesn't recognize. Checking ftell()==0 (no bytes consumed
+   // from this FILE* yet) rather than current_line_no()==1: line_no's
+   // reset-to-0-on-open (InputFile::open_current_file()) can land AFTER
+   // this function's caller already incremented it once, so it is not a
+   // reliable "first byte of the file" signal here. See Bugs27 #59(e).
+   //
+   if (file_line.size() == 0 && ftell(input->file) == 0)
+      {
+        const int b0 = fgetc(input->file);
+        if (b0 == 0xEF)
+           {
+             const int b1 = fgetc(input->file);
+             const int b2 = fgetc(input->file);
+             if (b1 == 0xBB && b2 == 0xBF)   // BOM: discard all 3 bytes
+                ;
+             else                            // not a BOM: put back
+                {
+                  if (b2 != EOF)   ungetc(b2, input->file);
+                  if (b1 != EOF)   ungetc(b1, input->file);
+                  ungetc(b0, input->file);
+                }
+           }
+        else if (b0 != EOF)   ungetc(b0, input->file);
+      }
+
    for (;;)
        {
          const int cc = fgetc(input->file);

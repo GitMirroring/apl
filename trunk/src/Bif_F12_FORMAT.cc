@@ -1332,6 +1332,23 @@ bool has_complex = false;
              const int fract_digits = (-precision) - 1;
              UCS_string data = UCS_string::from_double_to_expo(value,
                                                                fract_digits);
+
+             // overflow check, mirroring the precision >= 0 (fixed-
+             // decimal) branch above -- was missing entirely here, so a
+             // too-narrow width for exponential format was silently
+             // ignored (e.g. 1 ¯1⍕5, width 1, produced the unclamped,
+             // untruncated "5E0" with no error). Blake McBride's Bugs27
+             // #33; the ISO/IEC 13751 evaluation sequence for Dyadic
+             // Format (15.4.2) states the width check unconditionally
+             // for both fixed and exponential form -- no format-
+             // specific exception.
+             //
+             if (width && data.ssize() > width)   // overflow
+                {
+                  if (Workspace::get_FC(3) == UNI_0)   DOMAIN_ERROR;
+                  data = UCS_string(width, Workspace::get_FC(3));
+                }
+
              add_row(ret, r, has_char, has_num, UNI_E, data);
           }
       }

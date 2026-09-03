@@ -246,7 +246,7 @@ mac_def(  Z__A_LO_OUTER_B,
 /// inner product. caller has checked that the shapes of A and B fit
 //
 mac_def(  Z__A_LO_INNER_RO_B,
- "μ1←μ2 (μ3 Z__A_LO_INNER_RO_B μ4) μ6;⎕IO\n"
+ "μ1←μ2 (μ3 Z__A_LO_INNER_RO_B μ4) μ6\n"
  "⍝ called as Bif_OPER2_INNER::eval_ALRB(A, _LO, _RO, B)\n"
  "⍝\n"
  "⍝ ╔═══╤═══╤════════════════════════════════════════════════════════╗\n"
@@ -258,16 +258,22 @@ mac_def(  Z__A_LO_INNER_RO_B,
  "⍝ ║μ4 │ RO│ the elementwise function (the '×' in +.×)              ║\n"
  "⍝ ║μ6 │ B │                                                        ║\n"
  "⍝ ╚═══╧═══╧════════════════════════════════════════════════════════╝\n"
- "⍝ ⎕IO is localized to 1 here (harmless, purely to shorten the\n"
- "⍝ branch and index arithmetic below); the C++ caller has already\n"
- "⍝ checked that A's and B's shapes fit\n"
+ "⍝ ⎕IO used to be localized to 1 here, on the (wrong) assumption that\n"
+ "⍝ doing so was harmless: LO/RO are user-supplied and may be called\n"
+ "⍝ from within this macro (below), so a localized ⎕IO leaked into\n"
+ "⍝ them too -- confirmed live: A +.F B with F referencing ⎕IO\n"
+ "⍝ internally saw 1 instead of the caller's real ⎕IO←0 (Bugs27 #56).\n"
+ "⍝ Fixed by never touching ⎕IO at all: A's last axis is\n"
+ "⍝ ⎕IO+(⍴⍴μ2)-1 and B's first axis is ⎕IO, under any ⎕IO -- instead\n"
+ "⍝ of forcing ⎕IO←1 so that those reduce to the simpler ρρμ2 / 1.\n"
+ "⍝ The C++ caller has already checked that A's and B's shapes fit.\n"
  "⍝\n"
- "    ⎕IO←1 ◊ 3 → (⍴⍴μ2)=0 ◊ 2 → (⍴⍴μ6)=0\n"
- " μ1←μ3/¨ (⊂[ρρμ2]μ2) ∘.μ4 ⊂[1]μ6 ◊ →0\n"
- " μ1←μ3/¨ (⊂[ρρμ2]μ2) ∘.μ4 ⊂μ6    ◊ →0\n"
+ "    3 → (⍴⍴μ2)=0 ◊ 2 → (⍴⍴μ6)=0\n"
+ " μ1←μ3/¨ (⊂[⎕IO+(⍴⍴μ2)-1]μ2) ∘.μ4 ⊂[⎕IO]μ6 ◊ →0\n"
+ " μ1←μ3/¨ (⊂[⎕IO+(⍴⍴μ2)-1]μ2) ∘.μ4 ⊂μ6      ◊ →0\n"
  " 2 → (⍴⍴μ6)=0\n"
- " μ1←μ3/¨ (⊂μ2)      ∘.μ4 ⊂[1]μ6 ◊ →0\n"
- " μ1←μ3/¨ (⊂μ2)      ∘.μ4 ⊂μ6    ◊ →0\n")
+ " μ1←μ3/¨ (⊂μ2)               ∘.μ4 ⊂[⎕IO]μ6 ◊ →0\n"
+ " μ1←μ3/¨ (⊂μ2)               ∘.μ4 ⊂μ6      ◊ →0\n")
 
 /// monadic power with repeat count and no result
 //

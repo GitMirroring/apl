@@ -1718,8 +1718,13 @@ int file_profile = 0;   // the current profile in the preferences file
             }
          else if (!strcasecmp(opt, "MEMORY"))
             {
+              // a bad MEMORY line here used to be misreported as a
+              // --mem command-line problem (parse_mem()'s messages
+              // hardcoded that name regardless of caller). See
+              // Bugs27 #59(f).
+              //
               mem_arg = strdup(arg);
-              Quad_WA::parse_mem(false);
+              Quad_WA::parse_mem(false, "MEMORY (preferences file)");
             }
          else if (!strcasecmp(opt, "NABLA-TO-HISTORY"))
             {
