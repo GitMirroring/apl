@@ -608,7 +608,7 @@ cValue::compute_depth() const
    // repeated paths (PointerCell's MAX_DEPTH check on every ⊂/strand/
    // selective assignment, PrintBuffer, Bif_F2_INDEX, ...), not just ≡.
    //
-   if (is_packed() || pointer_cell_count == 0)
+   if ((pointer_cell_count == 0) || is_packed())
       {
         flags.value_depth = is_scalar() ? 0 : 1;
         return flags.value_depth;

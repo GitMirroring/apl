@@ -117,8 +117,8 @@ enum {
    KEYPAD_rows = sizeof(KEYPAD_template) / sizeof(char *),
      };
 
-static_assert(MAIN_rows == KEYPAD_rows);
-static_assert(MAIN_rows == CURSOR_rows);
+static_assert(MAIN_rows == KEYPAD_rows, "MAIN_rows == KEYPAD_rows");
+static_assert(MAIN_rows == CURSOR_rows, "MAIN_rows == CURSOR_rows");
 
 Cmd_KEYB::map_item Cmd_KEYB::key_map[];
 

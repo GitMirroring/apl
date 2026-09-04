@@ -829,7 +829,7 @@ vector<Value_P>value_rows;   value_rows.reserve(100);
 
          Parser parser(PM_EXECUTE, LOC, /* macro */ false);
          Token_string tos;   // parsed line
-         if (const ErrorCode ec = parser.parse(line, tos, /* optimize */ true))
+         if (parser.parse(line, tos, /* optimize */ true))
             {
               MORE_ERROR() << "Error parsing multi-line literal:\n"
                               "    '" << line << "'";

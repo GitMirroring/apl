@@ -28,7 +28,7 @@
 #include "PrintOperator.hh"
 #include "Token.hh"
 
-struct DerivedFunction;
+class DerivedFunction;
 class Prefix;
 struct ReduceArg;
 class StateIndicator;
