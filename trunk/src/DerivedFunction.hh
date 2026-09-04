@@ -85,9 +85,14 @@ public:
         return left_arg.is_apl_val() ? left_arg.get_apl_val() : Value_P();
       }
 
-   /// return the left operand of this derived function
+   /// return the left operand (or 0) of this derived function -- 0 for
+   /// the "plain function bound only to an axis" shape, which has no
+   /// left operand at all (Token::get_function() would SYNTAX_ERROR on
+   /// its TOK_VOID left_arg otherwise; mirrors get_RO()'s same guard).
    cFunction_P get_LO() const
-      { return left_arg.get_function(); }
+      {
+        return left_arg.get_tag() == TOK_VOID ? 0 : left_arg.get_function();
+      }
 
    /// return the operator of this derived function
    cFunction_P get_OPER() const

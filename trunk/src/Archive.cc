@@ -470,8 +470,9 @@ XML_Saving_Archive::save_Function(const Function & fun)
              << endl;
 
         const DerivedFunction & dfn = static_cast<const DerivedFunction &>(fun);
-        outf << " LO-fid=\"" << HEX(dfn.get_LO())     << "\""
-               " OPER-fid=\"" << HEX(dfn.get_OPER()) << "\"";
+        const Function * lo = dfn.get_LO();
+        outf << " OPER-fid=\"" << HEX(dfn.get_OPER()) << "\"";
+        if (lo)   outf << " LO-fid=\"" << HEX(lo) << "\"";
 
         const Function * ro = dfn.get_RO();
         const cValue * axis = dfn.get_AXIS();
@@ -2236,14 +2237,26 @@ XML_Loading_Archive::instantiate_derived_functions(bool allocate)
         if (!todo.cache)   continue;
 DerivedFunction * const slot = static_cast<DerivedFunction *>(todo.cache);
 
-        Assert(todo.LO_fid   != -1);
-        cFunction_P LO = find_function(todo.LO_fid);
-        Assert(LO);
-
         Assert(todo.OPER_fid != -1);
         cFunction_P OPER = find_function(todo.OPER_fid);
         Assert(OPER);
+
+        // LO_fid is -1 for a plain function bound only to an axis (no
+        // operator, no left operand) -- mirrors how RO_fid/AXIS_vid are
+        // already handled as optional just below. LO_arg stays 0 (no
+        // left operand passed to construct_at()) in that case; tok_LO
+        // is still constructed either way (Token's TOK_FUN2 constructor
+        // does not itself validate the function pointer, only stores
+        // it -- see Token.hh), but is only ever referenced via LO_arg,
+        // so a null LO here is never actually dereferenced.
+        cFunction_P LO = 0;
+        if (todo.LO_fid != -1)
+           {
+             LO = find_function(todo.LO_fid);
+             Assert(LO);
+           }
         Token tok_LO(TOK_FUN2, LO);
+        Token * const LO_arg = LO ? &tok_LO : 0;
 
         if (todo.RO_fid   != -1)   // dyadic operator
            {
@@ -2254,7 +2267,7 @@ DerivedFunction * const slot = static_cast<DerivedFunction *>(todo.cache);
 
              if (todo.AXIS_vid == -1)   // dyadic operator without axis
                 {
-                  DerivedFunctionCache::construct_at(slot, &tok_LO, OPER,
+                  DerivedFunctionCache::construct_at(slot, LO_arg, OPER,
                                                      &tok_RO, Value_P(), LOC);
                 }
              else                       // dyadic operator with axis
@@ -2267,7 +2280,7 @@ DerivedFunction * const slot = static_cast<DerivedFunction *>(todo.cache);
                       size_t(todo.AXIS_vid) >= values.size())
                      DOMAIN_ERROR;
                   Value_P val_X = values[todo.AXIS_vid];
-                  DerivedFunctionCache::construct_at(slot, &tok_LO, OPER,
+                  DerivedFunctionCache::construct_at(slot, LO_arg, OPER,
                                                      &tok_RO, val_X, LOC);
                 }
            }
@@ -2275,7 +2288,7 @@ DerivedFunction * const slot = static_cast<DerivedFunction *>(todo.cache);
            {
              if (todo.AXIS_vid == -1)   // monadic operator without axis
                 {
-                  DerivedFunctionCache::construct_at(slot, &tok_LO, OPER,
+                  DerivedFunctionCache::construct_at(slot, LO_arg, OPER,
                                                      0, Value_P(), LOC);
                 }
              else                       // monadic operator with axis
@@ -2285,7 +2298,7 @@ DerivedFunction * const slot = static_cast<DerivedFunction *>(todo.cache);
                       size_t(todo.AXIS_vid) >= values.size())
                      DOMAIN_ERROR;
                   Value_P X = values[todo.AXIS_vid];
-                  DerivedFunctionCache::construct_at(slot, &tok_LO, OPER,
+                  DerivedFunctionCache::construct_at(slot, LO_arg, OPER,
                                                      0, X, LOC);
                 }
            }
@@ -2608,13 +2621,18 @@ XML_Loading_Archive::read_Derived(StateIndicator & si, int lev)
    Log(LOG_archive)   err << "  read_Derived()" << endl;
 
 const Fid fid      = find_Fid_attr("fid", false, 16);   // in the )SAVEing WS
-const Fid LO_fid   = find_Fid_attr("LO-fid",   false, 16);
-const Fid OPER_fid = find_Fid_attr("OPER-fid", false, 16);
+// LO-fid is legitimately absent for a plain function bound only to an
+// axis (no operator, no left operand) -- OPER-fid is the field that is
+// always present for a genuine derived function (DerivedFunction's own
+// constructor asserts its `oper` is never null), so that is what the
+// sanity check below must key on instead.
+const Fid LO_fid   = find_Fid_attr("LO-fid",   true,  16);
+const Fid OPER_fid = find_Fid_attr("OPER-fid", true,  16);
 const Fid RO_fid   = find_Fid_attr("RO-fid",   true,  16);
 const Vid AXIS_vid = find_Vid_attr("AXIS-vid", true,  10);
 Function * derived = si.fun_oper_cache.reserve_slot(LOC);
 
-   if (LO_fid == NO_FID)
+   if (OPER_fid == NO_FID)
       {
         err << "got non-derived function when expecting a derived one" << endl;
         return;
@@ -2675,10 +2693,16 @@ const TokenTag primitive_tag = TokenTag(find_int_attr("tag", true, 16));
         return;
       }
 
-const Fid LO_fid = find_Fid_attr("LO-fid", true, 16);
-   if (LO_fid != -1)   // derived function
+// OPER-fid, not LO-fid, is the reliable "this is a derived function"
+// signal: LO-fid is legitimately absent for a plain function bound only
+// to an axis (no operator, no left operand), whereas OPER-fid is always
+// present for a genuine derived function (DerivedFunction's constructor
+// asserts its `oper` is never null).
+const Fid OPER_fid_probe = find_Fid_attr("OPER-fid", true, 16);
+   if (OPER_fid_probe != NO_FID)   // derived function
       {
-        const Fid OPER_fid = find_Fid_attr("OPER-fid", false, 16);
+        const Fid LO_fid = find_Fid_attr("LO-fid", true, 16);
+        const Fid OPER_fid = OPER_fid_probe;
         const Fid RO_fid = find_Fid_attr("RO-fid", true, 16);
         const Vid AXIS_vid = find_Vid_attr("AXIS-vid", true, 16);
 
