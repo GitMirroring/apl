@@ -1342,6 +1342,20 @@ XML_Loading_Archive in(out, err, filename.c_str(), dump_fd);
                              " loaded; the workspace is CLEAR WS";
              return;
            }
+        catch (...)
+           {
+             // any other exception (e.g. std::bad_alloc) mid-read must
+             // leave a CLEAR WS too, not the half-loaded remains; rethrow
+             // so Cmd_WS::cmd_LOAD's own catch(std::bad_alloc&)/catch(...)
+             // still run their usual reporting on top of this.
+             //
+             the_workspace.clear_WS(out, true);
+             out << ")LOAD " << lib_name.get_name() << " failed" << endl;
+             MORE_ERROR() << "workspace file " << filename
+                          << " could not be loaded and was not fully"
+                             " read; the workspace is CLEAR WS";
+             throw;
+           }
       }
 
    if (Workspace::get_LX().size())  quad_lx = Workspace::get_LX();
@@ -1389,8 +1403,31 @@ XML_Loading_Archive in(out, err, filename.c_str(), dump_fd);
                               << " from file '" << filename << "' ..." << endl;
 
    in.set_protection(protection, lib_ws_objects);
-   in.read_vids();
-   in.read_Workspace(false);
+
+   // Unlike )LOAD, )COPY updates the *live* workspace's Symbols directly
+   // (see Archive.cc read_Symbol()), one <Symbol> at a time, and there is
+   // no CLEAR WS to fall back to if a later, corrupt <Symbol> throws --
+   // the user's own, possibly unsaved workspace is what's at stake. Undo
+   // every Symbol already overwritten by this )COPY rather than leaving
+   // a half-old/half-new mix with no diagnostic. read_vids() (an earlier,
+   // read-only pass over the same file) can throw on the same corruption
+   // too, so it is covered by the same try as read_Workspace() below.
+   //
+   try
+      {
+        in.read_vids();
+        in.read_Workspace(false);
+      }
+   catch (Error & err)
+      {
+        in.copy_restore_snapshots();
+        CERR << ")COPY " << lib_name.get_name() << " failed: "
+             << Error::error_name(err.get_error_code()) << endl;
+        MORE_ERROR() << "workspace file " << filename
+                     << " is corrupt; )COPY was aborted and every symbol"
+                        " already copied from it was restored to its"
+                        " pre-)COPY state";
+      }
 }
 //════════════════════════════════════════════════════════════════════════════
 void

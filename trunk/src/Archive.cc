@@ -3153,6 +3153,63 @@ const int levels = find_int_attr("levels", false, 10);
 }
 //────────────────────────────────────────────────────────────────────────────
 void
+XML_Loading_Archive::copy_snapshot_symbol(Symbol * symbol)
+{
+   if (!copying)   return;
+
+_copy_snapshot snap;
+   snap.symbol = symbol;
+   snap.size = symbol->value_stack_size();
+   snap.nc = snap.size ? symbol->top_of_stack()->get_NC()
+                        : NC_UNUSED_USER_NAME;
+   snap.value = (snap.nc == NC_VARIABLE) ? symbol->get_var_value() : Value_P();
+   snap.function = (snap.nc == NC_FUNCTION || snap.nc == NC_OPERATOR)
+                 ? symbol->get_function() : 0;
+
+   copy_snapshots.push_back(snap);
+}
+//────────────────────────────────────────────────────────────────────────────
+void
+XML_Loading_Archive::copy_restore_snapshots()
+{
+   loop(s, copy_snapshots.size())
+      {
+        _copy_snapshot & snap = copy_snapshots[s];
+
+        // undo any net growth/shrinkage of the value stack left behind
+        // by the (possibly only partially executed) d==0 mutator...
+        //
+        while (snap.symbol->value_stack_size() > snap.size)
+              snap.symbol->pop();
+        while (snap.symbol->value_stack_size() < snap.size)
+              snap.symbol->push();
+
+        // ... then rebuild the original top-of-stack frame, if it had one.
+        //
+        if (snap.size == 0)   continue;
+
+        snap.symbol->pop();
+        switch (snap.nc)
+           {
+             case NC_VARIABLE:
+                  snap.symbol->push_value(snap.value);
+                  break;
+
+             case NC_FUNCTION:
+             case NC_OPERATOR:
+                  snap.symbol->push_function(snap.function);
+                  break;
+
+             default:
+                  snap.symbol->push();
+                  break;
+           }
+      }
+
+   copy_snapshots.clear();
+}
+//────────────────────────────────────────────────────────────────────────────
+void
 XML_Loading_Archive::read_Symbol()
 {
    expect_tag("Symbol", LOC);
@@ -3293,6 +3350,11 @@ bool no_copy = is_protected || (have_allowed_objects && !is_selected);
         symbol = Workspace::lookup_symbol(name_UCS);
       }
    Assert(symbol);
+
+   // remember symbol's pre-)COPY state so a )COPY that fails on a later
+   // <Symbol> can restore it (Workspace::copy_WS()). No-op for )LOAD.
+   //
+   copy_snapshot_symbol(symbol);
 
    loop(d, SI_depth)
       {
@@ -3589,7 +3651,21 @@ void
 XML_Loading_Archive::read_Variable(int d, Symbol & symbol)
 {
 const int vid = find_int_attr("vid", false, 10);
-   Assert(vid >= 0 && vid < int(values.size()));
+
+   // Assert() is a no-op at the documented default assert level, so it
+   // cannot be relied on to reject an out-of-range vid coming from
+   // (possibly hand-edited or corrupted) workspace XML; use an
+   // always-enforced check (same rationale as read_Ravel() above). vid
+   // == -1 is the legitimate "stale variable" sentinel, handled by the
+   // vid == -1 check further below -- not an error here.
+   if (vid != -1 && (vid < 0 || vid >= int(values.size())))
+      {
+        MORE_ERROR() << "corrupt workspace: Variable vid=" << vid
+                     << " for " << symbol.get_name()
+                     << " out of range (0.." << (int(values.size()) - 1)
+                     << ")";
+        DOMAIN_ERROR;
+      }
 
    Log(LOG_archive)   err << "      [" << d << "] read_Variable() vid=" << vid
                            << " name=" << symbol.get_name() << endl;

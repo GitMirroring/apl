@@ -419,7 +419,7 @@ protected:
    inline void find_best_phrase();
 
    /// return true iff the next token binds stronger (so we need to shift).
-   inline bool check_next_binding();
+   inline bool bind_to_next();
 
    /// check if ^C or attention was raised (and throw if so)
    /// @param end_of_line true if the parser has reached the end of a statement

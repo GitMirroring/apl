@@ -76,7 +76,7 @@ protected:
       {
         ASX_MAJOR =  1,   ///< ++ if incompatible XML file format change
         ASX_MINOR = 14,  ///< ++ if backward compatible XML file format change
-        ASX_OTHER =  7,   ///< ++ if no XML file format change (code cleanup)
+        ASX_OTHER =  8,   ///< ++ if no XML file format change (code cleanup)
       };
 
    /// where to send error messages
@@ -371,6 +371,12 @@ public:
       { copying = true;   protection = prot;   allowed_objects = allowed;
         have_allowed_objects = allowed_objects.size() > 0; }
 
+   /// undo copy_snapshot_symbol()'s effect for every Symbol touched so
+   /// far by the current )COPY, in response to a )COPY that failed
+   /// part-way through; clears the snapshot list afterwards. Called by
+   /// Workspace::copy_WS() when read_Workspace() throws.
+   void copy_restore_snapshots();
+
    /// check compatibility information in the workspace and maybe warn the
    /// user
    void check_compatibility();
@@ -477,6 +483,22 @@ protected:
         const char * loc;       ///< where \b this was initialized
       };
 
+   /// the pre-)COPY state of a Symbol, taken right before )COPY's
+   /// top-level (d==0) entry for it is applied, so that a )COPY that
+   /// fails part-way through (a later <Symbol> throwing) can restore
+   /// every Symbol it already touched instead of leaving the workspace
+   /// a half-copied mix of old and new bindings. NC_LABEL/NC_SHARED_VAR
+   /// are restored only to NC_UNUSED_USER_NAME (a known, accepted gap:
+   /// still safe, just not faithful for those two rare top-level cases).
+   struct _copy_snapshot
+      {
+        Symbol * symbol;        ///< the Symbol being overwritten
+        int size;                ///< its value_stack_size() before )COPY
+        NameClass nc;            ///< its top_of_stack()->get_NC() before )COPY
+        Value_P value;           ///< valid iff nc == NC_VARIABLE
+        cFunction_P function;    ///< valid iff nc == NC_FUNCTION/NC_OPERATOR
+      };
+
    /// return true iff there is more data in the file
    bool more() const   { return data < file_end; }
 
@@ -524,6 +546,11 @@ protected:
    /// @param new_fun resolved function pointer in the loading workspace
    /// @param loc caller location for diagnostics
    void add_fid_function(Fid fid, cFunction_P new_fun, const char * loc);
+
+   /// remember symbol's current top-of-stack state before a )COPY
+   /// overwrites it (no-op for )LOAD, i.e. unless copying is set).
+   /// @param symbol the Symbol about to be overwritten by )COPY
+   void copy_snapshot_symbol(Symbol * symbol);
 
    /// find attribute \b att_name and return: a pointer to its value if found,
    /// 0 if optional is true, and throw DOMAIN ERROR if optional is false.
@@ -677,6 +704,10 @@ protected:
 
    /// true for )COPY and )PCOPY, false for )LOAD
    bool copying;
+
+   /// pre-)COPY snapshots of every Symbol touched so far by the current
+   /// )COPY, for copy_restore_snapshots() to undo on failure.
+   vector<_copy_snapshot> copy_snapshots;
 
    /// the current char
    Unicode current_char;

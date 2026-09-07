@@ -1047,7 +1047,7 @@ public:
                    ungetc(lookahead, file);
                    lookahead = Invalid_Unicode;
                  }
-              char fmt[20];
+              char fmt[32];
               if (conv_len > 0)
                  snprintf(fmt, sizeof(fmt), "%%%lldll%c",
                           (long long)conv_len, conv);
@@ -1126,7 +1126,7 @@ public:
                    ungetc(lookahead, file);
                    lookahead = Invalid_Unicode;
                  }
-              char fmt[20];
+              char fmt[32];
               if (conv_len > 0)
                  snprintf(fmt, sizeof(fmt), "%%%lldl%c",
                           (long long)conv_len, conv);

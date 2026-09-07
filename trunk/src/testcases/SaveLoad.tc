@@ -356,5 +356,74 @@ DOMAIN ERROR+
       )DROP silevel_test.xml
 ³
 
+      ⍝ regression (plan.txt, 2026-09-07): )COPY of a workspace whose
+      ⍝ file has a corrupted vid="..." for one variable (e.g. hand-
+      ⍝ edited) used to hit a raw Assert() deep inside
+      ⍝ XML_Loading_Archive::read_Variable() and propagate uncaught out
+      ⍝ of Workspace::copy_WS() -- unlike )LOAD, )COPY mutates the
+      ⍝ *live* workspace's Symbols one <Symbol> at a time with no
+      ⍝ CLEAR WS to fall back to, so any symbols already copied before
+      ⍝ the corrupt one (CPA below) stayed overwritten while CPB never
+      ⍝ got a value at all, silently mixing old and new bindings.
+      ⍝ Workspace::copy_WS() now catches the exception, and
+      ⍝ Archive.cc's copy_snapshot_symbol()/copy_restore_snapshots()
+      ⍝ restore every Symbol already touched by this )COPY, so CPA and
+      ⍝ CPB below end up exactly as they were before the )COPY was
+      ⍝ attempted, not the file's 111/222 or a half-copied mix.
+      ⍝
+      )CLEAR
+CLEAR WS
+
+      )WSID copy_test
+WAS CLEAR WS
+
+      CPA←111
+      CPB←222
+      )SAVE copy_test
+20⁰-⁰-⁰  ⁰:⁰:⁰ (GMT⁵⁰) 
+
+      data ← ⎕FIO[26] 'workspaces/copy_test.xml'
+      posB ← ('"CPB"' ⍷ data) ⍳ 1
+      needleOpen ← 'vid="'
+      relOpen ← (needleOpen ⍷ (posB ↓ data)) ⍳ 1
+      posOpen ← posB + relOpen
+      digitStart ← posOpen + ≢needleOpen
+      afterDigits ← digitStart ↓ data
+      relQuote ← ('"' ⍷ afterDigits) ⍳ 1
+      dropCount ← digitStart + relQuote - 1
+      new_data ← ((digitStart - 1) ↑ data) , '99999' , (dropCount ↓ data)
+      Handle ← 'w' ⎕FIO[3] 'workspaces/copy_test.xml'
+      Wcount ← (⎕UCS new_data) ⎕FIO[7] Handle
+
+      ⎕FIO[4] Handle
+0
+
+      ⍝ note: the checksum-mismatch WARNING and the Assert() backtrace
+      ⍝ (from the raw ⎕FIO edit above) go to plain CERR, like the other
+      ⍝ WARNINGs in this file, and are not part of the reference
+      ⍝ comparison -- verify the restore behavior instead: CPA and CPB
+      ⍝ must still be 999/888 (their pre-)COPY values) afterward, and
+      ⍝ still ⎕NC 2 (ordinary variables), proving the )COPY was cleanly
+      ⍝ undone rather than leaving CPA already-overwritten (111) or CPB
+      ⍝ half-defined.
+      ⍝
+      )CLEAR
+CLEAR WS
+
+      CPA←999
+      CPB←888
+      )COPY 0 copy_test
+      ⎕NC 'CPA' 'CPB'
+2 2
+
+      CPA
+999
+
+      CPB
+888
+
+      )DROP copy_test.xml
+³
+
       ⍝ ==================================
 

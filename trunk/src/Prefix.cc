@@ -426,19 +426,31 @@ grow:    // aka. SHIFT
 again:   // aka. REDUCE
    Log(LOG_prefix_parser)   print_stack(CERR, LOC);
 
-   // search longest prefixes in phrase table...
-   //
-   find_best_phrase();                  // set best_phrase
-   if (best_phrase == 0)   goto grow;   // no best_phrase
+   /* search for the longest prefix in the phrase table...
 
-   /* found a reducible prefix. See if the next token class binds stronger
-      than best_phrase->prio.
-
-      If best_phrase->prio ≥ BS_ANY_BRA then we reduce immediately,
-      since ALWAYS [ ] has the strongest binding.
+      at this point: N≥0 phrases match the current stack. We call
+      find_best_phrase() to find the longest of them; best_phrase=0 if N=0
     */
-   if (best_phrase->prio < BS_ANY_BRA && check_next_binding())   goto grow;
+   find_best_phrase();                  // compute best_phrase
+   if (best_phrase == 0)   goto grow;   // no phrase matches the curent stack
 
+   /*
+      At this point we have found a valid best_phrase which, at least in
+      principle, matches the (top of the) current stack.
+  
+      Caveat: if the next token ahead binds stronger than best_phrase->prio
+              then we have a SHIFT/REDUCE conflict and must SHIFT rather
+              than REDUCE.
+    */
+   if (best_phrase->prio < BS_ANY_BRA &&   // best_phrase binds weakly, and
+       PC < Function_PC(body.ssize()) &&   // more tokens ahead, and
+       bind_to_next())                     // bext token binds stronger
+      {
+        goto grow;                         // then: SHIFT
+      }
+
+   // otherwise REDUCE
+   //
    Log(LOG_prefix_parser)
       {
         CERR << "   phrase #" <<  (best_phrase - hash_table)
@@ -569,50 +581,41 @@ Prefix::do_shift(TokenClass next) const
 {
    /* resolve a shift/reduce conflict.
 
-       at0() ist the (in APL order) current token
-       at1() ist the (in APL order) token right of the current token
+       at0() is (in APL order) the current token (aka. top of stack).
+       at1() is (in APL order) the token right of the current token
        next is the class of the token left of at0()
     */
+
+   /** MAY_STRAND is a property of best_phrase that defines if the current ToS
+       shall be stranded with the next token ahead (i.e. best_phrase binds
+       weaker) or not (i.e. best_phrase binds stronger)
+    **/
+#define MAY_STRAND (best_phrase->prio < BS_VAL_VAL)
    switch(at0().get_Class())
       {
         case TC_VALUE:
-             if (next == TC_OPER2)           // DOP B
-                {
-                  return true;
-                }
-             else if (next == TC_VALUE)      // A B
-                {
-                  return best_phrase->prio < BS_VAL_VAL;
-                }
-             else if (next == TC_R_PARENT)   // ) B
-                {
-                  if (is_value_parenthesis(PC))     // e.g. (X+Y) B
-                     {
-                       return best_phrase->prio < BS_VAL_VAL;
-                     }
-                   else                      // e.g. (+/) B
-                     {
-                       return false;
-                     }
-                }
-             return false;   // TC_VALUE
+             // DOP B must always SHIFT the DOP.
+             //
+             if (next == TC_OPER2)   return true;
 
-        case TC_FUN12:
-             if (next == TC_OPER2)
-                {
-                  return true;
-                }
-             return false;   // TC_FUN12
+             // A strand must SHIFT if best_phrase binds weakly
+             //
+             if (next == TC_VALUE)   return MAY_STRAND;
 
-        case TC_SYMBOL:
-             if (next == TC_OPER2)
+             // A value-) must strand, a function-) must not.
+             //
+             if (next == TC_R_PARENT)   // ) B
                 {
-                  return true;
+                  if (is_value_parenthesis(PC))   return MAY_STRAND; // (X+Y) B
+                   else                           return false;      // (+/) B
                 }
-             return false;   // TC_SYMBOL
+             return false;   // REDUCE
 
-        default: return false;
+        case TC_FUN12:  return next == TC_OPER2;
+        case TC_SYMBOL: return next == TC_OPER2;
+        default:        return false;   // REDUCE
       }
+#undef MAY_STRAND
 }
 //────────────────────────────────────────────────────────────────────────────
 void
@@ -1236,51 +1239,52 @@ const Token_loc tloc(tok, old_PC);
 inline void
 Prefix::find_best_phrase()
 {
-const int s_max = ssize() < 4 ? ssize() : 4;
-const int s_max_1 = s_max - 1;
-unsigned int hash[4] = { at0().get_Class() };
+const int s_max = min(ssize(), 4);   // available tokens on the stack
+   best_phrase = 0;  // no best phrase
 
-   /* compute s_max_1 hash values from the token classes, starting at at(0).
+   /* compute s_max hash values from the available token classes:
       That is:
 
-      hash[0] =                                    TC₀
-      hash[1] =                         TC₀ << 5 | TC₁
-      hash[3] = TC₀ <<             10 | TC₁ << 5 | TC₂
-      hash[4] = TC₀ << 15 | TC₁ << 10 | TC₂ << 5 | TC₃
+      hash₀ = TC₀
+      hash₁ = TC₀ <<  5 | TC₁
+      hash₂ = TC₀ << 10 | TC₁ << 5  | TC₂
+      hash₃ = TC₀ << 15 | TC₁ << 10 | TC₂ << 5 | TC₃
     */
-   for (int s = 0; s < s_max_1;)
-       {
-         const int prev = s++;
-         hash[s] = hash[prev] | Class_at(s) << 5*s;
-       }
-
-   // match hashes in hash_table, from longest to shortest phrases
-   //
-   rev_loop(s, s_max)
-       {
-         const unsigned int hash_s = hash[s];
-         best_phrase = hash_table + hash_s % PHRASE_MODU;
-         if (best_phrase->phrase_hash == hash_s)   return;   // found
-       }
-
-   best_phrase = 0;   // not found
+unsigned int hash = Class_at(0);   // hash₀ = TC₀
+ {
+   const Phrase & phrase_0 = hash_table[hash % PHRASE_MODU];
+   if (phrase_0.phrase_hash == hash)   best_phrase = &phrase_0;
+ }
+ if (s_max == 1)   return;   // no more tokens available
+ hash |= Class_at(1) << 5;   // hash₁ = TC₀:TC₁
+ {
+   const Phrase & phrase_1 = hash_table[hash % PHRASE_MODU];
+   if (phrase_1.phrase_hash == hash)   best_phrase = &phrase_1;
+ }
+ if (s_max == 2)   return;   // no more tokens available
+ hash |= Class_at(2) << 10;   // hash₂ = TC₀:TC₁:TC₂
+ {
+   const Phrase & phrase_2 = hash_table[hash % PHRASE_MODU];
+   if (phrase_2.phrase_hash == hash)   best_phrase = &phrase_2;
+ }
+ if (s_max == 3)   return;   // no more tokens available
+ hash |= Class_at(3) << 15;   // hash₃ = TC₀:TC₁:TC₂:TC₃
+ {
+   const Phrase & phrase_3 = hash_table[hash % PHRASE_MODU];
+   if (phrase_3.phrase_hash == hash)   best_phrase = &phrase_3;
+ }
 }
 //────────────────────────────────────────────────────────────────────────────
 inline bool
-Prefix::check_next_binding()
+Prefix::bind_to_next()
 {
-TokenClass next = TC_INVALID;   // assume no bext
-    if (PC < Function_PC(body.ssize()))
-       {
-         const Token & tok = body[PC];
-         next = tok.get_Class();
-         if (next == TC_SYMBOL)
-            {
-              const Symbol * symbol = tok.get_sym_ptr();
-              const bool is_left_sym = get_assign_state() == ASS_arrow_seen;
-              next = symbol->resolve_class(is_left_sym);
-            }
-       }
+TokenClass next = body[PC].get_Class();   // assume no next
+   if (next == TC_SYMBOL)
+      {
+        const Symbol * symbol = body[PC].get_sym_ptr();
+        const bool is_left_sym = get_assign_state() == ASS_arrow_seen;
+        next = symbol->resolve_class(is_left_sym);
+      }
 
     if (best_phrase->misc && (at0().get_Class() == TC_R_BRACK))
        {
@@ -1311,8 +1315,7 @@ TokenClass next = TC_INVALID;   // assume no bext
 
 //   Q1(next) Q1(at0())
 
-   // shift/reduce conflict. See what to do.
-   // if we should shift.
+   // shift/reduce conflict. See what to do: bind (= shift) or not.
    //
    if (do_shift(next))   // i.e. shift
       {
