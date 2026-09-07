@@ -32,4 +32,33 @@
       2028259601 ∧ 9094863431J0
 1.844674407E19
 
+      ⍝ Bugs28 #43 regression: float GCD/LCM (NumericCell::flt_gcd(),
+      ⍝ shared by ∨ and ∧) did plain Euclid on doubles with fmod(b,a)
+      ⍝ and an absolute is_near_zero(a) as the only stop condition --
+      ⍝ the qct parameter was never used. fmod(1E30,1E10) is the exact
+      ⍝ remainder of the two *doubles* (1024, since the double 1E30 is
+      ⍝ not an exact multiple of the double 1E10), so the iteration
+      ⍝ continued from there instead of recognizing that 1E10 already
+      ⍝ (tolerantly) divides 1E30. Fixed by checking the quotient b÷a
+      ⍝ for a near-integer RELATIVE to its own magnitude at each step
+      ⍝ (not integral_within()'s absolute-qct window, which is far too
+      ⍝ tight once the quotient itself reaches astronomical size).
+      ⍝
+      1E30 ∨ 1E10
+1E10
+
+      1E30 ∧ 1E10
+1E30
+
+      1E200 ∨ 1E100
+1E100
+
+      1E¯9 ∨ 1
+1E¯9
+
+      ⍝ control: an integer-typed pair was already correct
+      ⍝
+      1E17 ∨ 1E16
+10000000000000000
+
 

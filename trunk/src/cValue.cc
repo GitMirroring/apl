@@ -321,6 +321,49 @@ const cValue * parent = static_cast<const cValue *>(this);
 }
 //────────────────────────────────────────────────────────────────────────────
 const Cell *
+cValue::try_existing_member(const vector<const UCS_string *> & members) const
+{
+   // Bugs28 #53: a tolerant sibling of get_existing_member(), for
+   // callers (⎕EX, )ERASE) that only want to know whether there is
+   // something there to remove, not to actually dereference the
+   // member -- get_existing_member() throws VALUE_ERROR/DOMAIN_ERROR/
+   // RANK_ERROR/LENGTH_ERROR for every one of these "no such member"
+   // conditions (correct for an actual member *reference*, e.g. plain
+   // S.zz), and constructing/throwing an Error has an observable
+   // console side effect even when the caller immediately catches it
+   // (Error::update_error_info()), so a try/catch around
+   // get_existing_member() is not enough -- this mirrors its
+   // traversal without ever throwing, returning 0 for every "not
+   // there" case instead.
+   //
+const cValue * parent = static_cast<const cValue *>(this);
+
+   for (int m = members.size() - 2; m >= 0; --m)
+       {
+         if (!parent->is_member())     return 0;
+         if (parent->get_rank() != 2)   return 0;
+         if (parent->get_cols() != 2)   return 0;
+
+         const UCS_string & member_ucs = *members[m];
+         const Cell * member_cell = parent->get_member_data(member_ucs);
+         if (!member_cell)   return 0;   // member does not exist
+
+         if (m == 0)   return member_cell;   // final member
+
+         // more members coming: member_cell must point to a
+         // structured sub-member
+         //
+         if (!member_cell->is_pointer_cell() ||
+             !member_cell->get_pointer_value()->is_member())
+            return 0;
+
+         parent = member_cell->get_pointer_value().get();
+       }
+
+   return 0;   // not reached (members.size() >= 2 always, per caller)
+}
+//────────────────────────────────────────────────────────────────────────────
+const Cell *
 cValue::get_member_data(const UCS_string & member) const
 {
 const ShapeItem rows = get_rows();
@@ -1342,14 +1385,37 @@ const APL_Integer qio = Workspace::get_IO();
    if (get_rank() == 1 && X.is_scalar())
       {
         Cell x_cache;
-        const APL_Integer idx0 = X.get_cscalar(x_cache).get_near_int() - qio;
-        if (idx0 >= 0 && idx0 < max_idx)
+        const Cell & xcell = X.get_cscalar(x_cache);
+
+        // Bugs28 #100(t): get_near_int() throws (a bare, uncontextualized
+        // DOMAIN ERROR) for a value too large to fit an int64_t index --
+        // an index is by definition a ShapeItem (int64_t), so check that
+        // safely first (is_near_int64_t() cannot itself throw) and skip
+        // this fast path instead of calling it; the general loop below
+        // has the same check and reports it as the well-formed INDEX
+        // ERROR it actually is.
+        //
+        if (xcell.is_near_int64_t())
            {
-             Value_P Z(LOC);
-             Cell cache;
-             Z->next_ravel_Cell(get_cravel(idx0, cache));
-             Z->check_value(LOC);
-             return Z;
+             // check against qio (i.e. idx0 < 0) BEFORE subtracting it,
+             // not after: computing idx0 = raw - qio first and then
+             // testing idx0 < 0 needlessly risks underflowing raw when
+             // raw is already at the (is_near_int64_t()-permitted)
+             // extreme end of the range.
+             //
+             const APL_Integer raw = xcell.get_near_int();
+             if (raw >= qio)
+                {
+                  const APL_Integer idx0 = raw - qio;
+                  if (idx0 < max_idx)
+                     {
+                       Value_P Z(LOC);
+                       Cell cache;
+                       Z->next_ravel_Cell(get_cravel(idx0, cache));
+                       Z->check_value(LOC);
+                       return Z;
+                     }
+                }
            }
 
         // fall through re-using the verbose INDEX_ERROR below
@@ -1371,11 +1437,55 @@ ShapeItem xI = 0;
    while (Z->more())
       {
          const ShapeItem this_xI = xI;
-         const ShapeItem idx0 = X.get_near_int(xI++) - qio;
-         if (idx0 < 0 || idx0 >= max_idx)
+
+         // Bugs28 #100(t): get_near_int() below throws (a bare,
+         // uncontextualized DOMAIN ERROR) for a value too large to fit
+         // an int64_t index -- and that same value then hazards a
+         // stack overflow when the error-display code later tries to
+         // format it for the caret line (Token.cc's own "?" fallback
+         // exists specifically to dodge that crash). An index is by
+         // definition a ShapeItem (int64_t); check that safely first
+         // (is_near_int64_t() cannot itself throw) instead of calling
+         // get_near_int() unconditionally, and report it as the
+         // ordinary, well-formed INDEX ERROR it actually is, with the
+         // same context the in-range check just below already gives
+         // for an ordinary out-of-bounds index.
+         //
+         Cell x_cache;
+         const Cell & xcell = X.get_cravel(this_xI, x_cache);
+         if (!xcell.is_near_int64_t())
+            {
+              MORE_ERROR() << "A[B]: B is not a valid index for A (not an"
+                              " integer that fits a (signed) 63-bit index)";
+              Z->rollback(Z->get_valid_item_count(), LOC);
+              INDEX_ERROR;
+            }
+
+         ++xI;
+         const APL_Integer raw = xcell.get_near_int();
+
+         // check against qio (i.e. idx0 < 0) BEFORE subtracting it, not
+         // after: computing idx0 = raw - qio first and then testing
+         // idx0 < 0 needlessly risks underflowing raw when raw is
+         // already at the (is_near_int64_t()-permitted) extreme end of
+         // the range.
+         //
+         if (raw < qio)
             {
               MORE_ERROR() << "A[B]: B[" << (this_xI + qio) << "] = "
-                           << (idx0 + qio)
+                           << raw
+                           << " is not a valid index for A (expecting "
+                           << qio << "≤index<" << (max_idx + qio) << ")"
+                           << ArgCheck::index_io0_note(raw - qio, max_idx);
+              Z->rollback(Z->get_valid_item_count(), LOC);
+              INDEX_ERROR;
+            }
+
+         const ShapeItem idx0 = raw - qio;
+         if (idx0 >= max_idx)
+            {
+              MORE_ERROR() << "A[B]: B[" << (this_xI + qio) << "] = "
+                           << raw
                            << " is not a valid index for A (expecting "
                            << qio << "≤index<" << (max_idx + qio) << ")"
                            << ArgCheck::index_io0_note(idx0, max_idx);
@@ -1560,16 +1670,16 @@ const ShapeItem ec = element_count();
 }
 //────────────────────────────────────────────────────────────────────────────
 void
-cValue::flag_info(const char * loc, ValueFlags flag, const char * flag_name,
+cValue::flag_info(const char * loc, uint32_t flag_bit, const char * flag_name,
                  bool set) const
 {
 const char * sc = set ? " SET " : " CLEAR ";
-const int cur_flags = get_flags();
-const int new_flags = set ? cur_flags | flag : cur_flags & ~flag;
+const uint32_t cur_flags = get_flags();
+const uint32_t new_flags = set ? cur_flags | flag_bit : cur_flags & ~flag_bit;
 const char * chg = cur_flags == new_flags ? " (no change)" : " (changed)";
 
    CERR << "Value " << voidP(this)
-        << sc << flag_name << " (" << HEX(flag) << ")"
+        << sc << flag_name << " (" << HEX(flag_bit) << ")"
         << " at " << loc << " now = " << HEX(new_flags)
         << chg << endl;
 }
@@ -1715,7 +1825,7 @@ const ShapeItem rows = ec/cols;
 ostream &
 cValue::list_one(ostream & out, bool show_owners) const
 {
-   if (get_flags())
+   if (is_member() || is_complete() || is_marked() || is_packed())
       {
         out << "   Flags =";
         char sep = ' ';

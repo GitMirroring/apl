@@ -955,7 +955,16 @@ const Value & A1 = *A->get_pointer_value(0);
 UCS_string A_format(A1);
    do_snprintf(UZ, A_format, *A, 1, "⎕FIO.fprintf B");
 UTF8_string utf(UZ);
-   if (fwrite(utf.c_str(), 1, utf.size(), outf) != utf.size())   SYSTEM_ERROR;
+   errno = 0;
+   // a handle opened for reading only (e.g. ⎕FIO[22] to handle 0, i.e.
+   // stdin) makes fwrite() fail here; that is a normal, expectable I/O
+   // outcome, not an internal error -- report it the same way the other
+   // ⎕FIO write functions (e.g. eval_AXB__7(), ⎕FIO[7]) do: return the
+   // actual (short) result and leave errno for ⎕FIO[1] to inspect,
+   // instead of throwing SYSTEM ERROR.
+   //
+   if (fwrite(utf.c_str(), 1, utf.size(), outf) != utf.size())
+      return Token(TOK_APL_VALUE1, IntScalar(0, LOC));
    return Token(TOK_APL_VALUE1, IntScalar(UZ.size(), LOC));
 }
 //────────────────────────────────────────────────────────────────────────────
@@ -1022,7 +1031,11 @@ public:
 
    /// scan a long long in a string or in a file. Return either 0 ion error,
    /// or 1 on success (for /// the number of successful conversions).
-   int scanf_long_long(const char conv, long long & value)
+   /// @param conv_len field width from the format (e.g. 5 for "%5d"),
+   ///        or 0 for none (Bugs28 #100(j): this used to be silently
+   ///        ignored, so e.g. "%5d" ⎕FIO[55] '1234567' consumed and
+   ///        returned the whole 1234567 instead of stopping at 12345).
+   int scanf_long_long(const char conv, long long & value, int64_t conv_len)
       {
          if (file)
             {
@@ -1034,7 +1047,12 @@ public:
                    ungetc(lookahead, file);
                    lookahead = Invalid_Unicode;
                  }
-              const char fmt[] = { '%', 'l', 'l', conv, 0 };
+              char fmt[20];
+              if (conv_len > 0)
+                 snprintf(fmt, sizeof(fmt), "%%%lldll%c",
+                          (long long)conv_len, conv);
+              else
+                 snprintf(fmt, sizeof(fmt), "%%ll%c", conv);
               return fscanf(file, fmt, &value);
             }
 
@@ -1069,7 +1087,9 @@ public:
             // loop below's get_next() will hand it back as its first
             // character and reject it the same way.
 
-         while (cidx < (sizeof(cc) - 1) && offset < string->ssize())
+         while (cidx < (sizeof(cc) - 1) &&
+                (conv_len == 0 || int64_t(cidx) < conv_len) &&
+                offset < string->ssize())
             {
               const Unicode uni = get_next();
               if (hex && Avec::is_hex_digit(uni))
@@ -1095,7 +1115,9 @@ public:
 
    /// scan a double in string or file. Return either 0 or 1 for
    /// the number of successful conversions.
-   int scanf_double(const char conv, APL_Float & value)
+   /// @param conv_len field width from the format, or 0 for none
+   ///        (Bugs28 #100(j), same fix as scanf_long_long() above).
+   int scanf_double(const char conv, APL_Float & value, int64_t conv_len)
       {
          if (file)
             {
@@ -1104,7 +1126,12 @@ public:
                    ungetc(lookahead, file);
                    lookahead = Invalid_Unicode;
                  }
-              const char fmt[] = { '%', 'l', conv, 0 };
+              char fmt[20];
+              if (conv_len > 0)
+                 snprintf(fmt, sizeof(fmt), "%%%lldl%c",
+                          (long long)conv_len, conv);
+              else
+                 snprintf(fmt, sizeof(fmt), "%%l%c", conv);
               return fscanf(file, fmt, &value);
             }
 
@@ -1135,7 +1162,9 @@ public:
             // loop below's get_next() will hand it back as its first
             // character and reject it the same way.
 
-         while (cidx < (sizeof(cc)) - 1 && offset < string->ssize())
+         while (cidx < (sizeof(cc)) - 1 &&
+                (conv_len == 0 || int64_t(cidx) < conv_len) &&
+                offset < string->ssize())
             {
               const Unicode uni = get_next();
               if (uni == UNI_OVERBAR)   cc[cidx++] = '-';   // ¯
@@ -1287,9 +1316,18 @@ Unicode lookahead = input.get_next();
            {
              input.unget(lookahead);   // so that scanf_long_long() can read it
              long long value = 0;
-             const int count = input.scanf_long_long(conv, value);
-             if (count == 1 && !suppress)   Z->next_ravel_Int(value);
-             else                           goto out;
+             const int count = input.scanf_long_long(conv, value, conv_len);
+             // Bugs28 #49: a suppressed conversion (%*d) still
+             // consumes and validates an item -- count==1 means the
+             // scan itself succeeded, and only the ASSIGNMENT is
+             // suppressed. Ending the whole scan (goto out) whenever
+             // suppress was set, even on a successful count==1, threw
+             // away every directive after a %*d instead of continuing
+             // past it. Only an actual scan failure (count != 1)
+             // should end the scan.
+             //
+             if (count != 1)   goto out;
+             if (!suppress)   Z->next_ravel_Int(value);
 
              lookahead = input.get_next();
              if (lookahead == UNI_EOF)   goto out;
@@ -1298,9 +1336,12 @@ Unicode lookahead = input.get_next();
            {
              input.unget(lookahead);   // let scanf_double() read it
              APL_Float value = 0;
-             const int count = input.scanf_double(conv, value);
-             if (count == 1 && !suppress)   Z->next_ravel_Float(value);
-             else                           goto out;
+             const int count = input.scanf_double(conv, value, conv_len);
+             // Bugs28 #49: see the matching, more detailed comment on
+             // the integer conversion branch above.
+             //
+             if (count != 1)   goto out;
+             if (!suppress)   Z->next_ravel_Float(value);
 
              lookahead = input.get_next();
              if (lookahead == UNI_EOF)   goto out;
@@ -1742,6 +1783,25 @@ int conversion_count_A = 0;   // the number of conversions (in A_format)
                                }
                             else
                                {
+                                 // Bugs28 #100(j): get_real_value() on a
+                                 // genuinely (not just tolerantly) complex
+                                 // cell silently returns only its real
+                                 // part (ComplexCell::get_real_value()'s
+                                 // documented contract assumes the caller
+                                 // already checked near-realness) -- so
+                                 // e.g. '%d' ⎕FIO[58] 1J2 printed "1"
+                                 // instead of rejecting the imaginary part.
+                                 //
+                                 if (B.is_complex_cell(idx_B) &&
+                                     !B.is_near_real(idx_B))
+                                    {
+                                      MORE_ERROR() << "argument " << idx_B
+                                         << " is complex and cannot be used"
+                                            " with integer format '%"
+                                         << uni_1 << "' in " << funname;
+                                      DOMAIN_ERROR;
+                                    }
+
                                  const double fv = B.get_real_value(idx_B);
                                  if (!(fv > -BIG_INT64_F && fv < BIG_INT64_F))
                                     {
@@ -1817,8 +1877,23 @@ int conversion_count_A = 0;   // the number of conversions (in A_format)
                      case 'g':   case 'G':   case 'a':   case 'A':
                           {
                             COUNT_ARG;
+                            const ShapeItem idx_B = off_B++;
+
+                            // Bugs28 #100(j): same fix as the integer
+                            // conversion case above.
+                            //
+                            if (B.is_complex_cell(idx_B) &&
+                                !B.is_near_real(idx_B))
+                               {
+                                 MORE_ERROR() << "argument " << idx_B
+                                    << " is complex and cannot be used"
+                                       " with format '%" << uni_1
+                                    << "' in " << funname;
+                                 DOMAIN_ERROR;
+                               }
+
                             const APL_Float float_val =
-                                  B.get_real_value(off_B++);
+                                  B.get_real_value(idx_B);
 
                             // APL floats are passed as a plain double;
                             // drop any user-supplied length modifier the

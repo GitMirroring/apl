@@ -278,11 +278,18 @@ public:
    /// @param n second integer operand
    static APL_Integer gcd(APL_Integer m, APL_Integer n)
       {
-        if (m == 0)   return n;
-        if (n == 0)   return m;
-
+        // Bugs28 #100(l): the zero shortcuts below used to run BEFORE
+        // the abs() calls, so they returned the OTHER operand with
+        // whatever sign it happened to have (e.g. 0∨¯5 gave ¯5 instead
+        // of 5) -- every other GCD result here is already normalised
+        // non-negative via the abs() calls, which just needed to run
+        // first.
+        //
         if (m < 0)   m = -m;
         if (n < 0)   n = -n;
+
+        if (m == 0)   return n;
+        if (n == 0)   return m;
 
         // E1: Initialize
         APL_Integer a_ = 1;

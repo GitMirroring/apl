@@ -380,11 +380,52 @@ fields_done:
 
      exponent.map_field(2);
    }
+
+   // Bugs28 #46: a left/right decorator that IS the recognized
+   // negative-number indicator (⎕FC[6], default '¯') or a literal '-'
+   // was, absent an explicit '1'/'2'/'3'/'4' digit in its sub-field,
+   // treated like any other purely decorative literal (e.g. '⊂'/'⊃')
+   // -- always shown, regardless of sign -- printing e.g. '¯1.5' for
+   // the POSITIVE value 1.5. Default such a decorator to floating
+   // only-if-negative (as if '1' had been given) instead, unless the
+   // picture already gave its own explicit digit.
+   //
+   if (left_deco.format.size() == 1 && int_part.no_float() &&
+       (left_deco.format[0] == Workspace::get_FC(5) ||
+        left_deco.format[0] == UNI_MINUS))
+      int_part.flt_mask |= BIT_1;
+
+   if (right_deco.format.size() == 1 && fract_part.no_float() &&
+       (right_deco.format[0] == Workspace::get_FC(5) ||
+        right_deco.format[0] == UNI_MINUS))
+      fract_part.flt_mask |= BIT_1;
+
+   // Bugs28 #46: conversely, if B is negative but NEITHER side has any
+   // way at all to signal that (no conditional decorator anywhere --
+   // not even the implicit one just above), the sign is simply lost;
+   // per APL2 LRM p.141 ("'5' alone does not allow display of negative
+   // values. Use 1 and 2 to control the display of signed numbers"),
+   // that must be a DOMAIN ERROR, not a silently-wrong positive
+   // display. Checked once at construction time (independent of the
+   // actual B values formatted later) since it depends only on A.
+   //
+   negative_representable = !int_part.no_float() || !fract_part.no_float();
 }
 //────────────────────────────────────────────────────────────────────────────
 UCS_string
 Bif_F12_FORMAT::Format_LIFER::format_example(APL_Float value)
 {
+   // Bugs28 #46: see the (more detailed) comment on negative_representable's
+   // computation, above.
+   //
+   if (value < 0.0 && !negative_representable)
+      {
+        MORE_ERROR() << "A⍕B : B is negative, but A has no conditional"
+                        " ('1', '2', or '3') decorator to signal that"
+                        " (APL2 LRM p.141)";
+        DOMAIN_ERROR;
+      }
+
 UCS_string data_int;
 UCS_string data_fract;
 UCS_string data_expo;
@@ -1315,7 +1356,30 @@ bool has_complex = false;
             loop(p,  precision)   minval /= 10;
             if (value < minval && value > -minval)   value = 0.0;
 
-             UCS_string data = format_float_by_spec(value, precision);
+             // Bugs28 #44: B.get_real_value() above converts every
+             // cell to a double up front, so a 64-bit IntCell whose
+             // magnitude exceeds a double's 53-bit mantissa (e.g.
+             // ¯9223372036854775807) already lost its low digits
+             // before formatting even began (0⍕9223372036854775807
+             // gave …808, not …807). An exact IntCell's fixed-point
+             // rendering is trivial -- its fractional part is always
+             // exactly 0 -- so build it directly from the int64 value
+             // via from_int_to_fixed() instead of routing it through
+             // format_float_by_spec()'s APL_Float-based formatter.
+             //
+             Cell cache;
+             const Cell & cell = B.get_cravel(idx_B, cache);
+             UCS_string data;
+             if (cell.is_integer_cell())
+                {
+                  data = UCS_string::from_int_to_fixed(cell.get_int_value(),
+                                                        precision);
+                  strip_leading_zero_by_spec(data, precision);
+                }
+             else
+                {
+                  data = format_float_by_spec(value, precision);
+                }
              if (width && data.ssize() > width)   // overflow
                 {
                   if (Workspace::get_FC(3) == UNI_0)   DOMAIN_ERROR;
@@ -1387,11 +1451,9 @@ Bif_F12_FORMAT::add_row(PrintBuffer & ret, int row, bool has_char,
       }
 }
 //────────────────────────────────────────────────────────────────────────────
-UCS_string
-Bif_F12_FORMAT::format_float_by_spec(APL_Float value, int precision)
+void
+Bif_F12_FORMAT::strip_leading_zero_by_spec(UCS_string & ret, int precision)
 {
-UCS_string ret = UCS_string::from_double_to_fixed(value, precision);
-
    // Note: the examples in the apl standard use a leading 0 (like  0.00)
    // while lrm shows .00 instead. We follow lrm and remove a leading 0.
    // Interestingly, the exponential format leaves a leading 0 in both
@@ -1418,7 +1480,13 @@ UCS_string ret = UCS_string::from_double_to_fixed(value, precision);
            {
              ret.erase(0);
            }
-
+}
+//────────────────────────────────────────────────────────────────────────────
+UCS_string
+Bif_F12_FORMAT::format_float_by_spec(APL_Float value, int precision)
+{
+UCS_string ret = UCS_string::from_double_to_fixed(value, precision);
+   strip_leading_zero_by_spec(ret, precision);
    return ret;
 }
 //════════════════════════════════════════════════════════════════════════════

@@ -226,14 +226,22 @@ ShapeItem B_offset = 0;   // updated by XXX_result() functions
       function (which creates the result), and therefore do not know how long
       Z will become.
 
-      We handle this by:
+      Bugs28 #98: this used to start with a ⍴Z of
+      cfg_SHORT_VALUE_LENGTH_WANTED, double ⍴Z (by allocating a new Value_P
+      and copying every existing cell across, cell by cell) whenever it
+      filled up, and finally shrink ⍴Z to the true number of matches --
+      quadratic in the number of matches once B is large enough to need
+      several doublings (each doubling re-copies everything seen so far,
+      and the *result* of a global match over a repetitive subject grows
+      with B itself, so match count and B's length scale together:
+      'a' ⎕RE['g'] 2000⍴'a' took ~1ms, 8000⍴'a' ~15ms, 32000⍴'a' ~370ms --
+      each doubling of B costing four times the time, not two). Collect
+      the matches in a plain std::vector (amortized O(1) push_back, no
+      per-match copying of already-collected matches) and build Z once,
+      at the real final size, instead.
+   */
 
-      1. starting with a ⍴Z of of cfg_SHORT_VALUE_LENGTH_WANTED, and
-      2. doubling ⍴Z whenever needed, and finally
-      3. shrinking ⍴Z to the true number of matches.
-    */
-
-Value_P Z(cfg_SHORT_VALUE_LENGTH_WANTED, LOC);
+std::vector<Value_P> matches;
 
    for (;;)
        {
@@ -253,31 +261,12 @@ Value_P Z(cfg_SHORT_VALUE_LENGTH_WANTED, LOC);
 
          if (B_offset == -1)   break;   // no more matches
 
-         if (!Z->more())   // Z is full
-            {
-              const ShapeItem ec_Z = Z->element_count();
-              Value_P Z2(2*ec_Z, LOC);
-              loop(z, ec_Z)
-                  {
-                    Cell cache;
-                    const Cell & cell = Z->get_cravel(z, cache);
-                    Z2->next_ravel_Pointer(cell.get_pointer_value().get());
-                    Z->release(z, LOC);
-                  }
-              Z = Z2;
-            }
-
-         Z->next_ravel_Pointer(ZZ.get());
+         matches.push_back(ZZ);
        }
 
-   // most likely, Z is over-allocated at this point and we should init
-   // the not-yet-used Cells before shrinking Z.
-   //
-const Shape sh_Z(Z->get_valid_item_count());
-   while (Z->more())   Z->next_ravel_0();  // init the remaining cells
+Value_P Z(matches.size(), LOC);
+   loop(m, matches.size())   Z->next_ravel_Pointer(matches[m].get());
    Z->check_value(LOC);
-
-   Z->set_shape(sh_Z);
    return Z;
 }
 //────────────────────────────────────────────────────────────────────────────

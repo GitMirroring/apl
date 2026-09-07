@@ -204,3 +204,64 @@ DOMAIN ERROR
       ¯12○0J¯710
       ^   ^
       )SIC
+
+      ⍝ Bugs28 #47 regression: A○B with a genuinely complex A (non-zero
+      ⍝ imaginary part, e.g. 1J1) silently used only A's real part
+      ⍝ instead of raising DOMAIN ERROR -- RealCell.cc/ComplexCell.cc's
+      ⍝ bif_circle_fun() checked A->is_near_int() for validity, and
+      ⍝ ComplexCell::is_near_int() used to return true whenever BOTH
+      ⍝ parts were independently near-integral (1J1 qualified), then
+      ⍝ get_checked_near_int() silently returned just the real part.
+      ⍝ Already fixed as a side effect of the Bugs28 #32 fix to
+      ⍝ ComplexCell::is_near_int()/is_near_int64_t(), which now also
+      ⍝ requires the imaginary part be ≈0 -- kept here as its own
+      ⍝ regression test since #32's fix was for a different symptom
+      ⍝ (parse-time constant folding / a stack overflow).
+      ⍝
+      1J1○3.5
+DOMAIN ERROR
+      1J1○3.5
+      ^   ^
+
+      )SIC
+      1J1∘.○3.5 4
+DOMAIN ERROR
+      1J1∘.○3.5 4
+      ^     ^
+
+      )SIC
+
+      ⍝ control: a non-integral real A was already correctly rejected
+      ⍝
+      0.5○1
+DOMAIN ERROR
+      0.5○1
+      ^   ^
+
+      )SIC
+
+      ⍝ regression (Bugs28 #85): 4○, ¯4○, 8○, ¯8○ and 0○ computed
+      ⍝ sqrt(1±b²) (or sqrt(b²-1)) directly, so b*b overflowed to +∞ for
+      ⍝ any |b| above roughly 1.34E154 even though the true result
+      ⍝ (≈|b|) is perfectly finite -- the interpreter's own is_finite()
+      ⍝ safety net then turned that overflow into a spurious DOMAIN
+      ⍝ ERROR. 4○/8○/¯8○ now use hypot(1.0, b), and ¯4○/0○ use
+      ⍝ |b|×sqrt(1-1÷b²), neither of which needs to square b directly.
+      ⍝
+      4○1E155
+1E155
+
+      4○1E154
+1E154
+
+      0○1E155
+0J1E155
+
+      8○1E155
+0J¯1E155
+
+      ¯8○1E155
+0J1E155
+
+      ¯4○1E155
+1E155

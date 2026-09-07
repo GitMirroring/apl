@@ -46,8 +46,8 @@
 /// PointerCell later copied into sub_val (deepening it) goes back through
 /// this same constructor, so the limit is still enforced by the time
 /// sub_val (and hence cell_owner) is actually used.
-static void
-check_nesting_depth(const Value * sub_val)
+void
+PointerCell::check_nesting_depth(const Value * sub_val)
 {
    if (sub_val->more())   return;   // still being populated, see above
    if (1 + sub_val->compute_depth() > MAX_DEPTH)   LIMIT_ERROR_NESTING;

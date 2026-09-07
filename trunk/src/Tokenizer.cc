@@ -991,6 +991,26 @@ bool got_end = false;
                                  src.get_pos(), LOC, loc);
       }
 
+   // Bugs28 #100(i): unlike tokenize_string2() (the "..."/«...» string
+   // tokenizer just below), which already gates this same old-style
+   // multi-line leniency behind UserPreferences::uprefs.
+   // old_multi_line_strings, this function (the far more commonly used
+   // '...' string) accepted an unterminated string in PM_FUNCTION mode
+   // (⎕FX, the ∇ editor) unconditionally -- so a user who explicitly
+   // disabled the leniency (OLD-MULTI-LINE-STRINGS NO) to get strict,
+   // typo-catching behaviour in their own functions still silently got
+   // it for '...' strings. Bring '...' in line with ".../«...»: reject
+   // when the string never closed and the leniency itself is off.
+   //
+   if (!got_end && !UserPreferences::uprefs.old_multi_line_strings)
+      {
+        const int pos = start_pos + Workspace::get_IO();
+        MORE_ERROR() << "Standard APL string (i.e. '...'): start at "
+                        "column (prompt+" << pos << "), but no end.";
+        Error::throw_parse_error(E_NO_STRING_END, src.data(), start_pos,
+                                 src.get_pos(), LOC, loc);
+      }
+
    if (string_value.size() == 1)   // scalar
       {
         tos.push_back(Token(TOK_CHARACTER, string_value[0]));

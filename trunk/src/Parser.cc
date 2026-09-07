@@ -526,7 +526,20 @@ bool progress = false;
               // sAxis": defer to the value axis / Prefix-parser path.
               Cell cache;
               const Cell & c1 = T1.get_apl_val()->get_cscalar(cache);
-              const bool fits_int64 = c1.is_near_int64_t();
+              // is_near_int64_t() alone is true for a complex value like
+              // 1J1 too -- ComplexCell::is_near_int64_t() only checks
+              // that *both parts* independently round to near-integers,
+              // not that the imaginary part is ≈0 (i.e. that the value
+              // is actually a real integer). get_near_int() then throws
+              // DOMAIN_ERROR for the non-zero imaginary part, escaping
+              // straight out of the parser the same way Bugs28 #32's
+              // A⍴B case does (no failed statement/carets, ⎕EM/⎕ET
+              // unset, ⎕FX refuses to define an otherwise-valid
+              // function) -- exclude complex values here explicitly and
+              // defer to the value axis / Prefix-parser path instead.
+              //
+              const bool fits_int64 = c1.is_near_int64_t() &&
+                                      !c1.is_complex_cell();
               const APL_Integer wide_axis = fits_int64 ? c1.get_near_int()
                                                          : 0;
               // tos[src-1].is_function() alone only looks at the single
@@ -699,18 +712,60 @@ vector<ShapeItem> ends;
                     //       optimization in eval_AB() (which does not
                     //       work well here)
                     //
-                    const Shape sh_A(*tok_A.get_apl_val(), /* qio */ 0);
-            
-                    if (sh_A.fits_into(cfg_SHORT_VALUE_LENGTH_WANTED))
+                    // A is not yet known to be a valid shape (integral,
+                    // fits ShapeItem, rank ≤ MAX_RANK) -- the Shape
+                    // constructor below, or do_reshape() itself, throws
+                    // (e.g. DOMAIN ERROR for non-numeric/non-integral/
+                    // complex A) when it isn't. Unlike a normal runtime
+                    // error, an exception thrown here escapes straight
+                    // out of the *parser*, before this statement is even
+                    // fully compiled: no failed statement/carets are
+                    // ever shown, ⎕EM/⎕ET stay at their previous value,
+                    // and ⎕FX refuses to define the (perfectly
+                    // syntactically valid) function outright (Bugs28
+                    // #32). A try/catch around this is not enough on its
+                    // own either: constructing/throwing the Error (via
+                    // Error::update_error_info(), before any catch ever
+                    // runs) has its own observable side effects (e.g.
+                    // clobbering the *next* statement's ⎕FX-time display
+                    // with a stray "DOMAIN ERROR" that ⎕ET/⎕EM never
+                    // actually recorded) even once caught. So check
+                    // first, with predicates that cannot themselves
+                    // throw (mirroring Token.cc's own canonical()
+                    // fix for the equivalent axis-formatting hazard),
+                    // and only even attempt the throwing constructors
+                    // once every element is already known to be safe.
+                    // Since this whole block is purely a best-effort
+                    // optimization -- the ordinary, unoptimized runtime
+                    // path below always exists as a fallback and reports
+                    // such errors correctly -- just decline to optimize
+                    // when A isn't safely foldable.
+                    //
+                    Value_P Aval = tok_A.get_apl_val();
+                    bool A_foldable = Aval->get_rank() <= 1 &&
+                                      Aval->element_count() <= MAX_RANK;
+                    for (ShapeItem a = 0; A_foldable && a < Aval->element_count(); ++a)
+                        {
+                          Cell cache;
+                          const Cell & c = Aval->get_cravel(a, cache);
+                          if (!c.is_near_int64_t())   A_foldable = false;
+                        }
+
+                    if (A_foldable)
                        {
-                         Token tZ = Bif_F12_RHO::fun.do_reshape(sh_A, *B);
-                         tok_A.clear(LOC);   // set A to TOK_VOID
-                         tok_F.clear(LOC);   // set F to TOK_VOID
-                         tok_B.clear(LOC);   // set F to TOK_VOID
-                         new (&tok_B) Token(TOK_APL_VALUE4,   // optimized
-                                            tZ.get_apl_val());
-                         OptmizationStatistics::count(OPTI_FT_SHORT_PRIMITIVE);
-                         progress = true;
+                         const Shape sh_A(*Aval, /* qio */ 0);
+
+                         if (sh_A.fits_into(cfg_SHORT_VALUE_LENGTH_WANTED))
+                            {
+                              Token tZ = Bif_F12_RHO::fun.do_reshape(sh_A, *B);
+                              tok_A.clear(LOC);   // set A to TOK_VOID
+                              tok_F.clear(LOC);   // set F to TOK_VOID
+                              tok_B.clear(LOC);   // set F to TOK_VOID
+                              new (&tok_B) Token(TOK_APL_VALUE4,   // optimized
+                                                 tZ.get_apl_val());
+                              OptmizationStatistics::count(OPTI_FT_SHORT_PRIMITIVE);
+                              progress = true;
+                            }
                        }
                  }
             }
@@ -751,6 +806,29 @@ vector<ShapeItem> ends;
                         Z->check_value(LOC);
                         tok_B.clear(LOC);   // set B to TOK_VOID
                         new (&tok_B) Token(TOK_APL_VALUE4, Z);
+                      }
+                   else
+                      {
+                        // Bugs28 #100(t): ⊂B for an already-simple-
+                        // scalar B is correctly left unchanged (⊂B ≡
+                        // B per the comment above), but its token used
+                        // to keep its ORIGINAL tag -- so nothing here
+                        // marked "a fold happened at this position" the
+                        // way the non-scalar branch above does.
+                        // Executable.cc's error-display reconstruction
+                        // relies on spotting that TOK_APL_VALUE4 marker
+                        // to know it must show the un-optimized
+                        // statement (which still has ⊂) instead of the
+                        // compacted one (which, once tok_F below is
+                        // removed, no longer does) -- without it, a
+                        // later error in the same statement displayed
+                        // the compacted text with ⊂ silently missing,
+                        // e.g. (⊂1)↑M shown as (1)↑M. Retag with the
+                        // same, unmodified value purely so this fold is
+                        // detectable too, mirroring the branch above.
+                        //
+                        tok_B.clear(LOC);   // set B to TOK_VOID
+                        new (&tok_B) Token(TOK_APL_VALUE4, B);
                       }
                    tok_F.clear(LOC);   // set F to TOK_VOID
                    OptmizationStatistics::count(OPTI_FT_SHORT_PRIMITIVE);
@@ -2158,6 +2236,23 @@ Parser::parse_statement(Token_string & tos, bool optimize)
         loop(t, tos.ssize())   tos[t].clear(LOC);
         return ec;
       }
+
+   // Empty-parentheses pre-check, for the same reason as the unbalanced-
+   // paren pre-check above: collect_value_groups() (called indirectly via
+   // remove_nongrouping_parantheses() below) throws a raw SYNTAX_ERROR
+   // directly when it sees "( )" with nothing in between, which happens
+   // before this statement has an SI entry, losing the statement text and
+   // carets and getting reported under the previous statement instead
+   // (Blake McBride, Bugs28 #61). Catching it here, in the same
+   // ErrorCode-returning style as match_par_bra(), reports it cleanly.
+   //
+   loop(t, tos.ssize() - 1)
+       {
+         if (tos[t].get_tag() != TOK_L_PARENT)     continue;
+         if (tos[t + 1].get_tag() != TOK_R_PARENT)   continue;
+         loop(t1, tos.ssize())   tos[t1].clear(LOC);
+         return E_SYNTAX_ERROR;
+       }
 
    bool has_power_op = false;
    if (fix_RANK_syntax(tos, has_power_op))   parse_log(2, tos);

@@ -25,6 +25,7 @@
 
 #include "Avec.hh"
 #include "Bif_F12_FORMAT.hh"
+#include "Bif_F1_EXECUTE.hh"
 #include "CDR.hh"
 #include "CharCell.hh"
 #include "ComplexCell.hh"
@@ -37,6 +38,7 @@
 #include "PointerCell.hh"
 #include "PrintOperator.hh"
 #include "QuadFunction.hh"
+#include "UCS_string_vector.hh"
 #include "Quad_CC.hh"
 #include "Quad_FX.hh"
 #include "Quad_FFT.hh"
@@ -301,6 +303,58 @@ Quad_EB::eval_AB(cValue_R A, cValue_R B) const
    return Macro::get_macro(Macro::MAC_Z__A_Quad_EB_B)->eval_AB(A, B);
 }
 //════════════════════════════════════════════════════════════════════════════
+/// append \b more_info (the raw text of Workspace::more_error(), which may
+/// contain embedded UNI_LF line breaks, e.g. Quad_FIO.cc's multi-line
+/// "Too few arguments..." messages) to \b pb as one \b pb row per actual
+/// line (Bugs28 #100(e)): appending it as a single row instead left the
+/// LFs embedded in that one (very wide) row, so GNU APL's own ⎕PW-based
+/// output wrapping later cut it at column boundaries instead of the
+/// author's intended line breaks -- garbling multi-line )MORE text into
+/// a single mid-word-wrapped mess.
+static void
+append_more_error(PrintBuffer & pb, const UCS_string & more_info)
+{
+UCS_string_vector lines;
+   more_info.to_vector(lines);
+   loop(l, lines.size())   pb.append_ucs(lines[size_t(l)]);
+}
+//────────────────────────────────────────────────────────────────────────────
+/// build the ⎕EC/⎕EA result Z for an SI-modifying command ()LOAD,
+/// )QLOAD, )CLEAR, )RESET, )SIC) that Bif_F1_EXECUTE::execute_command()
+/// refused to push (E_COMMAND_PUSHED) -- shared by Quad_EC::eoc() (a
+/// pushed ⍎ hit one) and Quad_EC::eval_B() (Bugs28 #100(z): B is
+/// directly a )command hitting one).
+static Value_P
+build_EC_command_pushed_refusal(const UCS_string & more_info)
+{
+UCS_string line_1((UTF8_string(Error::error_name(E_DOMAIN_ERROR))));
+   if (more_info.size())   line_1 << UNI_PLUS;
+
+PrintBuffer pb;
+   pb.append_ucs(line_1);
+UCS_string line_2;
+   line_2 << "the SI-modifying command '"
+          << Workspace::get_pushed_Command()
+          << "' cannot be executed from within ⎕EC/⎕EA";
+   pb.append_ucs(line_2);
+   pb.append_ucs(UCS_string());
+   if (more_info.size())   append_more_error(pb, more_info);
+
+Value_P Z2(2, LOC);
+    Z2->next_ravel_Int(Error::error_major(E_DOMAIN_ERROR));
+    Z2->next_ravel_Int(Error::error_minor(E_DOMAIN_ERROR));
+   Z2->check_value(LOC);
+
+Value_P Z3(pb, LOC);
+
+Value_P Z(3, LOC);
+   Z->next_ravel_0();
+   Z->next_ravel_Pointer(Z2.get());
+   Z->next_ravel_Pointer(Z3.get());
+   Z->check_value(LOC);
+   return Z;
+}
+//────────────────────────────────────────────────────────────────────────────
 void
 Quad_EC::eoc(Token & result)
 {
@@ -345,8 +399,32 @@ Value_P Z(3, LOC);
         StateIndicator * si = Workspace::SI_top();
         si->clear_safe_execution();
 
-        const Error & err = StateIndicator::get_error(si);
         const ErrorCode ec = ErrorCode(result.get_int_val());
+
+        // Bugs28 #95: E_COMMAND_PUSHED is Bif_F1_EXECUTE.cc's internal
+        // signal that ⍎ hit a )LOAD/)QLOAD/)CLEAR/)RESET/)SIC, meant to
+        // unwind all the way to Command::do_APL_expression() so THAT
+        // command can actually run there -- but ⎕EC/⎕EA's safe
+        // execution isolates the caller from exactly that kind of
+        // disruption (a )CLEAR from inside ⎕EC would destroy the very
+        // workspace ⎕EC is running in), so the pushed command can
+        // never actually reach Command.cc from here and was instead
+        // silently dropped, while still being reported as if it were a
+        // real (if oddly-worded) error. Report it as a real, honestly-
+        // worded refusal instead -- Error::update_error_info() no
+        // longer stores E_COMMAND_PUSHED into the SI at all (see its
+        // own Bugs28 #95 fix), so err/line_1/2/3 below cannot be used
+        // for this code; deal with it up front instead.
+        //
+        if (ec == E_COMMAND_PUSHED)
+           {
+             Value_P Z_refused = build_EC_command_pushed_refusal(more_info);
+             Token tok_Z(TOK_APL_VALUE1, Z_refused);
+             result.move_from(tok_Z, LOC);
+             return;
+           }
+
+        const Error & err = StateIndicator::get_error(si);
 
         // err.get_error_line_1() carries the ACTUAL message (e.g. a
         // ⎕ES'd string, or A's override text for A ⎕ES B) rather than
@@ -359,13 +437,23 @@ Value_P Z(3, LOC);
         UCS_string line_1 = (err.get_error_code() == ec)
                            ? err.get_error_line_1()
                            : UCS_string(UTF8_string(Error::error_name(ec)));
-        if (more_info.size())   line_1 << UNI_PLUS;
+
+        // Bugs28 #100(e): line_1, when taken from err (the common case),
+        // may already carry a trailing '+' of its own -- Error's ctor
+        // (Error.cc) adds one at throw time whenever )MORE info exists
+        // then, which is exactly whenever more_info here is non-empty.
+        // Appending a second one unconditionally gave e.g. "DOMAIN
+        // ERROR++".
+        //
+        if (more_info.size() &&
+            (line_1.size() == 0 || line_1.back() != UNI_PLUS))
+           line_1 << UNI_PLUS;
 
         PrintBuffer pb;
         pb.append_ucs(line_1);
         pb.append_ucs(err.get_error_line_2());
         pb.append_ucs(err.get_error_line_3());
-        if (more_info.size())   pb.append_ucs(more_info);
+        if (more_info.size())   append_more_error(pb, more_info);
 
         Value_P Z2(2, LOC);
             Z2->next_ravel_Int(Error::error_major(ec));
@@ -464,7 +552,99 @@ const UCS_string statement_B(B);
    // of this function). See Bugs27 #36.
    //
 StateIndicator * const top = Workspace::SI_top();
+const int top_depth_before = top->get_safe_execution_depth();
    top->set_safe_execution_depth();
+
+   // Bugs28 #100(z): unlike ⍎, ⎕EC/⎕EA always ran B through
+   // ExecuteList::fix() as ordinary APL code, even when B is a
+   // )command -- ⎕EC ')CLEAR' mis-parsed ")CLEAR" and gave a bogus
+   // "Unbalanced right parenthesis" instead of either running the
+   // command (e.g. )VARS) or giving the same honest "cannot be
+   // executed from within ⎕EC/⎕EA" refusal a )command reached via ⍎
+   // already gets (Bugs28 #95). Bif_F1_EXECUTE::execute_statement()'s
+   // own check (first char is ')' or ']') is mirrored here so the same
+   // command text is recognised the same way for both ⍎ and ⎕EC/⎕EA.
+   //
+   {
+     UCS_string trimmed(statement_B);
+     trimmed.remove_leading_and_trailing_whitespaces();
+     if (trimmed.size() &&
+         (trimmed[0] == UNI_R_PARENT || trimmed[0] == UNI_R_BRACK))
+        {
+          Token cmd_result;
+          try
+             {
+               // plain Token operator= is the compiler-generated
+               // default (shallow, refcount-unaware) -- move_from()
+               // from a properly copy-constructed temporary is the
+               // refcount-safe way to capture a returned Token, the
+               // same convention used everywhere else in this file
+               // (e.g. result.move_from(tok_Z, LOC) in eoc() above).
+               //
+               Token tmp = Bif_F1_EXECUTE::execute_command(trimmed);
+               cmd_result.move_from(tmp, LOC);
+             }
+          catch (Error & err)
+             {
+               top->restore_safe_execution_depth(top_depth_before);
+               if (err.get_error_code() == E_COMMAND_PUSHED)
+                  {
+                    const UCS_string more_info = Workspace::more_error();
+                    Workspace::more_error().clear();
+                    return Token(TOK_APL_VALUE1,
+                            build_EC_command_pushed_refusal(more_info));
+                  }
+
+               const ErrorCode ec = err.get_error_code();
+               PrintBuffer pb;
+               pb.append_ucs(UTF8_string(Error::error_name(ec)));
+               pb.append_ucs(err.get_error_line_2());
+               pb.append_ucs(err.get_error_line_3());
+
+               Value_P Z2(2, LOC);
+                   Z2->next_ravel_Int(Error::error_major(ec));
+                   Z2->next_ravel_Int(Error::error_minor(ec));
+                   Z2->check_value(LOC);
+
+               Value_P Z3(pb, LOC);
+               Value_P Z(3, LOC);
+               Z->next_ravel_0();
+               Z->next_ravel_Pointer(Z2.get());
+               Z->next_ravel_Pointer(Z3.get());
+               Z->check_value(LOC);
+               return Token(TOK_APL_VALUE1, Z);
+             }
+
+          top->restore_safe_execution_depth(top_depth_before);
+
+          if (cmd_result.get_tag() == TOK_SI_PUSHED)
+             {
+               // trimmed was a *user-defined* command, i.e. a real APL
+               // function that itself suspended -- the new frame is
+               // already pushed; just protect it like the ordinary
+               // "fun was parsed" success path below does, and let it
+               // run/suspend normally (its own eventual completion or
+               // error reaches Quad_EC::eoc() as usual).
+               //
+               Workspace::SI_top()->set_safe_execution_depth();
+               return cmd_result;
+             }
+
+          // otherwise execute_command() returns TOK_APL_VALUE1 (a
+          // vector of output-line strings); wrap it exactly as eoc()
+          // wraps an ordinary successful result (case 1).
+          Value_P Z2(2, LOC);
+              Z2->next_ravel_0();
+              Z2->next_ravel_0();
+              Z2->check_value(LOC);
+          Value_P Z(3, LOC);
+          Z->next_ravel_1();
+          Z->next_ravel_Pointer(Z2.get());
+          Z->next_ravel_Value(cmd_result.get_apl_val().get());
+          Z->check_value(LOC);
+          return Token(TOK_APL_VALUE1, Z);
+        }
+   }
 
 ExecuteList * fun = 0;
 Error fix_error(E_SYNTAX_ERROR, LOC);   // fallback if nothing better is caught
@@ -484,9 +664,13 @@ Error fix_error(E_SYNTAX_ERROR, LOC);   // fallback if nothing better is caught
    // before doing anything else with it: the (unchanged) success path
    // below computes the newly pushed frame's OWN depth from top's, so
    // top must be back to its true value first, or that computation
-   // would double-count the temporary bump above.
+   // would double-count the temporary bump above. Must be the exact
+   // saved value, not clear_safe_execution()'s "reset to parent's
+   // depth" -- top may itself already have been a safe-execution frame
+   // (a nested ⎕EC), whose own protection clear_safe_execution() would
+   // incorrectly strip here (Bugs28 #27).
    //
-   top->clear_safe_execution();
+   top->restore_safe_execution_depth(top_depth_before);
 
    if (fun == 0)
       {
@@ -683,9 +867,16 @@ const char * const throw_loc = error.get_throw_loc();
         UTF8_string msg1_utf(msg1_ucs);
         error.set_error_line_1(msg1_utf.c_str());
       }
-   else if (error.get_error_code() ==
-            E_USER_DEFINED_ERROR)   // ⎕ES with character B
+   else if (error.get_error_code() == E_USER_DEFINED_ERROR &&
+            B->is_char_string())   // ⎕ES with character B
       {
+        // the numeric pair 0 1 (major/minor) also happens to equal
+        // E_USER_DEFINED_ERROR's own code, so get_error_code() can reach
+        // here with a purely numeric B too (Blake McBride, Bugs28 #71,
+        // e.g. plain ⎕ES 0 1) -- B->is_char_string() tells those apart;
+        // treating a numeric B as text here crashed into an internal
+        // cell-type assertion, leaking its text into )MORE.
+        //
         UCS_string msg1_ucs(*B.get());
         UTF8_string msg1_utf(msg1_ucs);
         error.set_error_line_1(msg1_utf.c_str());
@@ -791,6 +982,27 @@ Quad_ES::get_error_code(Value_P B)
    //
    if (B->element_count() < 2)   LENGTH_ERROR;
 
+   // major (B[0]) and minor (B[1]) are packed into a single 32-bit
+   // ErrorCode as (major<<16)|minor, so each must be a valid unsigned
+   // 16-bit value -- unlike the case handled above (99 99, in range but
+   // with no defined ⎕ET text, which LRM p.284 says is fine and reports
+   // no message), a major or minor outside 0..65535 cannot even be
+   // represented and silently wrapped/truncated instead (Blake McBride,
+   // Bugs28 #71): e.g. ⎕ES 1E9 1E9 gave ⎕ET ¯1126 51712, and ⎕ES ¯5 ¯4
+   // gave ⎕ET ¯1 65532.
+   //
+   {
+     const APL_Integer major = B->get_near_int(0);
+     const APL_Integer minor = B->get_near_int(1);
+     if (major < 0 || major > 0xFFFF || minor < 0 || minor > 0xFFFF)
+        {
+          MORE_ERROR() << "⎕ES B: B[0] (major) and B[1] (minor) must each"
+                          " be in range 0..65535; B[0] is " << major
+                       << ", B[1] is " << minor;
+          DOMAIN_ERROR;
+        }
+   }
+
 const APL_Integer err = (B->get_near_int(0) << 16)
                       | (B->get_near_int(1));
 
@@ -798,7 +1010,12 @@ const APL_Integer err = (B->get_near_int(0) << 16)
       {
         const ShapeItem len_B = B->element_count();
         if (err == E_QUAD_ES_COM && len_B == 3)   return E_QUAD_ES_COM;
-        if (err == E_QUAD_ES_ERR && len_B == 5)   return E_QUAD_ES_ERR;
+        // len_B==6 (Bugs28 #56): the ⎕EA macro's error payload gained
+        // a 6th, enclosed element carrying B's real 3-line ⎕EM-shaped
+        // message (Macro.def's Z__A_Quad_EA_B), alongside the original
+        // 5 (100, $FFFF, ⊂A, major, minor).
+        //
+        if (err == E_QUAD_ES_ERR && len_B == 6)   return E_QUAD_ES_ERR;
         // len_B==3 is ⎕EB's BRA payload (100 $FFFD RES, no fallback);
         // len_B==4 is ⎕EA's (100 $FFFD (⊂,A) RES, A included so
         // handle_QUAD_ES_BRA() can fall back to it -- Macro.def).
@@ -862,7 +1079,24 @@ Symbol * symbol = Workspace::lookup_existing_symbol(*members.back());
    {
      Value_P toplevel_val = symbol->get_var_value();
      if (!toplevel_val)   goto cleanup;
-     if (const Cell * ccell = toplevel_val->get_existing_member(members))
+
+     // Bugs28 #53: get_existing_member() throws VALUE_ERROR/DOMAIN_
+     // ERROR/RANK_ERROR/LENGTH_ERROR for every "no such member"
+     // condition (correct for an actual member *reference*, e.g. plain
+     // S.zz, but wrong for ⎕EX/)ERASE, whose job is only to check
+     // whether there is something there to remove) -- and a plain
+     // try/catch around it is not enough, since constructing/throwing
+     // an Error has an observable console side effect
+     // (Error::update_error_info()) even when caught immediately,
+     // which used to leak into the current statement's own output.
+     // try_existing_member() mirrors the same traversal without ever
+     // throwing. An undefined member of an otherwise-existing
+     // structured variable simply has nothing to expunge -- unlike a
+     // bare undefined top-level name (handled above, always success:
+     // it already satisfies ⎕EX's own postcondition), so this is
+     // failure (0), not success.
+     //
+     if (const Cell * ccell = toplevel_val->try_existing_member(members))
         {
           Cell * cell = const_cast<Cell *>(ccell);
           cell->release(LOC);   IntCell::z0(cell--);   // member value
@@ -876,14 +1110,78 @@ cleanup:
    return ret;
 }
 //════════════════════════════════════════════════════════════════════════════
+/// return one name per logical entry of B, for ⎕EX/⎕NC's B (a list of
+/// symbol names). Bugs28 #48: the traditional form (B a simple
+/// character vector -- one name -- or a character matrix -- one name
+/// per row, via UCS_string_vector(B,false)) does not cover the more
+/// natural nested-vector-of-names form (e.g. ⎕EX 'X' 'Y'): each of
+/// UCS_string_vector's own get_char_value() calls on a PointerCell
+/// item there returned garbage (misread pointer bytes as a Unicode
+/// code point), flattening the whole nested B into one bogus name --
+/// var_count stayed 1 regardless of how many names B actually held.
+/// Detect nesting (any top-level item is itself an enclosed value) and
+/// handle it separately: one name per top-level item, each disclosed
+/// via get_UCS_ravel(), matching ISO 13751's "one result per name".
+static UCS_string_vector
+quad_EX_NC_names(cValue_R B)
+{
+UCS_string_vector names;
+
+bool nested = false;
+   loop(b, B.element_count())
+       {
+         if (B.try_pointer_value(b))   { nested = true;   break; }
+       }
+
+   if (!nested)   return UCS_string_vector(B, false);
+
+   loop(b, B.element_count())
+       {
+         if (Value_P item = B.try_pointer_value(b))
+            {
+              // fully disclose, not just one level: e.g. ⎕EX ⊂⊂'ABCDE'
+              // nests twice (unlike ⊂⊂'X' for a single-CHARACTER 'X'
+              // -- ⊂ of an already-simple scalar is idempotent, but
+              // 'ABCDE' is a vector, so its first ⊂ genuinely nests
+              // it, and the second ⊂ nests the now-nested scalar
+              // AGAIN) -- keep disclosing single-item pointer scalars
+              // until reaching the actual character content.
+              //
+              while (item->is_scalar())
+                  {
+                    Value_P inner = item->try_pointer_value(0);
+                    if (!inner)   break;
+                    item = inner;
+                  }
+              names.push_back(item->get_UCS_ravel());
+            }
+         else if (B.is_character_cell(b))
+            names.push_back(UCS_string(1, B.get_char_value(b)));
+         else
+            names.push_back(UCS_string());   // invalid: empty name
+       }
+
+   return names;
+}
+//════════════════════════════════════════════════════════════════════════════
 Token
 Quad_EX::eval_B(cValue_R B) const
 {
    if (B.get_rank() > 2)   RANK_ERROR;
 
+bool nested = false;
+   loop(b, B.element_count())
+       if (B.try_pointer_value(b))   { nested = true;   break; }
+
+   // the per-CELL character validation below assumes flat character
+   // cells (the traditional B: a name, or a matrix of names) and does
+   // not apply to a nested B (Bugs28 #48: e.g. ⎕EX 'X' 'Y', one
+   // enclosed name per item) -- each disclosed name is validated
+   // structurally by expunge() itself instead.
+   //
    // we don't throw a DOMAIN ERROR if B is bad, but provide info for
    // the user if she asks for it with )MORE.
-   loop(b, B.element_count())
+   if (!nested)   loop(b, B.element_count())
        {
          if (!B.is_character_cell(b))
             {
@@ -903,11 +1201,21 @@ Quad_EX::eval_B(cValue_R B) const
            }
        }
 
-const ShapeItem var_count = B.get_rows();
-const UCS_string_vector vars(B, false);
+const UCS_string_vector vars = quad_EX_NC_names(B);
+const ShapeItem var_count = vars.size();
 
 Shape sh_Z;
-   if (var_count > 1)   sh_Z.add_shape_item(var_count);
+   // ISO 13751: ⍴Z ←→ ↑⍴B for a matrix B (Bugs28 #88) -- a matrix B
+   // (one name per row) always needs a vector Z sized to its row
+   // count, even when that count is 0 or 1 ("var_count > 1" alone left
+   // a 1-row (1 1⍴'A') or 0-row (0 3⍴'A') matrix B with a scalar Z
+   // instead, and a scalar Z whose single cell is never written -- the
+   // loop below runs var_count times -- is an incomplete value). The
+   // "var_count > 1" disjunct is still needed for B a nested vector of
+   // several names (⎕EX 'X' 'Y'), where a plain (non-nested) B is a
+   // single name and rightly keeps a scalar Z regardless of length.
+   //
+   if (B.get_rank() == 2 || var_count > 1)   sh_Z.add_shape_item(var_count);
 Value_P Z(sh_Z, LOC);
 
    loop(z, var_count)
@@ -1260,11 +1568,18 @@ Quad_NC::eval_B(cValue_R B) const
 {
    if (B.get_rank() > 2)   RANK_ERROR;
 
-const ShapeItem var_count = B.get_rows();
-const UCS_string_vector vars(B, false);
+   // Bugs28 #48: see quad_EX_NC_names()'s comment -- ⎕NC of a nested
+   // vector of names (e.g. ⎕NC 'X' 'Y') has the same bug as ⎕EX.
+   //
+const UCS_string_vector vars = quad_EX_NC_names(B);
+const ShapeItem var_count = vars.size();
 
 Shape sh_Z;
-   if (var_count > 1)   sh_Z.add_shape_item(var_count);
+   // same fix, and for the same reason, as Quad_EX::eval_B() above
+   // (Bugs28 #88): a matrix B always needs a vector Z sized to its row
+   // count, even for 0 or 1 rows.
+   //
+   if (B.get_rank() == 2 || var_count > 1)   sh_Z.add_shape_item(var_count);
 Value_P Z(sh_Z, LOC);
 
    loop(v, var_count)
@@ -1282,6 +1597,45 @@ APL_Integer
 Quad_NC::get_NC(const UCS_string ucs)
 {
    if (ucs.size() == 0)   return NC_INVALID;   // invalid name
+
+   // Bugs28 #54: ⎕NC had no member (.) handling at all -- it looked
+   // up the WHOLE string "S.a" as one symbol name (never found, since
+   // '.' is not a valid symbol character), falling through to the
+   // "user-defined name" path below and reporting NC_INVALID for
+   // every member reference, existing or not. doc/apl.texi says the
+   // usual rules for normal variables apply to members: an existing
+   // member is a variable (2, matching ⎕NC 'S'), a nonexistent member
+   // of an otherwise-existing structured variable is simply unused
+   // (0, same as any other undefined name), and reuses
+   // try_existing_member() (Bugs28 #53) to check without throwing.
+   //
+   if (ucs.contains(UNI_FULLSTOP))
+      {
+        vector<const UCS_string *>members;
+        {
+          int dot = ucs.size();
+          for (int from = dot - 1; from >= 0; --from)
+              {
+                if (ucs[from] != UNI_FULLSTOP)   continue;
+                members.push_back(new UCS_string(ucs, from + 1, dot - from - 1));
+                dot = from;
+              }
+          members.push_back(new UCS_string(ucs, 0, dot));
+        }
+
+        int ret = 0;   // assume unused (or malformed base name)
+        if (Symbol * base_sym =
+                  Workspace::lookup_existing_symbol(*members.back()))
+           {
+             if (Value_P top = base_sym->get_var_value())
+                {
+                  if (top->try_existing_member(members))   ret = NC_VARIABLE;
+                }
+           }
+
+        loop(m, members.size())   delete members[m];
+        return ret;
+      }
 
 const Unicode uni = ucs[0];
    if (uni == UNI_QUOTE_Quad)   // ⍞

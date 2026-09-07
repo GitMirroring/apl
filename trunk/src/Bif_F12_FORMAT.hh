@@ -109,7 +109,7 @@ public:
    struct Format_LIFER
       {
         /// empty constructor
-        Format_LIFER() {}
+        Format_LIFER() : negative_representable(true) {}
 
         /// constructor
         /// @param fmt format string to parse into sub-fields
@@ -167,6 +167,11 @@ public:
 
         /// true if the exponent is negative
         bool expo_negative;
+
+        /// true if this picture has some way (a conditional decorator
+        /// on either side) to signal a negative B; if false, formatting
+        /// a genuinely negative B is a DOMAIN ERROR (Bugs28 #46)
+        bool negative_representable;
       };
 
    /// A character array with B formatted by specification
@@ -235,6 +240,13 @@ protected:
    /// @param value floating-point number to format
    /// @param precision number of significant mantissa digits
    static UCS_string format_float_by_spec(APL_Float value, int precision);
+
+   /// remove the LRM-style leading 0 (0.xxx → .xxx, ¯0.x → ¯.x, ¯0 → 0)
+   /// from a fixed-point (by-specification) formatted \b ret in place
+   /// @param ret formatted string to strip in place
+   /// @param precision number of digits after the decimal point (0 for
+   ///        integer format)
+   static void strip_leading_zero_by_spec(UCS_string & ret, int precision);
 };
 //════════════════════════════════════════════════════════════════════════════
 

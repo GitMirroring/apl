@@ -189,3 +189,23 @@
       ⍴⍕R
 3 4 48
 
+      ⍝ regression (Bugs28 #80, Bugs27 #42 residual): a complex number's
+      ⍝ imaginary part used to inherit the real part's (or an already
+      ⍝ dropped part's) scaled/E-format decision verbatim instead of
+      ⍝ getting its own need_scaling() decision -- so a real part small
+      ⍝ enough to need E-format forced the imaginary part into E-format
+      ⍝ too, even when the imaginary part's own magnitude did not need
+      ⍝ it (and the mirror case, via ⍕'s "drop the negligible part"
+      ⍝ shortcut for 1E¯17J0.5, below).
+      ⍝
+      OldPP←⎕PP
+      ⎕PP←10
+
+      1E¯7J0.5
+1E¯7J0.5
+
+      ⍕1E¯17J0.5
+0J0.5
+
+      ⎕PP←OldPP
+

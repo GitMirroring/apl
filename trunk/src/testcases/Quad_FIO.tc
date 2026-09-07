@@ -328,6 +328,50 @@ World!
       '%x' ⎕FIO[55] 'FF'
 255
 
+      ⍝ Bugs28 #49 regression: a suppressed conversion (%*d) ended the
+      ⍝ scan outright instead of continuing with the next directive --
+      ⍝ do_scanf()'s integer/float branches took the "scan failed" path
+      ⍝ (goto out) whenever suppress was set, even on a successful
+      ⍝ count==1, discarding every directive after the %*d. Fixed by
+      ⍝ separating "did the scan itself succeed" (count==1, controls
+      ⍝ whether to continue) from "should the result be kept"
+      ⍝ (!suppress, controls whether to append to Z).
+      ⍝
+      '%*d %d' ⎕FIO[55] '1 2'
+2
+
+      ⍝ control: a suppressed %s was already correct
+      ⍝
+      '%*s %d' ⎕FIO[55] 'ab 2'
+2
+
+      '%d %*d %d' ⎕FIO[55] '1 2 3'
+1 3
+
+      '%*d %*d %d' ⎕FIO[55] '1 2 3'
+3
+
+      ⍝ regression (Bugs28 #100(j)): a field width in an integer/float
+      ⍝ scanf conversion was silently ignored -- File_or_String::
+      ⍝ scanf_long_long()/scanf_double() (Quad_FIO.cc) never received
+      ⍝ do_scanf()'s own conv_len, unlike %c/%s, which already honoured
+      ⍝ it. '%5d' on '1234567' used to consume and return the whole
+      ⍝ 1234567 instead of stopping at the first 5 characters.
+      ⍝
+      '%5d' ⎕FIO[55] '1234567'
+12345
+
+      '%d' ⎕FIO[55] '1234567'
+1234567
+
+      '%3f' ⎕FIO[55] '12.34567'
+12
+
+      ⍝ control: %s already honoured field width before this fix
+      ⍝
+      '%2s' ⎕FIO[55] '1234567'
+ 12 
+
       ⍝ execve
       ⍝
       ⍝Filename←'/usr/local/lib/apl/TLV_server'  ⍝ whereever TLV_server lives
@@ -486,6 +530,40 @@ Hello -123.77 world
       '%hf' ⎕FIO[58] 1.5
 1.500000
 
+      ⍝ regression (Bugs28 #100(j)): do_snprintf()'s integer and float
+      ⍝ conversion branches called get_real_value() on a genuinely
+      ⍝ complex argument without checking is_near_real() first --
+      ⍝ ComplexCell::get_real_value() unconditionally returns just the
+      ⍝ real part, silently discarding the imaginary part, instead of
+      ⍝ the DOMAIN ERROR every other scalar-function complex-argument
+      ⍝ check in this codebase already gives.
+      ⍝
+      '%d' ⎕FIO[58] 1J2
+DOMAIN ERROR+
+      '%d' ⎕FIO[58]1J2
+      ^            ^
+
+      )MORE
+argument 0 is complex and cannot be used with integer format '%d' in A ⎕FIO.snprintf B
+)SIC
+
+      '%f' ⎕FIO[58] 1J2
+DOMAIN ERROR+
+      '%f' ⎕FIO[58]1J2
+      ^            ^
+
+      )MORE
+argument 0 is complex and cannot be used with format '%f' in A ⎕FIO.snprintf B
+)SIC
+
+      ⍝ control: a tolerantly real complex argument is unaffected
+      ⍝
+      '%d' ⎕FIO[58] 1J0
+1
+
+      '%f' ⎕FIO[58] 1.5J0.0000000001
+1.500000
+
       ⍝ Regression: Bugs25 #8 (Blake McBride). eval_AXB__202()/
       ⍝ eval_XB__202() (⎕FIO[202]/⎕FIO[203], get/set monadic/dyadic
       ⍝ threshold) called Tokenizer::tokenize_function() on an
@@ -532,6 +610,17 @@ DOMAIN ERROR
       OldThresh←⎕FIO[202] '+'
       OldThresh ⎕FIO[202] '+'
 8888888888888888888
+
+⍝ regression (Bugs28 #76): ⎕FIO[22] (fprintf) to a handle open for
+⍝ reading only (handle 0, stdin) used to raise SYSTEM ERROR from the
+⍝ generic fwrite()-failed check in do_fprintf(). A failed fwrite() on a
+⍝ non-writable stream is a normal, expectable I/O outcome, not an
+⍝ internal error -- report it the same way the other ⎕FIO write
+⍝ functions (e.g. ⎕FIO[7]) report a failed write: return 0 (nothing
+⍝ written) and leave errno for ⎕FIO[1] to inspect, instead of throwing.
+⍝
+      ('%d' 5) ⎕FIO[22] 0
+0
 
 ⍝     )VARS
 

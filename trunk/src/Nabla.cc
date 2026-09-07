@@ -542,14 +542,31 @@ bool hdr_has_vars;
 
         case NC_FUNCTION:
         case NC_OPERATOR:           // open an existing function
-             if (InputFile::running_script())   // script
+             // Bugs28 #51: case 1c. (unconditionally overwrite with a
+             // brand-new, empty function) was taken whenever running
+             // in a script, even when parse_oper() just above had
+             // already recognised a genuine ∇-command ([⎕], [N],
+             // [N⎕], [∆N], [→]) on the EXISTING function -- so e.g.
+             // the classic "display F" idiom, ∇F[⎕]∇, silently
+             // replaced F with an empty niladic function in script
+             // mode (while working correctly on stdin/interactively).
+             // Case 1c. is only actually intended for a genuine new
+             // function HEADER (ecmd==ECMD_NOP, i.e. no ∇-command was
+             // parsed) that carries more than the bare function name
+             // (hdr_has_vars, e.g. "Z←F B") -- any other case (a bare
+             // name, or an actual ∇-command) means the user is editing
+             // the EXISTING function, exactly as in interactive mode.
+             //
+             if (InputFile::running_script() &&
+                 ecmd == ECMD_NOP && hdr_has_vars)   // script, new header
                 {
                   // case 1c.
                   if (const char * loc = open_new_function())   return loc;
                   break;   // continue below
                 }
 
-             // interactive.
+             // interactive (or a script ∇-command / bare-name edit,
+             // Bugs28 #51).
              //
              // case 2.
              if (const char * loc =
@@ -1189,11 +1206,6 @@ Nabla::open_existing_function(const UCS_string & name)
    function_existed = true;
    if (const char * why = fun_symbol->cant_be_defined())   return why;
 
-   // this function must only be called when editing functions interactively
-   //
-   if (InputFile::running_script())
-      return "∇-edit existing function from a script";
-
 cFunction_P function = fun_symbol->get_function();
    Assert(function);
 
@@ -1267,7 +1279,25 @@ UCS_string::iterator c(ucs);
    if (!Avec::is_first_symbol_char(c.next()))   return false;    // not an axis
    while (c.has_more() && Avec::is_symbol_char(c.lookup()))   c.next();
    c.skip_white();
-   return c.has_more() && c.lookup() == UNI_R_BRACK;
+   if (!c.has_more() || c.lookup() != UNI_R_BRACK)   return false;
+   c.next();   // skip ']'
+
+   // Bugs28 #100(y): a bracket-axis is only ever valid on a header that
+   // also has a right argument B -- UserFunction_header::init_signature()
+   // only recognises [X] after first stripping a trailing B off the
+   // token list, so a niladic "F[X]" with no B is not, and never was, a
+   // representable axis header. Without this check, a purely structural
+   // [Name] match here mistook a single-line ∇-editor delete command
+   // like [∆3] (∆ is a legal identifier-start character, and a
+   // digit-only suffix is a legal identifier continuation, so "∆3"
+   // parses as one ordinary name) for a new function's axis parameter,
+   // pre-empting parse_oper() -- which already handles [∆N] correctly
+   // -- and producing a DEFN ERROR instead of deleting line N. If
+   // nothing meaningful follows ']', this cannot be a real axis header,
+   // so it must be left for parse_oper() to interpret as a command.
+   //
+   c.skip_white();
+   return c.has_more();
 }
 //════════════════════════════════════════════════════════════════════════════
 LineLabel

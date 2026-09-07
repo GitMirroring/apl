@@ -110,10 +110,20 @@ Bad number+
       ⍝ every sibling FloatCell arithmetic primitive -- so an LCM whose
       ⍝ true result overflows double range silently produced ∞ instead of
       ⍝ DOMAIN ERROR. Fixed in NumericCell.cc.
-      1E300∧1E30
+      ⍝
+      ⍝ NOTE (Bugs28 #43, 2026-09-05): this example used to be
+      ⍝ 1E300∧1E30 -- but flt_gcd()'s own imprecision (see below) is
+      ⍝ exactly why that particular pair used to overflow: 1E30 truly
+      ⍝ does (tolerantly) divide 1E300, so the correct gcd is 1E30 and
+      ⍝ the correct lcm is the perfectly finite 1E300, not an overflow
+      ⍝ at all. Replaced with a pair whose lcm genuinely exceeds double
+      ⍝ range even with a correctly-computed (small) gcd, so this still
+      ⍝ tests bif_and()'s isfinite() check rather than the old bug.
+      ⍝
+      8.11044318132503E299∧6.744967127130588E287
 DOMAIN ERROR
-      1E300∧1E30
-      ^     ^
+      8.110443181E299∧6.744967127E287
+      ^               ^
       4∧6
 12
       1.5∧2.5

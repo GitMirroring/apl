@@ -360,10 +360,17 @@ public:
    /// @param keep_existing true to silently keep any existing function of the same name
    /// @param loc caller location for diagnostics
    /// @param creator entity (editor, ⎕FX, filename) creating the function
+   /// @param quiet true to suppress the internal parser debug trace
+   /// @param honor_lock false to allow replacing a locked function
+   ///        (dyadic ⎕FX only, Bugs28 #92: its left argument IS the
+   ///        documented way to change a function's execution
+   ///        properties, including its lock bit -- every other caller
+   ///        must go through the default, which refuses)
    static UserFunction * fix(const UCS_string & text, int & err_line,
                              bool keep_existing, const char * loc,
                              const UTF8_string &  creator,
-                             bool quiet = false);
+                             bool quiet = false,
+                             bool honor_lock = true);
 
    /// (re-)create a lambda
    /// @param var symbol to which the lambda will be bound

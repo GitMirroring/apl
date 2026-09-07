@@ -45,6 +45,7 @@
 class DerivedFunction;
 class Executable;
 class StateIndicator;
+class UserFunction;
 class UTF8_string;
 
 //════════════════════════════════════════════════════════════════════════════
@@ -57,6 +58,24 @@ class UTF8_string;
 class Workspace_0
 {
 protected:
+   /// user functions that were ⎕EX'ed while on the SI stack (deferred
+   /// deletion, Bugs28 #15/#17): add_expunged_function() is called from
+   /// Symbol::clear_vs(), including while symbol_table (below) is itself
+   /// being torn down at workspace destruction. Declared here, before
+   /// symbol_table, so that -- since members destruct in reverse
+   /// declaration order within each class, and a derived class's own
+   /// members are destroyed before its base subobjects -- this vector
+   /// outlives every Symbol destructor that might still push into it.
+   /// It used to live in Workspace itself (a derived-class member),
+   /// which destructs *before* the Workspace_0 base containing
+   /// symbol_table: the last round of ⎕EX bookkeeping during teardown
+   /// then wrote into an already-destroyed vector, a heap corruption
+   /// that valgrind caught as an invalid write here but which glibc
+   /// only reported much later, at process exit, as an unrelated-looking
+   /// "corrupted double-linked list" abort inside a shared library's own
+   /// cleanup.
+   std::vector<const UserFunction *> expunged_functions;
+
    /// the symbol table for user-defined names of this workspace.
    SymbolTable symbol_table;
 
@@ -239,6 +258,12 @@ public:
    /// maybe remove functions for which ⎕EX has failed
    static int cleanup_expunged(ostream & out, bool & erased);
 
+   /// silently delete expunged functions once it is safe to do so
+   /// (called automatically after every top-level statement; )CHECK's
+   /// cleanup_expunged() above is then only needed for the rare case
+   /// where the )SI never becomes empty on its own)
+   static void flush_expunged();
+
    /// copy objects from another workspace
    static void copy_WS(ostream & out, ostream & err,
                       const LibRef_name & lib_name,
@@ -297,6 +322,14 @@ public:
    /// return the oldest SI entry that is running \b exex, or 0 if none
    static StateIndicator * oldest_exec(const Executable * exec);
 
+   /// return true if \b ufun is currently bound as the LO/RO/FUN operand
+   /// of some suspended defined operator (Bugs28 #16): unlike
+   /// oldest_exec() (which only detects ufun itself actually executing)
+   /// this catches ufun sitting, as a runtime VALUE, in another frame's
+   /// localized operand symbol -- invisible to any static/token-based
+   /// check since no source text anywhere mentions ufun's name.
+   static bool is_bound_as_operand(const UserFunction * ufun);
+
    /// Remove the current SI-entry from the SI stack.
    /// @param loc caller location for diagnostics
    static void pop_SI(const char * loc);
@@ -346,9 +379,6 @@ public:
 #include "SystemVariable.def"
 
 protected:
-   /// user defined functions that were ⎕EX'ed while on the SI stack
-   std::vector<const UserFunction *> expunged_functions;
-
    /// more info about last error
    UCS_string more_error_info;
 

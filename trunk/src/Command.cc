@@ -553,6 +553,30 @@ check_EOC:
                    // happens (Prefix::clean_up(), the reduce_*() sites).
                    //
                    Value::erase_stale(LOC);
+
+                   // Bugs28 #96 investigated, NOT fixed here -- see
+                   // project_blake_bugs28.md: popping this level-0 frame
+                   // right after reporting (which does stop )SI from
+                   // growing without bound across repeated top-level
+                   // errors) was tried and reverted -- ⎕ET/⎕EM (Quad_ET.cc/
+                   // SystemVariable.cc's Quad_EM) read the failed
+                   // statement's Error directly off this same
+                   // StateIndicator object, walking up from Workspace::
+                   // SI_top(); popping it away loses that Error entirely,
+                   // so ⎕ET/⎕EM after ANY top-level error (not just the
+                   // repeated-error growth case) silently went back to
+                   // "0 0"/empty instead of the real error info -- a much
+                   // bigger regression than the growth bug itself
+                   // (confirmed live: 6 testcase files regressed,
+                   // Quad_ET/Quad_ES/Lambda/Reshape/SaveLoad/Quad_FX.tc).
+                   // A real fix needs the last-error info to survive
+                   // independently of the full StateIndicator (FIFO,
+                   // local variables, Prefix, ...) that )SI growth is
+                   // actually about -- e.g. a small separate "last
+                   // immediate-execution error" record ⎕ET/⎕EM can read
+                   // after the heavyweight frame is gone -- which is a
+                   // real design decision, not a one-line fix.
+                   //
                  }
               return;
             }

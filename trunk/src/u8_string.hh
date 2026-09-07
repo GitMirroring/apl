@@ -27,11 +27,9 @@
 #include <cstddef>   // std::nullptr_t
 #include <stdarg.h>
 
-#include "UTF8_string.hh"   // charP(), utf8P(), UTF8
-
 /// Thin inline wrappers around \<string.h\>, \<stdlib.h\>, and \<stdio.h\>
-/// that accept const UTF8 * (= const uint8_t *) instead of const char *,
-/// eliminating charP() casts at every call site.
+/// that accept const uint8_t * (= const uint8_t *) instead of const char *,
+/// eliminating reinterpret_cast<const char *>() casts at every call site.
 namespace u8
 {
 
@@ -39,9 +37,9 @@ namespace u8
 /// @param s null-terminated UTF-8 string
 /// @return  converted long long value
 inline long long
-atoll(const UTF8 * s)
+atoll(const uint8_t * s)
 {
-   return ::atoll(charP(s));
+   return ::atoll(reinterpret_cast<const char *>(s));
 }
 
 /// scan \b s according to \b fmt (like the C library's sscanf); delegates
@@ -50,11 +48,11 @@ atoll(const UTF8 * s)
 /// @param fmt printf-style format string
 /// @return    number of items successfully matched and assigned
 inline int
-sscanf(const UTF8 * s, const char * fmt, ...)
+sscanf(const uint8_t * s, const char * fmt, ...)
 {
    va_list ap;
    va_start(ap, fmt);
-   const int ret = vsscanf(charP(s), fmt, ap);
+   const int ret = vsscanf(reinterpret_cast<const char *>(s), fmt, ap);
    va_end(ap);
    return ret;
 }
@@ -65,9 +63,9 @@ sscanf(const UTF8 * s, const char * fmt, ...)
 /// @param n  maximum number of bytes to compare
 /// @return   negative, zero, or positive (like ::strncmp)
 inline int
-strncmp(const UTF8 * s1, const char * s2, size_t n)
+strncmp(const uint8_t * s1, const char * s2, size_t n)
 {
-   return ::strncmp(charP(s1), s2, n);
+   return ::strncmp(reinterpret_cast<const char *>(s1), s2, n);
 }
 
 /// compare at most \b n bytes of ASCII string \b s1 with UTF-8 string \b s2.
@@ -76,19 +74,19 @@ strncmp(const UTF8 * s1, const char * s2, size_t n)
 /// @param n  maximum number of bytes to compare
 /// @return   negative, zero, or positive (like ::strncmp)
 inline int
-strncmp(const char * s1, const UTF8 * s2, size_t n)
+strncmp(const char * s1, const uint8_t * s2, size_t n)
 {
-   return ::strncmp(s1, charP(s2), n);
+   return ::strncmp(s1, reinterpret_cast<const char *>(s2), n);
 }
 
 /// find the first occurrence of ASCII string \b needle in UTF-8 string \b haystack.
 /// @param haystack UTF-8 string to search
 /// @param needle   ASCII substring to find
 /// @return         pointer to first match, or null if not found
-inline const UTF8 *
-strstr(const UTF8 * haystack, const char * needle)
+inline const uint8_t *
+strstr(const uint8_t * haystack, const char * needle)
 {
-   return utf8P(::strstr(charP(haystack), needle));
+   return reinterpret_cast<const uint8_t *>(::strstr(reinterpret_cast<const char *>(haystack), needle));
 }
 
 /// convert UTF-8 string \b s to double; store end pointer as char *.
@@ -96,21 +94,21 @@ strstr(const UTF8 * haystack, const char * needle)
 /// @param endptr set to first character after the parsed number (as char *)
 /// @return       converted double value (like ::strtod)
 inline double
-strtod(const UTF8 * s, char ** endptr)
+strtod(const uint8_t * s, char ** endptr)
 {
-   return ::strtod(charP(s), endptr);
+   return ::strtod(reinterpret_cast<const char *>(s), endptr);
 }
 
-/// convert UTF-8 string \b s to double; store end pointer as UTF8 *.
+/// convert UTF-8 string \b s to double; store end pointer as uint8_t *.
 /// @param s      null-terminated UTF-8 string
-/// @param endptr set to first character after the parsed number (as UTF8 *)
+/// @param endptr set to first character after the parsed number (as uint8_t *)
 /// @return       converted double value (like ::strtod)
 inline double
-strtod(const UTF8 * s, UTF8 ** endptr)
+strtod(const uint8_t * s, uint8_t ** endptr)
 {
    char * cp = 0;
-   const double ret = ::strtod(charP(s), &cp);
-   if (endptr)   *endptr = utf8P(cp);
+   const double ret = ::strtod(reinterpret_cast<const char *>(s), &cp);
+   if (endptr)   *endptr = reinterpret_cast<uint8_t *>(cp);
    return ret;
 }
 
@@ -118,9 +116,9 @@ strtod(const UTF8 * s, UTF8 ** endptr)
 /// @param s null-terminated UTF-8 string
 /// @return  converted double value (like ::strtod)
 inline double
-strtod(const UTF8 * s, std::nullptr_t)
+strtod(const uint8_t * s, std::nullptr_t)
 {
-   return ::strtod(charP(s), 0);
+   return ::strtod(reinterpret_cast<const char *>(s), 0);
 }
 
 /// convert UTF-8 string \b s to long long in base \b base; store end pointer as char *.
@@ -129,22 +127,22 @@ strtod(const UTF8 * s, std::nullptr_t)
 /// @param base   numeric base (2–36, or 0 for auto-detect)
 /// @return       converted long long value (like ::strtoll)
 inline long long
-strtoll(const UTF8 * s, char ** endptr, int base)
+strtoll(const uint8_t * s, char ** endptr, int base)
 {
-   return ::strtoll(charP(s), endptr, base);
+   return ::strtoll(reinterpret_cast<const char *>(s), endptr, base);
 }
 
-/// convert UTF-8 string \b s to long long in base \b base; store end pointer as UTF8 *.
+/// convert UTF-8 string \b s to long long in base \b base; store end pointer as uint8_t *.
 /// @param s      null-terminated UTF-8 string
-/// @param endptr set to first character after the parsed number (as UTF8 *)
+/// @param endptr set to first character after the parsed number (as uint8_t *)
 /// @param base   numeric base (2–36, or 0 for auto-detect)
 /// @return       converted long long value (like ::strtoll)
 inline long long
-strtoll(const UTF8 * s, UTF8 ** endptr, int base)
+strtoll(const uint8_t * s, uint8_t ** endptr, int base)
 {
    char * cp = 0;
-   const long long ret = ::strtoll(charP(s), &cp, base);
-   if (endptr)   *endptr = utf8P(cp);
+   const long long ret = ::strtoll(reinterpret_cast<const char *>(s), &cp, base);
+   if (endptr)   *endptr = reinterpret_cast<uint8_t *>(cp);
    return ret;
 }
 
@@ -153,9 +151,9 @@ strtoll(const UTF8 * s, UTF8 ** endptr, int base)
 /// @param base numeric base (2–36, or 0 for auto-detect)
 /// @return     converted long long value (like ::strtoll)
 inline long long
-strtoll(const UTF8 * s, std::nullptr_t, int base)
+strtoll(const uint8_t * s, std::nullptr_t, int base)
 {
-   return ::strtoll(charP(s), 0, base);
+   return ::strtoll(reinterpret_cast<const char *>(s), 0, base);
 }
 
 } // namespace u8

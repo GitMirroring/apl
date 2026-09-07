@@ -67,8 +67,12 @@ public:
    /// @param exec_props array of four execution property integers
    /// @param B APL value containing the function text
    /// @param creator identifier string recorded as the function creator
+   /// @param honor_lock false for dyadic ⎕FX (Bugs28 #92): its left
+   ///        argument is the documented way to change a function's
+   ///        execution properties, including its lock bit
    static Token do_quad_FX(const int * exec_props, cValue_R B,
-                           const UTF8_string & creator);
+                           const UTF8_string & creator,
+                           bool honor_lock = true);
 
    static Quad_FX  fun;   ///< Built-in function.
 
@@ -83,8 +87,10 @@ protected:
    /// @param exec_props array of four execution property integers
    /// @param text UCS function text with lines separated by LF
    /// @param creator identifier string recorded as the function creator
+   /// @param honor_lock see the cValue_R B overload above
    static Token do_quad_FX(const int * exec_props, const UCS_string & text,
-                           const UTF8_string & creator);
+                           const UTF8_string & creator,
+                           bool honor_lock = true);
 };
 //════════════════════════════════════════════════════════════════════════════
 #endif //  __QUAD_FX_HH_DEFINED__

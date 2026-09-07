@@ -1000,7 +1000,16 @@ UserFunction * ufun = get_exec_ufun();
       {
 //      CERR << "*** lambda died" << endl;
 //      clear_body();
-        delete ufun;
+        // Not deleted right away: the tokens of the immediate-execution
+        // statement currently in flight may still hold a raw Function*
+        // to this same lambda (e.g. (⎕EX'L')L 1, Bugs28 #15 -- the same
+        // use-after-free class as Symbol::expunge()'s non-lambda case,
+        // just reached via refcount dropping to 0 here instead of a
+        // direct delete). Queue it on the same pre-existing expunged-
+        // functions mechanism Symbol::expunge() now uses -- see that
+        // call site's comment for why it, not a fresh delete, is safe.
+        //
+        Workspace::add_expunged_function(ufun);
       }
 }
 //────────────────────────────────────────────────────────────────────────────
@@ -1174,6 +1183,29 @@ UCS_string ret;
    return ret;
 }
 //────────────────────────────────────────────────────────────────────────────
+/// throw DEFN_ERROR for a lambda rejected by compute_lambda_body() below
+/// (Bugs28 #94, Bugs27 #49 residual). The raw DEFN_ERROR macro
+/// (throw_apl_error()) calls Error::update_error_info(), which rebuilds
+/// the error's line 2/3 from whatever SI frame is current -- at this
+/// point (still inside StatementList::fix(), before the lambda's own
+/// statement has an SI entry of its own) that is the *previous*
+/// statement's frame, stale and unrelated (the same update_error_info()
+/// limitation Bugs28 #93 fixed for parse errors). update_error_info()
+/// also prints immediately, and the caller
+/// (Command::do_APL_expression()) prints the same error again in its
+/// own catch block, doubling it. Store directly and throw without ever
+/// calling update_error_info(), leaving line 2/3 empty (the same as a
+/// fresh interpreter with no previous statement to leak from) instead
+/// of wrong, and printed exactly once.
+static void
+throw_lambda_defn_error()
+{
+Error error(E_DEFN_ERROR, LOC);
+   if (StateIndicator * si = Workspace::SI_top())
+      StateIndicator::get_error(si) = error;
+   throw error;
+}
+//────────────────────────────────────────────────────────────────────────────
 Fun_signature
 Executable::compute_lambda_body(Token_string & lambda_body,
                                 ShapeItem b, ShapeItem bend)
@@ -1225,7 +1257,7 @@ ShapeItem insertion_point = b;
               // TOK_BRANCH_INT is the resolved branch token.  Always illegal.
               case TOK_BRANCH_INT:
                    MORE_ERROR() << "→ is not allowed in λ expression ";
-                   DEFN_ERROR;
+                   throw_lambda_defn_error();
 
               // TOK_R_ARROW is what the tokenizer produces for →N when
               // parse_body_line() split statements at a diamond inside {}.
@@ -1236,7 +1268,7 @@ ShapeItem insertion_point = b;
                    if (at_stmt_start)
                       {
                         MORE_ERROR() << "→ is not allowed in λ expression ";
-                        DEFN_ERROR;
+                        throw_lambda_defn_error();
                       }
                    break;
 
@@ -1252,7 +1284,7 @@ ShapeItem insertion_point = b;
               case TOK_IF_END:
                    MORE_ERROR() << "conditionals (i.e. ←←, ←→, or →→)"
                                    " are not allowed in λ expressions";
-                   DEFN_ERROR;
+                   throw_lambda_defn_error();
 
               case TOK_L_CURLY: ++level;   break;
               case TOK_R_CURLY: --level;   break;
@@ -1279,13 +1311,13 @@ ShapeItem insertion_point = b;
       {
         MORE_ERROR() <<
            "niladic lambda with axis. left argument, or function argument(s)";
-        DEFN_ERROR;
+        throw_lambda_defn_error();
       }
 
    if ((signature & SIG_LO) && (signature & SIG_X))   // dyadic oper with axis
       {
         MORE_ERROR() << "invalid lambda operator (dyadic with axis)";
-        DEFN_ERROR;
+        throw_lambda_defn_error();
       }
 
    // if the lambda has at least one token, then it supposedly returns λ.
@@ -1356,7 +1388,30 @@ const ShapeItem end = input.size();
 
         UserFunction * ufun = get_exec_ufun();
         Assert(ufun);
-        ufun->add_label(tok_sym.get_sym_ptr(), line);
+
+        // ISO 13751 / APL2 LRM: header names (Z, A, LO, FUN, RO, X, B, and
+        // locals) and labels must all be distinct (Blake McBride, Bugs28
+        // #70). Without this check a label duplicating a header name
+        // silently shadowed it (e.g. 'B:' makes B the label's line number
+        // instead of the argument), and a label duplicating an earlier
+        // label just silently rebound it to the new line -- both accepted
+        // at fix/edit time instead of DEFN ERROR.
+        //
+        Symbol * label_sym = tok_sym.get_sym_ptr();
+        if (ufun->pushes_sym(label_sym))
+           {
+             MORE_ERROR() << "Label " << label_sym->get_name()
+                          << " duplicates a header name";
+             DEFN_ERROR;
+           }
+        if (ufun->is_label(label_sym))
+           {
+             MORE_ERROR() << "Label " << label_sym->get_name()
+                          << " is already declared";
+             DEFN_ERROR;
+           }
+
+        ufun->add_label(label_sym, line);
       }
 
    /*

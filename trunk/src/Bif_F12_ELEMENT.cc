@@ -205,6 +205,19 @@ const ShapeItem len_Z = B.get_enlist_count();
    //
    if (len_Z == 0)
       {
+        // B holds LvalCells (selective assignment, e.g. (∊⊂'')←5): there is
+        // no enclosed Value_P to recurse into (try_pointer_value() is 0 for
+        // every LvalCell), so mirror the empty-B lval branch above -- 0
+        // items selected is a no-op, not an internal error.
+        //
+        if (B.get_lval_cellowner())
+           {
+             Value_P Z(ShapeItem(0), LOC);
+             new (&Z->get_wproto()) LvalCell(0, 0);
+             Z->check_value(LOC);
+             return Z;
+           }
+
         loop(c, B.element_count())
            {
              if (Value_P v = B.try_pointer_value(c))

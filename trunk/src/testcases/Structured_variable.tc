@@ -165,5 +165,206 @@ OK      - no stale values
 OK      - no stale indices
 OK      - no duplicate parents
 
-      )ERASE A C
+      ⍝ Bugs28 #14 regression: the phrase "D V" (member access, D='.')
+      ⍝ also matches ⍤/⍣ followed by a plain symbol, since both are
+      ⍝ TC_OPER2 like '.'. A trailing ← after such a symbol used to hit
+      ⍝ an internal Assert() (ASS_var_seen bookkeeping meant only for a
+      ⍝ genuine member chain) instead of a clean SYNTAX ERROR.
+      ⍝
+      X←1
+      +⍤X←
+SYNTAX ERROR
+      +⍤X←
+       ^ ^
+
+      )SIC
+      +⍣X←
+SYNTAX ERROR
+      +⍣X←
+       ^ ^
+
+      ⍝ neighbouring forms stay exactly as before
+      ⍝
+      )SIC
+      ×⍤1←
+SYNTAX ERROR+
+      ×⍤1←
+      ^  ^
+
+      )SIC
+      ×⍤X←5
+SYNTAX ERROR
+      ×⍤X←5
+       ^  ^
+
+      )SIC
+      +∘X←
+VALENCE ERROR+
+      +∘X←
+       ^ ^
+
+      )SIC
+      +⍤X
+VALENCE ERROR+
+      +⍤X
+      ^
+
+      )SIC
+
+      ⍝ real member-access chains are unaffected
+      ⍝
+      MM.a.b←2
+      MM.a.b
+2
+
+      ⍝ Bugs28 #53 regression: ⎕EX/)ERASE of a nonexistent MEMBER threw
+      ⍝ VALUE ERROR (via cValue::get_existing_member(), which never
+      ⍝ returns 0 -- correct for an actual member *reference*, e.g.
+      ⍝ plain S.zz, but wrong for ⎕EX/)ERASE, whose job is only to
+      ⍝ check whether there is something there to remove) instead of
+      ⍝ reporting simple failure (0 / "NOT ERASED"). With no try/catch
+      ⍝ around it, the exception escaped all the way out of
+      ⍝ Quad_EX::expunge() to Command::process_line, which then blamed
+      ⍝ whatever statement happened to be current (not this one) and
+      ⍝ leaked an internal diagnostic string. Fixed by
+      ⍝ cValue::try_existing_member(), a non-throwing sibling that
+      ⍝ mirrors the same traversal, returning 0 for every "no such
+      ⍝ member" condition instead of throwing (a plain try/catch is
+      ⍝ not enough here: constructing/throwing an Error has an
+      ⍝ observable console side effect even when caught immediately).
+      ⍝
+      ZZ53S.a←1
+      ⎕EX 'ZZ53S.zz'
+0
+
+      ⍝ control: an existing member is still correctly expunged once,
+      ⍝ and correctly fails the second time (already gone)
+      ⍝
+      ⎕EX 'ZZ53S.a'
+1
+
+      ⎕EX 'ZZ53S.a'
+0
+
+      ZZ53S.a←1
+      )ERASE ZZ53S.zz
+
+      ⍝ NOTE: )ERASE's "NOT ERASED: ..." diagnostic goes to CERR
+      ⍝ (SymbolTable::erase_symbols() ignores its own `out` parameter
+      ⍝ and always writes to CERR -- see Workspace::erase_symbols()),
+      ⍝ so it never appears as expected stdout text in a .tc file
+      ⍝ (matching the pre-existing convention, e.g. AAA1.tc's
+      ⍝ ")ERASE JUMPS" with no "NOT ERASED: JUMPS" expected line).
+      ⍝
+      )ERASE ZZ53S.a
+
+      ⍝ regression (Bugs28 #100(u)): a ⎕-name in the member chain (e.g.
+      ⍝ S.⎕IO←1) was accepted like any other symbol and silently created
+      ⍝ a member literally named "⎕IO", instead of being rejected the
+      ⍝ same way a ⎕-name already is in other name positions (headers,
+      ⍝ local variables).
+      ⍝
+      ZZ54S.a←1
+      ZZ54S.⎕IO←1
+DOMAIN ERROR+
+      ZZ54S.⎕IO←1
+           ^    ^
+
+      )MORE
+member access: '⎕IO' is a ⎕-name and cannot be used as a member name
+)SIC
+
+      ⍝ control: an ordinary member is unaffected
+      ⍝
+      ZZ54S.b←2
+      2 ⎕TF 'ZZ54S'
+ZZ54S←(38⎕CR(8 2⍴0 0 0 0 0 0 0 0 0 0 0 0 (1⍴'b') 2 (1⍴'a') 1))
+
+      )ERASE ZZ54S
+
+      ⍝ regression (Bugs28 #55, Blake McBride): a member reference
+      ⍝ immediately followed by a bracket index (e.g. S.b[1]) was
+      ⍝ SYNTAX ERROR / LEFT SYNTAX ERROR instead of indexing into the
+      ⍝ member, and assigning through it (S.b[1]←'q') had no effect on
+      ⍝ the actual stored member. Root cause: this parser shifts
+      ⍝ right-to-left, so the bracket index (already collapsed to one
+      ⍝ token) is shifted onto the stack BEFORE the member chain's '.'
+      ⍝ and name -- and the plain "symbol[index]" phrase (prio ≥
+      ⍝ BS_ANY_BRA, reduced unconditionally with no shift/reduce
+      ⍝ lookahead) then eagerly bound to the bare member-name symbol,
+      ⍝ treating it as an ordinary (nonexistent) global variable,
+      ⍝ before the '.' ever got a chance to combine it into a proper
+      ⍝ member reference. Fixed in Prefix::push_Symbol(): when a
+      ⍝ dot-adjacent value-member symbol is about to be pushed AND
+      ⍝ something with strong binding priority (a pending index) is
+      ⍝ already on the stack, resolve the whole chain right there
+      ⍝ (Prefix::push_member_chain(), reusing the same member-walking
+      ⍝ logic Prefix::reduce_D_V__() already had) and push a plain
+      ⍝ value or, when the reference will itself be indexed-assigned or
+      ⍝ selectively assigned, an lvalue-capable cellref array -- so the
+      ⍝ existing, fully generic value-based phrases (A C, A ASS B, ...)
+      ⍝ apply to it afterward exactly as they already do for any other
+      ⍝ already-resolved value.
+      ⍝
+      ZZ55S.b←'xyz'
+      ZZ55S.b[1]
+x
+      ZZ55S.b[1]←'q'
+      ZZ55S.b
+qyz
+
+      ⍝ control: multi-level chain, both read and write
+      ⍝
+      ZZ55S.a.b←'hello'
+      ZZ55S.a.b[2]
+e
+      ZZ55S.a.b[2]←'E'
+      ZZ55S.a.b
+hEllo
+
+      ⍝ control: selective specification (already worked before this
+      ⍝ fix, since it does not involve a pending index at shift time)
+      ⍝ is unaffected
+      ⍝
+      (2↑ZZ55S.b)←'ab'
+      ZZ55S.b
+abz
+
+      ⍝ control: indexing a simple-scalar (non-vector) member is a
+      ⍝ pre-existing, unrelated limitation (no lvalue path for a single
+      ⍝ scalar cell), correctly reported as RANK ERROR rather than
+      ⍝ crashing or corrupting anything -- same as indexing an ordinary
+      ⍝ scalar variable
+      ⍝
+      ZZ55S.n←42
+      ZZ55S.n[1]
+RANK ERROR+
+      ZZ55S.n[1]
+            ^^
+
+      )MORE
+A[B]: A is not a vector (single-index A[B] only applies to vector A); ⍴⍴A is 0
+      )SIC
+
+      ⍝ control: a missing top-level variable is still correctly
+      ⍝ rejected (not auto-created) when only referenced, not assigned
+      ⍝
+      ZZ55UNDEF.member[1]
+VALUE ERROR+
+      ZZ55UNDEF.member[1]
+                      ^
+
+      )MORE
+member access: missing top-level variable ZZ55UNDEF for member ZZ55UNDEF.member not found
+      )SIC
+
+      )ERASE ZZ55S
+
+      )CHECK
+OK      - no stale functions
+OK      - no stale values
+OK      - no stale indices
+OK      - no duplicate parents
+
+      )ERASE A C MM
 

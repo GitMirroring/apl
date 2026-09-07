@@ -220,10 +220,28 @@ const cValue * pB = &B;   // may be rebound if B_enclosed
                                                        A_RO_B->get_rank() - 1);
              if (T2.get_tag() == TOK_ERROR)   return T2;
 
+             // V2 (the LO-reduction of A_RO_B) can be a *nested* scalar
+             // (rank 0, e.g. ,/ of a non-scalar LO reducing to a single
+             // enclosed item, or scalar-LO on nested arguments) --
+             // is_simple_scalar() (rank 0 AND depth 0) is false for
+             // that too, so the is_simple_scalar()/else split above
+             // wrongly took the "wrap in a new PointerCell" branch for
+             // an already-scalar V2, adding a spurious extra level of
+             // enclosure (Bugs28 #34: 1 2 3,.,4 5 6 gave ⊂(⊂6⍴...)
+             // instead of ⊂6⍴...). is_scalar() (rank 0, any depth) is
+             // the right test: any scalar's sole cell -- simple or
+             // itself a PointerCell -- can be copied into Z directly;
+             // only a genuine (rank > 0) array needs a fresh
+             // PointerCell wrapping it. (Note this is *not* the same
+             // rule as next_ravel_Value()'s: that one is specifically
+             // for strand-notation semantics, where an already-nested
+             // scalar item deliberately gets one more level of nesting.)
+             //
              Value_P V2 = T2.get_apl_val();
-             if (V2->is_simple_scalar())
+             if (V2->is_scalar())
                 { Cell cache; Z->next_ravel_Cell(V2->get_cfirst(cache)); }
-             else                          Z->next_ravel_Pointer(V2.get());
+             else
+                Z->next_ravel_Pointer(V2.get());
            }
       }
 
@@ -291,9 +309,22 @@ Token tok = fun->eval_fill_AB(*Fill_A, *Fill_B);
 Value * Z = tok.get_apl_val().get();
 
 Value_P Z1(shape_Z, LOC);   // shape_Z is empty
-   Z1->get_wproto().init_from_value(Z, *Z1, loc);
 
+   // Bugs28 #38: init_from_value() copied Z (RO's fill result, e.g.
+   // the real value of Fill_A,Fill_B for a non-scalar RO like ,) into
+   // Z1's prototype completely unconverted -- its actual cell VALUES
+   // (not just its shape/nesting, which init_from_value() does handle
+   // via its own is_simple_scalar()/PointerCell split) leaked into an
+   // empty result's prototype, e.g. 0 'a' 'b' instead of 0 ' ' ' '.
+   // set_ravel_Value() + to_type(false) mirrors the OUTER product fix
+   // for the same class of bug: to_type() recurses through any nested
+   // PointerCell, zeroing every leaf to its type-correct default (0 or
+   // a space, never force-converted to numeric -- a fill result can
+   // legitimately be character, as in the ,.,'ab' example above).
+   //
+   Z1->set_ravel_Value(0, Z);
    Z1->check_value(LOC);
+   Z1->to_type(false);
    return Token(TOK_APL_VALUE1, Z1);
 }
 //────────────────────────────────────────────────────────────────────────────

@@ -723,6 +723,22 @@ FloatCell::bif_power_ff(Cell * Z, APL_Float a, APL_Float b)
    if (Cell::is_near_int64_t(b) && b == nearbyint(b))
       return FloatCell::bif_power_fi(Z, a, APL_Integer(b));
 
+   // a < 0, b an exact integer too large to fit int64_t (so
+   // bif_power_fi() above, which needs an APL_Integer b, isn't
+   // reachable): every double of magnitude ≥ 2⋆53 is necessarily an
+   // EVEN integer -- a double's mantissa has only 52 bits, so once the
+   // exponent pushes the magnitude past 2⋆53 the ulp itself is already
+   // ≥ 2, and no odd value is representable any more. a⋆b is therefore
+   // real and positive, exactly pow(|a|,b), with no parity trick or
+   // complex_power() needed (whose exp(b×ln a) is pure rounding noise
+   // at this magnitude of b -- see Bugs27 #24). See Bugs28 #39.
+   //
+   if (b == nearbyint(b))
+      {
+        const APL_Float z = pow(-a, b);
+        return isfinite(z) ? FloatCell::zF(Z, z) : E_DOMAIN_ERROR;
+      }
+
    // a < 0, b not an integer: complex result
    //
 const APL_Complex z = complex_power(APL_Complex(a, 0.0), b);
@@ -743,8 +759,16 @@ FloatCell::bif_logarithm_ff(Cell * Z, APL_Float a, APL_Float b)
    // needs its own explicit guard: log(0.0) is -inf, so log(b)/-inf is
    // -0.0, which passes the isfinite() check below and returns 0
    // instead of erroring (Blake McBride, Bugs26 #2).
-   if (a == 0.0)                             return E_DOMAIN_ERROR;
-   if (fabs(a - 1.0) <= INTEGER_TOLERANCE)   return E_DOMAIN_ERROR;
+   if (a == 0.0)   return E_DOMAIN_ERROR;
+
+   // ⎕CT-tolerant equality to 1, not a fixed absolute INTEGER_TOLERANCE
+   // (Bugs28 #87): the fixed threshold rejected any base within 1E¯10
+   // of 1 even when ⎕CT itself (the default 1E¯13) would not consider
+   // that base tolerantly equal to 1 at all -- e.g. (1+1E¯11)⍟5 was
+   // rejected even though (1+1E¯11)=1 is 0.
+   //
+   if (Cell::tolerantly_equal(a, 1.0, Workspace::get_CT()))
+      return E_DOMAIN_ERROR;
    if (b == a)    return IntCell::z1(Z);
    if (b == 0.0)  return E_DOMAIN_ERROR;
 
@@ -815,6 +839,23 @@ FloatCell::bif_residue_ff(Cell * Z, APL_Float a, APL_Float b)
 {
    if (a == 0.0)   return FloatCell::zF(Z, b);
    if (b == 0.0)   return IntCell::z0(Z);
+
+   // Bugs28 #100(q): a and b may be EXACT integers even though they
+   // arrived here as doubles (e.g. 1E17, a float literal, is exactly
+   // representable and exactly equal to the integer
+   // 100000000000000000 -- 7|1E17 and 7|100000000000000000 must agree)
+   // -- nc_p_modulo_q() below intentionally gives up (returns 0)
+   // whenever |b÷a| exceeds 4.5E15, since its own floor()/multiply
+   // steps lose precision beyond that magnitude for a genuinely
+   // fractional quotient. That guard has no bearing when both operands
+   // are exact integers: the residue is then exact integer arithmetic
+   // with no precision left to lose, so compute it exactly instead of
+   // giving up (same rationale as the analogous exact-integer fast
+   // paths already added for GCD/factorial/power elsewhere).
+   //
+   if (a == floor(a) && b == floor(b) &&
+       fabs(a) < BIG_INT64_F && fabs(b) < BIG_INT64_F)
+      return IntCell::bif_residue_ii(Z, APL_Integer(a), APL_Integer(b));
 
 const APL_Float null(0.0);
 const APL_Float z = nc_p_modulo_q(b, a);
@@ -930,7 +971,13 @@ const APL_Float z = exp(b);
 ErrorCode
 FloatCell::bif_factorial_f(Cell * Z, APL_Float b)
 {
-   if (b > 170.0)   return E_DOMAIN_ERROR;
+   // the "b > 170.0" pre-check that used to sit here (Bugs28 #83)
+   // rejected values up to 170.62 or so even though tgamma(b+1) is
+   // still finite there (e.g. !170.5 is a genuine, finite ≈9.5E307) --
+   // the isfinite() check below, mirroring bif_exponential_f() above,
+   // already catches the real overflow once b+1 truly exceeds gamma's
+   // finite range.
+   //
 const APL_Float z = tgamma(b + 1.0);
    if (!isfinite(z))   return E_DOMAIN_ERROR;
    return FloatCell::zF(Z, z);

@@ -238,4 +238,18 @@
       3!¯5
 ¯35
 
+      ⍝ regression (Bugs28 #83): A!B for a small non-negative integer A
+      ⍝ (K) used to always compute Γ(1+B)÷(Γ(1+A)×Γ(1+B-A)), which
+      ⍝ overflows once B alone is large enough that Γ(1+B) is infinite
+      ⍝ (roughly B ≥ 170), even though the true quotient (B choose K) is
+      ⍝ a perfectly ordinary finite number for huge B and small K.
+      ⍝ real_binomial() now computes the equivalent product formula
+      ⍝ ∏(B-i)÷K! directly for such A, which stays finite.
+      ⍝
+      5!1E20
+8.333333333E97
+
+      5!1E15
+8.333333333E72
+
 

@@ -411,7 +411,24 @@ const APL_Complex one(1.0, 0.0);
                     return ComplexCell::zC(Z, prod);
                   }
 
-        case   0: return ComplexCell::zC(Z, complex_sqrt(one - b*b));
+        case   0:
+             {
+               // huge near-real |b| (Bugs28 #85, mirrors case -4's
+               // real-arithmetic special case above): complex b*b
+               // overflows below even though the true result (≈i×|b|)
+               // is perfectly finite. The imaginary part's sign only
+               // depends on b² (same for b and -b), so no sign flip is
+               // needed here unlike cases -4/8/¯8.
+               //
+               if (Cell::is_near_zero(b.imag()) && fabs(b.real()) >= 1.0)
+                  {
+                    const double abs_b = fabs(b.real());
+                    const double arg = 1.0 - 1.0/(b.real()*b.real());
+                    return ComplexCell::zC(Z, 0.0,
+                               abs_b * sqrt(arg < 0.0 ? 0.0 : arg));
+                  }
+               return ComplexCell::zC(Z, complex_sqrt(one - b*b));
+             }
 
         case   1: return ComplexCell::zC(Z, sin(b));
 
@@ -477,15 +494,32 @@ ComplexCell::get_imag_value() const
 bool
 ComplexCell::is_near_int() const
 {
-   return Cell::is_near_int(value.cval[0]) &&
-          Cell::is_near_int(value.cval[1]);
+   // "is this value effectively an integer", not "are both parts of
+   // its Gaussian-integer representation individually near-integers"
+   // -- 1J1 has an integral real part AND an integral imaginary part,
+   // yet is not, itself, remotely close to any integer. The imaginary
+   // part must be ≈0 (matching get_near_int()'s own, already-correct
+   // requirement below) before the real part's integrality is even
+   // meaningful. Getting this wrong let a genuinely complex value
+   // silently pass every "is this int-like?" guard that exists
+   // specifically to decide whether get_near_int() is then safe to
+   // call -- which itself correctly throws DOMAIN_ERROR for a
+   // non-zero imaginary part, so every such guard was purely
+   // decorative for a value like 1J1 (Bugs28 #32): the "safe" branch
+   // still called the throwing function, in at least one case (Token.cc
+   // canonical()'s own error-message formatting for a failed [axis])
+   // recursing back into the very error-reporting code that was
+   // guarding against exactly this, and stack-overflowing.
+   //
+   return Cell::is_near_zero(value.cval[1]) &&
+          Cell::is_near_int(value.cval[0]);
 }
 //────────────────────────────────────────────────────────────────────────────
 bool
 ComplexCell::is_near_int64_t() const
 {
-   return Cell::is_near_int64_t(value.cval[0]) &&
-          Cell::is_near_int64_t(value.cval[1]);
+   return Cell::is_near_zero(value.cval[1]) &&
+          Cell::is_near_int64_t(value.cval[0]);
 }
 //────────────────────────────────────────────────────────────────────────────
 ErrorCode
@@ -523,11 +557,21 @@ ComplexCell::is_near_one() const
 bool
 ComplexCell::is_near_real() const
 {
-const APL_Float B2 = REAL_TOLERANCE*REAL_TOLERANCE;
+   // relative test only (Bugs28 #79): the "I is absolutely small"
+   // disjunct that used to sit here (I2 < B2 alone, regardless of R2)
+   // made *every* complex number with a tiny-but-nonzero imaginary part
+   // near-real, including one whose real part is comparably tiny (or
+   // zero) -- so e.g. 1E¯20J1E¯20 (equal parts) displayed as if it were
+   // purely real, and character_representation() dropped the J part.
+   // Judging "small" only relative to the real part is the right test:
+   // it still recognises a genuinely real value (I2 == 0) for any R2,
+   // and a value whose I and R are comparable in magnitude, however
+   // tiny both are, is correctly kept complex.
+   //
 const APL_Float I2 = value.cval[1] * value.cval[1];
+   if (I2 == 0.0)   return true;   // I is exactly 0 (e.g. the literal 0J0)
 
-   if (I2 < B2)     return true;   // I is absolutely small
-
+const APL_Float B2 = REAL_TOLERANCE*REAL_TOLERANCE;
 const APL_Float R2 = value.cval[0] * value.cval[0];
    return (I2 < R2*B2);   // I is relatively small
 }
@@ -607,16 +651,41 @@ ComplexCell::character_representation(const PrintContext & pctx) const
             {
               if (pos_real > pos_imag*ten_to_PP)
                  {
+                   // same rationale as the mirror-image branch below:
+                   // give the real part its own scaled/unscaled decision
+                   // instead of reusing pctx's, which may reflect the
+                   // (now discarded) imaginary part's need for scaling.
+                   //
+                   PrintContext pctx_r(pctx);
+                   PrintStyle st = PrintStyle(pctx.get_style() & ~PST_SCALED);
+                   if (FloatCell::need_scaling(value.cval[0], pctx.get_PP()))
+                      st = PrintStyle(st | PST_SCALED);
+                   pctx_r.set_style(st);
+
                    const FloatCell real_cell(value.cval[0]);
-                   return real_cell.character_representation(pctx);
+                   return real_cell.character_representation(pctx_r);
                  }
             }
          else                        // pos_imag dominates pos_real
             {
               if (pos_imag > pos_real*ten_to_PP)
                  {
+                   // give the imaginary part its own scaled/unscaled
+                   // decision instead of reusing pctx's, which reflects
+                   // the (now discarded) real part's -- otherwise, e.g.
+                   // a real part small enough to need scaling forces
+                   // the imaginary part into E-format too, even though
+                   // it is displayed alone here (Bugs28 #80). Same
+                   // rationale as the non-shortcut path below.
+                   //
+                   PrintContext pctx_i(pctx);
+                   PrintStyle st = PrintStyle(pctx.get_style() & ~PST_SCALED);
+                   if (FloatCell::need_scaling(value.cval[1], pctx.get_PP()))
+                      st = PrintStyle(st | PST_SCALED);
+                   pctx_i.set_style(st);
+
                    const FloatCell imag_cell(value.cval[1]);
-                   PrintBuffer ret = imag_cell.character_representation(pctx);
+                   PrintBuffer ret = imag_cell.character_representation(pctx_i);
                    ret.pad_l(UNI_J, 1);
                    ret.pad_l(UNI_0, 1);
 
@@ -660,7 +729,16 @@ int int_fract = ucs.size();
    if (!is_near_real())
       {
         ucs << UNI_J;
-        bool scaled_imag = pctx.get_scaled();  // may be changed by UCS_string()
+        // the imaginary part's own need for scaled (E-format) notation,
+        // not the real part's/column's pctx.get_scaled() decision
+        // (Bugs28 #80, Bugs27 #42 residual): reusing that shared flag
+        // forced the imaginary part into E-format whenever the real
+        // part (or another value in the same column) needed it, even
+        // when the imaginary part's own magnitude did not -- e.g.
+        // 1E¯7J0.5 gave 1E¯7J5E¯1 instead of 1E¯7J0.5.
+        //
+        bool scaled_imag = FloatCell::need_scaling(value.cval[1],
+                                                     pctx.get_PP());
         const UCS_string ucs_i(value.cval[1], scaled_imag, pctx);
 
         ucs << ucs_i;
@@ -825,17 +903,32 @@ const bool invert_Z = b < 0;
               a_2_n *= a_2_n;
             }
 
-        if (invert_Z)
+        if (!invert_Z)
+           {
+             if (!isfinite(zi.real()))   return E_DOMAIN_ERROR;
+             if (!isfinite(zi.imag()))   return E_DOMAIN_ERROR;
+             return ComplexCell::zC(Z, zi);
+           }
+
+        // Bugs28 #100(o): if the squaring loop above already overflowed
+        // zi to infinity (e.g. a=1E200J0, b=2: (1E200)² = 1E400), then
+        // inverting it here (denom = |zi|², itself also infinite) gives
+        // inf/inf = NaN, DOMAIN-ERRORing even though the true result
+        // A⋆¯N is finite (here ≈0) -- fall through to the same
+        // negative-exponent-direct-to-complex_power() path used for
+        // b>1024 below (Bugs27 #23) instead of returning here.
+        //
+        if (isfinite(zi.real()) && isfinite(zi.imag()))
            {
              const APL_Float denom = zi.real()*zi.real()
                                     + zi.imag()*zi.imag();
              if (denom == 0.0)   return E_DOMAIN_ERROR;
              zi = APL_Complex(zi.real()/denom, -zi.imag()/denom);
-           }
 
-        if (!isfinite(zi.real()))   return E_DOMAIN_ERROR;
-        if (!isfinite(zi.imag()))   return E_DOMAIN_ERROR;
-        return ComplexCell::zC(Z, zi);
+             if (isfinite(zi.real()) && isfinite(zi.imag()))
+                return ComplexCell::zC(Z, zi);
+             // else: fall through to complex_power() below.
+           }
       }
 
    // Pass the ORIGINAL (negative, when invert_Z) exponent to
@@ -859,10 +952,47 @@ ComplexCell::bif_power_cc(Cell * Z, APL_Complex a, APL_Complex b)
 {
    if (a.real() == 0.0 && a.imag() == 0.0)
       {
-        if (b.real() == 0.0)   return IntCell::z1(Z);
+        // 0⋆B is 1 only for B *exactly* 0J0 (Bugs28 #84): checking only
+        // b.real() == 0.0 also matched any purely-imaginary B (e.g.
+        // 0J1), for which 0⋆B is not 1 -- 0 raised to a non-zero power
+        // with a non-positive real part is undefined (the b.real() > 0
+        // case just below is the only one where 0⋆B is finite and 0).
+        //
+        if (b.real() == 0.0 && b.imag() == 0.0)   return IntCell::z1(Z);
         if (b.real()  > 0.0)   return IntCell::z0(Z);
         return E_DOMAIN_ERROR;
       }
+
+   // A and B are both really real numbers, merely wrapped in
+   // ComplexCells (e.g. 2J0⋆52J0, or a real A with a FloatCell-typed B
+   // promoted to complex for the call like ¯1J0⋆1E14): delegate to
+   // FloatCell::bif_power_ff(), which already knows how to compute
+   // this exactly for every magnitude of a real B -- bif_power_fi()'s
+   // exact repeated squaring for a moderate integral B, and the
+   // even-magnitude trick of Bugs28 #39 for a huge one (≥ 2⋆53, where
+   // bif_power_ci() below would itself fall through to the same
+   // approximate complex_power() this whole fix exists to avoid) --
+   // without ever going through complex exp/log at all. See Bugs27
+   // #24/#59(a): the #24 fix's exact-integer path was reachable only
+   // for an IntCell exponent, never for a complex-typed A or B.
+   //
+   if (a.imag() == 0.0 && b.imag() == 0.0)
+      return FloatCell::bif_power_ff(Z, a.real(), b.real());
+
+   // A is genuinely complex (non-zero imaginary part) and B is really
+   // an integer: route through the exact binary-exponentiation path
+   // bif_power_ci() instead of complex_power() = exp(b×ln a) below,
+   // whose result is only ever approximate even for an integral B.
+   //
+   // is_near_int64_t(), not is_near_int(): the latter also accepts
+   // magnitudes beyond int64 range, which bif_power_ci() (an
+   // APL_Integer b) cannot represent -- see the matching comment in
+   // FloatCell::bif_power_ff().
+   //
+   if (b.imag() == 0.0 && Cell::is_near_int64_t(b.real()) &&
+       b.real() == nearbyint(b.real()))
+      return ComplexCell::bif_power_ci(Z, a, APL_Integer(b.real()));
+
 const APL_Complex z = complex_power(a, b);
    if (!isfinite(z.real()))   return E_DOMAIN_ERROR;
    if (!isfinite(z.imag()))   return E_DOMAIN_ERROR;
@@ -878,14 +1008,28 @@ ComplexCell::bif_logarithm_cc(Cell * Z, APL_Complex a, APL_Complex b)
    // short-circuit below -- see FloatCell::bif_logarithm_ff() for the
    // real-cell version of the same bug (Blake McBride, Bugs26 #2).
    if (a.real() == 0.0 && a.imag() == 0.0)   return E_DOMAIN_ERROR;
-   if (fabs(a.real() - 1.0) <= INTEGER_TOLERANCE &&
-       fabs(a.imag())        <= INTEGER_TOLERANCE)   return E_DOMAIN_ERROR;
+
+   // ⎕CT-tolerant equality to 1J0, not a fixed absolute
+   // INTEGER_TOLERANCE on each component independently (Bugs28 #87,
+   // same rationale as FloatCell::bif_logarithm_ff()).
+   //
+   if (Cell::tolerantly_equal(a, APL_Complex(1.0, 0.0), Workspace::get_CT()))
+      return E_DOMAIN_ERROR;
    if (b == a)   return IntCell::z1(Z);
    if (b.real() == 0.0 && b.imag() == 0.0)   return E_DOMAIN_ERROR;
 
    if (a.imag() == 0.0)
       {
-        const APL_Complex z = log(b) / log(a.real());
+        // log(a.real()) -- the REAL log() -- is NaN for a negative
+        // base, which then failed the isfinite() check just below and
+        // rejected with DOMAIN ERROR even though A⍟B is well-defined
+        // (and gives a finite complex result) for a negative real A,
+        // e.g. ¯2⍟8. log(APL_Complex(a.real(),0.0)) -- the COMPLEX
+        // log() -- takes the negative-real branch cut correctly, the
+        // same way the a.imag()!=0.0 general case just below already
+        // does for e.g. ¯2⍟8J1. See Bugs28 #41.
+        //
+        const APL_Complex z = log(b) / log(APL_Complex(a.real(), 0.0));
         if (!isfinite(z.real()))   return E_DOMAIN_ERROR;
         if (!isfinite(z.imag()))   return E_DOMAIN_ERROR;
         return ComplexCell::zC(Z, z);
@@ -912,7 +1056,15 @@ ComplexCell::bif_maximum_cc(Cell * Z, APL_Complex a, APL_Complex b)
 {
    if (!nc_near_real(a))   return E_DOMAIN_ERROR;
    if (!nc_near_real(b))   return E_DOMAIN_ERROR;
-   return ComplexCell::zV(Z, a.real() >= b.real() ? a.real() : b.real());
+
+   // FloatCell::zF() (unrounded), not ComplexCell::zV(): zV rounds a
+   // value within ⎕CT-tolerance of an integer to an IntCell instead of
+   // storing the selected operand verbatim -- dyadic max/min must
+   // return one of its two arguments exactly, same as
+   // FloatCell::bif_maximum_ff() (Bugs28 #78). 1E¯11J0⌈0 gave 0 instead
+   // of 1E¯11.
+   //
+   return FloatCell::zF(Z, a.real() >= b.real() ? a.real() : b.real());
 }
 //────────────────────────────────────────────────────────────────────────────
 ErrorCode
@@ -920,7 +1072,7 @@ ComplexCell::bif_minimum_cc(Cell * Z, APL_Complex a, APL_Complex b)
 {
    if (!nc_near_real(a))   return E_DOMAIN_ERROR;
    if (!nc_near_real(b))   return E_DOMAIN_ERROR;
-   return ComplexCell::zV(Z, a.real() <= b.real() ? a.real() : b.real());
+   return FloatCell::zF(Z, a.real() <= b.real() ? a.real() : b.real());
 }
 //────────────────────────────────────────────────────────────────────────────
 ErrorCode
@@ -947,7 +1099,24 @@ APL_Complex floor_quot;
    else if (Dr < (Di - qct))  floor_quot = APL_Complex(fr,        fi + 1.0);
    else                       floor_quot = APL_Complex(fr + 1.0,  fi);
 
-const ErrorCode ret = ComplexCell::zC(Z, b - a * floor_quot);
+const APL_Complex a_floor_quot = a * floor_quot;
+
+   // if b and a×floor_quot are themselves ⎕CT-tolerantly equal, the
+   // "true" residue is exactly 0 and b - a×floor_quot is pure
+   // floating-point cancellation noise on the order of ⎕CT×|b| -- not
+   // caught by comparing that noise against 0 or against a afterward
+   // (FloatCell::bif_residue_ff()'s r2==null/r2==a snap, translated
+   // literally), since tolerantly_equal(noise, 0, qct) is vacuously
+   // false (comparing against an exact-zero scale) and the noise is
+   // nowhere near a's own magnitude either. Comparing the two
+   // *operands* of the subtraction against each other, at their own
+   // natural scale, is what ISO's tolerant equality is for (Bugs28
+   // #86): e.g. 0J1E¯11|1 gave ~1.11E¯16 instead of 0.
+   //
+   if (Cell::tolerantly_equal(b, a_floor_quot, qct))   return IntCell::z0(Z);
+
+const APL_Complex residue = b - a_floor_quot;
+const ErrorCode ret = ComplexCell::zC(Z, residue);
    // the sibling bif_circle_fun_c() right below already does this check
    // (via the same Z->is_finite() idiom); this residue function had no
    // finiteness check on its quotient/result at all.
@@ -1074,17 +1243,22 @@ ComplexCell::bif_magnitude_c(Cell * Z, APL_Complex b)
 ErrorCode
 ComplexCell::bif_nat_log_c(Cell * Z, APL_Complex b)
 {
-   // near-zero check, mirroring bif_reciprocal_c() below: log(0) is
-   // -infinity, and log() of a near-zero-but-not-exactly-zero b is
-   // a huge-magnitude finite value that isfinite() alone wouldn't
-   // catch (Blake McBride, Bugs23 #3a -- ⍟0J0 gave ¯∞ instead of
-   // DOMAIN ERROR, same as the real ⍟0/⍟0.0 cases already reject).
+   // reject exactly 0J0 (log(0) is -infinity), mirroring
+   // bif_reciprocal_c() below (Blake McBride, Bugs23 #3a -- ⍟0J0 gave
+   // ¯∞ instead of DOMAIN ERROR, same as the real ⍟0/⍟0.0 cases already
+   // reject). A tolerance-based "near zero" test used to reject this
+   // exact-zero case together with any b that merely has both parts
+   // individually smaller than ⎕CT's absolute floor -- but a value such
+   // as 0J1E¯11 is not mathematically zero and log() of it is a
+   // perfectly finite complex number (Bugs28 #77); isfinite() below
+   // already catches the genuine -infinity/NaN cases (0J0 included),
+   // so the upfront check only needs to short-circuit the true log(0).
    //
-   if (b.real() <=  INTEGER_TOLERANCE && b.real() >= -INTEGER_TOLERANCE &&
-       b.imag() <=  INTEGER_TOLERANCE && b.imag() >= -INTEGER_TOLERANCE)
-      return E_DOMAIN_ERROR;
+   if (b.real() == 0.0 && b.imag() == 0.0)   return E_DOMAIN_ERROR;
 
-   return ComplexCell::zC(Z, log(b));
+const APL_Complex z = log(b);
+   if (!isfinite(z.real()) || !isfinite(z.imag()))   return E_DOMAIN_ERROR;
+   return ComplexCell::zC(Z, z);
 }
 //────────────────────────────────────────────────────────────────────────────
 ErrorCode
@@ -1118,18 +1292,30 @@ const APL_Float im = b.imag() / pi;
 ErrorCode
 ComplexCell::bif_reciprocal_c(Cell * Z, APL_Complex b)
 {
-   // near-zero check
+   // reject exactly 0J0 (division by zero); see bif_nat_log_c() above
+   // for why a tolerance-based "near zero" test is wrong here -- a
+   // value such as 0J1E¯11 is not mathematically zero and has a
+   // perfectly finite reciprocal (Bugs28 #77). The isfinite() checks
+   // further down already catch genuine overflow, including the true
+   // 0J0 division-by-zero case.
    //
-   if (b.real() <=  INTEGER_TOLERANCE && b.real() >= -INTEGER_TOLERANCE &&
-       b.imag() <=  INTEGER_TOLERANCE && b.imag() >= -INTEGER_TOLERANCE)
-      return E_DOMAIN_ERROR;
+   if (b.real() == 0.0 && b.imag() == 0.0)   return E_DOMAIN_ERROR;
 
-   // near-real: use simpler formula
+   // near-real: use simpler formula, but only when the imaginary part is
+   // negligible *relative to* the real part -- the old absolute-only
+   // "I2 < B2" disjunct fired whenever the imaginary part alone was
+   // tiny, even with an exactly-zero (or comparably tiny) real part, so
+   // e.g. 0J1E¯11 took this "real" shortcut and computed 1.0/0.0 (+∞,
+   // DOMAIN ERROR) instead of falling through to the general formula
+   // below, which handles a tiny-or-zero real part correctly (Bugs28
+   // #77). Dropping that disjunct only narrows which values take the
+   // (numerically cheaper) shortcut; every value still gets a
+   // mathematically equivalent, finite result via one path or the other.
    //
 const APL_Float B2 = REAL_TOLERANCE * REAL_TOLERANCE;
 const APL_Float I2 = b.imag() * b.imag();
 const APL_Float R2 = b.real() * b.real();
-   if (I2 < B2 || I2 < R2*B2)
+   if (I2 < R2*B2)
       {
         const APL_Float z = 1.0 / b.real();
         if (!isfinite(z))   return E_DOMAIN_ERROR;

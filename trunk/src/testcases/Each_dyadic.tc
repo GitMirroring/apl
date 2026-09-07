@@ -78,3 +78,21 @@
       ⍴Z
 0
 
+      ⍝ Bugs28 #57 regression (Bugs27 #56 residual): dyadic ¨ (like
+      ⍝ ∘.f, f⍤y, and f.g) still broke when the operand changed ⎕IO --
+      ⍝ Z__vA_LO_EACH_vB/sB and Z__sA_LO_EACH_vB (Macro.def) indexed
+      ⍝ μ1/μ2/μ6 with the raw loop counter μ8, seeded from ⎕IO ONCE at
+      ⍝ the start; if LO's own ⎕IO←0 (global, not auto-localized in a
+      ⍝ lambda) persisted past its first call, every later iteration's
+      ⍝ indexing (relative to the NEW ⎕IO) silently misaligned instead
+      ⍝ of INDEX-ERROR-ing outright, unlike the ALREADY-fixed monadic ¨
+      ⍝ (Z__LO_EACH_B). Fixed the same self-correcting way: recompute
+      ⍝ ⎕IO+(μ8-savedIO) fresh at each use instead of trusting μ8 alone.
+      ⍝ 1+⍳2 (⎕IO=0) = 1 2; 2+⍳3 (⎕IO now 0 from the first call, but
+      ⍝ self-correctingly still right) = 2 3 4.
+      ⍝
+      1 2 {⎕IO←0 ⋄ ⍺+⍳⍵}¨ 2 3
+ 1 2  2 3 4 
+
+      ⎕IO←1
+

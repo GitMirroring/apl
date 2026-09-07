@@ -454,5 +454,74 @@ M
       55 60
 
 
-⍝ ==================================
+⍝ regression (Bugs28 #74): 1⎕TF of a lambda used to write out
+⍝ canonical() of the lambda under its own header (λ←λ1 ⍵, say) and, on
+⍝ the way back in, "fix" that text under the header's own synthetic
+⍝ name -- redefining λ1 instead of the name the caller assigned to,
+⍝ leaving the original name a VALUE ERROR. 1⎕TF now refuses a lambda
+⍝ outright, matching 2⎕TF's existing refusal (Bugs27 #52). Same for a
+⍝ lambda operator.
+⍝
+      )ERASE L
+      L←{⍵+1}
+      1 ⎕TF 'L'
+DOMAIN ERROR+
+      1 ⎕TF 'L'
+      ^     ^
 
+      )MORE
+⎕TF: 'L' is a lambda (dfn); lambdas cannot be written to a transfer-format (.atf) file or produced by ⎕TF, since other APL systems (and GNU APL's own transfer-format reader) have no way to represent them. Use ⎕FX-style named functions for anything that needs to survive )OUT/)IN or ⎕TF.
+
+      2 ⎕TF 'L'
+DOMAIN ERROR+
+      2 ⎕TF 'L'
+      ^     ^
+
+      )MORE
+)OUT/⎕TF: 'L' is a lambda (dfn); lambdas cannot be written to a transfer-format (.atf) file or produced by ⎕TF, since other APL systems (and GNU APL's own transfer-format reader) have no way to represent them. Use ⎕FX-style named functions for anything that needs to survive )OUT/)IN or ⎕TF.
+
+      )ERASE M
+      M←{⍺⍺ ⍵}
+      1 ⎕TF 'M'
+DOMAIN ERROR+
+      1 ⎕TF 'M'
+      ^     ^
+
+      2 ⎕TF 'M'
+DOMAIN ERROR+
+      2 ⎕TF 'M'
+      ^     ^
+
+      )SIC
+
+      )ERASE L
+      )ERASE M
+
+⍝ regression (Bugs28 #75): )OUT of a workspace containing a lambda used
+⍝ to abort entirely -- Symbol::write_OUT let Quad_TF::tf2_fun_ucs's
+⍝ DOMAIN ERROR propagate uncaught while looping over all symbols,
+⍝ silently truncating the .atf file to whatever had been written before
+⍝ the lambda was reached. )OUT now skips a lambda with a CERR-only
+⍝ warning (like the existing )SAVE warning for a dirty SI) and keeps
+⍝ writing the rest of the workspace.
+⍝
+      )CLEAR
+CLEAR WS
+
+      )DROP dwout75.atf
+³
+
+      F1←{⌽⍵}
+      X75←42
+      )OUT dwout75
+
+      data ← ⎕FIO[26] 'workspaces/dwout75.atf'
+      ~∨/'F1' ⍷ data
+1
+      ∨/'X75' ⍷ data
+1
+
+      )DROP dwout75.atf
+³
+
+⍝ ==================================

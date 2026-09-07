@@ -643,6 +643,20 @@ const Symbol * symbol = Workspace::lookup_existing_symbol(symbol_name);
         case NC_OPERATOR:
              {
                const Function & ufun = *symbol->get_function();
+
+               // Bugs28 #92: 1⎕CR/2⎕CR/8⎕CR/9⎕CR/11⎕CR already suppress
+               // a locked function's body (get_exec_properties()[0],
+               // see the "function = 0" case above) and show only its
+               // name -- do_CR10() had no such check at all, disclosing
+               // the full body (with a ⍫ closer to mark it locked, but
+               // the body was there regardless).
+               //
+               if (ufun.get_exec_properties()[0])
+                  {
+                    result.push_back(symbol_name);
+                    return;
+                  }
+
                const UCS_string text = ufun.canonical(false);
                if (ufun.is_lambda())
                   {
@@ -1608,8 +1622,14 @@ Value_P Z(shape_Z, LOC);
                    Z->next_ravel_Cell(ZZ->get_cravel(zz, cache_zz));
                  }
            }
-        else   // simple scalar
-           {
+        else if (conformed_len)   // simple scalar, and Z has room for it:
+           {                      // conformed_len can be 0 when B mixes
+                                   // an empty item with a scalar one (the
+                                   // conformed shape is then the empty
+                                   // item's), in which case Z has no
+                                   // cells at all for this b -- writing
+                                   // one unconditionally overflows Z's
+                                   // allocation by one cell.
              Z->next_ravel_Cell(cB);
              loop(zz, (conformed_len - 1))   Z->next_ravel_0();
            }
@@ -1951,22 +1971,30 @@ Quad_CR::do_CR42_43(cValue_R B, bool parse)
 const UCS_string ucs(B);
 Token_string tos;
 
+   // Bugs28 #100(h): the DOMAIN_ERROR inside the "if (ec)" branch below
+   // used to sit INSIDE the try block that catches parser.parse()'s own
+   // exceptions -- so for a B like "((" (where parser.parse() returns a
+   // nonzero ErrorCode instead of throwing), that DOMAIN_ERROR's own
+   // throw was immediately caught by the very catch clause meant only
+   // for exceptions escaping parser.parse() itself, which then built
+   // and threw a *second* DOMAIN ERROR describing the first one --
+   // shown twice, and with the second one's )MORE text embedding the
+   // first's raw numeric ErrorCode instead of its name. Capture the
+   // ErrorCode from either source (return value or caught exception)
+   // first, then report it exactly once, outside any try/catch.
+   //
+ErrorCode ec = ErrorCode(0);
+
    if (parse)   // parse ucs
       {
         Parser parser(PM_EXECUTE, LOC, false);
-        try
-           {
-             if (const ErrorCode ec = parser.parse(ucs, tos,
-                                                    /* optimize */ true))
-                {
-                  MORE_ERROR() << "the parser returned error code: " << ec;
-                  DOMAIN_ERROR;
-                }
-           }
-        catch (const Error & err)
+        try   { ec = parser.parse(ucs, tos, /* optimize */ true); }
+        catch (const Error & err)   { ec = err.get_error_code(); }
+
+        if (ec)
            {
              MORE_ERROR() << "the parser returned error code: "
-                          << err.get_error_code();
+                          << Error::error_name(ec);
              DOMAIN_ERROR;
            }
       }
@@ -1978,7 +2006,7 @@ Token_string tos;
         catch (const Error & err)
            {
              MORE_ERROR() << "the tokenizer returned error code: "
-                          << err.get_error_code();
+                          << Error::error_name(err.get_error_code());
              DOMAIN_ERROR;
            }
       }

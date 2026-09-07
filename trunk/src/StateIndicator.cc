@@ -268,8 +268,14 @@ StateIndicator::list(ostream & out, SI_mode mode) const
                   // )SIS and we have a statement
                   //
                   if (error.get_error_code())
+                     // Bugs28 #100(ab): the "**  " prefix above applies
+                     // only to line_2 (printed right after it, before
+                     // the first endl) -- line_3 (the caret line) used
+                     // to follow with only its own embedded six-space
+                     // prompt margin and no such prefix, landing four
+                     // columns short of line_2's carets.
                      out << error.get_error_line_2() << endl
-                         << error.get_error_line_3();
+                         << "**  " << error.get_error_line_3();
                   else
                      out << "  "
                          << executable->statement_text(get_PC());
@@ -440,7 +446,43 @@ StateIndicator::goon(Function_Line new_line, const char * loc)
 {
    // jump back into a function, i.e. →N from immediate execution
 
-const Function_PC pc = get_executable()->get_exec_ufun()->pc_for_line(new_line);
+const UserFunction * ufun = get_executable()->get_exec_ufun();
+
+   // A lambda is a single line (line 1); unlike a ∇-function, its PC for
+   // any other line number (pc_for_line()'s out-of-range fallback,
+   // body.ssize()-1) is the internal λ←/return token, not a real
+   // statement start -- goto_PC() there leaves the prefix parser in an
+   // invalid phrase and the next reduction asserts (Executable.cc:173).
+   // Any →N other than →1 into a suspended lambda has nowhere valid to
+   // resume, so just leave it, matching what →0 already does.
+   //
+   if (ufun->is_lambda() && new_line != Function_Line(1))
+      {
+        Workspace::pop_SI(loc);
+
+        // Bugs28 #13: if this lambda was itself called from an
+        // expression still awaiting its result (e.g. a plain call, or
+        // ⍎'s own TOK_BRANCH_INT bubbling out of a nested ExecuteList
+        // and landing here via Command.cc's SI_top_fun() lookup), the
+        // caller's Prefix has a TOK_SI_PUSHED placeholder sitting where
+        // that result belongs. Left alone, the next reduction there
+        // finds no phrase for a bare TOK_SI_PUSHED and asserts/FIXMEs
+        // (Prefix::reduce____()). Complete it the same way a normal
+        // no-result return does (Command.cc's own TC_VALUE/TOK_VOID
+        // handling) -- with TOK_VOID, since the lambda produced nothing.
+        //
+        if (StateIndicator * caller = Workspace::SI_top())
+           {
+             Prefix & prefix = caller->get_prefix();
+             if (prefix.ssize() && prefix.at0().get_tag() == TOK_SI_PUSHED)
+                {
+                  new (&prefix.tos().get_token()) Token(TOK_VOID);
+                }
+           }
+        return;
+      }
+
+const Function_PC pc = ufun->pc_for_line(new_line);
 
    Log(LOG_StateIndicator__push_pop)
       CERR << "Continue SI[" << level << "] at line " << new_line

@@ -181,6 +181,24 @@ const Shape shape_Z = B->get_shape().without_axis(axis);
    // non-trivial reduce (len > 1)
    //
 const Shape3 B3(B->get_shape(), axis);
+
+   // shape_Z can still be empty here even though m_len (the reduced
+   // axis) is not: some OTHER axis of B is 0. This must be checked
+   // BEFORE the macro dispatch just below, not after: MAC_Z__LO_
+   // REDUCE_X4_B does (μ9 μ12)←⊃μ14[μ13] on an empty μ14 in that case
+   // -- INDEX ERROR, reachable from ordinary APL input (e.g.
+   // {⍺+⍵}/0 3⍴0), confirmed live, where the primitive-LO path just
+   // below (do_reduce()) already handles the same shape correctly.
+   // Mirrors Bif_SCAN::scan()'s identical ordering/reasoning for its
+   // own macro dispatch.
+   //
+   if (shape_Z.is_empty())
+      {
+        Value_P Z(shape_Z, LOC);
+        Z->check_value(LOC);
+        return Token(TOK_APL_VALUE1, Z);
+      }
+
    if (LO->may_push_SI())   // user defined LO
       {
         Value_P X4(4, LOC);
@@ -478,9 +496,20 @@ std::vector<ShapeItem> rep_counts;
                   ++nonneg_A;
                 }
 
-             const ShapeItem new_len_Z = len_Z + grow;
-             if (Cell::sum_overflow(new_len_Z, len_Z, grow))   WS_FULL;
-             len_Z = new_len_Z;
+             // Cell::sum_overflow() only detects an overflow that has
+             // already happened -- computing len_Z + grow via plain +
+             // when it overflows is itself undefined behaviour (signed
+             // integer overflow), and this check was getting optimised
+             // away as unreachable on that assumption, exactly the
+             // pattern the comment at Bif_F12_INTERVAL_INDEX.cc:194-206
+             // warns not to rely on. Check first, using the same
+             // double-precision pre-check Cell::prod_overflow() already
+             // uses for the analogous multiplication case 26 lines
+             // above, so the actual (potentially overflowing) + is never
+             // evaluated at all when it would overflow.
+             //
+             if (double(len_Z) + double(grow) > double(LARGE_INT))   WS_FULL;
+             len_Z += grow;
            }
 
         // the B axis shall have an item for every non-negative A

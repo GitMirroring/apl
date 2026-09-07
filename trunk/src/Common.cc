@@ -300,10 +300,10 @@ operator << (ostream & out, const Function_PC2 & ft)
 }
 //════════════════════════════════════════════════════════════════════════════
 ostream &
-print_flags(ostream & out, ValueFlags flags)
+print_flags(ostream & out, uint32_t flags)
 {
-   return out << ((flags & VF_marked)   ?  "M" : "-")
-              << ((flags & VF_complete) ?  "C" : "-");
+   return out << ((flags & 0x02) ?  "M" : "-")   // marked
+              << ((flags & 0x01) ?  "C" : "-");   // complete
 }
 //════════════════════════════════════════════════════════════════════════════
 int

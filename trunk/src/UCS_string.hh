@@ -526,6 +526,14 @@ public:
    /// (with \b fract_digits fractional digits).
    static UCS_string from_double_to_fixed(APL_Float value, int fract_digits);
 
+   /// convert the (exact) integer \b value to an UCS_string in fixed
+   /// point format (with \b fract_digits fractional digits, all 0 --
+   /// an integer's fractional part is exactly 0). Unlike
+   /// from_double_to_fixed(), never routes value through an APL_Float,
+   /// so a 64-bit integer's low digits survive at precisions a double
+   /// cannot represent exactly (Bugs28 #44).
+   static UCS_string from_int_to_fixed(int64_t value, int fract_digits);
+
    /// convert a signed integer value to an UCS_string (like snprintf("%d"))
    static UCS_string from_int(int64_t value);
 

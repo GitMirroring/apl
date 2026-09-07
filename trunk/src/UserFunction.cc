@@ -1233,7 +1233,8 @@ std::vector<bool> ts_lines;
 UserFunction *
 UserFunction::fix(const UCS_string & text, int & err_line,
                   bool keep_existing, const char * loc,
-                  const UTF8_string & creator, bool quiet)
+                  const UTF8_string & creator, bool quiet,
+                  bool honor_lock)
 {
    Log(LOG_UserFunction__fix)
       {
@@ -1330,6 +1331,31 @@ const UserFunction * old_ufun = 0;
            {
              MORE_ERROR() << "Attempt to re-define native function '"
                           << old_function->get_name() << "'. ⎕EX it first.";
+             delete ufun;   // DEFN_ERROR throws; ufun would otherwise leak
+             DEFN_ERROR;
+           }
+
+        // Bugs28 #92: cant_be_defined() above tests only is_called()
+        // and the name class, not the lock bit -- so monadic ⎕FX
+        // (unlike the ∇ editor, which already checks
+        // get_exec_properties()[0] in Nabla::open_existing_function())
+        // silently replaced a locked function, and the replacement was
+        // not itself locked. Thrown as DEFN_ERROR, the same way the
+        // is_native() case just above is (not cant_be_defined()'s
+        // plain "return 0" a few lines up, which leaves the caller no
+        // way to distinguish this from any other silent ⎕FX failure).
+        // honor_lock is false only for dyadic ⎕FX: its left argument
+        // IS the documented way to change a function's execution
+        // properties, including deliberately relocking/unlocking it
+        // (testcases/Quad_FX.tc's own "execution properties" regression
+        // repeatedly redefines a locked function this way), so it must
+        // stay exempt from this check.
+        //
+        if (honor_lock && old_function->get_exec_properties()[0])
+           {
+             MORE_ERROR() << "Attempt to re-define locked function '"
+                          << old_function->get_name() << "'. ⎕EX it first.";
+             delete ufun;   // DEFN_ERROR throws; ufun would otherwise leak
              DEFN_ERROR;
            }
 

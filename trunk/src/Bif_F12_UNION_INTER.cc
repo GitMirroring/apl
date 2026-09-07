@@ -66,7 +66,8 @@ Value_P Z(len_A + len_B, LOC);
        { Cell cache; Z->next_ravel_Cell(A.get_cravel(a, cache)); }
    loop(b, len_B)
        { Cell cache; Z->next_ravel_Cell(B.get_cravel(b, cache)); }
-   Z->set_default(B, LOC);
+   Z->set_default(A, LOC);   // prototype from A, not B (Bugs28 #65,
+                              // mirror image of Bugs27 #31)
    Z->check_value(LOC);
    return eval_B(*Z);
 }

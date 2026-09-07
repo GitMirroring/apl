@@ -232,6 +232,50 @@ c
 c
 1
 
+      ⍝ regression (Blake McBride, Bugs28 #68, 2026-08-11): ⊂/⍬ gave 0
+      ⍝ (a bare numeric scalar) instead of DOMAIN ERROR -- unlike ∪/⍬,
+      ⍝ ∩/⍬, ⍳/⍬ and ⍷/⍬, which already correctly fail because their
+      ⍝ classes derive from NonscalarFunction. Bif_F12_PARTITION (⊂)
+      ⍝ instead derived from NonscalarFunction_default_identity, whose
+      ⍝ generic eval_identity_fun() treats a 0-length reduction axis as
+      ⍝ if ⊂ had the same kind of identity as ,/ or +/ -- but enclose has
+      ⍝ none. Now derives from NonscalarFunction like its siblings, so the
+      ⍝ base Function::eval_identity_fun() DOMAIN ERRORs instead.
+      ⍝
+      Z←⊂/⍬
+DOMAIN ERROR+
+      Z←⊂/⍬
+        ^ ^
+      )MORE
+Function ⊂ has no identity function
+      )SIC
+
+      ⍝ control: the rank-2 empty case already gave DOMAIN ERROR
+      ⍝
+      ⊂/3 0⍴0
+DOMAIN ERROR+
+      ⊂/3 0⍴0
+      ^ ^
+      )SIC
+
+      ⍝ control: ∪/⍬ (and ∩/⍬, ⍳/⍬, ⍷/⍬ the same way) were already right
+      ⍝
+      ∪/⍬
+DOMAIN ERROR+
+      ∪/⍬
+      ^ ^
+      )SIC
+
+      ⍝ regression: ,/0 0⍴0 (reducing along a 0-length axis whose OTHER
+      ⍝ axis is also 0, so enclosed_identity()'s per-position loop never
+      ⍝ runs) left Z with no explicit prototype at all, defaulting to a
+      ⍝ bare untyped scalar (≡Z 1, Z←0⍴0) instead of the identity item
+      ⍝ every real position would have gotten (≡Z 2, Z←0⍴⊂⍬).
+      ⍝
+      Z←,/0 0⍴0
+      Z≡0⍴⊂⍬
+1
+
       ⍝ ==================================
 
       )SI

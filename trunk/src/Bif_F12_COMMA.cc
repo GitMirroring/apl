@@ -464,7 +464,7 @@ Bif_COMMA::laminate(const char * where, const cValue & A, sAxis axis,
              MORE_ERROR() << where << ": expecting ⍴⍴A = ⍴⍴B (or A or B a"
                              " scalar); ⍴⍴A is " << A.get_rank()
                           << ", ⍴⍴B is " << B.get_rank();
-             INDEX_ERROR;
+             RANK_ERROR;
            }
         if (A.get_shape() != B.get_shape())
            {
@@ -534,7 +534,13 @@ ShapeItem idxB = 0;
            }
       }
 
-   Z->set_default(B, LOC);
+   // ISO §10.2.1: if B is empty, Z's fill/prototype comes from A instead,
+   // at rank >= 2 -- same rule (and same rank 1 carve-out) as catenate's
+   // own fix above, applied here since laminate had it missing entirely
+   // (Blake McBride, Bugs28 #66, Bugs27 #48 residual).
+   //
+   if (B.is_empty() && A.get_rank() >= 2)   Z->set_default(A, LOC);
+   else                                     Z->set_default(B, LOC);
 
    Z->check_value(LOC);
    return Z;

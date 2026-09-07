@@ -1564,8 +1564,32 @@ bool error = true;
    if (text_start != dest_B)   // trailing unstructured text
       new XML_node(&anchor, string_B, text_start, dest_B - text_start);
 
-  error = XML_node::translate(anchor, garbage);
-  if (!error)   error = XML_node::collect(anchor, garbage, Z.get());
+   // translate()/collect() (via merge_range()'s add_member()) can throw
+   // a real C++ exception (e.g. SYSTEM LIMIT on excessive nesting depth,
+   // PointerCell.cc's check_nesting_depth()) instead of just setting
+   // error/returning true -- unlike every ordinary failure path above,
+   // which falls through to the cleanup below either way, an exception
+   // here used to unwind straight past it, leaking every XML_node (and
+   // therefore every APL_value) already built for this document: a 260-
+   // level-deep document leaked ~260 of them, and the survivors' nested
+   // PointerCells pointed at already-freed *siblings* once a later
+   // )CHECK's stale-value walk tried to print them (Bugs28 #9). Safe to
+   // just run the same cleanup and re-throw: every value any surviving
+   // XML_node's APL_value still needs (e.g. a parent it was add_member()'d
+   // into before the throw) is itself refcounted, so deleting the
+   // XML_node wrapper here only ever drops the wrapper's own share.
+   //
+   try
+      {
+        error = XML_node::translate(anchor, garbage);
+        if (!error)   error = XML_node::collect(anchor, garbage, Z.get());
+      }
+   catch (...)
+      {
+        while (anchor.get_next() != &anchor)     delete anchor.get_next()->unlink();
+        while (garbage.get_next() != &garbage)   delete garbage.get_next()->unlink();
+        throw;
+      }
 
 cleanup:
    while (anchor.get_next() != &anchor)     delete anchor.get_next()->unlink();

@@ -110,8 +110,14 @@ OK      - no duplicate parents
       )load test.xml
 SAVED 20⁰-⁰-⁰ ⁰:⁰:⁰ (GMT⁵⁰)
 
+      ⍝ )load restored the )SI as it was at )save time above (before
+      ⍝ )SIC), which included a lambda that had already gone out of
+      ⍝ scope by then -- its deferred deletion (Bugs28 #15/#17) is
+      ⍝ correctly queued but stays pending until the )SIC below clears
+      ⍝ the reloaded )SI.
+      ⍝
       )CHECK
-OK      - no stale functions
+WARNING - 1 stale functions (not erased)
 OK      - no stale values
 OK      - no stale indices
 OK      - no duplicate parents

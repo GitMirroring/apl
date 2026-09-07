@@ -390,16 +390,55 @@ Error::update_error_info(StateIndicator * si)
    if (display_si)
       {
         const Prefix & prefix = display_si->get_prefix();
-        const Function_PC from = prefix.get_range_low();
-        const Function_PC to   = prefix.get_range_high();
-        const Function_PC2 error_range(from, to);
+        Function_PC from = prefix.get_range_low();
+        Function_PC to   = prefix.get_range_high();
 
+        // Bugs28 #100(g): display_si's own Prefix, at the moment a
+        // *primitive* operand of a macro-based operator (e.g. f⍤y with
+        // multiple chunks) throws, only reflects "the tokens involved
+        // in dispatching the call" -- for a still-running (not itself
+        // suspended) caller like a bare immediate-execution statement,
+        // that degenerates to a single point (confirmed: both carets
+        // landed on the derived function's own opening '(', e.g.
+        // (⍳⍤1)2 2⍴'ab', regardless of which operand cell actually
+        // failed). display_si != si here specifically means we walked
+        // up past at least one macro frame to reach a real caller whose
+        // own range we cannot otherwise recover (plan1.txt: a macro
+        // with a primitive operand argument is an internal-dispatch
+        // shortcoming, not something the ordinary per-token error range
+        // was ever designed to pinpoint) -- fall back to the whole
+        // *statement* the degenerate point falls in, which at least
+        // shows the reader the real, complete user expression instead
+        // of a single misleading caret at its very start.
+        //
+        if (from == to && display_si != si)
+           {
+             const Executable * exec = display_si->get_executable();
+             from = exec->get_statement_start(from);
+             to   = exec->get_statement_end(to);
+           }
+
+        const Function_PC2 error_range(from, to);
         display_si->get_executable()->set_error_info(*this, error_range);
       }
 
    // print error, unless we are in safe execution mode.
    //
 out:
+   // E_COMMAND_PUSHED (Bugs28 #95) is Bif_F1_EXECUTE.cc's internal
+   // signal that a )LOAD/)QLOAD/)CLEAR/)RESET/)SIC inside ⍎ needs to
+   // run via Command::do_APL_expression() instead of here -- its own
+   // comment says "we throw E_COMMAND_PUSHED but without displaying
+   // it", but nothing here ever exempted it: it was stored as if it
+   // were a real error (⎕ET/⎕EM reporting an "error" -- with a
+   // function line and carets, inside a defined function -- for a
+   // successful operation) and printed unconditionally by print_em()
+   // below. Return before either happens; Command.cc's own handling of
+   // this code is unaffected (the exception is still thrown/caught the
+   // same way either way).
+   //
+   if (get_error_code() == E_COMMAND_PUSHED)   return;
+
    StateIndicator::get_error(si) = *this;
 
    // )SI entries below a ⎕ES entry must not print anything but simply return
@@ -516,8 +555,22 @@ Error::throw_parse_error(ErrorCode code, const char * par_loc, const char *loc)
 Error error(code, loc);
    error.parser_loc = par_loc;
 
-// StateIndicator * si = Workspace::SI_top();
-// if (si)   error.update_error_info(si);
+   // Bugs28 #93: unlike throw_apl_error() (the run-time error path),
+   // this never stored the error where ⎕ET/⎕EM look for it
+   // (StateIndicator::get_error()), so e.g. immediate execution of a
+   // fix-time-only error like "1)" (unbalanced parenthesis) printed
+   // the right message but left ⎕ET/⎕EM reporting whatever the
+   // *previous* statement's error had been. Store directly rather than
+   // calling the full update_error_info(): this throw happens before
+   // the failing statement has its own SI entry, so update_error_info()
+   // would rebuild error_message_2/3 from the *previous* statement's
+   // still-current Executable/prefix state (the exact stale-caret
+   // problem described where match_par_bra()'s ErrorCode-return style
+   // is used instead, a few callers up) and clobber the message just
+   // built above. The caller already prints this error itself.
+   //
+   if (StateIndicator * si = Workspace::SI_top())
+      StateIndicator::get_error(si) = error;
 
 const Error & eref = error;
    throw eref;
@@ -552,6 +605,12 @@ Error error(code, loc);
 UCS_string fragment;
    for (int p = start; p < end; ++p)   fragment << line[p];
    error.set_error_line_2(fragment, 0, fragment.size());
+
+   // Bugs28 #93: see the other throw_parse_error() overload above --
+   // store directly, not via the full update_error_info().
+   //
+   if (StateIndicator * si = Workspace::SI_top())
+      StateIndicator::get_error(si) = error;
 
 const Error & eref = error;
    throw eref;

@@ -554,21 +554,37 @@ const Shape chunk_shape_B = B->get_shape().chunk_shape(rank_chunk_B);
         Fill_B->check_value(LOC);
 
         Token tZ = LO->eval_fill_B(*Fill_B);
-        Value_P Z = tZ.get_apl_val();
+        Value_P Z1 = tZ.get_apl_val();
 
-        // Z's own shape is the result of applying LO's fill/identity to
+        // Z1's own shape is the result of applying LO's fill/identity to
         // ONE chunk (e.g. ⍴⍤1's fill on a 3-item row chunk is ,3, shape
         // (1)) -- the actual result shape is the (empty) frame shape
         // with that chunk-result shape appended, NOT B's entire
         // original shape discarding it. This used to force
-        // Z->set_shape(B->get_shape()) unconditionally, e.g. giving
+        // Z1->set_shape(B->get_shape()) unconditionally, e.g. giving
         // (⍴⍤1)0 3⍴0 shape 0 3 (B's own shape) instead of the correct
         // 0 1 (0 frame positions, 1-item chunk-shape result) -- compare
         // the non-degenerate (⍴⍤1)1 3⍴0, whose analogous non-empty-frame
         // path already correctly gives shape 1 1 (1 frame position, the
         // same 1-item chunk-shape). See Bugs27 #28.
         //
-        Z->set_shape(shape_Z + Z->get_shape());
+        // The in-place Z1->set_shape() above (Bugs27 #28's own fix) is
+        // itself the Bugs28 #10 bug: for a *defined* LO, eval_fill_B()
+        // (UserFunction::eval_fill_B()) returns Fill_B itself rather than
+        // a fresh Value, so reshaping Z1 in place reshapes Fill_B -- but
+        // Fill_B may hold real PointerCells (a nested prototype item, one
+        // per element) that pointer_cell_count still expects at Fill_B's
+        // OLD (non-empty) volume; shrinking the shape to the combined
+        // (empty) one without adjusting that count desyncs it, leaking a
+        // stale value. Build a fresh, genuinely empty Z instead -- same
+        // fix shape as the dyadic sibling do_ALyXB() a few dozen lines
+        // above (fresh Value_P Z(shape_Z, LOC) instead of reshaping the
+        // callee's own result in place) -- deriving Z's type-correct
+        // prototype from Z1 via set_default(), which (like the sibling
+        // #27-residual fix) only needs Z1's TYPE, not its actual content.
+        //
+        Value_P Z(shape_Z + Z1->get_shape(), LOC);
+        Z->set_default(*Z1, LOC);
         Z->check_value(LOC);
         return Token(TOK_APL_VALUE1, Z);
       }

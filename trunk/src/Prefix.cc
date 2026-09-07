@@ -21,6 +21,7 @@
 /** @file
 */
 
+#include "Avec.hh"
 #include "Bif_F1_EXECUTE.hh"
 #include "Bif_OPER2_RANK.hh"
 #include "Bif_OPER2_POWER.hh"
@@ -143,22 +144,8 @@ Prefix::print(ostream & out, int indent) const
 }
 //────────────────────────────────────────────────────────────────────────────
 void
-Prefix::syntax_error(const char * loc)
+Prefix::destroy_derived_in_FIFO()
 {
-   // move the PC back to the beginning of the failed statement
-   //
-   while (PC > 0)
-      {
-        --PC;
-        if (body[PC].get_Class() == TC_END)
-           {
-             ++PC;
-             break;
-           }
-      }
-
-   // clear values in FIFO
-   //
    loop (s, ssize())
       {
         Token & tok = at(s).get_token();
@@ -195,6 +182,24 @@ Prefix::syntax_error(const char * loc)
                }
           }
       }
+}
+//────────────────────────────────────────────────────────────────────────────
+void
+Prefix::syntax_error(const char * loc)
+{
+   // move the PC back to the beginning of the failed statement
+   //
+   while (PC > 0)
+      {
+        --PC;
+        if (body[PC].get_Class() == TC_END)
+           {
+             ++PC;
+             break;
+           }
+      }
+
+   destroy_derived_in_FIFO();
 
    // see if error was caused by a function not returning a value.
    // In that case we throw a value error instead of a syntax error.
@@ -312,6 +317,15 @@ Prefix::locate_R(UCS_string & function) const
    //
    if (at0().get_ValueType() != TV_FUN &&
        at1().get_ValueType() != TV_FUN)   return 0;
+
+   // prefix_len is the length of the LAST matched phrase, not a property
+   // of the current stack -- it can exceed ssize() (leftover from a
+   // dissimilar previous reduction), making the index below negative.
+   // The sibling pop_args() (Prefix.hh) already guards the same quantity
+   // with Assert1(put >= prefix_len); mirror that here instead of
+   // indexing content[] with a negative subscript.
+   //
+   if (prefix_len > ssize())   return 0;
 
 const Token & ret = content[ssize() - prefix_len].get_token();
    if (ret.get_Class() == TC_VALUE)   return ret.get_apl_valp();
@@ -445,7 +459,31 @@ again:   // aka. REDUCE
    action = RA_FIXME;   // to detect missing 'action = ' in a reduce_XXX()
    if (best_phrase->misc)   // MISC phrase: save X and remove it
       {
-        Assert(!has_MISC());
+        // A second MISC phrase (e.g. a second ⍣N/⍤N literal-right-operand
+        // combination) matched while the first one's saved_MISC is still
+        // pending is a genuinely invalid expression (nothing valid
+        // consumes two independent axis-like slots at once) -- this used
+        // to be a plain Assert(), reachable from ordinary user input
+        // (+⍣1 1⍤1 + 1), which crashed here (or, with Assert() compiled
+        // out, silently overwrote/orphaned the pending saved_MISC token
+        // instead). Reject with SYNTAX ERROR before popping anything, so
+        // there is nothing left to leak.
+        //
+        // Bugs28 #26 residual: the plain SYNTAX_ERROR macro throws
+        // directly (throw_apl_error()), bypassing this class's OWN
+        // syntax_error(loc) member function just below -- which sweeps
+        // the FIFO for any already-reduced derived function (e.g. the
+        // "+⍣1" built from the FIRST, otherwise-valid MISC phrase before
+        // this second, invalid one was seen) and destroy_derived()s it.
+        // Without that sweep, the first phrase's DerivedFunctionCache
+        // slot (and the Value_P it owns, e.g. POWER's literal N) is
+        // still sitting on the stack when the error unwinds, and nothing
+        // else ever frees it -- confirmed via )CHECK: "ERROR - 1 stale
+        // values" (Bif_OPER2_POWER.cc:74, IntScalar(N)). Call the member
+        // function instead so this MISC-phrase rejection gets the same
+        // cleanup every other syntax error in this file already does.
+        //
+        if (has_MISC())   syntax_error(LOC);
         saved_MISC.copy(pop(), LOC);
         --prefix_len;
       }
@@ -1354,6 +1392,19 @@ UCS_string & more = MORE_ERROR();
                    // function.
                    more << "\nMissing mandatory right argument of function "
                         << fun->get_name() << "?";
+
+                   // Bugs28 #26 residual: this VALENCE_ERROR abandons the
+                   // statement the same way syntax_error()'s fallthrough
+                   // a few lines down does, but (being a separate, raw
+                   // throw_apl_error() site) never got its FIFO-cleanup
+                   // sweep -- confirmed leaking one Value_P per hit (via
+                   // )CHECK) for e.g. "+⍣1 1⍤1" (a derived function
+                   // built earlier in this same statement, still sitting
+                   // in the FIFO as the LO of the never-completed outer
+                   // combination, whose own construction, unstrand_RO_B(),
+                   // is what allocated it).
+                   //
+                   destroy_derived_in_FIFO();
                    VALENCE_ERROR;
                  }
             }
@@ -1370,6 +1421,162 @@ UCS_string & more = MORE_ERROR();
        }
 
    syntax_error(LOC);   // no more tokens
+}
+//────────────────────────────────────────────────────────────────────────────
+void
+Prefix::push_member_chain(Token_loc & tl, Symbol * symbol)
+{
+   /* Bugs28 #55: 'symbol' is dot-adjacent (body[PC] is the '.' just to
+      its left in source order, checked by the caller) and not itself a
+      function/operator -- i.e. it is the first (rightmost-encountered)
+      name of a genuine value-member chain "A.B.C...symbol", not an f.g
+      inner product. Called only when something with strong-enough
+      binding priority (currently: a pending bracket index, e.g.
+      "S.b[1]") is already on the stack -- exactly the condition under
+      which an ordinary (non-member) symbol already takes its own
+      "grab the value directly" fast path a few lines below in
+      push_Symbol() (the ssize() && at0()==TC_INDEX check there). For a
+      member symbol that same eager reduction (Prefix::reduce_V_C__(),
+      phrase "V C") would otherwise fire on the bare symbol -- calling
+      resolve_lv() on a name that was never a real global variable --
+      before the '.' ever gets a chance to combine it into a proper
+      member reference. Resolve the whole chain right here instead
+      (mirroring Prefix::reduce_D_V__()'s member-reference branch, just
+      triggered earlier) and push a plain value, or -- when this
+      reference will itself be selectively assigned or assigned through
+      a further index -- an lvalue-capable cellref array, in place of
+      the bare symbol. Either way, the result is an ordinary VALUE
+      token, so every existing value-based phrase (A C, A ASS B, A C
+      then ASS B, ...) applies to it afterward exactly as it already
+      does for any other already-resolved value or symbol.
+
+      A DIRECT, immediately-adjacent chain assignment ("A.B.C←value",
+      nothing else pending) never reaches here: do_shift() already
+      defers shifting a bare dot-followed symbol past a not-yet-formed
+      "V ASS B" phrase (its TC_SYMBOL + next==TC_OPER2 case), so
+      "D V ASS B" still forms normally and reduce_D_V__() still handles
+      that case exactly as before, unaffected by this addition.
+    */
+vector<const UCS_string *> members;
+Symbol * top_sym = 0;
+   members.push_back(symbol->get_name_ptr());
+
+   // ⎕CR.subfun / ⎕FIO.subfun (not a real member chain -- ⎕CR/⎕FIO are
+   // functions, not variables): leave that rare pattern to
+   // reduce_D_V__() at its normal (later) reduce time, which already
+   // handles it correctly, instead of duplicating it here.
+   //
+   if (!(PC + 1 < body.ssize() && body[PC + 1].get_Class() == TC_SYMBOL))
+      {
+        push(tl);
+        return;
+      }
+
+   // skip the '.' itself (body[PC]) -- the loop below mirrors
+   // reduce_D_V__()'s own while loop, which starts with PC already
+   // past the initial "D V" pair for the SAME reason.
+   //
+   PC = Function_PC(PC + 1);
+   while (PC + 1 < body.ssize())
+      {
+        if (body[PC].get_Class() == TC_SYMBOL)
+           {
+             Symbol * sym = body[PC].get_sym_ptr();
+             members.push_back(sym->get_name_ptr());
+             if (body[PC + 1].get_tag() == TOK_OPER2_INNER)
+                {
+                  PC = Function_PC(PC + 2);
+                }
+             else
+                {
+                  top_sym = sym;
+                  PC = Function_PC(PC + 1);
+                  break;
+                }
+           }
+        else
+           {
+             MORE_ERROR() << "member access: missing variable name";
+             syntax_error(LOC);
+           }
+      }
+
+   if (top_sym == 0)
+      {
+        MORE_ERROR() << "member access: no top-level variable name";
+        syntax_error(LOC);
+      }
+
+Value_P top_val = top_sym->get_var_value();
+   if (!top_val)
+      {
+        UCS_string & more = MORE_ERROR()
+               << "member access: missing top-level variable "
+               << top_sym->get_name() << " for member ";
+        more.append_members(members, 0);
+        more << " not found";
+        VALUE_ERROR;
+      }
+
+const bool will_selectively_assign = get_assign_state() == ASS_arrow_seen;
+   if (will_selectively_assign)
+      {
+        // See the matching comment in reduce_D_V__(): isolate the
+        // Symbol's own stored value in place, then re-fetch, before
+        // get_existing_member() takes a pointer into its structure.
+        //
+        top_sym->top_of_stack()->isolate_deep(LOC);
+        top_val = top_sym->get_var_value();
+      }
+
+const Cell * member_cell = top_val->get_existing_member(members);
+   Assert(member_cell);
+
+   if (member_cell->is_member_anchor() && will_selectively_assign)
+      {
+        UCS_string & more = MORE_ERROR() <<
+                     "member access: cannot use non-leaf member ";
+        more.append_members(members, 0);
+        more << " in selective specification.\n"
+                "      )ERASE or ⎕EX that member first.";
+        DOMAIN_ERROR;
+      }
+
+   // Token has no safe operator=() (it is a raw-union class relying on
+   // placement-new / copy() / move_from(), like the rest of this file
+   // already carefully does elsewhere) -- construct and push the result
+   // Token_loc directly in each branch below rather than building up a
+   // shared, reassigned local Token, which silently corrupts whatever
+   // Value_P the union was already holding.
+   //
+   if (member_cell->is_pointer_cell())
+       {
+         if (will_selectively_assign)
+            {
+              set_assign_state(ASS_none);
+              Value_P cell_refs = member_cell->get_pointer_value()
+                                            ->get_cellrefs(LOC);
+              const Token_loc tloc_result(Token(TOK_APL_VALUE2, cell_refs),
+                                          tl.get_PC());
+              push(tloc_result);
+            }
+         else
+            {
+              Value_P Z(CLONE_P(member_cell->get_pointer_value(), LOC),
+                                LOC);
+              const Token_loc tloc_result(Token(TOK_APL_VALUE1, Z),
+                                          tl.get_PC());
+              push(tloc_result);
+            }
+       }
+   else
+      {
+        Value_P Z(LOC);
+        Z->next_ravel_Cell(*member_cell);
+        Z->check_value(LOC);
+        const Token_loc tloc_result(Token(TOK_APL_VALUE1, Z), tl.get_PC());
+        push(tloc_result);
+      }
 }
 //────────────────────────────────────────────────────────────────────────────
 inline bool
@@ -1400,8 +1607,22 @@ Symbol * const symbol = tl.get_token().get_sym_ptr();
            We check the name class of symbol to decide.
          */
         const NameClass nc = symbol->get_NC();
-        if (nc != NC_FUNCTION && nc != NC_OPERATOR)   // case 2: 
+        if (nc != NC_FUNCTION && nc != NC_OPERATOR)   // case 2: value member
            {
+             // Bugs28 #55: something with strong-enough binding priority
+             // (currently: a pending bracket index) is already on the
+             // stack and would otherwise eagerly bind to the bare
+             // symbol -- as if it were an ordinary global variable --
+             // before the '.' ever gets a chance to combine it into a
+             // proper member reference. Resolve the whole chain now
+             // instead; see push_member_chain()'s own comment.
+             //
+             if (ssize() && at0().get_Class() == TC_INDEX)
+                {
+                  push_member_chain(tl, symbol);
+                  return false;
+                }
+
              push(tl);
              return false;   // )SI not pushed
            }
@@ -1443,6 +1664,54 @@ Symbol * const symbol = tl.get_token().get_sym_ptr();
                                << " which (currently) is a " << sym_nc;
                 }
              syntax_error(LOC);
+           }
+
+        // Bugs28 #60: resolve_left() below is a no-op for the common
+        // case (NC_VARIABLE) -- it just validates the name and leaves
+        // the symbol on the stack as a bare TC_SYMBOL, relying on
+        // Prefix::reduce_V_RPAR_ASS_B() (phrase "V RPAR ASS B") to
+        // actually resolve it to an lvalue moments later. That phrase
+        // only matches when EXACTLY one ')' separates this symbol from
+        // the real "← B" (e.g. "(A)←5"). For a selective specification
+        // whose target expression contains its OWN internal grouping
+        // parens around a sub-expression -- e.g. "(1↑(2/A))←7", where
+        // "(2/A)" is grouped for clarity, not redundantly wrapping the
+        // whole target -- TWO (or more) ')' are already on the stack by
+        // the time this symbol is reached, "V RPAR ASS B" never matches
+        // at all, and the symbol is left bare -- so once "/" (or
+        // whatever function needs it) tries to use it as an argument,
+        // the phrase matcher sees a SYMBOL where "A F B" needs a VALUE,
+        // silently falls back to a shorter, wrong match (misreading
+        // "2/" alone as a deferred derived-function build), and the
+        // whole statement gets stuck in a bare SYNTAX ERROR.
+        //
+        // Detect this directly: if at least two ')' are ALREADY on the
+        // stack (exactly one is the already-handled "(A)←..."/vector-
+        // assignment case, left untouched below) and the very next
+        // token to be shifted is not itself a symbol -- ruling out a
+        // vector assignment "(T U V)←..." (or a redundantly double-
+        // wrapped one) still being collected, and the sibling
+        // selective-specification-via-selecting-function form "(F V)←"
+        // (already handled separately by the generic "F V" phrase,
+        // Prefix::reduce_F_V__()) -- this symbol is definitely embedded
+        // inside a larger selective-specification target and needs its
+        // lvalue now, regardless of how many more ')' still separate it
+        // from the real "← B": those strip away transparently
+        // afterward via ordinary "(value)" grouping, and the already-
+        // generic Prefix::reduce_A_ASS_B_() ("A ASS B") handles the
+        // final assignment into whatever lvalue-cellref array survives
+        // -- exactly as it already does for e.g. (⊃E)[]←0.
+        //
+        if (ssize() >= 2                               &&
+            at0().get_Class() == TC_R_PARENT           &&
+            at1().get_Class() == TC_R_PARENT           &&
+            !(PC < body.ssize() && body[PC].get_Class() == TC_SYMBOL))
+           {
+             Token result = symbol->resolve_lv(LOC);
+             tl.get_token().move_from(result, LOC);
+             set_assign_state(ASS_var_seen);
+             push(tl);
+             return false;
            }
 
         symbol->resolve_left(tl.get_token(), PC);
@@ -1691,13 +1960,51 @@ const APL_Integer major = QES_val.get_int_value(3);
 const APL_Integer minor = QES_val.get_int_value(4);
 const ErrorCode ec      = ErrorCode(major << 16 | minor);
 
-   execute_EA_fallback(statement_A, ec, "B failed to execute");
+   // Bugs28 #56: element 5 (Macro.def's ⊂μ9) is B's own 3-line,
+   // ⎕EM-shaped message -- row 0 is the error name (redundant with
+   // major/minor above), row 1 is the failed statement, row 2 is the
+   // caret line (spaces and '^'s). Recover row 1 and the caret
+   // positions (by finding the '^'s in row 2, the same way
+   // Error::get_error_line_3() renders them, run in reverse) so
+   // execute_EA_fallback() can set them on the Error it constructs --
+   // otherwise ⎕EM shows 2 blank rows below B's error name.
+   //
+UCS_string line2;
+int lcaret = -1, rcaret = -1;
+bool have_line2 = false;
+   if (QES_val.element_count() > 5)
+      {
+        if (Value_P msg = QES_val.get_pointer_value(5))
+           {
+             const ShapeItem cols = msg->get_cols();
+             if (msg->get_rows() >= 3 && cols > 0)
+                {
+                  have_line2 = true;
+                  loop(c, cols)
+                      line2 << msg->get_char_value(cols + c);   // row 1
+
+                  loop(c, cols)
+                      {
+                        if (msg->get_char_value(2*cols + c) != UNI_CIRCUMFLEX)
+                           continue;
+                        if (lcaret < 0)   lcaret = c;
+                        else              rcaret = c;
+                      }
+                  if (lcaret >= 0 && rcaret < 0)   rcaret = lcaret;
+                }
+           }
+      }
+
+   execute_EA_fallback(statement_A, ec, "B failed to execute",
+                       have_line2 ? &line2 : 0, lcaret, rcaret);
 }
 //════════════════════════════════════════════════════════════════════════════
 void
 Prefix::execute_EA_fallback(UCS_string statement_A,
                             ErrorCode ec_on_failure,
-                            const char * why)
+                            const char * why,
+                            const UCS_string * b_line2,
+                            int b_lcaret, int b_rcaret)
 {
 StateIndicator * top = Workspace::SI_top();
 Token & si_pushed = top->get_prefix().at0();
@@ -1752,7 +2059,22 @@ ErrorCode ec_ET = ec_on_failure;
                      << Error::error_name(ec_on_failure) << ")";
         ec_ET = E_SYNTAX_ERROR;
       }
+   // Bugs28 #56 (Bugs27 #36 residual): a bare Error(ec_ET, LOC) only
+   // ever carries the error CODE -- ⎕ET (which reads just the code)
+   // was already right, but ⎕EM (which formats the statement text and
+   // carets an Error also carries) showed 3 blank rows instead. Line 1
+   // (the error name) still comes from ec_ET as before -- deliberately
+   // so, since ec_ET may already be the generic, collapsed SYNTAX_ERROR
+   // rather than B's own specific parser code, and line 1 should match
+   // whichever code ⎕ET itself reports. Lines 2/3 (the failed statement
+   // and its carets) are B's own, real text, when the caller
+   // (handle_QUAD_ES_ERR()) was able to recover it from B's error
+   // message before that context was discarded.
+   //
    new (&StateIndicator::get_error(top)) Error(ec_ET, LOC);
+   if (b_line2)
+      StateIndicator::get_error(top).set_error_line_2(*b_line2,
+                                                       b_lcaret, b_rcaret);
 
    if (result_A.get_Class() == TC_VALUE)   // A is a plain (foldable) value
       {
@@ -2237,8 +2559,12 @@ Prefix::reduce_D_V__()
 {
    /* This is the end of an A.B.C...V chain.
 
-      at0() is the final member V, and
-      at1() is the '.' (aka. D) before V.
+      at0() is the '.' (aka. D) immediately before V, and
+      at1() is that first member V itself -- the reverse of what this
+      comment used to claim (at0() is the *leftmost* of the two tokens
+      per Prefix::at0()'s own doc comment, and D is shifted before V).
+      Confirmed via Bugs28 #14: at1().get_Class() is TC_SYMBOL, not
+      TC_OPER2, for both a genuine "A.B" and a mistaken "+⍤X".
 
       Collect the members (and discard the '.' preceeding them)
       until no more '.' tokens are found.
@@ -2257,6 +2583,16 @@ Prefix::reduce_D_V__()
       handle both cases here (i.e. in reduce_D_V__()) instead of replicating
       almost the same code in in reduce_D_V_ASS_B().
     */
+
+   // D is the token class TC_OPER2, so the phrase "D V" (and "D V ASS B")
+   // also matches ⍤ X and ⍣ X -- for those two operators X may be a plain
+   // value/symbol, not a member name. A trailing ← after such an X (e.g.
+   // +⍤X←) then collides with the ASS_var_seen bookkeeping below, which
+   // is only ever valid for a genuine member chain. Bugs28 #14: reject
+   // here (there being nothing valid to either operator's right) rather
+   // than falling through to the Assert()s, which assume at0() is '.'.
+   //
+   if (at0().get_tag() != TOK_OPER2_INNER)   SYNTAX_ERROR;
 
 const bool member_assign = prefix_len == 4;   // assume member reference
    if (prefix_len == 2)      // case 1: member reference
@@ -2393,6 +2729,24 @@ Value_P top_val = top_sym->get_var_value();
 
    if (member_assign)   // (direct) member assignment e.g. A.B.C←V
       {
+        // Bugs28 #100(u): a ⎕-name in the member chain (e.g. S.⎕IO←1)
+        // used to be accepted like any other TC_SYMBOL and silently
+        // created a member literally named "⎕IO" -- a ⎕-name is
+        // exactly as reserved here as it is for a header/local-variable
+        // position (Bugs28 #89/#100(b)'s is_system_var()), just via a
+        // different Symbol lookup path, so no existing check catches it.
+        //
+        loop(m, members.size())
+           {
+             if (Avec::is_quad((*members[m])[0]))
+                {
+                  MORE_ERROR() << "member access: '" << *members[m]
+                               << "' is a ⎕-name and cannot be used as a"
+                                  " member name";
+                  DOMAIN_ERROR;
+                }
+           }
+
         // Depth-cache invalidation for the whole member chain (see
         // plan.txt's 2026-09-01 analysis): member access does not go
         // through Symbol::resolve_lv(), so it needs its own call to the
@@ -2746,6 +3100,25 @@ Value_P Z;
                   RANK_ERROR;
                 }
              Z = CLONE(A.get(), LOC);
+
+             // Bugs28 #52: with NEW_CLONE, CLONE() is not a real copy
+             // -- it is the SAME Value object as A, just wrapped in a
+             // new Value_P handle -- so when A is an lval-cellref
+             // array carrying Symbol::resolve_lv()'s
+             // set_lval_whole_symbol() marker (the "((⍳0)⊃sym)←B means
+             // replace the whole array" shortcut), that marker
+             // survived onto Z completely unchanged. But A[] selects
+             // EVERY position of A (a real, shape-conforming selective
+             // specification, e.g. (V[])←1 2 3 must require ⍴,B to be
+             // 1 or ⍴V, same as (V[⍳⍴V])←1 2 3), not "replace with no
+             // conformance check at all" the way a genuinely empty
+             // selector does -- every other lvalue-producing function
+             // returns a fresh Value that naturally starts without the
+             // marker (see set_lval_whole_symbol()'s own doc comment);
+             // clear it explicitly here since CLONE() doesn't actually
+             // build a fresh object.
+             //
+             Z->set_lval_whole_symbol(0);
            }
         else         Z = A->index(*axis);
       }
@@ -2911,14 +3284,80 @@ Prefix::reduce_V_ASS_F_()
    // named lambda: V ← { ... }
    //
 cFunction_P F = at2().get_function();
-   if (!F->is_lambda())   SYNTAX_ERROR;
+
+   // Bugs28 #90: this phrase (V ASS F, meant only for a named-lambda
+   // assignment) can also spuriously match "X←⍴F1" once "F1" (a call to
+   // a VOID-returning defined function) reduces away, leaving "X ← ⍴"
+   // looking exactly like "V ← {a lambda}" one token later -- except F
+   // here is ⍴, an ordinary primitive, not a lambda. The raw SYNTAX_ERROR
+   // macro used to fire directly for that case, without this class's own
+   // syntax_error() member function ever running its "was this actually
+   // caused by a function producing no value?" TC_VOID-in-FIFO check
+   // (the same class of raw-macro-bypasses-cleanup gap fixed for #26) --
+   // so a clear, correctly-classified VALUE ERROR (matching the bare,
+   // non-assigned "⍴F1" case, which already correctly VALUE_ERRORs) was
+   // reported instead as a bare, unexplained SYNTAX ERROR.
+   //
+   if (!F->is_lambda())   syntax_error(LOC);
 
 Symbol * V = at0().get_sym_ptr();
+
+   // Bugs28 #100(aa): ⎕ (and the other distinguished symbols ⍺ ⍶ χ ⍹ ⍵,
+   // which -- like ⎕ -- carry the generic TC_SYMBOL class this phrase
+   // matches on) were accepted here as if they were an ordinary,
+   // user-assignable name, silently giving the lambda literal "⎕" (etc.)
+   // as its new name instead of running Quad_Quad::assign() (the code
+   // that actually implements ⎕←B) -- so ⎕←{⍵} was a silent no-op with
+   // neither the SYNTAX ERROR nor the display every other ⎕←function
+   // form (⎕←+/, ⎕←F) already correctly gives. ⍞ and ⎕IO already avoid
+   // this (they carry their own dedicated token tags, never reaching
+   // this generic "V ASS F" phrase at all); ⎕ and ⍺/⍶/χ/⍹/⍵ do not.
+   //
+   if (Avec::is_quad(V->get_name()[0])                            ||
+       V->get_name()[0] == UNI_ALPHA  || V->get_name()[0] == UNI_ALPHA_UNDERBAR ||
+       V->get_name()[0] == UNI_CHI    || V->get_name()[0] == UNI_QUOTE_Quad     ||
+       V->get_name()[0] == UNI_OMEGA  || V->get_name()[0] == UNI_OMEGA_UNDERBAR)
+      SYNTAX_ERROR;
+
    if (V->assign_named_lambda(F, LOC))   DEFN_ERROR;
 
-Value_P Z(V->get_name(), LOC);
-const Token result(TOK_APL_VALUE2, Z);
-   pop_args_push_result(result);
+   // Bugs28 #50: the result of V←λ used to be a fabricated character-
+   // vector VALUE holding V's own name (Value_P Z(V->get_name(), LOC)),
+   // which then leaked into any further reduction as an ordinary data
+   // value -- e.g. (f←{⍵}) 5 became the 2-item STRAND 'f' 5 instead of
+   // applying the lambda to 5, and 1+(f←{⍵}) became a bogus character
+   // arithmetic DOMAIN ERROR.
+   //
+   // Whether the result should behave as a function (so a further
+   // reduction can apply it to an argument) or as a value (so a bare
+   // V←λ statement stays silent/printable exactly like an ordinary
+   // value assignment -- e.g. UT←{...} alone, extremely common,
+   // must NOT become "missing mandatory right argument" VALENCE_ERROR)
+   // depends on whether anything already sits to F's right on the
+   // stack: since this parser shifts right-to-left, anything already
+   // reduced from further right in the source (a potential argument,
+   // e.g. the 5 in "(f←{⍵}) 5") is already at3() by the time this V
+   // ASS F group matches -- ssize() > prefix_len (3) detects that.
+   //
+   if (ssize() > prefix_len)
+      {
+        // leave at2()'s own function token in place (shifted into
+        // at0() by the pops below): the result of the assignment IS
+        // the function itself, so the next reduction sees exactly
+        // what "F B" would see for any other named function.
+        //
+        pop_and_discard();   // V
+        pop_and_discard();   // ←
+      }
+   else
+      {
+        // nothing to apply F to -- keep the traditional printable/
+        // silent-assignment value result (V's own name).
+        //
+        Value_P Z(V->get_name(), LOC);
+        const Token result(TOK_APL_VALUE2, Z);
+        pop_args_push_result(result);
+      }
 
    set_assign_state(ASS_none);
    set_action(RA_CONTINUE);   // match again (w/o SHIFT)

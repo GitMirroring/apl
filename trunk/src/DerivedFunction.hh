@@ -85,6 +85,14 @@ public:
         return left_arg.is_apl_val() ? left_arg.get_apl_val() : Value_P();
       }
 
+   /// return the value (if any) bound as the right operand -- e.g. ⍤'s
+   /// own axis-like right operand in F⍤y (y a value, not a function).
+   /// Mirrors get_bound_LO_value(); see also get_RO()'s own comment.
+   Value_P get_bound_RO_value() const
+      {
+        return right_arg.is_apl_val() ? right_arg.get_apl_val() : Value_P();
+      }
+
    /// return the left operand (or 0) of this derived function -- 0 for
    /// the "plain function bound only to an axis" shape, which has no
    /// left operand at all (Token::get_function() would SYNTAX_ERROR on

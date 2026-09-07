@@ -395,3 +395,19 @@ DOMAIN ERROR+
           │2│
           └─┘
 
+      ⍝ Bugs28 #9 regression: a document nested past MAX_DEPTH left the
+      ⍝ partially-built tree's XML_nodes (and their APL_values) leaked
+      ⍝ -- Value::add_member() released the target Cell before
+      ⍝ constructing its replacement PointerCell, which itself does the
+      ⍝ depth check and can throw, leaving that Cell released but never
+      ⍝ reconstructed. )CHECK then crashed walking the survivors: some
+      ⍝ pointed at already-freed siblings, others at that half-dead Cell.
+      ⍝
+      ⍴⎕XML (780⍴'<a>'),1040⍴'</a>'
+SYSTEM LIMIT (nesting depth)
+      ⍴⎕XML(780⍴'<a>'),1040⍴'</a>'
+       ^   ^
+
+      )SIC
+      )CHECK BRIEF
+

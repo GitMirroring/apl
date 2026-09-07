@@ -114,19 +114,16 @@ RealCell::do_bif_circle_fun(Cell * Z, int fun, APL_Float b)
              return FloatCell::zF(Z,       b);
 
         case -8:
-             { const APL_Float square = -(b*b + 1.0);       // (¯1 + R⋆2)
-               if (square < 0.0)   // complex square root
-                  {
-                    const APL_Float root = sqrt(-square);     // (¯1 + R⋆2)⋆0.5
-                    if (b < 0.0)   return ComplexCell::zC(Z, 0.0, -root);
-                    else           return ComplexCell::zC(Z, 0.0,  root);
-                  }
-               else           // real square root
-                  {
-                    const APL_Float root = sqrt(square);      // (¯1 + R⋆2)⋆0.5
-                    if (b < 0.0)   return FloatCell::zF(Z, -root);
-                    else           return FloatCell::zF(Z,  root);
-                  }
+             {
+               // -(b² + 1) is never ≥ 0 (b² ≥ 0 always), so the result
+               // is always the pure-imaginary sqrt(b²+1) -- computed
+               // via hypot(1.0, b) (Bugs28 #85), which avoids the
+               // intermediate b*b overflowing for huge |b| even though
+               // the true result (≈|b|) is perfectly finite.
+               //
+               const APL_Float root = hypot(1.0, b);   // (1 + R⋆2)⋆0.5
+               if (b < 0.0)   return ComplexCell::zC(Z, 0.0, -root);
+               else           return ComplexCell::zC(Z, 0.0,  root);
              }
 
         case -7:
@@ -150,8 +147,20 @@ RealCell::do_bif_circle_fun(Cell * Z, int fun, APL_Float b)
              return FloatCell::zF(Z, asinh(b));
 
         case -4:
-             { const double arg = b*b - 1.0;
-               if (arg >= 0.0)   return FloatCell::zF(Z, sqrt(arg));
+             {
+               const double abs_b = b < 0.0 ? -b : b;
+               if (abs_b >= 1.0)
+                  {
+                    // |b|×sqrt(1-1÷b²), not sqrt(b²-1) (Bugs28 #85): the
+                    // latter overflows the intermediate b*b for huge
+                    // |b| even though the true result (≈|b|) is
+                    // perfectly finite; dividing by b² instead of
+                    // squaring b keeps every intermediate bounded.
+                    //
+                    const double arg = 1.0 - 1.0/(b*b);
+                    return FloatCell::zF(Z, abs_b * sqrt(arg < 0.0 ? 0.0
+                                                                    : arg));
+                  }
                return ComplexCell::do_bif_circle_fun(Z, -4, APL_Complex(b));
              }
         case -3:
@@ -182,7 +191,12 @@ RealCell::do_bif_circle_fun(Cell * Z, int fun, APL_Float b)
              return FloatCell::zF(Z, tan(b));
 
         case 4:
-             return FloatCell::zF(Z, sqrt(1 + b*b));
+             // hypot(1.0, b), not sqrt(1+b*b) (Bugs28 #85): the latter
+             // overflows the intermediate b*b for huge |b| (b*b alone
+             // exceeds DBL_MAX above roughly 1.34E154) even though the
+             // true result (≈|b|) is perfectly finite; hypot() avoids
+             // that intermediate overflow.
+             return FloatCell::zF(Z, hypot(1.0, b));
 
         case   5: return FloatCell::zF(Z, sinh(b));
 
@@ -194,19 +208,13 @@ RealCell::do_bif_circle_fun(Cell * Z, int fun, APL_Float b)
 
         case 8:
              {
-               const APL_Float square = -(b*b + 1.0);       // (¯1 - R⋆2)
-               if (square < 0.0)   // complex square root
-                  {
-                    const APL_Float root = sqrt(-square);     // (¯1 + R⋆2)⋆0.5
-                    if (b < 0.0)   return ComplexCell::zC(Z, 0.0,  root);
-                    else           return ComplexCell::zC(Z, 0.0, -root);
-                  }
-               else           // real square root
-                  {
-                    const APL_Float root = sqrt(square);      // (¯1 + R⋆2)⋆0.5
-                    if (b < 0.0)   return FloatCell::zF(Z,  root);
-                    else           return FloatCell::zF(Z, -root);
-                  }
+               // same as case -8 above (mirrored sign) -- always the
+               // pure-imaginary sqrt(b²+1), via the overflow-safe
+               // hypot(1.0, b) (Bugs28 #85).
+               //
+               const APL_Float root = hypot(1.0, b);   // (1 + R⋆2)⋆0.5
+               if (b < 0.0)   return ComplexCell::zC(Z, 0.0,  root);
+               else           return ComplexCell::zC(Z, 0.0, -root);
              }
 
         case 9:

@@ -23,6 +23,7 @@
 
 #include <stdlib.h>
 
+#include "Avec.hh"
 #include "IntCell.hh"
 #include "NativeFunction.hh"
 #include "Quad_FX.hh"
@@ -108,7 +109,7 @@ UTF8_string creator("⎕FX");
         default: LENGTH_ERROR;
       }
 
-   return do_quad_FX(eprops, B, creator);
+   return do_quad_FX(eprops, B, creator, /* honor_lock */ false);
 }
 //────────────────────────────────────────────────────────────────────────────
 Token
@@ -122,7 +123,7 @@ static const int default_eprops[] = { 0, 0, 0, 0 };
 //────────────────────────────────────────────────────────────────────────────
 Token
 Quad_FX::do_quad_FX(const int * exec_props, cValue_R B,
-                    const UTF8_string & creator)
+                    const UTF8_string & creator, bool honor_lock)
 {
    if (B.get_rank() > 2)   RANK_ERROR;
    if (B.get_rank() < 1)   RANK_ERROR;
@@ -243,19 +244,44 @@ const bool keep_indent = !UserPreferences::uprefs.discard_indentation;
            }
       }
 
-   return do_quad_FX(exec_props, text, creator);
+   return do_quad_FX(exec_props, text, creator, honor_lock);
 }
 //────────────────────────────────────────────────────────────────────────────
 Value_P
 Quad_FX::do_native_FX(cValue_R A, sAxis axis, cValue_R B)
 {
-   if (UserPreferences::uprefs.safe_mode)   DOMAIN_ERROR;
+   if (UserPreferences::uprefs.safe_mode)
+      {
+        // Bugs28 #100(w): unlike )HOST's own safe-mode refusal, this
+        // gave a bare DOMAIN ERROR with no )MORE explanation at all.
+        //
+        MORE_ERROR() <<
+           "This interpreter was started in \"safe mode\" (command line "
+           "option --safe, see ⎕ARG). Native functions (⎕FX with a "
+           "shared-library name) are not permitted in safe mode.";
+        DOMAIN_ERROR;
+      }
 
 const UCS_string so_name       = A.get_UCS_ravel();
 const UCS_string function_name = B.get_UCS_ravel();
 
    if (so_name.size() == 0)         LENGTH_ERROR;
    if (function_name.size() == 0)   LENGTH_ERROR;
+
+   // function_name must be a valid, user-creatable symbol name: a plain
+   // identifier, not a ⎕-prefixed (or ▯-prefixed) system name -- those are
+   // fixed/reserved and SymbolTable::lookup_symbol() FIXMEs (used to crash
+   // the interpreter) rather than create one. Every character must be a
+   // symbol character (rejects e.g. "a b", "a.b", "+", "⍝"), and the first
+   // must additionally not be a digit (rejects "1abc") or a quad (rejects
+   // "⎕FX", "⎕", "⎕IO").
+   //
+   if (Avec::is_quad(function_name[0]))   DOMAIN_ERROR;
+   if (!Avec::is_first_symbol_char(function_name[0]))   DOMAIN_ERROR;
+   loop(c, function_name.size())
+      {
+        if (!Avec::is_symbol_char(function_name[c]))   DOMAIN_ERROR;
+      }
 
 NativeFunction * fun = NativeFunction::fix(so_name, function_name);
    if (fun == 0)  return IntScalar(0, LOC);
@@ -265,7 +291,7 @@ NativeFunction * fun = NativeFunction::fix(so_name, function_name);
 //════════════════════════════════════════════════════════════════════════════
 Token
 Quad_FX::do_quad_FX(const int * exec_props, const UCS_string & text,
-                    const UTF8_string & creator)
+                    const UTF8_string & creator, bool honor_lock)
 {
 int error_line = 0;
    // quiet=true: ⎕FX reports a failed parse via its own mechanism
@@ -277,7 +303,7 @@ int error_line = 0;
    // See Bugs27 #59(i).
    //
 UserFunction * fun =
-   UserFunction::fix(text, error_line, false, LOC, creator, true);
+   UserFunction::fix(text, error_line, false, LOC, creator, true, honor_lock);
 
    if (fun == 0)   // UserFunction::fix() dailed
       {

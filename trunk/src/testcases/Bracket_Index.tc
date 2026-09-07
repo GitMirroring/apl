@@ -184,6 +184,47 @@ D E F
       B
 9 9 9
 
+      ⍝ Bugs28 #52 regression: the PARENTHESIZED selective-specification
+      ⍝ form (V[])←B (unlike the plain, unparenthesized V[]←B just above,
+      ⍝ which was already correct) silently replaced V wholesale with B,
+      ⍝ with none of the shape conformance an ordinary selective
+      ⍝ specification requires -- (V[])←1 2 3 turned V←⍳5 into the
+      ⍝ 3-element vector 1 2 3 instead of requiring ⍴,B to be 1 or 5.
+      ⍝ Root cause: Prefix.cc's A[] (elided-index) handling built its
+      ⍝ result via Z=CLONE(A,LOC) -- with the active NEW_CLONE scheme,
+      ⍝ CLONE() is not a real copy, just a new Value_P handle on the
+      ⍝ SAME Value object -- so when A was an lval-cellref array
+      ⍝ carrying Symbol::resolve_lv()'s set_lval_whole_symbol() marker
+      ⍝ (normally only meant for a genuinely EMPTY selector, e.g.
+      ⍝ ((⍳0)⊃sym)←B, to mean "replace the whole array, no conformance
+      ⍝ check"), that marker survived onto Z completely unchanged, even
+      ⍝ though A[] selects EVERY position of A, not none of them. Fixed
+      ⍝ by explicitly clearing the marker on Z, since CLONE() doesn't
+      ⍝ actually build the fresh Value every other lvalue-producing
+      ⍝ function is documented to return.
+      ⍝
+      V←⍳5
+      (V[])←1 2 3
+LENGTH ERROR+
+      (V[])←1 2 3
+      ^     ^
+
+      )SIC
+      ⍴V
+5
+
+      V←⍳5
+      (V[])←1 2 3 4 5
+      V
+1 2 3 4 5
+
+      ⍝ control: a genuinely empty selector still replaces wholesale
+      ⍝
+      V←⍳5
+      (V[⍬])←1 2 3
+      ⍴V
+5
+
       ⍝ Regression
       ⍝
       (1 1⍴0)[0;]
@@ -314,6 +355,19 @@ OK      - no duplicate parents
       ⍝ catching that throw does not help, since Error::update_error_info()
       ⍝ recurses through plain calls, not exception unwinding).
       ⍝
+      ⍝ Bugs28 #100(t): an index is by definition a ShapeItem (int64_t);
+      ⍝ cValue::index(cValue_R) used to call the throwing get_near_int()
+      ⍝ unconditionally, so a too-large index (like 1E30 below) raised a
+      ⍝ bare, uncontextualized DOMAIN ERROR instead of the well-formed
+      ⍝ INDEX ERROR it actually is. Fixed by checking is_near_int64_t()
+      ⍝ (which cannot itself throw) first. Token.cc's caret-line
+      ⍝ rendering (above, right below "must not crash Token::canonical()")
+      ⍝ used to fall back to a meaningless "?" for the very same
+      ⍝ too-large-for-int64_t values, for the very same reason
+      ⍝ (get_near_int() throws); it now instead formats the value safely
+      ⍝ via get_real_value() (which does not throw for a numeric cell),
+      ⍝ so the caret line below shows 1E30, not [?].
+      ⍝
       ⌽[2.0](2 2⍴⍳4)
 2 1
 4 3
@@ -335,20 +389,24 @@ AXIS ERROR+
       )SIC
 
       (1 2 3)[1E30]
-DOMAIN ERROR
-      1 2 3[?]
+INDEX ERROR+
+      1 2 3[1E30]
       ^    ^
 
+      )MORE
+A[B]: B is not a valid index for A (not an integer that fits a (signed) 63-bit index)
       )SIC
 
       ⎕FX 'Z←FOO' 'Z←(1 2 3)[1E30]'
 FOO
 
       FOO
-DOMAIN ERROR
-FOO[1]  Z←1 2 3[?]
+INDEX ERROR+
+FOO[1]  Z←1 2 3[1E30]
           ^    ^
 
+      )MORE
+A[B]: B is not a valid index for A (not an integer that fits a (signed) 63-bit index)
       )SIC
 
       ⎕EX 'FOO'

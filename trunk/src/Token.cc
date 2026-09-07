@@ -142,7 +142,12 @@ const TokenTag tag = token.get_tag();
              else                              out << "VALUE???";
              {
                Value_P value = token.get_apl_val();
-               Assert(value);
+               // For a suspended ⍎ frame this token's Value_P has
+               // already been moved out (e.g. by the time ]SI walks the
+               // body printing every token at the current PC) -- print a
+               // placeholder instead of asserting; this is a normal,
+               // reachable state (Bugs28 #24), not an internal error.
+               if (!value)   { out << "«moved»"; break; }
                const APL_types::Depth depth = value->compute_depth();
                out << "«";
                for (APL_types::Depth d = 0; d < depth; ++d)   out << "≡";
@@ -411,6 +416,30 @@ UCS_string ucs;
                       const Cell & c = axis->get_cscalar(cache);
                       if (c.is_near_int64_t())
                          ret << ShapeItem(c.get_near_int());
+                      else if (c.is_numeric())
+                         {
+                           // too large for get_near_int() (which would
+                           // throw and recurse back in here, see above),
+                           // but get_real_value()/get_imag_value() do
+                           // not throw for a numeric cell -- render it
+                           // the same way TOK_LIT_ITEM/TV_FLT renders an
+                           // ordinary float literal, so e.g. [1E19]
+                           // still shows its actual value instead of a
+                           // meaningless "?" placeholder.
+                           const PrintContext pctx(style, DEFAULT_Quad_PP,
+                                                   DEFAULT_Quad_PW);
+                           bool scaled = false;
+                           ret << UCS_string(c.get_real_value(), scaled,
+                                             pctx);
+                           if (c.is_complex_cell() &&
+                               c.get_imag_value() != 0.0)
+                              {
+                                scaled = false;
+                                ret << UNI_J
+                                    << UCS_string(c.get_imag_value(),
+                                                  scaled, pctx);
+                              }
+                         }
                       else
                          ret << "?";
                      }
@@ -495,7 +524,13 @@ Token::get_function_axis() const
         return IntScalar(axis, LOC);
       }
 
-   Q1(*this);
+   // Bugs28 #100(d): Q1() is documented (Common.hh) to be for printouts
+   // already guarded by a Log() conditional -- this call was bare, so
+   // it unconditionally dumped an internal "*this: 'MARKER' at
+   // Token.cc:..." debug trace to every session hitting this
+   // (user-reachable) error, e.g. +/@1@. MORE_ERROR() below is the
+   // actual diagnostic.
+   //
    MORE_ERROR() << "Invalid Token type for function axis.";
    AXIS_ERROR;
 }

@@ -86,6 +86,22 @@ UCS_string lvar_text;
       }
 
    if ((error_info = init_signature(signature_text, macro)))   return;
+
+   // λ-prefixed names are reserved for genuine, machine-generated lambdas
+   // (built via the OTHER, lambda_num-based constructor below, never this
+   // text-based one) -- a user-supplied header naming a regular function
+   // "λ1" or the like must not be accepted as if it were one: is_lambda()
+   // goes by name alone, so such a function would misreport itself as a
+   // lambda (refcount tracking, ∇-edit warnings, ⎕NC/⎕EX confusion) while
+   // never having been through the actual lambda bookkeeping (Blake
+   // McBride, Bugs28 #69).
+   //
+   if (function_name.size() && function_name[0] == UNI_LAMBDA)
+      {
+        error_info = "Bad function name (λ is reserved for lambdas)";
+        return;
+      }
+
    if ((error_info = init_local_vars(lvar_text, macro)))       return;
 
    error = E_NO_ERROR;
@@ -287,7 +303,37 @@ static bool
 is_system_var(const Symbol * sym)
 {
    const UCS_string & name = sym->get_name();
-   return name.size() && Avec::is_quad(name[0]);
+   if (name.size() == 0)   return false;
+   if (Avec::is_quad(name[0]))   return true;
+
+   // ⍺ ⍶ χ ⍵ ⍹ (Bugs28 #89): the tokenizer gives these their own
+   // distinguished Symbol (Workspace::get_v_ALPHA() etc., not an
+   // ordinary SymbolTable entry), same as it does for ⎕xx, but they
+   // all still carry the generic TC_SYMBOL class that every "is this a
+   // symbol" check here accepts -- so e.g. ⎕FX 'Z←⍵ B' 'Z←B+1' silently
+   // bound the function to the *distinguished* ⍵ instead of rejecting
+   // it: the function became callable as "⍵ 5" but could not be
+   // listed, expunged, or saved, since none of those operate on
+   // anything outside the real SymbolTable, and re-defining it leaked
+   // the previous body (UserFunction::fix() looks the name up via
+   // Workspace::lookup_symbol(), which creates an ordinary new Symbol
+   // for χ rather than returning the distinguished one, so the old
+   // UserFunction pointer is never found to be deleted). λ is
+   // deliberately not included here: it is the header GNU APL itself
+   // uses for a lambda (λ←λ1 ⍵), so rejecting it here would break every
+   // lambda definition.
+   //
+   // ⍞ (Bugs28 #100(b)): same reasoning as above -- its own
+   // distinguished Symbol (Workspace::get_v_Quad_QUOTE()), tokenized
+   // separately from (and not covered by) Avec::is_quad()'s plain ⎕
+   // check above, even though ⍞ is exactly as much a distinguished
+   // name as ⎕ itself. ⎕FX 'Z←F1 ⍞' 'Z←1' used to be accepted (and
+   // callable, printing through the real ⍞), unlike e.g. ⎕FX 'Z←F2
+   // ⎕IO' 'Z←1', which was already correctly rejected.
+   //
+   return name[0] == UNI_ALPHA  || name[0] == UNI_ALPHA_UNDERBAR ||
+          name[0] == UNI_CHI    || name[0] == UNI_QUOTE_Quad     ||
+          name[0] == UNI_OMEGA  || name[0] == UNI_OMEGA_UNDERBAR;
 }
 //────────────────────────────────────────────────────────────────────────────
 const char *
@@ -516,9 +562,14 @@ Token_string tos;
                                    && tag != TOK_Quad_PW
                                    && tag != TOK_Quad_RL)
                 {
-                  CERR << "Offending token at " LOC " is: "
-                       << tos[tos_idx] << endl;
-                  return "Bad token";
+                  // Bugs28 #100(c), same class as Bugs27 #59(i): this
+                  // used to unconditionally leak an internal debug
+                  // trace (the raw offending Token) to the session
+                  // before returning; the returned string alone is
+                  // what the caller (⎕FX's row-number result, or the
+                  // ∇ editor's DEFN ERROR) actually reports.
+                  //
+                  return "Bad local variable (not a name)";
                 }
 
              local_vars.push_back(tos[tos_idx].get_sym_ptr());

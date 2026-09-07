@@ -83,6 +83,27 @@ Symbol::cant_be_defined() const
         return cc;
       }
 
+   // Bugs28 #16: also refuse if the current function is bound as the
+   // LO/RO operand of some other, suspended defined operator -- that
+   // frame holds a raw Function* to it for as long as it stays
+   // suspended, invisible to is_called() above since no source text
+   // anywhere names this function.
+   //
+   if (value_stack.back().get_NC() & NC_FUN_OPER)
+      {
+        const UserFunction * ufun =
+                     value_stack.back().get_function()->get_func_ufun();
+        if (ufun && Workspace::is_bound_as_operand(ufun))
+           {
+             static char cc[100];
+             const UTF8_string utf(get_name());
+             SPRINTF(cc, "function %s is bound as the operand of a "
+                         "suspended defined operator. Try )SIC first.",
+                     utf.c_str());
+             return cc;
+           }
+      }
+
    if (value_stack.back().get_NC() & NC_DEFINABLE)   return 0;   // OK
 
    return "bad name class";
@@ -523,8 +544,19 @@ int count = 0;
               case NC_OPERATOR:
                    {
                      cFunction_P fun = item.get_function();
+                     if (fun->is_native())   break;
+
+                     // ufun can be 0 e.g. if this is a function argument
+                     // (LO/RO) of a called defined operator and that
+                     // argument is a primitive function -- a primitive
+                     // simply owns no values, same as
+                     // unmark_all_values() above already treats this
+                     // case (Bugs28 #97: ]OWNERS used to Assert(ufun ||
+                     // fun->is_native()) here instead and crash the
+                     // interpreter, e.g. while ÷OP1 0 is suspended with
+                     // LO←÷ still localised).
+                     //
                      const Executable * ufun = fun->get_func_ufun();
-                     Assert(ufun || fun->is_native());
                      if (ufun)
                         {
                           char cc[100];
@@ -662,6 +694,16 @@ Value_P Z = get_apl_value();
    //
    if (!B->is_scalar() && B->element_count() != 1)
       {
+        // Bugs28 #100(s) investigated and reverted: squeezing B's own
+        // length-1 axes before comparing against IX1 looks, in
+        // isolation, like it wrongly tolerates a mis-shaped B (e.g.
+        // M[1;1 2]←2 1⍴7 8) -- but ZZZ0_Standard_10x.tc's own
+        // ISO-standard-sourced worked example (Y[2 1;;1]←N12121, where
+        // N12121 has shape 1 2 1 2 1) relies on exactly this squeeze to
+        // match a 2x2 selected area, so it is genuine, tested,
+        // standard-mandated leniency, not a bug. Left as originally
+        // designed (Bugs27 #46).
+        //
         // remove dimensions with len 1 from the shapes of X and B...
         // if we see an empty Xn then we return.
         //
@@ -678,7 +720,29 @@ Value_P Z = get_apl_value();
               const cValue * ix_val = IX.values[ix].get();
               if (ix_val)   // non-elided index
                  {
-                   if (ix_val->element_count() == 0)   return;   // empty index
+                   // Bugs28 #100(f): an empty index means the selected
+                   // area itself is empty (0 elements), regardless of
+                   // the other axes. A silent return here (unconditional
+                   // no-op) wrongly accepted ANY B, including a
+                   // non-conforming, non-empty one, instead of LENGTH
+                   // ERROR (the same check M[1;1 2]←1 2 3 already gets
+                   // via B1 != IX1 below) -- but B with 0 elements of
+                   // its own (e.g. Z[1;⍬]←⍬) is genuinely conforming and
+                   // must remain a no-op.
+                   //
+                   if (ix_val->element_count() == 0)
+                      {
+                        if (B->element_count() != 0)
+                           {
+                             MORE_ERROR() << "A[B]←C: an index is empty, so"
+                                             " the selected area is empty,"
+                                             " but C has "
+                                          << B->element_count()
+                                          << " element(s) (expecting 0)";
+                             LENGTH_ERROR;
+                           }
+                        return;
+                      }
                    loop(xx, ix_val->get_rank())
                       {
                         const ShapeItem sxx = ix_val->get_shape_item(xx);
@@ -690,7 +754,23 @@ Value_P Z = get_apl_value();
                    if (ix >= Z->get_rank())   RANK_ERROR;
                    const ShapeItem sbx =
                          Z->get_shape_item(Z->get_rank() - ix - 1);
-                   if (sbx == 0)   return;   // empty index
+                   // Bugs28 #100(f): same fix as the non-elided branch
+                   // above, for an elided axis whose own (whole) length
+                   // happens to be 0.
+                   //
+                   if (sbx == 0)
+                      {
+                        if (B->element_count() != 0)
+                           {
+                             MORE_ERROR() << "A[B]←C: an elided index's axis"
+                                             " has length 0, so the selected"
+                                             " area is empty, but C has "
+                                          << B->element_count()
+                                          << " element(s) (expecting 0)";
+                             LENGTH_ERROR;
+                           }
+                        return;
+                      }
                    if (sbx != 1)   IX1.add_shape_item(sbx);
                  }
             }
@@ -753,6 +833,14 @@ Value_P Z = get_apl_value();  // the current APL value of this Symbol
 
    if (Z->is_member())
       {
+        // X is 0 for the elided-index form Z[]←B, which (unlike for an
+        // ordinary array, see #1's ⎕FC[]←B/⎕PS[]←B/⎕SYL[]←B fix) has no
+        // sensible meaning for a member-indexed structured value -- there
+        // is no member name to assign through. Z[] as a plain *reference*
+        // already RANK_ERRORs (Symbol::resolve()); match that here rather
+        // than dereferencing the null X.
+        if (X == 0)   RANK_ERROR;
+
         // Z is indexed with a member name, e.g. Z['member'] ← 42
         const UCS_string name(*X);
         Cell * data = Z->get_member_data(name);
@@ -825,11 +913,29 @@ const int incr_B = (ec_B == 1) ? 0 : 1;   // maybe scalar extend B
 ShapeItem idxX = 0;
 ShapeItem idxB = 0;
 
-   if (ec_B != 1 && ec_B != ec_X)
+   // Bugs28 #100(s): only the ELEMENT COUNT of B was checked here
+   // (against 1, for scalar extension, or ec_X); B's own shape was
+   // never required to actually be a vector, so e.g. A[1 2]←2 1⍴1 2
+   // (a 2 1 matrix, 2 elements) silently succeeded instead of RANK
+   // ERROR -- unlike the sibling multi-axis Symbol::assign_indexed
+   // (IndexExpr, above), which already requires (after this same fix)
+   // C's shape to exactly match the selected area's, not just its
+   // element count.
+   //
+   if (ec_B != 1)
       {
-        MORE_ERROR() << "A[B]←C: expecting ⍴C to be 1 or " << ec_X
-                     << " (⍴B); ⍴C is " << ec_B;
-        LENGTH_ERROR;
+        if (B->get_rank() != 1)
+           {
+             MORE_ERROR() << "A[B]←C: expecting ⍴⍴C = 1 (a vector); "
+                             "⍴⍴C is " << B->get_rank();
+             RANK_ERROR;
+           }
+        if (ec_B != ec_X)
+           {
+             MORE_ERROR() << "A[B]←C: expecting ⍴C to be 1 or " << ec_X
+                          << " (⍴B); ⍴C is " << ec_B;
+             LENGTH_ERROR;
+           }
       }
 
    loop(x, ec_X)
@@ -1071,8 +1177,19 @@ ValueStackItem & vs = value_stack.back();
            {
              const UserFunction * ufun = vs.get_function()->get_func_ufun();
              Assert(ufun);
-               const_cast<UserFunction *>(vs.get_function()->get_func_ufun())
-                          ->decrement_refcount(LOC);
+
+             // same Bugs27 #58 refusal as the non-lambda branch below:
+             // a lambda genuinely suspended on the )SI must not be
+             // expunged out from under its own suspended frame either
+             // (Bugs28 #17 -- this branch was missing the guard, so
+             // ⎕EX of a suspended lambda silently "succeeded" while
+             // leaving a dangling Function* on the )SI).
+             //
+             const Executable * exec = ufun;
+             if (Workspace::oldest_exec(exec))            return 0;
+             if (Workspace::is_bound_as_operand(ufun))    return 0;
+
+             const_cast<UserFunction *>(ufun)->decrement_refcount(LOC);
            }
         else
            {
@@ -1104,7 +1221,33 @@ ValueStackItem & vs = value_stack.back();
                   //
                   return 0;
                 }
-             delete ufun;
+
+             // Bugs28 #16: ufun may not itself be executing, yet still be
+             // bound as the LO/RO operand of some OTHER, suspended
+             // defined operator -- that frame holds a raw Function* to
+             // ufun for as long as it stays suspended, invisible to the
+             // oldest_exec() check above (which only ever compares
+             // against si->get_executable(), i.e. the function actually
+             // running/pending at each SI level, never a value merely
+             // bound to one of its local symbols).
+             //
+             if (Workspace::is_bound_as_operand(ufun))   return 0;
+             // Not deleted right away: the tokens of the immediate-
+             // execution statement currently in flight (e.g. every
+             // application form of (⎕EX'G')G ... covered by Bugs28 #15)
+             // may still hold a raw Function* to this same ufun -- the
+             // check above only catches ufun genuinely suspended on the
+             // )SI, not merely referenced by a not-yet-fully-reduced
+             // statement. Queue it on the existing (already correctly
+             // wired into the stale-value checker's mark/sweep via
+             // unmark_all_values(), and into )CHECK's own reporting via
+             // show_owners()) expunged-functions mechanism instead of a
+             // brand-new one -- actually deleted later, once the )SI is
+             // provably clear, by )CHECK (Workspace::cleanup_expunged(),
+             // Cmd_DIAG.cc). This mechanism already existed but was
+             // never actually wired to a real delete site.
+             //
+             Workspace::add_expunged_function(ufun);
            }
         vs.set_NC(NC_UNUSED_USER_NAME);
       }
@@ -1623,6 +1766,26 @@ UCS_string data;
                // a timestamp record
                //
                cFunction_P fun = value_stack[0].get_function();
+
+               // lambdas cannot be represented in transfer-format (see
+               // Quad_TF::tf2_fun_ucs(), Bugs27 #52): )OUT enumerates
+               // every object in the workspace, so letting that DOMAIN
+               // ERROR propagate here aborts the whole )OUT half-way
+               // through, leaving a truncated .atf with everything
+               // written before this symbol but nothing after it (Bugs28
+               // #75). Skip this one symbol with a CERR warning instead,
+               // the way )SAVE warns about (but does not fail on) a
+               // dirty SI, and keep writing the rest of the workspace.
+               //
+               if (fun->is_lambda())
+                  {
+                    CERR << "Warning: )OUT: '" << get_name() << "' is a "
+                            "lambda (dfn) and cannot be written to a "
+                            "transfer-format (.atf) file -- skipped."
+                         << endl;
+                    return;
+                  }
+
                const YMDhmsu ymdhmsu(fun->get_creation_time());
                char ts_buf[BUFSIZE];
                char * const seq_pos = ts_buf + CONTENT_LEN;

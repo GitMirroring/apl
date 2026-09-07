@@ -20,6 +20,7 @@
 
 /** @file
 */
+#include "StateIndicator.hh"
 #include "Token_string.hh"
 #include "Workspace.hh"
 
@@ -73,6 +74,18 @@ vector<Open_bracket> expected;
            MORE_ERROR() << Error::error_name(ec);
         Error error(ec, LOC);
         build_error_line_2(error, lo, int(s));
+
+        // Bugs28 #93: see Error::throw_parse_error()'s identical fix --
+        // without this, ⎕ET/⎕EM after a fix-time-only error like "1)"
+        // kept reporting whatever the *previous* statement's error was.
+        // Store directly (not via the full update_error_info()), which
+        // would instead rebuild error_message_2/3 from the *previous*
+        // statement's still-current Executable/prefix state and
+        // clobber the message build_error_line_2() just built above.
+        //
+        if (StateIndicator * si = Workspace::SI_top())
+           StateIndicator::get_error(si) = error;
+
         throw error;
       }
 }

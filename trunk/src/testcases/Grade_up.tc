@@ -80,3 +80,18 @@
 
       Q[⍋Q]
  1 1  1 1  1 2  1 2  1 2  2 1  2 2  2 2  2 2  2 2 
+
+      ⍝ Bugs28 #28 regression (Bugs27 #30 residual): exact_numeric_
+      ⍝ compare() converted both cells via get_real_value() (double)
+      ⍝ before comparing, silently collapsing distinct int64 magnitudes
+      ⍝ beyond 2⋆53 -- ⍋/⍒'s ISO-mandated exactness (10.1.2: ⎕CT is not
+      ⍝ an implicit argument to grading) must not lose precision that way.
+      ⍝
+      ⍋9007199254740993 9007199254740992
+2 1
+
+      ⍋9223372036854775807 9223372036854775806 ¯9223372036854775807
+3 2 1
+
+      ⍋12⍴9007199254740993 9007199254740992
+2 4 6 8 10 12 1 3 5 7 9 11

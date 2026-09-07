@@ -290,6 +290,7 @@ Workspace::immediate_execution(bool exit_on_error)
          try
             {
               Command::process_lines();
+              flush_expunged();
             }
          catch (Error & err)
             {
@@ -430,6 +431,33 @@ StateIndicator * ret = 0;
        if (exec == si->get_executable())   ret = si;   // maybe not yet oldest
 
    return ret;
+}
+//────────────────────────────────────────────────────────────────────────────
+bool
+Workspace::is_bound_as_operand(const UserFunction * ufun)
+{
+   for (const StateIndicator * si = SI_top(); si; si = si->get_parent())
+       {
+         const Executable * exec = si->get_executable();
+         if (exec == 0)                          continue;
+
+         const UserFunction * frame_ufun = exec->get_exec_ufun();
+         if (frame_ufun == 0)                    continue;   // not a ∇ call
+         if (frame_ufun == ufun)                 continue;   // covered by
+                                                          // oldest_exec()
+
+         const UserFunction_header & header = frame_ufun->get_header();
+         const Symbol * cands[] = { header.LO(), header.RO(), header.FUN() };
+         loop(c, sizeof(cands)/sizeof(*cands))
+             {
+               const Symbol * sym = cands[c];
+               if (sym == 0)                             continue;
+               if (!(sym->get_NC() & NC_FUN_OPER))        continue;
+               if (sym->get_function()->get_func_ufun() == ufun)   return true;
+             }
+       }
+
+   return false;
 }
 //────────────────────────────────────────────────────────────────────────────
 bool
@@ -599,6 +627,20 @@ const int ret = the_workspace.expunged_functions.size();
 
    erased = true;
    return ret;
+}
+//────────────────────────────────────────────────────────────────────────────
+void
+Workspace::flush_expunged()
+{
+   if (the_workspace.expunged_functions.size() == 0)   return;
+   if (SI_entry_count() > 0)                            return;
+
+   while (the_workspace.expunged_functions.size())
+       {
+         const UserFunction * ufun = the_workspace.expunged_functions.back();
+         the_workspace.expunged_functions.pop_back();
+         delete ufun;
+       }
 }
 //────────────────────────────────────────────────────────────────────────────
 void
@@ -1275,7 +1317,31 @@ XML_Loading_Archive in(out, err, filename.c_str(), dump_fd);
         the_workspace.clear_WS(out, !LOG_archive);
 #endif
 
-        in.read_Workspace(silent);
+        // Bugs28 #99: a corrupt <SI-entry> (e.g. a level="..." that
+        // disagrees with its position in the )SI stack -- a
+        // hand-edited or otherwise corrupt file) throws out of
+        // read_Workspace() rather than silently reconstructing a
+        // partial )SI (see the matching Archive.cc comment). Refuse
+        // the whole workspace on that: clear back out whatever was
+        // already read (symbols/functions are read before the
+        // trailing <StateIndicator>, so some may already be in place)
+        // instead of leaving an inconsistent, partially-loaded
+        // workspace active as if the )LOAD had succeeded.
+        //
+        try
+           {
+             in.read_Workspace(silent);
+           }
+        catch (Error & err)
+           {
+             the_workspace.clear_WS(out, true);
+             out << ")LOAD " << lib_name.get_name() << " failed: "
+                 << Error::error_name(err.get_error_code()) << endl;
+             MORE_ERROR() << "workspace file " << filename
+                          << " is corrupt (bad )SI stack) and was not"
+                             " loaded; the workspace is CLEAR WS";
+             return;
+           }
       }
 
    if (Workspace::get_LX().size())  quad_lx = Workspace::get_LX();

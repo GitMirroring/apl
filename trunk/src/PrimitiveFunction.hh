@@ -199,6 +199,18 @@ public:
         Value_P Z(shape_Z, LOC);
         loop(z, shape_Z.get_volume())
             Z->next_ravel_Pointer(CLONE(item.get(), LOC).get());
+
+        // shape_Z can itself have a 0-length axis (e.g. ,/0 0⍴0: axis 1
+        // has length 0, so shape_Z is (0) and the loop above never runs),
+        // leaving Z with no explicit prototype -- item is what every real
+        // position WOULD have been, so it is Z's prototype too, the same
+        // way the loop above would have set it (Blake McBride, Bugs28
+        // #68). Without this, Z's prototype defaulted to a bare untyped
+        // scalar (≡Z 1, Z←0⍴0) instead of ≡Z 2, Z←0⍴⊂⍬.
+        //
+        if (Z->is_empty())
+           new (&Z->get_wproto()) PointerCell(CLONE(item.get(), LOC).get(),
+                                              *Z);
         Z->check_value(LOC);
         return Token(TOK_APL_VALUE1, Z);
       }

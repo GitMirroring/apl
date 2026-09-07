@@ -267,3 +267,55 @@ DOMAIN ERROR+
       )MORE
 A⍕B : Bad value 12345 (integer part exceeds A specification)
 
+      ⍝ Bugs28 #46 regression: format by example printed the sign
+      ⍝ decorator ('¯' or '-') unconditionally for a picture with no
+      ⍝ explicit '1'/'2'/'3' float-digit, showing it even for a
+      ⍝ POSITIVE value (like any other purely decorative literal, e.g.
+      ⍝ '⊂'/'⊃') -- and, conversely, silently dropped the sign of a
+      ⍝ genuinely negative B when the picture had no conditional
+      ⍝ decorator anywhere to represent it at all. Fixed in
+      ⍝ Bif_F12_FORMAT.cc: a left/right decorator that IS the
+      ⍝ recognized negative-number indicator (⎕FC[6], default '¯') or
+      ⍝ a literal '-' now defaults to floating only-if-negative (as if
+      ⍝ '1' had been given) unless the picture already gave its own
+      ⍝ explicit digit; and formatting a negative B through a picture
+      ⍝ with no way at all to signal that is now DOMAIN ERROR, per
+      ⍝ APL2 LRM p.141 ("'5' alone does not allow display of negative
+      ⍝ values. Use 1 and 2 to control the display of signed numbers").
+      ⍝
+      '¯5.5'⍕1.5
+ 1.5
+
+      '-5.5'⍕1.5
+ 1.5
+
+      ⍝ control: a non-sign literal decorator was already correct
+      ⍝
+      '⊂5.5⊃'⍕1.5
+⊂1.5⊃
+
+      '55.55'⍕¯1.5
+DOMAIN ERROR+
+      '55.55'⍕¯1.5
+      ^       ^
+      )MORE
+A⍕B : B is negative, but A has no conditional ('1', '2', or '3') decorator to signal that (APL2 LRM p.141)
+
+      )SIC
+      '55.55'⍕¯12.5
+DOMAIN ERROR+
+      '55.55'⍕¯12.5
+      ^       ^
+      )MORE
+A⍕B : B is negative, but A has no conditional ('1', '2', or '3') decorator to signal that (APL2 LRM p.141)
+
+      )SIC
+
+      ⍝ control: the same pictures still show the sign for negative B
+      ⍝
+      '¯5.5'⍕¯1.5
+¯1.5
+
+      '-5.5'⍕¯1.5
+-1.5
+

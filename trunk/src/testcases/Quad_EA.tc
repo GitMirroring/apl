@@ -176,5 +176,40 @@ L1: Z←-1
 
       )ERASE G8
 
+      ⍝ Bugs28 #56 regression (Bugs27 #36 residual): ⎕EM after a
+      ⍝ failing ⎕EA showed the correct error NAME (row 1, e.g. DOMAIN
+      ⍝ ERROR) but 2 BLANK rows instead of the failed statement text
+      ⍝ and its carets -- ⎕ET (which only needs the numeric code) was
+      ⍝ already right. Root cause: the ⎕EA macro (Macro.def's
+      ⍝ Z__A_Quad_EA_B) forwards only ⎕EC's numeric ET (major/minor)
+      ⍝ to ⎕ES on the error path, never its RES (μ9) -- which
+      ⍝ Quad_EC::eoc() ALSO populates, even on the error branch, with
+      ⍝ the same 3-line ⎕EM-shaped message ⎕EM itself would show.
+      ⍝ Prefix::execute_EA_fallback() then reconstructed a bare,
+      ⍝ code-only Error from scratch, with no way to recover that
+      ⍝ text. Fixed by forwarding μ9 as a 6th ⎕ES payload element and
+      ⍝ having Prefix::handle_QUAD_ES_ERR() recover the failed-
+      ⍝ statement text and caret positions from it.
+      ⍝
+      '⎕EM' ⎕EA '1÷0'
+DOMAIN ERROR
+      1÷0   
+      ^ ^   
+
+      ⍝ control: ⎕ET was already correct
+      ⍝
+      '⎕ET' ⎕EA '1÷0'
+5 4
+
+      ⍝ same check, but at top level (A is just '1', then ⎕EM/⎕ET are
+      ⍝ queried in the same statement so the error is still current)
+      ⍝
+      '1' ⎕EA '1÷0' ⋄ ⎕EM ⋄ ⎕ET
+1
+DOMAIN ERROR
+      1÷0   
+      ^ ^   
+5 4
+
       ⍝ ==================================
 

@@ -426,6 +426,34 @@ NumericCell::bif_or_bitwise(Cell * Z, const Cell * A) const
 ErrorCode
 NumericCell::real_binomial(Cell * Z, const Cell * A) const
 {
+   // for a small non-negative integer K (A), (B over K) = ∏ᵢ(B-i) ÷ K!
+   // (i = 0 .. K-1) stays finite even when B is far too large for the
+   // general Γ(1+B)÷(Γ(1+A)×Γ(1+B-A)) formula below to compute at all
+   // -- Γ(1+B) alone already overflows once B is roughly ≥170, long
+   // before the true quotient does (Bugs28 #83: 5!1E20 wants
+   // 8.3333333333333E97, but Γ(1E20+1) is +∞). K ≤ 170 keeps K itself
+   // (and K!) within the range the general formula already handles
+   // correctly, so this is purely an alternate route for large B, not
+   // a behaviour change for small B.
+   //
+   if (A->is_near_int())
+      {
+        const APL_Float r_A = A->get_real_value();
+        if (r_A >= 0.0 && r_A <= 170.0)
+           {
+             const APL_Integer K = A->get_near_int();
+             const APL_Float r_B = get_real_value();
+             APL_Float z = 1.0;
+             loop(k, K)
+                {
+                  z *= (r_B - k);
+                  z /= APL_Float(k + 1);
+                  if (!isfinite(z))   return E_DOMAIN_ERROR;
+                }
+             return FloatCell::zF(Z, z);
+           }
+      }
+
 const APL_Float r_1_A    = 1.0 + A->get_real_value();
 const APL_Float r_1_B    = 1.0 +    get_real_value();
 const APL_Float r_1_B__A = r_1_B - A->get_real_value();
@@ -497,6 +525,20 @@ NumericCell::cpx_gcd(APL_Complex & z, APL_Complex a, APL_Complex b, double qct)
          if (abs(a) < 0.2)
             {
               z = b;
+              // Bugs28 #100(l) investigated: a Gaussian-integer GCD is
+              // only defined up to a unit factor (1, i, -1 or -i), and
+              // cpx_max_real() (below) looks like the obvious way to
+              // pick a canonical, positive-real-part associate here --
+              // but ZZZ0_Standard_09x.tc's own ISO-standard-sourced
+              // worked example (135J¯14 ∧ 155J34 → ¯805J1448, negative
+              // real part) shows the standard's own convention is NOT
+              // simply "positive real part": ∧ (LCM) reuses this same
+              // GCD, so normalising here silently rotates ∧'s result
+              // too, away from the standard's documented answer. Left
+              // unwired, same as the pre-existing commented-out line
+              // just below (apparently tried before, for the same
+              // reason).
+              //
 //            if (z.real() < 0)   z = -b;
               return E_NO_ERROR;
             }
@@ -565,6 +607,31 @@ NumericCell::flt_gcd(APL_Float & z, APL_Float a, APL_Float b, double qct)
    loop(iteration, MAX_GCD_ITERATIONS)
        {
          if (is_near_zero(a))   { z = b;   return E_NO_ERROR; }
+
+         // Bugs28 #43: plain Euclid on doubles, stopping only on an
+         // ABSOLUTE is_near_zero(a) above, ignores qct entirely --
+         // fmod(b,a) is the exact remainder of the two *doubles*, so
+         // e.g. fmod(1E30,1E10) is 1024 (the double 1E30 is not an
+         // exact multiple of the double 1E10; the true decimal 1E30
+         // is, but its nearest double is not), and the iteration kept
+         // right on going from there instead of recognizing that a
+         // (1E10) already divides b (1E30) closely enough.
+         //
+         // Check the quotient b÷a for a near-integer RELATIVE to its
+         // own (possibly huge) magnitude -- not integral_within()'s
+         // absolute-qct window, which is far too tight once the
+         // quotient itself reaches astronomical size (e.g. 1E20): a
+         // deviation of 1E¯7 is negligible relative to a quotient of
+         // 1E9, but nowhere near integral_within()'s ~1E¯13 absolute
+         // band. A near-integer quotient means b is (tolerantly) an
+         // exact multiple of a, so a is already the gcd.
+         //
+const APL_Float quotient = b / a;
+const APL_Float nearest = nearbyint(quotient);
+         if (nearest != 0.0 &&
+             fabs(quotient - nearest) < qct * fabs(nearest))
+            { z = a;   return E_NO_ERROR; }
+
          const APL_Float r = fmod(b, a);
          b = a;
          a = r;
@@ -576,8 +643,34 @@ NumericCell::flt_gcd(APL_Float & z, APL_Float a, APL_Float b, double qct)
 ErrorCode
 NumericCell::int_gcd(APL_Integer & z, APL_Integer a, APL_Integer b)
 {
-   if (uint64_t(a) == 0x8000000000000000ULL)   return E_DOMAIN_ERROR;
-   if (uint64_t(b) == 0x8000000000000000ULL)   return E_DOMAIN_ERROR;
+   // Bugs28 #100(n): FloatCell::gcd()'s abs() cannot negate INT64_MIN
+   // (UB / overflow in int64), so this used to reject it outright with
+   // DOMAIN ERROR -- unlike N∧0, N|3 or N⌈3, which handle the same N
+   // fine via unrelated code paths. Compute the magnitudes in uint64_t
+   // instead (well-defined, wrapping negation of INT64_MIN's bit
+   // pattern gives its correct magnitude 2^63) and run the exact
+   // Euclidean algorithm there -- unlike routing through the tolerant
+   // flt_gcd(), this stays exact even when the true remainder is tiny
+   // relative to operands of this magnitude (confirmed: flt_gcd(2^63, 3)
+   // wrongly gives 3, not 1, because its relative qct tolerance window
+   // is far wider than the true remainder at this scale).
+   //
+   if (uint64_t(a) == 0x8000000000000000ULL ||
+       uint64_t(b) == 0x8000000000000000ULL)
+      {
+        uint64_t x = a < 0 ? -uint64_t(a) : uint64_t(a);
+        uint64_t y = b < 0 ? -uint64_t(b) : uint64_t(b);
+        while (y)   { const uint64_t r = x % y;   x = y;   y = r; }
+
+        // x is the exact GCD magnitude. It only fails to fit in a
+        // (non-negative) APL_Integer when a and b are both INT64_MIN,
+        // whose GCD magnitude is 2^63 itself -- genuinely irrepresentable,
+        // same as the pre-existing DOMAIN ERROR for that corner case.
+        if (x > uint64_t(0x7FFFFFFFFFFFFFFFULL))   return E_DOMAIN_ERROR;
+        z = APL_Integer(x);
+        return E_NO_ERROR;
+      }
+
    z = FloatCell::gcd(a, b);
    return E_NO_ERROR;
 }

@@ -518,17 +518,6 @@ enum TimeScale
   SECONDS_PER_QUARTER =          SECONDS_PER_YEAR / 4,   ///<  7,884,000
 };
 //────────────────────────────────────────────────────────────────────────────
-/// possible properties of a Value.
-enum ValueFlags
-{
-  VF_NONE     = 0x0000,   ///< no flags
-  VF_complete = 0x0001,   ///< CHECK called            (bit 0)
-  VF_marked   = 0x0002,   ///< marked to detect stale  (bit 1)
-  VF_temp     = 0x0004,   ///< computed value           (bit 2)
-  VF_member   = 0x0008,   ///< used for member access   (bit 3)
-  VF_packed   = 0x0010,   ///< legacy: bool-packed archive format (read-only; never written by get_flags())
-};
-
 /// Ravel packing type stored in VF_Flags::ravel_type (16 bits, full enum value).
 /// RPT_CELLS (= 0) is the default "unpacked" sentinel; packed atoms encode their
 /// ordinal in the low byte and 1<<ordinal in the high byte (like enum NameClass).
@@ -578,8 +567,10 @@ static_assert(cfg_MAX_DEPTH_WANTED <= 254,
               "cfg_MAX_DEPTH_WANTED must be ≤ 254 (255 reserved as dirty sentinel)");
 
 /// @param out    output stream to write to
-/// @param flags  value flags bitmask to display
-extern ostream & print_flags(ostream & out, ValueFlags flags);
+/// @param flags  a Value's flags, flat-encoded the same way get_flags()
+///               packs them (bit 0 complete, bit 1 marked, bit 2 temp,
+///               bit 3 member) -- NOT a VF_Flags bitfield.
+extern ostream & print_flags(ostream & out, uint32_t flags);
 
 //────────────────────────────────────────────────────────────────────────────
 /// events for APL values

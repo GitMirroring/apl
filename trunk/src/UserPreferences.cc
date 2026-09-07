@@ -929,6 +929,21 @@ UserPreferences::parse_args_2(bool logit)
                    exit(a);
                  }
               tcp_port = atoi(val);
+
+              // Bugs28 #100(v): an out-of-range port (0, negative, or
+              // > 65535) used to be accepted silently and truncated to
+              // 16 bits by htons() in main.cc, so e.g. --tcp_port 99999
+              // actually listened on 99999 mod 65536 = 34463 -- a
+              // confusing, unannounced substitution instead of a clear
+              // rejection.
+              //
+              if (tcp_port < 1 || tcp_port > 65535)
+                 {
+                   CERR << "--tcp_port: invalid port number " << tcp_port
+                        << " (expecting 1-65535)" << endl;
+                   exit(a);
+                 }
+
               user_do_svars = system_do_svars = false;   // aka. --noSV
               raw_cin = true;                            // aka. --rawCIN
          //   do_not_echo = true;                        // aka. --noCIN

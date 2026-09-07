@@ -71,6 +71,27 @@
       ∪ 0 1 1 0 1 0 0 1 1 0 0 1
 0 1
 
+      ⍝ regression (Blake McBride, Bugs28 #65, 2026-08-11): A∪B with an
+      ⍝ empty result took its prototype from B instead of A -- mirror
+      ⍝ image of Bugs27 #31 (already fixed for ∩): eval_AB's Z, built as
+      ⍝ A catenated with B before being passed through eval_B (unique),
+      ⍝ used Z->set_default(B,LOC) instead of A, even though A∪B ←→
+      ⍝ A,(B∼A) means A leads and should determine an empty result's type.
+      ⍝
+      ⎕UCS ↑''∪⍬
+32
+
+      ⍝ control: ∩ already got A's prototype (Bugs27 #31)
+      ⍝
+      ⎕UCS ↑''∩⍬
+32
+
+      ⍴↑(0⍴⊂'ab')∪⍬
+2
+
+      ⍴↑(0⍴⊂'ab')∩⍬
+2
+
       ⍝ ==================================
 
 

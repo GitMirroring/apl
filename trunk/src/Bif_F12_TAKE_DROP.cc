@@ -359,12 +359,12 @@ Value_P Z(shape_Z, LOC);
 Token
 Bif_F12_DROP::eval_AXB(cValue_R A, cValue_R X, cValue_R B) const
 {
-   if (X.element_count() == 0)   // no axes
-      {
-        Token result(TOK_APL_VALUE1, CLONE(&B, LOC));
-        return result;
-      }
-
+   // Bugs28 #67: A must be type- and length-checked against X even when X
+   // is empty -- the "no axes" shortcut used to run first, so e.g.
+   // 'abc'↓[⍬]M (a non-scalar-or-vector, wrongly typed A) or 2↓[⍬]M (⍴A ≠
+   // ⍴X) silently returned B unchanged instead of failing, unlike
+   // Bif_F12_TAKE::eval_AXB just above, which checks first.
+   //
    ArgCheck::require_scalar_or_vector("A↓[X]B", "A", A);
    ArgCheck::require_scalar_or_vector("A↓[X]B", "X", X);
 
@@ -378,6 +378,12 @@ const ShapeItem len_A = A.element_count();
         more << ", ⍴X is ";
         ArgCheck::append_shape(more, X);
         LENGTH_ERROR;
+      }
+
+   if (len_X == 0)   // no axes
+      {
+        Token result(TOK_APL_VALUE1, CLONE(&B, LOC));
+        return result;
       }
 
    // to_bitmap() also (redundantly but harmlessly) re-checks X's rank

@@ -104,6 +104,14 @@ public:
    /// @param loc caller location for diagnostics
    void syntax_error(const char * loc);
 
+   /// release any DerivedFunction (e.g. from f⍨, f¨, f⍤y, f⍣N) still
+   /// sitting in the FIFO, so a statement being abandoned by an error
+   /// does not leak its DerivedFunctionCache slot (and whatever Value_P
+   /// it owns, e.g. POWER's literal N). Shared by syntax_error() and any
+   /// other raw throw_apl_error() site in this file that abandons the
+   /// statement without going through syntax_error() itself.
+   void destroy_derived_in_FIFO();
+
    /// clear the mark flag of all values in \b this Prefix
    void unmark_all_values() const;
 
@@ -270,6 +278,25 @@ public:
           Assert1(put >= prefix_len);
           const int ZB = put - prefix_len;             // positions of B and Z
           content[ZB].get_token().copy(result, LOC);   // replace B with Z
+
+          // release any APL value(s) held by the discarded tokens above
+          // ZB (e.g. A and F in "A F B") -- put is about to drop below
+          // them, and clean_up()/reset() (bounded by the *current* put)
+          // will then never see them again. Usually harmless (the same
+          // value normally stays reachable some other way too), but if
+          // one of them was the sole reference to a value (e.g. a bare
+          // temporary computed earlier in the same statement) and the
+          // statement is then abandoned by an exception before this
+          // Prefix's storage is reused for a later reduction, that
+          // value leaks -- unreachable, yet never released (Bugs28 #12).
+          //
+          for (int s = ZB + 1; s < put; ++s)
+              {
+                Token & discarded = content[s].get_token();
+                if (discarded.get_Class() == TC_VALUE)
+                   discarded.release_apl_val(LOC);
+              }
+
           content[ZB].set_PC(at(0).get_PC());          // PC(Z) = PC(A)
           put -= prefix_len - 1;                       // discard A and +
         }
@@ -414,6 +441,21 @@ protected:
    /// @param tl token with location for the symbol to push
    inline bool push_Symbol(Token_loc & tl);
 
+   /// Bugs28 #55: push_Symbol() calls this instead of pushing \b symbol
+   /// (the first/rightmost name of a value-member chain "A.B.C...symbol")
+   /// as a bare TC_SYMBOL, whenever something with strong-enough binding
+   /// priority (currently: a pending bracket index) is already on the
+   /// stack and would otherwise reduce the bare symbol on its own before
+   /// the chain's '.' ever gets a chance to combine it into a proper
+   /// member reference. Resolves the whole chain right here (mirroring
+   /// Prefix::reduce_D_V__()'s member-reference branch, just triggered
+   /// earlier) and pushes a plain value or an lvalue-capable cellref
+   /// array in its place.
+   /// @param tl token with location for the symbol that would have been
+   ///        pushed
+   /// @param symbol the same symbol, already extracted from tl
+   void push_member_chain(Token_loc & tl, Symbol * symbol);
+
    /// return true if the left (back-)slash in M M means F M.
    /// @param PC program counter of the left slash/backslash token
    inline bool MM_is_FM(Function_PC PC);
@@ -450,9 +492,23 @@ protected:
    /// @param ec_on_failure why B failed
    /// @param why short, human-readable reason for )MORE (e.g. "B failed
    ///        to execute")
+   /// @param b_line2 B's own failed-statement text (⎕EM[2;]), if
+   ///        available (from ⎕EC's own error-message construction,
+   ///        forwarded through the ⎕EA macro) -- set on the
+   ///        constructed Error alongside b_lcaret/b_rcaret instead of
+   ///        leaving it (and therefore ⎕EM[2;]/[3;]) blank. 0 when
+   ///        unavailable (e.g. the →N out-of-range fallback, which was
+   ///        never a caught runtime error to begin with).
+   /// @param b_lcaret / @param b_rcaret B's own caret column positions
+   ///        (⎕EM[3;]), meaningful only when b_line2 is non-null.
+   ///        -1/-1 for no carets (matching Error::set_left_caret()'s
+   ///        own "-1 means none" convention).
+   /// See Bugs28 #56 (Bugs27 #36 residual).
    static void execute_EA_fallback(UCS_string statement_A,
                                    ErrorCode ec_on_failure,
-                                   const char * why);
+                                   const char * why,
+                                   const UCS_string * b_line2 = 0,
+                                   int b_lcaret = -1, int b_rcaret = -1);
 
    /// the StateIndicator that contains this parser
    StateIndicator & si;

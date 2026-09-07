@@ -45,6 +45,25 @@ const ShapeItem ec_A = A.element_count();
         LENGTH_ERROR;
       }
 
+   // Bugs28 #100(r): A⍸B used to order genuinely complex numbers
+   // silently via Cell::compare()'s arbitrary real-then-imaginary
+   // fallback (e.g. 1J1 2⍸1 gave 0), unlike ⍋/⍒ (Bif_F12_SORT::sort()),
+   // which already rejects exactly this with the same can_be_compared()
+   // check used here.
+   //
+   if (!A.can_be_compared())
+      {
+        MORE_ERROR() << "A⍸B: A contains items that cannot be compared"
+                        " with each other";
+        DOMAIN_ERROR;
+      }
+   if (!B.can_be_compared())
+      {
+        MORE_ERROR() << "A⍸B: B contains items that cannot be compared"
+                        " with each other";
+        DOMAIN_ERROR;
+      }
+
    // from here on nothing can fail.
    //
 const ShapeItem ec_B = B.element_count();
@@ -239,7 +258,24 @@ const uRank rank = B.get_rank();
              }
        }
 
-   Z->set_proto_Int();
+   if (rank > 1 && Z->is_empty())
+      {
+        // Z's prototype item must be a pointer to a rank-item zero vector
+        // (Blake McBride, Bugs28 #64), matching a real item (see the
+        // "nested shape" branch above) instead of Z->set_proto_Int()'s
+        // plain IntCell 0 -- e.g. Z←⍸2 2⍴0 must have ≡Z 2 and ⍴↑Z (2 2),
+        // not ≡Z 1 and ⍴↑Z ⍬.
+        //
+        Value_P ZZ(rank, LOC);
+        loop(r, rank)   ZZ->next_ravel_Int(0);
+        ZZ->set_proto_Int();
+        ZZ->check_value(LOC);
+        new (&Z->get_wproto()) PointerCell(ZZ.get(), *Z);
+      }
+   else
+      {
+        Z->set_proto_Int();
+      }
    Z->check_value(LOC);
    return Token(TOK_APL_VALUE1, Z);
 }

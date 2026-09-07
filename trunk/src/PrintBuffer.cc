@@ -671,7 +671,17 @@ PrintBuffer::pb_empty(const cValue & value, PrintContext pctx,
       }
 
 const Shape sh = value.get_shape().without_last_axis();
-   if (sh.get_volume() <= 1)   // empty vector
+
+   // Test the VALUE's own element count, not sh's volume: sh is the
+   // shape with the LAST axis dropped, so for e.g. 1E9 1E9 0⍴0 (a huge
+   // leading-axes product, but 0 elements overall because the trailing
+   // axis is 0) sh.get_volume() is 1E18, not <=1 -- the empty-array
+   // fast path below was skipped, and `lines = sh.get_volume()` a few
+   // lines down then throws std::length_error out of buffer.resize(),
+   // an exception Executable.cc's outermost catch(...) turns into a
+   // silent exit(0) instead of ever displaying the (empty!) array.
+   //
+   if (value.element_count() == 0)
       {
         add_outer_frame(outer_style);
         return;   // 0 rows

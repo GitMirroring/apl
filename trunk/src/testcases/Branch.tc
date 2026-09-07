@@ -268,6 +268,31 @@ SYNTAX ERROR+
       2→1
       ^ ^
 
+      ⍝ Bugs28 #13 regression: a branch introduced into a lambda at run
+      ⍝ time by ⍎ (impossible to write literally -- {→0} is rejected at
+      ⍝ fix time already) used to end the whole session -- either an
+      ⍝ internal "should never be called" reduce/FIXME, or a dangling
+      ⍝ TOK_SI_PUSHED left in the caller once the lambda's own )SI level
+      ⍝ was popped without ever supplying it a result. Both are now a
+      ⍝ clean completion with no value -- ⎕EC's own stable error-code
+      ⍝ tuple, not the crash-prone raw statement -- exactly like the
+      ⍝ ∇-function equivalent below, which already worked.
+      ⍝
+      ⎕EC '{⍎''→0''}1'
+ 3  0 0    
+
+      ⎕EC '{⍎''→2''}1'
+ 3  0 0    
+
+      ⎕FX 'Z←F B' 'Z←⍎''→0'''
+F
+
+      F 1
+
+      ⍝ the )SI stays usable afterward
+      ⍝
+      )ERASE F
+
       )SIC
       )ERASE FOO
       )ERASE N

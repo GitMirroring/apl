@@ -56,7 +56,19 @@
 
 UCS_string Quad_QUOTE::buffer;
 
-ShapeItem Quad_SYL::si_depth_limit = 0;
+// Bugs28 #6: a shipped default of 0 (no limit) means runaway recursion
+// (e.g. L←{L ⍵} ⋄ L 1) only stops via std::bad_alloc once memory is
+// already exhausted (around 1.2 million SI frames observed) -- and the
+// bad_alloc recovery path (Workspace::immediate_execution()) itself
+// needs to allocate to report WS FULL, so with that many frames still
+// held it typically throws bad_alloc again, ending in std::terminate
+// or a corrupted heap rather than a clean WS FULL. A generous but
+// bounded default lets the already-reliable LIMIT_ERROR_SIDEPTH check
+// in Workspace::push_SI() stop the recursion at a normal (non-OOM)
+// depth instead, well before memory pressure is even a concern for any
+// realistic recursive program; users needing deeper recursion can still
+// raise or clear ⎕SYL[1;2] explicitly.
+ShapeItem Quad_SYL::si_depth_limit = 100000;
 ShapeItem Quad_SYL::value_count_limit = 0;
 ShapeItem Quad_SYL::ravel_count_limit = 0;
 ShapeItem Quad_SYL::print_length_limit = 0;
@@ -378,6 +390,10 @@ Value_P new_val(ucs, LOC);
 void
 Quad_FC::assign_indexed(const cValue * X, Value_P B)
 {
+   // X is 0 for the elided-index form ⎕FC[]←B, which is a whole-value
+   // assignment (same as ⎕FC←B), not an indexed one.
+   if (X == 0)   { assign(B, true, LOC);   return; }
+
    // we don't do scalar extension but require indices to match the value.
    //
 ShapeItem ec = X->element_count();
@@ -397,8 +413,12 @@ Unicode fc[6];
    loop(e, ec)
       {
         const APL_Integer idx = X->get_near_int(e) - qio;
-        if (idx < 0)   continue;
-        if (idx > 5)   continue;
+        // an out-of-range index used to be silently ignored here, unlike
+        // a REFERENCE to the same index (⎕FC[7], say), which already
+        // correctly gives INDEX ERROR -- an assignment must be at least
+        // as strict as a read (Blake McBride, Bugs28 #73).
+        //
+        if (idx < 0 || idx > 5)   INDEX_ERROR;
 
         fc[idx] = B->get_char_value(e);
       }
@@ -537,6 +557,42 @@ Quad_LX::assign(Value_P B, bool clone, const char * loc)
 
    Symbol::assign(B, clone, LOC);
 }
+//────────────────────────────────────────────────────────────────────────────
+void
+Quad_LX::assign_indexed(const cValue * X, Value_P B)
+{
+   // X is 0 for the elided-index form ⎕LX[]←B, which is a whole-value
+   // assignment (same as ⎕LX←B), not an indexed one.
+   if (X == 0)   { assign(B, true, LOC);   return; }
+
+   if (!B->is_char_string())   DOMAIN_ERROR;
+
+   // we don't do scalar extension but require indices to match the value.
+   //
+const ShapeItem ec = X->element_count();
+   if (ec != B->element_count())   INDEX_ERROR;
+
+const APL_Integer qio = Workspace::get_IO();
+Value_P old = get_apl_value();
+const ShapeItem len = old->element_count();
+UCS_string lx(*old);
+
+   loop(e, ec)
+      {
+        const APL_Integer idx = X->get_near_int(e) - qio;
+        // Bugs28 #100(a): ⎕LX[idx]←B was silently ignored (empty inline
+        // body); an out-of-range idx must be rejected just like it is
+        // for a plain reference (⎕LX[idx]), matching the ⎕FC/⎕PS/⎕SYL
+        // indexed-assignment fixes above (Bugs28 #73 et al).
+        //
+        if (idx < 0 || idx >= len)   INDEX_ERROR;
+
+        lx[idx] = B->get_char_value(e);
+      }
+
+Value_P new_val(lx, LOC);
+   Symbol::assign(new_val, false, LOC);
+}
 //════════════════════════════════════════════════════════════════════════════
 Quad_PP::Quad_PP()
    : SystemVariable(ID_Quad_PP)
@@ -650,6 +706,9 @@ Value_P B2(2, LOC);
 void
 Quad_PS::assign_indexed(const cValue * X, Value_P B)
 {
+   // X is 0 for the elided-index form ⎕PS[]←B: whole-value assignment.
+   if (X == 0)   { assign(B, true, LOC);   return; }
+
    if (!(X->is_int_scalar() || X->is_int_vector()))   INDEX_ERROR;
    if (!(B->is_int_scalar() || B->is_int_vector()))   DOMAIN_ERROR;
    if (X->element_count() != B->element_count())      LENGTH_ERROR;
@@ -944,6 +1003,9 @@ Quad_SYL::assign(Value_P B, bool clone, const char * loc)
 void
 Quad_SYL::assign_indexed(const cValue * X, Value_P B)
 {
+   // X is 0 for the elided-index form ⎕SYL[]←B: whole-value assignment.
+   if (X == 0)   { assign(B, true, LOC);   return; }
+
    // try to assign ⎕SYL[X;2]
    //
    if (!(X->is_int_scalar() || X->is_int_vector()))   INDEX_ERROR;
@@ -1179,15 +1241,28 @@ Quad_TZ::assign(Value_P B, bool clone, const char * loc)
 {
    if (!B->is_scalar())   RANK_ERROR;
 
-   // ignore values outside [-12 ... 14], DOMAIN ERROR for bad types.
+   // Bugs28 #100(k): an out-of-range offset used to be silently
+   // ignored (⎕TZ←¯13 / ⎕TZ←1E20 left ⎕TZ unchanged with no
+   // diagnostic at all) -- unlike a bad TYPE, which already correctly
+   // falls through to DOMAIN_ERROR below. No real-world timezone lies
+   // outside [-12 ... 14] hours (UTC-12 to Kiribati's UTC+14), so
+   // there is no sensible value to clamp to the way ⎕PP/⎕PW clamp an
+   // over-large request to the system's actual capacity; reject
+   // instead, matching how every other out-of-range assignment in
+   // this file is either clamped (with a real fallback value) or
+   // rejected, never silently swallowed.
 
 Cell cache;
 const Cell & cell = B->get_cfirst(cache);
    if (cell.is_integer_cell())
       {
         const APL_Integer ival = cell.get_near_int();
-        if (ival < -12)   return;
-        if (ival > 14)    return;
+        if (ival < -12 || ival > 14)
+           {
+             MORE_ERROR() << "⎕TZ←" << ival << ": expecting -12 ≤ ⎕TZ ≤ 14"
+                             " (hours UTC offset)";
+             DOMAIN_ERROR;
+           }
         offset_seconds = ival*3600;
         Symbol::assign(B, clone, LOC);
         return;
@@ -1196,8 +1271,12 @@ const Cell & cell = B->get_cfirst(cache);
    if (cell.is_float_cell())
       {
         const double hours = cell.get_real_value();
-        if (hours < -12.1)   return;
-        if (hours > 14.1)    return;
+        if (hours < -12.1 || hours > 14.1)
+           {
+             MORE_ERROR() << "⎕TZ←" << hours << ": expecting -12 ≤ ⎕TZ ≤ 14"
+                             " (hours UTC offset)";
+             DOMAIN_ERROR;
+           }
         offset_seconds = int(0.5 + hours*3600);
         Symbol::assign(B, clone, LOC);
         return;

@@ -386,12 +386,59 @@ Value::assign_cellrefs(Value_P new_value)
         return;
       }
 
-const ShapeItem new_value_count = new_value->nz_element_count();
+   // (A⊃B)←new_value where B[...A...] was already nested: replace the
+   // whole item wholesale, ignoring the old item's own shape (Blake
+   // McBride, Bugs28 #30) -- see set_lval_pick_slot(). Like the
+   // lval_whole_symbol marker above, this only survives an unbroken chain
+   // straight from Bif_F12_PICK::pick() through to this assignment; any
+   // outer selector narrowing this value (e.g. (1 0/A⊃B)←new_value) built
+   // a fresh Value for its own narrowed result and never copied the
+   // marker, so the ordinary per-cell path below still applies there.
+   //
+   if (Cell * slot = get_lval_pick_slot())
+      {
+        Value & owner = *get_lval_pick_owner();
+        owner.depth_update_for_overwrite(slot - owner.ravel.cells,
+                                new_value->is_simple_scalar() ? -1 : 0);
+        slot->release(LOC);
+        // init_from_value() enclose-wraps new_value in a fresh PointerCell
+        // unless it is itself a simple scalar, in which case it places a
+        // plain copy of that scalar's cell instead (⊂ of a simple scalar
+        // is a no-op) -- a bare PointerCell(new_value, owner) here would
+        // fail Assert(!sub_val->is_simple_scalar()) for e.g. (2⊃A)←7.
+        //
+        slot->init_from_value(new_value.get(), owner, LOC);
+        return;
+      }
+
+const ShapeItem new_value_count = new_value->element_count();
 const ShapeItem dest_count  = element_count();
    if (dest_count == 0)   return;   // nothing to assign
 
-const int dest_incr = (dest_count == 1)                    ? 0 : 1;
-const int src_incr  = (new_value->nz_element_count() == 1) ? 0 : 1;
+   // nz_element_count() (used here previously) is "at least 1, for the
+   // prototype" -- a real, empty new_value made it look exactly like a
+   // legitimate 1-element (scalar-extendable) one below, silently
+   // zero-filling every selected cell with the prototype instead of
+   // raising the LENGTH ERROR that plain indexed assignment (A[...]←⍬)
+   // already correctly gives for the same shape mismatch (Bugs28 #31).
+   //
+   // Only when dest_count > 1: a dest_count of exactly 1 is ambiguous
+   // between "select exactly one cell/item" (⊃, a 1-element ↑/⌷/...)
+   // and "replace this whole slot wholesale" (this same assign_cellrefs()
+   // is also how an ordinary, non-selective "V←B" resolves V as an
+   // lvalue -- e.g. a lambda's own synthesized "λ←B" -- and B←⍬/0 0⍴B
+   // there must always succeed, matching the report's own third example,
+   // (3⊃N)←⍬, which is shown without a "want LENGTH ERROR" annotation).
+   //
+   if (new_value_count == 0 && dest_count > 1)
+      {
+        MORE_ERROR() << "(f Z)←B: B is empty; expecting ⍴,B to be 1 or "
+                     << dest_count << " (the number of selected items)";
+        LENGTH_ERROR;
+      }
+
+const int dest_incr = (dest_count == 1)       ? 0 : 1;
+const int src_incr  = (new_value_count == 1)  ? 0 : 1;
 
    if (src_incr  &&   // this is not a acalar or 1-element value, and
        dest_incr &&   // new_value  is not a acalar or 1-element value, and
@@ -793,6 +840,17 @@ Value * member_owner = 0;
 Cell * data = get_member(members, member_owner, false);
    Assert(member_owner);
    Assert(member_owner == this);
+
+   // check before releasing/overwriting data: PointerCell's own
+   // constructor does the equivalent check internally, but by then
+   // data has already been release()'d below -- if the constructor
+   // then throws (e.g. LIMIT_ERROR_NESTING), data is left released but
+   // never reconstructed, a half-dead Cell that crashes the next code
+   // to walk this value's ravel (its own destructor included). See
+   // Bugs28 #9.
+   //
+   PointerCell::check_nesting_depth(member_value);
+
    // get_member() can return an EXISTING (already-populated) member's
    // cell, not just an unused slot -- placement-new over it without
    // releasing first leaked the old sub-tree's reference (never

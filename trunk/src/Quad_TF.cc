@@ -255,6 +255,19 @@ void
 Quad_TF::tf2_fun_ucs(UCS_string & ucs, const UCS_string & fun_name,
                     const Function & fun)
 {
+   // Bugs28 #92: none of ⎕TF's function paths tested the lock bit
+   // (get_exec_properties()[0]), so 2⎕TF (hence )OUT/)DUMP) disclosed a
+   // locked function's body in plain text -- ⎕FX's own DEFN_ERROR on a
+   // locked function (once #92's other fix closes that hole) would be
+   // pointless if ⎕TF just handed the body back anyway.
+   //
+   if (fun.get_exec_properties()[0])
+      {
+        MORE_ERROR() << "⎕TF: '" << fun_name << "' is locked; its "
+           "definition cannot be disclosed.";
+        DOMAIN_ERROR;
+      }
+
 const UCS_string text = fun.canonical(false);
 
    if (fun.is_native())
@@ -942,6 +955,34 @@ const ShapeItem ec = val->element_count();
 Value_P
 Quad_TF::tf1(const UCS_string & fun_name, const Function & fun)
 {
+   if (fun.is_lambda())
+      {
+        // same rationale as tf2_fun_ucs() (Bugs27 #52): 1⎕TF wrote out
+        // canonical() of the lambda under its own header (λ←λ1 ⍵, say)
+        // and, on the way back in, "fixed" that text under the header's
+        // own name -- redefining λ1 (the lambda's synthetic internal
+        // name) instead of the variable the caller assigned T to,
+        // leaving the original name a VALUE ERROR. Refuse outright, for
+        // the same reason 2⎕TF already does.
+        //
+        MORE_ERROR() << "⎕TF: '" << fun_name << "' is a lambda "
+           "(dfn); lambdas cannot be written to a transfer-format (.atf) "
+           "file or produced by ⎕TF, since other APL systems (and GNU "
+           "APL's own transfer-format reader) have no way to represent "
+           "them. Use ⎕FX-style named functions for anything that "
+           "needs to survive )OUT/)IN or ⎕TF.";
+        DOMAIN_ERROR;
+      }
+
+   // Bugs28 #92: see tf2_fun_ucs()'s identical check.
+   //
+   if (fun.get_exec_properties()[0])
+      {
+        MORE_ERROR() << "⎕TF: '" << fun_name << "' is locked; its "
+           "definition cannot be disclosed.";
+        DOMAIN_ERROR;
+      }
+
 const UCS_string text = fun.canonical(false);
 UCS_string_vector lines;
 const size_t max_len = text.to_vector(lines);

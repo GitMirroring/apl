@@ -274,7 +274,9 @@ const ShapeItem ec = Z->element_count();
         else if (tag == TOK_REAL)     Z->next_ravel_Float(tok.get_flt_val());
         else if (tag == TOK_COMPLEX)  Z->next_ravel_Complex(tok.get_cpx_real(),
                                                             tok.get_cpx_imag());
-        else FIXME;
+        else return;   // e.g. a name or string token: malformed record,
+                        // reject it the same way the other malformed
+                        // records in this file already are (above).
       }
    Z->check_value(LOC);
 

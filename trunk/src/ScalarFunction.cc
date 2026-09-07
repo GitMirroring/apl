@@ -835,7 +835,13 @@ Value_P Z(shape_Z, LOC);
 
    if (Z->is_empty())
       {
-        FI0.init_other(&Z->get_wproto(), *Z, LOC);
+        // Bugs28 #36: an empty array's prototype must be its *type*
+        // (0 or ' '), not the reduction's identity element -- using
+        // FI0 (e.g. 1 for ×/, ¯MAX_DOUBLE for ⌈/) as the prototype
+        // made it visible through ≡, 2 ⎕TF, )SAVE/)DUMP and other
+        // prototype-inspecting paths.
+        //
+        Z->set_default(B, LOC);
       }
    else
       {

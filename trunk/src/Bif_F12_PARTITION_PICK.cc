@@ -38,9 +38,26 @@ Bif_F12_PARTITION::do_eval_B(cValue_R B)
 {
 Value_P Z(LOC);   // Z ← ⊂B is always a scalar
 
-   if (B.is_simple_scalar())   // B is not nested: copy ↑B
+   // Bugs28 #100(s): B is not "simple" (per is_simple_scalar()) when its
+   // one cell is an LvalCell -- deliberately, since an LvalCell is not a
+   // plain data cell. But that also meant a selective specification
+   // like (⊂A)←1 2 3, where B here is A resolved to its own lvalue (a
+   // scalar LvalCell pointing back at A), fell into the "nested: clone
+   // and copy" branch below, which clones the pointed-to VALUE and
+   // discards the live reference -- so Z's own cell became a plain
+   // PointerCell, not an LvalCell, and the later selective-assignment
+   // code (Value.cc's is_scalar() branch, which requires the target
+   // cell to itself be an lvalue) had nothing to write through and
+   // rejected it. Enclosing a scalar is defined to be a no-op (⊂ of a
+   // scalar returns that scalar unchanged) regardless of whether that
+   // scalar happens to be an ordinary value or a live lvalue reference,
+   // so copy the cell itself (preserving its lvalue-ness, the same way
+   // the "simple" case already does) instead of cloning-and-wrapping.
+   //
+Cell cache;
+const bool is_lval_scalar = B.is_scalar() && B.get_cscalar(cache).is_lval_cell();
+   if (B.is_simple_scalar() || is_lval_scalar)   // B is not nested: copy ↑B
       {
-        Cell cache;
         Z->next_ravel_Cell(B.get_cscalar(cache));
       }
    else                         // B is nested: clone and copy
@@ -104,9 +121,27 @@ AxesBitmap axes_X = 0;   // axes in axes_X with ⎕IO←0
 Value_P Z(shape_Z, LOC);
    if (Z->is_empty())
       {
-         Z->set_default(*B.get(), LOC);
-         Z->check_value(LOC);
-         return Z;
+        // Z's prototype item must have shape item_shape (Blake McBride,
+        // Bugs28 #62), not a simple prototype cell copied from B: with
+        // e.g. Z←⊂[2]0 3⍴0, item_shape is 3 (non-empty) even though Z
+        // itself (shape_Z 0) is empty, so ≡Z must be 2 and ⍴↑Z must be 3.
+        //
+        Value_P vZ(item_shape, LOC);
+        if (item_shape.is_empty())
+           {
+             vZ->set_default(*B, LOC);
+           }
+        else
+           {
+             Cell cache;
+             const Cell & B_proto = B->get_cproto(cache);
+             loop(i, item_shape.get_volume())
+                 vZ->next_ravel_Proto(B_proto);
+           }
+        vZ->check_value(LOC);
+        new (&Z->get_wproto()) PointerCell(vZ.get(), *Z);
+        Z->check_value(LOC);
+        return Z;
       }
 
    for (ArrayIterator it_Z(shape_Z); it_Z.has_more(); ++it_Z)
@@ -447,6 +482,22 @@ Value_P cB = disclose(B, true);   // cB ← ⊃ B
 const AxesBitmap axes_X = X.to_bitmap("⊃[X]B", cB->get_rank());
 const Shape sh_X = Value::to_shape(&X);
 
+   // ISO 13751 / APL2 (Disclose with axis): the number of items in X must
+   // equal the rank of the items of B (Blake McBride, Bugs28 #63). Without
+   // this check, to_bitmap() above only rejects an axis that is out of
+   // range for cB (B's own rank plus the items' rank), so e.g. too few or
+   // too many axes in X -- as long as they are themselves in that wider
+   // range -- silently picked the wrong axes of cB instead of failing.
+   //
+const Shape item_shape = compute_item_shape(B, true);
+   if (sh_X.get_rank() != item_shape.get_rank())
+      {
+        MORE_ERROR() << "⊃[X]B: ⍴,X (" << sh_X.get_rank()
+                     << ") does not match the rank of the items of B ("
+                     << item_shape.get_rank() << ")";
+        AXIS_ERROR;
+      }
+
    /* ⍴Z is the axes of B that are not in X, followed by those which are.
       That is, shape_Z is a permutation of ⍳⍴⍴B defined by X.
 
@@ -624,27 +675,44 @@ const Cell & cB = B.get_cravel(offset, cache);
         Cell * target = cB.get_lval_value();
         Assert(target);
 
-#if 1
-
-/* if the target is nested, then GNU APL used to assign B to the items in
-   the target (possibly scalar-extending or filling the value B as to match
-   the shape of B. However, neither IBM APL2 nor Dyalog do that and hence,
-   being overruled by the majority, we follow suit.
-
-   See bug-apl@gnu.org, 3/4/2023 (Mr. Sunday).
- */
         if (target->is_pointer_cell())
            {
-             // cB was created by get_cellrefs() which is flat (non-recursive).
-             // That means that the required conversion to a left-side
-             // PointerCell (which does not exist) was deferred until this
-             // point in time and needs to be done now.
-             //
+             /* (A⊃B)←C must REPLACE the whole (already-nested) item with
+                C, not assign into the old item's own cells -- the shape
+                of the OLD item must not constrain the new value C at all
+                (neither IBM APL2 nor Dyalog assign into a nested target,
+                per the LRM's own Pick example; Blake McBride, Bugs28
+                #30). But (SEL A⊃B)←C -- Pick composed with an OUTER
+                selector, e.g. (1 0/2⊃V)←C -- needs cB's cellrefs at the
+                OLD item's own shape so that outer selector can narrow
+                them in the ordinary way; whether this A⊃B is that outer
+                selector's own target (needs the drill-down) or is itself
+                the outermost, final target (needs the wholesale replace)
+                is not something pick() can tell from A and B alone -- it
+                depends on what the CALLER does with the value returned
+                here, which pick() cannot see.
+                So: always return the drill-down (subrefs, below), but
+                also mark it (set_lval_pick_slot()) as being pick()'s own
+                direct, unbroken selection of *target -- exactly like
+                Symbol::resolve_lv()'s lval_whole_symbol marker, an outer
+                selector that narrows subrefs into its own fresh Value
+                (e.g. compress selecting a subset of rows) never copies
+                this marker, so it only survives when nothing narrows
+                subrefs before Value::assign_cellrefs() sees it -- which
+                is exactly when the wholesale replace is correct.
+                //
+                // cB was created by get_cellrefs() which is flat (non-
+                // recursive). That means that the required conversion to
+                // a left-side PointerCell (which does not exist) was
+                // deferred until this point in time and needs to be done
+                // now.
+              */
              Value_P subval = target->get_pointer_value();
              Value_P subrefs = subval->get_cellrefs(LOC);
+             Value * cell_owner = B.get_lval_cellowner();
+             subrefs->set_lval_pick_slot(target, cell_owner);
              return subrefs;
            }
-#endif
 
         Value_P Z(LOC);
         Value * cell_owner = B.get_lval_cellowner();

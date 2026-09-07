@@ -574,6 +574,14 @@ APL_Complex weight(1.0, 0.0);
         weight *= VA.get_complex_value(idxA);
       }
 
+   // Bugs28 #42: a large-radix decode (e.g. 1E300⊥1 1 1, whose Horner
+   // accumulation multiplies by 1E300 repeatedly) can overflow to inf
+   // -- unlike every scalar-function _ff/_cc helper, nothing here
+   // checked isfinite(), so the non-finite value silently entered the
+   // workspace instead of raising the same DOMAIN ERROR that e.g.
+   // 1E300×1E300 already gets.
+   //
+   if (!isfinite(accu.real()) || !isfinite(accu.imag()))   DOMAIN_ERROR;
    Z.next_ravel_Number(accu);
 }
 //────────────────────────────────────────────────────────────────────────────
@@ -596,27 +604,43 @@ const ShapeItem len = dec_A ? len_A : len_B;
    idxB += dec_B*len_B;    // let idxB point past the lowest weight item in B
 
 APL_Integer value = 0;
-APL_Float value_f = 0.0;
-
 APL_Integer weight = 1;
-APL_Float weight_f = 1.0;
 
+   // exact overflow detection (Bugs28 #82): this used to track a
+   // parallel double-precision shadow (value_f/weight_f) purely to
+   // decide, via the conservative LARGE_INT/SMALL_INT margin, whether
+   // the exact int64_t computation above it could be trusted -- so a
+   // decode landing in the top ~0.4% of the int64_t range (e.g.
+   // 2⊥63⍴1, i.e. 2^63-1) was declared "overflowed" and recomputed in
+   // float even though the exact result fit perfectly well.
+   // __builtin_{mul,add}_overflow report overflow of the exact int64_t
+   // computation directly, so the float shadow is no longer needed.
+   //
    loop(l, len)
       {
         idxA -= dec_A;
         idxB -= dec_B;
 
-        if (weight_f > LARGE_INT)   return true;
-        if (weight_f < SMALL_INT)   return true;
-
         const APL_Integer vB = VB.get_near_int(idxB);
-        value   = value   + weight   * vB;
-        value_f = value_f + weight_f * vB;
-        if (value_f > LARGE_INT)   return true;
-        if (value_f < SMALL_INT)   return true;
+        APL_Integer term;
+        if (__builtin_mul_overflow(weight, vB, &term))      return true;
+        if (__builtin_add_overflow(value, term, &value))    return true;
 
-        weight   = weight   * VA.get_near_int(idxA);
-        weight_f = weight_f * VA.get_near_int(idxA);
+        // weight is only needed for a further iteration -- e.g.
+        // 2⊥63⍴1 (2^63-1, the exact int64_t maximum) legitimately
+        // multiplies weight up to 2^63 on the last iteration, which
+        // overflows int64_t even though it is never actually used
+        // (skipping this update, like the old float-shadow code's
+        // weight_f check did implicitly by only checking weight_f
+        // *before* using it on the next iteration, avoids flagging
+        // that harmless, unused overflow).
+        //
+        if (l + 1 < len)
+           {
+             if (__builtin_mul_overflow(weight, VA.get_near_int(idxA),
+                                         &weight))
+                return true;
+           }
       }
 
    Z.next_ravel_Int(value);
@@ -647,6 +671,10 @@ APL_Float weight = 1.0;
         weight *= VA.get_real_value(idxA);
       }
 
+   // see the matching isfinite() check + comment in decode_complex()
+   // above (Bugs28 #42).
+   //
+   if (!isfinite(accu))   DOMAIN_ERROR;
    Z.next_ravel_Number(accu);
 }
 //════════════════════════════════════════════════════════════════════════════

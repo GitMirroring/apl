@@ -45,8 +45,25 @@ RegexpMatch::RegexpMatch(pcre2_code * code, const UCS_string & B,
         DOMAIN_ERROR;
       }
 
+   // Bugs28 #98: the pattern is compiled with PCRE2_UTF (Regexp.cc,
+   // pcre2_compile_32()), so pcre2_match_32() re-validates the UTF-32
+   // encoding of the *entire* subject (0..B.size(), not just from
+   // start) on every single call unless told not to -- an O(B.size())
+   // cost paid again for every match of a global (⎕RE['g']) search, on
+   // top of the actual (cheap) matching work, making a global match
+   // quadratic overall once the match count grows with B ('a' ⎕RE['g']
+   // 32000⍴'a' took ~370ms; a single, non-global match of the same
+   // subject took ~1ms). Every call after the first (start > 0) is
+   // continuing a search over this SAME B that a previous call already
+   // validated successfully to get this far, so PCRE2_NO_UTF_CHECK is
+   // safe there; the first call (start == 0) still validates B in
+   // full, so a B holding a genuinely invalid codepoint (Bugs28 #79/#80:
+   // GNU APL's Unicode is not restricted to legal Unicode scalars) is
+   // still caught as a real PCRE2 error.
+   //
+const uint32_t options = start ? PCRE2_NO_UTF_CHECK : 0;
    match_result = pcre2_match_32(code, B.raw<PCRE2_UCHAR32>(), B.size(),
-                                 start, 0, match_data, NULL);
+                                 start, options, match_data, NULL);
    if (match_result == 0)
       {
         MORE_ERROR() << "Match buffer too small";
@@ -60,7 +77,7 @@ RegexpMatch::RegexpMatch(pcre2_code * code, const UCS_string & B,
         ovector = pcre2_get_ovector_pointer_32(match_data);
         ovector_count = pcre2_get_ovector_count_32(match_data);
       }
-    else   // match_result < 0
+    else if (match_result == PCRE2_ERROR_NOMATCH)
       {
         // PCRE2_ERROR_NOMATCH is an entirely ordinary "the pattern did
         // not match" outcome, not an error -- ⎕RE (without the E flag)
@@ -70,11 +87,22 @@ RegexpMatch::RegexpMatch(pcre2_code * code, const UCS_string & B,
         // real )MORE text from an actual, earlier error (Blake McBride,
         // Bugs20 #7).
         //
-        if (match_result != PCRE2_ERROR_NOMATCH)
-           MORE_ERROR() << "libpcre error: "
-                        << Regexp::pcre_error(match_result);
         ovector_count = 0;
         ovector = 0;
+      }
+    else   // match_result < 0, and not PCRE2_ERROR_NOMATCH: a genuine
+           // PCRE runtime error (e.g. match limit exceeded), not "no
+           // match" -- returning ⍬ for this the same way as an ordinary
+           // non-match left the caller with no way to tell the two apart
+           // (Blake McBride, Bugs28 #72). DOMAIN ERROR instead, matching
+           // the allocation-failure and buffer-too-small cases above.
+      {
+        MORE_ERROR() << "libpcre error: "
+                     << Regexp::pcre_error(match_result);
+        ovector_count = 0;
+        ovector = 0;
+        pcre2_match_data_free(match_data);   // ~RegexpMatch() will not run
+        DOMAIN_ERROR;
       }
 }
 //────────────────────────────────────────────────────────────────────────────

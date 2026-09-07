@@ -19,3 +19,20 @@ Hello World
 
       ⍝ ==================================
 
+      ⍝ Bugs28 #100(a): ⎕LX[idx]←B was silently ignored (empty inline
+      ⍝ Quad_LX::assign_indexed() body); it must actually mutate ⎕LX,
+      ⍝ and reject an out-of-range idx like a plain reference does.
+
+      ⎕LX←'Hello'
+      ⎕LX[1]←'J'
+      ⎕LX
+Jello
+
+      ⎕LX[10]←'X'
+INDEX ERROR
+      ⎕LX[10]←'X'
+      ^       ^
+)SIC
+
+      ⍝ ==================================
+

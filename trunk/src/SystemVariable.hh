@@ -403,7 +403,7 @@ protected:
    /// overloaded Symbol::assign_indexed()
    /// @param X index specification
    /// @param B the APL value to assign
-   virtual void assign_indexed(const cValue * X, Value_P B) {}
+   virtual void assign_indexed(const cValue * X, Value_P B);
 };
 //════════════════════════════════════════════════════════════════════════════
 /**

@@ -311,6 +311,15 @@ public:
    const Cell * get_existing_member(const vector<const UCS_string *>
                                     & members)const;
 
+   /// like get_existing_member(), but returns 0 instead of throwing
+   /// for every "no such member" condition along the way (missing
+   /// member, non-structured parent, wrong rank/cols) -- for callers
+   /// (⎕EX, )ERASE) that only need to know whether something is there
+   /// to remove, not to reference it. See Bugs28 #53.
+   /// @param members path of member names from deepest to outermost
+   const Cell * try_existing_member(const vector<const UCS_string *>
+                                    & members) const;
+
    /// return the Cell (if any) containing the data of structured value member
    /// \b member, or 0 if member not found.
    /// @param member name of the structured member to look up
@@ -609,10 +618,12 @@ public:
 
    /// print debug info about setting or clearing of flags to CERR
    /// @param loc caller location for diagnostics
-   /// @param flag the value flag being modified
+   /// @param flag_bit the flag being modified, flat-encoded the same way
+   ///                 get_flags() packs it (see the SET_/CLEAR_ functions
+   ///                 below) -- NOT a VF_Flags bitfield
    /// @param flag_name name of the flag as a C string
    /// @param set true if the flag is being set, false if cleared
-   void flag_info(const char * loc, ValueFlags flag, const char * flag_name,
+   void flag_info(const char * loc, uint32_t flag_bit, const char * flag_name,
                   bool set) const;
 
 /// maybe enable LOC for set/clear of flags
@@ -628,35 +639,35 @@ public:
 #endif
 
 #ifdef cfg_VF_TRACING_WANTED
- # define FLAG_TRACE(f, b) flag_info(loc, VF_ ## f, #f, b);
+ # define FLAG_TRACE(f, bit, b) flag_info(loc, bit, #f, b);
 #else
- # define FLAG_TRACE(_f, _b)
+ # define FLAG_TRACE(_f, _bit, _b)
 #endif
 
    /// set the Value flag \b member
    void SET_member(_loc_type _loc) const
-      { FLAG_TRACE(member, true)   flags.member = 1;
-        ADD_EVENT(this, VHE_SetFlag, VF_member, _loc); }
+      { FLAG_TRACE(member, 0x08, true)   flags.member = 1;
+        ADD_EVENT(this, VHE_SetFlag, 0x08, _loc); }
 
 #define set_member() SET_member(_LOC)
 
 
    /// set the Value flag \b complete
    void SET_complete(_loc_type _loc) const
-      { FLAG_TRACE(complete, true)   flags.complete = 1;
-        ADD_EVENT(this, VHE_SetFlag, VF_complete, _loc); }
+      { FLAG_TRACE(complete, 0x01, true)   flags.complete = 1;
+        ADD_EVENT(this, VHE_SetFlag, 0x01, _loc); }
 
 #define set_complete() SET_complete(_LOC)
 
    /// set the Value flag \b marked
    void SET_marked(_loc_type _loc) const
-      { FLAG_TRACE(marked, true)   flags.marked = 1;
-        ADD_EVENT(this, VHE_SetFlag, VF_marked, _loc); }
+      { FLAG_TRACE(marked, 0x02, true)   flags.marked = 1;
+        ADD_EVENT(this, VHE_SetFlag, 0x02, _loc); }
 
    /// clear the Value flag \b marked
    void CLEAR_marked(_loc_type _loc) const
-      { FLAG_TRACE(marked, false)   flags.marked = 0;
-        ADD_EVENT(this, VHE_ClearFlag, VF_marked, _loc); }
+      { FLAG_TRACE(marked, 0x02, false)   flags.marked = 0;
+        ADD_EVENT(this, VHE_ClearFlag, 0x02, _loc); }
 
 #define set_marked()   SET_marked(_LOC)
 #define clear_marked() CLEAR_marked(_LOC)
@@ -751,13 +762,18 @@ public:
    /// @param idx ravel index shown for nested context
    void print_structure(ostream & out, int indent, ShapeItem idx) const;
 
-   /// return the current flags as a ValueFlags bitmask
-   ValueFlags get_flags() const
-      { return ValueFlags((flags.complete    ? VF_complete : 0) |
-                          (flags.marked      ? VF_marked   : 0) |
-                          (flags.temp        ? VF_temp     : 0) |
-                          (flags.member      ? VF_member   : 0) |
-                          0); }
+   /// return the current flags flat-encoded into a single integer (bit 0
+   /// complete, bit 1 marked, bit 2 temp, bit 3 member) -- used only for
+   /// diagnostics and the workspace archive format (Archive.cc's "flg="
+   /// attribute), both of which need a flat integer rather than a
+   /// VF_Flags bitfield; testing a Value's LIVE flags should instead use
+   /// is_complete()/is_marked()/is_member() (i.e. direct VF_Flags member
+   /// access), not this encoding.
+   uint32_t get_flags() const
+      { return (flags.complete ? 0x01 : 0) |
+               (flags.marked   ? 0x02 : 0) |
+               (flags.temp     ? 0x04 : 0) |
+               (flags.member   ? 0x08 : 0); }
 
    /// print info related to a stale value
    /// @param out output stream to write to
@@ -936,6 +952,31 @@ public:
    /// see set_lval_whole_symbol()
    Symbol * get_lval_whole_symbol() const
       { return lval_whole_symbol; }
+
+   /// mark \b this (the cellrefs of an already-nested item, e.g. from
+   /// (2⊃A)←X where A[2] is itself nested) as Bif_F12_PICK's DIRECT,
+   /// unbroken selection of that one item, so that Value::assign_cellrefs()
+   /// can special-case it as a wholesale replacement of the PointerCell at
+   /// \b slot (in \b owner) -- neither IBM APL2 nor Dyalog assign INTO an
+   /// already-nested picked item (Blake McBride, Bugs28 #30); the shape of
+   /// the OLD item must not constrain the new value at all.
+   ///
+   /// \b this still has the OLD item's own shape (needed so that an outer
+   /// selector, e.g. (1 0/2⊃A)←X, can narrow it in the ordinary way), but
+   /// that outer selector always builds a fresh Value for its own (narrowed)
+   /// result -- exactly like lval_whole_symbol above, this marker is never
+   /// copied into such a fresh Value, so it only survives an unbroken chain
+   /// of pass-throughs straight to the assignment.
+   /// @param slot the PointerCell being replaced (a ravel cell of \b owner)
+   /// @param owner the value owning \b slot
+   void set_lval_pick_slot(Cell * slot, Value * owner)
+      { lval_pick_slot = slot;   lval_pick_owner = owner; }
+
+   /// see set_lval_pick_slot()
+   Cell * get_lval_pick_slot() const    { return lval_pick_slot; }
+
+   /// see set_lval_pick_slot()
+   Value * get_lval_pick_owner() const  { return lval_pick_owner; }
 
    /// assign \b val to the cell references in this value.
    /// @param val value whose elements are assigned to the cell references
@@ -1458,6 +1499,13 @@ protected:
    /// Symbol::resolve_lv() result that has not (yet) been narrowed by any
    /// other lvalue-producing function.
    Symbol * lval_whole_symbol = 0;
+
+   /// see set_lval_pick_slot(); 0 unless this is Bif_F12_PICK's direct,
+   /// unbroken selection of an already-nested item.
+   Cell * lval_pick_slot = 0;
+
+   /// see set_lval_pick_slot()
+   Value * lval_pick_owner = 0;
 
    /// a linked list of values that have been deleted
    static _deleted_value * deleted_values;

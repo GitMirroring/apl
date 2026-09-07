@@ -217,9 +217,29 @@ Value_P Z(A.get_shape() + B.get_shape(), LOC);
         Value_P Fill_B = Bif_F12_TAKE::first(B);
 
         Value_P Z1 = RO->eval_fill_AB(*Fill_A, *Fill_B).get_apl_val();
-        Cell cache;
-        Z->set_ravel_Cell(0, Z1->get_cfirst(cache));
+
+        // Bugs28 #37: Z1 (RO's fill result, e.g. A f¨B's enclosed fill
+        // item for a non-scalar RO like ,) can itself be a non-scalar
+        // or nested value, not just a simple scalar cell -- copying
+        // only Z1's first CELL (as the old set_ravel_Cell() call below
+        // did unconditionally) silently dropped everything but that
+        // one cell/level. set_ravel_Value() does the right thing for
+        // either case (copy the cell for a simple scalar, else wrap in
+        // a fresh PointerCell), mirroring EACH's own empty-fill logic.
+        // to_type() below then converts a numeric fill result of the
+        // wrong VALUE (e.g. RO's identity element, 3) into the correct
+        // wproto-derived default (0), matching what f¨ already does.
+        //
+        Z->set_ravel_Value(0, Z1.get());
         Z->check_value(LOC);
+
+        // to_type(false), NOT to_type(true): a user-defined RO's fill
+        // result (UserFunction::eval_fill_AB() just returns B's own
+        // fill cell unevaluated) can legitimately be a *character*
+        // cell, e.g. ⍬∘.{⍺+⍵}'ab' -- its empty result's type must stay
+        // character (a space), not get force-converted to numeric 0.
+        //
+        Z->to_type(false);
         return Token(TOK_APL_VALUE1, Z);
       }
 

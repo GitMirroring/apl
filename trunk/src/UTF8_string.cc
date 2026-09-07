@@ -164,8 +164,13 @@ uint32_t bx = b0;   // the "significant" bits in b0
 
         CERR <<  " at " LOC << endl;
 
-        BACKTRACE
-
+        // Bugs28 #100(x): a BACKTRACE call used to sit here too. The
+        // CERR diagnostic and the recovery/fallback below it (see the
+        // comment) are both deliberate, but a full stack-trace dump for
+        // perfectly ordinary bad input (e.g. )LOAD of a workspace file
+        // containing invalid UTF-8) is not -- unlike the genuinely
+        // exceptional cases BACKTRACE exists for elsewhere.
+        //
         // No Assert() here: at the project's *default* ASSERT_LEVEL (1,
         // not 0 -- see configure.ac), Assert(0 && ...) is not a no-op,
         // it throws via do_Assert(), so it would pre-empt exactly the

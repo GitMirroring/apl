@@ -29,6 +29,7 @@
 #include <stdio.h>
 #include <sys/stat.h>
 #include <sys/types.h>
+#include <unistd.h>
 
 #include "Archive.hh"
 #include "Bif_F0_ZILDE.hh"
@@ -150,7 +151,19 @@ XML_Saving_Archive::XML_Saving_Archive(ostream & of, ostream & ef,
      filename(filename),
      save_success(false)
 {
-   outf.open(filename, ofstream::out);
+   // Write to a temporary file and rename it onto the real target only
+   // once save() has fully succeeded, rather than truncating filename
+   // directly: save() can throw partway through (e.g. Bugs28 #29's
+   // value-operand derived function on the )SI, or any other future
+   // write-time error), which used to leave filename itself half
+   // written -- destroying a perfectly good previous workspace file
+   // with a truncated, unloadable one. rename() within the same
+   // directory is atomic, so a crash between the write and the rename
+   // still leaves either the old file or the fully-written new one,
+   // never a partial file under the real name.
+   //
+   tmp_path = string(filename) + ".tmp";
+   outf.open(tmp_path.c_str(), ofstream::out);
    if (!outf.is_open())   // open() failed
       {
         err << "Unable to )SAVE workspace '" << filename
@@ -159,8 +172,27 @@ XML_Saving_Archive::XML_Saving_Archive(ostream & of, ostream & ef,
       }
 
    Log(LOG_archive)   err << "saving XML_Saving_Archive..." << endl;
-   save();
+   try
+      {
+        save();
+      }
+   catch (...)
+      {
+        outf.close();
+        unlink(tmp_path.c_str());
+        throw;
+      }
    Log(LOG_archive)   err << "done XML_Saving_Archive." << endl;
+
+   outf.close();
+   if (rename(tmp_path.c_str(), filename) != 0)
+      {
+        err << "Unable to rename temporary workspace file '" << tmp_path
+            << "' to '" << filename << "'. " << strerror(errno) << endl;
+        unlink(tmp_path.c_str());
+        return;
+      }
+
    save_success = true;
 }
 //────────────────────────────────────────────────────────────────────────────
@@ -407,7 +439,7 @@ XML_Saving_Archive::write_checksum()
    // re-read the file just written -- simplest way to get at the exact
    // bytes without threading a tee through every outf << call above.
    //
-ifstream in(filename, ifstream::binary);
+ifstream in(tmp_path, ifstream::binary);
    if (!in.is_open())   return;   // best effort; )SAVE itself succeeded
 
 string content((istreambuf_iterator<char>(in)), istreambuf_iterator<char>());
@@ -470,19 +502,36 @@ XML_Saving_Archive::save_Function(const Function & fun)
              << endl;
 
         const DerivedFunction & dfn = static_cast<const DerivedFunction &>(fun);
-        const Function * lo = dfn.get_LO();
-        outf << " OPER-fid=\"" << HEX(dfn.get_OPER()) << "\"";
-        if (lo)   outf << " LO-fid=\"" << HEX(lo) << "\"";
 
-        const Function * ro = dfn.get_RO();
+        // LO/RO can each be bound to a VALUE instead of a function (e.g.
+        // ⍤'s own right operand in F⍤y, y a plain value) -- get_LO()/
+        // get_RO() call Token::get_function() unconditionally once the
+        // tag isn't TOK_VOID, which SYNTAX_ERRORs on a value token. That
+        // used to abort )SAVE half-way through writing this element,
+        // leaving a truncated file that then clobbered a perfectly good
+        // previous one on rename (Bugs28 #29). )LOADing a derived
+        // function is already documented above as unsupported/lossy, so
+        // a value-bound operand is written as a "*-vid" reference (like
+        // AXIS already is) rather than reproduced exactly -- the goal
+        // here is only that )SAVE itself completes.
+        //
+        const Value_P lo_val = dfn.get_bound_LO_value();
+        const Function * lo = lo_val ? 0 : dfn.get_LO();
+        outf << " OPER-fid=\"" << HEX(dfn.get_OPER()) << "\"";
+        if (lo)        outf << " LO-fid=\""  << HEX(lo) << "\"";
+        else if (lo_val)   outf << " LO-vid=\""  << HEX(find_vid(lo_val.get())) << "\"";
+
+        const Value_P ro_val = dfn.get_bound_RO_value();
+        const Function * ro = ro_val ? 0 : dfn.get_RO();
         const cValue * axis = dfn.get_AXIS();
-        if (ro || axis)
+        if (ro || ro_val || axis)
            {
              outf << endl;
              do_indent();
              outf << "        ";
            }
-        if (ro)     outf << " RO-fid=\""   << HEX(ro) << "\"";
+        if (ro)            outf << " RO-fid=\""   << HEX(ro) << "\"";
+        else if (ro_val)   outf << " RO-vid=\""   << HEX(find_vid(ro_val.get())) << "\"";
         if (axis)   outf << " AXIS-vid=\"" << HEX(find_vid(axis)) << "\"";
 
         outf << "/>" << endl;
@@ -1440,11 +1489,6 @@ XML_Loading_Archive::~XML_Loading_Archive()
    Sys::munmap(file_start, file_length);
 }
 //────────────────────────────────────────────────────────────────────────────
-// see the definition (with the full explanation) further below, next to
-// bounded_strstr() / bounded_strtoll() / bounded_strtod()
-static size_t bounded_copy(const UTF8 * start, const UTF8 * limit,
-                            char * buf, size_t bufsize);
-//────────────────────────────────────────────────────────────────────────────
 void
 XML_Loading_Archive::check_compatibility()
 {
@@ -1455,12 +1499,11 @@ XML_Loading_Archive::check_compatibility()
         unsigned int major = 0;
         unsigned int minor = 0;
         unsigned int other  = 0;
-        // same unbounded-read class as get_checksum_status()'s sscanf()
-        // (Bugs17 #5, found incidentally): syntax comes from the same
-        // non-NUL-terminated mmap'd buffer.
-        char buf[32];   // "N.N.N" is short
-        bounded_copy(syntax, file_end, buf, sizeof(buf));
-        ::sscanf(buf, "%u.%u.%u", &major, &minor, &other);
+        // safe: read_Workspace() already verified the file ends with
+        // real NUL bytes before calling us, so syntax is a genuinely
+        // NUL-terminated C string within the mmap'd buffer.
+        ::sscanf(reinterpret_cast<const char *>(syntax),
+                 "%u.%u.%u", &major, &minor, &other);
         if (major == ASX_MAJOR && minor == ASX_MINOR)   return;
         if (major == ASX_MAJOR)
            {
@@ -1510,97 +1553,12 @@ UCS_string current_SVN(UTF8_string(ARCHIVE_SVN));
       }
 }
 //────────────────────────────────────────────────────────────────────────────
-/// like u8::strstr(), but never reads at or past \b end: the mmap'd
-/// workspace file is not NUL-terminated (Sys.hh's non-mmap #%else branch is
-/// the only one that appends one), so the ordinary strstr()-family
-/// functions used elsewhere in this function would scan past file_end
-/// once file_length happens to be an exact page multiple and there is no
-/// kernel zero-fill tail to save them (Blake McBride, Bugs15 #3).
-static const UTF8 *
-bounded_strstr(const UTF8 * start, const UTF8 * end, const char * needle)
-{
-const size_t needle_len = strlen(needle);
-   if (needle_len == 0 || start >= end)   return 0;
-
-   for (const UTF8 * c = start; c + needle_len <= end; ++c)
-       {
-         if (!u8::strncmp(c, needle, needle_len))   return c;
-       }
-   return 0;
-}
-//────────────────────────────────────────────────────────────────────────────
-/// copies at most \b bufsize - 1 bytes starting at \b start, stopping at
-/// \b limit, into \b buf, and NUL-terminates it. Returns the number of
-/// bytes copied. Used to give strtoll()/strtod()/sscanf() a small
-/// NUL-terminated buffer to work on instead of the raw mmap'd (not
-/// NUL-terminated) workspace file: those libc functions effectively
-/// strlen() their input up front regardless of any field width or count
-/// given to them, so a bounds check at the call site alone (as an earlier
-/// fix here assumed for sscanf()) is not sufficient -- confirmed with
-/// guard-page probes, both faults occurring past the intended bound
-/// (Blake McBride, Bugs17 #5). A literal longer than \b bufsize - 1 is
-/// truncated rather than read out of bounds; on already-corrupted input
-/// that is a harmless parsing degradation, not a memory-safety issue.
-static size_t
-bounded_copy(const UTF8 * start, const UTF8 * limit, char * buf, size_t bufsize)
-{
-   if (start >= limit || bufsize == 0)   { if (bufsize)  buf[0] = 0;  return 0; }
-
-size_t len = limit - start;
-   if (len > bufsize - 1)   len = bufsize - 1;
-   memcpy(buf, start, len);
-   buf[len] = 0;
-   return len;
-}
-//────────────────────────────────────────────────────────────────────────────
-enum { BOUNDED_NUM_MAX = 63 };   ///< longest plausible numeric literal here
-
-/// like u8::strtoll(), but never reads at or past \b limit (see
-/// bounded_copy() above). \b endptr, if given, is translated back into the
-/// original [start,limit) buffer.
-static int64_t
-bounded_strtoll(const UTF8 * start, const UTF8 * limit, UTF8 ** endptr, int base)
-{
-char buf[BOUNDED_NUM_MAX + 1];
-const size_t len = bounded_copy(start, limit, buf, sizeof(buf));
-
-char * bend = 0;
-const int64_t val = ::strtoll(buf, &bend, base);
-   if (endptr)
-      {
-        size_t consumed = bend - buf;
-        if (consumed > len)   consumed = len;   // defensive
-        *endptr = const_cast<UTF8 *>(start) + consumed;
-      }
-   return val;
-}
-//────────────────────────────────────────────────────────────────────────────
-/// like u8::strtod(), but never reads at or past \b limit (see
-/// bounded_copy() above). \b endptr, if given, is translated back into the
-/// original [start,limit) buffer.
-static double
-bounded_strtod(const UTF8 * start, const UTF8 * limit, UTF8 ** endptr)
-{
-char buf[BOUNDED_NUM_MAX + 1];
-const size_t len = bounded_copy(start, limit, buf, sizeof(buf));
-
-char * bend = 0;
-const double val = ::strtod(buf, &bend);
-   if (endptr)
-      {
-        size_t consumed = bend - buf;
-        if (consumed > len)   consumed = len;   // defensive
-        *endptr = const_cast<UTF8 *>(start) + consumed;
-      }
-   return val;
-}
-//────────────────────────────────────────────────────────────────────────────
 XML_Loading_Archive::ChecksumStatus
 XML_Loading_Archive::get_checksum_status(uint32_t & stored_crc,
                                          uint32_t & computed_crc) const
 {
 const char * const ws_open = "<Workspace ";
-const UTF8 * open_pos = bounded_strstr(file_start, file_end, ws_open);
+const UTF8 * open_pos = u8::strstr(file_start, ws_open);
    if (open_pos == 0)   return CS_NO_WORKSPACE;
 
    // find the LAST "</Workspace>" (mirrors the file_is_complete scan in
@@ -1627,20 +1585,17 @@ const UTF8 * close_pos = 0;
    if (close_pos == 0)   return CS_NO_WORKSPACE;
 
 const UTF8 * after_close = close_pos + ws_close_len;
-const UTF8 * cs = bounded_strstr(after_close, file_end, checksum_prefix());
+const UTF8 * cs = u8::strstr(after_close, checksum_prefix());
    if (cs == 0)   return CS_NO_CHECKSUM;   // no checksum in this file
 
    cs += strlen(checksum_prefix());
    if (cs + 8 > file_end)                          return CS_NO_CHECKSUM;
 
-   // "%8X" bounds what is *converted*, not what sscanf() reads to get
-   // there (see bounded_copy() above) -- copy the (already known-present)
-   // 8 bytes into a local NUL-terminated buffer first.
-   {
-     char buf[9];
-     bounded_copy(cs, file_end, buf, sizeof(buf));
-     if (::sscanf(buf, "%8X", &stored_crc) != 1)    return CS_NO_CHECKSUM;
-   }
+   // "%8X" already bounds the conversion to exactly 8 characters; safe
+   // now that has_trailing_NUL() guarantees a real NUL terminator exists
+   // within the mapped file.
+   //
+   if (::sscanf(charP(cs), "%8X", &stored_crc) != 1)    return CS_NO_CHECKSUM;
 
 const size_t ws_len = (after_close - open_pos);
 const string normalized =
@@ -1668,6 +1623,18 @@ uint32_t computed_crc = 0;
 void
 XML_Loading_Archive::check_checksum(ostream & out)
 {
+   // see has_trailing_NUL(); this is the OTHER public entry point (besides
+   // read_Workspace()) that ends up scanning the mmap'd file via
+   // get_checksum_status(), so it needs the same guard.
+   //
+   if (!has_trailing_NUL())
+      {
+        out << "WARNING - " << filename
+            << ": corrupt or truncated (missing the trailing NUL bytes"
+               " that )SAVE always writes)" << endl;
+        return;
+      }
+
 uint32_t stored_crc = 0;
 uint32_t computed_crc = 0;
    switch (get_checksum_status(stored_crc, computed_crc))
@@ -1787,6 +1754,17 @@ XML_Loading_Archive::read_vids()
 void
 XML_Loading_Archive::read_Workspace(bool silent)
 {
+   // see has_trailing_NUL()
+   //
+   if (!has_trailing_NUL())
+      {
+        err << "*** workspace file " << filename << endl
+            << "    is corrupt or truncated (missing the trailing NUL"
+               " bytes that )SAVE always writes)." << endl
+            << "NOT LOADED/COPIED" << endl;
+        return;
+      }
+
    expect_tag("Workspace", LOC);
 
 const int offset   = find_int_attr("timezone", false, 10);
@@ -1852,16 +1830,23 @@ bool prev_month = false;
 
    Log(LOG_archive)   err << "read_Workspace() " << endl;
 
-   // quick check that the file is complete
+   // quick check that the file is complete. We look for </Workspace>",
+   // starting at the end of the file and moving backwards (!). Note that
+   // there is a crc32 checksum between </Workspace> and the final NUL bytes.
    //
-   for (const UTF8 * c = file_end - 12; (c > data) && (c > file_end - 200); --c)
-       {
-         if (!u8::strncmp(c, "</Workspace>", 12))
-            {
-              file_is_complete = true;
-              break;
-            }
-       }
+   {
+     const char * close_tag = "</Workspace>";
+     const size_t close_tag_len = strlen(close_tag);
+     for (const UTF8 * c = file_end - close_tag_len;
+          (c > data) && (c > file_end - 200); --c)
+         {
+           if (!u8::strncmp(c, close_tag, 12))
+              {
+                file_is_complete = true;
+                break;
+              }
+         }
+   }
 
    if (!file_is_complete && !copying)
       {
@@ -2109,7 +2094,7 @@ APL_Float
 XML_Loading_Archive::find_float_attr(const char * attrib)
 {
 const UTF8 * value = find_mandatory_attr(attrib);
-const APL_Float val = bounded_strtod(value, file_end, 0);
+const APL_Float val = u8::strtod(value, nullptr);
    return val;
 }
 //────────────────────────────────────────────────────────────────────────────
@@ -2137,7 +2122,7 @@ XML_Loading_Archive::find_int_attr(const char * attrib, bool optional, int base)
 const UTF8 * value = find_attr(attrib, optional);
    if (value == 0)   return -1;   // not found
 
-const int64_t val = bounded_strtoll(value, file_end, 0, base);
+const int64_t val = u8::strtoll(value, nullptr, base);
    return val;
 }
 //────────────────────────────────────────────────────────────────────────────
@@ -2249,20 +2234,26 @@ DerivedFunction * const slot = static_cast<DerivedFunction *>(todo.cache);
         // does not itself validate the function pointer, only stores
         // it -- see Token.hh), but is only ever referenced via LO_arg,
         // so a null LO here is never actually dereferenced.
+        // find_function() can legitimately come up empty here even
+        // though LO_fid/RO_fid were recorded: an operand that was an
+        // anonymous lambda (bound only as a suspended derived
+        // function's operand, never given a name) has no symbol-table
+        // entry of its own to drive saving its *own* <Function>
+        // element, so nothing to resolve it against exists in the
+        // loaded file. )SAVEing a derived function on the )SI is
+        // already documented (the WARNING above) as producing an
+        // imperfect reload -- degrade gracefully (drop the operand, as
+        // an absent LO_fid/RO_fid already does just below) rather than
+        // crashing the whole )LOAD (Bugs28 #29).
+        //
         cFunction_P LO = 0;
-        if (todo.LO_fid != -1)
-           {
-             LO = find_function(todo.LO_fid);
-             Assert(LO);
-           }
+        if (todo.LO_fid != -1)   LO = find_function(todo.LO_fid);
         Token tok_LO(TOK_FUN2, LO);
         Token * const LO_arg = LO ? &tok_LO : 0;
 
-        if (todo.RO_fid   != -1)   // dyadic operator
+        cFunction_P RO = (todo.RO_fid != -1) ? find_function(todo.RO_fid) : 0;
+        if (RO)   // dyadic operator
            {
-             Assert(todo.RO_fid != -1);
-             cFunction_P RO = find_function(todo.RO_fid);
-             Assert(RO);
              Token tok_RO(TOK_FUN2, RO);
 
              if (todo.AXIS_vid == -1)   // dyadic operator without axis
@@ -2358,8 +2349,7 @@ UTF8 * end = 0;
 
         case UNI_PAD_U3: // integer,                e.g. ³
              {
-               const APL_Integer val = bounded_strtoll(input, file_end,
-                                                        &end, 10);
+               const APL_Integer val = u8::strtoll(input, &end, 10);
                Z.next_ravel_Int(val);
                input = end;
              }
@@ -2367,7 +2357,7 @@ UTF8 * end = 0;
 
         case UNI_PAD_U4: // real,                   e.g. ⁴6675.79
              {
-               const APL_Float val = bounded_strtod(input, file_end, &end);
+               const APL_Float val = u8::strtod(input, &end);
                Z.next_ravel_Float(val);
                input = end;
              }
@@ -2375,7 +2365,7 @@ UTF8 * end = 0;
 
         case UNI_PAD_U5: // complex,                e.g. ⁵
              {
-               const APL_Float real = bounded_strtod(input, file_end, &end);
+               const APL_Float real = u8::strtod(input, &end);
                // Assert() alone is a no-op at ASSERT_LEVEL 0: a missing
                // 'J' separator (crafted/corrupted workspace XML) left
                // the imaginary part parsed from whatever byte followed
@@ -2389,7 +2379,7 @@ UTF8 * end = 0;
                     DOMAIN_ERROR;
                   }
                ++end;
-               const APL_Float imag = bounded_strtod(end, file_end, &end);
+               const APL_Float imag = u8::strtod(end, &end);
                Z.next_ravel_Complex(real, imag);
                input = end;
              }
@@ -2397,7 +2387,7 @@ UTF8 * end = 0;
 
         case UNI_PAD_U6: // pointer,                e.g. ⁶1525 (vid)
              {
-               const int vid = bounded_strtoll(input, file_end, &end, 10);
+               const int vid = u8::strtoll(input, &end, 10);
                // Assert() is a no-op at the documented default assert
                // level, so it cannot be relied on to reject an
                // out-of-range vid coming from (possibly hand-edited or
@@ -2439,7 +2429,7 @@ UTF8 * end = 0;
                   // "silently wrong" bug into a hard DOMAIN ERROR on any
                   // workspace GNU APL itself saved containing such a
                   // selective-assignment lvalue.
-                  const int vid = bounded_strtoll(input, file_end, &end, 10);
+                  const int vid = u8::strtoll(input, &end, 10);
                   if (vid < 0 || vid >= int(values.size()))
                      {
                        MORE_ERROR() << "corrupt workspace: cellref vid="
@@ -2454,8 +2444,7 @@ UTF8 * end = 0;
                        DOMAIN_ERROR;
                      }
                   ++end;
-                  const ShapeItem offset = bounded_strtoll(end, file_end,
-                                                            &end, 10);
+                  const ShapeItem offset = u8::strtoll(end, &end, 10);
                   if (end >= file_end || *end != ']')
                      {
                        MORE_ERROR() << "corrupt workspace: malformed "
@@ -2487,8 +2476,7 @@ UTF8 * end = 0;
              // not ./configured for them.
              //
              {
-               const uint64_t numer = bounded_strtoll(input, file_end,
-                                                       &end, 10);
+               const uint64_t numer = u8::strtoll(input, &end, 10);
 
                // skip ÷ (which is is C3 B7 in UTF8). Assert() alone is a
                // no-op at ASSERT_LEVEL 0, and (even when enabled) its
@@ -2506,8 +2494,7 @@ UTF8 * end = 0;
                     DOMAIN_ERROR;
                   }
                end += 2;
-               const uint64_t denom = bounded_strtoll(end, file_end,
-                                                        &end, 10);
+               const uint64_t denom = u8::strtoll(end, &end, 10);
                if (denom == 0)
                   {
                     MORE_ERROR() << "corrupt workspace: zero denominator "
@@ -2729,12 +2716,8 @@ int eprops[4] = { 0, 0, 0, 0 };
 
    if (const UTF8 * ep = find_optional_attr("exec-properties"))
       {
-        // same unbounded-read class as get_checksum_status()'s sscanf()
-        // (Bugs17 #5, found incidentally while fixing that one): ep comes
-        // from the same non-NUL-terminated mmap'd buffer.
-        char buf[32];   // "N,N,N,N" is short; matches the writer's format
-        bounded_copy(ep, file_end, buf, sizeof(buf));
-        ::sscanf(buf, "%d,%d,%d,%d",
+        // safe: read_Workspace() already verified has_trailing_NUL().
+        ::sscanf(charP(ep), "%d,%d,%d,%d",
                eprops, eprops + 1, eprops + 2, eprops+ 3);
       }
 
@@ -3005,7 +2988,7 @@ void
 XML_Loading_Archive::read_SI_entry(int lev)
 {
 const int level = find_int_attr("level", false, 10);
-const int pc = find_int_attr("pc", false, 10);
+int pc = find_int_attr("pc", false, 10);
 
    Log(LOG_archive)   err << "    read_SI_entry() level=" << level << endl;
 
@@ -3016,8 +2999,39 @@ const Executable * exec = 0;
    else if (is_tag("UserFunction"))   exec = read_SI_UserFunction();
    else    Assert(0 && "Bad tag at " LOC); 
 
-   Assert(lev == level);
+   // lev is this entry's actual position in the file (the loop counter
+   // in read_StateIndicator()); level is the file-supplied <SI-entry
+   // level="..."> attribute, which a hand-edited or otherwise corrupt
+   // workspace file can set to anything (Bugs28 #99). A raw Assert()
+   // here takes down the whole session with a C++ backtrace instead of
+   // the graceful "SORRY! ... )SI stack was reconstructed to the
+   // extent possible" recovery read_StateIndicator() already performs
+   // for any other Error thrown while reading an <SI-entry> -- throw
+   // one here too instead of asserting on a file-supplied value.
+   //
+   if (lev != level)
+      {
+        MORE_ERROR() << "corrupt workspace: SI-entry level=" << level
+                     << " does not match its position (" << lev
+                     << ") in the )SI stack";
+        DOMAIN_ERROR;
+      }
    Assert(exec);
+
+   // pc comes straight from the file (an attacker-controlled or simply
+   // hand-edited "<SI-entry pc=...>" attribute); StateIndicator::list()
+   // (Workspace::list_SI(), reached by )SI/)SIS/)SINL, which can also run
+   // automatically after an error) indexes the executable's body with it
+   // unconditionally, so an out-of-range value must be rejected here, not
+   // left to crash whichever command happens to list the SI later.
+   //
+   if (pc < 0 || size_t(pc) >= exec->get_body().size())
+      {
+        MORE_ERROR() << "corrupt workspace: SI-entry pc=" << pc
+                     << " out of range (body has "
+                     << exec->get_body().size() << " tokens)";
+        pc = 0;
+      }
 
    Workspace::push_SI(exec, LOC);
 StateIndicator * si = Workspace::SI_top();
@@ -3111,46 +3125,23 @@ XML_Loading_Archive::read_StateIndicator()
 
 const int levels = find_int_attr("levels", false, 10);
 
+   // Bugs28 #99 (per user direction, stricter than the report's own
+   // "want"): a corrupt <SI-entry> (e.g. a level="..." that disagrees
+   // with its position in the stack) used to be caught right here,
+   // print a "SORRY ... )SI stack was reconstructed to the extent
+   // possible" diagnostic, and then let the caller go on to treat the
+   // )LOAD as having succeeded with a partially-reconstructed )SI --
+   // no test ever relied on that partial reconstruction. Do not catch
+   // here at all: let the Error propagate out of read_Workspace()
+   // entirely, so Workspace::load_WS() can refuse the whole workspace
+   // (clear it back out and report failure) instead of leaving an
+   // inconsistent one active.
+   //
    loop(l, levels)
       {
         next_tag(LOC);
         expect_tag("SI-entry", LOC);
-
-        try
-           {
-             read_SI_entry(l);
-           }
-        catch (Error &)
-           {
-             err <<
-"\n"
-"*** SORRY! An error occured while reading the )SI stack of the )SAVEd\n"
-"    workspace. The )SI stack was reconstructed to the extent possible.\n"
-"    We strongly recommend to perform )SIC and then )DUMP the workspace under\n"
-"    a different name.\n" << endl;
-
-             // skip rest of <StateIndicator>
-             //
-             skip_to_tag("/StateIndicator");
-             return;
-           }
-        catch (std::bad_alloc &)
-           {
-             err <<
-"\n"
-"*** SORRY! An error occured while reading the )SI stack of the )SAVEd\n"
-"    workspace. The )SI stack was reconstructed to the extent possible.\n"
-"    We strongly recommend to perform )SIC and then )DUMP the workspace under\n"
-"    a different name.\n" << endl;
-
-             // skip rest of <StateIndicator>
-             //
-             skip_to_tag("/StateIndicator");
-             return;
-           }
-        catch (...)
-           { FIXME; }
-
+        read_SI_entry(l);
         // the parsers loop eats the terminating /SI-entry
       }
 
@@ -3347,7 +3338,15 @@ XML_Loading_Archive::read_Token(Token_loc & tloc)
 {
    expect_tag("Token", LOC);
 
-   tloc.set_PC(Function_PC(find_int_attr("pc", false, 10)));
+   // pc comes straight from the file (see read_SI_entry()'s own pc check
+   // above for the same concern); a negative value is never valid
+   // regardless of which executable this saved parser-stack token belongs
+   // to, so reject that much here even though the upper bound can only be
+   // checked where the owning executable's body length is known.
+   //
+int64_t tok_pc = find_int_attr("pc", false, 10);
+   if (tok_pc < 0)   tok_pc = 0;
+   tloc.set_PC(Function_PC(tok_pc));
 
 const TokenTag tag = TokenTag(find_int_attr("tag", false, 16));
 
@@ -3438,8 +3437,7 @@ const TokenTag tag = TokenTag(find_int_attr("tag", false, 16));
                          Assert1(*vids == 'i');   ++vids;
                          Assert1(*vids == 'd');   ++vids;
                          Assert1(*vids == '_');   ++vids;
-                         const int vid = bounded_strtoll(vids, file_end,
-                                                          &end, 10);
+                         const int vid = u8::strtoll(vids, &end, 10);
                          if (vid < 0 || vid >= int(values.size()))
                             DOMAIN_ERROR;
                          idx.add_index(values[vid]);
@@ -3568,7 +3566,12 @@ bool no_copy = false;   // assume the value is needed
         // vid -> values[] mapping the vid range checks elsewhere in this
         // file all rely on -- enforce it instead of merely asserting.
         if (vid != int(values.size()))   DOMAIN_ERROR;
-        if (flags & VF_packed)
+        // flags is the archive's "flg=" attribute, flat-encoded the same
+        // way Value::get_flags() writes it (see save_shape() above): bit
+        // 3 (0x08) is member; bit 4 (0x10) is the legacy bool-packed-
+        // archive marker, from before the ravel_type redesign -- no
+        // longer written, but still readable in old archives.
+        if (flags & 0x10)   // legacy: bool-packed archive format
            {
              Value_P val(sh_value, /* constructor allocates */ 0, LOC);
              values.push_back(val);
@@ -3576,7 +3579,7 @@ bool no_copy = false;   // assume the value is needed
         else
            {
              Value_P val(sh_value, LOC);
-             if (flags & VF_member)   val->set_member();
+             if (flags & 0x08)   val->set_member();
              values.push_back(val);
            }
       }
@@ -3692,7 +3695,7 @@ XML_Loading_Archive::read_XML_string(UCS_string & ucs, const UTF8 * utf)
             {
               char_mode = false;
               UTF8 * end = 0;
-              const int hex = bounded_strtoll(utf, file_end, &end, 16);
+              const int hex = u8::strtoll(utf, &end, 16);
               ucs << Unicode(hex);
               utf = end;
               continue;

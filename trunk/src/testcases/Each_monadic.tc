@@ -68,3 +68,50 @@
       Z3←+¨0⍴⊂1
       ⍴Z3
 0
+
+      ⍝ Bugs28 #35 regression: (F⍤y)¨B (and other derived functions
+      ⍝ whose operand is a defined/⎕FX'd function) with an empty B
+      ⍝ returned a non-empty scalar/vector instead of an empty array.
+      ⍝ Root cause: the empty-argument fill-function branch called
+      ⍝ LO->eval_B(*first_B) whenever LO wasn't itself is_defined(),
+      ⍝ and returned that call's result token unchanged when its class
+      ⍝ wasn't TC_VALUE. For a derived LO wrapping a defined function,
+      ⍝ eval_B() pushes a real SI frame and returns TOK_SI_PUSHED, so
+      ⍝ the *result of running that frame* silently became the result
+      ⍝ of the whole ¨ expression. Fixed in Bif_OPER1_EACH.cc by
+      ⍝ treating LO->may_push_SI() the same as LO->is_defined() (both
+      ⍝ mean: the fill function is the identity function, i.e. B
+      ⍝ itself) -- except for ⎕EC, which also may_push_SI() but has
+      ⍝ its own dedicated fabricated fill value.
+      ⍝
+      ⎕FX 'Z←ZZ35F B' 'Z←B+1'
+ZZ35F
+
+      Z←(ZZ35F⍤1)¨⍬ ⋄ 2 ⎕TF 'Z'
+Z←0⍴0
+
+      Z←(ZZ35F⍤1)¨0⍴⊂1 2 3 ⋄ 2 ⎕TF 'Z'
+Z←0⍴(⊂3⍴0 0 0)
+
+      Z←(ZZ35F⍤0)¨⍬ ⋄ 2 ⎕TF 'Z'
+Z←0⍴0
+
+      Z←(ZZ35F¨)¨⍬ ⋄ 2 ⎕TF 'Z'
+Z←0⍴0
+
+      Z←({⍵+1}⍤1)¨⍬ ⋄ 2 ⎕TF 'Z'
+Z←0⍴0
+
+      Z←({⍵+1}¨)¨⍬ ⋄ 2 ⎕TF 'Z'
+Z←0⍴0
+
+      Z←(ZZ35F⍣2)¨⍬ ⋄ 2 ⎕TF 'Z'
+Z←0⍴0
+
+      ⎕FX 'Z←ZZ35G LO' 'Z←LO+1'
+ZZ35G
+
+      Z←(ZZ35G/)¨⍬ ⋄ 2 ⎕TF 'Z'
+Z←0⍴0
+
+      )ERASE ZZ35F ZZ35G

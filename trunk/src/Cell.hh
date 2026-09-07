@@ -523,35 +523,25 @@ public:
         else         return ((a & ~b) & 0x8000000000000000) != 0;
       }
 
-   /// return \b true if multiplying a and b will (probably) overflow.
-   /// For some huge a or b the result may incorrectly return true.
+   /// return \b true if multiplying a and b overflows int64_t.
    /// @param a  first factor
    /// @param b  second factor
    static bool prod_overflow(int64_t a, int64_t b)
       {
-        // fast path: if a and b both fit in int32_t then |a*b| ≤ 2^62,
-        // which can never overflow int64_t (max magnitude 2^63) - skip
-        // the float check below (two int64_t comparisons per operand
-        // beat two int-to-double conversions plus a multiply, fabs(),
-        // and a float compare by a wide margin). A shift-based range
-        // test (x>>31 == 0 or -1) says the same thing but needs the
-        // shift width to exactly match int32_t's own width to avoid
-        // an aliasing trap for huge a or b close to ±2^63; comparing
-        // directly against the int32_t bounds sidesteps that question.
-        if (a <= 0x000000007FFFFFFFLL && a >= -0x0000000080000000LL &&
-            b <= 0x000000007FFFFFFFLL && b >= -0x0000000080000000LL)
-           return false;
-
-        // general path: compare the exact product using double
-        // precision. A double cannot represent every int64_t exactly
-        // (53 vs. 63 bits of mantissa), but that is irrelevant here:
-        // we only need to know whether the true product has crossed
-        // the (conservative) LARGE_INT/SMALL_INT boundary, and a
-        // double's relative error near that magnitude (roughly
-        // ±2^10) is negligible next to LARGE_INT's own margin below
-        // the actual int64_t limits (roughly 2×10^16).
-        const double prod = double(a) * double(b);
-        return prod > double(LARGE_INT) || prod < double(SMALL_INT);
+        // exact (Bugs28 #82): this used to compare a double-precision
+        // approximation of the product against the (conservative)
+        // LARGE_INT/SMALL_INT boundary, roughly 2×10^16 below the
+        // actual int64_t limits -- so callers demoted results to float
+        // (or, in bif_multiply_ii's own inline copy of this check,
+        // FloatCell) for the top ~0.4% of the int64_t range even when
+        // the exact product fit perfectly well, e.g.
+        // 9223372036854775807×1 gave a float instead of the exact
+        // integer. __builtin_mul_overflow computes the exact int64_t
+        // product (or reports overflow) directly, in hardware, with no
+        // double intermediate and hence no margin needed.
+        //
+        int64_t prod;
+        return __builtin_mul_overflow(a, b, &prod);
       }
 
    /// return \b true if z = a + b had an overflow.

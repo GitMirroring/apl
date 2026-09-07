@@ -15,5 +15,24 @@
       ÷0J1 0J¯1
 0J¯1 0J1
 
+      ⍝ regression (Bugs28 #77): ÷ of a complex number with both parts
+      ⍝ individually smaller than ⎕CT's absolute floor used to be
+      ⍝ rejected as "near zero" (and, separately, the "near-real"
+      ⍝ shortcut used to fire on an absolute-tiny imaginary part alone,
+      ⍝ computing 1.0/0.0 for an exactly-zero real part). Neither 0J1E¯11
+      ⍝ nor 1E¯20J1E¯20 is mathematically zero, and both have a finite
+      ⍝ reciprocal (only exact 0J0 is now rejected).
+      ⍝
+      ÷0J1E¯11
+0J¯1E11
+
+      ÷1E¯20J1E¯20
+5E19J¯5E19
+
+      ÷0J0
+DOMAIN ERROR
+      ÷0
+      ^^
+
       ⍝ ==================================
 

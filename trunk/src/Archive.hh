@@ -318,6 +318,13 @@ protected:
    /// path of outf, kept for write_checksum()'s re-read
    const char * filename;
 
+   /// the temporary path outf actually writes to (filename + ".tmp",
+   /// renamed onto filename only once save() has fully succeeded) --
+   /// write_checksum() must re-read *this*, not filename, since filename
+   /// may still be the previous (or nonexistent) workspace file while
+   /// outf is open (Bugs28 #29).
+   string tmp_path;
+
    /// \b true iff )SAVE was successful
    bool save_success;
 
@@ -367,6 +374,22 @@ public:
    /// check compatibility information in the workspace and maybe warn the
    /// user
    void check_compatibility();
+
+   /// return true iff the file ends the way )SAVE always writes it
+   /// (XML_Saving_Archive::operator<<(Workspace&): 4 NUL bytes followed
+   /// by a newline, "so that string functions can be used if the file
+   /// should be mmap()ed"). Every ordinary (i.e. not specially bounded)
+   /// u8::strstr()/strtoll()/strtod()/sscanf() call below relies on this
+   /// holding -- a corrupted or truncated file may not have it, so every
+   /// public entry point that starts scanning the mmap'd file (currently
+   /// read_Workspace() and check_checksum(), the two ways to end up
+   /// calling get_checksum_status()) must check it first, before this
+   /// (or any other) precondition it protects.
+   bool has_trailing_NUL() const
+      { return file_length >= 5 &&
+               file_end[-1] == '\n' &&
+               file_end[-2] == 0 && file_end[-3] == 0 &&
+               file_end[-4] == 0 && file_end[-5] == 0; }
 
    /// if a "<!-- checksum: crc32=XXXXXXXX -->" comment is present after
    /// \</Workspace\>, recompute it over the normalize_for_checksum()d

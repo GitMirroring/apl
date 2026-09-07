@@ -142,3 +142,38 @@ IJKL
 A B C D
 1 2 3 H
 4 5 6 L
+
+      ⍝ regression (Blake McBride, Bugs28 #67, 2026-08-11): A↓[X]B with an
+      ⍝ empty X used to return B unchanged without even looking at A --
+      ⍝ its "no axes" shortcut ran before A was type- or length-checked
+      ⍝ against X, unlike A↑[X]B (Bif_F12_TAKE::eval_AXB), which checks
+      ⍝ first. So e.g. a wrongly-shaped or wrongly-typed A silently did
+      ⍝ nothing instead of failing with LENGTH ERROR like ↑ does.
+      ⍝
+      M←2 3⍴⍳6
+      2↓[⍬]M
+LENGTH ERROR+
+      2↓[⍬]M
+      ^    ^
+
+      'abc'↓[⍬]M
+LENGTH ERROR+
+      'abc'↓[⍬]M
+      ^        ^
+
+      ⍝ control: ↑ already got this right
+      ⍝
+      2↑[⍬]M
+LENGTH ERROR+
+      2↑[⍬]M
+      ^    ^
+
+      )SIC
+
+      ⍝ control: matching (empty) A and X still work
+      ⍝
+      ⍬↓[⍬]M
+1 2 3
+4 5 6
+
+      )ERASE M

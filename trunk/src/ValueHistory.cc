@@ -121,15 +121,18 @@ const VH_entry * previous = 0;
    out << endl;
 }
 //────────────────────────────────────────────────────────────────────────────
-/// return the letters of some \b flags set
+/// return the letters of some \b flags set. flags is flat-encoded the
+/// same way Value::get_flags() packs it (bit 0 complete, bit 1 marked,
+/// bit 3 member) -- these events log that same encoding via iarg, not a
+/// VF_Flags bitfield.
 static UCS_string
-flags_name(ValueFlags flags)
+flags_name(uint32_t flags)
 {
 UCS_string ret;
 
-  if (flags & VF_marked)     ret << UNI_M;
-  if (flags & VF_complete)   ret << UNI_C;
-  if (flags & VF_member)     ret << UNI_m;
+  if (flags & 0x02)   ret << UNI_M;   // marked
+  if (flags & 0x01)   ret << UNI_C;   // complete
+  if (flags & 0x08)   ret << UNI_m;   // member
 
    while (ret.size() < 4)   ret << UNI_SPACE;
    return ret;
@@ -139,7 +142,7 @@ void
 VH_entry::print(int & flags, ostream & out, const cValue & val,
                const VH_entry * previous) const
 {
-const ValueFlags flags_before = ValueFlags(flags);
+const int flags_before = flags;
 
    if (previous == 0                            ||
        previous->testcase_file == 0             ||
@@ -163,27 +166,27 @@ const ValueFlags flags_before = ValueFlags(flags);
              break;
 
         case VHE_Check:
-             flags |= VF_complete;
+             flags |= 0x01;   // complete
              out << "  VHE_Check    " << flags_before << " ";
-             if (flags_before != flags)   out << ValueFlags(flags)
+             if (flags_before != flags)   out << flags
                                               << " ";
              else                         out << "            ";
              break;
 
         case VHE_SetFlag:
              flags |= iarg;
-             out << "  Set " << flags_name(ValueFlags(iarg))
+             out << "  Set " << flags_name(iarg)
                  << "     " << flags_before << " ";
-             if (flags_before != flags)   out << ValueFlags(flags)
+             if (flags_before != flags)   out << flags
                                               << " ";
              else                         out << "            ";
              break;
 
         case VHE_ClearFlag:
              flags &= ~iarg;
-             out << "  Clear " << flags_name(ValueFlags(iarg))
+             out << "  Clear " << flags_name(iarg)
                  << "   " << flags_before << " ";
-             if (flags_before != flags)   out << ValueFlags(flags)
+             if (flags_before != flags)   out << flags
                                               << " ";
              else                         out << "            ";
              break;

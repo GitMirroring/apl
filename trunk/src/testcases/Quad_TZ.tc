@@ -14,23 +14,70 @@
       ⎕TZ
 6.2
 
-      ⍝ ignore values too small or too large ----------------------------------
-
+      ⍝ regression (Bugs28 #100(k)): values too small or too large used
+      ⍝ to be silently ignored (⎕TZ left unchanged, no diagnostic at
+      ⍝ all) -- unlike a bad type, which already correctly raised
+      ⍝ DOMAIN ERROR. No real-world timezone lies outside
+      ⍝ [-12 ... 14] hours (UTC-12 to Kiribati's UTC+14), so there is
+      ⍝ no sensible value to clamp to (unlike ⎕PP/⎕PW, which clamp an
+      ⍝ over-large request to the system's actual capacity); reject
+      ⍝ instead.
+      ⍝
       ⎕TZ←15
+DOMAIN ERROR+
+      ⎕TZ←15
+          ^
+
+      )MORE
+⎕TZ←15: expecting -12 ≤ ⎕TZ ≤ 14 (hours UTC offset)
+)SIC
       ⎕TZ
 6.2
 
       ⎕TZ←14.2
+DOMAIN ERROR+
+      ⎕TZ←14.2
+          ^
+
+      )MORE
+⎕TZ←14.199999999999999: expecting -12 ≤ ⎕TZ ≤ 14 (hours UTC offset)
+)SIC
       ⎕TZ
 6.2
 
       ⎕TZ←¯13
+DOMAIN ERROR+
+      ⎕TZ←¯13
+          ^
+
+      )MORE
+⎕TZ←¯13: expecting -12 ≤ ⎕TZ ≤ 14 (hours UTC offset)
+)SIC
       ⎕TZ
 6.2
 
       ⎕TZ←¯12.2
+DOMAIN ERROR+
+      ⎕TZ←¯12.2
+          ^
+
+      )MORE
+⎕TZ←¯12.199999999999999: expecting -12 ≤ ⎕TZ ≤ 14 (hours UTC offset)
+)SIC
       ⎕TZ
 6.2
+
+      ⍝ control: the boundary values themselves are still accepted
+      ⍝
+      ⎕TZ←14
+      ⎕TZ
+14
+
+      ⎕TZ←¯12
+      ⎕TZ
+¯12
+
+      ⎕TZ←6.2
 
       ⎕TZ←12  ◊ T1←⎕TS         ⍝ timezone 12 (ahead)
       ⎕TZ←¯12 ◊ T2←⎕TS         ⍝ timezone ¯12 (behind)

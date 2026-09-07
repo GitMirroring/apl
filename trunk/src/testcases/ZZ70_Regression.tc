@@ -1,0 +1,88 @@
+⍝ ZZ70_Regression.tc
+⍝ ══════════════════
+
+⍝@ test3.
+
+      ⍝ Depth-cache (≡) full-range caching + isolate_deep()-anchored
+      ⍝ invalidation, 2026-09-01 (see plan.txt). Closes the depth≥2
+      ⍝ caching gap left open since the original depth-limit-enforcement
+      ⍝ work: compute_depth() now trusts and caches every depth 0..254,
+      ⍝ with invalidation piggybacked onto the mandatory COW isolate_deep()
+      ⍝ walk that every left-value form (selective specification, Pick,
+      ⍝ member access) performs before mutating. The cases below target
+      ⍝ ancestors *two or more levels above* the actual mutation point --
+      ⍝ the case a naive "invalidate only the directly mutated value"
+      ⍝ scheme misses, since an untouched intermediate ancestor would
+      ⍝ keep trusting its own stale-but-cached depth and re-derive a
+      ⍝ wrong (but now re-cached) answer for everything above it.
+      ⍝
+      )CLEAR
+CLEAR WS
+
+      ⍝ Three-level nested array: w contains u contains v. Query ≡ at all
+      ⍝ three levels first (caching each), then mutate v's third element
+      ⍝ from within w's own copy of v, reached via a nested Pick used as
+      ⍝ the base of a bracket selective specification (ZZ49_Regression.tc-
+      ⍝ style) -- two Pick-levels below w. All three cached depths must
+      ⍝ go up by exactly one level each.
+      ⍝
+      v←1 2 (3 4)
+      u←10 (v) 30
+      w←100 (u) 200
+      ≡v ◊ ≡u ◊ ≡w
+2
+3
+4
+      (2⊃2⊃w)[3]←(3 4)(5 6)
+      ≡w ◊ ≡2⊃w ◊ ≡2⊃2⊃w
+5
+4
+3
+
+      ⍝ v and u themselves are separate copies (ordinary APL value
+      ⍝ semantics) and must be unaffected by mutating w's own copy
+      ⍝
+      ≡v ◊ ≡u
+2
+3
+      )ERASE v u w
+
+      ⍝ Direct member reassignment (A.B.C←V) two dot-levels deep, with
+      ⍝ the enclosing namespace's own depth queried (and cached) both
+      ⍝ before and after.
+      ⍝
+      Z.a.b←1 2 (3 4)
+      ≡Z ◊ ≡Z.a ◊ ≡Z.a.b
+4
+3
+2
+      Z.a.b←1 (2 (3 4))
+      ≡Z ◊ ≡Z.a ◊ ≡Z.a.b
+5
+4
+3
+      )ERASE Z
+
+      ⍝ Member reference used as the base of a Pick + bracket selective
+      ⍝ specification (the member-access invalidation gap closed in
+      ⍝ Prefix.cc alongside the array case above).
+      ⍝
+      Y.a←10 (1 2 (3 4)) 30
+      ≡Y.a
+3
+      (2⊃Y.a)[3]←(3 4)(5 6)
+      ≡Y.a
+4
+      )ERASE Y
+
+      )SIC
+      )CHECK
+OK      - no stale functions
+OK      - no stale values
+OK      - no stale indices
+OK      - no duplicate parents
+
+      )CLEAR
+CLEAR WS
+
+      ]NEXTFILE

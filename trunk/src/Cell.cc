@@ -268,6 +268,21 @@ ShapeItem idxB = B * comp_len;
 static int
 exact_numeric_compare(const Cell & ca, const Cell & cb)
 {
+   if (ca.is_integer_cell() && cb.is_integer_cell())
+      {
+        // compare as int64, not via get_real_value()'s round-trip
+        // through double: an IntCell's exact value can exceed 2⋆53,
+        // beyond which double can no longer distinguish adjacent
+        // integers, silently misordering ⍋/⍒ (Bugs28 #28, Bugs27 #30
+        // residual).
+        //
+        const APL_Integer ia = ca.get_int_value();
+        const APL_Integer ib = cb.get_int_value();
+        if (ia < ib)   return -1;
+        if (ia > ib)   return 1;
+        return 0;
+      }
+
    if (ca.is_numeric() && cb.is_numeric() &&
        !ca.is_complex_cell() && !cb.is_complex_cell())
       {
@@ -405,7 +420,19 @@ Cell::sorted_indices(vector<ShapeItem> & indices, const cValue & value,
 {
    Assert(indices.size() == 0);   // initially empty, filled by this function
 
-const ShapeItem rows = value.get_shape_item(0);
+   // get_shape_item(0) (the length of the first axis) is only the
+   // correct "number of comparison units" when value's rank matches
+   // comp_len's own meaning -- e.g. a proper R×comp_len matrix, or a
+   // plain vector with comp_len==1. The sorted-A fast path in
+   // Bif_F12_INDEX_OF.cc calls this with comp_len==1 (scalar-by-scalar
+   // comparison) even when value itself is rank ≥ 2 (e.g. 8 8⍴1): there
+   // get_shape_item(0) is 8, not the 64 actual scalar items, so indices
+   // ends up undersized and find_B_in_sorted_A()'s own
+   // Assert(len_A == Idx_A.size()) fires (or, with that Assert compiled
+   // out at the default assert level, the search reads out of bounds).
+   // element_count()/comp_len is correct in both cases.
+   //
+const ShapeItem rows = value.element_count() / (comp_len ? comp_len : 1);
 
    // initialize indices with 0, 1, ... length-1
    //

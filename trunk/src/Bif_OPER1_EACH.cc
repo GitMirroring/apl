@@ -105,10 +105,16 @@ cFunction_P LO = _LO.get_function();
         // evaluate the fill function (lrm p. 245)
         //
         Value_P Z1;
-        if (LO->is_defined())
+        if (LO->is_defined() || LO->may_push_SI())
            {
-             // the fill function of a defined functions is the identity
-             // function, i.e. its right argument
+             // the fill function of a defined function (or of a derived
+             // function whose operand is defined, e.g. F⍤1 for a
+             // ⎕FX-defined F) is the identity function, i.e. its right
+             // argument -- calling eval_AB()/eval_B() on such an LO
+             // pushes a real SI frame and returns TOK_SI_PUSHED, not a
+             // value, so falling into the generic "else" branch below
+             // returned that SI-pushed token as if it were Z1 (Bugs28
+             // #35: (F⍤1)¨⍬ gave the scalar F 1 instead of an empty Z)
              //
              Z1 = first_B;
            }
@@ -354,10 +360,15 @@ cFunction_P LO = _LO.get_function();
         // evaluate the fill function (lrm p. 245)
         //
         Value_P Z1;
-        if (LO->is_defined())
+        if (LO != &Quad_EC::fun && (LO->is_defined() || LO->may_push_SI()))
            {
-             // the fill function of a defined functions is the identity
-             // function, i.e. its right argument
+             // the fill function of a defined function (or of a derived
+             // function whose operand is defined, e.g. F⍤1 for a
+             // ⎕FX-defined F) is the identity function, i.e. its right
+             // argument -- see the dyadic branch above for the full
+             // explanation (Bugs28 #35). ⎕EC itself is excluded: it also
+             // may_push_SI(), but has its own dedicated fill value
+             // fabricated below rather than being its own identity.
              //
              Z1 = first_B;
            }
@@ -471,6 +482,11 @@ Value_P Z;
              if (is_left_val)
                 {
                   Cell * dest = cB.get_lval_value();
+                  // target can be 0! (Value.cc:502's own comment) -- e.g.
+                  // a selective assignment through an over-take of an
+                  // empty vector, (,¨1↑⍬)←,1: dereferencing it
+                  // unconditionally segfaults instead of a clean error.
+                  if (dest == 0)   INDEX_ERROR;
                   if (dest->is_pointer_cell())
                      {
                        Value_P sub = dest->get_pointer_value();

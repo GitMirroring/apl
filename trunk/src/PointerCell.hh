@@ -48,6 +48,15 @@ public:
    /// @param magic magic number permitting simple-scalar values
    PointerCell(Value * val, Value & cell_owner, uint32_t magic);
 
+   /// throw LIMIT_ERROR_NESTING if wrapping \b sub_val one level deeper
+   /// would exceed MAX_DEPTH. Exposed so that a caller about to replace
+   /// an existing, valid Cell with a PointerCell (e.g. Value::add_member())
+   /// can check *before* releasing/overwriting that Cell -- discovering
+   /// the limit only inside this constructor is too late for such a
+   /// caller: by then the Cell has already been released and is left
+   /// half-constructed when the constructor throws (Bugs28 #9).
+   static void check_nesting_depth(const Value * sub_val);
+
    /// overloaded Cell::get_cell_owner()
    virtual Value * get_cell_owner() const
       { return value.pval.owner; }

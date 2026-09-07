@@ -267,6 +267,18 @@ DerivedFunction::eval_XB(cValue_R X, cValue_R B) const
    // monadic operator (LO M or LO M X). Use the call-time axis X, not
    // a (possibly unset, or already-baked-in) member axis -- this was
    // the actual bug behind (+/)[1]M silently ignoring [1]. Bugs27 #50.
+   //
+   // Bugs28 #91: that fix was right when the member axis is UNSET
+   // (0, e.g. (+/)[1]M -- no_call_time_axis() above already handles
+   // the "left_arg is TOK_VOID" no-LO shape, but not this one), but it
+   // silently overrode one that was already baked in at parse time
+   // (e.g. "+/[1]" via reduce_F_M_C_) instead of rejecting a second,
+   // redundant axis -- so +/[1][2]M silently discarded the [1] and
+   // used [2], instead of SYNTAX ERROR the way every OTHER two-axis
+   // form on a derived function already is.
+   //
+   if (axis)   SYNTAX_ERROR;
+
    Token & left = const_cast<Token &>(left_arg);
    return oper->eval_LXB(left, X, B);
 }

@@ -115,6 +115,18 @@ public:
         else         safe_execution_depth = 0;
       }
 
+   /// restore safe_execution_depth to a value saved earlier (e.g. via
+   /// get_safe_execution_depth()) -- unlike clear_safe_execution(),
+   /// which unconditionally resets to the *parent's* depth, this is
+   /// safe to use after a temporary set_safe_execution_depth() on a
+   /// frame that may itself already have been a safe-execution frame
+   /// (e.g. a nested ⎕EC's B is itself the B of an enclosing ⎕EC):
+   /// clear_safe_execution() there would incorrectly strip the
+   /// enclosing ⎕EC's own protection instead of merely undoing the
+   /// temporary bump (Bugs28 #27).
+   void restore_safe_execution_depth(int saved_depth)
+      { safe_execution_depth = saved_depth; }
+
    /// construct a new derived function and return a pointer to it.
    /// @param LO token for the left operand (or 0 if absent)
    /// @param F_or_M_or_D the function, monadic, or dyadic operator

@@ -1665,6 +1665,15 @@ int expo = 0;
                  else /* v < 1.0E0  */     { v = v * 1.0E1;    expo += -1;  }
       }
 
+   // The scaling cascade above is a hand-written sequence of
+   // multiplications, each of which rounds; for some inputs the scaled
+   // value lands a fraction of an ulp below a power of ten and the next
+   // step rounds it up to exactly 10.0 (or, symmetrically, leaves it a
+   // hair below 1.0). Fix up that boundary case instead of asserting --
+   // this is a normal, expected rounding outcome, not an internal error.
+   if (v >= 10.0)   { v *= 1.0E-1;   expo += 1; }
+   if (v <   1.0)   { v *= 1.0E1;    expo -= 1; }
+
    Assert(v >= 1.0);
    Assert(v < 10.0);
 
@@ -1710,24 +1719,92 @@ UCS_string ret;
 
    Assert(v >= 0.0);
 
-   // store the integer part of v in ret, leaving the fract part in v.
+   // Bugs28 #45 (Bugs27 #44 residual): the old fraction-digit
+   // extraction (v=v*10.0; vv=int(v); v-=vv, repeated fract_digits+1
+   // times) accumulates one rounding error PER DIGIT -- e.g. 0.15's
+   // true double value is 0.14999999999999999444..., but multiplying
+   // it by 10.0 in double arithmetic already rounds UP to exactly 1.5
+   // in that very first step, well before any digit-rounding decision
+   // is made, giving .2 instead of the correctly-rounded .1. Extract
+   // via snprintf() instead -- like from_big()'s (already fixed)
+   // integer-digit extraction and monadic ⍕'s (Bugs27 #44) significant-
+   // digit extraction, it works from the double's exact bit pattern
+   // directly, with no accumulated error.
    //
-   ret << from_big(v) << UNI_FULLSTOP;   // from_big() leaves fractional part of v in v
+   // glibc's %f rounds an EXACTLY representable tie (e.g. 2.5 at 0
+   // fraction digits) to EVEN, which disagrees with round_last_digit()
+   // (used everywhere else in ⍕) rounding ties AWAY from zero -- fix
+   // this ONLY for a genuine exact tie, detected the same way monadic
+   // ⍕ does: request extra_digits more fraction digits and check that
+   // everything past fract_digits is a literal '5' followed by
+   // nothing but '0's (see the matching, more detailed comment on
+   // monadic ⍕'s tie detection above).
+   //
+char buf[1400];   // up to 309 integer digits + '.' + up to 1000+24 digits
+   enum { extra_digits = 24 };
+const int hi_len = snprintf(buf, sizeof(buf), "%.*f",
+                             fract_digits + extra_digits, v);
+   Assert(hi_len > 0 && hi_len < int(sizeof(buf)));
 
-   // append one more fractional digit than needed (the last one will be
-   // rounded
-   loop(f, fract_digits + 1)
-       {
-         v = v * 10.0;
-         const int vv = v;
-         ret << Unicode(UNI_0 + vv);
-         v -= vv;
-       }
+   // precision passed above is fract_digits + extra_digits, which is
+   // always > 0 (extra_digits alone is 24), so buf always has a '.'
+   // here regardless of fract_digits.
+   //
+const int dot = hi_len - fract_digits - extra_digits - 1;
+   Assert(dot > 0 && buf[dot] == '.');
+const int first_frac = dot + 1;   // index of the first fraction digit
 
-   // round to last digit may increase the length
-const int ret_len = ret.size();
-   ret.round_last_digit();
-   while (ret.ssize() > ret_len)   ret.pop_back();
+   bool tie = buf[first_frac + fract_digits] == '5';
+   if (tie)
+      {
+        for (int d = first_frac + fract_digits + 1; d < hi_len; ++d)
+            if (buf[d] != '0')   { tie = false;   break; }
+      }
+
+   if (tie)
+      {
+        // same shape as the original code's construction (integer
+        // part + '.' + fract_digits+1 digits, then round_last_digit()
+        // -- which pops the extra digit, strips the '.' when
+        // fract_digits==0, and cascades any carry into the integer
+        // digits already in ret): only the SOURCE of the digits
+        // changed, from accumulated multiplication to snprintf().
+        //
+        loop(i, dot)             ret << Unicode(buf[i]);
+        ret << UNI_FULLSTOP;
+        loop(i, fract_digits)    ret << Unicode(buf[first_frac + i]);
+        ret << Unicode(UNI_0 + 5);   // always rounds up (away from 0)
+        ret.round_last_digit();
+        return ret;
+      }
+
+   // not a tie: glibc's default round-to-nearest is already exactly
+   // the correctly-rounded answer
+   //
+const int len = snprintf(buf, sizeof(buf), "%.*f", fract_digits, v);
+   Assert(len > 0 && len < int(sizeof(buf)));
+   loop(i, len)   ret << Unicode(buf[i]);
+   return ret;
+}
+//────────────────────────────────────────────────────────────────────────────
+UCS_string
+UCS_string::from_int_to_fixed(int64_t value, int fract_digits)
+{
+UCS_string ret;
+   if (value < 0)   { ret << UNI_OVERBAR;   value = - value; }
+
+   ret << from_uint(value);
+
+   // fract_digits == 0 (integer format): no decimal point at all,
+   // matching from_double_to_fixed()'s round_last_digit(), which
+   // always strips a trailing '.' left with no digits after it.
+   //
+   if (fract_digits > 0)
+      {
+        ret << UNI_FULLSTOP;
+        loop(f, fract_digits)   ret << UNI_0;
+      }
+
    return ret;
 }
 //────────────────────────────────────────────────────────────────────────────

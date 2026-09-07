@@ -789,6 +789,23 @@ integer 256 is too large (> 255) for a byte value
       )SIC
 
 
+      ⍝ regression (Bugs28 #100(h)): 43 ⎕CR (parse) of unparsable text
+      ⍝ printed its DOMAIN ERROR twice and )MORE showed a raw numeric
+      ⍝ ErrorCode. Source: the DOMAIN_ERROR inside the "if (ec)" branch
+      ⍝ of do_CR42_43's parse path used to sit INSIDE the try block
+      ⍝ that catches parser.parse()'s own exceptions, so its own throw
+      ⍝ was immediately caught by that same catch clause, which then
+      ⍝ built and threw a second DOMAIN ERROR describing the first.
+      ⍝
+      43 ⎕CR '(('
+DOMAIN ERROR+
+      43 ⎕CR '(('
+      ^      ^
+
+      )MORE
+the parser returned error code: Unbalanced left parenthesis
+)SIC
+
       )CHECK
 OK      - no stale functions
 OK      - no stale values
