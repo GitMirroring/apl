@@ -42,6 +42,14 @@ struct _phrase
    int          len;
    int          hash;
    const char * alias;
+   int          can_shift;   // 1 iff do_shift() can return true for
+                              // this phrase, i.e. classes[0] (the phrase's
+                              // leading token class) is one of TC_VALUE,
+                              // TC_FUN12, or TC_SYMBOL -- see do_shift()'s
+                              // switch(at0().get_Class()) in Prefix.cc.
+                              // Computed in main(), not set by phrase()/
+                              // phrase1() (their trailing 0 initializes it,
+                              // same as they already do for len/hash).
 
    string get_suffix() const
       {
@@ -249,11 +257,15 @@ char suffix[100];   snprintf(suffix, sizeof(suffix), "%s_%s_%s_%s",
    if (*e.alias)   snprintf(suffix, sizeof(suffix), "%s", e.alias);
 
       if (strcmp(e.rn0, "none"))   // node with reduce function
-         fprintf(out, "  PH( %-14s , %-14s, 0x%5.5X ,  %2d  ,  %2d  ,  %1d",
-                   phrase_name, suffix, e.hash, e.prio, e.misc, e.len);
+         fprintf(out, "  PH( %-14s , %-14s, 0x%5.5X ,  %2d  ,  %2d  ,  %1d"
+                       " ,  %1d",
+                   phrase_name, suffix, e.hash, e.prio, e.misc, e.len,
+                   e.can_shift);
       else                         // internal node without reduce function
-         fprintf(out, "  PH( %-14s , %-14s, 0x%5.5X ,  %2d  ,  %2d  ,  %1d",
-                   phrase_name, "none", e.hash, e.prio, e.misc, e.len);
+         fprintf(out, "  PH( %-14s , %-14s, 0x%5.5X ,  %2d  ,  %2d  ,  %1d"
+                       " ,  %1d",
+                   phrase_name, "none", e.hash, e.prio, e.misc, e.len,
+                   e.can_shift);
 
    fprintf(out, "),  // [%2.2X]\n", e_idx);
 }
@@ -297,7 +309,8 @@ int MODU = TC_MAX_PHRASE;
 "#else  // PH(...) defined: table instantiation (in Prefix.cc)\n\n");
 
    fprintf(out,
-"//PH( phrase_name    , reduce_XXX()  ,   hash  , prio , misc , len)\n"
+"//PH( phrase_name    , reduce_XXX()  ,   hash  , prio , misc , len, "
+"can_shift)\n"
 "//═════════════════════════════════════════════════════════════════\n");
 
 const _phrase ** table = new const _phrase *[MODU];
@@ -381,6 +394,7 @@ FILE * out = stdout;
 
          assert(e.len == 0);
          assert(e.hash == 0);
+         assert(e.can_shift == 0);
          int power = 0;
 
          for (int l = 0; l < MAX_PHRASE_LEN; ++l)
@@ -390,6 +404,32 @@ FILE * out = stdout;
                e.hash += e.classes[l] << power;
                power += 5;
              }
+
+         // reduce_body() (Prefix.cc) only ever considers a SHIFT (instead
+         // of reducing best_phrase outright) when BOTH of the following
+         // hold -- and both are static properties of the phrase itself,
+         // knowable here at table-generation time rather than only at
+         // run time:
+         //
+         // 1. e.prio < BS_ANY_BRA: a phrase that binds as tightly as
+         //    (or tighter than) ANY[] (e.g. A C, V C, V C ASS B) always
+         //    wins outright; nothing can ever bind tighter, so no SHIFT
+         //    is ever needed.
+         //
+         // 2. do_shift() (Prefix.cc) switches on at0().get_Class(), i.e.
+         //    on this phrase's own leading token class (classes[0]), and
+         //    only ever returns true for TC_VALUE, TC_FUN12, or
+         //    TC_SYMBOL; every other class hits its own
+         //    'default: return false'.
+         //
+         // Phrases failing either condition can never cause a SHIFT, so
+         // the reduce_body() gate can skip calling bind_to_next() for
+         // them entirely (see Prefix.cc's use of Phrase::can_shift).
+         //
+         e.can_shift = (e.prio < BS_ANY_BRA) &&
+                       (e.classes[0] == TC_VALUE  ||
+                        e.classes[0] == TC_FUN12  ||
+                        e.classes[0] == TC_SYMBOL);
        }
 
    check_phrases();

@@ -408,6 +408,17 @@ protected:
         int            prio;            ///< phrase priority
         int            misc;            ///< 1 if MISC phrase
         int            phrase_len;      ///< phrase length
+        int            can_shift;       ///< 1 iff a SHIFT is even possible
+                                         ///< for this phrase: prio <
+                                         ///< BS_ANY_BRA (else nothing
+                                         ///< binds tighter) AND the
+                                         ///< leading token class (A/B,
+                                         ///< F/G, or V) is one do_shift()
+                                         ///< does not unconditionally
+                                         ///< reject. 0 means REDUCE is
+                                         ///< the only possible outcome,
+                                         ///< so bind_to_next() need not
+                                         ///< be called at all.
       };
 
    /// push the next token onto the stack. Return \b true iff )SI was pushed.
