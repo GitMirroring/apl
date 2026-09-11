@@ -748,6 +748,14 @@ bool interactive = (mode == LIM_Quote_Quad) || (mode == LIM_Quad_Quad);
    //
    if (UserPreferences::uprefs.raw_cin)
       {
+        // mode == LIM_Quote_Quad: the ⍞ prompt printed by Quad_QUOTE::
+        // assign() (still sitting unflushed in DiffOut's line buffer,
+        // since it was written without a trailing '\n') is about to be
+        // redrawn on its own by the '\r' + prompt below. Discard the
+        // stale buffered copy instead of leaving it to leak into
+        // whatever COUT prints next (Bug: Roy Tobin, svn 2110).
+        //
+        if (mode == LIM_Quote_Quad)   Output::reset_dout();
         Quad_QUOTE::done(mode != LIM_Quote_Quad, LOC);
 
         // once script/file input is exhausted, falling through to here is
@@ -802,6 +810,13 @@ const APL_time_us from = now();
            }
       }
 
+   // see the matching comment in the raw_cin branch above: mode ==
+   // LIM_Quote_Quad means LineEditContext (below, via get_terminal_line())
+   // is about to redraw the still-unflushed ⍞ prompt itself; discard the
+   // stale copy in DiffOut's buffer rather than leaking it into the next
+   // COUT flush.
+   //
+   if (mode == LIM_Quote_Quad)   Output::reset_dout();
    Quad_QUOTE::done(mode != LIM_Quote_Quad, LOC);
 
 const APL_time_us from = now();

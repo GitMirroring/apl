@@ -419,6 +419,11 @@ protected:
                                          ///< the only possible outcome,
                                          ///< so bind_to_next() need not
                                          ///< be called at all.
+        int            phrase_number;   ///< index (0..PHRASE_COUNT-1) of
+                                         ///< this phrase in phrase_gen's
+                                         ///< phrase_table[], i.e. the number
+                                         ///< shown in the PHRASE TABLE
+                                         ///< comment at the top of Prefix.def
       };
 
    /// push the next token onto the stack. Return \b true iff )SI was pushed.

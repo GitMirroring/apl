@@ -241,7 +241,8 @@ char suffix[100];   snprintf(suffix, sizeof(suffix), "%s_%s_%s_%s();",
 }
 //-----------------------------------------------------------------------------
 static void
-print_PH_macro(FILE * out, TableIndex e_idx, const _phrase & e)
+print_PH_macro(FILE * out, TableIndex e_idx, const _phrase & e,
+                TableIndex phrase_number)
 {
    // the first argument (phrase name) of the PH() macro in Prefix.def
    //
@@ -258,14 +259,14 @@ char suffix[100];   snprintf(suffix, sizeof(suffix), "%s_%s_%s_%s",
 
       if (strcmp(e.rn0, "none"))   // node with reduce function
          fprintf(out, "  PH( %-14s , %-14s, 0x%5.5X ,  %2d  ,  %2d  ,  %1d"
-                       " ,  %1d",
+                       " ,  %1d ,  %2d",
                    phrase_name, suffix, e.hash, e.prio, e.misc, e.len,
-                   e.can_shift);
+                   e.can_shift, phrase_number);
       else                         // internal node without reduce function
          fprintf(out, "  PH( %-14s , %-14s, 0x%5.5X ,  %2d  ,  %2d  ,  %1d"
-                       " ,  %1d",
+                       " ,  %1d ,  %2d",
                    phrase_name, "none", e.hash, e.prio, e.misc, e.len,
-                   e.can_shift);
+                   e.can_shift, phrase_number);
 
    fprintf(out, "),  // [%2.2X]\n", e_idx);
 }
@@ -310,7 +311,7 @@ int MODU = TC_MAX_PHRASE;
 
    fprintf(out,
 "//PH( phrase_name    , reduce_XXX()  ,   hash  , prio , misc , len, "
-"can_shift)\n"
+"can_shift, phrase_number)\n"
 "//═════════════════════════════════════════════════════════════════\n");
 
 const _phrase ** table = new const _phrase *[MODU];
@@ -324,7 +325,12 @@ const _phrase ** table = new const _phrase *[MODU];
 
    loop(ph, MODU)
        {
-         print_PH_macro(out, ph, *table[ph]);
+         // table[ph] points into phrase_table[]; the pointer difference is
+         // the phrase's number (0..PHRASE_COUNT-1), i.e. the same number
+         // shown in the first column of the PHRASE TABLE comment above.
+         //
+         const TableIndex phrase_number = table[ph] - phrase_table;
+         print_PH_macro(out, ph, *table[ph], phrase_number);
        }
    delete [] table;
 

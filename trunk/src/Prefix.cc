@@ -369,9 +369,9 @@ Prefix::locate_X(UCS_string & function) const
 //
 # define reduce_none 0
 
-# define PH(name, suffix, idx, prio, misc, len, can_shift)               \
+# define PH(name, suffix, idx, prio, misc, len, can_shift, phrase_number) \
    { #name, #suffix, &Prefix::reduce_ ## suffix, idx, prio, misc, len,   \
-     can_shift }
+     can_shift, phrase_number }
 
 const Prefix::Phrase Prefix::hash_table[] =
 {
@@ -452,6 +452,9 @@ again:   // aka. REDUCE
          than) ANY[] (e.g. A C, V C, V C ASS B) always wins outright;
          nothing can ever bind tighter, so no SHIFT is ever needed.
 
+         Note: prio < BS_ANY_BRA used to be tested here, but in now
+               factored into can_shift().
+
       2. do_shift()'s switch(at0().get_Class()) only ever returns true
          for a leading token class of TC_VALUE, TC_FUN12, or TC_SYMBOL;
          every other leading class hits its own 'default: return false'.
@@ -473,10 +476,9 @@ again:   // aka. REDUCE
    //
    Log(LOG_prefix_parser)
       {
-        CERR << "   phrase #" <<  (best_phrase - hash_table)
+        CERR << "   phrase #" <<  best_phrase->phrase_number
              << ": " << best_phrase->phrase_name
-             << " matches, prio " << best_phrase->prio
-             << ", calling reduce_" << best_phrase->reduce_name
+             << " matches, calling reduce_" << best_phrase->reduce_name
              << "()" << endl;
       }
 
@@ -1331,6 +1333,8 @@ TokenClass next = body[PC].get_Class();   // assume no next
               reduce_RBRA___();
               return true;   // do bind
             }
+
+         // case 2: fall through
        }
 
 //   Q1(next) Q1(at0())
@@ -1340,7 +1344,7 @@ TokenClass next = body[PC].get_Class();   // assume no next
    if (do_shift(next))   // i.e. shift
       {
         Log(LOG_prefix_parser)  CERR
-             << "   phrase #" << (best_phrase - hash_table)
+             << "   phrase #" << best_phrase->phrase_number
              << ": " << best_phrase->phrase_name
              << " matches, but prio " << best_phrase->prio
              << " is too small to call " << best_phrase->reduce_name
