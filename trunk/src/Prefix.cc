@@ -419,7 +419,7 @@ grow:    // aka. SHIFT
 
    Log(LOG_Shift_XXX)
       {
-        while (Output::get_column() < 50)   CERR << " ";
+        Output::indent(50);
         CERR << " yields: ";
         print_patterns(CERR, 3) << endl;
       }
@@ -532,7 +532,7 @@ const uint64_t inst = instance;
 
    Log(LOG_Reduce_XXX)
       {
-        while (Output::get_column() < 50)   CERR << " ";
+        Output::indent(50);
         CERR << " yields: ";
         print_patterns(CERR, 3) << endl;
       }

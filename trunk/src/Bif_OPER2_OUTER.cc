@@ -99,22 +99,19 @@ ShapeItem cols_B = B.get_cols();
         cols_B = 1;
       }
 
-   if (cols_A != rows_B)
-      {
-        // A∘B ←→ A +.× B must fail like any other +.× on a dimension
-        // mismatch; min(cols_A, rows_B) below would instead silently
-        // contract only the shorter of the two and return a
-        // mathematically wrong (but not OOB) result. (L14 from the
-        // external Bugs.md audit; testcases/Domino_stress.tc's Q∘R
-        // reconstruction check relied on the old lax behavior and was
-        // fixed alongside this to take the meaningful submatrix of Q
-        // explicitly, see testcases/Domino_stress.tc.)
-        MORE_ERROR() << "A∘B: the last axis of A (" << cols_A
-                     << ") does not match the first axis of B ("
-                     << rows_B << ")";
-        LENGTH_ERROR;
-      }
-
+   // NOTE (reverting r3469 / L14 from the external Bugs.md audit): a
+   // stricter "cols_A != rows_B -> LENGTH_ERROR" check was tried here
+   // (matching how +.× itself behaves) and reverted twice now: per
+   // apl.texi, A∘B (unlike A +.× B) has no requirement that cols_A
+   // equal rows_B — it implicitly zero-pads the shorter of the two,
+   // and min() below is exactly that: elements beyond len never enter
+   // the sum, equivalent to multiplying by 0-columns/0-rows that are
+   // "optimized away". testcases/Domino_stress.tc's ⌹[3]
+   // (QR-factorization) path relies on this: B ≡ Q∘R where Q is the
+   // full M×M orthogonal factor and R is the compact N×N triangular
+   // factor (M>N) — mathematically correct because R's rows past N
+   // are zero, so Q∘R ←→ Q[:,1:N]∘R, exactly the zero-pad identity.
+   //
 const ShapeItem len = min(cols_A, rows_B);
 
 Shape shape_Z(rows_A, cols_B);

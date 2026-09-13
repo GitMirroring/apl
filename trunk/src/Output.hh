@@ -95,6 +95,10 @@ public:
    /// return the current column (chars since last LF).
    static int get_column()
        { return output_column; }
+ 
+   /// add spaces until \b column is reached
+   static void indent(int column)
+      { while (output_column < column)   { cerr << ' ';   ++output_column; } }
 
    /// initialize terminal output (ANSI sequences)
    /// @param logit true to log initialization steps to the startup log
