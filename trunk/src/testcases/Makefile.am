@@ -7,7 +7,7 @@ DIST_SUBDIRS = invariants
 # put them into apl-x.x.tar.gz, but don't install them.
 #
 dist_noinst_DATA =                              \
-		0000_OBSOLETE_TESTCASES                 \
+        0000_OBSOLETE_TESTCASES                 \
         AAA0_Global_Settings.tc                 \
         AAA1.tc                                 \
         AAA2.tc                                 \
@@ -47,6 +47,7 @@ dist_noinst_DATA =                              \
         Disclose.tc                             \
         Disclose_with_axis.tc                   \
         Divide.tc                               \
+        Domino_stress.tc                        \
         Drop.tc                                 \
         Drop_with_axis.tc                       \
         DumpLoad.tc                             \

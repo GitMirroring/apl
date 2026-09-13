@@ -404,6 +404,7 @@ dist_noinst_DATA = \
         Disclose.tc                             \
         Disclose_with_axis.tc                   \
         Divide.tc                               \
+		Domino_stress.tc						\
         Drop.tc                                 \
         Drop_with_axis.tc                       \
         DumpLoad.tc                             \
