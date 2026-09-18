@@ -261,7 +261,8 @@ const UCS_string & failed_line = text[line];
 UCS_string failed_statement;
    {
      int l = 0;
-     bool in_string = false;
+     bool in_string = false;   // inside '...'
+     bool in_dquote = false;   // inside "..."
      int brace_depth = 0;
 
      loop(f, failed_line.size())
@@ -287,9 +288,36 @@ UCS_string failed_statement;
                 continue;
               }
 
+           if (in_dquote)
+              {
+                // unlike '...', a "..." string (Tokenizer::tokenize_
+                // string2()) closes on a plain, unescaped " and escapes
+                // with a leading backslash rather than doubling the
+                // quote -- so a ⋄ inside one, e.g. "⋄"⊃3 0⍴0, was still
+                // (mis)counted as a statement separator here. Bugs29 #2
+                // (Blake McBride), residual of Bugs28 #7.
+                if (uni == UNI_BACKSLASH && f + 1 < failed_line.ssize())
+                   {
+                     if (l == statement)
+                        failed_statement << uni << failed_line[f + 1];
+                     ++f;
+                     continue;
+                   }
+                if (uni == UNI_DOUBLE_QUOTE)   in_dquote = false;
+                if (l == statement)   failed_statement << uni;
+                continue;
+              }
+
            if (Avec::is_single_quote(uni))
               {
                 in_string = true;
+                if (l == statement)   failed_statement << uni;
+                continue;
+              }
+
+           if (uni == UNI_DOUBLE_QUOTE)
+              {
+                in_dquote = true;
                 if (l == statement)   failed_statement << uni;
                 continue;
               }

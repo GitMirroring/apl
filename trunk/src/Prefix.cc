@@ -2879,12 +2879,35 @@ Value_P top_val = top_sym->get_var_value();
                    pop_args_push_result(Token(TOK_APL_VALUE1, Z));
                  }
             }
-        else
+        else   // simple (non-nested) leaf member, e.g. scalar S.a
            {
-             Value_P Z(LOC);
-             Z->next_ravel_Cell(*member_cell);
-             Z->check_value(LOC);
-             pop_args_push_result(Token(TOK_APL_VALUE1, Z));
+             // Unlike the is_pointer_cell() branch above, this used to
+             // unconditionally build a disconnected read-only copy of
+             // the cell, ignoring ASS_arrow_seen entirely -- so a scalar
+             // leaf member could never be used as a selective-
+             // specification/assignment target, e.g. (S.a)←7 with S.a a
+             // scalar (SYNTAX ERROR, while the same with S.a a vector
+             // worked, via the is_pointer_cell() branch's own check).
+             // See Bugs29 #4 (Blake McBride).
+             if (get_assign_state() == ASS_arrow_seen)   // selective spec.
+                {
+                  set_assign_state(ASS_none);
+                  Value * owner = 0;
+                  Cell * mut_cell = top_val->get_member(members, owner, true);
+                  Assert(mut_cell);
+                  Value_P left_Z(LOC);
+                  const LvalCell left_cell(mut_cell, owner);
+                  left_Z->next_ravel_Cell(left_cell);
+                  left_Z->check_value(LOC);
+                  pop_args_push_result(Token(TOK_APL_VALUE2, left_Z));
+                }
+             else
+                {
+                  Value_P Z(LOC);
+                  Z->next_ravel_Cell(*member_cell);
+                  Z->check_value(LOC);
+                  pop_args_push_result(Token(TOK_APL_VALUE1, Z));
+                }
            }
       }
 

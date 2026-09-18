@@ -181,6 +181,20 @@ const int qio = Workspace::get_IO();
 Value_P Z(len_BZ, LOC);
 int64_t * dst = reinterpret_cast<int64_t *>(&Z->get_wfirst());
 
+   // fast path for comp_len == 0 (e.g. 3 0⍴0): every "row" is empty, so
+   // all rows compare equal and the (stable) result is their original
+   // index order. Cell::sorted_indices() sizes its vector by
+   // element_count()/comp_len, i.e. 0/0, leaving it empty while len_BZ
+   // (here 3) is not -- the caller below then reads past it. See
+   // Bugs29 #1 (Blake McBride), a regression from the Bugs28 #25 fix.
+   if (comp_len == 0)
+      {
+        loop(b, len_BZ)   dst[b] = b + qio;
+        Z->commit_ravel_Int64(len_BZ);
+        Z->check_value(LOC);
+        return Token(TOK_APL_VALUE1, Z);
+      }
+
    // fast path for 1D INT64/FLOAT64: std::stable_sort avoids Cell dispatch
    if (comp_len == 1)
       {

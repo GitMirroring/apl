@@ -1833,8 +1833,21 @@ bool progress = false;
 
          int pos_B = pos_RO + len_y;
 
-         if (pos_B >= int(tos.size()) ||
-             tos[pos_B].get_Class() == TC_R_PARENT)   // ( LO ⍤ RO ) or EOS
+         if (pos_B >= int(tos.size()))   continue;   // ⍤ y at EOS: no RO
+
+         // Normally "( LO ⍤ y )" already sitting inside one pair of
+         // parens is left alone here -- Prefix::reduce_A_B__() handles
+         // it directly once the parenthesized group is evaluated. But
+         // when LO itself carries a trailing bracket axis (e.g.
+         // ⌽[1]⍤2), Prefix's parenthesis reduction cannot parse
+         // "LO[axis] ⍤ y" as a single derived function -- it needs the
+         // same narrower (LO[axis])⍤y grouping produced below as the
+         // unparenthesized case does. See Bugs28 #59 / Bugs29 #3
+         // (Blake McBride).
+         const bool LO_has_axis = pos_RANK > 0 &&
+                                   tos[pos_RANK - 1].get_tag() == TOK_R_BRACK;
+         if (!LO_has_axis &&
+             tos[pos_B].get_Class() == TC_R_PARENT)   // ( LO ⍤ y )
             {
               continue;
             }
