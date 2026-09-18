@@ -1052,6 +1052,30 @@ usage()
 int
 main(int argc, char * argv[])
 {
+   // Bugs8 #3 (Blake McBride) / Bugs27 #59(g) (Bill Heagy): the main
+   // interpreter sets SIGCHLD to SIG_IGN ("do not create zombies")
+   // before popen()-ing this binary (Svar_DB.cc), and SIG_IGN survives
+   // exec (POSIX), so without this reset APserver inherits it. With
+   // SIGCHLD ignored, POSIX/Linux auto-reaps a child the instant it
+   // exits, so the popen()/pclose() pair below (launching each AP
+   // instance on demand) has its pclose() race its own child's exit:
+   // if the child is already auto-reaped by the time pclose()'s
+   // internal waitpid() runs, pclose() fails with ECHILD and returns
+   // -1. Unlike AP100/AP210 (APmain.cc's shared main() already does
+   // this same reset), APserver.cc has always had its own independent
+   // main() -- Makefile.am's APserver_SOURCES does not pull in
+   // APmain.cc -- so it never got this reset and ran with SIGCHLD
+   // possibly stuck at SIG_IGN for its entire daemon lifetime, not just
+   // a narrow startup window. Nothing in this file ever sets SIGCHLD
+   // back to SIG_IGN afterward, so -- exactly as for AP100/AP210 -- a
+   // single reset here, before anything else (including any fork()
+   // this process does to daemonize), is sufficient for the process's
+   // whole lifetime.
+   //
+#if ! MINGW_SRC
+   signal(SIGCHLD, SIG_DFL);
+#endif // ! MINGW_SRC
+
 #if MINGW_SRC
    // Winsock must be initialised before any socket() call.
    { WSADATA wsa; WSAStartup(MAKEWORD(2, 2), &wsa); }

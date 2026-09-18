@@ -272,7 +272,7 @@ DOMAIN ERROR+
 
       )MORE
 member access: '⎕IO' is a ⎕-name and cannot be used as a member name
-)SIC
+      )SIC
 
       ⍝ control: an ordinary member is unaffected
       ⍝

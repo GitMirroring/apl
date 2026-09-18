@@ -82,7 +82,7 @@ AXIS ERROR+
 
       )MORE
 Invalid Token type for function axis.
-)SIC
+      )SIC
 
       ⍝ regression (Bugs28 #91): two bracket axes on a reduce or scan
       ⍝ were both accepted, with the FIRST one silently discarded --

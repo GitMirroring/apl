@@ -71,6 +71,21 @@ const int result = reader.close();
                            << errno << " (" << strerror(errno) << ")" << endl;
       }
 
+   // result == -1 means pclose() itself failed (typically waitpid()
+   // returning ECHILD because the child was already reaped elsewhere,
+   // e.g. by a SIGCHLD-disposition race -- see sys_popen()/sys_pclose()
+   // in Sys.hh) rather than reporting the child's own termination.  That
+   // is not an exit code at all, and printing the bare -1 here used to
+   // look exactly like one (indistinguishable from a real
+   // WEXITSTATUS()==-1-shaped value to anyone reading the transcript).
+   // Report it as the system failure it is instead.
+   if (result == -1)
+      {
+        out << endl << ")HOST: pclose() failed: " << strerror(errno)
+            << endl;
+        return;
+      }
+
    // result is pclose()'s raw wait status (WIFEXITED/WEXITSTATUS-
    // encoded), not the child's exit code directly -- )HOST 'exit 3'
    // used to print 768 (3<<8) instead of 3. Decode it for a

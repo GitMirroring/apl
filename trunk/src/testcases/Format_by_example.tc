@@ -153,31 +153,31 @@ Hello     33.
 DOMAIN ERROR+
       '9E'⍕0
       ^    ^
-)SIC
+      )SIC
 
       '99E'⍕0
 DOMAIN ERROR+
       '99E'⍕0
       ^     ^
-)SIC
+      )SIC
 
       '9EE'⍕0
 DOMAIN ERROR+
       '9EE'⍕0
       ^     ^
-)SIC
+      )SIC
 
       '9E '⍕0
 DOMAIN ERROR+
       '9E '⍕0
       ^     ^
-)SIC
+      )SIC
 
       '9.7E'⍕0
 DOMAIN ERROR+
       '9.7E'⍕0
       ^      ^
-)SIC
+      )SIC
 
       '9.9E'⍕1.5
 1.5E

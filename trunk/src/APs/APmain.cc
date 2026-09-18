@@ -190,13 +190,22 @@ bool auto_started = false;
 
    // Bugs8 #3 (Blake McBride): src/main.cc sets SIGCHLD to SIG_IGN ("do
    // not create zombies") before execve()ing this AP binary. SIG_IGN
-   // survives execve() (POSIX), so without this reset every AP inherits
-   // it and any raw popen()/pclose() it does (e.g. AP100.cc, APserver.cc)
-   // has its pclose() always fail with ECHILD and return -1, which
-   // AP100.cc's "result >> 8 & 0xFF" then turns into a bogus exit status
-   // of 255 for every host command. Reset here (before the fork() below,
-   // so the forked child -- which is the AP that actually runs -- starts
-   // from a sane signal state too) rather than in each AP individually.
+   // survives execve() (POSIX), so without this reset every AP linked
+   // against this shared main() (AP100, AP210 -- see APs/Makefile.am's
+   // common_files) inherits it, and any raw popen()/pclose() it does
+   // (e.g. AP100.cc) has its pclose() always fail with ECHILD and
+   // return -1, which AP100.cc's "result >> 8 & 0xFF" then turns into a
+   // bogus exit status of 255 for every host command. Reset here
+   // (before the fork() below, so the forked child -- which is the AP
+   // that actually runs -- starts from a sane signal state too) rather
+   // than in each such AP individually.
+   //
+   // NOTE: APserver does NOT link this file -- APserver_SOURCES in
+   // APs/Makefile.am gives it its own independent main() -- so this
+   // reset does not reach it. It went unprotected for a while (Bugs27
+   // #59(g), Bill Heagy) until it got the identical reset directly in
+   // its own main() (APserver.cc); keep that in sync with this one if
+   // either changes.
    //
 #if ! MINGW_SRC
    signal(SIGCHLD, SIG_DFL);

@@ -553,7 +553,7 @@ enum RavelType
 /// bits 0-3: the four VF_ flags; bits 4-19: ravel_type; bits 20-27: value_depth; bits 28-31: spare.
 struct VF_Flags
 {
-   uint32_t complete    :  1;   ///< CHECK called
+   uint32_t complete    :  1;   ///< check_value() called
    uint32_t marked      :  1;   ///< marked to detect stale
    uint32_t temp        :  1;   ///< computed value
    uint32_t member      :  1;   ///< used for member access

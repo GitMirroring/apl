@@ -69,7 +69,7 @@ LENGTH ERROR+
 
       )MORE
 A[B]←C: an index is empty, so the selected area is empty, but C has 2 element(s) (expecting 0)
-)SIC
+      )SIC
 
       ⍝ control: a conforming (empty) B through an empty index is a
       ⍝ genuine no-op
@@ -104,7 +104,7 @@ RANK ERROR+
 
       )MORE
 A[B]←C: expecting ⍴⍴C = 1 (a vector); ⍴⍴C is 2
-)SIC
+      )SIC
 
       ⍝ control: a proper vector and a 1-element (scalar-extended) C
       ⍝ are unaffected

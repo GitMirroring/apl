@@ -102,9 +102,9 @@ public:
    /// count and report a parse error
    static void syntax_error();
 
-   /// reset APL errors, expecting cnt
-   /// @param arg string containing the expected error count
-   static void expect_apl_errors(const UCS_string & arg);
+   /// reset APL errors, expecting at most max_cnt errors
+   /// @param max_cnt the expected error count
+   static void expect_apl_errors(int max_cnt);
 
    /// count an APL error
    /// @param loc caller location for diagnostics

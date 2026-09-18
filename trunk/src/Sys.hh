@@ -275,12 +275,25 @@ public:
 /// @param mode open mode passed to popen() (e.g. "r" or "w")
 inline FILE * sys_popen(const char * command, const char * mode)
 {
-FILE * file = popen(command, mode);
-
+   // Restore SIGCHLD to its default disposition BEFORE popen() forks the
+   // child, not after. sys_pclose() below leaves SIGCHLD as SIG_IGN at
+   // rest (elsewhere in the interpreter that relies on children being
+   // auto-reaped without an explicit wait()); popen()'s own child can
+   // exit before control ever reaches a signal() call placed after
+   // popen() returns, and while SIGCHLD is still SIG_IGN, POSIX/Linux
+   // auto-reaps an exiting child the instant it exits. If that race is
+   // hit, pclose()'s internal waitpid() later finds no child left to
+   // wait for, fails with ECHILD, and pclose() returns -1 instead of the
+   // real wait status -- confirmed via a Bugs27 #59(g) regression report
+   // (Bill Heagy) on a slow single-core 32-bit machine, where a `)HOST
+   // exit 3` reliably printed -1 instead of 3. signal() takes effect
+   // synchronously in this thread, so doing it first closes the window
+   // entirely: the child can never be forked while SIGCHLD is IGN.
 #if ! MINGW_SRC
    signal(SIGCHLD, SIG_DFL);
 #endif // ! MINGW_SRC
 
+FILE * file = popen(command, mode);
    return file;
 }
 //────────────────────────────────────────────────────────────────────────────
@@ -290,6 +303,10 @@ inline int sys_pclose(FILE *stream)
 {
 const int ret = pclose(stream);
 
+   // Back to SIG_IGN at rest now that this popen()/pclose() pair is
+   // done -- see sys_popen() above for why the two must stay paired in
+   // exactly this order (SIG_DFL only from just before popen() to just
+   // after pclose()).
 #if ! MINGW_SRC
    signal(SIGCHLD, SIG_IGN);
 #endif // ! MINGW_SRC

@@ -91,7 +91,7 @@ int format = arg.atoi();
 void
 Cmd_SESSION::cmd_EXPECT(ostream & out, const UCS_string & arg)
 {
-   IO_Files::expect_apl_errors(arg);
+   IO_Files::expect_apl_errors(arg.atoi());
 }
 //────────────────────────────────────────────────────────────────────────────
 void

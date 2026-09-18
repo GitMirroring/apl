@@ -218,25 +218,25 @@ f
 DOMAIN ERROR
       ⎕UCS 17 ⎕CR '=AAA'
            ^      ^
-)SIC
+      )SIC
 
       ⎕UCS 17 ⎕CR '===='
 DOMAIN ERROR
       ⎕UCS 17 ⎕CR '===='
            ^      ^
-)SIC
+      )SIC
 
       ⎕UCS 17 ⎕CR 'QQ==QQ=='
 DOMAIN ERROR
       ⎕UCS 17 ⎕CR 'QQ==QQ=='
            ^      ^
-)SIC
+      )SIC
 
       ⎕UCS 17 ⎕CR 'AA=A'
 DOMAIN ERROR
       ⎕UCS 17 ⎕CR 'AA=A'
            ^      ^
-)SIC
+      )SIC
 
       5 ⎕CR 18 ⎕CR '123∆⎕'
 313233E28886E28E95
@@ -804,7 +804,7 @@ DOMAIN ERROR+
 
       )MORE
 the parser returned error code: Unbalanced left parenthesis
-)SIC
+      )SIC
 
       )CHECK
 OK      - no stale functions

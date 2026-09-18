@@ -31,7 +31,7 @@
 
 // primitive function instance
 //
-Bif_F1_EXECUTE    Bif_F1_EXECUTE   ::fun;    // ⍎
+Bif_F1_EXECUTE Bif_F1_EXECUTE::fun;    // ⍎
 
 int Bif_F1_EXECUTE::copy_pending = 0;
 

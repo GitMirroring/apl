@@ -545,7 +545,7 @@ DOMAIN ERROR+
 
       )MORE
 argument 0 is complex and cannot be used with integer format '%d' in A ⎕FIO.snprintf B
-)SIC
+      )SIC
 
       '%f' ⎕FIO[58] 1J2
 DOMAIN ERROR+
@@ -554,7 +554,7 @@ DOMAIN ERROR+
 
       )MORE
 argument 0 is complex and cannot be used with format '%f' in A ⎕FIO.snprintf B
-)SIC
+      )SIC
 
       ⍝ control: a tolerantly real complex argument is unaffected
       ⍝

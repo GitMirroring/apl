@@ -789,12 +789,12 @@ Unicode_source src(input);
                    ++src;        // skip ←
                    if (rest_2 > 1 && *src == UNI_LEFT_ARROW)         // ←←
                       {
-                        ++src;
+                        ++src;   // skip second ←
                         tos.push_back(Token(TOK_IF_END, int64_t(0)));
                       }
                    else if (rest_2 > 1 && *src == UNI_RIGHT_ARROW)   // →→
                       {
-                        ++src;
+                        ++src;   // skip second →
                         tos.push_back(Token(TOK_IF_ELSE, int64_t(0)));
                       }
                    else
@@ -807,15 +807,17 @@ Unicode_source src(input);
                                    tos[tos.size() - 2].get_tag() == TOK_COLON;
                      
                       /* change tos.get_tag() from  TOK_R_ARROW to TOK_ASSIGN1
-                         in the following cases:
+                         in the following 3 cases:
 
-                           SYM ←   (at the start of line),        or
-                         ◊ SYM ←   (at the start of statement),   or
-                         : SYM ←   (at the start of statement after label)
+                         1.      SYM ←   (at the start of line),        or
+                         2.    ◊ SYM ←   (at the start of statement),   or
+                         3.    : SYM ←   (at the start of statement after label)
 
                          or else leave it as is (.
                        */
-                      if (sym && ((tos.size() == 1) || dia || col))
+                      if (sym && ((tos.size() == 1) ||   // case 1.
+                          dia                       ||   // case 2.
+                          col))                          // case 3.
                          {
                            tos.push_back(TOK_ASSIGN1);
                          }

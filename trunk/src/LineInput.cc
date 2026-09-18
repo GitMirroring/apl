@@ -714,6 +714,18 @@ bool interactive = (mode == LIM_Quote_Quad) || (mode == LIM_Quad_Quad);
                   case LIM_ImmediateExecution:
                   case LIM_Quad_Quad:
                   case LIM_Quad_INP:
+                       // a .tc testcase file conventionally indents an
+                       // input line with the same prompt the interpreter
+                       // is about to print, so that the file reads like
+                       // a real session transcript. Without this, the
+                       // echo below would show the prompt twice (once
+                       // from CIN << prompt, once from the file's own
+                       // copy still sitting at the front of line).
+                       //
+                       if (InputFile::is_validating() &&
+                           line.starts_with(prompt))
+                          line = UCS_string(line, prompt.size());
+
                        CIN << prompt << line << endl;
                        break;
 
