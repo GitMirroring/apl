@@ -353,6 +353,10 @@ IO_Files::open_next_file()
                 CERR << "could not open "
                      << InputFile::current_filename() << endl;
                 InputFile::files_todo.erase(InputFile::files_todo.begin());
+
+                if (UserPreferences::uprefs.auto_OFF &&
+                    ! InputFile::files_todo.size())   Command::cmd_OFF(0);
+
                 continue;
               }
 

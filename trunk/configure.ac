@@ -520,6 +520,7 @@ AC_CONFIG_FILES([Makefile
                  gnu-apl.d/Makefile
                  gnu-apl.d/preferences
                  HOWTOs/Makefile
+                 HOWTOs/Bible/Makefile
                  rpm/Makefile
                  rpm/apl.spec
                  src/Makefile

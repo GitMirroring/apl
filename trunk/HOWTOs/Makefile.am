@@ -1,4 +1,6 @@
 
+SUBDIRS = Bible
+
 # HTML files generated from ASCIIDOC sources
 #
 ASCIIDOC = \
