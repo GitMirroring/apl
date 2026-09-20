@@ -4,15 +4,15 @@ SUBDIRS = Bible
 # HTML files generated from ASCIIDOC sources
 #
 ASCIIDOC = \
-    APL-Communication-Cookbook.asciidoc \
-    Parallel-APL.asciidoc               \
-    Quad-GTK.asciidoc                   \
-    GNU-APL-Memory-Management.asciidoc  \
-    GNU-APL-Troubleshooting.asciidoc    \
-    GNU-APL-Designers-Guide.asciidoc    \
-    GNU-APL-Performance.asciidoc        \
-    LApack-primer.asciidoc              \
-    GNU-APL-Windows-11.asciidoc
+    APL-Communication-Cookbook.adoc \
+    Parallel-APL.adoc               \
+    Quad-GTK.adoc                   \
+    GNU-APL-Memory-Management.adoc  \
+    GNU-APL-Troubleshooting.adoc    \
+    GNU-APL-Designers-Guide.adoc    \
+    GNU-APL-Performance.adoc        \
+    LApack-primer.adoc              \
+    GNU-APL-Windows-11.adoc
 
 HTML = \
     APL-Communication-Cookbook.html \
@@ -64,10 +64,10 @@ ADOC = asciidoc                # use asciidoc
 #
 all: LApack-primer.pdf
 
-# use asciidoc (if installed) to convert .asciidoc to .html
+# use asciidoc (if installed) to convert .adoc to .html
 # The .html has a stupid <noscript> tag that needs to be removed
 # in order to properly display the Table of Contents.
-.asciidoc.html:
+.adoc.html:
 	@if [ -z `which asciidoc` ] ; then touch $@ ;        \
 	else asciidoc -a icons -o $@ $< ;                    \
         sed -i 's|Cpp|C++|g'                        $@ ; \

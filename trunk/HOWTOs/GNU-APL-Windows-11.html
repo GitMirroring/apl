@@ -737,7 +737,6 @@ asciidoc.install(4);
 <h1>GNU APL on Windows 11</h1>
 <div id="toc">
   <div id="toctitle">Table of Contents</div>
-  <noscript><p><b>JavaScript must be enabled in your browser to display the table of contents.</b></p></noscript>
 </div>
 </div>
 <div id="content">
@@ -761,7 +760,7 @@ libraries.</p></div>
 <div class="paragraph"><p>On the GNU/Linux operating system, compiling GNU APL is relatively easy. The
 requirements of GNU APL on its environment - the display of APL characters
 on the screen and the generation of APL characters by the keyboard - are
-already satisfied by almost all modern GNU/Linux distribution and the missing
+already satisfied by almost all modern GNU/Linux distributions and the missing
 pieces can easily be added via the package manager of the linux distribution.</p></div>
 <div class="paragraph"><p>Even for the latest Windows version - Windows 11 as of this writing -
 the situation is more complicated. On Windows the user has to install a
@@ -779,7 +778,9 @@ APL character, so no additional keyboard software needs to be installed.</p></di
 you just want to <strong>use</strong> it or want to <strong>build</strong> it yourself:</p></div>
 <div class="listingblock">
 <div class="content">
-<pre><code>GNU APL on Windows: which path do you need?
+<pre>
+
+<code>GNU APL on Windows: which path do you need?
 │
 ├─ Build it yourself
 │  │
@@ -808,7 +809,9 @@ you just want to <strong>use</strong> it or want to <strong>build</strong> it yo
       │
       ▼
       GNU_APL_Font_Setup.exe   (GUI installer), or
-      install_GNU_APL_font.bat (no-GUI script)</code></pre>
+      install_GNU_APL_font.bat (no-GUI script)</code>
+
+</pre>
 </div></div>
 <div class="sect2">
 <h3 id="_for_windows_users_install_a_pre_built_release">For Windows users: install a pre-built release</h3>
@@ -839,7 +842,7 @@ the full mirror list). Two installers are provided:</p></div>
 <div class="admonitionblock">
 <table><tr>
 <td class="icon">
-<div class="title">Note</div>
+<img src="./images/icons/note.png" alt="Note" />
 </td>
 <td class="content">As explained in the Introduction above, <strong>apl.exe</strong> is built against
 whatever optional libraries happen to be available in the (cross-)
@@ -864,7 +867,11 @@ Savannah Subversion repository with a plain web browser, without needing
 an SVN or git client:</p></div>
 <div class="literalblock">
 <div class="content">
-<pre><code>http://svn.savannah.gnu.org/viewvc/apl/trunk</code></pre>
+<pre>
+
+<code>http://svn.savannah.gnu.org/viewvc/apl/trunk</code>
+
+</pre>
 </div></div>
 <div class="paragraph"><p>Look under <strong>support-files/fonts/</strong> for the font installer (NOTE: like any
 public server, this one occasionally returns a temporary error - e.g. a
@@ -878,20 +885,32 @@ fetch the sources from Savannah (Subversion is preferred; Git is also
 available) and build as usual:</p></div>
 <div class="literalblock">
 <div class="content">
-<pre><code>svn co http://svn.savannah.gnu.org/svn/apl/trunk apl-2.0</code></pre>
+<pre>
+
+<code>svn co http://svn.savannah.gnu.org/svn/apl/trunk apl-2.0</code>
+
+</pre>
 </div></div>
 <div class="paragraph"><p>or</p></div>
 <div class="literalblock">
 <div class="content">
-<pre><code>git clone https://git.savannah.gnu.org/git/apl.git apl-2.0</code></pre>
+<pre>
+
+<code>git clone https://git.savannah.gnu.org/git/apl.git apl-2.0</code>
+
+</pre>
 </div></div>
 <div class="paragraph"><p>then:</p></div>
 <div class="literalblock">
 <div class="content">
-<pre><code>cd apl-2.0
+<pre>
+
+<code>cd apl-2.0
 ./configure
 make
-make install</code></pre>
+make install</code>
+
+</pre>
 </div></div>
 <div class="paragraph"><p>This is the same procedure used on GNU/Linux, and is also what you would
 use to build and run GNU APL <strong>on</strong> Windows itself (via Cygwin or WSL); see
@@ -901,8 +920,12 @@ machine (e.g. to produce the pre-built binary mentioned above), use
 <strong>--with-mingw</strong> instead of a plain <strong>./configure</strong>:</p></div>
 <div class="literalblock">
 <div class="content">
-<pre><code>./configure --with-mingw
-make</code></pre>
+<pre>
+
+<code>./configure --with-mingw
+make</code>
+
+</pre>
 </div></div>
 <div class="paragraph"><p>This presets the MinGW-w64 cross-compiler (<strong>x86_64-w64-mingw32-g++</strong>) and
 related flags, and disables libraries that are impractical to
@@ -1051,7 +1074,7 @@ In older Windows and/or <strong>Cygwin</strong> versions the usual keyboard mapp
 <p>
 Interestingly, <strong>WSL</strong> lets you choose the GNU/Linux version that it emulates.
   But then the same GNU/Linux version that works fine on a true GNU/Linux
-  version fails under <strong>WSL</strong>. IOW <strong>WSL</strong> seems to be somewhat half-hearted
+  version fails under <strong>WSL</strong>. IOW <strong>WSL</strong> seems to be somewhat half-hearted.
 </p>
 </li>
 </ol></div>
@@ -1195,7 +1218,7 @@ This step requires administrator privileges.</p></div>
 <div class="admonitionblock">
 <table><tr>
 <td class="icon">
-<div class="title">Note</div>
+<img src="./images/icons/note.png" alt="Note" />
 </td>
 <td class="content">The <code>Console\TrueTypeFont</code> registry key often does <strong>not</strong> exist on a
 fresh Windows installation.  The <code>reg add</code> command below creates it
@@ -1206,7 +1229,11 @@ automatically if it is absent.</td>
 <strong>Run as administrator</strong>) and run:</p></div>
 <div class="literalblock">
 <div class="content">
-<pre><code>reg add "HKLM\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Console\TrueTypeFont" /v 0 /t REG_SZ /d "GNU_APL" /f</code></pre>
+<pre>
+
+<code>reg add "HKLM\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Console\TrueTypeFont" /v 0 /t REG_SZ /d "GNU_APL" /f</code>
+
+</pre>
 </div></div>
 </div>
 <div class="sect3">
@@ -1250,7 +1277,7 @@ Click <strong>OK</strong>.
 <div class="admonitionblock">
 <table><tr>
 <td class="icon">
-<div class="title">Note</div>
+<img src="./images/icons/note.png" alt="Note" />
 </td>
 <td class="content">An index of alternative APL fonts (in case GNU_APL does not suit
 your needs) is maintained at <a href="https://sigapl.org/fonts/FontsIndex.php">https://sigapl.org/fonts/FontsIndex.php</a></td>
@@ -1319,7 +1346,7 @@ Typing <code>^N</code> toggles a permanent APL mode: all subsequent characters a
 <div class="admonitionblock">
 <table><tr>
 <td class="icon">
-<div class="title">Note</div>
+<img src="./images/icons/note.png" alt="Note" />
 </td>
 <td class="content">On Windows, <code>^O</code> is used as the single-character trigger instead of
 <code>^A</code>, because the Windows 10/11 console intercepts <code>^A</code> as "select all"
@@ -1334,7 +1361,11 @@ own mapping, see <strong>src/LineInput.cc</strong> and search for <strong>cfg_AL
 <div class="paragraph"><p>When building from source, enable the mapper with:</p></div>
 <div class="literalblock">
 <div class="content">
-<pre><code>./configure ALT_MAP_WANTED=1</code></pre>
+<pre>
+
+<code>./configure ALT_MAP_WANTED=1</code>
+
+</pre>
 </div></div>
 </div>
 </div>
@@ -1443,7 +1474,7 @@ library path via <code>wslib3/meta.apl</code>; the last line reads back system v
 <div id="footer">
 <div id="footer-text">
 Last updated
- 2026-06-26 16:04:26 CEST
+ 2026-09-19 18:16:24 CEST
 </div>
 </div>
 </body>

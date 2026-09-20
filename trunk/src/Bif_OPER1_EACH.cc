@@ -295,6 +295,11 @@ Value_P Z;
         if (left_val)
            {
              Cell * dest = cB.get_lval_value();
+             // target can be 0! (Value.cc:502's own comment) -- e.g.
+             // a selective assignment through an over-take of an
+             // empty vector, (1 2+¨1↑⍬)←1 2: dereferencing it
+             // unconditionally segfaults instead of a clean error.
+             if (dest == 0)   INDEX_ERROR;
              if (dest->is_pointer_cell())
                 {
                   Value_P sub = dest->get_pointer_value();

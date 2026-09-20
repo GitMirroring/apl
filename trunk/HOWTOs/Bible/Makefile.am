@@ -33,9 +33,10 @@
 # pass is deliberately NOT reused here -- syntax-highlighted code looks
 # better in colour for this purpose.
 
-# dist_doc_Bible_DATA = \
-#   README            \
-#   Bible-Preview.pdf
+dist_doc_Bible_DATA =
+# dist_doc_Bible_DATA += README Bible-Preview.pdf
+
+all: $(dist_doc_Bible_DATA)
 
 doc_Bibledir = $(docdir)/Bible
 
@@ -51,7 +52,6 @@ PREVIEW_DEPS = \
     ../../Book/ch02.adoc \
     ../../Book/ch03.adoc
 
-# all: Bible-Preview.pdf
 
 # front_cover.png is a checked-in crop of Book/cover/cover_print_rgb.pdf's
 # front panel (the finished cover artwork, trim size only, no bleed) --

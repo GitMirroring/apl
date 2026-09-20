@@ -1141,7 +1141,7 @@ option was expected to be significantly larger than for the third option.</p></d
 of concern in the context of memory management are APL values.</p></div>
 <div class="paragraph"><p><strong>Note:</strong> The default values of system variable ⎕SYL (aka. system limits)
 guarantee to some extent that an APL program behaves like a typical APL
-program,</p></div>
+program.</p></div>
 </div>
 </div>
 <div class="sect1">
@@ -1187,7 +1187,7 @@ A direct consequence of virtual memory is that the size of it is no longer
   properties like the number of bits in the virtual memory addresses. This
   makes it impossible to determine initial-⎕WA (more precisely: ⎕WA is no
   longer a constant but becomes dependent on what happens not only in the APL
-  interpreter itself but also in other processes and/or in the kernel.
+  interpreter itself but also in other processes and/or in the kernel).
 </p>
 </li>
 <li>
@@ -1249,7 +1249,7 @@ The third case is much easier by creating a very large APL value. It is also
 the case that has been observed in reality.</p></div>
 <div class="paragraph"><p>In GNU/Linux, one can protect individual processes from being killed by the
 OOM handler with the following command (as root; &lt;PID&gt; is the process ID of
-the process to be protected:</p></div>
+the process to be protected):</p></div>
 <div class="listingblock">
 <div class="content">
 <pre>
@@ -1559,7 +1559,7 @@ if one of the subsequent (small) allocations fails then (since the previous
 </ol></div>
 <div class="paragraph"><p>Exception handling with only 1024 bytes left can fail as can be demonstrated
 on a 32-bit machine quite easily. The following examples show both cases (with
-safety margin disabled in order to allow near-memory-starvation.</p></div>
+safety margin disabled in order to allow near-memory-starvation).</p></div>
 </div>
 <div class="sect3">
 <h4 id="_example_1_ws_full_with_sufficient_free_memory_left">Example 1: WS FULL with sufficient free memory left</h4>
@@ -1803,7 +1803,7 @@ ulimit to protect processes from each other,
 <div id="footer">
 <div id="footer-text">
 Last updated
- 2026-05-21 12:55:50 CEST
+ 2026-09-19 18:16:20 CEST
 </div>
 </div>
 </body>
