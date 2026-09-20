@@ -115,3 +115,63 @@ ZZ35G
 Z←0⍴0
 
       )ERASE ZZ35F ZZ35G
+
+      ⍝ Bugs30 #1 regression: LO¨ as a selective-assignment target.
+      ⍝
+      ⍝ A NULL lvalue (an over-take of an empty vector, 1↑V for empty
+      ⍝ V) used to segfault Bif_OPER1_EACH::do_eval_LB instead of
+      ⍝ erroring cleanly; fixed by guarding dest==0 the same way the
+      ⍝ dyadic branch now does (see Each_dyadic.tc). No display after
+      ⍝ these: a selective assignment produces none (LRM p.41).
+
+      V←⍬
+      (,¨1↑V)←,1
+INDEX ERROR
+      (,¨1↑V)←1
+       ^      ^
+      (⌽¨1↑V)←,1
+INDEX ERROR
+      (⌽¨1↑V)←1
+       ^      ^
+      (⊂¨1↑V)←,1
+INDEX ERROR
+      (⊂¨1↑V)←1
+       ^      ^
+
+      ⍝ leaves 3 )SI entries for the failed immediate executions above.
+      ⍝
+      )SIC
+
+      ⍝ a primitive (structural) LO must still work, per src/Value.cc's
+      ⍝ own doc-comment example for LO¨ as a selective-assignment
+      ⍝ target.
+
+      V←'v' 'vw' 'vwx' 'vwxyz'
+      (2↑¨V)←5
+      4 ⎕CR V
+┏→━━━━━━━━━━━━━━━━━━━━━━━━┓
+┃5 ┏→━━┓ ┏→━━━━┓ ┏→━━━━━━┓┃
+┃  ┃5 5┃ ┃5 5 x┃ ┃5 5 xyz┃┃
+┃  ┗∼━━┛ ┗+━━━━┛ ┗+━━━━━━┛┃
+┗ϵ━━━━━━━━━━━━━━━━━━━━━━━━┛
+
+      ⍝ a defined LO must never see a selective-assignment target's
+      ⍝ live LvalCell (it could smuggle it out into unrelated storage
+      ⍝ via an ordinary side effect and leave a dangling reference
+      ⍝ once the original array is freed); reject it up front instead.
+      ⍝ Before this guard, an identity dfn like F here would silently
+      ⍝ "work" by forwarding the LvalCell unchanged -- that accident
+      ⍝ is exactly the hole being closed, so it must now be SYNTAX
+      ⍝ ERROR regardless of what F does.
+
+      F←{⍵}
+      W←1 2 3
+      (F¨W)←9 9 9
+SYNTAX ERROR
+      (F¨W)←9 9 9
+       ^    ^
+
+      ⍝ leaves an )SI entry for the failed immediate execution above.
+      ⍝
+      )SIC
+      )ERASE F

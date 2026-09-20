@@ -96,3 +96,51 @@
 
       ⎕IO←1
 
+      ⍝ Bugs30 #1 regression: L LO¨ R as a selective-assignment target.
+      ⍝
+      ⍝ A NULL lvalue (an over-take of an empty vector, 1↑V for empty
+      ⍝ V) used to segfault Bif_OPER1_EACH::eval_ALB instead of
+      ⍝ erroring cleanly; fixed by guarding dest==0 the same way the
+      ⍝ already-fixed monadic branch does (see Each_monadic.tc). No
+      ⍝ display after these: a selective assignment produces none
+      ⍝ (LRM p.41).
+
+      V←⍬
+      (1⌽¨1↑V)←1
+INDEX ERROR
+      (1⌽¨1↑V)←1
+       ^       ^
+
+      ⍝ leaves an )SI entry for the failed immediate execution above.
+      ⍝
+      )SIC
+
+      ⍝ a primitive (structural) LO must still work: ⌽ (rotate) is
+      ⍝ itself independently on the LRM's selective-specification
+      ⍝ whitelist, unlike a value-interpreting scalar function such
+      ⍝ as + (see Bugs30 #1 write-up: A+¨B on a non-nested target is
+      ⍝ its own, separate, still-open defect -- not tested here).
+
+      V←,5
+      (1⌽¨1↑V)←1
+      V
+1
+
+      ⍝ a defined LO must never see a selective-assignment target's
+      ⍝ live LvalCell (it could smuggle it out into unrelated storage
+      ⍝ via an ordinary side effect and leave a dangling reference
+      ⍝ once the original array is freed); reject it up front instead,
+      ⍝ for both operands of a dyadic each.
+
+      K←{⍺}
+      W←1 2 3
+      (1 1 1 K¨W)←9 9 9
+SYNTAX ERROR
+      (1 1 1 K¨W)←9 9 9
+       ^          ^
+
+      ⍝ leaves an )SI entry for the failed immediate execution above.
+      ⍝
+      )SIC
+      )ERASE K
+

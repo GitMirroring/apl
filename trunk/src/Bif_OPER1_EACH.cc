@@ -72,6 +72,23 @@ cFunction_P LO = _LO.get_function();
    //
    if ((LO->get_signature() & SIG_DYA) != SIG_DYA)   VALENCE_ERROR;
 
+   // B is a selective-assignment target (an lvalue/cellrefs array) iff its
+   // first cell is an LvalCell. A defined LO (or a derived function whose
+   // own operand is defined, e.g. F⍤1 for a ⎕FX-defined F -- may_push_SI()
+   // covers both) must never see such a cell: unlike the primitive fast
+   // path below, a defined LO gets ⍵ as an ordinary value it can inspect,
+   // store, or return -- so a live LvalCell handed to it can be smuggled
+   // out into unrelated storage (e.g. a global captured by side effect)
+   // and later dangle once the array it points into is freed. The ISO
+   // APL2 LRM's selective-specification whitelist (Figure 6) lists Each
+   // as a Derived Function, but only the primitive LO forms actually have
+   // a "Selective Specification:" note in the LRM's own per-function
+   // reference; a defined LO was never meant to be reachable this way.
+   //
+   if (!B.is_empty() && B.is_lval_cell(0) &&
+       (LO->is_defined() || LO->may_push_SI()))
+      SYNTAX_ERROR;
+
    if (A.is_empty() || B.is_empty())
       {
         if (!LO->has_result())   return Token(TOK_VOID);
@@ -355,6 +372,15 @@ cFunction_P LO = _LO.get_function();
    if (LO->is_operator() &&
        !_LO.is_SLASH_or_BACKSLASH())     SYNTAX_ERROR;
    if (!(LO->get_signature() & SIG_B))   VALENCE_ERROR;
+
+   // see the dyadic branch (eval_ALB) for the full explanation: a defined
+   // LO must never be handed a selective-assignment target (an lvalue
+   // array), since it can smuggle the live LvalCell out into unrelated
+   // storage.
+   //
+   if (!B.is_empty() && B.is_lval_cell(0) &&
+       (LO->is_defined() || LO->may_push_SI()))
+      SYNTAX_ERROR;
 
    if (B.is_empty())
       {
