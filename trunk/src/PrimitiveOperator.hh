@@ -47,6 +47,19 @@ public:
 
    /// overloaded Function::is_operator()
    virtual bool is_operator() const   { return true; }
+
+   /// overloaded Function::has_monadic_form(): a bare, unbound operator
+   /// (e.g. ¨, ⍤, ⍣, ∘. used without their operand(s) correctly bound
+   /// into a DerivedFunction first -- the "F OPER" fragment reaching
+   /// eval_B()/eval_AB() directly) is never itself directly callable;
+   /// only a DerivedFunction wrapping it (with LO/RO bound) is. Default
+   /// false for both; a subclass that ALSO doubles as a genuine plain
+   /// function (e.g. Bif_REDUCE's Replicate role for dyadic /) must
+   /// override the applicable one back to true.
+   virtual bool has_monadic_form() const   { return false; }
+
+   /// overloaded Function::has_dyadic_form(): see has_monadic_form().
+   virtual bool has_dyadic_form() const   { return false; }
 };
 //════════════════════════════════════════════════════════════════════════════
 

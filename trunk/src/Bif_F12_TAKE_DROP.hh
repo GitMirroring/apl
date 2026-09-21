@@ -64,6 +64,12 @@ public:
    virtual Token eval_identity_fun(cValue_R B, sAxis axis) const
       { return enclosed_identity(B, axis); }
 
+   /// overloaded Function::get_selectivity(): monadic ↑ (First) and
+   /// dyadic ↑ (Take), with or without axis, all 4 genuinely select
+   /// (confirmed empirically for each of the 4 individually).
+   virtual Fun_selectivity get_selectivity() const
+      { return Fun_selectivity(SEL_MON | SEL_MON_X | SEL_DYA | SEL_DYA_X); }
+
    /// Take from B according to ravel_A
    /// @param shape_Zi shape of the result
    /// @param B right argument APL value to take from
@@ -134,6 +140,18 @@ public:
         Z->check_value(LOC);
         return Token(TOK_APL_VALUE1, Z);
       }
+
+   /// overloaded Function::get_selectivity(): dyadic ↓ (Drop), with or
+   /// without axis, both genuinely select (confirmed empirically for
+   /// each individually); there is no monadic ↓.
+   virtual Fun_selectivity get_selectivity() const
+      { return Fun_selectivity(SEL_DYA | SEL_DYA_X); }
+
+   /// overloaded Function::has_monadic_form(): there is no monadic ↓ at
+   /// all (only eval_AB/eval_AXB are implemented; eval_B falls to
+   /// Function's phrase_error() default) -- see that method's doc
+   /// comment for why this must be reported explicitly.
+   virtual bool has_monadic_form() const   { return false; }
 
    static Bif_F12_DROP  fun;   ///< Built-in function
 

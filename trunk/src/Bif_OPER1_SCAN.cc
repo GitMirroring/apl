@@ -224,13 +224,17 @@ Value_P Z(shape_Z, LOC);
            }
 
         Z->set_default(B, LOC);
+        if (B.is_left_value())   Z->set_left_value();
         Z->check_value(LOC);
         return Token(TOK_APL_VALUE1, Z);
       }
 
 const Shape3 shape_Z3(shape_Z, axis);
 
-const bool lval = B.is_lval_cell(0);
+// B.is_left_value(), not B.is_lval_cell(0): the latter only reflects
+// cell 0 and is unreliable for a value not fresh out of
+// Value::get_cellrefs() (see the matching comment in Bif_OPER1_EACH.cc).
+const bool lval = B.is_left_value();
 
 ShapeItem inc_1 = shape_Z3.l();   // increment after result l items
 ShapeItem inc_2 = 0;              // increment after result m*l items
@@ -298,6 +302,7 @@ ShapeItem bI = 0;
       }
 
    Z->set_default(B, LOC);
+   if (lval)   Z->set_left_value();
 
    Z->check_value(LOC);
    return Token(TOK_APL_VALUE1, Z);

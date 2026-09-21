@@ -51,6 +51,13 @@ public:
    virtual Token eval_identity_fun(cValue_R B, sAxis axis) const
       { return enclosed_identity(B, axis); }
 
+   /// overloaded Function::get_selectivity(): dyadic ⍴ (Reshape)
+   /// genuinely selects (confirmed against the LRM's own worked wrap-
+   /// around example, apl2lrm.txt2:26612 ff.); monadic ⍴ (shape-of) does
+   /// not -- it describes B, it does not select any item of it.
+   virtual Fun_selectivity get_selectivity() const
+      { return SEL_DYA; }
+
    /// Reshape B according to rank and shape
    static Token do_reshape(const Shape & shape, const cValue & B);
 

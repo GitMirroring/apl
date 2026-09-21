@@ -61,6 +61,12 @@ public:
         return Token(TOK_APL_VALUE1, Z);
       }
 
+   /// overloaded Function::get_selectivity(): monadic ⌽/⊖ (Reverse) and
+   /// dyadic ⌽/⊖ (Rotate), with or without axis, all 4 genuinely select
+   /// (confirmed empirically for each of the 4 individually).
+   virtual Fun_selectivity get_selectivity() const
+      { return Fun_selectivity(SEL_MON | SEL_MON_X | SEL_DYA | SEL_DYA_X); }
+
 protected:
    /// Reverse B along axis
    /// @param B     the right APL argument value (array to reverse)

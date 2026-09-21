@@ -49,6 +49,17 @@ public:
    /// @param B  the right APL argument value
    virtual Token eval_AXB(cValue_R A, cValue_R X, cValue_R B) const;
 
+   /// overloaded Function::get_selectivity(): dyadic ⌷ (Index/squad),
+   /// with or without axis, both genuinely select (confirmed
+   /// empirically for each individually); there is no monadic ⌷.
+   virtual Fun_selectivity get_selectivity() const
+      { return Fun_selectivity(SEL_DYA | SEL_DYA_X); }
+
+   /// overloaded Function::has_monadic_form(): there is no monadic ⌷ at
+   /// all (only eval_AB/eval_AXB are implemented) -- see that method's
+   /// doc comment for why this must be reported explicitly.
+   virtual bool has_monadic_form() const   { return false; }
+
    static Bif_F2_INDEX  fun;   ///< Built-in function
 protected:
 };

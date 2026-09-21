@@ -52,7 +52,19 @@ protected:
    static Token expand(const char * where, cValue_R A, cValue_R B,
                        uAxis axis);
 
+public:
+   /// overloaded Function::get_selectivity(): dyadic A\B or A⍀B
+   /// (Expand), with or without axis, both genuinely select -- see the
+   /// matching comment on Bif_REDUCE::get_selectivity() (Bif_OPER1_REDUCE.hh):
+   /// this is the plain dyadic-function role, not the unrelated Scan-
+   /// operator role this same class also implements.
+   virtual Fun_selectivity get_selectivity() const
+      { return Fun_selectivity(SEL_DYA | SEL_DYA_X); }
 
+   /// overloaded Function::has_dyadic_form(): see the matching override
+   /// on Bif_REDUCE (Bif_OPER1_REDUCE.hh) -- \ and ⍀ ALSO double as the
+   /// genuine plain dyadic function Expand.
+   virtual bool has_dyadic_form() const   { return true; }
 };
 //────────────────────────────────────────────────────────────────────────────
 /** Primitive operator \ (scan along last axis)

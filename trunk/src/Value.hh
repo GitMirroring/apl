@@ -278,6 +278,12 @@ public:
    bool is_complete() const
       { return flags.complete; }
 
+   /// true if Value flag \b left_value is set, i.e. this value's ravel
+   /// consists entirely of LvalCells (set by Value::get_cellrefs()); a
+   /// selective-assignment target. See VF_Flags::left_value.
+   bool is_left_value() const
+      { return flags.left_value; }
+
    /// mark the cached ≡ depth as invalid. Needed whenever a Cell owned by
    /// this value is replaced (in-place, i.e. after this value may already
    /// have a cached depth) by something that could change the depth of
@@ -659,6 +665,13 @@ public:
 
 #define set_complete() SET_complete(_LOC)
 
+   /// set the Value flag \b left_value
+   void SET_left_value(_loc_type _loc) const
+      { FLAG_TRACE(left_value, 0x10, true)   flags.left_value = 1;
+        ADD_EVENT(this, VHE_SetFlag, 0x10, _loc); }
+
+#define set_left_value() SET_left_value(_LOC)
+
    /// set the Value flag \b marked
    void SET_marked(_loc_type _loc) const
       { FLAG_TRACE(marked, 0x02, true)   flags.marked = 1;
@@ -768,7 +781,11 @@ public:
    /// attribute), both of which need a flat integer rather than a
    /// VF_Flags bitfield; testing a Value's LIVE flags should instead use
    /// is_complete()/is_marked()/is_member() (i.e. direct VF_Flags member
-   /// access), not this encoding.
+   /// access), not this encoding. left_value is deliberately NOT included
+   /// here: it is a purely transient, intra-statement marker on a
+   /// selective-assignment cellrefs array (raw LvalCells, meaningless
+   /// outside this process) that never becomes a named symbol's stored
+   /// value, so it has no business in a persisted workspace.
    uint32_t get_flags() const
       { return (flags.complete ? 0x01 : 0) |
                (flags.marked   ? 0x02 : 0) |

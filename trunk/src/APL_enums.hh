@@ -308,6 +308,31 @@ enum Fun_signature
    SIG_Z_A_LO_OP2_RO_B = SIG_Z   | SIG_A_LO_OP2_RO_B,   ///< dito
 };
 //────────────────────────────────────────────────────────────────────────────
+/// which valence(s) of a function genuinely select (or overtake, as ↑
+/// does) item(s) of the right argument -- i.e. propagate/produce lvalues
+/// for a selective specification (f1 f2 ... fn VAR)←B, as opposed to
+/// merely computing a new value from B's content. See
+/// Function::get_selectivity(). Every defined function, and every
+/// value-computing or non-selecting primitive (scalar functions, dyadic
+/// , (catenate), dyadic ∊ (membership), monadic ⍴ (shape-of), ...)
+/// returns SEL_NONE by not overriding it.
+///
+/// Deliberately independent of the APL2 LRM's own Figure 6 selective-
+/// specification table, which is neither necessary nor sufficient here:
+/// it omits monadic ⊂ (Enclose) and monadic ⊃ (Disclose), both of which
+/// are genuinely, unambiguously selective in this implementation, while
+/// conversely listing plain primitive scalar functions under "each"
+/// without regard to whether a *specific* scalar function actually
+/// selects anything (none do).
+enum Fun_selectivity
+{
+   SEL_NONE   = 0,      ///< not allowed in a selective specification
+   SEL_MON    = 0x01,   ///< fun B       is allowed in selective specificatiom
+   SEL_MON_X  = 0x02,   ///< fun[X] B    is allowed in selective specificatiom
+   SEL_DYA    = 0x04,   ///< A fun B     is allowed in selective specificatiom
+   SEL_DYA_X  = 0x08,   ///< A fun[X] B  is allowed in selective specificatiom
+};
+//────────────────────────────────────────────────────────────────────────────
 /// (unnamed) lambda number
 enum Lambda_number
 {
@@ -550,16 +575,27 @@ enum RavelType
 
 
 /// C++ bitfield overlay for the flags + value_depth word in ValueBase.
-/// bits 0-3: the four VF_ flags; bits 4-19: ravel_type; bits 20-27: value_depth; bits 28-31: spare.
+/// bits 0-4: the five VF_ flags; bits 5-20: ravel_type; bits 21-28: value_depth; bits 29-31: spare.
 struct VF_Flags
 {
    uint32_t complete    :  1;   ///< check_value() called
    uint32_t marked      :  1;   ///< marked to detect stale
    uint32_t temp        :  1;   ///< computed value
    uint32_t member      :  1;   ///< used for member access
+   uint32_t left_value  :  1;   ///< set by Value::get_cellrefs(): this
+                                ///< value's ravel consists entirely of
+                                ///< LvalCells (a selective-assignment
+                                ///< target) -- test this instead of
+                                ///< inspecting a cell's type/position
+                                ///< (e.g. is_lval_cell(0)), which is only
+                                ///< reliable for a value fresh out of
+                                ///< get_cellrefs() and silently wrong for
+                                ///< one built by other means (e.g. a
+                                ///< nested each's own Z, which mixes
+                                ///< plain and pointer cells positionally).
    uint32_t ravel_type  : 16;   ///< full RavelType enum value (RPT_CELLS = 0 means unpacked)
    uint32_t value_depth :  8;   ///< cached ≡ depth: 0..254 = depth, 255 = dirty
-   uint32_t             :  4;   ///< spare
+   uint32_t             :  3;   ///< spare
 };
 /// sentinel stored in value_depth when the cached depth is invalid
 enum { VF_DEPTH_DIRTY = 255 };

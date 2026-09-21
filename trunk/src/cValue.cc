@@ -1248,6 +1248,7 @@ const ShapeItem ec_z = Z->element_count();
    if (ec_z == 0)   // empty result
       {
         Z->set_default(static_cast<const Value &>(*this), LOC);
+        if (is_left_value())   Z->set_left_value();
         Z->check_value(LOC);
         return Z;
       }
@@ -1263,6 +1264,7 @@ const ShapeItem ec_z = Z->element_count();
        }
 
    Assert(!mult.has_more());
+   if (is_left_value())   Z->set_left_value();
    Z->check_value(LOC);
    return Z;
 }
@@ -1412,6 +1414,7 @@ const APL_Integer qio = Workspace::get_IO();
                        Value_P Z(LOC);
                        Cell cache;
                        Z->next_ravel_Cell(get_cravel(idx0, cache));
+                       if (is_left_value())   Z->set_left_value();
                        Z->check_value(LOC);
                        return Z;
                      }
@@ -1498,6 +1501,7 @@ ShapeItem xI = 0;
       }
 
    Z->set_default(static_cast<const Value &>(*this), LOC);
+   if (is_left_value())   Z->set_left_value();
    Z->check_value(LOC);
    return Z;
 }

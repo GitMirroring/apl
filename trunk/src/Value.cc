@@ -361,6 +361,7 @@ Value_P left_Z(get_shape(), loc);
         left_Z->set_ravel_Cell(0, LvalCell(&get_wproto(), this));
       }
 
+   left_Z->set_left_value();
    left_Z->check_value(LOC);
    return left_Z;
 }

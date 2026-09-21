@@ -44,6 +44,14 @@ public:
    virtual Token eval_identity_fun(cValue_R B, sAxis axis) const
       { return enclosed_identity(B, axis); }
 
+   /// overloaded Function::get_selectivity(): monadic ,/⍪ (Ravel), with
+   /// or without axis, genuinely selects (confirmed empirically for
+   /// each individually) -- but dyadic ,/⍪ (Catenate/Laminate) does
+   /// not: it computes a new, differently-shaped value from A and B
+   /// rather than selecting item(s) of B.
+   virtual Fun_selectivity get_selectivity() const
+      { return Fun_selectivity(SEL_MON | SEL_MON_X); }
+
    /// ravel along axis, with axis being the first (⍪( or last (,) axis of B
    /// @param where arity-prefix for )MORE text, e.g. ",[X]B" or "⍪[X]B"
    /// @param X    axis specification value

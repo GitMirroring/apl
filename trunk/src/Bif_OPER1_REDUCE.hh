@@ -56,6 +56,23 @@ public:
    /// @param axis axis along which to reduce
    static Token reduce(Token & LO, Value_P B, uAxis axis);
 
+   /// overloaded Function::get_selectivity(): dyadic A/B or A⌿B
+   /// (Replicate), with or without axis, both genuinely select -- LRM
+   /// Figure 6's "Derived Functions" row for / and ⌿ (ch03) is this
+   /// plain dyadic-function role (A a simple integer array), not the
+   /// unrelated Reduce-operator role this same class also implements
+   /// (LO a function; may_push_SI() above is already false for that
+   /// role and would reject a defined LO regardless).
+   virtual Fun_selectivity get_selectivity() const
+      { return Fun_selectivity(SEL_DYA | SEL_DYA_X); }
+
+   /// overloaded Function::has_dyadic_form(): PrimitiveOperator defaults
+   /// this to false (a bare, unbound operator symbol), but / and ⌿ ALSO
+   /// double as the genuine plain dyadic function Replicate (eval_AB()
+   /// above is a real implementation, not phrase_error()); there is no
+   /// analogous monadic role, so has_monadic_form() stays false.
+   virtual bool has_dyadic_form() const   { return true; }
+
 protected:
    /// overloaded Function::may_push_SI()
    virtual bool may_push_SI() const

@@ -158,6 +158,7 @@ const ShapeItem len_Z = Z->element_count();
       }
 
    Z->set_default(B, LOC);
+   if (B.is_left_value())   Z->set_left_value();
    Z->check_value(LOC);
    Z->try_pack();
    return Token(TOK_APL_VALUE1, Z);

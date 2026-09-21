@@ -48,6 +48,16 @@ protected:
    /// overloaded Function::may_push_SI()
    virtual bool may_push_SI() const
       { return false; }
+
+public:
+   /// overloaded Function::has_monadic_form(): ∘ has no eval_B() (only
+   /// eval_AB(), used when ∘.F -- an outer-product token sequence, not
+   /// this dummy function called on its own -- gets misparsed as a bare
+   /// jot elsewhere); calling it monadically always falls to
+   /// Function::eval_B()'s phrase_error() default, which never touches
+   /// B, so it must be let through to that natural VALENCE ERROR rather
+   /// than intercepted by a selective-specification guard.
+   virtual bool has_monadic_form() const   { return false; }
 };
 //════════════════════════════════════════════════════════════════════════════
 /** Primitive operator outer product.

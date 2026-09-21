@@ -59,10 +59,20 @@ const bool is_lval_scalar = B.is_scalar() && B.get_cscalar(cache).is_lval_cell()
    if (B.is_simple_scalar() || is_lval_scalar)   // B is not nested: copy ↑B
       {
         Z->next_ravel_Cell(B.get_cscalar(cache));
+        if (B.is_left_value())   Z->set_left_value();
       }
    else                         // B is nested: clone and copy
       {
         Value_P Z0 = B.clone(LOC);
+        // clone() copies each cell's own semantics (an LvalCell's clone
+        // is another LvalCell pointing at the same live target -- see
+        // the Bugs28 #100(s) comment above), so Z0 is just as valid a
+        // selective-assignment target as B was; propagate the flag,
+        // which clone() does not do on its own (it is not itself
+        // selective-spec aware -- see also (⊂V)←5, where V is a
+        // multi-element lvalue array and this is the branch taken).
+        //
+        if (B.is_left_value())   Z0->set_left_value();
         Z->next_ravel_Pointer(Z0.get());
       }
    Z->check_value(LOC);
@@ -308,6 +318,7 @@ const APL_Integer qio = Workspace::get_IO();
 
 Value_P Z = pick(A, 0, ec_A, B, qio);
 
+   if (B.is_left_value())   Z->set_left_value();
    Z->check_value(LOC);
    return Token(TOK_APL_VALUE1, Z);
 }
@@ -363,6 +374,7 @@ const ShapeItem item_len = item_shape.get_volume();
              // is an actual copy.
              Value_P vB = B0.get_pointer_value();
              Value_P result = vB->clone(LOC);
+             if (B.is_left_value())   result->set_left_value();
              result->set_shape(shape_Z);
              return result;
            }
@@ -371,6 +383,7 @@ const ShapeItem item_len = item_shape.get_volume();
              Z->set_default(B0, LOC);
            }
 
+        if (B.is_left_value())   Z->set_left_value();
         Z->check_value(LOC);
         return Z;
       }
@@ -383,6 +396,7 @@ const ShapeItem item_len = item_shape.get_volume();
        }
 
    Z->set_default(B, LOC);
+   if (B.is_left_value())   Z->set_left_value();
    Z->check_value(LOC);
    return Z;
 }

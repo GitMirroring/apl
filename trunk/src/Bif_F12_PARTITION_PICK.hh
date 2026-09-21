@@ -74,6 +74,20 @@ public:
    /// @param B right argument APL value
    virtual Token eval_AXB(cValue_R A, cValue_R X, cValue_R B) const;
 
+   /// overloaded Function::get_selectivity(): monadic ⊂ (Enclose)
+   /// genuinely selects -- (⊂R)←N scalar-extends a conforming N across
+   /// every item of R and rejects a non-conforming N, confirmed
+   /// empirically, even though the LRM's own Figure 6 selective-
+   /// specification table omits it. Dyadic ⊂ (Partition) does not: it
+   /// can drop items of B entirely (a 0 in A) and vary the number of
+   /// result items, so it has no fixed, position-preserving selection
+   /// to offer. Enclose-with-axis (⊂[X]) is NOT claimed: an attempt to
+   /// verify it empirically gave RANK ERROR with the RHS shape tried,
+   /// inconclusive rather than confirmed either way -- left as SEL_NONE
+   /// for that bit rather than guess.
+   virtual Fun_selectivity get_selectivity() const
+      { return SEL_MON; }
+
    static Bif_F12_PARTITION  fun;   ///< Built-in function
 
    /// enclose_with_axes
@@ -167,6 +181,16 @@ public:
    /// @param X axes along which to disclose
    /// @param B right argument APL value
    static Value_P disclose_with_axis(cValue_R X, cValue_R B);
+
+   /// overloaded Function::get_selectivity(): monadic ⊃ (Disclose),
+   /// with or without axis, genuinely selects (confirmed empirically
+   /// for each individually), even though the LRM's own Figure 6
+   /// selective-specification table omits it entirely; dyadic ⊃ (Pick)
+   /// genuinely selects too -- pick()'s own doc-comment already gives
+   /// (2 1⊃B)←'TR' as a worked lvalue example. Pick has no axis-bracket
+   /// form.
+   virtual Fun_selectivity get_selectivity() const
+      { return Fun_selectivity(SEL_MON | SEL_MON_X | SEL_DYA); }
 
    static Bif_F12_PICK  fun;   ///< Built-in function
 

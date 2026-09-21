@@ -311,11 +311,18 @@ public:
    void pop_and_discard()
       {  Assert1(put);   --put; }
 
-   /// return TOK_LSYMB2 tokens ahead (excluding the leftmost one
-   /// already read into \b content). The result \b symbols is empty
-   /// for selective specifications and non-empty for vector specifications.
-   /// @param symbols output: vector filled with collected symbol pointers
-   void collect_symbols(vector<Symbol *> & symbols);
+   /// called by reduce_V_RPAR_ASS_B() to decide, and if so handle, the
+   /// "vector assignment" half of its "V ) ← B" pattern: (C D ... V) ← B
+   /// for 2 or more symbols C, D, ... V. Collects the TOK_LSYMB2 symbols
+   /// left of PC (in addition to the last symbol V, already pushed by
+   /// the caller); if that comes to at least 2 symbols in total, this
+   /// IS a vector assignment -- perform it (or raise whatever error it
+   /// warrants; "success" below includes that case, since either way
+   /// the pattern has been definitively handled) and return true. A
+   /// false return means fewer than 2 symbols were found, so the
+   /// caller's "V ) ← B" must instead be a selective specification,
+   /// (... FUN V) ← B, which reduce_V_RPAR_ASS_B() handles itself.
+   bool try_vector_assignment();
 
    /// clear the saved_MISC token
    /// @param loc caller location for diagnostics

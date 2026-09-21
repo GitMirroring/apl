@@ -184,6 +184,7 @@ Value_P Z(ravel_A1.abs(), LOC);
              fill(ravel_A1, *Z, B, axes);
            }
       }
+   if (B.is_left_value())   Z->set_left_value();
    Z->check_value(LOC);
    return Z;
 }
@@ -244,6 +245,7 @@ const Cell & first_B = B.get_cfirst(cache);
       {
         Value_P Z(LOC);   // the (always) scalar result of ↑B
         Z->next_ravel_Cell(first_B);
+        if (B.is_left_value())   Z->set_left_value();
         Z->check_value(LOC);
         return Z;
       }
@@ -296,6 +298,7 @@ const Shape ravel_A(A, /* ⎕IO */ 0);
         Cell cache;
         Z->set_ravel_Cell(0, B.get_cfirst(cache));
         if (shape_Z.get_volume() == 0)   Z->to_type(false);
+        if (B.is_left_value())   Z->set_left_value();
         Z->check_value(LOC);
         return Token(TOK_APL_VALUE1, Z);
       }
@@ -352,6 +355,7 @@ Value_P Z(shape_Z, LOC);
         Z->next_ravel_Cell(B.get_cravel(offset, cache));
       }
 
+   if (B.is_left_value())   Z->set_left_value();
    Z->check_value(LOC);
    return Token(TOK_APL_VALUE1, Z);
 }

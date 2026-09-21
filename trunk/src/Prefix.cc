@@ -214,8 +214,10 @@ Prefix::syntax_error(const char * loc)
            }
       }
 
-   throw_apl_error(get_assign_state() == ASS_none ? E_SYNTAX_ERROR
-                                                  : E_LEFT_SYNTAX_ERROR, loc);
+const ErrorCode ec = get_assign_state() == ASS_none ? E_SYNTAX_ERROR
+                                                    : E_LEFT_SYNTAX_ERROR;
+   set_assign_state(ASS_none);
+   throw_apl_error(ec, loc);
 }
 //────────────────────────────────────────────────────────────────────────────
 void
@@ -796,15 +798,24 @@ const TokenClass tc = tok.get_Class();
    return out << (Token::class_name(tok.get_tag()) + 3);
 }
 //────────────────────────────────────────────────────────────────────────────
-void
-Prefix::collect_symbols(vector<Symbol *> & symbols)
+bool
+Prefix::try_vector_assignment()
 {
-   // TOKEN ... TOKEN VAR ) ←   (reversed)
+   // TOKEN ... TOKEN V ) ← B   (reversed)
    //             ↑
    //             PC
    //
-   // return the TOK_LSYMB2 symbols left of \b PC.
+   // collect the TOK_LSYMB2 symbols left of PC, in addition to the last
+   // symbol V (already read into the caller's at0() and pushed here
+   // first). Fewer than 2 symbols in total means this is not a vector
+   // assignment at all -- PC is left unchanged in that case (the loop
+   // below never advances it without also pushing a symbol), so the
+   // caller can go on to try selective specification instead.
    //
+vector<Symbol *> symbols;
+   symbols.reserve(10);
+   symbols.push_back(at0().get_sym_ptr());   // the last symbol V
+
    while (PC < Function_PC(body.ssize()))
        {
          const Token & tok = body[PC];
@@ -816,6 +827,48 @@ Prefix::collect_symbols(vector<Symbol *> & symbols)
          if (!sym_var->can_be_assigned())   break;   // not a variable
          symbols.push_back(sym_var);
        }
+
+   if (symbols.size() < 2)   return false;   // not a vector assignment
+
+   // a genuine (C D ... V) ← B vector assignment. The loop above only
+   // ever stops at the first non-variable token; it does not by itself
+   // confirm that token is the '(' a genuine vector assignment
+   // requires. Without this check, something like (∊V W)←C collects
+   // [W, V] (2 symbols, so this branch runs) with the leading ∊ simply
+   // never examined, so Symbol::vector_assignment() below would
+   // silently overwrite both V and W as if ∊ were not there at all,
+   // before any error about the leftover, unconsumed ∊ token could fire
+   // (Blake McBride, Bugs25 #1 follow-up -- must not mutate anything
+   // before the syntax is known to be legal, the same principle
+   // reduce_V_RPAR_ASS_B()'s own selective-specification half applies).
+   //
+   if (PC >= body.ssize() || body[PC].get_Class() != TC_L_PARENT)
+      {
+        MORE_ERROR() << "Malformed vector specification";
+        // this parse attempt is being abandoned outright (like a
+        // completed vector assignment, there is nothing further to
+        // build on the left of ←) -- reset before the error is thrown
+        // so a later syntax_error(LOC) call on this same (reused, see
+        // StateIndicator::current_stack) Prefix does not inherit a
+        // stale ASS_var_seen from here.
+        set_assign_state(ASS_none);
+        LEFT_SYNTAX_ERROR;
+      }
+
+Value_P B = at3().get_apl_val();
+   Symbol::vector_assignment(symbols, B);
+
+   set_assign_state(ASS_none);
+
+   // clean up stack
+   //
+const Token result(TOK_APL_VALUE2, at3().get_apl_val());
+   pop_args_push_result(result);
+   if (PC >= body.ssize() ||
+       body[PC++].get_Class() != TC_L_PARENT)   syntax_error(LOC);
+
+   set_action(RA_CONTINUE);   // match again (w/o SHIFT)
+   return true;
 }
 //────────────────────────────────────────────────────────────────────────────
 bool
@@ -2223,7 +2276,38 @@ Prefix::reduce_MISC_F_B_()
         // fall through (REDUCE)
       }
 
-const Token result = at0().get_function()->eval_B(*at1().get_apl_val());
+Value_P B_val = at1().get_apl_val();
+cFunction_P F_mon = at0().get_function();
+
+   // B_val is a selective-assignment target (an lvalue/cellrefs array,
+   // e.g. the resolve_lv() result from reduce_F_V__() below, or another
+   // selecting function's own already-propagated result) iff its
+   // VF_Flags::left_value flag is set. F_mon must then genuinely
+   // select/overtake B_val (Function::get_selectivity()) and have a
+   // result -- this is the exact same reasoning as
+   // Bif_OPER1_EACH.cc's guard (see its comments for the full
+   // rationale), just at the point where GNU APL actually applies any
+   // monadic function to any value, selective-spec or not: this phrase
+   // is reused for ordinary "F B" calls too, where B_val is never
+   // left_value and the check below is a no-op. Confirmed exploitable
+   // before this guard: (H ↑ B)←5 for a defined H, e.g.
+   // ⎕FX 'Z←H B' 'G←G,⊂B' 'Z←B' -- H silently received and could leak
+   // the live LvalCell that ↑'s own selective result carried.
+   //
+   // F_mon->has_monadic_form(): a primitive with no monadic form at all
+   // (e.g. Bif_F12_DROP, Bif_F2_INDEX) must be let through to its
+   // natural VALENCE ERROR below instead -- get_signature() cannot tell
+   // us that for a primitive (see has_monadic_form()'s doc comment), and
+   // phrase_error() itself never touches B_val, so letting it run is
+   // always safe. Confirmed regression without this: (↓V)←9 used to
+   // report SYNTAX ERROR instead of VALENCE ERROR.
+   //
+   if (B_val->is_left_value() && F_mon->has_monadic_form() &&
+       (!F_mon->has_result() ||
+        !(F_mon->get_selectivity() & (SEL_MON | SEL_MON_X))))
+      syntax_error(LOC);
+
+const Token result = F_mon->eval_B(*B_val);
    if (result.get_Class() != TC_SI_CHANGE)   // the normal case
       {
         pop_args_push_result(result);
@@ -2387,8 +2471,20 @@ Prefix::reduce_A_F_B_()
 {
    Assert1(prefix_len == 3);
 
-const Token result = at1().get_function()->eval_AB(*at0().get_apl_val(),
-                                                   *at2().get_apl_val());
+Value_P B_val = at2().get_apl_val();
+cFunction_P F_dya = at1().get_function();
+
+   // see the matching guard in reduce_MISC_F_B_() above for the full
+   // rationale; this is the dyadic form, e.g. the innermost step of a
+   // selective-spec chain such as (2↑V)←9 or the defined-function
+   // analogue (2 H2 V)←9.
+   //
+   if (B_val->is_left_value() && F_dya->has_dyadic_form() &&
+       (!F_dya->has_result() ||
+        !(F_dya->get_selectivity() & (SEL_DYA | SEL_DYA_X))))
+      syntax_error(LOC);
+
+const Token result = F_dya->eval_AB(*at0().get_apl_val(), *B_val);
    if (push_error(result))   return;
 
    pop_args_push_result(result);
@@ -3634,151 +3730,114 @@ const Token result(TOK_APL_VALUE3, Z);
 void
 Prefix::reduce_V_RPAR_ASS_B()
 {
-   Assert1(prefix_len == 4);
+   Assert1(prefix_len == 4);   // V ) ← B
 
-   /* This pattern, i.e. V ) ← B, is the trailing tokens of one of 2 cases:
+   /* This pattern is the trailing tokens of one of 2 cases:
 
-      1. selective specification:   (... FUN V) ← B
-      2. vector assignment;         (C D ... V) ← B
+      1. vector assignment;         (C D ... V) ← B
+      2. selective specification:   (... FUN V) ← B
+
+      try_vector_assignment() decides which: it collects the symbols
+      left of V and, if there are at least 2 in total, handles case 1
+      completely (performing the assignment, or raising whatever error
+      it warrants) and returns true. A false return means fewer than 2
+      symbols were found, so this must be case 2, handled below.
     */
+   if (try_vector_assignment())   return;   // case 1: vector assignment
 
-vector<Symbol *> symbols;
-   symbols.reserve(10);
-   symbols.push_back(at0().get_sym_ptr());   // i.e. the last symbol V
-   collect_symbols(symbols);   // of the remaining symbols C D ...
-
-   if (symbols.size() == 1)   // case 1: selective specification
+   // case 2: selective specification.
+   //
+   // an empty selection (no function at all left of V) normally
+   // indicates a selective specification. However, an incorrect vector
+   // assignment such as (A 1 C) ← would also leave no function there
+   // (because Parser.cc would set is_vector_spec to false around line
+   // 820 in Parser.cc, and try_vector_assignment() just above found
+   // only 1 symbol -- "1" breaks its scan). We fix this case here.
+   //
+const TokenClass tc = body[PC].get_Class();
+   if (!((1 << tc) & TCG_FUN12_OPER12))   // tc is neither fun nor oper
       {
-        // count == 0 normally indicates a selective specification. However,
-        // an incorrect vector assignment such as (A 1 C) ← would also lead
-        // to count == 0 (because Parser.cc would set is_vector_spec to
-        // false around line 820 in Parser.cc). We fix this case here.
+        // this case is rather rare, so we can afford a little time
+        // to verify that we have at least one function in the supposed
+        // selective specification
         //
-        const TokenClass tc = body[PC].get_Class();
-        if (!((1 << tc) & TCG_FUN12_OPER12))   // tc is neither fun nor oper
-           {
-             // this case is rather rare, so we can afford a little time
-             // to verify that we have at least one function in the supposed
-             // selective specification
-             //
-             bool selective_spec = false;
-             for (int pc = PC; pc < body.ssize();)
+        bool selective_spec = false;
+        for (int pc = PC; pc < body.ssize();)
+            {
+              const Token tok = body[pc++];
+              const TokenClass tc = tok.get_Class();
+              if ((1 << tc) & TCG_FUN12_OPER12)
                  {
-                   const Token tok = body[pc++];
-                   const TokenClass tc = tok.get_Class();
-                   if ((1 << tc) & TCG_FUN12_OPER12)
-                      {
-                        selective_spec = true;
-                        break;
-                      }
-                   else if (tc == TC_L_PARENT ||   // most likely end of (...)←
-                            tc == TC_END)
-                      {
-                        break;   // so selective_spec remains false
-                      }
-                   else if (tc == TC_R_BRACK)
-                      {
-                        // a function axis or value index, e.g. the [1] in
-                        // (1↓[1]V)←...: its contents are not a stranded
-                        // value sitting between V and its selecting
-                        // function, they are part of that function's own
-                        // syntax. Skip over the whole [...] group (same
-                        // idiom as value_expected() above) rather than
-                        // examining its contents.
-                        //
-                        pc += tok.get_int_val2();
-                      }
-                   else if (tc == TC_VALUE)
-                      {
-                        // a value (e.g. a literal) sits between here and
-                        // whatever function turns up further left -- that
-                        // function, if any, would end up applying to a
-                        // *strand* containing V rather than to V alone
-                        // (e.g. (∊2 V)←¯1: ∊ would apply to the stranded
-                        // pair 2 V, not to V by itself). Scanning past
-                        // this and accepting anyway used to let such a
-                        // strand form at all, whose lval cells (V's, real)
-                        // ended up mixed with the literal's (not real) --
-                        // the actual root cause behind Blake McBride's
-                        // Bugs25 #1 crash, several layers further down in
-                        // cValue::enlist_left()/get_lval_cellowner(). Not
-                        // a legal selective specification; stop here so
-                        // selective_spec remains false.
-                        //
-                        break;
-                      }
+                   selective_spec = true;
+                   break;
                  }
+              else if (tc == TC_L_PARENT ||   // most likely end of (...)←
+                       tc == TC_END)
+                 {
+                   break;   // so selective_spec remains false
+                 }
+              else if (tc == TC_R_BRACK)
+                 {
+                   // a function axis or value index, e.g. the [1] in
+                   // (1↓[1]V)←...: its contents are not a stranded
+                   // value sitting between V and its selecting
+                   // function, they are part of that function's own
+                   // syntax. Skip over the whole [...] group (same
+                   // idiom as value_expected() above) rather than
+                   // examining its contents.
+                   //
+                   pc += tok.get_int_val2();
+                 }
+              else if (tc == TC_VALUE)
+                 {
+                   // a value (e.g. a literal) sits between here and
+                   // whatever function turns up further left -- that
+                   // function, if any, would end up applying to a
+                   // *strand* containing V rather than to V alone
+                   // (e.g. (∊2 V)←¯1: ∊ would apply to the stranded
+                   // pair 2 V, not to V by itself). Scanning past
+                   // this and accepting anyway used to let such a
+                   // strand form at all, whose lval cells (V's, real)
+                   // ended up mixed with the literal's (not real) --
+                   // the actual root cause behind Blake McBride's
+                   // Bugs25 #1 crash, several layers further down in
+                   // cValue::enlist_left()/get_lval_cellowner(). Not
+                   // a legal selective specification; stop here so
+                   // selective_spec remains false.
+                   //
+                   break;
+                 }
+            }
 
-             // at this point the token left of V ) ← B should form a
-             // selective specification. Complain if not.
-             //
-             if (!selective_spec)
-                {
-                  MORE_ERROR() <<
-                  "Malformed selective specification or vector specification";
-                  LEFT_SYNTAX_ERROR;
-                }
+        // at this point the token left of V ) ← B should form a
+        // selective specification. Complain if not.
+        //
+        if (!selective_spec)
+           {
+             MORE_ERROR() <<
+             "Malformed selective specification";
+             // see the matching reset in try_vector_assignment(): this
+             // parse attempt is abandoned outright, so ASS_none (not
+             // whatever this Prefix's assign_state happened to be
+             // already) is the correct state for whatever runs on this
+             // (reused) Prefix next.
+             set_assign_state(ASS_none);
+             LEFT_SYNTAX_ERROR;
            }
       }
 
-   // at this point the pattern could still be a selective specification
-   // or a vector assignment. However, the count (i.e. symbol.size())
-   // computed above shall distinguishes them. For example:
+   // definitively selective specification: replace variable V by its
+   // (left-) value and repeat matching.
    //
-   // case 1: (T U V) ← value        count = 2      vector assignment
-   // case 2:   (U V) ← value        count = 1      vector assignment
-   // case 3: (2 ↑ V) ← value        count = 0      selective specification
+Symbol * V = at0().get_sym_ptr();
+   Assert1(V);
+Token result = V->resolve_lv(LOC);
+   set_assign_state(ASS_var_seen);
+   at0().move_from(result, LOC);
+
+   // at this point variable name V was resolved to the (left-) value
+   // of V. Repeat matching with the updated phrase.
    //
-   if (symbols.size() < 2)   // single variable V
-      {
-        // definitively case 3. (selective specification).
-        // Replace variable V by its (left-) value and repeat matching
-        //
-        Symbol * V = at0().get_sym_ptr();
-        Assert1(V);
-        Token result = V->resolve_lv(LOC);
-        set_assign_state(ASS_var_seen);
-        at0().move_from(result, LOC);
-
-        // at this point variable name V was resolved to the (left-) value
-        // of V. Repeat matching with the updated phrase.
-        //
-        set_action(RA_CONTINUE);   // match again (w/o SHIFT)
-        return;
-      }
-
-   // cases 1. or 2. (vector assugnment)
-   //
-   // collect_symbols() only ever stops at the first non-symbol token; it
-   // does not by itself confirm that token is the '(' a genuine (A B
-   // ...)← vector assignment requires. Without this check, something
-   // like (∊V W)←C collects [W, V] (2 symbols, so this branch runs) with
-   // the leading ∊ simply never examined, so vector_assignment() below
-   // would silently overwrite both V and W as if ∊ were not there at
-   // all, before any error about the leftover, unconsumed ∊ token could
-   // fire (Blake McBride, Bugs25 #1 follow-up -- same "must not mutate
-   // anything before the syntax is known to be legal" principle as the
-   // symbols.size()==1 case above, just unchecked here previously).
-   //
-   if (PC >= body.ssize() || body[PC].get_Class() != TC_L_PARENT)
-      {
-        MORE_ERROR() <<
-        "Malformed selective specification or vector specification";
-        LEFT_SYNTAX_ERROR;
-      }
-
-Value_P B = at3().get_apl_val();
-   Symbol::vector_assignment(symbols, B);
-
-   set_assign_state(ASS_none);
-
-   // clean up stack
-   //
-const Token result(TOK_APL_VALUE2, at3().get_apl_val());
-   pop_args_push_result(result);
-   if (PC >= body.ssize() ||
-       body[PC++].get_Class() != TC_L_PARENT)   syntax_error(LOC);
-
    set_action(RA_CONTINUE);   // match again (w/o SHIFT)
 }
 //────────────────────────────────────────────────────────────────────────────

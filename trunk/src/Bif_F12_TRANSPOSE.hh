@@ -53,6 +53,12 @@ public:
    virtual Token eval_identity_fun(cValue_R B, sAxis axis) const
       { return enclosed_identity(B, axis); }
 
+   /// overloaded Function::get_selectivity(): monadic ⍉ (reversed axes)
+   /// and dyadic ⍉ (general transpose) both genuinely select; ⍉ has no
+   /// bracket-axis variant.
+   virtual Fun_selectivity get_selectivity() const
+      { return Fun_selectivity(SEL_MON | SEL_DYA); }
+
    /// implementation of eval_B()
    /// @param B  the APL array to reverse-transpose (raw pointer)
    static Token do_eval_B(cValue_R B);

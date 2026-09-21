@@ -115,16 +115,34 @@ INDEX ERROR
       ⍝
       )SIC
 
-      ⍝ a primitive (structural) LO must still work: ⌽ (rotate) is
-      ⍝ itself independently on the LRM's selective-specification
-      ⍝ whitelist, unlike a value-interpreting scalar function such
-      ⍝ as + (see Bugs30 #1 write-up: A+¨B on a non-nested target is
-      ⍝ its own, separate, still-open defect -- not tested here).
+      ⍝ a genuinely selecting primitive LO (Function::get_selectivity(),
+      ⍝ SEL_DYADIC bit) must still work end to end: ⌽ (rotate) does.
 
       V←,5
       (1⌽¨1↑V)←1
       V
 1
+
+      ⍝ a primitive LO that does NOT select -- + (scalar) computes a new
+      ⍝ value from B's content instead of selecting a position in it, so
+      ⍝ it can never work as a selective-assignment target regardless of
+      ⍝ the target's validity. Before get_selectivity() this reached
+      ⍝ ScalarFunction's own evaluation and DOMAIN-ERRORed on a raw
+      ⍝ LvalCell it could not interpret -- an accident of implementation,
+      ⍝ not a principled rejection (see Bugs30 #1 write-up); now rejected
+      ⍝ up front with the same SYNTAX ERROR a defined LO gets below.
+
+      V2←,5
+      (1 2+¨1↑V2)←1 2
+SYNTAX ERROR
+      (1 2+¨1↑V2)←1 2
+       ^          ^
+      V2
+5
+
+      ⍝ leaves an )SI entry for the failed immediate execution above.
+      ⍝
+      )SIC
 
       ⍝ a defined LO must never see a selective-assignment target's
       ⍝ live LvalCell (it could smuggle it out into unrelated storage

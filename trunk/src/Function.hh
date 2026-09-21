@@ -361,6 +361,42 @@ public:
    /// functions, and operators derived from user defined functions
    virtual bool may_push_SI() const   { return false; }
 
+   /// return the valence(s) (see Fun_selectivity) for which \b this
+   /// function genuinely selects/overtakes its right argument, i.e. may
+   /// legitimately appear on the left of ← in a selective specification.
+   /// An operator whose operand can appear there (e.g. ¨) must check
+   /// this -- and has_result() -- before handing the operand a live
+   /// LvalCell; never rely on is_defined()/may_push_SI() for that (a
+   /// primitive can be just as non-selecting as a defined function, e.g.
+   /// scalar +, and a defined function is never selecting at all since
+   /// this is never overridden for one).
+   virtual Fun_selectivity get_selectivity() const   { return SEL_NONE; }
+
+   /// return \b true iff \b this function can genuinely be called
+   /// monadically at all (i.e. has a real eval_B()/eval_XB(), not just
+   /// the Function:: default that phrase_error()s unconditionally).
+   /// Needed because get_signature()/get_fun_valence() cannot answer
+   /// this for primitives: TC_FUN1, TC_FUN2 and TC_FUN12 all collapse to
+   /// the same TokenClass value (TokenEnums.hh), so the base
+   /// get_fun_valence() always reports 2 for any primitive regardless of
+   /// which eval_XXX it actually overrides -- it is only meaningful for
+   /// UserFunction, which overrides it from the declared header. A
+   /// selective-specification guard checking is_left_value() must know
+   /// this BEFORE calling eval_B(): calling a monadic-incapable
+   /// primitive is always safe on its own (phrase_error() never touches
+   /// B), so such a call must be let through to its natural VALENCE
+   /// ERROR rather than intercepted and misreported as SYNTAX ERROR.
+   /// Default true (most primitives and all monadic-capable functions);
+   /// override to false only for a primitive with no monadic form at
+   /// all (e.g. Bif_F12_DROP, Bif_F2_INDEX).
+   virtual bool has_monadic_form() const   { return true; }
+
+   /// return \b true iff \b this function can genuinely be called
+   /// dyadically at all. See has_monadic_form() for the full rationale;
+   /// this is its dyadic mirror (relevant to the innermost step of a
+   /// selective-spec chain, e.g. (2 H V)←9 for a monadic-only defined H).
+   virtual bool has_dyadic_form() const   { return true; }
+
    /// plain function, 0 arguments
    virtual Token eval_() const;
 

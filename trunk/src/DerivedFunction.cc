@@ -21,6 +21,7 @@
 /** @file
 */
 
+#include "Bif_OPER1_EACH.hh"
 #include "Common.hh"
 #include "DerivedFunction.hh"
 #include "Id.hh"
@@ -29,6 +30,40 @@
 #include "StateIndicator.hh"
 #include "Workspace.hh"
 
+//════════════════════════════════════════════════════════════════════════════
+Fun_selectivity
+DerivedFunction::get_selectivity() const
+{
+   // Each (¨) forwards a selective-assignment target straight through to
+   // LO (Bif_OPER1_EACH.cc's own guards, confirmed empirically this
+   // session -- see that file); so LO_¨'s selectivity IS this derived
+   // function's selectivity. No other operator is known to do this
+   // safely, so every other oper stays SEL_NONE (see the .hh comment).
+   //
+   if (oper == &Bif_OPER1_EACH::fun)
+      {
+        cFunction_P LO = get_LO();
+        return LO ? LO->get_selectivity() : SEL_NONE;
+      }
+
+   return SEL_NONE;
+}
+//────────────────────────────────────────────────────────────────────────────
+bool
+DerivedFunction::has_monadic_form() const
+{
+   if (oper == &Bif_OPER1_EACH::fun)
+      return get_LO() ? get_LO()->has_monadic_form() : true;
+   return true;
+}
+//────────────────────────────────────────────────────────────────────────────
+bool
+DerivedFunction::has_dyadic_form() const
+{
+   if (oper == &Bif_OPER1_EACH::fun)
+      return get_LO() ? get_LO()->has_dyadic_form() : true;
+   return true;
+}
 //════════════════════════════════════════════════════════════════════════════
 UCS_string
 DerivedFunction::get_name() const

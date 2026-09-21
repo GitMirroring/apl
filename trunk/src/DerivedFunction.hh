@@ -189,6 +189,35 @@ protected:
         || (right_arg.is_function() && right_arg.get_function()->may_push_SI());
       }
 
+   /// overloaded Function::get_selectivity(). Unlike may_push_SI() (a
+   /// safe blanket OR: if anything involved may push the SI, so may
+   /// this), get_selectivity() is NOT blanket-delegated to every
+   /// operator's LO -- getting it wrong would be a security hole again
+   /// (a leaking LvalCell reaching a defined function through an
+   /// operator whose own internals were never checked for it), not just
+   /// a spurious rejection. Only Each (¨) is known to forward its LO's
+   /// selectivity correctly (Bif_OPER1_EACH.cc's own guards, confirmed
+   /// empirically); every other operator (⍤, ⍣, ∘., commute, ...)
+   /// stays SEL_NONE here until it gets the same audit. See the .cc file.
+   virtual Fun_selectivity get_selectivity() const;
+
+   /// overloaded Function::has_monadic_form(). For Each (¨), do_eval_LB
+   /// calls LO->eval_B() per element, so whether "LO¨" genuinely has a
+   /// monadic form is entirely LO's own has_monadic_form() (e.g. ↓¨ has
+   /// none, since ↓ has none -- confirmed regression without this:
+   /// (↓¨V)←9 would otherwise report SYNTAX ERROR instead of VALENCE
+   /// ERROR, the exact same masking bug has_monadic_form() exists to
+   /// prevent, just one level up through a bound derived function
+   /// instead of a bare primitive). Every other operator defaults to
+   /// Function's own true (unaudited; eval_B() is a real override for
+   /// all of them, so at worst this costs a SYNTAX ERROR where a more
+   /// precise VALENCE ERROR was possible, not a safety issue). See the
+   /// .cc file (avoids a Bif_OPER1_EACH.hh include here).
+   virtual bool has_monadic_form() const;
+
+   /// overloaded Function::has_dyadic_form(). See has_monadic_form().
+   virtual bool has_dyadic_form() const;
+
    /// debug printout when an eval_XXX() function is called.
    /// @param fun_name name of the eval function being entered
    void entering(const char * fun_name) const;

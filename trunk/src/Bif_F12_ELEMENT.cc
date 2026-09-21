@@ -214,6 +214,7 @@ const ShapeItem len_Z = B.get_enlist_count();
            {
              Value_P Z(ShapeItem(0), LOC);
              new (&Z->get_wproto()) LvalCell(0, 0);
+             Z->set_left_value();
              Z->check_value(LOC);
              return Z;
            }
@@ -231,6 +232,7 @@ Value_P Z(len_Z, LOC);
    if (B.get_lval_cellowner())
       {
         B.enlist_left(*Z);
+        Z->set_left_value();
       }
    else
       {

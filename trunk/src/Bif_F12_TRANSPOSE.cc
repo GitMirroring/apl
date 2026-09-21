@@ -94,6 +94,7 @@ Value_P Z = shape_A.get_rank() == B.get_rank() && shape_A.is_permutation()
         if (Z->get_cproto(cache).is_integer_cell())   Z->set_default(B, LOC);
       }
 
+   if (B.is_left_value())   Z->set_left_value();
    Z->check_value(LOC);
    return Token(TOK_APL_VALUE1, Z);
 }
@@ -119,6 +120,7 @@ Value_P Z = transpose(shape_A, B);
         if (Z->get_cproto(cache).is_integer_cell())   Z->set_default(B, LOC);
       }
 
+   if (B.is_left_value())   Z->set_left_value();
    Z->check_value(LOC);
    return Token(TOK_APL_VALUE1, Z);
 }

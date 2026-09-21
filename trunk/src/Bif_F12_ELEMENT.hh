@@ -52,6 +52,13 @@ public:
    /// @param B  the right APL value (raw pointer)
    static Value_P do_eval_B(cValue_R B);
 
+   /// overloaded Function::get_selectivity(): monadic ∊ (Enlist)
+   /// genuinely selects (it preserves B's nesting shape while replacing
+   /// the enlisted values); dyadic ∊ (Membership) does not -- it
+   /// computes an unrelated boolean result.
+   virtual Fun_selectivity get_selectivity() const
+      { return SEL_MON; }
+
    static Bif_F12_ELEMENT  fun;   ///< Built-in function
 
 protected:

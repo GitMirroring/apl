@@ -72,21 +72,33 @@ cFunction_P LO = _LO.get_function();
    //
    if ((LO->get_signature() & SIG_DYA) != SIG_DYA)   VALENCE_ERROR;
 
-   // B is a selective-assignment target (an lvalue/cellrefs array) iff its
-   // first cell is an LvalCell. A defined LO (or a derived function whose
-   // own operand is defined, e.g. F⍤1 for a ⎕FX-defined F -- may_push_SI()
-   // covers both) must never see such a cell: unlike the primitive fast
-   // path below, a defined LO gets ⍵ as an ordinary value it can inspect,
-   // store, or return -- so a live LvalCell handed to it can be smuggled
-   // out into unrelated storage (e.g. a global captured by side effect)
-   // and later dangle once the array it points into is freed. The ISO
-   // APL2 LRM's selective-specification whitelist (Figure 6) lists Each
-   // as a Derived Function, but only the primitive LO forms actually have
-   // a "Selective Specification:" note in the LRM's own per-function
-   // reference; a defined LO was never meant to be reachable this way.
+   // B is a selective-assignment target (an lvalue/cellrefs array) iff
+   // its VF_Flags::left_value flag is set (Value::get_cellrefs() sets it
+   // on every value it builds). Do NOT infer this from a cell's type/
+   // position instead (e.g. B.is_lval_cell(0)): that is only reliable
+   // for a value fresh out of get_cellrefs(), whose ravel is uniformly
+   // LvalCells, and silently wrong for one built by other means -- e.g.
+   // a nested each's own Z, which mixes plain Cells (next_ravel_Cell(),
+   // for a scalar sub-result) and PointerCells (next_ravel_Pointer(),
+   // for a non-scalar one) positionally, so cell 0 need not represent
+   // the rest of the array. LO must then genuinely select/overtake B
+   // (Function::get_selectivity(), SEL_DYA or SEL_DYA_X -- Each does
+   // not itself distinguish whether LO carries a bracket axis, so both
+   // bits qualify here) and have a result: a function that merely
+   // computes a new value from B's content -- whether primitive (e.g.
+   // scalar +, whose own evaluation cannot even interpret a raw
+   // LvalCell) or defined (which could inspect, store, or leak the live
+   // LvalCell into unrelated storage via an ordinary side effect, later
+   // dangling once the array it points into is freed) -- must never
+   // reach the primitive fast path below or any eval_AB call with an
+   // unresolved LvalCell argument. Neither is_defined() nor
+   // may_push_SI() is the right test here: a primitive can be just as
+   // non-selecting as a defined function (+), and every defined
+   // function is non-selecting regardless of what it happens to do
+   // (get_selectivity() is never overridden for one).
    //
-   if (!B.is_empty() && B.is_lval_cell(0) &&
-       (LO->is_defined() || LO->may_push_SI()))
+   if (!B.is_empty() && B.is_left_value() && LO->has_dyadic_form() &&
+       (!LO->has_result() || !(LO->get_selectivity() & (SEL_DYA | SEL_DYA_X))))
       SYNTAX_ERROR;
 
    if (A.is_empty() || B.is_empty())
@@ -311,6 +323,17 @@ Value_P Z;
         Value_P LO_B = cB.to_value(LOC);     // right argument of LO;
         if (left_val)
            {
+             // Z (this each's own result) becomes B for an outer
+             // wrapping selector in a nested selective-spec chain, e.g.
+             // (H¨(⌽¨V))←N: mark it now, not just values fresh out of
+             // get_cellrefs(), or an outer defined LO would see
+             // B.is_left_value() == false (Z was built cell-by-cell
+             // here, never through get_cellrefs()) and slip straight
+             // past the guard above -- confirmed exploitable before
+             // this line was added.
+             //
+             if (Z)   Z->set_left_value();
+
              Cell * dest = cB.get_lval_value();
              // target can be 0! (Value.cc:502's own comment) -- e.g.
              // a selective assignment through an over-take of an
@@ -373,13 +396,19 @@ cFunction_P LO = _LO.get_function();
        !_LO.is_SLASH_or_BACKSLASH())     SYNTAX_ERROR;
    if (!(LO->get_signature() & SIG_B))   VALENCE_ERROR;
 
-   // see the dyadic branch (eval_ALB) for the full explanation: a defined
-   // LO must never be handed a selective-assignment target (an lvalue
-   // array), since it can smuggle the live LvalCell out into unrelated
+   // see the dyadic branch (eval_ALB) for the full explanation of both
+   // the VF_Flags::left_value test (B.is_left_value(), not a cell-
+   // type/position guess) and why LO must genuinely select/overtake B
+   // (SEL_MON or SEL_MON_X -- Each does not itself distinguish whether
+   // LO carries a bracket axis, so both bits qualify here) and have a
+   // result, or it must never be handed a selective-assignment target
+   // (an lvalue array) -- whether it is a primitive that cannot
+   // interpret a raw LvalCell (e.g. scalar functions) or a defined
+   // function that could smuggle the live LvalCell out into unrelated
    // storage.
    //
-   if (!B.is_empty() && B.is_lval_cell(0) &&
-       (LO->is_defined() || LO->may_push_SI()))
+   if (!B.is_empty() && B.is_left_value() && LO->has_monadic_form() &&
+       (!LO->has_result() || !(LO->get_selectivity() & (SEL_MON | SEL_MON_X))))
       SYNTAX_ERROR;
 
    if (B.is_empty())
@@ -512,6 +541,13 @@ Value_P Z;
 
              if (is_left_val)
                 {
+                  // Z (this each's own result) becomes B for an outer
+                  // wrapping selector in a nested selective-spec chain
+                  // -- see the dyadic branch (eval_ALB) for the full
+                  // explanation and a confirmed-exploitable repro.
+                  //
+                  if (Z)   Z->set_left_value();
+
                   Cell * dest = cB.get_lval_value();
                   // target can be 0! (Value.cc:502's own comment) -- e.g.
                   // a selective assignment through an over-take of an

@@ -581,6 +581,7 @@ const Shape3 shape_B3(shape_B, axis);
       }
 
    Z->set_default(B, LOC);
+   if (B.is_left_value())   Z->set_left_value();
    Z->check_value(LOC);
    return Token(TOK_APL_VALUE1, Z);
 }
