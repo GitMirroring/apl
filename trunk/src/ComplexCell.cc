@@ -306,6 +306,18 @@ const APL_Complex one(1.0, 0.0);
 
         case  -7: // arctanh(z) = 0.5 (ln(1.0 + z) - ln(1.0 - z))
                   {
+                    // tiny near-real b (Bugs30 #7): 1+b and 1-b both
+                    // round to exactly 1.0 in double for |b| well below
+                    // machine epsilon, so log(1+b)-log(1-b) cancels to
+                    // an incorrect 0 even though the true result (≈b)
+                    // is nonzero; atanh() is accurate for small
+                    // arguments, exactly as RealCell's own case -7 uses
+                    // it directly for real b.
+                    //
+                    if (Cell::is_near_zero(b.imag())
+                        && b.real() > -1.0 && b.real() < 1.0)
+                       return ComplexCell::zC(Z, atanh(b.real()));
+
                     const APL_Complex b1      = ONE() + b;
                     const APL_Complex b_1     = ONE() - b;
                     const APL_Complex log_b1  = log(b1);
@@ -329,6 +341,15 @@ const APL_Complex one(1.0, 0.0);
 
         case  -5: // arcsinh(z) = ln(z + sqrt(z^2 + 1))
                   {
+                    // huge near-real |b| (Bugs30 #7/#9): the general
+                    // formula below squares b, overflowing even though
+                    // the true result is finite; for near-real b use
+                    // the real-valued asinh() directly instead, exactly
+                    // as RealCell::do_bif_circle_fun() case -5 does.
+                    //
+                    if (Cell::is_near_zero(b.imag()))
+                       return ComplexCell::zC(Z, asinh(b.real()));
+
                     const APL_Complex b2 = b*b;
                     const APL_Complex b2_1 = b2 + ONE();
                     const APL_Complex root = complex_sqrt(b2_1);
@@ -361,10 +382,26 @@ const APL_Complex one(1.0, 0.0);
                // approaching the cut from either side -- flipping the
                // resulting branch for no mathematical reason (Blake
                // McBride, Bugs26 #4b).
-               const APL_Complex arg = Cell::is_near_zero(b.imag())
-                                      ? APL_Complex(b.real()*b.real() - 1.0, 0.0)
-                                      : b*b - one;
-               return ComplexCell::zC(Z, complex_sqrt(arg));
+               // huge near-real |b| (Bugs30 #9, incomplete Bugs28 #85):
+               // b.real()*b.real() below overflows even though the true
+               // result (≈|b.real()|) is finite; RealCell's own case -4
+               // avoids exactly this by dividing by b² instead of
+               // squaring b -- mirror it here for a real-valued arg.
+               //
+               if (Cell::is_near_zero(b.imag()))
+                  {
+                    const double b_re = b.real();
+                    const double abs_b = b_re < 0.0 ? -b_re : b_re;
+                    if (abs_b >= 1.0)
+                       {
+                         const double arg = 1.0 - 1.0/(b_re*b_re);
+                         return ComplexCell::zC(Z, abs_b * sqrt(arg < 0.0
+                                                                 ? 0.0 : arg));
+                       }
+                    return ComplexCell::zC(Z,
+                              complex_sqrt(APL_Complex(b_re*b_re - 1.0, 0.0)));
+                  }
+               return ComplexCell::zC(Z, complex_sqrt(b*b - one));
              }
 
         case  -3: // arctan(z) = i/2 (ln(1 - iz) - ln(1 + iz))
@@ -436,7 +473,18 @@ const APL_Complex one(1.0, 0.0);
 
         case   3: return ComplexCell::zC(Z, tan(b));
 
-        case   4: return ComplexCell::zC(Z, complex_sqrt(one + b*b));
+        case   4:
+             {
+               // huge near-real |b| (Bugs30 #9, incomplete Bugs28 #85):
+               // complex b*b overflows below even though the true
+               // result (≈|b|) is finite; RealCell::do_bif_circle_fun()
+               // case 4 already uses hypot(1.0, b) for exactly this
+               // reason -- mirror it here for a real-valued ComplexCell.
+               //
+               if (Cell::is_near_zero(b.imag()))
+                  return ComplexCell::zC(Z, hypot(1.0, b.real()));
+               return ComplexCell::zC(Z, complex_sqrt(one + b*b));
+             }
 
         case   5: return ComplexCell::zC(Z, sinh(b));
 
@@ -444,10 +492,17 @@ const APL_Complex one(1.0, 0.0);
 
         case   7: return ComplexCell::zC(Z, tanh(b));
 
-        case   8: { const APL_Complex b2 = b*b;
-                    const APL_Complex square =                    // (¯1 - R⋆2)
-                                      APL_Complex(-1, 0) - b2;
-                    const APL_Complex root = complex_sqrt(square);
+        case   8: {
+                    // huge near-real |b| (Bugs30 #9, incomplete Bugs28
+                    // #85): b*b below overflows even though the true
+                    // magnitude (hypot(1.0, b.real()) ≈ |b|) is finite.
+                    // Only the magnitude is replaced; the sign selection
+                    // below is unchanged (it depends only on root's
+                    // value, not on how it was computed).
+                    //
+                    const APL_Complex root = Cell::is_near_zero(b.imag())
+                       ? APL_Complex(0.0, hypot(1.0, b.real()))
+                       : complex_sqrt(APL_Complex(-1, 0) - b*b);
                     if (b.real()  > 0.0)
                        {
                          if (b.imag() > 0.0)   return ComplexCell::zC(Z,  root);
@@ -467,7 +522,12 @@ const APL_Complex one(1.0, 0.0);
 
         case   9: return ComplexCell::zC(Z, b.real());
 
-        case  10: return ComplexCell::zC(Z, sqrt(mag2(b)));
+        case  10:
+             // hypot(), not sqrt(mag2(b)) (Bugs30 #7/#9): the latter
+             // squares both parts first, which overflows for huge |b|
+             // and underflows to 0 for tiny |b| even though the true
+             // magnitude is finite/nonzero in both cases.
+             return ComplexCell::zC(Z, hypot(b.real(), b.imag()));
 
         case  11: return ComplexCell::zC(Z, b.imag());
 
@@ -568,12 +628,18 @@ ComplexCell::is_near_real() const
    // and a value whose I and R are comparable in magnitude, however
    // tiny both are, is correctly kept complex.
    //
-const APL_Float I2 = value.cval[1] * value.cval[1];
-   if (I2 == 0.0)   return true;   // I is exactly 0 (e.g. the literal 0J0)
+const APL_Float imag = value.cval[1];
+   if (imag == 0.0)   return true;   // I is exactly 0 (e.g. the literal 0J0)
 
-const APL_Float B2 = REAL_TOLERANCE*REAL_TOLERANCE;
-const APL_Float R2 = value.cval[0] * value.cval[0];
-   return (I2 < R2*B2);   // I is relatively small
+   // fabs(imag) < tol*fabs(real), not I2=imag²,R2=real² (Bugs30 #6
+   // sibling): squaring first underflows both to exactly 0 for a tiny
+   // but comparable-magnitude imag/real pair (e.g. 5E¯201J¯5E¯201),
+   // which then wrongly took the "I2==0.0" branch above and displayed
+   // the value as real even though imag is NOT negligible relative to
+   // real -- computing the ratio directly never needs an intermediate
+   // that can underflow (or, for a huge real part, overflow).
+   //
+   return fabs(imag) < REAL_TOLERANCE*fabs(value.cval[0]);   // I relatively small
 }
 //────────────────────────────────────────────────────────────────────────────
 // throw/nothrow boundary. Functions above MUST NOT (directly or indirectly)
@@ -864,6 +930,17 @@ APL_Complex z;
 ErrorCode
 ComplexCell::bif_power_ci(Cell * Z, APL_Complex a, APL_Integer b)
 {
+   // A is really real, merely wrapped in a ComplexCell (Bugs30 #5, e.g.
+   // ¯1J0⋆N for a huge integer N): delegate to FloatCell::bif_power_fi(),
+   // which computes this exactly (preserving parity for a negative real
+   // base) for every magnitude of the integer exponent b. The general
+   // complex_power() = exp(b×ln a) path further down instead carries
+   // b×π as an intermediate, whose rounding error grows with b and can
+   // corrupt even an exactly ±1 real result into unit-circle noise once
+   // b exceeds the moderate repeated-squaring threshold below.
+   //
+   if (a.imag() == 0.0)   return FloatCell::bif_power_fi(Z, a.real(), b);
+
 const bool invert_Z = b < 0;
    if (invert_Z)   b = -b;
 
@@ -872,9 +949,16 @@ const bool invert_Z = b < 0;
    if (b == 1)
       {
         if (!invert_Z)   return ComplexCell::zC(Z, a);
-        const APL_Float denom = a.real()*a.real() + a.imag()*a.imag();
-        if (denom == 0.0)   return E_DOMAIN_ERROR;
-        return ComplexCell::zC(Z, a.real()/denom, -a.imag()/denom);
+
+        // bif_reciprocal_c(), not denom = a.real()²+a.imag()² here
+        // (Bugs30 #8): that intermediate |a|² overflows to inf for a
+        // huge |a| (beyond ~1E154) even though the true reciprocal is
+        // perfectly finite (≈0), so dividing by it silently gave an
+        // incorrect exact 0 instead of DOMAIN-ERRORing or (as here)
+        // computing the tiny-but-nonzero correct answer;
+        // bif_reciprocal_c() already avoids that via Smith's algorithm.
+        //
+        return ComplexCell::bif_reciprocal_c(Z, a);
       }
 
    // Exact repeated multiplication (binary exponentiation by
@@ -1044,11 +1128,14 @@ const APL_Complex z = log(b) / log(a);
 static inline bool
 nc_near_real(APL_Complex c)
 {
-const APL_Float B2 = REAL_TOLERANCE * REAL_TOLERANCE;
-const APL_Float I2 = c.imag() * c.imag();
-   if (I2 < B2)   return true;   // absolutely small
-const APL_Float R2 = c.real() * c.real();
-   return I2 < R2 * B2;          // relatively small
+   // fabs(), not I2=imag², R2=real² (Bugs30 #6 sibling, same fix as
+   // ComplexCell::is_near_real()): squaring first underflows both to 0
+   // for a tiny but comparable-magnitude imag/real pair, which then
+   // wrongly took the "absolutely small" shortcut below even though
+   // imag is NOT negligible relative to real.
+   //
+   if (fabs(c.imag()) < REAL_TOLERANCE)   return true;   // absolutely small
+   return fabs(c.imag()) < REAL_TOLERANCE * fabs(c.real());   // relatively small
 }
 //────────────────────────────────────────────────────────────────────────────
 ErrorCode
@@ -1080,6 +1167,17 @@ ComplexCell::bif_residue_cc(Cell * Z, APL_Complex a, APL_Complex b)
 {
    if (a.real() == 0.0 && a.imag() == 0.0)   return ComplexCell::zC(Z, b);
    if (b.real() == 0.0 && b.imag() == 0.0)   return IntCell::z0(Z);
+
+   // both operands are really real, merely wrapped in ComplexCells
+   // (Bugs30 #10, e.g. 1E18|¯1J0): delegate to FloatCell::bif_residue_ff()
+   // instead of the hand-rolled complex-floor selection below, whose
+   // "which Gaussian neighbour" heuristic picks the wrong one when the
+   // real quotient's fractional part rounds to exactly 1.0 (e.g.
+   // quot≈¯1E¯18: fr=¯1, Dr=1.0 exactly, Di=0, so none of the >/< tests
+   // match and the final else wrongly picks fr+1=0 instead of ¯1).
+   //
+   if (a.imag() == 0.0 && b.imag() == 0.0)
+      return FloatCell::bif_residue_ff(Z, a.real(), b.real());
 
 const APL_Complex quot = b / a;
 
@@ -1301,6 +1399,22 @@ ComplexCell::bif_reciprocal_c(Cell * Z, APL_Complex b)
    //
    if (b.real() == 0.0 && b.imag() == 0.0)   return E_DOMAIN_ERROR;
 
+   // exactly real b (Bugs30 #6): compute 1/b.real() directly instead of
+   // falling into the R2/I2 shortcut below, whose own condition needs
+   // R2 = b.real()² to decide whether to take it -- for tiny |b.real()|
+   // (e.g. 1E¯200) that square itself underflows to 0, so R2*B2 is also
+   // 0, the "I2 < R2*B2" test spuriously fails (0 < 0), and the general
+   // formula further down (also built on R2+I2) then divides by an
+   // underflowed-to-0 denominator, wrongly DOMAIN-ERRORing even though
+   // the true reciprocal (1E200) is perfectly finite.
+   //
+   if (b.imag() == 0.0)
+      {
+        const APL_Float z = 1.0 / b.real();
+        if (!isfinite(z))   return E_DOMAIN_ERROR;
+        return FloatCell::zF(Z, z);
+      }
+
    // near-real: use simpler formula, but only when the imaginary part is
    // negligible *relative to* the real part -- the old absolute-only
    // "I2 < B2" disjunct fired whenever the imaginary part alone was
@@ -1312,22 +1426,44 @@ ComplexCell::bif_reciprocal_c(Cell * Z, APL_Complex b)
    // (numerically cheaper) shortcut; every value still gets a
    // mathematically equivalent, finite result via one path or the other.
    //
-const APL_Float B2 = REAL_TOLERANCE * REAL_TOLERANCE;
-const APL_Float I2 = b.imag() * b.imag();
-const APL_Float R2 = b.real() * b.real();
-   if (I2 < R2*B2)
+   // fabs(imag) < tol*fabs(real), not I2=imag²,R2=real² (Bugs30 #6
+   // sibling): squaring first underflows both to 0 for a tiny but
+   // comparable-magnitude imag/real pair, wrongly taking this shortcut
+   // (and its 1.0/b.real()) even when imag is NOT negligible relative
+   // to real.
+   //
+   if (fabs(b.imag()) < REAL_TOLERANCE*fabs(b.real()))
       {
         const APL_Float z = 1.0 / b.real();
         if (!isfinite(z))   return E_DOMAIN_ERROR;
         return FloatCell::zF(Z, z);
       }
 
-const APL_Float denom = R2 + I2;
-const APL_Float r = b.real() / denom;
+   // Smith's algorithm, not r=b.real()/(R2+I2), i=b.imag()/(R2+I2)
+   // (Bugs30 #6): the intermediate |b|² = R2+I2 above overflows for a
+   // huge |b| and underflows to 0 for a tiny one, in both cases wrongly
+   // DOMAIN-ERRORing even though the true reciprocal is finite; dividing
+   // by the larger-magnitude component first keeps every intermediate
+   // bounded.
+   //
+APL_Float r, i;
+   if (fabs(b.real()) >= fabs(b.imag()))
+      {
+        const APL_Float t = b.imag() / b.real();
+        const APL_Float den = b.real() + b.imag()*t;
+        r =  1.0 / den;
+        i = -t   / den;
+      }
+   else
+      {
+        const APL_Float t = b.real() / b.imag();
+        const APL_Float den = b.imag() + b.real()*t;
+        r =  t   / den;
+        i = -1.0 / den;
+      }
    if (!isfinite(r))   return E_DOMAIN_ERROR;
-const APL_Float i = b.imag() / denom;
    if (!isfinite(i))   return E_DOMAIN_ERROR;
-   return ComplexCell::zC(Z, r, -i);
+   return ComplexCell::zC(Z, r, i);
 }
 //────────────────────────────────────────────────────────────────────────────
 ErrorCode

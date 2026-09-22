@@ -247,6 +247,24 @@ const Cell & first_B = B.get_cfirst(cache);
         Z->next_ravel_Cell(first_B);
         if (B.is_left_value())   Z->set_left_value();
         Z->check_value(LOC);
+
+        // (↑B)←V replaces B's first item wholesale, like Pick, not a
+        // shape-conforming per-cell copy -- IBM APL2's own example
+        // (↑'DO' 'RE' 'MI') is 'DO' with shape 2, an item that may well
+        // differ in shape/length from the replacement V (Bugs30 #16
+        // sibling: (↑K)←'YELLOW' for K←'RED' 'WHITE' 'BLUE' must keep
+        // succeeding even though 'YELLOW' is longer than 'RED'). Mark
+        // it the same way Bif_F12_PICK::pick() marks its own direct,
+        // unbroken selection, so Value::assign_cellrefs() gives it the
+        // wholesale-replace treatment instead of ordinary conformance
+        // checking now that dest_count == 1 alone no longer implies
+        // that (see Bugs30 #13/#16's own removal of that blanket
+        // exception).
+        //
+        if (first_B.is_lval_cell())
+           if (Cell * target = first_B.get_lval_value())
+              Z->set_lval_pick_slot(target, B.get_lval_cellowner());
+
         return Z;
       }
 

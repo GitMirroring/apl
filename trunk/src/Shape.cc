@@ -99,6 +99,19 @@ const int other_rank = other.get_rank();
         if (this_len != other_len)   return false;   // length mismatch
       }
 
+   // ignore any remaining length-1 axes of other (Bugs30 #17): the loop
+   // above only skips a length-1 axis of other while looking for the
+   // next non-1 axis of *this* to compare against, so a length-1 axis of
+   // other trailing after the last non-1 axis of this was ever consumed
+   // -- e.g. this=,3 vs. other=3 1, where this's single non-1 axis is
+   // already matched by other's first axis, leaving other's second
+   // (length-1) axis unvisited -- was still counted against other_idx,
+   // wrongly failing conformance for two shapes that, once length-1 axes
+   // on both sides are ignored as documented, are identical.
+   //
+   while (other_idx < other_rank && other.get_shape_item(other_idx) == 1)
+         ++other_idx;
+
    return other_idx == other_rank;
 }
 //────────────────────────────────────────────────────────────────────────────

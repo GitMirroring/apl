@@ -60,6 +60,19 @@ const bool is_lval_scalar = B.is_scalar() && B.get_cscalar(cache).is_lval_cell()
       {
         Z->next_ravel_Cell(B.get_cscalar(cache));
         if (B.is_left_value())   Z->set_left_value();
+
+        // (⊂B)←C replaces B's slot wholesale, like Pick/First, not a
+        // shape-conforming copy -- ⊂ of a scalar is defined as a no-op
+        // regardless of C's shape, e.g. (⊂B)←1 2 3 for a plain scalar B
+        // (Bugs30 #13/#16 sibling, same as Bif_F12_TAKE::first()'s own
+        // marking just above/below in this file's sibling class): mark
+        // it the same way Bif_F12_PICK::pick() marks its own direct,
+        // unbroken selection, now that dest_count == 1 alone no longer
+        // implies that in Value::assign_cellrefs().
+        //
+        if (is_lval_scalar)
+           if (Cell * target = B.get_cscalar(cache).get_lval_value())
+              Z->set_lval_pick_slot(target, B.get_lval_cellowner());
       }
    else                         // B is nested: clone and copy
       {
@@ -731,6 +744,22 @@ const Cell & cB = B.get_cravel(offset, cache);
         Value_P Z(LOC);
         Value * cell_owner = B.get_lval_cellowner();
         Z->next_ravel_Lval(target, cell_owner);
+
+        // mark this as pick()'s own direct, unbroken selection of
+        // *target too, exactly like the is_pointer_cell() branch above
+        // (Bugs30 #13/#16): without this, (3⊃N)←C for a simple (non-
+        // nested) N relied on Value::assign_cellrefs()'s own blanket
+        // "a 1-element destination skips conformance" special case to
+        // accept a non-conforming C -- the same overly broad exception
+        // that let a genuinely selective, merely-1-element target (e.g.
+        // (1↑V)←9 9 9, a Take/Drop narrowing to one item, nothing to do
+        // with Pick) wrongly accept a non-conforming C too. Marking
+        // every Pick target explicitly, and having assign_cellrefs()
+        // rely only on that marker rather than on dest_count==1, keeps
+        // Pick's own wholesale-replace semantics while letting Take/Drop
+        // and friends enforce ordinary conformance again.
+        //
+        Z->set_lval_pick_slot(target, cell_owner);
         return Z;
       }
    else   // simple cell

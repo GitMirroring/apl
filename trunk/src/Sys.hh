@@ -273,6 +273,17 @@ public:
 /// open a pipe for reading or writing
 /// @param command shell command string to execute
 /// @param mode open mode passed to popen() (e.g. "r" or "w")
+/// number of sys_popen() streams currently open without a matching
+/// sys_pclose() yet (Bugs30 #19). A function-local static in an inline
+/// function, not a plain file-scope static: this header can be included
+/// by more than one .cc file, and every one of them must nest against
+/// the same single, program-wide count.
+inline int & sys_popen_nesting()
+{
+   static int nesting = 0;
+   return nesting;
+}
+//────────────────────────────────────────────────────────────────────────────
 inline FILE * sys_popen(const char * command, const char * mode)
 {
    // Restore SIGCHLD to its default disposition BEFORE popen() forks the
@@ -289,8 +300,18 @@ inline FILE * sys_popen(const char * command, const char * mode)
    // exit 3` reliably printed -1 instead of 3. signal() takes effect
    // synchronously in this thread, so doing it first closes the window
    // entirely: the child can never be forked while SIGCHLD is IGN.
+   //
+   // Only on the *first* concurrently-open stream (Bugs30 #19): with two
+   // streams open at once, unconditionally flipping SIGCHLD back to
+   // SIG_IGN in sys_pclose() below as soon as the FIRST one closes
+   // auto-reaps the SECOND stream's still-running child the instant it
+   // exits, so that stream's own later pclose() finds no child left
+   // (waitpid -> ECHILD) and wrongly returns -1 instead of the real wait
+   // status. Nesting the disposition change keeps SIGCHLD at SIG_DFL for
+   // as long as ANY sys_popen() stream is still open.
+   //
 #if ! MINGW_SRC
-   signal(SIGCHLD, SIG_DFL);
+   if (sys_popen_nesting()++ == 0)   signal(SIGCHLD, SIG_DFL);
 #endif // ! MINGW_SRC
 
 FILE * file = popen(command, mode);
@@ -303,12 +324,10 @@ inline int sys_pclose(FILE *stream)
 {
 const int ret = pclose(stream);
 
-   // Back to SIG_IGN at rest now that this popen()/pclose() pair is
-   // done -- see sys_popen() above for why the two must stay paired in
-   // exactly this order (SIG_DFL only from just before popen() to just
-   // after pclose()).
+   // Back to SIG_IGN at rest only once the LAST concurrently-open
+   // sys_popen() stream closes (Bugs30 #19) -- see sys_popen() above.
 #if ! MINGW_SRC
-   signal(SIGCHLD, SIG_IGN);
+   if (--sys_popen_nesting() == 0)   signal(SIGCHLD, SIG_IGN);
 #endif // ! MINGW_SRC
 
    return ret;

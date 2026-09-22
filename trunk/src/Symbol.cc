@@ -866,6 +866,56 @@ Value_P Z = get_apl_value();  // the current APL value of this Symbol
       }
 
 const ShapeItem max_idx = Z->element_count();
+
+   // A[]←B (fully elided index, no semicolons at all -- unlike A[;]/
+   // A[;;] etc., which go through the sibling assign_indexed(IndexExpr&)
+   // overload instead): "select everything", valid for ANY rank of A,
+   // not just a vector -- the Z->get_rank()!=1 check just below is only
+   // for a genuine single (non-elided) flat index X, which does require
+   // a vector. A scalar (or one-element) B is broadcast to every cell of
+   // A as usual, but a genuinely multi-item B must match ⍴A exactly --
+   // A[] selects the WHOLE array, so (unlike an ordinary selective
+   // specification's "same shape when ones are ignored" leniency) there
+   // is no partial/squeezed match here, real APL2: A←4⍴4 ⋄ A[]←2 2⍴9
+   // requires ⍴A = 2 2, not just 4 elements in some other shape.
+   //
+   if (!X)
+      {
+        const ShapeItem ec_B = B->element_count();
+        if (ec_B == 1)   // scalar (or one-element) B: broadcast
+           {
+             // re-fetch every iteration (via incr_B == 0), not once
+             // outside the loop: matches the established pattern
+             // elsewhere in this function (and the non-scalar branch
+             // just below) for a cache-backed get_cravel()/get_cfirst()
+             // result, rather than assuming it is safe to reuse the
+             // same Cell& across many assign_cell() calls.
+             //
+             Cell cache;
+             loop(a, max_idx)   Z->assign_cell(a, B->get_cfirst(cache), LOC);
+             if (monitor_callback)   monitor_callback(*this, SEV_ASSIGNED);
+             return;
+           }
+
+        if (B->get_shape() != Z->get_shape())
+           {
+             if (B->get_rank() != Z->get_rank())
+                {
+                  MORE_ERROR() << "A[]←C: expecting ⍴⍴C = " << Z->get_rank()
+                               << " (⍴⍴A); ⍴⍴C is " << B->get_rank();
+                  RANK_ERROR;
+                }
+             MORE_ERROR() << "A[]←C: expecting ⍴C = " << Z->get_shape()
+                          << " (⍴A); ⍴C is " << B->get_shape();
+             LENGTH_ERROR;
+           }
+
+        Cell cache;
+        loop(a, max_idx)   Z->assign_cell(a, B->get_cravel(a, cache), LOC);
+        if (monitor_callback)   monitor_callback(*this, SEV_ASSIGNED);
+        return;
+      }
+
    if (X              &&     // X exists,      and
        X->is_scalar() &&     // X is a scalar, and
        B->is_scalar() &&     // B is a scalar, and
@@ -886,25 +936,6 @@ const ShapeItem max_idx = Z->element_count();
                         " only applies to vector A); ⍴⍴A is "
                      << Z->get_rank();
         RANK_ERROR;
-      }
-
-   if (!X)   // X[] ← B
-      {
-        // scalar B is scalar extended according to ⍴Z
-        const ShapeItem ec_B = B->element_count();
-        if (ec_B != 1 && ec_B != max_idx)
-           {
-             MORE_ERROR() << "A[]←C: expecting ⍴C to be 1 or " << max_idx
-                          << " (⍴A); ⍴C is " << ec_B;
-             LENGTH_ERROR;
-           }
-
-        const int incr_B = (ec_B == 1) ? 0 : 1;
-        Cell cache;
-        loop(a, max_idx)
-            Z->assign_cell(a, B->get_cravel(a*incr_B, cache), LOC);
-        if (monitor_callback)   monitor_callback(*this, SEV_ASSIGNED);
-        return;
       }
 
 const ShapeItem ec_B = B->element_count();

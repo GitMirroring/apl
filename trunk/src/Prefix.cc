@@ -223,6 +223,12 @@ const ErrorCode ec = get_assign_state() == ASS_none ? E_SYNTAX_ERROR
 void
 Prefix::unmark_all_values() const
 {
+   /*
+      Note: the marking of Values and happens centrally (in
+      Value::mark_all_dynamic_values()) and likewise for IndexExpr,
+      while unmarking happens in the classes like Prefix that hold the
+      instances (and therefore have no mark_all_XXX() function.
+    */
    loop (s, ssize())
       {
         const Token & tok = at(s).get_token();
@@ -236,11 +242,13 @@ Prefix::unmark_all_values() const
            }
       }
 
-   // saved_MISC is a single Token_loc slot outside the main stack (used
-   // while reducing indices/axes); it can also hold a live TOK_INDEX and
-   // must be swept too (Blake McBride, Bugs8 #1).
-   //
-   const Token & misc = saved_MISC.get_token();
+   /* saved_MISC is a single Token_loc slot outside the main stack (used
+      while reducing indices/axes); it can also hold a live TOK_INDEX and
+      must be swept too (Blake McBride, Bugs8 #1).
+
+      No phrase pushes a Value into misc, thefore no way to unmark it.
+    */
+const Token & misc = saved_MISC.get_token();
    if (misc.get_ValueType() == TV_INDEX)   misc.get_index_val().unmark();
 }
 //────────────────────────────────────────────────────────────────────────────
@@ -2966,6 +2974,15 @@ Value_P top_val = top_sym->get_var_value();
                    set_assign_state(ASS_none);
                    Value_P cell_refs = member_cell->get_pointer_value()
                                                  ->get_cellrefs(LOC);
+                   // a BARE member reference (nothing selecting from it
+                   // yet, e.g. (S.a)←B) must not be usable as a
+                   // selective-specification target in its own right --
+                   // Value::assign_cellrefs() rejects it with SYNTAX
+                   // ERROR if this marker survives unbroken that far
+                   // (Bugs30 #14); a genuinely selective form such as
+                   // (⌽S.a)←B narrows cell_refs into a fresh Value first
+                   // and is unaffected.
+                   cell_refs->set_lval_bare_member_ref();
                    pop_args_push_result(Token(TOK_APL_VALUE2, cell_refs));
                  }
               else
@@ -2981,10 +2998,18 @@ Value_P top_val = top_sym->get_var_value();
              // unconditionally build a disconnected read-only copy of
              // the cell, ignoring ASS_arrow_seen entirely -- so a scalar
              // leaf member could never be used as a selective-
-             // specification/assignment target, e.g. (S.a)←7 with S.a a
-             // scalar (SYNTAX ERROR, while the same with S.a a vector
-             // worked, via the is_pointer_cell() branch's own check).
-             // See Bugs29 #4 (Blake McBride).
+             // specification/assignment target at all, e.g. (S.a)←7
+             // with S.a a scalar was SYNTAX ERROR while the same with
+             // S.a a vector worked (via the is_pointer_cell() branch's
+             // own check). Fixed by Bugs29 #4 (Blake McBride) to build a
+             // proper lvalue here too -- but a BARE member reference
+             // (nothing selecting from it yet) is still rejected by
+             // Value::assign_cellrefs() with SYNTAX ERROR if this
+             // marker survives unbroken that far (Bugs30 #14, extending
+             // the is_pointer_cell() branch's own identical marker to
+             // this leaf case for consistency); a genuinely selective
+             // form such as (⌽S.a)←B is unaffected.
+             //
              if (get_assign_state() == ASS_arrow_seen)   // selective spec.
                 {
                   set_assign_state(ASS_none);
@@ -2995,6 +3020,7 @@ Value_P top_val = top_sym->get_var_value();
                   const LvalCell left_cell(mut_cell, owner);
                   left_Z->next_ravel_Cell(left_cell);
                   left_Z->check_value(LOC);
+                  left_Z->set_lval_bare_member_ref();
                   pop_args_push_result(Token(TOK_APL_VALUE2, left_Z));
                 }
              else

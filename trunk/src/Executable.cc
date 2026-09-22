@@ -263,6 +263,7 @@ UCS_string failed_statement;
      int l = 0;
      bool in_string = false;   // inside '...'
      bool in_dquote = false;   // inside "..."
+     bool in_daq = false;      // inside «...»
      int brace_depth = 0;
 
      loop(f, failed_line.size())
@@ -308,6 +309,26 @@ UCS_string failed_statement;
                 continue;
               }
 
+           if (in_daq)
+              {
+                // «...» (Tokenizer::tokenize_string2()) is tracked
+                // exactly like "..." just above -- same backslash
+                // escaping, same single (non-nesting) closing delimiter
+                // -- so a ⋄ inside one, e.g. «a⋄b»⊃3 0⍴0, was still
+                // (mis)counted as a statement separator here (Bugs30
+                // #23, same residual class as Bugs29 #2/Bugs28 #7).
+                if (uni == UNI_BACKSLASH && f + 1 < failed_line.ssize())
+                   {
+                     if (l == statement)
+                        failed_statement << uni << failed_line[f + 1];
+                     ++f;
+                     continue;
+                   }
+                if (uni == UNI_RIGHT_DAQ)   in_daq = false;
+                if (l == statement)   failed_statement << uni;
+                continue;
+              }
+
            if (Avec::is_single_quote(uni))
               {
                 in_string = true;
@@ -318,6 +339,13 @@ UCS_string failed_statement;
            if (uni == UNI_DOUBLE_QUOTE)
               {
                 in_dquote = true;
+                if (l == statement)   failed_statement << uni;
+                continue;
+              }
+
+           if (uni == UNI_LEFT_DAQ)
+              {
+                in_daq = true;
                 if (l == statement)   failed_statement << uni;
                 continue;
               }

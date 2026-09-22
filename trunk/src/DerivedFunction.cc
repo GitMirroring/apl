@@ -103,7 +103,17 @@ void
 DerivedFunction::unmark_all_values() const
 {
    if (axis)   axis->unmark();
-   if (left_arg.is_apl_val())   left_arg.get_apl_val()->unmark();
+   if (left_arg.is_apl_val())    left_arg.get_apl_val()->unmark();
+
+   // right_arg, not just left_arg and axis (Bugs30 #26): for a dyadic
+   // operator with a value right operand (e.g. f⍤y, f⍣N), that value is
+   // held here, exactly like axis/left_arg -- and destroy_derived()
+   // just below already clears all three symmetrically. Omitting it
+   // left a value genuinely still owned by this suspended frame's
+   // derived-function cache permanently marked, so Value::print_stale()
+   // reported it as a false-positive stale value until the next )SIC.
+   //
+   if (right_arg.is_apl_val())   right_arg.get_apl_val()->unmark();
 }
 //────────────────────────────────────────────────────────────────────────────
 void

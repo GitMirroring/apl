@@ -227,6 +227,58 @@ StateIndicator * del = SI_top();
    delete del;
 }
 //────────────────────────────────────────────────────────────────────────────
+Token
+Workspace::run_pushed_SI(StateIndicator * caller_si)
+{
+   for (;;)
+       {
+         Token token = SI_top()->get_executable()->execute_body();
+
+         if (token.get_tag() == TOK_SI_PUSHED)   continue;
+
+         if (token.get_Class() == TC_VALUE || token.get_tag() == TOK_VOID)
+            {
+              // pop the just-completed frame FIRST, then compare: the
+              // very first frame we push (the direct eval_B()/eval_AB()
+              // call our own caller made) is itself never "spliced into
+              // a parent" -- caller_si is a plain C++ caller, not
+              // another APL frame with a TOK_SI_PUSHED placeholder of
+              // its own -- so checking SI_top() against caller_si
+              // before popping (as if caller_si itself might already be
+              // SI_top()) is always wrong: right after any push, SI_top()
+              // is the pushed frame, never caller_si, until it is popped.
+              //
+              pop_SI(LOC);
+              if (SI_top() == caller_si)   return token;
+
+              // a deeper nested call (made by the frame(s) we pushed, not
+              // by our own direct caller) just finished normally -- splice
+              // its result into the parent's TOK_SI_PUSHED placeholder and
+              // keep driving, exactly like Command::finish_context() does
+              // for an ordinary (non-top-level) function return.
+              //
+              Prefix & prefix = SI_top()->get_prefix();
+              Assert(prefix.at0().get_tag() == TOK_SI_PUSHED);
+              new (&prefix.tos().get_token()) Token(token);
+              continue;
+            }
+
+         // Anything else -- an error, a branch, an escape, or any other
+         // token Command::finish_context() would otherwise have to
+         // interpret -- means this was not the plain, side-effect-free
+         // computation a caller reaching for run_pushed_SI() needs: give
+         // up. Unwind every frame above caller_si again (discarding
+         // whatever got pushed, silently -- nothing is printed, matching
+         // the fact that the caller only wanted an auxiliary answer, e.g.
+         // a result shape, never a user-visible side effect) and report
+         // failure so the caller can fall back to whatever approximation
+         // it used before attempting a real evaluation.
+         //
+         while (SI_top() != caller_si)   pop_SI(LOC);
+         return Token(TOK_ERROR, E_DOMAIN_ERROR);
+       }
+}
+//────────────────────────────────────────────────────────────────────────────
 uint64_t
 Workspace::get_RL(uint64_t mod)
 {
@@ -261,7 +313,24 @@ Workspace::SI_top_fun()
 {
    for (StateIndicator * si = SI_top(); si; si = si->get_parent())
        {
-         if (si->get_parse_mode() == PM_FUNCTION)   return si;
+         if (si->get_parse_mode() != PM_FUNCTION)   continue;
+
+         // skip an internal macro frame (Bugs30 #2): a macro's own
+         // native lines (e.g. Z__A_Quad_EB_B's →(μ7=3)/0) never reach
+         // this function at all -- jump_to_line() resolves those
+         // directly against the macro's own get_exec_ufun(), in place,
+         // without ever consulting SI_top_fun() -- so skipping macro
+         // frames here only affects a →N escaping from something
+         // *underneath* the macro (a nested ⍎, as ⎕EA/⎕EB's macros run
+         // their A/B operands), which must resolve against the nearest
+         // REAL (non-macro) enclosing function instead, exactly as if
+         // the macro were not on the )SI at all -- otherwise e.g.
+         // '→1' ⎕EB '2+2' resolves →1 to the macro's own line 1 (the
+         // very statement that runs A), looping forever.
+         //
+         if (si->get_executable()->get_exec_ufun()->is_macro())   continue;
+
+         return si;
        }
 
    return 0;   // no context wirh parse mode PM_FUNCTION

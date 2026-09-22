@@ -74,7 +74,23 @@ Bif_F1_EXECUTE::execute_command(UCS_string & command)
        command.starts_iwith(")QLOAD") ||
        command.starts_iwith(")CLEAR") ||
        command.starts_iwith(")RESET") ||
-       command.starts_iwith(")SIC"))
+       command.starts_iwith(")SIC")   ||
+       command.starts_iwith(")OFF")   ||  // Bugs30 #24: )OFF terminates
+                                           // the whole session -- at
+                                           // least as disruptive as
+                                           // )CLEAR/)RESET, and ⎕EC/⎕EA
+                                           // exist precisely so their
+                                           // caller can catch that kind
+                                           // of thing rather than have
+                                           // it happen out from under
+                                           // them.
+       command.starts_iwith(")SAVE"))  // Bugs30 #25: )SAVE from within
+                                        // ⎕EC/⎕EA persists the transient
+                                        // ⎕EC/⎕EA SI B-frame itself into
+                                        // the saved workspace, so a later
+                                        // )LOAD resurrects a phantom SI
+                                        // frame that )CHECK then reports
+                                        // as "SI not cleared".
       {
         // the command modifies the SI stack. We throw E_COMMAND_PUSHED
         // but without displaying it. That should bring us back to

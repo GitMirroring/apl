@@ -1321,10 +1321,29 @@ Value_P Z(B.get_shape(), LOC);
                    data = APL_Integer(cB.get_cell_owner());
                  }
 #ifdef cfg_RATIONAL_NUMBERS_WANTED
+              // get_denominator() (FloatCell's own, real implementation
+              // under cfg_RATIONAL_NUMBERS_WANTED -- see FloatCell.hh):
+              // a rational value is encoded as a FloatCell variant (a
+              // union of a plain double vs. a numerator/denominator
+              // pair, distinguished by denominator != 0), not a separate
+              // cell type -- there is no third numeric cell type to
+              // check for here. The previous code instead memcpy'd
+              // FloatCell's raw union bits unconditionally (giving
+              // nonsense for an ordinary, non-rational FloatCell, whose
+              // union holds a plain double, not a numerator) and gave a
+              // bare "data = 1" for EVERY IntCell regardless of value --
+              // IntCell never represents a rational at all, so it must
+              // always report 0 here like every other non-rational,
+              // non-complex type already correctly does (see this
+              // function's own doc comment above: "0 for all other
+              // types incl. packed int/char"). Reproduced live: Bill
+              // Heagy, 28⎕CR of a plain int/nested-int B wrongly showed
+              // 1 (or a memcpy'd double reinterpreted as an int) for
+              // every numeric item instead of 0, but only in a build
+              // configured with RATIONAL_NUMBERS_WANTED=yes.
+              //
               else if (cB.get_cell_type() == CT_FLOAT)
-                 memcpy(&data, cB.get_u1(), sizeof(data));
-              else if (cB.get_cell_type() == CT_INT)
-                 data = 1;
+                 data = cB.get_denominator();
 #endif
               Z->next_ravel_Int(data);
             }
@@ -1816,9 +1835,24 @@ Quad_CR::do_CR38(cValue_R B)
 const ShapeItem rows_B = B.get_rows();
 ShapeItem valid_rows = B.get_member_count();
 
-ShapeItem capacity;
-   for (capacity = 8; capacity < valid_rows ;)   capacity += capacity;
-   capacity += capacity;   // one more to use ≤ 50%
+   // trust B's own row count as the capacity when it already looks like
+   // one (Bugs30 #18): tf2_var() encodes a structured value's whole
+   // member table, capacity rows and all, so recomputing capacity from
+   // valid_rows here instead discarded that and silently grew it back
+   // up from the (usually much smaller) valid-member count -- breaking
+   // a 2⎕TF/⍎ round trip's ≡ and ⍴ even though )SAVE/)LOAD (which don't
+   // go through this function) preserve capacity correctly. Only a
+   // hand-built B with no such pre-sized capacity (too small, too few
+   // rows for its own valid members, or not a power of 2) still falls
+   // back to auto-sizing from valid_rows, as before.
+   //
+ShapeItem capacity = rows_B;
+   if (capacity < 8 || capacity < valid_rows
+       || (capacity & (capacity - 1)) != 0)
+      {
+        for (capacity = 8; capacity < valid_rows ;)   capacity += capacity;
+        capacity += capacity;   // one more to use ≤ 50%
+      }
 
 const Shape shape_Z(capacity, 2);
 Value_P Z(shape_Z, LOC);

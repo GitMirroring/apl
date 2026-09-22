@@ -1710,8 +1710,22 @@ bool progress = false;
 
          int pos_B = pos_RO + len_N;
 
-         if (pos_B >= int(tos.size()) ||
-             tos[pos_B].get_Class() == TC_R_PARENT)   // ( LO ⍤ RO ) or EOS
+         if (pos_B >= int(tos.size()))   continue;   // ⍣ N at EOS: no B
+
+         // Normally "( LO ⍣ N )" already sitting inside one pair of
+         // parens is left alone here -- Prefix::reduce_A_B__() handles
+         // it directly once the parenthesized group is evaluated. But
+         // when LO itself carries a trailing bracket axis (e.g.
+         // ⌽[1]⍣2), Prefix's parenthesis reduction cannot parse
+         // "LO[axis] ⍣ N" as a single derived function -- it needs the
+         // same narrower (LO[axis])⍣N grouping produced below as the
+         // unparenthesized case does, exactly like fix_RANK_syntax()'s
+         // matching LO_has_axis exception just below (Bugs30 #20).
+         //
+         const bool LO_has_axis = pos_POWER > 0 &&
+                                   tos[pos_POWER - 1].get_tag() == TOK_R_BRACK;
+         if (!LO_has_axis &&
+             tos[pos_B].get_Class() == TC_R_PARENT)   // ( LO ⍣ N )
             {
               continue;
             }
@@ -1803,12 +1817,28 @@ bool progress = false;
 
          int pos_RANK = t;
 
+         // LO carries a trailing bracket axis, e.g. ⌽[1]⍤y (Bugs28 #59 /
+         // Bugs29 #3, extended for Bugs30 #21/#22): Prefix's parenthesis
+         // reduction can never parse "LO[axis] ⍤ y" as a single derived
+         // function, no matter what y looks like (literal, a bare
+         // variable, or itself parenthesized) -- it always needs the
+         // same narrower (LO[axis])⍤y grouping produced below. Computed
+         // once, up front, so each of the "leave y/RO alone, Prefix will
+         // sort it out" shortcuts below can be disabled specifically
+         // when LO has an axis, instead of only the one case (a literal,
+         // unparenthesized y) r2118 originally added this check for.
+         //
+         const bool LO_has_axis = pos_RANK > 0 &&
+                                   tos[pos_RANK - 1].get_tag() == TOK_R_BRACK;
+
          // if y is already in parentheses: skip (...). In this case
          // Prefix::reduce_A_B__() will take care after the expression
-         // in parentheses was evaluated.
+         // in parentheses was evaluated -- unless LO_has_axis, which
+         // Prefix cannot parse even once that parenthesized y group is
+         // evaluated, e.g. (⌽[1]⍤(2))B or (⌽[1]⍤(Y))B (Bugs30 #22).
          //
-         if (tos[t + 1].get_tag() == TOK_L_PARENT)   // f ⍤ ( RO )
-            {
+         if (tos[t + 1].get_tag() == TOK_L_PARENT && !LO_has_axis)
+            {                                        // f ⍤ ( RO )
               t = tos.find_closing_parent(t + 1);   // skip (...)
               continue;                              // next ⍤ (if any)
            }
@@ -1822,8 +1852,16 @@ bool progress = false;
               pos_RO = tos.find_closing_bracket(pos_RO) + 1;   // skip [...]
             }
 
+         // j_length() is 0 both for a non-literal y (e.g. a bare
+         // variable Y) and for a parenthesized RO reached from the
+         // LO_has_axis branch just above (it stops at the very first
+         // token, the '('). Normally that means "not literal, leave it
+         // for Prefix" -- unless LO_has_axis, which needs the
+         // (LO[axis])⍤y wrap regardless of whether y is literal
+         // (Bugs30 #21).
+         //
          const int len_y = j_length(tos, pos_RO);
-         if (len_y == 0)   continue;   // y is not literal
+         if (len_y == 0 && !LO_has_axis)   continue;   // y is not literal
 
          if (len_y > 3)   // ISO p. 124
             {
@@ -1831,29 +1869,28 @@ bool progress = false;
               LENGTH_ERROR;
             }
 
-         int pos_B = pos_RO + len_y;
-
-         if (pos_B >= int(tos.size()))   continue;   // ⍤ y at EOS: no RO
-
-         // Normally "( LO ⍤ y )" already sitting inside one pair of
-         // parens is left alone here -- Prefix::reduce_A_B__() handles
-         // it directly once the parenthesized group is evaluated. But
-         // when LO itself carries a trailing bracket axis (e.g.
-         // ⌽[1]⍤2), Prefix's parenthesis reduction cannot parse
-         // "LO[axis] ⍤ y" as a single derived function -- it needs the
-         // same narrower (LO[axis])⍤y grouping produced below as the
-         // unparenthesized case does. See Bugs28 #59 / Bugs29 #3
-         // (Blake McBride).
-         const bool LO_has_axis = pos_RANK > 0 &&
-                                   tos[pos_RANK - 1].get_tag() == TOK_R_BRACK;
-         if (!LO_has_axis &&
-             tos[pos_B].get_Class() == TC_R_PARENT)   // ( LO ⍤ y )
+         // The EOS and already-parenthesized "(LO⍤y)" shortcuts below
+         // only make sense for a literal y (len_y > 0); a non-literal or
+         // parenthesized y reaching here only because LO_has_axis always
+         // falls through to the (LO[axis]) wrap further down.
+         //
+         if (len_y > 0)
             {
-              continue;
+              const int pos_B = pos_RO + len_y;
+
+              if (pos_B >= int(tos.size()))   continue;   // ⍤ y at EOS
+
+              if (!LO_has_axis &&
+                  tos[pos_B].get_Class() == TC_R_PARENT)   // ( LO ⍤ y )
+                 {
+                   continue;
+                 }
             }
 
-         // at this point we have a literal y with 1, 2, or 3 items. We
-         // disambiguate it by putting LO ⍤ RO in parentheses
+         // at this point we have either a literal y with 1, 2, or 3
+         // items, or (LO_has_axis only) a non-literal/parenthesized y.
+         // Either way we disambiguate by putting LO[axis] in
+         // parentheses on its own.
          //
 
          // insert a left parenthesis

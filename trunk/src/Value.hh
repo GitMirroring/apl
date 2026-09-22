@@ -995,9 +995,49 @@ public:
    /// see set_lval_pick_slot()
    Value * get_lval_pick_owner() const  { return lval_pick_owner; }
 
+   /// mark \b this as a BARE member reference (e.g. S.a, with no
+   /// selecting function applied) built for a possible selective
+   /// specification/assignment -- so that Value::assign_cellrefs() can
+   /// reject it with SYNTAX ERROR if it survives unbroken all the way to
+   /// the assignment, i.e. was never actually selected from (Bugs30
+   /// #14). Unlike set_lval_whole_symbol()/set_lval_pick_slot() (which
+   /// mark a legitimate "replace the whole thing" target), a bare member
+   /// reference used directly as a selective-specification target --
+   /// with nothing to its left to select with -- looks exactly like a
+   /// broken/incomplete selective specification, and member variables
+   /// are a GNU-APL-only construct free to reject that outright rather
+   /// than special-case it into a wholesale replace the way a plain
+   /// symbol's (X)←B already legitimately does.
+   ///
+   /// Exactly like the other two markers, this is never copied into a
+   /// freshly built Value, so it only survives an unbroken chain of
+   /// pass-throughs straight to the assignment -- any intervening
+   /// selecting function (e.g. (⌽S.a)←B, (2↑S.a)←B) builds its own fresh
+   /// result Value that does not carry it, and is unaffected.
+   void set_lval_bare_member_ref()
+      { lval_bare_member_ref = true; }
+
+   /// see set_lval_bare_member_ref()
+   bool get_lval_bare_member_ref() const
+      { return lval_bare_member_ref; }
+
    /// assign \b val to the cell references in this value.
    /// @param val value whose elements are assigned to the cell references
    void assign_cellrefs(Value_P val);
+
+   /// overwrite every LvalCell in this value's ravel with a harmless
+   /// IntCell 0, in place (shape and cell count unchanged). Used by
+   /// assign_cellrefs() right before it throws LENGTH_ERROR for a
+   /// malformed selective specification/assignment (Bugs30 #28): the
+   /// errored SI frame's Prefix keeps this lvalue-cellref array alive on
+   /// its (unpopped) operand stack until the next )SIC, and nothing will
+   /// ever consume it for its original purpose now that the assignment
+   /// has definitively failed -- left as LvalCells, it is both a latent
+   /// dangling-pointer risk (each one is a raw, non-owning pointer into
+   /// another value's ravel, which could in principle be freed before
+   /// this array is) and a false-positive for )CHECK's "value has N Lval
+   /// Cells" diagnostic (cValue::check_Cells()).
+   void neutralize_lval_cells(const char * loc);
 
    /** return member of this value, defined by \b members. The first name in
        members is the deepest, while the last name is the name of the
@@ -1523,6 +1563,11 @@ protected:
 
    /// see set_lval_pick_slot()
    Value * lval_pick_owner = 0;
+
+   /// see set_lval_bare_member_ref(); false unless this is a bare member
+   /// reference (e.g. S.a) built for a possible selective specification
+   /// that has not (yet) been narrowed by any selecting function.
+   bool lval_bare_member_ref = false;
 
    /// a linked list of values that have been deleted
    static _deleted_value * deleted_values;

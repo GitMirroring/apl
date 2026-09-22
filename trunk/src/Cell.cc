@@ -149,7 +149,21 @@ Cell::init_from_value(Value * value, Value & cell_owner, const char * loc)
    // (whose depth cache already starts dirty) pay only a harmless no-op.
    cell_owner.invalidate_depth();
 
-   if (value->is_simple_scalar())
+   // is_scalar(), not is_simple_scalar() (Bugs30 #13/#16 sibling): value
+   // being scalar-SHAPED, regardless of what its one cell actually
+   // contains, already means it is exactly one item -- copying that one
+   // cell directly (via the polymorphic init_other(), which already
+   // handles a PointerCell source correctly by cloning the pointed-to
+   // value) both places a plain cell verbatim (the original,
+   // is_simple_scalar()-only behavior) AND avoids wrapping an ALREADY
+   // scalar-shaped enclosure in yet another PointerCell -- e.g.
+   // (2⊃A)←⊂9 9 used to store ⊂⊂9 9 (double nested) instead of the ⊂9 9
+   // that "the right array replaces it" (LRM p.43) calls for. Only a
+   // genuinely non-scalar value (e.g. (2⊃A)←3 4 5, several items that
+   // must be gathered into the one target slot) still needs the
+   // single enclosing wrap in the else branch below.
+   //
+   if (value->is_scalar())
       {
         Cell cache;
         value->get_cfirst(cache).init_other(this, cell_owner, loc);
@@ -286,6 +300,41 @@ exact_numeric_compare(const Cell & ca, const Cell & cb)
    if (ca.is_numeric() && cb.is_numeric() &&
        !ca.is_complex_cell() && !cb.is_complex_cell())
       {
+        // Bugs30 #4 (Blake McBride): an IntCell/FloatCell pair (the
+        // IntCell/IntCell pair above is already exact) still converted
+        // *both* operands via get_real_value(), so a large IntCell
+        // (beyond 2⋆53) rounded to the same double as a nearby
+        // FloatCell and compared equal, misordering ⍋/⍒ (e.g.
+        // 9007199254740993 vs 9007199254740992.0). Compare the
+        // IntCell's exact int64 against the FloatCell's double without
+        // ever converting the int64 side to double: floor() of a
+        // double never loses precision beyond what the double already
+        // has, so casting that floor back to int64 (once known to be
+        // in int64 range) exactly recovers the integer value the
+        // double represents, whatever its magnitude.
+        //
+        if (ca.is_integer_cell() != cb.is_integer_cell())
+           {
+             const bool a_is_int = ca.is_integer_cell();
+             const APL_Integer i  = a_is_int ? ca.get_int_value()
+                                              : cb.get_int_value();
+             const APL_Float   f  = a_is_int ? cb.get_real_value()
+                                              : ca.get_real_value();
+             int cr;   // i vs f, from i's point of view
+             if      (f >= 9223372036854775808.0)    cr = -1;   // f ≥ 2⋆63
+             else if (f < -9223372036854775808.0)     cr = 1;    // f < -2⋆63
+             else
+                {
+                  const APL_Float f_floor = floor(f);
+                  const APL_Integer i_floor = APL_Integer(f_floor);
+                  if      (i < i_floor)        cr = -1;
+                  else if (i > i_floor)        cr = 1;
+                  else if (f > f_floor)        cr = -1;   // i == ⌊f⌋ < f
+                  else                         cr = 0;
+                }
+             return a_is_int ? cr : -cr;
+           }
+
         const APL_Float fa = ca.get_real_value();
         const APL_Float fb = cb.get_real_value();
         if (fa < fb)   return -1;

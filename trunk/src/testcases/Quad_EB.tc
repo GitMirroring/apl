@@ -41,6 +41,53 @@ OK      - no stale values
 OK      - no stale indices
 OK      - no duplicate parents
 
+      ⍝ Bugs30 #2 (Blake McBride): A containing a →N with no enclosing
+      ⍝ defined function used to hang the interpreter forever (→N was
+      ⍝ misresolved as a jump to the ⎕EB macro's own line 1, i.e. the
+      ⍝ very statement that runs A, looping). Fixed: no enclosing
+      ⍝ function means SYNTAX ERROR (like a bare ⍎'→1'), not a hang.
+
+      '→1' ⎕EB '2+2'
+SYNTAX ERROR+
+      →1
+      ^
+
+      )SIC
+
+      '→0' ⎕EB '2+2'
+SYNTAX ERROR+
+      →0
+      ^
+
+      )SIC
+
+      '→¯1' ⎕EB '2+2'
+SYNTAX ERROR+
+      →¯1
+      ^
+
+      )SIC
+
+      ⍝ →N with a real enclosing function must still branch for real.
+
+      )ERASE FOO
+
+∇Z←FOO
+      A←'→3' ⎕EB '2+2'
+      Z←100
+      Z←999
+∇
+
+      FOO
+999
+
+      )CHECK
+OK      - no stale functions
+OK      - no stale values
+OK      - no stale indices
+OK      - no duplicate parents
+
+      )ERASE FOO
 
       ⍝ ==================================
 

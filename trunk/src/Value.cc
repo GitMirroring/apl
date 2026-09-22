@@ -367,6 +367,20 @@ Value_P left_Z(get_shape(), loc);
 }
 //────────────────────────────────────────────────────────────────────────────
 void
+Value::neutralize_lval_cells(const char * loc)
+{
+   loop(d, element_count())
+       {
+         Cell & cell = get_wravel(d);
+         if (cell.is_lval_cell())
+            {
+              cell.release(loc);
+              new (&cell)   IntCell(0);
+            }
+       }
+}
+//────────────────────────────────────────────────────────────────────────────
+void
 Value::assign_cellrefs(Value_P new_value)
 {
    // assign new_value to this (left-) value
@@ -412,9 +426,60 @@ Value::assign_cellrefs(Value_P new_value)
         return;
       }
 
+   // (S.a)←new_value with nothing selecting from S.a first, for either a
+   // scalar or an array member (Bugs30 #14): a bare member reference
+   // used directly as a selective-specification target looks exactly
+   // like a broken/incomplete selective specification -- unlike a plain
+   // symbol, where (X)←new_value is legitimately just X←new_value
+   // (handled by the lval_whole_symbol marker above), member variables
+   // are a GNU-APL-only construct free to reject this outright. Like the
+   // other two markers above, this only survives an unbroken chain
+   // straight from Prefix::reduce_D_V__()'s member-access reduction
+   // through to this assignment; a genuinely selective form such as
+   // (⌽S.a)←new_value or (2↑S.a)←new_value builds a fresh Value for its
+   // own (narrowed) result and never copies the marker, so those are
+   // unaffected.
+   //
+   if (get_lval_bare_member_ref())
+      {
+        MORE_ERROR() << "(S.member)←B: a bare member reference is not a "
+                        "valid selective-specification target -- select "
+                        "something from it first (e.g. (⌽S.member)←B), or "
+                        "assign to the member directly (S.member←B)";
+        neutralize_lval_cells(LOC);   // Bugs30 #14 (same as #28)
+        SYNTAX_ERROR;
+      }
+
 const ShapeItem new_value_count = new_value->element_count();
 const ShapeItem dest_count  = element_count();
-   if (dest_count == 0)   return;   // nothing to assign
+
+   // check_lval_consistency() (see its own definition, cValue.cc) rejects
+   // any ravel item that is neither an LvalCell nor a PointerCell -- the
+   // very mechanism that already correctly SYNTAX_ERRORs a non-empty
+   // plain constant used as an assignment target (e.g. 1 2 3←7). But
+   // dest_count == 0 used to return right here, before ever reaching
+   // that check below, so the empty-vector constant ⍬ (dest_count == 0,
+   // and not an lvalue either) slipped through as a silent no-op instead
+   // of being rejected the same way (Bugs30 #29: ⍬←2, (0⍴0)←2). Run the
+   // check first -- it uses nz_element_count() ("at least 1, for the
+   // prototype"), so it still sees ⍬'s own (non-lval) prototype cell
+   // even though dest_count itself is 0, while a genuinely empty
+   // *lvalue* selection (e.g. (0↑V)←⍬ for a real variable V, whose
+   // prototype cell is itself an LvalCell) still passes and returns as
+   // the legitimate no-op it always was.
+   //
+   check_lval_consistency();
+   if (dest_count == 0)   return;   // nothing to assign; established
+                                     // (Bugs28 #52) leniency for a
+                                     // genuinely empty selection, e.g.
+                                     // (V[⍬])←1 2 3 -- unlike dest_count
+                                     // >= 1 below, this is NOT narrowed
+                                     // to also require new_value_count
+                                     // to be 0 or 1; see Bracket_Index.tc.
+                                     // A[⍬]←B for a plain (unparenthesized)
+                                     // variable still correctly LENGTH
+                                     // ERRORs via the completely separate
+                                     // Symbol::assign_indexed() path.
 
    // nz_element_count() (used here previously) is "at least 1, for the
    // prototype" -- a real, empty new_value made it look exactly like a
@@ -423,26 +488,30 @@ const ShapeItem dest_count  = element_count();
    // raising the LENGTH ERROR that plain indexed assignment (A[...]←⍬)
    // already correctly gives for the same shape mismatch (Bugs28 #31).
    //
-   // Only when dest_count > 1: a dest_count of exactly 1 is ambiguous
-   // between "select exactly one cell/item" (⊃, a 1-element ↑/⌷/...)
-   // and "replace this whole slot wholesale" (this same assign_cellrefs()
-   // is also how an ordinary, non-selective "V←B" resolves V as an
-   // lvalue -- e.g. a lambda's own synthesized "λ←B" -- and B←⍬/0 0⍴B
-   // there must always succeed, matching the report's own third example,
-   // (3⊃N)←⍬, which is shown without a "want LENGTH ERROR" annotation).
+   // Unconditionally now, not just when dest_count > 1 (Bugs30 #13/#16):
+   // a dest_count of exactly 1 used to be treated as inherently ambiguous
+   // between "select exactly one cell/item" (a 1-element ↑/⌷/..., or a
+   // member-array bracket index like S.b[1]) and "replace this whole
+   // slot wholesale" (Pick, or an ordinary, non-selective "V←B" lvalue)
+   // -- but the latter is now always reached via one of the dedicated
+   // markers above (lval_whole_symbol, lval_pick_slot) instead, which
+   // return long before this point, so anything still here with
+   // dest_count == 1 is a genuine 1-item *selection*, not a wholesale
+   // replace, and must enforce the same conformance as any other count:
+   // (1↑V)←⍬ was wrongly accepted (zero-filling the one selected item)
+   // exactly like plain indexed A[1]←⍬ is correctly LENGTH ERROR.
    //
-   if (new_value_count == 0 && dest_count > 1)
+   if (new_value_count == 0)
       {
         MORE_ERROR() << "(f Z)←B: B is empty; expecting ⍴,B to be 1 or "
                      << dest_count << " (the number of selected items)";
+        neutralize_lval_cells(LOC);   // Bugs30 #28
         LENGTH_ERROR;
       }
 
-const int dest_incr = (dest_count == 1)       ? 0 : 1;
 const int src_incr  = (new_value_count == 1)  ? 0 : 1;
 
-   if (src_incr  &&   // this is not a acalar or 1-element value, and
-       dest_incr &&   // new_value  is not a acalar or 1-element value, and
+   if (src_incr  &&   // new_value is not a scalar or 1-element value, and
        !this->conforms_to(*new_value))   // non-trivial shape mismatch
       {
         // NOTE:  M←3 2ρι6 ◊ (1 0/M) ← 'abc' succeeds in IBM APL2, even
@@ -451,6 +520,7 @@ const int src_incr  = (new_value_count == 1)  ? 0 : 1;
         MORE_ERROR() << "(f Z)←B: expecting ⍴,B to be 1 or " << dest_count
                      << " (the number of selected items); ⍴,B is "
                      << new_value_count;
+        neutralize_lval_cells(LOC);   // Bugs30 #28
         LENGTH_ERROR;
       }
 
@@ -464,10 +534,9 @@ const int src_incr  = (new_value_count == 1)  ? 0 : 1;
 
     */
 
-   // consistency check: all items are LvalCells or PointerCells.
+   // consistency check (all items are LvalCells or PointerCells) already
+   // done above, before the dest_count == 0 check (Bugs30 #29).
    //
-   check_lval_consistency();
-
    if (is_scalar() && !new_value->is_scalar())
       {
         Cell cache;

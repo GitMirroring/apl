@@ -611,10 +611,14 @@ public:
                                           && p[0] <  (1.0 + INTEGER_TOLERANCE)))
             && Cell::is_near_zero(p[1]); }
    virtual bool is_near_real(ShapeItem idx) const override
-      { const double * p = reinterpret_cast<const double *>(cells) + 2*idx;
-        const APL_Float B2 = REAL_TOLERANCE*REAL_TOLERANCE;
-        const APL_Float I2 = p[1]*p[1];
-        return I2 < B2 || I2 < p[0]*p[0]*B2; }
+      { // fabs(), not I2=p[1]², squared-then-compared (Bugs30 #6
+        // sibling, same fix as ComplexCell::is_near_real()): squaring
+        // first underflows to 0 for a tiny but comparable-magnitude
+        // imag/real pair, wrongly judging it near-real.
+        //
+        const double * p = reinterpret_cast<const double *>(cells) + 2*idx;
+        const APL_Float i = fabs(p[1]);
+        return i < REAL_TOLERANCE || i < fabs(p[0])*REAL_TOLERANCE; }
    virtual bool is_real_cell(ShapeItem idx) const override    { return false; }
 
    virtual bool apply_fast_dyadic(const ScalarFunction & sf,

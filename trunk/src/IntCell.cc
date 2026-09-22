@@ -84,6 +84,23 @@ IntCell::equal(const Cell & other, double qct) const
         // same tolerant comparison used for every other numeric type.
         //
         if (value.ival == other.get_int_value())   return true;
+
+        // Bugs30 #3 (Blake McBride): tolerantly_equal()'s own A==B fast
+        // path operates on the *already double-converted* values, which
+        // can (and does, above 2⋆53) coincide for two int64s that are
+        // NOT equal -- e.g. 9007199254740993 and 9007199254740992 both
+        // round to the same double, so tolerantly_equal() wrongly
+        // reported them equal even at qct==0, contradicting the exact
+        // int64 comparison above (and IntCell::compare()'s own exact
+        // result: a>b was 1 while a=b was also 1). At qct==0, ISO p.19
+        // tolerant equality collapses to exact equality by definition;
+        // the two int64s are already known unequal (the fast path above
+        // just failed), so there is nothing further to check -- return
+        // false without ever converting to double. A non-zero qct still
+        // goes through the normal (inherently approximate, same as for
+        // any other numeric type) tolerant comparison.
+        //
+        if (qct == 0.0)   return false;
         return tolerantly_equal(APL_Float(value.ival),
                                  APL_Float(other.get_int_value()), qct);
       }
