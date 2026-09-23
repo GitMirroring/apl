@@ -1599,6 +1599,21 @@ UserFunction::eval_fill_AB(cValue_R A, cValue_R B) const
    // itself" as their fill function (Figure 20) -- primitives are known
    // safe to invoke on synthetic fill data, defined functions are not.
    //
+   // This method (and its eval_fill_B() sibling below) is reached only
+   // from Each and Outer Product, the two operators APL2's Figure 20
+   // actually documents a fill function for -- confirmed still correct
+   // there for a defined operand via real APL2 itself (Bugs30 #12: ≡Z,
+   // ⍴↑Z and 2⎕TF all matched this identity's output on Blake McBride's
+   // own examples). The Rank operator (⍤), not part of APL2 at all and
+   // never routed through eval_fill_AB()/eval_fill_B(), has its own
+   // separate eval_rank_fill_AB()/eval_rank_fill_B() pair instead
+   // (Function.hh, default genuinely evaluates) -- real Rank-operator
+   // implementations (Dyalog, APL2 extensions) genuinely evaluate a
+   // defined LO there, unlike Each/Outer Product, and Bif_OPER2_RANK.cc
+   // drives that safely to completion. See its own comments for why the
+   // two operators warrant different treatment despite both being
+   // "defined function used as an operand on an empty argument".
+   //
 Value_P Z(static_cast<Value *>(const_cast<cValue *>(&B)), LOC);
    return Token(TOK_APL_VALUE1, Z);
 }

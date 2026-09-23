@@ -412,9 +412,22 @@ Function::eval_rank_fill_B(cValue_R B) const
 Token
 Function::eval_identity_fun(cValue_R B, sAxis axis) const
 {
-  MORE_ERROR() << "Function " << get_name() 
-                     << " has no identity function";
-  DOMAIN_ERROR;
+  MORE_ERROR() << "Function " << get_name()
+                     << " has no identity function, needed to reduce along"
+                        " axis " << axis << " of B (⍴B is " << B.get_shape()
+                     << "), whose length there is 0";
+
+  // Neither the LRM ("an attempt to reduce an empty argument with a
+  // defined function generates a DOMAIN ERROR") nor ISO 13751's Table 5
+  // ("all others -- Signal domain-error") get the error class right
+  // here: DOMAIN_ERROR is for bad ravel content, not a bad shape (this
+  // codebase's own convention: LENGTH_ERROR when some other length at
+  // the same rank would work, RANK_ERROR when no rank would). Reducing
+  // this same B along this same axis works fine for any length other
+  // than 0 -- e.g. LO/1 2 3 or LO/,5 -- so this is squarely a length
+  // problem, not a content problem.
+  //
+  LENGTH_ERROR;
 }
 //────────────────────────────────────────────────────────────────────────────
 void
