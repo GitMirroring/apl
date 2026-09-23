@@ -889,6 +889,70 @@ OK      - no duplicate parents
 
       )ERASE ZZ60A ZZ60T ZZ60U
 
+      ⍝ Blake McBride's Bugs30 #11/#12: (F⍤k)B and A∘.F B with a *defined*
+      ⍝ F, on an empty frame. See Bif_OPER2_RANK.cc (eval_rank_fill_AB()/
+      ⍝ eval_rank_fill_B(), eval_LO_on_fill_chunk()) for the #11 fix.
+      ⍝
+      ⍝ #11 (⍤, not part of APL2 at all -- ISO 13751 9.3.4/9.3.5 never
+      ⍝ addresses the empty-frame case either) was a real bug: a defined
+      ⍝ LO used to get APL2's Each/Outer-Product-only "identity" fill
+      ⍝ (LRM Figure 20), simply returning the chunk argument unevaluated,
+      ⍝ e.g. ({⍴⍵}⍤1)0 3⍴0 wrongly gave shape 0 3 (B's own chunk shape)
+      ⍝ instead of 0 1 (the shape ⍴ actually produces on one chunk),
+      ⍝ disagreeing with the primitive control (⍴⍤1), which already
+      ⍝ computed the real shape. LO is now genuinely evaluated on a
+      ⍝ synthetic chunk instead, matching real Rank-operator
+      ⍝ implementations -- confirmed against both Dyalog APL and IBM
+      ⍝ APL2 itself (⍤ is a widely adopted extension there too).
+      ⍝
+      ⍴(⍴⍤1)0 3⍴0
+0 1
+      ⍴({⍴⍵}⍤1)0 3⍴0
+0 1
+      ⍴({2↑⍵}⍤1)1 3⍴0
+1 2
+      ⍴({2↑⍵}⍤1)0 3⍴0
+0 2
+      ⍴({⍵,⍵}⍤1)1 3⍴5
+1 6
+      ⍴({⍵,⍵}⍤1)0 3⍴5
+0 6
+
+      ⍝ #12 (∘., genuinely part of APL2): Blake's report expected the
+      ⍝ same treatment as #11 (genuine evaluation of a defined RO), but
+      ⍝ ∘. IS covered by APL2's LRM (Figure 20), which documents identity
+      ⍝ -- not evaluation -- as a defined operation's fill, and real APL2
+      ⍝ confirmed that directly (≡Z, ⍴↑Z, and 2⎕TF all matched GNU APL's
+      ⍝ existing, UNCHANGED output on both cases below). So unlike #11,
+      ⍝ this is NOT a bug: these are regression controls confirming that
+      ⍝ UserFunction::eval_fill_AB()'s plain identity is already correct
+      ⍝ here and must stay that way -- genuinely evaluating a defined RO
+      ⍝ (as #11 now does for LO) would make this WRONG relative to real
+      ⍝ APL2, not right.
+      ⍝
+      Z←⍬∘.,1 2 3 ⋄ ≡Z ⋄ ⍴↑Z ⋄ 2 ⎕TF 'Z'
+2
+2
+Z←0 3⍴(⊂2⍴0 0)
+      )ERASE Z
+      Z←⍬∘.{⍺,⍵}1 2 3 ⋄ ≡Z ⋄ ⍴↑Z ⋄ 2 ⎕TF 'Z'
+1
+
+Z←0 3⍴0
+      )ERASE Z
+      Z←3∘.,0⍴⊂1 2 ⋄ 2 ⎕TF 'Z'
+Z←0⍴(⊂3⍴0 0 0)
+      )ERASE Z
+      Z←3∘.{⍺,⍵}0⍴⊂1 2 ⋄ 2 ⎕TF 'Z'
+Z←0⍴(⊂2⍴0 0)
+      )ERASE Z
+
+      )CHECK
+OK      - no stale functions
+OK      - no stale values
+OK      - no stale indices
+OK      - no duplicate parents
+
       )CLEAR
 CLEAR WS
 
