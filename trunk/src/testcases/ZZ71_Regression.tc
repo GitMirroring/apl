@@ -212,8 +212,18 @@ Z←0⍴0
       ⍝ B's whole original shape and fed eval_fill_B() a collapsed
       ⍝ scalar instead of a properly chunk-shaped placeholder.
       ⍝
+      ⍝ Revised 2026-09-22 (Blake McBride, Bugs30 #11/#12): Rank's
+      ⍝ empty-frame handling no longer routes through eval_fill_AB(),
+      ⍝ whose generic scalar-function default only derived a type-
+      ⍝ correct zero/space prototype, ignoring the broadcast operand's
+      ⍝ actual value -- it now genuinely evaluates LO (here 1+0, since
+      ⍝ A's broadcast chunk is 1 and B's synthetic chunk is B's own
+      ⍝ prototype 0), matching real Rank-operator implementations
+      ⍝ (confirmed against Dyalog APL) and giving Z the prototype +
+      ⍝ would actually produce, not a generic default.
+      ⍝
       Z←(1 2 3)(+⍤1)0 3⍴0 ⋄ 2⎕TF 'Z'
-Z←0 3⍴0
+Z←0 3⍴1
       )ERASE Z
       Z←(⍴⍤1)0 3⍴0 ⋄ 2⎕TF 'Z'
 Z←0 1⍴0
@@ -451,6 +461,20 @@ DOMAIN ERROR
       ⍝ DOMAIN_ERROR as before (not worse than pre-fix) for that shape,
       ⍝ evaluates normally otherwise.
       ⍝
+      ⍝ Superseded 2026-09-22 (Blake McBride, Bugs30 #11/#12): Rank's
+      ⍝ empty-frame handling no longer calls eval_fill_AB()/eval_fill_B()
+      ⍝ at all (that pair stays reserved for Each/Outer Product, where
+      ⍝ APL2's LRM documents identity as a *defined* function's fill --
+      ⍝ a convention Rank, absent from APL2 entirely, never had). It
+      ⍝ now calls new eval_rank_fill_AB()/eval_rank_fill_B() methods
+      ⍝ instead, whose default genuinely evaluates LO and, unlike the
+      ⍝ old direct call this guard once protected against, properly
+      ⍝ drives any pushed SI frame to completion (Bif_OPER2_RANK.cc's
+      ⍝ own eval_LO_on_fill_chunk() helper) -- so
+      ⍝ ({⍵+1}⍣2⍤1)0 3⍴0 below no longer needs the may_push_SI() escape
+      ⍝ hatch at all: it now genuinely computes the (empty) result
+      ⍝ instead of falling back to DOMAIN_ERROR.
+      ⍝
       (+/⍤1)0 3⍴0
 
       ⍴(+/⍤1)0 3⍴0
@@ -462,9 +486,7 @@ DOMAIN ERROR
       ⍴(+⍨⍤1)0 3⍴0
 0 3
       ({⍵+1}⍣2⍤1)0 3⍴0
-DOMAIN ERROR+
-      (({⍵+1})⍣2⍤1)0 3⍴0
-          ^        ^
+
 
       ⍝ #36 (fixed 2026-09-03) ⎕EA never set ⎕ET/⎕EM after falling back
       ⍝ to A. Root cause: Prefix::execute_EA_fallback() only recorded

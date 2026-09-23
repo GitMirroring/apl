@@ -443,6 +443,27 @@ public:
    /// Evaluate \b the fill function.
    virtual Token eval_fill_B(cValue_R B) const;
 
+   /// Evaluate this function on a synthetic prototype chunk to determine
+   /// the shape/value an empty-frame application of the Rank operator (⍤)
+   /// should use. Unlike eval_fill_AB()/eval_fill_B() (APL2's fill-
+   /// function convention for Each/Outer Product, where a defined
+   /// function's fill is the identity per LRM Figure 20), the Rank
+   /// operator is not part of APL2 at all and has no such documented
+   /// convention -- ISO 13751 leaves this case fully unspecified. The
+   /// default here genuinely evaluates the function (matching real Rank
+   /// implementations such as Dyalog's -- confirmed e.g.
+   /// ⍴({⍴⍵}⍤1)0 3⍴0 is 0 1 there, same as ⍴(⍴⍤1)0 3⍴0), which the
+   /// caller (Bif_OPER2_RANK.cc) drives to completion if it pushed an SI
+   /// frame (i.e. LO is a defined function). A function whose real
+   /// evaluation on a synthetic value is not meaningful (e.g. Domino:
+   /// inverting an all-zero synthetic matrix is singular) must override
+   /// this, typically by delegating to its own eval_fill_AB()/
+   /// eval_fill_B(), the same way it already does for Each/Outer Product.
+   virtual Token eval_rank_fill_AB(cValue_R A, cValue_R B) const;
+
+   /// see eval_rank_fill_AB() above.
+   virtual Token eval_rank_fill_B(cValue_R B) const;
+
    /** Evaluate \b the identity function. B is empty and the result is a
    /// value f/B0 with (B0 f ↑B) ≡ B for all B (and f is \b this function).
    /// If such a B0 does not exist then raise a DOMAIN ERROR.

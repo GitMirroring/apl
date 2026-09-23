@@ -1583,71 +1583,21 @@ UserFunction::UserFunction(const UCS_string txt, const char * loc,
 Token
 UserFunction::eval_fill_AB(cValue_R A, cValue_R B) const
 {
-   // eval_AB(A, B), for real, via Workspace::run_pushed_SI() (Bugs30
-   // #12): a direct, unprotected eval_AB(A, B) call was tried and
-   // reverted first -- eval_AB() (like every UserFunction eval_XXX())
-   // never computes synchronously, it only pushes a new SI frame and
-   // returns TOK_SI_PUSHED, leaving the actual computation to whatever
-   // subsequently drives that frame via execute_body(). Calling it
-   // directly from inside Bif_OPER2_OUTER.cc's empty-result handling and
-   // then treating that TOK_SI_PUSHED as if it were the real result
-   // (the old bug) corrupted the pushed frame's own bookkeeping,
-   // confirmed live to hit an internal Assert (Executable.cc:471,
-   // body_from_to.low != -1) even for a plain, non-nested lambda like
-   // {⍺,⍵}. run_pushed_SI() is the fix: it drives the pushed frame (and
-   // any further nested calls it makes) properly to completion, exactly
-   // the way Command::finish_context() drives a top-level statement, and
-   // gives up cleanly (falling back to the previous B-only
-   // approximation) for anything that is not a plain, side-effect-free
-   // computation -- an error, a branch, an escape.
-   //
-StateIndicator * const caller_si = Workspace::SI_top();
-const int depth_before = caller_si->get_safe_execution_depth();
-Token result(TOK_ERROR, E_DOMAIN_ERROR);
-
-   try
-      {
-        // mark caller_si as a safe-execution frame BEFORE pushing the
-        // real call (⎕EC's own, established pattern, see Quad_EC::
-        // eval_B()): the pushed child frame inherits this at
-        // construction time (StateIndicator's own ctor copies the
-        // parent's safe_execution_depth), and Error::update_error_info()
-        // stops printing an error straight to the console the moment it
-        // finds ANY safe-execution frame walking up from where it
-        // occurred -- without this, an error while evaluating this
-        // function for real (e.g. {⍺+⍵} on the fill values 0 and ' ',
-        // genuinely a DOMAIN ERROR) still gets caught and given up on
-        // correctly, but prints to the user first, even though this
-        // whole evaluation is an invisible internal probe the user never
-        // asked for.
-        //
-        caller_si->set_safe_execution_depth();
-        const Token pushed = eval_AB(A, B);
-        Assert(pushed.get_tag() == TOK_SI_PUSHED);
-        // Token has no safe operator=() (a raw union relying on
-        // placement-new / copy() / move_from()) -- a plain assignment
-        // here left result's Value_P (when the real evaluation
-        // succeeded) with no owning reference, a dangling pointer once
-        // the temporary's own destructor ran (confirmed live: SEGV in
-        // Token::release_apl_val()).
-        //
-        Token tmp = Workspace::run_pushed_SI(caller_si);
-        result.move_from(tmp, LOC);
-      }
-   catch (...)
-      {
-        caller_si->restore_safe_execution_depth(depth_before);
-        throw;
-      }
-   caller_si->restore_safe_execution_depth(depth_before);
-
-   if (result.get_Class() == TC_VALUE || result.get_tag() == TOK_VOID)
-      return result;
-
-   // give up: fall back to the previous approximation (B, discarding A
-   // and this function) -- wrong whenever this function changes shape,
-   // but no worse than before this fix for whatever unusual thing (an
-   // error, a branch, ...) the real evaluation just hit.
+   // Identity (LRM Figure 20, "Defined Operations": Z<-R), NOT a genuine
+   // eval_AB(A, B): a defined function is arbitrary user code, unlike a
+   // primitive, and is not known to be pure/total/side-effect-free --
+   // actually running it here (tried once, via a new Workspace::
+   // run_pushed_SI() driver, for Bugs30 #11/#12) was reverted after
+   // confirming live that a dfn with any observable effect fires that
+   // effect as an invisible side channel of internal shape/prototype
+   // bookkeeping the user never triggered, e.g.
+   // (,{⎕<-'SIDE-EFFECT' ⋄ ⍴⍵}⍤1)0 3⍴0 printed SIDE-EFFECT even though
+   // the empty frame means the function was never meant to run on real
+   // data at all. This is exactly why APL2's own fill function for
+   // defined operations is identity, discarding A and the function,
+   // while only *primitive* non-scalar functions get "the function
+   // itself" as their fill function (Figure 20) -- primitives are known
+   // safe to invoke on synthetic fill data, defined functions are not.
    //
 Value_P Z(static_cast<Value *>(const_cast<cValue *>(&B)), LOC);
    return Token(TOK_APL_VALUE1, Z);
@@ -1656,47 +1606,7 @@ Value_P Z(static_cast<Value *>(const_cast<cValue *>(&B)), LOC);
 Token
 UserFunction::eval_fill_B(cValue_R B) const
 {
-   // eval_B(B), for real, via Workspace::run_pushed_SI() -- see the
-   // matching comment in eval_fill_AB() just above (Bugs30 #11, same
-   // fix, same reverted first attempt, same confirmed Assert).
-   //
-StateIndicator * const caller_si = Workspace::SI_top();
-const int depth_before = caller_si->get_safe_execution_depth();
-Token result(TOK_ERROR, E_DOMAIN_ERROR);
-
-   try
-      {
-        // see the matching comment in eval_fill_AB() just above: mark
-        // caller_si as a safe-execution frame before pushing the real
-        // call, so an error while evaluating this function for real
-        // (e.g. {2÷⍵} on the fill value 0) is caught and given up on
-        // silently instead of printing to the user first.
-        //
-        caller_si->set_safe_execution_depth();
-        const Token pushed = eval_B(B);
-        Assert(pushed.get_tag() == TOK_SI_PUSHED);
-        // Token has no safe operator=() -- see the matching comment in
-        // eval_fill_AB() just above (confirmed live: SEGV in
-        // Token::release_apl_val() from a plain assignment here).
-        //
-        Token tmp = Workspace::run_pushed_SI(caller_si);
-        result.move_from(tmp, LOC);
-      }
-   catch (...)
-      {
-        caller_si->restore_safe_execution_depth(depth_before);
-        throw;
-      }
-   caller_si->restore_safe_execution_depth(depth_before);
-
-   if (result.get_Class() == TC_VALUE || result.get_tag() == TOK_VOID)
-      return result;
-
-   // give up: fall back to the previous approximation (B unchanged) --
-   // wrong whenever this function reshapes its argument, but no worse
-   // than before this fix for whatever unusual thing the real
-   // evaluation just hit.
-   //
+   // see eval_fill_AB() just above.
 Value_P Z(static_cast<Value *>(const_cast<cValue *>(&B)), LOC);
    return Token(TOK_APL_VALUE1, Z);
 }

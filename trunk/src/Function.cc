@@ -391,10 +391,22 @@ Function::eval_fill_AB(cValue_R A, cValue_R B) const
 Token
 Function::eval_fill_B(cValue_R B) const
 {
-  MORE_ERROR() << "Function " << get_name() 
+  MORE_ERROR() << "Function " << get_name()
                      << " has no monadic fill function";
 
   DOMAIN_ERROR;
+}
+//────────────────────────────────────────────────────────────────────────────
+Token
+Function::eval_rank_fill_AB(cValue_R A, cValue_R B) const
+{
+   return eval_AB(A, B);
+}
+//────────────────────────────────────────────────────────────────────────────
+Token
+Function::eval_rank_fill_B(cValue_R B) const
+{
+   return eval_B(B);
 }
 //────────────────────────────────────────────────────────────────────────────
 Token

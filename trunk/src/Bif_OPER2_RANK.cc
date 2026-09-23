@@ -84,6 +84,7 @@
 #include "IntCell.hh"
 #include "Macro.hh"
 #include "PointerCell.hh"
+#include "StateIndicator.hh"
 #include "Workspace.hh"
 
 Bif_OPER2_RANK   Bif_OPER2_RANK::fun;
@@ -91,6 +92,88 @@ Bif_OPER2_RANK   Bif_OPER2_RANK::fun;
 /* general comment: we use the term 'chunk' instead of 'p-rank' to avoid
    confusion with the rank of a value
  */
+
+//────────────────────────────────────────────────────────────────────────────
+/// Genuinely evaluate LO on a synthetic chunk (a real value, but built from
+/// B's -- or A's/B's -- own prototype cell rather than drawn from an actual
+/// frame position, since the frame is empty): needed to determine the shape
+/// an empty-frame LO⍤y B (or A LO⍤y B) result should have. There is
+/// deliberately no primitive/defined distinction here: ISO 13751's own
+/// Rank-operator definition (9.3.4/9.3.5, "apply f to the rank-y6 cells of
+/// B") never makes one either, and neither does a real, widely used
+/// Rank-operator implementation -- confirmed against Dyalog APL, e.g.
+/// ⍴({⍴⍵}⍤1)0 3⍴0 is 0 1, matching ⍴(⍴⍤1)0 3⍴0, not the argument's own
+/// chunk shape 0 3. Unlike Each/Outer Product, where APL2's own documented
+/// fill function for "Defined Operations" IS identity (Figure 20), Rank
+/// (not part of APL2 at all) has no such documented convention to justify
+/// treating a defined LO more conservatively than a primitive one here.
+///
+/// A defined LO evaluated this way CAN have an observable effect (⎕←, a
+/// global assignment, ...) if its body has one -- a known, accepted cost of
+/// matching real Rank-operator behavior, not something this function hides.
+///
+/// \b pushed is the token LO->eval_rank_fill_B(...)/eval_rank_fill_AB(...)
+/// just returned. A primitive's (including one like Domino that overrides
+/// eval_rank_fill_B/AB to delegate to its own special, non-executing
+/// eval_fill_B/AB formula instead) is already the real, synchronous
+/// result. A defined function's is only ever Token(TOK_SI_PUSHED) --
+/// eval_B()/eval_AB() (which the base Function::eval_rank_fill_B/AB()
+/// default just calls) never compute synchronously, they push a new SI
+/// frame and expect the normal driver loop to run it -- so that frame is
+/// driven to completion here exactly the way Command::finish_context()
+/// drives a top-level statement.
+///
+/// If LO's own evaluation fails with a real APL error, that same error is
+/// re-thrown (not swallowed): the (F⍤k)B expression could not be completed
+/// for a well-founded reason, and it is exactly the error LO itself would
+/// raise if genuinely invoked -- which is what just happened. Anything else
+/// abnormal (e.g. LO branching past its own frame) leaves the result shape
+/// completely undetermined; per this codebase's own convention for a
+/// bad/unknown shape (LENGTH_ERROR when some valid shape of the same rank
+/// exists, RANK_ERROR when not even the rank is known -- never DOMAIN_ERROR,
+/// which is reserved for bad ravel content, not bad shape), RANK_ERROR is
+/// raised since no rank at all could be determined.
+static Value_P
+eval_LO_on_fill_chunk(Token pushed)
+{
+   if (pushed.get_Class() == TC_VALUE || pushed.get_tag() == TOK_VOID)
+      return pushed.get_apl_val();   // LO was primitive: already synchronous
+
+   Assert(pushed.get_tag() == TOK_SI_PUSHED);
+StateIndicator * const caller_si = Workspace::SI_top()->get_parent();
+
+   for (;;)
+       {
+         Token token = Workspace::SI_top()->get_executable()->execute_body();
+
+         if (token.get_tag() == TOK_SI_PUSHED)   continue;
+
+         if (token.get_Class() == TC_VALUE || token.get_tag() == TOK_VOID)
+            {
+              Workspace::pop_SI(LOC);
+              if (Workspace::SI_top() == caller_si)   return token.get_apl_val();
+
+              // a deeper nested call just finished normally -- splice its
+              // result into the parent's TOK_SI_PUSHED placeholder and
+              // keep driving, exactly like Command::finish_context() does.
+              Prefix & prefix = Workspace::SI_top()->get_prefix();
+              Assert(prefix.at0().get_tag() == TOK_SI_PUSHED);
+              new (&prefix.tos().get_token()) Token(token);
+              continue;
+            }
+
+         if (token.get_tag() == TOK_ERROR)
+            {
+              while (Workspace::SI_top() != caller_si)   Workspace::pop_SI(LOC);
+              throw_apl_error(token.get_ErrorCode(), LOC);
+            }
+
+         // branch, escape, or anything else abnormal: give up, the result
+         // shape is completely undetermined.
+         while (Workspace::SI_top() != caller_si)   Workspace::pop_SI(LOC);
+         RANK_ERROR;
+       }
+}
 
 //════════════════════════════════════════════════════════════════════════════
 void
@@ -448,7 +531,15 @@ const Shape shape_Z = frame_B_rank ? B->get_shape().frame_shape(frame_B_rank)
              DOMAIN_ERROR;
            }
 
-        Value_P Z1 = LO->eval_fill_AB(*Fill_A, *Fill_B).get_apl_val();
+        // LO is genuinely applied to the synthetic Fill_A/Fill_B chunks
+        // (not routed through LO->eval_fill_AB(), which for a *defined*
+        // LO would just return Fill_B itself unevaluated, per APL2's
+        // Figure 20 "Defined Operations" identity rule -- a rule that
+        // belongs to Each/Outer Product, not Rank; see
+        // eval_LO_on_fill_chunk() above for the rationale).
+        //
+        Value_P Z1 = eval_LO_on_fill_chunk(LO->eval_rank_fill_AB(*Fill_A,
+                                           *Fill_B));
 
         Value_P Z(shape_Z, LOC);
         Z->set_ravel_Value(0, Z1.get());
@@ -530,18 +621,19 @@ const sRank frame_B_rank = B->get_rank() - rank_chunk_B;
 const Shape shape_Z = B->get_shape().frame_shape(frame_B_rank);
    if (shape_Z.is_empty())
       {
-        // PrimitiveFunction::eval_fill_B() (the default every non-scalar
-        // LO here inherits, since none override it) just calls
-        // eval_B(Fill_B) -- so Fill_B must actually BE one properly
-        // shaped chunk (matching B's own chunk_shape) for e.g. ⍴⍤1 to
-        // compute the right per-chunk shape, not merely B's collapsed
-        // scalar prototype (Bif_F12_TAKE::first(*B)), which made ⍴ of
-        // it always ⍬ regardless of the real chunk shape. There is no
-        // real chunk to draw content from (the frame is empty), so
-        // every cell of this placeholder chunk is filled with B's own
-        // prototype cell, mirroring how Value::set_default() already
-        // does the analogous thing for an actually-empty result.
-        // See Bugs27 #28.
+        // There is no real chunk to draw content from (the frame is
+        // empty), so every cell of this placeholder chunk is filled with
+        // B's own prototype cell, mirroring how Value::set_default()
+        // already does the analogous thing for an actually-empty result.
+        // See Bugs27 #28. LO is then genuinely applied to this synthetic
+        // chunk (not routed through LO->eval_fill_B(), which for a
+        // *defined* LO would just return Fill_B itself unevaluated, per
+        // APL2's Figure 20 "Defined Operations" identity rule -- a rule
+        // that belongs to Each/Outer Product, not Rank, which has no
+        // fill-function convention of its own at all; see
+        // eval_LO_on_fill_chunk() above for why genuine evaluation,
+        // matching real Rank-operator implementations like Dyalog's, is
+        // used here for primitive and defined LO alike).
         //
 const Shape chunk_shape_B = B->get_shape().chunk_shape(rank_chunk_B);
         Value_P Fill_B(chunk_shape_B, LOC);
@@ -553,35 +645,24 @@ const Shape chunk_shape_B = B->get_shape().chunk_shape(rank_chunk_B);
         }
         Fill_B->check_value(LOC);
 
-        Token tZ = LO->eval_fill_B(*Fill_B);
-        Value_P Z1 = tZ.get_apl_val();
+        Value_P Z1 = eval_LO_on_fill_chunk(LO->eval_rank_fill_B(*Fill_B));
 
-        // Z1's own shape is the result of applying LO's fill/identity to
-        // ONE chunk (e.g. ⍴⍤1's fill on a 3-item row chunk is ,3, shape
+        // Z1's own shape is the result of genuinely applying LO to ONE
+        // chunk (e.g. ⍴⍤1's chunk-result on a 3-item row is ,3, shape
         // (1)) -- the actual result shape is the (empty) frame shape
-        // with that chunk-result shape appended, NOT B's entire
-        // original shape discarding it. This used to force
-        // Z1->set_shape(B->get_shape()) unconditionally, e.g. giving
-        // (⍴⍤1)0 3⍴0 shape 0 3 (B's own shape) instead of the correct
-        // 0 1 (0 frame positions, 1-item chunk-shape result) -- compare
-        // the non-degenerate (⍴⍤1)1 3⍴0, whose analogous non-empty-frame
-        // path already correctly gives shape 1 1 (1 frame position, the
-        // same 1-item chunk-shape). See Bugs27 #28.
+        // with that chunk-result shape appended, NOT B's entire original
+        // shape discarding it, e.g. (⍴⍤1)0 3⍴0 is shape 0 1 (0 frame
+        // positions, 1-item chunk-result shape), not 0 3 -- compare the
+        // non-degenerate (⍴⍤1)1 3⍴0, whose analogous non-empty-frame path
+        // already correctly gives shape 1 1 (1 frame position, the same
+        // 1-item chunk-result shape). See Bugs27 #28.
         //
-        // The in-place Z1->set_shape() above (Bugs27 #28's own fix) is
-        // itself the Bugs28 #10 bug: for a *defined* LO, eval_fill_B()
-        // (UserFunction::eval_fill_B()) returns Fill_B itself rather than
-        // a fresh Value, so reshaping Z1 in place reshapes Fill_B -- but
-        // Fill_B may hold real PointerCells (a nested prototype item, one
-        // per element) that pointer_cell_count still expects at Fill_B's
-        // OLD (non-empty) volume; shrinking the shape to the combined
-        // (empty) one without adjusting that count desyncs it, leaking a
-        // stale value. Build a fresh, genuinely empty Z instead -- same
-        // fix shape as the dyadic sibling do_ALyXB() a few dozen lines
-        // above (fresh Value_P Z(shape_Z, LOC) instead of reshaping the
-        // callee's own result in place) -- deriving Z's type-correct
-        // prototype from Z1 via set_default(), which (like the sibling
-        // #27-residual fix) only needs Z1's TYPE, not its actual content.
+        // Z1 is always a fresh Value from eval_LO_on_fill_chunk(), never
+        // Fill_B itself, so building Z's shape from it directly (rather
+        // than reshaping Fill_B or Z1 in place) is safe regardless of
+        // whether LO is primitive or defined -- deriving Z's type-correct
+        // prototype from Z1 via set_default(), which only needs Z1's
+        // TYPE, not its actual content.
         //
         Value_P Z(shape_Z + Z1->get_shape(), LOC);
         Z->set_default(*Z1, LOC);

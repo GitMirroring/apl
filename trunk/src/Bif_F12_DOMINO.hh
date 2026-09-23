@@ -83,6 +83,18 @@ public:
    /// @param B right argument APL value
    virtual Token eval_fill_AB(cValue_R A, cValue_R B) const;
 
+   /// overloaded Function::eval_rank_fill_B(): genuinely evaluating ⌹ on
+   /// an all-zero synthetic prototype matrix is singular (a real DOMAIN
+   /// ERROR, not a useful shape), so delegate to eval_fill_B()'s own
+   /// Figure-20 "Matrix Inverse: Z←⍉R" formula instead, the same one
+   /// already used for Each/Outer Product.
+   virtual Token eval_rank_fill_B(cValue_R B) const
+      { return eval_fill_B(B); }
+
+   /// see eval_rank_fill_B() above.
+   virtual Token eval_rank_fill_AB(cValue_R A, cValue_R B) const
+      { return eval_fill_AB(A, B); }
+
 protected:
    /// a mapping between function names and function numbers
    static const FunctionGroup::function_info subfunction_infos[];

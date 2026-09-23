@@ -339,37 +339,6 @@ public:
    /// @param loc caller location for diagnostics
    static void push_SI(const Executable * fun, const char * loc);
 
-   /// Drive whatever was just pushed onto the SI stack (by a direct C++
-   /// call to a UserFunction's eval_B()/eval_AB()/eval_XB()/eval_LB()/...,
-   /// which -- unlike a primitive's -- never returns a value synchronously,
-   /// only Token(TOK_SI_PUSHED), handing the real work to whatever runs
-   /// the new frame) all the way to completion, exactly the way
-   /// Command::finish_context() drives a top-level typed statement -- but
-   /// bounded to \b caller_si (normally Workspace::SI_top() captured
-   /// immediately before the eval_B()/eval_AB()/... call) instead of the
-   /// top-level PM_STATEMENT_LIST: returns as soon as the SI stack is back
-   /// down to caller_si, handing back the finished Token directly rather
-   /// than splicing it into a phantom caller frame the way
-   /// finish_context() does at the top level.
-   ///
-   /// Only a normal, successful completion (a real value or TOK_VOID) is
-   /// returned this way. Anything else -- an error, a branch, an escape,
-   /// or any other token finish_context() would otherwise have to
-   /// interpret -- is treated as "give up": every frame above caller_si is
-   /// popped again (discarding whatever the call pushed, silently, with
-   /// nothing printed) and Token(TOK_ERROR, E_DOMAIN_ERROR) is returned
-   /// instead. This is deliberately conservative: a caller reaching for
-   /// this to force a synchronous answer out of a UserFunction is
-   /// necessarily probing it for some auxiliary purpose (e.g. the shape
-   /// its result would have) that has no business surfacing an error to
-   /// the user, branching outside the frame(s) it itself pushed, or
-   /// leaving the SI in a state its caller does not expect -- so any of
-   /// that means the probe itself was not viable, not that the error
-   /// should propagate; the caller is expected to fall back to whatever
-   /// approximation it used before attempting a real evaluation.
-   /// @param caller_si the SI level to stop at once execution returns to it
-   static Token run_pushed_SI(StateIndicator * caller_si);
-
    /// save this workspace
    static void save_WS(ostream & out, const LibRef_name & lib_name,
                        bool name_from_WSID);

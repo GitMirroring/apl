@@ -46,6 +46,13 @@ public:
    /// @param B  the right APL argument value
    virtual Token eval_fill_B(cValue_R B) const;
 
+   /// overloaded Function::eval_rank_fill_B(): genuinely executing ⍎ on a
+   /// synthetic prototype value (its characters are not meaningful APL
+   /// source) makes no sense; delegate to eval_fill_B()'s own TOK_VOID
+   /// answer instead, the same one already used for Each/Outer Product.
+   virtual Token eval_rank_fill_B(cValue_R B) const
+      { return eval_fill_B(B); }
+
    /// execute string containing an APL command
    /// @param command  the APL command text to execute
    static Token execute_command(UCS_string & command);
