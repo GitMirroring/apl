@@ -8,6 +8,11 @@
 0 1
 1 1
 
+      ⍝ real APL2 restricts ∧/∨ to booleans; SKIP...NOSKIP below brackets
+      ⍝ the GNU/ISO-13751-only LCM/GCD numeric extension (to EOF here) --
+      ⍝ see project_apl2_and_or_boolean_only.md
+      ]NEXTFILE SKIP
+
       30 ∨ 36
 6
 

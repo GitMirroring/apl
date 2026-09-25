@@ -11,6 +11,11 @@
 0 1 0 1 0
 
 
+      ⍝ 4⎕CR below is GNU APL's own boxed nested-array display extension,
+      ⍝ not a real-APL2 transfer-format number -- see
+      ⍝ project_apl2_and_or_boolean_only.md for the general convention
+      ]NEXTFILE SKIP
+
       L←('IN' 'OUT') (9 5 6) (⊂2 2ρι4)
       R←('IT' 'BUT') 6       (2 2ρ1 8 5 4)
       4⎕CR  L=R
@@ -27,6 +32,8 @@
 ┃                        ┃┗∼━━┛ ┗∼━━┛┃┃
 ┃                        ┗ϵ━━━━━━━━━━┛┃
 ┗ϵϵ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┛
+
+      ]NEXTFILE NOSKIP   ⍝ back to plain relational ops, APL2-safe
 
       ⍝ Regression
       ⍝

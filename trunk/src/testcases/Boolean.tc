@@ -75,6 +75,12 @@
       1E¯15 = 1E¯14
 0
 
+      ⍝ $XXXX hex-literal syntax below is a GNU APL extension real APL2
+      ⍝ can't even tokenize (unlike the ∧/∨ LCM/GCD case, a genuine
+      ⍝ syntax gap, not just a differing runtime domain/answer) -- see
+      ⍝ project_apl2_and_or_boolean_only.md
+      ]NEXTFILE SKIP
+
       ⍝ bitwise boolean
       ⍝
       5 ⎕CR (4⍴256)⊤  $FFCC ⊤∧ $0CF0

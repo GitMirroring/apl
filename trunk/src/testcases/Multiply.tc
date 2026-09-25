@@ -48,28 +48,36 @@
       ⍝ below the true int64 limit either way: stays integer
       1000000000×9199999999
 9199999999000000000
+      ]NEXTFILE SKIP
       26⎕CR 1000000000×9199999999
 16
+      ]NEXTFILE NOSKIP
 
       ⍝ used to cross the old conservative threshold and get promoted
       ⍝ to (imprecise) float even though the exact product fits in
       ⍝ int64 -- now stays an exact integer
       1000000000×9200000001
 9200000001000000000
+      ]NEXTFILE SKIP
       26⎕CR 1000000000×9200000001
 16
+      ]NEXTFILE NOSKIP
 
       ⍝ clear overflow (positive): promoted to float
       9223372036854775807×10
 9.2233720368547758E19
+      ]NEXTFILE SKIP
       26⎕CR 9223372036854775807×10
 32
+      ]NEXTFILE NOSKIP
 
       ⍝ clear overflow (negative): promoted to float
       ¯9223372036854775807×10
 ¯9.2233720368547758E19
+      ]NEXTFILE SKIP
       26⎕CR ¯9223372036854775807×10
 32
+      ]NEXTFILE NOSKIP
 
       ⍝ Bugs28 #82 report examples directly: an exact-int64-result
       ⍝ multiplication by 1, and squaring a value just below sqrt(int64
@@ -78,13 +86,17 @@
       ⍝
       9223372036854775807×1
 9223372036854775807
+      ]NEXTFILE SKIP
       26⎕CR 9223372036854775807×1
 16
+      ]NEXTFILE NOSKIP
 
       3037000499×3037000499
 9223372030926249001
+      ]NEXTFILE SKIP
       26⎕CR 3037000499×3037000499
 16
+      ]NEXTFILE NOSKIP
 
       ⎕PP←10
 

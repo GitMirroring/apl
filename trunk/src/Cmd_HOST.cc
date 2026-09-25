@@ -104,6 +104,28 @@ Cmd_HOST::cmd_NEXTFILE(ostream & out, const UCS_string_vector & args)
        {
          const UCS_string & arg = args[a];
 
+         // SKIP/ELSE_SKIP/NOSKIP: pure no-ops here (GNU APL never skips
+         // ahead for them) -- unlike a HAVE-/NO- capability check below,
+         // these are not routed through have_capability() at all, since
+         // they are not fictitious capabilities, just inert markers for
+         // an external tool ("the workspace", e.g. a GNU-APL<->real-APL2
+         // cross-checking script) to key off of when marking a stretch
+         // of this file's testcases as using GNU/ISO-only features with
+         // no real-APL2 equivalent: SKIP starts such a stretch (excluded
+         // from an APL2 run), an optional ELSE_SKIP switches to an
+         // APL2-safe substitute for it (included instead, when one is
+         // worth writing), and NOSKIP ends the whole thing, back to
+         // normal -- all without needing a second copy of the file or
+         // reordering its testcases. See
+         // project_apl2_and_or_boolean_only.md.
+         //
+         if ((arg.size() == 4 && arg.starts_iwith("SKIP"))
+             || (arg.size() == 9 && arg.starts_iwith("ELSE_SKIP"))
+             || (arg.size() == 6 && arg.starts_iwith("NOSKIP")))
+            {
+              return;   // true no-op: do NOT fall through to next_file()
+            }
+
          // figure HAVE- or NO- prefix and capability
          //
          if (arg.starts_iwith("HAVE-"))

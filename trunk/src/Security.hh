@@ -60,7 +60,7 @@ extern void not_allowed(const char * what);
 
 /// assertion being fatal if wrong
 #define Assert_fatal(x) if (!(x)) {\
-   cerr << endl << endl << "FATAL error at " << __FILE__ << ":" << __LINE__ \
+   get_CERR() << endl << endl << "FATAL error at " << __FILE__ << ":" << __LINE__ \
         << endl;   exit(2); }
 
 #endif // __SECURITY_HH_DEFINED__

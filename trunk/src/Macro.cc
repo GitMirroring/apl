@@ -60,9 +60,12 @@ Macro::Macro(Macro_num num, const UTF8_string & text)
 
    if (error_info || (error_line != -1))   // something went wrong
       {
-        CERR << endl << "*** Fatal error in macro #" << macro_number << endl;
-        if (error_info)         CERR << "error_info: " << error_info << endl;
-        if (error_line != -1)   CERR << "error_line: " << error_line << endl;
+        // this constructor runs for every global Macro::NAME object at
+        // static-init time (see static_Objects.cc) -- CERR itself may not
+        // yet be safe to use here (see FileBuffers.hh), so use get_CERR().
+        get_CERR() << endl << "*** Fatal error in macro #" << macro_number << endl;
+        if (error_info)         get_CERR() << "error_info: " << error_info << endl;
+        if (error_line != -1)   get_CERR() << "error_line: " << error_line << endl;
         exit(1);
       }
 }

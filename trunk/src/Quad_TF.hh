@@ -79,7 +79,7 @@ public:
    /// @param ucs output string being built
    /// @param value APL value whose ravel to format
    /// @param nesting current nesting level in the output
-   static void tf2_value(int level, UCS_string & ucs,
+   static bool tf2_value(int level, UCS_string & ucs,
                                     const cValue & value, ShapeItem nesting);
 
    /// return B in transfer format 2 (new APL format) for a variable
@@ -102,8 +102,23 @@ protected:
    ///        unenclosed values: their bare literal/strand ravel already
    ///        has the right shape on its own, so an explicit reshape is
    ///        redundant, per LanguageVariances.md #34b)
-   static void tf2_shape(UCS_string & ucs, const Shape & shape,
-                         ShapeItem nesting, bool omit_reshape = false);
+   /// @param self_delimiting true if the bare ravel's own syntax already
+   ///        marks its boundaries without external grouping (a quoted
+   ///        character-vector literal); false for e.g. a bare numeric
+   ///        vector, which would silently merge with an adjacent strand
+   ///        sibling if not parenthesized. Only consulted when
+   ///        omit_reshape is true and nesting is 0.
+   /// @return true if an opening '(' was emitted (nesting > 0, an N⍴
+   ///        prefix was written, or the bare ravel is not
+   ///        self-delimiting) -- the caller must then emit the matching
+   ///        ')' itself; false if no parentheses were needed at all (a
+   ///        bare, unenclosed, non-reshaped, self-delimiting literal),
+   ///        in which case none must be emitted, since transfer-file
+   ///        records may not contain redundant parentheses (LRM
+   ///        Appendix B).
+   static bool tf2_shape(UCS_string & ucs, const Shape & shape,
+                         ShapeItem nesting, bool omit_reshape = false,
+                         bool self_delimiting = false);
 
    /// append ravel \b cells in tf2_format to \b ucs.
    /// @param level current nesting depth for formatting

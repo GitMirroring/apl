@@ -63,8 +63,10 @@
       ⍝ boundary: sum is exactly ⎕IO's largest int64 value, stays integer
       9223372036854775806+1
 9223372036854775807
+      ]NEXTFILE SKIP   ⍝ 26⎕CR is a GNU-only type-introspection extension
       26⎕CR 9223372036854775806+1
 16
+      ]NEXTFILE NOSKIP
 
       ⍝ one more: sum overflows int64, promoted to float
       ⍝
@@ -78,20 +80,26 @@
       ⍝
       9223372036854775807+1
 9.2233720368547758E18
+      ]NEXTFILE SKIP
       26⎕CR 9223372036854775807+1
 32
+      ]NEXTFILE NOSKIP
 
       ⍝ boundary: sum is exactly the smallest int64 value, stays integer
       ¯9223372036854775807+¯1
 ¯9223372036854775808
+      ]NEXTFILE SKIP
       26⎕CR ¯9223372036854775807+¯1
 16
+      ]NEXTFILE NOSKIP
 
       ⍝ one more negative: sum overflows int64, promoted to float
       ¯9223372036854775808+¯1
 ¯9.2233720368547758E18
+      ]NEXTFILE SKIP
       26⎕CR ¯9223372036854775808+¯1
 32
+      ]NEXTFILE NOSKIP
 
       ⎕PP←10
 

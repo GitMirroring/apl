@@ -222,6 +222,24 @@ Quad_TF::tf2_char_vec(UCS_string & ucs, const UCS_string & vec)
 {
    if (vec.size() == 0)   return;
 
+   // A vec containing at least one character needing ⎕UCS produces a
+   // multi-token catenation, e.g. 'text ',(⎕UCS 8900),' more text' --
+   // unlike a plain 'xxx' literal, that is NOT self-delimiting when it
+   // is itself one bare element of a larger strand (as tf2_fun_ucs()'s
+   // caller uses it, one call per ⎕FX line argument): without an outer
+   // (...), the catenation chain is ambiguous about where this strand
+   // element ends and the next one begins, confirmed live to make real
+   // APL2's )IN reconstruct a function with the wrong number of lines
+   // (e.g. a 9-line function coming back with 12, and a stray "←" of
+   // its own). A plain literal with no ⎕UCS at all needs no such
+   // wrapping, exactly as for tf2_shape()'s self_delimiting case above.
+   //
+bool any_ucs = false;
+   loop(v, vec.size())
+       if (Avec::need_UCS(vec[v]))   { any_ucs = true;   break; }
+
+   if (any_ucs)   ucs << UNI_L_PARENT;
+
 bool in_UCS = false;
    ucs << UNI_SINGLE_QUOTE;
 
@@ -249,6 +267,8 @@ bool in_UCS = false;
 
    if (in_UCS)   ucs << "),''";
    else          ucs << UNI_SINGLE_QUOTE;
+
+   if (any_ucs)   ucs << UNI_R_PARENT;
 }
 //────────────────────────────────────────────────────────────────────────────
 void
@@ -472,7 +492,7 @@ const Token tok = Quad_FX::do_quad_FX(eprops, *tos[2].get_apl_val(),
    return UCS_string(*tok.get_apl_val().get());
 }
 //════════════════════════════════════════════════════════════════════════════
-void
+bool
 Quad_TF::tf2_value(int level, UCS_string & ucs, const cValue & value,
                    ShapeItem nesting)
 {
@@ -500,9 +520,15 @@ Quad_TF::tf2_value(int level, UCS_string & ucs, const cValue & value,
         const Cell & cell = value.get_cfirst(cache);
         if (cell.is_character_cell())
            {
+             // left as an unconditional wrap for now (matching this
+             // shortcut's pre-existing behavior) even though an empty
+             // string can also be a bare strand element (nesting==0)
+             // suffering the same redundant-parens issue tf2_shape() now
+             // fixes for the general case -- deliberately out of scope
+             // for this change; revisit separately if it matters live.
              ucs << UNI_L_PARENT << UNI_SINGLE_QUOTE
                  << UNI_SINGLE_QUOTE << UNI_R_PARENT;
-             return;
+             return true;
            }
       }
 
@@ -550,17 +576,22 @@ const bool omit_reshape = nesting == 0 && value.get_rank() == 1 &&
 
    // emit e.g. ( shape ⍴
    //
-   tf2_shape(ucs, value.get_shape(), nesting, omit_reshape);
+   // self_delimiting: only a character (quoted-string) literal's own
+   // syntax marks its boundaries without external grouping -- see
+   // tf2_shape()'s own comment.
+   //
+const bool has_parens = tf2_shape(ucs, value.get_shape(), nesting,
+                                   omit_reshape, !value.NOTCHAR());
    if (value.NOTCHAR())   tf2_ravel(level, ucs, ec, value, 0);
    else                   tf2_all_char_ravel(level, ucs, value);
-   ucs << UNI_R_PARENT;   // close corresponding '(' from tf2_shape()
+   if (has_parens)   ucs << UNI_R_PARENT;   // close '(' from tf2_shape()
 
    Log(LOG_Quad_TF)
       {
         CERR << "tf2_value(): ucs after at level " << level
              << ": " << ucs << endl;
       }
-   return;
+   return has_parens;
 }
 //────────────────────────────────────────────────────────────────────────────
 Token
@@ -583,18 +614,29 @@ Quad_TF::tf2_var(const UCS_string & var_name, const cValue & B)
 const bool structured = B.is_member();
 
 UCS_string ucs_value; /// the right hand side of VAR←VALUE
+bool has_parens;
    if (B.is_scalar() && !B.is_simple_scalar())
       {
         Assert(B.is_pointer_cell(0));
-        tf2_value(0, ucs_value, *B.get_pointer_value(0), 1);
+        // nesting == 1 here always makes tf2_shape()/tf2_value() emit
+        // parentheses (see their own need_parens logic), so has_parens
+        // is always true on this branch -- kept as a real variable
+        // (not assumed) for symmetry with the branch below.
+        has_parens = tf2_value(0, ucs_value, *B.get_pointer_value(0), 1);
       }
    else
       {
-        tf2_value(0, ucs_value, B, 0);
+        // nesting == 0: tf2_value() may now legitimately return false
+        // for a bare, unenclosed, non-reshaped literal/strand (e.g.
+        // '1^1' or 1 2 3) -- no outer parentheses were emitted at all,
+        // so there is nothing to strip below. See tf2_shape()'s own
+        // comment for why unconditional parentheses here were wrong.
+        //
+        has_parens = tf2_value(0, ucs_value, B, 0);
       }
 
-   Assert(ucs_value[0] == UNI_L_PARENT);
-   Assert(ucs_value[ucs_value.size() - 1] == UNI_R_PARENT);
+   Assert(!has_parens || ucs_value[0] == UNI_L_PARENT);
+   Assert(!has_parens || ucs_value[ucs_value.size() - 1] == UNI_R_PARENT);
 
 UCS_string ucs(var_name);
    ucs << UNI_LEFT_ARROW;
@@ -609,14 +651,21 @@ UCS_string ucs(var_name);
         // contained expression regardless of what surrounds it (matters
         // when this whole VAR←... text is itself embedded as one strand
         // element of an enclosing structured value, see tf2_ravel()).
+        // (has_parens is always true here, see above, so ucs_value does
+        // have the outer parentheses this relies on.)
         //
         ucs << "(38⎕CR" << ucs_value << UNI_R_PARENT;
       }
-   else
+   else if (has_parens)
       {
         // copy ucs_value except the outer parrentheses
         for (ShapeItem v = 1; v < (ucs_value.ssize() - 1); ++v)
             ucs << ucs_value[v];
+      }
+   else
+      {
+        // no outer parentheses were emitted at all -- copy verbatim.
+        ucs << ucs_value;
       }
 
    Log(LOG_Quad_TF)   CERR << "success in tf2_var(): " << ucs << endl;
@@ -655,11 +704,37 @@ const Symbol * symbol = obj->get_symbol();
    return Str0(LOC);
 }
 //════════════════════════════════════════════════════════════════════════════
-void
+bool
 Quad_TF::tf2_shape(UCS_string & ucs, const Shape & shape, ShapeItem nesting,
-                   bool omit_reshape)
+                   bool omit_reshape, bool self_delimiting)
 {
-   ucs << UNI_L_PARENT;
+   // Parentheses are needed here to group an actual ⊂ (enclose) prefix,
+   // an actual N⍴ (reshape) prefix, or a bare multi-item literal/strand
+   // ravel that is NOT self-delimiting -- without them, a bare numeric
+   // strand element (e.g. "5 14", one cell of a larger nested value)
+   // would silently merge with an adjacent sibling strand element into
+   // one longer flat vector on re-parsing (confirmed live:
+   // 2 2⍴5 14 6 16 15 28 18 32 instead of the intended
+   // 2 2⍴(5 14) (6 16) (15 28) (18 32)). A bare CHARACTER literal (a
+   // quoted string) does not have this problem -- APL's own syntax
+   // already delimits it via its quotes, so 'ab' 'cd' unambiguously
+   // stays two strand members without any wrapping needed at all.
+   // Emitting parentheses unconditionally in every case used to wrap
+   // even such a self-delimiting bare string in redundant parentheses,
+   // e.g. 2⍴('1^1') ('1∨1') instead of 2⍴'1^1' '1∨1' -- harmless to GNU
+   // APL's own (lenient) )IN, but the LRM's own Appendix B ("redundant
+   // blanks and parentheses are prohibited") forbids it, and real APL2
+   // (confirmed live) accepts the )IN but then fails to ⍎ or ⎕UCS the
+   // affected strand element, even though it displays and reshapes
+   // normally -- the corruption is silent until the value is actually
+   // used. Callers must use the return value to decide whether to emit
+   // a matching ')' (tf2_value() does so immediately below; tf2_var()
+   // propagates it further, see its own comment).
+   //
+const bool need_parens = nesting > 0 ||
+                          (shape.get_rank() && !omit_reshape) ||
+                          (omit_reshape && !self_delimiting);
+   if (need_parens)   ucs << UNI_L_PARENT;
    loop(n, nesting)   ucs << UNI_SUBSET;   // ⊂...
 
    // scalars are ''⍴SCALAR but ''⍴ has no effect and can be omitted;
@@ -677,6 +752,8 @@ Quad_TF::tf2_shape(UCS_string & ucs, const Shape & shape, ShapeItem nesting,
 
         ucs << UNI_RHO;
       }
+
+   return need_parens;
 }
 //────────────────────────────────────────────────────────────────────────────
 void

@@ -29,6 +29,21 @@ FACTR
 
       ⍝ suspended or pendant function ----------------------------------
 
+      ⍝ regression (our own AP210-based cross-checking harness, 2026-09-25):
+      ⍝ this whole suspend/)SI/→4-resume idiom, replayed through our
+      ⍝ ALT ⎕EA HARNESS_INNER wrapper instead of a real interactive
+      ⍝ session, was found to corrupt RUN_STMTS's own HARNESS_I loop
+      ⍝ counter -- confirmed live: with these 4 statements included among
+      ⍝ several thousand others, RUN_STMTS entered a genuine infinite
+      ⍝ loop, jumping back ~2000 statements every time it reached the
+      ⍝ second FUNC call and cycling forever instead of advancing. Not
+      ⍝ diagnosed further (plausibly ⎕EA's error recovery interacting
+      ⍝ badly with a *suspended*, not merely erroring, callee -- the same
+      ⍝ general hazard class as the →4 statement itself, which our
+      ⍝ extractor already excludes on its own). SKIPped rather than fixed
+      ⍝ here, out of scope for this cross-checking task -- see
+      ⍝ project_apl2_and_or_boolean_only.md.
+      ]NEXTFILE SKIP
       ⎕FX 'FUNC' '1' '2' '!¯3' '4'
 FUNC
 
@@ -54,6 +69,8 @@ FUNC
 22
 23
 24
+
+      ]NEXTFILE NOSKIP
 
       ⍝ execution properties [1] ----------------------------------
 

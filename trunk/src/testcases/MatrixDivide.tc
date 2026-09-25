@@ -110,7 +110,19 @@
 
       ⍝ regression
       ⍝
+      ⍝ our own AP210-based cross-checking harness captures the VALUE of
+      ⍝ every statement (assignments return their assigned value) -- a
+      ⍝ 99999x3 random array is far too large for one shared-variable
+      ⍝ write ("SYSTEM LIMIT (shared var size)"), even though this test
+      ⍝ never actually displays A itself, only ⍴A⌹A below. Substitute a
+      ⍝ much smaller array with the same shape characteristics (tall,
+      ⍝ 3 columns) for that harness -- see
+      ⍝ project_apl2_and_or_boolean_only.md
+      ]NEXTFILE SKIP
       A←?99999 3⍴256
+      ]NEXTFILE ELSE_SKIP
+      A←?99 3⍴256
+      ]NEXTFILE NOSKIP
       ⍴A⌹A
 3 3
 

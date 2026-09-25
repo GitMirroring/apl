@@ -115,10 +115,21 @@ DOMAIN ERROR
       ⍝ (no preceding high surrogate) now DOMAIN_ERRORs, mirroring the
       ⍝ pre-existing lone-high-surrogate check.
       ⍝
+      ⍝ this exact line, embedded in an outer STMTS array and )OUT/)IN
+      ⍝ round-tripped, was found to trigger a genuine Quad_TF::tf2_inverse()
+      ⍝ bug: direct parsing of the identical text works fine, but the
+      ⍝ inverse-⎕TF re-tokenizer fails on it (multiple separate ''-escaped
+      ⍝ runs within one string literal) -- flagged separately, not fixed
+      ⍝ here. ⎕JSON is GNU/ISO-only anyway (no real-APL2 equivalent), so
+      ⍝ SKIP is the right call regardless -- see
+      ⍝ project_apl2_and_or_boolean_only.md
+      ]NEXTFILE SKIP
       ⎕JSON '"',(⎕UCS 92 117 100 101 48 48),'"'
 DOMAIN ERROR+
       ⎕JSON '"',(⎕UCS 92 117 100 101 48 48),'"'
       ^     ^
+
+      ]NEXTFILE NOSKIP
 
       ⍝ #59(i) residual (fixed 2026-09-02): a ⎕FX function line that is
       ⍝ neither a character vector nor a character scalar used to dump
