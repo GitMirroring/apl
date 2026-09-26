@@ -102,7 +102,7 @@ A←9.9999999999999998E¯13
        ┃┃┗━┛ ┗━┛┃                            ┃ 
        ┃┗ϵ━━━━━━┛                            ┃ 
        ┗ϵϵ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┛ 
- 2⎕TF: VAR←4⍴(2⍴('') (0⍴0)) ('Q' 3.2000000000000002) (5 8 11 14) ('Don''t') 
+ 2⎕TF: VAR←4⍴(2⍴('') (0⍴0)) ('Q' 3.2000000000000002) (5 8 11 14) 'Don''t' 
       (5⍴'Don''t')
 Don't
       test_2TF ⊂(⊂1 0 1) (2 3ρ4 6 4 6 4 6)
@@ -351,7 +351,7 @@ FOO
            2 1 2 
 
       ⎕←yyyy←2⎕TF 'zzzz'
-zzzz←3⍴('elan') 77 (2 3⍴1 2 1 2 1 2)
+zzzz←3⍴'elan' 77 (2 3⍴1 2 1 2 1 2)
 
       )ERASE zzzz
       ⍎yyyy
@@ -364,7 +364,7 @@ zzzz←3⍴('elan') 77 (2 3⍴1 2 1 2 1 2)
  elan 77   0 0 0 
            0 0 0 
       ⎕←yyyy←2⎕TF 'zzzz'
-zzzz←3⍴('elan') 77 (2 3⍴0 0 0 0 0 0)
+zzzz←3⍴'elan' 77 (2 3⍴0 0 0 0 0 0)
       )ERASE zzzz
       ⍎yyyy
       zzzz
@@ -375,7 +375,7 @@ zzzz←3⍴('elan') 77 (2 3⍴0 0 0 0 0 0)
  elan 77  aba 
           bab 
       ⎕←yyyy←2⎕TF 'zzzz'
-zzzz←3⍴('elan') 77 (2 3⍴'ababab')
+zzzz←3⍴'elan' 77 (2 3⍴'ababab')
       )ERASE zzzz
       ⍎yyyy
       zzzz
@@ -387,9 +387,9 @@ zzzz←3⍴('elan') 77 (2 3⍴'ababab')
  elan 77      
               
       2⎕TF 'zzzz'
-zzzz←3⍴('elan') 77 (2 3⍴'      ')
+zzzz←3⍴'elan' 77 (2 3⍴'      ')
       ⎕←yyyy←2⎕TF 'zzzz'
-zzzz←3⍴('elan') 77 (2 3⍴'      ')
+zzzz←3⍴'elan' 77 (2 3⍴'      ')
       )ERASE zzzz
       ⍎yyyy
       zzzz
@@ -400,7 +400,7 @@ zzzz←3⍴('elan') 77 (2 3⍴'      ')
       ⎕←zzzz←'elan' 77 'abc'
  elan 77 abc 
       ⎕←yyyy←2⎕TF 'zzzz'
-zzzz←3⍴('elan') 77 ('abc')
+zzzz←3⍴'elan' 77 'abc'
       )ERASE zzzz
       ⍎yyyy
       zzzz
@@ -410,7 +410,7 @@ zzzz←3⍴('elan') 77 ('abc')
       ⎕←zzzz←'elan' 77 ''
  elan 77  
       ⎕←yyyy←2⎕TF 'zzzz'
-zzzz←3⍴('elan') 77 ('')
+zzzz←3⍴'elan' 77 ('')
       )ERASE zzzz
       ⍎yyyy
       zzzz
@@ -426,7 +426,7 @@ zzzz←3⍴('elan') 77 ('')
 ┗ϵ━━━━━━━━━━━━━━━━━━━━━━━┛
 
       ⎕ ← tf2 ← 2 ⎕TF 'var'
-var←3⍴('kelvin') (1⍴'v') ('some text')
+var←3⍴'kelvin' (1⍴'v') 'some text'
 
       )ERASE var
 

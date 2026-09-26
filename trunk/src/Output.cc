@@ -58,6 +58,8 @@ static int cached = -1;
 bool Output::colors_enabled = false;
 bool Output::colors_changed = false;
 
+bool Output::stdout_is_tty = false;
+
 int Output::color_CIN_foreground  = 0;
 int Output::color_CIN_background  = 7;
 int Output::color_COUT_foreground = 0;
@@ -229,11 +231,47 @@ PERFORMANCE_START(cerr_perf)
 PERFORMANCE_END(fs_CERR_B, cerr_perf, 1)
    return 0;
 #else
-   cerr << char(c);
+   // Write directly to the real, C-runtime stderr rather than through
+   // std::cerr: avoids a redundant second pass through std::cerr's own
+   // streambuf/locale/sentry machinery for every single character (we
+   // already are a streambuf; std::cerr is guaranteed valid from the
+   // first instruction of main(), with no dependency on C++ static-init
+   // ordering, unlike std::cerr's own internal FILE* linkage, which a
+   // report from the field (Paul Rockwell, macOS 27, 2026-09-25) found to
+   // be NULL well into main() on his system -- writing straight to the
+   // real stderr sidesteps whatever is broken there entirely). Also fixes
+   // a genuine bug this replaces: overflow(EOF) (c==-1, how ostream::
+   // flush()/sync() ask for "flush, nothing to insert" -- confirmed to
+   // really happen, not just a theoretical concern) used to be treated
+   // as a real character and written as char(-1)/0xFF; a real cross-check
+   // run showed a *naive* skip-if-EOF fix regressing 41 shared-variable
+   // (AP210) tests, apparently because the old bogus write was
+   // incidentally acting as this stream's flush trigger -- so EOF must
+   // still flush, just not insert a byte.
+   // Deliberately unbuffered (fflush() after every character, on both
+   // real and EOF calls): GNU APL's line editor does a lot of mid-line
+   // cursor repositioning and character echo that never ends in '\n', so
+   // deferring visibility to the next newline (as a tty/non-tty
+   // distinction here once did) made interactive line editing feel
+   // stale/laggy. The per-character syscall cost is imperceptible at
+   // human typing speed -- the "100x slower" concern this whole class of
+   // buffering exists for (Bugs6 #6, see DiffOut.cc) is about *bulk*
+   // non-interactive output (large arrays), not per-keystroke echo.
+   // no fflush() here: stderr is unconditionally unbuffered on both
+   // glibc and BSD/macOS libc (confirmed live via strace: a bare
+   // fputc(c, stderr), with no flush at all, still issues its own
+   // write() syscall immediately) -- unlike stdout, which is only
+   // conditionally unbuffered (line-buffered on a tty, fully buffered
+   // otherwise), stderr's unbuffered-ness is unconditional by design
+   // (POSIX), specifically so error output is never held back
+   // regardless of where it's redirected to.
+   if (c != EOF)
+      {
+        fputc(c, stderr);
+        if      (c == '\n')            Output::output_column = 0;
+        else if ((c & 0xC0) != 0x80)   ++Output::output_column;
+      }
 PERFORMANCE_END(fs_CERR_B, cerr_perf, 1)
-
-   if      (c == '\n')            Output::output_column = 0;
-   else if ((c & 0xC0) != 0x80)   ++Output::output_column;
    return 0;
 #endif
 }
@@ -303,11 +341,22 @@ PERFORMANCE_START(cerr_perf)
 PERFORMANCE_END(fs_CERR_B, cerr_perf, 1)
    return 0;
 #else
-   if (UserPreferences::uprefs.output_to_cout)   cout << char(c);
-   else                                          cerr << char(c);
-
-   if      (c == '\n')            Output::output_column = 0;
-   else if ((c & 0xC0) != 0x80)   ++Output::output_column;   // unless subsequent UTF
+   // see CinOut_filebuf::overflow() above for why fputc() on the real
+   // FILE* rather than cout/cerr, and why unconditionally (every
+   // character, not just at '\n') rather than relying on the C runtime's
+   // own buffering. Unlike that function, this one can target stdout
+   // (output_to_cout) as well as stderr -- stdout, unlike stderr, is
+   // only conditionally unbuffered (line-buffered on a tty, fully
+   // buffered otherwise), so it alone still needs an explicit flush.
+const bool to_cout = UserPreferences::uprefs.output_to_cout;
+FILE * const out = to_cout ? stdout : stderr;
+   if (c != EOF)
+      {
+        fputc(c, out);
+        if      (c == '\n')            Output::output_column = 0;
+        else if ((c & 0xC0) != 0x80)   ++Output::output_column;   // unless subsequent UTF
+      }
+   if (to_cout)   fflush(out);
 
 PERFORMANCE_END(fs_CERR_B, cerr_perf, 1)
 
@@ -318,7 +367,9 @@ PERFORMANCE_END(fs_CERR_B, cerr_perf, 1)
 void
 Output::init(bool logit)
 {
-   if (!isatty(fileno(stdout)))
+   stdout_is_tty = isatty(fileno(stdout));
+
+   if (!stdout_is_tty)
       {
         cout.flush();
         cout.setf(ios::unitbuf);

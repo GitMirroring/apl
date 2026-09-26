@@ -228,6 +228,9 @@ public:
    /// the current output column
    static int output_column;
 
+   /// true if stdout is a real terminal (computed once, in init())
+   static bool stdout_is_tty;
+
 protected:
    /// true if colors were changed (and then reset_colors() shall reset
    /// them when leaving the interpreter

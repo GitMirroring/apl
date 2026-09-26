@@ -451,7 +451,11 @@ UTF8_string current;
 int
 UTF8_filebuf::overflow(int c)
 {
-   data += c;
+   // overflow(EOF) (c==-1) means "flush, nothing to insert" -- this class
+   // has no real stream underneath (data is an in-memory accumulator, read
+   // back later), so there is nothing to flush; just don't append -1 as a
+   // bogus byte.
+   if (c != EOF)   data += c;
    return 0;
 }
 //════════════════════════════════════════════════════════════════════════════

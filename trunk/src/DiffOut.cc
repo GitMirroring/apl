@@ -180,6 +180,21 @@ PERFORMANCE_START(cout_perf)
    Output::set_color_mode(errout ? Output::COLM_UERROR
                                  : Output::COLM_OUTPUT);
 
+   // overflow(EOF) (c==-1) is how ostream::flush()/sync() ask for "flush,
+   // nothing to insert" -- unlike CinOut_filebuf/ErrOut_filebuf (Output.cc),
+   // c==EOF was never routed to this class's own flush point (that only
+   // happens below, on c=='\n', i.e. a real end-of-line -- a live
+   // cross-check run confirmed EOF was never observed to reach it), so
+   // there is no flush-timing behavior to preserve here: just don't treat
+   // -1 as a real character (it used to be silently appended to aplout as
+   // a bogus byte, and would also have miscounted as a UTF continuation
+   // byte in the output_column tracking below).
+   if (c == EOF)
+      {
+        PERFORMANCE_END(fs_COUT_B, cout_perf, 1)
+        return 0;
+      }
+
    if      (c == '\n')            Output::output_column = 0;
    else if ((c & 0x80) == 0)      ++Output::output_column;   // ASCII
    else if ((c & 0xC0) == 0xC0)   ++Output::output_column;   // first UTF
