@@ -552,21 +552,35 @@ bool hdr_has_vars;
              // mode (while working correctly on stdin/interactively).
              // Case 1c. is only actually intended for a genuine new
              // function HEADER (ecmd==ECMD_NOP, i.e. no ∇-command was
-             // parsed) that carries more than the bare function name
-             // (hdr_has_vars, e.g. "Z←F B") -- any other case (a bare
-             // name, or an actual ∇-command) means the user is editing
+             // parsed) -- an actual ∇-command means the user is editing
              // the EXISTING function, exactly as in interactive mode.
              //
+             // Roy Tobin, 2026-09-26: the #51 fix above additionally
+             // required hdr_has_vars (the header carries a result,
+             // argument(s) or operand(s), e.g. "Z←F B") to reach case
+             // 1c., on the theory that a bare function name always means
+             // an existing-function edit. That is true only
+             // interactively; a script/)COPY providing a COMPLETE new
+             // "∇NAME ... ∇" definition looks identical at the header
+             // line (bare name, ecmd==ECMD_NOP) whether NAME is niladic
+             // or not, so requiring hdr_has_vars wrongly routed every
+             // niladic/no-result function's fresh redefinition into
+             // open_existing_function(), which preloads and then keeps
+             // the OLD body -- each )COPY of the same file appended
+             // another copy of the function's lines instead of replacing
+             // them. ecmd==ECMD_NOP already excludes the bracket-command
+             // case #51 cared about, so hdr_has_vars added nothing there
+             // and is dropped.
+             //
              if (InputFile::running_script() &&
-                 ecmd == ECMD_NOP && hdr_has_vars)   // script, new header
+                 ecmd == ECMD_NOP)   // script, new header
                 {
                   // case 1c.
                   if (const char * loc = open_new_function())   return loc;
                   break;   // continue below
                 }
 
-             // interactive (or a script ∇-command / bare-name edit,
-             // Bugs28 #51).
+             // interactive, or a script ∇-command (Bugs28 #51).
              //
              // case 2.
              if (const char * loc =
