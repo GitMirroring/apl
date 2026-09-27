@@ -43,8 +43,8 @@ CLEAR WS
 ⍝ dead), even though the statement itself is completely correct and
 ⍝ intentional in GNU's own suite. SKIPped -- see
 ⍝ project_apl2_and_or_boolean_only.md.
-]NEXTFILE SKIP
+]FILE_CTL SKIP_APL2
 ⊣ ⍎ ')HOST killall APserver'
 
-]NEXTFILE NOSKIP
+]FILE_CTL NO_SKIP
 

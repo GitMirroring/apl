@@ -150,6 +150,29 @@ Cmd_HOST::cmd_NEXTFILE(ostream & out, const UCS_string_vector & args)
    IO_Files::next_file();
 }
 //────────────────────────────────────────────────────────────────────────────
+void
+Cmd_HOST::cmd_FILE_CTL(ostream & out, const UCS_string_vector & args)
+{
+   if (args.size() != 1)
+      {
+        CERR << "]FILE_CTL: expecting exactly one of "
+                "NO_SKIP, SKIP_GNU, SKIP_APL2, SKIP_ALL" << endl;
+        return;
+      }
+
+const UCS_string & arg = args[0];
+   if      (arg.starts_iwith("NO_SKIP"))     IO_Files::skip_mode = IO_Files::SKIP_NONE;
+   else if (arg.starts_iwith("SKIP_GNU"))    IO_Files::skip_mode = IO_Files::SKIP_GNU;
+   else if (arg.starts_iwith("SKIP_APL2"))   IO_Files::skip_mode = IO_Files::SKIP_APL2;
+   else if (arg.starts_iwith("SKIP_ALL"))    IO_Files::skip_mode = IO_Files::SKIP_ALL;
+   else
+      {
+        CERR << "]FILE_CTL: unknown mode '" << arg << "' (ignored).\n"
+                "Expecting one of NO_SKIP, SKIP_GNU, SKIP_APL2, SKIP_ALL"
+             << endl;
+      }
+}
+//────────────────────────────────────────────────────────────────────────────
 bool
 Cmd_HOST::have_capability(const UCS_string & capa)
 {

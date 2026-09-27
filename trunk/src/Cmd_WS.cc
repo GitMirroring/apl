@@ -34,6 +34,7 @@
 #include "Cmd_WS.hh"
 #include "Command.hh"
 #include "Common.hh"
+#include "IO_Files.hh"
 #include "LibPaths.hh"
 #include "Security.hh"
 #include "Sys.hh"
@@ -170,6 +171,11 @@ void
 Cmd_WS::cmd_CLEAR(ostream & out)
 {
    Workspace::clear_WS(out, false);
+
+   // ]FILE_CTL (see IO_Files::Skip_mode's own comment / plan.txt):
+   // )CLEAR always resets skip_mode, regardless of what a script left
+   // it at -- the mode is deliberately not )SAVEd/persisted.
+   IO_Files::skip_mode = IO_Files::SKIP_NONE;
 }
 //────────────────────────────────────────────────────────────────────────────
 void

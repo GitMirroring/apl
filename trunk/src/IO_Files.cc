@@ -48,6 +48,7 @@ int IO_Files::assert_errors = 0;
 int IO_Files::diff_errors = 0;
 int IO_Files::parse_errors = 0;
 IO_Files::TestMode IO_Files::test_mode = TM_EXIT_AFTER_LAST_FILE;
+IO_Files::Skip_mode IO_Files::skip_mode = SKIP_NONE;
 bool IO_Files::need_total = false;
 ofstream IO_Files::current_testreport;
 //════════════════════════════════════════════════════════════════════════════
@@ -481,6 +482,47 @@ InputFile * input = InputFile::current_file();
                          file_line.clear();
                          continue;
                        }
+                 }
+
+              // ]FILE_CTL (see IO_Files::Skip_mode / Command.def):
+              // discard every line while skip_mode says to skip for GNU
+              // APL, EXCEPT a ]FILE_CTL command itself (to turn skipping
+              // back off) or a )CLEAR command (plan.txt: "EOF and )CLEAR
+              // shall reset to NO_SKIP" -- )CLEAR must survive even
+              // during SKIP_ALL, or it could never run to do that reset,
+              // confirmed live: a naive version that only exempted
+              // ]FILE_CTL swallowed a subsequent )CLEAR too, leaving
+              // SKIP_ALL active for the rest of the file -- including
+              // )OFF -- and hanging on stdin at EOF). Both commands are
+              // recognized here (not merely left to fall through to the
+              // normal command dispatcher) so they survive regardless of
+              // the current mode; Cmd_HOST::cmd_FILE_CTL()/Cmd_WS::
+              // cmd_CLEAR() still do the actual work once the line
+              // reaches them normally afterwards.
+              if (skip_mode == SKIP_GNU || skip_mode == SKIP_ALL)
+                 {
+                   size_t p = 0;
+                   while (p < file_line.size() &&
+                          (file_line[p] == ' ' || file_line[p] == '\t'))
+                         ++p;
+                   bool survives = false;
+                   if (file_line.size() - p >= 9)
+                      {
+                        std::string prefix(file_line, p, 9);
+                        for (char & c : prefix)   c = toupper((unsigned char)c);
+                        survives = (prefix == "]FILE_CTL");
+                      }
+                   if (!survives && file_line.size() - p >= 6)
+                      {
+                        std::string prefix(file_line, p, 6);
+                        for (char & c : prefix)   c = toupper((unsigned char)c);
+                        survives = (prefix == ")CLEAR");
+                      }
+                   if (!survives)
+                      {
+                        file_line.clear();
+                        continue;
+                      }
                  }
               break;
             }

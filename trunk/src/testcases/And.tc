@@ -7,7 +7,7 @@
       ⍝ real APL2 restricts ∧/∨ to booleans; SKIP...NOSKIP below brackets
       ⍝ the GNU/ISO-13751-only LCM/GCD numeric extension -- see
       ⍝ project_apl2_and_or_boolean_only.md
-      ]NEXTFILE SKIP
+      ]FILE_CTL SKIP_APL2
 
       ⍝ Regression (LCM overflow)
       ⍝
@@ -17,7 +17,7 @@
       2028259601 ∧ 9094863431
 1.844674407E19
 
-      ]NEXTFILE NOSKIP   ⍝ boolean again below, so APL2-safe
+      ]FILE_CTL NO_SKIP   ⍝ boolean again below, so APL2-safe
 
       ⍝ ISO p. 93
       ⍝
@@ -25,7 +25,7 @@
 0 0
 0 1
 
-      ]NEXTFILE SKIP   ⍝ non-boolean again from here to EOF
+      ]FILE_CTL SKIP_APL2   ⍝ non-boolean again from here to EOF
 
       30 ∧ 36
 180

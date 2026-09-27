@@ -123,13 +123,13 @@ DOMAIN ERROR
       ⍝ here. ⎕JSON is GNU/ISO-only anyway (no real-APL2 equivalent), so
       ⍝ SKIP is the right call regardless -- see
       ⍝ project_apl2_and_or_boolean_only.md
-      ]NEXTFILE SKIP
+      ]FILE_CTL SKIP_APL2
       ⎕JSON '"',(⎕UCS 92 117 100 101 48 48),'"'
 DOMAIN ERROR+
       ⎕JSON '"',(⎕UCS 92 117 100 101 48 48),'"'
       ^     ^
 
-      ]NEXTFILE NOSKIP
+      ]FILE_CTL NO_SKIP
 
       ⍝ #59(i) residual (fixed 2026-09-02): a ⎕FX function line that is
       ⍝ neither a character vector nor a character scalar used to dump

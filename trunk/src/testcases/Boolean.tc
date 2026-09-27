@@ -79,7 +79,7 @@
       ⍝ can't even tokenize (unlike the ∧/∨ LCM/GCD case, a genuine
       ⍝ syntax gap, not just a differing runtime domain/answer) -- see
       ⍝ project_apl2_and_or_boolean_only.md
-      ]NEXTFILE SKIP
+      ]FILE_CTL SKIP_APL2
 
       ⍝ bitwise boolean
       ⍝

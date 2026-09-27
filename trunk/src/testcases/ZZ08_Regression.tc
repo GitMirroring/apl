@@ -68,10 +68,12 @@ foo
 
       ⍝ goto example from Elias Mårtenson
       ⍝
+      ]FILE_CTL SKIP_APL2   ⍝ ⍎ of a bare →N branches into the harness itself
       ⍎'→3'
 SYNTAX ERROR+
       →3
       ^
+      ]FILE_CTL NO_SKIP
 
       →
 

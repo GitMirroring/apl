@@ -43,7 +43,7 @@ FACTR
       ⍝ extractor already excludes on its own). SKIPped rather than fixed
       ⍝ here, out of scope for this cross-checking task -- see
       ⍝ project_apl2_and_or_boolean_only.md.
-      ]NEXTFILE SKIP
+      ]FILE_CTL SKIP_APL2
       ⎕FX 'FUNC' '1' '2' '!¯3' '4'
 FUNC
 
@@ -70,7 +70,7 @@ FUNC
 23
 24
 
-      ]NEXTFILE NOSKIP
+      ]FILE_CTL NO_SKIP
 
       ⍝ execution properties [1] ----------------------------------
 

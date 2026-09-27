@@ -42,6 +42,14 @@ public:
    /// @param args  optional capability requirements for the next file
    static void cmd_NEXTFILE(ostream & out, const UCS_string_vector & args);
 
+   /// ]FILE_CTL: set IO_Files::skip_mode, controlling which subsequent
+   /// lines of the current input file read_file_line() discards before
+   /// they ever reach the tokenizer/executor. Real APL2 has no such
+   /// command; see IO_Files::Skip_mode's own comment.
+   /// @param out   output stream for command result
+   /// @param args  exactly one of NO_SKIP, SKIP_GNU, SKIP_APL2, SKIP_ALL
+   static void cmd_FILE_CTL(ostream & out, const UCS_string_vector & args);
+
    /// PUSHFILE: push one (testcase-) file
    static void cmd_PUSHFILE();
 

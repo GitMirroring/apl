@@ -17,10 +17,19 @@
 #
 # Only README and Bible-Preview.pdf are distributed/exported (Savannah
 # is public; the Book/ sources this preview builds from -- one directory
-# up -- are not). Bible-Preview.adoc, ordering.adoc, build_toc.py and
-# images/front_cover.png stay local-SVN-only: they are build sources,
-# tracked so the PDF can be rebuilt here, but deliberately left out of
-# dist_doc_Bible_DATA below.
+# up -- are not, and never will be: a previous book of the author's was
+# once reprinted without permission by an unrelated print-on-demand
+# outfit after its sources leaked, so Book/ and everything under it stays
+# off Savannah unconditionally, no exceptions). Bible-Preview.adoc,
+# ordering.adoc, build_toc.py and images/*.png stay local-SVN-only: they
+# are build sources, tracked so the PDF can be rebuilt here, but
+# deliberately left out of dist_doc_Bible_DATA below. Bible-Preview.html
+# itself is ALSO deliberately not distributed even though it's a build
+# product, not a Book/ source: it's not self-contained (it references
+# ../../Book/images/*.svg diagrams by relative path, not just Bible/'s
+# own images/), so shipping it would either show broken images or require
+# shipping Book-private diagram files alongside it. Bible-Preview.pdf has
+# no such problem -- weasyprint bakes every image into the PDF itself.
 #
 # The build reuses the same asciidoc/weasyprint pipeline as Book/Makefile,
 # trimmed to the fixups this excerpt actually needs -- see that Makefile
@@ -34,7 +43,7 @@
 # better in colour for this purpose.
 
 dist_doc_Bible_DATA =
-# dist_doc_Bible_DATA += README Bible-Preview.pdf
+dist_doc_Bible_DATA += README Bible-Preview.pdf
 
 all: $(dist_doc_Bible_DATA)
 
@@ -64,13 +73,39 @@ PREVIEW_DEPS = \
 # (2798/59/2480/3508 are FRONT_X/BLEED/TRIM_W/TRIM_H from build_cover.py,
 # converted from mm to 300dpi pixels; recompute if that geometry changes.)
 
+# Bible-Preview.adoc (and the rest of PREVIEW_DEPS) are deliberately NOT
+# part of dist_doc_Bible_DATA above -- they are build sources, tracked in
+# SVN so the PDF can be rebuilt here, but never shipped in the dist
+# tarball (Savannah's own export is Book/-free by design; see this
+# file's own header comment). `make DEB` extracts that tarball into a
+# fresh debian_tmp/ tree and rebuilds everything there as a real-world
+# "user building from what we actually ship" check -- and Bible-
+# Preview.adoc genuinely isn't there, so a rule that unconditionally
+# depends on it fails hard at dependency-resolution time ("No rule to
+# make target 'Bible-Preview.adoc'"), before the recipe's own tool-
+# availability guard below ever gets a chance to run. Found live via
+# `make EXPO` (2026-09-27). Two small changes fix it, no new configure.ac
+# machinery needed: wrapping $(PREVIEW_DEPS) in $(wildcard ...) below
+# drops any of those files that don't exist out of the prerequisite list
+# entirely (in the normal SVN checkout they all exist, so this is a
+# no-op) rather than leaving a reference to a nonexistent file with no
+# rule of its own; and adding a `[ ! -f Bible-Preview.adoc ]` check to
+# the front of each recipe's existing tool-availability guard (the same
+# `touch $@` placeholder already used when asciidoc/weasyprint aren't
+# installed) means that once the prerequisite is gone, the recipe still
+# runs (its own target is missing) but does nothing instead of trying to
+# asciidoc/weasyprint a source that was never shipped. The already-
+# shipped Bible-Preview.pdf (from dist_doc_Bible_DATA) is what a
+# from-dist build actually uses; this was never meant to regenerate the
+# preview from Book/ sources it doesn't have.
+#
 # Classic asciidoc's [.role]#...# quoted-text span leaves the role's
 # leading "." literally in the emitted class attribute when the span's
 # content is an inline macro (e.g. link:...[]) rather than plain text --
 # ordering.adoc's [.order-link]#link:...[]# is the only such case in
 # this document; the recipe below strips the stray dot by hand.
-Bible-Preview.html: $(PREVIEW_DEPS)
-	@if [ -z "`which asciidoc`" ] || ! python3 -c "import pypdf" 2>/dev/null ; then touch $@ ; else \
+Bible-Preview.html: $(wildcard $(PREVIEW_DEPS))
+	@if [ ! -f Bible-Preview.adoc ] || [ -z "`which asciidoc`" ] || ! python3 -c "import pypdf" 2>/dev/null ; then touch $@ ; else \
 	asciidoc -a icons -a source-highlighter=pygments -o Bible-Preview.html Bible-Preview.adoc ; \
 	sed -i 's|<pre><code>|<pre>\n\n<code>|'     Bible-Preview.html ; \
 	sed -i 's|</code></pre>|</code>\n\n</pre>|' Bible-Preview.html ; \
@@ -109,7 +144,7 @@ Bible-Preview.html: $(PREVIEW_DEPS)
 	fi
 
 Bible-Preview.pdf: Bible-Preview.html
-	@if [ -z "`which python3`" ] || ! python3 -c "import weasyprint" 2>/dev/null ; then \
+	@if [ ! -f Bible-Preview.adoc ] || [ -z "`which python3`" ] || ! python3 -c "import weasyprint" 2>/dev/null ; then \
 	    touch $@ ; \
 	else \
 	    python3 -m weasyprint Bible-Preview.html Bible-Preview.pdf ; \

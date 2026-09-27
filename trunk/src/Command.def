@@ -74,6 +74,7 @@ cmd_def("]BOXING"   , Cmd_SESSION::cmd_BOXING(out, arg)         ,"[OFF|2-4|7-9|i
 cmd_def("]COLOR"    , Cmd_SESSION::cmd_XTERM(out, arg)          ,"[ON|OFF]"                ,oON_OFF    )
 cmd_def("]DOXY"     , Cmd_DIAG::cmd_DOXY(out, args)             ,"[path]"                  ,oPATH      )
 cmd_def("]EXPECT"   , Cmd_SESSION::cmd_EXPECT(out, arg)         ,"error_count"             ,COUNT      )
+cmd_def("]FILE_CTL" , Cmd_HOST::cmd_FILE_CTL(out, args)         ,"NO_SKIP|SKIP_GNU|SKIP_APL2|SKIP_ALL",CONFIG)
 cmd_def("]HELP"     , Cmd_HELP::cmd_HELP(out, arg)              ,"[primitive]"             ,NO_PARAM   )
 cmd_def("]KEYB"     , Cmd_KEYB::cmd_KEYB(out, args)             ,"[XMOD|XKBD|GUESS] [KEYS] [CURS] [KPAD] [FUNK]" ,oKEYB  )
 cmd_def("]LIB"      , Cmd_LIB::cmd_LIB2(out, args)              ,"[lib|path] [from-to]"    ,DIR_OR_LIB )
