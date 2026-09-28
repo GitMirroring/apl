@@ -120,5 +120,53 @@ OK      - no duplicate parents
       )SI
       R←⎕FIO[19] '/tmp/COPY_test_garbage.xml'
 
+      ⍝ regression (David Alden, bug-apl@gnu.org, 2026-09-27): )PCOPY of a
+      ⍝ )DUMPed (.apl) workspace behaved exactly like )COPY, silently
+      ⍝ overwriting an already-existing variable/function of the same name
+      ⍝ instead of protecting it, as documented ("Protective )COPY. Same as
+      ⍝ )COPY above, but not overwriting existing defined functions and
+      ⍝ variables"). Root cause: )COPY/)PCOPY of a )DUMPed file re-executes
+      ⍝ its source lines through InputFile::COPY_filter, which only ever
+      ⍝ checked object *names* against an explicit )COPY object list and
+      ⍝ had no concept of protection at all -- and the filter was skipped
+      ⍝ entirely whenever there was no explicit object list, exactly the
+      ⍝ common "'')PCOPY wsname'' with no object names" case reported here.
+      ⍝ The )SAVEd (.xml) )PCOPY path was already correct (Archive.cc's
+      ⍝ read_Symbol() checks protection independently of any object list);
+      ⍝ only the )DUMPed (.apl) path shared none of that logic. Fixed by
+      ⍝ adding a protection flag to InputFile::COPY_filter, consulting
+      ⍝ Workspace::lookup_existing_symbol() from both the function- and
+      ⍝ variable-name branches of check_filter(), and running the filter
+      ⍝ whenever protection is requested even without an explicit object
+      ⍝ list.
+      ⍝
+      )CLEAR
+CLEAR WS
+
+      )DROP PCOPY_tc
+³
+
+      PVAR←'old'
+      )WSID PCOPY_tc
+WAS CLEAR WS
+
+      )DUMP PCOPY_tc
+³
+
+      )CLEAR
+CLEAR WS
+
+      PVAR←'new'
+      )PCOPY PCOPY_tc.apl
+DUMPED ³
+
+      ⍝ PVAR must still be 'new' (protected: not overwritten by the 'old'
+      ⍝ value from PCOPY_tc.apl)
+      PVAR
+new
+
+      )DROP PCOPY_tc.apl
+³
+
 ⍝ ==================================
 

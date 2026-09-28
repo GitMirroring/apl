@@ -303,9 +303,13 @@ public:
    static void list_SI(ostream & out, SI_mode mode);
 
    /// load )DUMPed file from open file descriptor fd (closes fd)
+   /// @param protection true for )PCOPY: do not overwrite existing
+   ///        functions/variables (ignored unless object_filter is non-0,
+   ///        i.e. this is a )COPY or )PCOPY rather than a )LOAD)
    static void load_DUMP(ostream & out, const UTF8_string & filename, int fd,
                          LX_mode with_LX, bool silent,
-                         UCS_string_vector * object_filter);
+                         UCS_string_vector * object_filter,
+                         bool protection = false);
 
    /// load \b lib_ws into the_workspace, maybe set ⎕LX of the new WS.
    static void load_WS(ostream & out, ostream & err,

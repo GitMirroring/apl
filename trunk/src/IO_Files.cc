@@ -473,7 +473,7 @@ InputFile * input = InputFile::current_file();
                   if (file_line.size() == 0)   continue;   // line with tag(s)
                  }
 
-              if (input->copy_filter.has_object_filter())
+              if (input->copy_filter.is_active())
                  {
                     const bool line_allowed =
                           input->copy_filter.check_filter(file_line);

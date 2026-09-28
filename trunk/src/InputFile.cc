@@ -34,6 +34,7 @@
 #include "PrintOperator.hh"
 #include "UserFunction.hh"
 #include "UserPreferences.hh"
+#include "Workspace.hh"
 
 vector<InputFile> InputFile::files_todo;
 vector<InputFile> InputFile::files_orig;
@@ -83,11 +84,19 @@ UCS_string ucs_line(line);
         ucs_line = ucs_line.drop(1);
         UserFunction_header uh(ucs_line, false);
         const UCS_string & fun_name = uh.get_name();
+
+        bool selected = object_filter.size() == 0;   // no filter: all names
         loop(n, object_filter.size())
            {
-             if (fun_name == object_filter[n])   return in_matched = true;
+             if (fun_name == object_filter[n])   { selected = true;   break; }
            }
-        return false;
+
+        // )PCOPY: do not overwrite an already existing function/variable
+        //
+        if (selected && protection && Workspace::lookup_existing_symbol(fun_name))
+           selected = false;
+
+        return in_matched = selected;
       }
 
    /* maybe (the start of) a new variable.
@@ -127,11 +136,18 @@ const Unicode u1 = ucs_line.size() ? ucs_line.back()  : Invalid_Unicode;
       }
 
    where = WH_in_variable;   // start of a new variable
+bool selected = object_filter.size() == 0;   // no filter: all names selected
    loop(of, object_filter.size())
        {
-         if (ucs_line == object_filter[of])   return in_matched = true;
+         if (ucs_line == object_filter[of])   { selected = true;   break; }
        }
-   return in_matched = false;
+
+   // )PCOPY: do not overwrite an already existing function/variable
+   //
+   if (selected && protection && Workspace::lookup_existing_symbol(ucs_line))
+      selected = false;
+
+   return in_matched = selected;
 }
 //────────────────────────────────────────────────────────────────────────────
 

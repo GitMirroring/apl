@@ -1021,7 +1021,7 @@ uint32_t computed_crc = 0;
 void
 Workspace::load_DUMP(ostream & out, const UTF8_string & filename, int fd,
                      LX_mode with_LX, bool silent,
-                     UCS_string_vector * object_filter)
+                     UCS_string_vector * object_filter, bool protection)
 {
    Log(LOG_command_IN)
       CERR << "loading )DUMP file " << filename << "..." << endl;
@@ -1051,10 +1051,11 @@ Workspace::load_DUMP(ostream & out, const UTF8_string & filename, int fd,
 FILE * file = fdopen(fd, "r");
 
 InputFile fam(filename, file, false, false, true, with_LX);
-   if (object_filter)   // therefore )COPY, not )LOAD
+   if (object_filter)   // therefore )COPY or )PCOPY, not )LOAD
       {
         loop(o, object_filter->size())
             fam.copy_filter.add_filter_object((*object_filter)[o]);
+        fam.copy_filter.set_protection(protection);
         fam.set_COPY();
         ++Bif_F1_EXECUTE::copy_pending;
       }
@@ -1399,7 +1400,8 @@ int dump_fd = -1;
 XML_Loading_Archive in(out, err, filename.c_str(), dump_fd);
    if (dump_fd != -1)   // case 1: )DUMPed .apl file
       {
-        load_DUMP(out, filename, dump_fd, no_LX, false, &lib_ws_objects);
+        load_DUMP(out, filename, dump_fd, no_LX, false, &lib_ws_objects,
+                  protection);
         // load_DUMP closes dump_fd
         return;
       }

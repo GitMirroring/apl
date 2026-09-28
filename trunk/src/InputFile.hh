@@ -70,7 +70,8 @@ struct InputFile
         /// constructor
         COPY_filter()
         : where(WH_outside),
-          in_matched(false)
+          in_matched(false),
+          protection(false)
         {}
 
         /// add \b object to \b this object_filter
@@ -84,6 +85,15 @@ struct InputFile
         /// (from )COPY file names...)
         bool has_object_filter() const
            { return object_filter.size(); }
+
+        /// set the protection flag (from )PCOPY)
+        void set_protection(bool prot)
+           { protection = prot; }
+
+        /// return \b true if either an object filter or )PCOPY protection
+        /// is in effect, i.e. if check_filter() needs to be called at all
+        bool is_active() const
+           { return has_object_filter() || protection; }
 
         /// check the current line and return true if the line is permitted by
         /// the object_filter. Also, update \b in_function and \b in_variable.
@@ -101,6 +111,10 @@ struct InputFile
         /// true if the current function or variable was mentioned in
         /// object_filter
         bool in_matched;
+
+        /// true for )PCOPY: an already existing function or variable of
+        /// the same name shall not be overwritten
+        bool protection;
 
         /// the functions and variiables that shall be )COPIED
         UCS_string_vector object_filter;
