@@ -26,6 +26,7 @@
 
 #include <iostream>
 #include <stdint.h>
+#include <streambuf>
 #include <string>
 #include <vector>
 
@@ -177,8 +178,19 @@ public:
    UTF8_string_vector(const char * lines);
 };
 //════════════════════════════════════════════════════════════════════════════
-/// A UTF8 string to be used as filebuf in UTF8_ostream
-class UTF8_filebuf : public filebuf
+/// A UTF8 string to be used as streambuf in UTF8_ostream. Deliberately
+/// derived from streambuf, NOT filebuf: this class never calls
+/// filebuf::open(), so a filebuf's own inherited FILE* member would stay
+/// permanently NULL, and libc++'s basic_filebuf::xsputn() has its own
+/// FILE*-based bulk-write fast path that bypasses our overridden
+/// overflow() and segfaults on exactly that NULL FILE* for any
+/// multi-character write (confirmed to affect CinOut_filebuf/
+/// ErrOut_filebuf/DiffOut this same way on macOS 27/libc++, Paul
+/// Rockwell, bug-apl@gnu.org, 2026-09; see the class comment on
+/// ErrOut_filebuf in FileBuffers.hh for the full explanation). A plain
+/// streambuf's default xsputn() just calls sputc() per character, so
+/// every character reliably reaches our own overflow() override instead.
+class UTF8_filebuf : public streambuf
 {
 public:
    /// return the data in this filebuf
@@ -188,7 +200,7 @@ public:
 protected:
    /// insert \b c into this filebuf
    /// @param c character value to append (EOF signals flush)
-   virtual int overflow(int c);
+   virtual int_type overflow(int_type c);
 
    /// the data in this filebuf
    UTF8_string data;

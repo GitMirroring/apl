@@ -97,6 +97,24 @@ ostream & get_CERR()
    else
       return ErrOut_filebuf::used ? CERR : cerr;
 };
+//────────────────────────────────────────────────────────────────────────────
+/// write \b s directly to the real C-runtime FILE* \b out, bypassing
+/// std::cout/std::cerr entirely -- same rationale as CinOut_filebuf::
+/// overflow()/ErrOut_filebuf::overflow() below (a report from the field,
+/// Paul Rockwell, macOS 27, 2026-09-25/26, found std::cerr's own internal
+/// FILE* NULL well into main() on his system). Output::set_color_mode()/
+/// reset_colors() write ANSI color escapes via plain "cerr <<"/"cout <<"
+/// and were NOT covered by the SVN 2126 fix (which only touched the two
+/// overflow() functions' own per-character writes) -- confirmed still
+/// reachable from ErrOut_filebuf::overflow() itself, which calls
+/// set_color_mode() unconditionally, even on an overflow(EOF) call, before
+/// this fix.
+static void
+write_direct(FILE * out, const char * s)
+{
+   while (*s)   fputc(*s++, out);
+   if (out == stdout)   fflush(out);   // stderr is unconditionally unbuffered
+}
 
 void
 Output::mark_CERR_unsafe()
@@ -159,9 +177,17 @@ char Output::ESC_InsertMode_1 [MAX_ESC_LEN] = CSI "2;" "\0" "~";   ///< Key Ins
 char Output::ESC_Delete_1     [MAX_ESC_LEN] = CSI "3;" "\0" "~";   ///< Key Del
 
 //════════════════════════════════════════════════════════════════════════════
-int
-CinOut_filebuf::overflow(int c)
+CinOut_filebuf::int_type
+CinOut_filebuf::overflow(CinOut_filebuf::int_type c)
 {
+   // overflow(EOF) is how ostream::flush()/sync() ask "flush now, nothing
+   // new to insert" -- must never be treated as a real character (see
+   // ErrOut_filebuf::overflow() below for the historical reason this
+   // matters beyond just correctness: it also determines whether
+   // streambuf::xsputn()'s bulk-write fast path proceeds to fwrite()).
+   if (traits_type::eq_int_type(c, traits_type::eof()))
+      return traits_type::not_eof(c);
+
 PERFORMANCE_START(cerr_perf)
    if (!InputFile::echo_current_file())   return 0;
 
@@ -234,51 +260,45 @@ PERFORMANCE_END(fs_CERR_B, cerr_perf, 1)
    // Write directly to the real, C-runtime stderr rather than through
    // std::cerr: avoids a redundant second pass through std::cerr's own
    // streambuf/locale/sentry machinery for every single character (we
-   // already are a streambuf; std::cerr is guaranteed valid from the
-   // first instruction of main(), with no dependency on C++ static-init
-   // ordering, unlike std::cerr's own internal FILE* linkage, which a
-   // report from the field (Paul Rockwell, macOS 27, 2026-09-25) found to
-   // be NULL well into main() on his system -- writing straight to the
-   // real stderr sidesteps whatever is broken there entirely). Also fixes
-   // a genuine bug this replaces: overflow(EOF) (c==-1, how ostream::
-   // flush()/sync() ask for "flush, nothing to insert" -- confirmed to
-   // really happen, not just a theoretical concern) used to be treated
-   // as a real character and written as char(-1)/0xFF; a real cross-check
-   // run showed a *naive* skip-if-EOF fix regressing 41 shared-variable
-   // (AP210) tests, apparently because the old bogus write was
-   // incidentally acting as this stream's flush trigger -- so EOF must
-   // still flush, just not insert a byte.
-   // Deliberately unbuffered (fflush() after every character, on both
-   // real and EOF calls): GNU APL's line editor does a lot of mid-line
-   // cursor repositioning and character echo that never ends in '\n', so
-   // deferring visibility to the next newline (as a tty/non-tty
-   // distinction here once did) made interactive line editing feel
-   // stale/laggy. The per-character syscall cost is imperceptible at
-   // human typing speed -- the "100x slower" concern this whole class of
-   // buffering exists for (Bugs6 #6, see DiffOut.cc) is about *bulk*
-   // non-interactive output (large arrays), not per-keystroke echo.
-   // no fflush() here: stderr is unconditionally unbuffered on both
-   // glibc and BSD/macOS libc (confirmed live via strace: a bare
-   // fputc(c, stderr), with no flush at all, still issues its own
-   // write() syscall immediately) -- unlike stdout, which is only
+   // already are a streambuf). Deliberately unbuffered (fflush() would be
+   // needed after every character if we went through a buffered layer):
+   // GNU APL's line editor does a lot of mid-line cursor repositioning and
+   // character echo that never ends in '\n', so deferring visibility to
+   // the next newline (as a tty/non-tty distinction here once did) made
+   // interactive line editing feel stale/laggy. The per-character syscall
+   // cost is imperceptible at human typing speed -- the "100x slower"
+   // concern this whole class of buffering exists for (Bugs6 #6, see
+   // DiffOut.cc) is about *bulk* non-interactive output (large arrays),
+   // not per-keystroke echo. No fflush() here: stderr is unconditionally
+   // unbuffered on both glibc and BSD/macOS libc (confirmed live via
+   // strace: a bare fputc(c, stderr), with no flush at all, still issues
+   // its own write() syscall immediately) -- unlike stdout, which is only
    // conditionally unbuffered (line-buffered on a tty, fully buffered
    // otherwise), stderr's unbuffered-ness is unconditional by design
-   // (POSIX), specifically so error output is never held back
-   // regardless of where it's redirected to.
-   if (c != EOF)
-      {
-        fputc(c, stderr);
-        if      (c == '\n')            Output::output_column = 0;
-        else if ((c & 0xC0) != 0x80)   ++Output::output_column;
-      }
+   // (POSIX), specifically so error output is never held back regardless
+   // of where it's redirected to.
+const char ch = traits_type::to_char_type(c);
+   fputc(ch, stderr);
+   if      (ch == '\n')            Output::output_column = 0;
+   else if ((ch & 0xC0) != 0x80)   ++Output::output_column;
 PERFORMANCE_END(fs_CERR_B, cerr_perf, 1)
-   return 0;
+   return traits_type::not_eof(c);
 #endif
 }
 //════════════════════════════════════════════════════════════════════════════
-int
-ErrOut_filebuf::overflow(int c)
+ErrOut_filebuf::int_type
+ErrOut_filebuf::overflow(ErrOut_filebuf::int_type c)
 {
+   // overflow(EOF) is how ostream::flush()/sync() ask "flush now, nothing
+   // new to insert" -- must return here rather than fall through: this is
+   // also the exact call that used to reach basic_filebuf::xsputn()'s own
+   // bulk-write fast path when this class still derived from filebuf (see
+   // the class comment in FileBuffers.hh) -- returning early, before doing
+   // anything else, is what actually matters, not merely what we'd have
+   // written for c==EOF.
+   if (traits_type::eq_int_type(c, traits_type::eof()))
+      return traits_type::not_eof(c);
+
 PERFORMANCE_START(cerr_perf)
 
    Output::set_color_mode(Output::COLM_ERROR);
@@ -342,25 +362,21 @@ PERFORMANCE_END(fs_CERR_B, cerr_perf, 1)
    return 0;
 #else
    // see CinOut_filebuf::overflow() above for why fputc() on the real
-   // FILE* rather than cout/cerr, and why unconditionally (every
-   // character, not just at '\n') rather than relying on the C runtime's
-   // own buffering. Unlike that function, this one can target stdout
-   // (output_to_cout) as well as stderr -- stdout, unlike stderr, is
-   // only conditionally unbuffered (line-buffered on a tty, fully
-   // buffered otherwise), so it alone still needs an explicit flush.
+   // FILE* rather than cout/cerr. Unlike that function, this one can
+   // target stdout (output_to_cout) as well as stderr -- stdout, unlike
+   // stderr, is only conditionally unbuffered (line-buffered on a tty,
+   // fully buffered otherwise), so it alone still needs an explicit flush.
 const bool to_cout = UserPreferences::uprefs.output_to_cout;
 FILE * const out = to_cout ? stdout : stderr;
-   if (c != EOF)
-      {
-        fputc(c, out);
-        if      (c == '\n')            Output::output_column = 0;
-        else if ((c & 0xC0) != 0x80)   ++Output::output_column;   // unless subsequent UTF
-      }
+const char ch = traits_type::to_char_type(c);
+   fputc(ch, out);
+   if      (ch == '\n')            Output::output_column = 0;
+   else if ((ch & 0xC0) != 0x80)   ++Output::output_column;   // unless subsequent UTF
    if (to_cout)   fflush(out);
 
 PERFORMANCE_END(fs_CERR_B, cerr_perf, 1)
 
-   return 0;
+   return traits_type::not_eof(c);
 #endif
 }
 //════════════════════════════════════════════════════════════════════════════
@@ -426,8 +442,8 @@ Output::reset_colors()
 {
    if (colors_changed)
       {
-        cout << color_RESET << clear_EOL;
-        cerr << color_RESET << clear_EOL;
+        write_direct(stdout, color_RESET);   write_direct(stdout, clear_EOL);
+        write_direct(stderr, color_RESET);   write_direct(stderr, clear_EOL);
       }
 }
 //────────────────────────────────────────────────────────────────────────────
@@ -450,10 +466,14 @@ Output::set_color_mode(Output::ColorMode mode)
 
    switch(color_mode)
       {
-        case COLM_INPUT:  cerr << color_CIN  << clear_EOL;   break;
-        case COLM_OUTPUT: cout << color_COUT << clear_EOL;   break;
-        case COLM_ERROR:  cerr << color_CERR << clear_EOL;   break;
-        case COLM_UERROR: cout << color_UERR << clear_EOL;   break;
+        case COLM_INPUT:  write_direct(stderr, color_CIN);
+                          write_direct(stderr, clear_EOL);   break;
+        case COLM_OUTPUT: write_direct(stdout, color_COUT);
+                          write_direct(stdout, clear_EOL);   break;
+        case COLM_ERROR:  write_direct(stderr, color_CERR);
+                          write_direct(stderr, clear_EOL);   break;
+        case COLM_UERROR: write_direct(stdout, color_UERR);
+                          write_direct(stdout, clear_EOL);   break;
         default: break;
       }
 }

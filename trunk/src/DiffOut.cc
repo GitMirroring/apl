@@ -162,8 +162,8 @@ const UTF8 * const ref_end = ref + strlen(charP(ref));
    return true;
 }
 //────────────────────────────────────────────────────────────────────────────
-int
-DiffOut::overflow(int c)
+DiffOut::int_type
+DiffOut::overflow(DiffOut::int_type c)
 {
    // process one output character c from APL. Characters are
    // accumulated in aplout and only written to cout once per line
@@ -180,30 +180,31 @@ PERFORMANCE_START(cout_perf)
    Output::set_color_mode(errout ? Output::COLM_UERROR
                                  : Output::COLM_OUTPUT);
 
-   // overflow(EOF) (c==-1) is how ostream::flush()/sync() ask for "flush,
-   // nothing to insert" -- unlike CinOut_filebuf/ErrOut_filebuf (Output.cc),
+   // overflow(EOF) is how ostream::flush()/sync() ask for "flush, nothing
+   // to insert" -- unlike CinOut_filebuf/ErrOut_filebuf (Output.cc),
    // c==EOF was never routed to this class's own flush point (that only
    // happens below, on c=='\n', i.e. a real end-of-line -- a live
    // cross-check run confirmed EOF was never observed to reach it), so
    // there is no flush-timing behavior to preserve here: just don't treat
-   // -1 as a real character (it used to be silently appended to aplout as
+   // it as a real character (it used to be silently appended to aplout as
    // a bogus byte, and would also have miscounted as a UTF continuation
    // byte in the output_column tracking below).
-   if (c == EOF)
+   if (traits_type::eq_int_type(c, traits_type::eof()))
       {
         PERFORMANCE_END(fs_COUT_B, cout_perf, 1)
-        return 0;
+        return traits_type::not_eof(c);
       }
 
-   if      (c == '\n')            Output::output_column = 0;
-   else if ((c & 0x80) == 0)      ++Output::output_column;   // ASCII
-   else if ((c & 0xC0) == 0xC0)   ++Output::output_column;   // first UTF
+const char ch = traits_type::to_char_type(c);
+   if      (ch == '\n')             Output::output_column = 0;
+   else if ((ch & 0x80) == 0)       ++Output::output_column;   // ASCII
+   else if ((ch & 0xC0) == 0xC0)    ++Output::output_column;   // first UTF
 
-   if (c != '\n')   // not end of line: accumulate only
+   if (ch != '\n')   // not end of line: accumulate only
       {
-        aplout += c;
+        aplout += ch;
         PERFORMANCE_END(fs_COUT_B, cout_perf, 1)
-        return 0;
+        return traits_type::not_eof(c);
       }
 
    // end of line: emit the accumulated line (plus '\r' first if

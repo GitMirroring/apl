@@ -98,7 +98,12 @@ public:
  
    /// add spaces until \b column is reached
    static void indent(int column)
-      { while (output_column < column)   { cerr << ' ';   ++output_column; } }
+      // fputc() directly on the real stderr, not "cerr << ' '" -- see
+      // ErrOut_filebuf::overflow()/Output::set_color_mode() (Output.cc)
+      // for why: std::cerr's own internal FILE* was found NULL well into
+      // main() on at least one platform/toolchain combination (Paul
+      // Rockwell, macOS 27, 2026-09-25/26).
+      { while (output_column < column)   { fputc(' ', stderr);   ++output_column; } }
 
    /// initialize terminal output (ANSI sequences)
    /// @param logit true to log initialization steps to the startup log

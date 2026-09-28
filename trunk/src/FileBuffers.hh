@@ -22,22 +22,45 @@
 #define __FILEBUFFERS_HH_DEFINED__
 
 #include <fstream>
+#include <streambuf>
 
 #include "DiffOut.hh"
 #include "UTF8_string.hh"
 
 //════════════════════════════════════════════════════════════════════════════
-/// a filebuf for stdin echo
-class CinOut_filebuf : public filebuf
+/// a streambuf for stdin echo. Deliberately derived from streambuf, NOT
+/// filebuf (see ErrOut_filebuf below for why).
+class CinOut_filebuf : public streambuf
 {
-   /// overloaded filebuf::overflow
+   /// overloaded streambuf::overflow
    /// @param c character to overflow into the buffer
-   virtual int overflow(int c);
+   virtual int_type overflow(int_type c);
 };
 extern CinOut_filebuf CIN_filebuf;
 //════════════════════════════════════════════════════════════════════════════
-// a filebuf for stderr output
-class ErrOut_filebuf : public filebuf
+// a streambuf for stderr output. Deliberately derived from streambuf, NOT
+// filebuf: this class never calls filebuf::open(), so a filebuf's own
+// inherited FILE* member stays permanently NULL -- harmless as long as
+// every write goes through our overridden overflow(), but libc++'s
+// basic_filebuf::xsputn() has its own bulk-write fast path that, once the
+// (never-managed) put-buffer looks "full" (true for us: pbase()==epptr()
+// ==0), calls overflow() ONCE to ask "anything to flush?" and then --
+// unless that returned eof() -- writes the ENTIRE remaining string via
+// fwrite() straight onto that inherited, never-opened, NULL FILE*,
+// bypassing our own overflow() for the actual character data entirely.
+// Confirmed root cause of a macOS 27/libc++ segfault (Paul Rockwell,
+// bug-apl@gnu.org, 2026-09-24..27): every multi-character write to CERR
+// (e.g. the "-h"/"--v" usage text, a single "CERR << "usage: " << ..."
+// chain) took that fast path and crashed in fwrite() on a NULL FILE* --
+// previously misdiagnosed as std::cerr's own internal FILE* being NULL,
+// but Paul's own standalone "std::cerr << "hi"" test never crashed, and
+// the crash backtrace's "this->epptr()-this->pbase()"/"this->__file_" are
+// OUR ErrOut_filebuf's own inherited members, not std::cerr's -- proven
+// by Paul's fix (switching this class's base to streambuf, which has no
+// FILE*-based xsputn() fast path at all) eliminating the crash completely.
+// A plain streambuf's default xsputn() just calls sputc() in a loop, so
+// every character reliably reaches our own overflow() override instead.
+class ErrOut_filebuf : public streambuf
 {
 public:
    /// constructor
@@ -65,7 +88,7 @@ public:
        get_CERR() checks \b used and returns cerr instead of CERR if it is
        false.
     **/
-   filebuf * use()   { used = true;   return this; }
+   streambuf * use()   { used = true;   return this; }
 
    /// true iff the constructor for CERR was called
    static bool used;   // set when CERR is constructed
@@ -76,9 +99,9 @@ public:
    /// current column
 
 protected:
-   /// overloaded filebuf::overflow()
+   /// overloaded streambuf::overflow()
    /// @param c character to overflow into the buffer
-   virtual int overflow(int c);
+   virtual int_type overflow(int_type c);
 };
 //════════════════════════════════════════════════════════════════════════════
 #endif // __FILEBUFFERS_HH_DEFINED__

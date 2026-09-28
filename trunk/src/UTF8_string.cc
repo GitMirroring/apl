@@ -448,14 +448,15 @@ UTF8_string current;
 
 }
 //════════════════════════════════════════════════════════════════════════════
-int
-UTF8_filebuf::overflow(int c)
+UTF8_filebuf::int_type
+UTF8_filebuf::overflow(UTF8_filebuf::int_type c)
 {
-   // overflow(EOF) (c==-1) means "flush, nothing to insert" -- this class
-   // has no real stream underneath (data is an in-memory accumulator, read
-   // back later), so there is nothing to flush; just don't append -1 as a
+   // overflow(EOF) means "flush, nothing to insert" -- this class has no
+   // real stream underneath (data is an in-memory accumulator, read back
+   // later), so there is nothing to flush; just don't append EOF as a
    // bogus byte.
-   if (c != EOF)   data += c;
-   return 0;
+   if (!traits_type::eq_int_type(c, traits_type::eof()))
+      data += traits_type::to_char_type(c);
+   return traits_type::not_eof(c);
 }
 //════════════════════════════════════════════════════════════════════════════

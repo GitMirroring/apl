@@ -32,6 +32,7 @@
 #include <ComplexCell.hh>
 #include <DiffOut.hh>
 #include <Error.hh>
+#include <FileBuffers.hh>
 #include <FloatCell.hh>
 #include <InputFile.hh>
 #include <IO_Files.hh>
@@ -815,7 +816,7 @@ init_libapl(const char * progname, int log_startup)
 //════════════════════════════════════════════════════════════════════════════
 extern DiffOut DOUT_filebuf;
 extern DiffOut UERR_filebuf;
-extern ErrOut  CERR_filebuf;
+extern ErrOut_filebuf CERR_filebuf;
 
 int
 expand_LF_to_CRLF(int on)
