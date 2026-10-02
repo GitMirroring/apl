@@ -90,7 +90,14 @@ const ShapeItem len_X = X.element_count();
 
    if (len_X == 0)   // no axes
       {
-        Token result(TOK_APL_VALUE1, CLONE(&B, LOC));
+        // Bugs31 #19/#23 (Blake McBride): CLONE() aliases B rather than
+        // copying it, so any lvalue pass-through marker on B would
+        // otherwise survive this identity application unbroken -- see
+        // Value::clear_lval_markers().
+        //
+        Value_P Z = CLONE(&B, LOC);
+        Z->clear_lval_markers();
+        Token result(TOK_APL_VALUE1, Z);
         return result;
       }
 
@@ -261,9 +268,19 @@ const Cell & first_B = B.get_cfirst(cache);
         // that (see Bugs30 #13/#16's own removal of that blanket
         // exception).
         //
+        // Only when B.get_lval_cellowner() actually finds one (i.e. B is
+        // one symbol's own uniform lvalue array): B built by ⊃/∊/¨ (Blake
+        // McBride, Bugs31 #1, e.g. V←(1 2)(3 4) ⋄ (↑⊃V)←9) has no single
+        // such owner, but first_B is still a perfectly good LvalCell with
+        // its own, individually correct owner -- leaving the pick-slot
+        // marker unset here just falls through to Value::assign_cellrefs()'s
+        // ordinary per-cell path below, which already handles that
+        // correctly (same as the plain control V←1 2 3 ⋄ (↑V)←9).
+        //
         if (first_B.is_lval_cell())
            if (Cell * target = first_B.get_lval_value())
-              Z->set_lval_pick_slot(target, B.get_lval_cellowner());
+              if (Value * owner = B.get_lval_cellowner())
+                 Z->set_lval_pick_slot(target, owner);
 
         return Z;
       }
@@ -315,7 +332,33 @@ const Shape ravel_A(A, /* ⎕IO */ 0);
 
         Cell cache;
         Z->set_ravel_Cell(0, B.get_cfirst(cache));
-        if (shape_Z.get_volume() == 0)   Z->to_type(false);
+        if (shape_Z.get_volume() == 0)
+           {
+             if (B.is_left_value())
+                {
+                  // Bugs31 #25 (Blake McBride): to_type(false) below
+                  // would rewrite Z's just-copied LvalCell (B's own, via
+                  // get_cfirst()) into a plain type-appropriate cell,
+                  // leaving Z marked set_left_value() (a claimed
+                  // selective-assignment target, set just below) with a
+                  // prototype that is no longer an LvalCell at all --
+                  // check_lval_consistency() (now called before
+                  // assign_cellrefs()'s dest_count==0 early return,
+                  // Bugs30 #29) correctly rejects that contradiction as
+                  // a malformed specification. (1↓V)←9 on a scalar V
+                  // over-drops to nothing, exactly like the already-
+                  // working vector over-drop (5↓V)←9 -- a clean empty-
+                  // selection no-op, not an error. Use the same
+                  // invalid/placeholder LvalCell(0,0) pattern used
+                  // elsewhere for this "no real cell to select" case.
+                  //
+                  new (&Z->get_wproto()) LvalCell(0, 0);
+                }
+             else
+                {
+                  Z->to_type(false);
+                }
+           }
         if (B.is_left_value())   Z->set_left_value();
         Z->check_value(LOC);
         return Token(TOK_APL_VALUE1, Z);
@@ -404,7 +447,11 @@ const ShapeItem len_A = A.element_count();
 
    if (len_X == 0)   // no axes
       {
-        Token result(TOK_APL_VALUE1, CLONE(&B, LOC));
+        // Bugs31 #19/#23: see the matching A↑[X]B case above.
+        //
+        Value_P Z = CLONE(&B, LOC);
+        Z->clear_lval_markers();
+        Token result(TOK_APL_VALUE1, Z);
         return result;
       }
 

@@ -749,6 +749,23 @@ vector<ShapeItem> ends;
                           Cell cache;
                           const Cell & c = Aval->get_cravel(a, cache);
                           if (!c.is_near_int64_t())   A_foldable = false;
+                          else if (c.get_near_int() < 0)   A_foldable = false;
+                          // A negative axis is invalid (Bif_F12_RHO::
+                          // eval_AB()'s runtime path DOMAIN_ERRORs via
+                          // require_non_negative_ints() -- Blake McBride,
+                          // Bugs31 #5/#28: do_reshape() below performs no
+                          // such check itself, so a negative axis here
+                          // used to silently fold into a live malformed
+                          // value instead, corrupting everything
+                          // downstream that consumes it (a thrown
+                          // std::length_error two layers away in
+                          // Bif_OPER1_REDUCE.cc for #5, an internal
+                          // Cell::init_other() assert in the rank
+                          // empty-frame machinery for #28). Declining to
+                          // fold here is safe and cheap: the ordinary,
+                          // unoptimized runtime path below always exists
+                          // as a fallback and already raises the correct
+                          // DOMAIN ERROR for a negative axis.
                         }
 
                     if (A_foldable)
@@ -1694,44 +1711,49 @@ bool progress = false;
 
          int pos_POWER = t;
 
-         // if N is already in parentheses: skip (...). In this case
-         // Prefix::reduce_A_B__() will take care after the expression
-         // in parentheses was evaluated.
-         //
-         if (tos[t + 1].get_tag() == TOK_L_PARENT)   // f ⍣ ( RO )
-            {
-              t = tos.find_closing_parent(t + 1);   // skip (...)
-              continue;                              // next ⍣ (if any)
-           }
-
-         int pos_RO = pos_POWER + 1;
-         const int len_N = j_length(tos, pos_RO);
-         if (len_N == 0)   continue;   // N is not literal
-
-         int pos_B = pos_RO + len_N;
-
-         if (pos_B >= int(tos.size()))   continue;   // ⍣ N at EOS: no B
-
-         // Normally "( LO ⍣ N )" already sitting inside one pair of
-         // parens is left alone here -- Prefix::reduce_A_B__() handles
-         // it directly once the parenthesized group is evaluated. But
-         // when LO itself carries a trailing bracket axis (e.g.
+         // When LO itself carries a trailing bracket axis (e.g.
          // ⌽[1]⍣2), Prefix's parenthesis reduction cannot parse
          // "LO[axis] ⍣ N" as a single derived function -- it needs the
-         // same narrower (LO[axis])⍣N grouping produced below as the
-         // unparenthesized case does, exactly like fix_RANK_syntax()'s
-         // matching LO_has_axis exception just below (Bugs30 #20).
+         // same narrower (LO[axis])⍣N grouping produced below,
+         // regardless of what shape N happens to have (a literal, a
+         // parenthesized expression, or a bare variable), exactly like
+         // fix_RANK_syntax()'s matching LO_has_axis exception (Bugs30
+         // #20 fixed only the literal-N case; Bugs31 #21, Blake
+         // McBride, extends it to every N). So check this FIRST and
+         // skip the non-literal-N shortcuts below entirely when it
+         // holds -- those shortcuts exist only to leave an ORDINARY
+         // (no-axis) LO ⍣ N alone for Prefix::reduce_A_B__() to handle
+         // directly, which no longer applies once LO has an axis.
          //
          const bool LO_has_axis = pos_POWER > 0 &&
                                    tos[pos_POWER - 1].get_tag() == TOK_R_BRACK;
-         if (!LO_has_axis &&
-             tos[pos_B].get_Class() == TC_R_PARENT)   // ( LO ⍣ N )
-            {
-              continue;
-            }
 
-         // at this point we have a literal N. We disambiguate it by
-         // putting LO ⍣ N in parentheses
+         if (!LO_has_axis)
+            {
+              // if N is already in parentheses: skip (...). In this case
+              // Prefix::reduce_A_B__() will take care after the expression
+              // in parentheses was evaluated.
+              //
+              if (tos[t + 1].get_tag() == TOK_L_PARENT)   // f ⍣ ( RO )
+                 {
+                   t = tos.find_closing_parent(t + 1);   // skip (...)
+                   continue;                              // next ⍣ (if any)
+                }
+
+              const int len_N = j_length(tos, pos_POWER + 1);
+              if (len_N == 0)   continue;   // N is not literal
+
+              const int pos_B = pos_POWER + 1 + len_N;
+              if (pos_B >= int(tos.size()))   continue;   // ⍣ N at EOS: no B
+
+              if (tos[pos_B].get_Class() == TC_R_PARENT)   // ( LO ⍣ N )
+                 continue;
+           }
+
+         // at this point either LO has a bracket axis (any shape of N),
+         // or we have a literal N not already parenthesized as
+         // (LO ⍣ N). Either way we disambiguate by putting LO in its
+         // own parentheses.
          //
 
          // insert a left parenthesis

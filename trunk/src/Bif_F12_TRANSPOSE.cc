@@ -134,13 +134,25 @@ Bif_F12_TRANSPOSE::transpose(const Shape & sh_A, cValue_R B)
       {
         if (sh_A.get_rank() <= 1)   // scalar or vector B:
            {
-              return CLONE(&B, LOC);
+             // Bugs31 #19/#23 (Blake McBride): CLONE() aliases B rather
+             // than copying it, so any lvalue pass-through marker on B
+             // would otherwise survive this identity application
+             // unbroken -- see Value::clear_lval_markers().
+             //
+             Value_P Z = CLONE(&B, LOC);
+             Z->clear_lval_markers();
+             return Z;
            }
 
         // 2-dimensional matrix (probably the most frequent case).
         //
         if (sh_A.get_shape_item(0) == 0 &&
-            sh_A.get_shape_item(1) == 1)   return CLONE(&B, LOC);   // identity
+            sh_A.get_shape_item(1) == 1)   // identity
+           {
+             Value_P Z = CLONE(&B, LOC);
+             Z->clear_lval_markers();
+             return Z;
+           }
 
         const ShapeItem rows_B = B.get_shape_item(0);
         const ShapeItem cols_B = B.get_shape_item(1);

@@ -106,48 +106,127 @@ UCS_string
 Quad_TF::no_UCS(const UCS_string & ucs)
 {
 UCS_string ret;
+const ShapeItem len = ucs.ssize();
 
-   loop(u, ucs.size())
-      {
-        if ( u < ucs.ssize() - 6 &&
-             ucs[u]     == '\'' &&
-             ucs[u + 1] == ','  &&
-             ucs[u + 2] == '('  &&
-             ucs[u + 3] == UNI_Quad_Quad &&
-             ucs[u + 4] == 'U'  &&
-             ucs[u + 5] == 'C'  &&
-             ucs[u + 6] == 'S')
-           {
-             u += 7;   // skip '(⎕UCS
+   // Bugs31 #6 (Blake McBride): the encoder's own ',(⎕UCS n)' marker
+   // starts with a quote that is only meaningful as a marker when it is
+   // a GENUINE string terminator -- but the very same 7-character text
+   // also occurs, with no encoding involved at all, whenever a doubled
+   // '' (APL's standard escape for one literal quote WITHIN a string,
+   // e.g. from re-quoting a function's own source text for transfer) is
+   // immediately followed by literal source text that happens to read
+   // ',(⎕UCS...)'. Both are lexically identical; a blind substring scan
+   // (the previous implementation) cannot tell them apart and silently
+   // decodes the second, corrupting the record from that point on.
+   //
+   // Fixed by tracking real string-boundary state exactly the way
+   // Tokenizer::tokenize_string1() already does for ordinary APL source:
+   // once inside a string, a '' is unconditionally two literal quotes
+   // (checked via one-character lookahead, BEFORE ever testing the
+   // longer marker pattern) and only a quote that is NOT followed by
+   // another quote is a genuine terminator -- the marker pattern is
+   // tested only at that point, never at the second half of an escape.
+   //
+bool in_string = false;
 
-             for (;;)
-                 {
-                  while (u < ucs.ssize() && ucs[u] == ' ')   ++u;
+   for (ShapeItem u = 0; u < len;)
+       {
+         const Unicode uni = ucs[u];
 
-                  if (u >= ucs.ssize())
-                     {
-                       MORE_ERROR() << "Truncated (⎕UCS ...) in ⎕TF record";
-                       DOMAIN_ERROR;
-                     }
+         if (!in_string)
+            {
+              // Outside any string, a quote always unambiguously OPENS
+              // one -- there is nothing to escape out here.
+              //
+              ret << uni;
+              ++u;
+              if (uni == '\'')   in_string = true;
+              continue;
+            }
 
-                  if (ucs[u] == ')')   { u += 2;   break; }
+         // in_string: scanning through a string's own content.
+         //
+         if (uni != '\'')   { ret << uni;   ++u;   continue; }
 
-                  if (ucs[u] < '0' || ucs[u] > '9')
-                     {
-                       MORE_ERROR() << "Bad character in (⎕UCS ...) of "
-                                       "⎕TF record";
-                       DOMAIN_ERROR;
-                     }
+         if (u + 1 < len && ucs[u + 1] == '\'')
+            {
+              // '' -- one literal quote, string stays open. Copied
+              // through unchanged (the real tokenizer that eventually
+              // re-parses ret will un-escape it itself, exactly as for
+              // ordinary source text).
+              //
+              ret << uni << uni;
+              u += 2;
+              continue;
+            }
 
-                  int num = 0;
-                  while (u < ucs.ssize() && ucs[u] >= '0' && ucs[u] <= '9')
-                     { num *= 10;   num += ucs[u++] - '0'; }
+         // A quote NOT followed by another quote is a genuine
+         // terminator -- and only here can a real encoder marker
+         // legitimately begin (its own leading quote IS this
+         // terminator; tf2_char_vec() closes the string and opens the
+         // marker with the very same character).
+         //
+         if ( u + 6 < len &&
+              ucs[u + 1] == ','  &&
+              ucs[u + 2] == '('  &&
+              ucs[u + 3] == UNI_Quad_Quad &&
+              ucs[u + 4] == 'U'  &&
+              ucs[u + 5] == 'C'  &&
+              ucs[u + 6] == 'S')
+            {
+              u += 7;   // skip '(⎕UCS
 
-                  ret << Unicode(num);
-                 }
-           }
-        else ret << ucs[u];
-      }
+              for (;;)
+                  {
+                   while (u < len && ucs[u] == ' ')   ++u;
+
+                   if (u >= len)
+                      {
+                        MORE_ERROR() << "Truncated (⎕UCS ...) in ⎕TF record";
+                        DOMAIN_ERROR;
+                      }
+
+                   if (ucs[u] == ')')
+                      {
+                        // skip ')' + the ',' + one reopening quote that
+                        // tf2_char_vec() always emits right after (",'"
+                        // mid-run, or ",''" at the end of the vector --
+                        // either way the string is still logically open,
+                        // so in_string stays true; a second reopening
+                        // quote from the ",''" case is simply picked up
+                        // as an ordinary terminator by the next round).
+                        //
+                        u = (u + 3 <= len) ? u + 3 : len;
+                        break;
+                      }
+
+                   if (ucs[u] < '0' || ucs[u] > '9')
+                      {
+                        MORE_ERROR() << "Bad character in (⎕UCS ...) of "
+                                        "⎕TF record";
+                        DOMAIN_ERROR;
+                      }
+
+                   int num = 0;
+                   while (u < len && ucs[u] >= '0' && ucs[u] <= '9')
+                      { num *= 10;   num += ucs[u++] - '0'; }
+
+                   ret << Unicode(num);
+                  }
+
+              // in_string remains true: the marker only ever appears
+              // spliced into what is, logically, still one continuous
+              // string.
+              //
+              continue;
+            }
+
+         // genuine terminator, no marker follows: the string just ends.
+         //
+         in_string = false;
+         ret << uni;
+         ++u;
+       }
 
    return ret;
 }
@@ -505,7 +584,6 @@ Quad_TF::tf2_value(int level, UCS_string & ucs, const cValue & value,
         value.print_boxed(CERR, 0);
       }
 
-
    // Bugs9 #8 (Blake McBride): this shortcut is only correct for the plain
    // '' case (rank 1, shape 0, not enclosed) -- it used to fire for *any*
    // empty character value (any shape, any nesting level), discarding both
@@ -513,8 +591,11 @@ Quad_TF::tf2_value(int level, UCS_string & ucs, const cValue & value,
    // ,⊂⊂'' lost both ⊂). Restrict it accordingly; everything else falls
    // through to tf2_shape() + tf2_all_char_ravel(), which already handle
    // shape and nesting correctly.
-   if (value.is_empty() && nesting == 0 &&
-       value.get_rank() == 1 && value.get_shape_item(0) == 0)
+   //
+   if (value.is_empty()           &&
+       nesting == 0               &&
+       value.get_rank() == 1      &&
+       value.get_shape_item(0) == 0)
       {
         Cell cache;
         const Cell & cell = value.get_cfirst(cache);
@@ -526,6 +607,7 @@ Quad_TF::tf2_value(int level, UCS_string & ucs, const cValue & value,
              // suffering the same redundant-parens issue tf2_shape() now
              // fixes for the general case -- deliberately out of scope
              // for this change; revisit separately if it matters live.
+             //
              ucs << UNI_L_PARENT << UNI_SINGLE_QUOTE
                  << UNI_SINGLE_QUOTE << UNI_R_PARENT;
              return true;
@@ -570,8 +652,10 @@ bool needs_UCS = false;
            }
       }
 
-const bool omit_reshape = nesting == 0 && value.get_rank() == 1 &&
-                          value.get_shape_item(0) > 1 && value.is_simple() &&
+const bool omit_reshape = nesting == 0                &&
+                          value.get_rank() == 1       &&
+                          value.get_shape_item(0) > 1 &&
+                          value.is_simple()           &&
                           !needs_UCS;
 
    // emit e.g. ( shape ⍴
@@ -581,7 +665,7 @@ const bool omit_reshape = nesting == 0 && value.get_rank() == 1 &&
    // tf2_shape()'s own comment.
    //
 const bool has_parens = tf2_shape(ucs, value.get_shape(), nesting,
-                                   omit_reshape, !value.NOTCHAR());
+                                  omit_reshape, !value.NOTCHAR());
    if (value.NOTCHAR())   tf2_ravel(level, ucs, ec, value, 0);
    else                   tf2_all_char_ravel(level, ucs, value);
    if (has_parens)   ucs << UNI_R_PARENT;   // close '(' from tf2_shape()
@@ -591,6 +675,7 @@ const bool has_parens = tf2_shape(ucs, value.get_shape(), nesting,
         CERR << "tf2_value(): ucs after at level " << level
              << ": " << ucs << endl;
       }
+
    return has_parens;
 }
 //────────────────────────────────────────────────────────────────────────────
@@ -635,8 +720,11 @@ bool has_parens;
         has_parens = tf2_value(0, ucs_value, B, 0);
       }
 
-   Assert(!has_parens || ucs_value[0] == UNI_L_PARENT);
-   Assert(!has_parens || ucs_value[ucs_value.size() - 1] == UNI_R_PARENT);
+   if (has_parens)
+      {
+        Assert(ucs_value.front() == UNI_L_PARENT);
+        Assert(ucs_value.back()  == UNI_R_PARENT);
+      }
 
 UCS_string ucs(var_name);
    ucs << UNI_LEFT_ARROW;
@@ -669,6 +757,7 @@ UCS_string ucs(var_name);
       }
 
    Log(LOG_Quad_TF)   CERR << "success in tf2_var(): " << ucs << endl;
+
 Value_P Z(ucs, LOC);
    Z->check_value(LOC);
    return Token(TOK_APL_VALUE1, Z);

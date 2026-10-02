@@ -211,5 +211,71 @@ DOMAIN ERROR
       ^ ^   
 5 4
 
+      ⍝ regression (Blake McBride, Bugs31 #7) -- CLOSED AS NOT A BUG
+      ⍝ (2026-09-29, after discussion with the user): an SI-modifying
+      ⍝ command as the A operand -- reached only when B fails, ⎕EA's
+      ⍝ whole point -- reaches Command.cc and really executes, e.g.
+      ⍝ ')OFF' ⎕EA '1÷0' really ends the session. An earlier session
+      ⍝ "fixed" this by catching E_COMMAND_PUSHED in
+      ⍝ Prefix::execute_EA_fallback() and turning it into a DOMAIN_ERROR
+      ⍝ instead -- that was wrong and has been reverted. ⎕EC/⎕EA/⎕EB
+      ⍝ exist to make EXECUTION ERRORS in the controlled operand (B)
+      ⍝ reportable, not to veto what the program explicitly asks A to
+      ⍝ do -- ')OFF' ⎕EA INIT ("run INIT; if it fails, don't continue
+      ⍝ in a half-initialized workspace") is a legitimate, intentional
+      ⍝ pattern, and A is documented to execute exactly as if directly
+      ⍝ executed, unlike the sandboxed B. E_COMMAND_PUSHED is not a
+      ⍝ hazard needing a guard here: it is the same, already-safe,
+      ⍝ generic mechanism used for a plain execution of an SI-modifying
+      ⍝ command at any call depth (Bif_F1_EXECUTE.cc throws it; only
+      ⍝ Command.cc's main loop catches it, once the stack is already
+      ⍝ fully and safely unwound) -- catching it one frame early here
+      ⍝ just short-circuited that.
+      ⍝
+      ⍝ )OFF/)CLEAR/)SAVE themselves can't be exercised for real in this
+      ⍝ shared-process test suite (they would end or corrupt the *whole*
+      ⍝ test3 run, not just this file) -- verified live instead, outside
+      ⍝ the harness: ')OFF' ⎕EA '1÷0' (B failing) cleanly exits the
+      ⍝ session (no "still alive" line reached afterward). )SIC is on
+      ⍝ the same guarded-command list (Bif_F1_EXECUTE.cc) and goes
+      ⍝ through the identical E_COMMAND_PUSHED path, but only clears the
+      ⍝ )SI stack -- safe to actually run here, and enough to prove the
+      ⍝ command really reaches Command.cc instead of being turned into a
+      ⍝ DOMAIN_ERROR. Also confirms the whole ⎕EA statement (including
+      ⍝ any assignment around it) never completes when A turns out to be
+      ⍝ a real command -- same as a plain execution of one would.
+      ⍝
+      ⍝ Blake's original report also claimed )SAVE from within ⎕EA
+      ⍝ persists a phantom transient SI frame into the saved workspace
+      ⍝ (Bugs30 #25 reappearing). Re-verified live (2026-10-02): a real
+      ⍝ ')SAVE ...' ⎕EA '1÷0' followed by )CLEAR/)LOAD/)SI DOES show a
+      ⍝ nameless "*" )SI entry -- but so does a PLAIN ⍎')SAVE ...' at
+      ⍝ top level, with no ⎕EA/⎕EB involved at all (an earlier version
+      ⍝ of this comment claimed the ⎕EA case came back clean; it no
+      ⍝ longer does). The saved "*" is the invoking statement's own
+      ⍝ )SI frame, so it belongs to Command.cc's/)SAVE's own frame
+      ⍝ handling, not to this ticket; per the user, if it's ever
+      ⍝ addressed it should be by having )SAVE ignore its own invoking
+      ⍝ )SI frame, not by anything here.
+      ⍝
+      ⍝ )SIC is on the same guarded-command list (Bif_F1_EXECUTE.cc) as
+      ⍝ )OFF/)CLEAR/)SAVE, goes through the identical E_COMMAND_PUSHED
+      ⍝ path, but -- run here from an already-empty )SI -- has no
+      ⍝ visible effect of its own either way, making it safe to run
+      ⍝ for real inside this shared-process suite. Its only job here is
+      ⍝ to prove the command reaches Command.cc silently (as a real,
+      ⍝ successful )SIC would) instead of being turned into the old
+      ⍝ "DOMAIN ERROR ... cannot be executed from within ⎕EC/⎕EA/⎕EB":
+      ⍝ no output at all is the correct, passing result.
+      ⍝
+      ')SIC' ⎕EA '1÷0'
+      )SI
+
+      )CHECK
+OK      - no stale functions
+OK      - no stale values
+OK      - no stale indices
+OK      - no duplicate parents
+
       ⍝ ==================================
 

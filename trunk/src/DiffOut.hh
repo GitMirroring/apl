@@ -36,13 +36,13 @@ using namespace std;
 
 //════════════════════════════════════════════════════════════════════════════
 /// a streambuf that compares its output with a file. Deliberately derived
-/// from streambuf, NOT filebuf -- see ErrOut_filebuf's class comment in
-/// FileBuffers.hh for why: this class never calls filebuf::open(), so a
+/// from streambuf, NOT filebuf -- see ErrOut_streambuf's class comment in
+/// StreamBuffers.hh for why: this class never calls filebuf::open(), so a
 /// filebuf's own inherited FILE* member would stay permanently NULL, and
 /// libc++'s basic_filebuf::xsputn() has its own FILE*-based bulk-write
 /// fast path that bypasses our overridden overflow() and segfaults on
 /// exactly that NULL FILE* for any multi-character write. Confirmed to
-/// affect ErrOut_filebuf/CinOut_filebuf on macOS 27/libc++ (Paul Rockwell,
+/// affect ErrOut_streambuf/CinOut_streambuf on macOS 27/libc++ (Paul Rockwell,
 /// bug-apl@gnu.org, 2026-09); DiffOut backs COUT/UERR and shares the
 /// identical latent flaw even though no report has hit it here (COUT's
 /// own real output apparently never went through a bulk multi-character

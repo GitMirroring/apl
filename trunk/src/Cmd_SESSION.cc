@@ -111,7 +111,7 @@ Cmd_SESSION::cmd_LOG(ostream & out, const UCS_string & arg)
 "\n"
 "   $ ./configure DYNAMIC_LOG_WANTED=yes (... other configure options)\n"
 "   $ make\n"
-"   $ sudo make install (or: src/apl to run the recopmpiled interpreter\n"
+"   $ sudo make install (or: src/apl to run the recompiled interpreter\n"
 "                        without installing it)\n"
 "\n"
 "in the top-level GNU APL directory (i.e. above the src directory)."

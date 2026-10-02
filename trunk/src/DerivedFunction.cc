@@ -46,6 +46,20 @@ DerivedFunction::get_selectivity() const
         return LO ? LO->get_selectivity() : SEL_NONE;
       }
 
+   // Bugs31 #22 (Blake McBride): a "plain function bound only to an
+   // axis" (e.g. ⌽[1], no LO/RO at all -- see this class's own doc
+   // comment) stores the function itself in `oper` (the constructor's
+   // generic F_or_M_or_D slot), not a real operator -- its OWN
+   // selectivity (e.g. Bif_F12_ROTATE.hh's SEL_MON_X/SEL_DYA_X) must
+   // still be reported here, not discarded to SEL_NONE. Otherwise this
+   // same DerivedFunction, when itself used as the LO of Each just
+   // above (⌽[1]¨), always falls through to SEL_NONE via that path,
+   // rejecting a legal selective-specification target like
+   // (⌽[1]¨V)←B even though both the non-axis Each (⌽¨V)←B and the
+   // axis form without Each (⌽[1]V)←B already work.
+   //
+   if (!get_LO() && !get_RO())   return oper->get_selectivity();
+
    return SEL_NONE;
 }
 //────────────────────────────────────────────────────────────────────────────

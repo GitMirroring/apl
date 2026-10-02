@@ -34,5 +34,29 @@ DOMAIN ERROR
       ÷0
       ^^
 
+      ⍝ regression (Blake McBride, Bugs31 #11): Smith's algorithm (Bugs30
+      ⍝ #6) divides by the larger-magnitude component first to keep every
+      ⍝ intermediate bounded -- but "bounded" still meant as large as
+      ⍝ fabs(real)+fabs(imag), which itself overflows once both
+      ⍝ magnitudes approach DBL_MAX/2, even though the true reciprocal is
+      ⍝ a perfectly representable (possibly subnormal) finite value.
+      ⍝ Fixed by prescaling both components by their common larger
+      ⍝ magnitude before applying Smith's algorithm.
+      ⍝
+      ÷8E307J8E307
+6.25E¯309J¯6.25E¯309
+
+      ÷9E307J9E307
+5.555555556E¯309J¯5.555555556E¯309
+
+      ÷1E308J1E308
+5E¯309J¯5E¯309
+
+      ⍝ control: a moderate-magnitude case (well within the old,
+      ⍝ unscaled algorithm's safe range) is unaffected
+      ⍝
+      ÷1E150J1E150
+5E¯151J¯5E¯151
+
       ⍝ ==================================
 

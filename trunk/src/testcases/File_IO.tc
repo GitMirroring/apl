@@ -162,6 +162,32 @@ HELLO ⍋ ⌽ ⍒ ⍴ ⍵
       FIO∆pclose Handle ⍝ close command (returning its exit code)
 0
 
+      ⍝ regression (Blake McBride, Bugs31 #20): ⎕FIO[25] (pclose) on a
+      ⍝ handle NOT opened via ⎕FIO[24] (popen) -- e.g. a plain fopen()'d
+      ⍝ file -- used to still call the real C pclose(), which decrements
+      ⍝ the interpreter's global SIGCHLD-nesting counter (Bugs30 #19)
+      ⍝ without a matching increment, permanently desynchronizing it and
+      ⍝ corrupting the exit status of every later, genuine popen()/
+      ⍝ pclose() pair. ⎕FIO[25] now refuses a non-popen handle outright.
+      ⍝
+      H←FIO∆fopen_ro Filename
+      FIO∆pclose H
+DOMAIN ERROR+
+FIO∆pclose[2]  Ze←⎕FIO[25]Bh
+                  ^       ^
+      )SIC
+      FIO∆fclose H
+0
+
+      ⍝ control: a genuine popen()/pclose() pair still gives the exact
+      ⍝ exit status afterward, unaffected by the rejected pclose above
+      ⍝
+      H2←FIO∆popen_ro 'exit 7'
+      1000 FIO∆fread H2
+0
+      FIO∆pclose H2
+1792
+
       ⍝ read entire file
       ⍝
       ⎕UCS FIO∆read_file Filename

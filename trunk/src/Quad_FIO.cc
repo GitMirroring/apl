@@ -3125,6 +3125,24 @@ file_entry & fe = get_file_entry(*B);
    //
    if (fe.fe_fd <= STDERR_FILENO)   DOMAIN_ERROR;
 
+   // Bugs31 #20 (Blake McBride): fe.path is empty only for a handle
+   // opened via sys_popen() (⎕FIO[24]) -- a regular fopen()'d handle
+   // (fe.path non-empty) must never reach sys_pclose(), which maintains
+   // a global SIGCHLD-disposition nesting counter (sys_popen_nesting(),
+   // Sys.hh) that such a handle never incremented via sys_popen() in
+   // the first place. pclose()-ing it anyway still decrements that
+   // counter without a matching increment, permanently desynchronizing
+   // it (oscillating between -1 and 0 instead of reaching 0 only when
+   // the last real popen() stream closes) and breaking every later
+   // popen()/pclose() pair's exit status.
+   //
+   if (fe.path.size())
+      {
+        MORE_ERROR() << "⎕FIO[25] (pclose): handle " << fe.fe_fd
+                     << " was not opened by ⎕FIO[24] (popen)";
+        DOMAIN_ERROR;
+      }
+
 int err = EBADF;   /* Bad file number */
    if (fe.fe_FILE)
       {

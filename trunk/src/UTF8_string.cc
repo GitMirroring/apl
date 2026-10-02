@@ -89,6 +89,7 @@ UTF8_string::UTF8_string(const UCS_string & ucs)
              // uni == 0x7FFFFFFF the loop below writes indices 0..5
              // (confirmed with ASan -- sixbits[5] overflowed by one
              // byte before the clamp above existed).
+             //
              char sixbits[6];
              char * s = sixbits;
              while (uni >= 0x40U >> (s - sixbits))  
@@ -446,17 +447,5 @@ UTF8_string current;
 
    if (current.size())   push_back(current);
 
-}
-//════════════════════════════════════════════════════════════════════════════
-UTF8_filebuf::int_type
-UTF8_filebuf::overflow(UTF8_filebuf::int_type c)
-{
-   // overflow(EOF) means "flush, nothing to insert" -- this class has no
-   // real stream underneath (data is an in-memory accumulator, read back
-   // later), so there is nothing to flush; just don't append EOF as a
-   // bogus byte.
-   if (!traits_type::eq_int_type(c, traits_type::eof()))
-      data += traits_type::to_char_type(c);
-   return traits_type::not_eof(c);
 }
 //════════════════════════════════════════════════════════════════════════════

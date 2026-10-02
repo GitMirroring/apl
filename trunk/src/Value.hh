@@ -1021,6 +1021,31 @@ public:
    bool get_lval_bare_member_ref() const
       { return lval_bare_member_ref; }
 
+   /// clear all three "unbroken pass-through" lvalue markers above
+   /// (lval_whole_symbol, lval_pick_slot/owner, lval_bare_member_ref).
+   /// Needed by an identity fast path (e.g. scalar ⌽, 0⌽/0⊖, identity
+   /// ⍉, ⍬↑[⍬]/⍬↓[⍬], ,[n]) that returns its argument ALIASED (CLONE()
+   /// under the active NEW_CLONE scheme is not a real copy, just a new
+   /// Value_P handle on the SAME Value object) instead of building a
+   /// genuinely fresh Value the way every other selecting function is
+   /// documented to -- these markers are only ever meant to survive an
+   /// UNBROKEN chain straight from their origin (Symbol::resolve_lv(),
+   /// Bif_F12_PICK::pick(), Prefix.cc's member-access reduction) through
+   /// to Value::assign_cellrefs(); a real function application in
+   /// between, even an identity one, must break that chain the same way
+   /// a genuinely fresh Value automatically would. Bugs28 #52 fixed this
+   /// ad-hoc for one marker/one call site (elided-index A[]); Bugs31
+   /// #19/#23 generalizes it to every aliasing identity fast path and to
+   /// all three markers -- harmless to call on a Value that never had
+   /// any of them set (the common, non-lvalue-context case).
+   void clear_lval_markers()
+      {
+        lval_whole_symbol = 0;
+        lval_pick_slot = 0;
+        lval_pick_owner = 0;
+        lval_bare_member_ref = false;
+      }
+
    /// assign \b val to the cell references in this value.
    /// @param val value whose elements are assigned to the cell references
    void assign_cellrefs(Value_P val);

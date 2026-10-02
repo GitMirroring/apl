@@ -38,8 +38,14 @@ Bif_ROTATE::reverse(cValue_R B, sAxis axis)
 {
    if (B.is_scalar())
       {
-        Token result(TOK_APL_VALUE1, CLONE(&B, LOC));
-        return result;
+        // Bugs31 #19/#23 (Blake McBride): CLONE() aliases B rather than
+        // copying it, so any lvalue pass-through marker on B (whole-
+        // symbol, pick-slot, bare-member) would otherwise survive this
+        // identity application unbroken -- see Value::clear_lval_markers().
+        //
+        Value_P Z = CLONE(&B, LOC);
+        Z->clear_lval_markers();
+        return Token(TOK_APL_VALUE1, Z);
       }
 
 const Shape3 shape_B3(B.get_shape(), axis);
@@ -104,7 +110,11 @@ const Shape shape_A2(shape_B3.h(), shape_B3.l());
         gsh = A.get_near_int(0);
         if (gsh == 0)   // nothing to do.
            {
-             Token result(TOK_APL_VALUE1, CLONE(&B, LOC));
+             // Bugs31 #19/#23: see the scalar-B case above.
+             //
+             Value_P Z = CLONE(&B, LOC);
+             Z->clear_lval_markers();
+             Token result(TOK_APL_VALUE1, Z);
              return result;
            }
       }

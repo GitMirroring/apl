@@ -537,7 +537,15 @@ const int src_incr  = (new_value_count == 1)  ? 0 : 1;
    // consistency check (all items are LvalCells or PointerCells) already
    // done above, before the dest_count == 0 check (Bugs30 #29).
    //
-   if (is_scalar() && !new_value->is_scalar())
+   // Bugs31 #18 (Blake McBride): LRM p.43 rule 2 ("if the right is a
+   // scalar, or an array with empty shape when ones are removed") means
+   // a 1-ELEMENT new_value (e.g. ,9, shape ,1) is exempt from rule 1's
+   // enclosure just as much as a genuine scalar is -- checking
+   // new_value->is_scalar() (rank == 0) instead of new_value_count == 1
+   // wrongly enclosed a 1-item non-scalar RHS like ,9 into (V[1])←,9,
+   // instead of scalar-extending it the same way (V[1])←9 already does.
+   //
+   if (is_scalar() && new_value_count != 1)
       {
         Cell cache;
         const Cell * C0 = &get_cscalar(cache);

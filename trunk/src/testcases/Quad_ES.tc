@@ -18,12 +18,12 @@
       EXPO 0
 ZERO INVALID
       EXPO 0
-      ^    ^
+      ^
 
       ⎕EM
 ZERO INVALID
       EXPO 0
-      ^    ^
+      ^     
 
       ⎕ET
 0 1
@@ -44,12 +44,12 @@ ZERO INVALID
       FACTR 0
 DOMAIN ERROR
       FACTR 0
-      ^     ^
+      ^
 
       ⎕EM
 DOMAIN ERROR 
       FACTR 0
-      ^     ^
+      ^      
 
       ⎕ET
 5 4
@@ -96,12 +96,12 @@ OK      - no duplicate parents
 
       RECIP 0
       RECIP 0
-      ^     ^
+      ^
 
       ⎕EM
              
       RECIP 0
-      ^     ^
+      ^      
 
       ⍴⎕EM
 3 13
@@ -143,12 +143,12 @@ ERROR SIMULATION
       FACTR 0
 ZERO INVALID
       FACTR 0
-      ^     ^
+      ^
 
       ⎕EM
 ZERO INVALID 
       FACTR 0
-      ^     ^
+      ^      
 
       ⎕ET
 5 4
@@ -200,7 +200,7 @@ DONE
       ROUND2 4.5677887
 VALENCE ERROR
       ROUND2 4.5677887
-      ^              ^
+      ^
 
       ⎕ET
 5 1
@@ -216,7 +216,7 @@ VALENCE ERROR
       ROUND3 4.5677887
 DOMAIN ERROR
       ROUND3 4.5677887
-      ^              ^
+      ^
 
       ⎕ET
 5 4

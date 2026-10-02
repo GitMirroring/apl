@@ -138,17 +138,23 @@
       ⍝ until LIMIT_ERROR_RANK). Plain (non-rank-operator) A⌹B is
       ⍝ unaffected -- it never reaches eval_fill_AB() this way.
       ⍝
+      ⍝ Bugs31 #16: the shape of an empty-frame rank result is the (empty)
+      ⍝ frame followed by the shape of LO's result on one chunk, here ⌹'s
+      ⍝ fill formula (1↓⍴A),(1↓⍴B) applied to the chunks ⍬ (resp. 1) and
+      ⍝ 0 0 0, i.e. ⍬. Previously B's entire shape was returned. (Every
+      ⍝ non-empty frame is a LENGTH ERROR for these A and B anyway.)
+      ⍝
       ⍴⍬⌹⍤1(0 3⍴0)
-0 3
+0
 
       ⍴1⌹⍤1(0 3⍴0)
-0 3
+0
 
       ⍴(0 3⍴0)⌹⍤1⊢⍬
 0
 
       ⍴⍬⌹⍤1(0 0⍴0)
-0 0
+0
 
       )CLEAR
 CLEAR WS

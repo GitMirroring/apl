@@ -832,6 +832,28 @@ vector<Symbol *> symbols;
          ++PC;
          Symbol * sym_var = tok.get_sym_ptr();
          Assert(sym_var);
+
+         // Bugs31 #24 (Blake McBride): a read-only system variable
+         // (e.g. ⎕TS) in a non-final vector-assignment position IS
+         // syntactically a variable-shaped name (can_be_assigned()'s
+         // generic !can_be_assigned() check just below would otherwise
+         // treat it exactly like "not a variable at all" and silently
+         // break out here without consuming it) -- but silently
+         // dropping it, or falling through to whatever unrelated error
+         // the resulting symbol/RHS count mismatch happens to produce
+         // (e.g. a confusing LENGTH ERROR), never tells the user what
+         // actually went wrong. Give the same clear diagnostic a direct
+         // ⎕TS←7 already gives via Symbol::resolve_left(), and reject
+         // the WHOLE vector assignment outright -- no partial
+         // assignment to any of the other names either.
+         //
+         if (sym_var->is_readonly())
+            {
+              MORE_ERROR() << "Assignment to read-only system variable "
+                           << sym_var->get_name();
+              SYNTAX_ERROR;
+            }
+
          if (!sym_var->can_be_assigned())   break;   // not a variable
          symbols.push_back(sym_var);
        }
@@ -1657,7 +1679,28 @@ const Cell * member_cell = top_val->get_existing_member(members);
               push(tloc_result);
             }
        }
-   else
+   else if (will_selectively_assign)   // simple leaf member, e.g. scalar S.a
+      {
+        // Bugs31 #26 (Blake McBride): like the is_pointer_cell() branch
+        // above (and like the leaf-member branch of reduce_D_V__(), see
+        // Bugs29 #4), a selective specification such as S.a[]←7 needs a
+        // proper lvalue (an LvalCell referring to the member's cell), not
+        // a disconnected read-only copy -- the copy made S.a[]←7 a RANK
+        // ERROR (rank 0, no LvalCell) while A[]←7 with a scalar A worked.
+        //
+        set_assign_state(ASS_none);
+        Value * owner = 0;
+        Cell * mut_cell = top_val->get_member(members, owner, true);
+        Assert(mut_cell);
+        Value_P cell_ref(LOC);
+        const LvalCell lval_cell(mut_cell, owner);
+        cell_ref->next_ravel_Cell(lval_cell);
+        cell_ref->check_value(LOC);
+        const Token_loc tloc_result(Token(TOK_APL_VALUE2, cell_ref),
+                                    tl.get_PC());
+        push(tloc_result);
+      }
+   else                                // simple leaf member, reference only
       {
         Value_P Z(LOC);
         Z->next_ravel_Cell(*member_cell);
@@ -2098,7 +2141,37 @@ StateIndicator * top = Workspace::SI_top();
 Token & si_pushed = top->get_prefix().at0();
    Assert(si_pushed.get_tag() == TOK_SI_PUSHED);
 
-Token result_A = Bif_F1_EXECUTE::execute_statement(statement_A);
+   // Blake McBride, Bugs31 #7 (EA half): originally "fixed" by catching
+   // E_COMMAND_PUSHED here and turning an SI-modifying A (e.g. ')OFF'
+   // ⎕EA '1÷0') into a DOMAIN_ERROR instead of letting it run. Reverted
+   // (user, 2026-09-29): that was based on a mistaken premise. ⎕EC/⎕EA/
+   // ⎕EB protect against EXECUTION ERRORS surfacing in a controllable
+   // way, not against a program doing exactly what it was written to
+   // do -- ')OFF' ⎕EA INIT ("run INIT; if it fails, end the session
+   // instead of continuing in a half-initialized workspace") is a
+   // legitimate, intentional pattern, and ⎕EA's whole contract is that
+   // A executes exactly as if it had been ⍎'d directly (unlike B, which
+   // IS sandboxed via ⎕EC). E_COMMAND_PUSHED is not a hazard to guard
+   // against here: it is a normal C++ exception that Bif_F1_EXECUTE.cc
+   // throws for ANY SI-modifying command reached via ⍎ at ANY call
+   // depth, and it already unwinds safely all the way to Command.cc's
+   // main loop (the only place that catches it) before the real command
+   // ever runs -- confirmed generic and pre-existing, independent of
+   // ⎕EA/⎕EB (e.g. a plain defined function calling ⍎')CLEAR' two levels
+   // deep already unwinds and clears correctly, with no special-casing
+   // anywhere). Catching it here just short-circuited that already-safe
+   // mechanism one frame too early. A is therefore executed with no
+   // special-casing at all, exactly like any other statement.
+   //
+   // plain Token operator= is the compiler-generated default (shallow,
+   // refcount-unaware) -- move_from() from a properly copy-constructed
+   // temporary is the refcount-safe way to capture a returned Token
+   // (same convention used elsewhere in this file, e.g. Quad_EC::eval_B()'s
+   // own cmd_result.move_from(tmp, LOC)).
+   //
+Token tmp = Bif_F1_EXECUTE::execute_statement(statement_A);
+Token result_A;
+   result_A.move_from(tmp, LOC);
 
    // Record why B failed onto the caller's (this ⎕EA macro's own SI
    // frame's) error slot, and into )MORE, unconditionally -- timed
@@ -2313,7 +2386,17 @@ cFunction_P F_mon = at0().get_function();
    if (B_val->is_left_value() && F_mon->has_monadic_form() &&
        (!F_mon->has_result() ||
         !(F_mon->get_selectivity() & (SEL_MON | SEL_MON_X))))
-      syntax_error(LOC);
+      {
+        // Bugs31 #29 (Blake McBride): this guard rejects the whole
+        // selective specification, so B_val's LvalCells will never be
+        // consumed by assign_cellrefs() for their original purpose --
+        // same leak Bugs30 #28 fixed for assign_cellrefs()'s own
+        // LENGTH_ERROR branches, just one step earlier (this guard runs
+        // before assign_cellrefs() is ever reached at all).
+        //
+        B_val->neutralize_lval_cells(LOC);
+        syntax_error(LOC);
+      }
 
 const Token result = F_mon->eval_B(*B_val);
    if (result.get_Class() != TC_SI_CHANGE)   // the normal case
@@ -2490,7 +2573,12 @@ cFunction_P F_dya = at1().get_function();
    if (B_val->is_left_value() && F_dya->has_dyadic_form() &&
        (!F_dya->has_result() ||
         !(F_dya->get_selectivity() & (SEL_DYA | SEL_DYA_X))))
-      syntax_error(LOC);
+      {
+        // Bugs31 #29: see the matching guard in reduce_MISC_F_B_() above.
+        //
+        B_val->neutralize_lval_cells(LOC);
+        syntax_error(LOC);
+      }
 
 const Token result = F_dya->eval_AB(*at0().get_apl_val(), *B_val);
    if (push_error(result))   return;
@@ -2736,7 +2824,18 @@ Prefix::reduce_D_V__()
 const bool member_assign = prefix_len == 4;   // assume member reference
    if (prefix_len == 2)      // case 1: member reference
       {
-        Assert(get_assign_state() != ASS_var_seen);
+        // Bugs31 #27 (Blake McBride): a member chain ending in a
+        // ⎕-name, followed by a dyadic-looking trailing primitive and
+        // ← (e.g. A.⎕I↓←1, A.⎕Z↓←1, foo.bar.⎕I↓←1), can reach here via
+        // case 1 (plain reference) with ASS_var_seen ALREADY set by
+        // some earlier, unrelated phrase reduction -- the Bugs28 #14
+        // neighbour's own TOK_OPER2_INNER check just above does not
+        // catch this variant (at0() genuinely is TOK_OPER2_INNER for a
+        // real member chain). Give the same clean SYNTAX ERROR the
+        // Bugs28 #14 fix already gives for the sibling "+⍤X←" mis-parse,
+        // instead of asserting and dumping the whole interpreter's SI.
+        //
+        if (get_assign_state() == ASS_var_seen)   SYNTAX_ERROR;
       }
    else if (member_assign)   // case 2: member assignment
       {

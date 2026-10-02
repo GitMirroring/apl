@@ -219,8 +219,8 @@ am__lib_gnu_apl_la_SOURCES_DIST = Plot_ascii.cc Plot_gtk.cc \
 	DerivedFunction.cc DerivedFunction.hh DiffOut.cc DiffOut.hh \
 	DynamicObject.cc DynamicObject.hh Error.cc Error.def Error.hh \
 	Error_macros.hh ErrorCode.hh Executable.cc Executable.hh \
-	FileBuffers.hh FloatCell.cc FloatCell.hh Focus.icc Function.cc \
-	Function.hh Help.def Heapsort.hh Id.cc Id.def Id.hh IdEnums.hh \
+	FloatCell.cc FloatCell.hh Focus.icc Function.cc Function.hh \
+	Help.def Heapsort.hh Id.cc Id.def Id.hh IdEnums.hh \
 	IndexExpr.cc IndexExpr.hh IndexIterator.cc IndexIterator.hh \
 	InputFile.cc InputFile.hh IntCell.cc IntCell.hh IO_Files.cc \
 	IO_Files.hh LApack.cc LAdebug.icc LApack.hh LibPaths.cc \
@@ -251,18 +251,18 @@ am__lib_gnu_apl_la_SOURCES_DIST = Plot_ascii.cc Plot_gtk.cc \
 	Quad_WA.cc Quad_WA.hh Quad_XML.cc Quad_XML.hh RealCell.cc \
 	RealCell.hh sbrk.cc Shape.cc Shape.hh ScalarFunction.cc \
 	ScalarFunction.hh ScalarOps.hh Security.cc Security.def \
-	Security.hh StateIndicator.cc StateIndicator.hh Svar_DB.cc \
-	Svar_DB.hh Svar_record.cc Svar_record.hh tcp_signal.m4 \
-	Svar_signals.def Svar_signals.hh Symbol.cc Symbol.hh \
-	SymbolTable.cc SymbolTable.hh SystemLimits.def SystemLimits.hh \
-	Sys.cc Sys.hh SystemVariable.cc SystemVariable.def \
-	SystemVariable.hh TabExpansion.cc TabExpansion.hh \
-	Thread_context.cc Thread_context.hh Token.cc Token.def \
-	Token.hh Token_string.cc Token_string.hh TokenEnums.hh \
-	Tokenizer.cc Tokenizer.hh u8_string.hh UCS_string.cc \
-	UCS_string.hh UCS_string_vector.cc UCS_string_vector.hh \
-	Unicode.hh UserFunction.cc UserFunction.hh \
-	UserFunction_header.cc UserFunction_header.hh \
+	Security.hh StateIndicator.cc StateIndicator.hh \
+	StreamBuffers.hh Svar_DB.cc Svar_DB.hh Svar_record.cc \
+	Svar_record.hh tcp_signal.m4 Svar_signals.def Svar_signals.hh \
+	Symbol.cc Symbol.hh SymbolTable.cc SymbolTable.hh \
+	SystemLimits.def SystemLimits.hh Sys.cc Sys.hh \
+	SystemVariable.cc SystemVariable.def SystemVariable.hh \
+	TabExpansion.cc TabExpansion.hh Thread_context.cc \
+	Thread_context.hh Token.cc Token.def Token.hh Token_string.cc \
+	Token_string.hh TokenEnums.hh Tokenizer.cc Tokenizer.hh \
+	u8_string.hh UCS_string.cc UCS_string.hh UCS_string_vector.cc \
+	UCS_string_vector.hh Unicode.hh UserFunction.cc \
+	UserFunction.hh UserFunction_header.cc UserFunction_header.hh \
 	UserPreferences.cc UserPreferences.hh UTF8_string.cc \
 	UTF8_string.hh Ravel.cc Ravel.hh Value.cc Value.icc Value.hh \
 	cValue.cc Value_P.icc Value_P.hh ValueHistory.cc \
@@ -430,8 +430,8 @@ am__libapl_la_SOURCES_DIST = Plot_ascii.cc Plot_gtk.cc Plot_xcb.cc \
 	DerivedFunction.cc DerivedFunction.hh DiffOut.cc DiffOut.hh \
 	DynamicObject.cc DynamicObject.hh Error.cc Error.def Error.hh \
 	Error_macros.hh ErrorCode.hh Executable.cc Executable.hh \
-	FileBuffers.hh FloatCell.cc FloatCell.hh Focus.icc Function.cc \
-	Function.hh Help.def Heapsort.hh Id.cc Id.def Id.hh IdEnums.hh \
+	FloatCell.cc FloatCell.hh Focus.icc Function.cc Function.hh \
+	Help.def Heapsort.hh Id.cc Id.def Id.hh IdEnums.hh \
 	IndexExpr.cc IndexExpr.hh IndexIterator.cc IndexIterator.hh \
 	InputFile.cc InputFile.hh IntCell.cc IntCell.hh IO_Files.cc \
 	IO_Files.hh LApack.cc LAdebug.icc LApack.hh LibPaths.cc \
@@ -462,18 +462,18 @@ am__libapl_la_SOURCES_DIST = Plot_ascii.cc Plot_gtk.cc Plot_xcb.cc \
 	Quad_WA.cc Quad_WA.hh Quad_XML.cc Quad_XML.hh RealCell.cc \
 	RealCell.hh sbrk.cc Shape.cc Shape.hh ScalarFunction.cc \
 	ScalarFunction.hh ScalarOps.hh Security.cc Security.def \
-	Security.hh StateIndicator.cc StateIndicator.hh Svar_DB.cc \
-	Svar_DB.hh Svar_record.cc Svar_record.hh tcp_signal.m4 \
-	Svar_signals.def Svar_signals.hh Symbol.cc Symbol.hh \
-	SymbolTable.cc SymbolTable.hh SystemLimits.def SystemLimits.hh \
-	Sys.cc Sys.hh SystemVariable.cc SystemVariable.def \
-	SystemVariable.hh TabExpansion.cc TabExpansion.hh \
-	Thread_context.cc Thread_context.hh Token.cc Token.def \
-	Token.hh Token_string.cc Token_string.hh TokenEnums.hh \
-	Tokenizer.cc Tokenizer.hh u8_string.hh UCS_string.cc \
-	UCS_string.hh UCS_string_vector.cc UCS_string_vector.hh \
-	Unicode.hh UserFunction.cc UserFunction.hh \
-	UserFunction_header.cc UserFunction_header.hh \
+	Security.hh StateIndicator.cc StateIndicator.hh \
+	StreamBuffers.hh Svar_DB.cc Svar_DB.hh Svar_record.cc \
+	Svar_record.hh tcp_signal.m4 Svar_signals.def Svar_signals.hh \
+	Symbol.cc Symbol.hh SymbolTable.cc SymbolTable.hh \
+	SystemLimits.def SystemLimits.hh Sys.cc Sys.hh \
+	SystemVariable.cc SystemVariable.def SystemVariable.hh \
+	TabExpansion.cc TabExpansion.hh Thread_context.cc \
+	Thread_context.hh Token.cc Token.def Token.hh Token_string.cc \
+	Token_string.hh TokenEnums.hh Tokenizer.cc Tokenizer.hh \
+	u8_string.hh UCS_string.cc UCS_string.hh UCS_string_vector.cc \
+	UCS_string_vector.hh Unicode.hh UserFunction.cc \
+	UserFunction.hh UserFunction_header.cc UserFunction_header.hh \
 	UserPreferences.cc UserPreferences.hh UTF8_string.cc \
 	UTF8_string.hh Ravel.cc Ravel.hh Value.cc Value.icc Value.hh \
 	cValue.cc Value_P.icc Value_P.hh ValueHistory.cc \
@@ -613,8 +613,8 @@ am__apl_SOURCES_DIST = main.cc Plot_ascii.cc Plot_gtk.cc Plot_xcb.cc \
 	DerivedFunction.cc DerivedFunction.hh DiffOut.cc DiffOut.hh \
 	DynamicObject.cc DynamicObject.hh Error.cc Error.def Error.hh \
 	Error_macros.hh ErrorCode.hh Executable.cc Executable.hh \
-	FileBuffers.hh FloatCell.cc FloatCell.hh Focus.icc Function.cc \
-	Function.hh Help.def Heapsort.hh Id.cc Id.def Id.hh IdEnums.hh \
+	FloatCell.cc FloatCell.hh Focus.icc Function.cc Function.hh \
+	Help.def Heapsort.hh Id.cc Id.def Id.hh IdEnums.hh \
 	IndexExpr.cc IndexExpr.hh IndexIterator.cc IndexIterator.hh \
 	InputFile.cc InputFile.hh IntCell.cc IntCell.hh IO_Files.cc \
 	IO_Files.hh LApack.cc LAdebug.icc LApack.hh LibPaths.cc \
@@ -645,18 +645,18 @@ am__apl_SOURCES_DIST = main.cc Plot_ascii.cc Plot_gtk.cc Plot_xcb.cc \
 	Quad_WA.cc Quad_WA.hh Quad_XML.cc Quad_XML.hh RealCell.cc \
 	RealCell.hh sbrk.cc Shape.cc Shape.hh ScalarFunction.cc \
 	ScalarFunction.hh ScalarOps.hh Security.cc Security.def \
-	Security.hh StateIndicator.cc StateIndicator.hh Svar_DB.cc \
-	Svar_DB.hh Svar_record.cc Svar_record.hh tcp_signal.m4 \
-	Svar_signals.def Svar_signals.hh Symbol.cc Symbol.hh \
-	SymbolTable.cc SymbolTable.hh SystemLimits.def SystemLimits.hh \
-	Sys.cc Sys.hh SystemVariable.cc SystemVariable.def \
-	SystemVariable.hh TabExpansion.cc TabExpansion.hh \
-	Thread_context.cc Thread_context.hh Token.cc Token.def \
-	Token.hh Token_string.cc Token_string.hh TokenEnums.hh \
-	Tokenizer.cc Tokenizer.hh u8_string.hh UCS_string.cc \
-	UCS_string.hh UCS_string_vector.cc UCS_string_vector.hh \
-	Unicode.hh UserFunction.cc UserFunction.hh \
-	UserFunction_header.cc UserFunction_header.hh \
+	Security.hh StateIndicator.cc StateIndicator.hh \
+	StreamBuffers.hh Svar_DB.cc Svar_DB.hh Svar_record.cc \
+	Svar_record.hh tcp_signal.m4 Svar_signals.def Svar_signals.hh \
+	Symbol.cc Symbol.hh SymbolTable.cc SymbolTable.hh \
+	SystemLimits.def SystemLimits.hh Sys.cc Sys.hh \
+	SystemVariable.cc SystemVariable.def SystemVariable.hh \
+	TabExpansion.cc TabExpansion.hh Thread_context.cc \
+	Thread_context.hh Token.cc Token.def Token.hh Token_string.cc \
+	Token_string.hh TokenEnums.hh Tokenizer.cc Tokenizer.hh \
+	u8_string.hh UCS_string.cc UCS_string.hh UCS_string_vector.cc \
+	UCS_string_vector.hh Unicode.hh UserFunction.cc \
+	UserFunction.hh UserFunction_header.cc UserFunction_header.hh \
 	UserPreferences.cc UserPreferences.hh UTF8_string.cc \
 	UTF8_string.hh Ravel.cc Ravel.hh Value.cc Value.icc Value.hh \
 	cValue.cc Value_P.icc Value_P.hh ValueHistory.cc \
@@ -1543,8 +1543,8 @@ common_SOURCES = $(plot_SOURCES) ../config.h APL_Float_as_class.hh \
 	DerivedFunction.cc DerivedFunction.hh DiffOut.cc DiffOut.hh \
 	DynamicObject.cc DynamicObject.hh Error.cc Error.def Error.hh \
 	Error_macros.hh ErrorCode.hh Executable.cc Executable.hh \
-	FileBuffers.hh FloatCell.cc FloatCell.hh Focus.icc Function.cc \
-	Function.hh Help.def Heapsort.hh Id.cc Id.def Id.hh IdEnums.hh \
+	FloatCell.cc FloatCell.hh Focus.icc Function.cc Function.hh \
+	Help.def Heapsort.hh Id.cc Id.def Id.hh IdEnums.hh \
 	IndexExpr.cc IndexExpr.hh IndexIterator.cc IndexIterator.hh \
 	InputFile.cc InputFile.hh IntCell.cc IntCell.hh IO_Files.cc \
 	IO_Files.hh LApack.cc LAdebug.icc LApack.hh LibPaths.cc \
@@ -1575,18 +1575,18 @@ common_SOURCES = $(plot_SOURCES) ../config.h APL_Float_as_class.hh \
 	Quad_WA.cc Quad_WA.hh Quad_XML.cc Quad_XML.hh RealCell.cc \
 	RealCell.hh sbrk.cc Shape.cc Shape.hh ScalarFunction.cc \
 	ScalarFunction.hh ScalarOps.hh Security.cc Security.def \
-	Security.hh StateIndicator.cc StateIndicator.hh Svar_DB.cc \
-	Svar_DB.hh Svar_record.cc Svar_record.hh tcp_signal.m4 \
-	Svar_signals.def Svar_signals.hh Symbol.cc Symbol.hh \
-	SymbolTable.cc SymbolTable.hh SystemLimits.def SystemLimits.hh \
-	Sys.cc Sys.hh SystemVariable.cc SystemVariable.def \
-	SystemVariable.hh TabExpansion.cc TabExpansion.hh \
-	Thread_context.cc Thread_context.hh Token.cc Token.def \
-	Token.hh Token_string.cc Token_string.hh TokenEnums.hh \
-	Tokenizer.cc Tokenizer.hh u8_string.hh UCS_string.cc \
-	UCS_string.hh UCS_string_vector.cc UCS_string_vector.hh \
-	Unicode.hh UserFunction.cc UserFunction.hh \
-	UserFunction_header.cc UserFunction_header.hh \
+	Security.hh StateIndicator.cc StateIndicator.hh \
+	StreamBuffers.hh Svar_DB.cc Svar_DB.hh Svar_record.cc \
+	Svar_record.hh tcp_signal.m4 Svar_signals.def Svar_signals.hh \
+	Symbol.cc Symbol.hh SymbolTable.cc SymbolTable.hh \
+	SystemLimits.def SystemLimits.hh Sys.cc Sys.hh \
+	SystemVariable.cc SystemVariable.def SystemVariable.hh \
+	TabExpansion.cc TabExpansion.hh Thread_context.cc \
+	Thread_context.hh Token.cc Token.def Token.hh Token_string.cc \
+	Token_string.hh TokenEnums.hh Tokenizer.cc Tokenizer.hh \
+	u8_string.hh UCS_string.cc UCS_string.hh UCS_string_vector.cc \
+	UCS_string_vector.hh Unicode.hh UserFunction.cc \
+	UserFunction.hh UserFunction_header.cc UserFunction_header.hh \
 	UserPreferences.cc UserPreferences.hh UTF8_string.cc \
 	UTF8_string.hh Ravel.cc Ravel.hh Value.cc Value.icc Value.hh \
 	cValue.cc Value_P.icc Value_P.hh ValueHistory.cc \

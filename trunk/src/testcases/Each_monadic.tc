@@ -175,3 +175,79 @@ SYNTAX ERROR
       ⍝
       )SIC
       )ERASE F
+
+      ⍝ regression (Blake McBride, Bugs31 #4): (∊¨0↑V)←9 used to print a
+      ⍝ C++ stack trace and exit(0) instead of behaving like the non-Each
+      ⍝ control (∊0↑V)←9 -- selecting 0 items via an empty selective-
+      ⍝ assignment target is a no-op on V, exactly like (V[⍬])←1 2 3,
+      ⍝ regardless of whether the selecting function is wrapped in Each.
+      ⍝ Root cause: EACH's own empty-B handling substitutes a synthetic,
+      ⍝ non-lvalue prototype for its cellrefs before evaluating LO on it,
+      ⍝ purely to determine LO's result shape/type -- Bif_F12_ELEMENT's
+      ⍝ own ∊ hit an internal FIXME on that prototype. Like APL2, a
+      ⍝ selective-specification expression is itself an ordinary
+      ⍝ expression whose value is the (here, unselected) right argument,
+      ⍝ even when the specification selects nothing: X←(∊0↑V)←9 gives
+      ⍝ X≡9, not something derived from the empty selection.
+      ⍝
+      V←1 2 3
+      (∊0↑V)←9          ⍝ non-Each control: already a no-op
+      V
+1 2 3
+      X←(∊0↑V)←9        ⍝ the expression's own value is still 9
+      X
+9
+
+      V←1 2 3
+      (∊¨0↑V)←9         ⍝ same no-op, through Each
+      V
+1 2 3
+      X←(∊¨0↑V)←9
+      X
+9
+
+      ⍝ regression (Blake McBride, Bugs31 #22): a bracket-axis primitive
+      ⍝ as the LO of Each lost its selectivity -- ⌽[1] (no LO/RO of its
+      ⍝ own, just a plain function bound to an axis) is itself a
+      ⍝ DerivedFunction, and DerivedFunction::get_selectivity() reported
+      ⍝ SEL_NONE for it (falling through past the Each-only forwarding
+      ⍝ case just above), discarding Bif_F12_ROTATE.hh's real
+      ⍝ SEL_MON_X/SEL_DYA_X. Each's own selectivity check then rejected
+      ⍝ (⌽[1]¨V)←B as if ⌽[1] could never be a valid selector, even
+      ⍝ though both the non-axis Each and the axis form without Each
+      ⍝ already accept the identical target.
+      ⍝
+      V←(2 2⍴⍳4)(2 2⍴⍳4)
+      (⌽[1]¨V)←(2 2⍴4 3 2 1)(2 2⍴8 7 6 5)
+      V
+ 2 1   6 5 
+ 4 3   8 7 
+
+      V←(2 2⍴⍳4)(2 2⍴⍳4)
+      (⊖[1]¨V)←(2 2⍴4 3 2 1)(2 2⍴8 7 6 5)
+      V
+ 2 1   6 5 
+ 4 3   8 7 
+
+      V←(2 2⍴⍳4)(2 2⍴⍳4)
+      (1↑[1]¨V)←(1 2⍴9 9)(1 2⍴8 8)
+      V
+ 9 9   8 8 
+ 3 4   3 4 
+
+      ⍝ controls: the non-axis Each, and the axis form without Each,
+      ⍝ already worked and must be unaffected
+      ⍝
+      V←(2 2⍴⍳4)(2 2⍴⍳4)
+      (⌽¨V)←(2 2⍴4 3 2 1)(2 2⍴8 7 6 5)
+      V
+ 3 4   7 8 
+ 1 2   5 6 
+
+      V←(2 2⍴⍳4)(2 2⍴⍳4)
+      (⌽[1]V)←(2 2⍴4 3 2 1)(2 2⍴8 7 6 5)
+      V
+ 8 7   4 3 
+ 6 5   2 1 
+
+      )ERASE V

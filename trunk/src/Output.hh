@@ -32,7 +32,7 @@
 #include <ostream>
 
 #include "Assert.hh"
-#include "FileBuffers.hh"
+#include "StreamBuffers.hh"
 #include "UCS_string.hh"
 
 using namespace std;
@@ -45,28 +45,28 @@ using namespace std;
          │
          │
          V
-     ┌───────┐             ┌───────────────────┐
-     │ Input │  <────────  │ testcase files(s) │
-     └───┬───┘             └───────────────────┘
-         │                           │
-         │                           │
-         V                           │
-      ┌─────┐                        │
-      │ APL │                        │
-      └──┬──┘                        │
-         │                           │
-         │      -T testcase          │
-         ├───────────────────────┐   │
-         │                       │   │
-         │                       V   V
-         │                    ┌─────────┐
-         │                    │ compare │
-         │                    └────┬────┘
-         │                         │
-         │                         │
-         V                         V
-       (COUT)                (test results)
-
+     ┌───────┐                              ┌───────────────────┐
+     │ Input │  <─────────────┬─────────────┤ testcase files(s) │
+     └───┬───┘                │             │        *.tc       │
+         │                    │            └───────────────────┘
+         │                    │
+         V                    │
+      ┌─────┐                 │
+      │ APL │                 │
+      └──┬──┘                 │
+         │                    │
+         │  -T testcase       │
+         ├────────────────┐   │
+         │                │   │
+         │                V   V
+         │             ┌─────────┐
+         │             │ compare │
+         │             └────┬────┘
+         │                  │
+         │                  │
+         V                  V
+       (COUT)           (test results)
+                        (  *.tc.log  )
  */
 
 //════════════════════════════════════════════════════════════════════════════
@@ -96,14 +96,32 @@ public:
    static int get_column()
        { return output_column; }
  
+   /// advance or reset the output_column according to (possibly UTF8-encoded)
+   //  output byte \b cc.
+   static void set_column(char cc)
+      {
+        if      (cc == '\n')             output_column = 0;
+        else if ((cc & 0x80) == 0)       ++output_column;   // ASCII
+        else if ((cc & 0xC0) == 0xC0)    ++output_column;   // first UTF
+      }
+
    /// add spaces until \b column is reached
    static void indent(int column)
-      // fputc() directly on the real stderr, not "cerr << ' '" -- see
-      // ErrOut_filebuf::overflow()/Output::set_color_mode() (Output.cc)
-      // for why: std::cerr's own internal FILE* was found NULL well into
-      // main() on at least one platform/toolchain combination (Paul
-      // Rockwell, macOS 27, 2026-09-25/26).
-      { while (output_column < column)   { fputc(' ', stderr);   ++output_column; } }
+      // fputc() directly on the real stderr, not "cerr << ' '" -- kept
+      // consistent with ErrOut_streambuf::overflow()/Output::
+      // set_color_mode() (Output.cc), which write this way for a real
+      // reason (see ErrOut_streambuf's class comment in StreamBuffers.hh);
+      // plain std::cerr itself was never actually broken (Paul Rockwell,
+      // macOS 27, 2026-09-25/26), so this is a consistency choice here,
+      // not a fix for anything.
+      //
+      {
+        while (output_column < column)
+           {
+             fputc(' ', stderr);
+             ++output_column;
+           }
+      }
 
    /// initialize terminal output (ANSI sequences)
    /// @param logit true to log initialization steps to the startup log
@@ -114,16 +132,20 @@ public:
 
    /// mark CERR unsafe to use via get_CERR() from here on. Must be called
    /// (via atexit(), see main.cc) before static destruction begins: within
-   /// Output.cc, ostream CERR is destroyed *before* ErrOut_filebuf
-   /// CERR_filebuf (constructed first, so -- per C++'s reverse-order-of-
+   /// Output.cc, ostream CERR is destroyed *before* ErrOut_streambuf
+   /// CERR_streambuf (constructed first, so -- per C++'s reverse-order-of-
    /// construction destruction rule -- destroyed last), which left a real
-   /// window where ErrOut_filebuf::used was still true, and therefore
+   /// window where ErrOut_streambuf::used was still true, and therefore
    /// get_CERR() still returned CERR, after CERR itself had already been
    /// destroyed. Any code reachable from another global's destructor during
    /// that window (an Assert() failure, most plausibly) was reading through
    /// an already-destroyed ostream -- undefined behavior, in practice a
    /// crash after )OFF or at any other static-teardown exit path.
-   static void mark_CERR_unsafe();
+   //
+   static void mark_CERR_unsafe()
+      {
+        ErrOut_streambuf::used = false;
+      }
 
    /// reset() dout_filebuf
    static void reset_dout();
@@ -230,13 +252,13 @@ public:
    /// default ESC sequence for Delete key with SHIFT and/or CTRL
    static char ESC_Delete_1[MAX_ESC_LEN];
 
-   /// the current output column
-   static int output_column;
-
-   /// true if stdout is a real terminal (computed once, in init())
+   /// true if stdout is a real terminal (computed once, in Output::init())
    static bool stdout_is_tty;
 
 protected:
+   /// the current output column
+   static int output_column;
+
    /// true if colors were changed (and then reset_colors() shall reset
    /// them when leaving the interpreter
    static bool colors_changed;
@@ -253,7 +275,7 @@ class CIN_ostream : public ostream
 {
 public:
    CIN_ostream()
-   : ostream(&CIN_filebuf)
+   : ostream(&CIN_streambuf)
    {}
 
    /// set cursor to y:x (upper left corner is 0:0, negative y: from bottom)

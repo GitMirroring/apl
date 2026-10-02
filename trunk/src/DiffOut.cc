@@ -181,7 +181,7 @@ PERFORMANCE_START(cout_perf)
                                  : Output::COLM_OUTPUT);
 
    // overflow(EOF) is how ostream::flush()/sync() ask for "flush, nothing
-   // to insert" -- unlike CinOut_filebuf/ErrOut_filebuf (Output.cc),
+   // to insert" -- unlike CinOut_streambuf/ErrOut_streambuf (Output.cc),
    // c==EOF was never routed to this class's own flush point (that only
    // happens below, on c=='\n', i.e. a real end-of-line -- a live
    // cross-check run confirmed EOF was never observed to reach it), so
@@ -196,9 +196,7 @@ PERFORMANCE_START(cout_perf)
       }
 
 const char ch = traits_type::to_char_type(c);
-   if      (ch == '\n')             Output::output_column = 0;
-   else if ((ch & 0x80) == 0)       ++Output::output_column;   // ASCII
-   else if ((ch & 0xC0) == 0xC0)    ++Output::output_column;   // first UTF
+   Output::set_column(ch);   // update the output column
 
    if (ch != '\n')   // not end of line: accumulate only
       {

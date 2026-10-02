@@ -20,3 +20,33 @@
 
       ⍴⎕RVAL 2 (2 0) (0 1 0 0 0) 1 1
 1 0
+
+      ⍝ ⎕RVAL 0 (a scalar 0) returns the next random value according to
+      ⍝ the properties set with dyadic A ⎕RVAL B, as documented. It used
+      ⍝ to be treated as the 1-element property vector ,0 (rank 0), which
+      ⍝ ignored any rank set with 1 ⎕RVAL B and always returned a scalar.
+      ⍝ Any other B is unchanged: ⎕RVAL ,0 still forces rank 0, and a
+      ⍝ scalar N≠0 is still the rank N.
+      ⍝
+      ⍴⍴⎕RVAL 0     ⍝ default rank 0
+0
+
+      OLD_RANK←1 ⎕RVAL 2
+      ⍴⍴⎕RVAL 0     ⍝ current rank 2
+2
+
+      ⍴⍴⎕RVAL ,0    ⍝ rank 0 forced
+0
+
+      ⍴⍴⎕RVAL 1     ⍝ rank 1 forced
+1
+
+      ⍴⍴⎕RVAL 0     ⍝ the forced ranks above did not change the setting
+2
+
+      OLD_RANK←1 ⎕RVAL OLD_RANK
+      ⍴⍴⎕RVAL 0
+0
+
+      )ERASE OLD_RANK
+

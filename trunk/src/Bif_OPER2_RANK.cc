@@ -84,6 +84,7 @@
 #include "IntCell.hh"
 #include "Macro.hh"
 #include "PointerCell.hh"
+#include "QuadFunction.hh"
 #include "StateIndicator.hh"
 #include "Workspace.hh"
 
@@ -148,6 +149,42 @@ StateIndicator * const caller_si = Workspace::SI_top()->get_parent();
 
          if (token.get_tag() == TOK_SI_PUSHED)   continue;
 
+         // Bugs31 #17 (Blake McBride): LO (or a function called by LO) may
+         // itself use ⎕EC (directly, or via ⎕EA/⎕EB). Its frames are driven
+         // here rather than by Command::finish_context(), so the ⎕EC post-
+         // processing that finish_context() does when a ⎕EC operand frame
+         // finishes must be done here as well: wrap the operand's result
+         // (or error) into ⎕EC's (rc ⎕ET value) result with Quad_EC::eoc().
+         // Otherwise the raw operand value (e.g. 4 for ⎕EC '2+2') was
+         // returned in place of ⎕EC's result, and an error in the operand
+         // was not caught by ⎕EC at all.
+         //
+         if (token.get_tag() == TOK_ERROR)
+            {
+              // find a ⎕EC operand frame strictly above caller_si (one
+              // further down belongs to a ⎕EC around the entire ⍤ and is
+              // handled by finish_context() as usual).
+              //
+              StateIndicator * safe_si = 0;
+              for (StateIndicator * si = Workspace::SI_top();
+                   si && si != caller_si; si = si->get_parent())
+                  {
+                    if (si->is_safe_execution_start())   { safe_si = si;   break; }
+                  }
+
+              if (safe_si)
+                 {
+                   const Error err = StateIndicator::get_error(Workspace::SI_top());
+                   while (Workspace::SI_top() != safe_si)   Workspace::pop_SI(LOC);
+                   StateIndicator::get_error(Workspace::SI_top()) = err;
+                   Quad_EC::eoc(token);   // TOK_ERROR → (0 ⎕ET ⎕EM)
+                 }
+            }
+         else if (Workspace::SI_top()->is_safe_execution_start())
+            {
+              Quad_EC::eoc(token);
+            }
+
          if (token.get_Class() == TC_VALUE || token.get_tag() == TOK_VOID)
             {
               Workspace::pop_SI(LOC);
@@ -175,6 +212,28 @@ StateIndicator * const caller_si = Workspace::SI_top()->get_parent();
        }
 }
 
+//────────────────────────────────────────────────────────────────────────────
+/// return the synthetic chunk that LO is applied to when the frame of
+/// LO⍤y B (or A LO⍤y B) is empty: V itself if V's frame rank is 0 (V is
+/// not iterated, i.e. it IS the single chunk that is used for every frame
+/// position), and otherwise a chunk of V's chunk shape, filled with V's
+/// prototype cell (mirroring how Value::set_default() fills an actually-
+/// empty result).
+static Value_P
+make_fill_chunk(const Value & V, sRank frame_rank, sRank chunk_rank)
+{
+   if (frame_rank == 0)   return CLONE(&V, LOC);
+
+const Shape chunk_shape = V.get_shape().chunk_shape(chunk_rank);
+Value_P Fill(chunk_shape, LOC);
+   {
+     Cell proto_cache;
+     const Cell & proto = V.get_cproto(proto_cache);
+     loop(z, Fill->element_count())   Fill->next_ravel_Cell(proto);
+   }
+   Fill->check_value(LOC);
+   return Fill;
+}
 //════════════════════════════════════════════════════════════════════════════
 void
 Bif_OPER2_RANK::unstrand_RO_B(const UCS_string & LO_name, Value_P y123_B,
@@ -485,51 +544,28 @@ const Shape shape_Z = frame_B_rank ? B->get_shape().frame_shape(frame_B_rank)
 
    if (shape_Z.is_empty())
       {
-        // Fill_A/Fill_B here only ever need to be A SCALAR (Z1 below
-        // becomes Z's prototype cell, not a real result -- shape_Z's
-        // volume is 0 either way), so Bif_F12_TAKE::first() (a single
-        // cell) is right regardless of whether A/B is used as a single
-        // broadcast chunk or is genuinely empty.
+        // The frame is empty: LO is applied to one synthetic chunk pair
+        // (A and B themselves if their frame rank is 0, and otherwise a
+        // chunk built from their prototypes), only to determine the shape
+        // and prototype of the (empty) result. A non-empty A (or B) with a
+        // non-zero frame rank cannot occur here: its frame is shape_Z
+        // (checked above), so it would be empty. See Bugs27 #28.
         //
-        // The DOMAIN_ERROR check just below is what actually needs
-        // relaxing: A (resp. B) contributes exactly one chunk to every
-        // application of LO when its OWN frame is empty (frame_A_rank
-        // == 0, i.e. A is not iterated at all -- it IS the chunk,
-        // broadcast the same way scalar extension broadcasts a scalar)
-        // -- that chunk can be any shape, not just a scalar, e.g.
-        // A=1 2 3 with frame_A_rank==0 in (1 2 3)(+⍤1)0 3⍴0 (B's frame
-        // is what's empty here, 0 rows). The old check required A
-        // itself to be a scalar whenever it wasn't literally empty,
-        // DOMAIN_ERROR-ing this completely legitimate case. Only when
-        // A's frame rank is > 0 AND A is not empty do we truly have "a
-        // real chunk exists but some OTHER chunk of the frame is
-        // missing", which is a genuine restriction (Figure 28's
-        // identity items are only defined per-function, not
-        // fabricatable from a fully populated sibling). See Bugs27 #28.
+        // Bugs31 #16 (Blake McBride): the chunks that LO is applied to
+        // must have the real chunk shapes (not just ↑A resp. ↑B), and the
+        // shape of Z is the (empty) frame shape_Z followed by the shape
+        // of LO's result Z1 on such a chunk -- exactly as in the monadic
+        // case (see do_LyXB()), e.g. 1 (,⍤1) 0 3⍴0 has shape 0 4 like
+        // 1 (,⍤1) 1 3⍴0 has shape 1 4. Previously Z got the entire shape
+        // of A or B (0 3), ignoring LO's result shape.
         //
-        Value_P Fill_A = Bif_F12_TAKE::first(*A);
-        Value_P Fill_B = Bif_F12_TAKE::first(*B);
-        Shape shape_Z;
-
-        if (A->is_empty())               shape_Z = A->get_shape();
-        else if (frame_A_rank == 0)      { /* A is one whole chunk, fine */ }
-        else if (!A->is_scalar())
-           {
-             MORE_ERROR() << "A f⍤y B: B's frame is empty and A's item is"
-                             " not a scalar; ⍴A's item is "
-                          << A->get_shape();
-             DOMAIN_ERROR;
-           }
-
-        if (B->is_empty())               shape_Z = B->get_shape();
-        else if (frame_B_rank == 0)      { /* B is one whole chunk, fine */ }
-        else if (!B->is_scalar())
-           {
-             MORE_ERROR() << "A f⍤y B: A's frame is empty and B's item is"
-                             " not a scalar; ⍴B's item is "
-                          << B->get_shape();
-             DOMAIN_ERROR;
-           }
+        // A (resp. B) is a single chunk that is used for every frame
+        // position if its frame rank is 0; otherwise its frame is the
+        // (empty) frame shape_Z and a chunk is synthesized from its
+        // prototype.
+        //
+        Value_P Fill_A = make_fill_chunk(*A, frame_A_rank, rank_chunk_A);
+        Value_P Fill_B = make_fill_chunk(*B, frame_B_rank, rank_chunk_B);
 
         // LO is genuinely applied to the synthetic Fill_A/Fill_B chunks
         // (not routed through LO->eval_fill_AB(), which for a *defined*
@@ -541,8 +577,12 @@ const Shape shape_Z = frame_B_rank ? B->get_shape().frame_shape(frame_B_rank)
         Value_P Z1 = eval_LO_on_fill_chunk(LO->eval_rank_fill_AB(*Fill_A,
                                            *Fill_B));
 
-        Value_P Z(shape_Z, LOC);
-        Z->set_ravel_Value(0, Z1.get());
+        // Z's prototype is ↑Z1, i.e. the first item that LO actually
+        // produced (Bugs30 #11/#12), not merely a type-correct default:
+        // e.g. the prototype of (1 2 3)(+⍤1)0 3⍴0 is 1 (from 1 2 3+0 0 0).
+        //
+        Value_P Z(shape_Z + Z1->get_shape(), LOC);
+        Z->set_ravel_Value(0, Bif_F12_TAKE::first(*Z1).get());
         Z->check_value(LOC);
         return Token(TOK_APL_VALUE1, Z);
       }

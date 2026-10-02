@@ -99,7 +99,18 @@ cFunction_P LO = _LO.get_function();
    //
    if (!B.is_empty() && B.is_left_value() && LO->has_dyadic_form() &&
        (!LO->has_result() || !(LO->get_selectivity() & (SEL_DYA | SEL_DYA_X))))
-      SYNTAX_ERROR;
+      {
+        // Bugs31 #29 (Blake McBride): this guard rejects the whole
+        // selective specification, so B's LvalCells will never be
+        // consumed by assign_cellrefs() for their original purpose --
+        // same leak Bugs30 #28 fixed for assign_cellrefs()'s own
+        // LENGTH_ERROR branches, just one step earlier (this guard runs
+        // before assign_cellrefs() is ever reached at all).
+        //
+        const_cast<Value &>(static_cast<const Value &>(B))
+           .neutralize_lval_cells(LOC);
+        SYNTAX_ERROR;
+      }
 
    if (A.is_empty() || B.is_empty())
       {
@@ -409,11 +420,46 @@ cFunction_P LO = _LO.get_function();
    //
    if (!B.is_empty() && B.is_left_value() && LO->has_monadic_form() &&
        (!LO->has_result() || !(LO->get_selectivity() & (SEL_MON | SEL_MON_X))))
-      SYNTAX_ERROR;
+      {
+        // Bugs31 #29: see the matching guard in eval_ALB() above.
+        //
+        const_cast<Value &>(static_cast<const Value &>(B))
+           .neutralize_lval_cells(LOC);
+        SYNTAX_ERROR;
+      }
 
    if (B.is_empty())
       {
         if (!LO->has_result())   return Token(TOK_VOID);    // no-op
+
+        // B is itself an (empty) selective-assignment target (Blake
+        // McBride, Bugs31 #4, e.g. (∊¨0↑V)←9): there is nothing to select
+        // regardless of what LO would compute for a hypothetical single
+        // element, so skip the "fill function" machinery below entirely
+        // and return the same empty-lvalue no-op placeholder
+        // Bif_F12_ELEMENT::do_eval_B()'s own dedicated empty-B-lvalue
+        // branch uses. Every cell of a value whose is_left_value() flag
+        // is set must be an LvalCell or PointerCell
+        // (Value::check_lval_consistency()) -- an earlier version of this
+        // fix set the flag but left the prototype as a plain copy of the
+        // (irrelevant, LO-computed) fill value, which check_lval_
+        // consistency() then correctly rejected as malformed. Like the
+        // non-Each control (∊0↑V)←9, this makes the whole selective
+        // specification a no-op on A, while the *expression's own value*
+        // is still the plain, unselected right argument (an ordinary APL2
+        // assignment property, confirmed live for the control:
+        // X←(∊0↑V)←9 gives X≡9) -- that is handled generically by
+        // Value::assign_cellrefs()'s dest_count==0 early return, not
+        // anything specific to Each, so nothing more is needed here.
+        //
+        if (B.is_left_value())
+           {
+             Value_P Z(B.get_shape(), LOC);
+             new (&Z->get_wproto()) LvalCell(0, 0);
+             Z->set_left_value();
+             Z->check_value(LOC);
+             return Token(TOK_APL_VALUE1, Z);
+           }
 
         Value_P first_B = Bif_F12_TAKE::first(B);
 
@@ -481,6 +527,9 @@ cFunction_P LO = _LO.get_function();
         else                            // need to encose Z1
            Z->set_ravel_Pointer(0, Z1.get());
 
+        // B.is_left_value() already returned above via its own dedicated
+        // placeholder, so B here is never a selective-assignment target.
+        //
         Z->check_value(LOC);
         Z->to_type(true);
         return Token(TOK_APL_VALUE1, Z);

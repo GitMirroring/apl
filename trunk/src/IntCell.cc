@@ -507,8 +507,23 @@ IntCell::bif_maximum(Cell * Z, const Cell * A) const
    if (A->is_integer_cell())
       return IntCell::bif_maximum_ii(Z, A->get_int_value(), value.ival);
    if (A->is_real_cell())
-      return FloatCell::bif_maximum_ff(Z, A->get_real_value(),
-                                           APL_Float(value.ival));
+      {
+        if (Workspace::get_CT() == 0.0)
+           {
+             // Bugs31 #8 (Blake McBride): see FloatCell::bif_maximum()
+             // -- A->get_real_value() below converts this IntCell's
+             // exact int64 through double first, losing precision
+             // beyond 2⋆53. Compare exactly and, if this IntCell wins,
+             // return its ORIGINAL exact value.
+             //
+             const APL_Float f = A->get_real_value();
+             if (Cell::compare_int_float(value.ival, f) >= 0)
+                return IntCell::zI(Z, value.ival);
+             return FloatCell::zF(Z, f);
+           }
+        return FloatCell::bif_maximum_ff(Z, A->get_real_value(),
+                                             APL_Float(value.ival));
+      }
    if (A->is_complex_cell())
       return ComplexCell::bif_maximum_cc(Z, A->get_complex_value(),
                                            APL_Complex(value.ival, 0));
@@ -521,8 +536,19 @@ IntCell::bif_minimum(Cell * Z, const Cell * A) const
    if (A->is_integer_cell())
       return IntCell::bif_minimum_ii(Z, A->get_int_value(), value.ival);
    if (A->is_real_cell())
-      return FloatCell::bif_minimum_ff(Z, A->get_real_value(),
-                                           APL_Float(value.ival));
+      {
+        if (Workspace::get_CT() == 0.0)
+           {
+             // see IntCell::bif_maximum() above (Bugs31 #8)
+             //
+             const APL_Float f = A->get_real_value();
+             if (Cell::compare_int_float(value.ival, f) <= 0)
+                return IntCell::zI(Z, value.ival);
+             return FloatCell::zF(Z, f);
+           }
+        return FloatCell::bif_minimum_ff(Z, A->get_real_value(),
+                                             APL_Float(value.ival));
+      }
    if (A->is_complex_cell())
       return ComplexCell::bif_minimum_cc(Z, A->get_complex_value(),
                                            APL_Complex(value.ival, 0));

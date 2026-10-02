@@ -21,6 +21,8 @@
 /** @file
 */
 
+#include <sstream>
+
 #include "ArgCheck.hh"
 #include "Bif_F1_EXECUTE.hh"
 #include "Command.hh"
@@ -100,7 +102,7 @@ Bif_F1_EXECUTE::execute_command(UCS_string & command)
         throw_apl_error(E_COMMAND_PUSHED, LOC);
       }
 
-UTF8_ostream out;   // the APL output (like stdout) of the command
+ostringstream out;   // the APL output (like stdout) of the command
 
    // check for user-defined commands (they are defined APL functions)
    //
@@ -110,7 +112,8 @@ const bool user_cmd = Command::do_APL_command(out, command);   // writes to out
    // system command. Append linefeed if needed.
    // To accommodate line_starts below.
    //
-UTF8_string result_utf8 = out.get_data();
+const string & out_str = out.str();
+UTF8_string result_utf8(out_str.data(), out_str.size());
    if (result_utf8.size() == 0 ||
        result_utf8.back() != UNI_LF)
       result_utf8 += '\n';

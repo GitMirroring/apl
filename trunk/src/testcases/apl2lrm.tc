@@ -183,7 +183,7 @@ Z←MEAN B
       ∇
       RECIP 0
       RECIP 0
-      ^     ^
+      ^
       ⎕ET
 13 17
       )SIC

@@ -224,7 +224,25 @@ const ShapeItem len_Z = B.get_enlist_count();
              if (Value_P v = B.try_pointer_value(c))
                 return do_eval_B(*v);
            }
-        FIXME;
+
+        // Neither an lvalue nor any enclosed item to recurse into. Not
+        // reachable via a plain ∊⍬ / ∊(0⍴0) (those take len_Z==0 through a
+        // different path before ever getting here), but reachable via e.g.
+        // (∊¨0↑V)←9 (Blake McBride, Bugs31 #4): EACH's own empty-B handling
+        // substitutes a synthetic single-item prototype (built by
+        // Bif_F12_TAKE::first()) for its cellrefs before calling LO here.
+        // An empty top-level B -- however it got here -- selects 0 items,
+        // full stop; that is always a legitimate (if degenerate) selective-
+        // assignment target, not a distinct error case, so return the exact
+        // same empty-lval no-op as the B.get_lval_cellowner() branch above
+        // rather than treating "not individually recognizable as one
+        // uniform lvalue array" as if it meant something went wrong.
+        //
+        Value_P Z(ShapeItem(0), LOC);
+        new (&Z->get_wproto()) LvalCell(0, 0);
+        Z->set_left_value();
+        Z->check_value(LOC);
+        return Z;
       }
 
 Value_P Z(len_Z, LOC);

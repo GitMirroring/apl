@@ -637,6 +637,17 @@ StateIndicator::statement_result(const Token & result, bool trace)
          return;
       }
 
+   // a macro (the APL implementation of a primitive) never displays a
+   // statement value of its own. In particular ⎕EB's cleanup expression A
+   // (⍎μ2 in Macro.def's Z__A_Quad_EB_B) is executed for its side effects
+   // only; its value (if any) is discarded. ⊣⍎μ2 would not do since A may
+   // legitimately have no value (e.g. a cleanup function without result).
+   //
+   if (const UserFunction * ufun = executable->get_exec_ufun())
+      {
+        if (ufun->is_macro())   return;
+      }
+
 const TokenTag tag = result.get_tag();
 Value_P B(result.get_apl_val());
    Assert(B);

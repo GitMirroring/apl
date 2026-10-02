@@ -138,7 +138,19 @@ ShapeItem len_B = B.element_count();
         LENGTH_ERROR;
       }
 
-   if (B.is_scalar())   len_B = 1;   // pretend that B is a vector
+   if (B.is_scalar())
+      {
+        // ⎕RVAL 0 (a scalar 0): no property overrides, i.e. return the
+        // next random value according to the properties set with dyadic
+        // A ⎕RVAL B (as documented). Any other scalar B is a 1-element
+        // property vector (the rank), e.g. ⎕RVAL 2 is ⎕RVAL ,2 and returns
+        // a matrix. Note that ⎕RVAL ,0 (a vector) therefore still forces
+        // rank 0, i.e. a scalar, regardless of the current rank setting.
+        //
+        Cell cache;
+        const Cell & cB = B.get_cfirst(cache);
+        len_B = (cB.is_near_int() && cB.get_near_int() == 0) ? 0 : 1;
+      }
 
    // save properties so that we can restore them
    //

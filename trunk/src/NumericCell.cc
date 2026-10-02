@@ -163,7 +163,24 @@ const char * how = "-0?-0?-0";   // '?' means case cannot occur
    // *after* the raw row had already been checked for '0'. Doing the
    // reclassification first, before any '0'-vs-'-' branch at all, fixes
    // both directions at once.
-   if (A->is_near_int64_t() && is_near_int64_t())
+   // Bugs31 #15 (Blake McBride): is_near_int64_t()'s fixed absolute
+   // INTEGER_TOLERANCE (1E¯10) window rounds a genuinely nonzero-but-
+   // tiny K or N (e.g. 1E¯11, 1E¯100) down to the exact integer 0, after
+   // which the row2=='0' case below returned 0 outright without ever
+   // reaching the Gamma-based real_binomial() that gives the true
+   // (nonzero) answer. Tolerant snap-to-integer belongs to =/≠'s ⎕CT,
+   // not to ! -- only trust a rounded-to-0 operand here when it was
+   // ALREADY exactly 0 (a nonzero rounded value is unaffected:
+   // INTEGER_TOLERANCE is always negligible relative to any nonzero
+   // integer magnitude, so this can't misfire there).
+   //
+const bool A_snapped_nonzero = A->is_near_int64_t() &&
+              A->get_checked_near_int() == 0 && A->get_real_value() != 0.0;
+const bool B_snapped_nonzero =    is_near_int64_t() &&
+                 get_checked_near_int() == 0 &&    get_real_value() != 0.0;
+
+   if (A->is_near_int64_t() && is_near_int64_t()
+       && !A_snapped_nonzero && !B_snapped_nonzero)
       {
 const APL_Integer K = A->get_checked_near_int();
 const APL_Integer N =    get_checked_near_int();
@@ -236,7 +253,17 @@ const int row = (r_A < 0   ? 4 : 0)
               | (r_B < 0   ? 2 : 0)
               | (r_B < r_A ? 1 : 0);
 const char chow = how[row];
-   if (chow == '0' && A->is_near_int() && is_near_int())
+
+   // Bugs31 #15: same near-zero snap guard as above (is_near_int(), not
+   // is_near_int64_t(), reaches here when at least one operand is too
+   // large for int64_t -- e.g. A huge, B a tiny nonzero fraction).
+   //
+const bool A_snap0 = A->is_near_int() && A->get_real_value() != 0.0 &&
+                      nearbyint(A->get_real_value()) == 0.0;
+const bool B_snap0 =    is_near_int() &&    get_real_value() != 0.0 &&
+                      nearbyint(   get_real_value()) == 0.0;
+   if (chow == '0' && A->is_near_int() && is_near_int()
+       && !A_snap0 && !B_snap0)
       return IntCell::z0(Z);
    Assert(chow == '0' || chow == '-');
    return real_binomial(Z, A);

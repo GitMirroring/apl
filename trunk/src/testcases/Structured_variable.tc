@@ -217,6 +217,62 @@ VALENCE ERROR+
       MM.a.b
 2
 
+      ⍝ regression (Blake McBride, Bugs31 #27): a member chain ending in
+      ⍝ a ⎕-name (e.g. A.⎕I, never a real system variable -- just a
+      ⍝ member happening to be named like one), followed by a dyadic-
+      ⍝ looking trailing primitive and ←, reached Prefix::reduce_D_V__()
+      ⍝ via case 1 (plain member reference) with ASS_var_seen ALREADY
+      ⍝ set by an earlier, unrelated phrase reduction -- the Bugs28 #14
+      ⍝ fix's own TOK_OPER2_INNER check just above does not catch this
+      ⍝ variant (at0() genuinely IS '.' for a real member chain), so
+      ⍝ execution reached the bare Assert(get_assign_state() !=
+      ⍝ ASS_var_seen), aborting the whole interpreter with an internal
+      ⍝ assertion and a raw )SI dump instead of a clean SYNTAX ERROR.
+      ⍝
+      A.⎕I↓←1
+SYNTAX ERROR
+      A.⎕ I↓←1
+       ^     ^
+
+      )SIC
+      A.⎕A↓←1
+SYNTAX ERROR
+      A.⎕ A↓←1
+       ^     ^
+
+      )SIC
+      A.⎕Z↓←1
+SYNTAX ERROR
+      A.⎕ Z↓←1
+       ^     ^
+
+      )SIC
+      A.⎕FMT↓←1
+SYNTAX ERROR
+      A.⎕ FMT↓←1
+       ^       ^
+
+      )SIC
+      foo.bar.⎕I↓←1
+SYNTAX ERROR
+      foo.bar.⎕ I↓←1
+             ^     ^
+
+      )SIC
+
+      ⍝ control: a normal (non-⎕) member name already gave a clean
+      ⍝ SYNTAX ERROR here too (bare monadic ↓ is simply not a valid
+      ⍝ selector), unaffected by this fix
+      ⍝
+      A.b←5
+      A.b↓←1
+SYNTAX ERROR+
+      A.b↓←1
+      ^    ^
+
+      )SIC
+      )ERASE foo
+
       ⍝ Bugs28 #53 regression: ⎕EX/)ERASE of a nonexistent MEMBER threw
       ⍝ VALUE ERROR (via cValue::get_existing_member(), which never
       ⍝ returns 0 -- correct for an actual member *reference*, e.g.
@@ -359,6 +415,112 @@ member access: missing top-level variable ZZ55UNDEF for member ZZ55UNDEF.member 
       )SIC
 
       )ERASE ZZ55S
+
+      )CHECK
+OK      - no stale functions
+OK      - no stale values
+OK      - no stale indices
+OK      - no duplicate parents
+
+      ⍝ regression (Blake McBride, Bugs31 #23): the identity fast paths
+      ⍝ of ⌽ (scalar), 0⌽/0⊖, ⍉ (scalar/vector, and identity dyadic ⍉)
+      ⍝ return their argument ALIASED (CLONE() under the active
+      ⍝ NEW_CLONE scheme is not a real copy, just a new Value_P handle
+      ⍝ on the SAME Value object), so Value::set_lval_bare_member_ref()'s
+      ⍝ marker on a bare member reference like ZZ56S.a survived the
+      ⍝ "selecting" function unbroken and was wrongly rejected by
+      ⍝ Value::assign_cellrefs()'s bare-member SYNTAX ERROR -- even
+      ⍝ though the error text itself names exactly this form
+      ⍝ ((⌽S.member)←B) as the correct way to do it. Fixed by
+      ⍝ Value::clear_lval_markers(), called at each aliasing identity
+      ⍝ fast path (see Bif_F12_ROTATE.cc/Bif_F12_TRANSPOSE.cc/
+      ⍝ Bif_F12_TAKE_DROP.cc/Bif_F12_COMMA.cc).
+      ⍝
+      ZZ56S.a←5
+      (⌽ZZ56S.a)←7
+      ZZ56S.a
+7
+
+      ZZ56S.a←1 2 3
+      (0⌽ZZ56S.a)←9 8 7
+      ZZ56S.a
+9 8 7
+
+      ZZ56S.a←1 2 3
+      (⍉ZZ56S.a)←9 8 7
+      ZZ56S.a
+9 8 7
+
+      ⍝ control: a genuinely non-identity application still worked even
+      ⍝ before this fix (Bugs30 #14 only promised this much)
+      ⍝
+      ZZ56S.a←1 2 3
+      (⌽ZZ56S.a)←9 8 7
+      ZZ56S.a
+7 8 9
+
+      )ERASE ZZ56S
+
+      )CHECK
+OK      - no stale functions
+OK      - no stale values
+OK      - no stale indices
+OK      - no duplicate parents
+
+      ⍝ regression (Blake McBride, Bugs31 #26): S.a[]←B on a SCALAR member
+      ⍝ was RANK ERROR (the member was pushed as a disconnected read-only
+      ⍝ copy instead of an lvalue), while A[]←B on a plain scalar A, and
+      ⍝ S.a[]←B on a vector or matrix member, worked.
+      ⍝
+      )ERASE ZZ26S
+      ZZ26S.a←5
+      ZZ26S.a[]←7
+      ZZ26S.a
+7
+
+      (ZZ26S.a[])←8
+      ZZ26S.a
+8
+
+      ZZ26S.a[]←,6
+      ZZ26S.a
+6
+
+      ZZ26S.a←'x'
+      ZZ26S.a[]←'y'
+      ZZ26S.a
+y
+
+      ZZ26S.b.c←3
+      ZZ26S.b.c[]←4
+      ZZ26S.b.c
+4
+
+      ⍝ a non-conforming B is an error, the member is unchanged
+      ⍝
+      ZZ26S.a←5
+      ZZ26S.a[]←1 2
+LENGTH ERROR+
+      ZZ26S.a[]←1 2
+            ^   ^
+
+      )SIC
+      ZZ26S.a
+5
+
+      ⍝ control: the bare member is still not a selective-specification
+      ⍝ target (Bugs30 #14)
+      ⍝
+      (ZZ26S.a)←7
+SYNTAX ERROR+
+      (ZZ26S.a)←7
+      ^         ^
+
+      )SIC
+      ZZ26S.a
+5
+
+      )ERASE ZZ26S
 
       )CHECK
 OK      - no stale functions

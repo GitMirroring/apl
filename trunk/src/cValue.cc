@@ -771,6 +771,19 @@ cValue::enlist_right(Value & Z) const
    // later, the same way it already does for e.g. (⊃2 V)←C -- rather
    // than asserting here as if this could never happen.
    //
+   // An LvalCell with a 0 (invalid) target can reach here too -- e.g.
+   // Blake McBride, Bugs31 #2: (∊⊃V)←9 for V←(1 2 3)(4 5)(6), where ⊃V
+   // mixes V's differently-shaped items into a rectangular array, padding
+   // the shorter rows with target-less placeholder LvalCells so the whole
+   // result stays uniformly "left value" (is_left_value()). Our own
+   // get_enlist_count() (this file, above) already EXCLUDES exactly these
+   // cells from Z's size -- enlist_left() already skips them too (its own
+   // target==0 branch just CERR-logs and writes nothing) -- but this
+   // function used to copy them anyway via next_ravel_Cell(), writing
+   // past the end of Z's (correctly, smaller) allocation and corrupting
+   // memory. Skip them here the same way enlist_left() does, so the
+   // number of cells actually written always matches get_enlist_count().
+   //
    loop(c, element_count())
        {
          Cell cache;
@@ -778,6 +791,11 @@ cValue::enlist_right(Value & Z) const
          if (Value_P v = cell.try_pointer_value())
             {
               v->enlist_right(Z);
+            }
+         else if (cell.is_lval_cell() && cell.get_lval_value() == 0)
+            {
+              // invalid/placeholder LvalCell -- deducted from
+              // get_enlist_count() already, so not written here either.
             }
          else
             {

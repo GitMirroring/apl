@@ -132,7 +132,14 @@ const APL_Integer qio = Workspace::get_IO();
              AXIS_ERROR;
            }
 
-        Token result(TOK_APL_VALUE1, CLONE(&B, LOC));
+        // Bugs31 #19/#23 (Blake McBride): CLONE() aliases B rather than
+        // copying it, so any lvalue pass-through marker on B would
+        // otherwise survive this identity application unbroken -- see
+        // Value::clear_lval_markers().
+        //
+        Value_P Z = CLONE(&B, LOC);
+        Z->clear_lval_markers();
+        Token result(TOK_APL_VALUE1, Z);
         return result;
       }
 

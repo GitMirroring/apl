@@ -693,6 +693,17 @@ public:
    static bool smaller_cp_exact(const ShapeItem & a, const ShapeItem & b,
                                 const void * cells);
 
+   /// compare an exact int64 value \b i against a double \b f WITHOUT
+   /// ever converting \b i to double first (which, unlike converting f
+   /// to an int64 candidate and back, can silently lose precision for
+   /// |i| > 2⋆53). Used at ⎕CT=0 wherever an IntCell is compared
+   /// against a FloatCell/ComplexCell (relationals, ⍳, ∊, and the
+   /// already-exact ⍋/⍒ grading). See Bugs31 #8/#9.
+   /// @param i  exact integer value (left-hand side)
+   /// @param f  double value (right-hand side)
+   /// @return -1 if i < f, 0 if i == f, 1 if i > f
+   static int compare_int_float(APL_Integer i, APL_Float f);
+
    /// ISO p. 19: A is integral (close to a Gaussian Integer) within qct
    /// @param A  real value to test
    /// @param qct  comparison tolerance (⎕CT)

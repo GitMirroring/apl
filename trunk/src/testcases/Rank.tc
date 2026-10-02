@@ -329,6 +329,99 @@ DOMAIN ERROR
 
       )SIC
 
+      ⍝ regression (Blake McBride, Bugs31 #16): dyadic A F⍤k B with an
+      ⍝ empty frame returned the entire shape of B (0 3) instead of the
+      ⍝ empty frame followed by the shape of F's result on one chunk,
+      ⍝ which the non-empty frame (and the monadic case) already had.
+      ⍝
+      ⍴1 (,⍤1)1 3⍴0
+1 4
+
+      ⍴1 (,⍤1)0 3⍴0
+0 4
+
+      ⍴2 (↑⍤1)1 3⍴0
+1 2
+
+      ⍴2 (↑⍤1)0 3⍴0
+0 2
+
+      ⍴1 ({⍺,⍵}⍤1)1 3⍴0
+1 4
+
+      ⍴1 ({⍺,⍵}⍤1)0 3⍴0
+0 4
+
+      ⍴'' (,⍤0) ''
+0 2
+
+      ⍝ the prototype is ↑ of F's result on that chunk (Bugs30 #12)
+      ⍝
+      Z←1 (,⍤1)0 3⍴0 ◊ 2⎕TF 'Z'
+Z←0 4⍴1
+
+      Z←'ab' (,⍤1)0 3⍴0 ◊ 2⎕TF 'Z'
+Z←0 5⍴'a'
+
+      )ERASE Z
+
+      ⍝ regression (Blake McBride, Bugs31 #17): (F⍤k)B with an empty frame
+      ⍝ and a defined F that uses ⎕EC got the raw ⎕EC operand result (4)
+      ⍝ instead of ⎕EC's 3-item result, and an error in the ⎕EC operand
+      ⍝ was not caught by ⎕EC.
+      ⍝
+      )ERASE G G2 G3 G4
+∇Z←G B
+ Z←⎕EC '2+2'
+∇
+
+      ⍴G 0 0 0
+3
+
+      ⍴(G⍤1)1 3⍴0
+1 3
+
+      ⍴(G⍤1)0 3⍴0
+0 3
+
+∇Z←G2 B
+ Z←(⎕EC '2+2'),99
+∇
+
+      ⍴(G2⍤1)0 3⍴0
+0 4
+
+∇Z←G3 B
+ Z←⎕EC '÷0'
+∇
+
+      ⍴(G3⍤1)1 3⍴0
+1 3
+
+      ⍴(G3⍤1)0 3⍴0
+0 3
+
+∇Z←G4 B
+ Z←'7' ⎕EA '÷0'
+∇
+
+      ⍴(G4⍤1)1 3⍴0
+1
+
+      ⍴(G4⍤1)0 3⍴0
+0
+
+      ⍝ a ⎕EC around the entire ⍤ still catches an error of F
+      ⍝
+∇Z←H B
+ Z←÷0
+∇
+
+      ↑⎕EC '⍴(H⍤1)0 3⍴0'
+0
+
+      )ERASE G G2 G3 G4 H
+
       )CHECK BRIEF
       )CLEAR
 CLEAR WS

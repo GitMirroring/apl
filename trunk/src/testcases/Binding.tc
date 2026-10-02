@@ -85,6 +85,66 @@ Dyadic
       D
  4 5 6 
 
+      )ERASE A B C D
+
+      ⍝ regression (Blake McBride, Bugs31 #24): a read-only system
+      ⍝ variable (e.g. ⎕TS) in a NON-FINAL vector-assignment position
+      ⍝ used to pass Symbol::can_be_assigned() (NC_left alone doesn't
+      ⍝ exclude it) and reach Symbol::vector_assignment(), whose
+      ⍝ assign() is a silent no-op for a read-only variable -- so ⎕TS
+      ⍝ was silently dropped while the other names in the same vector
+      ⍝ assignment still got assigned. Must be consistent with plain
+      ⍝ ⎕TS←7 (SYNTAX ERROR) instead, with NO partial assignment to any
+      ⍝ of the other names either, regardless of ⎕TS's position.
+      ⍝
+      A←0 ⋄ B←0
+      (⎕TS A B)←7 8 9
+SYNTAX ERROR+
+      (⎕TS A B)←7 8 9
+             ^  ^
+      )MORE
+Assignment to read-only system variable ⎕TS
+      )SIC
+      A B
+0 0
+
+      (⎕TS A)←7 8
+SYNTAX ERROR+
+      (⎕TS A)←7 8
+           ^  ^
+      )SIC
+      A
+0
+
+      (A ⎕TS B)←7 8 9
+SYNTAX ERROR+
+      (A ⎕TS B)←7 8 9
+             ^  ^
+      )SIC
+      A B
+0 0
+
+      ⍝ control: ⎕TS as the FINAL (rightmost) name already correctly
+      ⍝ SYNTAX ERRORed before this fix too (a different code path --
+      ⍝ Symbol::resolve_left() -- handles the last name)
+      ⍝
+      (A ⎕TS)←7 8
+SYNTAX ERROR+
+      (A ⎕TS)←7 8
+            ^ ^
+      )SIC
+      A
+0
+
+      ⍝ control: an all-ordinary vector assignment is unaffected
+      ⍝
+      A←0 ⋄ B←0 ⋄ C←0
+      (A B C)←7 8 9
+      A B C
+7 8 9
+
+      )ERASE A B C
+
       ⍝ IBM APL2 compatibility ----------------------------------
 
       ∇Z←SHOW_NC B¯B;N

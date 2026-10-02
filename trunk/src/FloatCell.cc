@@ -77,6 +77,20 @@ FloatCell::equal(const Cell & A, double qct) const
 {
    if (!A.is_numeric())       return false;
    if (A.is_complex_cell())   return A.equal(*this, qct);
+
+   if (qct == 0.0 && A.is_integer_cell())
+      {
+        // Bugs31 #8 (Blake McBride): A.get_real_value() below converts
+        // A's exact int64 through double first, losing precision beyond
+        // 2⋆53 and silently equating values that are not equal (or vice
+        // versa) -- same class of bug as IntCell::equal()'s own
+        // int64-vs-int64 fast path fixed for Bugs30 #3. Compare exactly
+        // instead, the same way Cell::compare_int_float() already does
+        // for grading and for FloatCell::compare().
+        //
+        return Cell::compare_int_float(A.get_int_value(), dfval()) == 0;
+      }
+
    return tolerantly_equal(A.get_real_value(), get_real_value(), qct);
 }
 //────────────────────────────────────────────────────────────────────────────
@@ -343,6 +357,21 @@ FloatCell::compare(const Cell & other) const
    if (other.is_integer_cell())   // integer
       {
         const double qct = Workspace::get_CT();
+        if (qct == 0.0)
+           {
+             // Bugs31 #8 (Blake McBride): equal()'s get_real_value()
+             // round-trip and the plain dfval()<=... comparison below
+             // both convert other's exact int64 through double first,
+             // losing precision beyond 2⋆53 and silently misordering or
+             // misequating -- exactly the same bug already fixed for
+             // grading (⍋/⍒, Bugs30 #4) via Cell::compare_int_float().
+             //
+             const int cr = Cell::compare_int_float(other.get_int_value(),
+                                                     dfval());
+             if (cr < 0)   return COMP_GT;   // other < this
+             if (cr > 0)   return COMP_LT;   // other > this
+             return COMP_EQ;
+           }
         if (equal(other, qct))   return COMP_EQ;
         return (dfval() <= other.get_int_value())  ? COMP_LT : COMP_GT;
       }
@@ -368,6 +397,19 @@ FloatCell::bif_maximum(Cell * Z, const Cell * A) const
    if (A->is_complex_cell())
       return ComplexCell::bif_maximum_cc(Z, A->get_complex_value(),
                                             APL_Complex(dfval(), 0));
+
+   if (A->is_integer_cell() && Workspace::get_CT() == 0.0)
+      {
+        // Bugs31 #8 (Blake McBride): A->get_real_value() below converts
+        // A's exact int64 through double first, losing precision beyond
+        // 2⋆53 -- same bug as FloatCell::compare(). Compare exactly
+        // and, if A (the IntCell) wins, return its ORIGINAL exact value
+        // rather than a lossily re-converted double.
+        //
+        if (Cell::compare_int_float(A->get_int_value(), dfval()) >= 0)
+           return IntCell::zI(Z, A->get_int_value());
+        return FloatCell::zF(Z, dfval());
+      }
    return FloatCell::bif_maximum_ff(Z, A->get_real_value(), dfval());
 }
 //────────────────────────────────────────────────────────────────────────────
@@ -378,6 +420,15 @@ FloatCell::bif_minimum(Cell * Z, const Cell * A) const
    if (A->is_complex_cell())
       return ComplexCell::bif_minimum_cc(Z, A->get_complex_value(),
                                             APL_Complex(dfval(), 0));
+
+   if (A->is_integer_cell() && Workspace::get_CT() == 0.0)
+      {
+        // see FloatCell::bif_maximum() above (Bugs31 #8)
+        //
+        if (Cell::compare_int_float(A->get_int_value(), dfval()) <= 0)
+           return IntCell::zI(Z, A->get_int_value());
+        return FloatCell::zF(Z, dfval());
+      }
    return FloatCell::bif_minimum_ff(Z, A->get_real_value(), dfval());
 }
 //────────────────────────────────────────────────────────────────────────────

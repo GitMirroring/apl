@@ -225,6 +225,92 @@ LENGTH ERROR+
       ⍴V
 5
 
+      ⍝ regression (Blake McBride, Bugs31 #18): a 1-ELEMENT non-scalar
+      ⍝ RHS (e.g. ,9, shape ,1) used to be enclosed into a scalar
+      ⍝ selection instead of scalar-extended -- Value::assign_cellrefs()
+      ⍝ checked new_value->is_scalar() (rank == 0) instead of ⍴,new_value
+      ⍝ being 1, contradicting LRM p.43 rule 2 ("an array with empty
+      ⍝ shape when ones are removed" is exempt from rule 1's enclosure
+      ⍝ just as much as a genuine scalar). Every one of these must give
+      ⍝ the plain scalar 9, matching (…)←9.
+      ⍝
+      A←5 ⋄ (A[])←,9 ⋄ A ⋄ ≡A
+9
+0
+
+      M←2 2⍴⍳4 ⋄ (M[1;1])←,9 ⋄ M[1;1] ⋄ ≡M[1;1]
+9
+0
+
+      ⍝ control: the ordinary (non-selective, already-correct) forms
+      ⍝
+      V←1 2 3 ⋄ (V[1])←,9 ⋄ V ⋄ ≡V
+9 2 3
+1
+
+      V←1 2 3 ⋄ (V[1])←9 ⋄ V
+9 2 3
+
+      V←1 2 3 ⋄ (1↑V)←,9 ⋄ V
+9 2 3
+
+      V←1 2 3 ⋄ (V[1 2])←,9 ⋄ V
+9 9 3
+
+      ⍝ regression (Blake McBride, Bugs31 #19): the identity fast paths
+      ⍝ of ⌽ (scalar), 0⌽/0⊖, ⍉ (scalar/vector, and identity dyadic ⍉)
+      ⍝ return their argument ALIASED (CLONE() under the active
+      ⍝ NEW_CLONE scheme is not a real copy, just a new Value_P handle
+      ⍝ on the SAME Value object), so Symbol::resolve_lv()'s
+      ⍝ set_lval_whole_symbol() marker survived the "selecting" function
+      ⍝ unbroken -- Value::assign_cellrefs() then wrongly took its
+      ⍝ wholesale-replace shortcut (skipping all shape conformance)
+      ⍝ instead of an ordinary selective specification, e.g. (0⌽V)←9
+      ⍝ silently replaced V wholesale with the scalar 9 instead of
+      ⍝ scalar-extending it to 9 9 9. Fixed by Value::clear_lval_markers(),
+      ⍝ called at each aliasing identity fast path (see
+      ⍝ Bif_F12_ROTATE.cc/Bif_F12_TRANSPOSE.cc/Bif_F12_TAKE_DROP.cc/
+      ⍝ Bif_F12_COMMA.cc) -- same root cause as Bugs28 #52 (elided A[]),
+      ⍝ generalized to every aliasing identity fast path.
+      ⍝
+      V←1 2 3 ⋄ (0⌽V)←9 ⋄ V
+9 9 9
+
+      V←1 2 3 ⋄ (0⌽V)←9 9
+LENGTH ERROR+
+      (0⌽V)←9 9
+      ^     ^
+      )SIC
+
+      V←5 ⋄ (⌽V)←9 9
+LENGTH ERROR+
+      (⌽V)←9 9
+      ^    ^
+      )SIC
+
+      M←2 3⍴⍳6 ⋄ (1 2⍉M)←9 ⋄ M
+9 9 9
+9 9 9
+
+      ⍝ control: the identical (already-correct) A[] form, and a
+      ⍝ genuinely conforming RHS through the same identity fast paths
+      ⍝
+      V←1 2 3 ⋄ (V[])←9 ⋄ V
+9 9 9
+
+      V←1 2 3 ⋄ (0↓V)←9 ⋄ V
+9 9 9
+
+      M←2 3⍴⍳6 ⋄ (1 2⍉M)←2 3⍴9 ⋄ M
+9 9 9
+9 9 9
+
+      )CHECK
+OK      - no stale functions
+OK      - no stale values
+OK      - no stale indices
+OK      - no duplicate parents
+
       ⍝ Regression
       ⍝
       (1 1⍴0)[0;]

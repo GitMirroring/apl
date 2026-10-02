@@ -161,5 +161,41 @@ DOMAIN ERROR
       3J4*¯2
 ¯0.0112J¯0.0384
 
+      ⍝ regression (Blake McBride, Bugs31 #10): 0J1⋆N (or 0J¯1⋆N) for an
+      ⍝ integer N above the exact-repeated-squaring cutoff (1024) fell
+      ⍝ through to complex_power()=exp(N×ln a), whose N×π/2 intermediate
+      ⍝ loses precision as N grows, corrupting even an exactly
+      ⍝ representable unit-circle result. 0J1/0J¯1 are now recognized as
+      ⍝ exact fourth roots of unity and computed from N mod 4 directly,
+      ⍝ for any magnitude of N.
+      ⍝
+      ⎕PP←17
+
+      0J1*1024
+1
+      0J1*1025
+0J1
+      0J1*1000000
+1
+      0J1*1E15
+1
+      0J1*1E15+1
+0J1
+      0J1*¯1
+0J¯1
+      0J1*¯2
+¯1
+      0J¯1*3
+0J1
+
+      ⍝ control: a moderate exponent (exact-squaring path) is unaffected
+      ⍝
+      0J1*3
+0J¯1
+      0J1*4
+1
+
+      ⎕PP←10
+
       ⍝ ==================================
 

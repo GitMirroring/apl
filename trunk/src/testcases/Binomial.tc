@@ -220,14 +220,26 @@
       ⍝ NumericCell.cc by reclassifying the row from the same rounded
       ⍝ K/N the identities use.
       ⍝
+      ⍝ Bugs31 #15 (Blake McBride) update: 1!¯1E¯300 and 2!¯1E¯20 used
+      ⍝ to return exactly 0 here (via the '0' row short-circuit's own
+      ⍝ N==0 snap, the same fixed-INTEGER_TOLERANCE snap-to-zero bug
+      ⍝ #15 fixed elsewhere) -- but N is only NEAR 0, not exactly 0, and
+      ⍝ the true Gamma-based value is a tiny nonzero number (matching
+      ⍝ the exact product-formula identity N×(N-1)÷2! for K=2, and the
+      ⍝ exact N×(N-1)!/(N-1)!=N identity for K=1). Both now correctly
+      ⍝ fall through to real_binomial() instead of snapping; the
+      ⍝ original Bugs25 #6 concern (K33_binomial()'s Assert() aborting
+      ⍝ the interpreter on a row/rounded-K-N mismatch) remains fixed --
+      ⍝ this path no longer reaches K33_binomial() at all for these two.
+      ⍝
       1!¯1E¯300
-0
+¯1E¯300
 
       0!¯1E¯300
 1
 
       2!¯1E¯20
-0
+5E¯21
 
       ¯1E¯300!¯1E¯300
 1
@@ -251,5 +263,38 @@
 
       5!1E15
 8.333333333E72
+
+      ⍝ regression (Blake McBride, Bugs31 #15): bif_binomial()'s int64
+      ⍝ fast path took A/B as "integer" whenever is_near_int64_t() held,
+      ⍝ using the fixed absolute INTEGER_TOLERANCE (1E¯10) -- so a
+      ⍝ genuinely nonzero-but-tiny N (e.g. 1E¯11, 1E¯100) snapped to the
+      ⍝ exact integer 0, after which the row's '0' case returned 0
+      ⍝ outright instead of reaching the true (nonzero) Gamma-based
+      ⍝ answer. Tolerant snap-to-integer belongs to =/≠'s ⎕CT, not to !.
+      ⍝
+      ⎕PP←17
+
+      2!1E¯10
+¯4.9999999994999999E¯11
+
+      2!1E¯11
+¯4.9999999999499997E¯12
+
+      2!1E¯100
+¯5.0000000000000001E¯101
+
+      (1E¯100×(1E¯100-1))÷2
+¯5.0000000000000001E¯101
+
+      ⍝ control: ordinary integer binomials are unaffected
+      ⍝
+      2!2
+1
+      2!3
+3
+      5!2
+0
+
+      ⎕PP←10
 
 

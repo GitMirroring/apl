@@ -524,4 +524,82 @@ CLEAR WS
       )DROP dwout75.atf
 ³
 
+⍝ regression (Blake McBride, Bugs31 #6): Quad_TF::no_UCS() (the inverse-
+⍝ 2⎕TF/)IN decoder for the encoder's own ',(⎕UCS n)' non-printable-
+⍝ character marker) used to blindly scan for the literal 7-character
+⍝ text ',(⎕UCS, with no way to tell the encoder's genuine marker apart
+⍝ from the SECOND half of an ordinary '' (escaped literal quote) that
+⍝ happens to be followed by literal source text reading the same way --
+⍝ both are lexically identical substrings. A function whose own source
+⍝ re-quotes an embedded quote right before literal ',(⎕UCS' text (e.g.
+⍝ a line that itself calls ⎕UCS after a quoted string) had its escaping
+⍝ misread as the marker, corrupting the function from that point on;
+⍝ a plain character value containing that same literal text needed no
+⍝ escaping at all and was corrupted even more directly. Fixed by
+⍝ tracking real string-boundary state (mirroring
+⍝ Tokenizer::tokenize_string1()'s own one-character-lookahead rule for
+⍝ '' ): a '' is always resolved as one literal quote via lookahead
+⍝ BEFORE ever testing the marker pattern, so the marker is only ever
+⍝ recognized at a quote that is a genuine, unescaped terminator.
+⍝
+      )CLEAR
+CLEAR WS
+
+∇Z←BUGS31_6
+ Z←'a',(⎕UCS 32),'b'
+∇
+      BUGS31_6
+a b
+
+      )OUT bugs31_6
+      )CLEAR
+CLEAR WS
+      )IN bugs31_6.atf
+      2 ⎕CR 'BUGS31_6'
+BUGS31_6
+       Z←'a',(⎕UCS 32),'b'
+
+      BUGS31_6
+a b
+
+      )DROP bugs31_6.atf
+³
+      )ERASE BUGS31_6
+
+⍝ a plain character value containing the trigger text literally, with
+⍝ no ⎕UCS-worthy characters of its own at all (needs zero encoding)
+⍝
+      BUGS31_6V←',(⎕UCS 65)'
+      T←2⎕TF 'BUGS31_6V'
+      ⎕EX 'BUGS31_6V'
+1
+      2⎕TF T
+BUGS31_6V
+      BUGS31_6V
+,(⎕UCS 65)
+      )ERASE BUGS31_6V T
+
+⍝ multiple ⎕UCS runs in one value, and an escaped quote immediately
+⍝ adjacent to a ⎕UCS run (the two escaping mechanisms interacting)
+⍝
+      BUGS31_6W←(⎕UCS 8592),'mid',(⎕UCS 8594)
+      T←2⎕TF 'BUGS31_6W'
+      ⎕EX 'BUGS31_6W'
+1
+      2⎕TF T
+BUGS31_6W
+      ⎕UCS BUGS31_6W
+8592 109 105 100 8594
+
+      BUGS31_6X←'it''s',(⎕UCS 9731),'here'
+      T←2⎕TF 'BUGS31_6X'
+      ⎕EX 'BUGS31_6X'
+1
+      2⎕TF T
+BUGS31_6X
+      BUGS31_6X
+it's☃here
+
+      )ERASE BUGS31_6W BUGS31_6X T
+
 ⍝ ==================================

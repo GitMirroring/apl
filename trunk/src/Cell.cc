@@ -271,6 +271,31 @@ ShapeItem idxB = B * comp_len;
    return A > B;
 }
 //────────────────────────────────────────────────────────────────────────────
+int
+Cell::compare_int_float(APL_Integer i, APL_Float f)
+{
+   // Bugs30 #4 / Bugs31 #8/#9 (Blake McBride): comparing an IntCell
+   // against a FloatCell (or a real-valued ComplexCell) by converting
+   // *both* operands via get_real_value() loses precision once the
+   // IntCell's exact value exceeds 2⋆53, silently misordering or
+   // misequating (e.g. 9007199254740993 vs 9007199254740992.0).
+   // Compare i's exact int64 value against f's double without ever
+   // converting i to double: floor() of a double never loses precision
+   // beyond what the double already has, so casting that floor back to
+   // int64 (once known to be in int64 range) exactly recovers the
+   // integer value the double represents, whatever its magnitude.
+   //
+   if (f >= 9223372036854775808.0)    return -1;   // f ≥ 2⋆63
+   if (f < -9223372036854775808.0)    return 1;    // f < -2⋆63
+
+const APL_Float f_floor = floor(f);
+const APL_Integer i_floor = APL_Integer(f_floor);
+   if (i < i_floor)   return -1;
+   if (i > i_floor)   return 1;
+   if (f > f_floor)   return -1;   // i == ⌊f⌋ < f
+   return 0;
+}
+//────────────────────────────────────────────────────────────────────────────
 /// EXACT (non-⎕CT) numeric comparison, shared by greater_cp_exact() and
 /// smaller_cp_exact(): 0 if equal, negative if ca < cb, positive if
 /// ca > cb. Non-numeric or complex cells fall back to the ordinary,
@@ -320,18 +345,7 @@ exact_numeric_compare(const Cell & ca, const Cell & cb)
                                               : cb.get_int_value();
              const APL_Float   f  = a_is_int ? cb.get_real_value()
                                               : ca.get_real_value();
-             int cr;   // i vs f, from i's point of view
-             if      (f >= 9223372036854775808.0)    cr = -1;   // f ≥ 2⋆63
-             else if (f < -9223372036854775808.0)     cr = 1;    // f < -2⋆63
-             else
-                {
-                  const APL_Float f_floor = floor(f);
-                  const APL_Integer i_floor = APL_Integer(f_floor);
-                  if      (i < i_floor)        cr = -1;
-                  else if (i > i_floor)        cr = 1;
-                  else if (f > f_floor)        cr = -1;   // i == ⌊f⌋ < f
-                  else                         cr = 0;
-                }
+             const int cr = Cell::compare_int_float(i, f);
              return a_is_int ? cr : -cr;
            }
 

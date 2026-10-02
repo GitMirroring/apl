@@ -26,7 +26,6 @@
 
 #include <iostream>
 #include <stdint.h>
-#include <streambuf>
 #include <string>
 #include <vector>
 
@@ -176,52 +175,6 @@ public:
    /// will be the items of the vector (with any CR or LF characters removed).
    /// @param lines newline-separated C string to split into individual lines
    UTF8_string_vector(const char * lines);
-};
-//════════════════════════════════════════════════════════════════════════════
-/// A UTF8 string to be used as streambuf in UTF8_ostream. Deliberately
-/// derived from streambuf, NOT filebuf: this class never calls
-/// filebuf::open(), so a filebuf's own inherited FILE* member would stay
-/// permanently NULL, and libc++'s basic_filebuf::xsputn() has its own
-/// FILE*-based bulk-write fast path that bypasses our overridden
-/// overflow() and segfaults on exactly that NULL FILE* for any
-/// multi-character write (confirmed to affect CinOut_filebuf/
-/// ErrOut_filebuf/DiffOut this same way on macOS 27/libc++, Paul
-/// Rockwell, bug-apl@gnu.org, 2026-09; see the class comment on
-/// ErrOut_filebuf in FileBuffers.hh for the full explanation). A plain
-/// streambuf's default xsputn() just calls sputc() per character, so
-/// every character reliably reaches our own overflow() override instead.
-class UTF8_filebuf : public streambuf
-{
-public:
-   /// return the data in this filebuf
-   const UTF8_string & get_data()
-      { return data; }
-
-protected:
-   /// insert \b c into this filebuf
-   /// @param c character value to append (EOF signals flush)
-   virtual int_type overflow(int_type c);
-
-   /// the data in this filebuf
-   UTF8_string data;
-};
-//════════════════════════════════════════════════════════════════════════════
-/// a UTF8 string that can be used as ostream
-class UTF8_ostream : public ostream
-{
-public:
-   /// An UTF8_string that can be used like an ostream to format data
-   UTF8_ostream()
-   : ostream(&utf8_filebuf)
-   {}
-
-   /// return the data in this UTF8_string
-   const UTF8_string & get_data()
-      { return utf8_filebuf.get_data(); }
-
-protected:
-   /// the filebuf of this ostream
-   UTF8_filebuf utf8_filebuf;
 };
 //════════════════════════════════════════════════════════════════════════════
 

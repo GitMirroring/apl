@@ -3465,7 +3465,8 @@ NOT ERASED: PERSON.address
 @end example
 
 After having been created, the members of a structured variable can be
-referenced and overwritten just like normal variables:
+referenced and overwritten like normal variables (but see
+@ref{Limitations of Member Variables} below):
 
 @example
       PERSON.address.street ←  '42 Main Street'   ⍝ create member address.street
@@ -3543,6 +3544,69 @@ leaf-cde
 
 The file @b{src/testcases/Structured_variable.tc} contains the examples
 above (and more) 
+
+@c ............................................................................
+@node Limitations of Member Variables
+@subsection Limitations of Member Variables
+
+Structured variables were introduced for a simple and rather narrow
+practical purpose: to group related values under one name, e.g. to pass
+them to, or return them from, a function. Compared to standard APL
+variables, their members (@b{A.b}, @b{A.b.c}, ...) therefore have
+deliberate limitations in certain contexts. Formally, @b{A.b} is not a
+variable name but an expression (the @b{.} acting somewhat like an operator,
+similar to an inner product) whose result is the value of the member. Only
+the top-level name @b{A} is a variable.
+
+The member forms that are supported are:
+
+@itemize
+@item referencing a member: @b{A.b}
+@item assigning a member: @b{A.b←B}
+@item indexed assignment of a member: @b{A.b[I]←B} and @b{A.b[]←B}
+@item selective specification that selects from a member, e.g.
+      @b{(⌽A.b)←B} or @b{(2↑A.b)←B}
+@item erasing a member: @b{)ERASE A.b} or @b{⎕EX 'A.b'}
+@end itemize
+
+Other contexts in which a normal variable name could be used are not
+supported for members, in particular:
+
+@itemize
+@item a bare member as the target of a selective specification:
+      @b{(A.b)←B} is a @b{SYNTAX ERROR}. Use @b{A.b←B} to replace the
+      member, or select from it (e.g. @b{(A.b[])←B}) to assign its items.
+
+@item members in a vector specification:
+      @b{(A.b A.c)←B C} is a @b{SYNTAX ERROR}. A vector specification
+      requires two or more different variables, while @b{A.b} and @b{A.c}
+      are parts of the same variable @b{A}. Use separate assignments
+      instead: @b{A.b←B ◊ A.c←C}.
+
+@item functions as members: @b{A.b←@{...@}} is not supported, since it
+      would create a defined function (a named lambda) with the name
+      @b{A.b}. Members are values only.
+@end itemize
+
+@example
+      A.b←1 2 3
+      (A.b)←42
+SYNTAX ERROR+
+      (A.b)←42
+      ^     ^
+      )MORE
+(S.member)←B: a bare member reference is not a valid
+selective-specification target -- select something from it first (e.g.
+(⌽S.member)←B), or assign to the member directly (S.member←B)
+      )SIC
+      A.b←42             ⍝ replace member A.b
+      A.b
+42
+      A.b←1 2 3
+      A.b[]←42           ⍝ assign every item of member A.b
+      A.b
+42 42 42
+@end example
 
 @c ............................................................................
 @node Associative Arrays
@@ -5559,6 +5623,95 @@ a little more complicated, but the principle is the same. GNU APL is shipped
 with two workspaces: sudoku.apl (which solves sudokus without using @b{⎕DLX}) and
 sudoku_DLX.apl (which solves sudokus using @b{⎕DLX}).
 
+
+@c ----------------------------------------------------------------------------
+@node ⎕EA and ⎕EB - Execute Alternate and Execute Both
+@section ⎕EA and ⎕EB - Execute Alternate and Execute Both
+
+@b{A ⎕EA B} (Execute Alternate) is the standard IBM APL2 system function:
+@b{B} is executed under error control (like @b{⎕EC B}), and @b{A} is
+executed only if @b{B} fails (or is interrupted). GNU APL implements it as
+described in the IBM APL2 Language Reference Manual; the few differences
+are listed in @ref{Known Differences between IBM APL2 and GNU APL}.
+
+@b{A ⎕EB B} (Execute Both) is a GNU APL extension. Where @b{⎕EA} resembles
+the @b{||} of shells and C/C++ (@i{B, or else A}), @b{⎕EB} resembles
+@i{try/finally}: @b{B} is executed under error control, and then the
+cleanup expression @b{A} is executed in any case, whether @b{B} succeeded
+or failed. The purpose of @b{⎕EB} is to guarantee that @b{A} is executed
+(or at least attempted). @b{A} and @b{B} are simple character vectors or
+scalars, as for @b{⎕EA}.
+
+@subheading Result of A ⎕EB B
+
+@multitable @columnfractions .15 .15 .70
+@headitem B @tab A @tab Result of @b{A ⎕EB B}
+@item value @tab value @tab
+the value of @b{B}; the value of @b{A} is discarded (and not displayed)
+@item error @tab value @tab
+the error of @b{B}; @b{)MORE} names the failed statement of @b{B}
+@item value @tab error @tab
+the error of @b{A}
+@item error @tab error @tab
+the error of @b{A}, which takes precedence (like an exception thrown in a
+@b{finally} block); @b{)MORE} names the earlier failure of @b{B} so that
+it is not lost
+@end multitable
+
+@b{A} is executed for its side effects only. It may have no value at all,
+e.g. a cleanup function without result, or an empty @b{A}. Output that
+@b{A} produces explicitly (e.g. with @b{⎕←}) is displayed as usual.
+
+@example
+      ∇CLEANUP
+       '... CLEANUP ran'
+      ∇
+
+      Z←'CLEANUP' ⎕EB '2+2'
+... CLEANUP ran
+      Z
+4
+
+      'CLEANUP' ⎕EB '3÷0'
+... CLEANUP ran
+DOMAIN ERROR+
+      'CLEANUP' ⎕EB '3÷0'
+      ^
+      )MORE
+A ⎕EB B: B failed with DOMAIN ERROR in: 3÷0
+@end example
+
+A branch in @b{A} or @b{B} (e.g. @b{'→L3'}) is taken as described in
+@ref{Dyadic A→B}.
+
+@subheading System Commands in ⎕EA and ⎕EB
+
+As a GNU APL extension, @b{⍎} can execute system commands, e.g.
+@b{⍎')WSID'}. The expression that is executed under error control -- the
+argument of @b{⎕EC}, and therefore @b{B} of @b{⎕EA} and of @b{⎕EB} --
+refuses commands that modify the State Indicator or terminate the session
+(@b{)CLEAR}, @b{)LOAD}, @b{)QLOAD}, @b{)OFF}, @b{)RESET}, @b{)SAVE}, and
+@b{)SIC}) with a @b{DOMAIN ERROR}, because @b{⎕EC} must return a result
+for its argument.
+
+@b{A} of @b{⎕EA} and of @b{⎕EB} is @i{not} executed under error control
+but like a plain @b{⍎A}. A system command in @b{A} is therefore executed
+for real. This is intentional: @b{A} is what the program explicitly asks
+for (an alternative or a cleanup), for example:
+
+@example
+      ')OFF' ⎕EA 'INIT'   ⍝ run INIT; if INIT fails, end the session
+@end example
+
+If @b{A} ends the session (or clears the workspace), then the result or
+error of @b{B} is lost, like with a @b{finally} block that calls
+@b{exit()}.
+
+@b{Note:} a @b{)SAVE} executed via @b{⍎} (and thus also in @b{A} of
+@b{⎕EA} or @b{⎕EB}) saves the State Indicator entry of the statement
+that executed it. After a later @b{)LOAD}, @b{)SI} shows that entry as
+@b{*} and @b{)CHECK} reports that the SI is not cleared; @b{)SIC}
+removes it.
 
 @c ----------------------------------------------------------------------------
 @node ⎕ENV - Environment Variables
@@ -7899,7 +8052,7 @@ the properties have the following defaults:
 0
 @end example
 
-That is, by default, @b{⎕RVAL ⍬} produces random integer scalars.
+That is, by default, @b{⎕RVAL 0} produces random integer scalars.
 
 It is sometimes convenient to be able to change the properties of the next
 random value without modifying (and later restoring) the properties with
@@ -7931,6 +8084,16 @@ Let 5 = ⍴B. Then
 @end example
 
 If 5 > ⍴B then the missing properties are not changed.
+
+A scalar @b{B} is treated like the 1-item vector @b{,B} (i.e. it only
+overrides the rank), with one exception: the scalar @b{0} overrides nothing.
+That is:
+
+@example
+      ⎕RVAL 0     ⍝ next random value with the current properties
+      ⎕RVAL ,0    ⍝ the same, but a scalar (rank 0) regardless of the current rank
+      ⎕RVAL 2     ⍝ the same, but a matrix (rank 2), like ⎕RVAL ,2
+@end example
 
 Examples:
 
@@ -10124,6 +10287,28 @@ Rejected immediately -- fails fast, at the point of the actual mistake
 IR @tab
 @b{⎕PP} max 17; @b{⎕PW} unbounded -- some strings need a very wide
 @b{⎕PW} to print readably as a single line
+@end multitable
+
+@subheading System Functions
+
+@multitable @columnfractions .30 .24 .08 .38
+@headitem Issue @tab IBM APL2 @tab Reason @tab GNU APL
+@item @code{Z←'→0' ⎕EA '!¯3'} (@b{A} executed, but without a value) @tab
+SYNTAX ERROR (although the LRM's own example with a valueless defined
+function as @b{A} shows VALUE ERROR) @tab
+CO @tab
+VALUE ERROR, like any other assignment of a valueless @b{A}
+@item Error in @b{A} of @b{A ⎕EA B} @tab
+The error message shows the failed statement of @b{A}, followed by the
+@b{⎕EA} statement @tab
+IR @tab
+The error message shows only the failed statement of @b{A}
+@item System command in @b{A} of @b{A ⎕EA B} @tab
+Not applicable (@b{⍎} executes statements only) @tab
+EX @tab
+Executed, like @b{⍎A} (see @ref{⎕EA and ⎕EB - Execute Alternate and
+Execute Both}); in @b{B} (which is under error control), commands that
+modify the SI or end the session are refused with DOMAIN ERROR
 @end multitable
 
 @subheading System Commands and the ∇-Editor

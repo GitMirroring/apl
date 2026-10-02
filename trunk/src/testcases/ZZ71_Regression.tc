@@ -958,6 +958,164 @@ Z←0⍴(⊂3⍴0 0 0)
 Z←0⍴(⊂2⍴0 0)
       )ERASE Z
 
+      ⍝ regression (Blake McBride, Bugs31 #29): a selective specification
+      ⍝ rejected by one of the r2121 selectivity guards -- Prefix.cc's
+      ⍝ reduce_MISC_F_B_()/reduce_A_F_B_() (the "F does not genuinely
+      ⍝ select/overtake B" checks) and Bif_OPER1_EACH.cc's matching
+      ⍝ monadic/dyadic guards -- raised SYNTAX_ERROR/let the non-
+      ⍝ selecting function run to its natural VALENCE_ERROR without ever
+      ⍝ calling Value::neutralize_lval_cells() on the rejected lvalue/
+      ⍝ cellrefs array first. Bugs30 #28's fix only covered the
+      ⍝ LENGTH_ERROR branches *inside* assign_cellrefs() itself, one step
+      ⍝ later -- these guards run BEFORE assign_cellrefs() is ever
+      ⍝ reached, so the array (and its live LvalCells) stayed on this
+      ⍝ (unpopped, until )SIC) Prefix's operand stack, a leak (not a
+      ⍝ use-after-free) that )CHECK's "value has N Lval Cells" warning
+      ⍝ then reported. Every one of these must leave )CHECK clean.
+      ⍝
+      V←1 2 3
+      (+¨V)←9
+SYNTAX ERROR
+      (+¨V)←9
+       ^    ^
+      )SIC
+      )CHECK
+OK      - no stale functions
+OK      - no stale values
+OK      - no stale indices
+OK      - no duplicate parents
+
+      V←1 2 3
+      (↓V)←9 9
+VALENCE ERROR+
+      (↓V)←9 9
+       ^   ^
+      )SIC
+      )CHECK
+OK      - no stale functions
+OK      - no stale values
+OK      - no stale indices
+OK      - no duplicate parents
+
+      A←1 ⋄ B←2
+      (A∊B)←1 2
+SYNTAX ERROR
+      (AϵB)←1 2
+       ^    ^
+      )SIC
+      )CHECK
+OK      - no stale functions
+OK      - no stale values
+OK      - no stale indices
+OK      - no duplicate parents
+
+      A←1 ⋄ B←2
+      (A B[1])←1 2
+RANK ERROR+
+      (A B[1])←1 2
+         ^     ^
+      )SIC
+      )CHECK
+OK      - no stale functions
+OK      - no stale values
+OK      - no stale indices
+OK      - no duplicate parents
+
+      )ERASE V A B
+
+      )CHECK
+OK      - no stale functions
+OK      - no stale values
+OK      - no stale indices
+OK      - no duplicate parents
+
+      ⍝ regression (Blake McBride, Bugs31 #1): ↑ of a disclosed, enlisted,
+      ⍝ or each'ed lvalue as a selective-specification target segfaulted
+      ⍝ (NULL owner in Value::assign_cellrefs()). It now assigns through
+      ⍝ the selected cell, like the plain control V←1 2 3 ◊ (↑⊃V)←9.
+      ⍝
+      V←(1 2)(3 4) ◊ (↑⊃V)←9 ◊ V
+ 9 2  3 4 
+
+      V←(1 2)(3 4) ◊ (↑∊V)←9 ◊ V
+ 9 2  3 4 
+
+      V←(1 2)(3 4) ◊ (↑↑¨V)←9 ◊ V
+ 9 2  3 4 
+
+      V←2 2⍴(1 2)(3 4)(5 6)(7 8) ◊ (↑⊃V)←9 ◊ V
+ 9 2  3 4 
+ 5 6  7 8 
+
+      V←1 2 3 ◊ (↑⊃V)←9 ◊ V
+9 2 3
+
+      ⍝ ↑ selects one cell, so more values than that is a LENGTH ERROR
+      ⍝
+      V←(1 2)(3 4) ◊ (↑⊃V)←9 9
+LENGTH ERROR+
+      (↑⊃V)←9 9
+      ^     ^
+
+      )SIC
+      V
+ 1 2  3 4 
+
+      ⍝ regression (Blake McBride, Bugs31 #2): ∊ of a disclosed lvalue as
+      ⍝ a selective-specification target segfaulted (the right-value
+      ⍝ enlist path was taken for a mix of LvalCells and fill cells).
+      ⍝ ⊃V is a 3×3 matrix here, so ∊⊃V selects 9 cells, only 6 of which
+      ⍝ are real items of V (the other 3 are fill).
+      ⍝
+      V←(1 2 3)(4 5)(6) ◊ (∊⊃V)←9 ◊ V
+ 9 9 9  9 9  9 
+
+      V←(1 2 3)(4 5)(6) ◊ (∊⊃V)←9 9 9 9 9
+LENGTH ERROR+
+      (ϵ⊃V)←9 9 9 9 9
+      ^     ^
+
+      )SIC
+
+      ⍝ regression (Blake McBride, Bugs31 #3): ⊃ (pick) of an enlisted
+      ⍝ (or ravelled/reversed enlisted, or ravelled disclosed) nested
+      ⍝ lvalue as a selective-specification target segfaulted (NULL cell
+      ⍝ owner in LvalCell::check_consistency()). It is now a clean
+      ⍝ DOMAIN ERROR and V is unchanged.
+      ⍝
+      V←(1 2)(3 4)
+      1⊃∊V
+1
+
+      (1⊃∊V)←9
+DOMAIN ERROR+
+      (1⊃ϵV)←9
+       ^     ^
+
+      )SIC
+      (1⊃,∊V)←9
+DOMAIN ERROR+
+      (1⊃,ϵV)←9
+       ^      ^
+
+      )SIC
+      (1⊃⌽∊V)←9
+DOMAIN ERROR+
+      (1⊃⌽ϵV)←9
+       ^      ^
+
+      )SIC
+      (1⊃,⊃V)←9
+DOMAIN ERROR+
+      (1⊃,⊃V)←9
+       ^      ^
+
+      )SIC
+      V
+ 1 2  3 4 
+
+      )ERASE V
+
       )CHECK
 OK      - no stale functions
 OK      - no stale values

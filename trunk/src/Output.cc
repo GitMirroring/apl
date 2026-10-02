@@ -71,55 +71,61 @@ int Output::color_UERR_background = 8;
 
 int Output::output_column = 0;
 
-/// a filebuf for CERR
-ErrOut_filebuf CERR_filebuf;
+/// a streambuf for CERR
+ErrOut_streambuf CERR_streambuf;
 
-DiffOut DOUT_filebuf(false);
-DiffOut UERR_filebuf(true);
+DiffOut DOUT_streambuf(false);
+DiffOut UERR_streambuf(true);
 
 // Android is supposed to define its own CIN, COUT, CERR, and UERR ostreams
 #ifndef apl_TARGET_ANDROID
 
-CinOut_filebuf CIN_filebuf;
+CinOut_streambuf CIN_streambuf;
 CIN_ostream CIN;
 
-ostream COUT(&DOUT_filebuf);
-ostream CERR(CERR_filebuf.use());
-ostream UERR(&UERR_filebuf);
+ostream COUT(&DOUT_streambuf);
+ostream CERR(CERR_streambuf.use());
+ostream UERR(&UERR_streambuf);
 
 #endif
 
+/** get_CERR is an ostream that can safely be used BEFORE and AFTER
+    CERR was constructed. IOW: BEFORE and AFTER main() was reached.
+
+    The use of CERR directly will segfault if used before main() is
+    reached (e.g. in the constructors of static class instances).
+
+    SUCH CONSTRUCTORS MUST USE get_CERR() INSTEAD OF CERR.
+
+    This is independent of whether CERR is routed to cout of ro cerr.
+ **/
 extern ostream & get_CERR();
 ostream & get_CERR()
 {
    if (UserPreferences::uprefs.output_to_cout)
-      return ErrOut_filebuf::used ? CERR : cout;
+      return ErrOut_streambuf::used ? CERR : cout;
    else
-      return ErrOut_filebuf::used ? CERR : cerr;
+      return ErrOut_streambuf::used ? CERR : cerr;
 };
 //────────────────────────────────────────────────────────────────────────────
 /// write \b s directly to the real C-runtime FILE* \b out, bypassing
-/// std::cout/std::cerr entirely -- same rationale as CinOut_filebuf::
-/// overflow()/ErrOut_filebuf::overflow() below (a report from the field,
-/// Paul Rockwell, macOS 27, 2026-09-25/26, found std::cerr's own internal
-/// FILE* NULL well into main() on his system). Output::set_color_mode()/
-/// reset_colors() write ANSI color escapes via plain "cerr <<"/"cout <<"
-/// and were NOT covered by the SVN 2126 fix (which only touched the two
-/// overflow() functions' own per-character writes) -- confirmed still
-/// reachable from ErrOut_filebuf::overflow() itself, which calls
-/// set_color_mode() unconditionally, even on an overflow(EOF) call, before
-/// this fix.
+/// std::cout/std::cerr entirely, for consistency with CinOut_streambuf::
+/// overflow()/ErrOut_streambuf::overflow() below -- kept as plain fputc()
+/// even though plain std::cerr/std::cout were never actually broken
+/// (Paul Rockwell, macOS 27, 2026-09-25/26: his own standalone
+/// "std::cerr << "hi"" test never crashed; the real bug, root-caused
+/// later, was ErrOut_streambuf's own inherited-but-unopened FILE*, back
+/// when it still derived from filebuf -- see the class comment in
+/// StreamBuffers.hh). Output::set_color_mode()/reset_colors() write ANSI
+/// color escapes via plain "cerr <<"/"cout <<" and were NOT covered by
+/// the SVN 2126 fix (which only touched the two overflow() functions'
+/// own per-character writes); converted here purely for consistency, not
+/// because they were ever part of the actual crash.
 static void
 write_direct(FILE * out, const char * s)
 {
    while (*s)   fputc(*s++, out);
    if (out == stdout)   fflush(out);   // stderr is unconditionally unbuffered
-}
-
-void
-Output::mark_CERR_unsafe()
-{
-   ErrOut_filebuf::used = false;
 }
 
 Output::ColorMode Output::color_mode = COLM_UNDEF;
@@ -177,12 +183,12 @@ char Output::ESC_InsertMode_1 [MAX_ESC_LEN] = CSI "2;" "\0" "~";   ///< Key Ins
 char Output::ESC_Delete_1     [MAX_ESC_LEN] = CSI "3;" "\0" "~";   ///< Key Del
 
 //════════════════════════════════════════════════════════════════════════════
-CinOut_filebuf::int_type
-CinOut_filebuf::overflow(CinOut_filebuf::int_type c)
+CinOut_streambuf::int_type
+CinOut_streambuf::overflow(CinOut_streambuf::int_type c)
 {
    // overflow(EOF) is how ostream::flush()/sync() ask "flush now, nothing
    // new to insert" -- must never be treated as a real character (see
-   // ErrOut_filebuf::overflow() below for the historical reason this
+   // ErrOut_streambuf::overflow() below for the historical reason this
    // matters beyond just correctness: it also determines whether
    // streambuf::xsputn()'s bulk-write fast path proceeds to fwrite()).
    if (traits_type::eq_int_type(c, traits_type::eof()))
@@ -214,8 +220,7 @@ PERFORMANCE_START(cerr_perf)
    else if ((b0 & 0xF8) == 0xF0)   needed = 4;
    else   { utf8len = 0; return 0; }
 
-   if      (c == '\n')            Output::output_column = 0;
-   else if ((c & 0xC0) != 0x80)   ++Output::output_column;
+   set_column(c);   // update the output column
 
    if (utf8len < needed)   return 0;
 
@@ -277,23 +282,23 @@ PERFORMANCE_END(fs_CERR_B, cerr_perf, 1)
    // otherwise), stderr's unbuffered-ness is unconditional by design
    // (POSIX), specifically so error output is never held back regardless
    // of where it's redirected to.
+   //
 const char ch = traits_type::to_char_type(c);
+   Output::set_column(ch);   // update the output column
    fputc(ch, stderr);
-   if      (ch == '\n')            Output::output_column = 0;
-   else if ((ch & 0xC0) != 0x80)   ++Output::output_column;
 PERFORMANCE_END(fs_CERR_B, cerr_perf, 1)
    return traits_type::not_eof(c);
 #endif
 }
 //════════════════════════════════════════════════════════════════════════════
-ErrOut_filebuf::int_type
-ErrOut_filebuf::overflow(ErrOut_filebuf::int_type c)
+ErrOut_streambuf::int_type
+ErrOut_streambuf::overflow(ErrOut_streambuf::int_type c)
 {
    // overflow(EOF) is how ostream::flush()/sync() ask "flush now, nothing
    // new to insert" -- must return here rather than fall through: this is
    // also the exact call that used to reach basic_filebuf::xsputn()'s own
    // bulk-write fast path when this class still derived from filebuf (see
-   // the class comment in FileBuffers.hh) -- returning early, before doing
+   // the class comment in StreamBuffers.hh) -- returning early, before doing
    // anything else, is what actually matters, not merely what we'd have
    // written for c==EOF.
    if (traits_type::eq_int_type(c, traits_type::eof()))
@@ -304,7 +309,7 @@ PERFORMANCE_START(cerr_perf)
    Output::set_color_mode(Output::COLM_ERROR);
 
 #if MINGW_SRC
-   // Same as CinOut_filebuf::overflow() — see that function for explanation.
+   // Same as CinOut_streambuf::overflow() — see that function for explanation.
    {
    static unsigned char utf8buf[4];
    static int           utf8len = 0;
@@ -318,8 +323,7 @@ PERFORMANCE_START(cerr_perf)
    else if ((b0 & 0xF8) == 0xF0)   needed = 4;
    else   { utf8len = 0; return 0; }
 
-   if      (c == '\n')            Output::output_column = 0;
-   else if ((c & 0xC0) != 0x80)   ++Output::output_column;
+   set_column(c);   // update the output column
 
    if (utf8len < needed)   return 0;
 
@@ -361,7 +365,7 @@ PERFORMANCE_START(cerr_perf)
 PERFORMANCE_END(fs_CERR_B, cerr_perf, 1)
    return 0;
 #else
-   // see CinOut_filebuf::overflow() above for why fputc() on the real
+   // see CinOut_streambuf::overflow() above for why fputc() on the real
    // FILE* rather than cout/cerr. Unlike that function, this one can
    // target stdout (output_to_cout) as well as stderr -- stdout, unlike
    // stderr, is only conditionally unbuffered (line-buffered on a tty,
@@ -369,9 +373,8 @@ PERFORMANCE_END(fs_CERR_B, cerr_perf, 1)
 const bool to_cout = UserPreferences::uprefs.output_to_cout;
 FILE * const out = to_cout ? stdout : stderr;
 const char ch = traits_type::to_char_type(c);
+   Output::set_column(ch);
    fputc(ch, out);
-   if      (ch == '\n')            Output::output_column = 0;
-   else if ((ch & 0xC0) != 0x80)   ++Output::output_column;   // unless subsequent UTF
    if (to_cout)   fflush(out);
 
 PERFORMANCE_END(fs_CERR_B, cerr_perf, 1)
@@ -430,7 +433,7 @@ Output::init(bool logit)
         SetConsoleOutputCP(CP_UTF8);
 
         // Multi-byte APL characters are echoed via WriteConsoleW (wchar_t)
-        // in CinOut_filebuf::overflow() and ErrOut_filebuf::overflow() to
+        // in CinOut_streambuf::overflow() and ErrOut_streambuf::overflow() to
         // avoid C1 control-code interference from UTF-8 continuation bytes
         // (e.g. ⍴=U+2374 has byte 0x8D=RI in its UTF-8 encoding).
       }
@@ -450,7 +453,7 @@ Output::reset_colors()
 void
 Output::reset_dout()
 {
-   DOUT_filebuf.reset();
+   DOUT_streambuf.reset();
 }
 //────────────────────────────────────────────────────────────────────────────
 void

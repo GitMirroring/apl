@@ -22,6 +22,7 @@
 */
 
 #include "Backtrace.hh"
+#include "Error_macros.hh"
 #include "LvalCell.hh"
 #include "PrintOperator.hh"
 #include "UTF8_string.hh"
@@ -72,6 +73,28 @@ LvalCell::check_consistency() const
 {
   if (value.lval)                      // valid owner
      {
+        // a valid (non-0) target Cell* with a 0 owner means the caller
+        // could not determine a single array owning that target -- e.g.
+        // Blake McBride, Bugs31 #2/#3: (∊⊃V)←9 / (1⊃∊V)←9, where ⊃/∊
+        // disclose/enlist a jagged nested item and the result mixes real
+        // LvalCells (each with its own, individually correct owner) with
+        // plain fill cells added to pad it rectangular -- there is no one
+        // array that owns the whole thing, so callers pass 0. Reject
+        // cleanly here (this invariant -- "a real target implies a real
+        // owner" -- is exactly what the check below assumes) rather than
+        // dereferencing owner==0 a few lines down.
+        //
+        if (value.pval.owner == 0)
+           {
+             MORE_ERROR() << "selective specification: the selected "
+                             "item has no single array that owns it as a "
+                             "whole (e.g. it was built by disclosing or "
+                             "enlisting more than one differently-shaped "
+                             "item, ⊃/∊/¨) and cannot be used as an "
+                             "assignment target this way";
+             DOMAIN_ERROR;
+           }
+
         // a value with LvalCells can never be packed (try_pack() bails on
         // any non-simple cell type), so this fetch never touches cache
         // and C0 is always the real ravel address.

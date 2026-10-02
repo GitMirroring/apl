@@ -265,3 +265,67 @@ DOMAIN ERROR
 
       ¯4○1E155
 1E155
+
+      ⍝ regression (Blake McBride, Bugs31 #12): the r2127 fix above's
+      ⍝ 8○ shortcut (hypot(1.0, b.real())) always builds a POSITIVE-
+      ⍝ imaginary root, but the sign selection below it (unchanged,
+      ⍝ written for the general complex_sqrt() path) consulted the
+      ⍝ actual, tiny, no-longer-reflected-in-root b.imag() -- flipping
+      ⍝ the sign for a near-real b whose tiny imaginary part shares its
+      ⍝ real part's sign, disagreeing with both the exactly-real
+      ⍝ neighbour and the just-outside-band general-path neighbour.
+      ⍝
+      8○0.5
+0J¯1.1180339887498949
+
+      8○0.5J0
+0J¯1.1180339887498949
+
+      8○0.5J1E¯11
+0J¯1.1180339887498949
+
+      8○¯0.5J¯1E¯11
+0J1.1180339887498949
+
+      ⍝ control: just outside the near-zero band (general path)
+      ⍝
+      8○0.5J1E¯9
+4.4721359549995793E¯10J¯1.1180339887498949
+
+      8○¯0.5J¯1E¯9
+¯4.4721359549995793E¯10J1.1180339887498949
+
+      ⍝ regression (Blake McBride, Bugs31 #13): the same near-real
+      ⍝ shortcut-vs-general-path sign discontinuity in 0○ and ¯4○
+      ⍝ (pre-existing, not r2127-introduced -- #12 above showed the same
+      ⍝ defect freshly introduced in the newer 8○ case).
+      ⍝
+      0○2
+0J1.7320508075688772
+
+      0○2J1E¯11
+0J¯1.7320508075688772
+
+      ¯4○0.1
+0J0.99498743710661997
+
+      ¯4○0.1J¯1E¯11
+0J¯0.99498743710661997
+
+      ⍝ regression (Blake McBride, Bugs31 #14): ¯7○'s (arctanh) r2127
+      ⍝ near-zero-imaginary shortcut discarded b.imag() unconditionally,
+      ⍝ but d(atanh)/dx = 1/(1-x²) blows up as b.real() approaches ±1,
+      ⍝ so even a tiny imaginary part can contribute non-negligibly once
+      ⍝ amplified -- ¯7○z must agree with its own definition
+      ⍝ 0.5×((⍟1+z)-(⍟1-z)) for such a z.
+      ⍝
+      Z←(1-1E¯9)+0J1E¯11
+      (¯7○Z) ≡ 0.5×((⍟1+Z)-(⍟1-Z))
+1
+      )ERASE Z
+
+      ⍝ control: an ordinary near-real argument away from ±1 still takes
+      ⍝ the (cheap, exact) real-only shortcut
+      ⍝
+      ¯7○0.5J1E¯11
+0.54930614433405478

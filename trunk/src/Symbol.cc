@@ -67,7 +67,23 @@ Symbol::Symbol(const UCS_string & ucs, Id id)
 bool
 Symbol::can_be_assigned() const
 {
-   return value_stack.back().get_NC() & NC_left;
+   // Bugs31 #24 (Blake McBride): NC_left alone doesn't exclude a
+   // read-only system variable like ⎕TS -- it is still classified as a
+   // (conceptually) variable-shaped name, but Symbol::assign() is a
+   // silent no-op for it (RO_SystemVariable::assign()). A direct
+   // assignment ⎕TS←7 never reaches assign() at all (it goes through
+   // resolve_left(), which correctly SYNTAX_ERRORs first), but
+   // Prefix::try_vector_assignment()/Symbol::vector_assignment() call
+   // assign() directly, so a read-only variable in a non-final vector-
+   // assignment position (e.g. (⎕TS A B)←7 8 9) used to pass this check,
+   // silently dropping its own assignment while A and B still got
+   // theirs. Excluding it here instead makes try_vector_assignment()'s
+   // existing loop treat it exactly like any other non-variable token
+   // (stop collecting, leave it unconsumed), which correctly surfaces as
+   // "Malformed vector specification" / SYNTAX ERROR with no partial
+   // assignment at all -- consistent with plain ⎕TS←7.
+   //
+   return (value_stack.back().get_NC() & NC_left) && !is_readonly();
 }
 //────────────────────────────────────────────────────────────────────────────
 const char *

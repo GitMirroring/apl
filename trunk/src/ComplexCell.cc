@@ -54,6 +54,19 @@ bool
 ComplexCell::equal(const Cell & A, double qct) const
 {
    if (!A.is_numeric())   return false;
+
+   if (qct == 0.0 && A.is_integer_cell() && get_imag_value() == 0.0)
+      {
+        // Bugs31 #9 (Blake McBride): A.get_complex_value() below
+        // converts A's exact int64 real part through double first,
+        // losing precision beyond 2⋆53 -- same bug as
+        // FloatCell::equal()'s Bugs31 #8, for a ComplexCell that is
+        // really just a real number (zero imaginary part).
+        //
+        return Cell::compare_int_float(A.get_int_value(),
+                                        get_real_value()) == 0;
+      }
+
    return tolerantly_equal(A.get_complex_value(), get_complex_value(), qct);
 }
 //────────────────────────────────────────────────────────────────────────────
@@ -316,7 +329,27 @@ const APL_Complex one(1.0, 0.0);
                     //
                     if (Cell::is_near_zero(b.imag())
                         && b.real() > -1.0 && b.real() < 1.0)
-                       return ComplexCell::zC(Z, atanh(b.real()));
+                       {
+                         // Bugs31 #14 (Blake McBride): a near-zero
+                         // b.imag() is not necessarily negligible in the
+                         // RESULT -- d(atanh)/dx = 1/(1-x²) blows up as
+                         // b.real() approaches ±1, so even a tiny
+                         // imaginary perturbation can contribute a
+                         // non-negligible imaginary part once amplified
+                         // by that derivative. Only take the real-only
+                         // shortcut when the amplified contribution is
+                         // itself still negligible (an exactly-zero
+                         // b.imag() has nothing to amplify and is always
+                         // safe).
+                         //
+                         if (b.imag() == 0.0)
+                            return ComplexCell::zC(Z, atanh(b.real()));
+
+                         const double denom = 1.0 - b.real()*b.real();
+                         if (denom > 0.0
+                             && Cell::is_near_zero(b.imag() / denom))
+                            return ComplexCell::zC(Z, atanh(b.real()));
+                       }
 
                     const APL_Complex b1      = ONE() + b;
                     const APL_Complex b_1     = ONE() - b;
@@ -392,14 +425,39 @@ const APL_Complex one(1.0, 0.0);
                   {
                     const double b_re = b.real();
                     const double abs_b = b_re < 0.0 ? -b_re : b_re;
+
+                    // Bugs31 #13 (Blake McBride): both shortcuts below
+                    // always returned the POSITIVE-imaginary root,
+                    // disagreeing with the general (non-shortcut) path
+                    // just outside this near-zero band whenever a
+                    // nonzero (even if tiny) b.imag() actually puts the
+                    // true result on the other side of the branch cut.
+                    // Im(b²-1) ≈ 2×b.real()×b.imag() for a small
+                    // perturbation, so the correct sign is
+                    // +sign(b.real())×sign(b.imag()); an exactly-zero
+                    // b.imag() has no side to resolve and keeps the
+                    // existing (arbitrary but RealCell-matching)
+                    // positive convention. The tiny real part such a
+                    // perturbation would also add is not reproduced
+                    // here (deliberately out of scope, see memory).
+                    //
+                    const bool same_sign = b.imag() != 0.0 &&
+                                    ((b_re > 0.0) == (b.imag() > 0.0));
+
                     if (abs_b >= 1.0)
                        {
                          const double arg = 1.0 - 1.0/(b_re*b_re);
-                         return ComplexCell::zC(Z, abs_b * sqrt(arg < 0.0
-                                                                 ? 0.0 : arg));
+                         const double mag = abs_b * sqrt(arg < 0.0
+                                                          ? 0.0 : arg);
+                         return ComplexCell::zC(Z, same_sign ? mag : -mag);
                        }
-                    return ComplexCell::zC(Z,
-                              complex_sqrt(APL_Complex(b_re*b_re - 1.0, 0.0)));
+
+                    const APL_Complex root = complex_sqrt(
+                                  APL_Complex(b_re*b_re - 1.0, 0.0));
+                    if (b.imag() == 0.0)   return ComplexCell::zC(Z, root);
+                    return ComplexCell::zC(Z, same_sign
+                                  ? root : APL_Complex(root.real(),
+                                                        -root.imag()));
                   }
                return ComplexCell::zC(Z, complex_sqrt(b*b - one));
              }
@@ -461,8 +519,18 @@ const APL_Complex one(1.0, 0.0);
                   {
                     const double abs_b = fabs(b.real());
                     const double arg = 1.0 - 1.0/(b.real()*b.real());
-                    return ComplexCell::zC(Z, 0.0,
-                               abs_b * sqrt(arg < 0.0 ? 0.0 : arg));
+                    const double mag = abs_b * sqrt(arg < 0.0 ? 0.0 : arg);
+
+                    // Bugs31 #13 (Blake McBride): see case -4 above --
+                    // same shortcut-vs-general-path sign discontinuity,
+                    // but Im(1-z²) ≈ -2×b.real()×b.imag() here (opposite
+                    // sign convention from case -4's b²-1), so the
+                    // correct sign is -sign(b.real())×sign(b.imag()).
+                    //
+                    if (b.imag() == 0.0)   return ComplexCell::zC(Z, 0.0, mag);
+                    const bool same_sign = (b.real() > 0.0)
+                                         == (b.imag() > 0.0);
+                    return ComplexCell::zC(Z, 0.0, same_sign ? -mag : mag);
                   }
                return ComplexCell::zC(Z, complex_sqrt(one - b*b));
              }
@@ -500,12 +568,28 @@ const APL_Complex one(1.0, 0.0);
                     // below is unchanged (it depends only on root's
                     // value, not on how it was computed).
                     //
-                    const APL_Complex root = Cell::is_near_zero(b.imag())
+                    const bool near_real = Cell::is_near_zero(b.imag());
+                    const APL_Complex root = near_real
                        ? APL_Complex(0.0, hypot(1.0, b.real()))
                        : complex_sqrt(APL_Complex(-1, 0) - b*b);
+
+                    // Bugs31 #12 (Blake McBride): the near-real shortcut
+                    // above always builds a POSITIVE-imaginary root,
+                    // unlike the general complex_sqrt() path, whose sign
+                    // responds to b.imag()'s own (possibly tiny) value --
+                    // so the sign selection below, unchanged since it
+                    // was written for the general path, must not consult
+                    // the actual (tiny, no-longer-reflected-in-root)
+                    // b.imag() when the shortcut fired; treat it as
+                    // exactly 0, matching the b.imag()==0.0 neighbour and
+                    // staying continuous with the general path just
+                    // outside the near-zero band.
+                    //
+                    const APL_Float sign_imag = near_real ? 0.0 : b.imag();
+
                     if (b.real()  > 0.0)
                        {
-                         if (b.imag() > 0.0)   return ComplexCell::zC(Z,  root);
+                         if (sign_imag > 0.0)  return ComplexCell::zC(Z,  root);
                          else                  return ComplexCell::zC(Z, -root);
                        }
                    else if (b.real() == 0.0)
@@ -515,7 +599,7 @@ const APL_Complex one(1.0, 0.0);
                        }
                    else   // b.real() < 0,0;
                        {
-                         if (b.imag() >= 0.0)  return ComplexCell::zC(Z,  root);
+                         if (sign_imag >= 0.0) return ComplexCell::zC(Z,  root);
                          else                  return ComplexCell::zC(Z, -root);
                        }
                   }
@@ -676,6 +760,22 @@ ComplexCell::compare(const Cell & other) const
    if (!other.is_numeric())   DOMAIN_ERROR;
 
 const double qct = Workspace::get_CT();
+
+   if (qct == 0.0 && other.is_integer_cell() && get_imag_value() == 0.0)
+      {
+        // Bugs31 #9 (Blake McBride): equal()'s get_complex_value()
+        // round-trip below converts other's exact int64 real part
+        // through double first, losing precision beyond 2⋆53 -- same
+        // bug as FloatCell::compare()'s Bugs31 #8, for a ComplexCell
+        // that is really just a real number (zero imaginary part).
+        //
+        const int cr = Cell::compare_int_float(other.get_int_value(),
+                                                get_real_value());
+        if (cr < 0)   return COMP_GT;   // other < this
+        if (cr > 0)   return COMP_LT;   // other > this
+        return COMP_EQ;
+      }
+
    if (equal(other, qct))   return COMP_EQ;
 
 APL_Float areal = other.get_real_value();
@@ -945,6 +1045,32 @@ const bool invert_Z = b < 0;
    if (invert_Z)   b = -b;
 
    if (b == 0)   return IntCell::z1(Z);
+
+   // Bugs31 #10 (Blake McBride): a is an exact fourth root of unity
+   // (0J1 or 0J¯1) -- repeated squaring below is only exact up to
+   // b==1024, and complex_power()=exp(b×ln a) further down carries
+   // rounding noise in b×π/2 that grows with b, corrupting even an
+   // exactly representable result once b crosses that cutoff. a⋆b
+   // cycles through {1, 0J1, ¯1, 0J¯1} (or the mirror-image cycle for
+   // a=0J¯1) with period 4, computable exactly from b mod 4 for any
+   // magnitude; a having unit modulus also makes a⋆¯N simply the
+   // conjugate of a⋆N.
+   //
+   if (a.real() == 0.0 && (a.imag() == 1.0 || a.imag() == -1.0))
+      {
+        APL_Integer bb = b % 4;
+        if (a.imag() == -1.0)   bb = (4 - bb) % 4;
+        APL_Complex zi;
+        switch (bb)
+           {
+             case 0:  zi = APL_Complex( 1.0,  0.0);   break;
+             case 1:  zi = APL_Complex( 0.0,  1.0);   break;
+             case 2:  zi = APL_Complex(-1.0,  0.0);   break;
+             default: zi = APL_Complex( 0.0, -1.0);   break;
+           }
+        if (invert_Z)   zi = APL_Complex(zi.real(), -zi.imag());
+        return ComplexCell::zC(Z, zi);
+      }
 
    if (b == 1)
       {
@@ -1444,22 +1570,34 @@ ComplexCell::bif_reciprocal_c(Cell * Z, APL_Complex b)
    // huge |b| and underflows to 0 for a tiny one, in both cases wrongly
    // DOMAIN-ERRORing even though the true reciprocal is finite; dividing
    // by the larger-magnitude component first keeps every intermediate
-   // bounded.
+   // bounded -- except that "bounded" still meant "as large as
+   // fabs(b.real())+fabs(b.imag())" (den, just below), which itself
+   // overflows once |b.real()|≈|b.imag()| both approach DBL_MAX/2
+   // (Bugs31 #11, Blake McBride), even though the true reciprocal is a
+   // perfectly representable (possibly subnormal) finite value. Prescale
+   // both components by their common larger magnitude first: this keeps
+   // every intermediate -- including den -- bounded by O(1) regardless
+   // of |b|'s own magnitude, at the cost of one extra division on the
+   // way back out.
    //
+const APL_Float s = fabs(b.real()) >= fabs(b.imag()) ? fabs(b.real())
+                                                      : fabs(b.imag());
+const APL_Float br = b.real() / s;
+const APL_Float bi = b.imag() / s;
 APL_Float r, i;
-   if (fabs(b.real()) >= fabs(b.imag()))
+   if (fabs(br) >= fabs(bi))
       {
-        const APL_Float t = b.imag() / b.real();
-        const APL_Float den = b.real() + b.imag()*t;
-        r =  1.0 / den;
-        i = -t   / den;
+        const APL_Float t = bi / br;
+        const APL_Float den = br + bi*t;
+        r =  1.0 / den / s;
+        i = -t   / den / s;
       }
    else
       {
-        const APL_Float t = b.real() / b.imag();
-        const APL_Float den = b.imag() + b.real()*t;
-        r =  t   / den;
-        i = -1.0 / den;
+        const APL_Float t = br / bi;
+        const APL_Float den = bi + br*t;
+        r =  t   / den / s;
+        i = -1.0 / den / s;
       }
    if (!isfinite(r))   return E_DOMAIN_ERROR;
    if (!isfinite(i))   return E_DOMAIN_ERROR;

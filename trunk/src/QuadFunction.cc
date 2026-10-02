@@ -355,6 +355,25 @@ Value_P Z(3, LOC);
    return Z;
 }
 //────────────────────────────────────────────────────────────────────────────
+/// return true if ⎕EC was called by (the macro implementing) A ⎕EB B
+static bool
+called_from_EB_macro()
+{
+   // eoc() runs with ⎕EC's own ⍎ frame for B (the safe-execution start)
+   // on top of the SI; its parent is ⎕EC's caller. Look no further: a B
+   // that itself calls ⎕EC has B's ⍎ frame as that caller, and an older,
+   // suspended ⎕EB further down the SI has nothing to do with this ⎕EC.
+   //
+const StateIndicator * top = Workspace::SI_top();
+   if (!top)   return false;
+
+const StateIndicator * si = top->get_parent();
+   if (!si)   return false;
+
+const UserFunction * ufun = si->get_executable()->get_exec_ufun();
+   return ufun && ufun == Macro::get_macro(Macro::MAC_Z__A_Quad_EB_B);
+}
+//────────────────────────────────────────────────────────────────────────────
 void
 Quad_EC::eoc(Token & result)
 {
@@ -467,6 +486,25 @@ Value_P Z(3, LOC);
         Z->next_ravel_Pointer(Z3.get());
 
         Z->check_value(LOC);
+
+        // A ⎕EB B (try/finally): B failed, and the cleanup A is executed
+        // next. Whichever error is reported in the end (B's own, re-
+        // signalled by the macro if A succeeds, or A's if A fails too,
+        // which then wins), make B's failure visible in )MORE so that it
+        // is not lost (and shows B's statement, not just the ⎕EB call).
+        //
+        if (called_from_EB_macro())
+           {
+             UCS_string B_err = line_1;
+             if (B_err.size() && B_err.back() == UNI_PLUS)   B_err.pop_back();
+             UCS_string B_stat = err.get_error_line_2();
+             B_stat.remove_leading_and_trailing_whitespaces();
+             UCS_string & more = MORE_ERROR();
+             more << "A ⎕EB B: B failed with " << B_err;
+             if (B_stat.size())   more << " in: " << B_stat;
+             if (more_info.size())   more << UNI_LF << more_info;
+           }
+
         Token tok_Z(TOK_APL_VALUE1, Z);
         result.move_from(tok_Z, LOC);
         return;
@@ -913,42 +951,65 @@ const char * const throw_loc = error.get_throw_loc();
    // top-level statement, exactly as if the macro's own primitive-like
    // effect (not its internal APL source) had failed directly.
    //
+bool macro_popped = false;
    while (const UserFunction * top_ufun =
           Workspace::SI_top()->get_executable()->get_exec_ufun())
       {
         if (!top_ufun->is_macro())   break;
         Workspace::pop_SI(LOC);
+        macro_popped = true;
       }
 
-   if (StateIndicator * si = Workspace::SI_top()->get_parent())
+   // If ⎕ES was executed by a macro, then the macro implements a primitive
+   // (e.g. ⎕EB, F¨, ⍎¨) that was called from the statement now on top of
+   // the SI. That statement did NOT execute ⎕ES itself, so the "as though
+   // the function were primitive or locked" rule below must not be applied
+   // to it (again): report the error like any other error of a primitive,
+   // e.g. "T[1]  '5' ⎕EB '3÷0'" rather than "T" (as if T were locked).
+   //
+   if (macro_popped)
       {
-        const UserFunction * ufun = si->get_executable()->get_exec_ufun();
-
-        // Skip this branch (and fall through to the general
-        // update_error_info() path below, the same one the top level
-        // already uses) when the current frame is itself where ⎕EC's
-        // safe execution started -- popping it here would remove the
-        // very frame Command.cc's safe-execution unwind later looks at,
-        // silently defeating ⎕EC/⎕EA for this error. Also skip macro
-        // ufuns (e.g. ⎕EA's own implementation, Z__A_Quad_EA_B) so an
-        // internal macro frame is never blamed as a user-visible
-        // defined function.
-        if (ufun && !ufun->is_macro() &&
-            !Workspace::SI_top()->is_safe_execution_start())
-           {
-             // lrm p 282: When ⎕ES is executed from within a defined function
-             // and B is not empty, the event action is generated as though
-             // the function were primitive.
-             //
-             UCS_string ufun_name(U"      ");
-             ufun_name << ufun->get_name();
-             error.set_error_line_2(ufun_name, 6, -1);
-             Workspace::pop_SI(LOC);
-             StateIndicator::get_error(Workspace::SI_top()) = error;
-             error.print_em(UERR, LOC);
-             return Token();
-           }
+        error.set_show_locked(false);
+        error.update_error_info(Workspace::SI_top());
+        return Token();
       }
+
+   // lrm p.282: "When ⎕ES is executed from within a defined function or
+   // operator and R is not empty, the event action is generated as though
+   // the function were primitive or locked [...]. Suspension occurs at the
+   // calling point, not within the defined operation."
+   //
+   // The defined function (the "issuer") is the nearest non-macro defined
+   // function at or below the top of the SI, skipping ⍎ frames and the
+   // macro frames of primitives (e.g. ⍎¨, ⎕EA's A) on the way: IBM APL2
+   // treats a ⍎'⎕ES ...' in TEST as executed within TEST (displays the
+   // calling statement TEST, and )SI shows only *). Remove the issuer and
+   // everything above it, and report the error at its calling statement,
+   // e.g. "W[1]  TEST" or (in immediate execution) "      TEST".
+   //
+   // Nothing is removed if a frame on the way is where ⎕EC's safe
+   // execution started -- popping it would remove the very frame that
+   // Command.cc's safe-execution unwind later looks at, silently defeating
+   // ⎕EC/⎕EA for this error. ⎕ES without an enclosing defined function
+   // (e.g. ⍎'⎕ES 5 4' in immediate execution) is reported where it is.
+   //
+   {
+     const StateIndicator * issuer = Workspace::SI_top();
+     while (issuer)
+        {
+          if (issuer->is_safe_execution_start())   { issuer = 0;   break; }
+          const UserFunction * ufun = issuer->get_executable()->get_exec_ufun();
+          if (ufun && !ufun->is_macro())   break;   // found
+          issuer = issuer->get_parent();
+        }
+
+     if (issuer && issuer->get_parent())
+        {
+          while (Workspace::SI_top() != issuer)   Workspace::pop_SI(LOC);
+          Workspace::pop_SI(LOC);   // the issuer itself
+          error.set_show_locked(false);
+        }
+   }
 
    error.update_error_info(Workspace::SI_top());
    return Token();
