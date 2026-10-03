@@ -18,13 +18,17 @@ FACTR
 
       ⍝ Invalid definition ----------------------------------
 
+      ]FILE_CTL SKIP_APL2   ⍝ ⎕AV differs between interpreters
       ⎕FX 'Z←FN R' 'Z←1+R×2' ⎕AV[37]
 3
 
+      ]FILE_CTL NO_SKIP
       ⎕IO←0
+      ]FILE_CTL SKIP_APL2   ⍝ ⎕AV differs between interpreters
       ⎕FX 'Z←FN R' 'Z←1+R×2' ⎕AV[37]
 2
 
+      ]FILE_CTL NO_SKIP
       ⎕IO←1
 
       ⍝ suspended or pendant function ----------------------------------
@@ -172,6 +176,7 @@ DOMAIN ERROR+
 GG[1]  ZZZUNDEF
        ^
 
+      ]FILE_CTL SKIP_APL2   ⍝ ⎕ET depends on the test harness
       ⎕ET
 5 4
 
@@ -180,6 +185,7 @@ GG[1]  ZZZUNDEF
       )ERASE GG FF2
       ⊣⎕FX 'GG' '!¯3'
       ⊣0 1 0 0 ⎕FX 'FF2' 'GG'     ⍝ FF2 is nonsuspendable
+      ]FILE_CTL NO_SKIP
       FF2
 DOMAIN ERROR
       GG
@@ -312,12 +318,15 @@ DEFN ERROR+
       ⍝ rejects them at every header position, the same way it already
       ⍝ rejected ⎕-names.
       ⍝
+      ]FILE_CTL SKIP_APL2   ⍝ ⎕NC of GNU APL names/classes differs
       ⎕NC '⍵'
 6
 
+      ]FILE_CTL NO_SKIP
       ⎕FX 'Z←⍵ B' 'Z←B+1'
 1
 
+      ]FILE_CTL SKIP_APL2   ⍝ lambdas are a GNU APL extension; ⎕NC of GNU APL names/classes differs
       ⎕NC '⍵'
 6
 
@@ -331,6 +340,7 @@ Offending symbol: ⍵ (U+2375)
 
       ⍝ control: the same bad name is rejected as F2's left operand too
       ⍝
+      ]FILE_CTL NO_SKIP
       ⎕FX 'Z←F ⍺' 'Z←⍺+1'
 1
 
@@ -340,12 +350,15 @@ Offending symbol: ⍵ (U+2375)
       ⍝ is exactly as much a distinguished name as ⎕ itself -- so it was
       ⍝ still accepted here even after the #89 fix above.
       ⍝
+      ]FILE_CTL SKIP_APL2   ⍝ ⎕NC of GNU APL names/classes differs
       ⎕NC '⍞'
 5
 
+      ]FILE_CTL NO_SKIP
       ⎕FX 'Z←F1 ⍞' 'Z←B'
 1
 
+      ]FILE_CTL SKIP_APL2   ⍝ ⎕NC of GNU APL names/classes differs
       ⎕NC '⍞'
 5
 
@@ -353,6 +366,7 @@ Offending symbol: ⍵ (U+2375)
       ⍝ F1/F2/LO/OP/A/B/Z itself) was already correctly rejected before
       ⍝ this fix -- kept here for contrast with the cases just above.
       ⍝
+      ]FILE_CTL NO_SKIP
       ⎕FX 'Z←⍺[X]B' 'Z←X'
 1
 

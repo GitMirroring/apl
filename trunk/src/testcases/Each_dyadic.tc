@@ -91,9 +91,11 @@
       ⍝ 1+⍳2 (⎕IO=0) = 1 2; 2+⍳3 (⎕IO now 0 from the first call, but
       ⍝ self-correctingly still right) = 2 3 4.
       ⍝
+      ]FILE_CTL SKIP_APL2   ⍝ lambdas are a GNU APL extension
       1 2 {⎕IO←0 ⋄ ⍺+⍳⍵}¨ 2 3
  1 2  2 3 4 
 
+      ]FILE_CTL NO_SKIP
       ⎕IO←1
 
       ⍝ Bugs30 #1 regression: L LO¨ R as a selective-assignment target.

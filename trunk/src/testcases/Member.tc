@@ -11,10 +11,12 @@
       1∊1 2 3   ⍝ ⎕UCS 8714   U+220A
 1
 
+      ]FILE_CTL SKIP_APL2   ⍝ ⎕UCS of ∊ differs (APL2 ⎕AV codec)
       ⎕UCS 'ϵ∈∊'
 1013 8712 8714
 
 
+      ]FILE_CTL NO_SKIP
       'BANANA'ϵ'AN'
 0 1 1 1 1 1
 

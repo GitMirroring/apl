@@ -799,69 +799,62 @@ ComplexCell::character_representation(const PrintContext & pctx) const
 {
    if (pctx.get_PP() < MAX_Quad_PP)
       {
-         // 10⋆get_PP()
-         //
-         APL_Float ten_to_PP = 1.0;
-         loop(p, pctx.get_PP())   ten_to_PP = ten_to_PP * 10.0;
-
          // lrm p. 13: In J notation, the real or imaginary part is not
          // displayed if it is less than the other by more than ⎕PP orders
-         // of magnitude (unless ⎕PP is at its maximum).
+         // of magnitude (unless ⎕PP is at its maximum). As in IBM APL2
+         // (verified with APL2 itself), "orders of magnitude" are the
+         // decimal exponents ⌊10⍟|part|: e.g. with ⎕PP←5, 18.104 (exponent
+         // 1) in 2.46E6J18.104 (exponent 6) is displayed, while 0.0055 in
+         // 2.41E4J0.0055 (exponents ¯3 and 4) is not. (Comparing the ratio
+         // of the parts with 10⋆⎕PP instead dropped the 18.104.) A part
+         // that is exactly 0 is smaller than any other.
          //
-         const APL_Float pos_real = value.cval[0] < 0.0
-                                  ? -value.cval[0] : value.cval[0];
-         const APL_Float pos_imag = value.cval[1] < 0.0
-                                  ? -value.cval[1] : value.cval[1];
+         const Displayed_parts parts =
+               exponent_rule(value.cval[0], value.cval[1], pctx.get_PP());
 
-         if (pos_real >= pos_imag)   // pos_real dominates pos_imag
+         if (parts == DP_REAL)
             {
-              if (pos_real > pos_imag*ten_to_PP)
-                 {
-                   // same rationale as the mirror-image branch below:
-                   // give the real part its own scaled/unscaled decision
-                   // instead of reusing pctx's, which may reflect the
-                   // (now discarded) imaginary part's need for scaling.
-                   //
-                   PrintContext pctx_r(pctx);
-                   PrintStyle st = PrintStyle(pctx.get_style() & ~PST_SCALED);
-                   if (FloatCell::need_scaling(value.cval[0], pctx.get_PP()))
-                      st = PrintStyle(st | PST_SCALED);
-                   pctx_r.set_style(st);
+              // same rationale as the mirror-image branch below:
+              // give the real part its own scaled/unscaled decision
+              // instead of reusing pctx's, which may reflect the
+              // (now discarded) imaginary part's need for scaling.
+              //
+              PrintContext pctx_r(pctx);
+              PrintStyle st = PrintStyle(pctx.get_style() & ~PST_SCALED);
+              if (FloatCell::need_scaling(value.cval[0], pctx.get_PP()))
+                 st = PrintStyle(st | PST_SCALED);
+              pctx_r.set_style(st);
 
-                   const FloatCell real_cell(value.cval[0]);
-                   return real_cell.character_representation(pctx_r);
-                 }
+              const FloatCell real_cell(value.cval[0]);
+              return real_cell.character_representation(pctx_r);
             }
-         else                        // pos_imag dominates pos_real
+         else if (parts == DP_IMAG)
             {
-              if (pos_imag > pos_real*ten_to_PP)
-                 {
-                   // give the imaginary part its own scaled/unscaled
-                   // decision instead of reusing pctx's, which reflects
-                   // the (now discarded) real part's -- otherwise, e.g.
-                   // a real part small enough to need scaling forces
-                   // the imaginary part into E-format too, even though
-                   // it is displayed alone here (Bugs28 #80). Same
-                   // rationale as the non-shortcut path below.
-                   //
-                   PrintContext pctx_i(pctx);
-                   PrintStyle st = PrintStyle(pctx.get_style() & ~PST_SCALED);
-                   if (FloatCell::need_scaling(value.cval[1], pctx.get_PP()))
-                      st = PrintStyle(st | PST_SCALED);
-                   pctx_i.set_style(st);
+              // give the imaginary part its own scaled/unscaled
+              // decision instead of reusing pctx's, which reflects
+              // the (now discarded) real part's -- otherwise, e.g.
+              // a real part small enough to need scaling forces
+              // the imaginary part into E-format too, even though
+              // it is displayed alone here (Bugs28 #80). Same
+              // rationale as the non-shortcut path below.
+              //
+              PrintContext pctx_i(pctx);
+              PrintStyle st = PrintStyle(pctx.get_style() & ~PST_SCALED);
+              if (FloatCell::need_scaling(value.cval[1], pctx.get_PP()))
+                 st = PrintStyle(st | PST_SCALED);
+              pctx_i.set_style(st);
 
-                   const FloatCell imag_cell(value.cval[1]);
-                   PrintBuffer ret = imag_cell.character_representation(pctx_i);
-                   ret.pad_l(UNI_J, 1);
-                   ret.pad_l(UNI_0, 1);
+              const FloatCell imag_cell(value.cval[1]);
+              PrintBuffer ret = imag_cell.character_representation(pctx_i);
+              ret.pad_l(UNI_J, 1);
+              ret.pad_l(UNI_0, 1);
 
-                   ret.get_info().flags |= CT_COMPLEX;
-                   ret.get_info().imag_len = 1 + ret.get_info().real_len;
-                   ret.get_info().int_len = 1;
-                   ret.get_info().fract_len = 0;
-                   ret.get_info().real_len = 1;
-                   return ret;
-                 }
+              ret.get_info().flags |= CT_COMPLEX;
+              ret.get_info().imag_len = 1 + ret.get_info().real_len;
+              ret.get_info().int_len = 1;
+              ret.get_info().fract_len = 0;
+              ret.get_info().real_len = 1;
+              return ret;
             }
       }
 
@@ -914,6 +907,31 @@ int int_fract = ucs.size();
       }
 
    return PrintBuffer(ucs, info);
+}
+//────────────────────────────────────────────────────────────────────────────
+ComplexCell::Displayed_parts
+ComplexCell::exponent_rule(APL_Float real, APL_Float imag, int quad_PP)
+{
+   if (quad_PP >= MAX_Quad_PP)   return DP_BOTH;
+
+const APL_Float pos_real = real < 0.0 ? -real : real;
+const APL_Float pos_imag = imag < 0.0 ? -imag : imag;
+const int expo_real = pos_real == 0.0 ? 0 : int(floor(log10(pos_real)));
+const int expo_imag = pos_imag == 0.0 ? 0 : int(floor(log10(pos_imag)));
+
+   if (pos_real >= pos_imag)   // pos_real dominates pos_imag
+      {
+        if (pos_real > 0.0 &&
+            (pos_imag == 0.0 || expo_real - expo_imag > quad_PP))
+           return DP_REAL;
+      }
+   else                        // pos_imag dominates pos_real
+      {
+        if (pos_real == 0.0 || expo_imag - expo_real > quad_PP)
+           return DP_IMAG;
+      }
+
+   return DP_BOTH;
 }
 //────────────────────────────────────────────────────────────────────────────
 bool

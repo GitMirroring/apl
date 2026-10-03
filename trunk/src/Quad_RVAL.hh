@@ -125,6 +125,9 @@ protected:
    /// set or return the max. element count (⍴Z) per random value (0 = unlimited)
    static Value_P result_ecount(const cValue & B);
 
+   /// set the purpose (0 or 1) of subsequent random values, return the previous one
+   static Value_P result_purpose(const cValue & B);
+
    /// return the 113×5 nested character matrix of primitive arities/stimuli/constraints
    static Value_P prim_table_value(const cValue & B);
 
@@ -157,6 +160,9 @@ protected:
 
    /// max. element count (⍴Z) per value; 0 = unlimited
    static ShapeItem desired_max_ecount;
+
+   /// the purpose of the random values (8 ⎕RVAL B): 0 (default) or 1
+   static int desired_purpose;
 
    /// the state buffer of the random number generator
    static char state[256];

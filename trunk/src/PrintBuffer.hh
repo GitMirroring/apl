@@ -294,6 +294,29 @@ protected:
    /// @param col target column properties to align to
    void align_j(const ColInfo & col);
 
+   /// format column \b x of a simple numeric \b value with complex items
+   /// (lrm p. 17-18) into \b item_matrix
+   /// @param value the simple numeric value being printed
+   /// @param x the column
+   /// @param pctx print context controlling formatting
+   /// @param item_matrix the item matrix of \b value (see do_PrintBuffer())
+   static void format_complex_column(const cValue & value, ShapeItem x,
+                                     const PrintContext & pctx,
+                                     PrintBuffer * item_matrix);
+
+   /// format the items y of \b values with \b used[y] as one numeric
+   /// (sub-) column, i.e. in the same format with aligned decimal points
+   /// and exponents (lrm p. 17)
+   /// @param values the (real) values of the column
+   /// @param used which items of \b values belong to the column
+   /// @param pctx print context controlling formatting
+   /// @param trim remove the alignment padding of the items
+   /// @param result the formatted items (only those with \b used[y])
+   static void format_sub_column(const std::vector<APL_Float> & values,
+                                 const std::vector<bool> & used,
+                                 const PrintContext & pctx, bool trim,
+                                 std::vector<UCS_string> & result);
+
    /// pad the fraction part to \b wanted_fract_len with '0'
    /// @param wanted_fract_len target length of the fractional part
    /// @param want_expo true if exponential notation is used

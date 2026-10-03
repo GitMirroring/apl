@@ -632,7 +632,11 @@ FloatCell::need_scaling(APL_Float val, int quad_pp)
 
    if (val == 0.0)                  return false;   // not 2a.
 
-   if (val < 0.000001)              return true;    // case 2
+   // (2c): at least 5 zeroes after the decimal point means val < 1E¯5,
+   // e.g. 0.00000356 (verified with IBM APL2: 3.56E¯6 is scaled while 6E¯5
+   // is not). The previous test val < 0.000001 required 6 zeroes.
+   //
+   if (val < 0.00001)               return true;    // case 2
 
    return false;
 }

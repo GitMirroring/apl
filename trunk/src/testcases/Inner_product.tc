@@ -126,9 +126,11 @@ GRACE
 
 
 
+      ]FILE_CTL SKIP_APL2   ⍝ lambdas are a GNU APL extension
       2 3 {⍺+⍵}.{⍺×⍵} 2 3
 13
 
+      ]FILE_CTL NO_SKIP
       2 3 5 6 -.= 4 5 5 6
 0
 
@@ -153,9 +155,11 @@ GRACE
 Z←⊂6⍴1 2 3 4 5 6
 
       ⍝ control: a user-defined (lambda) LO was already correct
+      ]FILE_CTL SKIP_APL2   ⍝ lambdas are a GNU APL extension
       Z←1 2 3{⍺,⍵}.,4 5 6 ⋄ 2 ⎕TF 'Z'
 Z←⊂6⍴1 2 3 4 5 6
 
+      ]FILE_CTL NO_SKIP
       ≡(1 2)(3 4)+.×(5 6)(7 8)
 2
 
@@ -164,6 +168,7 @@ Z←⊂6⍴1 2 3 4 5 6
 Z←2 2⍴(5 14) (6 16) (15 28) (18 32)
 
       ⍝ empty argument control
+      ]FILE_CTL SKIP_APL2   ⍝ lambdas are a GNU APL extension; ∪ ∩ ⍬ are GNU APL extensions
       Z←⍬,.,⍬ ⋄ 2 ⎕TF 'Z'
 Z←⊂0⍴0
 
@@ -182,9 +187,11 @@ Z←⊂0⍴0
       Z←(0 3⍴0)+.{⍺+⍵}3 2⍴5 ⋄ 2 ⎕TF 'Z'
 Z←0 2⍴0
 
+      ]FILE_CTL SKIP_APL2   ⍝ lambdas are a GNU APL extension
       ((0 3⍴0)+.{⍺+⍵}3 2⍴5)≡0 2⍴0
 1
 
+      ]FILE_CTL NO_SKIP
       Z←(0 3⍴0),.,3 2⍴⊂'ab' ⋄ 2 ⎕TF 'Z'
 Z←0 2⍴(⊂3⍴0 ' ' ' ')
 

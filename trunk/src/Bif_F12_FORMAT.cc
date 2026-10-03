@@ -870,6 +870,23 @@ Value_P Z;
    return Z;
 }
 //════════════════════════════════════════════════════════════════════════════
+/// return true if B and all its items at any depth are scalars or vectors
+static bool
+all_ranks_le_1(const cValue & B)
+{
+   if (B.get_rank() > 1)   return false;
+
+const ShapeItem ec = B.nz_element_count();   // incl. the prototype if empty
+   loop(e, ec)
+      {
+        if (Value_P item = B.try_pointer_value(e))
+           {
+             if (!all_ranks_le_1(*item))   return false;
+           }
+      }
+   return true;
+}
+//════════════════════════════════════════════════════════════════════════════
 Token
 Bif_F12_FORMAT::eval_B(cValue_R B) const
 {
@@ -902,9 +919,15 @@ Bif_F12_FORMAT::eval_B(cValue_R B) const
 
         Z->check_value(LOC);
 
-        // turn 1-line matrices into vectors
+        // lrm p.137: "When R is a nested array, Z is a vector if all items of
+        // R at any depth are scalars or vectors" -- R itself included, as
+        // IBM APL2 does it (verified with APL2: ⍴⍕1 1⍴⊂1 2 is 1 5 and
+        // ⍴⍕5 (1 2⍴3 4) is 1 9, while ⍴⍕(1 2) (3 4) is 10). Otherwise Z is
+        // a matrix, even if it has only one row. (Previously every 1-row
+        // result was turned into a vector.)
         //
-        if (Z->get_rank() == 2 && Z->get_shape().get_shape_item(0) == 1)
+        if (Z->get_rank() == 2 && Z->get_shape().get_shape_item(0) == 1 &&
+            all_ranks_le_1(B))
            {
              Shape sh(Z->get_shape().get_shape_item(1));
              Z->set_shape(sh);

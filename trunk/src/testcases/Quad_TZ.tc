@@ -3,9 +3,11 @@
 
 ⍝@ test3.
 
+      ]FILE_CTL SKIP_APL2   ⍝ time/session-dependent values
       ⎕TZ
 ⁴⁰
 
+      ]FILE_CTL NO_SKIP
       ⎕TZ←5
       ⎕TZ
 5
@@ -70,17 +72,21 @@ DOMAIN ERROR+
       ⍝ control: the boundary values themselves are still accepted
       ⍝
       ⎕TZ←14
+      ]FILE_CTL SKIP_APL2   ⍝ time/session-dependent values
       ⎕TZ
 14
 
+      ]FILE_CTL NO_SKIP
       ⎕TZ←¯12
       ⎕TZ
 ¯12
 
       ⎕TZ←6.2
 
+      ]FILE_CTL SKIP_APL2   ⍝ time/session-dependent values
       ⎕TZ←12  ◊ T1←⎕TS         ⍝ timezone 12 (ahead)
       ⎕TZ←¯12 ◊ T2←⎕TS         ⍝ timezone ¯12 (behind)
+      ]FILE_CTL NO_SKIP
       ∆_YEAR ← T1[1] - T2[1]   ⍝ 1 on 12/31
       ∆_MON  ← T1[2] - T2[2]
       ∆_DAY  ← T1[3] - T2[3]

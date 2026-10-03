@@ -11,10 +11,12 @@
       7÷9
 0.77777777777777779
 
+      ]FILE_CTL SKIP_APL2   ⍝ ⎕CT/⎕PP limits differ (documented)
       ⎕PP
 17
 
 
+      ]FILE_CTL NO_SKIP
       ⎕PP←1
       333
 333
@@ -124,9 +126,11 @@
       1.7E308
 1.6999999999999999E308
 
+      ]FILE_CTL SKIP_APL2   ⍝ ⎕CT/⎕PP limits differ (documented)
       1.7976931348623157E308
 1.7976931348623157E308
 
+      ]FILE_CTL NO_SKIP
       2.2250738585072014E¯308
 2.2250738585072014E¯308
 

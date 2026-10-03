@@ -569,6 +569,14 @@ public:
    /// @param out output stream to write to
    ostream & print(ostream & out) const;
 
+   /// print \b this empty value of rank ≥ 2 (empty lines as IBM APL2 does)
+   /// @param out output stream to write to
+   ostream & print_empty(ostream & out) const;
+
+   /// the number of (empty) lines in the display of \b this empty value of
+   /// rank ≥ 2 (as IBM APL2 displays it), 0 for rank < 2
+   ShapeItem empty_lines() const;
+
    /// print some information to help identifying \b this value (shape, depth,
    /// and the first few ravel items)
    /// @param out output stream to write to

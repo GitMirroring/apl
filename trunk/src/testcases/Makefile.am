@@ -14,6 +14,7 @@ dist_noinst_DATA =                              \
         AAA3.tc                                 \
         AAA4_Function_headers.tc                \
         Add.tc                                  \
+        AllExpressions.tc                       \
         AllPrimitives.tc                        \
         And.tc                                  \
         AP100.tc                                \
@@ -40,6 +41,7 @@ dist_noinst_DATA =                              \
         Conjugate.tc                            \
         CopyOnWrite.tc                          \
         COPY.tc                                 \
+        Coverage.tc                             \
         Deal.tc                                 \
         Decode.tc                               \
         Depth.tc                                \
@@ -72,6 +74,8 @@ dist_noinst_DATA =                              \
         Format_by_example.tc                    \
         Format_by_spec.tc                       \
         Format.tc                               \
+        FORMAT_COLS.tc                          \
+        FORMAT_RANK.tc                          \
         Grade_down.tc                           \
         Grade_down_with_collating_sequence.tc   \
         Grade_up.tc                             \
@@ -83,6 +87,7 @@ dist_noinst_DATA =                              \
         Inner_product.tc                        \
         Intersection.tc                         \
         Interval.tc                             \
+        Interval_Index.tc                       \
         Lambda.tc                               \
         Laminate.tc                             \
         Logarithm.tc                            \
@@ -111,12 +116,14 @@ dist_noinst_DATA =                              \
         Or.tc                                   \
         OuterProduct.tc                         \
         Parallel.tc                             \
+        Parentheses.tc                          \
         Partition.tc                            \
         Partition_with_axis.tc                  \
         Pick.tc                                 \
         PiTimes.tc                              \
         Polynomials.tc                          \
         Power.tc                                \
+        Prototype.tc                            \
         Quad_AF.tc                              \
         Quad_AI.tc                              \
         Quad_ARG.tc                             \
@@ -132,10 +139,12 @@ dist_noinst_DATA =                              \
         Quad_EC.tc                              \
         Quad_EM.tc                              \
         Quad_ES.tc                              \
+        Quad_ES_issuer.tc                       \
         Quad_ET.tc                              \
         Quad_EX.tc                              \
         Quad_FC.tc                              \
         Quad_FIO.tc                             \
+        Quad_FIO1.tc                            \
         Quad_FX.tc                              \
         Quad_INP.tc                             \
         Quad_JSON.tc                            \
@@ -144,6 +153,7 @@ dist_noinst_DATA =                              \
         Quad_L.tc                               \
         Quad_LX.tc                              \
         Quad_MAP.tc                             \
+        Quad_MX.tc                              \
         Quad_NC.tc                              \
         Quad_NL.tc                              \
         Quad_PLOT.tc                            \
@@ -189,6 +199,7 @@ dist_noinst_DATA =                              \
         Rotate.tc                               \
         Rotate_with_axis.tc                     \
         SaveLoad.tc                             \
+        Scalar_function.tc                      \
         Scan.tc                                 \
         Scan_with_axis.tc                       \
         Shape.tc                                \
@@ -239,6 +250,7 @@ dist_noinst_DATA =                              \
         ZZ33_Regression.tc                      \
         ZZ34_Regression.tc                      \
         ZZ35_Regression.tc                      \
+        ZZ36_Regression.tc                      \
         ZZ37_Regression.tc                      \
         ZZ38_Regression.tc                      \
         ZZ39_Regression.tc                      \

@@ -108,13 +108,16 @@ MOTHER
       ⍝ regression; the exact numbers below are otherwise arbitrary.
 
       B←2 3ρ⍳6
+      ]FILE_CTL SKIP_APL2   ⍝ 64-bit integers (IBM APL2: 32 bit)
       7023828131934356245 ¯2726503875690172446⌽B
 2 3 1
 4 5 6
 
+      ]FILE_CTL NO_SKIP
       100000000000⌽5
 5
 
+      ]FILE_CTL SKIP_APL2   ⍝ 64-bit integers (IBM APL2: 32 bit)
       ¯99999999999⌽1 2 3 4 5
 2 3 4 5 1
 

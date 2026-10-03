@@ -55,6 +55,7 @@ CLEAR WS
       ⍝ the enclosing namespace's own depth queried (and cached) both
       ⍝ before and after.
       ⍝
+      ]FILE_CTL SKIP_APL2   ⍝ structured variables are a GNU APL extension
       Z.a.b←1 2 (3 4)
       ≡Z ◊ ≡Z.a ◊ ≡Z.a.b
 4
@@ -91,6 +92,7 @@ CLEAR WS
       ⍝ it." -- note the right's LENGTH need not match the left's at all,
       ⍝ unlike rules 2/3 below; this is a genuine wholesale replacement.
       ⍝
+      ]FILE_CTL NO_SKIP
       A←1 2 3
       (A)←4 5 6 7
       A

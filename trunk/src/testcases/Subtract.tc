@@ -27,6 +27,7 @@
       ⎕PP←17
 
       ⍝ boundary: difference is exactly the largest int64 value, stays integer
+      ]FILE_CTL SKIP_APL2   ⍝ 64-bit integers (IBM APL2: 32 bit)
       9223372036854775806-¯1
 9223372036854775807
       ]FILE_CTL SKIP_APL2   ⍝ 26⎕CR is a GNU-only type-introspection extension
@@ -43,6 +44,7 @@
       ]FILE_CTL NO_SKIP
 
       ⍝ boundary: difference is exactly the smallest int64 value, stays integer
+      ]FILE_CTL SKIP_APL2   ⍝ 64-bit integers (IBM APL2: 32 bit)
       ¯9223372036854775807-1
 ¯9223372036854775808
       ]FILE_CTL SKIP_APL2

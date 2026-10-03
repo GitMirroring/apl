@@ -6,6 +6,7 @@
       ⎕UCS '⍴A B'
 9076 65 32 66
 
+      ]FILE_CTL SKIP_APL2   ⍝ ⎕UCS with mixed arguments is a GNU APL extension
       ⎕UCS 'Hello',72 101 108 108 111
 72 101 108 108 111 Hello
 
@@ -19,6 +20,7 @@
       ⍝ n3067 (in the context of ⎕TF/⎕IN/⎕OUT interchange) actually cares
       ⍝ about.
       ⍝
+      ]FILE_CTL NO_SKIP
       V←⎕UCS 8838 8839 8709 9036 9043 9044
       V
 ⊆⊇∅⍌⍓⍔

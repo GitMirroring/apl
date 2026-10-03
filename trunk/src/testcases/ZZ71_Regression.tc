@@ -17,6 +17,7 @@ CLEAR WS
       ⍝ back to imprecise float computation. 2*62 exercises exactly that
       ⍝ range (intermediate squares reach ~2^31).
       ⍝
+      ]FILE_CTL SKIP_APL2   ⍝ 64-bit integers (IBM APL2: 32 bit)
       2*62
 4611686018427387904
 
@@ -24,6 +25,7 @@ CLEAR WS
       ⍝ digits must round half-away-from-zero, matching glibc's own %e
       ⍝ tie-breaking rather than silently truncating.
       ⍝
+      ]FILE_CTL NO_SKIP
       ⎕PP←1
       ⍕9.5
 10
@@ -303,6 +305,7 @@ Z←0 12⍴0
 OP1
       5 OP1 1
 2 5
+      ]FILE_CTL SKIP_APL2   ⍝ lambdas are a GNU APL extension
       5 {⍶ ⍵} 1
 5 1
 
@@ -317,6 +320,7 @@ OP1
       ⍝ phrase and Prefix::reduce_A_M__(), mirroring reduce_F_M__()'s
       ⍝ build-only (no eager eval) logic.
       ⍝
+      ]FILE_CTL NO_SKIP
       (5 OP1) 1
 2 5
       )ERASE OP1
@@ -385,11 +389,14 @@ DOMAIN ERROR
       ⍝    non-debug )SI family; ]SI/]SIS (SIM_debug) still show it.
       ⍝
       ⎕IO←0
+      ]FILE_CTL SKIP_APL2   ⍝ lambdas are a GNU APL extension
       F←{⍺+⍵+1000×⎕IO}
+      ]FILE_CTL NO_SKIP
       (2 2⍴1 2 3 4) +.F (2 2⍴5 6 7 8)
 15 17
 19 21
       ⎕IO←1
+      ]FILE_CTL SKIP_APL2   ⍝ lambdas are a GNU APL extension
       {1÷⍵}¨2 1 0
 DOMAIN ERROR
 λ1[1]  λ←1÷⍵
@@ -446,9 +453,12 @@ DOMAIN ERROR
       (÷⍤0)0 0
       ^    ^
       )SIC
+      ]FILE_CTL NO_SKIP
       ⎕IO←1
+      ]FILE_CTL SKIP_APL2   ⍝ lambdas are a GNU APL extension
       ({⎕IO←0 ⋄ ⍳⍵}¨)2 3
  0 1  0 1 2 
+      ]FILE_CTL NO_SKIP
       ⎕IO←1
 
       ⍝ #28 residual (fixed 2026-09-03) DerivedFunction had no
@@ -828,6 +838,7 @@ VALUE ERROR+
       f←{⍵+1}
       f 5
 6
+      ]FILE_CTL SKIP_APL2   ⍝ lambdas are a GNU APL extension
       (g←{⍵}) 5
 5
       1+(h←{⍵})5
@@ -862,6 +873,7 @@ VALUE ERROR+
       ⍝ (Prefix::reduce_A_ASS_B_()) finishes the write, exactly as it
       ⍝ already does for e.g. (⊃E)[]←0.
       ⍝
+      ]FILE_CTL NO_SKIP
       ZZ60A←10 20 30 40 50
       (1↑2/ZZ60A)←7
       ZZ60A
@@ -954,6 +966,7 @@ Z←0 3⍴0
       Z←3∘.,0⍴⊂1 2 ⋄ 2 ⎕TF 'Z'
 Z←0⍴(⊂3⍴0 0 0)
       )ERASE Z
+      ]FILE_CTL SKIP_APL2   ⍝ lambdas are a GNU APL extension
       Z←3∘.{⍺,⍵}0⍴⊂1 2 ⋄ 2 ⎕TF 'Z'
 Z←0⍴(⊂2⍴0 0)
       )ERASE Z
@@ -973,6 +986,7 @@ Z←0⍴(⊂2⍴0 0)
       ⍝ use-after-free) that )CHECK's "value has N Lval Cells" warning
       ⍝ then reported. Every one of these must leave )CHECK clean.
       ⍝
+      ]FILE_CTL NO_SKIP
       V←1 2 3
       (+¨V)←9
 SYNTAX ERROR

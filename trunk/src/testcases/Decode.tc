@@ -74,6 +74,7 @@ DOMAIN ERROR
       ⍝ "overflowed" and recomputed as an imprecise float even though
       ⍝ the exact integer result fits.
       ⍝
+      ]FILE_CTL SKIP_APL2   ⍝ 64-bit integers (IBM APL2: 32 bit)
       2⊥63⍴1
 9223372036854775807
 

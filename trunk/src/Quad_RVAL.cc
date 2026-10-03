@@ -23,6 +23,7 @@
 
 #include <stdlib.h>
 
+#include "Avec.hh"
 #include "Common.hh"
 #include "ComplexCell.hh"
 #include "Quad_RVAL.hh"
@@ -33,6 +34,7 @@ Shape       Quad_RVAL::desired_shape;
 vector<int> Quad_RVAL::desired_types;
 int         Quad_RVAL::desired_maxdepth;
 ShapeItem   Quad_RVAL::desired_max_ecount;
+int         Quad_RVAL::desired_purpose = 0;
 char        Quad_RVAL::state[256];
 size_t      Quad_RVAL::N = 256;
 
@@ -47,6 +49,7 @@ const FunctionGroup::function_info Quad_RVAL::subfunction_infos[] =
   rvaldef(5, ecount,     "set the max. element count (⍴Z) per random value (0=∞)"  )
   rvaldef(6, primitives, "return the primitive arity/stimulus/constraint table"     )
   rvaldef(7, conform,    "generate a value conforming to B (scalar or ⍴B)"          )
+  rvaldef(8, purpose,    "set the purpose of subsequently returned values (0 or 1)" )
 };
 
 Quad_RVAL  Quad_RVAL::fun;
@@ -612,6 +615,7 @@ Quad_RVAL::do_eval_AB(int subfunction, const cValue & B)
         case 5: return result_ecount(B);
         case 6: return prim_table_value(B);
         case 7: return fun.conform_value(B);
+        case 8: return result_purpose(B);
       }
 
    fun.bad_subfun_number_ERROR(subfunction);
@@ -683,6 +687,31 @@ void
 Quad_RVAL::random_character(Value & Z)
 {
 const int32_t rnd = rand17();
+   if (desired_purpose == 1)   // APL2 mode: a character of IBM APL2's ⎕AV
+      {
+        // Avec::IBM_quad_AV() (GNU APL's table of IBM APL2's ⎕AV, used by
+        // )IN and )OUT) differs from the real ⎕AV of IBM APL2 at a few
+        // positions (verified with APL2 itself): 0x0B is a control character
+        // (not ⍬), 0x9E is ₧ (not ⍶), 0xD1 is ⍷ (not ⋸), and 0xE1 is ß (not
+        // ⍹). The table is left as is (backward compatibility of )IN and
+        // )OUT); APL2 mode simply avoids these positions, and also the
+        // control characters and DEL (which break testcase files).
+        //
+        static std::vector<Unicode> apl2_chars;
+        if (apl2_chars.size() == 0)
+           {
+             const Unicode * av = Avec::IBM_quad_AV();
+             loop(p, 256)
+                {
+                  if (p < 0x20 || p == 0x7F)   continue;   // control, DEL
+                  if (p == 0x9E || p == 0xD1 || p == 0xE1)   continue;
+                  apl2_chars.push_back(av[p]);
+                }
+           }
+        Z.next_ravel_Char(apl2_chars[rnd % apl2_chars.size()]);
+        return;
+      }
+
    // bits 0-12: codepoint base (0..8191); bit 13 adds 0x1000 (skips C0/C1 ranges)
    Z.next_ravel_Char(Unicode((rnd & 0x1FFF) + ((rnd & 0x2000) >> 1)));
 }
@@ -730,12 +759,22 @@ union { double f;
 
    // at this point: 1.0 < u.f < 2.0
    //
+   if (desired_purpose == 1)   // APL2 mode: an IEEE 32-bit (float) value
+      return double(float(u.f - 1.0));
+
    return u.f - 1.0;
 }
 //────────────────────────────────────────────────────────────────────────────
 void
 Quad_RVAL::random_integer(Value & Z)
 {
+   if (desired_purpose == 1)   // APL2 mode: a (signed) 32-bit integer
+      {
+        const int32_t rnd32 = int32_t(uint32_t(rand17() ^ (rand17() << 16)));
+        Z.next_ravel_Int(rnd32);
+        return;
+      }
+
 const int64_t rnd = rand17()
                   ^ (rand17() << 16)
                   ^ (rand17() << 32)
@@ -797,6 +836,33 @@ Value_P Z = IntScalar(desired_max_ecount, LOC);   // return previous value
       }
 
    return Z;   // previous desired_max_ecount
+}
+//────────────────────────────────────────────────────────────────────────────
+Value_P
+Quad_RVAL::result_purpose(const cValue & B)
+{
+   if (B.get_rank() > 1)        RANK_ERROR;
+   if (B.element_count() > 1)   LENGTH_ERROR;
+
+Value_P Z = IntScalar(desired_purpose, LOC);   // return previous value
+
+   if (B.element_count())   // set the purpose
+      {
+        const APL_Integer purpose = B.get_int_value(0);
+        if (purpose != 0 && purpose != 1)
+           {
+             MORE_ERROR() << "8 ⎕RVAL B: B must be 0 or 1";
+             DOMAIN_ERROR;
+           }
+        desired_purpose = purpose;
+
+        Log(LOG_Quad_RVAL)
+           {
+             CERR << "set desired_purpose to " << desired_purpose << endl;
+           }
+      }
+
+   return Z;   // previous desired_purpose
 }
 //────────────────────────────────────────────────────────────────────────────
 Value_P

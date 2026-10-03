@@ -34,12 +34,14 @@ CLEAR WS
  ¯7  ¯8  ¯9
 ¯10 ¯11 ¯12
 
+      ]FILE_CTL SKIP_APL2   ⍝ lambdas are a GNU APL extension
       NEG_LAMBDA ¨ 4 3⍴⍳99
  ¯1  ¯2  ¯3
  ¯4  ¯5  ¯6
  ¯7  ¯8  ¯9
 ¯10 ¯11 ¯12
 
+      ]FILE_CTL NO_SKIP
       NEG_ERR5 ¨ 4 3⍴⍳99
 SYNTAX ERROR+
 NEG_ERR5[2]  ←

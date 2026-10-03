@@ -145,6 +145,7 @@ ABCD ¯5 ¯6
       ⍝ and Shape::fits_into() now multiply via uint64_t (well-defined
       ⍝ wraparound) instead.
       ⍝
+      ]FILE_CTL SKIP_APL2   ⍝ 64-bit integers (IBM APL2: 32 bit)
       ⍴ 10000000 100000000000000 0⍴42
 10000000 100000000000000 0
 
@@ -153,6 +154,7 @@ ABCD ¯5 ¯6
 
       ⍝ regression
 
+      ]FILE_CTL NO_SKIP
       ¯1⍴0,0
 DOMAIN ERROR+
       ¯1⍴0,0

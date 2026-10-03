@@ -33,6 +33,7 @@ SAVED 20⁰-⁰-⁰ ⁰:⁰:⁰ (GMT⁵⁰)
 
       ⍝ #2: A⍸B integer overflow -> heap overflow, SIGSEGV. Must now be a
       ⍝ clean WS FULL instead of writing past the (wrongly-sized) result.
+      ]FILE_CTL SKIP_APL2   ⍝ characters beyond ⎕AV are a GNU APL extension; ⍤ ⍣ ⍸ ≢ are not in IBM APL2
       ⍸ 4 ⍴ 4611686018427387904
 WS FULL
       ⍸4⍴4611686018427387904
@@ -56,6 +57,7 @@ DOMAIN ERROR+
 
       ⍝ #6: 1 ⎕TF of an empty numeric array emitted a record its own
       ⍝ inverse rejected (missing the shape/data separator).
+      ]FILE_CTL NO_SKIP
       A←⍳0
       T←1 ⎕TF 'A'
       ⎕EX 'A'

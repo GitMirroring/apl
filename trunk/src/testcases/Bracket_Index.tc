@@ -360,12 +360,15 @@ OK      - no duplicate parents
  Z←RO B
 ∇
 
+      ]FILE_CTL SKIP_APL2   ⍝ GNU APL-only function header
 ∇Z←(LO opex RO) [X] B
  Z←RO (⎕NC 'X') B
 ∇
+      ]FILE_CTL NO_SKIP
       1 oper 'xyz' [2] 3
 y 3
 
+      ]FILE_CTL SKIP_APL2   ⍝ uses a function with a GNU APL-only header
       1 opex 'xyz' [2] 3
 y 0 3
 
@@ -381,6 +384,7 @@ y 0 3
       ⍝ evaluation is aborted (error) partway, repeated with )SIC, must
       ⍝ not crash or corrupt anything either way.
       ⍝
+      ]FILE_CTL NO_SKIP
       T←4 4⍴⍳16
 
 ∇ Z←BUGS6_5_FOO

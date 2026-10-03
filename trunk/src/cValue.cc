@@ -884,11 +884,74 @@ PrintContext pctx = Workspace::get_PrintContext(PR_APL);
       }
    else                  // matrix or higher
       {
+        if (element_count() == 0)   return print_empty(out);
         pctx.set_style(PrintStyle(pctx.get_style() | PST_NO_FRACT_0));
       }
 
 PrintBuffer pb(static_cast<const Value &>(*this), pctx, &out);   // constructor prints it
    return out;
+}
+//────────────────────────────────────────────────────────────────────────────
+ostream &
+cValue::print_empty(ostream & out) const
+{
+const ShapeItem lines = empty_lines();
+   loop(l, lines)   out << endl;
+   return out;
+}
+//────────────────────────────────────────────────────────────────────────────
+ShapeItem
+cValue::empty_lines() const
+{
+   // The number of (empty) lines in the display of an empty value of rank
+   // ≥ 2, as IBM APL2 does it (verified with APL2 itself, e.g. 2 0⍴0: 2 empty
+   // lines, 0 2⍴0: none, 2 3 0⍴0: 6 empty lines, 2 0 3⍴0: 1 empty line,
+   // 0 2 3⍴0 and 0 0 0⍴1: none):
+   //
+   // 1. if the width (the last axis) is 0, then every row (×/¯1↓⍴B) is
+   //    displayed as an empty line, without the blank lines between planes.
+   //
+   // 2. otherwise there are no rows (some other axis is 0) and only the
+   //    blank lines between planes remain: as for a non-empty value, j blank
+   //    lines between two consecutive items along the j-th axis counted
+   //    from the rows (1 between matrices, 2 between rank-3 blocks, ...).
+   //
+   // A huge number of lines (e.g. for 1E9 1E9 0⍴0) is not displayed at all
+   // (as before) rather than flooding the output (or exhausting memory).
+   //
+   enum { MAX_EMPTY_LINES = 100000 };
+const sRank rank = get_rank();
+   if (rank < 2)   return 0;
+
+ShapeItem lines = 0;
+   if (shape.get_last_shape_item() == 0)   // case 1.
+      {
+        lines = 1;
+        loop(r, rank - 1)
+           {
+             const ShapeItem len = shape.get_shape_item(r);
+             if (len > MAX_EMPTY_LINES)   return 0;
+             lines *= len;
+             if (lines > MAX_EMPTY_LINES)   return 0;
+           }
+        return lines;
+      }
+
+   // case 2. Axes 0 ... rank-3 are the plane axes; axis a separates its
+   // items by rank-2-a blank lines, and there are (×/⍴[⍳a]) × (⍴[a] - 1)
+   // such separators (none after an axis that is 0).
+   //
+ShapeItem outer = 1;   // ×/ of the plane axes before axis a
+   loop(a, rank - 2)
+      {
+        const ShapeItem len = shape.get_shape_item(a);
+        if (len == 0)   break;
+        if (len > MAX_EMPTY_LINES)   return 0;
+        lines += outer * (len - 1) * (rank - 2 - a);
+        outer *= len;
+        if (lines > MAX_EMPTY_LINES || outer > MAX_EMPTY_LINES)   return 0;
+      }
+   return lines;
 }
 //════════════════════════════════════════════════════════════════════════════
 ostream &

@@ -121,6 +121,7 @@
       ]FILE_CTL SKIP_APL2
       A←?99999 3⍴256
       ]FILE_CTL NO_SKIP
+      ]FILE_CTL SKIP_APL2   ⍝ random numbers differ between interpreters
       A←?99 3⍴256
       ]FILE_CTL NO_SKIP
       ⍴A⌹A

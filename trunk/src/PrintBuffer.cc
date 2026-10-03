@@ -28,6 +28,8 @@
 #include "Output.hh"
 #include "Performance.hh"
 #include "PointerCell.hh"
+#include "ComplexCell.hh"
+#include "FloatCell.hh"
 #include "PrintBuffer.hh"
 #include "PrintOperator.hh"
 #include "Value.hh"
@@ -295,24 +297,56 @@ vector<PrintBuffer> pcols;    pcols.reserve(cols);
        }
 
    // 1. init scaling, a vector with a bool per column that tells if the
-   //    column needs scaling (i.e. exponential format) or not. If there is
-   //    one item in a column that needs scaling, then the entire column shall
-   //    use the scaled format.
+   //    column needs scaling (i.e. exponential format) or not, as IBM APL2
+   //    does it (lrm p.12-13, and verified with IBM APL2 itself):
+   //
+   //    a. in a simple numeric array, one item that needs scaling makes the
+   //       entire column scaled. IBM APL2 stores such an array as a float
+   //       (or complex) array as soon as it contains one non-integer item,
+   //       and then its integers are scaled like floats (e.g. 163710 with
+   //       ⎕PP←5 in 163710 1.8E¯11 is 1.6371E5). In an integer array, ⎕PP
+   //       is ignored and nothing is scaled (lrm p.12).
+   //
+   //    b. in a mixed (character and number) or nested array, every item
+   //       keeps its own type and is formatted on its own: a float is scaled
+   //       if it needs it, an integer never; there is no column rule (e.g.
+   //       ¯84 stays ¯84 below 1.22E¯7 in a column of a mixed array).
    //
 #define huge_interrupted \
    (huge && (ii_count != InterruptContext::get_interrupt_count()))
 
-   loop(x, cols)
-   loop(y, rows)
-       {
-         if (huge_interrupted)   return true;
-         Cell cache;
-         if (value.get_cravel(x + y*cols, cache).need_scaling(pctx))
+bool simple_numeric = !nested;   // a. (else b.)
+bool float_storage  = false;     // a. with a non-integer item
+   loop(e, ec)
+      {
+        if (!simple_numeric)   break;
+        Cell cache;
+        const Cell & cell = value.get_cravel(e, cache);
+        if (!cell.is_numeric())             simple_numeric = false;
+        else if (!cell.is_integer_cell())   float_storage = true;
+      }
+   if (!simple_numeric)   float_storage = false;
+
+   if (simple_numeric)   // case a.
+      {
+        loop(x, cols)
+        loop(y, rows)
             {
-              scaling[x] = true;
-              break;
+              if (huge_interrupted)   return true;
+              Cell cache;
+              const Cell & cell = value.get_cravel(x + y*cols, cache);
+              const bool need = cell.is_integer_cell()
+                 ? float_storage &&
+                   FloatCell::need_scaling(APL_Float(cell.get_int_value()),
+                                           pctx.get_PP())
+                 : cell.need_scaling(pctx);
+              if (need)
+                 {
+                   scaling[x] = true;
+                   break;
+                 }
             }
-       }
+      }
 
    /* 2. create a matrix of items.
 
@@ -341,9 +375,26 @@ vector<PrintBuffer> pcols;    pcols.reserve(cols);
 
               PrintBuffer & item = item_matrix[y*cols + x];
               PrintContext pctx1 = pctx;
-              if (scaling[x])   pctx1.set_scaled();
               Cell cache;
               const Cell & cell = value.get_cravel(x + y*cols, cache);
+              if (simple_numeric)   // case a.: per column
+                 {
+                   if (scaling[x])   pctx1.set_scaled();
+                 }
+              else if (cell.is_complex_cell())   // case b.: per item
+                 {
+                   // the real part only: ComplexCell::character_
+                   // representation() scales the imaginary part on its
+                   // own (IBM APL2: 2.7J4E5, not 2.7E0J4E5)
+                   //
+                   if (FloatCell::need_scaling(cell.get_real_value(),
+                                               pctx.get_PP()))
+                      pctx1.set_scaled();
+                 }
+              else if (cell.need_scaling(pctx))   // case b.: per item
+                 {
+                   pctx1.set_scaled();
+                 }
               item = cell.character_representation(pctx1);
               if (!item.get_row_count())
                  {
@@ -395,49 +446,63 @@ vector<PrintBuffer> pcols;    pcols.reserve(cols);
          if (col_info_x.real_len<(col_info_x.int_len + col_info_x.denom_len))
             col_info_x.real_len = col_info_x.int_len + col_info_x.denom_len;
 
-        // If this column mixes numeric items with non-numeric (character
-        // or nested) items, then col_info_x.int_len above is contaminated:
-        // ColInfo::consider() merged "digits before the decimal point"
-        // (from numeric items) and "own total width" (from non-numeric
-        // items, which (ab)use int_len for that -- see the dual meaning
-        // documented in PrintBuffer.hh) as if they were one quantity, so a
-        // wide non-numeric item's width can leak into int_len and then get
-        // a fraction width appended after it as if it were a digit count.
+        // A column of a simple numeric array that contains complex numbers
+        // is formatted as two sub-columns (lrm p. 17-18): real parts and
+        // imaginary parts, each in the same format, and the J's aligned.
+        // That includes columns where no J is displayed (because all
+        // imaginary parts are too small, lrm p. 13): the real parts that
+        // ComplexCell::character_representation() returns then are not
+        // in the format of the column (e.g. 17.0300E0 for 17.03 below
+        // 1.3059E7).
         //
-        // Recompute the numeric items' own width cleanly (ignoring the
-        // non-numeric items) and float the result against the widest
-        // non-numeric item's own width instead, per ISO/IEC 13751
-        // 15.4.1's note on mixed-type arrays: "provide enough space in
-        // each column to contain the widest element" -- no more, no less.
-        // (Complex columns are excluded: the same note gives them their
-        // own, different rule, and are left untouched here.)
-        //
-        if ((col_info_x.flags & CT_NUMERIC)
-            && (col_info_x.flags & (CT_CHAR | CT_POINTER))
-            && !(col_info_x.flags & has_j))
+        bool complex_column = false;
+        if (simple_numeric)   loop(y, rows)
            {
-             ColInfo numeric_only;
-             int nonnum_len = 0;
+             Cell cache;
+             if (value.get_cravel(x + y*cols, cache).is_complex_cell())
+                {
+                  complex_column = true;
+                  break;
+                }
+           }
+
+        if (complex_column)
+           {
+             format_complex_column(value, x, pctx, item_matrix);
+             continue;
+           }
+
+        // In a mixed (character and number) or nested array, IBM APL2 does
+        // not align the numbers of a column to their decimal points, E's,
+        // or J's (nor pad them to a common format, see step 1 b.): every
+        // item is simply right-aligned to the width of the widest item of
+        // the column, e.g. 0.0059 below 7294149 takes 7 columns, not 12,
+        // and 600 below (⊂1 2) stays 600 (not 600.0E0) above 4.2E¯9.
+        // Character vectors in such a column are right-justified as well
+        // (lrm p. 19).
+        //
+        if (!simple_numeric && (col_info_x.flags & CT_NUMERIC))
+           {
+             int width = 0;
              loop(y, rows)
                 {
-                  const ColInfo & ci = item_matrix[y*cols + x].get_info();
-                  if (ci.flags & CT_NUMERIC)   numeric_only.consider(ci);
-                  else if (nonnum_len < ci.real_len)
-                     nonnum_len = ci.real_len;
+                  const int w = item_matrix[y*cols + x].get_column_count();
+                  if (width < w)   width = w;
                 }
 
-             col_info_x.int_len   = numeric_only.int_len;
-             col_info_x.fract_len = numeric_only.fract_len;
-             col_info_x.real_len  = numeric_only.real_len;
-             col_info_x.denom_len = numeric_only.denom_len;
-             col_info_x.imag_len  = numeric_only.imag_len;
-
-             if (nonnum_len > col_info_x.real_len)
+             loop(y, rows)
                 {
-                  const int extra = nonnum_len - col_info_x.real_len;
-                  col_info_x.int_len  += extra;
-                  col_info_x.real_len += extra;
+                  if (huge_interrupted)   return true;
+
+                  PrintBuffer & item = item_matrix[y*cols + x];
+                  const int diff = width - item.get_column_count();
+                  if (diff > 0)   item.pad_l(UNI_PAD_l_INT, diff);
+                  ColInfo & ci = item.get_info();
+                  ci.int_len  = width;   // as for a character item
+                  ci.fract_len = 0;
+                  ci.real_len = width;
                 }
+             continue;
            }
 
         loop(y, rows)
@@ -683,8 +748,15 @@ const Shape sh = value.get_shape().without_last_axis();
    //
    if (value.element_count() == 0)
       {
+        // an empty value of rank ≥ 2 has rows of width 0 if its last axis is
+        // 0, or otherwise (some other axis is 0) only the blank lines between
+        // its planes, as IBM APL2 displays it -- see cValue::empty_lines().
+        // Every line is empty (width 0), so the buffer stays rectangular.
+        //
+        const ShapeItem lines = value.empty_lines();
+        buffer.resize(lines);
         add_outer_frame(outer_style);
-        return;   // 0 rows
+        return;
       }
 
    // value has > 0 rows. Compute how many lines we need.
@@ -1511,6 +1583,164 @@ PrintBuffer::align_j(const ColInfo & COL_INFO)
       }
 
    Log(LOG_printbuf_align)   debug(CERR, "after align_j()");
+}
+//────────────────────────────────────────────────────────────────────────────
+void
+PrintBuffer::format_complex_column(const cValue & value, ShapeItem x,
+                                   const PrintContext & pctx,
+                                   PrintBuffer * item_matrix)
+{
+   // lrm p. 17: "Each column of a simple numeric array is formatted in the
+   // same way" and "decimal points, E's, and J's are aligned". The J's
+   // take precedence: the real part is directly left of the J (i.e. right-
+   // aligned) and the imaginary part directly right of it (left-aligned),
+   // so that a complex number never contains blanks. IBM APL2
+   // does that per part, i.e. the real parts of a column form one
+   // (sub-) column and the imaginary parts another one: each sub-column
+   // is scaled as a whole if one of its items needs it, and has the same
+   // number of fractional digits, e.g. (⎕PP←5):
+   //
+   //       6.00E2J1.0000E2         not:    6E2J100
+   //       0.00E0J7.3900E5                   0J7.39E5
+   //       6.16E3                          6160
+   //
+   // A real number (or a complex number whose imaginary part is not
+   // displayed, lrm p. 13) is a real part without J and imaginary part.
+   // A complex number whose real part is not displayed has real part 0.
+   //
+const ShapeItem cols = value.get_last_shape_item();
+const ShapeItem rows = value.element_count()/cols;
+std::vector<APL_Float> real(rows, 0.0);
+std::vector<APL_Float> imag(rows, 0.0);
+std::vector<bool> all_used(rows, true);
+std::vector<bool> has_imag(rows, false);
+
+   loop(y, rows)
+      {
+        Cell cache;
+        const Cell & cell = value.get_cravel(x + y*cols, cache);
+        if (cell.is_integer_cell())
+           {
+             real[y] = APL_Float(cell.get_int_value());
+             continue;
+           }
+
+        real[y] = cell.get_real_value();
+        if (!cell.is_complex_cell())   continue;
+
+        imag[y] = cell.get_imag_value();
+        switch(ComplexCell::exponent_rule(real[y], imag[y], pctx.get_PP()))
+           {
+             case ComplexCell::DP_REAL: break;
+             case ComplexCell::DP_IMAG: real[y] = 0.0;
+                                        has_imag[y] = true;
+                                        break;
+             default: has_imag[y] = !cell.is_near_real();
+           }
+      }
+
+bool any_imag = false;
+   loop(y, rows)   if (has_imag[y])   any_imag = true;
+
+   // without any J the column is formatted like a real column, i.e. with
+   // its decimal points and exponents aligned.
+   //
+std::vector<UCS_string> real_ucs(rows);
+std::vector<UCS_string> imag_ucs(rows);
+   format_sub_column(real, all_used, pctx, any_imag, real_ucs);
+   format_sub_column(imag, has_imag, pctx, true, imag_ucs);
+
+size_t real_len = 0;
+size_t imag_len = 0;
+   loop(y, rows)
+      {
+        if (real_len < real_ucs[y].size())   real_len = real_ucs[y].size();
+        if (has_imag[y] && imag_len < imag_ucs[y].size())
+           imag_len = imag_ucs[y].size();
+      }
+
+   loop(y, rows)
+      {
+        UCS_string ucs(real_len - real_ucs[y].size(), UNI_PAD_l_INT);
+        ucs << real_ucs[y];
+        if (has_imag[y])
+           {
+             ucs << UNI_J << imag_ucs[y]
+                 << UCS_string(imag_len - imag_ucs[y].size(), UNI_PAD_r_FRACT);
+           }
+        else if (imag_len)
+           {
+             ucs << UCS_string(1 + imag_len, UNI_PAD_r_FRACT);
+           }
+
+        ColInfo info;
+        info.flags = CT_COMPLEX | has_j;
+        info.int_len = real_len;
+        info.real_len = real_len;
+        info.imag_len = ucs.size() - real_len;
+        item_matrix[y*cols + x] = PrintBuffer(ucs, info);
+      }
+}
+//────────────────────────────────────────────────────────────────────────────
+void
+PrintBuffer::format_sub_column(const std::vector<APL_Float> & values,
+                               const std::vector<bool> & used,
+                               const PrintContext & pctx, bool trim,
+                               std::vector<UCS_string> & result)
+{
+bool scaled = false;
+   loop(y, values.size())
+      {
+        if (used[y] && FloatCell::need_scaling(values[y], pctx.get_PP()))
+           {
+             scaled = true;
+             break;
+           }
+      }
+
+PrintContext pctx1(pctx);
+   pctx1.set_style(scaled ? PrintStyle(pctx.get_style() |  PST_SCALED)
+                          : PrintStyle(pctx.get_style() & ~PST_SCALED));
+
+   // format the items like the items of a real column (steps 2. and 3. of
+   // do_PrintBuffer()), so that they get the same format (scaling and
+   // number of fractional digits).
+   //
+std::vector<PrintBuffer> items(values.size());
+ColInfo col_info;
+   loop(y, values.size())
+      {
+        if (!used[y])   continue;
+        items[y] = FloatCell(values[y]).character_representation(pctx1);
+        col_info.consider(items[y].get_info());
+      }
+   if (col_info.real_len < (col_info.int_len + col_info.denom_len))
+      col_info.real_len = col_info.int_len + col_info.denom_len;
+
+   loop(y, values.size())
+      {
+        if (!used[y])   continue;
+        items[y].align(col_info);
+
+        const UCS_string & line = items[y].get_line(0);
+        if (!trim)
+           {
+             result[y] = line;
+             continue;
+           }
+
+        // remove the alignment padding: the caller places the parts
+        // directly left and right of the J (lrm p. 18), so that no blanks
+        // occur inside a complex number.
+        //
+        size_t from = 0;
+        size_t to = line.size();
+        while (from < to && (line[from] == UNI_SPACE ||
+                             is_iPAD_char(line[from])))   ++from;
+        while (to > from && (line[to - 1] == UNI_SPACE ||
+                             is_iPAD_char(line[to - 1])))   --to;
+        result[y] = UCS_string(line, from, to - from);
+      }
 }
 //────────────────────────────────────────────────────────────────────────────
 void

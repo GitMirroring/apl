@@ -42,8 +42,10 @@ RE
 
       ⍝ Regression
 
+      ]FILE_CTL SKIP_APL2   ⍝ random numbers differ between interpreters
       A←?100⍴100
       B←?30⍴100
+      ]FILE_CTL NO_SKIP
       Z1←A∼B      ⍝ 30×100 = 3000 ⇒ small argument algorithm
       Z2←A∼B,B    ⍝ 30×100 = 3000 ⇒ large argument algorithm
       Z1≡Z2

@@ -63,6 +63,7 @@ Z←0 3⍴0
       Z←⍬∘.{⍺+⍵}'ab' ⋄ 2 ⎕TF 'Z'
 Z←0 2⍴' '
 
+      ]FILE_CTL SKIP_APL2   ⍝ lambdas are a GNU APL extension; ∪ ∩ ⍬ are GNU APL extensions
       Z←⍬∘.,1 2 3 ⋄ 2 ⎕TF 'Z'
 Z←0 3⍴(⊂2⍴0 0)
 
@@ -83,6 +84,7 @@ Z←0 3⍴(⊂2⍴0 0)
  2  2 3 
  3  3 4 
 
+      ]FILE_CTL NO_SKIP
       ⎕IO←1
 
       ⍝ ==================================

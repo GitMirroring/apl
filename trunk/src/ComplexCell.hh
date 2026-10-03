@@ -194,6 +194,22 @@ public:
    /// @param pctx print context controlling formatting
    virtual bool need_scaling(const PrintContext &pctx) const;
 
+   /// which parts of a complex number are displayed
+   enum Displayed_parts
+      {
+        DP_BOTH = 0,   ///< real and imaginary part
+        DP_REAL = 1,   ///< real part only
+        DP_IMAG = 2,   ///< imaginary part only
+      };
+
+   /// the parts of real J imag that are displayed according to the
+   /// exponent rule of lrm p. 13 (but not is_near_real())
+   /// @param real the real part
+   /// @param imag the imaginary part
+   /// @param quad_PP the print precision
+   static Displayed_parts exponent_rule(APL_Float real, APL_Float imag,
+                                        int quad_PP);
+
    /// overloaded Cell::bif_add_inverse()
    /// @param Z uninitialised result cell to be filled in
    /// @param A left argument cell

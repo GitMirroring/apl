@@ -7,9 +7,11 @@
       ⍝
       ⎕PP←15
       ⎕CT←0.1
+      ]FILE_CTL SKIP_APL2   ⍝ ⎕CT/⎕PP limits differ (documented)
       ⎕CT
 1E¯9
 
+      ]FILE_CTL NO_SKIP
       A←12
       D←1E¯12
 
@@ -88,6 +90,7 @@
  1 1 1   0 1 0   ≠_≠ 
  1 1 1   0 0 1   ≠≠_ 
 
+      ]FILE_CTL SKIP_APL2   ⍝ ⍳ with a vector argument is a GNU APL extension
       ⍳ CT_OP A
  1 1 1   1 2 2   _≠≠ 
  1 1 1   2 1 2   ≠_≠ 
@@ -102,6 +105,7 @@
 
       ⍝ other functions depending on ⎕CT ----------------------------------
 
+      ]FILE_CTL NO_SKIP
       ⎕CT←1E¯10
 
       ⌊ A

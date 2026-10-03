@@ -270,6 +270,7 @@ LENGTH ERROR+
 
       ⍝ control: ∪/⍬ (and ∩/⍬, ⍳/⍬, ⍷/⍬ the same way) were already right
       ⍝
+      ]FILE_CTL SKIP_APL2   ⍝ ∪ ∩ ⍬ are GNU APL extensions
       ∪/⍬
 LENGTH ERROR+
       ∪/⍬
@@ -282,6 +283,7 @@ LENGTH ERROR+
       ⍝ bare untyped scalar (≡Z 1, Z←0⍴0) instead of the identity item
       ⍝ every real position would have gotten (≡Z 2, Z←0⍴⊂⍬).
       ⍝
+      ]FILE_CTL NO_SKIP
       Z←,/0 0⍴0
       Z≡0⍴⊂⍬
 1

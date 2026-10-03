@@ -9,12 +9,14 @@ CLEAR WS
       A←1
 
       )ERASE OP1
+      ]FILE_CTL SKIP_APL2   ⍝ GNU APL-only function header
 ∇A (LO OP1 RO) B
 ∇
 
       )ERASE LL
 
       )ERASE FOO
+      ]FILE_CTL NO_SKIP
 ∇FOO
 LL: ⎕NC 6 3⍴' ÷ ÷  LL A  FOOOP1'
 ∇
@@ -22,6 +24,7 @@ LL: ⎕NC 6 3⍴' ÷ ÷  LL A  FOOOP1'
       FOO
 ¯1 ¯1 1 2 3 4
 
+      ]FILE_CTL SKIP_APL2   ⍝ ⎕NC of GNU APL names/classes differs
       ⎕NC 6 3⍴' ÷ ÷  LL A  FOOOP1'
 ¯1 ¯1 0 2 3 4
 
@@ -36,15 +39,18 @@ LL: ⎕NC 6 3⍴' ÷ ÷  LL A  FOOOP1'
       ⎕NC '⎕X'
 5
 
+      ]FILE_CTL NO_SKIP
       ⎕NC '⎕XX'
 ¯1
 
+      ]FILE_CTL SKIP_APL2   ⍝ ⎕NC of GNU APL names/classes differs
       ⎕NC'⎕'
 5
 
       ⎕NC'⍞'
 5
 
+      ]FILE_CTL NO_SKIP
       ⎕NC'⍞_'
 ¯1
 
@@ -55,6 +61,7 @@ LL: ⎕NC 6 3⍴' ÷ ÷  LL A  FOOOP1'
       ⍝ the Symbol/TC_SYMBOL path. Per ISO/IEC 13751 11.5.2, 5=system
       ⍝ variable, 6=system function.
       ⍝
+      ]FILE_CTL SKIP_APL2   ⍝ ⎕NC of GNU APL names/classes differs
       ⎕NC 3 3⍴'⎕EA⎕IO⎕KZ'
 6 5 ¯1
 
@@ -75,7 +82,9 @@ LL: ⎕NC 6 3⍴' ÷ ÷  LL A  FOOOP1'
       ⍝ the same bug as ⎕EX -- one shared root cause
       ⍝ (QuadFunction.cc's new quad_EX_NC_names()).
       ⍝
+      ]FILE_CTL NO_SKIP
       ZZ48NA←1 ⋄ ZZ48NB←2
+      ]FILE_CTL SKIP_APL2   ⍝ structured variables are a GNU APL extension; ⎕NC of GNU APL names/classes differs
       ⎕NC 'ZZ48NA' 'ZZ48NB'
 2 2
 
@@ -127,6 +136,7 @@ LL: ⎕NC 6 3⍴' ÷ ÷  LL A  FOOOP1'
       ⍝ written (the result loop runs 0 or 1 times either way) is an
       ⍝ incomplete value.
       ⍝
+      ]FILE_CTL NO_SKIP
       ⍴⎕NC 1 1⍴'A'
 1
 

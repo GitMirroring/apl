@@ -156,6 +156,7 @@ SYNTAX ERROR+
 
       ⍝ N÷0 variants
       ⍝
+      ]FILE_CTL SKIP_APL2   ⍝ lambdas are a GNU APL extension
       2 2.2 2J2  ∘.{(⎕EC (⍕⍺),"÷",(⍕⍵))[2]}  0 0.0 0J0
   5 4   5 4   5 4  
   5 4   5 4   5 4  
@@ -163,6 +164,7 @@ SYNTAX ERROR+
 
       ⍝ 0÷N variants
       ⍝
+      ]FILE_CTL NO_SKIP
       0 0.0 0J0  ∘.÷  2 2.2 2J2
 0 0 0
 0 0 0

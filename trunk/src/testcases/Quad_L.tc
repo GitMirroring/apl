@@ -19,6 +19,7 @@ F[1]  Z←(2×A)+3 4 5
       ⎕L
 12 14
 
+      ]FILE_CTL SKIP_APL2   ⍝ assigning ⎕L, ⎕R, ⎕PS is a GNU APL extension
       ⎕L←12 14 20
       →ι0
 15 18 25
@@ -26,6 +27,7 @@ F[1]  Z←(2×A)+3 4 5
       ⍝ ----------------------------------
 
       )ERASE FL
+      ]FILE_CTL NO_SKIP
 ∇ Z←FL A
   Z←(A×1 2 3)÷ρA
 ∇
@@ -41,6 +43,7 @@ FL[1]  Z←(A×1 2 3)÷⍴A
       ⎕L
 4 5
 
+      ]FILE_CTL SKIP_APL2   ⍝ assigning ⎕L, ⎕R, ⎕PS is a GNU APL extension
       ⎕L←4 5 6
       →ι0
 2 5 9

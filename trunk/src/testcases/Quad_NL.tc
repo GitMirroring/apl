@@ -23,10 +23,12 @@ CLEAR WS
       V3←3
 
       )ERASE OP1
+      ]FILE_CTL SKIP_APL2   ⍝ GNU APL-only function header
 ∇ (LO OP1 RO) B
 ∇
 
       )ERASE FOO
+      ]FILE_CTL NO_SKIP
 ∇FOO
 L1:
 L2:
@@ -61,12 +63,14 @@ L3
 
       ⍝ dyadic ----------------------------------
 
+      ]FILE_CTL SKIP_APL2   ⍝ ⎕LC/⎕NL depend on the test harness
       ⎕NL 2 3
 FOO
 V1 
 V2 
 V3 
 
+      ]FILE_CTL NO_SKIP
       'V' ⎕NL 2 3
 V1
 V2

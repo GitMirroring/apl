@@ -21,11 +21,13 @@
 140000 320000
 320000 770000
 
+      ]FILE_CTL SKIP_APL2   ⍝ lambdas are a GNU APL extension
       A {⍺+⍵}.{⍺×⍵} ⍉B
 140000 320000
 320000 770000
 
 
+      ]FILE_CTL NO_SKIP
       A +.× B
 LENGTH ERROR+
       A+.×B

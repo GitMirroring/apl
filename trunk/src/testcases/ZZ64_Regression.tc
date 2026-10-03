@@ -124,6 +124,7 @@ Bad number+
 DOMAIN ERROR
       8.110443181E299∧6.744967127E287
       ^               ^
+      ]FILE_CTL SKIP_APL2   ⍝ GCD/LCM (non-boolean ∧ ∨) is a GNU APL extension
       4∧6
 12
       1.5∧2.5
@@ -159,6 +160,7 @@ DOMAIN ERROR
       ⍝ true overflow -- so the ERANGE check wrongly rejected legitimate
       ⍝ subnormal literals like 4.9E¯324 as "Bad number". Fixed by relying
       ⍝ on isfinite() of the actual strtod() result instead of errno.)
+      ]FILE_CTL NO_SKIP
       2.5E¯306
 2.5E¯306
       2.5E¯306 = 0

@@ -7,6 +7,7 @@
       ⎕IO←1
       ⎕RL←100000
 
+      ]FILE_CTL SKIP_APL2   ⍝ random numbers differ between interpreters
       5?10
 7 9 1 4 6
       ⎕RL
@@ -14,7 +15,9 @@
       10?10
 3 4 5 1 8 6 7 2 10 9
 
+      ]FILE_CTL NO_SKIP
       ⎕IO←0
+      ]FILE_CTL SKIP_APL2   ⍝ random numbers differ between interpreters
       5?10
 5 4 6 0 9
       ⎕RL
@@ -22,4 +25,5 @@
       10?10
 3 6 5 8 2 4 1 9 7 0
 
+      ]FILE_CTL NO_SKIP
       ⎕IO←1
