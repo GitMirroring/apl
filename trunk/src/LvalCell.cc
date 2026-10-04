@@ -69,6 +69,18 @@ LvalCell::get_lval_value()  const
 }
 //────────────────────────────────────────────────────────────────────────────
 void
+LvalCell::throw_no_owner()
+{
+   MORE_ERROR() << "selective specification: the selected "
+                   "item has no single array that owns it as a "
+                   "whole (e.g. it was built by disclosing or "
+                   "enlisting more than one differently-shaped "
+                   "item, ⊃/∊/¨) and cannot be used as an "
+                   "assignment target this way";
+   DOMAIN_ERROR;
+}
+//────────────────────────────────────────────────────────────────────────────
+void
 LvalCell::check_consistency() const
 {
   if (value.lval)                      // valid owner
@@ -84,16 +96,7 @@ LvalCell::check_consistency() const
         // owner" -- is exactly what the check below assumes) rather than
         // dereferencing owner==0 a few lines down.
         //
-        if (value.pval.owner == 0)
-           {
-             MORE_ERROR() << "selective specification: the selected "
-                             "item has no single array that owns it as a "
-                             "whole (e.g. it was built by disclosing or "
-                             "enlisting more than one differently-shaped "
-                             "item, ⊃/∊/¨) and cannot be used as an "
-                             "assignment target this way";
-             DOMAIN_ERROR;
-           }
+        if (value.pval.owner == 0)   throw_no_owner();
 
         // a value with LvalCells can never be packed (try_pack() bails on
         // any non-simple cell type), so this fetch never touches cache

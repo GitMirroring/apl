@@ -125,7 +125,19 @@ Executable::execute_body() const
 StateIndicator & si = *Workspace::SI_top();
 
    try                       { return si.run();                             }
-   catch (const Error & err) { return Token(TOK_ERROR, err.get_error_code()); }
+   catch (const Error & err)
+      {
+        // The error has ended the current statement of si: it can only be
+        // restarted, not resumed, so a selective specification in progress
+        // in it can never complete. Neutralize the LvalCells (references
+        // into the target variable) in the values of its stack, rather than
+        // keeping them alive in the suspended statement until )SIC (Blake
+        // McBride, Bugs32 #25). Not earlier (e.g. when the error is thrown):
+        // an error caught inside a primitive does not end the statement.
+        //
+        si.get_prefix().neutralize_lval_values();
+        return Token(TOK_ERROR, err.get_error_code());
+      }
 
    catch (std::bad_alloc &)
       {

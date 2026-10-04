@@ -732,7 +732,8 @@ mac_def(Z__A_Quad_EB_B,
 "⍝\n"
 "     (μ7 μ8 μ9)←⎕EC μ6 ◊ ⍎μ2\n"
 "     1→μ7=0 ◊ 2→μ7=1 ◊ 3→μ7=2 ◊ →(μ7=3)/0 ◊ 4→μ7=4 ◊ 5→μ7=5\n"
-" ⎕ES μ8     ◊ →0                ⍝ error\n"
+  // μ9 is B's ⎕EM-like matrix (see Quad_ES::eval_AB())
+" μ9 ⎕ES μ8  ◊ →0                ⍝ error\n"
 " μ1←μ9      ◊ →0                ⍝ non-committed value\n"
 " ⎕ES 100 $FFFE   μ9            ⍝ committed value\n"
 " ⎕ES 100 $FFFD   μ9            ⍝ →N\n"

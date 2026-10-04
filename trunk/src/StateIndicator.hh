@@ -108,6 +108,15 @@ public:
         return safe_execution_depth > parent->safe_execution_depth;
       }
 
+   /// remember (for the )SI entry of the macro implementing A ⎕EB B) that
+   /// B has failed, see Error::update_error_info()
+   void set_EB_B_failure(const UCS_string & text)
+      { EB_B_failure = text; }
+
+   /// return the text set by set_EB_B_failure() (empty if B has not failed)
+   const UCS_string & get_EB_B_failure() const
+      { return EB_B_failure; }
+
    /// clear safe_execution mode
    void clear_safe_execution()
       {
@@ -281,6 +290,11 @@ protected:
           initiated ⎕ES (and to which the )SI stack shall be popped on error.
     */
    int safe_execution_depth;
+
+   /// for the macro implementing A ⎕EB B: the failure of B (if any), for
+   /// )MORE when A fails too. Kept here (rather than in the global )MORE
+   /// info) so that A cannot lose it and that it ends with the macro.
+   UCS_string EB_B_failure;
 
    /// see set_void_on_orphan_branch()
    bool void_on_orphan_branch = false;

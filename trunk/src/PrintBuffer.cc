@@ -381,16 +381,6 @@ bool float_storage  = false;     // a. with a non-integer item
                  {
                    if (scaling[x])   pctx1.set_scaled();
                  }
-              else if (cell.is_complex_cell())   // case b.: per item
-                 {
-                   // the real part only: ComplexCell::character_
-                   // representation() scales the imaginary part on its
-                   // own (IBM APL2: 2.7J4E5, not 2.7E0J4E5)
-                   //
-                   if (FloatCell::need_scaling(cell.get_real_value(),
-                                               pctx.get_PP()))
-                      pctx1.set_scaled();
-                 }
               else if (cell.need_scaling(pctx))   // case b.: per item
                  {
                    pctx1.set_scaled();
@@ -523,7 +513,7 @@ bool float_storage  = false;     // a. with a non-integer item
    PERFORMANCE_START(start_4)
 
    int last_col_spacing = 0;    // the col_spacing of the previous column
-   bool last_NOTCHAR = false;   // the notchar property of the previous column
+   bool last_non_char_col = false;   // the previous column has a non-char
 
    loop(x, cols)
       {
@@ -570,39 +560,47 @@ bool float_storage  = false;     // a. with a non-integer item
               dest.add_row(src);
             }
 
-        bool NOTCHAR = false;   // determined by Value::get_col_spacing()
-        const int col_spacing = value.get_col_spacing(NOTCHAR, x, framed);
+        // non_char_col: column x contains a number or a nested item. Not to
+        // be confused with the NOTCHAR function of lrm p. 138 (which is a
+        // property of an item, see cValue::NOTCHAR()). It only decides on
+        // which side of the column boundary the first blank goes, while
+        // col_spacing (computed from NOTCHAR of the items) decides how many
+        // blanks there are.
+        //
+        bool non_char_col = false;   // set by Value::get_col_spacing()
+        const int col_spacing = value.get_col_spacing(non_char_col, x,
+                                                      framed);
 
         const int max_spacing = (col_spacing > last_col_spacing) 
                                   ?  col_spacing : last_col_spacing;
-        int NOTCHAR_spaces = 0;   // the number of spaces added for NOTCHAR
+        int non_char_spaces = 0;   // the spaces added for non_char_col
 
         if (huge_interrupted)  return true;
 
         if (x)   // subsequent column
            {
-             if (last_NOTCHAR)
+             if (last_non_char_col)
                 {
-                  // the previous column was NOTCHAR, therefore so we append
+                  // the previous column has a non-char, therefore we append
                   // one pad char to the previous column.
                   //
                   pcols[x - 1].pad_r(UNI_PAD_r_NOTCHAR, 1);
-                  ++NOTCHAR_spaces;
+                  ++non_char_spaces;
                 }
-             else if (NOTCHAR)
+             else if (non_char_col)
                 {
-                  // the current column is NOTCHAR, therefore so we prepend
+                  // the current column has a non-char, therefore we prepend
                   // one pad to the current column.
                   //
                   dest.pad_l(UNI_PAD_l_NOTCHAR, 1);
-                  ++NOTCHAR_spaces;
+                  ++non_char_spaces;
                 }
 
              // we want a total spacing of 'max_spacing', but we
-             // do not count the 'NOTCHAR_spaces' chars ² and ³
+             // do not count the 'non_char_spaces' chars ² and ³
              // that were appended above.
              //
-             if (const int u7_pad_len = max_spacing - NOTCHAR_spaces)
+             if (const int u7_pad_len = max_spacing - non_char_spaces)
                 {
                    pcols[x - 1].pad_r(UNI_PAD_r_MAX, u7_pad_len);
                 }
@@ -611,7 +609,7 @@ bool float_storage  = false;     // a. with a non-integer item
         if (huge_interrupted)   return true;
 
         last_col_spacing = col_spacing;
-        last_NOTCHAR = NOTCHAR;
+        last_non_char_col = non_char_col;
       }
 
 #undef huge_interrupted
@@ -1635,7 +1633,7 @@ std::vector<bool> has_imag(rows, false);
              case ComplexCell::DP_IMAG: real[y] = 0.0;
                                         has_imag[y] = true;
                                         break;
-             default: has_imag[y] = !cell.is_near_real();
+             default: has_imag[y] = imag[y] != 0.0;   // lrm p. 13
            }
       }
 

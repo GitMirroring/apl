@@ -463,7 +463,12 @@ NumericCell::real_binomial(Cell * Z, const Cell * A) const
    // correctly, so this is purely an alternate route for large B, not
    // a behaviour change for small B.
    //
-   if (A->is_near_int())
+   // but not for a tiny nonzero K that merely rounds to 0 (the same
+   // rationale as A_snapped_nonzero above): the product below would be
+   // the empty product 1 (Blake McBride, Bugs32 #16, e.g. 1E¯11!2).
+   //
+   if (A->is_near_int() &&
+       !(A->get_near_int() == 0 && A->get_real_value() != 0.0))
       {
         const APL_Float r_A = A->get_real_value();
         if (r_A >= 0.0 && r_A <= 170.0)
@@ -490,7 +495,34 @@ const APL_Float r_1_B__A = r_1_B - A->get_real_value();
    if (r_1_B__A < 0.0 && is_near_int(r_1_B__A))   return E_DOMAIN_ERROR;
 
 const APL_Float gam_r_1_B = tgamma(r_1_B);
-   if (!isfinite(gam_r_1_B))   return E_DOMAIN_ERROR;
+   if (!isfinite(gam_r_1_B))
+      {
+        // Γ(1+B) alone overflows, but the quotient Γ(1+B)÷Γ(1+B-A) may
+        // well be finite, e.g. 1E¯11!1E20 ≈ 1.0000000004662892 (Blake
+        // McBride, Bugs32 #16) or 0.5!1E20 ≈ 1.128E10. For large
+        // x = 1+B-A (and positive Γ arguments), Stirling's series gives
+        // the difference of the logarithms without cancellation:
+        //
+        // lnΓ(x+A) - lnΓ(x) ≈ A×ln x + (x+A-½)×log1p(A÷x) - A + S(x+A) - S(x)
+        //
+        // with the remaining series S(y) = 1÷12y - 1÷360y³ + 1÷1260y⁵ (whose
+        // error is negligible for x > 20).
+        //
+        if (r_1_A > 0.0 && r_1_B__A > 20.0)
+           {
+             const APL_Float x = r_1_B__A;
+             const APL_Float a = A->get_real_value();
+             struct _S { static APL_Float S(APL_Float y)
+                { const APL_Float y2 = y*y;
+                  return (1.0/12.0 - (1.0/360.0 - 1.0/(1260.0*y2))/y2)/y; } };
+             const APL_Float diff = a*log(x) + (x + a - 0.5)*log1p(a/x) - a
+                                  + _S::S(x + a) - _S::S(x);
+             const APL_Float z = exp(diff - lgamma(r_1_A));
+             if (!isfinite(z))   return E_DOMAIN_ERROR;
+             return FloatCell::zF(Z, z);
+           }
+        return E_DOMAIN_ERROR;
+      }
 
 const APL_Float gam_r_1_A = tgamma(r_1_A);
    if (!isfinite(gam_r_1_A))   return E_DOMAIN_ERROR;

@@ -369,13 +369,23 @@ Value_P left_Z(get_shape(), loc);
 void
 Value::neutralize_lval_cells(const char * loc)
 {
-   loop(d, element_count())
+   // nz_element_count(), not element_count(): an empty value has its
+   // LvalCell in its prototype, e.g. ⍳0↑V. And LvalCells can also sit in
+   // nested items, e.g. under ⊂ in (⊂V)←9 9 (Blake McBride, Bugs32 #25).
+   // Only LvalCells are changed, so recursing into the items of an
+   // ordinary (right-) value has no effect.
+   //
+   loop(d, nz_element_count())
        {
          Cell & cell = get_wravel(d);
          if (cell.is_lval_cell())
             {
               cell.release(loc);
               new (&cell)   IntCell(0);
+            }
+         else if (cell.is_pointer_cell())
+            {
+              cell.get_pointer_value()->neutralize_lval_cells(loc);
             }
        }
 }
@@ -412,6 +422,11 @@ Value::assign_cellrefs(Value_P new_value)
    //
    if (Cell * slot = get_lval_pick_slot())
       {
+        // no owner: Pick from a value assembled across several nested
+        // items, e.g. (1⊃∊⌽¨N)←9 for a depth-3 N (Blake McBride, Bugs32 #1)
+        //
+        if (get_lval_pick_owner() == 0)   LvalCell::throw_no_owner();
+
         Value & owner = *get_lval_pick_owner();
         owner.depth_update_for_overwrite(slot - owner.ravel.cells,
                                 new_value->is_simple_scalar() ? -1 : 0);

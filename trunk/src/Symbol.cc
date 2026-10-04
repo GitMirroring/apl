@@ -1904,26 +1904,55 @@ Symbol::vector_assignment(std::vector<Symbol *> & symbols, Value_P values)
    if (!values->is_scalar() &&
        size_t(values->element_count()) != symbols.size())   LENGTH_ERROR;
 
+   // The assignment is atomic: if one of the names rejects its value
+   // (e.g. ⎕IO←99 in (X ⎕IO Y)←1 99 2) or anything else throws (e.g. WS
+   // FULL), then the names assigned before it get their old values back
+   // (Blake McBride, Bugs32 #19). Old values were valid, so restoring them
+   // cannot fail; a name without an old value becomes undefined again.
+   //
 const int incr = values->is_scalar() ? 0 : 1;
+std::vector<Value_P> old_values;
 ShapeItem idxV = 0;
-   loop(s, symbols.size())
+   try
       {
-        Symbol * sym = symbols[symbols.size() - s - 1];
-        Cell cache;
-        const Cell & cV = values->get_cravel(idxV, cache);
-        if (Value_P v = cV.try_pointer_value())
+        loop(s, symbols.size())
            {
-             sym->assign(v, true, LOC);
-           }
-        else
-           {
-             Value_P val(LOC);
-             val->next_ravel_Cell(cV);
-             val->check_value(LOC);
-             sym->assign(val, true, LOC);
-           }
+             Symbol * sym = symbols[symbols.size() - s - 1];
+             const NameClass nc = sym->get_NC();
+             if (nc == NC_VARIABLE || nc == NC_SYSTEM_VAR)
+                old_values.push_back(sym->get_apl_value());
+             else
+                old_values.push_back(Value_P());   // no old value
 
-        idxV += incr;   // scalar extend values
+             Cell cache;
+             const Cell & cV = values->get_cravel(idxV, cache);
+             if (Value_P v = cV.try_pointer_value())
+                {
+                  sym->assign(v, true, LOC);
+                }
+             else
+                {
+                  Value_P val(LOC);
+                  val->next_ravel_Cell(cV);
+                  val->check_value(LOC);
+                  sym->assign(val, true, LOC);
+                }
+
+             idxV += incr;   // scalar extend values
+           }
+      }
+   catch (...)
+      {
+        // restore the names assigned so far (the last one in old_values
+        // threw, i.e. was not assigned), in reverse order
+        //
+        for (ShapeItem s = ShapeItem(old_values.size()) - 2; s >= 0; --s)
+            {
+              Symbol * sym = symbols[symbols.size() - s - 1];
+              if (old_values[s])   sym->assign(old_values[s], true, LOC);
+              else                 sym->expunge();
+            }
+        throw;
       }
 }
 //════════════════════════════════════════════════════════════════════════════

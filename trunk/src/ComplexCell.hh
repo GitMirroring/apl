@@ -190,7 +190,8 @@ public:
    /// @param pctx print context controlling formatting
    virtual PrintBuffer character_representation(const PrintContext &pctx) const;
 
-   /// return true iff this cell needs scaling (exponential format) in pctx.
+   /// return true iff the real part of this cell needs scaling (exponential
+   /// format) in pctx (the imaginary part is scaled independently).
    /// @param pctx print context controlling formatting
    virtual bool need_scaling(const PrintContext &pctx) const;
 

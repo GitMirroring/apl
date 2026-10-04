@@ -506,7 +506,12 @@ IntCell::bif_maximum(Cell * Z, const Cell * A) const
 {
    if (A->is_integer_cell())
       return IntCell::bif_maximum_ii(Z, A->get_int_value(), value.ival);
-   if (A->is_real_cell())
+
+   // a complex A with an imaginary part of exactly 0 is real: compare it
+   // exactly at ⎕CT←0 (Blake McBride, Bugs32 #14) like a FloatCell A
+   //
+   if (A->is_real_cell() ||
+       (A->is_complex_cell() && A->get_imag_value() == 0.0))
       {
         if (Workspace::get_CT() == 0.0)
            {
@@ -535,7 +540,12 @@ IntCell::bif_minimum(Cell * Z, const Cell * A) const
 {
    if (A->is_integer_cell())
       return IntCell::bif_minimum_ii(Z, A->get_int_value(), value.ival);
-   if (A->is_real_cell())
+
+   // a complex A with an imaginary part of exactly 0 is real: compare it
+   // exactly at ⎕CT←0 (Blake McBride, Bugs32 #14) like a FloatCell A
+   //
+   if (A->is_real_cell() ||
+       (A->is_complex_cell() && A->get_imag_value() == 0.0))
       {
         if (Workspace::get_CT() == 0.0)
            {

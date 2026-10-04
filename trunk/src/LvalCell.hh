@@ -62,6 +62,10 @@ public:
    /// owns this Cell
    virtual void check_consistency() const;
 
+   /// throw a DOMAIN ERROR (with )MORE info) for a selective specification
+   /// whose target cell has no single array that owns it
+   static void throw_no_owner();
+
    /// overloaded Cell::init_other
    /// @param other       raw memory for the new cell to initialise
    /// @param cell_owner  value that will own the new cell

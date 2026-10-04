@@ -3564,13 +3564,31 @@ const int rk     = find_int_attr("rk",     false, 10);
          return;
       }
 
+   // a hand-edited or corrupted workspace (which )LOAD accepts with a
+   // warning only) must not create a malformed value, e.g. one with a
+   // negative axis (Blake McBride, Bugs32 #26)
+   //
+   if (rk < 0 || rk > MAX_RANK)
+      {
+        MORE_ERROR() << "corrupt workspace: Value vid=" << vid
+                     << " has invalid rank " << rk;
+        DOMAIN_ERROR;
+      }
+
 Shape sh_value;
    loop(r, rk)
       {
         char sh[20];
         SPRINTF(sh, "sh-%d", int(r));
         const UTF8 * sh_r = find_mandatory_attr(sh);
-        sh_value.add_shape_item(u8::atoll(sh_r));
+        const ShapeItem sh_item = u8::atoll(sh_r);
+        if (sh_item < 0)
+           {
+             MORE_ERROR() << "corrupt workspace: Value vid=" << vid
+                          << " has negative shape item " << sh_item;
+             DOMAIN_ERROR;
+           }
+        sh_value.add_shape_item(sh_item);
       }
 
    /* if:

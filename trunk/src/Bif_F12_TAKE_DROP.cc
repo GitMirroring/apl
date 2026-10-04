@@ -56,6 +56,12 @@ Shape ravel_A1(A, /* ⎕IO */ 0);   // checks 1 ≤ ⍴⍴A and ⍴A ≤ MAX_RAN
         // set_shape() below would permanently reshape the caller's B.
         Value_P B1 = B.clone(LOC);
         B1->set_shape(shape_B1);
+
+        // the clone must remain a left value, like B: otherwise e.g.
+        // (∊¨0↑V)←9 for a scalar V was a SYNTAX ERROR, while the same
+        // for a vector V is a no-op (Blake McBride, Bugs32 #17).
+        //
+        if (B.is_left_value())   B1->set_left_value();
         return Token(TOK_APL_VALUE1, do_take(ravel_A1, *B1, false));
       }
    else

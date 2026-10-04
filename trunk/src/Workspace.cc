@@ -1056,6 +1056,7 @@ InputFile fam(filename, file, false, false, true, with_LX);
         loop(o, object_filter->size())
             fam.copy_filter.add_filter_object((*object_filter)[o]);
         fam.copy_filter.set_protection(protection);
+        fam.copy_filter.set_copying();
         fam.set_COPY();
         ++Bif_F1_EXECUTE::copy_pending;
       }
@@ -1352,12 +1353,18 @@ XML_Loading_Archive in(out, err, filename.c_str(), dump_fd);
            }
         catch (Error & err)
            {
+             // the specific reason (e.g. a bad )SI stack, or a negative
+             // shape item (Bugs32 #26)), if the reader gave one
+             const UCS_string reason = Workspace::more_error();
              the_workspace.clear_WS(out, true);
              out << ")LOAD " << lib_name.get_name() << " failed: "
                  << Error::error_name(err.get_error_code()) << endl;
-             MORE_ERROR() << "workspace file " << filename
-                          << " is corrupt (bad )SI stack) and was not"
-                             " loaded; the workspace is CLEAR WS";
+             UCS_string & more = MORE_ERROR();
+             more.clear();
+             more << "workspace file " << filename
+                  << " is corrupt and was not loaded; the workspace is"
+                     " CLEAR WS";
+             if (reason.size())   more << UNI_LF << reason;
              return;
            }
         catch (...)
@@ -1439,13 +1446,18 @@ XML_Loading_Archive in(out, err, filename.c_str(), dump_fd);
       }
    catch (Error & err)
       {
+        // the specific reason, if the reader gave one (e.g. Bugs32 #26)
+        const UCS_string reason = Workspace::more_error();
         in.copy_restore_snapshots();
         CERR << ")COPY " << lib_name.get_name() << " failed: "
              << Error::error_name(err.get_error_code()) << endl;
-        MORE_ERROR() << "workspace file " << filename
-                     << " is corrupt; )COPY was aborted and every symbol"
-                        " already copied from it was restored to its"
-                        " pre-)COPY state";
+        UCS_string & more = MORE_ERROR();
+        more.clear();
+        more << "workspace file " << filename
+             << " is corrupt; )COPY was aborted and every symbol"
+                " already copied from it was restored to its"
+                " pre-)COPY state";
+        if (reason.size())   more << UNI_LF << reason;
       }
 }
 //════════════════════════════════════════════════════════════════════════════

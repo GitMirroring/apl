@@ -207,9 +207,24 @@ bool in_string = false;
                         DOMAIN_ERROR;
                       }
 
-                   int num = 0;
+                   // at most #x7FFFFFFF, the largest value that ⎕UCS
+                   // itself accepts (UTF-8 as of RFC 2279), so that every
+                   // character that ⎕UCS can produce survives 2 ⎕TF. Checked
+                   // while the digits are accumulated (in 64 bits) so that a
+                   // corrupted or crafted record cannot overflow num into a
+                   // garbage character (Blake McBride, Bugs32 #30)
+                   //
+                   int64_t num = 0;
                    while (u < len && ucs[u] >= '0' && ucs[u] <= '9')
-                      { num *= 10;   num += ucs[u++] - '0'; }
+                      {
+                        num *= 10;   num += ucs[u++] - '0';
+                        if (num > 0x7FFFFFFF)
+                           {
+                             MORE_ERROR() << "(⎕UCS ...) in ⎕TF record "
+                                             "exceeds the range of ⎕UCS";
+                             DOMAIN_ERROR;
+                           }
+                      }
 
                    ret << Unicode(num);
                   }
@@ -299,7 +314,14 @@ const Symbol * symbol = obj->get_symbol();
 void
 Quad_TF::tf2_char_vec(UCS_string & ucs, const UCS_string & vec)
 {
-   if (vec.size() == 0)   return;
+   if (vec.size() == 0)   // an empty function line
+      {
+        // must not vanish from the ⎕FX strand: that renumbered the lines
+        // after it and re-aimed →N branches (Blake McBride, Bugs32 #9)
+        //
+        ucs << UNI_SINGLE_QUOTE << UNI_SINGLE_QUOTE;
+        return;
+      }
 
    // A vec containing at least one character needing ⎕UCS produces a
    // multi-token catenation, e.g. 'text ',(⎕UCS 8900),' more text' --
@@ -1044,8 +1066,13 @@ const ShapeItem ec = val->element_count();
                        ucs << cell.get_int_value();
                        if (ucs[sign_pos] == '-')   ucs[sign_pos] = UNI_OVERBAR;
                      }
-                  else if (cell.is_near_real())
+                  else if (cell.is_numeric() && !(cell.is_complex_cell() &&
+                                                  cell.get_imag_value() != 0.0))
                      {
+                       // real, or complex with an imaginary part of exactly
+                       // 0: 1 ⎕TF must never drop a nonzero imaginary part
+                       // (Blake McBride, Bugs32 #13), unlike is_near_real().
+                       //
                        PrintContext pctx(PR_APL_MIN, Quad_PP_TF, MAX_Quad_PW);
                        bool scaled = true;
                        UCS_string ucs1(cell.get_real_value(), scaled, pctx);
@@ -1104,7 +1131,7 @@ const ShapeItem ec = val->element_count();
                   bool scaled = true;
                   UCS_string ucs1(val->get_real_value(e), scaled, pctx);
                   ucs << ucs1;
-                  if (!val->is_near_real(e))
+                  if (val->get_imag_value(e) != 0.0)   // Bugs32 #13
                      {
                        ucs << UNI_J;
                        scaled = true;

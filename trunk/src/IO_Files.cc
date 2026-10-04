@@ -428,6 +428,19 @@ InputFile * input = InputFile::current_file();
    if (file_line.size() == 0 && !input->bom_checked)
       {
         input->bom_checked = true;
+
+        // The first read of a file (opened by fopen() or, for )COPY, by
+        // fdopen()): it starts without ]FILE_CTL skipping, even if the
+        // input source that opened it was skipping (e.g. the console that
+        // issued a )COPY): the skip mode belongs to the file that set it
+        // (Blake McBride, Bugs32 #10: ]FILE_CTL SKIP_ALL followed by )COPY
+        // silently imported nothing). The opener's skip mode is restored
+        // by InputFile::close_current_file(), so that a file that ends
+        // while skipping never swallows the lines of its opener, and )COPY
+        // can be nested to any depth.
+        //
+        input->saved_skip_mode = skip_mode;
+        skip_mode = SKIP_NONE;
         const int b0 = fgetc(input->file);
         if (b0 == 0xEF)
            {
@@ -452,6 +465,8 @@ InputFile * input = InputFile::current_file();
             {
               if (file_line.size())   break;   // EOF, but we have chars
 
+              // the ]FILE_CTL skip mode is restored when the file is
+              // closed, see InputFile::close_current_file()
               eof = true;
               return;
             }

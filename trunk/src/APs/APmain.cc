@@ -188,8 +188,10 @@ main(int argc, char * argv[])
 bool need_help = false;
 bool auto_started = false;
 
-   // Bugs8 #3 (Blake McBride): src/main.cc sets SIGCHLD to SIG_IGN ("do
-   // not create zombies") before execve()ing this AP binary. SIG_IGN
+   // Bugs8 #3 (Blake McBride): src/main.cc used to set SIGCHLD to SIG_IGN
+   // ("do not create zombies") before execve()ing this AP binary. (Since
+   // Bugs32 #11 it installs a handler instead, which execve() resets to
+   // SIG_DFL, but an AP may also be started by other programs.) SIG_IGN
    // survives execve() (POSIX), so without this reset every AP linked
    // against this shared main() (AP100, AP210 -- see APs/Makefile.am's
    // common_files) inherits it, and any raw popen()/pclose() it does

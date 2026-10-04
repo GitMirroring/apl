@@ -96,7 +96,7 @@ LENGTH ERROR
       ⍝ unchanged, i.e. 64-bit integers and 64-bit floats.
       ⍝
       ∇Z←F32 X;E
-       ⍝ X is exactly an IEEE 32-bit float (24-bit mantissa)
+       ⍝ all items of X are exactly IEEE 32-bit floats (24-bit mantissa)
        E←⌊2⍟|X+X=0 ◊ Z←∧/,(⌊M)=M←(|X)÷2⋆E-23
       ∇
 
@@ -106,11 +106,11 @@ LENGTH ERROR
 1 1 1
 
       F←⎕RVAL 1 (,1000) (0 0 1 0 0)
-      (∧/(F≥0)∧F<1) (∧/F32¨F)
+      (∧/(F≥0)∧F<1) (F32 F)
 1 1
 
       C←⎕RVAL 1 (,5000) (0 0 0 1 0)
-      (∧/F32¨9○C) (∧/F32¨11○C)
+      (F32 9○C) (F32 11○C)
 1 1
 
       ⍴∪⎕RVAL 1 (,5000) (1 0 0 0 0)
@@ -122,7 +122,7 @@ LENGTH ERROR
 1
 
       F←⎕RVAL 1 (,1000) (0 0 1 0 0)
-      ∧/F32¨F
+      F32 F
 0
 
       )ERASE F32 X I F C

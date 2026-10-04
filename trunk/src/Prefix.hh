@@ -189,6 +189,10 @@ public:
    /// @param next token class of the upcoming lookahead token
    bool do_shift(TokenClass next) const;
 
+   /// neutralize the LvalCells in the left values on the stack (after an
+   /// error in the statement)
+   void neutralize_lval_values();
+
    /// return the current assignment state
    Assign_state get_assign_state() const
       { return assign_state; }
@@ -563,6 +567,10 @@ protected:
 
    /// the action to be taken after returning from a reduce_XXX() function
    R_action action;
+
+   /// true if ⎕EA or ⎕EB, called in the current statement, has delivered
+   /// an escape (→ in B): the statement is abandoned (see reduce_body())
+   bool escape_pending;
 
    /// the best (longest) phrase that matches the current stack,
    /// or 0 if no phrase matches (so the parser will SHIFT)

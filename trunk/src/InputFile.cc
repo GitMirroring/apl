@@ -48,6 +48,26 @@ InputFile::COPY_filter::check_filter(const UTF8_string & line)
 UCS_string ucs_line(line);
    ucs_line.remove_leading_and_trailing_whitespaces();
 
+static const UCS_string struct_start(UTF8_string("⍝ structured variable "));
+static const UCS_string struct_end(UTF8_string("⍝ end of structured variable "));
+
+   // a plain )COPY (no object filter, no )PCOPY protection): every line is
+   // copied, but an existing variable S is replaced as a whole by the
+   // structured variable S of the file (see below).
+   //
+   if (!has_object_filter() && !protection)
+      {
+        if (ucs_line.starts_with(struct_start))
+           {
+             UCS_string var_name(ucs_line, struct_start.size(),
+                                 ucs_line.size() - struct_start.size());
+             var_name.remove_leading_and_trailing_whitespaces();
+             if (Symbol * sym = Workspace::lookup_existing_symbol(var_name))
+                if (sym->get_NC() == NC_VARIABLE)   sym->expunge();
+           }
+        return true;
+      }
+
    /* if we are in a function or in a variable (matched or not) then look for
       the end of the function or variable and return the current state (aka.
       in_matched)...
@@ -74,9 +94,59 @@ UCS_string ucs_line(line);
         return ret;
       }
 
+   // a structured variable S, written by Symbol::dump() as a block:
+   //
+   // ⍝ structured variable S
+   //   S.b←2
+   //   S.a←1
+   // ⍝ end of structured variable S
+   //
+   // The block (as a whole) belongs to S, not to the names of its member
+   // lines (Blake McBride, Bugs32 #8).
+   //
+   if (where == WH_in_struct)
+      {
+        if (ucs_line.starts_with(struct_end))   // end of the block
+           {
+             where = WH_outside;
+             const bool ret = in_matched;
+             in_matched  = false;
+             return ret;
+           }
+        return in_matched;
+      }
+
    /* at this point we are outside any function or variable.
       Look for the start of a new function or variable...
     */
+   if (ucs_line.starts_with(struct_start))   // new structured variable
+      {
+        where = WH_in_struct;
+        UCS_string var_name(ucs_line, struct_start.size(),
+                            ucs_line.size() - struct_start.size());
+        var_name.remove_leading_and_trailing_whitespaces();
+
+        bool selected = object_filter.size() == 0;   // no filter: all names
+        loop(n, object_filter.size())
+           {
+             if (var_name == object_filter[n])   { selected = true;   break; }
+           }
+
+        if (selected)
+           if (Symbol * sym = Workspace::lookup_existing_symbol(var_name))
+              {
+                // )PCOPY: do not overwrite an already existing object.
+                // )COPY: replace an existing variable S as a whole, so
+                // that neither a plain variable S (whose member lines
+                // would fail) nor old members of S survive.
+                //
+                if (protection)                         selected = false;
+                else if (sym->get_NC() == NC_VARIABLE)  sym->expunge();
+              }
+
+        return in_matched = selected;
+      }
+
    if (ucs_line.size() && (ucs_line.front() == UNI_NABLA))   // new function
       {
         where = WH_in_function;
@@ -172,6 +242,16 @@ InputFile::close_current_file()
 
         if (files_todo[0].file)   // and the first file is open
            {
+             // restore the ]FILE_CTL skip mode of the input source that
+             // opened this file, saved at the first read of this file (see
+             // IO_Files::read_file_line()). This is the end of the file in
+             // every case: EOF, ]NEXTFILE, or a testcase file aborted after
+             // an error.
+             //
+             if (files_todo[0].bom_checked)   // i.e. the mode was saved
+                IO_Files::skip_mode =
+                          IO_Files::Skip_mode(files_todo[0].saved_skip_mode);
+
              if (files_todo[0].file != stdin)
                 {
                   fclose(files_todo[0].file);

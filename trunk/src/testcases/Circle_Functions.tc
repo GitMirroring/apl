@@ -303,14 +303,21 @@ DOMAIN ERROR
       0○2
 0J1.7320508075688772
 
+      ⍝ (the small real parts below are no longer dropped, Bugs32 #27:
+      ⍝ 0○2J1E¯11 ≈ 1.1547E¯11J¯1.7321, ¯4○0.1J¯1E¯11 ≈ 1.005E¯12J¯0.99499)
+      ⍝
+      ⎕PP←10   ⍝ (at ⎕PP←10 the tiny part is not displayed, lrm p. 13)
       0○2J1E¯11
-0J¯1.7320508075688772
+0J¯1.732050808
+      ⎕PP←17
 
       ¯4○0.1
 0J0.99498743710661997
 
+      ⎕PP←10
       ¯4○0.1J¯1E¯11
-0J¯0.99498743710661997
+0J¯0.9949874371
+      ⎕PP←17
 
       ⍝ regression (Blake McBride, Bugs31 #14): ¯7○'s (arctanh) r2127
       ⍝ near-zero-imaginary shortcut discarded b.imag() unconditionally,
@@ -324,8 +331,9 @@ DOMAIN ERROR
 1
       )ERASE Z
 
-      ⍝ control: an ordinary near-real argument away from ±1 still takes
-      ⍝ the (cheap, exact) real-only shortcut
+      ⍝ control: an ordinary near-real argument away from ±1, compared
+      ⍝ within ⎕CT: the last digit at ⎕PP←17 depends on the libm (its
+      ⍝ correctly rounded value is 0.54930614433405489, Bugs32 #33)
       ⍝
-      ¯7○0.5J1E¯11
-0.54930614433405478
+      (¯7○0.5J1E¯11) = 0.54930614433405484J1.3333333333333333E¯11
+1

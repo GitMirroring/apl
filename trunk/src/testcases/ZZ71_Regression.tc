@@ -232,11 +232,12 @@ Z←0⍴0
       ⍝ actual value -- it now genuinely evaluates LO (here 1+0, since
       ⍝ A's broadcast chunk is 1 and B's synthetic chunk is B's own
       ⍝ prototype 0), matching real Rank-operator implementations
-      ⍝ (confirmed against Dyalog APL) and giving Z the prototype +
-      ⍝ would actually produce, not a generic default.
+      ⍝ (confirmed against Dyalog APL) and giving Z the shape +
+      ⍝ would actually produce, not a generic default. The prototype
+      ⍝ is the TYPE of that result (Blake McBride, Bugs32 #18).
       ⍝
       Z←(1 2 3)(+⍤1)0 3⍴0 ⋄ 2⎕TF 'Z'
-Z←0 3⍴1
+Z←0 3⍴0
       )ERASE Z
       Z←(⍴⍤1)0 3⍴0 ⋄ 2⎕TF 'Z'
 Z←0 1⍴0
@@ -1135,6 +1136,754 @@ OK      - no stale functions
 OK      - no stale values
 OK      - no stale indices
 OK      - no duplicate parents
+
+      ⍝ ═══════════════════════════════════════════════════════════════
+      ⍝ Blake McBride's Bugs32 report (r2131), group A
+      ⍝ ═══════════════════════════════════════════════════════════════
+      ⍝
+      ⍝ regression (Bugs32 #1): Pick of an enlisted each/disclose of a
+      ⍝ depth-3 variable segfaulted (Pick marker with a 0 owner).
+      ⍝
+      N←((1 2)(3 4))((5 6)(7 8))
+      (1⊃∊⌽¨N)←9
+SYNTAX ERROR+
+      (1⊃ϵ⌽¨N)←9
+      ^        ^
+
+
+
+      )SIC
+      (1⊃∊⊃N)←9
+SYNTAX ERROR+
+      (1⊃ϵ⊃N)←9
+      ^       ^
+
+
+
+      )SIC
+      ⍝ regression (Bugs32 #3): a selector applied to ∊⊃N failed the
+      ⍝ Cell::init_other() assertion (∊ wrote fewer cells than it counted)
+      ⍝
+      (⊂∊⊃N)←9
+SYNTAX ERROR+
+      (⊂ϵ⊃N)←9
+      ^      ^
+
+
+
+      )SIC
+      (⌽∊⊃N)←9
+SYNTAX ERROR+
+      (⌽ϵ⊃N)←9
+      ^      ^
+
+
+
+      )SIC
+      N
+  1 2  3 4    5 6  7 8  
+
+
+      )ERASE N
+      ⍝ regression (Bugs32 #2): →N in B of ⎕EA/⎕EB inside an operator
+      ⍝ hung (→1) or returned garbage (→0)
+      ⍝
+      (⊂'5') ⎕EA¨ ⊂'→1'
+5
+
+
+      (⊂'5') ⎕EA¨ ⊂'→0'
+5
+
+
+      (⊂'5') ∘.⎕EA ⊂'→1'
+5
+
+
+      (⊂'5') ⎕EB¨ ⊂'→2'
+SYNTAX ERROR+
+      (⊂'5')⎕EB¨⊂'→2'
+      ^        ^
+
+
+
+      )SIC
+      )CHECK
+OK      - no stale functions
+OK      - no stale values
+OK      - no stale indices
+OK      - no duplicate parents
+
+
+
+      ⍝ ═══════════════════════════════════════════════════════════════
+      ⍝ Blake McBride's Bugs32 report (r2131), group B
+      ⍝ ═══════════════════════════════════════════════════════════════
+      ⍝
+      ⍝ regression (Bugs32 #5): the near-real ¯4○ shortcut negated the real
+      ⍝ part for |Re B| ≥ 1, and had the wrong imaginary sign at Re B = 0
+      ⍝
+      (9○¯4○2J0 ¯2J0 2J¯1E¯11) = ¯4○2   ⍝ the real parts (Im since #27)
+1 1 1
+
+
+      ×11○¯4○0J1E¯11 0J¯1E¯11 0J1E¯9 0J¯1E¯9
+1 ¯1 1 ¯1
+
+
+      ⍝ regression (Bugs32 #6): A÷B silently gave 0 when |Re B|+|Im B|
+      ⍝ overflowed
+      ⍝
+      ×9 11∘.○1÷1E308J1E308
+1 ¯1
+
+
+      ×9 11∘.○1J1÷1E308J1E308
+1 0
+
+
+      ⍝ regression (Bugs32 #7): (⍬⌷[⍬]V)←B replaced V wholesale
+      ⍝
+      V←1 2 3 ◊ (⍬⌷[⍬]V)←9 ◊ V
+9 9 9
+
+
+      V←1 2 3 ◊ (⍬⌷[⍬]V)←9 8
+LENGTH ERROR+
+      (⍬⌷[⍬]V)←9 8
+      ^        ^
+      )SIC
+
+
+
+      V
+1 2 3
+
+
+      ⍝ regression (Bugs32 #9): 2⎕TF deleted empty function lines
+      ⍝
+      ⊣⎕FX 'Z←FD' 'Z←0' '' '→5' 'Z←1' 'Z←2'
+
+
+
+      T←2 ⎕TF 'FD' ◊ ⊣⎕EX 'FD' ◊ ⊣2 ⎕TF T ◊ T
+⎕FX 'Z←FD' 'Z←0' '' '→5' 'Z←1' 'Z←2'
+
+
+      FD
+2
+
+
+      )ERASE FD T
+
+
+
+      ⍝ regression (Bugs32 #12): ¯1○/¯2○ overflowed above 1.34E154 and
+      ⍝ cancelled catastrophically for large Re B with a small Im B > 0
+      ⍝
+      ⎕PP←10
+
+
+
+      ¯1○1E155
+1.570796327J¯357.5938366
+
+
+      ¯2○1E155
+0J357.5938366
+
+
+      9 11∘.○¯1○1E9J1E¯11
+1.570796327 21.41641302
+
+
+      ⍝ regression (Bugs32 #13): the fixed 1E¯10 near-real band dropped a
+      ⍝ representable imaginary part even at the maximum ⎕PP, and 1 ⎕TF
+      ⍝ lost it for good
+      ⍝
+      ⎕PP←17
+
+
+
+      9007199254740992J1000
+9007199254740992J1000
+
+
+      V←2⍴9007199254740992J1000
+
+
+
+      T←1 ⎕TF 'V' ◊ ⊣⎕EX 'V' ◊ ⊣1 ⎕TF T ◊ 11○V
+1000 1000
+
+
+      ⍝ regression (Bugs32 #14/#15): ⌈ ⌊ | of a large integer and a
+      ⍝ complex number with imaginary part 0, or an integral float, were
+      ⍝ computed through double at ⎕CT←0
+      ⍝
+      ⎕CT←0
+
+
+
+      9007199254740993⌈9007199254740992J0
+9007199254740993
+
+
+      9007199254740995⌊9007199254740996J0
+9007199254740995
+
+
+      9007199254740993|9007199254740992J0
+9007199254740992
+
+
+      9007199254740993|9007199254740994.0
+1
+
+
+      ⎕CT←1E¯13
+
+
+
+      ⎕PP←10
+
+
+
+      ⍝ regression (Bugs32 #16): K!N snapped a tiny nonzero K to 0
+      ⍝
+      1<1E¯11!2
+1
+
+
+      (1E¯11!1E20) > 1
+1
+
+
+      ⍝ regression (Bugs32 #17): scalar member targets were no left values;
+      ⍝ an empty selection of a scalar variable was a SYNTAX ERROR
+      ⍝
+      S.a←5 ◊ (1↓S.a)←9 ◊ S.a
+5
+
+
+      V←5 ◊ (∊¨0↑V)←9 ◊ V
+5
+
+
+      S.a←5 ◊ (⍳S.a)←9
+SYNTAX ERROR
+      (⍳S.a)←9
+       ^     ^
+      )SIC
+
+
+
+      )ERASE S V
+
+
+
+      ⍝ regression (Bugs32 #19): vector assignment was not atomic
+      ⍝
+      X←5 ◊ (X ⎕IO Y)←1 99 2
+DOMAIN ERROR
+      (X ⎕IO Y)←1 99 2
+             ^  ^
+      )SIC
+
+
+
+      X (⎕NC 'Y') ⎕IO
+5 0 1
+
+
+      )ERASE X T
+
+
+
+      )CHECK
+OK      - no stale functions
+OK      - no stale values
+OK      - no stale indices
+OK      - no duplicate parents
+
+
+
+      ⍝ ═══════════════════════════════════════════════════════════════
+      ⍝ Blake McBride's Bugs32 report (r2131), group B (files)
+      ⍝ ═══════════════════════════════════════════════════════════════
+      ⍝
+      ⍝ WRITE (name lines): write a small .apl file (a )DUMP file only
+      ⍝ needs to start with #!). )COPY prints the file's modification
+      ⍝ time (DUMPED ...), matched by ³ below.
+      ⍝
+∇WRITE B;H;N;T
+ (N T)←B
+ H←'w' ⎕FIO[3] N
+ ⊣(∊T,¨⊂⎕UCS 10) ⎕FIO[23] H
+ ⊣⎕FIO[4] H
+∇
+
+
+
+      ⍝ regression (Bugs32 #8): )PCOPY/)COPY of a structured variable took
+      ⍝ the names of its member lines (S.b) instead of S
+      ⍝
+      F8←'/tmp/ZZ71_Bugs32_8.apl'
+
+
+
+      WRITE F8 ('#!./apl --script' '⍝ structured variable S' '  S.b←2' '  S.a←1' '⍝ end of structured variable S' 'X←7')
+
+
+
+      S.a←99
+
+
+
+      )PCOPY /tmp/ZZ71_Bugs32_8.apl
+DUMPED ³
+
+
+
+      S.a (⎕NC 'X')            ⍝ )PCOPY did not overwrite S
+99 2
+
+
+
+      )ERASE S X
+
+
+
+      S←5
+
+
+
+      )COPY /tmp/ZZ71_Bugs32_8.apl S
+DUMPED ³
+
+
+
+      S.a S.b (⎕NC 'X')        ⍝ S replaced as a whole, only S copied
+1 2 0
+
+
+
+      )ERASE S
+
+
+
+      ⍝ regression (Bugs32 #10): a )COPY'd file that ended while ]FILE_CTL
+      ⍝ skipping swallowed the rest of the calling file (this one)
+      ⍝
+      F10←'/tmp/ZZ71_Bugs32_10.apl'
+
+
+
+      WRITE F10 ('#!./apl --script' 'Z1←1' ']FILE_CTL SKIP_ALL' 'Z2←2')
+
+
+
+      )COPY /tmp/ZZ71_Bugs32_10.apl
+DUMPED ³
+
+
+
+      Z1 (⎕NC 'Z2')
+1 0
+
+
+
+      )ERASE Z1
+
+
+
+      ⍝ the skip mode of the input source that )COPYs a file is restored at
+      ⍝ the end of that file, at any depth of nested )COPYs: F (this file)
+      ⍝ copies G, G copies H, and each file ends in a different skip mode.
+      ⍝ After the )COPY, this file must continue normally, while HX and GX
+      ⍝ (after SKIP_ALL in H and SKIP_GNU in G) must not be defined.
+      ⍝ (]FILE_CTL without an argument shows the current skip mode, but
+      ⍝ like all ] commands it writes to CERR, which is not compared here.)
+      ⍝
+      FG←'/tmp/ZZ71_Bugs32_G.apl' ◊ FH←'/tmp/ZZ71_Bugs32_H.apl'
+
+
+
+      WRITE FH ('#!./apl --script' ']FILE_CTL SKIP_ALL' 'HX←1')
+
+
+
+      WRITE FG ('#!./apl --script' ']FILE_CTL SKIP_APL2' (')COPY ',FH) 'G2←2' ']FILE_CTL SKIP_GNU' 'GX←1')
+
+
+
+      ]FILE_CTL SKIP_APL2
+
+
+
+      )COPY /tmp/ZZ71_Bugs32_G.apl
+DUMPED ³
+
+
+
+      ]FILE_CTL NO_SKIP
+
+
+
+      (⎕NC 'HX') (⎕NC 'GX') G2
+0 0 2
+
+
+
+      ⍝ only the exact mode words are accepted (Bugs32 #29): SKIP_GNUXX
+      ⍝ used to be taken as SKIP_GNU, which skipped the next line
+      ⍝
+      ]FILE_CTL SKIP_GNUXX
+
+
+
+      ⎕←'not skipped'
+not skipped
+
+
+
+      ⊣⎕FIO[19] FG ◊ ⊣⎕FIO[19] FH
+
+
+
+      )ERASE FG FH G2
+
+
+
+      ⍝ regression (Bugs32 #28): ⎕FIO[25] (pclose) of a ⎕FIO[57] handle
+      ⍝ returned 9 and left the handle open
+      ⍝
+      E←⎕FIO[57] '/bin/sh'
+
+
+
+      ⎕FIO[25] E
+DOMAIN ERROR+
+      ⎕FIO[25]E
+      ^       ^
+
+
+
+      )SIC
+
+
+
+      ⎕FIO[4] E
+0
+
+
+
+      ⊣⎕FIO[19] F8 ◊ ⊣⎕FIO[19] F10
+
+
+
+      )ERASE WRITE E F8 F10
+
+
+
+      )CHECK
+OK      - no stale functions
+OK      - no stale values
+OK      - no stale indices
+OK      - no duplicate parents
+
+
+
+      ⍝ ═══════════════════════════════════════════════════════════════
+      ⍝ Blake McBride's Bugs32 report (r2131), group C
+      ⍝ ═══════════════════════════════════════════════════════════════
+      ⍝
+      ⍝ regression (Bugs32 #20): the parser's constant folding of A⍴B with a
+      ⍝ shape whose volume wraps around 2⋆64 made ⎕FX fail with WS FULL
+      ⍝
+      ⎕FX 'Z←F' 'Z←3 6148914691236517206⍴0'
+F
+
+
+
+
+      )ERASE F
+
+
+
+
+
+      ⍝ regression (Bugs32 #21): using the result of A ⎕EB '→' or A ⎕EA '→'
+      ⍝ was a SYNTAX ERROR; like Z←⍎'→' it abandons the statement silently
+      ⍝
+      Z←'5' ⎕EB '→'
+
+
+
+
+
+      1+'2+2' ⎕EA '→'
+
+
+
+
+
+      ⎕NC 'Z'
+0
+
+
+
+
+      ⍝ regression (Bugs32 #22/#23/#24): ⎕EB reports B's own error message,
+      ⍝ and )MORE names B's failure even if A uses ⎕EC, B does not parse,
+      ⍝ or B is a refused command
+      ⍝
+      '⊣⎕EC "1÷0"' ⎕EB '3÷0'
+DOMAIN ERROR+
+      '⊣⎕EC "1÷0"' ⎕EB '3÷0'
+      ^
+
+
+      )MORE
+A ⎕EB B: B failed with DOMAIN ERROR in: 3÷0
+
+
+
+
+      '' ⎕EB '⎕ES "MY SPECIAL ERROR"'
+MY SPECIAL ERROR+
+      '' ⎕EB '⎕ES "MY SPECIAL ERROR"'
+      ^
+
+
+      '' ⎕EB '((('
+Unbalanced left parenthesis+
+      '' ⎕EB '((('
+      ^
+
+
+      )MORE
+A ⎕EB B: B failed with Unbalanced left parenthesis in: (((
+
+
+
+
+      '' ⎕EB ')CLEAR'
+DOMAIN ERROR+
+      '' ⎕EB ')CLEAR'
+      ^
+
+
+      )MORE
+A ⎕EB B: B failed with DOMAIN ERROR: the SI-modifying command ')CLEAR' cannot be executed from within ⎕EC/⎕EA
+
+
+
+
+      '1÷0' ⎕EB '2÷0'        ⍝ A's error wins, )MORE names B's failure
+DOMAIN ERROR+
+      1÷0
+      ^ ^
+
+
+      )MORE
+A ⎕EB B: B failed with DOMAIN ERROR in: 2÷0
+
+
+
+
+      )SIC
+
+
+
+
+
+      ⍝ regression (Bugs32 #32): a branch in A that swallows B's error left
+      ⍝ the "B failed" )MORE text behind after a successful call
+      ⍝
+∇Z←FOO3
+ Z←'→3' ⎕EB '1÷0'
+ Z←100
+ Z←999
+∇
+
+
+
+
+
+      FOO3
+999
+
+
+
+
+      )MORE
+NO )MORE ERROR INFO
+
+
+
+
+      )ERASE FOO3
+
+
+
+
+
+      ⍝ regression (Bugs32 #25): a rejected selective specification left
+      ⍝ LvalCells in the suspended statement until )SIC
+      ⍝
+      V←1 2 3
+
+
+
+
+
+      (1 0/V)←9
+LENGTH ERROR+
+      (1 0/V)←9
+       ^      ^
+
+
+      (⊂V)←9 9
+LENGTH ERROR+
+      (⊂V)←9 9
+      ^    ^
+
+
+      )CHECK
+OK      - no stale functions
+OK      - no stale values
+OK      - no stale indices
+OK      - no duplicate parents
+
+      )SIC
+
+
+
+
+
+      )ERASE V
+
+
+
+
+
+      ⍝ regression (Bugs32 #27): near-real shortcuts of ¯4○ 0○ ¯5○ ¯7○
+      ⍝ returned 0 where a tiny imaginary part dominates the result
+      ⍝
+      ⎕PP←10
+
+
+
+
+
+      9 11○¯5○0J1E¯11
+0 1E¯11
+
+
+
+
+      9 11○¯7○0J1E¯11
+0 1E¯11
+
+
+
+
+      (×9 11○¯4○1J1E¯11) , 1E¯6<|9○¯4○1J1E¯11
+1 1 1
+
+
+
+
+      (×9 11○0○1J1E¯11) , 1E¯6<|9○0○1J1E¯11
+1 ¯1 1
+
+
+
+
+      )CHECK
+OK      - no stale functions
+OK      - no stale values
+OK      - no stale indices
+OK      - no duplicate parents
+
+
+
+      ⍝ ═══════════════════════════════════════════════════════════════
+      ⍝ Blake McBride's Bugs32 report (r2131), group D
+      ⍝ ═══════════════════════════════════════════════════════════════
+      ⍝
+      ⍝ regression (Bugs32 #30): the (⎕UCS n) marker decoder of the inverse
+      ⍝ 2 ⎕TF overflowed into a garbage character for a huge n
+      ⍝
+      2 ⎕TF 'S←''a'',(⎕UCS 99999999999999999),'''''
+DOMAIN ERROR+
+      2 ⎕TF 'S←''a'',(⎕UCS 99999999999999999),'''''
+      ^     ^
+
+
+
+
+
+      )SIC
+
+
+
+
+
+      ⎕NC 'S'
+0
+
+
+
+
+
+      ⍝ related: ⎕UCS treats a negative B (¯128 ≤ B < 0) as the byte B+256
+      ⍝ (it used to create the non-encodable character #xFFFFFFFF for ¯1)
+      ⍝
+      ⎕UCS ⎕UCS ¯1 ¯128 255 2147483647
+255 128 255 2147483647
+
+
+
+
+
+      ⎕UCS ¯129
+DOMAIN ERROR
+      ⎕UCS ¯129
+      ^    ^
+
+
+
+
+
+      )SIC
+
+
+
+
+
+      ⍝ regression (Bugs32 #31): a $ at the end of a line lost the statement
+      ⍝ and the carets of its error message
+      ⍝
+      2+$
+Bad number+
+      $
+      ^^
+
+
+
+
+
+      )CHECK
+OK      - no stale functions
+OK      - no stale values
+OK      - no stale indices
+OK      - no duplicate parents
+
+
+
+
 
       )CLEAR
 CLEAR WS

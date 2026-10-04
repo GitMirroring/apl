@@ -355,23 +355,76 @@ Value_P Z(3, LOC);
    return Z;
 }
 //────────────────────────────────────────────────────────────────────────────
-/// return true if ⎕EC was called by (the macro implementing) A ⎕EB B
-static bool
-called_from_EB_macro()
+/// return the )SI entry of the macro implementing A ⎕EB B if ⎕EC was called
+/// by it (to execute B), or 0 if not
+static StateIndicator *
+EB_macro_of_EC(bool B_pushed)
 {
-   // eoc() runs with ⎕EC's own ⍎ frame for B (the safe-execution start)
-   // on top of the SI; its parent is ⎕EC's caller. Look no further: a B
-   // that itself calls ⎕EC has B's ⍎ frame as that caller, and an older,
-   // suspended ⎕EB further down the SI has nothing to do with this ⎕EC.
+   // If B_pushed, then ⎕EC runs with its own ⍎ frame for B (the safe-
+   // execution start) on top of the SI and its parent is ⎕EC's caller
+   // (Quad_EC::eoc()); otherwise ⎕EC's caller is on top (Quad_EC::eval_B()
+   // before pushing B). Look no further: a B that itself calls ⎕EC has B's
+   // ⍎ frame as that caller, and an older, suspended ⎕EB further down the
+   // SI has nothing to do with this ⎕EC.
    //
-const StateIndicator * top = Workspace::SI_top();
-   if (!top)   return false;
+StateIndicator * top = Workspace::SI_top();
+   if (!top)   return 0;
 
-const StateIndicator * si = top->get_parent();
-   if (!si)   return false;
+StateIndicator * si = B_pushed ? top->get_parent() : top;
+   if (!si)   return 0;
 
 const UserFunction * ufun = si->get_executable()->get_exec_ufun();
-   return ufun && ufun == Macro::get_macro(Macro::MAC_Z__A_Quad_EB_B);
+   if (ufun && ufun == Macro::get_macro(Macro::MAC_Z__A_Quad_EB_B))   return si;
+   return 0;
+}
+//────────────────────────────────────────────────────────────────────────────
+/// the )MORE text "A ⎕EB B: B failed with ..." for B's ⎕EM-like character
+/// matrix EM (as returned by ⎕EC): row 1 the message, row 2 the statement
+/// (or the reason for a refused command, then without carets in row 3),
+/// and B's own )MORE info (if any) in the rows after row 3. Also returns
+/// the message (without a trailing +) in msg.
+static UCS_string
+EB_B_failure_text(const cValue & EM, UCS_string & msg)
+{
+UCS_string_vector lines;
+   if (EM.get_rank() == 2)
+      {
+        const ShapeItem rows = EM.get_rows();
+        const ShapeItem cols = EM.get_cols();
+        loop(r, rows)
+           {
+             UCS_string line;
+             loop(c, cols)   line << EM.get_char_value(r*cols + c);
+             line.map_pad();   // internal pad characters → blanks
+             line.remove_trailing_whitespaces();
+             lines.push_back(line);
+           }
+      }
+
+   msg = lines.size() ? lines[0] : UCS_string();
+   if (msg.size() && msg.back() == UNI_PLUS)   msg.pop_back();
+
+UCS_string line_2 = lines.size() > 1 ? lines[1] : UCS_string();
+   line_2.remove_leading_and_trailing_whitespaces();
+const bool carets = lines.size() > 2 && lines[2].size();
+
+UCS_string text;
+   text << "A ⎕EB B: B failed with " << msg;
+   if (line_2.size())   text << (carets ? " in: " : ": ") << line_2;
+   for (size_t r = 3; r < lines.size(); ++r)   text << UNI_LF << lines[r];
+   return text;
+}
+//────────────────────────────────────────────────────────────────────────────
+/// if ⎕EC was called by the macro implementing A ⎕EB B, then remember the
+/// failure of B (whose ⎕EM-like matrix is EM) in the )SI entry of the macro
+static void
+register_EB_B_failure(const cValue & EM, bool B_pushed)
+{
+   if (StateIndicator * eb = EB_macro_of_EC(B_pushed))
+      {
+        UCS_string msg;
+        eb->set_EB_B_failure(EB_B_failure_text(EM, msg));
+      }
 }
 //────────────────────────────────────────────────────────────────────────────
 void
@@ -438,6 +491,7 @@ Value_P Z(3, LOC);
         if (ec == E_COMMAND_PUSHED)
            {
              Value_P Z_refused = build_EC_command_pushed_refusal(more_info);
+             register_EB_B_failure(*Z_refused->get_pointer_value(2), true);
              Token tok_Z(TOK_APL_VALUE1, Z_refused);
              result.move_from(tok_Z, LOC);
              return;
@@ -486,24 +540,7 @@ Value_P Z(3, LOC);
         Z->next_ravel_Pointer(Z3.get());
 
         Z->check_value(LOC);
-
-        // A ⎕EB B (try/finally): B failed, and the cleanup A is executed
-        // next. Whichever error is reported in the end (B's own, re-
-        // signalled by the macro if A succeeds, or A's if A fails too,
-        // which then wins), make B's failure visible in )MORE so that it
-        // is not lost (and shows B's statement, not just the ⎕EB call).
-        //
-        if (called_from_EB_macro())
-           {
-             UCS_string B_err = line_1;
-             if (B_err.size() && B_err.back() == UNI_PLUS)   B_err.pop_back();
-             UCS_string B_stat = err.get_error_line_2();
-             B_stat.remove_leading_and_trailing_whitespaces();
-             UCS_string & more = MORE_ERROR();
-             more << "A ⎕EB B: B failed with " << B_err;
-             if (B_stat.size())   more << " in: " << B_stat;
-             if (more_info.size())   more << UNI_LF << more_info;
-           }
+        register_EB_B_failure(*Z3, true);
 
         Token tok_Z(TOK_APL_VALUE1, Z);
         result.move_from(tok_Z, LOC);
@@ -629,8 +666,11 @@ const int top_depth_before = top->get_safe_execution_depth();
                   {
                     const UCS_string more_info = Workspace::more_error();
                     Workspace::more_error().clear();
-                    return Token(TOK_APL_VALUE1,
-                            build_EC_command_pushed_refusal(more_info));
+                    Value_P Z_refused =
+                            build_EC_command_pushed_refusal(more_info);
+                    register_EB_B_failure(*Z_refused->get_pointer_value(2),
+                                          false);
+                    return Token(TOK_APL_VALUE1, Z_refused);
                   }
 
                const ErrorCode ec = err.get_error_code();
@@ -650,6 +690,7 @@ const int top_depth_before = top->get_safe_execution_depth();
                Z->next_ravel_Pointer(Z2.get());
                Z->next_ravel_Pointer(Z3.get());
                Z->check_value(LOC);
+               register_EB_B_failure(*Z3, false);
                return Token(TOK_APL_VALUE1, Z);
              }
 
@@ -724,8 +765,24 @@ Error fix_error(E_SYNTAX_ERROR, LOC);   // fallback if nothing better is caught
 
         PrintBuffer pb;
         pb.append_ucs(UTF8_string(Error::error_name(ec)));
-        pb.append_ucs(fix_error.get_error_line_2());
-        pb.append_ucs(fix_error.get_error_line_3());
+
+        // the fix() error has no statement line: show B itself, like the
+        // run-time errors do (Blake McBride, Bugs32 #24)
+        //
+        UCS_string line_2(fix_error.get_error_line_2());
+        UCS_string line_3(fix_error.get_error_line_3());
+        UCS_string blank_2(line_2);
+        blank_2.map_pad();
+        blank_2.remove_leading_and_trailing_whitespaces();
+        if (blank_2.size() == 0)
+           {
+             line_2 = Workspace::get_prompt();
+             line_2 << statement_B;
+             line_3 = UCS_string(Workspace::get_prompt().size(), UNI_SPACE);
+             line_3 << UNI_CIRCUMFLEX;
+           }
+        pb.append_ucs(line_2);
+        pb.append_ucs(line_3);
 
         Value_P Z2(2, LOC);
             Z2->next_ravel_Int(Error::error_major(ec));
@@ -737,6 +794,7 @@ Error fix_error(E_SYNTAX_ERROR, LOC);   // fallback if nothing better is caught
         Z->next_ravel_0();              // return code = error
         Z->next_ravel_Pointer(Z2.get());   // ⎕ET value
         Z->next_ravel_Pointer(Z3.get());   // ⎕EM
+        register_EB_B_failure(*Z3, false);
 
         Z->check_value(LOC);
         return Token(TOK_APL_VALUE1, Z);
@@ -833,6 +891,36 @@ Value_P Z(sh_Z, LOC);
 Token
 Quad_ES::eval_AB(cValue_R A, cValue_R B) const
 {
+   // The macro Z__A_Quad_EB_B (Macro.def) re-signals the error of B as
+   // μ9 ⎕ES μ8, where μ9 is the ⎕EM-like character matrix that ⎕EC returned
+   // for B: row 1 the message, row 2 the statement (or the reason for a
+   // refused command), row 3 the carets, and B's own )MORE info (if any)
+   // in the rows after them. Report B's own message (e.g. that of
+   // ⎕ES 'MY SPECIAL ERROR' in B), and name B's failure in )MORE. Doing this
+   // here, i.e. when the error is reported, rather than when B failed means
+   // that nothing executed in between (the cleanup A) can lose it, and that
+   // nothing is left over if A branches away instead (Blake McBride, Bugs32
+   // #22, #23, #24, #32).
+   //
+   if (A.get_rank() == 2 &&
+       Workspace::SI_top()->get_executable()->get_exec_ufun() ==
+       Macro::get_macro(Macro::MAC_Z__A_Quad_EB_B))
+      {
+        UCS_string msg;
+        const UCS_string text = EB_B_failure_text(A, msg);
+
+        Error error(E_NO_ERROR, LOC);
+        // the )MORE info and the + (which event_simulate() takes from A
+        // as given) must be in place before event_simulate() reports it
+        //
+        MORE_ERROR() << text;
+        msg << UNI_PLUS;
+        const Token ret = event_simulate(&msg, CLONE(&B, LOC), error);
+        if (error.get_error_code() == E_NO_ERROR)   return ret;
+
+        throw error;
+      }
+
 const UCS_string ucs(A);
 Error error(E_NO_ERROR, LOC);
 const Token ret = event_simulate(&ucs, CLONE(&B, LOC), error);
@@ -1654,6 +1742,17 @@ Value_P Z(sh_Z, LOC);
    return Token(TOK_APL_VALUE1, Z);
 }
 //────────────────────────────────────────────────────────────────────────────
+/// the character for ⎕UCS B with an integer B in [¯128, #x7FFFFFFF]: B
+/// itself, except that a negative B is a signed byte (e.g. from a ⎕FIO byte
+/// vector) and stands for the byte B+256. A negative Unicode (e.g.
+/// #xFFFFFFFF for ¯1) would neither fit into 31 bits nor be encodable in
+/// UTF-8.
+static inline Unicode
+byte_or_Unicode(APL_Integer bint)
+{
+   return Unicode(bint < 0 ? bint + 256 : bint);
+}
+//────────────────────────────────────────────────────────────────────────────
 APL_Integer
 Quad_NC::get_NC(const UCS_string ucs)
 {
@@ -2101,7 +2200,7 @@ const ShapeItem ec = B.element_count();
              const APL_Integer bint = B.get_near_int(v);
              if (bint < -0x80)        DOMAIN_ERROR;
              if (bint > 0x7FFFFFFF)   DOMAIN_ERROR;
-             Z->next_ravel_Char(Unicode(bint));
+             Z->next_ravel_Char(byte_or_Unicode(bint));
            }
       }
    else if (rt == RPT_FLOAT64)   // all float — near-int to char
@@ -2111,7 +2210,7 @@ const ShapeItem ec = B.element_count();
              const APL_Integer bint = B.get_near_int(v);
              if (bint < -0x80)        DOMAIN_ERROR;
              if (bint > 0x7FFFFFFF)   DOMAIN_ERROR;
-             Z->next_ravel_Char(Unicode(bint));
+             Z->next_ravel_Char(byte_or_Unicode(bint));
            }
       }
    else if (rt == RPT_COMPLEX)   // all complex — check imag, near-int to char
@@ -2122,7 +2221,7 @@ const ShapeItem ec = B.element_count();
              const APL_Integer bint = B.get_near_int(v);
              if (bint < -0x80)        DOMAIN_ERROR;
              if (bint > 0x7FFFFFFF)   DOMAIN_ERROR;
-             Z->next_ravel_Char(Unicode(bint));
+             Z->next_ravel_Char(byte_or_Unicode(bint));
            }
       }
    else   // RPT_CELLS: mixed types
@@ -2142,7 +2241,7 @@ const ShapeItem ec = B.element_count();
                   const APL_Integer bint = cell_B.get_near_int();
                   if (bint < -0x80)        DOMAIN_ERROR;
                   if (bint > 0x7FFFFFFF)   DOMAIN_ERROR;
-                  Z->next_ravel_Char(Unicode(bint));
+                  Z->next_ravel_Char(byte_or_Unicode(bint));
                   continue;
                 }
              if (cell_B.is_float_cell())
@@ -2150,7 +2249,7 @@ const ShapeItem ec = B.element_count();
                   const APL_Integer bint = cell_B.get_near_int();
                   if (bint < -0x80)        DOMAIN_ERROR;
                   if (bint > 0x7FFFFFFF)   DOMAIN_ERROR;
-                  Z->next_ravel_Char(Unicode(bint));
+                  Z->next_ravel_Char(byte_or_Unicode(bint));
                   continue;
                 }
              if (cell_B.is_complex_cell())
@@ -2159,7 +2258,7 @@ const ShapeItem ec = B.element_count();
                   const APL_Integer bint = cell_B.get_near_int();
                   if (bint < -0x80)        DOMAIN_ERROR;
                   if (bint > 0x7FFFFFFF)   DOMAIN_ERROR;
-                  Z->next_ravel_Char(Unicode(bint));
+                  Z->next_ravel_Char(byte_or_Unicode(bint));
                   continue;
                 }
              MORE_ERROR() << "⎕UCS got unexpected Cell type "

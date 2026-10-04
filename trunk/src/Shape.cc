@@ -119,17 +119,22 @@ bool
 Shape::fits_into(ShapeItem max_ravel) const
 {
    // must not throw!
-   // overflow of volume is intentional: the product is on a performance-critical
-   // path and overflowing shapes that pass this test will be caught downstream.
-   // The multiply itself is done in uint64_t (well-defined wraparound) and
-   // reinterpreted back to ShapeItem, rather than relying on signed-overflow
-   // UB to produce the same bit pattern (Blake McBride, Bugs12.md #11b).
+   //
+   // The volume saturates instead of wrapping around: a wrapped volume could
+   // be small and "fit", e.g. 3×6148914691236517206 = 2⋆64 + 2 wrapped to 2,
+   // so that the parser's constant folding of A⍴B (its only caller) tried
+   // to allocate the value at ⎕FX time (Blake McBride, Bugs32 #20).
+   // __builtin_mul_overflow() is as cheap as the plain multiplication.
 
 ShapeItem volume = 1;
    loop(r, rho_rho)
        {
          const ShapeItem sr = rho[r];
-         if (sr > 0)         volume = ShapeItem(uint64_t(volume) * uint64_t(sr));
+         if (sr > 0)
+            {
+              if (__builtin_mul_overflow(volume, sr, &volume))
+                 volume = LARGE_INT;   // saturate (a later 0 axis may follow)
+            }
          else if (sr == 0)   return true;
          else                return false;
        }

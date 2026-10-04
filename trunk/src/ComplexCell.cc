@@ -194,6 +194,16 @@ ErrorCode
 ComplexCell::bif_maximum(Cell * Z, const Cell * A) const
 {
    if (!A->is_numeric())   return E_DOMAIN_ERROR;
+
+   // B with an imaginary part of exactly 0 is real: use the (exact at
+   // ⎕CT←0) real path, e.g. for a large IntCell A (Blake McBride, Bugs32
+   // #14)
+   //
+   if (value.cval[1] == 0.0 && A->get_imag_value() == 0.0)
+      {
+        const FloatCell B_real(value.cval[0]);
+        return B_real.bif_maximum(Z, A);
+      }
    return ComplexCell::bif_maximum_cc(Z, A->get_complex_value(), cval());
 }
 //────────────────────────────────────────────────────────────────────────────
@@ -201,6 +211,16 @@ ErrorCode
 ComplexCell::bif_minimum(Cell * Z, const Cell * A) const
 {
    if (!A->is_numeric())   return E_DOMAIN_ERROR;
+
+   // B with an imaginary part of exactly 0 is real: use the (exact at
+   // ⎕CT←0) real path, e.g. for a large IntCell A (Blake McBride, Bugs32
+   // #14)
+   //
+   if (value.cval[1] == 0.0 && A->get_imag_value() == 0.0)
+      {
+        const FloatCell B_real(value.cval[0]);
+        return B_real.bif_minimum(Z, A);
+      }
    return ComplexCell::bif_minimum_cc(Z, A->get_complex_value(), cval());
 }
 //────────────────────────────────────────────────────────────────────────────
@@ -208,6 +228,16 @@ ErrorCode
 ComplexCell::bif_residue(Cell * Z, const Cell * A) const
 {
    if (!A->is_numeric())   return E_DOMAIN_ERROR;
+
+   // B with an imaginary part of exactly 0 is real: use the (exact at
+   // ⎕CT←0) real path, e.g. for a large IntCell A (Blake McBride, Bugs32
+   // #14)
+   //
+   if (value.cval[1] == 0.0 && A->get_imag_value() == 0.0)
+      {
+        const FloatCell B_real(value.cval[0]);
+        return B_real.bif_residue(Z, A);
+      }
    return ComplexCell::bif_residue_cc(Z, A->get_complex_value(), cval());
 }
 //────────────────────────────────────────────────────────────────────────────
@@ -319,45 +349,20 @@ const APL_Complex one(1.0, 0.0);
 
         case  -7: // arctanh(z) = 0.5 (ln(1.0 + z) - ln(1.0 - z))
                   {
-                    // tiny near-real b (Bugs30 #7): 1+b and 1-b both
-                    // round to exactly 1.0 in double for |b| well below
-                    // machine epsilon, so log(1+b)-log(1-b) cancels to
-                    // an incorrect 0 even though the true result (≈b)
-                    // is nonzero; atanh() is accurate for small
-                    // arguments, exactly as RealCell's own case -7 uses
-                    // it directly for real b.
+                    // std::atanh() is accurate for tiny b (where 1±b
+                    // round to 1, Bugs30 #7) and near ±1 (Bugs31 #14),
+                    // and keeps a tiny imaginary part that is the entire
+                    // result, e.g. ¯7○0J1E¯11 (Blake McBride, Bugs32 #27:
+                    // the real-only shortcut used before returned 0). It
+                    // agrees with the formula above except ON the branch
+                    // cut (Im b = 0 exactly, |Re b| > 1), where GNU APL
+                    // (like the formula) has Im < 0 for Re b > 1 and Im > 0
+                    // for Re b < ¯1, i.e. std's value for Im b = ∓0.
                     //
-                    if (Cell::is_near_zero(b.imag())
-                        && b.real() > -1.0 && b.real() < 1.0)
-                       {
-                         // Bugs31 #14 (Blake McBride): a near-zero
-                         // b.imag() is not necessarily negligible in the
-                         // RESULT -- d(atanh)/dx = 1/(1-x²) blows up as
-                         // b.real() approaches ±1, so even a tiny
-                         // imaginary perturbation can contribute a
-                         // non-negligible imaginary part once amplified
-                         // by that derivative. Only take the real-only
-                         // shortcut when the amplified contribution is
-                         // itself still negligible (an exactly-zero
-                         // b.imag() has nothing to amplify and is always
-                         // safe).
-                         //
-                         if (b.imag() == 0.0)
-                            return ComplexCell::zC(Z, atanh(b.real()));
-
-                         const double denom = 1.0 - b.real()*b.real();
-                         if (denom > 0.0
-                             && Cell::is_near_zero(b.imag() / denom))
-                            return ComplexCell::zC(Z, atanh(b.real()));
-                       }
-
-                    const APL_Complex b1      = ONE() + b;
-                    const APL_Complex b_1     = ONE() - b;
-                    const APL_Complex log_b1  = log(b1);
-                    const APL_Complex log_b_1 = log(b_1);
-                    const APL_Complex diff    = log_b1 - log_b_1;
-                    const APL_Complex half(diff.real()*0.5, diff.imag()*0.5);
-                    return ComplexCell::zC(Z, half);
+                    APL_Complex b1 = b;
+                    if (b.imag() == 0.0 && fabs(b.real()) > 1.0)
+                       b1 = APL_Complex(b.real(), b.real() > 0.0 ? -0.0 : 0.0);
+                    return ComplexCell::zC(Z, std::atanh(b1));
                   }
 
         case  -6: // arccosh(z) = ln(z + sqrt(z + 1) sqrt(z - 1))
@@ -374,21 +379,19 @@ const APL_Complex one(1.0, 0.0);
 
         case  -5: // arcsinh(z) = ln(z + sqrt(z^2 + 1))
                   {
-                    // huge near-real |b| (Bugs30 #7/#9): the general
-                    // formula below squares b, overflowing even though
-                    // the true result is finite; for near-real b use
-                    // the real-valued asinh() directly instead, exactly
-                    // as RealCell::do_bif_circle_fun() case -5 does.
+                    // std::asinh() does not overflow for huge b (Bugs30
+                    // #7/#9) and keeps a tiny imaginary part that is the
+                    // entire result, e.g. ¯5○0J1E¯11 (Blake McBride, Bugs32
+                    // #27: the real-only shortcut used before returned 0).
+                    // It agrees with the formula above except ON the branch
+                    // cut (Re b = 0 exactly, |Im b| > 1), where GNU APL (like
+                    // the formula) gives the real part the sign of Im b,
+                    // i.e. std's value for Re b = ±0.
                     //
-                    if (Cell::is_near_zero(b.imag()))
-                       return ComplexCell::zC(Z, asinh(b.real()));
-
-                    const APL_Complex b2 = b*b;
-                    const APL_Complex b2_1 = b2 + ONE();
-                    const APL_Complex root = complex_sqrt(b2_1);
-                    const APL_Complex sum =  b + root;
-                    const APL_Complex loga = log(sum);
-                    return ComplexCell::zC(Z, loga);
+                    APL_Complex b1 = b;
+                    if (b.real() == 0.0 && fabs(b.imag()) > 1.0)
+                       b1 = APL_Complex(b.imag() > 0.0 ? 0.0 : -0.0, b.imag());
+                    return ComplexCell::zC(Z, std::asinh(b1));
                   }
 
         case  -4:
@@ -421,7 +424,13 @@ const APL_Complex one(1.0, 0.0);
                // avoids exactly this by dividing by b² instead of
                // squaring b -- mirror it here for a real-valued arg.
                //
-               if (Cell::is_near_zero(b.imag()))
+               // Only if the imaginary part is exactly 0 or the general
+               // path would overflow: otherwise a tiny imaginary part can
+               // dominate the result near |Re b| = 1, e.g. ¯4○1J1E¯11 ≈
+               // 3.16E¯6J3.16E¯6, not 0 (Blake McBride, Bugs32 #27).
+               //
+               if (b.imag() == 0.0 ||
+                   (Cell::is_near_zero(b.imag()) && fabs(b.real()) > 1E150))
                   {
                     const double b_re = b.real();
                     const double abs_b = b_re < 0.0 ? -b_re : b_re;
@@ -441,15 +450,25 @@ const APL_Complex one(1.0, 0.0);
                     // perturbation would also add is not reproduced
                     // here (deliberately out of scope, see memory).
                     //
+                    // signbit() rather than > 0.0, so that Re b = 0
+                    // gets the sign of Im b, like the general path
+                    // (Blake McBride, Bugs32 #5).
+                    //
                     const bool same_sign = b.imag() != 0.0 &&
-                                    ((b_re > 0.0) == (b.imag() > 0.0));
+                          (std::signbit(b_re) == std::signbit(b.imag()));
 
                     if (abs_b >= 1.0)
                        {
+                         // the result is ≈ ±mag + tiny×i, with the sign
+                         // only in the (dropped) imaginary part: the
+                         // principal root never has a negative real part
+                         // (Blake McBride, Bugs32 #5: negating mag here
+                         // was the r2131 regression).
+                         //
                          const double arg = 1.0 - 1.0/(b_re*b_re);
                          const double mag = abs_b * sqrt(arg < 0.0
                                                           ? 0.0 : arg);
-                         return ComplexCell::zC(Z, same_sign ? mag : -mag);
+                         return ComplexCell::zC(Z, mag);
                        }
 
                     const APL_Complex root = complex_sqrt(
@@ -459,7 +478,15 @@ const APL_Complex one(1.0, 0.0);
                                   ? root : APL_Complex(root.real(),
                                                         -root.imag()));
                   }
-               return ComplexCell::zC(Z, complex_sqrt(b*b - one));
+               // b×b-1 = (x-1)(x+1) - y² + i×2xy for b = x+iy: no
+               // cancellation of the real part near x = ±1, and 2xy keeps
+               // the sign of a zero x (which decides the side of the cut)
+               {
+                 const double x = b.real();
+                 const double y = b.imag();
+                 const APL_Complex b2_1((x - 1.0)*(x + 1.0) - y*y, 2.0*x*y);
+                 return ComplexCell::zC(Z, complex_sqrt(b2_1));
+               }
              }
 
         case  -3: // arctan(z) = i/2 (ln(1 - iz) - ln(1 + iz))
@@ -474,36 +501,28 @@ const APL_Complex one(1.0, 0.0);
                     return ComplexCell::zC(Z, prod);
                   }
 
-        case  -2: // arccos(z) = π/2 - arcsin(z), using the already-
-                  // correct arcsin(z) = -i(ln(iz + sqrt(1-z^2))) from
-                  // case -1 below. The previous direct formula,
-                  // arccos(z) = -i(ln(z + sqrt(z^2-1))), picks
-                  // sqrt(z^2-1) which is not always the same branch as
-                  // i*sqrt(1-z^2) -- the two differ in sign exactly
-                  // where the identity arcsin(z)+arccos(z) = π/2 broke
-                  // (every real |B| > 1, and a large part of the
-                  // complex plane) (Blake McBride, Bugs26 #3).
-                  {
-                    const APL_Complex b2 = b*b;
-                    const APL_Complex diff = ONE() - b2;
-                    const APL_Complex root = complex_sqrt(diff);
-                    const APL_Complex sum  = APL_Complex(-b.imag(), b.real())
-                                           + root;
-                    const APL_Complex loga = log(sum);
-                    const APL_Complex asin_b = MINUS_i() * loga;
-                    return ComplexCell::zC(Z, APL_Complex(M_PI/2, 0) - asin_b);
-                  }
-
+        case  -2: // arccos(z)
         case  -1: // arcsin(z) = -i (ln(iz + sqrt(1 - z^2)))
                   {
-                    const APL_Complex b2 = b*b;
-                    const APL_Complex diff = ONE() - b2;
-                    const APL_Complex root = complex_sqrt(diff);
-                    const APL_Complex sum  = APL_Complex(-b.imag(), b.real())
-                                           + root;
-                    const APL_Complex loga = log(sum);
-                    const APL_Complex prod = MINUS_i() * loga;
-                    return ComplexCell::zC(Z, prod);
+                    // The defining formula computed literally overflows in
+                    // b*b for |b| > 1.34E154 (DOMAIN ERROR even for real
+                    // b), and iz + sqrt(1-z²) cancels catastrophically for
+                    // large Re b with a small positive Im b (Blake McBride,
+                    // Bugs32 #12). std::asin()/std::acos() evaluate it
+                    // stably, and they agree with the formula everywhere
+                    // except ON the branch cut (Im b = 0 exactly, |Re b| >
+                    // 1). There, GNU APL (like the formula) puts the result
+                    // on the side Im < 0 for Re b > 1 and Im > 0 for
+                    // Re b < ¯1 (arcsin, and arccos = π/2 - arcsin
+                    // accordingly, Bugs26 #3), which is std's value for
+                    // Im b = ∓0.
+                    //
+                    APL_Complex b1 = b;
+                    if (b.imag() == 0.0 && fabs(b.real()) > 1.0)
+                       b1 = APL_Complex(b.real(), b.real() > 0.0 ? -0.0 : 0.0);
+
+                    return ComplexCell::zC(Z, fun == -1 ? std::asin(b1)
+                                                        : std::acos(b1));
                   }
 
         case   0:
@@ -515,7 +534,11 @@ const APL_Complex one(1.0, 0.0);
                // depends on b² (same for b and -b), so no sign flip is
                // needed here unlike cases -4/8/¯8.
                //
-               if (Cell::is_near_zero(b.imag()) && fabs(b.real()) >= 1.0)
+               // only if the imaginary part is exactly 0 or the general
+               // path would overflow (see case -4, Bugs32 #27)
+               //
+               if ((b.imag() == 0.0 || fabs(b.real()) > 1E150) &&
+                   Cell::is_near_zero(b.imag()) && fabs(b.real()) >= 1.0)
                   {
                     const double abs_b = fabs(b.real());
                     const double arg = 1.0 - 1.0/(b.real()*b.real());
@@ -532,7 +555,14 @@ const APL_Complex one(1.0, 0.0);
                                          == (b.imag() > 0.0);
                     return ComplexCell::zC(Z, 0.0, same_sign ? -mag : mag);
                   }
-               return ComplexCell::zC(Z, complex_sqrt(one - b*b));
+               // 1-b×b = (1-x)(1+x) + y² - i×2xy for b = x+iy (see case -4)
+               {
+                 const double x = b.real();
+                 const double y = b.imag();
+                 const APL_Complex one_b2((1.0 - x)*(1.0 + x) + y*y,
+                                          -2.0*x*y);
+                 return ComplexCell::zC(Z, complex_sqrt(one_b2));
+               }
              }
 
         case   1: return ComplexCell::zC(Z, sin(b));
@@ -885,7 +915,12 @@ int int_fract = ucs.size();
       }
    info.fract_len = int_fract - info.int_len;
 
-   if (!is_near_real())
+   // the J part is only dropped by exponent_rule() above (lrm p. 13), or
+   // if it is exactly 0: the former fixed is_near_real() band (|imag| <
+   // 1E¯10×|real|) ignored ⎕PP, so that e.g. 9007199254740992J1000 could
+   // never be displayed, not even with ⎕PP←17 (Blake McBride, Bugs32 #13).
+   //
+   if (value.cval[1] != 0.0)
       {
         ucs << UNI_J;
         // the imaginary part's own need for scaled (E-format) notation,
@@ -937,11 +972,13 @@ const int expo_imag = pos_imag == 0.0 ? 0 : int(floor(log10(pos_imag)));
 bool
 ComplexCell::need_scaling(const PrintContext &pctx) const
 {
-   // a complex number needs scaling if the real part needs it, ot
-   // the complex part is significant and needs it.
-   return FloatCell::need_scaling(value.cval[0], pctx.get_PP()) ||
-          (!is_near_real() && 
-          FloatCell::need_scaling(value.cval[1], pctx.get_PP()));
+   // The scaled flag of a PrintContext only controls the real part of a
+   // complex number: character_representation() decides on its own if the
+   // imaginary part (or a part displayed alone) is scaled. Therefore only
+   // the real part matters here (IBM APL2: 9571.5J1.824E5, not
+   // 9.5715E3J1.824E5).
+   //
+   return FloatCell::need_scaling(value.cval[0], pctx.get_PP());
 }
 //────────────────────────────────────────────────────────────────────────────
 bool
@@ -1024,20 +1061,31 @@ ComplexCell::bif_divide_cc(Cell * Z, APL_Complex a, APL_Complex b)
    // instead of overflowing (the true quotient, ~1E310, does not fit in
    // a double either way, but the wrong answer was a finite 0, not Inf).
    //
+   // Prescale b by s = 2⋆⌊2⍟max(|Re b|, |Im b|) (similar to
+   // bif_reciprocal_c()): otherwise den below overflows to ∞ for e.g.
+   // 1÷1E308J1E308, and finite÷∞ silently gives 0 (Blake McBride, Bugs32
+   // #6). With the larger component of b' = b÷s in [1, 2), den is in
+   // [1, 4), |a÷b'| ≤ |a|, and the final ÷s overflows or underflows only if
+   // the true quotient does. A power of 2 makes the scaling exact, so that
+   // ordinary quotients are not changed at all.
+   //
+const APL_Float s = ldexp(1.0, ilogb(fabs(b.real()) >= fabs(b.imag())
+                                     ? b.real() : b.imag()));
+const APL_Complex b1(b.real() / s, b.imag() / s);
 APL_Complex z;
-   if (fabs(b.real()) >= fabs(b.imag()))
+   if (fabs(b1.real()) >= fabs(b1.imag()))
       {
-        const APL_Float r   = b.imag() / b.real();
-        const APL_Float den = b.real() + r*b.imag();
-        z = APL_Complex((a.real() + r*a.imag()) / den,
-                         (a.imag() - r*a.real()) / den);
+        const APL_Float r   = b1.imag() / b1.real();
+        const APL_Float den = b1.real() + r*b1.imag();
+        z = APL_Complex((a.real() + r*a.imag()) / den / s,
+                         (a.imag() - r*a.real()) / den / s);
       }
    else
       {
-        const APL_Float r   = b.real() / b.imag();
-        const APL_Float den = b.imag() + r*b.real();
-        z = APL_Complex((a.real()*r + a.imag()) / den,
-                         (a.imag()*r - a.real()) / den);
+        const APL_Float r   = b1.real() / b1.imag();
+        const APL_Float den = b1.imag() + r*b1.real();
+        z = APL_Complex((a.real()*r + a.imag()) / den / s,
+                         (a.imag()*r - a.real()) / den / s);
       }
 
    if (!isfinite(z.real()))   return E_DOMAIN_ERROR;

@@ -439,6 +439,16 @@ FloatCell::bif_residue(Cell * Z, const Cell * A) const
    if (A->get_imag_value() != 0.0)
       return ComplexCell::bif_residue_cc(Z, A->get_complex_value(),
                                             APL_Complex(dfval(), 0));
+
+   // an IntCell A and an integral B: exact int64 residue, mirroring
+   // IntCell::bif_residue() for an integral FloatCell A (Bugs27 #25).
+   // Converting A to double rounded e.g. 9007199254740993 to
+   // 9007199254740992 (Blake McBride, Bugs32 #15).
+   //
+const APL_Float b = dfval();
+   if (A->is_integer_cell() && Cell::is_near_int64_t(b) && b == nearbyint(b))
+      return IntCell::bif_residue_ii(Z, A->get_int_value(), APL_Integer(b));
+
    return FloatCell::bif_residue_ff(Z, A->get_real_value(), dfval());
 }
 //────────────────────────────────────────────────────────────────────────────

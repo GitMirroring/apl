@@ -59,6 +59,7 @@ struct InputFile
      with_LX  (LX),
      line_no  (0),
      bom_checked(false),
+     saved_skip_mode(0),
      in_html  (0),
      from_COPY(false),
      file_seq(++next_file_seq)
@@ -71,7 +72,8 @@ struct InputFile
         COPY_filter()
         : where(WH_outside),
           in_matched(false),
-          protection(false)
+          protection(false),
+          copying(false)
         {}
 
         /// add \b object to \b this object_filter
@@ -90,10 +92,16 @@ struct InputFile
         void set_protection(bool prot)
            { protection = prot; }
 
-        /// return \b true if either an object filter or )PCOPY protection
-        /// is in effect, i.e. if check_filter() needs to be called at all
+        /// set the copying flag (from )COPY or )PCOPY)
+        void set_copying()
+           { copying = true; }
+
+        /// return \b true if check_filter() needs to be called at all, i.e.
+        /// for )COPY and )PCOPY (but not )LOAD). Without an object filter
+        /// and )PCOPY protection, check_filter() passes every line, but
+        /// still replaces existing structured variables as a whole.
         bool is_active() const
-           { return has_object_filter() || protection; }
+           { return copying || has_object_filter() || protection; }
 
         /// check the current line and return true if the line is permitted by
         /// the object_filter. Also, update \b in_function and \b in_variable.
@@ -105,7 +113,8 @@ struct InputFile
            {
              WH_outside     = 0,   ///< lines are outside any functions or var
              WH_in_function = 1,   ///< lines belong to a function
-             WH_in_variable = 2    ///< lines belong to a variable
+             WH_in_variable = 2,   ///< lines belong to a variable
+             WH_in_struct   = 3    ///< lines belong to a structured variable
            } where;
 
         /// true if the current function or variable was mentioned in
@@ -115,6 +124,9 @@ struct InputFile
         /// true for )PCOPY: an already existing function or variable of
         /// the same name shall not be overwritten
         bool protection;
+
+        /// true for )COPY and )PCOPY (but not for )LOAD)
+        bool copying;
 
         /// the functions and variiables that shall be )COPIED
         UCS_string_vector object_filter;
@@ -241,6 +253,9 @@ protected:
    /// stream, e.g. a real pipe via `-f -`, which would otherwise leave
    /// the BOM unstripped for that case. See Bugs27 #59(e).
    bool bom_checked;
+   /// the ]FILE_CTL skip mode (IO_Files::Skip_mode) of the input source that
+   /// opened this file, restored at its end (files may be )COPY'd recursively)
+   int saved_skip_mode;
 
    int  in_html;         ///< 0: no HTML, 1: in HTML file 2: in HTML header
 

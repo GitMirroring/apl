@@ -191,6 +191,12 @@ IndexExpr index_expr(ASS_none, LOC);   // start with an empty IndexExpr
         Value_P Z = single_index ? B.index(*single_index)
                                   : CLONE(&B, LOC);
 
+        // the clone must not carry B's whole-symbol (or member) marker:
+        // (⍬⌷[⍬]V)←C is selective, exactly like (V[])←C (Blake McBride,
+        // Bugs32 #7), see Value::clear_lval_markers().
+        //
+        if (!single_index)   Z->clear_lval_markers();
+
         Z->check_value(LOC);
         return Token(TOK_APL_VALUE1, Z);
       }

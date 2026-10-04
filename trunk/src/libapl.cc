@@ -814,15 +814,15 @@ init_libapl(const char * progname, int log_startup)
    init_modules2(log_startup);
 }
 //════════════════════════════════════════════════════════════════════════════
-extern DiffOut DOUT_filebuf;
-extern DiffOut UERR_filebuf;
+extern DiffOut DOUT_streambuf;
+extern DiffOut UERR_streambuf;
 extern ErrOut_streambuf CERR_streambuf;
 
 int
 expand_LF_to_CRLF(int on)
 {
-const int ret = DOUT_filebuf.LF_to_CRLF(on != 0);
-                UERR_filebuf.LF_to_CRLF(on != 0);
+const int ret = DOUT_streambuf.LF_to_CRLF(on != 0);
+                UERR_streambuf.LF_to_CRLF(on != 0);
                 CERR_streambuf.LF_to_CRLF(on != 0);
 
    return ret;

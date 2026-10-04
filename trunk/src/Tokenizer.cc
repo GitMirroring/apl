@@ -193,7 +193,12 @@ Tokenizer::tokenize_real(Unicode_source & src)
 {
    // hexadecimal ?
    //
-   if (src.rest_len() > 1 && *src == UNI_DOLLAR_SIGN)
+   // also for a $ at the end of the line, which then consumes the $ and
+   // fails like a $ followed by a non-hex character: otherwise nothing
+   // was consumed and "Bad number" was reported without the statement
+   // and carets (Blake McBride, Bugs32 #31)
+   //
+   if (src.rest_len() >= 1 && *src == UNI_DOLLAR_SIGN)
       return tokenize_hex(src);
 
 enum { MAX_TOKENIZE_DIGITS = 19 };   // == atrlen("9223372036854775807")
@@ -1344,6 +1349,7 @@ Tokenizer::Int_or_Double
 Tokenizer::tokenize_hex(Unicode_source & src)
 {
    src.get();   // skip $
+   if (!src.has_more())   return Int_or_Double();   // $ at end of line
    if (!Avec::is_hex_digit(*src))   return Int_or_Double();   // no hex after $
 
    // accumulate in an unsigned type: shifting a signed APL_Integer once

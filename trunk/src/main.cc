@@ -400,6 +400,7 @@ sockaddr_in local;
 
          if (fork_result)   // parent (server)
             {
+              sys_auto_reap(fork_result);   // nobody waits for the client
               close(connection);
               continue;
             }
@@ -477,7 +478,7 @@ const bool log_startup =
    sigaction(SIGHUP,   &new_HUP_action,       &old_HUP_action);
 
 #if ! MINGW_SRC
-   signal(SIGCHLD, SIG_IGN);   // do not create zombies
+   sys_init_SIGCHLD();   // reap registered children (see Sys.hh)
    signal(SIGPIPE, SIG_IGN);   // APserver TCP socket may close before APL writes to it
 #endif // ! MINGW_SRC
 

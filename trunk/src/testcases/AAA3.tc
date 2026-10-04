@@ -23,9 +23,9 @@
 
       ⍝ small real or complext parts, lrm 13 ----------------------------------
 
-      ⎕PP←17
+      ⎕PP←17   ⍝ maximum ⎕PP: no part is dropped (lrm p. 13, Bugs32 #13)
       3E45J2   ⍝ complex part << real part × 10⋆⎕PP
-3.0000000000000001E45
+3.0000000000000001E45J2
 
       2J3E45   ⍝ real part << complex part
 2J3.0000000000000001E45
@@ -195,6 +195,14 @@ FACE
       2 1⍴1.5E¯8 1E¯7J1E5
 1.5E¯8
  0.0E0J1E5
+
+
+
+      ⍝ a complex scalar: the real part is only scaled if it needs it
+      ⍝ (used to be 9.5715E3J1.824E5)
+      ⍝
+      9.5715E3J1.824E5
+9571.5J1.824E5
 
 
 

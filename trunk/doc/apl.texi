@@ -3218,6 +3218,61 @@ command, the immediate execution context processing proceeds at the next
 line after the ]PUSHFILE command.
 
 @c ----------------------------------------------------------------------------
+@node ]FILE_CTL Command
+@section ]FILE_CTL Command
+
+The debug command ]FILE_CTL controls which lines of an APL script file (or
+of an APL testcase file) are processed. Its main purpose is to have a single
+file that can be processed by GNU APL as well as by other APL interpreters
+(such as IBM APL2, where the file is processed by a separate harness that
+interprets the ]FILE_CTL lines itself): lines that test a GNU APL extension
+can then be skipped for IBM APL2, and lines that IBM APL2 needs can be
+skipped for GNU APL.
+
+@example
+]FILE_CTL mode     ⍝ set the skip mode
+]FILE_CTL          ⍝ show the current skip mode (on stderr)
+@end example
+
+where @b{mode} is one of the following words (in upper or lower case, but
+otherwise exactly as shown):
+
+@multitable @columnfractions .20 .80
+@headitem mode @tab subsequent lines of the file are...
+@item NO_SKIP   @tab processed (the default)
+@item SKIP_GNU  @tab skipped by GNU APL (but not by IBM APL2)
+@item SKIP_APL2 @tab skipped by IBM APL2 (but not by GNU APL)
+@item SKIP_ALL  @tab skipped by every interpreter, i.e. a multi-line comment
+@end multitable
+
+For example:
+
+@example
+      ]FILE_CTL SKIP_APL2   ⍝ the following uses GNU APL extensions
+      A←⍳3 ◊ B←A ∪ 2 5
+      ]FILE_CTL NO_SKIP
+@end example
+
+While lines are skipped, the lines ]FILE_CTL (to change the skip mode again)
+and )CLEAR (which resets the skip mode to NO_SKIP) are still processed.
+
+The skip mode belongs to the file that sets it:
+
+@itemize
+@item every file, including a file read by )COPY or )PCOPY, starts with
+      NO_SKIP, even if the input source that opened it (e.g. a script, or
+      the user who issued the )COPY command) was skipping, and
+
+@item at the end of a file (end of file, ]NEXTFILE, or a testcase file
+      that was aborted), the skip mode that its opener had is restored.
+      A file that ends while skipping therefore never skips any lines of
+      the next input file or of its opener, and )COPY commands can be
+      nested to any depth.
+@end itemize
+
+]FILE_CTL has no effect on lines entered interactively.
+
+@c ----------------------------------------------------------------------------
 @node History and TAB completion
 @section History and TAB completion
 
@@ -5351,7 +5406,10 @@ Many functions in FILE_IO have byte vectors as arguments or return byte
 vectors. A byte vector is an integer vector whose numbers fit into a byte
 (so they are integers between -128 and 255). Often @b{⎕UCS} and the functions in
 dyadic @b{⎕CR} are used to convert such byte vectors to/from, for example,
-Unicode strings.
+Unicode strings. @b{⎕UCS} treats a negative byte B (-128 ≤ B < 0) as the
+byte B+256, e.g. @b{⎕UCS ¯1} is the same character as @b{⎕UCS 255}. Other
+than that, @b{⎕UCS} accepts all integers that fit into 31 bits (i.e. up to
+@code{2147483647}, which can still be encoded in UTF-8 as defined in RFC 2279).
 
 The GNU APL package also contains other shared libraries as templates
 for your own native functions. Copy one of the files

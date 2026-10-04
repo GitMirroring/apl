@@ -49,8 +49,25 @@ Prefix::Prefix(StateIndicator & _si, const Token_string & _body)
      body(_body),
      PC(Function_PC_0),
      assign_state(ASS_none),
-     action(RA_FIXME)
+     action(RA_FIXME),
+     escape_pending(false)
 {
+}
+//────────────────────────────────────────────────────────────────────────────
+void
+Prefix::neutralize_lval_values()
+{
+   loop(s, ssize())
+      {
+        // must not throw (called while an error is being handled):
+        // is_apl_val() first, since get_apl_val() throws VALUE ERROR for
+        // a value token without a value (e.g. the result of ⍎'')
+        //
+        Token & tok = at(s).get_token();
+        if (tok.get_Class() != TC_VALUE || !tok.is_apl_val())   continue;
+        Value_P val = tok.get_apl_val();
+        if (val && val->is_left_value())   val->neutralize_lval_cells(LOC);
+      }
 }
 //────────────────────────────────────────────────────────────────────────────
 void
@@ -403,6 +420,22 @@ Prefix::reduce_body()
       {
         CERR << endl << "changed to Prefix[si=" << si.get_level()
              << "]) ============================================" << endl;
+      }
+
+   // ⎕EA or ⎕EB in this statement has delivered an escape (→ in its B),
+   // see handle_QUAD_ES_ESC(): like a plain → (reduce_END_GOTO__()) or
+   // Z←⍎'→', abandon the statement (including the part left of ⎕EA/⎕EB,
+   // which was not yet shifted) and return the escape from this context.
+   // It used to be pushed as a TOK_ESCAPE into the statement, which was a
+   // SYNTAX ERROR if the result of ⎕EA/⎕EB was used, e.g. Z←'5' ⎕EB '→'
+   // (Blake McBride, Bugs32 #21).
+   //
+   if (escape_pending)
+      {
+        escape_pending = false;
+        prefix_len = ssize();   // the entire stack
+        pop_args_push_result(Token(TOK_ESCAPE));
+        return pop().get_token();
       }
 
    if (ssize())   goto again;
@@ -1696,6 +1729,7 @@ const Cell * member_cell = top_val->get_existing_member(members);
         const LvalCell lval_cell(mut_cell, owner);
         cell_ref->next_ravel_Cell(lval_cell);
         cell_ref->check_value(LOC);
+        cell_ref->set_left_value();   // like Value::get_cellrefs() (Bugs32 #17)
         const Token_loc tloc_result(Token(TOK_APL_VALUE2, cell_ref),
                                     tl.get_PC());
         push(tloc_result);
@@ -2006,9 +2040,11 @@ Prefix::handle_QUAD_ES_ESC()
 
    Workspace::pop_SI(LOC);   // discard the ⎕EA/⎕EB context
 
-Token & si_pushed = Workspace::SI_top()->get_prefix().at0();
+Prefix & caller = Workspace::SI_top()->get_prefix();
+Token & si_pushed = caller.at0();
    Assert(si_pushed.get_tag() == TOK_SI_PUSHED);
    new (&si_pushed)  Token(TOK_ESCAPE);
+   caller.escape_pending = true;   // see reduce_body()
 }
 //════════════════════════════════════════════════════════════════════════════
 void
@@ -2022,6 +2058,14 @@ Prefix::handle_QUAD_ES_BRA(const Token & result)
 
 const cValue & QES_val = *result.get_apl_val();
 
+   // If ⎕EA/⎕EB was called inside a macro-implemented operator (e.g.
+   // A ⎕EA¨ B or A ∘.⎕EB B), then the new SI top is that (host) macro.
+   // Its lines are internal and B's →N must never jump into them: →1/→2
+   // re-ran the macro's loop forever, and →0 returned its half-initialized
+   // result (Blake McBride, Bugs32 #2).
+   //
+const bool host_is_macro = called_from_macro();
+
    // ⎕EA's BRA payload is 100 $FFFD (⊂,A) RES (4 items, A included, see
    // Macro.def); ⎕EB's is 100 $FFFD RES (3 items, no A -- ⎕EB always
    // executes A unconditionally itself via its own "⍎A", so it has no
@@ -2030,6 +2074,13 @@ const cValue & QES_val = *result.get_apl_val();
    //
    if (QES_val.element_count() < 4)   // ⎕EB: unchanged historical behaviour
       {
+        if (host_is_macro)
+           {
+             MORE_ERROR() << "A ⎕EB B: B's →N cannot branch out of an "
+                             "operator (such as ¨ or ∘.)";
+             SYNTAX_ERROR;
+           }
+
         Cell cache;
         const Cell & QES_line = QES_val.get_cravel(2, cache);
         Value_P v_line = IntScalar(QES_line.get_int_value(), LOC);
@@ -2041,6 +2092,13 @@ UCS_string statement_A(*QES_val.get_pointer_value(2));
 Cell cache;
 const Cell & QES_line = QES_val.get_cravel(3, cache);
 const APL_Integer line = QES_line.get_int_value();
+
+   if (host_is_macro)   // same as →N out of range: fall back to A
+      {
+        execute_EA_fallback(statement_A, E_SYNTAX_ERROR,
+                       "B's →N cannot branch out of an operator (such as ¨)");
+        return;
+      }
 
 StateIndicator * caller = Workspace::SI_top();
 Value_P v_line = IntScalar(line, LOC);
@@ -3119,6 +3177,12 @@ Value_P top_val = top_sym->get_var_value();
                   const LvalCell left_cell(mut_cell, owner);
                   left_Z->next_ravel_Cell(left_cell);
                   left_Z->check_value(LOC);
+                  // a left value like any other (Value::get_cellrefs()):
+                  // without it, the selectivity guards and the no-op
+                  // rules did not apply to scalar members, e.g. (⍳S.a)←9
+                  // ran ⍳ on the LvalCell (Blake McBride, Bugs32 #17)
+                  //
+                  left_Z->set_left_value();
                   left_Z->set_lval_bare_member_ref();
                   pop_args_push_result(Token(TOK_APL_VALUE2, left_Z));
                 }

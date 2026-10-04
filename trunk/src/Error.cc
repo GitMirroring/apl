@@ -310,6 +310,34 @@ Error::update_error_info(StateIndicator * si)
    // derive it from get_prompt() directly instead of duplicating
    // whatever its current value happens to be (user, 2026-08-19).
    //
+   // A ⎕EB B where B failed and then the cleanup A failed too: A's error is
+   // reported, and )MORE names the earlier failure of B. ⎕EC has registered
+   // that failure in the )SI entry of the ⎕EB macro (see QuadFunction.cc),
+   // below the frame(s) of A in which this error occurred. A ⎕EC safe-
+   // execution start on the way means that the error is caught in A itself,
+   // and an entry of B's failure ends with the macro, so that it can neither
+   // be lost nor be left over (Blake McBride, Bugs32 #22, #32).
+   //
+   for (const StateIndicator * s = si; s; s = s->get_parent())
+       {
+         const UCS_string & B_failure = s->get_EB_B_failure();
+         if (B_failure.size())
+            {
+              UCS_string & more = MORE_ERROR();
+              const bool known = more.size() >= B_failure.size() &&
+                     UCS_string(more, more.size() - B_failure.size(),
+                                B_failure.size()) == B_failure;
+              if (!known)   // not yet added (e.g. by an earlier call)
+                 {
+                   if (more.size())   more << UNI_LF;
+                   more << B_failure;
+                 }
+              add_MORE_indicator(true);
+              break;
+            }
+         if (s->is_safe_execution_start())   break;
+       }
+
    {
      const UTF8_string prompt_utf(Workspace::get_prompt());
      const int nchars = set_error_line_2(prompt_utf.c_str());

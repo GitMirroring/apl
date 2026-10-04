@@ -355,13 +355,14 @@ DOMAIN ERROR
       ⍴'' (,⍤0) ''
 0 2
 
-      ⍝ the prototype is ↑ of F's result on that chunk (Bugs30 #12)
+      ⍝ the shape comes from F's result on that chunk (Bugs30 #12), the
+      ⍝ prototype is the type of that result (Bugs32 #18)
       ⍝
       Z←1 (,⍤1)0 3⍴0 ◊ 2⎕TF 'Z'
-Z←0 4⍴1
+Z←0 4⍴0
 
       Z←'ab' (,⍤1)0 3⍴0 ◊ 2⎕TF 'Z'
-Z←0 5⍴'a'
+Z←0 5⍴' '
 
       )ERASE Z
 

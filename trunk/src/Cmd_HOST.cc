@@ -153,6 +153,15 @@ Cmd_HOST::cmd_NEXTFILE(ostream & out, const UCS_string_vector & args)
 void
 Cmd_HOST::cmd_FILE_CTL(ostream & out, const UCS_string_vector & args)
 {
+static const char * mode_names[] =
+   { "NO_SKIP", "SKIP_GNU", "SKIP_APL2", "SKIP_ALL" };
+
+   if (args.size() == 0)   // ]FILE_CTL: show the current skip mode
+      {
+        out << mode_names[IO_Files::skip_mode] << endl;
+        return;
+      }
+
    if (args.size() != 1)
       {
         CERR << "]FILE_CTL: expecting exactly one of "
@@ -160,11 +169,18 @@ Cmd_HOST::cmd_FILE_CTL(ostream & out, const UCS_string_vector & args)
         return;
       }
 
+   // the whole word (case-insensitive), not merely its start: e.g.
+   // SKIP_GNUXX was silently accepted (Blake McBride, Bugs32 #29)
+   //
 const UCS_string & arg = args[0];
-   if      (arg.starts_iwith("NO_SKIP"))     IO_Files::skip_mode = IO_Files::SKIP_NONE;
-   else if (arg.starts_iwith("SKIP_GNU"))    IO_Files::skip_mode = IO_Files::SKIP_GNU;
-   else if (arg.starts_iwith("SKIP_APL2"))   IO_Files::skip_mode = IO_Files::SKIP_APL2;
-   else if (arg.starts_iwith("SKIP_ALL"))    IO_Files::skip_mode = IO_Files::SKIP_ALL;
+   if      (arg.starts_iwith("NO_SKIP")   && arg.size() == 7)
+      IO_Files::skip_mode = IO_Files::SKIP_NONE;
+   else if (arg.starts_iwith("SKIP_GNU")  && arg.size() == 8)
+      IO_Files::skip_mode = IO_Files::SKIP_GNU;
+   else if (arg.starts_iwith("SKIP_APL2") && arg.size() == 9)
+      IO_Files::skip_mode = IO_Files::SKIP_APL2;
+   else if (arg.starts_iwith("SKIP_ALL")  && arg.size() == 8)
+      IO_Files::skip_mode = IO_Files::SKIP_ALL;
    else
       {
         CERR << "]FILE_CTL: unknown mode '" << arg << "' (ignored).\n"

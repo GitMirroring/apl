@@ -35,8 +35,14 @@
 #include <time.h>
 #include <unistd.h>
 #include <signal.h>
+#include <pthread.h>
+#include <cerrno>
 
 #include "config.h"   // for HAVE_SYS_MMAN_H
+
+#if ! MINGW_SRC
+# include <sys/wait.h>
+#endif
 
 #if HAVE_SYS_MMAN_H
 # include <sys/mman.h>   // must be at file scope: its extern "C" block
@@ -270,67 +276,106 @@ public:
 #endif // HAVE_SEM_TIMEDWAIT
 };
 //────────────────────────────────────────────────────────────────────────────
-/// open a pipe for reading or writing
-/// @param command shell command string to execute
-/// @param mode open mode passed to popen() (e.g. "r" or "w")
-/// number of sys_popen() streams currently open without a matching
-/// sys_pclose() yet (Bugs30 #19). A function-local static in an inline
-/// function, not a plain file-scope static: this header can be included
-/// by more than one .cc file, and every one of them must nest against
-/// the same single, program-wide count.
-inline int & sys_popen_nesting()
+/* Child processes and SIGCHLD.
+
+   SIGCHLD keeps a handler (installed by sys_init_SIGCHLD() in main()) for
+   the entire session. It reaps only the child processes that were
+   registered with sys_auto_reap(): children that nobody waits for, e.g.
+   those of ⎕FIO[57] (fork/execve). Every other child, in particular those
+   of popen(), is left alone, so that pclose() (and system()) always find
+   their child and return its real exit status.
+
+   This replaces an earlier scheme that switched SIGCHLD between SIG_IGN
+   (auto-reap all children) and SIG_DFL (while popen() streams were open,
+   counted by a nesting counter, Bugs30 #19): a child of ⎕FIO[57] that
+   exited while some popen() stream was open became a zombie for good
+   (Blake McBride, Bugs32 #11), since setting SIG_IGN later does not reap
+   existing zombies. Unlike SIG_IGN, a handler is also reset by execve(),
+   so that programs started by GNU APL get a default SIGCHLD.
+ */
+/// the maximum number of not yet reaped children registered at the same time
+enum { MAX_AUTO_REAP = 256 };
+
+/// the pids of children to be reaped by sys_SIGCHLD_handler() (0 = free)
+inline volatile sig_atomic_t * sys_auto_reap_pids()
 {
-   static int nesting = 0;
-   return nesting;
+   static volatile sig_atomic_t pids[MAX_AUTO_REAP];
+   return pids;
 }
 //────────────────────────────────────────────────────────────────────────────
+/// reap the registered children that have terminated (async-signal-safe)
+inline void sys_SIGCHLD_handler(int)
+{
+#if ! MINGW_SRC
+const int saved_errno = errno;
+volatile sig_atomic_t * pids = sys_auto_reap_pids();
+   for (int p = 0; p < MAX_AUTO_REAP; ++p)
+       {
+         const pid_t pid = pids[p];
+         if (pid <= 0)   continue;
+         int status;
+         const pid_t ret = waitpid(pid, &status, WNOHANG);
+         if (ret == pid || (ret == -1 && errno == ECHILD))   pids[p] = 0;
+       }
+   errno = saved_errno;
+#endif // ! MINGW_SRC
+}
+//────────────────────────────────────────────────────────────────────────────
+/// install sys_SIGCHLD_handler() (once, at startup)
+inline void sys_init_SIGCHLD()
+{
+#if ! MINGW_SRC
+struct sigaction sa;
+   memset(&sa, 0, sizeof(sa));
+   sa.sa_handler = &sys_SIGCHLD_handler;
+   sigemptyset(&sa.sa_mask);
+   sa.sa_flags = SA_RESTART | SA_NOCLDSTOP;
+   sigaction(SIGCHLD, &sa, 0);
+#endif // ! MINGW_SRC
+}
+//────────────────────────────────────────────────────────────────────────────
+/// register child \b pid, which nobody waits for, to be reaped when it
+/// terminates
+inline void sys_auto_reap(pid_t pid)
+{
+#if ! MINGW_SRC
+   if (pid <= 0)   return;
+
+   // block SIGCHLD while the table is modified, then reap once, in case
+   // the child has terminated already (before it was registered)
+   //
+sigset_t block, old;
+   sigemptyset(&block);
+   sigaddset(&block, SIGCHLD);
+   pthread_sigmask(SIG_BLOCK, &block, &old);
+
+volatile sig_atomic_t * pids = sys_auto_reap_pids();
+   for (int p = 0; p < MAX_AUTO_REAP; ++p)
+       {
+         if (pids[p] == 0)   { pids[p] = pid;   break; }
+       }
+   sys_SIGCHLD_handler(SIGCHLD);
+
+   pthread_sigmask(SIG_SETMASK, &old, 0);
+#endif // ! MINGW_SRC
+}
+//────────────────────────────────────────────────────────────────────────────
+/// open a pipe for reading or writing (see "Child processes and SIGCHLD"
+/// above)
+/// @param command shell command string to execute
+/// @param mode open mode passed to popen() (e.g. "r" or "w")
+/// @return the FILE pointer returned by popen(), or 0 on failure
 inline FILE * sys_popen(const char * command, const char * mode)
 {
-   // Restore SIGCHLD to its default disposition BEFORE popen() forks the
-   // child, not after. sys_pclose() below leaves SIGCHLD as SIG_IGN at
-   // rest (elsewhere in the interpreter that relies on children being
-   // auto-reaped without an explicit wait()); popen()'s own child can
-   // exit before control ever reaches a signal() call placed after
-   // popen() returns, and while SIGCHLD is still SIG_IGN, POSIX/Linux
-   // auto-reaps an exiting child the instant it exits. If that race is
-   // hit, pclose()'s internal waitpid() later finds no child left to
-   // wait for, fails with ECHILD, and pclose() returns -1 instead of the
-   // real wait status -- confirmed via a Bugs27 #59(g) regression report
-   // (Bill Heagy) on a slow single-core 32-bit machine, where a `)HOST
-   // exit 3` reliably printed -1 instead of 3. signal() takes effect
-   // synchronously in this thread, so doing it first closes the window
-   // entirely: the child can never be forked while SIGCHLD is IGN.
-   //
-   // Only on the *first* concurrently-open stream (Bugs30 #19): with two
-   // streams open at once, unconditionally flipping SIGCHLD back to
-   // SIG_IGN in sys_pclose() below as soon as the FIRST one closes
-   // auto-reaps the SECOND stream's still-running child the instant it
-   // exits, so that stream's own later pclose() finds no child left
-   // (waitpid -> ECHILD) and wrongly returns -1 instead of the real wait
-   // status. Nesting the disposition change keeps SIGCHLD at SIG_DFL for
-   // as long as ANY sys_popen() stream is still open.
-   //
-#if ! MINGW_SRC
-   if (sys_popen_nesting()++ == 0)   signal(SIGCHLD, SIG_DFL);
-#endif // ! MINGW_SRC
-
-FILE * file = popen(command, mode);
-   return file;
+   return popen(command, mode);
 }
 //────────────────────────────────────────────────────────────────────────────
 /// close a pipe opened with sys_popen()
 /// @param stream FILE pointer returned by sys_popen()
-inline int sys_pclose(FILE *stream)
+/// @return the exit status returned by pclose()
+inline int sys_pclose(FILE * stream)
 {
-const int ret = pclose(stream);
-
-   // Back to SIG_IGN at rest only once the LAST concurrently-open
-   // sys_popen() stream closes (Bugs30 #19) -- see sys_popen() above.
-#if ! MINGW_SRC
-   if (--sys_popen_nesting() == 0)   signal(SIGCHLD, SIG_IGN);
-#endif // ! MINGW_SRC
-
-   return ret;
+   return pclose(stream);
 }
 //════════════════════════════════════════════════════════════════════════════
 /// A MAII compliant wrapper for popen()/pclose()

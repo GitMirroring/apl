@@ -577,12 +577,14 @@ const Shape shape_Z = frame_B_rank ? B->get_shape().frame_shape(frame_B_rank)
         Value_P Z1 = eval_LO_on_fill_chunk(LO->eval_rank_fill_AB(*Fill_A,
                                            *Fill_B));
 
-        // Z's prototype is ↑Z1, i.e. the first item that LO actually
-        // produced (Bugs30 #11/#12), not merely a type-correct default:
-        // e.g. the prototype of (1 2 3)(+⍤1)0 3⍴0 is 1 (from 1 2 3+0 0 0).
+        // Z's shape comes from what LO actually produced (Bugs30 #11/#12),
+        // but its prototype is the TYPE of that result, like for every
+        // other empty APL value and like the monadic branch below: e.g.
+        // the prototype of (1 2 3)(+⍤1)0 3⍴0 is 0 (not 1 from 1 2 3+0 0 0),
+        // as for 1∘.,0 3⍴0 or 1,¨0 3⍴0 (Blake McBride, Bugs32 #18).
         //
         Value_P Z(shape_Z + Z1->get_shape(), LOC);
-        Z->set_ravel_Value(0, Bif_F12_TAKE::first(*Z1).get());
+        Z->set_default(*Z1, LOC);
         Z->check_value(LOC);
         return Token(TOK_APL_VALUE1, Z);
       }

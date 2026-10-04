@@ -119,7 +119,14 @@ protected:
    struct file_entry
       {
         /// constructor
-        file_entry() {}
+        file_entry()
+        : fe_FILE(0),
+          fe_errno(0),
+          fe_fd(-1),
+          fe_may_read(false),
+          fe_may_write(false),
+          fe_popen(false)
+        {}
 
         /// constructor
         /// @param fp FILE pointer returned by fopen()
@@ -129,7 +136,8 @@ protected:
           fe_errno(0),
           fe_fd(fd),
           fe_may_read(false),
-          fe_may_write(false)
+          fe_may_write(false),
+          fe_popen(false)
         {}
 
         /// assignment
@@ -141,6 +149,7 @@ protected:
              fe_errno = other.fe_errno;
              fe_may_read = other.fe_may_read;
              fe_may_write = other.fe_may_write;
+             fe_popen = other.fe_popen;
            }
 
         FILE * fe_FILE;        ///< FILE * returned by fopen()
@@ -148,6 +157,7 @@ protected:
         int    fe_fd;          ///< file desriptor == fileno(file)
         bool   fe_may_read;    ///< file open for reading
         bool   fe_may_write;   ///< file open for writing
+        bool   fe_popen;       ///< opened by sys_popen() (⎕FIO[24] or [26])
         UTF8_string path;      ///< filename
       };
 

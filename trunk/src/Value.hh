@@ -742,13 +742,14 @@ public:
 
 #endif
 
-   /// get the min spacing for this column and set/clear NOTCHAR if there
-   /// is/isn't a numeric item in the column.
-   /// are/ain't numeric items in col.
-   /// @param NOTCHAR set to true if a non-character item is found in the column
+   /// return the min spacing (S of lrm p. 138) for column \b col and
+   /// set \b non_char_col if the column contains a numeric or nested item.
+   /// @param non_char_col set to true if a non-character item is found in
+   ///        the column (not the NOTCHAR function of lrm p. 138, see NOTCHAR())
    /// @param col column index to examine (0-based)
    /// @param framed true if the value is being printed in a framed box
-   int32_t get_col_spacing(bool & NOTCHAR, ShapeItem col, bool framed) const;
+   int32_t get_col_spacing(bool & non_char_col, ShapeItem col,
+                           bool framed) const;
 
    /// list a value
    /// @param out output stream to write to

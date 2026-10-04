@@ -582,8 +582,11 @@ Quad_FIO::clear()
    while(open_files.size() > 3)
       {
          file_entry & fe = open_files.back();
-         if (fe.fe_FILE)   fclose(fe.fe_FILE);   // also closes fe.fe_fd
-         else              close(fe.fe_fd);
+         // a popen() handle must be closed with sys_pclose(), which keeps
+         // its SIGCHLD nesting counter balanced (Blake McBride, Bugs32 #11)
+         if (fe.fe_popen)       sys_pclose(fe.fe_FILE);
+         else if (fe.fe_FILE)   fclose(fe.fe_FILE);   // also closes fe.fe_fd
+         else                   close(fe.fe_fd);
          // fe.path is empty for a handle opened via popen()/execve()
          // (⎕FIO[24]/[57], which don't record a path the way a plain
          // file open does) -- printing the handle number always keeps
@@ -621,8 +624,14 @@ Quad_FIO::close_handle(int fd)
              DOMAIN_ERROR;
            }
 
-        if (fe.fe_FILE)   fclose(fe.fe_FILE);   // also closes fe.fe_fd
-        else              close(fe.fe_fd);
+        // a popen() handle must be closed with sys_pclose(), which keeps
+        // its SIGCHLD nesting counter balanced: fclose() left it
+        // incremented for good, so that every later ⎕FIO[57] child became
+        // a zombie (Blake McBride, Bugs32 #11).
+        //
+        if (fe.fe_popen)       sys_pclose(fe.fe_FILE);
+        else if (fe.fe_FILE)   fclose(fe.fe_FILE);   // also closes fe.fe_fd
+        else                   close(fe.fe_fd);
 
         open_files.erase(open_files.begin() + h);
         return 0;   // OK
@@ -652,6 +661,7 @@ const pid_t child = fork();
 
    if (child)   // parent process: return handle
       {
+        sys_auto_reap(child);   // nobody waits for the child (see Sys.hh)
         ::close(spair[1]);   // close child's end so read(spair[0]) gets EOF when child exits
         file_entry fe(0, spair[0]);
         fe.fe_may_read = true;
@@ -2237,6 +2247,7 @@ NOT_MINGW(
           file_entry fe(f, fileno(f));
           fe.fe_may_read = read;
           fe.fe_may_write = write;
+          fe.fe_popen = true;
           open_files.push_back(fe);
           return Token(TOK_APL_VALUE1, IntScalar(fe.fe_fd, LOC));
         }
@@ -3110,6 +3121,7 @@ FILE * f = sys_popen(path.c_str(), "r");
       }
 file_entry fe(f, fileno(f));
    fe.fe_may_read = true;
+   fe.fe_popen = true;
    open_files.push_back(fe);
    return Token(TOK_APL_VALUE1, IntScalar(fe.fe_fd, LOC));
 }
@@ -3125,18 +3137,14 @@ file_entry & fe = get_file_entry(*B);
    //
    if (fe.fe_fd <= STDERR_FILENO)   DOMAIN_ERROR;
 
-   // Bugs31 #20 (Blake McBride): fe.path is empty only for a handle
-   // opened via sys_popen() (⎕FIO[24]) -- a regular fopen()'d handle
-   // (fe.path non-empty) must never reach sys_pclose(), which maintains
-   // a global SIGCHLD-disposition nesting counter (sys_popen_nesting(),
-   // Sys.hh) that such a handle never incremented via sys_popen() in
-   // the first place. pclose()-ing it anyway still decrements that
-   // counter without a matching increment, permanently desynchronizing
-   // it (oscillating between -1 and 0 instead of reaching 0 only when
-   // the last real popen() stream closes) and breaking every later
-   // popen()/pclose() pair's exit status.
+   // Bugs31 #20 (Blake McBride): only a handle opened via sys_popen()
+   // (⎕FIO[24]) may reach sys_pclose(); pclose() of any other FILE is
+   // undefined behaviour.
    //
-   if (fe.path.size())
+   // fe.fe_popen rather than an empty fe.path: a ⎕FIO[57] (fork/execve)
+   // handle has no path either (Blake McBride, Bugs32 #28).
+   //
+   if (!fe.fe_popen)
       {
         MORE_ERROR() << "⎕FIO[25] (pclose): handle " << fe.fe_fd
                      << " was not opened by ⎕FIO[24] (popen)";
@@ -3380,8 +3388,15 @@ Quad_FIO::eval_XB__4(Value_P B)
    errno = 0;
 file_entry & fe = get_file_entry(*B);
    if (fe.fe_fd <= STDERR_FILENO)   DOMAIN_ERROR;
-   if (fe.fe_FILE)   fclose(fe.fe_FILE);   // also closes fe.fe_fd
-   else              close(fe.fe_fd);
+
+   // a popen() handle must be closed with sys_pclose(), which keeps its
+   // SIGCHLD nesting counter balanced: fclose() left it incremented for
+   // good, so that every later ⎕FIO[57] child became a zombie (Blake
+   // McBride, Bugs32 #11).
+   //
+   if (fe.fe_popen)       sys_pclose(fe.fe_FILE);
+   else if (fe.fe_FILE)   fclose(fe.fe_FILE);   // also closes fe.fe_fd
+   else                   close(fe.fe_fd);
    fe = open_files.back();       // move last file to fe
    open_files.pop_back();        // erase last file
    return Token(TOK_APL_VALUE1, IntScalar(-errno, LOC));

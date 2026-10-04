@@ -44,6 +44,7 @@
 #endif // MINGW_SRC
 
 #include "Error_macros.hh"
+#include "Sys.hh"
 #include "PythonPipe.hh"
 
 //════════════════════════════════════════════════════════════════════════════
@@ -97,6 +98,7 @@ const int & python_sock = spair[1];
 
    if (pid)   // parent (caller (APL))
       {
+        sys_auto_reap(pid);   // nobody waits for the python child
         // ::close(python_sock);   // child end of the pipe
         //
         fd = apl_sock;

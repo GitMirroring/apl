@@ -797,6 +797,17 @@ cValue::enlist_right(Value & Z) const
               // invalid/placeholder LvalCell -- deducted from
               // get_enlist_count() already, so not written here either.
             }
+         else if (cell.is_lval_cell() &&
+                  cell.get_lval_value()->is_pointer_cell())
+            {
+              // an LvalCell pointing to a nested item: get_enlist_count()
+              // counts the items of that nested item (not the LvalCell),
+              // so write them too. Copying the LvalCell instead left the
+              // rest of Z uninitialized (Blake McBride, Bugs32 #3, e.g.
+              // (⊂∊⊃N)←9 for N←((1 2)(3 4))((5 6)(7 8))).
+              //
+              cell.get_lval_value()->get_pointer_value()->enlist_right(Z);
+            }
          else
             {
               Z.next_ravel_Cell(cell);
@@ -1854,10 +1865,10 @@ const Cell & first = get_cfirst(cache);
        array and 0 otherwise.
  */
 int32_t
-cValue::get_col_spacing(bool & NOTCHAR, ShapeItem col, bool framed) const
+cValue::get_col_spacing(bool & non_char_col, ShapeItem col, bool framed) const
 {
 int32_t max_spacing = 0;
-   NOTCHAR = false;
+   non_char_col = false;
 
 const ShapeItem ec = element_count();
 const ShapeItem cols = get_last_shape_item();
@@ -1880,7 +1891,7 @@ const ShapeItem rows = ec/cols;
 
         if (cell.is_pointer_cell())   // nested: NOTCHAR[2]
            {
-             NOTCHAR = true;
+             non_char_col = true;
              if (framed)
                 {
                   S = 1;
@@ -1898,7 +1909,7 @@ const ShapeItem rows = ec/cols;
            }
         else                                 // simple numeric
            {
-             NOTCHAR = true;
+             non_char_col = true;
            }
 
         if (max_spacing < S)   max_spacing = S;
