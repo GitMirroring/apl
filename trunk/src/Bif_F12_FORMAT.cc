@@ -30,6 +30,7 @@
 #include "CharCell.hh"
 #include "PrimitiveFunction.hh"
 #include "PrintOperator.hh"
+#include "UserPreferences.hh"
 #include "Value.hh"
 #include "Workspace.hh"
 
@@ -829,6 +830,15 @@ Bif_F12_FORMAT::is_picture_char(Unicode uni)
    return is_control_char(uni) || (uni == Workspace::get_FC(4));
 }
 //────────────────────────────────────────────────────────────────────────────
+/// the frame style for nested items in the display and in monadic ⍕:
+/// parentheses with STRICT_IBM_APL2_FORMATTING parentheses, otherwise none
+static PrintStyle
+nested_style()
+{
+   return UserPreferences::uprefs.nested_parentheses ? PST_CS_PARENS
+                                                     : PST_NONE;
+}
+//────────────────────────────────────────────────────────────────────────────
 Value_P
 Bif_F12_FORMAT::monadic_format(cValue_R B)
 {
@@ -842,7 +852,8 @@ Bif_F12_FORMAT::monadic_format(cValue_R B)
    // ⍕1E¯16J2 gave 0J2E0 while the same value simply displayed as
    // 0J2. See Bugs27 #42.
    //
-const PrintStyle style(PrintStyle(PR_APL | PST_NO_FRACT_0 | PST_NO_EXPO_0));
+const PrintStyle style(PrintStyle(PR_APL | PST_NO_FRACT_0 | PST_NO_EXPO_0
+                                 | nested_style()));
 const PrintContext pctx = Workspace::get_PrintContext(style);
 
 const PrintBuffer pb(B, pctx, 0);
@@ -904,7 +915,8 @@ Bif_F12_FORMAT::eval_B(cValue_R B) const
 
    if (!B.is_simple())
       {
-        PrintBuffer pb(B, Workspace::get_PrintContext(PR_APL), 0);
+        PrintBuffer pb(B, Workspace::get_PrintContext(
+                                    PrintStyle(PR_APL | nested_style())), 0);
         Assert(pb.is_rectangular());
         const ShapeItem cols = pb.get_column_count();
         const ShapeItem rows = pb.get_row_count();

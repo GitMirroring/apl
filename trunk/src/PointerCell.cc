@@ -184,6 +184,16 @@ PrintBuffer ret(*val, pctx, 0);
 
              proto_reshaped->check_value(LOC);
              ret = PrintBuffer(*proto_reshaped, pctx, 0);
+             if ((style & PST_CS_MASK) == PST_CS_PARENS)
+                {
+                  // as IBM APL2: blanks as wide as one row of prototypes
+                  // (none if the last axis is 0) in parentheses
+                  //
+                  const int width = (style & PST_EMPTY_LAST)
+                                  ? 0 : ret.get_column_count();
+                  ColInfo ci;
+                  ret = PrintBuffer(UCS_string(width, UNI_SPACE), ci);
+                }
              ret.add_frame(PrintStyle(style), proto_reshaped->get_shape(),
                            proto_reshaped->compute_depth());
            }

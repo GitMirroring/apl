@@ -4,6 +4,7 @@
 # put them into apl-x.x.tar.gz, but don't install them.
 #
 dist_noinst_DATA =		\
+	FORMAT_FUZZ.apl		\
 	Performance.apl		\
 	Performance.gnuplot
 

@@ -34,6 +34,7 @@
 #include "IntCell.hh"
 #include "Output.hh"
 #include "Parser.hh"
+#include "UserPreferences.hh"
 #include "PointerCell.hh"
 #include "PrintOperator.hh"
 #include "Quad_SQL.hh"
@@ -1595,6 +1596,34 @@ Parser::create_value(Token_string & tos, int pos, int count)
 void
 Parser::create_vector_value(Token_string & tos, int pos, int count)
 {
+   // IBM APL2 stores a run of consecutive numbers in a strand (a numeric
+   // literal like 9.81 9716500 in 9.81 9716500 'X') as one floating point
+   // (or complex) vector if one of them is not an integer, i.e. also its
+   // integers are then floats (which matters for the display of mixed
+   // values: 9716500 is then scaled like a float). GNU APL keeps the type
+   // of every number, except with STRICT_IBM_APL2_FORMATTING yes.
+   //
+std::vector<bool> as_float(count, false);
+   if (UserPreferences::uprefs.strict_IBM_APL2_formatting)
+      {
+        int run = 0;
+        while (run < count)
+           {
+             int end = run;
+             bool non_int = false;
+             for (; end < count; ++end)
+                 {
+                   const TokenTag tag = tos[pos + end].get_tag();
+                   if (tag == TOK_REAL || tag == TOK_COMPLEX)
+                      non_int = true;
+                   else if (tag != TOK_INTEGER)   break;
+                 }
+             if (non_int)
+                for (int r = run; r < end; ++r)   as_float[r] = true;
+             run = end + 1;
+           }
+      }
+
 Value_P Z(count, LOC);
 
    loop(l, count)
@@ -1609,7 +1638,10 @@ Value_P Z(count, LOC);
                    break;
 
               case TOK_INTEGER:
-                   Z->next_ravel_Int(tok.get_int_val());
+                   if (as_float[l])
+                      Z->next_ravel_Float(APL_Float(tok.get_int_val()));
+                   else
+                      Z->next_ravel_Int(tok.get_int_val());
                    tok.clear(LOC);   // invalidate token
                    break;
 

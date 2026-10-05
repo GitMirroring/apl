@@ -638,6 +638,18 @@ FloatCell::need_scaling(APL_Float val, int quad_pp)
    //
    if (val < 0.0)   val = - val;   // simplify comparisons
 
+   // the decision is made on the number as displayed, i.e. rounded to
+   // quad_pp significant digits (lrm p. 12, verified with IBM APL2): e.g.
+   // with ⎕PP←5, 9.99999E¯6 is displayed as 0.00001 (not 1E¯5), and
+   // 99999.6 as 1E5 (not as the 6 digits 100000).
+   //
+   if (val != 0.0 && isfinite(val))
+      {
+        char cc[40];
+        snprintf(cc, sizeof(cc), "%.*e", quad_pp - 1, val);
+        val = strtod(cc, 0);
+      }
+
    if (is_big(val, quad_pp))        return true;    // case 1.
 
    if (val == 0.0)                  return false;   // not 2a.

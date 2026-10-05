@@ -163,6 +163,14 @@ needed to compile.
 .B --show_all_dirs
 display all the directories above.
 .TP
+.B --strict_IBM_APL2_formatting mode
+select the output format of APL values (and of monadic format):
+\fBno\fR (GNU APL's traditional format),
+\fByes\fR (exactly as IBM APL2), or
+\fBparentheses\fR (as \fBno\fR, but nested items in parentheses instead
+of blanks). Overrides the preference STRICT_IBM_APL2_FORMATTING in the
+preferences files.
+.TP
 .B -q, --silent
 suppress printing of the GNU APL welcome message. Useful for APL scripts.
 .TP

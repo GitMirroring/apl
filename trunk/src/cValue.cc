@@ -45,6 +45,7 @@
 #include "SystemVariable.hh"
 #include "UCS_string.hh"
 #include "UserFunction.hh"
+#include "UserPreferences.hh"
 #include "Value.hh"
 #include "ValueHistory.hh"
 #include "Workspace.hh"
@@ -895,9 +896,18 @@ PrintContext pctx = Workspace::get_PrintContext(PR_APL);
       }
    else                  // matrix or higher
       {
-        if (element_count() == 0)   return print_empty(out);
+        // an empty value: as IBM APL2 with STRICT_IBM_APL2_FORMATTING
+        // (empty_lines()), otherwise no lines at all (GNU APL's traditional
+        // output, e.g. for the common idiom 0 0⍴X)
+        if (element_count() == 0 &&
+            UserPreferences::uprefs.strict_IBM_APL2_formatting)
+           return print_empty(out);
         pctx.set_style(PrintStyle(pctx.get_style() | PST_NO_FRACT_0));
       }
+
+   // STRICT_IBM_APL2_FORMATTING parentheses: nested items in parentheses
+   if (UserPreferences::uprefs.nested_parentheses)
+      pctx.set_style(PrintStyle(pctx.get_style() | PST_CS_PARENS));
 
 PrintBuffer pb(static_cast<const Value &>(*this), pctx, &out);   // constructor prints it
    return out;
@@ -1901,6 +1911,13 @@ const ShapeItem rows = ec/cols;
                   const Value & sub = *cell.get_pointer_value();
                   S = sub.get_rank();
                   if (sub.NOTCHAR())   ++S;
+                  // GNU APL (unless STRICT_IBM_APL2_FORMATTING): an empty
+                  // item is displayed as a single blank (see PrintBuffer)
+                  // and is spaced like a simple scalar, whatever its shape
+                  // and prototype
+                  if (sub.element_count() == 0 &&
+                      !UserPreferences::uprefs.strict_IBM_APL2_formatting)
+                     S = 1;
                 }
            }
         else if (cell.is_character_cell())   // simple char

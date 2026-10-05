@@ -371,6 +371,31 @@ write_env_file()
       echo "=== ./apl --cfg ==="
       ./apl --cfg 2>&1
       echo
+      # the user's preferences can change the interpreter's behaviour (e.g.
+      # STRICT_IBM_APL2_FORMATTING changes the output format), so include
+      # the files themselves. The testcases run with a temporary HOME, so
+      # only the system-wide files apply to them; the user's own files are
+      # included for reports about interactive sessions.
+      local etc_dir=$(./apl --show_etc_dir 2>/dev/null)
+      local pf
+      for pf in "${etc_dir:-/etc}/gnu-apl.d/preferences" \
+                "${etc_dir:-/etc}/gnu-apl.d/parallel_thresholds" \
+                "$HOME/.gnu-apl/preferences" \
+                "$HOME/.gnu-apl/parallel_thresholds" \
+                "$HOME/.config/gnu-apl/preferences" \
+                "$HOME/.config/gnu-apl/parallel_thresholds"; do
+         echo "=== preferences file $pf ==="
+         if [[ -r "$pf" ]]; then
+            echo "settings (non-comment lines):"
+            grep -v '^[[:space:]]*#' "$pf" | grep -v '^[[:space:]]*$' \
+               | sed 's/^/   /'
+            echo "--- complete file ---"
+            cat "$pf"
+         else
+            echo "(does not exist)"
+         fi
+         echo
+      done
       echo "=== compiler ==="
       if command -v "${CXX:-g++}" > /dev/null 2>&1; then
          "${CXX:-g++}" --version 2>&1 | head -1

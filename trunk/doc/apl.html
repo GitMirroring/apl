@@ -76,7 +76,7 @@ Next: <a href="#Installing-and-Starting-GNU-APL" accesskey="n" rel="next">Instal
 </div>
 <span id="GNU-APL-Reference-Manual"></span><h1 class="top">GNU APL Reference Manual</h1>
 
-<p>October 4, 2026.
+<p>October 5, 2026.
 This manual briefly documents GNU APL, an interpreter for APL as described
 in ISO standard 13751, aka. &quot;Programming Language APL, Extended&quot;.
 </p>
@@ -110,7 +110,7 @@ therefore it must be expanded with e.g. <b>gunzip</b> before it can be read.
     <li><a id="toc-Starting-APL-1" href="#Starting-APL">1.2 Starting APL</a></li>
     <li><a id="toc-Command-Line-Options-1" href="#Command-Line-Options">1.3 Command Line Options</a></li>
     <li><a id="toc-Command-Line-Completion-1" href="#Command-Line-Completion">1.4 Command Line Completion</a></li>
-    <li><a id="toc-Configuration-File-for-GNU-APL-1" href="#Configuration-File-for-GNU-APL">1.5 Configuration File for GNU APL</a></li>
+    <li><a id="toc-The-preferences-Files-1" href="#The-preferences-Files">1.5 The preferences Files</a></li>
     <li><a id="toc-Tuning-Parallel-Execution-Thresholds-1" href="#Tuning-Parallel-Execution-Thresholds">1.6 Tuning Parallel Execution Thresholds</a></li>
     <li><a id="toc-File-Names-and-Paths-1" href="#File-Names-and-Paths">1.7 File Names and Paths</a></li>
   </ul></li>
@@ -442,7 +442,7 @@ Next: <a href="#Non_002dstandard-GNU-APL-Features" accesskey="n" rel="next">Non-
 <li><a href="#Starting-APL" accesskey="2">Starting APL</a></li>
 <li><a href="#Command-Line-Options" accesskey="3">Command Line Options</a></li>
 <li><a href="#Command-Line-Completion" accesskey="4">Command Line Completion</a></li>
-<li><a href="#Configuration-File-for-GNU-APL" accesskey="5">Configuration File for GNU APL</a></li>
+<li><a href="#The-preferences-Files" accesskey="5">The preferences Files</a></li>
 <li><a href="#Tuning-Parallel-Execution-Thresholds" accesskey="6">Tuning Parallel Execution Thresholds</a></li>
 <li><a href="#File-Names-and-Paths" accesskey="7">File Names and Paths</a></li>
 </ul>
@@ -838,6 +838,16 @@ that are needed to compile the native function.
 
 <p>Display all the directories above. Then exit.
 </p>
+</li><li> <code>--strict_IBM_APL2_formatting mode</code>
+
+<p>Select the output format of APL values (and of monadic <b>⍕</b>):
+<b>no</b> (GNU APL&rsquo;s traditional format), <b>yes</b> (exactly as IBM APL2), or
+<b>parentheses</b> (as <b>no</b>, but nested items in parentheses instead of
+blanks). This option overrides the preference
+<b>STRICT_IBM_APL2_FORMATTING</b> in the preferences files
+(see <a href="#STRICT_005fIBM_005fAPL2_005fFORMATTING">STRICT_IBM_APL2_FORMATTING</a>). It is mainly meant for running
+testcases in a particular mode (e.g. <code>make testPARENS</code>).
+</p>
 </li><li> <code>-T testcases ...</code>
 run testcases. Testcases are text files that contain both input to the APL
 interpreter and the expected response from the interpreter. The output from
@@ -940,7 +950,7 @@ applications.
 <div class="section" id="Command-Line-Completion">
 <div class="header">
 <p>
-Next: <a href="#Configuration-File-for-GNU-APL" accesskey="n" rel="next">Configuration File for GNU APL</a>, Previous: <a href="#Command-Line-Options" accesskey="p" rel="prev">Command Line Options</a>, Up: <a href="#Installing-and-Starting-GNU-APL" accesskey="u" rel="up">Installing and Starting GNU APL</a> &nbsp; [<a href="#SEC_Contents" title="Table of contents" rel="contents">Contents</a>]</p>
+Next: <a href="#The-preferences-Files" accesskey="n" rel="next">The preferences Files</a>, Previous: <a href="#Command-Line-Options" accesskey="p" rel="prev">Command Line Options</a>, Up: <a href="#Installing-and-Starting-GNU-APL" accesskey="u" rel="up">Installing and Starting GNU APL</a> &nbsp; [<a href="#SEC_Contents" title="Table of contents" rel="contents">Contents</a>]</p>
 </div>
 <span id="Command-Line-Completion-1"></span><h3 class="section">1.4 Command Line Completion</h3>
 
@@ -970,44 +980,59 @@ without having to start a new shell.
 </p>
 <hr>
 </div>
-<div class="section" id="Configuration-File-for-GNU-APL">
+<div class="section" id="The-preferences-Files">
 <div class="header">
 <p>
 Next: <a href="#Tuning-Parallel-Execution-Thresholds" accesskey="n" rel="next">Tuning Parallel Execution Thresholds</a>, Previous: <a href="#Command-Line-Completion" accesskey="p" rel="prev">Command Line Completion</a>, Up: <a href="#Installing-and-Starting-GNU-APL" accesskey="u" rel="up">Installing and Starting GNU APL</a> &nbsp; [<a href="#SEC_Contents" title="Table of contents" rel="contents">Contents</a>]</p>
 </div>
-<span id="Configuration-File-for-GNU-APL-1"></span><h3 class="section">1.5 Configuration File for GNU APL</h3>
+<span id="The-preferences-Files-1"></span><h3 class="section">1.5 The preferences Files</h3>
 
 <p>The default values for some of the command line options discussed in the
-previous section can be set in a configuration file for GNU APL. The name
-of the configuration file is &rsquo;preferences&rsquo; and it should live in one of
-the following directories:
+previous section (and some other settings) can be set in the
+<b>preferences</b> files of GNU APL. There are two of them, both named
+<b>preferences</b>, but in different directories:
 </p>
 <ul>
-<li> in the sub-directory gnu-apl.d of the system configuration directory, or
+<li> the system-wide file: in the sub-directory gnu-apl.d of the system
+configuration directory, e.g. /etc/gnu-apl.d/preferences, and
 
-</li><li> in the sub-directory .config/gnu-apl of the user&rsquo;s home directory (as per
-$HOME).
+</li><li> the user&rsquo;s own file: in the sub-directory .gnu-apl of the user&rsquo;s home
+directory (as per $HOME), or, if that file does not exist, in the
+sub-directory .config/gnu-apl of it, e.g.
+$HOME/.config/gnu-apl/preferences.
 
 </li></ul>
 
+<p>The preferences files are read by the interpreter when it starts. They
+should not be confused with the files that <samp>./configure</samp>
+produces when GNU APL is built (like config.h), which control how the
+interpreter is compiled.
+</p>
 <p>The system configuration directory is usually /etc or /usr/local/etc and is
-configurable via <samp>./configure --sysconfdir</samp>. An empty (i.e. most
+configurable via <samp>./configure --sysconfdir</samp>
+(<code>apl --show_etc_dir</code> shows it). An empty (i.e. most
 settings commented out) preferences file is also installed in the
 system configuration directory when GNU APL is installed. You can edit
 it, use it as a template or read it to see which options can be controlled.
 </p>
-<p>If file &rsquo;preferences&rsquo; exists in both directories, the settings in
-$HOME/.config/gnu-apl/preferences override settings in, for example,
-/etc/gnu-apl.d/preferences.
+<p>If both files exist, then the settings in the user&rsquo;s file override the
+settings in the system-wide file.
 </p>
 <p>Command line options in turn override settings in &rsquo;preferences&rsquo; files.
+</p>
+<p>Most settings in &rsquo;preferences&rsquo; files control the interaction with the
+interpreter (colors, keyboard, library paths, ...). One of them changes
+the results of APL statements: <b>STRICT_IBM_APL2_FORMATTING yes</b> makes
+the display of values (and monadic <b>⍕</b>) follow IBM APL2 instead of GNU
+APL&rsquo;s traditional format, and <b>STRICT_IBM_APL2_FORMATTING parentheses</b>
+shows nested items in parentheses (see <a href="#STRICT_005fIBM_005fAPL2_005fFORMATTING">STRICT_IBM_APL2_FORMATTING</a>).
 </p>
 <hr>
 </div>
 <div class="section" id="Tuning-Parallel-Execution-Thresholds">
 <div class="header">
 <p>
-Next: <a href="#File-Names-and-Paths" accesskey="n" rel="next">File Names and Paths</a>, Previous: <a href="#Configuration-File-for-GNU-APL" accesskey="p" rel="prev">Configuration File for GNU APL</a>, Up: <a href="#Installing-and-Starting-GNU-APL" accesskey="u" rel="up">Installing and Starting GNU APL</a> &nbsp; [<a href="#SEC_Contents" title="Table of contents" rel="contents">Contents</a>]</p>
+Next: <a href="#File-Names-and-Paths" accesskey="n" rel="next">File Names and Paths</a>, Previous: <a href="#The-preferences-Files" accesskey="p" rel="prev">The preferences Files</a>, Up: <a href="#Installing-and-Starting-GNU-APL" accesskey="u" rel="up">Installing and Starting GNU APL</a> &nbsp; [<a href="#SEC_Contents" title="Table of contents" rel="contents">Contents</a>]</p>
 </div>
 <span id="Tuning-Parallel-Execution-Thresholds-1"></span><h3 class="section">1.6 Tuning Parallel Execution Thresholds</h3>
 
@@ -1223,7 +1248,7 @@ is often not adequate for multi-user environments where some directories
 are not writable by users and different users have different home directories.
 </p>
 <p>For that reason the above library root scheme can be overridden by the
-GNU APL configuration files (named <b>preferences</b>). In these files you can
+<b>preferences</b> files of GNU APL (see <a href="#The-preferences-Files">The preferences Files</a>). In these files you can
 un-comment any of the <b>LIBREF-0</b> to <b>LIBREF-9</b> settings (which correspond
 to library numbers 0 to 9) and provide your own paths. The library numbers
 that are <b>NOT</b> overridden in a <b>preferences</b> file still follow the
@@ -11998,8 +12023,8 @@ differences between them fall into several groups:
 <li> <b>LRM vs. LRM:</b> some LRM examples contradict the LRM&rsquo;s own
       rules or other examples. For example, the display of
       <code>4 2⍴'AMT' 'PERCENT' 5 26.31 6 31.5 8 42.11</code> on p. 145 shows
-      <code>31.5</code> aligned at the decimal point, while IBM APL2 (and
-      GNU APL) right-align it.
+      <code>31.5</code> aligned at the decimal point, while IBM APL2
+      right-aligns it (GNU APL follows the LRM example by default).
 
 </li><li> <b>LRM vs. IBM APL2:</b> IBM APL2 does not always do what the LRM
       says. For example, the LRM (p. 12) displays a number in scaled
@@ -12035,23 +12060,119 @@ order:
       Where the LRM or IBM APL2 produce such blanks, GNU APL considers
       that a fault of the LRM or of IBM APL2.
 
-</li><li> Other differences remain, mainly for backward compatibility of
-      GNU APL, but also where GNU APL&rsquo;s choice is more consistent.
+</li><li> Other differences remain. Most of them are deliberate choices
+      of GNU APL that make the structure of a value easier to see, or
+      that follow a simpler rule; they are kept for backward
+      compatibility of GNU APL.
 </li></ol>
 
+<p>These rules define GNU APL&rsquo;s default output. With the preference
+<b>STRICT_IBM_APL2_FORMATTING yes</b> (see below), IBM APL2 has the
+highest priority instead.
+</p>
 <p><b>Note:</b> the default display is meant to be read by humans. A program
 that needs an exact layout of its output should not depend on it, but
 use dyadic <b>⍕</b> (format by specification or by example) or <b>⎕FMT</b>
 instead, which are specified precisely.
 </p>
-<span id="The-GNU-APL-Output-Formatting-Model"></span><h4 class="subheading">The GNU APL Output Formatting Model</h4>
+<span id="STRICT_005fIBM_005fAPL2_005fFORMATTING"></span><span id="The-Preference-STRICT_005fIBM_005fAPL2_005fFORMATTING"></span><h4 class="subheading">The Preference STRICT_IBM_APL2_FORMATTING</h4>
 
-<p>GNU APL formats a value in three dimensions that are mostly independent
-of each other, but interfere at times:
+<p>GNU APL has three output formatting modes, which are selected by the
+preference <b>STRICT_IBM_APL2_FORMATTING</b> in a preferences file
+(see <a href="#The-preferences-Files">The preferences Files</a>):
+</p>
+<div class="example">
+<pre class="example">   STRICT_IBM_APL2_FORMATTING  no      (default)
+   STRICT_IBM_APL2_FORMATTING  yes
+   STRICT_IBM_APL2_FORMATTING  parentheses
+</pre></div>
+
+<ul>
+<li> <b>no</b> (the default): GNU APL formats values as it always did,
+      i.e. according to the GNU APL rules below. Existing applications
+      and workspaces are not affected.
+
+</li><li> <b>yes</b>: GNU APL formats values exactly like IBM APL2, i.e.
+      according to the IBM APL2 rules below. This rule has the highest
+      priority: it applies in all cases, also where IBM APL2 deviates
+      from the LRM. (IBM APL2 itself never puts blanks inside a number,
+      so rule 2 above is no restriction.) This mode is meant for porting
+      applications from IBM APL2 and for comparing output with IBM APL2.
+
+</li><li> <b>parentheses</b>: GNU APL formats values like with <b>no</b>, except
+      that every nested item is enclosed in parentheses instead of the
+      blanks that IBM APL2 (and GNU APL with <b>no</b>) put around it. The
+      sizes of the items are those of IBM APL2 with the blanks replaced:
+      one leading and one trailing parenthesis per level of nesting, and
+      one blank between adjacent items (as in the boxed display of
+      <b>4 ⎕CR</b>, but without lines above and below the items). The blank
+      lines that IBM APL2 inserts between rows of nested items of rank
+      2 or more (see Rows and planes below) are dropped, since the
+      parentheses already show where such an item begins and ends. An item
+      of several lines is enclosed in multi-line parentheses (⎛ ⎜ ⎝ and
+      ⎞ ⎟ ⎠), an empty item in parentheses around the blanks that IBM
+      APL2 displays for it (as wide as one row of its prototype):
+
+<div class="example">
+<pre class="example">      (1 2) 3
+(1 2) 3
+      'AB' (1 2) 'EF'
+(AB) (1 2) (EF)
+      A←2 2⍴⍳4
+      A A
+⎛1 2⎞ ⎛1 2⎞
+⎝3 4⎠ ⎝3 4⎠
+      ⍪(1 2) (2 2⍴⍳4) (3 1⍴⍳3)
+(1 2)
+⎛1 2⎞
+⎝3 4⎠
+⎛1⎞
+⎜2⎟
+⎝3⎠
+      A←4 4⍴⍳16 ◊ A[2;2]←⊂3 3⍴⎕CC 3 ◊ A
+ 1     2  3  4
+ 5 ⎛abc⎞  7  8
+   ⎜def⎟
+   ⎝ghi⎠
+ 9    10 11 12
+13    14 15 16
+      1 ⍬ 2
+1 () 2
+      1 (0 3⍴0) 2
+1 (     ) 2
+</pre></div>
+
+<p>The blanks around nested items carry the structure of a value, but
+      make it invisible (see Recursion below); the parentheses make it
+      visible. A one-line display of a nested vector then reads back as
+      the same value, unless it contains enclosed scalars:
+      <code>(⊂⊂1 2) 3</code> is displayed as <code>(((1 2))) 3</code>, one pair of
+      parentheses per level of nesting, but redundant parentheses on
+      input enclose nothing.
+</p></li></ul>
+
+<p>The preference is read once, when the interpreter starts; it cannot be
+changed in a running interpreter. It affects the display of values and
+the result of monadic <b>⍕</b> (which produces the same characters in
+all three modes). Making GNU APL fully IBM APL2 compatible
+with <b>yes</b> is work in progress: the IBM APL2 rules below that are not
+yet implemented in this mode are marked as such.
+</p>
+<p>If the display of a value looks different from what you expect, then
+please check this preference first, and mention its setting in a bug
+report. The automated test report (<b>src/Automated_Test_Report.sh</b>)
+includes the preferences files that it finds for that reason.
+</p>
+<span id="The-Output-Formatting-Model"></span><h4 class="subheading">The Output Formatting Model</h4>
+
+<p>Both modes format a value in three dimensions that are mostly
+independent of each other, but interfere at times:
 </p>
 <ol>
-<li> <b>Cell formatting:</b> every simple scalar (a character or a
-      number) has a character representation of its own.
+<li> <b>Cell formatting:</b> every simple ravel item (a <em>cell</em>: a
+      character or a number) has a character representation of its own.
+      (A cell is an element of the ravel of a value, not a value itself;
+      a scalar is a value whose ravel has one cell.)
 
 </li><li> <b>Column formatting:</b> the items in a column of a value are
       made fit to each other: they get the same width, and some of
@@ -12062,26 +12183,38 @@ of each other, but interfere at times:
       characters then becomes one item of the enclosing value.
 </li></ol>
 
-<span id="g_t1_002e-Cell-Formatting"></span><h4 class="subsubheading">1. Cell Formatting</h4>
+<p>A fourth aspect is the display of <b>empty</b> values, which have no
+cells at all. The rules for each of them follow: first the rules that
+both modes share, then the rules of GNU APL (the default) and of IBM
+APL2 (<b>STRICT_IBM_APL2_FORMATTING yes</b>).
+</p>
+<span id="Rules-Common-to-Both-Modes"></span><h4 class="subheading">Rules Common to Both Modes</h4>
+
+<span id="Cell-Formatting"></span><h4 class="subsubheading">Cell Formatting</h4>
 
 <ul>
 <li> A <b>character</b> is displayed as is.
 
 </li><li> An <b>integer</b> is displayed with all its digits; <b>⎕PP</b> is
-      ignored. The only exception is an integer in a simple numeric
-      array that also contains non-integer numbers (see column
-      formatting below).
+      ignored. The only exception is an integer in a column of a simple
+      numeric array that is scaled (see column formatting below).
 
 </li><li> A <b>real number</b> is displayed with at most <b>⎕PP</b> significant
       digits, either in conventional form or in scaled form (with an
       E). The scaled form is used if the number has more than <b>⎕PP</b>
       digits before the decimal point, or if it is smaller than
-      <code>1E¯5</code> (as in IBM APL2, see above):
+      <code>1E¯5</code> (as in IBM APL2, see above). This decision is made
+      after the number was rounded to <b>⎕PP</b> significant digits
+      (LRM p. 12), e.g. <code>9.99999E¯6</code> with <b>⎕PP←5</b> rounds to
+      <code>0.00001</code> and is not scaled, while <code>99999.6</code> rounds to
+      the 6 digits <code>100000</code> and is therefore scaled:
 
 <div class="example">
 <pre class="example">      ⎕PP←5
       0.00001 0.000009
 0.00001 9E¯6
+      9.99999E¯6 99999.6
+0.00001 1E5
 </pre></div>
 
 </li><li> A <b>complex number</b> is displayed in J notation, and each part
@@ -12098,58 +12231,28 @@ of each other, but interfere at times:
 </pre></div>
 </li></ul>
 
-<span id="g_t2_002e-Column-Formatting"></span><h4 class="subsubheading">2. Column Formatting</h4>
+<span id="Column-Formatting"></span><h4 class="subsubheading">Column Formatting</h4>
 
-<p>How the items of a column are made fit depends on the kind of value:
-</p>
 <ul>
 <li> In a <b>simple numeric</b> array, a column is formatted as a whole
       (LRM p. 17-18). If one of its items needs the scaled form, then the
       entire column is scaled, with the same number of fractional
-      digits. If the array contains a non-integer number, then its
-      integers are formatted like real numbers (in IBM APL2 such an
-      array is stored as a floating point array, LRM p. 12), otherwise
-      <b>⎕PP</b> is ignored and no integer is scaled. The decimal points
-      and E&rsquo;s of a column are aligned:
+      digits; an integer in a scaled column is scaled as well. The
+      decimal points and E&rsquo;s of a column are aligned:
 
 <div class="example">
 <pre class="example">      ⎕PP←5
       2 1⍴600 4.2E¯9
 6.0E2
 4.2E¯9
-      163710 1.8E¯11
-1.6371E5 1.8E¯11
-      163710 18
-163710 18
-</pre></div>
-
-<p>A column that contains complex numbers is formatted as two
-      sub-columns: the real parts and the imaginary parts, each of them
-      in the same format as above. The J&rsquo;s are aligned, and (rule 2)
-      the real part is directly to the left of the J and the imaginary
-      part directly to the right of it. A column in which no J is
-      displayed (because all imaginary parts are too small) is aligned
-      like a column of real numbers:
-</p>
-<div class="example">
-<pre class="example">      ⎕PP←5
-      2 2⍴600J100 1 7.39E5J1 6160
-6.00E2J100    1
-7.39E5J1   6160
-      4 4⍴0 1 2J3 4J5.6 7.8J9
-  0       1       2J3 4J5.6
-7.8J9     0       1   2J3
-  4J5.6 7.8J9     0   1
-  2J3     4J5.6 7.8J9 0
 </pre></div>
 
 </li><li> In a <b>mixed</b> (characters and numbers) or <b>nested</b> array,
-      every item keeps the format that cell formatting gave it, and the
-      items of a column are right-aligned to the width of the widest
-      item, without aligning decimal points, E&rsquo;s, or J&rsquo;s (as in IBM
-      APL2). A column that contains only characters (scalars or
-      vectors) is left-justified, and characters in a column that
-      contains numbers are right-justified (LRM p. 19):
+      every item keeps the format that cell formatting gave it; there
+      is no column scaling. A column that contains only characters
+      (single characters or character vectors) is left-justified, and
+      characters in a column that contains numbers are right-justified
+      (LRM p. 19):
 
 <div class="example">
 <pre class="example">      ⎕PP←5
@@ -12157,10 +12260,6 @@ of each other, but interfere at times:
    600
      A
 4.2E¯9
-      3 3⍴'ONE' 1111 22 'TWO' ¯4 5 'THREE' 7 '?'
- ONE   1111 22
- TWO     ¯4  5
- THREE    7  ?
 </pre></div>
 
 </li><li> Adjacent <b>columns</b> are separated by one blank if one of them
@@ -12173,10 +12272,10 @@ of each other, but interfere at times:
 </pre></div>
 
 <p>where <code>NOTCHAR X</code> is 0 if <b>X</b> is a simple character array
-      (of any rank, including empty ones) and 1 otherwise. Thus the
-      spacing depends on the items themselves (their type and their
-      rank), not only on their position. In particular, items with a
-      higher rank (which take more lines) are separated by more blanks:
+      (of any rank) and 1 otherwise. Thus the spacing depends on the
+      items themselves (their type and their rank), not only on their
+      position. In particular, items with a higher rank (which take more
+      lines) are separated by more blanks:
 </p>
 <div class="example">
 <pre class="example">      'AB' 'CD' 'EF'
@@ -12195,9 +12294,26 @@ of each other, but interfere at times:
       highest item of that row. In arrays of rank 3 or more, the planes
       are separated by blank lines (one more for every higher
       dimension), and columns have the same format in all planes.
+      In a nested array, two adjacent rows are in addition separated by
+      R-1 blank lines, where R is the highest rank of a nested item in
+      either row (the vertical counterpart of the blanks between
+      columns, LRM p. 138). A row that contains a nested matrix thus has
+      a blank line above and below it:
+
+<div class="example">
+<pre class="example">      A←4 4⍴⍳16 ◊ A[2;2]←⊂3 3⍴⎕CC 3 ◊ A
+  1    2   3  4
+
+  5  abc   7  8
+     def
+     ghi
+
+  9   10  11 12
+ 13   14  15 16
+</pre></div>
 </li></ul>
 
-<span id="g_t3_002e-Recursion-_0028Nested-Values_0029"></span><h4 class="subsubheading">3. Recursion (Nested Values)</h4>
+<span id="Recursion-_0028Nested-Values_0029"></span><h4 class="subsubheading">Recursion (Nested Values)</h4>
 
 <p>A nested item is formatted as a value of its own, without knowledge of
 the value that contains it (in particular, its columns are not aligned
@@ -12208,10 +12324,35 @@ item. The result of monadic <b>⍕</b> for a nested value is a vector only
 if the value and all its items (at any depth) have a rank of at most
 1, and a matrix otherwise.
 </p>
+<p>Since a nested item inside a nested item is indented again, every level
+of nesting adds one blank on each side:
+</p>
+<div class="example">
+<pre class="example">      (1 2) 3
+ 1 2  3
+      (⊂1 2) 3
+  1 2  3
+      (⊂⊂1 2) 3
+   1 2   3
+</pre></div>
+
+<p>Input and output thus mark nesting differently: on input, a nested item
+is enclosed in parentheses (e.g. in a strand), while on output it is
+surrounded by blanks. Parentheses work on input because an input line is
+always a single line, but a displayed nested item can span several
+lines (e.g. a matrix item), where plain parentheses would look odd:
+either as a single pair around the whole block or repeated on every line
+of it. (Multi-line parentheses, which IBM APL2 did not have, avoid that;
+see <b>STRICT_IBM_APL2_FORMATTING parentheses</b> above.)
+As a consequence, the display of a nested value cannot simply be read
+back as the same value: every number in it reads back as the same
+number (rule 2 above), but the structure does not (unless
+<b>STRICT_IBM_APL2_FORMATTING parentheses</b> is used, see above). A
+program that needs to reproduce a value from text should use <b>2 ⎕TF</b> instead (e.g.
+<code>2 ⎕TF 'X'</code> gives <code>X←2⍴(1 2) 3</code> for the value above).
+</p>
 <span id="Interference-between-the-Dimensions"></span><h4 class="subsubheading">Interference between the Dimensions</h4>
 
-<p>The three dimensions interfere in the following cases:
-</p>
 <ul>
 <li> <b>Cell vs. column:</b> in a simple numeric array, the column
       overrides the format of a cell: <code>600</code> is displayed as
@@ -12244,38 +12385,170 @@ if the value and all its items (at any depth) have a rank of at most
    1 2
  4.2E¯9
 </pre></div>
-
-</li><li> <b>Empty items:</b> an empty nested item has a width of 0
-      characters (plus its indentation and trailing blank) in GNU APL,
-      but IBM APL2 gives it the width of one row of its prototype (see
-      below).
 </li></ul>
 
-<span id="Known-Differences-between-IBM-APL2-and-GNU-APL-2"></span><h4 class="subheading">Known Differences between IBM APL2 and GNU APL</h4>
+<span id="GNU-APL-Rules-_0028the-Default_0029"></span><h4 class="subheading">GNU APL Rules (the Default)</h4>
 
-<p>The following differences between IBM APL2 and GNU APL remain. None of
-them violates an explicit rule of the LRM or produces a number that
-cannot be read back.
+<ol>
+<li> <b>Integers and scaling:</b> an integer never causes the scaling of
+      its column (it is only scaled in a column that a real number
+      scales anyway). Scaling an integer loses digits without making it
+      shorter:
+
+<div class="example">
+<pre class="example">      ⎕PP←5
+      163710 1.8E¯11
+163710 1.8E¯11
+</pre></div>
+
+</li><li> <b>Complex columns:</b> in a simple numeric array, a column that
+      contains a complex number is formatted as two sub-columns, the
+      real parts and the imaginary parts, each of them scaled as a
+      whole (with a common number of fractional digits) if one of its
+      items needs it. The real sub-column is as wide as if its items
+      were aligned at their decimal points, the imaginary sub-column as
+      wide as its longest part. Every real part is right-aligned, so
+      that the J&rsquo;s of a column are aligned; the J is a clearer
+      demarcation point than the decimal point. Other columns of the
+      array are formatted like real columns:
+
+<div class="example">
+<pre class="example">      ⎕PP←5
+      3 1⍴1.475J1 222.5J2 3J3
+  1.475J1
+  222.5J2
+      3J3
+</pre></div>
+
+</li><li> <b>Mixed and nested columns:</b> the simple real numbers of a column
+      that are not scaled are aligned at their decimal points (an
+      integer as if it had a decimal point after its last digit). This
+      block of numbers and all other items of the column (characters,
+      nested items, scaled and complex numbers) are right-aligned to
+      the width of the widest of them:
+
+<div class="example">
+<pre class="example">      ⎕PP←5
+      3 1⍴600 'A' 0.25
+600
+     A
+  0.25
+      4 2⍴'AMT' 'PERCENT' 5 26.31 6 31.5 8 42.11
+ AMT PERCENT
+   5   26.31
+   6   31.5
+   8   42.11
+</pre></div>
+
+</li><li> <b>Empty values:</b> an empty vector is displayed as one empty line,
+      an empty array of rank 2 or more as nothing at all (so that the
+      common idiom <code>0 0⍴X</code> produces no output). An empty item of a
+      nested array is displayed as a single blank, whatever its shape,
+      rank, or prototype, and is spaced like a simple cell (i.e.
+      <code>S</code> above is 1 for it). An empty item therefore never makes
+      its column wider or its row higher than one blank:
+
+<div class="example">
+<pre class="example">      1 ⍬ 2
+ 1   2
+      1 (2 3 0⍴0) 2
+ 1   2
+      'AB' '' 'CD'
+ AB   CD
+</pre></div>
+</li></ol>
+
+<span id="IBM-APL2-Rules-_0028STRICT_005fIBM_005fAPL2_005fFORMATTING-yes_0029"></span><h4 class="subheading">IBM APL2 Rules (STRICT_IBM_APL2_FORMATTING yes)</h4>
+
+<ol>
+<li> <b>Integers and scaling:</b> IBM APL2 stores an array that contains a
+      non-integer number as a floating point (or complex) array (LRM
+      p. 12). Its integers are then formatted like real numbers and can
+      cause the scaling of their column: <code>163710 1.8E¯11</code> with
+      <b>⎕PP←5</b> is displayed as <code>1.6371E5 1.8E¯11</code>. This also
+      happens in a mixed vector whose numbers were a numeric strand,
+      e.g. <code>9.81 9716500 'X'</code> is displayed as
+      <code>9.81 9.7165E6 X</code>, because the numeric literal
+      <code>9.81 9716500</code> is stored as a floating point vector before
+      <code>'X'</code> is appended.
+
+</li><li> <b>Column scaling:</b> a column of a simple numeric array is also
+      scaled if its numbers span about 7 or more decimal orders of
+      magnitude, even if no single item needs scaling (not described in
+      the LRM; observed with IBM APL2, but its exact condition is not yet
+      known; not yet implemented in strict mode).
+
+</li><li> <b>Complex columns:</b> in a simple numeric array that contains a
+      complex number with a nonzero imaginary part (i.e. that IBM APL2
+      stores as a complex array), <em>every</em> column (also one without
+      a J) is formatted as two sub-columns, each scaled as a whole, and
+      each as wide as if its items were aligned at their decimal points
+      (e.g. 7 for <code>1.473</code> and <code>222.43</code>). Within that width,
+      an unscaled real part is right-aligned and a scaled real part is
+      aligned at its decimal point. The J and the imaginary part follow
+      the real part directly, so a complex number never contains
+      blanks (unlike some LRM examples):
+
+<div class="example">
+<pre class="example">      ⎕PP←5
+      2 2⍴600J100 1 7.39E5J1 6160
+6.00E2J100    1
+7.39E5J1   6160
+      2 1⍴2.5E¯7 333J22.25
+2.50E¯7
+3.33E2J22.25
+      4 4⍴0 1 2J3 4J5.6 7.8J9
+  0       1       2J3 4J5.6
+7.8J9     0       1   2J3
+  4J5.6 7.8J9     0   1
+  2J3     4J5.6 7.8J9 0
+</pre></div>
+
+</li><li> <b>Mixed and nested columns:</b> every item is right-aligned to the
+      width of the widest item, without aligning decimal points, E&rsquo;s,
+      or J&rsquo;s: <code>3 1⍴600 'A' 0.25</code> is displayed as <code> 600</code>,
+      <code>   A</code>, <code>0.25</code>. A nested item in a column that contains
+      numbers is left-aligned, also a character vector (contrary to LRM
+      p. 19):
+
+<div class="example">
+<pre class="example">      3 1⍴379 (1 2) 123456
+    379
+ 1 2
+ 123456
+</pre></div>
+
+</li><li> <b>Empty values:</b> an empty array of rank 2 or more is displayed
+      as one empty line per row (e.g. 6 for <code>2 3 0⍴0</code>) if its last
+      axis is 0, and otherwise only as the blank lines between its
+      planes. An empty item of a nested array is as wide as one row of
+      its prototype, e.g. <code>(0 3⍴0)</code> as wide as <code>0 0 0</code>, and
+      its row can occasionally be one line higher or lower (not yet
+      implemented in strict mode; the details are still being
+      investigated).
+</li></ol>
+
+<span id="Summary-of-the-Differences"></span><h4 class="subheading">Summary of the Differences</h4>
+
+<p>The following table lists the differences between the two rule sets
+above. None of them violates an explicit rule of the LRM or produces a
+number that cannot be read back. The last column tells if
+<b>STRICT_IBM_APL2_FORMATTING yes</b> already produces the IBM APL2 output.
 </p>
 <table>
-<thead><tr><th width="30%">Case</th><th width="35%">IBM APL2</th><th width="35%">GNU APL</th></tr></thead>
-<tr><td width="30%">Scaling of a column of a simple numeric array</td><td width="35%">Also scaled if its numbers span about 7 or more decimal orders of
-magnitude, even if no single item needs scaling (not described in
-the LRM)</td><td width="35%">Scaled only if an item needs it</td></tr>
-<tr><td width="30%">Columns with complex numbers whose real parts are scaled</td><td width="35%">Aligns the real parts at their decimal points; the J&rsquo;s are then not
-aligned</td><td width="35%">The J&rsquo;s are aligned (LRM p. 18), the real parts are right-aligned to
-the J</td></tr>
-<tr><td width="30%">Columns with complex numbers in the LRM&rsquo;s own example
-(<code>2   J3</code>)</td><td width="35%">No blanks between the parts (unlike the LRM)</td><td width="35%">No blanks between the parts</td></tr>
-<tr><td width="30%">Nested items in a column that contains numbers</td><td width="35%">Left-aligned (also character vectors, contrary to LRM p. 19)</td><td width="35%">Right-aligned</td></tr>
-<tr><td width="30%">Width of an empty nested item, e.g. <code>(0 3⍴0)</code></td><td width="35%">The width of one row of its prototype (e.g. of <code>0 0 0</code>)</td><td width="35%">0 (plus indentation and trailing blank)</td></tr>
-<tr><td width="30%">Height of a row with empty nested items</td><td width="35%">Occasionally one line more or less than GNU APL</td><td width="35%">The height of the highest item of the row</td></tr>
-<tr><td width="30%">Integers in a numeric strand of a mixed vector, e.g.
-<code>9.81 9716500 'X'</code></td><td width="35%">Scaled (<code>9.7165E6</code>): the strand <code>9.81 9716500</code> is stored
-as a floating point vector before <code>'X'</code> is appended</td><td width="35%">Not scaled (<code>9716500</code>): an integer in a mixed array keeps its
-integer format</td></tr>
-<tr><td width="30%">Numbers that round up to the scaling threshold, e.g.
-<code>9.99999E¯6</code> with <b>⎕PP←5</b></td><td width="35%">Rounded before the scaling decision: <code>0.00001</code></td><td width="35%">Scaled: <code>1E¯5</code></td></tr>
+<thead><tr><th width="25%">Case</th><th width="30%">IBM APL2</th><th width="30%">GNU APL (default)</th><th width="15%">Strict mode</th></tr></thead>
+<tr><td width="25%">Integers in a simple numeric array with non-integer numbers,
+e.g. <code>163710 1.8E¯11</code> with <b>⎕PP←5</b></td><td width="30%">Can cause scaling: <code>1.6371E5</code></td><td width="30%">Never cause scaling: <code>163710</code></td><td width="15%">as IBM APL2</td></tr>
+<tr><td width="25%">Integers in a numeric strand of a mixed vector, e.g.
+<code>9.81 9716500 'X'</code></td><td width="30%">Scaled: <code>9.7165E6</code></td><td width="30%">Not scaled: <code>9716500</code></td><td width="15%">as IBM APL2</td></tr>
+<tr><td width="25%">Column of a simple numeric array spanning about 7 or more decimal
+orders of magnitude</td><td width="30%">Scaled</td><td width="30%">Scaled only if an item needs it</td><td width="15%">not yet</td></tr>
+<tr><td width="25%">Complex columns</td><td width="30%">All columns of a complex array; real parts right-aligned or (if
+scaled) aligned at the decimal point</td><td width="30%">Only columns with complex numbers; J&rsquo;s aligned</td><td width="15%">as IBM APL2</td></tr>
+<tr><td width="25%">Unscaled real numbers in a column of a mixed or nested array</td><td width="30%">Right-aligned</td><td width="30%">Aligned at their decimal points</td><td width="15%">as IBM APL2</td></tr>
+<tr><td width="25%">Nested items in a column that contains numbers</td><td width="30%">Left-aligned</td><td width="30%">Right-aligned</td><td width="15%">as IBM APL2</td></tr>
+<tr><td width="25%">Empty array of rank 2 or more, e.g. <code>2 3 0⍴0</code></td><td width="30%">Empty lines (6)</td><td width="30%">Nothing</td><td width="15%">as IBM APL2</td></tr>
+<tr><td width="25%">Empty nested item, e.g. <code>1 (0 3⍴0) 2</code></td><td width="30%">As wide as one row of its prototype; spacing by its rank</td><td width="30%">A single blank, spaced like a simple cell</td><td width="15%">not yet</td></tr>
 </table>
 
 <hr>

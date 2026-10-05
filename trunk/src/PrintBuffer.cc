@@ -33,6 +33,7 @@
 #include "PrintBuffer.hh"
 #include "PrintOperator.hh"
 #include "Value.hh"
+#include "UserPreferences.hh"
 #include "Workspace.hh"
 
 /// max sizes for arrays on the stack. Larger values are allocated with new()
@@ -306,6 +307,8 @@ vector<PrintBuffer> pcols;    pcols.reserve(cols);
    //       and then its integers are scaled like floats (e.g. 163710 with
    //       ⎕PP←5 in 163710 1.8E¯11 is 1.6371E5). In an integer array, ⎕PP
    //       is ignored and nothing is scaled (lrm p.12).
+   //       Without STRICT_IBM_APL2_FORMATTING an integer never causes the
+   //       scaling (GNU APL's traditional output, e.g. 163710 1.8E¯11).
    //
    //    b. in a mixed (character and number) or nested array, every item
    //       keeps its own type and is formatted on its own: a float is scaled
@@ -315,8 +318,10 @@ vector<PrintBuffer> pcols;    pcols.reserve(cols);
 #define huge_interrupted \
    (huge && (ii_count != InterruptContext::get_interrupt_count()))
 
-bool simple_numeric = !nested;   // a. (else b.)
-bool float_storage  = false;     // a. with a non-integer item
+const bool strict = UserPreferences::uprefs.strict_IBM_APL2_formatting;
+bool simple_numeric  = !nested;   // a. (else b.)
+bool float_storage   = false;     // a. with a non-integer item
+bool complex_storage = false;     // a. with a complex item
    loop(e, ec)
       {
         if (!simple_numeric)   break;
@@ -324,8 +329,12 @@ bool float_storage  = false;     // a. with a non-integer item
         const Cell & cell = value.get_cravel(e, cache);
         if (!cell.is_numeric())             simple_numeric = false;
         else if (!cell.is_integer_cell())   float_storage = true;
+        // a complex number with imaginary part 0 is real (IBM APL2 demotes
+        // it, e.g. the literal 1J0 is 1)
+        if (cell.is_complex_cell() && cell.get_imag_value() != 0.0)
+           complex_storage = true;
       }
-   if (!simple_numeric)   float_storage = false;
+   if (!simple_numeric)   float_storage = complex_storage = false;
 
    if (simple_numeric)   // case a.
       {
@@ -335,8 +344,13 @@ bool float_storage  = false;     // a. with a non-integer item
               if (huge_interrupted)   return true;
               Cell cache;
               const Cell & cell = value.get_cravel(x + y*cols, cache);
+              // GNU APL (unlike IBM APL2) never lets an integer cause the
+              // scaling of its column, since that loses precision without
+              // making the output shorter. An integer in a column
+              // that is scaled anyway is scaled like the floats in it.
+              //
               const bool need = cell.is_integer_cell()
-                 ? float_storage &&
+                 ? strict && float_storage &&
                    FloatCell::need_scaling(APL_Float(cell.get_int_value()),
                                            pctx.get_PP())
                  : cell.need_scaling(pctx);
@@ -392,9 +406,30 @@ bool float_storage  = false;     // a. with a non-integer item
                    item.append_ucs(empty);
                  }
 
+              // GNU APL (unless STRICT_IBM_APL2_FORMATTING): an empty item
+              // is displayed as a single blank, whatever its shape and
+              // prototype. For the blanks and lines between items it counts
+              // as a vector.
+              //
+              const Value * empty_sub = 0;
               if (Value_P sub = cell.try_pointer_value())
                  {
-                   const sRank sub_rank = sub->get_rank();
+                   if (sub->element_count() == 0)   empty_sub = sub.get();
+                 }
+              if (empty_sub && !strict && !framed &&
+                  !(pctx.get_style() & PST_CS_INNER))
+                 {
+                   ColInfo ci = item.get_info();
+                   const UCS_string ucs(1, UNI_SPACE);
+                   item = PrintBuffer(ucs, ci);
+                   item.get_info().int_len  = ucs.size();
+                   item.get_info().real_len = ucs.size();
+                 }
+
+              if (Value_P sub = cell.try_pointer_value())
+                 {
+                   sRank sub_rank = sub->get_rank();
+                   if (empty_sub && !strict && sub_rank > 1)   sub_rank = 1;
                    if (max_row_ranks.back() < sub_rank)
                       max_row_ranks.back() = sub_rank;
                  }
@@ -436,41 +471,54 @@ bool float_storage  = false;     // a. with a non-integer item
          if (col_info_x.real_len<(col_info_x.int_len + col_info_x.denom_len))
             col_info_x.real_len = col_info_x.int_len + col_info_x.denom_len;
 
-        // A column of a simple numeric array that contains complex numbers
-        // is formatted as two sub-columns (lrm p. 17-18): real parts and
-        // imaginary parts, each in the same format, and the J's aligned.
-        // That includes columns where no J is displayed (because all
-        // imaginary parts are too small, lrm p. 13): the real parts that
-        // ComplexCell::character_representation() returns then are not
-        // in the format of the column (e.g. 17.0300E0 for 17.03 below
-        // 1.3059E7).
+        // A column of a simple numeric array with complex numbers is
+        // formatted as two sub-columns, see format_complex_column(). With
+        // STRICT_IBM_APL2_FORMATTING (as in IBM APL2) that is every column
+        // of an array with a complex number somewhere (also columns with
+        // only real numbers); otherwise (GNU APL's traditional output) only
+        // the columns that contain a complex number. Both include columns
+        // where no J is displayed (because all imaginary parts are too
+        // small, lrm p. 13).
         //
-        bool complex_column = false;
-        if (simple_numeric)   loop(y, rows)
+        bool complex_column = strict && complex_storage;
+        if (!strict && simple_numeric)
            {
-             Cell cache;
-             if (value.get_cravel(x + y*cols, cache).is_complex_cell())
+             loop(y, rows)
                 {
-                  complex_column = true;
-                  break;
+                  Cell cache;
+                  if (value.get_cravel(x + y*cols, cache).is_complex_cell())
+                     {
+                       complex_column = true;
+                       break;
+                     }
                 }
            }
 
         if (complex_column)
            {
-             format_complex_column(value, x, pctx, item_matrix);
+             format_complex_column(value, x, pctx, item_matrix, strict);
              continue;
            }
 
         // In a mixed (character and number) or nested array, IBM APL2 does
         // not align the numbers of a column to their decimal points, E's,
         // or J's (nor pad them to a common format, see step 1 b.): every
-        // item is simply right-aligned to the width of the widest item of
-        // the column, e.g. 0.0059 below 7294149 takes 7 columns, not 12,
-        // and 600 below (⊂1 2) stays 600 (not 600.0E0) above 4.2E¯9.
-        // Character vectors in such a column are right-justified as well
-        // (lrm p. 19).
+        // simple item is simply right-aligned to the width of the widest
+        // item of the column, e.g. 0.0059 below 7294149 takes 7 columns,
+        // not 12, and 600 below (⊂1 2) stays 600 (not 600.0E0) above 4.2E¯9.
+        // Nested items (incl. character vectors) are left-aligned (see
+        // below). GNU APL's traditional output: see align_mixed_column().
         //
+        if (!simple_numeric && (col_info_x.flags & CT_NUMERIC) && !strict)
+           {
+             // GNU APL's traditional output: the simple scalar numbers of
+             // the column are aligned at their decimal points (and other
+             // items are right-aligned), see align_mixed_column().
+             //
+             align_mixed_column(value, x, item_matrix);
+             continue;
+           }
+
         if (!simple_numeric && (col_info_x.flags & CT_NUMERIC))
            {
              int width = 0;
@@ -486,7 +534,17 @@ bool float_storage  = false;     // a. with a non-integer item
 
                   PrintBuffer & item = item_matrix[y*cols + x];
                   const int diff = width - item.get_column_count();
-                  if (diff > 0)   item.pad_l(UNI_PAD_l_INT, diff);
+                  // IBM APL2 left-aligns a nested item (also a character
+                  // vector, contrary to lrm p. 19) in a column that
+                  // contains numbers, and right-aligns the other items.
+                  Cell cache;
+                  if (diff > 0)
+                     {
+                       if (value.get_cravel(x + y*cols, cache).is_pointer_cell())
+                          item.pad_r(UNI_PAD_r_FRACT, diff);
+                       else
+                          item.pad_l(UNI_PAD_l_INT, diff);
+                     }
                   ColInfo & ci = item.get_info();
                   ci.int_len  = width;   // as for a character item
                   ci.fract_len = 0;
@@ -512,6 +570,14 @@ bool float_storage  = false;     // a. with a non-integer item
    //
    PERFORMANCE_START(start_4)
 
+   // the blank lines between rows with nested items of rank > 1 (lrm p.
+   // 138) are not needed when the items are enclosed in (multi-line)
+   // parentheses, which show the structure (STRICT_IBM_APL2_FORMATTING
+   // parentheses)
+   //
+const bool row_gaps = nested &&
+                      (pctx.get_style() & PST_CS_MASK) != PST_CS_PARENS;
+
    int last_col_spacing = 0;    // the col_spacing of the previous column
    bool last_non_char_col = false;   // the previous column has a non-char
 
@@ -532,7 +598,7 @@ bool float_storage  = false;     // a. with a non-integer item
              {
                const sRank Rk_y_1 = y ? max_row_ranks[y - 1] : 0;
                const ShapeItem sepa_rows =
-                     separator_rows(y, value, nested, max_row_ranks[y], Rk_y_1);
+                     separator_rows(y, value, row_gaps, max_row_ranks[y], Rk_y_1);
                const ShapeItem item_rows =
                                item_matrix[y*cols + x].get_row_count();
                Assert(item_rows);
@@ -548,7 +614,7 @@ bool float_storage  = false;     // a. with a non-integer item
               // insert separator row(s)
               //
               if (const ShapeItem sepa_rows =
-                        separator_rows(y, value, nested, max_row_ranks[y],
+                        separator_rows(y, value, row_gaps, max_row_ranks[y],
                                        y ? max_row_ranks[y - 1] : 0))
                  {
                   const UCS_string sepa_row(dest.get_column_count(),
@@ -746,13 +812,15 @@ const Shape sh = value.get_shape().without_last_axis();
    //
    if (value.element_count() == 0)
       {
-        // an empty value of rank ≥ 2 has rows of width 0 if its last axis is
-        // 0, or otherwise (some other axis is 0) only the blank lines between
-        // its planes, as IBM APL2 displays it -- see cValue::empty_lines().
-        // Every line is empty (width 0), so the buffer stays rectangular.
+        // With STRICT_IBM_APL2_FORMATTING, an empty value of rank ≥ 2 has
+        // rows of width 0 if its last axis is 0, or otherwise (some other
+        // axis is 0) only the blank lines between its planes, as IBM APL2
+        // displays it -- see cValue::empty_lines(). Every line is empty
+        // (width 0), so the buffer stays rectangular. Otherwise (GNU APL's
+        // traditional output) it has no lines at all.
         //
-        const ShapeItem lines = value.empty_lines();
-        buffer.resize(lines);
+        if (UserPreferences::uprefs.strict_IBM_APL2_formatting)
+           buffer.resize(value.empty_lines());
         add_outer_frame(outer_style);
         return;
       }
@@ -919,6 +987,12 @@ PrintBuffer::add_frame(PrintStyle style, const Shape & shape, int depth)
 {
    Assert(is_rectangular());
 
+   if ((style & PST_CS_MASK) == PST_CS_PARENS)
+      {
+        add_parentheses();
+        return;
+      }
+
 Unicode HORI, VERT, NW, NE, SE, SW;
    get_frame_chars(style, HORI, VERT, NW, NE, SE, SW);
 
@@ -1039,6 +1113,47 @@ UCS_string hori(get_column_count(), HORI);
         set_char(0, 1, UNI_CIRCLE_STILE);   // ⌽
       }
    
+
+   Assert(is_rectangular());
+}
+//────────────────────────────────────────────────────────────────────────────
+void
+PrintBuffer::add_parentheses()
+{
+   // enclose this (nested) item in parentheses: ( and ) for an item of one
+   // line, or ⎛ ⎜ ... ⎝ and ⎞ ⎟ ... ⎠ for an item of several lines (but
+   // no lines above or below the item, unlike add_frame()).
+   //
+   if (get_row_count() == 0)   // empty
+      {
+        UCS_string ucs;
+        ucs << UNI_L_PARENT << UNI_R_PARENT;
+        buffer.push_back(ucs);
+        return;
+      }
+
+const ShapeItem rows = get_row_count();
+   loop(y, rows)
+      {
+        Unicode left  = UNI_L_PARENT;
+        Unicode right = UNI_R_PARENT;
+        if (rows > 1)
+           {
+             if (y == 0)              { left = Unicode(0x239B);     // ⎛
+                                        right = Unicode(0x239E); }  // ⎞
+             else if (y == rows - 1)  { left = Unicode(0x239D);     // ⎝
+                                        right = Unicode(0x23A0); }  // ⎠
+             else                     { left = Unicode(0x239C);     // ⎜
+                                        right = Unicode(0x239F); }  // ⎟
+           }
+        buffer[y].prepend(left);
+        buffer[y] << right;
+
+        // change internal pad characters to SPACE so that they will
+        // not be removed later (as in add_frame())
+        //
+        buffer[y].map_pad();
+      }
 
    Assert(is_rectangular());
 }
@@ -1349,6 +1464,15 @@ PrintBuffer::get_frame_chars(PrintStyle pst,
              SW   = UNI_LINE_UP2_LEFT2;
              break;
 
+        case PST_CS_PARENS:   // see add_parentheses()
+             HORI = UNI_SPACE;
+             VERT = UNI_SPACE;
+             NW   = UNI_R_PARENT;
+             NE   = UNI_L_PARENT;
+             SE   = UNI_L_PARENT;
+             SW   = UNI_R_PARENT;
+             break;
+
         case PST_CS_DOUBLE:
              HORI = UNI_LINE2_HORI;
              VERT = UNI_LINE2_VERT;
@@ -1586,25 +1710,46 @@ PrintBuffer::align_j(const ColInfo & COL_INFO)
 void
 PrintBuffer::format_complex_column(const cValue & value, ShapeItem x,
                                    const PrintContext & pctx,
-                                   PrintBuffer * item_matrix)
+                                   PrintBuffer * item_matrix, bool strict)
 {
-   // lrm p. 17: "Each column of a simple numeric array is formatted in the
-   // same way" and "decimal points, E's, and J's are aligned". The J's
-   // take precedence: the real part is directly left of the J (i.e. right-
-   // aligned) and the imaginary part directly right of it (left-aligned),
-   // so that a complex number never contains blanks. IBM APL2
-   // does that per part, i.e. the real parts of a column form one
-   // (sub-) column and the imaginary parts another one: each sub-column
-   // is scaled as a whole if one of its items needs it, and has the same
-   // number of fractional digits, e.g. (⎕PP←5):
+   // A column of a simple numeric array that contains (somewhere) a complex
+   // number, which IBM APL2 then stores as a complex array as a whole. With
+   // strict (STRICT_IBM_APL2_FORMATTING), the layout follows IBM APL2
+   // (verified with APL2 itself, see FORMAT_CPLX.tc and FORMAT_COLS.tc):
    //
-   //       6.00E2J1.0000E2         not:    6E2J100
-   //       0.00E0J7.3900E5                   0J7.39E5
-   //       6.16E3                          6160
+   // * the real parts of a column form one sub-column and the imaginary
+   //   parts another one. Each sub-column is scaled as a whole if one of its
+   //   items needs it, and has the same number of fractional digits (lrm
+   //   p. 17: "Each column ... is formatted in the same way").
    //
-   // A real number (or a complex number whose imaginary part is not
-   // displayed, lrm p. 13) is a real part without J and imaginary part.
-   // A complex number whose real part is not displayed has real part 0.
+   // * the width of a sub-column is that of its items when aligned at their
+   //   decimal points (and E's), e.g. 7 for the imaginary parts 1.473 and
+   //   222.43 (integer part 3 + fraction 4), even though the parts are not
+   //   placed like that:
+   //
+   // * an unscaled real part is right-aligned (i.e. directly left of the J
+   //   if there is one); a scaled real part is aligned at its decimal point.
+   //   The J follows the real part directly, and the imaginary part follows
+   //   the J directly, so that a complex number never contains blanks.
+   //   The item is padded on the right to the width of the column, e.g.
+   //   (⎕PP←5):
+   //
+   //       2.50E¯7                    1J1.473
+   //       3.33E2J22.25               2J222.43
+   //
+   // * this also applies to a column without any complex number (e.g.
+   //   ⎕←2 2⍴1.5 1J1 22.25 1), whose numbers are therefore right-aligned
+   //   rather than aligned at their decimal points (unless scaled).
+   //
+   // Without strict (GNU APL's traditional output), the real sub-column is
+   // as wide as above, the imaginary sub-column only as wide as its longest
+   // part, every real part is right-aligned
+   // (so that the J's are aligned), and a column without any J is aligned
+   // at the decimal points like a column of real numbers.
+   //
+   // A complex number whose imaginary part is not displayed (lrm p. 13) is
+   // shown as its real part only; one whose real part is not displayed has
+   // the real part 0.
    //
 const ShapeItem cols = value.get_last_shape_item();
 const ShapeItem rows = value.element_count()/cols;
@@ -1640,53 +1785,166 @@ std::vector<bool> has_imag(rows, false);
 bool any_imag = false;
    loop(y, rows)   if (has_imag[y])   any_imag = true;
 
-   // without any J the column is formatted like a real column, i.e. with
-   // its decimal points and exponents aligned.
-   //
 std::vector<UCS_string> real_ucs(rows);
 std::vector<UCS_string> imag_ucs(rows);
-   format_sub_column(real, all_used, pctx, any_imag, real_ucs);
-   format_sub_column(imag, has_imag, pctx, true, imag_ucs);
+bool real_scaled = false;
+bool imag_scaled = false;
+size_t real_len = format_sub_column(real, all_used, pctx,
+                                    real_ucs, real_scaled);
+size_t imag_len = any_imag ? format_sub_column(imag, has_imag, pctx,
+                                               imag_ucs, imag_scaled)
+                           : 0;
 
-size_t real_len = 0;
-size_t imag_len = 0;
-   loop(y, rows)
+   if (!strict && any_imag)   // the width of the longest imaginary part
       {
-        if (real_len < real_ucs[y].size())   real_len = real_ucs[y].size();
-        if (has_imag[y] && imag_len < imag_ucs[y].size())
-           imag_len = imag_ucs[y].size();
+        // the real parts keep the width as if aligned at their decimal
+        // points (as in IBM APL2), although they are right-aligned
+        imag_len = 0;
+        loop(y, rows)
+           {
+             if (!has_imag[y])   continue;
+             UCS_string i = imag_ucs[y];
+             trim_padding(i, true, true);
+             if (imag_len < i.size())   imag_len = i.size();
+           }
       }
 
+const size_t width = real_len + (any_imag ? 1 + imag_len : 0);
+
    loop(y, rows)
       {
-        UCS_string ucs(real_len - real_ucs[y].size(), UNI_PAD_l_INT);
-        ucs << real_ucs[y];
+        UCS_string ucs;
+        if (!strict && !any_imag)   // like a column of real numbers
+           {
+             ucs = real_ucs[y];
+           }
+        else if (strict && real_scaled)   // aligned at the decimal point
+           {
+             ucs = real_ucs[y];
+             trim_padding(ucs, false, true);
+           }
+        else               // right-aligned
+           {
+             UCS_string r = real_ucs[y];
+             trim_padding(r, true, true);
+             ucs = UCS_string(real_len - r.size(), UNI_PAD_l_INT);
+             ucs << r;
+           }
+
         if (has_imag[y])
            {
-             ucs << UNI_J << imag_ucs[y]
-                 << UCS_string(imag_len - imag_ucs[y].size(), UNI_PAD_r_FRACT);
+             UCS_string i = imag_ucs[y];
+             trim_padding(i, true, true);
+             ucs << UNI_J << i;
            }
-        else if (imag_len)
-           {
-             ucs << UCS_string(1 + imag_len, UNI_PAD_r_FRACT);
-           }
+
+        if (ucs.size() < width)
+           ucs << UCS_string(width - ucs.size(), UNI_PAD_r_FRACT);
 
         ColInfo info;
         info.flags = CT_COMPLEX | has_j;
-        info.int_len = real_len;
-        info.real_len = real_len;
-        info.imag_len = ucs.size() - real_len;
+        info.int_len = width;
+        info.real_len = width;
+        info.imag_len = 0;
         item_matrix[y*cols + x] = PrintBuffer(ucs, info);
       }
 }
 //────────────────────────────────────────────────────────────────────────────
 void
+PrintBuffer::align_mixed_column(const cValue & value, ShapeItem x,
+                                PrintBuffer * item_matrix)
+{
+   // align column x of a mixed (character and number) or nested value
+   // without STRICT_IBM_APL2_FORMATTING: the simple scalar real numbers
+   // that are not scaled are aligned at their decimal points (an integer as
+   // if it had a decimal point after its last digit). The block of aligned
+   // numbers and all other items (incl. scaled and complex numbers) are
+   // then right-aligned to the width of the widest of them.
+   //
+const ShapeItem cols = value.get_last_shape_item();
+const ShapeItem rows = value.element_count()/cols;
+std::vector<int> dot(rows, -1);   // position of the "decimal point", or -1
+int int_max = 0;     // max. characters before the decimal point
+int fract_max = 0;   // max. characters from the decimal point on
+int other_max = 0;   // max. width of the other items
+   loop(y, rows)
+      {
+        const PrintBuffer & item = item_matrix[y*cols + x];
+        Cell cache;
+        const Cell & cell = value.get_cravel(x + y*cols, cache);
+        const int w = item.get_column_count();
+        if (!cell.is_numeric() || item.get_row_count() == 0)
+           {
+             if (other_max < w)   other_max = w;
+             continue;
+           }
+
+        const UCS_string & line = item.buffer[0];
+        int pos = line.size();
+        bool other = false;   // scaled or complex
+        loop(c, line.size())
+           {
+             if (line[c] == UNI_FULLSTOP)                  pos = c;
+             else if (line[c] == UNI_E || line[c] == UNI_J)   other = true;
+           }
+        if (other)
+           {
+             if (other_max < w)   other_max = w;
+             continue;
+           }
+
+        dot[y] = pos;
+        if (int_max < pos)                 int_max = pos;
+        if (fract_max < w - pos)           fract_max = w - pos;
+      }
+
+const int numbers_w = int_max + fract_max;
+const int width = numbers_w < other_max ? other_max : numbers_w;
+   loop(y, rows)
+      {
+        PrintBuffer & item = item_matrix[y*cols + x];
+        const int w = item.get_column_count();
+        if (dot[y] == -1)   // not a simple real number: right-aligned
+           {
+             if (width > w)   item.pad_l(UNI_PAD_l_INT, width - w);
+           }
+        else                // number: aligned at its decimal point
+           {
+             const int left = width - numbers_w + int_max - dot[y];
+             const int right = fract_max - (w - dot[y]);
+             if (left > 0)    item.pad_l(UNI_PAD_l_INT, left);
+             if (right > 0)   item.pad_r(UNI_PAD_r_FRACT, right);
+           }
+
+        ColInfo & ci = item.get_info();
+        ci.int_len  = width;   // as for a character item
+        ci.fract_len = 0;
+        ci.real_len = width;
+      }
+}
+//────────────────────────────────────────────────────────────────────────────
+void
+PrintBuffer::trim_padding(UCS_string & ucs, bool left, bool right)
+{
+size_t from = 0;
+size_t to = ucs.size();
+   if (left)
+      while (from < to && (ucs[from] == UNI_SPACE ||
+                           is_iPAD_char(ucs[from])))   ++from;
+   if (right)
+      while (to > from && (ucs[to - 1] == UNI_SPACE ||
+                           is_iPAD_char(ucs[to - 1])))   --to;
+   ucs = UCS_string(ucs, from, to - from);
+}
+//────────────────────────────────────────────────────────────────────────────
+size_t
 PrintBuffer::format_sub_column(const std::vector<APL_Float> & values,
                                const std::vector<bool> & used,
-                               const PrintContext & pctx, bool trim,
-                               std::vector<UCS_string> & result)
+                               const PrintContext & pctx,
+                               std::vector<UCS_string> & result,
+                               bool & scaled)
 {
-bool scaled = false;
+   scaled = false;
    loop(y, values.size())
       {
         if (used[y] && FloatCell::need_scaling(values[y], pctx.get_PP()))
@@ -1702,7 +1960,7 @@ PrintContext pctx1(pctx);
 
    // format the items like the items of a real column (steps 2. and 3. of
    // do_PrintBuffer()), so that they get the same format (scaling and
-   // number of fractional digits).
+   // number of fractional digits) and are aligned at their decimal points.
    //
 std::vector<PrintBuffer> items(values.size());
 ColInfo col_info;
@@ -1715,30 +1973,16 @@ ColInfo col_info;
    if (col_info.real_len < (col_info.int_len + col_info.denom_len))
       col_info.real_len = col_info.int_len + col_info.denom_len;
 
+size_t width = 0;
    loop(y, values.size())
       {
         if (!used[y])   continue;
         items[y].align(col_info);
-
-        const UCS_string & line = items[y].get_line(0);
-        if (!trim)
-           {
-             result[y] = line;
-             continue;
-           }
-
-        // remove the alignment padding: the caller places the parts
-        // directly left and right of the J (lrm p. 18), so that no blanks
-        // occur inside a complex number.
-        //
-        size_t from = 0;
-        size_t to = line.size();
-        while (from < to && (line[from] == UNI_SPACE ||
-                             is_iPAD_char(line[from])))   ++from;
-        while (to > from && (line[to - 1] == UNI_SPACE ||
-                             is_iPAD_char(line[to - 1])))   --to;
-        result[y] = UCS_string(line, from, to - from);
+        result[y] = items[y].get_line(0);
+        if (width < result[y].size())   width = result[y].size();
       }
+
+   return width;
 }
 //────────────────────────────────────────────────────────────────────────────
 void

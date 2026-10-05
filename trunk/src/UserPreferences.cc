@@ -57,6 +57,8 @@ UserPreferences::UserPreferences()
      append_summary(false),
      auto_OFF(false),
      backup_before_save(false),
+     strict_IBM_APL2_formatting(false),
+     nested_parentheses(false),
      plot_ASCII_rows(0),          //  0: preference was not provided
      plot_ASCII_columns(0),       //  0: preference was not provided
      plot_ASCII_background(-1),   // -1: preference was not provided
@@ -247,6 +249,9 @@ UserPreferences::usage(const char * prog)
 "    --show_lib_dir       show library directory and exit\n"
 "    --show_src_dir       show source directory and exit\n"
 "    --show_all_dirs      show all directories above and exit\n"
+"    --strict_IBM_APL2_formatting mode\n"
+"                         output format: no, yes, or parentheses (overrides\n"
+"                         the preference STRICT_IBM_APL2_FORMATTING)\n"
 "    --[no]SV             [do not] start APnnn (a shared variable server)\n"
 "    -T testcases ...     run testcases\n"
 "    --TM mode            test mode (for -T files):\n"
@@ -884,6 +889,33 @@ UserPreferences::parse_args_2(bool logit)
                         ofstream summary("testcases/summary.log",
                                          ios_base::trunc);
                       }
+                 }
+              continue;
+            }
+
+         IFOPT( --strict_IBM_APL2_formatting )
+            {
+              ++a;
+              if (val && !strcasecmp(val, "no"))
+                 {
+                   strict_IBM_APL2_formatting = false;
+                   nested_parentheses = false;
+                 }
+              else if (val && !strcasecmp(val, "yes"))
+                 {
+                   strict_IBM_APL2_formatting = true;
+                   nested_parentheses = false;
+                 }
+              else if (val && !strcasecmp(val, "parentheses"))
+                 {
+                   strict_IBM_APL2_formatting = false;
+                   nested_parentheses = true;
+                 }
+              else
+                 {
+                   CERR << "--strict_IBM_APL2_formatting needs one of no, "
+                           "yes, or parentheses" << endl;
+                   exit(a);
                  }
               continue;
             }
@@ -1753,6 +1785,23 @@ int file_profile = 0;   // the current profile in the preferences file
          else if (yes_no && !strcasecmp(opt, "BACKUP_BEFORE_SAVE"))
             {
               backup_before_save = yes;
+            }
+         else if (!strcasecmp(opt, "STRICT_IBM_APL2_FORMATTING"))
+            {
+              if (yes_no)
+                 {
+                   strict_IBM_APL2_formatting = yes;
+                   nested_parentheses = false;
+                 }
+              else if (!strcasecmp(arg, "PARENTHESES"))
+                 {
+                   strict_IBM_APL2_formatting = false;
+                   nested_parentheses = true;
+                 }
+              else   CERR << "bad value " << arg
+                          << " for STRICT_IBM_APL2_FORMATTING"
+                          << " at line " << line << " of config file "
+                          << filename << " (ignored)" << endl;
             }
          else if (!strcasecmp(opt, "plot-ASCII-rows"))
             {

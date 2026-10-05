@@ -172,17 +172,17 @@
       ⍝ by doing the same in the scalar shortcut (Bif_OPER1_REDUCE.cc).
       ⍝
       0⍉⌿0
-    
+     
       0,⌿0
-    
+     
       0⍪⌿0
-    
+     
       0↑⌿0
-    
+     
       0⍴⌿0
-    
+     
       (0⍉⌿(≥⍀0))⌈[1](1 1 1⍴1)
-    
+     
 
       ⍝ Bugs28 #33 regression: F/ (plain reduce, len > 1 along the
       ⍝ reduced axis) with a *defined* F over a frame that is empty

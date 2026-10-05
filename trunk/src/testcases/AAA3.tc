@@ -170,16 +170,16 @@ FACE
 
 
       3 1⍴1.25J2 ¯10J3.5 7
-1.25J2
- ¯10J3.5
-   7
+  1.25J2
+   ¯10J3.5
+     7
 
 
 
       3 2⍴0J7.39E5 1 6E2J1E2 6160 1.5 2J3
-  0J7.39E5    1
-600J1.00E2 6160
-1.5           2J3
+    0J7.39E5    1
+  600J1.00E2 6160
+  1.5           2J3
 
 
 
@@ -211,8 +211,9 @@ FACE
       ⍝ columns of mixed and nested arrays ----------------------------
       ⍝
       ⍝ As in IBM APL2, the numbers in a column of a mixed or nested array
-      ⍝ are right-aligned as they are: no common format (e.g. 600.0E0),
-      ⍝ and no alignment of decimal points or J's.
+      ⍝ have no common format (e.g. 600.0E0). Unlike IBM APL2 (and unless
+      ⍝ STRICT_IBM_APL2_FORMATTING), unscaled real numbers are aligned at
+      ⍝ their decimal points; other items are right-aligned.
       ⍝
       ⎕PP←5
       3 1⍴600 (⊂1 2) 4.2E¯9
@@ -223,10 +224,10 @@ FACE
 
 
       4 1⍴1.5 22.25 333 (⊂4 5)
-   1.5 
- 22.25 
-   333 
-  4 5  
+   1.5  
+  22.25 
+ 333    
+   4 5  
 
 
 

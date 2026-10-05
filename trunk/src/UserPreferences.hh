@@ -54,6 +54,15 @@ public:
    /// backup on )SAVE
    bool backup_before_save;
 
+   /// format APL values exactly like IBM APL2 does, even where that differs
+   /// from GNU APL's traditional output (preference STRICT_IBM_APL2_FORMATTING,
+   /// see apl.texi, "Output Formatting")
+   bool strict_IBM_APL2_formatting;
+
+   /// display nested items like IBM APL2, but with (multi-line) parentheses
+   /// instead of blanks (STRICT_IBM_APL2_FORMATTING parentheses)
+   bool nested_parentheses;
+
    /// screen rows for ⎕PLOT ASCII driver
    int plot_ASCII_rows;
 

@@ -4,6 +4,13 @@
 SUBDIRS      = invariants
 DIST_SUBDIRS = invariants
 
+# testcases for STRICT_IBM_APL2_FORMATTING parentheses (make testPARENS)
+# and yes (make testSTRICT)
+#
+EXTRA_DIST = parentheses/FORMAT_PARENS.tc \
+             strict/FORMAT_CPLX.tc \
+             strict/FORMAT_STRICT.tc
+
 # put them into apl-x.x.tar.gz, but don't install them.
 #
 dist_noinst_DATA =                              \
@@ -76,6 +83,7 @@ dist_noinst_DATA =                              \
         Format.tc                               \
         FORMAT_COLS.tc                          \
         FORMAT_RANK.tc                          \
+        FORMAT_SCALE.tc                         \
         Grade_down.tc                           \
         Grade_down_with_collating_sequence.tc   \
         Grade_up.tc                             \

@@ -300,22 +300,36 @@ protected:
    /// @param x the column
    /// @param pctx print context controlling formatting
    /// @param item_matrix the item matrix of \b value (see do_PrintBuffer())
+   /// @param strict format exactly like IBM APL2 (STRICT_IBM_APL2_FORMATTING)
    static void format_complex_column(const cValue & value, ShapeItem x,
                                      const PrintContext & pctx,
-                                     PrintBuffer * item_matrix);
+                                     PrintBuffer * item_matrix, bool strict);
 
    /// format the items y of \b values with \b used[y] as one numeric
-   /// (sub-) column, i.e. in the same format with aligned decimal points
-   /// and exponents (lrm p. 17)
+   /// (sub-) column, i.e. in the same format and aligned at their decimal
+   /// points and exponents (lrm p. 17)
    /// @param values the (real) values of the column
    /// @param used which items of \b values belong to the column
    /// @param pctx print context controlling formatting
-   /// @param trim remove the alignment padding of the items
-   /// @param result the formatted items (only those with \b used[y])
-   static void format_sub_column(const std::vector<APL_Float> & values,
-                                 const std::vector<bool> & used,
-                                 const PrintContext & pctx, bool trim,
-                                 std::vector<UCS_string> & result);
+   /// @param result the aligned items (only those with \b used[y])
+   /// @param scaled set to true if the sub-column is scaled
+   /// @return the width of the sub-column (of its aligned items)
+   static size_t format_sub_column(const std::vector<APL_Float> & values,
+                                   const std::vector<bool> & used,
+                                   const PrintContext & pctx,
+                                   std::vector<UCS_string> & result,
+                                   bool & scaled);
+
+   /// remove the leading (if \b left) and/or trailing (if \b right) blanks
+   /// and internal padding characters of \b ucs
+   /// align column \b x of a mixed or nested \b value (non-strict)
+   static void align_mixed_column(const cValue & value, ShapeItem x,
+                                  PrintBuffer * item_matrix);
+
+   static void trim_padding(UCS_string & ucs, bool left, bool right);
+
+   /// enclose this PrintBuffer in (multi-line) parentheses
+   void add_parentheses();
 
    /// pad the fraction part to \b wanted_fract_len with '0'
    /// @param wanted_fract_len target length of the fractional part

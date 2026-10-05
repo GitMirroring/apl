@@ -408,13 +408,13 @@ zzzz←3⍴'elan' 77 'abc'
 
 
       ⎕←zzzz←'elan' 77 ''
- elan 77  
+ elan 77   
       ⎕←yyyy←2⎕TF 'zzzz'
 zzzz←3⍴'elan' 77 ('')
       )ERASE zzzz
       ⍎yyyy
       zzzz
- elan 77  
+ elan 77   
 
 ⍝ Regression
 

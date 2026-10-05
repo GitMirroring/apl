@@ -394,6 +394,7 @@ enum PrintStyle
    PST_CS_THIN       = 0x00000002,       ///< thin lines
    PST_CS_THICK      = 0x00000003,       ///< thick lines
    PST_CS_DOUBLE     = 0x00000004,       ///< double lines
+   PST_CS_PARENS     = 0x00000005,       ///< (multi-line) parentheses only
    PST_CS_MASK       = 0x0000000F,       ///< mask for line style
 
    PST_CS_INNER      = PST_CS_MASK,      ///< mask for inner line style

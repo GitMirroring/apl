@@ -348,6 +348,27 @@ BACKUP_BEFORE_SAVE  yes
 
 ###############################################################################
 #
+# STRICT IBM APL2 OUTPUT FORMATTING
+#
+# GNU APL formats APL values (and the result of monadic ⍕) mostly, but not
+# exactly, like IBM APL2 does (see section "Output Formatting" in the GNU
+# APL info manual). With STRICT_IBM_APL2_FORMATTING yes, GNU APL follows
+# IBM APL2 also where that changes GNU APL's traditional output, e.g. for
+# columns of simple numeric arrays that contain complex numbers. The
+# default (no) keeps the output of existing workspaces unchanged.
+#
+# With STRICT_IBM_APL2_FORMATTING parentheses, GNU APL formats values as
+# with no, except that nested items are enclosed in (multi-line)
+# parentheses instead of blanks, so that their structure becomes visible,
+# e.g. (1 2) 3 instead of  1 2  3.
+#
+  STRICT_IBM_APL2_FORMATTING  no      (default)
+# STRICT_IBM_APL2_FORMATTING  yes
+# STRICT_IBM_APL2_FORMATTING  parentheses
+
+
+###############################################################################
+#
 # ASCII PLOT default values
 #
 # The ASCII driver for ⎕PLOT uses default values for plot attributes that
