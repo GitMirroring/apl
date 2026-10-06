@@ -16,7 +16,7 @@ File: apl.info,  Node: Top,  Next: Installing and Starting GNU APL,  Up: (dir)
 GNU APL Reference Manual
 ************************
 
-October 5, 2026.  This manual briefly documents GNU APL, an interpreter
+October 6, 2026.  This manual briefly documents GNU APL, an interpreter
 for APL as described in ISO standard 13751, aka.  "Programming Language
 APL, Extended".
 
@@ -10414,6 +10414,11 @@ M ...]’, ‘[∆-N]’,      open-ended               supported – the
                                                 editor is the intended
                                                 workflow for anything
                                                 more
+Opening another        Allowed: the      NI     Not supported: only one
+definition while one   definitions are          definition can be open at
+is open (e.g.  ‘∇B’    edited in LIFO           a time
+while editing A)       order (LRM p.
+                       387)
 ‘)EDITOR 1’            Selects or        NI     BAD COMMAND – not
                        queries the              implemented; GNU APL has
                        active line              only the ∇-editor, so
@@ -13282,34 +13287,34 @@ Node: Limitations and Missing Features433388
 Node: System Limits433896
 Node: Shared Variables435198
 Node: Known Differences between IBM APL2 and GNU APL436335
-Node: Output Formatting451690
-Ref: STRICT_IBM_APL2_FORMATTING455422
-Node: Internationalization474599
-Node: Vector Notation475780
-Node: History476375
-Node: Standardization477113
-Node: Quotes from the lrm477620
-Node: Some APL2 Tests479779
-Node: Test 1 - Binding strength of []480196
-Node: Test 2 - Binding strength of the left operand481089
-Node: Definitions485883
-Node: Unexpected Stranding488908
-Node: GNU APL Vector Notation497674
-Node: GNU APL Project Structure503662
-Node: The sub-directory src505190
-Node: The sub-directory support-files506562
-Node: The sub-directory doc506981
-Node: The sub-directory HOWTOs507285
-Node: The sub-directories workspaces and wslib2 ... wslib5508030
-Node: The sub-directory m4508590
-Node: The sub-directories debian and debian_tmp509462
-Node: The sub-directory tools509959
-Node: Libraries Contributed by GNU APL Users510422
-Node: The GNU APL Community Webpage510899
-Node: Core Libraries511636
-Node: Licenses for this GNU APL Manual and for GNU APL512517
-Node: The GNU Free Documentation License513062
-Node: The GNU GENERAL PUBLIC LICENSE538456
+Node: Output Formatting451962
+Ref: STRICT_IBM_APL2_FORMATTING455694
+Node: Internationalization474871
+Node: Vector Notation476052
+Node: History476647
+Node: Standardization477385
+Node: Quotes from the lrm477892
+Node: Some APL2 Tests480051
+Node: Test 1 - Binding strength of []480468
+Node: Test 2 - Binding strength of the left operand481361
+Node: Definitions486155
+Node: Unexpected Stranding489180
+Node: GNU APL Vector Notation497946
+Node: GNU APL Project Structure503934
+Node: The sub-directory src505462
+Node: The sub-directory support-files506834
+Node: The sub-directory doc507253
+Node: The sub-directory HOWTOs507557
+Node: The sub-directories workspaces and wslib2 ... wslib5508302
+Node: The sub-directory m4508862
+Node: The sub-directories debian and debian_tmp509734
+Node: The sub-directory tools510231
+Node: Libraries Contributed by GNU APL Users510694
+Node: The GNU APL Community Webpage511171
+Node: Core Libraries511908
+Node: Licenses for this GNU APL Manual and for GNU APL512789
+Node: The GNU Free Documentation License513334
+Node: The GNU GENERAL PUBLIC LICENSE538728
 
 End Tag Table
 

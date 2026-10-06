@@ -76,7 +76,7 @@ Next: <a href="#Installing-and-Starting-GNU-APL" accesskey="n" rel="next">Instal
 </div>
 <span id="GNU-APL-Reference-Manual"></span><h1 class="top">GNU APL Reference Manual</h1>
 
-<p>October 5, 2026.
+<p>October 6, 2026.
 This manual briefly documents GNU APL, an interpreter for APL as described
 in ISO standard 13751, aka. &quot;Programming Language APL, Extended&quot;.
 </p>
@@ -11976,6 +11976,8 @@ invalidate in-flight execution state</td></tr>
 ∇-editor&rsquo;s interactive command set was always deliberately
 minimal (just enough to define functions); writing functions in an
 external editor is the intended workflow for anything more</td></tr>
+<tr><td width="30%">Opening another definition while one is open (e.g. <code>∇B</code>
+while editing A)</td><td width="24%">Allowed: the definitions are edited in LIFO order (LRM p. 387)</td><td width="8%">NI</td><td width="38%">Not supported: only one definition can be open at a time</td></tr>
 <tr><td width="30%"><code>)EDITOR 1</code></td><td width="24%">Selects or queries the active line editor</td><td width="8%">NI</td><td width="38%">BAD COMMAND &ndash; not implemented; GNU APL has only the ∇-editor,
 so there is nothing to select</td></tr>
 <tr><td width="30%"><code>)SYMBOLS n</code></td><td width="24%">Resizes the symbol table</td><td width="8%">NI</td><td width="38%">BAD COMMAND &ndash; not implemented; GNU APL&rsquo;s symbol table is not a

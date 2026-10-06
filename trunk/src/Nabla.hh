@@ -195,6 +195,9 @@ protected:
    /// @param ucs UCS string to test for an axis prefix
    static bool is_axis(const UCS_string & ucs);
 
+   /// return the position of the ⍝ that starts a comment in \b line, or -1
+   static int comment_pos(const UCS_string & line);
+
    /// parse [nn.mm] into a LineLabel;
    /// @param c iterator positioned at the '['; advanced past the ']' on return
    LineLabel parse_lineno(UCS_string::iterator & c);
@@ -261,6 +264,12 @@ protected:
 
    /// true iff this function shall be locked
    bool locked;
+
+   /// true iff the opening line ended with ⍫ (rather than ∇)
+   bool trailing_lock;
+
+   /// true iff the user has abandoned editing with [→]
+   bool abandoned;
 
    /// \b true if the user has (most likely interactively) entered a line
    /// number (so that the input lines are out of order, as opposed to

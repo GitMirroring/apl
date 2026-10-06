@@ -83,7 +83,11 @@ LineLabel::next()
 {
    if (ln_minor.size() == 0)   // full number: add 1
       {
-        ++ln_major;
+        // the largest line number is followed by a fractional one (++ would
+        // overflow ln_major, which is undefined behaviour and made the next
+        // line [¯2147483648], i.e. sorted before the header line).
+        if (ln_major == INT_MAX)   ln_minor << UNI_1;
+        else                       ++ln_major;
         return;
       }
 
@@ -132,6 +136,8 @@ Nabla::Nabla(const UCS_string & cmd)
      modified(false),
      do_close(false),
      locked(false),
+     trailing_lock(false),
+     abandoned(false),
      out_of_order(false),
      current_line(1),
      first_command(cmd)
@@ -143,7 +149,7 @@ void
 Nabla::throw_edit_error(const char * why)
 {
 UCS_string command = first_command;
-   if (trailing_nabla)   command << UNI_NABLA;
+   if (trailing_nabla)   command << (trailing_lock ? UNI_DEL_TILDE : UNI_NABLA);
 
    COUT << "DEFN ERROR+" << endl
         << "      " << command << endl
@@ -241,6 +247,12 @@ try_again:
         loop(l, lines.size())   UERR << lines[l].text << endl;
       }
 
+   // [→] ends the editing session without establishing anything: an
+   // existing function keeps its last established definition, and a new
+   // function is not created at all (lrm p. 392).
+   //
+   if (abandoned)   return;
+
 UCS_string fun_text;
    loop(l, lines.size())
       {
@@ -281,6 +293,12 @@ UCS_string fun_text;
         line_N << UNI_NABLA;
         LineInput::add_history_line(line_N);
       }
+
+   // an existing function that was not changed (e.g. only displayed with
+   // ∇F[⎕]∇) is not fixed again, so that its creation time, ⎕STOP, and
+   // ⎕TRACE remain as they are. A lock (⍫) is a change, though.
+   //
+   if (function_existed && !modified && !locked)   return;
 
 int error_line = 0;
 char creator[APL_PATH_MAX+20];
@@ -409,8 +427,19 @@ Nabla::start()
    //
    first_command.remove_trailing_whitespaces();
    trailing_nabla = false;
-   if (first_command.back() == UNI_NABLA)
+   // a closing ∇ or ⍫ (close and lock) is only recognised at the end of a
+   // line without a comment (lrm p. 388); otherwise it belongs to the
+   // comment.
+   //
+   if (first_command.size() && comment_pos(first_command) == -1 &&
+       (first_command.back() == UNI_NABLA ||
+        first_command.back() == UNI_DEL_TILDE))
       {
+        if (first_command.back() == UNI_DEL_TILDE)
+           {
+             locked = true;
+             trailing_lock = true;
+           }
         first_command.pop_back();
         trailing_nabla = true;
         do_close = true;
@@ -639,7 +668,12 @@ Nabla::parse_oper(UCS_string & oper, bool initial)
    // skip trailing spaces
    //
    oper.remove_trailing_whitespaces();
-   if (oper.size() > 0 && oper.back() == UNI_NABLA)
+   if (comment_pos(oper) != -1)
+      {
+        // a closing ∇ or ⍫ at the end of a line with a comment belongs to
+        // the comment (lrm p. 388)
+      }
+   else if (oper.size() > 0 && oper.back() == UNI_NABLA)
       {
         do_close = true;
         oper.pop_back();
@@ -666,13 +700,17 @@ UCS_string text = oper;
    // we expect one of the following:
    //
    // [⎕] [n⎕] [⎕m] [n⎕m] [⎕n-m]                    (show)
-   //     [n∆] [∆m] [n∆m] [∆n-m] [∆n1 n2 ...]       (delete)
+   //     [n∆] [∆m] [n∆m] [∆n-m]                    (delete)
    // [→]                                           (escape)
    // [n]                                           (goto)
    // text                                          (override text)
+   //
+   // The LRM's list forms [⎕n1 n2 ...] and [∆n1 n2 ...] and its open-ended
+   // ranges are deliberately not supported (testcases/apl2lrm.tc #45/#46).
 
    if (cc != UNI_L_BRACK)   // override text
       {
+        out_of_order = false;
         ecmd = ECMD_EDIT;
         edit_from = current_line;
         current_text = text;
@@ -751,6 +789,10 @@ again:
    // [from ∆ to]
    // [from]
 
+   // [N] without text only positions the editor at line N (lrm p. 386)
+   //
+   out_of_order = ecmd == ECMD_EDIT && edit_from.valid();
+
    c.skip_white();
 
    if (c.has_more() &&
@@ -774,6 +816,11 @@ again:
              case UNI_DEL_TILDE:       // ⍫
                   locked = true;
                   do_close = true;
+                  return 0;
+
+             case UNI_COMMENT:         // ⍝: the rest of the line is comment
+                  current_text << cc;
+                  while (c.has_more())   current_text << c.next();
                   return 0;
 
              case UNI_DOUBLE_QUOTE:  // "
@@ -997,6 +1044,10 @@ Nabla::edit_header_line()
 UserFunction_header header(current_text, false);
    if (header.get_error() != E_NO_ERROR)
       {
+        // as for a bad body line: from a script there is no user to fix it
+        if (InputFile::running_script() || InputFile::is_validating())
+           throw_edit_error("bad function header");
+
         CERR << "BAD FUNCTION HEADER";
         COUT << endl;
         return 0;
@@ -1020,6 +1071,9 @@ const UCS_string & new_name = header.get_name();
         Assert(sym);
         if (sym->get_NC() != NC_UNUSED_USER_NAME)
            {
+             if (InputFile::running_script() || InputFile::is_validating())
+                throw_edit_error("function name already in use");
+
              CERR << "BAD FUNCTION HEADER";
              COUT << endl;
              return 0;
@@ -1162,33 +1216,11 @@ const int idx_from = find_line(edit_from);
 const char *
 Nabla::execute_escape()
 {
-   // the user has entered [→].
+   // the user has entered [→]: end the editing session without establishing
+   // anything (lrm p. 392), see edit().
    //
-   // Note that fun_symbol and fun_symbol->get_function() may both be valid
-   // even though the function is "fresh". We use function_existed instead.
-   //
-   lines.clear();
-
-
-   if (function_existed)   // existing function
-      {
-        Assert(fun_symbol);
-        const Function * fun = fun_symbol->get_function();
-        Assert(fun);
-        const UserFunction * ufun = fun->get_func_ufun();
-        Assert(ufun);
-        loop(l, ufun->get_text_size())
-            {
-              const UCS_string & fun_line = ufun->get_text(l);
-              lines.push_back(FunLine(l, fun_line));
-            }
-      }
-   else       // new function: only restore the header
-      {
-        lines.push_back(FunLine(0, fun_header));
-        current_line = LineLabel(1);
-      }
-
+   abandoned = true;
+   do_close = true;
    return 0;
 }
 //────────────────────────────────────────────────────────────────────────────
@@ -1337,9 +1369,32 @@ LineLabel ret(0);
         c.next();   // eat the .
         while (c.has_more() && Avec::is_digit(c.lookup()))
               ret.ln_minor << c.next();
+
+        // a line number is a number: [1.0] is line [1], [1.10] is [1.1]
+        while (ret.ln_minor.size() && ret.ln_minor.back() == UNI_0)
+              ret.ln_minor.pop_back();
       }
 
    return ret;
+}
+//────────────────────────────────────────────────────────────────────────────
+int
+Nabla::comment_pos(const UCS_string & line)
+{
+   loop(u, line.size())
+      {
+        const Unicode uni = line[u];
+        if (uni == UNI_COMMENT)   return u;
+        if (uni == UNI_SINGLE_QUOTE || uni == UNI_DOUBLE_QUOTE)   // string
+           {
+             for (++u; u < line.size() && line[u] != uni; ++u)
+                 {
+                   if (uni == UNI_DOUBLE_QUOTE && line[u] == UNI_BACKSLASH)
+                      ++u;   // skip \x
+                 }
+           }
+      }
+   return -1;
 }
 //────────────────────────────────────────────────────────────────────────────
 int

@@ -10435,6 +10435,11 @@ Only the single-line and explicit-range forms are supported -- the
 ∇-editor's interactive command set was always deliberately
 minimal (just enough to define functions); writing functions in an
 external editor is the intended workflow for anything more
+@item Opening another definition while one is open (e.g. @code{∇B}
+while editing A) @tab
+Allowed: the definitions are edited in LIFO order (LRM p. 387) @tab
+NI @tab
+Not supported: only one definition can be open at a time
 @item @code{)EDITOR 1} @tab
 Selects or queries the active line editor @tab
 NI @tab
