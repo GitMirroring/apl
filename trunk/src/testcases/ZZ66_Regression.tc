@@ -1,6 +1,8 @@
 ⍝ ZZ66_Regression.tc
 ⍝ ══════════════════
 
+⍝@ test3.
+
       ⍝ bug-apl@gnu.org, Bugs9 (Blake McBride): regression coverage for the
       ⍝ critical/high severity findings below. See SVN log for details.
 

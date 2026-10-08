@@ -1,6 +1,8 @@
 ⍝ ZZ64_Regression.tc
 ⍝ ══════════════════
 
+⍝@ test3.
+
       ⍝ bug-apl@gnu.org, 6/21/2026 (Blake McBride):
       ⍝ Multiple bugs found by Claude Code audit.
 

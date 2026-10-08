@@ -1,6 +1,8 @@
 ⍝ ZZ65_Regression.tc
 ⍝ ══════════════════
 
+⍝@ test3.
+
       ⍝ bug-apl@gnu.org, Bugs8 #1 (Blake McBride):
       ⍝ IndexExpr::erase_stale() deleted *live* IndexExprs (no ownership
       ⍝ tracking at all), which is why re-enabling IndexExpr ring membership

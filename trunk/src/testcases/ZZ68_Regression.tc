@@ -1,6 +1,8 @@
 ⍝ ZZ68_Regression.tc
 ⍝ ══════════════════
 
+⍝@ test3.
+
       ⍝ 2026-08-19, error-caret cleanup (devel_doc/Carets.txt, "Path E"):
       ⍝
       ⍝ 1. Tokenizer.cc lexical errors (SYNTAX ERROR, unterminated

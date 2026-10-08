@@ -31,14 +31,38 @@ then
    # $HOME).
    PUSH_dir=/home/eedjsa
    TARBALL=$(ls -t "$PUSH_dir"/apl-*.tar.gz 2>/dev/null | head -1)
-   if [ -n "$TARBALL" ]
+
+   # the absolute path of this script (a relative $0 would no longer
+   # work after the tree has been removed below)
+   SELF_script="$SELF_dir/build/$(basename "$0")"
+
+   if [ -z "$TARBALL" ]
    then
-      echo "refreshing $SELF_dir from $TARBALL before building..."
-      tar xzf "$TARBALL" --strip-components=1 -C "$SELF_dir"
-   else
       echo "*** no apl-*.tar.gz found in $PUSH_dir -- building with the tree as-is"
+   elif ! tar tzf "$TARBALL" > /dev/null 2>&1
+   then
+      echo "*** $TARBALL is damaged -- building with the tree as-is"
+   else
+      # Remove the old files first, so that the build sees exactly the
+      # files in the tarball (i.e. what a user gets from Savannah).
+      # Unpacking over the old tree kept every file that was ever in it
+      # (e.g. a workspace that a testcase needs but the tarball lacks),
+      # so that missing files went unnoticed. All files (and symlinks)
+      # are removed, but the directories are kept, and only if this is
+      # really a GNU APL tree.
+      if [ -f "$SELF_dir/configure.ac" ] && [ -f "$SELF_script" ]
+      then
+         echo "removing the old files in $SELF_dir..."
+         cd /
+         find "$SELF_dir" -mindepth 1 ! -type d -delete
+      else
+         echo "*** $SELF_dir is not a GNU APL tree -- not removing it"
+      fi
+      echo "unpacking $TARBALL into $SELF_dir..."
+      tar xzf "$TARBALL" --strip-components=1 -C "$SELF_dir"
    fi
-   exec "$0" --refreshed "$@"
+   cd "$SELF_dir/build"
+   exec "$SELF_script" --refreshed "$@"
 fi
 shift   # drop the --refreshed marker; "$@" is now the caller's real args
 
@@ -483,8 +507,11 @@ test_one()
    local time_FROM=$(date +%s)
    local summ="$TOP_LOG_dir/summary.log"
    cd $VSRC_dir
-   cp $ROOT_dir/src/testcases_3/* testcases/            # copy testcases
-   cp $ROOT_dir/src/testcases/APnnn_1011.* testcases/   # APnnn.tc helpers
+   # all testcases (make test runs testcases/*.tc), their helper and data
+   # files (e.g. APnnn_1011.*), and the workspaces they need. Since the tree
+   # is unpacked fresh from the tarball, these are exactly the distributed
+   # files.
+   cp $ROOT_dir/src/testcases/* testcases/ 2>/dev/null  # (skips subdirs)
    cp $ROOT_dir/src/workspaces/* workspaces/            # needed by testcases
    make test > /dev/null 2>&1
    local make_result=$?

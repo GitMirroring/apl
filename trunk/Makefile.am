@@ -118,6 +118,7 @@ EXPO:
 	./configure --disable-maintainer-mode
 	$(MAKE) -j10 all
 	$(MAKE) -j10 dist
+	tools/check_DIST apl-$(VERSION).tar.gz   # files missing in the tarball?
 	$(MAKE) -j10 DEB
 #	$(MAKE) -j10 RPM
 	$(MAKE) -j10 SYNC
@@ -131,6 +132,7 @@ EXPO1:
 	./configure --disable-maintainer-mode
 	$(MAKE) -j10
 	$(MAKE) -j10 dist
+	tools/check_DIST apl-$(VERSION).tar.gz   # files missing in the tarball?
 	$(MAKE) -j10 DEB
 	$(MAKE) -j10 RPM
 

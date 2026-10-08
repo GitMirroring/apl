@@ -307,7 +307,8 @@ top_srcdir = @top_srcdir@
 dist_noinst_DATA = \
 	FORMAT_FUZZ.apl		\
 	Performance.apl		\
-	Performance.gnuplot
+	Performance.gnuplot	\
+	qq111.atf
 
 CLEANFILES = ASSERT.apl
 all: all-am

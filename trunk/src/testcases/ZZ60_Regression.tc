@@ -1,6 +1,8 @@
 ⍝ ZZ60_Regression.tc
 ⍝ ══════════════════
 
+⍝@ test3.
+
       ⍝ bug-apl@gnu.org, 5/28/2023 (Christian Roberts) ...
 
       )CLEAR

@@ -6,7 +6,8 @@
 dist_noinst_DATA =		\
 	FORMAT_FUZZ.apl		\
 	Performance.apl		\
-	Performance.gnuplot
+	Performance.gnuplot	\
+	qq111.atf
 
 # ASSERT.apl (library 0, needed by testcases that do ")COPY ASSERT.apl" or
 # ")COPY_ONCE 0 ASSERT.apl", e.g. Rank.tc and Polynomials.tc) is generated
