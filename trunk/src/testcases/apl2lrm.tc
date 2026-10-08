@@ -129,23 +129,12 @@ DEFN ERROR+
       )ERASE F
 
 ⍝ #45/#46 -- ∇-editor bracket delete/display commands ([∆N M...],
-⍝ [⎕N M...], [∆N-], etc.), LRM pp.389-392. User's call: the ∇-editor's
-⍝ interactive scope was always deliberately minimal (only what's
-⍝ needed to ∇-define functions, not full editor-1 parity) -- leave the
-⍝ missing/wrong list- and open-ended-range forms as a documented gap,
-⍝ not fixing. FIXED 2026-08-11: two real bugs found while confirming
-⍝ the gap, both in Nabla.cc's start(): an unsupported bracket command
-⍝ (e.g. [∆1 3]) used to (a) print a raw internal diagnostic
-⍝ ("execute_oper() failed at ...") instead of a clean DEFN ERROR, and
-⍝ (b) when run from a script re-opening an *existing* function (which
-⍝ always starts from a blank body, by design -- "case 1c" in start()'s
-⍝ own comment), silently commit that blank body over the real one,
-⍝ destroying the function. Root cause: execute_oper()'s error return
-⍝ was only logged (UERR), never propagated as start()'s own return
-⍝ value, so start() reported success and the caller went ahead and
-⍝ saved the (empty) result. Fixed by propagating the error so it goes
-⍝ through the same throw_edit_error() path every other Nabla failure
-⍝ already uses. ⎕CR below confirms the function survives intact.
+⍝ [⎕N M...], [∆N-], etc.), LRM pp.389-392. Originally left as a documented
+⍝ gap; SUPPORTED since 2026-10-08 (Nabla::Line_set): the list forms
+⍝ [∆n1 n2 ...] and [⎕n1 n2 ...] and the open-ended ranges [∆n-], [⎕n-].
+⍝ Still checked from the earlier fix (2026-08-11): an invalid bracket
+⍝ command on the opening line (e.g. [2⎕3 4]) gives a clean DEFN ERROR
+⍝ and leaves the existing function intact (⎕CR below).
       )ERASE MEAN
       ∇Z←MEAN B
       Z←1
@@ -155,14 +144,18 @@ DEFN ERROR+
       Z←5
       ∇
       ∇MEAN[∆1 3]∇
-DEFN ERROR+
-      ∇MEAN[∆1 3]∇
-                 ^
       ⎕CR 'MEAN'
 Z←MEAN B 
-      Z←1
       Z←2
-      Z←3
+      Z←4
+      Z←5
+      ∇MEAN[2⎕3 4]∇
+DEFN ERROR+
+      ∇MEAN[2⎕3 4]∇
+                  ^
+      ⎕CR 'MEAN'
+Z←MEAN B 
+      Z←2
       Z←4
       Z←5
       )ERASE MEAN

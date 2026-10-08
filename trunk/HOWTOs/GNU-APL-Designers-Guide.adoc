@@ -261,23 +261,6 @@ testcases is stored in *src/testcases/summary.log*, and every testcase
 *x* produces a log file *src/testcases/x.tc.log* with details of the test
 execution. 
 
-=== make apl.lines
-
-This make target is only available in sub-directory *src*. It produces a file
-named *src/apl.lines* and must be run right after building the interpreter.
-When the interpreter produces a stack trace (i.e. it lists the Cpp call stack)
-then:
-
-* If the *apl.lines* file is absent or older than the interpreter, the stack
-  trace will show function names and code offsets in hex. For short functions
-  that is sort of OK, but for longer ones the hex numbers can make it difficult
-  to find the exact location of the fault that has triggered the stack trace.
-
-* If the *apl.lines* file is up-to-date (i.e. *make apl.lines* was run after
-  the interpreter binary was produced), then the stack traces will show source
-  file line numbers instead of hex numbers. Producing *apl.lines* takes quite
-  a while, therefore it is not built automatically.
-
 === make gen / gen2
 
 These make targets are only available in sub-directory *tools*. Each produces

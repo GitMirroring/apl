@@ -97,7 +97,8 @@ public:
    /// test-only trigger, armed via 'TM3_TRIGGER_ARMED ⎕FIO ¯19' (see
    /// eval_AB___19()) and consumed (reset to disarmed) by every check --
    /// so it must be re-armed before each individual use. Gates
-   /// eval_B___6()/___7() (segfault) and eval_B___20() (FIXME): with the
+   /// eval_B___6()/___7() (segfault), eval_B___20() (FIXME), and
+   /// eval_AB___21() (other crash signals): with the
    /// trigger disarmed (the default, and after )CLEAR since this is a
    /// plain static, not part of the workspace), those functions are
    /// harmless no-ops instead of unconditionally crashing the
@@ -245,6 +246,9 @@ protected:
    /// TM3_TRIGGER_ARMED arms it, any other A disarms it); returns the
    /// previous value.
    static Token eval_AB___19(Value_P A);
+
+   /// ⎕FIO ¯21: provoke the crash signal named by A (e.g. 'BUS')
+   static Token eval_AB___21(Value_P A);
 
    /// eval_ALXB case -1: benchmark dyadic LO with arguments A and B
    static Token eval_ALXB___1(Value_P A, Token & LO, Value_P B);

@@ -25,14 +25,12 @@
 #define __BACKTRACE_HH_DEFINED__
 
 #include <stdint.h>
+#include <string>
+#include <utility>
+#include <vector>
 
 #include "Common.hh"
 #include "PrintOperator.hh"
-
-/// (maybe) init a dwarf object for the apl binary
-/// @param bin_dir   directory containing the apl binary
-/// @param bin_file  filename of the apl binary
-extern void init_DWARF(const char * bin_dir, const char * bin_file);
 
 //════════════════════════════════════════════════════════════════════════════
 /// show the current function call stack.
@@ -65,15 +63,40 @@ public:
    /// here -- the caller (main.cc, before installing/triggering the
    /// signal) is responsible for both, since open()/close() are not
    /// guaranteed async-signal-safe either.
-   static void show_signal_safe(int extra_fd = -1);
+   /// @param to_stderr  false: write only to extra_fd
+   static void show_signal_safe(int extra_fd = -1, bool to_stderr = true);
+
+   /// the PC of the instruction that caused a crash signal (set by the
+   /// signal handler, 0 if unknown). Unlike the other PCs in a backtrace
+   /// it is not a return address (that points behind a call).
+   static const void * signal_PC;
 
 protected:
-   /// a mapping from PCs to source lines.
-   struct PC_src
+   /// what is known about one stack frame from the symbol tables and the
+   /// line numbers (DWARF) in the binaries themselves
+   struct Frame_info
       {
-        int64_t pc;             ///< the pc
-        const char * src_loc;   ///< the source locstion
+        /// the (demangled) name of the function (empty if unknown)
+        std::string fun;
+
+        /// the source location (file:line) in \b fun (empty if unknown)
+        std::string src_loc;
+
+        /// the functions that were inlined into \b fun at this point
+        /// (outermost first), as "function at file:line"
+        std::vector<std::string> inlined;
       };
+
+   /// resolve the function names and source locations of the \b size PCs
+   /// in \b buffer (as returned by backtrace())
+   static void resolve_frames(void * const * buffer, int size,
+                              std::vector<Frame_info> & frames);
+
+   /// run addr2line (if installed) for the \b addrs (pairs of frame index
+   /// and address in \b file) and store the results in \b frames
+   static void run_addr2line(const std::string & file,
+                     const std::vector<std::pair<int, uint64_t>> & addrs,
+                     std::vector<Frame_info> & frames);
 
    /// demangle a line returned by backtrace_symbols()
    /// @param result      output buffer for demangled name
@@ -81,32 +104,11 @@ protected:
    /// @param buf         raw mangled symbol string from backtrace_symbols()
    static int demangle_line(char * result, size_t result_max, const char * buf);
 
-   /// find the source for PC \b pc
-   /// @param pc  program counter value to look up
-   static const char * find_src(int64_t pc);
-
-   /// compare PCs (helper for binary search)
-   /// @param key  program counter to search for
-   /// @param pc2  PC-to-source entry to compare against
-   static int pc_cmp(const int64_t & key,
-                     const Backtrace::PC_src & pc2, const void *);
-
-   /// read the file apl.lines (if present) and set main_offset from the
-   /// address of main() in apl.lines.
-   static void read_apl_lines_file();
-
-   /// print the dwarf info of one item in the backtrace to cerr.
-   /// @param idx  index (depth) of the stack frame
-   /// @param s    backtrace symbol string for this frame
-   static void show_dwarf(int idx, const char * s);
-
    /// print one item in the backtrace to cerr. NOTE: modifies s.
    /// @param idx  index (depth) of the stack frame
    /// @param s    mutable backtrace symbol string for this frame
-   static void show_item(int idx, char * s);
-
-   /// a mapping from PCs to source lines.
-   static std::vector<PC_src> pc_2_src;
+   /// @param frame what resolve_frames() found out about this frame
+   static void show_item(int idx, char * s, const Frame_info & frame);
 };
 //════════════════════════════════════════════════════════════════════════════
 

@@ -63,6 +63,7 @@
 #include "FloatCell.hh"
 #include "IntCell.hh"
 #include "PointerCell.hh"
+#include "CrashDump.hh"
 #include "Quad_FIO.hh"
 #include "Performance.hh"
 #include "Security.hh"
@@ -183,6 +184,9 @@ Value_P B_vp = CLONE(&B, LOC);
 
         case -19: // arm/disarm the --TM 3 test trigger
              return eval_AB___19(CLONE(&A, LOC));
+
+        case -21: // provoke a crash signal (only if the trigger is armed)
+             return eval_AB___21(CLONE(&A, LOC));
 
         default: break;
       }
@@ -2065,6 +2069,30 @@ Quad_FIO::eval_AB___19(Value_P A)
 const APL_Integer old_trigger = TM3_trigger;
    TM3_trigger = A->get_int_value(0);
    return Token(TOK_APL_VALUE1, IntScalar(old_trigger, LOC));
+}
+//────────────────────────────────────────────────────────────────────────────
+Token
+Quad_FIO::eval_AB___21(Value_P A)
+{
+   // A is the signal name without SIG, e.g. 'BUS'
+   if (!A->is_char_string())   DOMAIN_ERROR;
+
+const UTF8_string name(A->get_UCS_ravel());
+   if (strcmp(name.c_str(), "SEGV") && strcmp(name.c_str(), "BUS")  &&
+       strcmp(name.c_str(), "FPE")  && strcmp(name.c_str(), "ILL")  &&
+       strcmp(name.c_str(), "ABRT"))
+      {
+        MORE_ERROR() << "⎕FIO ¯21: A shall be one of 'SEGV', 'BUS', "
+                        "'FPE', 'ILL', or 'ABRT'";
+        DOMAIN_ERROR;
+      }
+
+   if (!TM3_trigger_armed())   return Token(TOK_APL_VALUE1, IntScalar(0, LOC));
+
+   CERR << "NOTE: Provoking SIG" << name << "..." << endl;
+   CrashDump::provoke(name.c_str());
+   CERR << "NOTE: Provoking SIG" << name << " failed." << endl;
+   return Token(TOK_APL_VALUE1, IntScalar(0, LOC));
 }
 //════════════════════════════════════════════════════════════════════════════
 Token

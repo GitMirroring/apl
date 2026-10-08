@@ -74,6 +74,7 @@ class Prefix
 {
    friend class XML_Loading_Archive;   // to )LOAD a parser from an .xml file
    friend class XML_Saving_Archive;    // to )SAVE a parser into an .xml file
+   friend class CrashDump;             // to describe a crashed statement
 
 public:
    /// constructor

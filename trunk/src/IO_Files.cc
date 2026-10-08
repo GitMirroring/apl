@@ -103,7 +103,7 @@ IO_Files::report_abnormal_exit()
    // has exited. open()/close() are not guaranteed async-signal-safe,
    // but this function already isn't strictly signal-safe either (the
    // summary.log ofstream above), so that is an existing, not a new,
-   // risk when this runs from signal_SEGV_handler().
+   // risk when this runs from CrashDump::crash_handler().
 const UTF8_string crash_path = get_crash_backtrace_path();
    if (crash_path.size())
       {

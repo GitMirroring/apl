@@ -40,6 +40,8 @@ class Function;
 /// Various preferences of the user (sorted alphabetically)
 class UserPreferences
 {
+   friend class CrashDump;   // for show_version() et al. in crash dumps
+
 public:
   /// collect all user preferences (from command line arguments and from
   /// preferences file). Return \b true iff start-up logging was requested.

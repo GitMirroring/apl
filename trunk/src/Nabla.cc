@@ -104,6 +104,60 @@ LineLabel::insert()
    ln_minor << UNI_1;
 }
 //════════════════════════════════════════════════════════════════════════════
+void
+Nabla::Line_set::parse_from(const LineLabel & N)
+{
+   from = N;
+   mode = LSM_one;
+}
+//────────────────────────────────────────────────────────────────────────────
+void
+Nabla::Line_set::parse_to(const LineLabel & N)
+{
+   to = N;
+   switch(mode)
+      {
+        case LSM_none: mode = LSM_one;   break;   // e.g. [⎕N] or [∆N]
+        case LSM_one:                             // e.g. [m⎕N]
+        case LSM_m_:   mode = (N < from) ? LSM_invalid : LSM_mN;   break;
+        default:       break;                     // e.g. [⎕-N]: LSM__N
+      }
+}
+//────────────────────────────────────────────────────────────────────────────
+bool
+Nabla::Line_set::parse_item(const LineLabel & N)
+{
+   if (mode == LSM_one && !from.valid() && to.valid())   // e.g. [∆1 ...
+      {
+        items.push_back(to);
+        mode = LSM_vec;
+      }
+
+   if (mode != LSM_vec)   return false;   // e.g. [2⎕3 4] or [⎕1-2 3]
+
+   // The LRM allows the numbers in any order and with repetitions, but an
+   // out-of-order (or repeated) number is more likely a typo than intended,
+   // in particular for ∆. Such a list is LSM_invalid and therefore rejected
+   // by the parser.
+   //
+   if (!(items.back() < N))   mode = LSM_invalid;
+   items.push_back(N);
+   return true;
+}
+//────────────────────────────────────────────────────────────────────────────
+bool
+Nabla::Line_set::parse_minus()
+{
+   if (mode != LSM_none && mode != LSM_one)   return false;   // e.g. a 2nd -
+
+   // the number entered so far (if any) is the start of the range
+   //
+   from = to;
+   to.clear();
+   mode = from.valid() ? LSM_m_ : LSM__N;
+   return true;
+}
+//════════════════════════════════════════════════════════════════════════════
 ostream &
 operator <<(ostream & out, const LineLabel & lab)
 {
@@ -130,8 +184,6 @@ Nabla::Nabla(const UCS_string & cmd)
    : defn_line_no(InputFile::current_line_no()),
      fun_symbol(0),
      ecmd(ECMD_NOP),
-     edit_from(-1),
-     edit_to(-1),
      function_existed(false),
      modified(false),
      do_close(false),
@@ -699,20 +751,19 @@ UCS_string text = oper;
 
    // we expect one of the following:
    //
-   // [⎕] [n⎕] [⎕m] [n⎕m] [⎕n-m]                    (show)
-   //     [n∆] [∆m] [n∆m] [∆n-m]                    (delete)
-   // [→]                                           (escape)
-   // [n]                                           (goto)
-   // text                                          (override text)
+   // [⎕] [n⎕] [⎕m] [n⎕m] [⎕n-m] [⎕-m] [⎕n-] [⎕n1 n2 ...]   (show)
+   //     [n∆] [∆m] [n∆m] [∆n-m] [∆-m] [∆n-] [∆n1 n2 ...]   (delete)
+   // [→]                                                   (escape)
+   // [n]                                                   (goto)
+   // text                                                  (override text)
    //
-   // The LRM's list forms [⎕n1 n2 ...] and [∆n1 n2 ...] and its open-ended
-   // ranges are deliberately not supported (testcases/apl2lrm.tc #45/#46).
+   // (see the Editor 1 commands in lrm pp. 384-392)
 
    if (cc != UNI_L_BRACK)   // override text
       {
         out_of_order = false;
         ecmd = ECMD_EDIT;
-        edit_from = current_line;
+        line_set = Line_set(current_line);
         current_text = text;
 //      for (; c.has_more(); cc = c.next())   current_text <<cc;
         return 0;
@@ -728,16 +779,14 @@ command_loop:
    // at this point, [ was seen and skipped
 
    ecmd = ECMD_NOP;
-   edit_from.clear();   // set to missing
-   edit_to.clear();     // set to missing
-   got_minus = false;   // set to missing
+   line_set = Line_set();   // no line numbers (yet)
 
-   // set optional edit_from (if present)
+   // set the optional number before the command character (if present)
    //
    if (c.has_more() && (Avec::is_digit(c.lookup()) ||    // N.M
                     c.lookup() == UNI_FULLSTOP))     //  .M
       {
-        edit_from = parse_lineno(c);
+        line_set.parse_from(parse_lineno(c));
       }
 
    // operation, which is one of:
@@ -768,20 +817,36 @@ command_loop:
       }
 
 again:
-   // set optional edit_to (if present)
+   // set the optional number after the command character (if present)
    //
-   if (c.has_more() && Avec::is_digit(c.lookup()))   edit_to = parse_lineno(c);
+   if (c.has_more() && Avec::is_digit(c.lookup()))
+      line_set.parse_to(parse_lineno(c));
+
+   // a list of line numbers [⎕n1 n2 ...] or [∆n1 n2 ...] (lrm pp. 389, 391)
+   //
+   while (c.has_more() && c.lookup() == UNI_SPACE)
+      {
+        c.skip_white();
+        if (!(c.has_more() && Avec::is_digit(c.lookup())))   break;
+        if (ecmd != ECMD_SHOW && ecmd != ECMD_DELETE)
+           return "a list of line numbers is only allowed in [⎕...] and [∆...]";
+        if (!line_set.parse_item(parse_lineno(c)))
+           return "bad list of line numbers";
+      }
 
    if (c.has_more() && c.lookup() == UNI_MINUS)   // range
       {
-        if (got_minus)   return "error: second -  in ∇-range";
-        got_minus = true;
-        edit_from = edit_to;   // shift
+        if (!line_set.parse_minus())   return "error: second -  in ∇-range";
         c.next();   // consume the -
         goto again;
       }
 
    if (c.has_more() && c.next() != UNI_R_BRACK)   return "missing ] in ∇-range";
+
+   // e.g. [∆5-2], [3⎕1], or [∆4 1]
+   //
+   if (line_set.get_mode() == Line_set::LSM_invalid)
+      return "line numbers out of order (they must be ascending)";
 
    // at this point we have parsed an editor command, like:
    //
@@ -791,7 +856,7 @@ again:
 
    // [N] without text only positions the editor at line N (lrm p. 386)
    //
-   out_of_order = ecmd == ECMD_EDIT && edit_from.valid();
+   out_of_order = ecmd == ECMD_EDIT && line_set.get_from().valid();
 
    c.skip_white();
 
@@ -887,13 +952,20 @@ Nabla::execute_oper()
         return 0;
       }
 
-const bool have_from = edit_from.ln_major != -1;
-const bool have_to = edit_to.ln_major != -1;
+const bool have_from = line_set.get_from().ln_major != -1;
+const bool have_to = line_set.get_to().ln_major != -1;
 
    if (lines.size())
       {
-        if (!have_from && ecmd != ECMD_DELETE)   edit_from = lines[0].label;
-        if (!have_to)     edit_to = lines[lines.size() - 1].label;
+        if (!have_from && ecmd != ECMD_DELETE)
+           line_set.set_from(lines[0].label);
+        if (!have_to)     line_set.set_to(lines[lines.size() - 1].label);
+      }
+
+   if (line_set.get_mode() == Line_set::LSM_vec)
+      {
+        if (ecmd == ECMD_SHOW)     return execute_show_list();
+        if (ecmd == ECMD_DELETE)   return execute_delete_list();
       }
 
    if (ecmd == ECMD_SHOW)     return execute_show();
@@ -902,7 +974,8 @@ const bool have_to = edit_to.ln_major != -1;
    if (ecmd == ECMD_ESCAPE)   return execute_escape();
 
    UERR << "edit command " << ecmd
-        << " from " << edit_from << " to " << edit_to << endl;
+        << " from " << line_set.get_from() << " to " << line_set.get_to()
+        << endl;
    FIXME;
 
    return LOC;
@@ -912,20 +985,21 @@ const char *
 Nabla::execute_show()
 {
    Log(LOG_nabla)
-      UERR << "Nabla::execute_oper(SHOW) from " << edit_from
-           << " to " << edit_to << " line-count " << lines.size() << endl;
+      UERR << "Nabla::execute_oper(SHOW) from " << line_set.get_from()
+           << " to " << line_set.get_to() << " line-count " << lines.size()
+           << endl;
 
-int idx_from = find_line(edit_from);
-int idx_to   = find_line(edit_to);
+int idx_from = find_line(line_set.get_from());
+int idx_to   = find_line(line_set.get_to());
 
-const LineLabel user_edit_to = edit_to;
+const LineLabel user_edit_to = line_set.get_to();
 
-   if (idx_from == -1)   edit_from = lines[idx_from = 0].label;
-   if (idx_to == -1)     edit_to   = lines[idx_to = lines.size() - 1].label;
+   if (idx_from == -1)   line_set.set_from(lines[idx_from = 0].label);
+   if (idx_to == -1)     line_set.set_to(lines[idx_to = lines.size() - 1].label);
 
    Log(LOG_nabla)
       UERR << "Nabla::execute_oper(SHOW) from "
-           << edit_from << " to " << edit_to << endl;
+           << line_set.get_from() << " to " << line_set.get_to() << endl;
 
    if (idx_from == 0)                     // then print header line
       COUT << "    ∇" << endl;
@@ -983,12 +1057,12 @@ Nabla::execute_delete()
 {
    // for delete we want exact numbers.
    //
-const int idx_to = find_line(LineLabel(edit_to));
+const int idx_to = find_line(line_set.get_to());
    if (idx_to == -1)   return "Bad line number N in [M∆N] ";
 
    modified = true;
 
-   if (edit_from == -1)   // [∆N] : delete single line
+   if (line_set.get_from() == -1)   // [∆N] : delete single line
       {
         // lines[0] is the header line; nothing upstream stops N from
         // resolving to it, and deleting it would desync every later
@@ -1000,9 +1074,9 @@ const int idx_to = find_line(LineLabel(edit_to));
 
    // [N∆M] : delete multiple lines
    //
-const int idx_from = find_line(LineLabel(edit_from));
+const int idx_from = find_line(line_set.get_from());
    if (idx_from == -1)       return "Bad line number M in [M∆N] ";
-   if (idx_from >= idx_to)   return "M ≥ N in [M∆N] ";
+   if (idx_from > idx_to)    return "M > N in [M∆N] ";   // M = N: one line
    if (idx_from == 0)        return "cannot delete the header line [0]";
 
    loop(j, 1 + idx_to - idx_from)   lines.erase(lines.begin() + idx_from);
@@ -1016,9 +1090,9 @@ Nabla::execute_edit()
 {
    // if the user has not specified a line then edit at current_line
    //
-   if (edit_from.ln_major == -1)   edit_from = current_line;
+   if (line_set.get_from().ln_major == -1)   line_set.set_from(current_line);
 
-   current_line = edit_from;
+   current_line = line_set.get_from();
 
    // if the user has specified a line label without a text then we are done
    //
@@ -1184,21 +1258,21 @@ UCS_string parse_text = current_text;   // a copy that can be modified.
 
    modified = true;
 
-const int idx_from = find_line(edit_from);
+const int idx_from = find_line(line_set.get_from());
 
    Assert(lines.size() > 0);
    if (idx_from == -1)   // new line
       {
-        // find the largest label before edit_from (if any)
+        // find the largest label before line_set.get_from() (if any)
         //
         int before_idx = -1;
         loop(i, lines.size())
             {
-              if (lines[i].label < edit_from)   before_idx = i;
+              if (lines[i].label < line_set.get_from())   before_idx = i;
               else                              break;
             }
 
-        FunLine fl(edit_from, current_text);
+        FunLine fl(line_set.get_from(), current_text);
         lines.insert(lines.begin() + before_idx + 1, fl);
       }
    else
@@ -1395,6 +1469,67 @@ Nabla::comment_pos(const UCS_string & line)
            }
       }
    return -1;
+}
+//────────────────────────────────────────────────────────────────────────────
+const char *
+Nabla::execute_show_list()
+{
+   // [⎕n1 n2 ...]: display the lines n1 < n2 < ... (the parser has checked
+   // the order); lines that do not exist are skipped (lrm p. 389)
+   //
+const vector<LineLabel> & items = line_set.get_items();
+   loop(i, items.size())
+      {
+        const int idx = find_line(items[i]);
+        if (idx != -1)   lines[idx].print(COUT);
+      }
+
+   // continue after the last line listed, e.g. [7.1] after [⎕1 2 3 7]
+   //
+   current_line = items.back();
+   if (line_exists(current_line))
+      {
+        LineLabel next = current_line;
+        next.next();
+        if (line_exists(next))   current_line.insert();
+        else                     current_line = next;
+      }
+   return 0;
+}
+//────────────────────────────────────────────────────────────────────────────
+const char *
+Nabla::execute_delete_list()
+{
+   // [∆n1 n2 ...]: delete the lines n1 < n2 < ... (the parser has checked
+   // the order). Zero (the header line) is ignored (lrm p. 391).
+   //
+const vector<LineLabel> & items = line_set.get_items();
+   loop(i, items.size())   // check first: delete all or nothing
+      {
+        if (items[i].is_header_line_number())   continue;
+        if (!line_exists(items[i]))
+           return "Bad line number N in [∆... N ...]";
+      }
+
+LineLabel highest(0);
+   loop(i, items.size())
+      {
+        if (items[i].is_header_line_number())   continue;
+        const int idx = find_line(items[i]);
+        if (idx == -1)   continue;   // a repetition, already deleted
+        if (highest < items[i])   highest = items[i];
+        lines.erase(lines.begin() + idx);
+        modified = true;
+      }
+
+   // continue after the highest line deleted, e.g. [4.1] after [∆1 4]
+   //
+   if (!highest.is_header_line_number())
+      {
+        current_line = highest;
+        current_line.insert();
+      }
+   return 0;
 }
 //────────────────────────────────────────────────────────────────────────────
 int

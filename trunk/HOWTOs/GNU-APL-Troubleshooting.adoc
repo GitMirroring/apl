@@ -232,107 +232,62 @@ If the functions on the right side of the C/Cpp stack are relatively small (as
 most functions in the source code of *GNU APL* are) then we can usually find the
 exact source line for each stack entry rather easily using the function name
 displayed. For larger functions, the same function may be called from different
-source code lines in the same function. This can be improved by converting the
-hex addresses on the left into source line numbers as explained in the
-following.
-
-First of all the Cpp compiler must be instructed to not discard line numbers.
-Older g++ versions would always keep line numbers in the object files, but
-newer versions do not. The trick is this:
-
-----
-CXXFLAGS="-rdynamic -gdwarf-2" ./configure ...
-----
-
-*make develop* also does that for you. The CXXFLAGS above tell the *g++*
-compiler to use an older object format in which line numbers are not discarded.
-If your compiler does not accept *-gdwarf-2* then it probably uses it anyway.
-
-The second step is to create a file named *apl.lines*. If *GNU APL* finds this
-file then it uses it to map hex addresses to line numbers. In the src
-directory, the make target *apl.lines* creates this file (which takes quite a
-while and is therefore not created in a standard build). *make apl.lines*
-essentially does:
-
-----
-objdump --section=.text --line-numbers --disassemble apl > apl.lines
-----
-
-which extracts the line numbers from the apl binary (provided that the
-compiler has inserted them - see above). If *GNU APL* finds apl.lines, then
-the stack dump looks a little different:
+source code lines in the same function. Therefore *GNU APL* also shows the
+source file and line number of every stack entry (if it can):
 
 ----
       ⎕FIO ¯16
 
- ==============================================================================
- Assertion failed: 0 && "Simulated Assert() (aka. ⎕FIO ¯16)"
- in Function:      eval_B
- in file:          Quad_FIO.cc:1085
+==============================================================================
+Assertion failed: 0 && "Simulated Assert() (aka. ⎕FIO ¯16)"
+in Function:      eval_B
+in file:          Quad_FIO.cc:344
 
- C/Cpp call stack:
- total_lines in apl.lines:     618610
- assembler lines in apl.lines: 86495
- source line numbers found:    86495
+C/C++ call stack:
 
- ----------------------------------------
- -- Stack trace at Assert.cc:72
- ----------------------------------------
- 0x29465EE76BF7 __libc_start_main
- 0x14CCD2  main at main.cc:635
- 0x3166E1   Workspace::immediate_execution(bool) at Workspace.cc:273
- 0x1B1004    Command::process_line() at Command.cc:103
- 0x1B11C6     Command::process_line(UCS_string&) at Command.cc:139
- 0x1B378C      Command::do_APL_expression(UCS_string&) at Command.cc:329
- 0x1B3B5D       Command::finish_context() at Command.cc:347
- 0x1D6806        Executable::execute_body() const at Executable.cc:261
- 0x2B564F         StateIndicator::run() at StateIndicator.cc:362
- 0x211DA4          Prefix::reduce_statements() at Prefix.cc:723 (discriminator 4)
- 0x212A79           Prefix::reduce_MISC_F_B_() at Prefix.cc:990
- 0x261E7F            Quad_FIO::eval_B(Value_P) const at Quad_FIO.cc:1090
- 0x16CC03             do_Assert(char const*, char const*, char const*, int) at Assert.cc:74
- ========================================
-
- SI stack:
-
- Depth:      0
- Exec:       0x561c865a4da0
- Safe exec:  0
- Pmode:      ◊  ⎕FIO ¯16
- PC:         3 (4) RETURN_STATS
- Stat:       ⎕FIO ¯16
- err_code:   0x0
-
-
- ==============================================================================
+----------------------------------------
+-- Stack trace at Assert.cc:107
+----------------------------------------
+0x7fe1532f5e40 __libc_start_main_impl at libc-start.c:392
+0x7fe1532f5d90  __libc_start_call_main at libc_start_call_main.h:58
+0x5557a918f687   main at main.cc:754
+0x5557a94295fd    Workspace::immediate_execution(bool) at Workspace.cc:309
+0x5557a92618bc     Command::process_lines() at Command.cc:739
+0x5557a925ff88      Command::process_line(UCS_string&, std::ostream*) at Command.cc:717
+0x5557a926007b       Command::finish_context() at Command.cc:306
+0x5557a9278e44        Executable::execute_body() const at Executable.cc:127
+0x5557a939fb29         StateIndicator::run() at StateIndicator.cc:560
+0x5557a92d3efe          Prefix::reduce_body() at Prefix.cc:574
+0x5557a92cdc04           Prefix::reduce_MISC_F_B_() at Prefix.cc:2459
+0x5557a9322231            Quad_FIO::eval_B(cValue const&) const at Quad_FIO.cc:344
+0x5557a91bf266             do_Assert(char const*, char const*, char const*, int) at Assert.cc:107
+========================================
 ----
 
-The difference is twofold:
-
-. the hex numbers are now relative to the location of the *main()* function of
-  *GNU APL*, which makes them not only smaller but also identical even in
-  different processes.
-
-. The source line numbers are now displayed for most hex numbers. Some
-  addresses can not be resolved, this could be caused by C/Cpp function
-  inlining or calls through function pointers etc.
-
-Needless to say that *GNU APL* trouble-shooters prefer stack traces with hex
-numbers resolved to line numbers.
-
-Occasionally you may get this message:
+The function names are taken from the symbol tables of the *GNU APL* binary
+(and of the shared libraries that it uses), so they are also shown for
+functions that are not exported (e.g. static functions). The source line
+numbers are taken from the debug information that *g++* puts into the binary
+by default (option -g of the standard build), using the program *addr2line*
+(of the GNU binutils) for only the addresses in the stack trace. If
+*addr2line* is not installed, then only the function names are shown. If a
+function was inlined into another one, then that is shown as well:
 
 ----
-...
-C/Cpp call stack:
-
-Cannot show line numbers, since apl.lines is older than apl.
-Consider running 'make apl.lines' in directory
-/home/eedjsa/apl-2.0 to fix this
-...
+0x555b9344b4a3  CrashDump::write_dump(...) at CrashDump.cc:674
+                  (inlined: capture<...> at CrashDump.cc:350)
 ----
 
-This happens if you do *make apl* without a subsequent *make apl.lines*.
+No special *./configure* options or *make* targets are needed for that (the
+file *apl.lines* and its make target, which were used for this purpose in
+earlier versions of *GNU APL*, are no longer needed and have been removed).
+If the binary was stripped (e.g. by *make install-strip*), then no line
+numbers can be shown.
+
+If *GNU APL* crashes (segmentation fault and the like), then the stack trace
+is shown as well, and a crash report (a tar file with the stack trace and
+more information about the crash) is written. See section "Crash Reports"
+in the *GNU APL* info manual.
 
 === Summary concerning Assertions
 
@@ -343,7 +298,7 @@ cd <top-level-directory>
 make develop
 cd src
 make clean
-make apl.lines
+make
 ----
 
 where *top-level-directory* is the directory that contains the *README* files.

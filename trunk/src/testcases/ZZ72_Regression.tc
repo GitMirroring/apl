@@ -325,6 +325,115 @@ A←1
 
 
 
+      ⍝ #8 (implemented 2026-10-08): the list forms [⎕n1 n2 ...] and [∆n1 n2
+      ⍝ ...] and the open-ended ranges [⎕n-] and [∆n-] (LRM pp. 389-391).
+      ⍝ Unlike the LRM, line numbers out of order (also repeated ones) are
+      ⍝ rejected.
+      ⍝
+      ∇LST
+      A←1
+      B←2
+      C←3
+      D←4
+      E←5
+      ∇
+
+
+
+
+
+      ∇LST[⎕2 4 9]∇
+[2]         B←2
+[4]         D←4
+
+
+
+
+
+      ∇LST[∆0 1 4]∇
+
+
+
+
+
+      ⎕CR 'LST'
+LST      
+      B←2
+      C←3
+      E←5
+
+
+
+
+
+      ∇LST[∆3 1]∇
+DEFN ERROR+
+      ∇LST[∆3 1]∇
+                ^
+
+
+
+
+
+      ∇LST[∆2 2]∇
+DEFN ERROR+
+      ∇LST[∆2 2]∇
+                ^
+
+
+
+
+
+      ∇LST[⎕3-1]∇
+DEFN ERROR+
+      ∇LST[⎕3-1]∇
+                ^
+
+
+
+
+
+      ∇LST[∆2 7]∇
+DEFN ERROR+
+      ∇LST[∆2 7]∇
+                ^
+
+
+
+
+
+      ∇LST[2⎕3 4]∇
+DEFN ERROR+
+      ∇LST[2⎕3 4]∇
+                 ^
+
+
+
+
+
+      ∇LST[∆3-]∇
+
+
+
+
+
+      ⎕CR 'LST'
+LST      
+      B←2
+      C←3
+
+
+
+
+
+      )ERASE LST
+
+
+
+
+
+
+
       ⍝ #9 a line number is a number: [1.0] is line [1], [2.10] is [2.1]
       ⍝
       ∇FOO

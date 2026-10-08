@@ -195,6 +195,12 @@ protected:
    /// @param ucs UCS string to test for an axis prefix
    static bool is_axis(const UCS_string & ucs);
 
+   /// display the lines of a list [⎕n1 n2 ...]
+   const char * execute_show_list();
+
+   /// delete the lines of a list [∆n1 n2 ...]
+   const char * execute_delete_list();
+
    /// return the position of the ⍝ that starts a comment in \b line, or -1
    static int comment_pos(const UCS_string & line);
 
@@ -234,33 +240,107 @@ protected:
       {
         ECMD_NOP    = 0,   ///< do nothing
         ECMD_SHOW   = 1,   ///< show function line(s) idx_from ... idx_to
-        ECMD_EDIT   = 2,   ///< edit function line edit_from
-        ECMD_DELETE = 3,   ///< delete function line(s) edit_from ... idx_to
+        ECMD_EDIT   = 2,   ///< edit function line line_set.get_from()
+        ECMD_DELETE = 3,   ///< delete function line(s) in line_set
         ECMD_ESCAPE = 4,   ///< abort editing (discard changes made so far)
       } ecmd;          ///< the current editor command
 
-   /// optional start (line) of a range for an editor command
-   LineLabel edit_from;
-
-   /// optional end (line) of a range for an editor command
-   LineLabel edit_to;
-
-   /// a set of 0 or more LineLabel
+   /// the line numbers that the user has entered in an editor command, e.g.
+   /// [n⎕m] or [∆n-m]: \b from is the number before the command character
+   /// (if any), \b to the number after it (if any). A missing number is an
+   /// invalid LineLabel. What the numbers mean depends on the command (e.g.
+   /// [⎕m] displays lines 0 to m, while [∆m] deletes only line m).
    class Line_set
       {
         public:
-           /// how items were entered by the user
-           enum {
-                  LSM_none = 0,   ///< nor at all
-                  
-                };
+           /// the (syntactic) form of the line numbers entered (m ≤ N)
+           enum Mode
+              {
+                LSM_invalid = -1,   ///< out of order, e.g. m > N or [∆4 1]
+                LSM_none    =  0,   ///< no line number at all
+                LSM_one     =  1,   ///< N    a single line number
+                LSM__N      =  2,   ///<  -N  lines up to and including N
+                LSM_m_      =  3,   ///< m-   line m and above
+                LSM_mN      =  4,   ///< m-N  lines m to N (both including)
+                LSM_vec     =  5,   ///< V W ...  a list of line numbers
+              };
 
+           /// no line number entered (e.g. [⎕])
+           Line_set()
+           : from(-1),
+             to(-1),
+             mode(LSM_none)
+           {}
+
+           /// a single line \b N (e.g. [N], or the current line)
+           Line_set(const LineLabel & N)
+           : from(N),
+             to(-1),
+             mode(LSM_one)
+           {}
+
+           /// the lines from \b m to \b N
+           Line_set(const LineLabel & m, const LineLabel & N)
+           : from(m),
+             to(N),
+             mode(N < m ? LSM_invalid : LSM_mN)
+           {}
+
+           /// the (syntactic) form of the line numbers entered
+           Mode get_mode() const
+              { return mode; }
+
+           /// the number before the command character (invalid if none)
+           const LineLabel & get_from() const
+              { return from; }
+
+           /// the number after the command character (invalid if none)
+           const LineLabel & get_to() const
+              { return to; }
+
+           /// set the first line (e.g. a default; the mode is unchanged)
+           void set_from(const LineLabel & m)
+              { from = m; }
+
+           /// set the last line (e.g. a default; the mode is unchanged)
+           void set_to(const LineLabel & N)
+              { to = N; }
+
+           /// the parser has seen the number \b N before the command character
+           void parse_from(const LineLabel & N);
+
+           /// the parser has seen the number \b N after the command character
+           void parse_to(const LineLabel & N);
+
+           /// the parser has seen a - . Return false if that is not allowed
+           /// (e.g. a second -)
+           bool parse_minus();
+
+           /// the parser has seen another number \b N after a number (e.g. the
+           /// 4 in [∆1 4]), which makes a list. Return false if that is not
+           /// allowed (e.g. in [2⎕3 4]).
+           bool parse_item(const LineLabel & N);
+
+           /// the line numbers of a list (LSM_vec), as entered
+           const vector<LineLabel> & get_items() const
+              { return items; }
+
+        protected:
+           /// the number before the command character (invalid if none)
+           LineLabel from;
+
+           /// the number after the command character (invalid if none)
+           LineLabel to;
+
+           /// the (syntactic) form of the line numbers entered so far
+           Mode mode;
+
+           /// the line numbers of a list V W ... (LSM_vec)
            vector<LineLabel> items;
       };
 
-   /// true if user has entered a range, i.e. [edit_from - edit_to],
-   /// [ - edit_to], or [ edit_from - ]
-   bool got_minus;
+   /// the line numbers of the current editor command
+   Line_set line_set;
 
    /// true iff this function existed before opening it
    bool function_existed;

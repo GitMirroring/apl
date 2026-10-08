@@ -64,9 +64,10 @@
 
 
 #include "Sys.hh"
-#include "Backtrace.hh"   // for init_DWARF()
+#include "Backtrace.hh"
 #include "Cmd_DIAG.hh"
 #include "Command.hh"
+#include "CrashDump.hh"
 #include "Common.hh"      // #includes config.h
 #include "IO_Files.hh"
 #include "LibPaths.hh"
@@ -96,14 +97,12 @@ void (*sa_handler)(int);
 };
 #else  // ! MINGW_SRC
 static struct sigaction old_control_C_action;     // new ^C handler
-static struct sigaction old_SEGV_action;          // new SEGV handler
 static struct sigaction old_HUP_action;           // new HUP  handler
 static struct sigaction old_TERM_action;          // new TERM handler
 static struct sigaction old_USR1_action;          // new USR1 handler
 static struct sigaction old_WINCH_action;         // new WINCH handler
 #endif
 
-static struct sigaction new_SEGV_action;        // new SEGV handler
 static struct sigaction new_control_C_action;   // new ^C handler
 static struct sigaction new_HUP_action;         // new HUP handler
 static struct sigaction new_TERM_action;        // new TERM handler
@@ -129,43 +128,6 @@ static struct sigaction new_WINCH_action;       // new WINCH handler
 /// when this file  was built
 static const char * build_tag[] = { BUILDTAG, 0 };
 
-//════════════════════════════════════════════════════════════════════════════
-/// signal handler for segfaults
-static void
-signal_SEGV_handler(int)
-{
-   CERR << "\n\n===================================================\n"
-           "SEGMENTATION FAULT" << endl;
-
-#if PARALLEL_ENABLED
-   CERR << "thread: " << reinterpret_cast<const void *>(pthread_self()) << endl;
-   Thread_context::print_all(CERR);
-#endif // PARALLEL_ENABLED
-
-   // Backtrace::show() (the BACKTRACE macro) calls backtrace_symbols()
-   // and __cxa_demangle(), both of which call malloc() -- not safe here:
-   // if this fault interrupted the crashing thread while it already held
-   // glibc's malloc arena lock, re-entering malloc from this handler can
-   // deadlock or crash a second time (this is the "crashes at times" case
-   // noted historically in Backtrace.cc). Use the signal-safe variant.
-   Backtrace::show_signal_safe();
-
-   CERR << "====================================================\n";
-
-   // count errors
-   IO_Files::assert_error();
-
-   // Command::cmd_OFF() below exit()s directly, bypassing
-   // end_of_current_file() -- without this, a testcase file that was
-   // being read at the time of the crash goes silently missing from
-   // summary.log instead of showing up as failed.
-   IO_Files::report_abnormal_exit();
-
-   // restore terminal setting and
-   LineInput::restore_termios();
-
-   Command::cmd_OFF(3);
-}
 //════════════════════════════════════════════════════════════════════════════
 /// signal handler for SIGWINCH
 static void
@@ -443,21 +405,19 @@ const bool log_startup =
    memset(&new_control_C_action, 0, sizeof(struct sigaction));
    memset(&new_WINCH_action,     0, sizeof(struct sigaction));
    memset(&new_USR1_action,      0, sizeof(struct sigaction));
-   memset(&new_SEGV_action,      0, sizeof(struct sigaction));
    memset(&new_TERM_action,      0, sizeof(struct sigaction));
    memset(&new_HUP_action,       0, sizeof(struct sigaction));
 
    new_control_C_action.sa_handler = &InterruptContext::control_C;
    new_WINCH_action    .sa_handler = &signal_WINCH_handler;
    new_USR1_action     .sa_handler = &signal_USR1_handler;
-   new_SEGV_action     .sa_handler = &signal_SEGV_handler;
    new_TERM_action     .sa_handler = &signal_TERM_handler;
    new_HUP_action      .sa_handler = &signal_HUP_handler;
 
 #if HAVE_EXECINFO_H
    // prime backtrace(): its very first call ever may itself allocate
    // (unwind tables etc.); doing that once here, in normal startup code,
-   // means signal_SEGV_handler()'s later call (via
+   // means CrashDump::crash_handler()'s later call (via
    // Backtrace::show_signal_safe()) never has to.
    { void * warmup[1]; backtrace(warmup, 1); }
 #endif
@@ -474,7 +434,7 @@ const bool log_startup =
 
    sigaction(SIGINT,   &new_control_C_action, &old_control_C_action);
    sigaction(SIGUSR1,  &new_USR1_action,      &old_USR1_action);
-   sigaction(SIGSEGV,  &new_SEGV_action,      &old_SEGV_action);
+   CrashDump::init();   // SIGSEGV, SIGBUS, SIGFPE, SIGILL, and SIGABRT
    sigaction(SIGTERM,  &new_TERM_action,      &old_TERM_action);
    sigaction(SIGHUP,   &new_HUP_action,       &old_HUP_action);
 
@@ -690,11 +650,6 @@ const UserPreferences & uprefs = UserPreferences::uprefs;
 
    Quad_TZ::compute_offset();
 
-   // we allocate a mmap'ed dwarf object beforhand so that we do not need
-   // to create one when, as often, a WS_FULL is thrown.
-   //
-   init_DWARF(LibPaths::get_APL_bin_path(), LibPaths::get_APL_bin_name());
-
    return 0;   // OK.
 }
 //════════════════════════════════════════════════════════════════════════════
@@ -791,6 +746,11 @@ std::vector<const char *> args(argc);
 
    for (const bool exit_on_error = IO_Files::exit_on_error();;)
        {
+         // a crash (see CrashDump.hh) continues here
+         if (const int sig = sigsetjmp(CrashDump::recovery_point, 1))
+            CrashDump::recover(sig);
+         CrashDump::recovery_point_valid = 1;
+
          const Token tok = Workspace::immediate_execution(exit_on_error);
          if (tok.get_tag() == TOK_OFF)   Command::cmd_OFF(0);
        }

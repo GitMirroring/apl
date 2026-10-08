@@ -1078,31 +1078,6 @@ testcases is stored in <strong>src/testcases/summary.log</strong>, and every tes
 execution.</p></div>
 </div>
 <div class="sect2">
-<h3 id="_make_apl_lines">make apl.lines</h3>
-<div class="paragraph"><p>This make target is only available in sub-directory <strong>src</strong>. It produces a file
-named <strong>src/apl.lines</strong> and must be run right after building the interpreter.
-When the interpreter produces a stack trace (i.e. it lists the C++ call stack)
-then:</p></div>
-<div class="ulist"><ul>
-<li>
-<p>
-If the <strong>apl.lines</strong> file is absent or older than the interpreter, the stack
-  trace will show function names and code offsets in hex. For short functions
-  that is sort of OK, but for longer ones the hex numbers can make it difficult
-  to find the exact location of the fault that has triggered the stack trace.
-</p>
-</li>
-<li>
-<p>
-If the <strong>apl.lines</strong> file is up-to-date (i.e. <strong>make apl.lines</strong> was run after
-  the interpreter binary was produced), then the stack traces will show source
-  file line numbers instead of hex numbers. Producing <strong>apl.lines</strong> takes quite
-  a while, therefore it is not built automatically.
-</p>
-</li>
-</ul></div>
-</div>
-<div class="sect2">
 <h3 id="_make_gen_gen2">make gen / gen2</h3>
 <div class="paragraph"><p>These make targets are only available in sub-directory <strong>tools</strong>. Each produces
 the file <strong>src/Prefix.def</strong>. After every new token it reads, the interpreter has
@@ -7821,7 +7796,7 @@ Permutationsnetzwerkes als Teil des Multiprozessorsystems DATIS-P-256.</em>
 <div id="footer">
 <div id="footer-text">
 Last updated
- 2026-09-20 14:36:10 CEST
+ 2026-10-08 17:25:30 CEST
 </div>
 </div>
 </body>

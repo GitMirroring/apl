@@ -2740,6 +2740,77 @@ table without starting an APL session (it is also part of the automated
 test report, @b{src/Automated_Test_Report.sh}).
 
 @c ----------------------------------------------------------------------------
+@node Crash Reports
+@section Crash Reports
+
+If GNU APL crashes, i.e. if it receives one of the signals @b{SIGSEGV}
+(segmentation fault), @b{SIGBUS} (bus error, e.g. an I/O error on a
+memory-mapped file), @b{SIGFPE} (floating point exception), @b{SIGILL}
+(illegal instruction), or @b{SIGABRT} (abort), then the interpreter:
+
+@enumerate
+@item prints a backtrace (the C++ function call stack of the crash),
+
+@item writes a crash report into the tar file @b{last_crash.tar} in the
+directory @b{~/.config/gnu-apl/} (if that directory exists), or else into
+@b{/tmp/gnu-apl-}@i{uid}@b{-last_crash.tar}, and tells where the file is.
+Like the log files in @b{/var/log}, the previous two crash reports are kept
+as @b{last_crash.1.tar} and @b{last_crash.2.tar}; older ones are deleted.
+The directory in the tar file is named
+@b{gnu-apl-crash-}@i{date}@b{-}@i{time}@b{-}@i{pid}, so that several crash
+reports can be told apart,
+
+@item clears the SI and continues in immediate execution mode.
+@end enumerate
+
+Please send the crash report to bug-apl@@gnu.org, together with a short
+description of what you did. The tar file contains:
+
+@itemize
+@item @b{crash.txt}: the signal, the )SIS at the time of the crash, and,
+for every SI level, the shapes, ranks, and depths (but not the contents) of
+the values involved, i.e. of the arguments (and axes) of the user-defined
+function of that level and of the values on the stack of the statement
+being executed,
+
+@item @b{backtrace.txt}: the backtrace (raw and demangled),
+
+@item @b{environment.txt}: the GNU APL version, its ./configure options,
+the output of @b{]STATUS} (@pxref{]STATUS Command}), the settings in the
+preferences files, and some information about the system (uname, CPU,
+memory, compiler, and libc).
+@end itemize
+
+After a crash the workspace may be damaged in ways that are not
+immediately visible. It is therefore recommended to )SAVE the workspace
+under a different name and to restart the interpreter as soon as possible.
+
+The interpreter exits instead of continuing (as it did before crash
+reports were introduced):
+
+@itemize
+@item when running testcase files (option @option{-T}); then no crash report
+is written, but the crash is reported in the testcase summary and in
+the file @i{testcase}@b{.crash.txt} next to the testcase file,
+
+@item with option @option{--TM 4} (exit after the first error),
+
+@item if the crash happens in a thread other than the main interpreter
+thread, and
+
+@item if the interpreter crashes again while handling a crash.
+@end itemize
+
+For testing the crash handling, @b{⎕FIO} can provoke the crash signals
+deliberately. In order to avoid accidental crashes, these @b{⎕FIO}
+functions do nothing unless they were armed immediately before:
+
+@example
+      1095912753 ⎕FIO ¯19   ⍝ arm the next crash function (once)
+      'BUS' ⎕FIO ¯21        ⍝ provoke SIGBUS (or 'SEGV', 'FPE', 'ILL', 'ABRT')
+@end example
+
+@c ----------------------------------------------------------------------------
 @node ]DOXY Command
 @section ]DOXY Command
 
@@ -10508,14 +10579,18 @@ Allowed, with an @code{SI WARNING} notice @tab
 RO @tab
 Refused with DEFN ERROR -- an interactive edit is never allowed to
 invalidate in-flight execution state
-@item ∇-editor bracket commands, e.g. @code{[∆N M ...]},
-@code{[∆-N]}, @code{[⎕N-]} @tab
-Supported: list-form and open-ended delete/display forms @tab
-NI @tab
-Only the single-line and explicit-range forms are supported -- the
-∇-editor's interactive command set was always deliberately
-minimal (just enough to define functions); writing functions in an
-external editor is the intended workflow for anything more
+@item ∇-editor bracket commands with several line numbers, e.g.
+@code{[∆4 1]}, @code{[⎕2 2]}, or @code{[∆5-2]} @tab
+Allowed: the line numbers of a list (@code{[∆n1 n2 ...]},
+@code{[⎕n1 n2 ...]}) may be in any order and contain repetitions
+(LRM pp. 389, 391) @tab
+RO @tab
+Rejected with ``line numbers out of order'': the line numbers of a list
+and the ends of a range must be strictly ascending, because a different
+order (or a repeated number) is more likely a typo than intended, in
+particular for @b{∆}. Ascending lists and all range forms (@code{[∆n-m]},
+@code{[∆-m]}, @code{[∆n-]}, and the same for @b{⎕}) are supported as in
+IBM APL2.
 @item Opening another definition while one is open (e.g. @code{∇B}
 while editing A) @tab
 Allowed: the definitions are edited in LIFO order (LRM p. 387) @tab

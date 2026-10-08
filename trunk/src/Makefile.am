@@ -135,6 +135,7 @@ common_SOURCES += CharCell.cc							CharCell.hh
 common_SOURCES += Command.cc		Command.def			Command.hh
 common_SOURCES += Common.cc								Common.hh
 common_SOURCES += ComplexCell.cc						ComplexCell.hh
+common_SOURCES += CrashDump.cc							CrashDump.hh
 common_SOURCES += 										ConstCell_P.hh
 common_SOURCES += DerivedFunction.cc					DerivedFunction.hh
 common_SOURCES += DiffOut.cc							DiffOut.hh
@@ -347,16 +348,6 @@ update-svar_signals:
 	m4 -D protocol=Svar_signals tcp_signal.m4 > Svar_signals.hh
 
 apl_LDADD = $(LIBS)
-
-apl.lines: apl
-	objdump --section=.text --line-numbers --disassemble $< > $@
-
-apl.lines1: ../tools/filter_apl_lines apl.lines
-	../tools/filter_apl_lines < apl.lines > $@
-
-apl.lines2:	../tools/filter_apl_lines2 apl
-	objdump --line-numbers --dwarf=decodedline ./apl \
-	| ../tools/filter_apl_lines2 | sort | uniq > $@
 
 # All test* targets below run with HOME pointed at a fresh, empty scratch
 # directory (removed afterwards) rather than the developer's real $HOME:

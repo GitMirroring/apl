@@ -115,7 +115,7 @@ public:
 
    /// write a summary.log entry (and print "Failed testcase is ...") for
    /// the testcase file that is executing right now, if any -- for a
-   /// crash (signal_SEGV_handler(), main.cc) or an internal-consistency
+   /// crash (CrashDump::crash_handler()) or an internal-consistency
    /// failure (the FIXME macro, via fixme_exit_code()), both of which
    /// exit() directly without ever reaching end_of_current_file(). Without
    /// this, such a file is silently missing from summary.log entirely
