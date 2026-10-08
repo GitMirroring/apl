@@ -41,6 +41,11 @@
 #include <sys/un.h>
 #endif
 
+#if ! MINGW_SRC
+#include <sys/select.h>
+#include <sys/socket.h>
+#endif
+
 #include <iomanip>
 
 #include "Backtrace.hh"
@@ -166,6 +171,35 @@ const TCP_socket tcp = get_Svar_DB_tcp(__FUNCTION__);
 DISCONNECT_c request(tcp, 0);   // no response
 }
 //────────────────────────────────────────────────────────────────────────────
+/// ::connect() on \b sock has failed with \b err. Return true if \b sock is
+/// connected nevertheless: with EISCONN it already is, and with EINTR (a
+/// signal, e.g. SIGCHLD, interrupted ::connect()) POSIX says that the
+/// connection is still established asynchronously. Closing such a socket
+/// would make APserver exit (after its last connection was closed) before
+/// the next attempt.
+static bool
+connected_anyway(int sock, int err)
+{
+#if MINGW_SRC
+   return false;
+#else
+   if (err == EISCONN)   return true;
+   if (err != EINTR && err != EINPROGRESS && err != EALREADY)   return false;
+
+   // wait (at most 1 second) for the connection to complete
+   fd_set write_fds;
+   FD_ZERO(&write_fds);
+   FD_SET(sock, &write_fds);
+   timeval timeout = { 1, 0 };
+   if (select(sock + 1, 0, &write_fds, 0, &timeout) <= 0)   return false;
+
+int so_error = 0;
+socklen_t len = sizeof(so_error);
+   if (getsockopt(sock, SOL_SOCKET, SO_ERROR, &so_error, &len))   return false;
+   return so_error == 0;
+#endif
+}
+//────────────────────────────────────────────────────────────────────────────
 TCP_socket
 Svar_DB::connect_to_APserver(const char * bin_dir, const char * prog,
                                       int retry_max, bool logit)
@@ -281,7 +315,8 @@ auto open_socket = [&]() -> int
                      server_sockname, max_path_len);
               remote.uNix.sun_path[sizeof(remote.uNix.sun_path) - 1 ] = 0;
 
-             if (::connect(sock, &remote.addr, sizeof(sockaddr_un)) == 0)
+             if (::connect(sock, &remote.addr, sizeof(sockaddr_un)) == 0 ||
+                 connected_anyway(sock, errno))
                 break;   // success
            }
         else   // TCP transport
@@ -293,7 +328,8 @@ auto open_socket = [&]() -> int
              remote.inet.sin_port = htons(APserver_port);
              remote.inet.sin_addr.s_addr = htonl(0x7F000001);
 
-             if (::connect(sock, &remote.addr, sizeof(sockaddr_in)) == 0)
+             if (::connect(sock, &remote.addr, sizeof(sockaddr_in)) == 0 ||
+                 connected_anyway(sock, errno))
                 break;   // success
            }
 

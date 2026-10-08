@@ -245,6 +245,19 @@ protected:
    /// optional end (line) of a range for an editor command
    LineLabel edit_to;
 
+   /// a set of 0 or more LineLabel
+   class Line_set
+      {
+        public:
+           /// how items were entered by the user
+           enum {
+                  LSM_none = 0,   ///< nor at all
+                  
+                };
+
+           vector<LineLabel> items;
+      };
+
    /// true if user has entered a range, i.e. [edit_from - edit_to],
    /// [ - edit_to], or [ edit_from - ]
    bool got_minus;
