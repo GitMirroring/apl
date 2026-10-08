@@ -396,6 +396,11 @@ write_env_file()
          fi
          echo
       done
+      # which optional features are enabled, and if not, why not (with the
+      # user's own preferences, i.e. as in an interactive session)
+      echo "=== ]STATUS ==="
+      timeout 30 ./apl --status 2>&1
+      echo
       echo "=== compiler ==="
       if command -v "${CXX:-g++}" > /dev/null 2>&1; then
          "${CXX:-g++}" --version 2>&1 | head -1

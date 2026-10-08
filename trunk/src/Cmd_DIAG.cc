@@ -36,7 +36,10 @@
 #include "IndexExpr.hh"
 #include "IO_Files.hh"
 #include "LineInput.hh"
+#include "Parallel.hh"
 #include "Performance.hh"
+#include "Svar_DB.hh"
+#include "UserPreferences.hh"
 #include "Value.hh"
 #include "ValueHistory.hh"
 #include "Workspace.hh"
@@ -250,6 +253,295 @@ int ulen;
    else     out << "disabled";                                              \
    out << endl;
 #include "Performance.def"
+}
+//────────────────────────────────────────────────────────────────────────────
+void
+Cmd_DIAG::cmd_STATUS(ostream & out)
+{
+   // a UCS_string from a UTF-8 string literal
+   auto U = [](const char * utf) { return UCS_string(UTF8_string(utf)); };
+
+   // one row of the table: a feature, its state, and if it is disabled
+   // the (first) reason for that: a source like in )LIBS and a detail.
+   //
+   struct Row
+      {
+        UCS_string group;    ///< non-empty for a group heading
+        UCS_string name;     ///< the feature
+        bool enabled;        ///< its state
+        UCS_string source;   ///< DEF, CONF, PSYS, PUSER, ARGV, or RUN
+        UCS_string detail;   ///< e.g. the preferences line or the option
+        bool security = false;   ///< a security-relevant facility
+      };
+
+std::vector<Row> rows;
+   // a group heading
+   auto group = [&](const char * name)
+      {
+        Row r;
+        r.group = U(name);
+        r.enabled = true;
+        rows.push_back(r);
+      };
+
+   // a feature that can only be switched by ./configure
+   auto built = [&](const char * name, bool enabled, const char * detail)
+      {
+        Row r;
+        r.name = U(name);
+        r.enabled = enabled;
+        if (!enabled)
+           {
+             r.source = U("CONF");
+             r.detail = U(detail);
+           }
+        rows.push_back(r);
+      };
+
+   // a feature of the X window system, which also needs a display
+   const bool have_display = getenv("DISPLAY") && *getenv("DISPLAY");
+   auto x11 = [&](const char * name, bool built_in, const char * detail)
+      {
+        if (!built_in)   { built(name, false, detail);   return; }
+        Row r;
+        r.name = U(name);
+        r.enabled = have_display;
+        if (!have_display)
+           {
+             r.source = U("RUN");
+             r.detail = U("no X display ($DISPLAY is not set)");
+           }
+        rows.push_back(r);
+      };
+
+   // a feature that can be switched at run time (see UserPreferences)
+   const std::map<std::string, bool> states =
+                    UserPreferences::uprefs.feature_states();
+   auto runtime = [&](const char * name, const char * key)
+      {
+        Row r;
+        r.name = U(name);
+        const auto it = states.find(key);
+        Assert(it != states.end());
+        r.enabled = it->second;
+        if (!r.enabled)
+           {
+             if (const UserPreferences::Off_reason * why =
+                    UserPreferences::uprefs.get_off_reason(key))
+                {
+                  r.source = U(why->source.c_str());
+                  r.detail = U(why->detail.c_str());
+                }
+             else
+                {
+                  r.source = U("DEF");
+                  r.detail = U("disabled by default");
+                }
+           }
+        rows.push_back(r);
+      };
+
+   // a security-relevant facility: like runtime(), but everything is
+   // disabled by ./configure SECURITY_LEVEL_WANTED=2
+   auto security = [&](const char * name, const char * key)
+      {
+        runtime(name, key);
+        rows.back().security = true;
+#if cfg_SECURITY_LEVEL_WANTED == 2
+        Row & r = rows.back();
+        if (!r.enabled && r.source == U("DEF"))
+           {
+             r.source = U("CONF");
+             r.detail = U("SECURITY_LEVEL_WANTED=2");
+           }
+#endif
+      };
+
+   group("Shared variables (⎕SVO ⎕SVR ⎕SVC ⎕SVQ ⎕SVE ⎕SVS, APs)");
+   runtime("shared variables", "shared variables");
+   {
+     // the connection to APserver (only attempted if shared variables are
+     // wanted)
+     Row r;
+     r.name = U("APserver");
+     r.enabled = Svar_DB::APserver_available();
+     if (!r.enabled)
+        {
+          if (!UserPreferences::uprefs.user_do_svars)
+             {
+               r.source = U("-");
+               r.detail = U("not used (shared variables disabled)");
+             }
+          else
+             {
+               r.source = U("RUN");
+               r.detail = U(*Svar_DB::get_connect_error()
+                            ? Svar_DB::get_connect_error()
+                            : "no connection to APserver");
+             }
+        }
+     rows.push_back(r);
+   }
+
+   group("Optional system functions");
+   built("⎕FFT",             apl_FFT,      "libfftw3 not found or disabled");
+   x11  ("⎕GTK",             apl_GTK3 && apl_X11,
+                             "GTK3 or X11 not found or disabled");
+   x11  ("⎕PLOT (GTK)",      apl_GTK3,     "GTK3 not found or disabled");
+   x11  ("⎕PLOT (XCB)",      apl_XCB,      "libxcb not found or disabled");
+   built("⎕PNG",             apl_PNG,      "libpng not found or disabled");
+   built("⎕RE",              apl_PCRE,     "libpcre2-32 not found or disabled");
+   built("⎕SQL (PostgreSQL)", apl_POSTGRES, "libpq not found or disabled");
+   built("⎕SQL (SQLite3)",   apl_SQLITE3,  "libsqlite3 not found or disabled");
+   built("GSL (⎕MX, ⌹)",     apl_GSL,      "libgsl not found or disabled");
+
+   group("Execution");
+#if PARALLEL_ENABLED
+   built("parallel execution", true, "");
+#else
+   built("parallel execution", false, "CORE_COUNT_WANTED=0 (or no threads)");
+#endif
+#ifdef cfg_RATIONAL_NUMBERS_WANTED
+   built("rational numbers", true, "");
+#else
+   built("rational numbers", false, "RATIONAL_NUMBERS_WANTED=no");
+#endif
+#ifdef cfg_DYNAMIC_LOG_WANTED
+   built("dynamic logging (]LOG)", true, "");
+#else
+   built("dynamic logging (]LOG)", false, "DYNAMIC_LOG_WANTED=no");
+#endif
+
+#define SEC_STR2(x) #x
+#define SEC_STR(x) SEC_STR2(x)
+   group("Security (SECURITY_LEVEL_WANTED=" SEC_STR(cfg_SECURITY_LEVEL_WANTED) ")");
+#undef SEC_STR
+#undef SEC_STR2
+   security(")HOST",                       ")HOST");
+   security("⎕FIO processes (popen etc.)", "⎕FIO processes");
+   security("native functions (⎕FX)",      "native functions");
+   security("⎕FIO (all functions)",        "⎕FIO");
+   security("⎕FIO open/close",             "⎕FIO open/close");
+   security("⎕FIO sockets",                "⎕FIO sockets");
+   security("⎕FIO write",                  "⎕FIO write");
+   security("⎕GTK",                        "⎕GTK (security)");
+   security("⎕PLOT",                       "⎕PLOT (security)");
+   security("⎕SQL",                        "⎕SQL (security)");
+   security(")SAVE and )DUMP",             ")SAVE and )DUMP");
+
+   group("Output");
+   runtime("colours",                      "colours");
+   runtime("IBM APL2 formatting",          "IBM APL2 formatting");
+   runtime("nested items in parentheses",  "nested items in parentheses");
+   runtime("new multi-line strings",       "new multi-line strings");
+   runtime("old multi-line strings",       "old multi-line strings");
+   runtime("discard indentation (∇)",      "discard indentation");
+
+   group("Session");
+   runtime("welcome banner",               "welcome banner");
+   runtime(")LOAD CONTINUE at start",      "CONTINUE workspace");
+   runtime("echo of input lines",          "echo of input lines");
+   runtime("emacs mode",                   "emacs mode");
+   runtime("raw input",                    "raw input");
+   runtime("automatic )OFF",               "automatic )OFF");
+   runtime("backup before )SAVE",          "backup before )SAVE");
+   runtime("∇-editor lines in history",    "∇-editor lines in history");
+   runtime("xmodmap",                      "xmodmap");
+
+   // The table shall fit into a standard 80-column terminal: the state
+   // column shows ✓ for an enabled feature, or else the source of the
+   // (first) reason why it is disabled, and the detail column gets the
+   // remaining width (longer details are truncated).
+   //
+   enum { MAX_WIDTH = 79 };
+size_t w_name = 7;   // "Feature"
+size_t w_st   = 5;   // "State", and the longest source (PUSER)
+   for (const Row & r : rows)
+       {
+         if (r.group.size())   continue;
+         if (w_name < r.name.size())     w_name = r.name.size();
+         if (w_st   < r.source.size())   w_st   = r.source.size();
+       }
+
+   // the frame and separators take 2 + 3 + 3 + 2 = 10 columns
+size_t w_det = 6;    // "Detail"
+   for (const Row & r : rows)
+       {
+         if (r.group.size() == 0 && w_det < r.detail.size())
+            w_det = r.detail.size();
+       }
+   if (w_name + w_st + w_det + 10 > MAX_WIDTH)
+      w_det = MAX_WIDTH - 10 - w_name - w_st;
+const size_t inner = w_name + w_st + w_det + 8;   // between ║ and ║
+
+   auto pad = [](UCS_string ucs, size_t width)
+      {
+        if (ucs.size() > width)   // truncate
+           {
+             ucs.resize(width - 1);
+             ucs << Unicode(0x2026);   // …
+           }
+        while (ucs.size() < width)   ucs << UNI_SPACE;
+        return ucs;
+      };
+   auto center = [](const UCS_string & ucs, size_t width)
+      {
+        UCS_string ret;
+        while (ret.size() < (width - ucs.size()) / 2)   ret << UNI_SPACE;
+        ret << ucs;
+        while (ret.size() < width)   ret << UNI_SPACE;
+        return ret;
+      };
+   auto line = [&](const char * L, const char * M, const char * R,
+                   const char * H = "─")
+      {
+        const Unicode hori = U(H)[0];
+        UCS_string ucs = U(L);
+        ucs << UCS_string(w_name + 2, hori) << U(M)
+            << UCS_string(w_st + 2, hori) << U(M)
+            << UCS_string(w_det + 2, hori) << U(R);
+        out << ucs << endl;
+      };
+   auto row = [&](const UCS_string & name, const UCS_string & state,
+                  const UCS_string & detail)
+      {
+        UCS_string ucs = U("║ ");
+        ucs << pad(name, w_name) << U(" │ ") << center(state, w_st)
+            << U(" │ ") << pad(detail, w_det) << U(" ║");
+        out << ucs << endl;
+      };
+
+   line("╔", "╤", "╗", "═");
+   row(U("Feature"), U("State"), U("Detail"));
+
+bool first_group = true;
+   for (const Row & r : rows)
+       {
+         if (r.group.size())
+            {
+              if (first_group)   line("╠", "╧", "╣", "═");   // below header
+              else               line("╟", "┴", "╢");
+              first_group = false;
+              UCS_string ucs = U("║ ");
+              ucs << center(r.group, inner - 2) << U(" ║");
+              out << ucs << endl;
+              line("╟", "┬", "╢");
+              continue;
+            }
+         row(r.name, r.enabled ? U("✓") : r.source,
+             r.enabled ? U(r.security ? "ALLOWED" : "OK") : r.detail);
+       }
+   line("╚", "╧", "╝", "═");
+
+   out <<
+"State: ✓ if enabled, otherwise the source of the (first) reason why not:\n"
+"   DEF:   disabled by default (no preference or option enables it)\n"
+"   CONF:  how GNU APL was built (./configure)\n"
+"   PSYS:  the system preferences file (" << apl_DIR__sysconf <<
+                                         "/gnu-apl.d/preferences)\n"
+"   PUSER: the user preferences file ($HOME/.gnu-apl or $HOME/.config/gnu-apl)\n"
+"   ARGV:  a command line option\n"
+"   RUN:   a condition at run time" << endl;
 }
 //────────────────────────────────────────────────────────────────────────────
 void

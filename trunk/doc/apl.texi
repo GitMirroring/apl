@@ -495,6 +495,13 @@ that are needed to compile the native function.
 Display all the directories above. Then exit.
 
 @item
+@code{--status}
+
+Display the optional features of GNU APL, whether they are enabled, and if
+not, why not (@pxref{]STATUS Command}). Shared variables are reported after
+the attempt to connect to APserver. Then exit.
+
+@item
 @code{--strict_IBM_APL2_formatting mode}
 
 Select the output format of APL values (and of monadic @b{⍕}):
@@ -2679,6 +2686,60 @@ in several )DUMP-ed or )SAVE-ed workspaces.
 
 
 @c ----------------------------------------------------------------------------
+@node ]STATUS Command
+@section ]STATUS Command
+
+GNU APL has a number of optional features. Some of them depend on how GNU
+APL was built (e.g. @b{⎕SQL} needs a database library at
+@option{./configure} time), others can be switched on or off by the
+preferences files (@pxref{The preferences Files}), by command line options,
+or by conditions at run time (e.g. shared variables need a connection to
+APserver). The debug command
+
+@example
+      ]STATUS
+@end example
+
+lists these features, grouped by area (shared variables, optional system
+functions, execution, security, output, session), in a table that fits into
+an 80-column terminal. The @b{State} column shows ✓ (and the @b{Detail}
+column OK, or ALLOWED in the security group) for an enabled feature. The
+security group shows which commands and functions are rejected, either by
+the command line option @option{--safe} or (depending on the
+@option{./configure} option SECURITY_LEVEL_WANTED, which is shown in the
+group heading) by @b{disable_}@i{xxx} entries in a preferences file.
+For a disabled feature it shows the source of the first reason why it is
+disabled (similar to the sources in the output of @b{)LIBS}), and the
+@b{Detail} column shows the reason itself, e.g.:
+
+@example
+║ shared variables            │ PUSER │ line 1: SharedVars Disabled  ║
+║ ⎕FFT                        │   ✓   │ OK                           ║
+║ colours                     │ ARGV  │ --noColor                    ║
+║ rational numbers            │ CONF  │ RATIONAL_NUMBERS_WANTED=no   ║
+@end example
+
+The sources are:
+
+@itemize
+@item @b{DEF}: disabled by default, i.e. no preference or command line
+option enables the feature (e.g. shared variables on Windows, where
+APserver is not supported),
+@item @b{CONF}: how GNU APL was built (@option{./configure}),
+@item @b{PSYS}: the system preferences file,
+@item @b{PUSER}: the user preferences file,
+@item @b{ARGV}: a command line option, and
+@item @b{RUN}: a condition at run time.
+@end itemize
+
+If several reasons apply, then only the first one is shown: after removing
+it, @b{]STATUS} shows the next one (if any). Since the output of
+@b{]STATUS} explains why a feature does not work, it is useful in bug
+reports. The command line option @option{--status} prints the same
+table without starting an APL session (it is also part of the automated
+test report, @b{src/Automated_Test_Report.sh}).
+
+@c ----------------------------------------------------------------------------
 @node ]DOXY Command
 @section ]DOXY Command
 
@@ -3230,6 +3291,26 @@ For example:
 This workspace does the following...
 @end example
 
+
+@b{]NEXTFILE} can also be made conditional. Each argument of the form
+@b{NO-}@i{capability} skips the rest of the file if GNU APL lacks
+@i{capability}, and each argument of the form @b{HAVE-}@i{capability} skips
+it if GNU APL has it (TAB completion lists the capabilities). This is mainly
+used in testcase files that need an optional feature, e.g.
+
+@example
+      ]NEXTFILE NO-SVARS     ⍝ skip this file without shared variables
+@end example
+
+Most capabilities (like @b{⎕FFT}, @b{⎕SQL}, or @b{GSL}) depend on how GNU
+APL was built. @b{SVARS} (shared variables) depends on the run time: it
+is false with @option{--noSV} or @b{SharedVars Disabled}, or if the
+connection to APserver has failed (@pxref{]STATUS Command}).
+
+When @b{]NEXTFILE} is executed with @b{⍎} (e.g.
+@code{⍎(condition)/']NEXTFILE'}, possibly inside a defined function),
+then it takes effect after @b{⍎} (and the defined function) have
+returned.
 
 @c ............................................................................
 @node ]PUSHFILE

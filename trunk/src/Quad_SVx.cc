@@ -75,8 +75,8 @@ Quad_SVx::start_AP(AP_num ap)
            {
              // user wanted APs, but something went wrong
              //
-             CERR << "*** Not starting AP << ap because the connecton to "
-                     " APserver has failed earlier." << endl;
+             CERR << "*** Not starting AP " << ap << " because the "
+                     "connection to APserver has failed earlier." << endl;
            }
         else                        // user gave --noSV
            {

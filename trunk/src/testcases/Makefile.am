@@ -67,6 +67,7 @@ dist_noinst_DATA =                              \
         Encode.tc                               \
         Enlist.tc                               \
         Execute_Each.tc                         \
+        Execute_NEXTFILE.tc                     \
         Execute.tc                              \
         Expand.tc                               \
         Expand_with_axis.tc                     \

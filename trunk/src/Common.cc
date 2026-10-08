@@ -134,6 +134,13 @@ const int retry_max = UserPreferences::uprefs.emacs_mode ? 15 : 5;
                  log_startup,
                  UserPreferences::uprefs.system_do_svars);
 
+   // if the connection to APserver has failed, then continue as if shared
+   // variables were disabled, so that no further attempts to talk to the
+   // (missing) APserver are made
+   //
+   if (!Svar_DB::APserver_available())
+      UserPreferences::uprefs.system_do_svars = false;   // see ]STATUS
+
    LineInput::init(true);
 
    Parallel::init(log_startup || LOG_Parallel);

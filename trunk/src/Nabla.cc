@@ -1387,7 +1387,7 @@ Nabla::comment_pos(const UCS_string & line)
         if (uni == UNI_COMMENT)   return u;
         if (uni == UNI_SINGLE_QUOTE || uni == UNI_DOUBLE_QUOTE)   // string
            {
-             for (++u; u < line.size() && line[u] != uni; ++u)
+             for (++u; u < ShapeItem(line.size()) && line[u] != uni; ++u)
                  {
                    if (uni == UNI_DOUBLE_QUOTE && line[u] == UNI_BACKSLASH)
                       ++u;   // skip \x

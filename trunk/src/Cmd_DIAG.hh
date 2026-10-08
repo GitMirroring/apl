@@ -79,6 +79,10 @@ public:
    /// @param out  output stream for performance statistics
    /// @param arg  optional argument to filter or reset counters
    static void cmd_PSTAT(ostream & out, const UCS_string & arg);
+
+   /// ]STATUS: list the optional features of GNU APL, whether they are
+   /// enabled, and if not, why not
+   static void cmd_STATUS(ostream & out);
 };
 //════════════════════════════════════════════════════════════════════════════
 #endif // __CMD_DIAG_HH_DEFINED__

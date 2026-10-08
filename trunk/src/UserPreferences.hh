@@ -25,6 +25,7 @@
 #define __USER_PREFERENCES_HH_DEFINED__
 
 #include <sys/time.h>
+#include <map>
 #include <string>
 
 #include "Parallel.hh"
@@ -173,6 +174,9 @@ public:
    /// true if --safe command line option was given
    bool safe_mode;
 
+   /// true if --status was given: print ]STATUS and exit
+   bool show_status;
+
    /// the argument number of the APL script name (if run from a script)
    /// in expanded_args, or 0 if apl is started directly.
    size_t script_argc;
@@ -208,6 +212,46 @@ public:
    /// the combined user preferences (from command line arguments and from
    /// \b preferences files) for the APL interpreter instance
    static UserPreferences uprefs;
+
+   /// why a feature is switched off (see ]STATUS): a source code like the
+   /// ones of )LIBS (PSYS, PUSER, ARGV, RUN) and a detail (e.g. the line
+   /// of a preferences file or the command line option)
+   struct Off_reason
+      {
+        std::string source;   ///< PSYS, PUSER, ARGV, or RUN
+        std::string detail;   ///< e.g. "line 251: SharedVars Disabled"
+      };
+
+   /// the run-time switchable features (see ]STATUS) and their current state
+   std::map<std::string, bool> feature_states() const;
+
+   /// record that \b feature was switched off. Only the first reason is kept
+   /// until the feature is switched on again (see feature_on()).
+   void feature_off(const std::string & feature, const char * source,
+                    const std::string & detail)
+      {
+        if (off_reasons.count(feature) == 0)
+           off_reasons[feature] = Off_reason{ source, detail };
+      }
+
+   /// record that \b feature was switched on (its reason is void)
+   void feature_on(const std::string & feature)
+      { off_reasons.erase(feature); }
+
+   /// record the features that were switched on or off since \b before
+   /// (a result of feature_states()) by \b source and \b detail
+   void note_feature_changes(const std::map<std::string, bool> & before,
+                             const char * source, const std::string & detail);
+
+   /// the reason why a feature is switched off (or 0 if none was recorded)
+   const Off_reason * get_off_reason(const std::string & feature) const
+      {
+        auto it = off_reasons.find(feature);
+        return it == off_reasons.end() ? 0 : &it->second;
+      }
+
+   /// the reasons why (run-time switchable) features are switched off
+   std::map<std::string, Off_reason> off_reasons;
 
    /// args after expand_args(). The strings in \b expanded_args are
    /// allocated with strdup() and are never free()'d (since used by ⎕ARG).

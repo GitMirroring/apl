@@ -245,6 +245,10 @@ protected:
    /// optional end (line) of a range for an editor command
    LineLabel edit_to;
 
+   class Line_set
+      {
+      };
+
    /// true if user has entered a range, i.e. [edit_from - edit_to],
    /// [ - edit_to], or [ edit_from - ]
    bool got_minus;

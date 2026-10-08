@@ -34,6 +34,8 @@ const bool log_startup = false;
    UserPreferences::uprefs.user_do_svars = false;
    UserPreferences::uprefs.system_do_svars = false;
    UserPreferences::uprefs.requested_id = 3000;
+   UserPreferences::uprefs.feature_off("shared variables", "RUN",
+                                       "GNU APL runs as Python module");
 
    init_modules("apl", log_startup);
 

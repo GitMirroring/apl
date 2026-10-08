@@ -65,6 +65,7 @@
 
 #include "Sys.hh"
 #include "Backtrace.hh"   // for init_DWARF()
+#include "Cmd_DIAG.hh"
 #include "Command.hh"
 #include "Common.hh"      // #includes config.h
 #include "IO_Files.hh"
@@ -598,6 +599,16 @@ const UserPreferences & uprefs = UserPreferences::uprefs;
    if (const int wait = uprefs.wait_ms)   usleep(1000*wait);
 
    init_modules2(log_startup);
+
+   // --status: show the optional features (after the attempt to
+   // connect to APserver above) and exit
+   //
+   if (uprefs.show_status)
+      {
+        Cmd_DIAG::cmd_STATUS(cout);
+        cleanup(true);
+        exit(0);   // (returning 0 from init_apl() would start a session)
+      }
 
    // enable colors (if wanted) before show_welcome() so that the banner
    // below is colored too, instead of falling back to the console's

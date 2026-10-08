@@ -98,7 +98,7 @@ extern int64_t get_main();
 
 /// interpreter capabilities (for ]NEXTFILE)
 #define  apl_CAPABILITIES  "⎕FFT", "GSL",  "GTK",  "GUI", "⎕PNG", "POSTGRES", \
- "⎕PLOT", "⎕RE", "⎕SQL", "SQLITE3", "X11",  "XCB",
+ "⎕PLOT", "⎕RE", "⎕SQL", "SQLITE3", "SVARS", "X11",  "XCB",
 
 /// true when gtk_init() was called (from ⎕PLOT or from ⎕PNG)
 extern bool gtk_init_done;

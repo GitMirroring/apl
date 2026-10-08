@@ -218,6 +218,10 @@ const int len = capa.size();
         if (len == 3 && capa.starts_iwith("GUI"))        return apl_GUI;
         if (len == 8 && capa.starts_iwith("POSTGRES"))   return apl_POSTGRES;
         if (len == 7 && capa.starts_iwith("SQLITE3"))    return apl_SQLITE3;
+        // shared variables: not a build option, but enabled at run time
+        // (unless --noSV, SharedVars Disabled, or no APserver connection)
+        if (len == 5 && capa.starts_iwith("SVARS"))
+           return UserPreferences::uprefs.system_do_svars;
         if (len == 3 && capa.starts_iwith("X11"))        return apl_X11;
         if (len == 3 && capa.starts_iwith("XCB"))        return apl_XCB;
       }

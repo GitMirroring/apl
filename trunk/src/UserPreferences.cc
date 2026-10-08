@@ -91,6 +91,7 @@ UserPreferences::UserPreferences()
      requested_id(0),
      requested_par(0),
      safe_mode(false),
+     show_status(false),
      script_argc(0),
      silence(FULL_BANNER),
 #if MINGW_SRC
@@ -117,6 +118,11 @@ UserPreferences::UserPreferences()
      WINCH_sets_pw(false)
 {
    gettimeofday(&session_start, 0);
+
+#if MINGW_SRC
+   feature_off("shared variables", "DEF",
+               "disabled by default on Windows (no APserver)");
+#endif
 }
 //────────────────────────────────────────────────────────────────────────────
 bool
@@ -249,6 +255,7 @@ UserPreferences::usage(const char * prog)
 "    --show_lib_dir       show library directory and exit\n"
 "    --show_src_dir       show source directory and exit\n"
 "    --show_all_dirs      show all directories above and exit\n"
+"    --status             show the optional features (like ]STATUS) and exit\n"
 "    --strict_IBM_APL2_formatting mode\n"
 "                         output format: no, yes, or parentheses (overrides\n"
 "                         the preference STRICT_IBM_APL2_FORMATTING)\n"
@@ -459,6 +466,130 @@ bool log_startup = false;
    return log_startup;
 }
 //────────────────────────────────────────────────────────────────────────────
+std::map<std::string, bool>
+UserPreferences::feature_states() const
+{
+   // the run-time switchable features that ]STATUS reports (the features
+   // that can only be switched by ./configure are reported by ]STATUS
+   // directly). The names are shown by ]STATUS.
+   //
+std::map<std::string, bool> ret;
+   ret["shared variables"]             = user_do_svars;
+
+   // security: --safe, and the disable_xxx preferences (which are only
+   // effective with SECURITY_LEVEL_WANTED=1; level 2 disables everything)
+   //
+#if cfg_SECURITY_LEVEL_WANTED == 0
+# define SEC_OFF(x) false
+#elif cfg_SECURITY_LEVEL_WANTED == 1
+# define SEC_OFF(x) x
+#else
+# define SEC_OFF(x) true
+#endif
+const bool fio_off = SEC_OFF(disable_Quad_FIO);
+   ret[")HOST"]                = !safe_mode;
+   ret["⎕FIO processes"]       = !(safe_mode || fio_off ||
+                                   SEC_OFF(disable_Quad_FIO__exec));
+   ret["native functions"]     = !(safe_mode ||
+                                   SEC_OFF(disable_native_functions));
+   ret["⎕FIO"]                 = !fio_off;
+   ret["⎕FIO open/close"]      = !(fio_off || SEC_OFF(disable_Quad_FIO__open));
+   ret["⎕FIO sockets"]         = !(fio_off ||
+                                   SEC_OFF(disable_Quad_FIO__socket));
+   ret["⎕FIO write"]           = !(fio_off || SEC_OFF(disable_Quad_FIO__write));
+   ret["⎕GTK (security)"]      = !SEC_OFF(disable_Quad_GTK);
+   ret["⎕PLOT (security)"]     = !SEC_OFF(disable_Quad_PLOT);
+   ret["⎕SQL (security)"]      = !SEC_OFF(disable_Quad_SQL);
+   ret[")SAVE and )DUMP"]      = !SEC_OFF(disable_SAVE_command);
+#undef SEC_OFF
+
+   ret["colours"]                      = do_Color;
+   ret["welcome banner"]               = silence != NO_BANNER;
+   ret["CONTINUE workspace"]           = do_CONT;
+   ret["echo of input lines"]          = !do_not_echo;
+   ret["emacs mode"]                   = emacs_mode;
+   ret["raw input"]                    = raw_cin;
+   ret["automatic )OFF"]               = auto_OFF;
+   ret["backup before )SAVE"]          = backup_before_save;
+   ret["∇-editor lines in history"]    = nabla_to_history != 0;
+   ret["xmodmap"]                      = !no_xmodmap;
+   ret["IBM APL2 formatting"]          = strict_IBM_APL2_formatting;
+   ret["nested items in parentheses"]  = nested_parentheses;
+   ret["new multi-line strings"]       = new_multi_line_strings;
+   ret["old multi-line strings"]       = old_multi_line_strings;
+   ret["discard indentation"]          = discard_indentation;
+   return ret;
+}
+//────────────────────────────────────────────────────────────────────────────
+void
+UserPreferences::note_feature_changes(const std::map<std::string, bool> & before,
+                                      const char * source,
+                                      const std::string & detail)
+{
+const std::map<std::string, bool> after = feature_states();
+   for (const auto & fa : after)
+       {
+         const auto fb = before.find(fa.first);
+         if (fb == before.end() || fb->second == fa.second)   continue;
+         if (fa.second)   feature_on(fa.first);
+         else             feature_off(fa.first, source, detail);
+       }
+}
+//────────────────────────────────────────────────────────────────────────────
+namespace
+{
+/// records the features that one line of a preferences file or one command
+/// line option switches on or off (for ]STATUS). The destructor runs at the
+/// end of the line or option, no matter how the loop iteration ends.
+class Feature_watch
+{
+public:
+   /// a line of a preferences file
+   Feature_watch(UserPreferences & up, const char * src, const string & det)
+   : uprefs(up),
+     before(up.feature_states()),
+     source(src),
+     detail(det),
+     args(0),
+     first_arg(0),
+     next_arg(0)
+   {}
+
+   /// a command line option (and its values, if any)
+   Feature_watch(UserPreferences & up, const std::vector<const char *> & av,
+                 size_t first, const size_t & next)
+   : uprefs(up),
+     before(up.feature_states()),
+     source("ARGV"),
+     args(&av),
+     first_arg(first),
+     next_arg(&next)
+   {}
+
+   ~Feature_watch()
+      {
+        if (args)   // a command line option: the option and its values
+           {
+             for (size_t a = first_arg; a < *next_arg && a < args->size(); ++a)
+                 {
+                   if (a != first_arg)   detail += " ";
+                   detail += (*args)[a];
+                 }
+           }
+        uprefs.note_feature_changes(before, source, detail);
+      }
+
+protected:
+   UserPreferences & uprefs;
+   const std::map<std::string, bool> before;
+   const char * source;
+   string detail;
+   const std::vector<const char *> * args;
+   size_t first_arg;
+   const size_t * next_arg;
+};
+}   // namespace
+//────────────────────────────────────────────────────────────────────────────
 void
 UserPreferences::parse_args_2(bool logit)
 {
@@ -478,6 +609,8 @@ UserPreferences::parse_args_2(bool logit)
       const char * prog = expanded_args[0];
       if (strlen(prog) >= 6 && !strcmp("script", (prog + strlen(prog) - 6)))
          {
+            const Feature_watch watch(*this, "ARGV",
+                                      "started as aplscript (--script)");
             do_CONT = false;               // --noCONT
             do_not_echo = true;            // --noCIN
             do_Color = false;              // --noColor
@@ -488,6 +621,10 @@ UserPreferences::parse_args_2(bool logit)
    for (size_t a = 1; a < expanded_args.size(); )
        {
          if (a == script_argc)   { ++a;   continue; }   // skip scriptname
+
+         // ]STATUS: record the features that this option switches on or off
+         //
+         const Feature_watch watch(*this, expanded_args, a, a);
 
          const char * opt = expanded_args[a++];
          const char * val = (a < expanded_args.size()) ? expanded_args[a] : 0;
@@ -890,6 +1027,12 @@ UserPreferences::parse_args_2(bool logit)
                                          ios_base::trunc);
                       }
                  }
+              continue;
+            }
+
+         IFOPT( --status )
+            {
+              show_status = true;
               continue;
             }
 
@@ -1502,6 +1645,13 @@ int file_profile = 0;   // the current profile in the preferences file
               continue;
             }
          d[0] = strtoll(arg, 0, 16);
+
+         // ]STATUS: record the features that this line switches on or off
+         //
+         char where[BUFSIZE + 40];
+         SPRINTF(where, "line %d: %s %s", line, opt, arg)
+         const Feature_watch watch(*this, sys ? "PSYS" : "PUSER", where);
+
          const bool yes = !strcasecmp(arg, "YES"     )
                        || !strcasecmp(arg, "ENABLED" )
                        || !strcasecmp(arg, "ON"      );

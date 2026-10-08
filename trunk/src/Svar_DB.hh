@@ -76,6 +76,10 @@ public:
    static bool APserver_available()
       { return DB_tcp != NO_TCP_SOCKET; }
 
+   /// why the connection to APserver has failed ("" if it has not)
+   static const char * get_connect_error()
+      { return connect_error; }
+
    /// return coupling of \b entry with \b key.
    static SV_Coupling get_coupling(SV_key key)
       {
@@ -203,6 +207,9 @@ protected:
 
    /// the TCP connection to APserver, NO_TCP_SOCKET if invalid
    static TCP_socket DB_tcp;
+
+   /// why the connection to APserver has failed ("" if it has not)
+   static char connect_error[100];
 
    /// The TCP port of APserver
    static uint16_t APserver_port;

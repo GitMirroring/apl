@@ -1286,16 +1286,18 @@ const int listen_sock = got_path ? open_UNIX_socket(listen_name)
 
         // read() cannot be used to probe a Winsock SOCKET on Windows --
         // it is not a CRT file descriptor, only recv()/send()/ioctlsocket()
-        // are valid on it -- so this always (falsely) reported the listen
-        // socket, and then any freshly accepted connection, as dead on
-        // every pass, immediately closing real connections again via
-        // close_fd() below. A dead listen socket has no corrective action
-        // here anyway (just the message); on Windows a dead per-connection
-        // socket is still caught by the normal recv() return value once
-        // real data-handling code runs on it later in the loop, the same
-        // way most Windows socket servers detect a disconnect.
-        if (0 != read(listen_sock, &dummy, 0))
-           cerr << prog << ": listen socket has died unexpectedly" << endl;
+        // are valid on it -- so this always (falsely) reported any freshly
+        // accepted connection as dead on every pass, immediately closing
+        // real connections again via close_fd() below. On Windows a dead
+        // per-connection socket is still caught by the normal recv()
+        // return value once real data-handling code runs on it later in
+        // the loop, the same way most Windows socket servers detect a
+        // disconnect.
+        //
+        // The listening socket is not probed at all: a read() on it is
+        // meaningless (macOS fails it with ENOTCONN, which used to print
+        // "listen socket has died unexpectedly" on every pass, i.e. at
+        // least once a second), and there was no corrective action anyway.
 #endif // ! MINGW_SRC
 
         FD_SET(listen_sock, &read_fds);

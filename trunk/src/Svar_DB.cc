@@ -55,6 +55,7 @@ extern ostream & get_CERR();
 uint16_t Svar_DB::APserver_port = cfg_APSERVER_PORT;
 
 TCP_socket Svar_DB::DB_tcp = NO_TCP_SOCKET;
+char Svar_DB::connect_error[100] = "";
 bool Svar_DB::do_log = false;
 
 Svar_record Svar_record_P::cache;
@@ -173,62 +174,74 @@ int sock = NO_TCP_SOCKET;
 const char * server_sockname = cfg_APSERVER_PATH;
 char peer[100];
 
-   // we use AF_UNIX sockets if the platform supports it and unix_socket_name
-   // is provided. Otherwise fall back to TCP.
+   // a socket for one ::connect() attempt. A socket whose ::connect() has
+   // failed must not be used for another ::connect() (POSIX leaves its state
+   // unspecified; Linux accepts it, but macOS then fails with EISCONN or
+   // EINVAL), so every attempt below gets a fresh one.
    //
+auto open_socket = [&]() -> int
+   {
+      // we use AF_UNIX sockets if the platform supports it and unix_socket_name
+      // is provided. Otherwise fall back to TCP.
+      //
 #if HAVE_SYS_UN_H && cfg_APSERVER_TRANSPORT != 0
-      {
-        logit && get_CERR() << prog
-                            << ": Using AF_UNIX socket towards APserver..."
-                            << endl;
-        sock = socket(AF_UNIX, SOCK_STREAM, 0);
-        if (sock == NO_TCP_SOCKET)
-           {
-             get_CERR() << prog
-                        << ": socket(AF_UNIX, SOCK_STREAM, 0) failed at "
-                        << LOC << endl;
-             return NO_TCP_SOCKET;
-           }
+         {
+           logit && get_CERR() << prog
+                               << ": Using AF_UNIX socket towards APserver..."
+                               << endl;
+           sock = socket(AF_UNIX, SOCK_STREAM, 0);
+           if (sock == NO_TCP_SOCKET)
+              {
+                get_CERR() << prog
+                           << ": socket(AF_UNIX, SOCK_STREAM, 0) failed at "
+                           << LOC << endl;
+                return NO_TCP_SOCKET;
+              }
 
-        SPRINTF(peer, "%s", server_sockname);
-      }
+           SPRINTF(peer, "%s", server_sockname);
+         }
 #else // use TCP
-      {
-        server_sockname = 0;
-        logit && get_CERR() << "Using TCP socket towards APserver..."
-                            << endl;
-        sock = TCP_socket(socket(AF_INET, SOCK_STREAM, 0));
-        if (sock == NO_TCP_SOCKET)
+         {
+           server_sockname = 0;
+           logit && get_CERR() << "Using TCP socket towards APserver..."
+                               << endl;
+           sock = TCP_socket(socket(AF_INET, SOCK_STREAM, 0));
+           if (sock == NO_TCP_SOCKET)
+              {
+                get_CERR() << "*** socket(AF_INET, SOCK_STREAM, 0) failed at "
+                           << LOC << endl;
+                return NO_TCP_SOCKET;
+              }
+
+           // disable nagle
            {
-             get_CERR() << "*** socket(AF_INET, SOCK_STREAM, 0) failed at "
-                        << LOC << endl;
-             return NO_TCP_SOCKET;
+             const int ndelay = 1;
+             sys_setsockopt(sock, 6, TCP_NODELAY, &ndelay, sizeof(int));
            }
 
-        // disable nagle
-        {
-          const int ndelay = 1;
-          sys_setsockopt(sock, 6, TCP_NODELAY, &ndelay, sizeof(int));
-        }
+           // bind local port to 127.0.0.1
+           //
+           SockAddr local;
+           memset(&local, 0, sizeof(SockAddr));
+           local.inet.sin_family = AF_INET;
+           local.inet.sin_addr.s_addr = htonl(0x7F000001);
 
-        // bind local port to 127.0.0.1
-        //
-        SockAddr local;
-        memset(&local, 0, sizeof(SockAddr));
-        local.inet.sin_family = AF_INET;
-        local.inet.sin_addr.s_addr = htonl(0x7F000001);
+           if (::bind(sock, &local.addr, sizeof(sockaddr_in)))
+              {
+                get_CERR() << "bind(127.0.0.1) failed: "
+                           << strerror(errno) << endl;
+                ::close(sock);
+                return NO_TCP_SOCKET;
+              }
 
-        if (::bind(sock, &local.addr, sizeof(sockaddr_in)))
-           {
-             get_CERR() << "bind(127.0.0.1) failed: "
-                        << strerror(errno) << endl;
-             ::close(sock);
-             return NO_TCP_SOCKET;
-           }
-
-        SPRINTF(peer, "127.0.0.1 TCP port %d", APserver_port);
-      }
+           SPRINTF(peer, "127.0.0.1 TCP port %d", APserver_port);
+         }
 #endif
+   return sock;
+   };
+
+   sock = open_socket();
+   if (sock == NO_TCP_SOCKET)   return NO_TCP_SOCKET;
 
    // We try to connect to the APserver. If that fails then no
    // APserver is running; we fork one and try again.
@@ -290,6 +303,15 @@ char peer[100];
          if (logit)   get_CERR() << "connecting to " << peer
                                  << " failed." << endl;
 
+         // use a fresh socket for the next attempt (see open_socket())
+         {
+           const int connect_errno = errno;
+           ::close(sock);
+           sock = open_socket();
+           if (sock == NO_TCP_SOCKET)   return NO_TCP_SOCKET;
+           errno = connect_errno;
+         }
+
          if (retry == 0)   // first attempt
             {
               // this was the first ::connect() that has failed.
@@ -314,6 +336,8 @@ char peer[100];
 
          if ((retry == (retry_max - 1)) && bin_dir)   // last attempt: give up
             {
+              SPRINTF(connect_error, "::connect() failed: %s",
+                      strerror(errno))
               get_CERR() <<
                          "::connect() to supposedly existing APserver failed: "
                          << strerror(errno) << endl;
@@ -506,11 +530,19 @@ Signal_base * response = Signal_base::recv_TCP(tcp, buffer, sizeof(buffer),
    if (del)   delete[] del;
 }
 //════════════════════════════════════════════════════════════════════════════
+/// false if shared variables are disabled or the connection to APserver has
+/// failed (and was reported), so that Svar_DB is unconnected by design
+static bool connection_expected = true;
+
 TCP_socket
 Svar_DB::get_Svar_DB_tcp(const char * calling_function)
 {
 const TCP_socket tcp = Svar_DB::get_DB_tcp();
-   if (tcp == NO_TCP_SOCKET)
+
+   // with shared variables disabled (--noSV, SharedVars Disabled) there is
+   // no connection by design.
+   //
+   if (tcp == NO_TCP_SOCKET && connection_expected)
       {
         static bool warned = false;
         if (!warned)
@@ -531,6 +563,7 @@ Svar_DB::init(const char * bin_dir, const char * prog, int retry_max,
               bool logit, bool do_svars)
 {
    do_log = logit;
+   connection_expected = do_svars;
    if (!do_svars)   // shared variables disabled
       {
         if (logit)
@@ -544,6 +577,9 @@ Svar_DB::init(const char * bin_dir, const char * prog, int retry_max,
       {
         if (logit)   get_CERR() << "using Svar_DB on APserver!" << endl;
       }
+
+   // a failed connection was already reported (e.g. "APserver not found")
+   connection_expected = APserver_available();
 }
 //────────────────────────────────────────────────────────────────────────────
 bool
@@ -740,6 +776,7 @@ char APserver_path[APL_PATH_MAX + 1];
         SPRINTF(APserver_path, "%s/APs/" APSERVER_EXE, bin_dir);
         if (access(APserver_path, X_OK) != 0)   // no APs/APserver either
            {
+             SPRINTF(connect_error, "%s", "APserver not found");
              get_CERR() << "Executable " << APserver_path << " not found.\n"
 "This could mean that 'apl' was not installed ('make install') or that it\n"
 "was started in a non-standard way. The expected location of APserver is \n"
@@ -788,6 +825,8 @@ char popen_args[APL_PATH_MAX + 50];
 PipeReader reader(popen_args);
    if (!reader)
       {
+        SPRINTF(connect_error, "starting APserver failed: %s",
+                strerror(errno))
         get_CERR() << "popen(" << popen_args << " failed: " << strerror(errno)
              << endl;
         return true;   // error

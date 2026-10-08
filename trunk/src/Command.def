@@ -86,6 +86,7 @@ cmd_def("]PUSHFILE" , Cmd_HOST::cmd_PUSHFILE()                  ,""             
 cmd_def("]PSTAT"    , Cmd_DIAG::cmd_PSTAT(out, arg)             ,"[CLEAR|SAVE]"            ,oCLEAR_SAVE)
 cmd_def("]SIS"      , Cmd_SI::cmd_SIS(out, true)                ,""                        ,NO_PARAM   )
 cmd_def("]SI"       , Cmd_SI::cmd_SI(out, true)                 ,""                        ,NO_PARAM   )
+cmd_def("]STATUS"   , Cmd_DIAG::cmd_STATUS(out)                 ,""                        ,NO_PARAM   )
 cmd_def("]SVARS"    , Cmd_LISTING::cmd_SVARS(out)               ,""                        ,NO_PARAM   )
 cmd_def("]SYMBOL"   , Cmd_LISTING::cmd_SYMBOL(out, arg)         ,"symbol"                  ,SYMNAME    )
 cmd_def("]USERCMD"  , Cmd_USERCMD::cmd_USERCMD(out, arg, args)  ,"[ ]ucmd APL_fun [mode]"  ,UCOMMAND   )

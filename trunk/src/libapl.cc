@@ -802,6 +802,11 @@ init_libapl(const char * progname, int log_startup)
    UserPreferences::uprefs.user_do_svars   = false;
    UserPreferences::uprefs.system_do_svars = false;
    UserPreferences::uprefs.requested_id    = 2000;
+   UserPreferences::uprefs.feature_off("shared variables", "RUN",
+                                       "GNU APL runs as libapl");
+   for (const char * f : { ")HOST", "⎕FIO processes", "native functions" })
+       UserPreferences::uprefs.feature_off(f, "RUN",
+                                           "GNU APL runs as libapl (safe mode)");
 
    init_modules(progname, log_startup);
 
