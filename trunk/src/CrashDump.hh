@@ -59,7 +59,8 @@ typedef void siginfo_t;
     Step 3 is skipped (and the interpreter exits as before) when running
     testcase files (-T), with --TM 4 (exit on error), for a crash in a
     thread other than the main thread, before main() has set its recovery
-    point, and for a crash while handling a crash. Step 2 is skipped when
+    point, for a crash while handling a crash, and if another thread crashes
+    while a crash is being handled. Step 2 is skipped when
     running testcase files: IO_Files::report_abnormal_exit() reports the
     crash there.
  **/
@@ -127,6 +128,12 @@ protected:
 
    /// non-zero while a crash is being handled
    static volatile sig_atomic_t in_handler;
+
+   /// non-zero if another thread crashed while a crash was being handled
+   static volatile sig_atomic_t other_thread_crashed;
+
+   /// the thread that handles the (first) crash
+   static pthread_t handler_thread;
 
    /// the signal stack (so that stack overflows can be handled as well)
    static char * signal_stack;

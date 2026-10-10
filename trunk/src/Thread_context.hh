@@ -208,6 +208,9 @@ public:
    /// the next work to be done
    static PoolFunction * do_work;
 
+   /// true when the worker threads shall end (see cleanup())
+   static volatile bool pool_exit;
+
    /// a thread-function that should not be called
    static PoolFunction PF_no_work;
 

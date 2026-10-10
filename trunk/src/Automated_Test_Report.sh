@@ -369,14 +369,14 @@ write_env_file()
       echo "${DISPLAY:-<unset>}"
       echo
       echo "=== ./apl --cfg ==="
-      ./apl --cfg 2>&1
+      timeout -k 5 30 ./apl --cfg 2>&1
       echo
       # the user's preferences can change the interpreter's behaviour (e.g.
       # STRICT_IBM_APL2_FORMATTING changes the output format), so include
       # the files themselves. The testcases run with a temporary HOME, so
       # only the system-wide files apply to them; the user's own files are
       # included for reports about interactive sessions.
-      local etc_dir=$(./apl --show_etc_dir 2>/dev/null)
+      local etc_dir=$(timeout -k 5 30 ./apl --show_etc_dir 2>/dev/null)
       local pf
       for pf in "${etc_dir:-/etc}/gnu-apl.d/preferences" \
                 "${etc_dir:-/etc}/gnu-apl.d/parallel_thresholds" \
@@ -399,7 +399,9 @@ write_env_file()
       # which optional features are enabled, and if not, why not (with the
       # user's own preferences, i.e. as in an interactive session)
       echo "=== ]STATUS ==="
-      timeout 30 ./apl --status 2>&1
+      # -k 5: SIGKILL if SIGTERM does not end it (a hang at exit must not
+      # hang this script, as reported on 64-bit Debian, 2026-10-08)
+      timeout -k 5 30 ./apl --status 2>&1
       echo
       echo "=== compiler ==="
       if command -v "${CXX:-g++}" > /dev/null 2>&1; then

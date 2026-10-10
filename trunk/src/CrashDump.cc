@@ -63,14 +63,16 @@ using namespace std;
 sigjmp_buf CrashDump::recovery_point;
 volatile sig_atomic_t CrashDump::recovery_point_valid = 0;
 volatile sig_atomic_t CrashDump::in_handler = 0;
+volatile sig_atomic_t CrashDump::other_thread_crashed = 0;
+pthread_t CrashDump::handler_thread;
 pthread_t CrashDump::main_thread;
 char * CrashDump::signal_stack = 0;
 
 /// the crash signals handled by CrashDump
 static const int crash_signals[] = { SIGSEGV, SIGBUS, SIGFPE, SIGILL, SIGABRT };
 
-/// seconds that collecting the crash information may take. A hang (e.g. a
-/// malloc() lock held by the crashed code) then ends the interpreter
+/// seconds that handling a crash may take. A hang (e.g. a malloc() lock held
+/// by the crashed code) then ends the interpreter
 enum { DUMP_TIMEOUT = 30 };
 
 //────────────────────────────────────────────────────────────────────────────
@@ -162,8 +164,44 @@ void
 CrashDump::crash_handler(int sig, siginfo_t * info, void * context)
 {
 #if ! MINGW_SRC
-const bool nested = in_handler;
+   // a pthread_cancel() of this thread (e.g. of a parallel worker at exit)
+   // must not act on the cancellation points (write(), pause(), ...) in
+   // here: that unwinds through the signal frame and ends in terminate().
+   //
+   { int old_state;   pthread_setcancelstate(PTHREAD_CANCEL_DISABLE, &old_state); }
+
+   if (in_handler)   // a crash while a crash is being handled
+      {
+        if (!pthread_equal(pthread_self(), handler_thread))
+           {
+             // another thread crashed while the first crash is being handled
+             // (e.g. parallel worker threads). Let the first crash end the
+             // interpreter (the process cannot recover from that) and park
+             // this thread. The alarm ends the interpreter if that hangs.
+             //
+             other_thread_crashed = 1;
+             safe_write("\n*** another thread crashed as well (");
+             safe_write(signal_description(sig));
+             safe_write(")\n");
+             for (;;)   pause();
+           }
+
+        // a crash in the crash handler itself: only signal-safe functions
+        safe_write("\n\n===================================================\n");
+        safe_write(signal_description(sig));
+        safe_write(" (while handling a crash)\n");
+        Backtrace::show_signal_safe();
+        LineInput::restore_termios();
+        _exit(3);
+      }
+
    in_handler = 1;
+   handler_thread = pthread_self();
+
+   // end the interpreter if handling the crash hangs (e.g. on a malloc()
+   // lock held by the crashed code). Disarmed in recover().
+   //
+   alarm(DUMP_TIMEOUT);
 
    // the PC of the crash (for the line number of the crashed function)
    //
@@ -181,15 +219,10 @@ const bool nested = in_handler;
    //
    safe_write("\n\n===================================================\n");
    safe_write(signal_description(sig));
-   safe_write(nested ? " (while handling a crash)\n" : "\n");
-
-#if PARALLEL_ENABLED
-   CERR << "thread: " << reinterpret_cast<const void *>(pthread_self()) << endl;
-   Thread_context::print_all(CERR);
-#endif // PARALLEL_ENABLED
+   safe_write("\n");
 
 int pipe_fds[2] = { -1, -1 };
-   if (!nested && pipe(pipe_fds) == 0)
+   if (pipe(pipe_fds) == 0)
       {
         // never block (a full pipe only shortens the raw backtrace)
         fcntl(pipe_fds[0], F_SETFL, O_NONBLOCK);
@@ -199,8 +232,13 @@ int pipe_fds[2] = { -1, -1 };
    // (write_dump() below) follows.
    //
 const bool testing = InputFile::is_validating() && InputFile::current_file();
-   Backtrace::show_signal_safe(pipe_fds[1], nested || testing);
+   Backtrace::show_signal_safe(pipe_fds[1], testing);
    if (pipe_fds[1] != -1)   close(pipe_fds[1]);
+
+#if PARALLEL_ENABLED
+   CERR << "thread: " << reinterpret_cast<const void *>(pthread_self()) << endl;
+   Thread_context::print_all(CERR);
+#endif // PARALLEL_ENABLED
 
    // count errors
    IO_Files::assert_error();
@@ -208,16 +246,16 @@ const bool testing = InputFile::is_validating() && InputFile::current_file();
    // the old behaviour: report the crash and exit (running testcases, after
    // a nested crash, or when the crash cannot be recovered from).
    //
-const bool can_recover = recovery_point_valid && !nested && !testing &&
+const bool can_recover = recovery_point_valid && !testing &&
                          !IO_Files::exit_on_error() &&
                          pthread_equal(pthread_self(), main_thread);
 
    // 2. the best-effort part: write the crash-dump file. This uses
    // functions that are not async-signal-safe (malloc() & Co.), therefore
-   // a crash in it is caught by the nested check above, and a hang by
+   // a crash in it is caught by the in_handler check above, and a hang by
    // the alarm.
    //
-   if (!nested && !testing)
+   if (!testing)
       {
         string raw_backtrace;
         if (pipe_fds[0] != -1)
@@ -233,10 +271,8 @@ const bool can_recover = recovery_point_valid && !nested && !testing &&
              close(pipe_fds[0]);
            }
 
-        alarm(DUMP_TIMEOUT);
         const string path = write_dump(sig, info ? info->si_addr : 0,
                                        raw_backtrace);
-        alarm(0);
 
         CERR << endl
              << "*** GNU APL crashed (" << signal_name(sig) << ", "
@@ -257,13 +293,19 @@ const bool can_recover = recovery_point_valid && !nested && !testing &&
 "*** output above) to bug-apl@gnu.org.\n";
       }
 
-   if (can_recover)   siglongjmp(recovery_point, sig);
+   // other threads that crashed meanwhile are parked (see above), so the
+   // interpreter cannot continue
+   if (can_recover && !other_thread_crashed)   siglongjmp(recovery_point, sig);
 
    IO_Files::report_abnormal_exit();
 
-   // restore terminal setting and exit
+   // restore terminal setting and exit. A normal )OFF (which exit()s and
+   // runs the cleanup) only from the main thread, and only if no other
+   // thread is parked in here.
+   //
    LineInput::restore_termios();
-   if (nested)   _exit(3);   // the state is too broken for a normal )OFF
+   if (other_thread_crashed ||
+       !pthread_equal(pthread_self(), main_thread))   _exit(3);
    Command::cmd_OFF(3);
 #endif // ! MINGW_SRC
 }
@@ -276,6 +318,7 @@ CrashDump::recover(int sig)
    // crash (in_handler is still set) and exits.
    //
    Workspace::clear_SI(CERR);
+   alarm(0);
    in_handler = 0;
 
    CERR <<

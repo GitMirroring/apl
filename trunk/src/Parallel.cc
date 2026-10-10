@@ -477,6 +477,10 @@ Thread_context & tctx = *reinterpret_cast<Thread_context *>(arg);
 
    for (;;)
        {
+         // Thread_context::cleanup() unblocks the pool_sema of every worker
+         // after setting pool_exit (and then joins the worker).
+         if (Thread_context::pool_exit)   return 0;
+
          tctx.PF_fork();
          tctx.job_name = Thread_context::get_master().job_name;
          tctx.do_join = true;
@@ -484,7 +488,5 @@ Thread_context & tctx = *reinterpret_cast<Thread_context *>(arg);
          if (tctx.do_join)   tctx.PF_join();
        }
 
-   /* not reached */
-   return 0;
 }
 //════════════════════════════════════════════════════════════════════════════

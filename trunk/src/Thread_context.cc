@@ -38,6 +38,7 @@ CoreCount Thread_context::thread_contexts_count = CCNT_0;
 Thread_context::PoolFunction * Thread_context::do_work =
     &Thread_context::PF_no_work;
 volatile _Atomic_word Thread_context::busy_worker_count = 0;
+volatile bool Thread_context::pool_exit = false;
 
 //════════════════════════════════════════════════════════════════════════════
 Thread_context::Thread_context()
@@ -81,9 +82,51 @@ void
 Thread_context::cleanup()
 {
    // CERR << "Thread_context::cleanup()" << endl;
-   thread_contexts_count = CCNT_0;
 
-    delete [] thread_contexts;
+#if PARALLEL_ENABLED
+   // end the worker threads BEFORE deleting their contexts. Otherwise a
+   // worker that busy-waits in PF_fork() on get_master().job_number reads
+   // the deleted memory, takes the garbage for a new job, and crashes in
+   // do_work() (and pthread_cancel() in ~Thread_context() cannot stop it,
+   // since a busy-wait loop is no cancellation point).
+   //
+bool all_joined = true;
+   if (thread_contexts && thread_contexts_count > 1)
+      {
+        // every worker blocks on its pool_sema then
+        CPU_pool::lock_pool(false);
+
+        pool_exit = true;   // tell the workers to return from worker_main()
+        for (int c = 1; c < thread_contexts_count; ++c)
+            {
+              Thread_context & tctx = thread_contexts[c];
+              if (tctx.thread == 0)   continue;
+
+              sem_post(&tctx.pool_sema);
+# ifdef __GLIBC__
+              // do not hang at exit if a worker does not end
+              timespec deadline;
+              clock_gettime(CLOCK_REALTIME, &deadline);
+              deadline.tv_sec += 2;
+              if (pthread_timedjoin_np(tctx.thread, 0, &deadline))
+                 {
+                   all_joined = false;
+                   continue;
+                 }
+# else
+              pthread_join(tctx.thread, 0);
+# endif
+              tctx.thread = 0;   // joined (no pthread_cancel() needed)
+            }
+      }
+
+   // a worker that did not end may still use its context: rather leak the
+   // contexts (the interpreter exits anyway) than delete them under it
+   if (!all_joined)   return;
+#endif // PARALLEL_ENABLED
+
+   thread_contexts_count = CCNT_0;
+   delete [] thread_contexts;
    thread_contexts = 0;
 }
 //────────────────────────────────────────────────────────────────────────────
