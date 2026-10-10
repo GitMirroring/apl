@@ -25,7 +25,13 @@
 #include <string.h>
 #include <time.h>
 #include <unistd.h>
-#include <ucontext.h>
+
+// ucontext_t comes with <signal.h> (CrashDump.hh). <ucontext.h> is only
+// needed for REG_RIP on GNU/Linux; on macOS it is deprecated and #errors
+// unless _XOPEN_SOURCE is defined (which in turn hides NSIG & Co.).
+#ifdef __linux__
+# include <ucontext.h>
+#endif
 #include <sys/stat.h>
 
 #if ! MINGW_SRC
