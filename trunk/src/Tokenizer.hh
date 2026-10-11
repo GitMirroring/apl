@@ -204,7 +204,9 @@ protected:
    /// tokenize a Quad function or variable
    /// @param src Unicode source positioned after the ⎕ character
    /// @param tos token string that receives the resulting token
-   void tokenize_quad(Unicode_source & src, Token_string & tos) const;
+   /// tokenize a distinguished name ⎕xxx. Return true if xxx is not a
+   /// system name (and then skip it)
+   bool tokenize_quad(Unicode_source & src, Token_string & tos) const;
 
    /// tokenize a single quoted 'string'
    /// @param src Unicode source positioned after the opening quote

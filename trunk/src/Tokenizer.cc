@@ -296,6 +296,24 @@ size_t skipped_int_digits = 0;
          */
         if (skipped_0)                  // case 1
            {
+             // a zero mantissa can still have an exponent (0E0, 0.0E¯5,
+             // as displayed for a 0 in a scaled column): consume it too.
+             // Returning before it left E0 behind as a name, so that
+             // ⍎'0E0' was a VALUE ERROR (Bugs34 #8).
+             //
+             if (src.rest_len() >= 2 && (*src == UNI_E || *src == UNI_e))
+                {
+                  int skip = 0;   // length of E or E¯ before the digits
+                  if (Avec::is_digit(src[1]))   skip = 1;
+                  else if (src[1] == UNI_OVERBAR && src.rest_len() >= 3 &&
+                           Avec::is_digit(src[2]))   skip = 2;
+                  if (skip)
+                     {
+                       loop(s, skip)   ++src;
+                       while (src.has_more() && Avec::is_digit(*src))  ++src;
+                     }
+                }
+
              // an explicit decimal point (0., .0, 0.00, ...) is the
              // user's own choice of storage class, kept even though the
              // value happens to be 0 -- see the dot_seen note below.
@@ -666,7 +684,11 @@ Unicode_source src(input);
               case TC_SYMBOL:
                    if (Avec::is_quad(uni))
                       {
-                         tokenize_quad(src, tos);
+                         const int start = src.get_pos();
+                         if (tokenize_quad(src, tos))   // unknown name
+                            Error::throw_parse_error(E_SYNTAX_ERROR, input,
+                                                     start, src.get_pos(),
+                                                     LOC, loc);
                       }
                    else if (uni == UNI_QUOTE_Quad)
                       {
@@ -912,7 +934,7 @@ const Token tok = tokenize_function(uni);
    tos.push_back(tok);
 }
 //────────────────────────────────────────────────────────────────────────────
-void
+bool
 Tokenizer::tokenize_quad(Unicode_source & src, Token_string & tos) const
 {
    Log(LOG_tokenize)
@@ -922,16 +944,25 @@ Tokenizer::tokenize_quad(Unicode_source & src, Token_string & tos) const
 UCS_string ucs(UNI_Quad_Quad);
    Assert(ucs[0]);
 
-   if (src.rest_len() > 0)   ucs << src[0];
-   if (src.rest_len() > 1)   ucs << src[1];
-   if (src.rest_len() > 2)   ucs << src[2];
-   if (src.rest_len() > 3)   ucs << src[3];
-   if (src.rest_len() > 4)   ucs << src[4];
+   // ⎕ and all name characters after it (see Workspace::get_quad()),
+   // except digits: no system name contains one, and ⎕UCS20 is ⎕UCS 20
+   //
+   for (int j = 0; j < src.rest_len() && Avec::is_symbol_char(src[j]) &&
+                   !Avec::is_digit(src[j]); ++j)
+       ucs << src[j];
 
 int len = 0;
 const Token t = Workspace::get_quad(ucs, len);
+   if (len != ucs.ssize())   // unknown system name
+      {
+        MORE_ERROR() << "unknown system name " << ucs;
+        src.skip(ucs.size() - 1);
+        return true;
+      }
+
    src.skip(len - 1);
    tos.push_back(t);
+   return false;
 }
 //════════════════════════════════════════════════════════════════════════════
 /** tokenize a single quoted string.
@@ -1370,6 +1401,14 @@ uint64_t hex_val = 0;
            else if (*src <  UNI_a)   break;
            else if (*src <= UNI_f)   digit = 10 + src.get() - UNI_a;
            else                            break;
+
+           // more than 64 bits: the high digits were silently dropped,
+           // e.g. $10000000000000000 was 0 (Bugs34 #31)
+           if (hex_val >> 60)
+              {
+                MORE_ERROR() << "hex literal with more than 64 bits";
+                return Int_or_Double();   // bad number
+              }
            hex_val = hex_val << 4 | uint64_t(digit);
          }
 

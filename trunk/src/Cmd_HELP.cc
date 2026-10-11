@@ -189,7 +189,13 @@ bool left_col = true;
    loop(c, commands.size())
       {
         const UCS_string & cmd = commands[c];
-        if (left_col)
+        if (left_col && cmd.size() >= size_t(COL2 - 2))
+           {
+              // too wide for the left column (it was glued to the next
+              // command, Bugs34 #46): on a line of its own
+              out << "      " << cmd << endl;
+           }
+        else if (left_col)
            {
               out << "      " << setw(COL2 - 2) << cmd;
               left_col = false;

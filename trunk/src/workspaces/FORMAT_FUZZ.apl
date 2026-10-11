@@ -112,6 +112,7 @@ MIXED: →(TYPES>80)/NEST
 NEST: TYPES←20 25 20 10 25
 DRAW: VAL←FIX ⎕RVAL (10 30 45 15) (¯3 ¯3 ¯3) TYPES 2 9
  →((0=×/⍴VAL)∧85≥?100)/AGAIN
+ →(INDENTED VAL)/AGAIN               ⍝ output that the runner takes as input
 ENCODE: ENC←2 ⎕TF 'VAL'
  ⎕PW←10000                           ⍝ do not fold the input lines
  ⎕←'      ⍝ N=',(⍕N),'   L=',⍕∆LINE
@@ -122,6 +123,19 @@ ENCODE: ENC←2 ⎕TF 'VAL'
  ∆←{⎕←''⊣⍵}¨⍳∆BLANKS
  ∆LINE←∆LINE+3+∆BLANKS+NLINES VAL
  Z←N
+∇
+
+∇Z←INDENTED V;F
+ ⍝⍝ 1 if a (non-blank) line of the display of V starts with 6 or more
+ ⍝⍝ blanks: the testcase runner would execute it as an input line instead
+ ⍝⍝ of comparing it (Blake McBride, Bugs34 #48). ⍕ is GNU APL's display,
+ ⍝⍝ which can differ from IBM APL2's, so this catches most, not all cases.
+ F←⍕V ◊ Z←0
+ →(1≥⍴⍴F)/VEC
+ F←((×/¯1↓⍴F),¯1↑⍴F)⍴F ◊ →CHK
+VEC: F←(1,⍴F)⍴F
+CHK: →(6>¯1↑⍴F)/0
+ Z←∨/(∧/' '=F[;⍳6])∧∨/' '≠F
 ∇
 
 ∇Z←NLINES V;F;S;P

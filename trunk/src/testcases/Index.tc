@@ -103,7 +103,7 @@ RANK ERROR+
       ^      ^
 
       )MORE
-A[B]←C: expecting ⍴⍴C = 1 (a vector); ⍴⍴C is 2
+A[B]←C: expecting ⍴C to be ⍴B (2); ⍴C is 2 1
       )SIC
 
       ⍝ control: a proper vector and a 1-element (scalar-extended) C

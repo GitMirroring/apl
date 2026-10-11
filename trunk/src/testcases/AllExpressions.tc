@@ -715,6 +715,9 @@ LENGTH ERROR+
 
       )SIC
       V2[]←(⍎'8+9')÷[2]229
+RANK ERROR+
+      V2[]←(⍎'8+9')÷[2]229
+      ^    ^
       )SIC
       V0←⍎'9+5'
       )SIC

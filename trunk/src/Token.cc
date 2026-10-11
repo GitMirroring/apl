@@ -781,19 +781,25 @@ const Value & val = *get_apl_val();
       }
    else if (val.get_rank() == 1)   // vector
       {
-        if (val.element_count() == 0 &&   // empty vector
-            val.is_simple_cell(0))
+        // as in cValue::print() (Bugs34 #39)
+        if (val.element_count() == 0)
            {
              out << endl;
              return;
            }
-            
+
         pctx.set_style(PR_APL_MIN);
       }
    else                  // matrix or higher
       {
         pctx.set_style(PrintStyle(pctx.get_style() | PST_NO_FRACT_0));
       }
+
+   // the trace output displays the value like cValue::print() does, i.e.
+   // also with STRICT_IBM_APL2_FORMATTING parentheses (Bugs34 #41)
+   //
+   if (UserPreferences::uprefs.nested_parentheses)
+      pctx.set_style(PrintStyle(pctx.get_style() | PST_CS_PARENS));
 
 PrintBuffer pb(val, pctx, 0);
 const UCS_string indent(fn.size(), UNI_SPACE);

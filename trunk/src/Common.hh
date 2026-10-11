@@ -181,6 +181,11 @@ public:
   static const Function_PC2 & get_interrupt_range()
      { return interrupt_context.interrupt_range; }
 
+  /// return the executable to which the attention and interrupt ranges
+  /// belong (0 if none)
+  static const void * get_range_executable()
+     { return interrupt_context.range_executable; }
+
   /// true if Control-C was hit twice within 500 ms
   static bool interrupt_is_raised()
      {
@@ -225,6 +230,11 @@ protected:
 
   /// The range in the prefix parser when ^C was hit (twice)
   Function_PC2 interrupt_range;
+
+  /// the executable (SI top) in which the ranges above were recorded:
+  /// the error may be reported for another one (e.g. a macro's ^C for the
+  /// statement that called it), where the ranges are meaningless
+  const void * range_executable = 0;
 
   APL_time_us interrupt_when = 0;   // to detect double ^C
 

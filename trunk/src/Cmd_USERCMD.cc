@@ -36,16 +36,21 @@ bool
 Cmd_USERCMD::check_name_conflict(ostream & out, const UCS_string & cnew,
                              const UCS_string cold)
 {
-int len = cnew.size();
-        if (len > cold.ssize())   len = cold.size();
+   // commands are dispatched on the whole word (see Command::is_command()),
+   // and cannot be abbreviated, so only the same name (case-insensitive,
+   // including the ] or ) in front) is a conflict. Any common prefix was a
+   // conflict before, e.g. ]LOGGER (with ]LOG) or )X (with ]XTERM) (Bugs34
+   // #26).
+   //
+   if (cnew.size() != cold.size())   return false;   // OK: different
 
-   loop(l, len)
+   loop(l, cnew.size())
       {
         int c1 = cnew[l];
         int c2 = cold[l];
         if (c1 >= 'a' && c1 <= 'z')   c1 -= 0x20;   // uppercase
         if (c2 >= 'a' && c2 <= 'z')   c2 -= 0x20;   // uppercase
-        if (l && (c1 != c2))   return false;   // OK: different
+        if (c1 != c2)   return false;   // OK: different
      }
 
    out << "BAD COMMAND+" << endl;
@@ -55,7 +60,7 @@ int len = cnew.size();
    return true;
 }
 //────────────────────────────────────────────────────────────────────────────
-bool
+int
 Cmd_USERCMD::check_redefinition(ostream & out, const UCS_string & cnew,
                             const UCS_string fnew, const int mnew)
 {
@@ -74,11 +79,12 @@ Cmd_USERCMD::check_redefinition(ostream & out, const UCS_string & cnew,
            MORE_ERROR() <<
            "conflict with existing user command definition in command ]USERCMD";
            if (Command::auto_MORE)   CERR << Workspace::more_error() << endl;
+           return 2;   // refused
          }
-       return true;
+       return 1;   // identical
      }
 
-   return false;
+   return 0;   // new
 }
 //════════════════════════════════════════════════════════════════════════════
 void
@@ -254,11 +260,16 @@ int mode = 0;
 #define cmd_def(cmd_str, _cmd, _arg, _hint) \
    if (check_name_conflict(out, UTF8_string(cmd_str), command_name))   return;
 #include "Command.def"
-   if (check_redefinition(out, command_name, apl_fun, mode))
+   // an identical redefinition is fine, a different one has been refused
+   // (BAD COMMAND+, and then not "installed" as well, Bugs34 #47)
+   //
+   switch(check_redefinition(out, command_name, apl_fun, mode))
      {
-       out << "    User-defined command "
-           << command_name << " installed." << endl;
-       return;
+       case 0:   break;   // new user command
+       case 1:   out << "    User-defined command "
+                     << command_name << " installed." << endl;
+                 return;
+       default:  return;   // refused
      }
 
    // check APL function name

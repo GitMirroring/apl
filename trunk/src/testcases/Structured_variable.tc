@@ -230,33 +230,33 @@ VALENCE ERROR+
       ⍝ assertion and a raw )SI dump instead of a clean SYNTAX ERROR.
       ⍝
       A.⎕I↓←1
-SYNTAX ERROR
-      A.⎕ I↓←1
-       ^     ^
+SYNTAX ERROR+
+      ⎕I
+      ^ ^
 
       )SIC
       A.⎕A↓←1
-SYNTAX ERROR
-      A.⎕ A↓←1
-       ^     ^
+SYNTAX ERROR+
+      ⎕A
+      ^ ^
 
       )SIC
       A.⎕Z↓←1
-SYNTAX ERROR
-      A.⎕ Z↓←1
-       ^     ^
+SYNTAX ERROR+
+      ⎕Z
+      ^ ^
 
       )SIC
       A.⎕FMT↓←1
-SYNTAX ERROR
-      A.⎕ FMT↓←1
-       ^       ^
+SYNTAX ERROR+
+      ⎕FMT
+      ^   ^
 
       )SIC
       foo.bar.⎕I↓←1
-SYNTAX ERROR
-      foo.bar.⎕ I↓←1
-             ^     ^
+SYNTAX ERROR+
+      ⎕I
+      ^ ^
 
       )SIC
 

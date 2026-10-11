@@ -10772,11 +10772,19 @@ preference @b{STRICT_IBM_APL2_FORMATTING} in a preferences file
 
       The blanks around nested items carry the structure of a value, but
       make it invisible (see Recursion below); the parentheses make it
-      visible. A one-line display of a nested vector then reads back as
-      the same value, unless it contains enclosed scalars:
-      @code{(⊂⊂1 2) 3} is displayed as @code{(((1 2))) 3}, one pair of
-      parentheses per level of nesting, but redundant parentheses on
-      input enclose nothing.
+      visible. A one-line display of a nested vector of numbers then
+      reads back as the same value, for example @code{(1 2) 3} or
+      @code{1.5 (2.5 3) ¯4}, but not if it contains:
+      @itemize
+      @item character items: @code{'AB' (1 2)} is displayed as
+            @code{(AB) (1 2)}, without quotes,
+      @item empty items: @code{1 ⍬ 2} is displayed as @code{1 () 2},
+      @item one-item vectors: @code{(,1) (,2)} is displayed as
+            @code{(1) (2)}, which reads back as @code{1 2}, or
+      @item enclosed scalars: @code{(⊂⊂1 2) 3} is displayed as
+            @code{(((1 2))) 3}, one pair of parentheses per level of
+            nesting, but redundant parentheses on input enclose nothing.
+      @end itemize
 @end itemize
 
 The preference is read once, when the interpreter starts; it cannot be
@@ -11093,12 +11101,13 @@ program that needs to reproduce a value from text should use @b{2 ⎕TF} instead
       non-integer number as a floating point (or complex) array (LRM
       p. 12). Its integers are then formatted like real numbers and can
       cause the scaling of their column: @code{163710 1.8E¯11} with
-      @b{⎕PP←5} is displayed as @code{1.6371E5 1.8E¯11}. This also
-      happens in a mixed vector whose numbers were a numeric strand,
-      e.g. @code{9.81 9716500 'X'} is displayed as
-      @code{9.81 9.7165E6 X}, because the numeric literal
-      @code{9.81 9716500} is stored as a floating point vector before
-      @code{'X'} is appended.
+      @b{⎕PP←5} is displayed as @code{1.6371E5 1.8E¯11}. In a mixed
+      array, however, IBM APL2 displays an integral number with all its
+      digits, e.g. @code{10000000} in @code{2 3⍴10000000 1.527E¯8 0 'a'
+      'b' 'c'} with @b{⎕PP←5} (verified with IBM APL2; the LRM, p. 12,
+      shows @code{9.81 9716500 'X'} as @code{9.81 9.7165E6 X}). In GNU
+      APL an integer stays an integer in all modes; only its display
+      follows these rules.
 
 @item @b{Column scaling:} a column of a simple numeric array is also
       scaled if its numbers span about 7 or more decimal orders of
@@ -11115,7 +11124,12 @@ program that needs to reproduce a value from text should use @b{2 ⎕TF} instead
       an unscaled real part is right-aligned and a scaled real part is
       aligned at its decimal point. The J and the imaginary part follow
       the real part directly, so a complex number never contains
-      blanks (unlike some LRM examples):
+      blanks (unlike some LRM examples). Not yet implemented in strict
+      mode (IBM APL2 differs in some cases): the real sub-column is as
+      wide as its widest item (not as if decimal-aligned), a scaled real
+      part is right-aligned when the exponents differ in width, and the
+      real part of a lone complex scalar is scaled if its imaginary part
+      is scaled (e.g. @code{9.5715E3J1.824E5}):
 
 @example
       ⎕PP←5
@@ -11137,7 +11151,8 @@ program that needs to reproduce a value from text should use @b{2 ⎕TF} instead
       or J's: @code{3 1⍴600 'A' 0.25} is displayed as @code{ 600},
       @code{   A}, @code{0.25}. A nested item in a column that contains
       numbers is left-aligned, also a character vector (contrary to LRM
-      p. 19):
+      p. 19). IBM APL2 right-aligns it in some cases whose rule is not
+      yet known (not yet implemented in strict mode):
 
 @example
       3 1⍴379 (1 2) 123456
@@ -11170,10 +11185,10 @@ e.g. @code{163710 1.8E¯11} with @b{⎕PP←5} @tab
 Can cause scaling: @code{1.6371E5} @tab
 Never cause scaling: @code{163710} @tab
 as IBM APL2
-@item Integers in a numeric strand of a mixed vector, e.g.
-@code{9.81 9716500 'X'} @tab
-Scaled: @code{9.7165E6} @tab
-Not scaled: @code{9716500} @tab
+@item Integral numbers in a mixed array, e.g.
+@code{10000000} in @code{2 3⍴10000000 1.527E¯8 0 'a' 'b' 'c'} @tab
+Not scaled (the LRM, p. 12, shows them scaled) @tab
+Not scaled @tab
 as IBM APL2
 @item Column of a simple numeric array spanning about 7 or more decimal
 orders of magnitude @tab
@@ -11185,14 +11200,27 @@ All columns of a complex array; real parts right-aligned or (if
 scaled) aligned at the decimal point @tab
 Only columns with complex numbers; J's aligned @tab
 as IBM APL2
+@item Width of the real sub-column of a complex column @tab
+The widest real part @tab
+As if aligned at the decimal points @tab
+not yet
+@item Scaled real parts whose exponents differ in width @tab
+Right-aligned @tab
+Aligned at the decimal point @tab
+not yet
+@item A complex scalar with a scaled imaginary part, e.g.
+@code{9571.5J182400} @tab
+Real part scaled too: @code{9.5715E3J1.824E5} @tab
+Real part not scaled: @code{9571.5J1.824E5} @tab
+not yet
 @item Unscaled real numbers in a column of a mixed or nested array @tab
 Right-aligned @tab
 Aligned at their decimal points @tab
 as IBM APL2
 @item Nested items in a column that contains numbers @tab
-Left-aligned @tab
+Left-aligned, in some (not yet understood) cases right-aligned @tab
 Right-aligned @tab
-as IBM APL2
+left-aligned only (not yet)
 @item Empty array of rank 2 or more, e.g. @code{2 3 0⍴0} @tab
 Empty lines (6) @tab
 Nothing @tab

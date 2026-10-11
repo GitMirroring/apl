@@ -1003,6 +1003,14 @@ const ShapeItem ec = value.nz_element_count();
 Value_P
 Quad_TF::tf1(const UCS_string & var_name, Value_P val)
 {
+   // the migration form cannot represent a nested array (LRM p.338): ''
+   // as for a non-empty nested value below. For an empty value, cell 0 is
+   // the prototype, and the per-cell check below never runs, so an empty
+   // nested value was written as a numeric one (Bugs34 #13).
+   //
+   if (val->element_count() == 0 && val->is_pointer_cell(0))
+      return Str0(LOC);
+
 const bool is_char_array = val->is_character_cell(0);
 UCS_string ucs(is_char_array ? UNI_C : UNI_N);
 

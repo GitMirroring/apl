@@ -77,7 +77,8 @@
 
 
 
-      ⍝ integers in a numeric literal with a non-integer are floats (and may be scaled)
+      ⍝ integral numbers of a mixed array are displayed with all their digits
+      ⍝ (as IBM APL2 does it, see FORMAT_FUZZ.tc; Bugs34 #7, #22)
       ⍝
 
       ⎕PP←5
@@ -87,14 +88,14 @@
 
 
       9.81 9716500 'X'
-9.81 9.7165E6 X
+9.81 9716500 X
 
 
 
 
 
       'X' 9716500 9.81
-X 9.7165E6 9.81
+X 9716500 9.81
 
 
 
@@ -108,7 +109,7 @@ X 9.7165E6 9.81
 
 
       2J1 9716500 'X'
-2J1 9.7165E6 X
+2J1 9716500 X
 
 
 
@@ -180,6 +181,49 @@ X 9.7165E6 9.81
 
 
       ⎕PP←10
+
+
+
+
+
+
+      ⍝ the preference affects the display only: the integers of a numeric
+      ⍝ strand with a non-integer stay integers (they were stored as floats,
+      ⍝ which changed values above 2⋆53, Bugs34 #7)
+      ⍝
+      ⎕CT←0
+
+
+
+
+
+      X←0.5 9007199254740993
+
+
+
+
+
+      X[2]=9007199254740993
+1
+
+
+
+
+
+      Q←1 2.5 9007199254740993
+
+
+
+
+
+      2 ⎕TF 'Q'
+Q←1 2.5 9007199254740993
+
+
+
+
+
+      ⎕CT←1E¯13
 
 
 

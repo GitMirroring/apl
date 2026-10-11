@@ -75,7 +75,7 @@ protected:
    enum ArchiveSyntax
       {
         ASX_MAJOR =  1,   ///< ++ if incompatible XML file format change
-        ASX_MINOR = 14,  ///< ++ if backward compatible XML file format change
+        ASX_MINOR = 15,  ///< ++ if backward compatible XML file format change
         ASX_OTHER =  8,   ///< ++ if no XML file format change (code cleanup)
       };
 

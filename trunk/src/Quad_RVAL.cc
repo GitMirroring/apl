@@ -795,7 +795,7 @@ Value_P Z = IntScalar(desired_maxdepth, LOC);
    if (B.element_count())   // set the desired maxdepth
       {
         const APL_Integer mxd = B.get_int_value(0);
-        if (mxd < 0)
+        if (mxd < 0 || mxd > INT_MAX)   // was truncated to int (Bugs34 #30)
            {
              MORE_ERROR() << "bad max.depth";
              DOMAIN_ERROR;
@@ -961,6 +961,19 @@ Value_P Z(MAX_RANK, LOC);
              // fill lower dimensions with B
               loop(b, len_B)
                   new_shape.add_shape_item(B.get_int_value(b));
+           }
+
+        // the shape items are used as int (see choose_integer()); a larger
+        // one was silently truncated, e.g. 2⋆32 became 0 (Bugs34 #30)
+        //
+        loop(r, new_shape.get_rank())
+           {
+             const ShapeItem item = new_shape.get_shape_item(r);
+             if (item > INT_MAX || item <= -INT_MAX)
+                {
+                  MORE_ERROR() << "2 ⎕RVAL B: bad shape item " << item;
+                  DOMAIN_ERROR;
+                }
            }
 
         desired_shape = new_shape;

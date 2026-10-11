@@ -411,11 +411,12 @@ Workspace::get_quad(const UCS_string & ucs, int & len)
        return Token();
      }
 
+   // a distinguished name is ⎕ followed by ALL name characters (as ABX is
+   // one name and not AB X). Only an exact match is a system name; the
+   // longest known prefix was taken before, e.g. ⎕PPX←7 was ⎕PP X←7 and
+   // assigned the user variable X (Bugs34 #21).
+   //
 UCS_string name(UNI_Quad_Quad);
-   len = 1;
-
-SystemName * longest = 0;
-
    for (ShapeItem u = 1; u < ucs.ssize(); ++u)
       {
         Unicode uni = ucs[u];
@@ -423,20 +424,19 @@ SystemName * longest = 0;
 
         if (uni >= 'a' && uni <= 'z')   uni = Unicode(uni - 0x20);
         name << uni;
-        SystemName * dn =
-               the_workspace.distinguished_names.lookup_existing_symbol(name);
-
-        if (dn)   // ss is a valid distinguished name
-           {
-             longest = dn;
-             len = name.size();
-           }
       }
 
-   if (longest == 0)   return Token(TOK_Quad_Quad, &the_workspace.v_Quad_Quad);
+SystemName * dn = name.size() == 1 ? 0
+                : the_workspace.distinguished_names.lookup_existing_symbol(name);
+   if (dn == 0)   // ⎕ alone, or an unknown name ⎕xxx (then len < ⍴⎕xxx)
+      {
+        len = 1;
+        return Token(TOK_Quad_Quad, &the_workspace.v_Quad_Quad);
+      }
 
-   if (longest->get_variable())   return longest->get_variable()->get_token();
-   else                           return longest->get_function()->get_token();
+   len = name.size();
+   if (dn->get_variable())   return dn->get_variable()->get_token();
+   else                      return dn->get_function()->get_token();
 }
 //────────────────────────────────────────────────────────────────────────────
 StateIndicator *

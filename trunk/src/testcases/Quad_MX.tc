@@ -3,7 +3,7 @@
 
 ⍝@ test3.
 
-      ⍝]NEXTFILE not-⎕MX   ⍝ done if ⎕MX is not available
+      ]NEXTFILE NO-GSL   ⍝ done if ⎕MX is not available (no GSL)
 
       ⎕CT ← 1E¯9
       ⎕PP ← 6
@@ -135,12 +135,12 @@ DOMAIN ERROR+
       ⎕MX[4] 0 0⍴0
 LENGTH ERROR+
       ⎕MX[4]0 0⍴0
-          ^ ^
+      ^     ^
 
       ⎕MX[5] 0 0⍴0
 LENGTH ERROR+
       ⎕MX[5]0 0⍴0
-          ^ ^
+      ^     ^
 
       ⍝ #3: ⎕MX[1] (determinant) of a 1×1 matrix used to return 0 instead
       ⍝ of the single element (getDet() had no rows()==1 base case).

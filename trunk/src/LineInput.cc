@@ -793,19 +793,27 @@ const APL_time_us from = now();
         for (int control_D_count = 0;;)
            {
              CIN << '\r' << prompt;
+             // read the line in chunks until its \n (or EOF): a line
+             // longer than one buffer was returned as several lines (and
+             // could even be split inside a UTF-8 sequence, Bugs34 #28)
+             //
+             std::string acc;
+             bool got_input = false;
              char buffer[4000];
-             const char * s = fgets(buffer, sizeof(buffer) - 1, stdin);
+             while (fgets(buffer, sizeof(buffer), stdin))
+                {
+                  got_input = true;
+                  acc += buffer;
+                  if (acc.size() && acc.back() == '\n')   break;
+                }
              Workspace::add_wait(now() - from);
 
-             if (s != 0)
+             if (got_input)
                 {
-                  buffer[sizeof(buffer) - 1] = 0;
+                  if (acc.size() && acc.back() == '\n')   acc.pop_back();
+                  if (acc.size() && acc.back() == '\r')   acc.pop_back();
 
-                  int slen = strlen(buffer);
-                  if (slen && buffer[slen - 1] == '\n')   buffer[--slen] = 0;
-                  if (slen && buffer[slen - 1] == '\r')   buffer[--slen] = 0;
-
-                  UTF8_string line_utf(buffer);
+                  UTF8_string line_utf(acc.c_str());
                   line = UCS_string(line_utf);
                   return;
                 }

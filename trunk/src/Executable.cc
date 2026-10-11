@@ -135,7 +135,18 @@ StateIndicator & si = *Workspace::SI_top();
         // McBride, Bugs32 #25). Not earlier (e.g. when the error is thrown):
         // an error caught inside a primitive does not end the statement.
         //
-        si.get_prefix().neutralize_lval_values();
+        // ⎕ES may have popped si already (e.g. a LENGTH ERROR of A{⍺}¨B,
+        // raised by ⎕ES in a macro frame, Bugs34 #4): then si is deleted
+        // and must not be touched.
+        //
+        for (StateIndicator * s = Workspace::SI_top(); s; s = s->get_parent())
+            {
+              if (s == &si)
+                 {
+                   si.get_prefix().neutralize_lval_values();
+                   break;
+                 }
+            }
         return Token(TOK_ERROR, err.get_error_code());
       }
 
@@ -455,15 +466,26 @@ Executable::set_error_info(Error & error, Function_PC2 body_from_to) const
            attention_raised was checked and not when attention_raised was
            raised. We use attention_range instead.
          */
-        if (InterruptContext::get_attention_range().low != Function_PC_invalid)
+        // the range was recorded in the SI top when ^C was hit, which may
+        // be another executable (e.g. the macro of LO⍣RO, whose error is
+        // reported for the calling statement): then it is not a range of
+        // this body (Assert() in get_statement_start(), Bugs34 #37)
+        //
+        if (InterruptContext::get_attention_range().low != Function_PC_invalid &&
+            InterruptContext::get_range_executable() == this)
            {
              body_from_to = InterruptContext::get_attention_range();
            }
         else
            {
+             // the PC of this executable (which need not be the SI top,
+             // see above)
              const StateIndicator * si = Workspace::SI_top();
+             while (si->get_parent() && si->get_executable() != this)
+                   si = si->get_parent();
              const Prefix & prefix = si->get_prefix();
-             const Function_PC pc(prefix.get_PC() - 1);
+             Function_PC pc(prefix.get_PC() - 1);
+             if (pc >= Function_PC(body.size()))   pc = Function_PC_0;
              body_from_to.low  = pc;
              body_from_to.high = pc;
            }
@@ -477,15 +499,26 @@ Executable::set_error_info(Error & error, Function_PC2 body_from_to) const
            Note that E_INTERRUPT may also be raised synchronously, e.g.
            when a system limit was hit.
          */
-        if (InterruptContext::get_interrupt_range().low != Function_PC_invalid)
+        // the range was recorded in the SI top when ^C was hit, which may
+        // be another executable (e.g. the macro of LO⍣RO, whose error is
+        // reported for the calling statement): then it is not a range of
+        // this body (Assert() in get_statement_start(), Bugs34 #37)
+        //
+        if (InterruptContext::get_interrupt_range().low != Function_PC_invalid &&
+            InterruptContext::get_range_executable() == this)
            {
              body_from_to = InterruptContext::get_interrupt_range();
            }
         else
            {
+             // the PC of this executable (which need not be the SI top,
+             // see above)
              const StateIndicator * si = Workspace::SI_top();
+             while (si->get_parent() && si->get_executable() != this)
+                   si = si->get_parent();
              const Prefix & prefix = si->get_prefix();
-             const Function_PC pc(prefix.get_PC() - 1);
+             Function_PC pc(prefix.get_PC() - 1);
+             if (pc >= Function_PC(body.size()))   pc = Function_PC_0;
              body_from_to.low  = pc;
              body_from_to.high = pc;
            }
@@ -585,6 +618,31 @@ vector<int>ranges_before;   ranges_before.reserve(stat_before.size());
              ranges_before.push_back(PC_after);   // ⍴
              ranges_before.push_back(PC_after);   // B
              optimized = true;
+           }
+        else if (PC_after < stat_after.ssize() &&
+                 (stat_after[PC_after].get_tag() == TOK_FAXIS ||
+                  stat_after[PC_after].get_tag() == TOK_AXIS  ||
+                  stat_after[PC_after].get_tag() == TOK_INDEX) &&
+                 (stat_before[ranges_before.size()].get_tag() == TOK_L_BRACK ||
+                  stat_before[ranges_before.size()].get_tag() == TOK_R_BRACK))
+           {
+             // a literal axis or index: Parser::optimize_literal_axes()
+             // replaced [ N ] (or [ ]) by a single token in the optimized
+             // body only. Without this, every token right of it was
+             // mapped 2 positions off (misplaced carets, Bugs34 #32).
+             // NOTE: the position in stat_before is ranges_before.size()
+             // (PC_before lags behind after an A⍴B above).
+             //
+             const TokenTag other =
+                   stat_before[ranges_before.size()].get_tag() == TOK_L_BRACK
+                 ? TOK_R_BRACK : TOK_L_BRACK;
+             ranges_before.push_back(PC_after);   // [ or ]
+             while (int(ranges_before.size()) < stat_before.ssize())
+                {
+                  const TokenTag tag = stat_before[ranges_before.size()].get_tag();
+                  ranges_before.push_back(PC_after);
+                  if (tag == other)   break;
+                }
            }
         else
            {

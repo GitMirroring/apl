@@ -76,7 +76,7 @@ Next: <a href="#Installing-and-Starting-GNU-APL" accesskey="n" rel="next">Instal
 </div>
 <span id="GNU-APL-Reference-Manual"></span><h1 class="top">GNU APL Reference Manual</h1>
 
-<p>October 8, 2026.
+<p>October 11, 2026.
 This manual briefly documents GNU APL, an interpreter for APL as described
 in ISO standard 13751, aka. &quot;Programming Language APL, Extended&quot;.
 </p>
@@ -12315,12 +12315,20 @@ preference <b>STRICT_IBM_APL2_FORMATTING</b> in a preferences file
 
 <p>The blanks around nested items carry the structure of a value, but
       make it invisible (see Recursion below); the parentheses make it
-      visible. A one-line display of a nested vector then reads back as
-      the same value, unless it contains enclosed scalars:
-      <code>(⊂⊂1 2) 3</code> is displayed as <code>(((1 2))) 3</code>, one pair of
-      parentheses per level of nesting, but redundant parentheses on
-      input enclose nothing.
-</p></li></ul>
+      visible. A one-line display of a nested vector of numbers then
+      reads back as the same value, for example <code>(1 2) 3</code> or
+      <code>1.5 (2.5 3) ¯4</code>, but not if it contains:
+      </p><ul>
+<li> character items: <code>'AB' (1 2)</code> is displayed as
+            <code>(AB) (1 2)</code>, without quotes,
+      </li><li> empty items: <code>1 ⍬ 2</code> is displayed as <code>1 () 2</code>,
+      </li><li> one-item vectors: <code>(,1) (,2)</code> is displayed as
+            <code>(1) (2)</code>, which reads back as <code>1 2</code>, or
+      </li><li> enclosed scalars: <code>(⊂⊂1 2) 3</code> is displayed as
+            <code>(((1 2))) 3</code>, one pair of parentheses per level of
+            nesting, but redundant parentheses on input enclose nothing.
+      </li></ul>
+</li></ul>
 
 <p>The preference is read once, when the interpreter starts; it cannot be
 changed in a running interpreter. It affects the display of values and
@@ -12636,12 +12644,13 @@ program that needs to reproduce a value from text should use <b>2 ⎕TF</b> inst
       non-integer number as a floating point (or complex) array (LRM
       p. 12). Its integers are then formatted like real numbers and can
       cause the scaling of their column: <code>163710 1.8E¯11</code> with
-      <b>⎕PP←5</b> is displayed as <code>1.6371E5 1.8E¯11</code>. This also
-      happens in a mixed vector whose numbers were a numeric strand,
-      e.g. <code>9.81 9716500 'X'</code> is displayed as
-      <code>9.81 9.7165E6 X</code>, because the numeric literal
-      <code>9.81 9716500</code> is stored as a floating point vector before
-      <code>'X'</code> is appended.
+      <b>⎕PP←5</b> is displayed as <code>1.6371E5 1.8E¯11</code>. In a mixed
+      array, however, IBM APL2 displays an integral number with all its
+      digits, e.g. <code>10000000</code> in <code>2 3⍴10000000 1.527E¯8 0 'a'
+      'b' 'c'</code> with <b>⎕PP←5</b> (verified with IBM APL2; the LRM, p. 12,
+      shows <code>9.81 9716500 'X'</code> as <code>9.81 9.7165E6 X</code>). In GNU
+      APL an integer stays an integer in all modes; only its display
+      follows these rules.
 
 </li><li> <b>Column scaling:</b> a column of a simple numeric array is also
       scaled if its numbers span about 7 or more decimal orders of
@@ -12658,7 +12667,12 @@ program that needs to reproduce a value from text should use <b>2 ⎕TF</b> inst
       an unscaled real part is right-aligned and a scaled real part is
       aligned at its decimal point. The J and the imaginary part follow
       the real part directly, so a complex number never contains
-      blanks (unlike some LRM examples):
+      blanks (unlike some LRM examples). Not yet implemented in strict
+      mode (IBM APL2 differs in some cases): the real sub-column is as
+      wide as its widest item (not as if decimal-aligned), a scaled real
+      part is right-aligned when the exponents differ in width, and the
+      real part of a lone complex scalar is scaled if its imaginary part
+      is scaled (e.g. <code>9.5715E3J1.824E5</code>):
 
 <div class="example">
 <pre class="example">      ⎕PP←5
@@ -12680,7 +12694,8 @@ program that needs to reproduce a value from text should use <b>2 ⎕TF</b> inst
       or J&rsquo;s: <code>3 1⍴600 'A' 0.25</code> is displayed as <code> 600</code>,
       <code>   A</code>, <code>0.25</code>. A nested item in a column that contains
       numbers is left-aligned, also a character vector (contrary to LRM
-      p. 19):
+      p. 19). IBM APL2 right-aligns it in some cases whose rule is not
+      yet known (not yet implemented in strict mode):
 
 <div class="example">
 <pre class="example">      3 1⍴379 (1 2) 123456
@@ -12710,14 +12725,18 @@ number that cannot be read back. The last column tells if
 <thead><tr><th width="25%">Case</th><th width="30%">IBM APL2</th><th width="30%">GNU APL (default)</th><th width="15%">Strict mode</th></tr></thead>
 <tr><td width="25%">Integers in a simple numeric array with non-integer numbers,
 e.g. <code>163710 1.8E¯11</code> with <b>⎕PP←5</b></td><td width="30%">Can cause scaling: <code>1.6371E5</code></td><td width="30%">Never cause scaling: <code>163710</code></td><td width="15%">as IBM APL2</td></tr>
-<tr><td width="25%">Integers in a numeric strand of a mixed vector, e.g.
-<code>9.81 9716500 'X'</code></td><td width="30%">Scaled: <code>9.7165E6</code></td><td width="30%">Not scaled: <code>9716500</code></td><td width="15%">as IBM APL2</td></tr>
+<tr><td width="25%">Integral numbers in a mixed array, e.g.
+<code>10000000</code> in <code>2 3⍴10000000 1.527E¯8 0 'a' 'b' 'c'</code></td><td width="30%">Not scaled (the LRM, p. 12, shows them scaled)</td><td width="30%">Not scaled</td><td width="15%">as IBM APL2</td></tr>
 <tr><td width="25%">Column of a simple numeric array spanning about 7 or more decimal
 orders of magnitude</td><td width="30%">Scaled</td><td width="30%">Scaled only if an item needs it</td><td width="15%">not yet</td></tr>
 <tr><td width="25%">Complex columns</td><td width="30%">All columns of a complex array; real parts right-aligned or (if
 scaled) aligned at the decimal point</td><td width="30%">Only columns with complex numbers; J&rsquo;s aligned</td><td width="15%">as IBM APL2</td></tr>
+<tr><td width="25%">Width of the real sub-column of a complex column</td><td width="30%">The widest real part</td><td width="30%">As if aligned at the decimal points</td><td width="15%">not yet</td></tr>
+<tr><td width="25%">Scaled real parts whose exponents differ in width</td><td width="30%">Right-aligned</td><td width="30%">Aligned at the decimal point</td><td width="15%">not yet</td></tr>
+<tr><td width="25%">A complex scalar with a scaled imaginary part, e.g.
+<code>9571.5J182400</code></td><td width="30%">Real part scaled too: <code>9.5715E3J1.824E5</code></td><td width="30%">Real part not scaled: <code>9571.5J1.824E5</code></td><td width="15%">not yet</td></tr>
 <tr><td width="25%">Unscaled real numbers in a column of a mixed or nested array</td><td width="30%">Right-aligned</td><td width="30%">Aligned at their decimal points</td><td width="15%">as IBM APL2</td></tr>
-<tr><td width="25%">Nested items in a column that contains numbers</td><td width="30%">Left-aligned</td><td width="30%">Right-aligned</td><td width="15%">as IBM APL2</td></tr>
+<tr><td width="25%">Nested items in a column that contains numbers</td><td width="30%">Left-aligned, in some (not yet understood) cases right-aligned</td><td width="30%">Right-aligned</td><td width="15%">left-aligned only (not yet)</td></tr>
 <tr><td width="25%">Empty array of rank 2 or more, e.g. <code>2 3 0⍴0</code></td><td width="30%">Empty lines (6)</td><td width="30%">Nothing</td><td width="15%">as IBM APL2</td></tr>
 <tr><td width="25%">Empty nested item, e.g. <code>1 (0 3⍴0) 2</code></td><td width="30%">As wide as one row of its prototype; spacing by its rank</td><td width="30%">A single blank, spaced like a simple cell</td><td width="15%">not yet</td></tr>
 </table>

@@ -1081,11 +1081,20 @@ bool macro_popped = false;
    // ⎕EC/⎕EA for this error. ⎕ES without an enclosing defined function
    // (e.g. ⍎'⎕ES 5 4' in immediate execution) is reported where it is.
    //
+UCS_string B_failure;   // of an A ⎕EB B on the way (if any)
    {
      const StateIndicator * issuer = Workspace::SI_top();
      while (issuer)
         {
           if (issuer->is_safe_execution_start())   { issuer = 0;   break; }
+
+          // ⎕ES in immediate execution has no issuer: the frames below
+          // belong to earlier (suspended) statements, whose suspension
+          // ⎕ES removed while reporting at their statement (Bugs34 #20)
+          //
+          if (issuer->get_parse_mode() == PM_STATEMENT_LIST)
+             { issuer = 0;   break; }
+
           const UserFunction * ufun = issuer->get_executable()->get_exec_ufun();
           if (ufun && !ufun->is_macro())   break;   // found
           issuer = issuer->get_parent();
@@ -1093,11 +1102,35 @@ bool macro_popped = false;
 
      if (issuer && issuer->get_parent())
         {
+          // the frames popped below may contain an A ⎕EB B macro whose B
+          // has failed (and ⎕ES is its cleanup A): keep that failure for
+          // )MORE, which update_error_info() looks up in the (then
+          // popped) frames (Bugs34 #34)
+          //
+          for (const StateIndicator * s = Workspace::SI_top();
+               s && s != issuer; s = s->get_parent())
+              {
+                if (s->get_EB_B_failure().size())
+                   {
+                     B_failure = s->get_EB_B_failure();
+                     break;
+                   }
+                if (s->is_safe_execution_start())   break;
+              }
+
           while (Workspace::SI_top() != issuer)   Workspace::pop_SI(LOC);
           Workspace::pop_SI(LOC);   // the issuer itself
           error.set_show_locked(false);
         }
    }
+
+   if (B_failure.size())   // see above (before update_error_info() copies
+      {                     // error into the SI entry)
+        UCS_string & more = MORE_ERROR();
+        if (more.size())   more << UNI_LF;
+        more << B_failure;
+        error.add_MORE_indicator(true);
+      }
 
    error.update_error_info(Workspace::SI_top());
    return Token();

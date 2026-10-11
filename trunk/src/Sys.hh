@@ -293,8 +293,11 @@ public:
    existing zombies. Unlike SIG_IGN, a handler is also reset by execve(),
    so that programs started by GNU APL get a default SIGCHLD.
  */
-/// the maximum number of not yet reaped children registered at the same time
-enum { MAX_AUTO_REAP = 256 };
+/// the maximum number of not yet reaped children registered at the same
+/// time. 256 was easily reached by a server-style workspace that starts a
+/// ⎕FIO[57] child per request (Bugs34 #38). The table cannot grow while the
+/// SIGCHLD handler (possibly in another thread) may be using it.
+enum { MAX_AUTO_REAP = 4096 };
 
 /// the pids of children to be reaped by sys_SIGCHLD_handler() (0 = free)
 inline volatile sig_atomic_t * sys_auto_reap_pids()
@@ -350,11 +353,28 @@ sigset_t block, old;
    pthread_sigmask(SIG_BLOCK, &block, &old);
 
 volatile sig_atomic_t * pids = sys_auto_reap_pids();
+bool registered = false;
    for (int p = 0; p < MAX_AUTO_REAP; ++p)
        {
-         if (pids[p] == 0)   { pids[p] = pid;   break; }
+         if (pids[p] == 0)   { pids[p] = pid;   registered = true;   break; }
        }
    sys_SIGCHLD_handler(SIGCHLD);
+
+   // the pid used to be dropped silently, so that the child became a
+   // zombie for good: at least say so (once)
+   //
+   if (!registered)
+      {
+        static bool warned = false;
+        if (!warned)
+           {
+             warned = true;
+             std::cerr << "*** more than " << int(MAX_AUTO_REAP)
+                       << " child processes are running; children that"
+                          " terminate from now on may remain zombies"
+                       << std::endl;
+           }
+      }
 
    pthread_sigmask(SIG_SETMASK, &old, 0);
 #endif // ! MINGW_SRC

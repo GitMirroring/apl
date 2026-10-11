@@ -1596,117 +1596,63 @@ UCS_string ret;
 
    if (v < 0.0)   { ret << UNI_OVERBAR;   v = -v; }
 
-int expo = 0;
-   while (v >= 1.0E1)   // scale large v ≥ 10 down to [1:10)
-      {
-        if (v >= 1.0E9)
-           if (v >= 1.0E13)
-              if (v >= 1.0E15)
-                 if     (v >= 1.0E16)      { v = v * 1.0E-16;   expo += 16; }
-                 else /* v >= 1.0E15 */    { v = v * 1.0E-15;   expo += 15; }
-              else
-                 if     (v >= 1.0E14)      { v = v * 1.0E-14;   expo += 14; }
-                 else /* v >= 1.0E13 */    { v = v * 1.0E-13;   expo += 13; }
-           else
-              if (v >= 1.0E11)
-                 if     (v >= 1.0E12)      { v = v * 1.0E-12;   expo += 12; }
-                 else /* v >= 1.0E11 */    { v = v * 1.0E-11;   expo += 11; }
-              else
-                 if     (v >= 1.0E10)      { v = v * 1.0E-10;   expo += 10; }
-                 else /* v >= 1.0E9 */     { v = v * 1.0E-9;    expo += 9;  }
-        else
-           if (v >= 1.0E5)
-              if (v >= 1.0E7)
-                 if     (v >= 1.0E8)       { v = v * 1.0E-8;    expo += 8;  }
-                 else /* v >= 1.0E7 */     { v = v * 1.0E-7;    expo += 7;  }
-              else
-                 if     (v >= 1.0E6)       { v = v * 1.0E-6;    expo += 6;  }
-                 else /* v >= 1.0E5 */     { v = v * 1.0E-5;    expo += 5;  }
-           else
-              if (v >= 1.0E3)
-                 if     (v >= 1.0E4)       { v = v * 1.0E-4;    expo += 4;  }
-                 else /* v >= 1.0E3 */     { v = v * 1.0E-3;    expo += 3;  }
-              else
-                 if     (v >= 1.0E2)       { v = v * 1.0E-2;    expo += 2;  }
-                 else /* v >= 1.0E1 */     { v = v * 1.0E-1;    expo += 1;  }
-      }
-
-   while (v < 1.0E0)   // scale small v < 1 down to [1:10)
-      {
-        if (v < 1.0E-8)
-           if (v < 1.0E-12)
-              if (v < 1.0E-14)
-                 if     (v < 1.0E-15)      { v = v * 1.0E16;   expo += -16; }
-                 else /* v < 1.0E-14 */    { v = v * 1.0E15;   expo += -15; }
-              else
-                 if     (v < 1.0E-13)      { v = v * 1.0E14;   expo += -14; }
-                 else /* v < 1.0E-12 */    { v = v * 1.0E13;   expo += -13; }
-           else
-              if (v < 1.0E-10)
-                 if     (v < 1.0E-11)      { v = v * 1.0E12;   expo += -12; }
-                 else /* v < 1.0E-10 */    { v = v * 1.0E11;   expo += -11; }
-              else
-                 if     (v < 1.0E-9 )      { v = v * 1.0E10;   expo += -10; }
-                 else /* v < 1.0E-8 */     { v = v * 1.0E9;    expo += -9;  }
-        else
-           if (v < 1.0E-4)
-              if (v < 1.0E-6)
-                 if     (v < 1.0E-7)       { v = v * 1.0E8;    expo += -8;  }
-                 else /* v < 1.0E-6 */     { v = v * 1.0E7;    expo += -7;  }
-              else
-                 if     (v < 1.0E-5)       { v = v * 1.0E6;    expo += -6;  }
-                 else /* v < 1.0E-4 */     { v = v * 1.0E5;    expo += -5;  }
-           else
-              if (v < 1.0E-2)
-                 if     (v < 1.0E-3)       { v = v * 1.0E4;    expo += -4;  }
-                 else /* v < 1.0E-2 */     { v = v * 1.0E3;    expo += -3;  }
-              else
-                 if     (v < 1.0E-1)       { v = v * 1.0E2;    expo += -2;  }
-                 else /* v < 1.0E0  */     { v = v * 1.0E1;    expo += -1;  }
-      }
-
-   // The scaling cascade above is a hand-written sequence of
-   // multiplications, each of which rounds; for some inputs the scaled
-   // value lands a fraction of an ulp below a power of ten and the next
-   // step rounds it up to exactly 10.0 (or, symmetrically, leaves it a
-   // hair below 1.0). Fix up that boundary case instead of asserting --
-   // this is a normal, expected rounding outcome, not an internal error.
-   if (v >= 10.0)   { v *= 1.0E-1;   expo += 1; }
-   if (v <   1.0)   { v *= 1.0E1;    expo -= 1; }
-
-   Assert(v >= 1.0);
-   Assert(v < 10.0);
-
-   // print the mantissa in fixed format. Normally the mantissa is ≥ 1.0 and
-   // < 10.0, i.e. excluding 10.0. However, rounding up to fract_digits could
-   // make it 10 (including)
+   // let printf() produce the correctly rounded digits. The former scaling
+   // of v into [1:10) by a cascade of multiplications rounded at every
+   // step and was wrong from the 15th or 16th significant digit on, e.g.
+   // ¯17⍕1E300 gave 9.9999999999999964E299 (Bugs34 #9).
    //
-UCS_string mantissa = from_double_to_fixed(v, fract_digits);
-   if (mantissa.size() >= 2 && mantissa[0] == UNI_1 && mantissa[1] == UNI_0)
+std::vector<char> buffer(fract_digits + 40);
+   snprintf(buffer.data(), buffer.size(), "%.*E", fract_digits, v);
+
+   // buffer is d[.ddd]E±xx
+   //
+const char * e = strchr(buffer.data(), 'E');
+   Assert(e);
+   for (const char * m = buffer.data(); m < e; ++m)   ret << Unicode(*m);
+   return ret << UNI_E << from_int(::atoi(e + 1));
+}
+//────────────────────────────────────────────────────────────────────────────
+UCS_string
+UCS_string::from_int_to_expo(APL_Integer value, int fract_digits)
+{
+   // the exact counterpart of from_double_to_expo() for an IntCell (whose
+   // value may have more digits than a double can hold exactly)
+   //
+UCS_string ret;
+uint64_t uv = value;
+   if (value < 0)   { ret << UNI_OVERBAR;   uv = -uv; }
+
+char digits[32];
+   snprintf(digits, sizeof(digits), "%llu",
+            static_cast<unsigned long long>(uv));
+std::string d(digits);
+int expo = d.size() - 1;
+
+   // round d to 1 + fract_digits significant digits (half up: exact,
+   // since all digits of an integer are known)
+   //
+const size_t keep = 1 + fract_digits;
+   if (d.size() > keep)
       {
-        // mantissa starts with 10
-        //
-        if (mantissa.size() == 2)   // 10Ee → 1.0yyyEe+1
+        const bool round_up = d[keep] >= '5';
+        d.resize(keep);
+        if (round_up)
            {
-             mantissa[0] = UNI_1;
-             mantissa.resize(1);
-             if (fract_digits)
-                {
-                  mantissa.push_back(UNI_FULLSTOP);
-                  loop(z, fract_digits)   mantissa.push_back(UNI_0);
-                }
-             ++expo;
-           }
-        else if (mantissa[2] == UNI_FULLSTOP)   // 10.yyyEe →  1.0yyyEe+1
-           {
-             mantissa[1] = UNI_FULLSTOP;
-             mantissa[2] = UNI_0;
-             mantissa.pop_back();
-             ++expo;
+             int pos = keep - 1;
+             while (pos >= 0 && d[pos] == '9')   d[pos--] = '0';
+             if (pos >= 0)   ++d[pos];
+             else   { d.insert(d.begin(), '1');   d.pop_back();   ++expo; }
            }
       }
+   while (d.size() < keep)   d += '0';
 
-   return ret << mantissa << UNI_E << from_int(expo);
+   ret << Unicode(d[0]);
+   if (fract_digits)
+      {
+        ret << UNI_FULLSTOP;
+        for (size_t j = 1; j < d.size(); ++j)   ret << Unicode(d[j]);
+      }
+   return ret << UNI_E << from_int(expo);
 }
 //────────────────────────────────────────────────────────────────────────────
 UCS_string
@@ -2056,6 +2002,10 @@ const int fill_len = os.width() - ucs.size();
       }
    else
       {
+        // a pending width (e.g. setw() for a too long string) must not be
+        // applied to the first character (Bugs34 #46: )HELP printed the
+        // first character, then 37 blanks, then the rest)
+        os.width(0);
         loop(u, ucs.size())   os << ucs[u];
       }
 

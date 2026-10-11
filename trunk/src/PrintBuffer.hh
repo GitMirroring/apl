@@ -313,12 +313,17 @@ protected:
    /// @param pctx print context controlling formatting
    /// @param result the aligned items (only those with \b used[y])
    /// @param scaled set to true if the sub-column is scaled
+   /// @param may_scale the items that may cause the scaling (default: used)
+   /// @param int_values the exact values of the items that may not cause
+   ///        the scaling (integers), used if the sub-column is not scaled
    /// @return the width of the sub-column (of its aligned items)
    static size_t format_sub_column(const std::vector<APL_Float> & values,
                                    const std::vector<bool> & used,
                                    const PrintContext & pctx,
                                    std::vector<UCS_string> & result,
-                                   bool & scaled);
+                                   bool & scaled,
+                                   const std::vector<bool> * may_scale = 0,
+                              const std::vector<APL_Integer> * int_values = 0);
 
    /// remove the leading (if \b left) and/or trailing (if \b right) blanks
    /// and internal padding characters of \b ucs

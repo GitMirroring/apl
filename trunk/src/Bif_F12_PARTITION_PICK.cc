@@ -352,10 +352,19 @@ const Shape shape_Z = B.get_shape() + item_shape;
 const ShapeItem len_B = B.element_count();
    if (len_B == 0)
       {
-         Value_P first = Bif_F12_TAKE::first(B);
-         Value_P result = disclose(*first, rank_tolerant);
-         result->set_shape(shape_Z);
-         return result;
+        // the cells of a mixed value are the cells of the items of B, so
+        // the prototype of Z is the (type of the) first cell of B's
+        // prototype item. Disclosing that item once more (as before) lost
+        // one level of nesting, and set_shape() on the non-empty
+        // disclosure left its surplus cells unreleased (Bugs34 #5).
+        //
+        Value_P first = Bif_F12_TAKE::first(B);
+        Value_P Z(shape_Z, LOC);
+        Cell cache;
+        Z->set_default(first->get_cproto(cache), LOC);
+        if (B.is_left_value())   Z->set_left_value();
+        Z->check_value(LOC);
+        return Z;
       }
 
 Value_P Z(shape_Z, LOC);

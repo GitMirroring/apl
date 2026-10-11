@@ -63,8 +63,10 @@ protected:
    /// @param cnew  the new command name
    /// @param fnew  the new APL function name implementing the command
    /// @param mnew  the new mode value for the command
-   static bool check_redefinition(ostream & out, const UCS_string & cnew,
-                                  const UCS_string fnew, const int mnew);
+   /// @return 0 for a new command, 1 for an identical redefinition, and 2
+   ///         for a different (refused) redefinition
+   static int check_redefinition(ostream & out, const UCS_string & cnew,
+                                 const UCS_string fnew, const int mnew);
 };
 //════════════════════════════════════════════════════════════════════════════
 #endif // __CMD_USERCMD_HH_DEFINED__

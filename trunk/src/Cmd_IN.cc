@@ -234,10 +234,18 @@ int idx = get_nrs(var_name, shape);
 Symbol * sym = 0;
    if (Avec::is_quad(var_name.front()))   // system variable.
       {
+        // a record for a system function (⎕FIO, ⎕FX, ...) or for an
+        // unknown ⎕-name failed an Assert() (Bugs34 #24): skip it
+        //
         int len = 0;
         const Token t = Workspace::get_quad(var_name, len);
-        if (t.get_ValueType() == TV_SYM)   sym = t.get_sym_ptr();
-        else                               Assert(0 && "Bad system variable");
+        if (len != var_name.ssize() || t.get_ValueType() != TV_SYM)
+           {
+             CERR << ")IN: " << var_name
+                  << " is not a system variable (record skipped)" << endl;
+             return;
+           }
+        sym = t.get_sym_ptr();
       }
    else                            // user defined variable
       {
@@ -297,10 +305,18 @@ int idx = get_nrs(var_name, shape);
 Symbol * sym = 0;
    if (Avec::is_quad(var_name.front()))   // system variable.
       {
+        // a record for a system function (⎕FIO, ⎕FX, ...) or for an
+        // unknown ⎕-name failed an Assert() (Bugs34 #24): skip it
+        //
         int len = 0;
         const Token t = Workspace::get_quad(var_name, len);
-        if (t.get_ValueType() == TV_SYM)   sym = t.get_sym_ptr();
-        else                               Assert(0 && "Bad system variable");
+        if (len != var_name.ssize() || t.get_ValueType() != TV_SYM)
+           {
+             CERR << ")IN: " << var_name
+                  << " is not a system variable (record skipped)" << endl;
+             return;
+           }
+        sym = t.get_sym_ptr();
       }
    else                            // user defined variable
       {

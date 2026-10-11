@@ -886,11 +886,10 @@ PrintContext pctx = Workspace::get_PrintContext(PR_APL);
       }
    else if (get_rank() == 1)   // vector
       {
-        if (element_count() == 0 &&   // empty vector
-            (is_simple_cell(0)))
-           {
-             return out << endl;
-           }
+        // an empty vector is one empty line, whatever its prototype (GNU
+        // APL rule 4; an empty nested vector printed nothing, Bugs34 #39)
+        //
+        if (element_count() == 0)   return out << endl;
 
         pctx.set_style(PR_APL_MIN);
       }
@@ -1696,16 +1695,19 @@ const bool strand_B = token_B.get_tag() == TOK_APL_VALUE3;
    // another item can be glued. The result is always an open strand (so
    // the caller must put it into an TOK_APL_VALUE3).
    //
-   if (strand_A)   // A is a strand
-      {
-        if (strand_B)   return glue_strand_strand(*A, *B, loc);
-        else            return glue_strand_item(*A, *B, loc);
-      }
-   else            // A is an item
-      {
-        if (strand_B)   return glue_item_strand(*A, *B, loc);
-        else            return glue_item_item(*A, *B, loc);
-      }
+Value_P Z = strand_A ? (strand_B ? glue_strand_strand(*A, *B, loc)
+                                  : glue_strand_item(*A, *B, loc))
+                     : (strand_B ? glue_item_strand(*A, *B, loc)
+                                  : glue_item_item(*A, *B, loc));
+
+   // a strand glued from a left value (e.g. Q S.b in (Q S.b)←7 8) is a left
+   // value as well: otherwise a rejected selective specification of it left
+   // its LvalCells alive in the suspended statement until )SIC, since the
+   // cleanup (Prefix::neutralize_lval_values()) only visits left values
+   // (Bugs34 #36)
+   //
+   if (A->is_left_value() || B->is_left_value())   Z->set_left_value();
+   return Z;
 }
 //────────────────────────────────────────────────────────────────────────────
 Value *

@@ -934,6 +934,21 @@ FloatCell::bif_residue_ff(Cell * Z, APL_Float a, APL_Float b)
        fabs(a) < BIG_INT64_F && fabs(b) < BIG_INT64_F)
       return IntCell::bif_residue_ii(Z, APL_Integer(a), APL_Integer(b));
 
+   // the same at ⎕CT←0 for integral a and b beyond the int64 range
+   // (every double ≥ 2⋆53 is an integer): fmod() is exact in IEEE 754,
+   // so the residue is too. nc_p_modulo_q() below gave up and returned 0,
+   // e.g. 3|1E19 was 0 instead of 1 (Bugs34 #11). With ⎕CT≠0 the
+   // tolerant residue stays (e.g. 1E100|1E200 is 0).
+   //
+   if (Workspace::get_CT() == 0.0 && a == floor(a) && b == floor(b))
+      {
+        APL_Float r = fmod(b, a);   // exact; has the sign of b
+        if (r != 0.0 && ((r < 0.0) != (a < 0.0)))   r += a;
+        if (r == 0.0)   return IntCell::z0(Z);
+        if (fabs(r) < BIG_INT64_F)   return IntCell::zI(Z, APL_Integer(r));
+        return FloatCell::zF(Z, r);
+      }
+
 const APL_Float null(0.0);
 const APL_Float z = nc_p_modulo_q(b, a);
 Assert(isfinite(z));

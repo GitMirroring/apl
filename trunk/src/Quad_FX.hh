@@ -76,6 +76,17 @@ public:
 
    static Quad_FX  fun;   ///< Built-in function.
 
+   /// ⎕FX \b text for libapl's fix_function() (do_quad_FX() is protected;
+   /// libapl.cc used to call it through a hand-made copy of this class
+   /// whose signature got out of date, Bugs34 #2)
+   /// @param exec_props array of four execution property integers
+   /// @param text UCS function text with lines separated by LF
+   /// @param creator identifier string recorded as the function creator
+   static Token fix_for_libapl(const int * exec_props,
+                               const UCS_string & text,
+                               const UTF8_string & creator)
+      { return do_quad_FX(exec_props, text, creator); }
+
 protected:
    /// ⎕FX with native function and optional library reference
    /// @param A APL value containing the shared-library path

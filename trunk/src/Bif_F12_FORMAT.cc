@@ -481,6 +481,21 @@ char * fract_end = 0;
         fract_end = ep++;
         if      (*ep == '+')   ++ep;                               // skip +
         else if (*ep == '-')   { expo_negative = true;   ++ep; }   // skip -
+
+        // the exponent counterpart of the "B is negative, but A has no
+        // conditional decorator" check in format_example(): without a
+        // decorator in front of the exponent digits (e.g. '1.7000E01')
+        // the sign of a negative exponent is simply lost, i.e. the text
+        // is a different number (0.1 printed as 1.0000E01, Bugs34 #10).
+        //
+        if (expo_negative && expo_deco.format.size() == 0)
+           {
+             MORE_ERROR() << "A⍕B : the exponent of " << value
+                          << " is negative, but A has no decorator (such as"
+                             " ¯) in front of the exponent digits to show"
+                             " that";
+             DOMAIN_ERROR;
+           }
         if (*ep == '0' && ep[1])   ++ep;          // skip leading 0 in exponent
 
         int elen = strlen(ep);
@@ -1429,8 +1444,12 @@ bool has_complex = false;
              // one more than the digits AFTER the decimal point.
              //
              const int fract_digits = (-precision) - 1;
-             UCS_string data = UCS_string::from_double_to_expo(value,
-                                                               fract_digits);
+             Cell cache;
+             const Cell & cell = B.get_cravel(idx_B, cache);
+             UCS_string data = cell.is_integer_cell()   // exact digits
+                ? UCS_string::from_int_to_expo(cell.get_int_value(),
+                                               fract_digits)
+                : UCS_string::from_double_to_expo(value, fract_digits);
 
              // overflow check, mirroring the precision >= 0 (fixed-
              // decimal) branch above -- was missing entirely here, so a

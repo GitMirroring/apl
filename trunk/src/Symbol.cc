@@ -897,6 +897,15 @@ const ShapeItem max_idx = Z->element_count();
    //
    if (!X)
       {
+        // but not for a scalar A, like the reference S[] (bracket index
+        // of a rank-0 array, ISO 13751) and ⎕PP[]←B (Bugs34 #45)
+        //
+        if (Z->is_scalar())
+           {
+             MORE_ERROR() << "A[]←B: A is a scalar";
+             RANK_ERROR;
+           }
+
         const ShapeItem ec_B = B->element_count();
         if (ec_B == 1)   // scalar (or one-element) B: broadcast
            {
@@ -969,19 +978,25 @@ ShapeItem idxB = 0;
    // C's shape to exactly match the selected area's, not just its
    // element count.
    //
+   // C must have the shape of the index B (= the shape of A[B]), not
+   // always that of a vector: V[2 2⍴I]←2 2⍴C is valid and V[2 2⍴I]←4⍴C
+   // is not (Bugs34 #6).
+   //
    if (ec_B != 1)
       {
-        if (B->get_rank() != 1)
-           {
-             MORE_ERROR() << "A[B]←C: expecting ⍴⍴C = 1 (a vector); "
-                             "⍴⍴C is " << B->get_rank();
-             RANK_ERROR;
-           }
         if (ec_B != ec_X)
            {
-             MORE_ERROR() << "A[B]←C: expecting ⍴C to be 1 or " << ec_X
-                          << " (⍴B); ⍴C is " << ec_B;
+             MORE_ERROR() << "A[B]←C: expecting ⍴C to be 1 or ⍴B ("
+                          << X->get_shape() << "); ⍴C is "
+                          << B->get_shape();
              LENGTH_ERROR;
+           }
+        if (B->get_shape() != X->get_shape())
+           {
+             MORE_ERROR() << "A[B]←C: expecting ⍴C to be ⍴B ("
+                          << X->get_shape() << "); ⍴C is "
+                          << B->get_shape();
+             RANK_ERROR;
            }
       }
 

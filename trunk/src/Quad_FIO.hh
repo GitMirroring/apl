@@ -73,7 +73,7 @@ public:
    static void clear();
 
    /// close a file descriptor (and its FILE * if any)
-   static int close_handle(int handle);
+   static int close_handle(APL_Integer handle);
 
    /// fork(), execve(), and return a connection to fd 3 of forked process
    /// @param B command string to execute in the forked process
@@ -490,11 +490,11 @@ protected:
 
    /// return the open FILE * for (APL integer) \b handle
    /// @param handle integer file handle index
-   static FILE * get_FILE(int handle);
+   static FILE * get_FILE(APL_Integer handle);
 
    /// return the open file for (APL integer) \b handle
    /// @param handle integer file handle index
-   static file_entry & get_file_entry(int handle);
+   static file_entry & get_file_entry(APL_Integer handle);
 
    /// return one or more random values
    /// @param mode distribution/type selector for random generation

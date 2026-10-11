@@ -522,6 +522,11 @@ public:
    /// (with \b fract_digits fractional digits).
    static UCS_string from_double_to_expo(APL_Float value, int fract_digits);
 
+   /// the exact exponential format of an integer (cf. from_double_to_expo())
+   /// @param value integer to format
+   /// @param fract_digits number of digits after the decimal point
+   static UCS_string from_int_to_expo(APL_Integer value, int fract_digits);
+
    /// convert the double \b value to an UCS_string in fixed point format
    /// (with \b fract_digits fractional digits).
    static UCS_string from_double_to_fixed(APL_Float value, int fract_digits);

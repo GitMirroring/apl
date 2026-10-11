@@ -208,6 +208,9 @@ protected:
    /// @param c iterator positioned at the '['; advanced past the ']' on return
    LineLabel parse_lineno(UCS_string::iterator & c);
 
+   /// set by parse_lineno() if a line number exceeds 2147483647
+   bool lineno_overflow = false;
+
    /// return index of line with label lab, or -1 if not found.
    /// @param lab the line label to search for
    int find_line(const LineLabel & lab) const;
@@ -216,6 +219,10 @@ protected:
    /// @param lab the line label to check
    bool line_exists(const LineLabel & lab) const
       { return find_line(lab) != -1; }
+
+   /// return \b true if line \b lab is inside a multi-line string (or
+   /// literal) that an earlier line has started and not yet ended
+   bool inside_multi_line(const LineLabel & lab) const;
 
    /// source the line number (in a .apl script file) of the ∇ that
    /// started the ∇-editor

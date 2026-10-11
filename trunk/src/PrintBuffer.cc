@@ -1758,6 +1758,12 @@ std::vector<APL_Float> imag(rows, 0.0);
 std::vector<bool> all_used(rows, true);
 std::vector<bool> has_imag(rows, false);
 
+// the real parts that can cause the scaling of the real sub-column: not an
+// integer in GNU APL's traditional output (GNU APL rule 1, as in a column
+// of real numbers; 2 1⍴1J1 123456 scaled 123456 to 1.2346E5, Bugs34 #23)
+std::vector<bool> real_may_scale(rows, true);
+std::vector<APL_Integer> real_int(rows, 0);
+
    loop(y, rows)
       {
         Cell cache;
@@ -1765,6 +1771,8 @@ std::vector<bool> has_imag(rows, false);
         if (cell.is_integer_cell())
            {
              real[y] = APL_Float(cell.get_int_value());
+             real_int[y] = cell.get_int_value();
+             if (!strict)   real_may_scale[y] = false;
              continue;
            }
 
@@ -1790,7 +1798,8 @@ std::vector<UCS_string> imag_ucs(rows);
 bool real_scaled = false;
 bool imag_scaled = false;
 size_t real_len = format_sub_column(real, all_used, pctx,
-                                    real_ucs, real_scaled);
+                                    real_ucs, real_scaled, &real_may_scale,
+                                    &real_int);
 size_t imag_len = any_imag ? format_sub_column(imag, has_imag, pctx,
                                                imag_ucs, imag_scaled)
                            : 0;
@@ -1942,12 +1951,20 @@ PrintBuffer::format_sub_column(const std::vector<APL_Float> & values,
                                const std::vector<bool> & used,
                                const PrintContext & pctx,
                                std::vector<UCS_string> & result,
-                               bool & scaled)
+                               bool & scaled,
+                               const std::vector<bool> * may_scale,
+                               const std::vector<APL_Integer> * int_values)
 {
+   // may_scale (if given): the items that can cause the scaling of the
+   // sub-column (others are only formatted like the rest)
+   //
+   if (may_scale == 0)   may_scale = &used;
+
    scaled = false;
    loop(y, values.size())
       {
-        if (used[y] && FloatCell::need_scaling(values[y], pctx.get_PP()))
+        if ((*may_scale)[y] &&
+            FloatCell::need_scaling(values[y], pctx.get_PP()))
            {
              scaled = true;
              break;
@@ -1967,7 +1984,10 @@ ColInfo col_info;
    loop(y, values.size())
       {
         if (!used[y])   continue;
-        items[y] = FloatCell(values[y]).character_representation(pctx1);
+        if (!scaled && int_values && !(*may_scale)[y])   // an exact integer
+           items[y] = IntCell((*int_values)[y]).character_representation(pctx1);
+        else
+           items[y] = FloatCell(values[y]).character_representation(pctx1);
         col_info.consider(items[y].get_info());
       }
    if (col_info.real_len < (col_info.int_len + col_info.denom_len))

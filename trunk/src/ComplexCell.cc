@@ -367,14 +367,16 @@ const APL_Complex one(1.0, 0.0);
 
         case  -6: // arccosh(z) = ln(z + sqrt(z + 1) sqrt(z - 1))
                   {
-                    const APL_Complex b1     = b + ONE();
-                    const APL_Complex b_1    = b - ONE();
-                    const APL_Complex root1  = complex_sqrt(b1);
-                    const APL_Complex root_1 = complex_sqrt(b_1);
-                    const APL_Complex prod   = root1 * root_1;
-                    const APL_Complex sum    = b + prod;
-                    const APL_Complex loga   = log(sum);
-                    return ComplexCell::zC(Z, loga);
+                    // log() of a sum close to 1 loses a small real part,
+                    // e.g. 9○¯6○0.5J1E¯11 was wrong from the 6th digit
+                    // (Bugs34 #12). std::acosh() agrees with the formula
+                    // except for the sign of a zero imaginary part ON the
+                    // branch cut (Im b = 0, Re b < 1), where the formula's
+                    // value is std's for Im b = +0.
+                    //
+                    APL_Complex b1 = b;
+                    if (b.imag() == 0.0)   b1 = APL_Complex(b.real(), 0.0);
+                    return ComplexCell::zC(Z, std::acosh(b1));
                   }
 
         case  -5: // arcsinh(z) = ln(z + sqrt(z^2 + 1))
@@ -491,14 +493,17 @@ const APL_Complex one(1.0, 0.0);
 
         case  -3: // arctan(z) = i/2 (ln(1 - iz) - ln(1 + iz))
                   {
-                    const APL_Complex iz = APL_Complex(- b.imag(), b.real());
-                    const APL_Complex piz = ONE() + iz;
-                    const APL_Complex niz = ONE() - iz;
-                    const APL_Complex log_piz = log(piz);
-                    const APL_Complex log_niz = log(niz);
-                    const APL_Complex diff = log_niz - log_piz;
-                    const APL_Complex prod = APL_Complex(0, 0.5) * diff;
-                    return ComplexCell::zC(Z, prod);
+                    // the formula subtracts two logarithms of nearly the
+                    // same size and loses a small imaginary part, e.g.
+                    // 11○¯3○1J1E¯11 was wrong from the 6th digit (Bugs34
+                    // #12). std::atan() agrees with it except for the sign
+                    // of a zero real part ON the branch cut (Re b = 0,
+                    // |Im b| > 1), where the formula's value is std's for
+                    // Re b = +0.
+                    //
+                    APL_Complex b1 = b;
+                    if (b.real() == 0.0)   b1 = APL_Complex(0.0, b.imag());
+                    return ComplexCell::zC(Z, std::atan(b1));
                   }
 
         case  -2: // arccos(z)

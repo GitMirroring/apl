@@ -131,7 +131,9 @@ cFunction_P LO = _LO.get_function();
            {
              MORE_ERROR() << "A f¨B: B is empty and A is not a scalar or"
                              " 1-element vector; ⍴A is " << A.get_shape();
-             DOMAIN_ERROR;
+             // a conformance error, not a DOMAIN ERROR (Bugs34 #33)
+             if (A.get_rank() == B.get_rank())   LENGTH_ERROR;
+             RANK_ERROR;
            }
 
         if (B.is_empty())          shape_Z = B.get_shape();
@@ -139,7 +141,9 @@ cFunction_P LO = _LO.get_function();
            {
              MORE_ERROR() << "A f¨B: A is empty and B is not a scalar or"
                              " 1-element vector; ⍴B is " << B.get_shape();
-             DOMAIN_ERROR;
+             // a conformance error, not a DOMAIN ERROR (Bugs34 #33)
+             if (A.get_rank() == B.get_rank())   LENGTH_ERROR;
+             RANK_ERROR;
            }
 
         // evaluate the fill function (lrm p. 245)

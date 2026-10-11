@@ -613,7 +613,7 @@ Quad_FIO::clear()
 }
 //────────────────────────────────────────────────────────────────────────────
 int
-Quad_FIO::close_handle(int fd)
+Quad_FIO::close_handle(APL_Integer fd)
 {
    loop(h, open_files.size())
       {
@@ -3837,7 +3837,7 @@ Value_P Z(ShapeItem(fd_count), LOC);
 }
 //────────────────────────────────────────────────────────────────────────────
 FILE *
-Quad_FIO::get_FILE(int handle)
+Quad_FIO::get_FILE(APL_Integer handle)
 {
 file_entry & fe = get_file_entry(handle);
    if (fe.fe_FILE == 0)
@@ -3859,8 +3859,11 @@ file_entry & fe = get_file_entry(handle);
 }
 //────────────────────────────────────────────────────────────────────────────
 Quad_FIO::file_entry &
-Quad_FIO::get_file_entry(int handle)
+Quad_FIO::get_file_entry(APL_Integer handle)
 {
+   // NOTE: handle is not narrowed to int (as before, Bugs34 #25), so that
+   // H+2⋆32 is not taken as handle H
+
    loop(h, open_files.size())
       {
         if (open_files[h].fe_fd == handle)   return open_files[h];

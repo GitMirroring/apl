@@ -547,6 +547,27 @@ XML_Saving_Archive::save_Function(const Function & fun)
             << eprops[2] << "," << eprops[3] << "\"";
 
         if (fun.is_native())   outf << " native=\"1\"";
+
+        // ⎕STOP and ⎕TRACE settings are workspace state that )SAVE and
+        // )LOAD keep (only )COPY drops them, LRM p. 423, Bugs34 #27)
+        //
+        if (const UserFunction * ufun = fun.get_func_ufun())
+           {
+             const std::vector<Function_Line> & stop  = ufun->get_stop_lines();
+             const std::vector<Function_Line> & trace = ufun->get_trace_lines();
+             if (stop.size())
+                {
+                  outf << " stop-lines=\"";
+                  loop(s, stop.size())   outf << (s ? "," : "") << stop[s];
+                  outf << "\"";
+                }
+             if (trace.size())
+                {
+                  outf << " trace-lines=\"";
+                  loop(t, trace.size())   outf << (t ? "," : "") << trace[t];
+                  outf << "\"";
+                }
+           }
         outf << ">" << endl;
         ++indent;
 
@@ -1231,6 +1252,8 @@ const int offset = Workspace::get_v_Quad_TZ().get_offset();   // timezone offset
 "                <!ATTLIST Function RO-fid          CDATA #IMPLIED>\n"
 "                <!ATTLIST Function AXIS-vid        CDATA #IMPLIED>\n"
 "                <!ATTLIST Function exec-properties CDATA #IMPLIED>\n"
+"                <!ATTLIST Function stop-lines      CDATA #IMPLIED>\n"
+"                <!ATTLIST Function trace-lines     CDATA #IMPLIED>\n"
 "                <!ATTLIST Function macro           CDATA #IMPLIED>\n"
 "                <!ATTLIST Function tag             CDATA #IMPLIED>\n"
 "\n"
@@ -1507,12 +1530,18 @@ XML_Loading_Archive::check_compatibility()
         if (major == ASX_MAJOR && minor == ASX_MINOR)   return;
         if (major == ASX_MAJOR)
            {
-              err << "NOTE: this workspaces was )SAVEd with syntax version "
+              // a minor difference is compatible in both directions: new
+              // attributes are optional, and unknown ones are ignored
+              //
+              const bool newer_file = minor > ASX_MINOR;
+              err << "NOTE: this workspace was )SAVEd with syntax version "
                    << major << "." << minor << "." << other << endl
-                   << "but is now )LOADed with a newer version " << ASX_MAJOR
-                   << "." << ASX_MINOR << "." << ASX_OTHER << "." << endl
-                   << "That should be OK, but new features introduced by the"
-                   << " newer version will not be supported." << endl;
+                   << "but is now )LOADed with " << (newer_file ? "an older"
+                                                                : "a newer")
+                   << " version " << ASX_MAJOR << "." << ASX_MINOR << "."
+                   << ASX_OTHER << "." << endl
+                   << "That should be OK, but features of the newer version"
+                   << " will not be supported." << endl;
            }
         return;
       }
@@ -2721,6 +2750,28 @@ int eprops[4] = { 0, 0, 0, 0 };
                eprops, eprops + 1, eprops + 2, eprops+ 3);
       }
 
+   // the ⎕STOP and ⎕TRACE line numbers (see save_Function())
+   //
+std::vector<Function_Line> stop_lines;
+std::vector<Function_Line> trace_lines;
+   {
+     const UTF8 * attr[2] = { find_optional_attr("stop-lines"),
+                              find_optional_attr("trace-lines") };
+     std::vector<Function_Line> * lines[2] = { &stop_lines, &trace_lines };
+     loop(a, 2)
+        {
+          for (const char * p = charP(attr[a]); p && *p;)
+              {
+                char * end = 0;
+                const long line = strtol(p, &end, 10);
+                if (end == p)   break;   // malformed: ignore the rest
+                if (line > 0)   lines[a]->push_back(Function_Line(line));
+                p = end;
+                if (*p == ',')   ++p;
+              }
+        }
+   }
+
    Log(LOG_archive)
       err << "      [" << d << "] read_Function(" << symbol.get_name()
            << ") native=" << native << endl;
@@ -2780,6 +2831,15 @@ UCS_string text;
              symbol.push_function(ufun);
              add_fid_function(fid, ufun, LOC);
              ufun->set_exec_properties(eprops);
+             if (!copying && (stop_lines.size() || trace_lines.size()))
+                {
+                  ufun->set_trace_stop(stop_lines,  true);
+                  ufun->set_trace_stop(trace_lines, false);
+
+                  // set_trace_stop() re-parses the body
+                  ufun->optimize_labels();
+                  ufun->optimize_label_vectors();
+                }
            }
         else
            {

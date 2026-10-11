@@ -2066,6 +2066,15 @@ const cValue & QES_val = *result.get_apl_val();
    //
 const bool host_is_macro = called_from_macro();
 
+   // B's →N must not jump into a lambda host: the jump discarded the
+   // lambda's pending λ← tokens, and the lambda then either looped forever
+   // (→1) or ended in an internal error that exited the interpreter
+   // (Bugs34 #3). Treat it like a macro host (i.e. ⎕EA falls back to A).
+   //
+const UserFunction * host_ufun =
+      Workspace::SI_top()->get_executable()->get_exec_ufun();
+const bool host_is_lambda = host_ufun && host_ufun->is_lambda();
+
    // ⎕EA's BRA payload is 100 $FFFD (⊂,A) RES (4 items, A included, see
    // Macro.def); ⎕EB's is 100 $FFFD RES (3 items, no A -- ⎕EB always
    // executes A unconditionally itself via its own "⍎A", so it has no
@@ -2081,10 +2090,28 @@ const bool host_is_macro = called_from_macro();
              SYNTAX_ERROR;
            }
 
+        if (host_is_lambda)
+           {
+             MORE_ERROR() << "A ⎕EB B: B's →N cannot branch out of a "
+                             "lambda";
+             SYNTAX_ERROR;
+           }
+
         Cell cache;
         const Cell & QES_line = QES_val.get_cravel(2, cache);
         Value_P v_line = IntScalar(QES_line.get_int_value(), LOC);
-        Workspace::SI_top()->jump(*v_line);
+        const Token jump_result = Workspace::SI_top()->jump(*v_line);
+
+        // in immediate execution, the →N leaves the context (which the
+        // caller's pending TOK_SI_PUSHED then reported as an internal
+        // "invalid phrase remaining", Bugs34 #35)
+        //
+        if (jump_result.get_tag() == TOK_BRANCH_INT)
+           {
+             MORE_ERROR() << "A ⎕EB B: B's →N cannot branch in immediate "
+                             "execution";
+             SYNTAX_ERROR;
+           }
         return;
       }
 
@@ -2097,6 +2124,13 @@ const APL_Integer line = QES_line.get_int_value();
       {
         execute_EA_fallback(statement_A, E_SYNTAX_ERROR,
                        "B's →N cannot branch out of an operator (such as ¨)");
+        return;
+      }
+
+   if (host_is_lambda)   // same as →N out of range: fall back to A
+      {
+        execute_EA_fallback(statement_A, E_SYNTAX_ERROR,
+                            "B's →N cannot branch out of a lambda");
         return;
       }
 
@@ -4239,7 +4273,11 @@ const bool trace = at0().get_Class() == TC_END && (at0().get_int_val() & 1);
               handle_ELSE(at0(), 5);
               pop_and_discard();   // pop END
               pop_and_discard();   // pop GOTO
-              set_action(RA_CONTINUE);   // match again (w/o SHIFT)
+
+              // nothing is left to match: continue with the next statement
+              // (RA_CONTINUE matched the empty FIFO and ended in
+              // reduce____(), i.e. a FIXME, Bugs34 #1)
+              set_action(RA_PUSH_NEXT);
               return;
            }
 

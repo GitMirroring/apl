@@ -410,6 +410,7 @@ UserFunction * ufun;
                      "    cancel editing entirely with:   [→]∇.\n";
            }
         do_close = false;
+        locked = false;   // the next close decides again (Bugs34 #15)
         goto try_again;
       }
 
@@ -419,24 +420,9 @@ UserFunction * ufun;
          ufun->set_exec_properties(exec_properties);
       }
 
-   // set stop and trace vectors
-   //
-std::vector<Function_Line> stop_vec;
-std::vector<Function_Line> trace_vec;
-   loop(l, lines.size())
-       {
-         if (lines[l].stop_flag)    stop_vec.push_back(Function_Line(l));
-         if (lines[l].trace_flag)   trace_vec.push_back(Function_Line(l));
-       }
-
-   ufun->set_trace_stop(stop_vec,  true);
-   ufun->set_trace_stop(trace_vec, false);
-
-   // set_trace_stop() calls parse_body(), so we have to redo optimizations
-   //
-   ufun->optimize_labels();
-   ufun->optimize_label_vectors();
-   ufun->compute_if_else_targets();
+   // a (re-)defined function starts without ⎕STOP and ⎕TRACE settings
+   // (like one defined with ⎕FX); the ones of its previous definition are
+   // NOT carried over.
 }
 //────────────────────────────────────────────────────────────────────────────
 void
@@ -720,6 +706,23 @@ Nabla::parse_oper(UCS_string & oper, bool initial)
    // skip trailing spaces
    //
    oper.remove_trailing_whitespaces();
+
+   // a text line (i.e. not starting with a [...] command) inside a
+   // multi-line string is string text, including a trailing ∇ or ⍫ (which
+   // closed the editor, was removed from the string, and ⍫ locked the
+   // function, Bugs34 #15). The line that ends the string (""") is APL
+   // text again.
+   //
+   if (!initial && oper.size() && oper[0] != UNI_L_BRACK &&
+       inside_multi_line(current_line) && oper.multi_pos() == -1)
+      {
+        out_of_order = false;   // as for "override text" below
+        ecmd = ECMD_EDIT;
+        line_set = Line_set(current_line);
+        current_text = oper;
+        return 0;
+      }
+
    if (comment_pos(oper) != -1)
       {
         // a closing ∇ or ⍫ at the end of a line with a comment belongs to
@@ -780,6 +783,7 @@ command_loop:
 
    ecmd = ECMD_NOP;
    line_set = Line_set();   // no line numbers (yet)
+   lineno_overflow = false;
 
    // set the optional number before the command character (if present)
    //
@@ -847,6 +851,8 @@ again:
    //
    if (line_set.get_mode() == Line_set::LSM_invalid)
       return "line numbers out of order (they must be ascending)";
+
+   if (lineno_overflow)   return "line number too large (max. 2147483647)";
 
    // at this point we have parsed an editor command, like:
    //
@@ -955,6 +961,21 @@ Nabla::execute_oper()
 const bool have_from = line_set.get_from().ln_major != -1;
 const bool have_to = line_set.get_to().ln_major != -1;
 
+   // [] is not an editor command: it edited the header with an empty text
+   // (BAD FUNCTION HEADER) and moved the prompt to [0] (Bugs34 #43). A text
+   // line always has a line number (the current line).
+   //
+   if (ecmd == ECMD_EDIT && !have_from && !have_to)
+      return "[] is not a ∇-command";
+
+   // [∆] without any line number is not a delete command (LRM p. 391:
+   // "The command [∆] results in a DEFN ERROR"); it deleted the last line
+   // (Bugs34 #16)
+   //
+   if (ecmd == ECMD_DELETE && !have_from && !have_to &&
+       line_set.get_mode() != Line_set::LSM_vec)
+      return "[∆] needs a line number (DEFN ERROR)";
+
    if (lines.size())
       {
         if (!have_from && ecmd != ECMD_DELETE)
@@ -1060,7 +1081,8 @@ Nabla::execute_delete()
 const int idx_to = find_line(line_set.get_to());
    if (idx_to == -1)   return "Bad line number N in [M∆N] ";
 
-   modified = true;
+   // NOTE: set modified only after a delete was accepted: a rejected one
+   // re-fixed the unchanged function on close (Bugs34 #42)
 
    if (line_set.get_from() == -1)   // [∆N] : delete single line
       {
@@ -1068,6 +1090,7 @@ const int idx_to = find_line(line_set.get_to());
         // resolving to it, and deleting it would desync every later
         // line index from its label. Reject rather than corrupt.
         if (idx_to == 0)   return "cannot delete the header line [0]";
+        modified = true;
         lines.erase(lines.begin() + idx_to);
         return 0;
       }
@@ -1078,6 +1101,7 @@ const int idx_from = find_line(line_set.get_from());
    if (idx_from == -1)       return "Bad line number M in [M∆N] ";
    if (idx_from > idx_to)    return "M > N in [M∆N] ";   // M = N: one line
    if (idx_from == 0)        return "cannot delete the header line [0]";
+   modified = true;
 
    loop(j, 1 + idx_to - idx_from)   lines.erase(lines.begin() + idx_from);
    // guard defensively: were lines ever emptied above, .back() is UB.
@@ -1096,6 +1120,16 @@ Nabla::execute_edit()
 
    // if the user has specified a line label without a text then we are done
    //
+   // an empty (or blank) line can insert a new (empty) line, but must not
+   // replace the text of an existing line: nothing was typed (LRM p. 384,
+   // Bugs34 #17)
+   //
+   {
+     bool blank = true;
+     loop(c, current_text.size())   if (current_text[c] > ' ')   blank = false;
+     if (blank && line_exists(current_line))   return 0;
+   }
+
    if (current_text.size() == 0)   // empty line (we MAY need it)
       {
         if (!UserPreferences::uprefs.new_multi_line_strings)
@@ -1167,20 +1201,7 @@ Nabla::edit_body_line()
 UCS_string parse_text = current_text;   // a copy that can be modified.
    if (UserPreferences::uprefs.new_multi_line_strings)
       {
-        // figure the multi-line status from all lines before current_line
-        Multiline_status multi = MLS_APL_text;
-        loop(i, lines.size())
-            {
-              if (current_line == lines[i].label)   break;   // line replace
-              if (current_line <  lines[i].label)   break;   // after current
-              if (-1 != lines[i].text.multi_pos())
-                 {
-                   if (multi <= MLS_APL_text)   multi = MLS_Inside_multi;
-                   else                         multi = MLS_APL_text;
-                 }
-            }
-
-        if (multi >= MLS_Start_of_multi)   // line belongs to a multi-line
+        if (inside_multi_line(current_line))   // line belongs to a multi-line
            {
              parse_text.clear();
            }
@@ -1247,6 +1268,12 @@ UCS_string parse_text = current_text;   // a copy that can be modified.
                   CERR << "+" << endl << Workspace::more_error();
                 }
              COUT << endl;
+
+             // the line was refused, so a ∇ or ⍫ at its end must neither
+             // close nor lock: the user re-enters the line (Bugs34 #44)
+             //
+             do_close = false;
+             locked = false;
              return 0;
            }
       }
@@ -1282,9 +1309,37 @@ const int idx_from = find_line(line_set.get_from());
         lines[idx_from].text = current_text;
       }
 
-   current_line.next();
+   // the next prompt. After a fractional line the next label may exist
+   // already (e.g. [1.6] after [1.5] was inserted before it), and the
+   // next line typed would then silently replace it: prompt with a new
+   // label in between instead (LRM p. 384, as execute_show() does, Bugs34
+   // #14). After a whole line, prompting the next (possibly existing) line
+   // is the classic APL2 behaviour.
+   //
+LineLabel next = current_line;
+   next.next();
+   if (current_line.ln_minor.size() && line_exists(next))
+      current_line.insert();
+   else
+      current_line = next;
 
    return 0;
+}
+//────────────────────────────────────────────────────────────────────────────
+bool
+Nabla::inside_multi_line(const LineLabel & lab) const
+{
+   if (!UserPreferences::uprefs.new_multi_line_strings)   return false;
+
+   // figure the multi-line status from all lines before lab
+   //
+bool inside = false;
+   loop(i, lines.size())
+       {
+         if (!(lines[i].label < lab))   break;   // lab or after lab
+         if (-1 != lines[i].text.multi_pos())   inside = !inside;
+       }
+   return inside;
 }
 //────────────────────────────────────────────────────────────────────────────
 const char *
@@ -1433,7 +1488,13 @@ LineLabel ret(0);
         // would otherwise overflow ln_major -- mirrors the marker-index
         // parse in Tokenizer.cc.
         if (ret.ln_major > (INT_MAX - digit) / 10)
-           ret.ln_major = INT_MAX;
+           {
+             // the editor cannot represent such a line number. Taking
+             // INT_MAX instead made [2147483648] and [99999999999999] the
+             // same line (Bugs34 #29); the command is rejected instead.
+             lineno_overflow = true;
+             ret.ln_major = INT_MAX;
+           }
         else
            ret.ln_major = 10 * ret.ln_major + digit;
       }

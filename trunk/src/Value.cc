@@ -595,6 +595,19 @@ const int src_incr  = (new_value_count == 1)  ? 0 : 1;
                 then all sub-values of dest must also be Lval Cells.
               */
               Value_P left_sub = dest.get_pointer_value();
+
+              // the item is the result of A⊃ (e.g. (1⊃¨N)←B): replace the
+              // picked item wholesale (as (A⊃N)←B does, LRM), not cell by
+              // cell with the shape of the old item (Bugs34 #18)
+              //
+              if (left_sub->get_lval_pick_slot())
+                 {
+                   left_sub->assign_cellrefs(src.is_pointer_cell()
+                                             ? src.get_pointer_value()
+                                             : src.to_value(LOC));
+                   continue;
+                 }
+
               Value_P right_sub;
               if (src.is_pointer_cell())   right_sub = src.get_pointer_value();
               if (right_sub)
