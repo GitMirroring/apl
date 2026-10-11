@@ -863,6 +863,22 @@ the interpreter is compared with the expected output in the testcase file(s)
 and differences are marked. In addition a summary file is created that tells
 whether or not each of the testcases was successful.
 
+<p>The expected output in a testcase file can contain the following wildcards,
+for output that may legitimately differ (e.g. the last digit of a number
+on different floating point hardware, or a time):
+</p>
+<table>
+<tr><td width="10%">⁰</td><td width="90%">one or more digits, e.g. <code>4.472135954999579⁰E¯10</code></td></tr>
+<tr><td width="10%">¹</td><td width="90%">zero or more blanks</td></tr>
+<tr><td width="10%">²</td><td width="90%">a number (digits, ¯, ., E, and J)</td></tr>
+<tr><td width="10%">³</td><td width="90%">the rest of the line</td></tr>
+<tr><td width="10%">⁴</td><td width="90%">an optional ¯</td></tr>
+<tr><td width="10%">⁵</td><td width="90%">+ or -</td></tr>
+<tr><td width="10%">ⁿ</td><td width="90%">an optional unit multiplier (m, u, μ, or n)</td></tr>
+</table>
+
+<p>A testcase that uses a wildcard should say why in a comment.
+</p>
 </li><li> <code>--TM mode</code>
 
 <p>Test mode. This option specifies how the interpreter shall behave

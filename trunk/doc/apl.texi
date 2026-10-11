@@ -520,6 +520,22 @@ the interpreter is compared with the expected output in the testcase file(s)
 and differences are marked. In addition a summary file is created that tells
 whether or not each of the testcases was successful.
 
+The expected output in a testcase file can contain the following wildcards,
+for output that may legitimately differ (e.g. the last digit of a number
+on different floating point hardware, or a time):
+
+@multitable @columnfractions .1 .9
+@item ⁰ @tab one or more digits, e.g. @code{4.472135954999579⁰E¯10}
+@item ¹ @tab zero or more blanks
+@item ² @tab a number (digits, ¯, ., E, and J)
+@item ³ @tab the rest of the line
+@item ⁴ @tab an optional ¯
+@item ⁵ @tab + or -
+@item ⁿ @tab an optional unit multiplier (m, u, μ, or n)
+@end multitable
+
+A testcase that uses a wildcard should say why in a comment.
+
 @item
 @code{--TM mode}
 

@@ -287,13 +287,17 @@ DOMAIN ERROR
       8○¯0.5J¯1E¯11
 0J1.1180339887498949
 
-      ⍝ control: just outside the near-zero band (general path)
+      ⍝ control: just outside the near-zero band (general path).
+      ⍝ The last (17th) digit of the tiny real part depends on the platform
+      ⍝ (x87 vs. SSE floating point: 32-bit x86 gives ...5798E¯10, 64-bit
+      ⍝ ...5793E¯10; exact: ...57967E¯10). The wildcard ⁰ in the expected
+      ⍝ output matches any digits there.
       ⍝
       8○0.5J1E¯9
-4.4721359549995793E¯10J¯1.1180339887498949
+4.472135954999579⁰E¯10J¯1.1180339887498949
 
       8○¯0.5J¯1E¯9
-¯4.4721359549995793E¯10J1.1180339887498949
+¯4.472135954999579⁰E¯10J1.1180339887498949
 
       ⍝ regression (Blake McBride, Bugs31 #13): the same near-real
       ⍝ shortcut-vs-general-path sign discontinuity in 0○ and ¯4○
