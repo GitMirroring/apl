@@ -921,6 +921,7 @@ void
 UserFunction::parse_body(const char * loc, bool macro)
 {
    header.clear_labels();
+   parsed_text.clear();
    line_starts.clear();
    line_starts.push_back(Function_PC_0);   // will be set later.
 
@@ -1077,8 +1078,20 @@ Lit_DB literals;
    if (header.Z())   body.push_back(Token(TOK_RETURN_SYMBOL, header.Z()));
    else              body.push_back(Token(TOK_RETURN_VOID));
 
-   // restore the original text (before any multi-line expansion)
-   if (original_text.size())   text = original_text;
+   // remember the lines as parsed if a multi-line string or literal has
+   // changed them (the lines of the body are then no longer the lines of
+   // the original text, see get_body_text()). Then restore the original
+   // text (before any multi-line expansion)
+   //
+   parsed_text.clear();
+   if (original_text.size())
+      {
+        bool same = text.size() == original_text.size();
+        for (size_t l = 0; same && l < text.size(); ++l)
+            same = text[l] == original_text[l];
+        if (!same)   parsed_text = text;
+        text = original_text;
+      }
 
    // recompute the →→ ←→ ←← jump PCs
    compute_if_else_targets();

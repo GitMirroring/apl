@@ -105,7 +105,9 @@ WAS CLEAR WS
 ³
 
       )load test.apl
+DUMPED ³
       )save
+³
       ⎕CR 'cmp_a'
 λ←⍺ λ1 ⍵                    
 λ←{⍵[⍋⍵]} (∨/[1] ⍺∘.= ⍵) / ⍵

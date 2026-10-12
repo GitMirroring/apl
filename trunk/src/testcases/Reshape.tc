@@ -232,12 +232,15 @@ ZZ32F[1]  Z←'2'⍴5
       ⍝ un-optimized statement instead of the compacted one) never
       ⍝ triggered: a later error in the same statement displayed the
       ⍝ compacted, ⊂-less text, e.g. (⊂1)↑M shown as (1)↑M.
+      ⍝ The left caret is at the (: the error display used to count 3
+      ⍝ tokens (as for A⍴B) for the 2 tokens of ⊂B, which put it one
+      ⍝ token too far left, at the ← (found with ]EXPLAIN CHECK).
       ⍝
       M←2 2⍴⍳4
       Z←(⊂1)↑M
 LENGTH ERROR+
       Z←(⊂1)↑M
-       ^     ^
+        ^    ^
 
       )SIC
 
@@ -248,7 +251,7 @@ LENGTH ERROR+
       Z←(⊂1 2)↑M
 DOMAIN ERROR
       Z←(⊂1 2)↑M
-       ^       ^
+        ^      ^
 
       )SIC
 

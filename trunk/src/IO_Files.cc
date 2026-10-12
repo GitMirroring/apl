@@ -554,7 +554,14 @@ InputFile * input = InputFile::current_file();
 bool
 IO_Files::end_of_current_file()
 {
-   if (InputFile::is_validating())   // running a .tc file
+   // the end of a file that a testcase has opened (e.g. a .apl file of
+   // )COPY or )PCOPY) is not the end of the testcase: its error counts
+   // must survive (they were reset below, so that every diff before a
+   // )COPY of a .apl file was silently lost)
+   //
+const bool testcase_ends = InputFile::is_validating();
+
+   if (testcase_ends)   // running a .tc file
       {
         // we expect )SI to be clear after a testcase has finished and
         // complain if it is not.
@@ -624,7 +631,7 @@ IO_Files::end_of_current_file()
       CERR << "closed testcase file " << InputFile::current_filename()
            << endl;
 
-   if (InputFile::is_validating())   // running a .tc file
+   if (testcase_ends)   // running a .tc file
       {
         const char * path = summary_path.c_str();
         ofstream summary(path, summary_flags);
@@ -707,7 +714,7 @@ IO_Files::end_of_current_file()
        ! InputFile::files_todo.size())   Command::cmd_OFF(0);
 
    Output::reset_dout();
-   reset_errors();
+   if (testcase_ends)   reset_errors();
    return true;   // continue processing
 }
 //────────────────────────────────────────────────────────────────────────────

@@ -106,7 +106,7 @@ J LINE 5
 J:  6 5 3 1 1
 SYNTAX ERROR+
 J[7]  ∘∘∘∘∘∘
-          ^^
+      ^    ^
 
       ]FILE_CTL SKIP_APL2   ⍝ ⎕LC/⎕NL depend on the test harness
       ⎕LC
@@ -121,7 +121,7 @@ WAS ³
 
       )SIS
 J[7]  ∘∘∘∘∘∘
-          ^^
+      ^    ^
 H[5]  J
       ^
 G[3]  H

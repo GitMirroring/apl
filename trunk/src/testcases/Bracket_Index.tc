@@ -394,19 +394,19 @@ y 0 3
       BUGS6_5_FOO
 VALUE ERROR+
 BUGS6_5_FOO[1]  Z←UNDEFVAR_BUGS6_5[1;2]
-                                  ^
+                  ^
 
       )SIC
       BUGS6_5_FOO
 VALUE ERROR+
 BUGS6_5_FOO[1]  Z←UNDEFVAR_BUGS6_5[1;2]
-                                  ^
+                  ^
 
       )SIC
       BUGS6_5_FOO
 VALUE ERROR+
 BUGS6_5_FOO[1]  Z←UNDEFVAR_BUGS6_5[1;2]
-                                  ^
+                  ^
 
       )SIC
 

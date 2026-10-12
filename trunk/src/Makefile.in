@@ -218,16 +218,16 @@ am__lib_gnu_apl_la_SOURCES_DIST = Plot_ascii.cc Plot_gtk.cc \
 	Common.hh ComplexCell.cc ComplexCell.hh CrashDump.cc \
 	CrashDump.hh ConstCell_P.hh DerivedFunction.cc \
 	DerivedFunction.hh DiffOut.cc DiffOut.hh DynamicObject.cc \
-	DynamicObject.hh Error.cc Error.def Error.hh Error_macros.hh \
-	ErrorCode.hh Executable.cc Executable.hh FloatCell.cc \
-	FloatCell.hh Focus.icc Function.cc Function.hh Help.def \
-	Heapsort.hh Id.cc Id.def Id.hh IdEnums.hh IndexExpr.cc \
-	IndexExpr.hh IndexIterator.cc IndexIterator.hh InputFile.cc \
-	InputFile.hh IntCell.cc IntCell.hh IO_Files.cc IO_Files.hh \
-	LApack.cc LAdebug.icc LApack.hh LibPaths.cc LibPaths.hh \
-	LineInput.cc LineInput.hh Logging.cc Logging.def Logging.hh \
-	LvalCell.cc LvalCell.hh Malloc_hooks.cc Nabla.cc Nabla.hh \
-	Macro.cc Macro.def Macro.hh Missing_Libraries.cc \
+	DynamicObject.hh Error.cc Error.def Error.hh ErrorTrail.cc \
+	ErrorTrail.hh Error_macros.hh ErrorCode.hh Executable.cc \
+	Executable.hh FloatCell.cc FloatCell.hh Focus.icc Function.cc \
+	Function.hh Help.def Heapsort.hh Id.cc Id.def Id.hh IdEnums.hh \
+	IndexExpr.cc IndexExpr.hh IndexIterator.cc IndexIterator.hh \
+	InputFile.cc InputFile.hh IntCell.cc IntCell.hh IO_Files.cc \
+	IO_Files.hh LApack.cc LAdebug.icc LApack.hh LibPaths.cc \
+	LibPaths.hh LineInput.cc LineInput.hh Logging.cc Logging.def \
+	Logging.hh LvalCell.cc LvalCell.hh Malloc_hooks.cc Nabla.cc \
+	Nabla.hh Macro.cc Macro.def Macro.hh Missing_Libraries.cc \
 	NamedObject.cc NamedObject.hh NativeFunction.cc \
 	NativeFunction.hh Native_interface.hh NumericCell.cc \
 	NumericCell.icc NumericCell.hh Output.cc Output.hh PJob.hh \
@@ -331,15 +331,16 @@ am__objects_8 = $(am__objects_4) lib_gnu_apl_la-Archive.lo \
 	lib_gnu_apl_la-ComplexCell.lo lib_gnu_apl_la-CrashDump.lo \
 	lib_gnu_apl_la-DerivedFunction.lo lib_gnu_apl_la-DiffOut.lo \
 	lib_gnu_apl_la-DynamicObject.lo lib_gnu_apl_la-Error.lo \
-	lib_gnu_apl_la-Executable.lo lib_gnu_apl_la-FloatCell.lo \
-	lib_gnu_apl_la-Function.lo lib_gnu_apl_la-Id.lo \
-	lib_gnu_apl_la-IndexExpr.lo lib_gnu_apl_la-IndexIterator.lo \
-	lib_gnu_apl_la-InputFile.lo lib_gnu_apl_la-IntCell.lo \
-	lib_gnu_apl_la-IO_Files.lo lib_gnu_apl_la-LApack.lo \
-	lib_gnu_apl_la-LibPaths.lo lib_gnu_apl_la-LineInput.lo \
-	lib_gnu_apl_la-Logging.lo lib_gnu_apl_la-LvalCell.lo \
-	lib_gnu_apl_la-Malloc_hooks.lo lib_gnu_apl_la-Nabla.lo \
-	lib_gnu_apl_la-Macro.lo lib_gnu_apl_la-Missing_Libraries.lo \
+	lib_gnu_apl_la-ErrorTrail.lo lib_gnu_apl_la-Executable.lo \
+	lib_gnu_apl_la-FloatCell.lo lib_gnu_apl_la-Function.lo \
+	lib_gnu_apl_la-Id.lo lib_gnu_apl_la-IndexExpr.lo \
+	lib_gnu_apl_la-IndexIterator.lo lib_gnu_apl_la-InputFile.lo \
+	lib_gnu_apl_la-IntCell.lo lib_gnu_apl_la-IO_Files.lo \
+	lib_gnu_apl_la-LApack.lo lib_gnu_apl_la-LibPaths.lo \
+	lib_gnu_apl_la-LineInput.lo lib_gnu_apl_la-Logging.lo \
+	lib_gnu_apl_la-LvalCell.lo lib_gnu_apl_la-Malloc_hooks.lo \
+	lib_gnu_apl_la-Nabla.lo lib_gnu_apl_la-Macro.lo \
+	lib_gnu_apl_la-Missing_Libraries.lo \
 	lib_gnu_apl_la-NamedObject.lo lib_gnu_apl_la-NativeFunction.lo \
 	lib_gnu_apl_la-NumericCell.lo lib_gnu_apl_la-Output.lo \
 	lib_gnu_apl_la-Parallel.lo lib_gnu_apl_la-Parser.lo \
@@ -430,16 +431,16 @@ am__libapl_la_SOURCES_DIST = Plot_ascii.cc Plot_gtk.cc Plot_xcb.cc \
 	Common.hh ComplexCell.cc ComplexCell.hh CrashDump.cc \
 	CrashDump.hh ConstCell_P.hh DerivedFunction.cc \
 	DerivedFunction.hh DiffOut.cc DiffOut.hh DynamicObject.cc \
-	DynamicObject.hh Error.cc Error.def Error.hh Error_macros.hh \
-	ErrorCode.hh Executable.cc Executable.hh FloatCell.cc \
-	FloatCell.hh Focus.icc Function.cc Function.hh Help.def \
-	Heapsort.hh Id.cc Id.def Id.hh IdEnums.hh IndexExpr.cc \
-	IndexExpr.hh IndexIterator.cc IndexIterator.hh InputFile.cc \
-	InputFile.hh IntCell.cc IntCell.hh IO_Files.cc IO_Files.hh \
-	LApack.cc LAdebug.icc LApack.hh LibPaths.cc LibPaths.hh \
-	LineInput.cc LineInput.hh Logging.cc Logging.def Logging.hh \
-	LvalCell.cc LvalCell.hh Malloc_hooks.cc Nabla.cc Nabla.hh \
-	Macro.cc Macro.def Macro.hh Missing_Libraries.cc \
+	DynamicObject.hh Error.cc Error.def Error.hh ErrorTrail.cc \
+	ErrorTrail.hh Error_macros.hh ErrorCode.hh Executable.cc \
+	Executable.hh FloatCell.cc FloatCell.hh Focus.icc Function.cc \
+	Function.hh Help.def Heapsort.hh Id.cc Id.def Id.hh IdEnums.hh \
+	IndexExpr.cc IndexExpr.hh IndexIterator.cc IndexIterator.hh \
+	InputFile.cc InputFile.hh IntCell.cc IntCell.hh IO_Files.cc \
+	IO_Files.hh LApack.cc LAdebug.icc LApack.hh LibPaths.cc \
+	LibPaths.hh LineInput.cc LineInput.hh Logging.cc Logging.def \
+	Logging.hh LvalCell.cc LvalCell.hh Malloc_hooks.cc Nabla.cc \
+	Nabla.hh Macro.cc Macro.def Macro.hh Missing_Libraries.cc \
 	NamedObject.cc NamedObject.hh NativeFunction.cc \
 	NativeFunction.hh Native_interface.hh NumericCell.cc \
 	NumericCell.icc NumericCell.hh Output.cc Output.hh PJob.hh \
@@ -531,10 +532,11 @@ am__objects_16 = $(am__objects_12) libapl_la-Archive.lo \
 	libapl_la-ComplexCell.lo libapl_la-CrashDump.lo \
 	libapl_la-DerivedFunction.lo libapl_la-DiffOut.lo \
 	libapl_la-DynamicObject.lo libapl_la-Error.lo \
-	libapl_la-Executable.lo libapl_la-FloatCell.lo \
-	libapl_la-Function.lo libapl_la-Id.lo libapl_la-IndexExpr.lo \
-	libapl_la-IndexIterator.lo libapl_la-InputFile.lo \
-	libapl_la-IntCell.lo libapl_la-IO_Files.lo libapl_la-LApack.lo \
+	libapl_la-ErrorTrail.lo libapl_la-Executable.lo \
+	libapl_la-FloatCell.lo libapl_la-Function.lo libapl_la-Id.lo \
+	libapl_la-IndexExpr.lo libapl_la-IndexIterator.lo \
+	libapl_la-InputFile.lo libapl_la-IntCell.lo \
+	libapl_la-IO_Files.lo libapl_la-LApack.lo \
 	libapl_la-LibPaths.lo libapl_la-LineInput.lo \
 	libapl_la-Logging.lo libapl_la-LvalCell.lo \
 	libapl_la-Malloc_hooks.lo libapl_la-Nabla.lo \
@@ -614,16 +616,16 @@ am__apl_SOURCES_DIST = main.cc Plot_ascii.cc Plot_gtk.cc Plot_xcb.cc \
 	Common.hh ComplexCell.cc ComplexCell.hh CrashDump.cc \
 	CrashDump.hh ConstCell_P.hh DerivedFunction.cc \
 	DerivedFunction.hh DiffOut.cc DiffOut.hh DynamicObject.cc \
-	DynamicObject.hh Error.cc Error.def Error.hh Error_macros.hh \
-	ErrorCode.hh Executable.cc Executable.hh FloatCell.cc \
-	FloatCell.hh Focus.icc Function.cc Function.hh Help.def \
-	Heapsort.hh Id.cc Id.def Id.hh IdEnums.hh IndexExpr.cc \
-	IndexExpr.hh IndexIterator.cc IndexIterator.hh InputFile.cc \
-	InputFile.hh IntCell.cc IntCell.hh IO_Files.cc IO_Files.hh \
-	LApack.cc LAdebug.icc LApack.hh LibPaths.cc LibPaths.hh \
-	LineInput.cc LineInput.hh Logging.cc Logging.def Logging.hh \
-	LvalCell.cc LvalCell.hh Malloc_hooks.cc Nabla.cc Nabla.hh \
-	Macro.cc Macro.def Macro.hh Missing_Libraries.cc \
+	DynamicObject.hh Error.cc Error.def Error.hh ErrorTrail.cc \
+	ErrorTrail.hh Error_macros.hh ErrorCode.hh Executable.cc \
+	Executable.hh FloatCell.cc FloatCell.hh Focus.icc Function.cc \
+	Function.hh Help.def Heapsort.hh Id.cc Id.def Id.hh IdEnums.hh \
+	IndexExpr.cc IndexExpr.hh IndexIterator.cc IndexIterator.hh \
+	InputFile.cc InputFile.hh IntCell.cc IntCell.hh IO_Files.cc \
+	IO_Files.hh LApack.cc LAdebug.icc LApack.hh LibPaths.cc \
+	LibPaths.hh LineInput.cc LineInput.hh Logging.cc Logging.def \
+	Logging.hh LvalCell.cc LvalCell.hh Malloc_hooks.cc Nabla.cc \
+	Nabla.hh Macro.cc Macro.def Macro.hh Missing_Libraries.cc \
 	NamedObject.cc NamedObject.hh NativeFunction.cc \
 	NativeFunction.hh Native_interface.hh NumericCell.cc \
 	NumericCell.icc NumericCell.hh Output.cc Output.hh PJob.hh \
@@ -718,35 +720,36 @@ am__objects_24 = $(am__objects_20) apl-Archive.$(OBJEXT) \
 	apl-ComplexCell.$(OBJEXT) apl-CrashDump.$(OBJEXT) \
 	apl-DerivedFunction.$(OBJEXT) apl-DiffOut.$(OBJEXT) \
 	apl-DynamicObject.$(OBJEXT) apl-Error.$(OBJEXT) \
-	apl-Executable.$(OBJEXT) apl-FloatCell.$(OBJEXT) \
-	apl-Function.$(OBJEXT) apl-Id.$(OBJEXT) \
-	apl-IndexExpr.$(OBJEXT) apl-IndexIterator.$(OBJEXT) \
-	apl-InputFile.$(OBJEXT) apl-IntCell.$(OBJEXT) \
-	apl-IO_Files.$(OBJEXT) apl-LApack.$(OBJEXT) \
-	apl-LibPaths.$(OBJEXT) apl-LineInput.$(OBJEXT) \
-	apl-Logging.$(OBJEXT) apl-LvalCell.$(OBJEXT) \
-	apl-Malloc_hooks.$(OBJEXT) apl-Nabla.$(OBJEXT) \
-	apl-Macro.$(OBJEXT) apl-Missing_Libraries.$(OBJEXT) \
-	apl-NamedObject.$(OBJEXT) apl-NativeFunction.$(OBJEXT) \
-	apl-NumericCell.$(OBJEXT) apl-Output.$(OBJEXT) \
-	apl-Parallel.$(OBJEXT) apl-Parser.$(OBJEXT) \
-	apl-Performance.$(OBJEXT) apl-PointerCell.$(OBJEXT) \
-	apl-Prefix.$(OBJEXT) apl-Plot_line_properties.$(OBJEXT) \
-	apl-Plot_data.$(OBJEXT) apl-Plot_window_properties.$(OBJEXT) \
-	apl-PrintBuffer.$(OBJEXT) apl-Polynomial.$(OBJEXT) \
-	apl-PythonPipe.$(OBJEXT) apl-QR_factorization_GSL.$(OBJEXT) \
-	apl-QuadFunction.$(OBJEXT) apl-ProcessorID.$(OBJEXT) \
-	apl-Quad_CC.$(OBJEXT) apl-Quad_CR.$(OBJEXT) \
-	apl-Quad_DLX.$(OBJEXT) apl-Quad_FFT.$(OBJEXT) \
-	apl-Quad_FIO.$(OBJEXT) apl-Quad_FX.$(OBJEXT) \
-	apl-Quad_GTK.$(OBJEXT) apl-Quad_JSON.$(OBJEXT) \
-	apl-Quad_MAP.$(OBJEXT) apl-Quad_MX.$(OBJEXT) \
-	apl-Quad_PLOT.$(OBJEXT) apl-Quad_PNG.$(OBJEXT) \
-	apl-Quad_RE.$(OBJEXT) apl-Quad_RL.$(OBJEXT) \
-	apl-Quad_RVAL.$(OBJEXT) apl-Quad_SQL.$(OBJEXT) \
-	apl-Quad_SVx.$(OBJEXT) apl-Quad_TF.$(OBJEXT) \
-	apl-Quad_WA.$(OBJEXT) apl-Quad_XML.$(OBJEXT) \
-	apl-RealCell.$(OBJEXT) apl-sbrk.$(OBJEXT) apl-Shape.$(OBJEXT) \
+	apl-ErrorTrail.$(OBJEXT) apl-Executable.$(OBJEXT) \
+	apl-FloatCell.$(OBJEXT) apl-Function.$(OBJEXT) \
+	apl-Id.$(OBJEXT) apl-IndexExpr.$(OBJEXT) \
+	apl-IndexIterator.$(OBJEXT) apl-InputFile.$(OBJEXT) \
+	apl-IntCell.$(OBJEXT) apl-IO_Files.$(OBJEXT) \
+	apl-LApack.$(OBJEXT) apl-LibPaths.$(OBJEXT) \
+	apl-LineInput.$(OBJEXT) apl-Logging.$(OBJEXT) \
+	apl-LvalCell.$(OBJEXT) apl-Malloc_hooks.$(OBJEXT) \
+	apl-Nabla.$(OBJEXT) apl-Macro.$(OBJEXT) \
+	apl-Missing_Libraries.$(OBJEXT) apl-NamedObject.$(OBJEXT) \
+	apl-NativeFunction.$(OBJEXT) apl-NumericCell.$(OBJEXT) \
+	apl-Output.$(OBJEXT) apl-Parallel.$(OBJEXT) \
+	apl-Parser.$(OBJEXT) apl-Performance.$(OBJEXT) \
+	apl-PointerCell.$(OBJEXT) apl-Prefix.$(OBJEXT) \
+	apl-Plot_line_properties.$(OBJEXT) apl-Plot_data.$(OBJEXT) \
+	apl-Plot_window_properties.$(OBJEXT) apl-PrintBuffer.$(OBJEXT) \
+	apl-Polynomial.$(OBJEXT) apl-PythonPipe.$(OBJEXT) \
+	apl-QR_factorization_GSL.$(OBJEXT) apl-QuadFunction.$(OBJEXT) \
+	apl-ProcessorID.$(OBJEXT) apl-Quad_CC.$(OBJEXT) \
+	apl-Quad_CR.$(OBJEXT) apl-Quad_DLX.$(OBJEXT) \
+	apl-Quad_FFT.$(OBJEXT) apl-Quad_FIO.$(OBJEXT) \
+	apl-Quad_FX.$(OBJEXT) apl-Quad_GTK.$(OBJEXT) \
+	apl-Quad_JSON.$(OBJEXT) apl-Quad_MAP.$(OBJEXT) \
+	apl-Quad_MX.$(OBJEXT) apl-Quad_PLOT.$(OBJEXT) \
+	apl-Quad_PNG.$(OBJEXT) apl-Quad_RE.$(OBJEXT) \
+	apl-Quad_RL.$(OBJEXT) apl-Quad_RVAL.$(OBJEXT) \
+	apl-Quad_SQL.$(OBJEXT) apl-Quad_SVx.$(OBJEXT) \
+	apl-Quad_TF.$(OBJEXT) apl-Quad_WA.$(OBJEXT) \
+	apl-Quad_XML.$(OBJEXT) apl-RealCell.$(OBJEXT) \
+	apl-sbrk.$(OBJEXT) apl-Shape.$(OBJEXT) \
 	apl-ScalarFunction.$(OBJEXT) apl-Security.$(OBJEXT) \
 	apl-StateIndicator.$(OBJEXT) apl-Svar_DB.$(OBJEXT) \
 	apl-Svar_record.$(OBJEXT) apl-Symbol.$(OBJEXT) \
@@ -827,15 +830,15 @@ am__depfiles_remade = ./$(DEPDIR)/apl-Archive.Po \
 	./$(DEPDIR)/apl-CrashDump.Po \
 	./$(DEPDIR)/apl-DerivedFunction.Po ./$(DEPDIR)/apl-DiffOut.Po \
 	./$(DEPDIR)/apl-Doxy.Po ./$(DEPDIR)/apl-DynamicObject.Po \
-	./$(DEPDIR)/apl-Error.Po ./$(DEPDIR)/apl-Executable.Po \
-	./$(DEPDIR)/apl-FloatCell.Po ./$(DEPDIR)/apl-Function.Po \
-	./$(DEPDIR)/apl-IO_Files.Po ./$(DEPDIR)/apl-Id.Po \
-	./$(DEPDIR)/apl-IndexExpr.Po ./$(DEPDIR)/apl-IndexIterator.Po \
-	./$(DEPDIR)/apl-InputFile.Po ./$(DEPDIR)/apl-IntCell.Po \
-	./$(DEPDIR)/apl-LApack.Po ./$(DEPDIR)/apl-LibPaths.Po \
-	./$(DEPDIR)/apl-LineInput.Po ./$(DEPDIR)/apl-Logging.Po \
-	./$(DEPDIR)/apl-LvalCell.Po ./$(DEPDIR)/apl-Macro.Po \
-	./$(DEPDIR)/apl-Malloc_hooks.Po \
+	./$(DEPDIR)/apl-Error.Po ./$(DEPDIR)/apl-ErrorTrail.Po \
+	./$(DEPDIR)/apl-Executable.Po ./$(DEPDIR)/apl-FloatCell.Po \
+	./$(DEPDIR)/apl-Function.Po ./$(DEPDIR)/apl-IO_Files.Po \
+	./$(DEPDIR)/apl-Id.Po ./$(DEPDIR)/apl-IndexExpr.Po \
+	./$(DEPDIR)/apl-IndexIterator.Po ./$(DEPDIR)/apl-InputFile.Po \
+	./$(DEPDIR)/apl-IntCell.Po ./$(DEPDIR)/apl-LApack.Po \
+	./$(DEPDIR)/apl-LibPaths.Po ./$(DEPDIR)/apl-LineInput.Po \
+	./$(DEPDIR)/apl-Logging.Po ./$(DEPDIR)/apl-LvalCell.Po \
+	./$(DEPDIR)/apl-Macro.Po ./$(DEPDIR)/apl-Malloc_hooks.Po \
 	./$(DEPDIR)/apl-Missing_Libraries.Po ./$(DEPDIR)/apl-Nabla.Po \
 	./$(DEPDIR)/apl-NamedObject.Po \
 	./$(DEPDIR)/apl-NativeFunction.Po \
@@ -933,6 +936,7 @@ am__depfiles_remade = ./$(DEPDIR)/apl-Archive.Po \
 	./$(DEPDIR)/lib_gnu_apl_la-Doxy.Plo \
 	./$(DEPDIR)/lib_gnu_apl_la-DynamicObject.Plo \
 	./$(DEPDIR)/lib_gnu_apl_la-Error.Plo \
+	./$(DEPDIR)/lib_gnu_apl_la-ErrorTrail.Plo \
 	./$(DEPDIR)/lib_gnu_apl_la-Executable.Plo \
 	./$(DEPDIR)/lib_gnu_apl_la-FloatCell.Plo \
 	./$(DEPDIR)/lib_gnu_apl_la-Function.Plo \
@@ -1077,6 +1081,7 @@ am__depfiles_remade = ./$(DEPDIR)/apl-Archive.Po \
 	./$(DEPDIR)/libapl_la-Doxy.Plo \
 	./$(DEPDIR)/libapl_la-DynamicObject.Plo \
 	./$(DEPDIR)/libapl_la-Error.Plo \
+	./$(DEPDIR)/libapl_la-ErrorTrail.Plo \
 	./$(DEPDIR)/libapl_la-Executable.Plo \
 	./$(DEPDIR)/libapl_la-FloatCell.Plo \
 	./$(DEPDIR)/libapl_la-Function.Plo \
@@ -1553,16 +1558,16 @@ common_SOURCES = $(plot_SOURCES) ../config.h APL_Float_as_class.hh \
 	Common.hh ComplexCell.cc ComplexCell.hh CrashDump.cc \
 	CrashDump.hh ConstCell_P.hh DerivedFunction.cc \
 	DerivedFunction.hh DiffOut.cc DiffOut.hh DynamicObject.cc \
-	DynamicObject.hh Error.cc Error.def Error.hh Error_macros.hh \
-	ErrorCode.hh Executable.cc Executable.hh FloatCell.cc \
-	FloatCell.hh Focus.icc Function.cc Function.hh Help.def \
-	Heapsort.hh Id.cc Id.def Id.hh IdEnums.hh IndexExpr.cc \
-	IndexExpr.hh IndexIterator.cc IndexIterator.hh InputFile.cc \
-	InputFile.hh IntCell.cc IntCell.hh IO_Files.cc IO_Files.hh \
-	LApack.cc LAdebug.icc LApack.hh LibPaths.cc LibPaths.hh \
-	LineInput.cc LineInput.hh Logging.cc Logging.def Logging.hh \
-	LvalCell.cc LvalCell.hh Malloc_hooks.cc Nabla.cc Nabla.hh \
-	Macro.cc Macro.def Macro.hh Missing_Libraries.cc \
+	DynamicObject.hh Error.cc Error.def Error.hh ErrorTrail.cc \
+	ErrorTrail.hh Error_macros.hh ErrorCode.hh Executable.cc \
+	Executable.hh FloatCell.cc FloatCell.hh Focus.icc Function.cc \
+	Function.hh Help.def Heapsort.hh Id.cc Id.def Id.hh IdEnums.hh \
+	IndexExpr.cc IndexExpr.hh IndexIterator.cc IndexIterator.hh \
+	InputFile.cc InputFile.hh IntCell.cc IntCell.hh IO_Files.cc \
+	IO_Files.hh LApack.cc LAdebug.icc LApack.hh LibPaths.cc \
+	LibPaths.hh LineInput.cc LineInput.hh Logging.cc Logging.def \
+	Logging.hh LvalCell.cc LvalCell.hh Malloc_hooks.cc Nabla.cc \
+	Nabla.hh Macro.cc Macro.def Macro.hh Missing_Libraries.cc \
 	NamedObject.cc NamedObject.hh NativeFunction.cc \
 	NativeFunction.hh Native_interface.hh NumericCell.cc \
 	NumericCell.icc NumericCell.hh Output.cc Output.hh PJob.hh \
@@ -1896,6 +1901,7 @@ distclean-compile:
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/apl-Doxy.Po@am__quote@ # am--include-marker
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/apl-DynamicObject.Po@am__quote@ # am--include-marker
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/apl-Error.Po@am__quote@ # am--include-marker
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/apl-ErrorTrail.Po@am__quote@ # am--include-marker
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/apl-Executable.Po@am__quote@ # am--include-marker
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/apl-FloatCell.Po@am__quote@ # am--include-marker
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/apl-Function.Po@am__quote@ # am--include-marker
@@ -2041,6 +2047,7 @@ distclean-compile:
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/lib_gnu_apl_la-Doxy.Plo@am__quote@ # am--include-marker
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/lib_gnu_apl_la-DynamicObject.Plo@am__quote@ # am--include-marker
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/lib_gnu_apl_la-Error.Plo@am__quote@ # am--include-marker
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/lib_gnu_apl_la-ErrorTrail.Plo@am__quote@ # am--include-marker
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/lib_gnu_apl_la-Executable.Plo@am__quote@ # am--include-marker
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/lib_gnu_apl_la-FloatCell.Plo@am__quote@ # am--include-marker
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/lib_gnu_apl_la-Function.Plo@am__quote@ # am--include-marker
@@ -2186,6 +2193,7 @@ distclean-compile:
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libapl_la-Doxy.Plo@am__quote@ # am--include-marker
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libapl_la-DynamicObject.Plo@am__quote@ # am--include-marker
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libapl_la-Error.Plo@am__quote@ # am--include-marker
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libapl_la-ErrorTrail.Plo@am__quote@ # am--include-marker
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libapl_la-Executable.Plo@am__quote@ # am--include-marker
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libapl_la-FloatCell.Plo@am__quote@ # am--include-marker
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libapl_la-Function.Plo@am__quote@ # am--include-marker
@@ -2737,6 +2745,13 @@ lib_gnu_apl_la-Error.lo: Error.cc
 @AMDEP_TRUE@@am__fastdepCXX_FALSE@	$(AM_V_CXX)source='Error.cc' object='lib_gnu_apl_la-Error.lo' libtool=yes @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
 @am__fastdepCXX_FALSE@	$(AM_V_CXX@am__nodep@)$(LIBTOOL) $(AM_V_lt) --tag=CXX $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(lib_gnu_apl_la_CXXFLAGS) $(CXXFLAGS) -c -o lib_gnu_apl_la-Error.lo `test -f 'Error.cc' || echo '$(srcdir)/'`Error.cc
+
+lib_gnu_apl_la-ErrorTrail.lo: ErrorTrail.cc
+@am__fastdepCXX_TRUE@	$(AM_V_CXX)$(LIBTOOL) $(AM_V_lt) --tag=CXX $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(lib_gnu_apl_la_CXXFLAGS) $(CXXFLAGS) -MT lib_gnu_apl_la-ErrorTrail.lo -MD -MP -MF $(DEPDIR)/lib_gnu_apl_la-ErrorTrail.Tpo -c -o lib_gnu_apl_la-ErrorTrail.lo `test -f 'ErrorTrail.cc' || echo '$(srcdir)/'`ErrorTrail.cc
+@am__fastdepCXX_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/lib_gnu_apl_la-ErrorTrail.Tpo $(DEPDIR)/lib_gnu_apl_la-ErrorTrail.Plo
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	$(AM_V_CXX)source='ErrorTrail.cc' object='lib_gnu_apl_la-ErrorTrail.lo' libtool=yes @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCXX_FALSE@	$(AM_V_CXX@am__nodep@)$(LIBTOOL) $(AM_V_lt) --tag=CXX $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(lib_gnu_apl_la_CXXFLAGS) $(CXXFLAGS) -c -o lib_gnu_apl_la-ErrorTrail.lo `test -f 'ErrorTrail.cc' || echo '$(srcdir)/'`ErrorTrail.cc
 
 lib_gnu_apl_la-Executable.lo: Executable.cc
 @am__fastdepCXX_TRUE@	$(AM_V_CXX)$(LIBTOOL) $(AM_V_lt) --tag=CXX $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(lib_gnu_apl_la_CXXFLAGS) $(CXXFLAGS) -MT lib_gnu_apl_la-Executable.lo -MD -MP -MF $(DEPDIR)/lib_gnu_apl_la-Executable.Tpo -c -o lib_gnu_apl_la-Executable.lo `test -f 'Executable.cc' || echo '$(srcdir)/'`Executable.cc
@@ -3808,6 +3823,13 @@ libapl_la-Error.lo: Error.cc
 @AMDEP_TRUE@@am__fastdepCXX_FALSE@	$(AM_V_CXX)source='Error.cc' object='libapl_la-Error.lo' libtool=yes @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
 @am__fastdepCXX_FALSE@	$(AM_V_CXX@am__nodep@)$(LIBTOOL) $(AM_V_lt) --tag=CXX $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libapl_la_CXXFLAGS) $(CXXFLAGS) -c -o libapl_la-Error.lo `test -f 'Error.cc' || echo '$(srcdir)/'`Error.cc
+
+libapl_la-ErrorTrail.lo: ErrorTrail.cc
+@am__fastdepCXX_TRUE@	$(AM_V_CXX)$(LIBTOOL) $(AM_V_lt) --tag=CXX $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libapl_la_CXXFLAGS) $(CXXFLAGS) -MT libapl_la-ErrorTrail.lo -MD -MP -MF $(DEPDIR)/libapl_la-ErrorTrail.Tpo -c -o libapl_la-ErrorTrail.lo `test -f 'ErrorTrail.cc' || echo '$(srcdir)/'`ErrorTrail.cc
+@am__fastdepCXX_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/libapl_la-ErrorTrail.Tpo $(DEPDIR)/libapl_la-ErrorTrail.Plo
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	$(AM_V_CXX)source='ErrorTrail.cc' object='libapl_la-ErrorTrail.lo' libtool=yes @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCXX_FALSE@	$(AM_V_CXX@am__nodep@)$(LIBTOOL) $(AM_V_lt) --tag=CXX $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libapl_la_CXXFLAGS) $(CXXFLAGS) -c -o libapl_la-ErrorTrail.lo `test -f 'ErrorTrail.cc' || echo '$(srcdir)/'`ErrorTrail.cc
 
 libapl_la-Executable.lo: Executable.cc
 @am__fastdepCXX_TRUE@	$(AM_V_CXX)$(LIBTOOL) $(AM_V_lt) --tag=CXX $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libapl_la_CXXFLAGS) $(CXXFLAGS) -MT libapl_la-Executable.lo -MD -MP -MF $(DEPDIR)/libapl_la-Executable.Tpo -c -o libapl_la-Executable.lo `test -f 'Executable.cc' || echo '$(srcdir)/'`Executable.cc
@@ -5299,6 +5321,20 @@ apl-Error.obj: Error.cc
 @AMDEP_TRUE@@am__fastdepCXX_FALSE@	$(AM_V_CXX)source='Error.cc' object='apl-Error.obj' libtool=no @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
 @am__fastdepCXX_FALSE@	$(AM_V_CXX@am__nodep@)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(apl_CXXFLAGS) $(CXXFLAGS) -c -o apl-Error.obj `if test -f 'Error.cc'; then $(CYGPATH_W) 'Error.cc'; else $(CYGPATH_W) '$(srcdir)/Error.cc'; fi`
+
+apl-ErrorTrail.o: ErrorTrail.cc
+@am__fastdepCXX_TRUE@	$(AM_V_CXX)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(apl_CXXFLAGS) $(CXXFLAGS) -MT apl-ErrorTrail.o -MD -MP -MF $(DEPDIR)/apl-ErrorTrail.Tpo -c -o apl-ErrorTrail.o `test -f 'ErrorTrail.cc' || echo '$(srcdir)/'`ErrorTrail.cc
+@am__fastdepCXX_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/apl-ErrorTrail.Tpo $(DEPDIR)/apl-ErrorTrail.Po
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	$(AM_V_CXX)source='ErrorTrail.cc' object='apl-ErrorTrail.o' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCXX_FALSE@	$(AM_V_CXX@am__nodep@)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(apl_CXXFLAGS) $(CXXFLAGS) -c -o apl-ErrorTrail.o `test -f 'ErrorTrail.cc' || echo '$(srcdir)/'`ErrorTrail.cc
+
+apl-ErrorTrail.obj: ErrorTrail.cc
+@am__fastdepCXX_TRUE@	$(AM_V_CXX)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(apl_CXXFLAGS) $(CXXFLAGS) -MT apl-ErrorTrail.obj -MD -MP -MF $(DEPDIR)/apl-ErrorTrail.Tpo -c -o apl-ErrorTrail.obj `if test -f 'ErrorTrail.cc'; then $(CYGPATH_W) 'ErrorTrail.cc'; else $(CYGPATH_W) '$(srcdir)/ErrorTrail.cc'; fi`
+@am__fastdepCXX_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/apl-ErrorTrail.Tpo $(DEPDIR)/apl-ErrorTrail.Po
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	$(AM_V_CXX)source='ErrorTrail.cc' object='apl-ErrorTrail.obj' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCXX_FALSE@	$(AM_V_CXX@am__nodep@)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(apl_CXXFLAGS) $(CXXFLAGS) -c -o apl-ErrorTrail.obj `if test -f 'ErrorTrail.cc'; then $(CYGPATH_W) 'ErrorTrail.cc'; else $(CYGPATH_W) '$(srcdir)/ErrorTrail.cc'; fi`
 
 apl-Executable.o: Executable.cc
 @am__fastdepCXX_TRUE@	$(AM_V_CXX)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(apl_CXXFLAGS) $(CXXFLAGS) -MT apl-Executable.o -MD -MP -MF $(DEPDIR)/apl-Executable.Tpo -c -o apl-Executable.o `test -f 'Executable.cc' || echo '$(srcdir)/'`Executable.cc
@@ -6945,6 +6981,7 @@ distclean: distclean-recursive
 	-rm -f ./$(DEPDIR)/apl-Doxy.Po
 	-rm -f ./$(DEPDIR)/apl-DynamicObject.Po
 	-rm -f ./$(DEPDIR)/apl-Error.Po
+	-rm -f ./$(DEPDIR)/apl-ErrorTrail.Po
 	-rm -f ./$(DEPDIR)/apl-Executable.Po
 	-rm -f ./$(DEPDIR)/apl-FloatCell.Po
 	-rm -f ./$(DEPDIR)/apl-Function.Po
@@ -7090,6 +7127,7 @@ distclean: distclean-recursive
 	-rm -f ./$(DEPDIR)/lib_gnu_apl_la-Doxy.Plo
 	-rm -f ./$(DEPDIR)/lib_gnu_apl_la-DynamicObject.Plo
 	-rm -f ./$(DEPDIR)/lib_gnu_apl_la-Error.Plo
+	-rm -f ./$(DEPDIR)/lib_gnu_apl_la-ErrorTrail.Plo
 	-rm -f ./$(DEPDIR)/lib_gnu_apl_la-Executable.Plo
 	-rm -f ./$(DEPDIR)/lib_gnu_apl_la-FloatCell.Plo
 	-rm -f ./$(DEPDIR)/lib_gnu_apl_la-Function.Plo
@@ -7235,6 +7273,7 @@ distclean: distclean-recursive
 	-rm -f ./$(DEPDIR)/libapl_la-Doxy.Plo
 	-rm -f ./$(DEPDIR)/libapl_la-DynamicObject.Plo
 	-rm -f ./$(DEPDIR)/libapl_la-Error.Plo
+	-rm -f ./$(DEPDIR)/libapl_la-ErrorTrail.Plo
 	-rm -f ./$(DEPDIR)/libapl_la-Executable.Plo
 	-rm -f ./$(DEPDIR)/libapl_la-FloatCell.Plo
 	-rm -f ./$(DEPDIR)/libapl_la-Function.Plo
@@ -7451,6 +7490,7 @@ maintainer-clean: maintainer-clean-recursive
 	-rm -f ./$(DEPDIR)/apl-Doxy.Po
 	-rm -f ./$(DEPDIR)/apl-DynamicObject.Po
 	-rm -f ./$(DEPDIR)/apl-Error.Po
+	-rm -f ./$(DEPDIR)/apl-ErrorTrail.Po
 	-rm -f ./$(DEPDIR)/apl-Executable.Po
 	-rm -f ./$(DEPDIR)/apl-FloatCell.Po
 	-rm -f ./$(DEPDIR)/apl-Function.Po
@@ -7596,6 +7636,7 @@ maintainer-clean: maintainer-clean-recursive
 	-rm -f ./$(DEPDIR)/lib_gnu_apl_la-Doxy.Plo
 	-rm -f ./$(DEPDIR)/lib_gnu_apl_la-DynamicObject.Plo
 	-rm -f ./$(DEPDIR)/lib_gnu_apl_la-Error.Plo
+	-rm -f ./$(DEPDIR)/lib_gnu_apl_la-ErrorTrail.Plo
 	-rm -f ./$(DEPDIR)/lib_gnu_apl_la-Executable.Plo
 	-rm -f ./$(DEPDIR)/lib_gnu_apl_la-FloatCell.Plo
 	-rm -f ./$(DEPDIR)/lib_gnu_apl_la-Function.Plo
@@ -7741,6 +7782,7 @@ maintainer-clean: maintainer-clean-recursive
 	-rm -f ./$(DEPDIR)/libapl_la-Doxy.Plo
 	-rm -f ./$(DEPDIR)/libapl_la-DynamicObject.Plo
 	-rm -f ./$(DEPDIR)/libapl_la-Error.Plo
+	-rm -f ./$(DEPDIR)/libapl_la-ErrorTrail.Plo
 	-rm -f ./$(DEPDIR)/libapl_la-Executable.Plo
 	-rm -f ./$(DEPDIR)/libapl_la-FloatCell.Plo
 	-rm -f ./$(DEPDIR)/libapl_la-Function.Plo

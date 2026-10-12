@@ -321,11 +321,15 @@ a b c d e f
       ⍝ actually failed. Widened to the whole statement containing that
       ⍝ degenerate point (Error.cc's update_error_info()), which here
       ⍝ brackets the derived-function application itself.
+      ⍝ The left caret is at the start of the statement: its range used to
+      ⍝ end at the statement's END token, which has no counterpart in the
+      ⍝ unoptimized statement, so the caret landed on ⍳ (found with
+      ⍝ ]EXPLAIN CHECK). The right caret is at the folded 2 2⍴'ab'.
       ⍝
       (⍳⍤1)2 2⍴'ab'
 DOMAIN ERROR
       (⍳⍤1)2 2⍴'ab'
-       ^   ^
+      ^    ^
 
       )SIC
 

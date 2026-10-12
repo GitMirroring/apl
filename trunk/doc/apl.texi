@@ -2891,6 +2891,132 @@ do regular APL comments).
 
 
 @c ----------------------------------------------------------------------------
+@node ]EXPLAIN Command
+@section ]EXPLAIN Command
+
+@b{]EXPLAIN} is a debug command for trouble-shooting an incorrect 3-line
+error display, i.e. a failed statement in line 2 that differs from the
+statement that was entered or executed, or carets in line 3 that point to
+the wrong place. It is not needed for normal APL programming; it is meant
+for finding (and reporting) faults in the part of the interpreter that
+constructs the error display (the @i{backward path} described below).
+
+The 3-line error display of APL (the error name, the failed statement, and
+the carets) looks simple, but is not: the statement that the interpreter
+executes is not the statement that was entered. The tokenizer and several
+parser passes have transformed it (constants were collected, small
+expressions like @b{2 2⍴1} were computed in advance, parentheses were
+removed or inserted, lambdas were replaced by names, and so on), and the
+tokens are stored in reverse order. When an error occurs, GNU APL works
+@i{backwards}, from the tokens that the prefix parser was reducing back to the
+statement as entered and to the caret positions. It does so only when an
+error occurs, so that the error-free case runs at full speed.
+
+The debug command @b{]EXPLAIN} shows, step by step, how the 3 lines of an error
+were constructed:
+
+@example
+]EXPLAIN ON      ⍝ explain every error (in a box after its 3 lines)
+]EXPLAIN CHECK   ⍝ report only errors whose construction fails a check
+]EXPLAIN OFF     ⍝ no explanations (the default)
+]EXPLAIN LAST    ⍝ show the explanation of the last error
+]EXPLAIN         ⍝ the same as ]EXPLAIN LAST
+@end example
+
+In addition to the backward steps, @b{]EXPLAIN} replays the @i{forward} steps
+for the failed statement (tokenizer and every parser pass), keeping track of
+the source characters from which every token was derived. It then checks the
+backward steps against the forward ones. The explanation has three parts:
+
+@table @asis
+@item forward (F0...F5)
+F0: the source of the failed statement and where it comes from (immediate
+execution, a defined function and its line, ⍎ or ⎕EA/⎕EB, a segment of a
+conditional statement). F1: multi-line strings. F2: the tokens of the
+tokenizer, each with its source columns (e.g. @b{«2 2»@@3-5}). F3: every
+parser pass, in the order in which the parser performs it, and what it has
+changed. A pass that applied but changed nothing is shown as
+@b{performed, no change}, a pass that was skipped as @b{not performed}. F4: the
+body of the statement (in reverse order, with the PC of every token). F5:
+the error, the SI, and the prefix parser stack when the error occurred.
+
+@item backward (B1...B6)
+B1: the SI entry whose statement is displayed (e.g. the caller of a locked
+function). B2: the error range in the body and the rule that determined it.
+B3: the failed statement in the body and its unoptimized form. B4: the
+mapping of the error range from the optimized to the unoptimized tokens.
+B5: line 2 and the computation of the carets. B6: the 3 lines.
+
+@item checks (V0...V8)
+V0: the replay succeeded. V1: the error range lies in the failed statement.
+V2: the body is the (reversed) optimized replay. V3: the unoptimized form of
+B3 is the unoptimized replay. V4: the backward mapping (B4) arrives at the
+same source characters as the forward replay. V5: the carets are at the
+columns of the tokens that the error range starts and ends with. V6: line 2
+was not truncated. V7 (information only): how line 2 differs from the
+source. V8: the carets are built for the range of B4.
+
+A failed check (@b{✗}) points to a fault in the backward computation (or
+in @b{]EXPLAIN} itself), and should be reported as a bug.
+@end table
+
+For example (the boxes are abbreviated):
+
+@example
+      ]EXPLAIN ON
+    ]EXPLAIN is ON: every error is explained.
+      Z←(2 2⍴1)+1 2 3
+RANK ERROR+
+      Z←(2 2⍴1)+1 2 3
+        ^       ^
+╔═══════════════ ]EXPLAIN RANK ERROR+ ════════════════╗
+╠═ forward ═══════════════════════════════════════════╣
+╟─ F0 Source ─────────────────────────────────────────╢
+║ immediate execution, statement 1                    ║
+║   Z←(2 2⍴1)+1 2 3                                   ║
+...
+╟─ F3 optimize_short_primitives ──────────────────────╢
+║ «2 2» «⍴» «1» → «value ⍴ 2 2»@@3-7                   ║
+...
+╟─ F4 Body of the statement (reversed) ───────────────╢
+║ PC0 «1 2 3» PC1 «+» PC2 «)» PC3 «value ⍴ 2 2»       ║
+║   PC4 «(» PC5 «←» PC6 «Z»                           ║
+...
+╟─ B4 Optimized → unoptimized ────────────────────────╢
+║ unoptimized token → body token: 0→0 1→1 2→2 3→3 4→3 ║
+║   5→3 6→4 7→5 8→6                                   ║
+║ error range 0…4 → 0…6                               ║
+║ the statement was optimized: line 2 is built from   ║
+║   the unoptimized tokens                            ║
+...
+╠═ checks ════════════════════════════════════════════╣
+║ ✓ V0: the forward replay of the statement succeeded ║
+...
+║ ✓ V4: error range: left end at source column 2      ║
+║   (forward: 2), right end at source column 10       ║
+║   (forward: 10)                                     ║
+...
+╚═════════════════════════════════════════════════════╝
+@end example
+
+The replay is performed when the error occurs, so that the explanation
+itself only slows down the error case, and only while @b{]EXPLAIN} is ON or
+CHECK. However, the replay needs hooks in the tokenizer and in every pass of
+the parser (the @i{forward path}). These hooks are executed for every
+statement that is parsed, whether an error occurs or not, and also while
+@b{]EXPLAIN} is OFF. In order to avoid this performance impact in normal
+use, the forward path (and with it @b{]EXPLAIN}) is not compiled into GNU APL
+unless it was explicitly enabled by @b{./configure}:
+
+@example
+    ./configure EXPLAIN_WANTED=yes
+@end example
+
+Without @b{EXPLAIN_WANTED=yes}, the command @b{]EXPLAIN} only says that it is
+not available, and does nothing else. The backward path (i.e. the
+construction of the 3-line error display itself) is the same in both cases.
+
+@c ----------------------------------------------------------------------------
 @node ]KEYB Command
 @section ]KEYB Command
 

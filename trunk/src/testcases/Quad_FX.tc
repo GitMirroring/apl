@@ -220,7 +220,7 @@ OP2
       ⊥ OP2 F 0                    ⍝ VALUE ERROR; OP2[1] suspended with RO←F
 VALUE ERROR+
 OP2[1]  Z←A LO RO B
-            ^
+          ^
 
       ⍝ refused: ⎕FX returns an error line, not the function's name
       ⍝
@@ -333,7 +333,7 @@ DEFN ERROR+
       ⍵ 5
 VALUE ERROR+
       ⍵ 5
-        ^
+      ^
 
       )MORE
 Offending symbol: ⍵ (U+2375)

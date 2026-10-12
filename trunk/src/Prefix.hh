@@ -75,6 +75,7 @@ class Prefix
    friend class XML_Loading_Archive;   // to )LOAD a parser from an .xml file
    friend class XML_Saving_Archive;    // to )SAVE a parser into an .xml file
    friend class CrashDump;             // to describe a crashed statement
+   friend class ErrorTrail;            // to show the prefix stack (]EXPLAIN)
 
 public:
    /// constructor
@@ -129,6 +130,9 @@ public:
    /// lowest PC in current statement
    Function_PC get_range_low() const
       { return put ? content[0].get_PC() : get_lookahead_PC(); }
+
+   /// return the PC of the function whose result has PC \b pc
+   Function_PC function_at(Function_PC pc) const;
 
    /// print the current range (PC from - PC to) on out
    /// @param out output stream to print to

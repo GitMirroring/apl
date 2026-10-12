@@ -1,0 +1,161 @@
+⍝ ZZ74_Regression.tc
+⍝ ══════════════════
+
+⍝@ test3.
+
+      ⍝ Faults in the construction of the 3-line error display that were
+      ⍝ found with ]EXPLAIN CHECK (which checks the backward computation of
+      ⍝ line 2 and the carets against a forward replay of the statement).
+      ⍝ ]EXPLAIN itself is not used here, since it may be disabled by
+      ⍝ ./configure (EXPLAIN_WANTED).
+      ⍝
+
+
+
+
+
+      ⍝ a defined function with a multi-line string: the lines of the body
+      ⍝ are no longer the lines of the function text. reparse() used the
+      ⍝ text of the wrong line (here: abc) for an optimized statement.
+      ⍝
+      ∇Z←M B
+      Z←"""
+      abc
+      """
+      Z←Z+2 3⍴1
+      ∇
+
+
+
+
+
+      M 1
+DOMAIN ERROR
+M[2]  Z←Z+2 3⍴1
+        ^ ^
+
+
+
+
+
+      )SIC
+
+
+
+
+
+      ⍝ the same for a comment line, which has no tokens in the body
+      ⍝
+      ∇Z←C B
+      ⍝ a comment
+      Z←(2 2⍴1)+1 2 3
+      ∇
+
+
+
+
+
+      C 1
+RANK ERROR+
+C[2]  Z←(2 2⍴1)+1 2 3
+        ^       ^
+
+
+
+
+
+      )SIC
+
+
+
+
+
+      ⍝ a conditional statement C →→ T ←→ F ←← is one statement in the text,
+      ⍝ but its segments C, T, and F are statements of their own in the body.
+      ⍝ For an optimized segment, line 2 showed the entire statement with
+      ⍝ the carets of the segment.
+      ⍝
+      0 →→ 'T' ←→ (2 2⍴1)+1 2 3 ←←
+RANK ERROR+
+      (2 2⍴1)+1 2 3
+      ^       ^
+
+
+
+
+
+      1 →→ (2 2⍴1)+1 2 3 ←→ 'F' ←←
+RANK ERROR+
+      (2 2⍴1)+1 2 3
+      ^       ^
+
+
+
+
+
+      ⍝ a folded ⊂B has 2 tokens (not 3 as a folded A⍴B), and repeated folds
+      ⍝ (⊂⊂B, A⍴⊂B) are one value. Counting 3 tokens for every fold put the
+      ⍝ carets left of it one token off.
+      ⍝
+      'a'+(⊂1 2)
+DOMAIN ERROR
+      'a'+(⊂1 2)
+      ^   ^
+
+
+
+
+
+      'a'+⊂⊂1 2
+DOMAIN ERROR
+      'a'+⊂⊂1 2
+      ^   ^
+
+
+
+
+
+      'a'+2 2⍴⊂1 2
+DOMAIN ERROR
+      'a'+2 2⍴⊂1 2
+      ^   ^
+
+
+
+
+
+      X←3 ◊ (X ⊂ ⊂1 2)+'a'
+RANK ERROR+
+      (X⊂⊂1 2)+'a'
+       ^       ^
+
+
+
+
+
+      ⍝ the macro of a derived function reports the whole statement: its
+      ⍝ range ended at the END token, which has no counterpart in the
+      ⍝ unoptimized statement
+      ⍝
+      (⍳⍤1) 2 2⍴'ab'
+DOMAIN ERROR
+      (⍳⍤1)2 2⍴'ab'
+      ^    ^
+
+
+
+
+
+      )SIC
+
+
+
+
+
+      )CLEAR
+CLEAR WS
+
+
+
+
+

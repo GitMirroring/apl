@@ -32,7 +32,7 @@ CLEAR WS
       A[UNDEF]
 VALUE ERROR+
       A[UNDEF]
-             ^
+        ^
       )CHECK
 OK      - no stale functions
 OK      - no stale values

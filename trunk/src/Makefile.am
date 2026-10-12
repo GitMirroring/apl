@@ -141,6 +141,7 @@ common_SOURCES += DerivedFunction.cc					DerivedFunction.hh
 common_SOURCES += DiffOut.cc							DiffOut.hh
 common_SOURCES += DynamicObject.cc						DynamicObject.hh
 common_SOURCES += Error.cc			Error.def			Error.hh
+common_SOURCES += ErrorTrail.cc							ErrorTrail.hh
 common_SOURCES +=										Error_macros.hh
 common_SOURCES +=										ErrorCode.hh
 common_SOURCES += Executable.cc							Executable.hh

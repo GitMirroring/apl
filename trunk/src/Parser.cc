@@ -27,6 +27,7 @@
 #include "Bif_F12_PARTITION_PICK.hh"
 #include "Bif_F12_RHO.hh"
 #include "CharCell.hh"
+#include "ErrorTrail.hh"
 #include "ComplexCell.hh"
 #include "Common.hh"
 #include "FloatCell.hh"
@@ -159,6 +160,25 @@ Multi_line_SM::next(Unicode triple)
                 << " outside multiline string or literal." << endl;
    return;   // error
 }
+//════════════════════════════════════════════════════════════════════════════
+#ifdef cfg_EXPLAIN_WANTED
+
+/// ]EXPLAIN replays: a parser pass is about to modify \b tos
+#define TRAIL_BEFORE(tos) \
+   if (ErrorTrail::recorder)   ErrorTrail::recorder->pass_before(tos);
+
+/// ]EXPLAIN replays: parser pass \b name has modified \b tos (its TOK_VOIDs
+/// not yet removed)
+#define TRAIL_AFTER(name, tos) \
+   if (ErrorTrail::recorder)   ErrorTrail::recorder->pass_after(name, tos);
+
+#else   // ]EXPLAIN disabled by ./configure: no runtime overhead
+
+#define TRAIL_BEFORE(tos)
+#define TRAIL_AFTER(name, tos)
+
+#endif // cfg_EXPLAIN_WANTED
+
 //════════════════════════════════════════════════════════════════════════════
 ErrorCode
 Parser::parse(const UCS_string & input, Token_string & tos, bool optimize) const
@@ -2333,23 +2353,38 @@ Parser::parse_statement(Token_string & tos, bool optimize)
        }
 
    bool has_power_op = false;
+   TRAIL_BEFORE(tos)
    if (fix_RANK_syntax(tos, has_power_op))   parse_log(2, tos);
+   TRAIL_AFTER("fix_RANK_syntax", tos)
 
+   TRAIL_BEFORE(tos)
    if (has_power_op && fix_POWER_syntax(tos))   parse_log(3, tos);
+   TRAIL_AFTER(has_power_op ? "fix_POWER_syntax"
+                            : "fix_POWER_syntax (skipped: no ⍣)", tos)
 
    // 1. convert (X) into X and ((X...)) into (X...)
    //
-   if (remove_nongrouping_parantheses(tos))
-      {
-        tos.remove_TOK_VOID();
-        parse_log(4, tos);
-      }
+   TRAIL_BEFORE(tos)
+   {
+     const bool progress = remove_nongrouping_parantheses(tos);
+     TRAIL_AFTER("remove_nongrouping_parantheses", tos)
+     if (progress)
+        {
+          tos.remove_TOK_VOID();
+          parse_log(4, tos);
+        }
+   }
 
-   if (map_function_groups(tos))
-      {
-        tos.remove_TOK_VOID();
-        parse_log(5, tos);
-      }
+   TRAIL_BEFORE(tos)
+   {
+     const bool progress = map_function_groups(tos);
+     TRAIL_AFTER("map_function_groups", tos)
+     if (progress)
+        {
+          tos.remove_TOK_VOID();
+          parse_log(5, tos);
+        }
+   }
 
    // 2. convert groups like '(' val val...')' into single APL values
    // A group is defined as 2 or more values enclosed in '(' and ')'.
@@ -2357,7 +2392,9 @@ Parser::parse_statement(Token_string & tos, bool optimize)
    //
    for (int progress = true; progress;)
       {
+        TRAIL_BEFORE(tos)
         progress = collect_value_groups(tos);
+        TRAIL_AFTER("collect_value_groups", tos)
         if (progress)
            {
              tos.remove_TOK_VOID();
@@ -2367,11 +2404,16 @@ Parser::parse_statement(Token_string & tos, bool optimize)
 
    // 3. convert vectors like 1 2 3 or '1' 2 '3' into single APL values
    //
-   if (collect_constants(tos))
-      {
-        tos.remove_TOK_VOID();
-        parse_log(7, tos);
-      }
+   TRAIL_BEFORE(tos)
+   {
+     const bool progress = collect_constants(tos);
+     TRAIL_AFTER("collect_constants", tos)
+     if (progress)
+        {
+          tos.remove_TOK_VOID();
+          parse_log(7, tos);
+        }
+   }
 
    /* parse_statement() is normally called with optimize == true; However,
       Executable::reparse() calls it with optimize == false in order to
@@ -2385,12 +2427,33 @@ Parser::parse_statement(Token_string & tos, bool optimize)
    //
    if (optimize)
       {
-        if (DO_FT_LITERAL_AXIS && optimize_literal_axes(tos))
-           tos.remove_TOK_VOID();
+        TRAIL_BEFORE(tos)
+        const bool axes = DO_FT_LITERAL_AXIS && optimize_literal_axes(tos);
+        TRAIL_AFTER(DO_FT_LITERAL_AXIS ? "optimize_literal_axes"
+                    : "optimize_literal_axes (disabled in Performance.def)",
+                    tos)
+        if (axes)   tos.remove_TOK_VOID();
 
-        while (DO_FT_SHORT_PRIMITIVE && optimize_short_primitives(tos))
-           tos.remove_TOK_VOID();
+        for (bool progress = true; progress;)
+            {
+              TRAIL_BEFORE(tos)
+              progress = DO_FT_SHORT_PRIMITIVE && optimize_short_primitives(tos);
+              TRAIL_AFTER(DO_FT_SHORT_PRIMITIVE ? "optimize_short_primitives"
+                    : "optimize_short_primitives (disabled in Performance.def)",
+                    tos)
+              if (progress)   tos.remove_TOK_VOID();
+            }
       }
+#ifdef cfg_EXPLAIN_WANTED
+   else if (ErrorTrail::recorder)
+      {
+        TRAIL_BEFORE(tos)
+        TRAIL_AFTER("optimize_literal_axes (skipped: unoptimized parse)", tos)
+        TRAIL_BEFORE(tos)
+        TRAIL_AFTER("optimize_short_primitives (skipped: unoptimized parse)",
+                    tos)
+      }
+#endif // cfg_EXPLAIN_WANTED
    parse_log(8, tos);
 
    // 5. special case: single APL value (to speed up ⍎)
@@ -2408,16 +2471,22 @@ Parser::parse_statement(Token_string & tos, bool optimize)
 
    // 6. mark symbol left of ← as LSYMB
    //
+   TRAIL_BEFORE(tos)
    mark_lsymb(tos);
+   TRAIL_AFTER("mark_lsymb", tos)
    parse_log(10, tos);
 
    // 7. replace bitwise functions ⊤∧, ⊤∨, ⊤⍲, and ⊤⍱ by their bitwise variant
    //
+   TRAIL_BEFORE(tos)
    if (optimize)
       {
         optimize_static_patterns(tos);
         parse_log(11, tos);
       }
+   TRAIL_AFTER(optimize ? "optimize_static_patterns"
+                        : "optimize_static_patterns (skipped: unoptimized "
+                          "parse)", tos)
 
    // 8. update the distances between ( and ), [ and ], or { and }. After
    //    that, tos.ssize() must not be changed anymore.

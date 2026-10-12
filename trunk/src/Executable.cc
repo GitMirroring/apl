@@ -22,7 +22,10 @@
 */
 
 
+#include "ErrorTrail.hh"
 #include "Executable.hh"
+#include "Bif_F12_PARTITION_PICK.hh"
+#include "Bif_F12_RHO.hh"
 #include "Parser.hh"
 #include "Output.hh"
 #include "PrintOperator.hh"
@@ -210,6 +213,20 @@ Executable::get_statement_start(Function_PC pc) const
    return Function_PC_0;
 }
 //────────────────────────────────────────────────────────────────────────────
+int
+Executable::get_cond_segment(Function_PC pc) const
+{
+int segment = 0;
+Function_PC start = get_statement_start(pc);
+   while (start > 0 && body[start - 1].is_COND())
+      {
+        ++segment;
+        start = get_statement_start(Function_PC(start - 1));
+      }
+
+   return segment;
+}
+//────────────────────────────────────────────────────────────────────────────
 ostream &
 Executable::print_range(ostream & out, Function_PC2 from_to) const
 {
@@ -239,28 +256,97 @@ Executable::print_token(ostream & out, int details) const
 void
 Executable::reparse(Token_string & original, Function_PC low_PC) const
 {
-   // compute the failed line and the failed statement in the line by
-   // counting the end-of-statement and the end-of-line token before low_PC.
-   //
-int line = 1;
+int line = 0;
 int statement = 0;
-   loop(pc, low_PC)
+const UCS_string failed_statement = statement_text(low_PC, line, statement);
+
+   // reparse the failed_statement before the optimization
+   // into orig (in APL order)
+const Parser parser(get_parse_mode(), LOC, false);
+Token_string orig;
+ErrorCode ec = E_NO_ERROR;
+   try   { ec = parser.parse(failed_statement, orig, false); }
+   catch (const Error &)
+      {
+        // parser.parse() now throws (rather than returning a code) for
+        // lexical failures -- but we are already in the middle of
+        // building the display for a DIFFERENT, already-pending error
+        // (this function runs before that error's own throw, from
+        // update_error_info()); letting a fresh exception escape here
+        // would silently replace the error being reported. Fall through
+        // to the same "parsing failed_statement failed" recovery below
+        // that a nonzero ec already triggered.
+        ec = E_SYNTAX_ERROR;
+      }
+   // a conditional statement (C →→ T ←→ F ←←) is one statement in the text,
+   // but its segments C, T, and F are statements of their own in the body.
+   // Then only the segment of low_PC is the failed statement (otherwise
+   // line 2 showed the entire conditional statement with the carets of
+   // the segment, found with ]EXPLAIN CHECK).
+   //
+const int segment = get_cond_segment(low_PC);
+const int label_end = orig.size() > 1 && orig[1].get_tag() == TOK_COLON ? 2 : 0;
+int seg_from = label_end;    // first token of the segment
+int seg_to = orig.size();    // end of the segment
+   if (ec == E_NO_ERROR)
+      {
+        int seg = 0;
+        for (int j = label_end; j < orig.ssize(); ++j)
+            {
+              if (!orig[j].is_COND())   continue;
+              if (seg == segment)   { seg_to = j;   break; }
+              ++seg;
+              seg_from = j + 1;
+            }
+        if (seg != segment)   ec = E_SYNTAX_ERROR;   // no such segment
+      }
+
+   if (ec == E_NO_ERROR)   // failed_statement could be parsed
+      {
+        // revert orig (of the segment), starting after label (if eny)
+        //
+        for (int j = seg_to - 1; j >= seg_from; --j)
+            original.push_back(orig[j]);
+      }
+   else                    // parsing failed_statement failed
+      {
+        /* a common case for arriving here is e.g.
+  
+           A←{⍵ + 1}
+           A←{⍵ + 1}
+         */ 
+        loop(b, body.size())   original.push_back(body[b]);
+      }
+}
+//────────────────────────────────────────────────────────────────────────────
+UCS_string
+Executable::statement_text(Function_PC low_PC, int & line,
+                           int & statement) const
+{
+   // compute the failed line and the failed statement in the line.
+   //
+   // A defined function: the line from the line table (get_line()).
+   // Counting the TOK_ENDL tokens before low_PC (as before) missed the
+   // lines without any token (e.g. comment lines), and then the text of
+   // a wrong line was reparsed (found with ]EXPLAIN CHECK).
+   //
+   // ⍎ and ◊ executables have only line 0.
+   //
+   line = 0;
+   statement = 0;
+Function_PC from = Function_PC_0;
+   if (get_parse_mode() == PM_FUNCTION)
+      {
+        line = get_line(low_PC);
+        from = line_start(Function_Line(line));
+      }
+
+   for (Function_PC pc = from; pc < low_PC; ++pc)
        {
          const TokenTag tag = body[pc].get_tag();
-         if (tag == TOK_END)         // end of statement
-            {
-              ++statement;
-            }
-         else if (tag == TOK_ENDL)   // end of line
-            {
-              line++;
-              statement = 0;
-            }
+         if (tag == TOK_END)             ++statement;   // end of statement
+         else if (tag == TOK_STOP_LINE)  --statement;   // has its own END
        }
-
-   // Caution: ⍎ and ◊ executables have only line 0.
-   //
-   if (get_parse_mode() != PM_FUNCTION)   line = 0;
 
    // Assert() is a no-op in the default build; a function with N body
    // lines has text.ssize() == N+1, and when the failing statement's PC
@@ -268,7 +354,13 @@ int statement = 0;
    // -- one past the end of the (unchecked operator[]) UCS_string_vector.
    // Clamp instead of indexing past it.
    if (line >= text.ssize())   line = text.ssize() - 1;
-const UCS_string & failed_line = text[line];
+
+   // line counts the lines of the body. They differ from the lines of
+   // text after a multi-line string or literal (see get_body_text()).
+   //
+   if (parsed_text.size() && line >= parsed_text.ssize())
+      line = parsed_text.ssize() - 1;
+const UCS_string & failed_line = get_body_text(line);
 
    // extract the failed statement text from the failed_line
    //
@@ -396,40 +488,7 @@ UCS_string failed_statement;
          }
    }
 
-   // reparse the failed_statement before the optimization
-   // into orig (in APL order)
-const Parser parser(get_parse_mode(), LOC, false);
-Token_string orig;
-ErrorCode ec = E_NO_ERROR;
-   try   { ec = parser.parse(failed_statement, orig, false); }
-   catch (const Error &)
-      {
-        // parser.parse() now throws (rather than returning a code) for
-        // lexical failures -- but we are already in the middle of
-        // building the display for a DIFFERENT, already-pending error
-        // (this function runs before that error's own throw, from
-        // update_error_info()); letting a fresh exception escape here
-        // would silently replace the error being reported. Fall through
-        // to the same "parsing failed_statement failed" recovery below
-        // that a nonzero ec already triggered.
-        ec = E_SYNTAX_ERROR;
-      }
-   if (ec == E_NO_ERROR)   // failed_statement could be parsed
-      {
-        // revert orig, starting after label (if eny)
-        //
-        const int end = orig.size() > 1 && orig[1].get_tag() == TOK_COLON ? 2 : 0;
-        for (int j = orig.size() - 1; j >= end; --j)   original.push_back(orig[j]);
-      }
-   else                    // parsing failed_statement failed
-      {
-        /* a common case for arriving here is e.g.
-  
-           A←{⍵ + 1}
-           A←{⍵ + 1}
-         */ 
-        loop(b, body.size())   original.push_back(body[b]);
-      }
+   return failed_statement;
 }
 //────────────────────────────────────────────────────────────────────────────
 void
@@ -454,11 +513,15 @@ Executable::set_error_info(Error & error, Function_PC2 body_from_to) const
 
    if (0)   print_range(CERR, body_from_to);
 
+const Function_PC2 range_in = body_from_to;   // for ]EXPLAIN
+const char * range_reason = "the range of the phrase being reduced";
+
    // for value errors we point to the failed symbol itself.
    //
    if (error.get_error_code() == E_VALUE_ERROR)
       {
         body_from_to.low = body_from_to.high;
+        range_reason = "VALUE ERROR: the failed symbol only";
       }
    else if (error.get_error_code() == E_ATTENTION)
       {
@@ -471,10 +534,12 @@ Executable::set_error_info(Error & error, Function_PC2 body_from_to) const
         // reported for the calling statement): then it is not a range of
         // this body (Assert() in get_statement_start(), Bugs34 #37)
         //
+        range_reason = "ATTENTION: the PC of this executable";
         if (InterruptContext::get_attention_range().low != Function_PC_invalid &&
             InterruptContext::get_range_executable() == this)
            {
              body_from_to = InterruptContext::get_attention_range();
+             range_reason = "ATTENTION: the range when ^C was hit";
            }
         else
            {
@@ -504,10 +569,12 @@ Executable::set_error_info(Error & error, Function_PC2 body_from_to) const
         // reported for the calling statement): then it is not a range of
         // this body (Assert() in get_statement_start(), Bugs34 #37)
         //
+        range_reason = "INTERRUPT: the PC of this executable";
         if (InterruptContext::get_interrupt_range().low != Function_PC_invalid &&
             InterruptContext::get_range_executable() == this)
            {
              body_from_to = InterruptContext::get_interrupt_range();
+             range_reason = "INTERRUPT: the range when ^C was hit";
            }
         else
            {
@@ -549,6 +616,21 @@ Executable::set_error_info(Error & error, Function_PC2 body_from_to) const
    //
    if (body[body_from_to.high].get_Class() == TC_RETURN &&
        body_from_to.high > body_from_to.low)   --body_from_to.high;
+
+   // the same for the end of a statement (e.g. a range from
+   // Error::update_error_info() that marks the whole statement): the END
+   // token has no counterpart in the unoptimized statement, so the
+   // mapping below left the range unmapped there and the left caret
+   // landed on an arbitrary token (found with ]EXPLAIN CHECK)
+   //
+   if (body[body_from_to.high].get_Class() == TC_END &&
+       body_from_to.high > body_from_to.low)
+      {
+        --body_from_to.high;
+        range_reason = "the whole statement (without its end token)";
+      }
+
+   ErrorTrail::note_range(this, range_in, range_reason, body_from_to);
 
 Function_PC start = get_statement_start(body_from_to.low);
 Function_PC end = get_statement_end(body_from_to.high);
@@ -610,13 +692,51 @@ vector<int>ranges_before;   ranges_before.reserve(stat_before.size());
              stat_after[PC_after].get_tag() == TOK_APL_VALUE4)
            {
              // optimized value. Only set in
-             // Parser::optimize_short_primitives() to replace
-             // e.g. A⍴B with small results. The monadic case is not (yet)
-             // handled properly !!!
+             // Parser::optimize_short_primitives() to replace A⍴B
+             // (dyadic, 3 tokens) or ⊂B (monadic, 2 tokens) with small
+             // results. The folds repeat, so that e.g. ⊂⊂B or A⍴⊂B are
+             // one value. In stat_before (reversed): B F [A] F [A] ...
+             // Counting 3 tokens for every fold misplaced the carets
+             // left of it (found with ]EXPLAIN CHECK).
              //
-             ranges_before.push_back(PC_after);   // A
-             ranges_before.push_back(PC_after);   // ⍴
              ranges_before.push_back(PC_after);   // B
+             while (ranges_before.size() < stat_before.size())
+                {
+                  const size_t pos_F = ranges_before.size();
+                  const Token & tok_F = stat_before[pos_F];
+                  if (tok_F.get_Class() != TC_FUN12)   break;
+                  const Function * fun = tok_F.get_function();
+                  const bool rho  = fun == &Bif_F12_RHO::fun;
+                  const bool encl = fun == &Bif_F12_PARTITION::fun;
+                  if (!(rho || encl))   break;
+
+                  // of k equal functions F here (e.g. the ⊂s of X⊂⊂⊂B),
+                  // those that are still in the body after the folded
+                  // value were not folded
+                  //
+                  size_t run = 1;
+                  if (encl)
+                     while (pos_F + run < stat_before.size() &&
+                            stat_before[pos_F + run].get_Class() == TC_FUN12 &&
+                            stat_before[pos_F + run].get_function() == fun)
+                           ++run;
+                  size_t kept = 0;
+                  while (size_t(PC_after) + 1 + kept < stat_after.size() &&
+                         kept < run &&
+                         stat_after[size_t(PC_after) + 1 + kept].get_Class()
+                                                        == TC_FUN12 &&
+                         stat_after[size_t(PC_after) + 1 + kept].get_function() == fun)
+                        ++kept;
+                  if (kept >= run)   break;   // F was not folded
+
+                  loop(r, run - kept)
+                     {
+                       ranges_before.push_back(PC_after);   // ⍴ or ⊂
+                       if (rho && ranges_before.size() < stat_before.size())
+                          ranges_before.push_back(PC_after);   // A
+                     }
+                  if (kept)   break;   // the remaining Fs were not folded
+                }
              optimized = true;
            }
         else if (PC_after < stat_after.ssize() &&
@@ -663,6 +783,10 @@ vector<int>ranges_before;   ranges_before.reserve(stat_before.size());
            ranges_before[PC_before - 1] == after)   --PC_before;
       }
 
+   ErrorTrail::note_mapping(this, start, end, stat_after, stat_before,
+                            ranges_before, after_from_to, before_from_to,
+                            optimized);
+
    // if the failed statenment was optimized then we want to display the
    // statement BEFORE the optimization.
    //
@@ -679,7 +803,10 @@ Executable::set_error_info(Error & error,
 {
    if (error.get_error_code() == E_SYNTAX_ERROR)
       {
+        const Function_PC2 range_in = range;   // for ]EXPLAIN
         Prefix::adjust_right_caret(range, failed_statement);
+        if (range.low != range_in.low || range.high != range_in.high)
+           ErrorTrail::note_narrowed(range_in, range);
         error.add_MORE_indicator(Workspace::more_error().size());
       }
 
@@ -756,6 +883,10 @@ const int wanted_left = error.get_left_caret() + len_left;
    //
 const int wanted_right = error.get_left_caret() + len_between;
    error.set_right_caret(wanted_right > nchars ? nchars : wanted_right);
+
+   ErrorTrail::note_line2(failed_statement, range,
+                          wanted_left - len_left, len_left, len_between,
+                          wanted_left, wanted_right, nchars, message_2);
 }
 //────────────────────────────────────────────────────────────────────────────
 int
@@ -792,7 +923,7 @@ Executable::statement_text(Function_PC pc) const
    if (pc > 0 && body[pc].get_Class() == TC_END)      pc = Function_PC(pc - 1);
 
 const Function_Line line = get_line(pc);
-const UCS_string & line_txt = text[line];
+const UCS_string & line_txt = get_body_text(line);
 
    // count statement ends before pc
    //

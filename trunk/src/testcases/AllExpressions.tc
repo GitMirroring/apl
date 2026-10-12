@@ -944,7 +944,7 @@ DEFN ERROR+
       V0←{χ × ⍵ ⋄ χ} ∈\ 'x'
 VALUE ERROR+
 λ1[1]  χ×⍵
-        ^
+       ^
 
       )SIC
       (2↑ V5)←(⌈ V6)

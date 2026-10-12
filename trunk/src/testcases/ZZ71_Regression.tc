@@ -25,10 +25,21 @@ CLEAR WS
       ⍝ digits must round half-away-from-zero, matching glibc's own %e
       ⍝ tie-breaking rather than silently truncating.
       ⍝
+      ⍝ 9.5 rounds up to 10, which has more integer digits than ⎕PP and is
+      ⍝ therefore shown in scaled form (LRM p. 12, "Display in Scaled
+      ⍝ Form": the number of digits in the integer portion exceeds ⎕PP;
+      ⍝ 9.5 is not stored as an integer). 2.5 and 0.125 are exact ties
+      ⍝ that stay unscaled.
+      ⍝
       ]FILE_CTL NO_SKIP
       ⎕PP←1
       ⍕9.5
-10
+1E1
+      ⍕2.5
+3
+      ⎕PP←2
+      ⍕0.125
+0.13
       ⎕PP←10
 
       ⍝ #47 Bif_F12_COMMA catenate_or_laminate(): laminating two scalars
@@ -718,9 +729,9 @@ GEN5
       ⍝ calling it from both throw sites. Files: Prefix.cc/.hh.
       ⍝
       +⍣1 1⍤1 + 1
-SYNTAX ERROR+
+SYNTAX ERROR
       +⍣1 1⍤1+1
-             ^^
+       ^      ^
 
       )SIC
       )CHECK
@@ -742,15 +753,15 @@ OK      - no stale indices
 OK      - no duplicate parents
 
       ⌊⍣1 2⍤1 = 1
-SYNTAX ERROR+
+SYNTAX ERROR
       ⌊⍣1 2⍤1=1
-             ^^
+       ^      ^
 
       )SIC
       ⌊⍣1 2⍣1 = 1
 SYNTAX ERROR+
       ⌊⍣1 2⍣1=1
-             ^^
+        ^  ^
 
       )SIC
       )CHECK
@@ -793,7 +804,7 @@ ZZ90F
       ⍴ZZ90F 1
 VALUE ERROR+
       ⍴ZZ90F 1
-      ^
+       ^
 
       )MORE
 No assignment to result variable Z in e.g. ∇Z←... ?
@@ -802,7 +813,7 @@ No assignment to result variable Z in e.g. ∇Z←... ?
       X←⍴ZZ90F 1
 VALUE ERROR+
       X←⍴ZZ90F 1
-      ^
+         ^
 
       )MORE
 No assignment to result variable Z in e.g. ∇Z←... ?
@@ -811,7 +822,7 @@ No assignment to result variable Z in e.g. ∇Z←... ?
       ⎕←⍴ZZ90F 1
 VALUE ERROR+
       ⎕←⍴ZZ90F 1
-      ^
+         ^
 
       )MORE
 No assignment to result variable Z in e.g. ∇Z←... ?
@@ -820,7 +831,7 @@ No assignment to result variable Z in e.g. ∇Z←... ?
       X←⍴⍎'  '
 VALUE ERROR+
       X←⍴⍎'  '
-      ^
+         ^
 
       )MORE
 No assignment to result variable Z in e.g. ∇Z←... ?
@@ -833,7 +844,7 @@ No assignment to result variable Z in e.g. ∇Z←... ?
       X←ZZ90F 1
 VALUE ERROR+
       X←ZZ90F 1
-      ^
+        ^
       )SIC
 
       f←{⍵+1}
@@ -1203,7 +1214,7 @@ SYNTAX ERROR+
       (⊂'5') ⎕EB¨ ⊂'→2'
 SYNTAX ERROR+
       (⊂'5')⎕EB¨⊂'→2'
-      ^        ^
+      ^         ^
 
 
 

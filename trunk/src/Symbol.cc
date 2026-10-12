@@ -1658,6 +1658,8 @@ const ValueStackItem & vs = value_stack.back();
       {
         case NC_UNUSED_USER_NAME:
              --PC;
+             if (const StateIndicator * si = Workspace::SI_top())
+                Error::set_failed_token(si->get_executable(), PC);
              Error::throw_symbol_error(get_name(), LOC);
 
         case NC_LABEL:

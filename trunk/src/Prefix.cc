@@ -201,6 +201,46 @@ Prefix::destroy_derived_in_FIFO()
       }
 }
 //────────────────────────────────────────────────────────────────────────────
+Function_PC
+Prefix::function_at(Function_PC pc) const
+{
+   // pc is the PC of the result of a function call, which is the PC of
+   // its leftmost token: the function itself (F B) or its left argument
+   // (A F B). Return the PC of the function, i.e. of the first function
+   // at or right of (= below) pc that is not inside parentheses or
+   // brackets of A.
+   //
+int depth = 0;
+   for (Function_PC p = pc; p >= 0 && p < body.ssize(); --p)
+       {
+         const Token & tok = body[p];
+         switch(tok.get_Class())
+            {
+              case TC_L_PARENT:
+              case TC_L_BRACK:   ++depth;   continue;   // left of A's inside
+              case TC_R_PARENT:
+              case TC_R_BRACK:   --depth;   continue;
+              case TC_END:
+              case TC_RETURN:    return pc;   // statement end: not found
+              default:           break;
+            }
+
+         if (depth > 0)   continue;   // inside of A
+
+         if (tok.get_Class() == TC_FUN0 || tok.get_Class() == TC_FUN12)
+            return p;
+
+         if (tok.get_Class() == TC_SYMBOL)
+            {
+              const Symbol * sym = tok.get_sym_ptr();
+              const NameClass nc = sym ? sym->get_NC() : NC_INVALID;
+              if (nc == NC_FUNCTION || nc == NC_OPERATOR)   return p;
+            }
+       }
+
+   return pc;
+}
+//────────────────────────────────────────────────────────────────────────────
 void
 Prefix::syntax_error(const char * loc)
 {
@@ -227,6 +267,8 @@ Prefix::syntax_error(const char * loc)
            {
              MORE_ERROR() << "No assignment to result variable Z"
                              " in e.g. ∇Z←... ?";
+             Error::set_failed_token(si.get_executable(),
+                                     function_at(at(s).get_PC()));
              throw_apl_error(E_VALUE_ERROR, loc);
            }
       }
@@ -1020,9 +1062,9 @@ Prefix::adjust_right_caret(Function_PC2 & range,
    // LOOKS like "nomadic function without B" to the token-adjacency
    // check below). The caret-narrowing (range.low/range.high) below is
    // still useful even when some unrelated )MORE text is already
-   // present (testcases/OuterProduct.tc, Quad_LC.tc, Quad_R.tc all
-   // rely on it), so only the MORE_ERROR() calls themselves are
-   // skipped, not the narrowing. See Bugs27 #53.
+   // present (e.g. testcases/Quad_R.tc relies on it), so only the
+   // MORE_ERROR() calls themselves are skipped, not the narrowing. See
+   // Bugs27 #53.
    //
 const bool have_more_error = Workspace::more_error().size();
 
@@ -1038,8 +1080,12 @@ const bool have_more_error = Workspace::more_error().size();
          const TokenTag tag1 =  T1.get_tag();
          const TokenClass tc1 = T1.get_Class();
 
-         const bool right_end = pc == 0             ||
-                                tc0  == TC_R_BRACK  ||
+         // NOTE: pc == 0 is NOT a right end: it used to be the END token
+         // of the statement, but failed_statement no longer contains it,
+         // so that pc == 0 is the rightmost token, typically the B of T1
+         // (e.g. +⍣1 1⍤1+1 was reported as "+ without right argument B").
+         //
+         const bool right_end = tc0  == TC_R_BRACK  ||
                                 tc0  == TC_R_PARENT ||
                                 tag0 == TOK_SEMICOL;
           const bool nomadic1 = needs_B(tc1);

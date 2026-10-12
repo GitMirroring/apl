@@ -36,6 +36,7 @@
     #define GNUC__noreturn
 #endif
 
+class Executable;
 class StateIndicator;
 
 //════════════════════════════════════════════════════════════════════════════
@@ -216,6 +217,13 @@ public:
    static void throw_symbol_error(const UCS_string & symbol,
                                   const char * loc) GNUC__noreturn;
 
+   /// remember the token (at \b pc in the body of \b exec) that caused the
+   /// next VALUE ERROR: a symbol without a value, or a function that has
+   /// returned no value. update_error_info() then places a single caret
+   /// under it (instead of deriving it from the range being reduced).
+   static void set_failed_token(const Executable * exec, Function_PC pc)
+      { failed_exec = exec;   failed_PC = pc; }
+
 protected:
    /// the error code
    ErrorCode error_code;
@@ -247,6 +255,12 @@ protected:
 
    /// where this error was printed (0 if not yet printed)
    const char * print_loc;
+
+   /// the executable of the failed token (see set_failed_token()), or 0
+   static const Executable * failed_exec;
+
+   /// the PC of the failed token (see set_failed_token())
+   static Function_PC failed_PC;
 
 private:
    /// constructor (not implemented): prevent construction without error code

@@ -28,6 +28,7 @@
 #include "Avec.hh"
 #include "Cmd_HELP.hh"
 #include "Command.hh"
+#include "ErrorTrail.hh"
 #include "Common.hh"
 #include "NativeFunction.hh"
 #include "Symbol.hh"

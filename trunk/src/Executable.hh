@@ -98,6 +98,12 @@ public:
    const UCS_string & get_text(int l) const
       { return text[l]; }
 
+   /// return the text from which body line \b l was parsed. That is
+   /// get_text(l) unless multi-line strings or literals have joined
+   /// several lines of the text into one line of the body.
+   const UCS_string & get_body_text(int l) const
+      { return parsed_text.size() ? parsed_text[l] : text[l]; }
+
    /// return number of function lines (including header line 0)
    const int get_text_size() const
       { return text.size(); }
@@ -146,6 +152,11 @@ public:
    /// @param pc program counter within the statement
    Function_PC get_statement_start(Function_PC pc) const;
 
+   /// return the number of the segment (0 = condition, 1 = after →→, ...)
+   /// that pc belongs to in a conditional statement (C →→ T ←→ F ←←). Each
+   /// segment is a statement of its own in the body.
+   int get_cond_segment(Function_PC pc) const;
+
    /// print a body range (in APL order)
    /// @param out output stream to write to
    /// @param from_to PC range (start and end) to print
@@ -164,6 +175,14 @@ public:
    /// @param original token string to restore into
    /// @param low_PC first PC of the statement to restore
    void reparse(Token_string & original, Function_PC low_PC) const;
+
+   /// return the source text of the statement that contains \b low_PC,
+   /// and its line and statement number
+   /// @param low_PC a PC in the statement
+   /// @param line set to the line number of the statement
+   /// @param statement set to the number of the statement in its line
+   UCS_string statement_text(Function_PC low_PC, int & line,
+                             int & statement) const;
 
    /// compute error lines 2 and 3 in \b error
    /// @param error error object to fill with location information
@@ -315,6 +334,10 @@ protected:
 
    /// the program text from which \b body was created
    UCS_string_vector text;
+
+   /// the text lines as parsed (if they differ from \b text, see
+   /// get_body_text()), or empty
+   UCS_string_vector parsed_text;
 };
 //────────────────────────────────────────────────────────────────────────────
 /**

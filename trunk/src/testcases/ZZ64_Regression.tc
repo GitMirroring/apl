@@ -207,10 +207,13 @@ DOMAIN ERROR+
 DOMAIN ERROR+
       2 ⎕JSON⊂⊂1 2 3
       ^      ^
+      ⍝ (the carets of the next line used to be one token off, since
+      ⍝ the error display counted 3 tokens for every folded ⊂B; found
+      ⍝ with ]EXPLAIN CHECK)
       2 ⎕JSON ⊂⊂2 2⍴'ab'
 DOMAIN ERROR+
       2 ⎕JSON⊂⊂2 2⍴'ab'
-             ^ ^
+      ^      ^
       2 ⎕JSON ⊂⊂'true'
 true
       )SIC

@@ -55,6 +55,7 @@
 #include "Cmd_USERCMD.hh"
 #include "Cmd_WS.hh"
 #include "Command.hh"
+#include "ErrorTrail.hh"
 #include "Common.hh"
 #include "Executable.hh"
 #include "IndexExpr.hh"

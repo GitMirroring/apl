@@ -24,6 +24,7 @@
 #include <string.h>
 
 #include "Bif_F0_ZILDE.hh"
+#include "ErrorTrail.hh"
 #include "Bif_F12_COMMA.hh"
 #include "Bif_F12_ELEMENT.hh"
 #include "Bif_F12_ENCODE_DECODE.hh"
@@ -535,8 +536,27 @@ Tokenizer::do_tokenize(const UCS_string & input, Token_string & tos,
            << input << "»" << endl;
 
 Unicode_source src(input);
+
+   // ]EXPLAIN replays: the source characters of every token (an iteration
+   // of the loop below handles one lexeme or one blank)
+   //
+#ifdef cfg_EXPLAIN_WANTED
+size_t trail_count = tos.size();
+int trail_from = 0;
+#endif // cfg_EXPLAIN_WANTED
+
    for(;;)
       {
+#ifdef cfg_EXPLAIN_WANTED
+        if (ErrorTrail::recorder)
+           {
+             ErrorTrail::recorder->tokens_added(tos, trail_count, trail_from,
+                                                src.get_pos());
+             trail_count = tos.size();
+             trail_from = src.get_pos();
+           }
+#endif // cfg_EXPLAIN_WANTED
+
         rest_2 = src.rest_len();
         if (rest_2 == 0)   break;   // end of input
 
@@ -914,6 +934,12 @@ Unicode_source src(input);
                    Assert(0 && "Should not happen");
             }
       }
+
+#ifdef cfg_EXPLAIN_WANTED
+   if (ErrorTrail::recorder)   // e.g. after a comment
+      ErrorTrail::recorder->tokens_added(tos, trail_count, trail_from,
+                                         src.get_pos());
+#endif // cfg_EXPLAIN_WANTED
 
    Log(LOG_tokenize)
       {
