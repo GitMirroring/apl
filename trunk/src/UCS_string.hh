@@ -28,6 +28,7 @@
 #include <stdint.h>
 #include <stdio.h>
 #include <string>
+#include <type_traits>
 #include <vector>
 
 #include "Assert.hh"
@@ -311,19 +312,20 @@ public:
    UCS_string & operator <<(unsigned long long num)
       { append_int(num);   return *this; }
 
-#if LONG_MAX == 0x7FFFFFFFL
-   /// append integer \b num. Only needed where `long` is 32 bits -- a
-   /// type distinct from both `int` and ShapeItem/int64_t, so e.g.
-   /// streaming a `struct stat`'s 32-bit `long` st_size is otherwise
-   /// ambiguous there. This is the case both on Windows' LLP64 data
-   /// model and on 32-bit (ILP32) Linux/Unix. On a 64-bit LP64 Unix,
-   /// `long` and ShapeItem are the *same* type, so this overload would
-   /// conflict with (be a duplicate of) operator <<(ShapeItem) above --
-   /// hence the width check (not a MINGW_SRC/platform-name check, which
-   /// would incorrectly exclude 32-bit Linux).
-   UCS_string & operator <<(long num)
+   /// append integer \b num of type \b long. Only needed where `long` is a
+   /// type distinct from ShapeItem/int64_t: on 32-bit (ILP32) Unix and on
+   /// Windows (LLP64), where long has 32 bits, and on macOS, where long
+   /// and int64_t (= long long) both have 64 bits but are different types.
+   /// There streaming a `long` is otherwise ambiguous. Where long IS
+   /// int64_t (64-bit Linux), operator <<(ShapeItem) above handles it and
+   /// this template is disabled, since an ordinary overload would then be
+   /// a duplicate of operator <<(ShapeItem).
+   template<typename L>
+   typename std::enable_if<std::is_same<L, long>::value &&
+                           !std::is_same<long, ShapeItem>::value,
+                           UCS_string &>::type
+   operator <<(L num)
       { append_int(num);   return *this; }
-#endif
 
    /// append character \b uni
    UCS_string & operator <<(Unicode uni)
