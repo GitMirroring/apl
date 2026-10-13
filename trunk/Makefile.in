@@ -290,6 +290,7 @@ EGREP = @EGREP@
 ERLC = @ERLC@
 ETAGS = @ETAGS@
 EXEEXT = @EXEEXT@
+EXPLAIN_WANTED = @EXPLAIN_WANTED@
 FGREP = @FGREP@
 GCOV_WANTED = @GCOV_WANTED@
 GPROF_WANTED = @GPROF_WANTED@
@@ -1297,7 +1298,7 @@ DIST:	dist Makefile.dist
 	mkdir -p tmp
 	cd tmp; tar xzf ../apl-$(VERSION).tar.gz;		\
 	cp -f ../Makefile.dist apl-$(VERSION)/Makefile;		\
-	echo "exported from SVN version " `svnversion` > \
+	echo "exported from SVN version " `svnversion ..` > \
 	    apl-$(VERSION)/exported_from;			\
 	tar czf ../apl-$(VERSION).tar.gz apl-$(VERSION)
 	rm -Rf tmp
@@ -1306,12 +1307,6 @@ DIST: check_sources
 
 am--refresh:
 	echo "making am--refresh"
-
-# create a tarball and push it to server72 (the nightly build server)
-#
-.PHONY: server72
-server72: DIST
-	scp apl-$(VERSION).tar.gz eedjsa@server72:
 
 .PHONY: git-pull
 git-pull:

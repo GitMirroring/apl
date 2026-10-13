@@ -216,7 +216,7 @@ DIST:	dist Makefile.dist
 	mkdir -p tmp
 	cd tmp; tar xzf ../apl-$(VERSION).tar.gz;		\
 	cp -f ../Makefile.dist apl-$(VERSION)/Makefile;		\
-	echo "exported from SVN version " `svnversion` > \
+	echo "exported from SVN version " `svnversion ..` > \
 	    apl-$(VERSION)/exported_from;			\
 	tar czf ../apl-$(VERSION).tar.gz apl-$(VERSION)
 	rm -Rf tmp
@@ -228,12 +228,6 @@ am--refresh:
 
 EXTRA_DIST = config.rpath m4/ChangeLog
 
-
-# create a tarball and push it to server72 (the nightly build server)
-#
-.PHONY: server72
-server72: DIST
-	scp apl-$(VERSION).tar.gz eedjsa@server72:
 
 .PHONY: git-pull
 git-pull:

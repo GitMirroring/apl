@@ -1,70 +1,11 @@
 #!/bin/bash
 
-# ── self-refresh from the last manually-pushed tarball ──────────────────────
-# The maintainer's local machine periodically runs "make server72", which
-# builds a fresh source tarball and scp's it to $HOME/apl-VERSION.tar.gz.
-# That push is manual and deliberate (the maintainer's machine is often
-# offline overnight, and server72 cannot reach it even knowing its IP), but
-# everything from there on -- picking up the pushed tarball and building it
-# -- must happen automatically on server72's own nightly schedule. So this
-# script re-extracts the newest such tarball over its own containing tree
-# (overwriting tracked source files, including this script itself; leaving
-# build/builddir_* alone since those aren't part of the distributed tarball)
-# before doing anything else, then re-execs itself so the rest of this run
-# reads the freshly extracted script/config from disk instead of whatever
-# was already parsed into memory -- the standard safe pattern for a script
-# that overwrites itself while running (safe to overwrite/delete a script
-# after the OS has started it -- the running process keeps reading the old
-# inode; exec then restarts clean from the new one).
-#
-# --refreshed marks "already done, don't refresh again" across the exec, the
-# way $1 is normally used for config names ("", "clean", "nightly", or an
-# explicit config list) -- shifted off below so the rest of the script never
-# sees it.
-#
-if [ "x$1" != "x--refreshed" ]
-then
-   SELF_dir=$(cd "$(dirname "$0")/.." && pwd)   # .../apl-2.0, two levels up
-   # "make server72" always scp's to eedjsa@server72:~ regardless of which
-   # user later runs this script (the nightly cron runs as root, whose
-   # $HOME is /root -- not eedjsa's home -- so this must not depend on
-   # $HOME).
-   PUSH_dir=/home/eedjsa
-   TARBALL=$(ls -t "$PUSH_dir"/apl-*.tar.gz 2>/dev/null | head -1)
-
-   # the absolute path of this script (a relative $0 would no longer
-   # work after the tree has been removed below)
-   SELF_script="$SELF_dir/build/$(basename "$0")"
-
-   if [ -z "$TARBALL" ]
-   then
-      echo "*** no apl-*.tar.gz found in $PUSH_dir -- building with the tree as-is"
-   elif ! tar tzf "$TARBALL" > /dev/null 2>&1
-   then
-      echo "*** $TARBALL is damaged -- building with the tree as-is"
-   else
-      # Remove the old files first, so that the build sees exactly the
-      # files in the tarball (i.e. what a user gets from Savannah).
-      # Unpacking over the old tree kept every file that was ever in it
-      # (e.g. a workspace that a testcase needs but the tarball lacks),
-      # so that missing files went unnoticed. All files (and symlinks)
-      # are removed, but the directories are kept, and only if this is
-      # really a GNU APL tree.
-      if [ -f "$SELF_dir/configure.ac" ] && [ -f "$SELF_script" ]
-      then
-         echo "removing the old files in $SELF_dir..."
-         cd /
-         find "$SELF_dir" -mindepth 1 ! -type d -delete
-      else
-         echo "*** $SELF_dir is not a GNU APL tree -- not removing it"
-      fi
-      echo "unpacking $TARBALL into $SELF_dir..."
-      tar xzf "$TARBALL" --strip-components=1 -C "$SELF_dir"
-   fi
-   cd "$SELF_dir/build"
-   exec "$SELF_script" --refreshed "$@"
-fi
-shift   # drop the --refreshed marker; "$@" is now the caller's real args
+# The source tree of this script (i.e. the content of the GNU APL tarball
+# made by "make dist" on the maintainer's machine) is kept up to date by
+# push-apl-server72 on that machine, which rsyncs it here (server72 cannot
+# reach that machine, so it must push). Files that are no longer in the
+# tarball are removed by that rsync, so the build sees exactly the files
+# that a user gets from Savannah.
 
 # Source build target definitions (configure options, artifacts, test flags,
 # and DEFAULT_CONFIGS).  The file lives next to this script.
@@ -530,14 +471,18 @@ test_one()
 # special build functions (not driven by build_all.cfg)
 #
 
-# build the standard configuration from the GNU APL tar file
+# build the standard configuration in the source tree itself (a plain,
+# non-VPATH build, like a user who unpacks the GNU APL tar file and runs
+# ./configure; make). The tree is the unpacked tar file (see above), so
+# copy it, without build/, and build the copy.
 build_tar()
 {
-  echo "building configuration 'standard' from the GNU APL tar file"
+  echo "building configuration 'standard' from a copy of the GNU APL tree"
   echo "the APL_VERSION is: $APL_VERSION"
   cd $TOP_BUILD_dir
-  tar xf $(dirname $ROOT_dir)/$APL_VERSION.tar.gz
-  mv $APL_VERSION builddir_tar
+  rm -Rf builddir_tar
+  mkdir builddir_tar
+  tar -C $ROOT_dir --exclude=./build -cf - . | tar -C builddir_tar -xf -
   cd builddir_tar
   ./configure
   make $J8
