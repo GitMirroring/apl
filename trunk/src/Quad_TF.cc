@@ -441,7 +441,7 @@ UCS_string
 Quad_TF::tf2_inverse(const UCS_string & ravel)
 {
 Token_string tos;
-   tos.push_back(Token(TOK_L_PARENT, int64_t(0)));
+   tos.emplace_back(Token(TOK_L_PARENT, int64_t(0)), Function_PC_invalid);
 
    Log(LOG_Quad_TF)   CERR << "inverse ⎕TF2: " << ravel << endl;
 
@@ -470,8 +470,8 @@ Token_string tos;
    {
      if (tos.size() >= 3 && tos[1].get_tag() != TOK_Quad_FX)
         {
-          tos[0] = tos[1];   // move VAR
-          tos[1] = tos[2];   // move ←
+          tos[0].copy(tos[1], LOC);   // move VAR
+          tos[1].copy(tos[2], LOC);   // move ←
           // marker value 1 (vs. the 0 used by real parentheses)
           // distinguishes this synthetic outermost '(' ... ')' pair,
           // added purely so tf2_reduce() has something to reduce, from
@@ -479,10 +479,10 @@ Token_string tos;
           // must NOT enclose the value it wraps: unlike a real
           // parenthesised strand item, this pair is not part of the
           // transfer form at all (see Blake's Bugs23 #1).
-          tos[2] = Token(TOK_L_PARENT, int64_t(1));
+          tos[2].copy(Token_loc(Token(TOK_L_PARENT, int64_t(1)), Function_PC_invalid), LOC);
         }
    }
-    tos.push_back(Token(TOK_R_PARENT, int64_t(0)));
+    tos.emplace_back(Token(TOK_R_PARENT, int64_t(0)), Function_PC_invalid);
 
    // simplify tos as much as possible. We replace A⍴B by reshaped B
    // and glue values together.
@@ -1495,7 +1495,7 @@ ShapeItem skipped = 0;
              enc_B->next_ravel_Pointer(B.get());
              enc_B->check_value(LOC);
              Token tok(TOK_APL_VALUE1, enc_B);
-             tos[s - skipped].move_from(tok, LOC);
+             tos[s - skipped].copy(Token_loc(tok, Function_PC_invalid), LOC);
              tos[s + 1].clear(LOC);   // B
            }
         s += 1;   skipped += 1;
@@ -1552,7 +1552,7 @@ ShapeItem skipped = 0;
         else
            {
              Token t = Bif_F12_RHO::do_reshape(sh, *bval);
-             tos[s - skipped].move_from(t, LOC);
+             tos[s - skipped].copy(Token_loc(t, Function_PC_invalid), LOC);
            }
       }
 
@@ -1604,7 +1604,7 @@ ShapeItem skipped = 0;
         s += 2;     skipped += 2;    // skip ( 38 ⎕CR
 
         Token t(TOK_APL_VALUE1, zval);
-        tos[s - skipped].move_from(t, LOC);
+        tos[s - skipped].copy(Token_loc(t, Function_PC_invalid), LOC);
       }
 
    if (skipped)
@@ -1658,7 +1658,7 @@ ShapeItem skipped = 0;
         loop(k, K)   sequence->next_ravel_Int(N + k);
         sequence->check_value(LOC);
         Token tok(TOK_APL_VALUE1, sequence);
-        tos[s - skipped].move_from(tok, LOC);
+        tos[s - skipped].copy(Token_loc(tok, Function_PC_invalid), LOC);
         s += 5;   skipped += 5;
       }
 
@@ -1718,7 +1718,7 @@ ShapeItem skipped = 0;
         loop(k, K)   sequence->next_ravel_Int(M * (N + k));
         sequence->check_value(LOC);
         Token tok(TOK_APL_VALUE1, sequence);
-        tos[s - skipped].move_from(tok, LOC);
+        tos[s - skipped].copy(Token_loc(tok, Function_PC_invalid), LOC);
         s += 7;   skipped += 7;
       }
 
@@ -1750,7 +1750,7 @@ ShapeItem skipped = 0;
              // capture the marker before dest.move_from() below, which
              // (when skipped==0) overwrites tos[s] == dest in place
              const bool synthetic_outer = tos[s].get_int_val() != 0;
-             Token & dest = tos[s - skipped];   // '(' of: '(' B ')'
+             Token_loc & dest = tos[s - skipped];   // '(' of: '(' B ')'
              dest.move_from(tos[s + 1], LOC);      // move B to '('
              if (dest.get_tag() == TOK_APL_VALUE3 && !synthetic_outer)
                 {
@@ -1759,11 +1759,11 @@ ShapeItem skipped = 0;
                   Value_P B = dest.get_apl_val();
                   if (!B->is_simple_scalar())   // unless simple scalar
                      {
-                       dest.release_apl_val(LOC);    // we will override it
                        Value_P Z(LOC);
                        Z->next_ravel_Pointer(B.get());
                        Z->check_value(LOC);
-                       new (&dest) Token(TOK_APL_VALUE3, Z);
+                       dest.copy(Token_loc(Token(TOK_APL_VALUE3, Z),
+                                           dest.get_PC()), LOC);
                      }
                 }
              s += 2;   skipped += 2;
@@ -1805,11 +1805,11 @@ ShapeItem skipped = 0;
          while ((s + 1) < ShapeItem(tos.size()) &&
                 tos[s + 1].get_Class() == TC_VALUE)
             {
-               Token tmp;
+               Token_loc tmp;
                tmp.move_from(tos[s - skipped], LOC);
                Value_P Z = Value::glue(tmp, tos[s + 1], LOC);
                // Value::glue(tos[s - skipped], t, tos[s + 1], LOC);
-               new (&tos[s - skipped]) Token(TOK_APL_VALUE3, Z);
+               tos[s - skipped].copy(Token_loc(Token(TOK_APL_VALUE3, Z), Function_PC_invalid), LOC);
                s ++;   skipped ++;
             }
       }
@@ -1868,7 +1868,7 @@ ShapeItem skipped = 0;
 
                   tos[s + 1].clear(LOC);
                   Token tok_AB(TOK_APL_VALUE1, Z);
-                  tos[d_1].move_from(tok_AB, LOC);
+                  tos[d_1].copy(Token_loc(tok_AB, Function_PC_invalid), LOC);
                   s += 1;   skipped += 2;   // skip , (of A , B) but not B
                   continue;   // don't move_from() below
                 }
@@ -1974,7 +1974,7 @@ ShapeItem skipped = 0;
              Value_P enc_B(LOC);
              enc_B->next_ravel_Pointer(B.get());
              Token tok(TOK_APL_VALUE1, enc_B);
-             tos[s - skipped + 1].move_from(tok, LOC);
+             tos[s - skipped + 1].copy(Token_loc(tok, Function_PC_invalid), LOC);
              tos[s + 2].clear(LOC);   // B
            }
         s += 2;   ++skipped;

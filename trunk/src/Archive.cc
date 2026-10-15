@@ -2933,7 +2933,7 @@ Prefix & parser = si.current_stack;
 
    parser.set_assign_state(Assign_state(ass_state));
    parser.action = R_action(action);
-   parser.set_lookahead_PC(Function_PC(lah_high));
+   parser.set_lookahead_PC(Prefix_PC(lah_high));
 
    // read derived functions cache
    //
@@ -3096,7 +3096,7 @@ const Executable * exec = 0;
    Workspace::push_SI(exec, LOC);
 StateIndicator * si = Workspace::SI_top();
    Assert(si);
-   si->get_prefix().goto_PC(Function_PC(pc));
+   si->get_prefix().goto_PC(Prefix_PC(pc));
    read_Parser(*si, lev);
 
    for (;;)
@@ -3468,34 +3468,34 @@ XML_Loading_Archive::read_Token(Token_loc & tloc)
    //
 int64_t tok_pc = find_int_attr("pc", false, 10);
    if (tok_pc < 0)   tok_pc = 0;
-   tloc.set_PC(Function_PC(tok_pc));
 
 const TokenTag tag = TokenTag(find_int_attr("tag", false, 16));
+Token tok;
 
    switch(TokenValueType(int(tag) & int(TV_MASK)))   // cannot call get_ValueType() yet
       {
         case TV_NONE: 
-               new (&tloc.get_token()) Token(tag);
+               new (&tok) Token(tag);
              break;
 
         case TV_CHAR:
              {
                const Unicode uni = Unicode(find_int_attr("char", false, 10));
-               new (&tloc.get_token()) Token(tag, uni);
+               new (&tok) Token(tag, uni);
              }
              break;
 
         case TV_INT:   
              {
                const int64_t ival = find_int_attr("int", false, 10);
-               new (&tloc.get_token()) Token(tag, ival);
+               new (&tok) Token(tag, ival);
              }
              break;
 
         case TV_FLT:   
              {
                const APL_Float val = find_float_attr("float");
-               new (&tloc.get_token()) Token(tag, val);
+               new (&tok) Token(tag, val);
              }
              break;
 
@@ -3503,7 +3503,7 @@ const TokenTag tag = TokenTag(find_int_attr("tag", false, 16));
              {
                const APL_Float real = find_float_attr("real");
                const APL_Float imag = find_float_attr("imag");
-               new (&tloc.get_token()) Token(tag, real, imag);
+               new (&tok) Token(tag, real, imag);
              }
              break;
 
@@ -3517,14 +3517,14 @@ const TokenTag tag = TokenTag(find_int_attr("tag", false, 16));
                Symbol * symbol = Avec::is_quad(name_UCS[0])
                                ? Workspace::lookup_existing_symbol(name_UCS)
                                : Workspace::lookup_symbol(name_UCS);
-               new (&tloc.get_token()) Token(tag, symbol);
+               new (&tok) Token(tag, symbol);
              }
              break;
 
         case TV_LIN:   
              {
                const int ival = find_int_attr("line", false, 10);
-               new (&tloc.get_token()) Token(tag, Function_Line(ival));
+               new (&tok) Token(tag, Function_Line(ival));
              }
              break;
 
@@ -3536,7 +3536,7 @@ const TokenTag tag = TokenTag(find_int_attr("tag", false, 16));
                // )LOAD/)COPY), so an out-of-range value must be an
                // enforced error, not merely asserted.
                if (vid < 0 || vid >= int(values.size()))   DOMAIN_ERROR;
-               new (&tloc.get_token()) Token(tag, values[vid]);
+               new (&tok) Token(tag, values[vid]);
              }
              break;
 
@@ -3566,7 +3566,7 @@ const TokenTag tag = TokenTag(find_int_attr("tag", false, 16));
                          vids = end;
                        }
                   }
-               new (&tloc.get_token()) Token(tag, idx);
+               new (&tok) Token(tag, idx);
              }
              break;
 
@@ -3574,13 +3574,14 @@ const TokenTag tag = TokenTag(find_int_attr("tag", false, 16));
              {
                cFunction_P fun = read_Function_name();
                Assert(fun);
-               new (&tloc.get_token()) Token(tag, fun);
+               new (&tok) Token(tag, fun);
              }
              break;
 
         default: FIXME;
       }
 
+   tloc.copy(Token_loc(tok, Function_PC(tok_pc)), LOC);
    return true;
 }
 //────────────────────────────────────────────────────────────────────────────

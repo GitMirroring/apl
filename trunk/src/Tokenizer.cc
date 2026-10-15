@@ -24,7 +24,6 @@
 #include <string.h>
 
 #include "Bif_F0_ZILDE.hh"
-#include "ErrorTrail.hh"
 #include "Bif_F12_COMMA.hh"
 #include "Bif_F12_ELEMENT.hh"
 #include "Bif_F12_ENCODE_DECODE.hh"
@@ -537,26 +536,8 @@ Tokenizer::do_tokenize(const UCS_string & input, Token_string & tos,
 
 Unicode_source src(input);
 
-   // ]EXPLAIN replays: the source characters of every token (an iteration
-   // of the loop below handles one lexeme or one blank)
-   //
-#ifdef cfg_EXPLAIN_WANTED
-size_t trail_count = tos.size();
-int trail_from = 0;
-#endif // cfg_EXPLAIN_WANTED
-
    for(;;)
       {
-#ifdef cfg_EXPLAIN_WANTED
-        if (ErrorTrail::recorder)
-           {
-             ErrorTrail::recorder->tokens_added(tos, trail_count, trail_from,
-                                                src.get_pos());
-             trail_count = tos.size();
-             trail_from = src.get_pos();
-           }
-#endif // cfg_EXPLAIN_WANTED
-
         rest_2 = src.rest_len();
         if (rest_2 == 0)   break;   // end of input
 
@@ -581,7 +562,7 @@ int trail_from = 0;
                    if (tok.get_tag() == TOK_DIAMOND)
                        {
                          ++src;
-                         tos.push_back(tok);
+                         tos.emplace_back(tok, Function_PC(tos.size()));
                          break;
                        }
 
@@ -658,7 +639,7 @@ int trail_from = 0;
                                                       marker_start,
                                                       src.get_pos(), LOC, loc);
                            }
-                        tos.push_back(Token(TOK_MARKER, idx));
+                        tos.emplace_back(Token(TOK_MARKER, idx), Function_PC(tos.size()));
                         break;
                       }
 
@@ -713,26 +694,26 @@ int trail_from = 0;
                    else if (uni == UNI_QUOTE_Quad)
                       {
                         ++src;
-                        tos.push_back(Token(TOK_Quad_QUOTE,
-                                         &Workspace::get_v_Quad_QUOTE()));
+                        tos.emplace_back(Token(TOK_Quad_QUOTE,
+                                         &Workspace::get_v_Quad_QUOTE()), Function_PC(tos.size()));
                       }
                    else if (uni == UNI_ALPHA)   // ⍺
                       {
                         ++src;
-                        tos.push_back(Token(TOK_ALPHA,
-                                         &Workspace::get_v_ALPHA()));
+                        tos.emplace_back(Token(TOK_ALPHA,
+                                         &Workspace::get_v_ALPHA()), Function_PC(tos.size()));
                       }
                    else if (uni == UNI_ALPHA_UNDERBAR)   // ⍶
                       {
                         ++src;
-                        tos.push_back(Token(TOK_ALPHA_U,
-                                            &Workspace::get_v_ALPHA_U()));
+                        tos.emplace_back(Token(TOK_ALPHA_U,
+                                            &Workspace::get_v_ALPHA_U()), Function_PC(tos.size()));
                       }
                    else if (uni == UNI_CHI)   // χ
                       {
                         ++src;
-                        tos.push_back(Token(TOK_CHI,
-                                            &Workspace::get_v_CHI()));
+                        tos.emplace_back(Token(TOK_CHI,
+                                            &Workspace::get_v_CHI()), Function_PC(tos.size()));
                       }
                    else if (uni == UNI_LAMBDA)   // λ
                       {
@@ -747,21 +728,21 @@ int trail_from = 0;
                         else   // λ
                            {
                              ++src;
-                             tos.push_back(Token(TOK_LAMBDA,
-                                           &Workspace::get_v_LAMBDA()));
+                             tos.emplace_back(Token(TOK_LAMBDA,
+                                           &Workspace::get_v_LAMBDA()), Function_PC(tos.size()));
                            }
                       }
                    else if (uni == UNI_OMEGA)   // ⍵
                       {
                         ++src;
-                        tos.push_back(Token(TOK_OMEGA,
-                                            &Workspace::get_v_OMEGA()));
+                        tos.emplace_back(Token(TOK_OMEGA,
+                                            &Workspace::get_v_OMEGA()), Function_PC(tos.size()));
                       }
                    else if (uni == UNI_OMEGA_UNDERBAR)   // ⍹
                       {
                         ++src;
-                        tos.push_back(Token(TOK_OMEGA_U,
-                                            &Workspace::get_v_OMEGA_U()));
+                        tos.emplace_back(Token(TOK_OMEGA_U,
+                                            &Workspace::get_v_OMEGA_U()), Function_PC(tos.size()));
                       }
                    else   // A-Z, a-z
                       {
@@ -808,8 +789,11 @@ int trail_from = 0;
                        tos.back().get_tag() == TOK_OPER2_INNER &&
                        tos[tos.size() - 2].get_tag() == TOK_JOT)
                       {
-                        new (&tos.back()) Token(TOK_OPER2_OUTER,
-                                                &Bif_OPER2_OUTER::fun);
+                        // ∘ . : the . becomes ∘. (and keeps its PC)
+                        const Token_loc outer(Token(TOK_OPER2_OUTER,
+                                                    &Bif_OPER2_OUTER::fun),
+                                              tos.back().get_PC());
+                        tos.back().copy(outer, LOC);
                       }
 
                    break;
@@ -818,17 +802,17 @@ int trail_from = 0;
                    ++src;        // skip →
                    if (src.rest_len() == 0)                      // single →
                       {
-                        tos.push_back(Token(TOK_ESCAPE));
+                        tos.emplace_back(Token(TOK_ESCAPE), Function_PC(tos.size()));
                       }
                    else if (rest_2 &&
                             *src == UNI_RIGHT_ARROW)   // double → (→→)
                       {
                         ++src;
-                        tos.push_back(Token(TOK_IF_THEN, int64_t(0)));
+                        tos.emplace_back(Token(TOK_IF_THEN, int64_t(0)), Function_PC(tos.size()));
                       }
                    else
                       {
-                        tos.push_back(tok);
+                        tos.emplace_back(tok, Function_PC(tos.size()));
                       }
                    break;
 
@@ -837,12 +821,12 @@ int trail_from = 0;
                    if (rest_2 > 1 && *src == UNI_LEFT_ARROW)         // ←←
                       {
                         ++src;   // skip second ←
-                        tos.push_back(Token(TOK_IF_END, int64_t(0)));
+                        tos.emplace_back(Token(TOK_IF_END, int64_t(0)), Function_PC(tos.size()));
                       }
                    else if (rest_2 > 1 && *src == UNI_RIGHT_ARROW)   // →→
                       {
                         ++src;   // skip second →
-                        tos.push_back(Token(TOK_IF_ELSE, int64_t(0)));
+                        tos.emplace_back(Token(TOK_IF_ELSE, int64_t(0)), Function_PC(tos.size()));
                       }
                    else
                       {
@@ -866,11 +850,11 @@ int trail_from = 0;
                           dia                       ||   // case 2.
                           col))                          // case 3.
                          {
-                           tos.push_back(TOK_ASSIGN1);
+                           tos.emplace_back(TOK_ASSIGN1, Function_PC(tos.size()));
                          }
                       else
                          {
-                           tos.push_back(tok);
+                           tos.emplace_back(tok, Function_PC(tos.size()));
                          }
                       }
                    break;
@@ -882,7 +866,7 @@ int trail_from = 0;
               case TC_L_CURLY:
               case TC_R_CURLY:
                    ++src;
-                   tos.push_back(tok);
+                   tos.emplace_back(tok, Function_PC(tos.size()));
                    break;
 
               case TC_COLON:
@@ -902,7 +886,7 @@ int trail_from = 0;
                       }
 
                    ++src;
-                   tos.push_back(tok);
+                   tos.emplace_back(tok, Function_PC(tos.size()));
                    break;
 
               case TC_NUMERIC:
@@ -935,12 +919,6 @@ int trail_from = 0;
             }
       }
 
-#ifdef cfg_EXPLAIN_WANTED
-   if (ErrorTrail::recorder)   // e.g. after a comment
-      ErrorTrail::recorder->tokens_added(tos, trail_count, trail_from,
-                                         src.get_pos());
-#endif // cfg_EXPLAIN_WANTED
-
    Log(LOG_tokenize)
       {
         CERR << "tokenize() done (no error)." << endl
@@ -957,7 +935,7 @@ Tokenizer::tokenize_function(Unicode_source & src, Token_string & tos) const
 
 const Unicode uni = src.get();
 const Token tok = tokenize_function(uni);
-   tos.push_back(tok);
+   tos.emplace_back(tok, Function_PC(tos.size()));
 }
 //────────────────────────────────────────────────────────────────────────────
 bool
@@ -987,7 +965,7 @@ const Token t = Workspace::get_quad(ucs, len);
       }
 
    src.skip(len - 1);
-   tos.push_back(t);
+   tos.emplace_back(t, Function_PC(tos.size()));
    return false;
 }
 //════════════════════════════════════════════════════════════════════════════
@@ -1077,11 +1055,11 @@ bool got_end = false;
 
    if (string_value.size() == 1)   // scalar
       {
-        tos.push_back(Token(TOK_CHARACTER, string_value[0]));
+        tos.emplace_back(Token(TOK_CHARACTER, string_value[0]), Function_PC(tos.size()));
       }
    else
       {
-        tos.push_back(Token(TOK_APL_VALUE1, Value_P(string_value, LOC)));
+        tos.emplace_back(Token(TOK_APL_VALUE1, Value_P(string_value, LOC)), Function_PC(tos.size()));
       }
 }
 //────────────────────────────────────────────────────────────────────────────
@@ -1227,7 +1205,7 @@ bool got_end = false;
 
    if (got_end || UserPreferences::uprefs.old_multi_line_strings)
       {
-        tos.push_back(Token(TOK_APL_VALUE1, Value_P(string_value, LOC)));
+        tos.emplace_back(Token(TOK_APL_VALUE1, Value_P(string_value, LOC)), Function_PC(tos.size()));
       }
    else
       {
@@ -1284,8 +1262,8 @@ const Int_or_Double real_val = tokenize_real(src);
                                       src.get_pos(), LOC, loc);
            }
 
-        tos.push_back(Token(TOK_COMPLEX, real_val.get_double(),
-                                         imag_val.get_double()));
+        tos.emplace_back(Token(TOK_COMPLEX, real_val.get_double(),
+                                         imag_val.get_double()), Function_PC(tos.size()));
         Log(LOG_tokenize)
            CERR << "  tokenize_number: complex " << real_val.get_double()
                 << "J" << imag_val.get_double() << endl;
@@ -1315,7 +1293,7 @@ const Int_or_Double real_val = tokenize_real(src);
                              * cos(M_PI*degrees.get_double() / 180.0);
         const APL_Float imag = real_val.get_double()
                              * sin(M_PI*degrees.get_double() / 180.0);
-        tos.push_back(Token(TOK_COMPLEX, real, imag));
+        tos.emplace_back(Token(TOK_COMPLEX, real, imag), Function_PC(tos.size()));
         Log(LOG_tokenize)   CERR << "  tokenize_number: complex " << real
                                  << "J" << imag << endl;
       }
@@ -1342,7 +1320,7 @@ const Int_or_Double real_val = tokenize_real(src);
         //
         APL_Float real = real_val.get_double() * cos(radian.get_double());
         APL_Float imag = real_val.get_double() * sin(radian.get_double());
-        tos.push_back(Token(TOK_COMPLEX, real, imag));
+        tos.emplace_back(Token(TOK_COMPLEX, real, imag), Function_PC(tos.size()));
         Log(LOG_tokenize)   CERR << "  tokenize_number: complex " << real
                                  << "J" << imag << endl;
       }
@@ -1350,14 +1328,14 @@ const Int_or_Double real_val = tokenize_real(src);
       {
         if (real_val.is_double)
            {
-             tos.push_back(Token(TOK_REAL, real_val.value.APL_flt));
+             tos.emplace_back(Token(TOK_REAL, real_val.value.APL_flt), Function_PC(tos.size()));
              Log(LOG_tokenize)
                 CERR << "  tokenize_number: real "
                      << real_val.value.APL_flt << endl;
            }
         else
            {
-             tos.push_back(Token(TOK_INTEGER, real_val.value.APL_int));
+             tos.emplace_back(Token(TOK_INTEGER, real_val.value.APL_int), Function_PC(tos.size()));
              Log(LOG_tokenize)
                 CERR << "  tokenize_number: integer "
                      << real_val.value.APL_int << endl;
@@ -1475,15 +1453,15 @@ UCS_string symbol;
              src.get();                                // skip ←
              Log(LOG_tokenize)
                 CERR << "Stop/Trace assigned: " << symbol1 << endl;
-             tos.push_back(Token(TOK_APL_VALUE1, AB));   // left argument of ST
-             tos.push_back(Token(TOK_FUN2, ST));
+             tos.emplace_back(Token(TOK_APL_VALUE1, AB), Function_PC(tos.size()));   // left argument of ST
+             tos.emplace_back(Token(TOK_FUN2, ST), Function_PC(tos.size()));
            }
         else
            {
              Log(LOG_tokenize)
                 CERR << "Stop/Trace referenced: " << symbol1 << endl;
-             tos.push_back(Token(TOK_FUN2, ST));
-             tos.push_back(Token(TOK_APL_VALUE1, AB));   // right arg of ST
+             tos.emplace_back(Token(TOK_FUN2, ST), Function_PC(tos.size()));
+             tos.emplace_back(Token(TOK_APL_VALUE1, AB), Function_PC(tos.size()));   // right arg of ST
            }
 
         return;
@@ -1491,7 +1469,7 @@ UCS_string symbol;
 
 Symbol * sym = Workspace::lookup_symbol(symbol);
    Assert(sym);
-   tos.push_back(Token(TOK_SYMBOL, sym));
+   tos.emplace_back(Token(TOK_SYMBOL, sym), Function_PC(tos.size()));
 }
 //════════════════════════════════════════════════════════════════════════════
 

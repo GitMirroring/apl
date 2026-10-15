@@ -64,8 +64,11 @@ Token::Token(TokenTag t, IndexExpr & idx)
         Assert(t == TOK_INDEX);
         if (idx.get_rank() < 2)   // case 2a. [idx] or []
            {
+             // value.apl_val is a plain Value_P_Base: construct a counted
+             // Value_P in it (a plain assignment would not count it).
+             //
              tag = TOK_AXIS;
-             value.apl_val = idx.extract_axis();   // type is TV_VAL
+             new (&value.apl_val) Value_P(idx.extract_axis());   // TV_VAL
            }
         else                           // [idx; ...]
            {

@@ -90,7 +90,7 @@ public:
    bool get_inherited_exec_property(int idx) const;
 
    /// return the current PC
-   Function_PC get_PC() const
+   Prefix_PC get_PC() const
       { return current_stack.get_PC(); }
 
    /// get the current prefix parser
@@ -142,8 +142,8 @@ public:
    /// @param RO token for the right operand (or 0 if absent)
    /// @param X optional axis value (empty Value_P if absent)
    /// @param loc caller location for diagnostics
-   DerivedFunction * get_fun_oper_slot(Token * LO, cFunction_P F_or_M_or_D,
-                                       Token * RO, Value_P X,
+   DerivedFunction * get_fun_oper_slot(const Token * LO, cFunction_P F_or_M_or_D,
+                                       const Token * RO, Value_P X,
                                        const char * loc)
       { return fun_oper_cache.get(LO, F_or_M_or_D, RO, X, loc); }
 

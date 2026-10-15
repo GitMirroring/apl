@@ -181,6 +181,14 @@ public:
   static const Function_PC2 & get_interrupt_range()
      { return interrupt_context.interrupt_range; }
 
+  /// return the position (in body) of the statement when ^C was hit (once)
+  static Prefix_PC get_attention_stat_PC()
+     { return interrupt_context.attention_stat_PC; }
+
+  /// return the position (in body) of the statement when ^C was hit (twice)
+  static Prefix_PC get_interrupt_stat_PC()
+     { return interrupt_context.interrupt_stat_PC; }
+
   /// return the executable to which the attention and interrupt ranges
   /// belong (0 if none)
   static const void * get_range_executable()
@@ -220,6 +228,12 @@ protected:
 
   /// The range in the prefix parser when ^C was hit (once)
   Function_PC2 attention_range;
+
+  /// the position (in body) of the statement when ^C was hit (once)
+  Prefix_PC attention_stat_PC = Prefix_PC_invalid;
+
+  /// the position (in body) of the statement when ^C was hit (twice)
+  Prefix_PC interrupt_stat_PC = Prefix_PC_invalid;
 
   /// the number of interrupts
   uint64_t interrupt_count;
@@ -607,6 +621,70 @@ operator --(Function_PC & pc)
 {
    pc = pc - 1;
    return pc;
+}
+//────────────────────────────────────────────────────────────────────────────
+/// @param pc     Prefix_PC
+/// @param offset offset to add
+inline Prefix_PC
+operator +(Prefix_PC pc, int offset)
+{
+   return Prefix_PC(int(pc) + offset);
+}
+//────────────────────────────────────────────────────────────────────────────
+/// @param pc     Prefix_PC
+/// @param offset offset to subtract
+inline Prefix_PC
+operator -(Prefix_PC pc, int offset)
+{
+   return Prefix_PC(int(pc) - offset);
+}
+//────────────────────────────────────────────────────────────────────────────
+/// the distance between two Prefix_PCs
+inline int
+operator -(Prefix_PC pc1, Prefix_PC pc2)
+{
+   return int(pc1) - int(pc2);
+}
+//────────────────────────────────────────────────────────────────────────────
+/// Prefix_PC ++ (post increment)
+inline Prefix_PC
+operator ++(Prefix_PC & pc, int)
+{
+const Prefix_PC before_increment = pc;
+   pc = pc + 1;
+   return before_increment;
+}
+//────────────────────────────────────────────────────────────────────────────
+/// Prefix_PC ++ (pre increment)
+inline Prefix_PC &
+operator ++(Prefix_PC & pc)
+{
+   pc = pc + 1;
+   return pc;
+}
+//────────────────────────────────────────────────────────────────────────────
+/// Prefix_PC -- (post decrement)
+inline Prefix_PC
+operator --(Prefix_PC & pc, int)
+{
+const Prefix_PC before_decrement = pc;
+   pc = pc - 1;
+   return before_decrement;
+}
+//────────────────────────────────────────────────────────────────────────────
+/// Prefix_PC -- (pre decrement)
+inline Prefix_PC &
+operator --(Prefix_PC & pc)
+{
+   pc = pc - 1;
+   return pc;
+}
+//────────────────────────────────────────────────────────────────────────────
+/// print a Prefix_PC
+inline ostream &
+operator <<(ostream & out, Prefix_PC pc)
+{
+   return out << int(pc);
 }
 //────────────────────────────────────────────────────────────────────────────
 /// frequently used cast to const char *

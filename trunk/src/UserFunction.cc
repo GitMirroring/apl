@@ -78,10 +78,16 @@ UserFunction::UserFunction(Fun_signature sig, Lambda_number lambda_num,
    //
    header.reverse_local_vars();
 
-   parse_body_line(Function_Line_0, lambda_body, false, LOC);
+   parse_body_line(Function_Line_0, lambda_body,
+                   lambda_body.size() ? lambda_body.back().get_PC()   // RETURN
+                                      : Function_PC_0,
+                   false, LOC);
    setup_lambdas();
-   line_starts.push_back(Function_PC(lambda_body.ssize() - 1));
-   line_starts.push_back(Function_PC_0);
+#if cfg_ASSERT_LEVEL_WANTED >= 2
+   Assert1(check_PCs(LOC) == 0);
+#endif
+   line_starts.push_back(Prefix_PC(lambda_body.ssize() - 1));
+   line_starts.push_back(Prefix_PC_0);
    error_line = -1;   // no error
    error_info = 0;
 }
@@ -462,10 +468,10 @@ UserFunction::eval_XB(cValue_R X, cValue_R B) const
 }
 //────────────────────────────────────────────────────────────────────────────
 Function_Line
-UserFunction::get_line(Function_PC pc) const
+UserFunction::get_line(Prefix_PC pc) const
 {
-   Assert(pc >= -1);
-   if (pc < 0)   pc = Function_PC_0;
+   Assert(pc >= Prefix_PC_invalid);
+   if (pc < Prefix_PC_0)   pc = Prefix_PC_0;
 
    // search line_starts backwards until a line with non-greater pc is found.
    //
@@ -478,7 +484,7 @@ UserFunction::get_line(Function_PC pc) const
 }
 //────────────────────────────────────────────────────────────────────────────
 UCS_string
-UserFunction::get_name_and_line(Function_PC pc) const
+UserFunction::get_name_and_line(Prefix_PC pc) const
 {
 UCS_string ret = header.get_name();
    if (ret.size() && ret[0] == UNI_LAMBDA)
@@ -491,7 +497,7 @@ UCS_string ret = header.get_name();
    // pc may point to the next token already. If that is the case then
    // we go back one token.
    //
-   if (pc > 0 && body[pc - 1].get_Class() == TC_END)   pc = Function_PC(pc - 1);
+   if (pc > Prefix_PC_0 && body[pc - 1].get_Class() == TC_END)   --pc;
 
 const Function_Line line = get_line(pc);
    return ret << line << UNI_R_BRACK;
@@ -546,7 +552,7 @@ const UCS_string two_lamps(U"⍝⍝");
    if (!got_lamps)   CERR << "    (no ⍝⍝ or ⍝. comment lines)" << endl;
 }
 //────────────────────────────────────────────────────────────────────────────
-Function_PC
+Prefix_PC
 UserFunction::line_start(Function_Line line) const
 {
    if (line < 0 || size_t(line) >= line_starts.size())
@@ -559,11 +565,11 @@ UserFunction::line_start(Function_Line line) const
    return line_starts[line];
 }
 //────────────────────────────────────────────────────────────────────────────
-Function_PC
+Prefix_PC
 UserFunction::pc_for_line(Function_Line line) const
 {
    if (line <= Function_Line_0 || line >= Function_Line(line_starts.size()))
-      return Function_PC(body.ssize() - 1);
+      return body.end_PC() - 1;
 
    return line_starts[line];
 }
@@ -593,11 +599,11 @@ UserFunction::print_line_PCs(const char * loc) const
    for (size_t j = 1; j < line_starts.size(); ++j)
        {
          CERR << "   " << get_name() << "[" << j << "]: PC= ";
-         const Function_PC PC_from = line_starts[j];
+         const Prefix_PC PC_from = line_starts[j];
 
          // Note: line_starts[0] is the end of the function
          const int next = j < (line_starts.size() - 1) ? j + 1 : 0;
-         const Function_PC PC_to = line_starts[next];
+         const Prefix_PC PC_to = line_starts[next];
          CERR << PC_from << "..." << (PC_to - 1) << endl;
        }
 }
@@ -618,7 +624,7 @@ UCS_string ind(indent, UNI_SPACE);
          Function_Line line_number = Function_Invalid;
          loop(ls, line_starts.size())
             {
-              if (b == line_starts[ls])   // b is the start of a line
+              if (Prefix_PC(b) == line_starts[ls])   // start of a line
                  {
                    line_number = Function_Line(ls);
                    out << endl << ind << "    [" << line_number << "]";
@@ -813,14 +819,14 @@ bool VOID_inserted = false;
               // Otherwise resolve the label symbol.
               //
               const Function_PC pc0 = items_B[0];
-              Token & tok0 = body[pc0];
+              Token_loc & tok0 = body[pc0];
               if (tok0.get_Class() == TC_SYMBOL)
                  {
                    const Symbol * symbol = tok0.get_sym_ptr();
                    const int64_t line = get_label_line(symbol);
                    Value_P value = IntScalar(line, LOC);
-                   value->increment_owner_count(LOC);
-                   tok0 = Token(TOK_APL_VALUE1, value);
+                   tok0.copy(Token_loc(Token(TOK_APL_VALUE1, value),
+                                       tok0.get_PC()), LOC);
                  }
             }
          else   // vector B
@@ -829,7 +835,7 @@ bool VOID_inserted = false;
               loop(b, items_B.size())
                   {
                     const Function_PC pc_b = items_B[b];
-                    Token & tok_b = body[pc_b];
+                    Token_loc & tok_b = body[pc_b];
                     if (tok_b.get_Class() == TC_SYMBOL)
                        {
                          const Symbol * symbol = tok_b.get_sym_ptr();
@@ -846,13 +852,17 @@ bool VOID_inserted = false;
                   }
               B->check_value(LOC);
 
-              // items_B is decreasing, so back() < front()
+              // items_B is decreasing, so back() < front(). B gets the PC
+              // of its leftmost item, which is body[items_B.front()] since
+              // the body is reversed.
+              //
+              const Function_PC pc_B = body[items_B.front()].get_PC();
               for (Function_PC pc = items_B.back(); pc <= items_B.front(); ++pc)
                   {
                     body[pc].clear(LOC);
                   }
-              body[items_B.back()] = Token(TOK_APL_VALUE1, B);
-              B->increment_owner_count(LOC);   // keep it
+              body[items_B.back()].copy(Token_loc(Token(TOK_APL_VALUE1, B),
+                                                  pc_B), LOC);
               VOID_inserted = true;
            }
        }
@@ -885,9 +895,11 @@ const size_t labels_declared = header.get_label_count();
                          const labVal & label = header.get_label(idx);
                          if (symbol != label.sym)   continue;
 
-                         const int64_t target_pc = line_starts[label.line];
-                         body[pc + 1] = Token(TOK_GOTO_PC, target_pc);
-                         body[pc + 2] = body[pc + 3];   // was TOK_R_ARROW
+                         const int64_t target_pc = int(line_starts[label.line]);
+                         // → SYMBOL becomes GOTO_PC with the PC of →
+                         body[pc + 1].copy(Token_loc(Token(TOK_GOTO_PC, target_pc),
+                                                     body[pc + 2].get_PC()), LOC);
+                         body[pc + 2].copy(body[pc + 3], LOC);   // was TOK_R_ARROW
 
                          OptmizationStatistics::count(OPTI_FT_LABEL_LITERAL);
                        }
@@ -902,10 +914,11 @@ const size_t labels_declared = header.get_label_count();
                         const APL_Integer N = cell_N.get_int_value();
                         if (N >= 0 && size_t(N) < line_starts.size())
                            {
-                             const int64_t target_pc = line_starts[N];
-                             body[pc + 1].clear(LOC);
-                             body[pc + 1] = Token(TOK_GOTO_PC, target_pc);
-                             body[pc + 2] = body[pc + 3];   // was TOK_R_ARROW
+                             const int64_t target_pc = int(line_starts[N]);
+                             // → N becomes GOTO_PC with the PC of →
+                             body[pc + 1].copy(Token_loc(Token(TOK_GOTO_PC, target_pc),
+                                                         body[pc + 2].get_PC()), LOC);
+                             body[pc + 2].copy(body[pc + 3], LOC);   // was TOK_R_ARROW
 
                              OptmizationStatistics::count(OPTI_FT_LABEL_LITERAL);
                            }
@@ -923,7 +936,7 @@ UserFunction::parse_body(const char * loc, bool macro)
    header.clear_labels();
    parsed_text.clear();
    line_starts.clear();
-   line_starts.push_back(Function_PC_0);   // will be set later.
+   line_starts.push_back(Prefix_PC_0);   // will be set later.
 
    // The function text is modified for parsing it, but restored afterwards
    // so that e.g. ∇FUN[⎕]∇ shows the text entered by the user.
@@ -1016,6 +1029,7 @@ Lit_DB literals;
             }
       }
 
+Function_PC end_PC = Function_PC_0;   // the PC of the end of the last line
    for (int l = 1; l < get_text_size(); ++l)
       {
         bool stop_line = false;
@@ -1039,20 +1053,21 @@ Lit_DB literals;
            }
 
         error_line = l;   // assume error
-        line_starts.push_back(Function_PC(body.ssize()));
+        line_starts.push_back(body.end_PC());
 
         if (stop_line)
            {
-             body.push_back(Token(TOK_STOP_LINE));
+             // the stop statement precedes the line: PC 0
+             body.emplace_back(Token(TOK_STOP_LINE), Function_PC_0);
              const int64_t tr = 0;
-             body.push_back(Token(TOK_END, tr));
+             body.emplace_back(Token(TOK_END, tr), Function_PC_0);
            }
 
         const UCS_string & line = get_text(l);
         try {
               const ErrorCode ec =
                     parse_body_line(Function_Line(l), line, trace_line,
-                                    loc, macro);
+                                    loc, macro, &end_PC);
               if (ec != E_NO_ERROR)   return;   // error_line is already l
             }
         catch(const Error & err)
@@ -1073,10 +1088,13 @@ Lit_DB literals;
    // set line_starts[0] be the end of the function, so that →0 returns
    // from the function
    //
-   line_starts[0] = Function_PC(body.ssize());
+   line_starts[0] = body.end_PC();
 
-   if (header.Z())   body.push_back(Token(TOK_RETURN_SYMBOL, header.Z()));
-   else              body.push_back(Token(TOK_RETURN_VOID));
+   // the RETURN token belongs to the last line (see get_line()) and gets
+   // the PC of its end.
+   //
+   if (header.Z())   body.emplace_back(Token(TOK_RETURN_SYMBOL, header.Z()), end_PC);
+   else              body.emplace_back(Token(TOK_RETURN_VOID), end_PC);
 
    // remember the lines as parsed if a multi-line string or literal has
    // changed them (the lines of the body are then no longer the lines of
@@ -1102,13 +1120,14 @@ Lit_DB literals;
       {
         loop(b, body.size())
             {
-              Token & token = body[b];
+              Token_loc & token = body[b];
               if (token.get_tag() == TOK_MARKER)   // from @N@
                  {
                    const ShapeItem key = token.get_int_val();
                    Value_P value = literals.pull(key);
                    Assert(value);
-                   new (&body[b]) Token(TOK_APL_VALUE1, value);
+                   body[b].copy(Token_loc(Token(TOK_APL_VALUE1, value),
+                                          body[b].get_PC()), LOC);
                  }
             }
       }
@@ -1144,7 +1163,7 @@ Function_PC dst_PC = Function_PC_0;
    // left holding this stale, pre-shrink sentinel for such lines unless we
    // patch it up afterwards (see below).
    //
-const Function_PC old_body_size = Function_PC(body.ssize());
+const Prefix_PC old_body_size = body.end_PC();
 
    // be careful not to increment src_PC if a line is empty!
 
@@ -1154,12 +1173,12 @@ const Function_PC old_body_size = Function_PC(body.ssize());
         // current line (src_line)
         //
         while ((src_line + 1) < line_starts.size() &&
-               src_PC == line_starts[src_line + 1])
+               Prefix_PC(src_PC) == line_starts[src_line + 1])
            {
              // src_PC has reached the first token of the next line.
              // Increment the current line and adjust line_starts.
              ++src_line;
-             line_starts[src_line] = Function_PC(dst_PC);
+             line_starts[src_line] = Prefix_PC(dst_PC);
            }
 
         if (body[src_PC].get_tag() != TOK_VOID)
@@ -1175,7 +1194,7 @@ const Function_PC old_body_size = Function_PC(body.ssize());
              //
              loop(bb, body.ssize())
                  {
-                   Token & tok = body[bb];
+                   Token_loc & tok = body[bb];
                    if (tok.get_tag() == TOK_GOTO_PC)
                       {
                         const int64_t tok_pc = tok.get_int_val();
@@ -1196,10 +1215,10 @@ const VoidCount ret = VoidCount(body.ssize() - dst_PC);
    //
    for (size_t l = src_line + 1; l < line_starts.size(); ++l)
        {
-         if (line_starts[l] == old_body_size)   line_starts[l] = Function_PC(dst_PC);
+         if (line_starts[l] == old_body_size)   line_starts[l] = Prefix_PC(dst_PC);
        }
 
-   line_starts[0] = dst_PC - 1;   // convention: line_starts[0] is the end of body
+   line_starts[0] = Prefix_PC(dst_PC - 1);   // convention: the end of body
 
    return ret;
 }
@@ -1471,11 +1490,12 @@ int signature = SIG_FUN | SIG_Z;
 
 const Parser parser(PM_FUNCTION, LOC, false);
 Token_string body;
+Function_PC end_PC = Function_PC_0;   // the end of body_text
    // if parsing fails at this point, then something is wrong in )SAVE
    //
    try
       {
-        if (const ErrorCode ec = parser.parse(body_text, body, true))
+        if (const ErrorCode ec = parser.parse(body_text, body, true, &end_PC))
            {
              CERR << "Parsing '" << body_text << "' failed (" << ec << ")."
                   << endl;
@@ -1504,8 +1524,19 @@ Function_PC last_statement = Function_PC(-1);
      Token ret_lambda(TOK_RETURN_SYMBOL, &Workspace::get_v_LAMBDA());
      const int64_t trace = 0;
      Token tok_endl(TOK_ENDL, trace);
-     body[last_statement + 1].move_from(ret_lambda, LOC);
-     body[last_statement + 2].move_from(tok_endl, LOC);
+     // ret_lambda and tok_endl stand for the end of body_text, which is
+     // the PC of the first ; of the trailing local variables (if any)
+     // since they are removed from the lambda text.
+     //
+     Function_PC pc_end = end_PC;
+     for (ShapeItem b = body.ssize() - 2; b >= 0; b -= 2)
+         {
+           if (body[b].get_tag() != TOK_SEMICOL)          break;
+           if (body[b + 1].get_Class() != TC_SYMBOL)      break;
+           pc_end = body[b].get_PC();
+         }
+     body[last_statement + 1].copy(Token_loc(ret_lambda, pc_end), LOC);
+     body[last_statement + 2].copy(Token_loc(tok_endl, pc_end), LOC);
    }
 
 vector<Symbol *> local_vars;
@@ -1550,7 +1581,7 @@ UserFunction::UserFunction(const UCS_string txt, const char * loc,
    exec_properties[2] = 0;
    exec_properties[3] = 0;
 
-   line_starts.push_back(Function_PC_0);   // will be set later.
+   line_starts.push_back(Prefix_PC_0);   // will be set later.
 
    if (header.get_error() != E_NO_ERROR)   // bad header
       {
@@ -1656,7 +1687,7 @@ UserFunction::print_body_by_line(const char * where) const
    loop(line, line_starts.size())
       {
         CERR << "[" << line << "]:";
-        ShapeItem next = body.ssize();   // assume last line
+        Prefix_PC next = body.end_PC();   // assume last line
         if ((line + 1) < int(line_starts.size()))
            next = line_starts[line + 1];
         loop(offset, next - line_starts[line])

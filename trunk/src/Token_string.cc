@@ -282,7 +282,7 @@ const bool VAL = details & 2;
 void
 Token_string::insert_1(int pos)
 {
-   push_back(Token(TOK_VOID));
+   emplace_back();   // TOK_VOID
    for (int from = size() - 2; from > pos; --from)
        {
          at(from + 1).move_from(at(from), LOC);   // shift towards end
@@ -292,8 +292,8 @@ Token_string::insert_1(int pos)
 void
 Token_string::insert_2(int pos)
 {
-   push_back(Token(TOK_VOID));
-   push_back(Token(TOK_VOID));
+   emplace_back();   // TOK_VOID
+   emplace_back();   // TOK_VOID
    for (int from = size() - 3; from > pos; --from)
        {
          at(from + 2).move_from(at(from), LOC);   // shift towards end
@@ -322,8 +322,7 @@ Token_string::replace_segment(const Token_string & src, ShapeItem pos)
 {
    loop(s, src.size())
        {
-         at(pos).clear(LOC);
-         new (&at(pos++)) Token(src[s], LOC);
+         at(pos++).copy(src[s], LOC);
        }
    return pos;
 }
@@ -331,13 +330,13 @@ Token_string::replace_segment(const Token_string & src, ShapeItem pos)
 void
 Token_string::reverse_from_to(ShapeItem from, ShapeItem to)
 {
-Token * t1 = &at(from);
-Token * t2 = &at(to);
+Token_loc * t1 = &at(from);
+Token_loc * t2 = &at(to);
    Assert(0 <= from);
    Assert(from <= to);
    Assert(to <= ShapeItem(size()));
 
-   while (t1 < t2)   t1++->swap_token(*t2--);
+   while (t1 < t2)   t1++->swap(*t2--);
 }
 //════════════════════════════════════════════════════════════════════════════
 

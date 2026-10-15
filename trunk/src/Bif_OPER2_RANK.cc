@@ -195,7 +195,7 @@ StateIndicator * const caller_si = Workspace::SI_top()->get_parent();
               // keep driving, exactly like Command::finish_context() does.
               Prefix & prefix = Workspace::SI_top()->get_prefix();
               Assert(prefix.at0().get_tag() == TOK_SI_PUSHED);
-              new (&prefix.tos().get_token()) Token(token);
+              prefix.replace_SI_PUSHED(token);
               continue;
             }
 

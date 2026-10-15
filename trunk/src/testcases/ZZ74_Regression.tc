@@ -3,11 +3,8 @@
 
 ⍝@ test3.
 
-      ⍝ Faults in the construction of the 3-line error display that were
-      ⍝ found with ]EXPLAIN CHECK (which checks the backward computation of
-      ⍝ line 2 and the carets against a forward replay of the statement).
-      ⍝ ]EXPLAIN itself is not used here, since it may be disabled by
-      ⍝ ./configure (EXPLAIN_WANTED).
+      ⍝ Faults in the construction of the 3-line error display, in
+      ⍝ particular for statements that were optimized by the parser.
       ⍝
 
 
@@ -141,6 +138,41 @@ RANK ERROR+
 DOMAIN ERROR
       (⍳⍤1)2 2⍴'ab'
       ^    ^
+
+
+
+
+
+      )SIC
+
+
+
+
+
+      ⍝ a folded value (2⍴1) together with a merged ⊤∧ (2 tokens, 1 in the
+      ⍝ optimized body): the carets are placed by the PCs of the Token_locs
+      ⍝ (the positions of the tokens in the original token string of the
+      ⍝ line) and are therefore not shifted by the optimizations.
+      ⍝
+      1 2 3 4 + (2⍴1)⊤∧1 2 3
+LENGTH ERROR+
+      1 2 3 4+(2⍴1)⊤∧1 2 3
+              ^      ^
+
+
+
+
+
+      )SIC
+
+
+
+
+
+      1 2 3 4 + 1 0 1⊤∧(2⍴1)
+LENGTH ERROR+
+      1 2 3 4+1 0 1⊤∧(2⍴1)
+              ^      ^
 
 
 

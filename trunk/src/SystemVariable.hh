@@ -141,8 +141,8 @@ protected:
 
    /// overloaded Symbol:resolve_left(). Invalid for read-only variables
    /// @param token token to resolve into
-   /// @param PC program counter reference
-   virtual void resolve_left(Token & token, Function_PC & PC) const
+   /// @param tl the Token_loc of the symbol
+   virtual void resolve_left(Token & token, const Token_loc & tl) const
       { MORE_ERROR() << "Assignment to read-only system variable "
                      << get_name();
         SYNTAX_ERROR; }
@@ -151,8 +151,8 @@ protected:
    /// push(), pop(), and assign() do nothing, and therefore we may call
    /// get_apl_value() directly.
    /// @param token token to resolve into
-   /// @param PC program counter reference
-   virtual void resolve_right(Token & token, Function_PC & PC) const
+   /// @param tl the Token_loc of the symbol
+   virtual void resolve_right(Token & token, const Token_loc & tl) const
       { new (&token) Token(TOK_APL_VALUE1, get_apl_value()); }
 };
 //────────────────────────────────────────────────────────────────────────────
@@ -561,13 +561,13 @@ public:
 
    /// overloaded Symbol::resolve_left().
    /// @param token token to resolve into
-   /// @param PC program counter reference
-   virtual void resolve_left(Token & token, Function_PC & PC) const   { }   // ⎕←xxx
+   /// @param tl the Token_loc of the symbol
+   virtual void resolve_left(Token & token, const Token_loc & tl) const   { }   // ⎕←xxx
 
    /// overloaded Symbol::resolve_right().
    /// @param token token to resolve into
-   /// @param PC program counter reference
-   virtual void resolve_right(Token & token, Function_PC & PC) const;
+   /// @param tl the Token_loc of the symbol
+   virtual void resolve_right(Token & token, const Token_loc & tl) const;
 
 protected:
    /// @param B the APL value to assign

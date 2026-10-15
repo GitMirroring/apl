@@ -22,7 +22,6 @@
 */
 
 
-#include "ErrorTrail.hh"
 #include "Executable.hh"
 #include "Bif_F12_PARTITION_PICK.hh"
 #include "Bif_F12_RHO.hh"
@@ -174,67 +173,43 @@ StateIndicator & si = *Workspace::SI_top();
    FIXME;
 }
 //════════════════════════════════════════════════════════════════════════════
-Function_PC
-Executable::get_statement_end(Function_PC pc) const
+Prefix_PC
+Executable::get_statement_end(Prefix_PC pc) const
 {
    // bounded scan: without the pc < body.size() check, a body that (for
    // whatever reason) has no TC_END/TOK_RETURN_EXEC at or after pc would
    // make this loop walk off the end of body[] indefinitely.
    //
-   while (pc < Function_PC(body.size())   &&
+   while (pc < body.end_PC()   &&
           body[pc].get_Class() != TC_END  &&
           body[pc].get_tag() != TOK_RETURN_EXEC)   ++pc;
-   Assert(pc < Function_PC(body.size()));
+   Assert(pc < body.end_PC());
    return pc;
 }
 //────────────────────────────────────────────────────────────────────────────
-Function_PC
-Executable::get_statement_start(Function_PC pc) const
+Prefix_PC
+Executable::get_statement_start(Prefix_PC pc) const
 {
    // this function is used in error reporting; do_Assert() itself guards
    // against re-entrant failures (see Assert.cc), so Assert() here is safe.
    //
    // given pc, return the start of the statement to which pc belongs
 
-   Assert(pc < Function_PC(body.size()));
+   Assert(pc < body.end_PC());
 
    // if we are at the end of the statement, move back.
    //
-   if (int(pc) < 2)   return Function_PC_0;
+   if (int(pc) < 2)   return Prefix_PC_0;
    if (body[pc].get_Class() == TC_RETURN)   --pc;
    if (body[pc].get_Class() == TC_END)      --pc;
 
-   for (; int(pc) > 0; --pc)
+   for (; pc > Prefix_PC_0; --pc)
       {
         if (body[pc-1].get_Class() == TC_END)          return pc;
         if (body[pc-1].get_tag() == TOK_RETURN_EXEC)   return pc;
       }
 
-   return Function_PC_0;
-}
-//────────────────────────────────────────────────────────────────────────────
-int
-Executable::get_cond_segment(Function_PC pc) const
-{
-int segment = 0;
-Function_PC start = get_statement_start(pc);
-   while (start > 0 && body[start - 1].is_COND())
-      {
-        ++segment;
-        start = get_statement_start(Function_PC(start - 1));
-      }
-
-   return segment;
-}
-//────────────────────────────────────────────────────────────────────────────
-ostream &
-Executable::print_range(ostream & out, Function_PC2 from_to) const
-{
-   for (int pc = from_to.high; pc >= from_to.low; --pc)
-       {
-         out << "    [" << pc << "] " << body[pc] << endl;
-       }
-   return out;
+   return Prefix_PC_0;
 }
 //────────────────────────────────────────────────────────────────────────────
 void
@@ -253,547 +228,271 @@ Executable::print_token(ostream & out, int details) const
    body.print(out, details);
 }
 //────────────────────────────────────────────────────────────────────────────
-void
-Executable::reparse(Token_string & original, Function_PC low_PC) const
+bool
+Executable::reparse(Token_string & original, Prefix_PC stat_PC,
+                    const Token_string & stat, Function_PC end_pc) const
 {
+   // the line that contains the failed statement. ⍎ and ◊ executables have
+   // only line 0.
+   //
 int line = 0;
-int statement = 0;
-const UCS_string failed_statement = statement_text(low_PC, line, statement);
+   if (get_parse_mode() == PM_FUNCTION)   line = get_line(stat_PC);
 
-   // reparse the failed_statement before the optimization
-   // into orig (in APL order)
-const Parser parser(get_parse_mode(), LOC, false);
-Token_string orig;
-ErrorCode ec = E_NO_ERROR;
-   try   { ec = parser.parse(failed_statement, orig, false); }
-   catch (const Error &)
-      {
-        // parser.parse() now throws (rather than returning a code) for
-        // lexical failures -- but we are already in the middle of
-        // building the display for a DIFFERENT, already-pending error
-        // (this function runs before that error's own throw, from
-        // update_error_info()); letting a fresh exception escape here
-        // would silently replace the error being reported. Fall through
-        // to the same "parsing failed_statement failed" recovery below
-        // that a nonzero ec already triggered.
-        ec = E_SYNTAX_ERROR;
-      }
-   // a conditional statement (C →→ T ←→ F ←←) is one statement in the text,
-   // but its segments C, T, and F are statements of their own in the body.
-   // Then only the segment of low_PC is the failed statement (otherwise
-   // line 2 showed the entire conditional statement with the carets of
-   // the segment, found with ]EXPLAIN CHECK).
+   // clamp line: a function with N body lines has text.ssize() == N+1,
+   // while the line of the trailing RETURN region can be N+1. The lines
+   // of the body differ from the lines of text after a multi-line string
+   // or literal (see get_body_text()).
    //
-const int segment = get_cond_segment(low_PC);
-const int label_end = orig.size() > 1 && orig[1].get_tag() == TOK_COLON ? 2 : 0;
-int seg_from = label_end;    // first token of the segment
-int seg_to = orig.size();    // end of the segment
-   if (ec == E_NO_ERROR)
-      {
-        int seg = 0;
-        for (int j = label_end; j < orig.ssize(); ++j)
-            {
-              if (!orig[j].is_COND())   continue;
-              if (seg == segment)   { seg_to = j;   break; }
-              ++seg;
-              seg_from = j + 1;
-            }
-        if (seg != segment)   ec = E_SYNTAX_ERROR;   // no such segment
-      }
-
-   if (ec == E_NO_ERROR)   // failed_statement could be parsed
-      {
-        // revert orig (of the segment), starting after label (if eny)
-        //
-        for (int j = seg_to - 1; j >= seg_from; --j)
-            original.push_back(orig[j]);
-      }
-   else                    // parsing failed_statement failed
-      {
-        /* a common case for arriving here is e.g.
-  
-           A←{⍵ + 1}
-           A←{⍵ + 1}
-         */ 
-        loop(b, body.size())   original.push_back(body[b]);
-      }
-}
-//────────────────────────────────────────────────────────────────────────────
-UCS_string
-Executable::statement_text(Function_PC low_PC, int & line,
-                           int & statement) const
-{
-   // compute the failed line and the failed statement in the line.
-   //
-   // A defined function: the line from the line table (get_line()).
-   // Counting the TOK_ENDL tokens before low_PC (as before) missed the
-   // lines without any token (e.g. comment lines), and then the text of
-   // a wrong line was reparsed (found with ]EXPLAIN CHECK).
-   //
-   // ⍎ and ◊ executables have only line 0.
-   //
-   line = 0;
-   statement = 0;
-Function_PC from = Function_PC_0;
-   if (get_parse_mode() == PM_FUNCTION)
-      {
-        line = get_line(low_PC);
-        from = line_start(Function_Line(line));
-      }
-
-   for (Function_PC pc = from; pc < low_PC; ++pc)
-       {
-         const TokenTag tag = body[pc].get_tag();
-         if (tag == TOK_END)             ++statement;   // end of statement
-         else if (tag == TOK_STOP_LINE)  --statement;   // has its own END
-       }
-
-   // Assert() is a no-op in the default build; a function with N body
-   // lines has text.ssize() == N+1, and when the failing statement's PC
-   // lands on the trailing RETURN region, line reaches N+1 == text.ssize()
-   // -- one past the end of the (unchecked operator[]) UCS_string_vector.
-   // Clamp instead of indexing past it.
    if (line >= text.ssize())   line = text.ssize() - 1;
-
-   // line counts the lines of the body. They differ from the lines of
-   // text after a multi-line string or literal (see get_body_text()).
-   //
    if (parsed_text.size() && line >= parsed_text.ssize())
       line = parsed_text.ssize() - 1;
-const UCS_string & failed_line = get_body_text(line);
+   if (line < 0)   return false;
 
-   // extract the failed statement text from the failed_line
+const UCS_string & line_text = get_body_text(line);
+
+   // reparse the entire line without optimizations. The PCs of the
+   // resulting tokens are then the same as those of the optimized body.
    //
-   // A ⋄ inside a '...' string literal or a {...} lambda body is not a
-   // statement separator at THIS line's level -- counting every ⋄
-   // character regardless of context (the old behaviour) miscounts
-   // statement boundaries for e.g. "(1 {⍵ ⋄ ⍵} 2)" or "'⋄'⊃3 0⍴0",
-   // truncating failed_statement mid-string/mid-lambda so the reparse
-   // below fails, which is fatal in ways set_error_info()'s caller isn't
-   // prepared for (see the callers of reparse()). Track string/brace
-   // context while scanning so only a top-level ⋄ counts.
+const Parser parser(get_parse_mode(), LOC, false);
+Token_string orig;
+   try
+      {
+        if (parser.parse(line_text, orig, false))   return false;
+      }
+   catch (const Error &)
+      {
+        // parser.parse() throws (rather than returning a code) for lexical
+        // failures -- but we are already building the display for a
+        // DIFFERENT, already-pending error; letting a fresh exception
+        // escape here would silently replace the error being reported.
+        //
+        return false;
+      }
+
+   // the PCs of the failed statement range from the PC of its leftmost
+   // token to (excluding) the PC of its END token (which is the PC of
+   // the ◊ or COND token that ends it, or of the end of the line).
    //
-UCS_string failed_statement;
-   {
-     int l = 0;
-     bool in_string = false;   // inside '...'
-     bool in_dquote = false;   // inside "..."
-     bool in_daq = false;      // inside «...»
-     int brace_depth = 0;
+Function_PC min_pc = end_pc;
+   loop(s, stat.size())
+      {
+        const Function_PC pc = stat[s].get_PC();
+        if (pc >= 0 && pc < min_pc)   min_pc = pc;
+      }
 
-     loop(f, failed_line.size())
-         {
-           const Unicode uni = failed_line[f];
+   // the ◊ or COND tokens that separate the failed statement from its
+   // neighbours are outside [min_pc, end_pc), while a ◊ inside a lambda
+   // is not (and must be kept).
+   //
+   for (ShapeItem j = orig.ssize() - 1; j >= 0; --j)   // reversed
+       {
+         const Token_loc & tl = orig[j];
+         if (tl.get_PC() < min_pc || tl.get_PC() >= end_pc)   continue;
+         original.push_back(tl);
+       }
 
-           if (in_string)
-              {
-                if (Avec::is_single_quote(uni))
-                   {
-                     // '' inside a string is an escaped quote, not the
-                     // closing delimiter.
-                     if (f + 1 < failed_line.ssize() &&
-                         Avec::is_single_quote(failed_line[f + 1]))
-                        {
-                          if (l == statement)   failed_statement << uni << uni;
-                          ++f;
-                          continue;
-                        }
-                     in_string = false;
-                   }
-                if (l == statement)   failed_statement << uni;
-                continue;
-              }
+   return original.size() != 0;
+}
+//────────────────────────────────────────────────────────────────────────────
+/// the index (in \b tos, reversed as in body) of the token that contains
+/// the (Token_loc-) \b pc, i.e. the token with the largest PC <= pc. If
+/// several tokens have that PC (e.g. a ( inserted by the parser) then the
+/// leftmost of them, since the PC of an item is that of its leftmost token.
+static Function_PC
+token_at(const Token_string & tos, Function_PC pc)
+{
+const Function_PC leftmost = Function_PC(tos.size() - 1);
+   if (pc < 0)   return leftmost;
 
-           if (in_dquote)
-              {
-                // unlike '...', a "..." string (Tokenizer::tokenize_
-                // string2()) closes on a plain, unescaped " and escapes
-                // with a leading backslash rather than doubling the
-                // quote -- so a ⋄ inside one, e.g. "⋄"⊃3 0⍴0, was still
-                // (mis)counted as a statement separator here. Bugs29 #2
-                // (Blake McBride), residual of Bugs28 #7.
-                if (uni == UNI_BACKSLASH && f + 1 < failed_line.ssize())
-                   {
-                     if (l == statement)
-                        failed_statement << uni << failed_line[f + 1];
-                     ++f;
-                     continue;
-                   }
-                if (uni == UNI_DOUBLE_QUOTE)   in_dquote = false;
-                if (l == statement)   failed_statement << uni;
-                continue;
-              }
+Function_PC best = leftmost;
+Function_PC best_pc = Function_PC_invalid;
+   for (Function_PC t = leftmost; t >= 0; --t)   // from left to right
+      {
+        const Function_PC tpc = tos[t].get_PC();
+        if (tpc > pc)   break;   // the PCs increase from left to right
+        if (tpc > best_pc)   { best = t;   best_pc = tpc; }
+      }
 
-           if (in_daq)
-              {
-                // «...» (Tokenizer::tokenize_string2()) is tracked
-                // exactly like "..." just above -- same backslash
-                // escaping, same single (non-nesting) closing delimiter
-                // -- so a ⋄ inside one, e.g. «a⋄b»⊃3 0⍴0, was still
-                // (mis)counted as a statement separator here (Bugs30
-                // #23, same residual class as Bugs29 #2/Bugs28 #7).
-                if (uni == UNI_BACKSLASH && f + 1 < failed_line.ssize())
-                   {
-                     if (l == statement)
-                        failed_statement << uni << failed_line[f + 1];
-                     ++f;
-                     continue;
-                   }
-                if (uni == UNI_RIGHT_DAQ)   in_daq = false;
-                if (l == statement)   failed_statement << uni;
-                continue;
-              }
+   return best;
+}
+//────────────────────────────────────────────────────────────────────────────
+/// the index (in \b tos, reversed as in body) of the function that is
+/// located at or right of tos[idx] (but not inside parentheses or brackets
+/// of its left argument), i.e. the function whose result starts at tos[idx]
+static Function_PC
+function_at(const Token_string & tos, Function_PC idx)
+{
+int depth = 0;
+   for (Function_PC p = idx; p >= 0 && p < tos.ssize(); --p)
+       {
+         const Token & tok = tos[p];
+         switch(tok.get_Class())
+            {
+              case TC_L_PARENT:
+              case TC_L_BRACK:   ++depth;   continue;   // left of A's inside
+              case TC_R_PARENT:
+              case TC_R_BRACK:   --depth;   continue;
+              case TC_END:
+              case TC_RETURN:    return idx;   // statement end: not found
+              default:           break;
+            }
 
-           if (Avec::is_single_quote(uni))
-              {
-                in_string = true;
-                if (l == statement)   failed_statement << uni;
-                continue;
-              }
+         if (depth > 0)   continue;   // inside of A
 
-           if (uni == UNI_DOUBLE_QUOTE)
-              {
-                in_dquote = true;
-                if (l == statement)   failed_statement << uni;
-                continue;
-              }
+         if (tok.get_Class() == TC_FUN0 || tok.get_Class() == TC_FUN12)
+            return p;
 
-           if (uni == UNI_LEFT_DAQ)
-              {
-                in_daq = true;
-                if (l == statement)   failed_statement << uni;
-                continue;
-              }
+         if (tok.get_Class() == TC_SYMBOL)
+            {
+              const Symbol * sym = tok.get_sym_ptr();
+              const NameClass nc = sym ? sym->get_NC() : NC_INVALID;
+              if (nc == NC_FUNCTION || nc == NC_OPERATOR)   return p;
+            }
+       }
 
-           if (uni == UNI_L_CURLY)
-              {
-                ++brace_depth;
-                if (l == statement)   failed_statement << uni;
-                continue;
-              }
-
-           if (uni == UNI_R_CURLY)
-              {
-                if (brace_depth > 0)   --brace_depth;
-                if (l == statement)    failed_statement << uni;
-                continue;
-              }
-
-           if (brace_depth == 0 && Avec::is_DIAMOND(uni))
-              { ++l;   continue; }
-
-           if (l > statement)   break;      // subsequent line
-           if (l < statement)   continue;   // previous line
-           failed_statement << uni;
-         }
-   }
-
-   return failed_statement;
+   return idx;
 }
 //────────────────────────────────────────────────────────────────────────────
 void
-Executable::set_error_info(Error & error, Function_PC2 body_from_to) const
+Executable::set_error_info(Error & error, Prefix_PC stat_PC,
+                           Function_PC2 pcs, bool fun_of_result,
+                           bool whole_statement) const
 {
    /* called rarely, so we have time.
    
-      error: the error whose info shall be set
-      body_from_to: the body region containing the the error.
-     
-      NOTE:
-     
-      body_from_to     are the absolute positions (PCs) in the body (!),
-                       i.e. the offsets from the first token of the body, while
-     
-      after_from_to    are the offsets of the first and last token in
-                       the failed statement (!) after any optimization, and
-     
-      before_from_to   are the offsets of the first and last token in
-                         the failed statement (before amy optimization).
+      error:   the error whose info shall be set
+      stat_PC: a position in body (!) inside the failed statement.
+      pcs:     the PCs of the Token_locs of the rightmost (pcs.low) and the
+               leftmost (pcs.high) item of the failed range. Unlike stat_PC
+               they are positions in the token string that the tokenizer has
+               produced for the line of the failed statement (and are
+               therefore the same in the optimized body and in the
+               unoptimized reparse() of the line).
     */
-
-   if (0)   print_range(CERR, body_from_to);
-
-const Function_PC2 range_in = body_from_to;   // for ]EXPLAIN
-const char * range_reason = "the range of the phrase being reduced";
-
-   // for value errors we point to the failed symbol itself.
-   //
    if (error.get_error_code() == E_VALUE_ERROR)
       {
-        body_from_to.low = body_from_to.high;
-        range_reason = "VALUE ERROR: the failed symbol only";
+        // for value errors we point to the failed symbol itself.
+        //
+        pcs.low = pcs.high;
       }
-   else if (error.get_error_code() == E_ATTENTION)
+   else if (error.get_error_code() == E_ATTENTION ||
+            error.get_error_code() == E_INTERRUPT)
       {
         /* E_ATTENTION is typically raised at the end of the line, i.e. when
            attention_raised was checked and not when attention_raised was
-           raised. We use attention_range instead.
-         */
-        // the range was recorded in the SI top when ^C was hit, which may
-        // be another executable (e.g. the macro of LO⍣RO, whose error is
-        // reported for the calling statement): then it is not a range of
-        // this body (Assert() in get_statement_start(), Bugs34 #37)
-        //
-        range_reason = "ATTENTION: the PC of this executable";
-        if (InterruptContext::get_attention_range().low != Function_PC_invalid &&
-            InterruptContext::get_range_executable() == this)
-           {
-             body_from_to = InterruptContext::get_attention_range();
-             range_reason = "ATTENTION: the range when ^C was hit";
-           }
-        else
-           {
-             // the PC of this executable (which need not be the SI top,
-             // see above)
-             const StateIndicator * si = Workspace::SI_top();
-             while (si->get_parent() && si->get_executable() != this)
-                   si = si->get_parent();
-             const Prefix & prefix = si->get_prefix();
-             Function_PC pc(prefix.get_PC() - 1);
-             if (pc >= Function_PC(body.size()))   pc = Function_PC_0;
-             body_from_to.low  = pc;
-             body_from_to.high = pc;
-           }
-      }
-   else if (error.get_error_code() == E_INTERRUPT)
-      {
-        /* E_INTERRUPT may be raised when interrupt_raised was checked (and
-           not when interrupt_raised was raised). We use interrupt_range
-           instead.
+           raised. We use the range recorded when ^C was hit instead.
 
-           Note that E_INTERRUPT may also be raised synchronously, e.g.
-           when a system limit was hit.
+           E_INTERRUPT may be raised when interrupt_raised was checked (and
+           not when interrupt_raised was raised). Note that E_INTERRUPT may
+           also be raised synchronously, e.g. when a system limit was hit.
+
+           The range was recorded in the SI top when ^C was hit, which may
+           be another executable (e.g. the macro of LO⍣RO, whose error is
+           reported for the calling statement): then it is not a range of
+           this body (Bugs34 #37).
          */
-        // the range was recorded in the SI top when ^C was hit, which may
-        // be another executable (e.g. the macro of LO⍣RO, whose error is
-        // reported for the calling statement): then it is not a range of
-        // this body (Assert() in get_statement_start(), Bugs34 #37)
-        //
-        range_reason = "INTERRUPT: the PC of this executable";
-        if (InterruptContext::get_interrupt_range().low != Function_PC_invalid &&
+        const bool attention = error.get_error_code() == E_ATTENTION;
+        const Function_PC2 & cc_range =
+                     attention ? InterruptContext::get_attention_range()
+                               : InterruptContext::get_interrupt_range();
+        const Prefix_PC cc_stat =
+                     attention ? InterruptContext::get_attention_stat_PC()
+                               : InterruptContext::get_interrupt_stat_PC();
+        if (cc_stat != Prefix_PC_invalid &&
             InterruptContext::get_range_executable() == this)
            {
-             body_from_to = InterruptContext::get_interrupt_range();
-             range_reason = "INTERRUPT: the range when ^C was hit";
+             pcs = cc_range;
+             stat_PC = cc_stat;
            }
         else
            {
-             // the PC of this executable (which need not be the SI top,
-             // see above)
+             // the statement of this executable (which need not be the SI
+             // top, see above)
              const StateIndicator * si = Workspace::SI_top();
              while (si->get_parent() && si->get_executable() != this)
                    si = si->get_parent();
              const Prefix & prefix = si->get_prefix();
-             Function_PC pc(prefix.get_PC() - 1);
-             if (pc >= Function_PC(body.size()))   pc = Function_PC_0;
-             body_from_to.low  = pc;
-             body_from_to.high = pc;
+             stat_PC = prefix.get_statement_PC();
+             if (stat_PC < Prefix_PC_0 || stat_PC >= body.end_PC())
+                stat_PC = Prefix_PC_0;
+             pcs.low = pcs.high = body.size() ? body[stat_PC].get_PC()
+                                              : Function_PC_invalid;
            }
       }
 
    Log(LOG_prefix__location_info)
       {
         Q1(body.size())
-        Q1(body_from_to.low)
-        Q1(body_from_to.high)
-        if (body.size())   Q1(body[0])
+        Q1(stat_PC)
+        Q1(pcs.low)
+        Q1(pcs.high)
       }
 
-   // body_from_to.low/high must not be -1 ("unset") here: body[] is
-   // indexed and get_statement_end() is called with them below, both
-   // unchecked and would underflow on -1, e.g. when an error is raised
-   // with an empty prefix FIFO. This used to silently clamp -1 to a
-   // default instead of asserting (stale comment fixed, Blake McBride,
-   // Bugs16 minor: this only runs while an error is already being
-   // reported, so an assertion failure here is louder than the silent
-   // clamp was, not a new failure mode).
+   if (body.size() == 0)   return;
+
+   // find the failed statement in body. A RETURN token belongs to the
+   // statement before it.
    //
-   Assert(body_from_to.low  != -1);
-   Assert(body_from_to.high != -1);
+   if (stat_PC < Prefix_PC_0)      stat_PC = Prefix_PC_0;
+   if (stat_PC >= body.end_PC())   stat_PC = body.end_PC() - 1;
 
-   // decrement body_from_to.high if it points to the end of
-   // the function.
+   if (stat_PC > Prefix_PC_0                  &&
+       body[stat_PC].get_Class() == TC_RETURN &&
+       body[stat_PC].get_tag() != TOK_RETURN_EXEC)
+      stat_PC = stat_PC - 1;
+
+const Prefix_PC start = get_statement_start(stat_PC);
+const Prefix_PC end   = get_statement_end(stat_PC);
+const Function_PC end_pc = body[end].get_PC();   // the PC of ◊ or EOL
+
+   // the tokens of the failed statement (reversed, without its END)
    //
-   if (body[body_from_to.high].get_Class() == TC_RETURN &&
-       body_from_to.high > body_from_to.low)   --body_from_to.high;
+   if (start == end)   return;   // empty statement
+const Token_string stat_after(body, size_t(start), end - start);
 
-   // the same for the end of a statement (e.g. a range from
-   // Error::update_error_info() that marks the whole statement): the END
-   // token has no counterpart in the unoptimized statement, so the
-   // mapping below left the range unmapped there and the left caret
-   // landed on an arbitrary token (found with ]EXPLAIN CHECK)
-   //
-   if (body[body_from_to.high].get_Class() == TC_END &&
-       body_from_to.high > body_from_to.low)
-      {
-        --body_from_to.high;
-        range_reason = "the whole statement (without its end token)";
-      }
-
-   ErrorTrail::note_range(this, range_in, range_reason, body_from_to);
-
-Function_PC start = get_statement_start(body_from_to.low);
-Function_PC end = get_statement_end(body_from_to.high);
-
-   Assert(start   <= body_from_to.low);
-   Assert(body_from_to.low  <= body_from_to.high);
-   Assert(body_from_to.high <= end);
-
-   Log(LOG_prefix__location_info)
-      {
-        Q1(start)
-        Q1(body_from_to.low)
-        Q1(body_from_to.high)
-        Q1(end)
-      }
-
-   // extract the token of the failed statement and adjust the PCs so that
-   // they refer to the failed statement (as opposed to body).
-   //
-const Token_string stat_after(body, start, end - start);
-
-const Function_PC2 after_from_to(body_from_to.low  - start,
-                                 body_from_to.high - start );
-
-   // undo any optimizations that were performed with the failed line
+   // display the statement as written in the original text (i.e. parse its
+   // line again, without optimizations). Fall back to the (possibly
+   // optimized) statement in body only if that fails.
    //
 Token_string stat_before;
-   reparse(stat_before, body_from_to.low);
-Function_PC2 before_from_to = after_from_to;
+const bool reparsed = reparse(stat_before, stat_PC, stat_after, end_pc);
+const Token_string & failed_statement = reparsed ? stat_before : stat_after;
 
-   // transform the range 'after_from'_to in the (possibly optimized) body back
-   // to the range 'before_from'_in the body before optimization.
+   // map the PCs to the tokens of failed_statement (whose index 0 is the
+   // rightmost token). The END token of the statement (PC end_pc) is not
+   // in failed_statement: if it is the leftmost item (i.e. the statement
+   // was read entirely) then the leftmost token is meant, and if it is
+   // the only item then the error belongs to the statement as such and
+   // we mark its leftmost token.
    //
-bool optimized = false;
-
-   /*
-    compute the vector 'before_ranges', whose items correspond to
-    stat_before, so that if stat_after[j] is the optimization of
-    (before_ranges = J)/stat_before.
-
-      That is, for example:
-
-       stat_after is:  [ a0  a1     a2     a3 ... ] and
-                         │   │      │      │
-                         │   │   ┌──┼──┐   │
-                         │   │   │  │  │   │
-       stat_before is: [ b0  b1  b2 b2 b2  b3 ... ]  and then:
-                         ^       ^
-
-       before_ranges should be:  0 1 2 2 2 3
-   */
-vector<int>ranges_before;   ranges_before.reserve(stat_before.size());
-
-   for (Function_PC PC_before = Function_PC_0, PC_after  = Function_PC_0;
-        int(ranges_before.size()) < stat_before.ssize();
-          ++PC_before, ++PC_after) 
+Function_PC left_pc  = pcs.high;
+Function_PC right_pc = pcs.low;
+   if (whole_statement)   // from the leftmost to the rightmost item
       {
-        if (PC_after < stat_after.ssize() &&
-             stat_after[PC_after].get_tag() == TOK_APL_VALUE4)
-           {
-             // optimized value. Only set in
-             // Parser::optimize_short_primitives() to replace A⍴B
-             // (dyadic, 3 tokens) or ⊂B (monadic, 2 tokens) with small
-             // results. The folds repeat, so that e.g. ⊂⊂B or A⍴⊂B are
-             // one value. In stat_before (reversed): B F [A] F [A] ...
-             // Counting 3 tokens for every fold misplaced the carets
-             // left of it (found with ]EXPLAIN CHECK).
-             //
-             ranges_before.push_back(PC_after);   // B
-             while (ranges_before.size() < stat_before.size())
-                {
-                  const size_t pos_F = ranges_before.size();
-                  const Token & tok_F = stat_before[pos_F];
-                  if (tok_F.get_Class() != TC_FUN12)   break;
-                  const Function * fun = tok_F.get_function();
-                  const bool rho  = fun == &Bif_F12_RHO::fun;
-                  const bool encl = fun == &Bif_F12_PARTITION::fun;
-                  if (!(rho || encl))   break;
+        left_pc  = stat_after[stat_after.size() - 1].get_PC();
+        right_pc = stat_after[0].get_PC();
+      }
+   if (left_pc == Function_PC_invalid)    left_pc = right_pc;
+   if (right_pc == Function_PC_invalid)   right_pc = left_pc;
 
-                  // of k equal functions F here (e.g. the ⊂s of X⊂⊂⊂B),
-                  // those that are still in the body after the folded
-                  // value were not folded
-                  //
-                  size_t run = 1;
-                  if (encl)
-                     while (pos_F + run < stat_before.size() &&
-                            stat_before[pos_F + run].get_Class() == TC_FUN12 &&
-                            stat_before[pos_F + run].get_function() == fun)
-                           ++run;
-                  size_t kept = 0;
-                  while (size_t(PC_after) + 1 + kept < stat_after.size() &&
-                         kept < run &&
-                         stat_after[size_t(PC_after) + 1 + kept].get_Class()
-                                                        == TC_FUN12 &&
-                         stat_after[size_t(PC_after) + 1 + kept].get_function() == fun)
-                        ++kept;
-                  if (kept >= run)   break;   // F was not folded
-
-                  loop(r, run - kept)
-                     {
-                       ranges_before.push_back(PC_after);   // ⍴ or ⊂
-                       if (rho && ranges_before.size() < stat_before.size())
-                          ranges_before.push_back(PC_after);   // A
-                     }
-                  if (kept)   break;   // the remaining Fs were not folded
-                }
-             optimized = true;
-           }
-        else if (PC_after < stat_after.ssize() &&
-                 (stat_after[PC_after].get_tag() == TOK_FAXIS ||
-                  stat_after[PC_after].get_tag() == TOK_AXIS  ||
-                  stat_after[PC_after].get_tag() == TOK_INDEX) &&
-                 (stat_before[ranges_before.size()].get_tag() == TOK_L_BRACK ||
-                  stat_before[ranges_before.size()].get_tag() == TOK_R_BRACK))
+const Function_PC leftmost = Function_PC(failed_statement.size() - 1);
+Function_PC2 range(Function_PC_0, leftmost);
+   if (left_pc != Function_PC_invalid)
+      {
+        range.high = left_pc >= end_pc ? leftmost
+                                       : token_at(failed_statement, left_pc);
+        range.low  = right_pc >= end_pc && left_pc >= end_pc
+                   ? leftmost : token_at(failed_statement, right_pc);
+        if (fun_of_result)
            {
-             // a literal axis or index: Parser::optimize_literal_axes()
-             // replaced [ N ] (or [ ]) by a single token in the optimized
-             // body only. Without this, every token right of it was
-             // mapped 2 positions off (misplaced carets, Bugs34 #32).
-             // NOTE: the position in stat_before is ranges_before.size()
-             // (PC_before lags behind after an A⍴B above).
-             //
-             const TokenTag other =
-                   stat_before[ranges_before.size()].get_tag() == TOK_L_BRACK
-                 ? TOK_R_BRACK : TOK_L_BRACK;
-             ranges_before.push_back(PC_after);   // [ or ]
-             while (int(ranges_before.size()) < stat_before.ssize())
-                {
-                  const TokenTag tag = stat_before[ranges_before.size()].get_tag();
-                  ranges_before.push_back(PC_after);
-                  if (tag == other)   break;
-                }
+             // the missing result of a function: mark the function
+             range.low = range.high = function_at(failed_statement,
+                                                  range.high);
            }
-        else
-           {
-             ranges_before.push_back(PC_after);   // (A⍴B)
-           }
+        if (range.low > range.high)   range.low = range.high;
       }
 
-   rev_loop(PC_before, ranges_before.size())
-      {
-        const Function_PC after = Function_PC(ranges_before[PC_before]);
-        if (after == after_from_to.low)
-           before_from_to.low  = Function_PC(PC_before);
-        if (after == after_from_to.high)
-           before_from_to.high = Function_PC(PC_before);
-
-        // skip subsequent items within the same range
-        while (PC_before > 0 &&
-           ranges_before[PC_before - 1] == after)   --PC_before;
-      }
-
-   ErrorTrail::note_mapping(this, start, end, stat_after, stat_before,
-                            ranges_before, after_from_to, before_from_to,
-                            optimized);
-
-   // if the failed statenment was optimized then we want to display the
-   // statement BEFORE the optimization.
-   //
-   if (optimized)
-      set_error_info(error, stat_before, before_from_to);
-   else
-      set_error_info(error, stat_after, after_from_to);
+   set_error_info(error, failed_statement, range);
 }
 //────────────────────────────────────────────────────────────────────────────
 void
@@ -803,10 +502,7 @@ Executable::set_error_info(Error & error,
 {
    if (error.get_error_code() == E_SYNTAX_ERROR)
       {
-        const Function_PC2 range_in = range;   // for ]EXPLAIN
         Prefix::adjust_right_caret(range, failed_statement);
-        if (range.low != range_in.low || range.high != range_in.high)
-           ErrorTrail::note_narrowed(range_in, range);
         error.add_MORE_indicator(Workspace::more_error().size());
       }
 
@@ -883,10 +579,6 @@ const int wanted_left = error.get_left_caret() + len_left;
    //
 const int wanted_right = error.get_left_caret() + len_between;
    error.set_right_caret(wanted_right > nchars ? nchars : wanted_right);
-
-   ErrorTrail::note_line2(failed_statement, range,
-                          wanted_left - len_left, len_left, len_between,
-                          wanted_left, wanted_right, nchars, message_2);
 }
 //────────────────────────────────────────────────────────────────────────────
 int
@@ -911,16 +603,16 @@ int count = 0;
 }
 //────────────────────────────────────────────────────────────────────────────
 UCS_string
-Executable::statement_text(Function_PC pc) const
+Executable::statement_text(Prefix_PC pc) const
 {
-   if (pc >= Function_PC(body.size()))
+   if (pc >= body.end_PC())
       {
-        Assert(pc == Function_PC(body.size()));
-        pc = Function_PC(body.size() - 1);
+        Assert(pc == body.end_PC());
+        pc = body.end_PC() - 1;
       }
 
-   if (pc > 0 && body[pc].get_Class() == TC_RETURN)   pc = Function_PC(pc - 1);
-   if (pc > 0 && body[pc].get_Class() == TC_END)      pc = Function_PC(pc - 1);
+   if (pc > Prefix_PC_0 && body[pc].get_Class() == TC_RETURN)   --pc;
+   if (pc > Prefix_PC_0 && body[pc].get_Class() == TC_END)      --pc;
 
 const Function_Line line = get_line(pc);
 const UCS_string & line_txt = get_body_text(line);
@@ -928,7 +620,7 @@ const UCS_string & line_txt = get_body_text(line);
    // count statement ends before pc
    //
 int stats_before = 0;
-   for (Function_PC p = line_start(line); p < pc; ++p)
+   for (Prefix_PC p = line_start(line); p < pc; ++p)
        {
          // a TOK_STOP_LINE is immediately followd by a TC_END, but the
          // TC_END has no ◊ in line_txt. We therefore discount stats_before.
@@ -1026,16 +718,63 @@ Executable::clear_body()
                   if (ufun && ufun->is_lambda())
                      const_cast<UserFunction *>(ufun)->decrement_refcount(LOC);
                 }
-             new (&body[b]) Token();
+             body[b].clear(LOC);
            }
       }
 
    body.clear();
 }
 //────────────────────────────────────────────────────────────────────────────
+int
+Executable::check_PCs(const char * loc) const
+{
+int errors = 0;
+Function_PC end_PC = Function_PC_invalid;   // the PC of the statement END
+Function_PC prev = Function_PC_invalid;     // the PC of the token left of b
+
+   // the body is a sequence of reversed statements, i.e. right-to-left,
+   // each followed by a TC_END token (or TC_RETURN at the end of the body).
+   // Since the END token comes last, we scan the body backwards, i.e. from
+   // the END of a statement and then from its leftmost token to its
+   // rightmost token. The PCs must therefore not decrease.
+   //
+   for (ShapeItem b = body.ssize() - 1; b >= 0; --b)
+       {
+         const Token_loc & tl = body[b];
+         const Function_PC pc = tl.get_PC();
+         const TokenClass tc = tl.get_Class();
+         const char * problem = 0;
+         if (pc < 0)                                  problem = "invalid PC";
+         else if (tc == TC_END || tc == TC_RETURN)
+            {
+              end_PC = pc;   // the end of a (reversed) statement
+              prev = Function_PC_invalid;
+            }
+         else if (end_PC != Function_PC_invalid && pc > end_PC)
+              problem = "PC beyond the end of the statement";
+         else if (prev != Function_PC_invalid && pc < prev)
+              problem = "PC smaller than the PC of the token left of it";
+
+         if (tc != TC_END && tc != TC_RETURN && pc >= 0)   prev = pc;
+         if (problem == 0)   continue;
+
+         if (errors++ == 0)
+            CERR << "*** check_PCs() of " << get_name() << " ("
+                 << loc << "):" << endl;
+         CERR << "    body[" << b << "] " << tl.get_token() << " pc="
+              << pc << ": " << problem << endl;
+       }
+
+   return errors;
+}
+//────────────────────────────────────────────────────────────────────────────
 bool
 Executable::compute_if_else_targets()
 {
+#if cfg_ASSERT_LEVEL_WANTED >= 2
+   Assert1(check_PCs(LOC) == 0);
+#endif
+
    /*
       This function recursively matches corresponding TOK_IF_XXX tokens and
       sets their int values to the pc of their companion. In a single sided
@@ -1061,7 +800,8 @@ Executable::compute_if_else_targets()
 
 const char * cause = "";
 Function_Line cause_line = Function_Line_0;
-Function_PC2 cause_PC(Function_PC_invalid, Function_PC_invalid);
+Function_PC cause_low  = Function_PC_invalid;
+Function_PC cause_high = Function_PC_invalid;
 
 vector<conditional> conditionals;
 
@@ -1080,7 +820,7 @@ vector<conditional> conditionals;
                    }
                    Log(LOG_IfElse)
                       {
-                        if (pc && body[pc-1].get_Class() == TC_END)
+                        if (pc > Function_PC_0 && body[pc-1].get_Class() == TC_END)
                            {
                              CERR << "\n*** WARNING: TC_END before TOK_IF_THEN"
                                   << endl;
@@ -1097,24 +837,24 @@ vector<conditional> conditionals;
                    if (conditionals.size() == 0)
                       {
                         cause = "←→ without →→ (aka. ELSE without IF)";
-                        cause_line = get_line(pc);
-                        cause_PC.low = pc;
+                        cause_line = get_line(Prefix_PC(pc));
+                        cause_low = pc;
                         goto error;
                       }
 
-                   if (conditionals.back().if_ELSE >= 0)
+                   if (conditionals.back().if_ELSE >= Function_PC_0)
                       {
                         cause = "duplicate ←→ (aka. duplicate ELSE)";
-                        cause_line = get_line(pc);
-                        cause_PC.low = conditionals.back().if_ELSE;
-                        cause_PC.high = pc;
+                        cause_line = get_line(Prefix_PC(pc));
+                        cause_low = conditionals.back().if_ELSE;
+                        cause_high = pc;
                         goto error;
                       }
 
                    conditionals.back().if_ELSE = pc;
                    Log(LOG_IfElse)
                       {
-                         if ( pc && body[pc-1].get_Class() == TC_END)
+                         if (pc > Function_PC_0 && body[pc-1].get_Class() == TC_END)
                             {
                               CERR << "\n*** WARNING: TC_END before TOK_IF_ELSE"
                                    << endl;
@@ -1131,8 +871,8 @@ vector<conditional> conditionals;
                    if (conditionals.size() == 0)
                       {
                         cause = "←← without →→ (aka. ENDIF without IF)";
-                        cause_line = get_line(pc);
-                        cause_PC.low = pc;
+                        cause_line = get_line(Prefix_PC(pc));
+                        cause_low = pc;
                         goto error;
                       }
           
@@ -1149,23 +889,23 @@ vector<conditional> conditionals;
                      if (cond.if_ELSE == (cond.if_THEN + 1))   // empty THEN
                         {
                           cause = "empty →→ ... ←→ (aka. empty THEN)";
-                          cause_line = get_line(pc);
-                          cause_PC.low = pc - 1;
-                          cause_PC.high = pc;
+                          cause_line = get_line(Prefix_PC(pc));
+                          cause_low = pc - 1;
+                          cause_high = pc;
                           goto error;
                         }
           
                      if (pc == (cond.if_ELSE + 1))   // empty ELSE
                         {
                           cause = "empty ←→ ... ←← (aka. empty ELSE)";
-                          cause_line = get_line(pc);
-                          cause_PC.low = pc - 1;
-                          cause_PC.low = pc - 1;
-                          cause_PC.high = pc;
+                          cause_line = get_line(Prefix_PC(pc));
+                          cause_low = pc - 1;
+                          cause_low = pc - 1;
+                          cause_high = pc;
                           goto error;
                         }
           
-                     if (cond.if_ELSE < 0)   // simple if ... endif
+                     if (cond.if_ELSE < Function_PC_0)   // simple if ... endif
                         {
                           body[cond.if_THEN].set_int_val(pc + 1);
                         }
@@ -1185,7 +925,7 @@ vector<conditional> conditionals;
 
                    Log(LOG_IfElse)
                       {
-                         if (pc && body[pc-1].get_Class() == TC_END)
+                         if (pc > Function_PC_0 && body[pc-1].get_Class() == TC_END)
                             {
                               CERR << "\n*** WARNING: TC_END before TOK_IF_END"
                                    << endl;
@@ -1204,8 +944,8 @@ vector<conditional> conditionals;
    if (conditionals.size())
       {
         cause = "→→ without ←← (aka. IF without ENDIF)";
-        cause_line = get_line(conditionals.back().if_THEN);
-        cause_PC.low = conditionals.back().if_THEN;
+        cause_line = get_line(Prefix_PC(conditionals.back().if_THEN));
+        cause_low = conditionals.back().if_THEN;
         goto error;
       }
 
@@ -1219,8 +959,8 @@ vector<conditional> conditionals;
 error:
    MORE_ERROR() << cause;
    CERR <<  cause << ". First observed on line [" << cause_line << "]";
-   if (cause_PC.low  != Function_PC_invalid)   CERR << ", PC=" << cause_PC.low;
-   if (cause_PC.high != Function_PC_invalid)   CERR << "-" << cause_PC.high;
+   if (cause_low  != Function_PC_invalid)   CERR << ", PC=" << cause_low;
+   if (cause_high != Function_PC_invalid)   CERR << "-" << cause_high;
 
    CERR << "." << endl;
 
@@ -1301,7 +1041,7 @@ Executable::conditional::print(ostream & out, int level,
 int endif_PC;
    out << "COND[" << level << "] IF ... THEN@PC=" << if_THEN;
    Assert1(body[if_THEN].get_tag() == TOK_IF_THEN);
-   if (if_ELSE < 0)   // single sided if/endif
+   if (if_ELSE < Function_PC_0)   // single sided if/endif
       {
         endif_PC = body[if_THEN].get_int_val() - 1;
       }
@@ -1465,8 +1205,15 @@ Error error(E_DEFN_ERROR, LOC);
 //────────────────────────────────────────────────────────────────────────────
 Fun_signature
 Executable::compute_lambda_body(Token_string & lambda_body,
-                                ShapeItem b, ShapeItem bend)
+                                ShapeItem b, ShapeItem bend,
+                                Function_PC pc_L, Function_PC pc_R)
 {
+   /* The PCs of the lambda body refer to the tokens of the lambda text
+      (see extract_lambda_text()), which is the text between { and } with
+      λ← inserted before the last statement. A token with PC p in this
+      body gets PC p - pc_L - 1 in the lambda body, plus 2 if it is
+      located after the inserted λ←.
+    */
 int signature = SIG_FUN;
 int level = 0;
 
@@ -1493,7 +1240,7 @@ ShapeItem insertion_point = b;
 
    for (; b < bend; ++b)
        {
-         Token t;
+         Token_loc t;
          t.move_from(body[b], LOC);
          body[b].clear(LOC);   // invalidate in main body
 
@@ -1549,19 +1296,28 @@ ShapeItem insertion_point = b;
             }
          at_stmt_start = (t.get_tag() == TOK_END);
 
+         const Function_PC pc_t = Function_PC(t.get_PC() - pc_L - 1);
          if (b == insertion_point)
             {
               // insert  λ ← tokens
               //
               Symbol * sym_Z = &Workspace::get_v_LAMBDA();
-              lambda_body.push_back(Token(TOK_LAMBDA, sym_Z));
-              lambda_body.push_back(Token(TOK_ASSIGN1));
+              lambda_body.emplace_back(Token(TOK_LAMBDA, sym_Z), pc_t);
+              lambda_body.emplace_back(Token(TOK_ASSIGN1),
+                                       Function_PC(pc_t + 1));
 
               signature |= SIG_Z;
             }
 
-         lambda_body.push_back(t);
+         lambda_body.emplace_back(t.get_token(),
+                                  Function_PC(signature & SIG_Z ? pc_t + 2
+                                                                : pc_t));
        }
+
+   // the end of the lambda text (the PC of the closing } in lambda text)
+   //
+const Function_PC pc_end = Function_PC(pc_R - pc_L - 1 +
+                                       (signature & SIG_Z ? 2 : 0));
 
    if ((signature & SIG_B) == 0 &&   // niladic
        (signature & (SIG_A | SIG_LO | SIG_RO | SIG_X)))
@@ -1583,15 +1339,15 @@ ShapeItem insertion_point = b;
    if (signature & SIG_Z)   // result
       {
         const int64_t trace = 0;
-        lambda_body.push_back(Token(TOK_ENDL, trace));
+        lambda_body.emplace_back(Token(TOK_ENDL, trace), pc_end);
 
         Token ret_lambda(TOK_RETURN_SYMBOL, &Workspace::get_v_LAMBDA());
-        lambda_body.push_back(ret_lambda);
+        lambda_body.emplace_back(ret_lambda, pc_end);
       }
    else
       {
         Token ret_void(TOK_RETURN_VOID);
-        lambda_body.push_back(ret_void);
+        lambda_body.emplace_back(ret_void, pc_end);
       }
 
    return Fun_signature(signature);
@@ -1599,14 +1355,16 @@ ShapeItem insertion_point = b;
 //────────────────────────────────────────────────────────────────────────────
 ErrorCode
 Executable::parse_body_line(Function_Line line, const UCS_string & ucs_line,
-                            bool trace, const char * loc, bool macro)
+                            bool trace, const char * loc, bool macro,
+                            Function_PC * line_end_PC)
 {
    Log(LOG_UserFunction__set_line)
       CERR << "[" << line << "]" << ucs_line << endl;
 
 Token_string in;
 const Parser parser(get_parse_mode(), loc, macro);
-   if (const ErrorCode ec = parser.parse(ucs_line, in, true))
+Function_PC end_PC = Function_PC_0;
+   if (const ErrorCode ec = parser.parse(ucs_line, in, true, &end_PC))
       {
         if (ec == E_NO_TOKEN)
            {
@@ -1617,12 +1375,13 @@ const Parser parser(get_parse_mode(), loc, macro);
         if (ec != E_NO_ERROR)   Error::throw_parse_error(ec, LOC, LOC);
       }
 
-   return parse_body_line(line, in, trace, loc);
+   if (line_end_PC)   *line_end_PC = end_PC;
+   return parse_body_line(line, in, end_PC, trace, loc);
 } 
 //────────────────────────────────────────────────────────────────────────────
 ErrorCode
 Executable::parse_body_line(Function_Line line, const Token_string & input,
-                            bool trace, const char * loc)
+                            Function_PC end_PC, bool trace, const char * loc)
 {
 ShapeItem idx = 0;
 const ShapeItem end = input.size();
@@ -1742,15 +1501,19 @@ Token_string output;   // in reverse order
             }
         Assert(stat_len + diamond_len);
 
-        // 3. maybe add a TC_END token
+        // 3. maybe add a TC_END token. It gets the PC of the ◊ or COND
+        //    token that ends the statement, or else the PC of the end of
+        //    the line.
         //
+        const Function_PC pc_end = diamond_len ? input[idx + stat_len].get_PC()
+                                               : end_PC;
         if (stat_len == 0)   // empty statement
            {
              if (tag_end != TOK_END)
                 {
                   if (output.size() && output.back().get_tag() == TOK_END)
                          output.pop_back();
-                   output.push_back(Token(tag_end, tr));
+                   output.emplace_back(Token(tag_end, tr), pc_end);
                 }
               ++idx;
            }
@@ -1760,11 +1523,11 @@ Token_string output;   // in reverse order
                 {
                   if (output.size() && output.back().get_tag() == TOK_END)
                          output.pop_back();
-                  output.push_back(Token(tag_end, tr));
+                  output.emplace_back(Token(tag_end, tr), pc_end);
                 }
              else if (diamond_len || get_parse_mode() != PM_EXECUTE)
                 {
-                  output.push_back(Token(tag_end, tr));
+                  output.emplace_back(Token(tag_end, tr), pc_end);
                 }
 
              idx += stat_len + diamond_len;   // skip statement and (if any) ◊
@@ -1858,11 +1621,14 @@ Executable::setup_one_lambda(ShapeItem b, ShapeItem bend,
    Assert(body[b].get_tag()    == TOK_L_CURLY);
    Assert(body[bend].get_tag() == TOK_R_CURLY);
 
+const Function_PC pc_L = body[b].get_PC();      // the PC of {
+const Function_PC pc_R = body[bend].get_PC();   // the PC of }
    body[b++].clear(LOC);    // invalidate the leading  {
    body[bend].clear(LOC);   // invalidate the trailing }
 
 Token_string lambda_body;
-const Fun_signature signature = compute_lambda_body(lambda_body, b, bend);
+const Fun_signature signature = compute_lambda_body(lambda_body, b, bend,
+                                                    pc_L, pc_R);
 
    /* strip off the trailing local variables.
 
@@ -1885,8 +1651,15 @@ vector<Symbol *> local_vars;   // collector for local variables
         if (lambda_body[semi]  .get_tag() != TOK_SEMICOL)   break;   // no
         if (lambda_body[semi+1].get_Class() != TC_SYMBOL)   break;   // no
         local_vars.push_back(lambda_body[semi + 1].get_sym_ptr());
-        lambda_body[semi]     = lambda_body[semi + 2];
-        lambda_body[semi + 1] = lambda_body[semi + 3];
+
+        // the local variables are moved from the lambda text to the
+        // header, so that ENDL and RETURN get the PC of the ;
+        //
+        const Function_PC pc_semi = lambda_body[semi].get_PC();
+        const Token_loc endl(lambda_body[semi + 2].get_token(), pc_semi);
+        const Token_loc ret(lambda_body[semi + 3].get_token(), pc_semi);
+        lambda_body[semi]    .copy(endl, LOC);
+        lambda_body[semi + 1].copy(ret, LOC);
         lambda_body.resize(semi + 2);   // leave ENDL and RETURN_SYMBOL
       }
 
@@ -1907,7 +1680,7 @@ UserFunction * ufun = new UserFunction(signature, lambda_num,
    // A←UFUN      UFUN being a user-defined function with body { ... }
    //
 Token tok_ufun = ufun->get_token();
-   body[bend].move_from(tok_ufun, LOC);
+   body[bend].copy(Token_loc(tok_ufun, pc_L), LOC);   // the PC of {
 
    return bend;
 }
@@ -1920,8 +1693,8 @@ Executable::reverse_all_tokens(Token_string & tos)
    // help (Blake McBride, Bugs17 #6, related finding).
    if (tos.size() == 0)   return;
 
-   for (Token * t1 = &tos[0], * t2 = &tos[tos.size() - 1]; t1 < t2;)
-       t1++->swap_token(*t2--);
+   for (Token_loc * t1 = &tos[0], * t2 = &tos[tos.size() - 1]; t1 < t2;)
+       t1++->swap(*t2--);
 }
 //────────────────────────────────────────────────────────────────────────────
 void
@@ -1981,9 +1754,11 @@ ExecuteList * fun = new ExecuteList(data, loc);
            }
       }
 
+Function_PC end_PC = Function_PC_0;   // the PC of the end of data
    try
       {
-        fun->parse_body_line(Function_Line_0, data, false, loc, false);
+        fun->parse_body_line(Function_Line_0, data, false, loc, false,
+                             &end_PC);
       }
    catch (const Error & err)
       {
@@ -2002,7 +1777,7 @@ ExecuteList * fun = new ExecuteList(data, loc);
 
    // for ⍎ we do not append TOK_END, but only TOK_RETURN_EXEC.
    //
-   fun->body.push_back(Token(TOK_RETURN_EXEC));
+   fun->body.emplace_back(Token(TOK_RETURN_EXEC), end_PC);
    if (fun->compute_if_else_targets())
       {
         delete fun;
@@ -2027,9 +1802,11 @@ StatementList * fun = new StatementList(data, loc);
 
    if (Error * err = Workspace::get_error())   err->set_parser_loc(0);
 
+Function_PC end_PC = Function_PC_0;   // the PC of the end of data
    try
       {
-        fun->parse_body_line(Function_Line_0, data, false, loc, false);
+        fun->parse_body_line(Function_Line_0, data, false, loc, false,
+                             &end_PC);
         fun->setup_lambdas();
       }
    catch (Error & e)
@@ -2082,7 +1859,8 @@ StatementList * fun = new StatementList(data, loc);
               if (fun->body[b].get_tag() == TOK_MARKER)
                  {
                    found_marker = true;
-                   new (&fun->body[b])   Token(TOK_APL_VALUE1, literal);
+                   fun->body[b].copy(Token_loc(Token(TOK_APL_VALUE1, literal),
+                                                fun->body[b].get_PC()), LOC);
                    break;
                  }
             }
@@ -2091,7 +1869,7 @@ StatementList * fun = new StatementList(data, loc);
 
    // for ◊ we do not append TOK_END, but only TOK_RETURN_STATS.
    //
-   fun->body.push_back(Token(TOK_RETURN_STATS));
+   fun->body.emplace_back(Token(TOK_RETURN_STATS), end_PC);
    if (fun->compute_if_else_targets())
       {
         delete fun;

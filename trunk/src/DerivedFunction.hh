@@ -72,7 +72,7 @@ public:
    ///        if F_or_M_or_D is not a dyadic operator
    /// @param X axis value, or an empty Value_P if no axis is bound
    /// @param loc caller location for diagnostics
-   DerivedFunction(Token * LO, cFunction_P F_or_M_or_D, Token * RO, Value_P X,
+   DerivedFunction(const Token * LO, cFunction_P F_or_M_or_D, const Token * RO, Value_P X,
                    const char * loc);
 
    /// return the axis argument (or 0 if none) of this derived function
@@ -289,7 +289,7 @@ public:
    /// @param RO token for the right operand (or 0 if absent)
    /// @param X optional axis value (empty Value_P if absent)
    /// @param loc caller location for diagnostics
-   DerivedFunction * get(Token * LO, cFunction_P F_or_M_or_D, Token * RO,
+   DerivedFunction * get(const Token * LO, cFunction_P F_or_M_or_D, const Token * RO,
                         Value_P X, const char * loc)
       {
         cache.emplace_back(LO, F_or_M_or_D, RO, X, loc);
@@ -318,8 +318,8 @@ public:
    /// @param RO token for the right operand (or 0 if absent)
    /// @param X optional axis value (empty Value_P if absent)
    /// @param loc caller location for diagnostics
-   static void construct_at(DerivedFunction * slot, Token * LO,
-                            cFunction_P F_or_M_or_D, Token * RO, Value_P X,
+   static void construct_at(DerivedFunction * slot, const Token * LO,
+                            cFunction_P F_or_M_or_D, const Token * RO, Value_P X,
                             const char * loc)
       {
         slot->~DerivedFunction();

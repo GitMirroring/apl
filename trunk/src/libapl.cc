@@ -613,7 +613,9 @@ Token_string tos;
            {
              Symbol * sym = tos[PC].get_sym_ptr();
              if (sym == 0)   return 0;
-             sym->resolve_right(tos[PC], PC);
+             Token resolved(tos[PC].get_token());
+             sym->resolve_right(resolved, tos[PC]);
+             tos[PC].copy(Token_loc(resolved, tos[PC]), LOC);
            }
        }
 

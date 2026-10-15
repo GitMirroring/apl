@@ -144,8 +144,8 @@ DerivedFunction::destroy_derived(const char * loc)
    axis.clear(loc);
 }
 //────────────────────────────────────────────────────────────────────────────
-DerivedFunction::DerivedFunction(Token * LO, cFunction_P F_or_M_or_D,
-                                 Token * RO, Value_P X, const char * loc)
+DerivedFunction::DerivedFunction(const Token * LO, cFunction_P F_or_M_or_D,
+                                 const Token * RO, Value_P X, const char * loc)
    : Function(ID_USER_SYMBOL, TOK_FUN2),
      left_arg(LO ? *LO : Token()),
      oper(F_or_M_or_D),

@@ -173,8 +173,10 @@ public:
    /// @param input APL source text to parse
    /// @param tos output token string receiving parsed tokens
    /// @param optimize true to apply optimisation passes after parsing
+   /// @param end_PC if non-0: set to the PC of the end of \b input, i.e.
+   ///        the number of tokens that the tokenizer has produced
    ErrorCode parse(const UCS_string & input, Token_string & tos,
-                   bool optimize) const;
+                   bool optimize, Function_PC * end_PC = 0) const;
 
    /// Parse \b Token_string \b input into token string \b tos.
    /// @param input token string to re-parse
@@ -255,7 +257,7 @@ protected:
 
    /// Create one scalar APL value from a token.
    /// @param tok token to convert into a scalar APL value
-   static void create_scalar_value(Token & tok);
+   static void create_scalar_value(Token_loc & tok);
 
    /// Create one APL value from \b len values.
    /// @param tos token string modified in place

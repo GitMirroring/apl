@@ -102,7 +102,7 @@ CLEAR WS
       ⍝
       1+(ZZ50F2←{⍵})
 SYNTAX ERROR+
-      1+(ZZ50F2←λ1)
+      1+(ZZ50F2←{⍵})
       ^ ^
 
       )SIC
@@ -138,28 +138,28 @@ ZZ50F3
       ⍝
       ⎕←{⍵}
 SYNTAX ERROR
-      ⎕←λ1
+      ⎕←{⍵}
       ^ ^
 
       )SIC
 
       ⍵←{⍺}
 SYNTAX ERROR
-      ⍵←λ1
+      ⍵←{⍺}
       ^ ^
 
       )SIC
 
       ⍺←{⍵}
 SYNTAX ERROR
-      ⍺←λ1
+      ⍺←{⍵}
       ^ ^
 
       )SIC
 
       χ←{⍵}
 SYNTAX ERROR
-      χ←λ1
+      χ←{⍵}
       ^ ^
 
       )SIC

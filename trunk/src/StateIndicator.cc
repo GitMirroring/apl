@@ -119,9 +119,9 @@ StateIndicator::get_L(UCS_string & function) const
 Function_Line
 StateIndicator::get_line() const
 {
-int pc = get_PC();
-   if (pc)   --pc;
-   return executable->get_line(Function_PC(pc));
+Prefix_PC pc = get_PC();
+   if (pc > Prefix_PC_0)   --pc;
+   return executable->get_line(pc);
 }
 //────────────────────────────────────────────────────────────────────────────
 Unicode
@@ -476,13 +476,13 @@ const UserFunction * ufun = get_executable()->get_exec_ufun();
              Prefix & prefix = caller->get_prefix();
              if (prefix.ssize() && prefix.at0().get_tag() == TOK_SI_PUSHED)
                 {
-                  new (&prefix.tos().get_token()) Token(TOK_VOID);
+                  prefix.replace_SI_PUSHED(Token(TOK_VOID));
                 }
            }
         return;
       }
 
-const Function_PC pc = ufun->pc_for_line(new_line);
+const Prefix_PC pc = ufun->pc_for_line(new_line);
 
    Log(LOG_StateIndicator__push_pop)
       CERR << "Continue SI[" << level << "] at line " << new_line
@@ -616,7 +616,7 @@ StateIndicator::statement_result(const Token & result, bool trace)
         if (ufun && !get_inherited_exec_property(0))
            {
              const Function_Line line =
-                   executable->get_line(Function_PC(get_PC() - 1));
+                   executable->get_line(get_PC() - 1);
              result.show_trace(COUT, ufun->get_name(), line);
            }
       }

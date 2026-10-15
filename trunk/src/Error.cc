@@ -23,7 +23,6 @@
 
 #include "Common.hh"
 #include "Error.hh"
-#include "ErrorTrail.hh"
 #include "Output.hh"
 #include "PrintOperator.hh"
 #include "Symbol.hh"
@@ -277,14 +276,6 @@ const int nchars = truncated ? truncate_utf8_boundary(error_message_2)
 void
 Error::update_error_info(StateIndicator * si)
 {
-   // ]EXPLAIN: an error that occurs while a trail is replayed is not
-   // recorded (and its reparse() must not feed the replay's recorder)
-   //
-   if (ErrorTrail::is_finishing())   return;   // see ErrorTrail::replay()
-
-const ErrorTrail::Suspend suspend;
-   ErrorTrail::begin(*this, si);
-
    /*
       construct lines 2 and 3 of the standard 3-line APL error message.
       Line 1 was already constructed in Error::Error(ErrorCode ec...).
@@ -400,8 +391,6 @@ const ErrorTrail::Suspend suspend;
                set_left_caret(after_prompt > nchars ? nchars : after_prompt);
              }
              ufun->set_locked_error_info(*this);
-             ErrorTrail::note_display(si, display_si, true,
-                                      get_error_line_2());
              goto out;   // maybe print
            }
 
@@ -416,8 +405,6 @@ const ErrorTrail::Suspend suspend;
         set_left_caret(wanted > nchars ? nchars : wanted);
       }
 
-   ErrorTrail::note_display(si, display_si, false, get_error_line_2());
-
    // Function_PC2 positions are only meaningful within the SAME
    // Executable they were read from, so this must use display_si (the
    // same frame the statement text above was built from), not si --
@@ -430,9 +417,16 @@ const ErrorTrail::Suspend suspend;
    //
    if (display_si)
       {
+        // from and to are the (Token_loc-) PCs of the rightmost and the
+        // leftmost item of the range being reduced, i.e. positions in the
+        // tokens of the line (NOT in the body). stat_PC is a position in
+        // the body (inside the failed statement).
+        //
         const Prefix & prefix = display_si->get_prefix();
         Function_PC from = prefix.get_range_low();
         Function_PC to   = prefix.get_range_high();
+        const Prefix_PC stat_PC = prefix.get_statement_PC();
+        bool fun_of_result = false;
 
         // a VALUE ERROR whose failed token is known (a symbol without a
         // value, or a function that returned no value): a single caret
@@ -446,9 +440,7 @@ const ErrorTrail::Suspend suspend;
         if (failed_token)
            {
              from = to = failed_PC;
-             ErrorTrail::note(UCS_string(UTF8_string(
-                  "VALUE ERROR: the range is the failed token (a symbol "
-                  "without a value, or a function without a result)")));
+             fun_of_result = failed_is_result;
            }
         failed_exec = 0;
 
@@ -470,19 +462,13 @@ const ErrorTrail::Suspend suspend;
         // shows the reader the real, complete user expression instead
         // of a single misleading caret at its very start.
         //
-        if (from == to && display_si != si && !failed_token)
-           {
-             const Executable * exec = display_si->get_executable();
-             from = exec->get_statement_start(from);
-             to   = exec->get_statement_end(to);
-             ErrorTrail::note(UCS_string(UTF8_string(
-                  "the error occurred in a macro frame and the caller's "
-                  "range is a single point: the whole statement is "
-                  "marked instead")));
-           }
+        const bool whole_statement = from == to && display_si != si &&
+                                     !failed_token;
 
         const Function_PC2 error_range(from, to);
-        display_si->get_executable()->set_error_info(*this, error_range);
+        display_si->get_executable()->set_error_info(*this, stat_PC,
+                                     error_range, fun_of_result,
+                                     whole_statement);
       }
 
    // print error, unless we are in safe execution mode.
@@ -501,26 +487,17 @@ out:
    // this code is unaffected (the exception is still thrown/caught the
    // same way either way).
    //
-   if (get_error_code() == E_COMMAND_PUSHED)
-      {
-        ErrorTrail::cancel();
-        return;
-      }
+   if (get_error_code() == E_COMMAND_PUSHED)   return;
 
    StateIndicator::get_error(si) = *this;
 
    // )SI entries below a ⎕ES entry must not print anything but simply return
    for (const StateIndicator * si1 = si; si1; si1 = si1->get_parent())
        {
-         if (si1->get_safe_execution_depth())
-            {
-              ErrorTrail::finish(*this, false);
-              return;
-            }
+         if (si1->get_safe_execution_depth())   return;
        }
 
    print_em(UERR, LOC);
-   ErrorTrail::finish(*this, true);
 }
 //────────────────────────────────────────────────────────────────────────────
 const char *
@@ -679,8 +656,6 @@ UCS_string fragment;
    for (int p = start; p < end; ++p)   fragment << line[p];
    error.set_error_line_2(fragment, 0, fragment.size());
 
-   ErrorTrail::note_lexical(error, line, start, end);   // ]EXPLAIN
-
    // Bugs28 #93: see the other throw_parse_error() overload above --
    // store directly, not via the full update_error_info().
    //
@@ -693,6 +668,7 @@ const Error & eref = error;
 //────────────────────────────────────────────────────────────────────────────
 const Executable * Error::failed_exec = 0;
 Function_PC Error::failed_PC = Function_PC_invalid;
+bool Error::failed_is_result = false;
 //────────────────────────────────────────────────────────────────────────────
 void
 Error::throw_symbol_error(const UCS_string & sym_name, const char * loc)

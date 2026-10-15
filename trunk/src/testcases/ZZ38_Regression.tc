@@ -19,7 +19,7 @@ CLEAR WS
       ]FILE_CTL SKIP_APL2   ⍝ lambdas are a GNU APL extension
       ⍎ 1{⍺{⍺{⍺{⍺{⍺ + ⍵}2⍵}2⍵}2⍵}2⍵}2
 DOMAIN ERROR+
-      ⍎1 λ1 2
+      ⍎1{⍺{⍺{⍺{⍺{⍺+⍵}2 ⍵}2 ⍵}2 ⍵}2 ⍵}2
       ^^
 
       ]FILE_CTL NO_SKIP

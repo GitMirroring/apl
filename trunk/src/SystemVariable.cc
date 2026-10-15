@@ -802,7 +802,7 @@ Quad_Quad::Quad_Quad()
 }
 //────────────────────────────────────────────────────────────────────────────
 void
-Quad_Quad::resolve_right(Token & token, Function_PC & PC) const
+Quad_Quad::resolve_right(Token & token, const Token_loc & tl) const
 {
    // write pending LF from  ⍞ (if any)
    Quad_QUOTE::done(true, LOC);

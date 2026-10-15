@@ -75,7 +75,6 @@ class Prefix
    friend class XML_Loading_Archive;   // to )LOAD a parser from an .xml file
    friend class XML_Saving_Archive;    // to )SAVE a parser into an .xml file
    friend class CrashDump;             // to describe a crashed statement
-   friend class ErrorTrail;            // to show the prefix stack (]EXPLAIN)
 
 public:
    /// constructor
@@ -123,20 +122,42 @@ public:
    /// @param value the APL value whose owners are to be listed
    int show_owners(const char * prfx, ostream & out, const Value & value) const;
 
-   /// highest PC in current statement
+   /** The (opaque) PCs of the Token_locs of the current statement. They
+       are only handed over to the error reporting (which interprets them).
+       Prefix itself never looks at them.
+    **/
+   /// the PC of the leftmost item in the current statement
    Function_PC get_range_high() const
-      { return put ? content[put- 1].get_PC() : get_lookahead_PC(); }
+      { return left_loc().get_PC(); }
 
-   /// lowest PC in current statement
+   /// the PC of the rightmost item in the current statement
    Function_PC get_range_low() const
-      { return put ? content[0].get_PC() : get_lookahead_PC(); }
+      { return right_loc().get_PC(); }
 
-   /// return the PC of the function whose result has PC \b pc
-   Function_PC function_at(Function_PC pc) const;
+   /// the leftmost Token_loc on the stack, or else the lookahead token
+   const Token_loc & left_loc() const
+      { return put ? content[put - 1] : lookahead_loc(); }
 
-   /// print the current range (PC from - PC to) on out
-   /// @param out output stream to print to
-   void print_range(ostream & out) const;
+   /// the rightmost Token_loc on the stack, or else the lookahead token
+   const Token_loc & right_loc() const
+      { return put ? content[0] : lookahead_loc(); }
+
+   /// the Token_loc of the lookahead token, or else an invalid Token_loc
+   const Token_loc & lookahead_loc() const;
+
+   /// return the position (in body) of the current statement
+   Prefix_PC get_statement_PC() const
+      { return lookahead_PC >= Prefix_PC_0 ? lookahead_PC : PC; }
+
+   /// return the position (in body) of the latest token read (for )SAVE),
+   /// or Prefix_PC_invalid
+   Prefix_PC get_lookahead_PC() const
+      { return lookahead_PC; }
+
+   /// set the position (in body) of the latest token read (for )LOAD)
+   /// @param pc the position in body
+   void set_lookahead_PC(Prefix_PC pc)
+      { lookahead_PC = pc; }
 
    /// return the left argument of a failed primitive function (if any)
    /// @param function output: name of the function whose left arg is returned
@@ -170,24 +191,16 @@ public:
    const Token & at0() const
       { Assert1(put);   return content[put - 1].get_token(); }
 
-   /// return the leftmost token (in APL order, e.g. A in A←B or in A+B)
-   Token & at0()
-      { Assert1(put);   return content[put - 1].get_token(); }
-
    /// return the second token from the left (e.g. ← in A←B)
    const Token & at1() const
       { Assert1(put >= 2);   return content[put - 2].get_token(); }
 
-   /// return the second token from the left (e.g. ← in A←B)
-   Token & at1()
-      { Assert1(put >= 2);   return content[put - 2].get_token(); }
-
    /// return the third token from the left (e.g. B in A←B)
-   Token & at2()
+   const Token & at2() const
       { Assert1(put >= 3);   return content[put - 3].get_token(); }
 
    /// return the fourth token from the left (e.g. B in A+/B)
-   Token & at3()
+   const Token & at3() const
       { Assert1(put >= 4);   return content[put - 4].get_token(); }
 
    /// return true if the next token binds stronger than the best match
@@ -207,24 +220,12 @@ public:
    void set_assign_state(Assign_state new_state)
       { assign_state = new_state; }
 
-   /* return the highest PC seen in the current statement. This includes the
-      lookahead token, therefore it could be (a little) > get_range_high().
-      More importantly, it can be Function_PC_invalid.
-    */
-   Function_PC get_lookahead_PC() const
-      { return saved_MISC.get_PC(); }
-
-   /// set the PC of the lookahead token
-   /// @param pc program counter value to assign to the lookahead token
-   void set_lookahead_PC(Function_PC pc)
-      { saved_MISC.set_PC(pc); }
-
    /// reset statement to empty state (e.g. after →N)
    /// @param loc caller location for diagnostics
    void reset(const char * loc);
 
    /// return the current PC
-   Function_PC get_PC() const
+   Prefix_PC get_PC() const
       { return PC; }
 
    /// print the current stack to \b out
@@ -242,9 +243,16 @@ public:
    /// @param tok the token whose tag and value are printed
    ostream & print_token_value(ostream & out, const Token & tok);
 
-   /// return the leftmost (top-of-stack) Token_loc (at put position)
-   Token_loc & tos()
-       { Assert1(put);   return content[put - 1]; }
+   /// replace the TOK_SI_PUSHED token at the top of the stack by \b result
+   /// (the result of the called function that has pushed the SI). The result
+   /// gets the PC of the TOK_SI_PUSHED token that it replaces.
+   /// @param result the result of the called function (or TOK_VOID)
+   void replace_SI_PUSHED(const Token & result)
+       {
+         Assert(put && at0().get_tag() == TOK_SI_PUSHED);
+         const Token_loc tl(result, content[put - 1]);
+         content[put - 1].copy(tl, LOC);
+       }
 
    /// store one more token. push(A) in e.g. F B would produce A F B.
    /// IOW, push() works right-to-left of XXX in reduce_XXX().
@@ -261,7 +269,7 @@ public:
    bool push_error(const Token & tok)
       {
         if (tok.get_tag() != TOK_ERROR)   return false;   // no error pushed
-        const Token_loc tl(tok, get_range_low());
+        const Token_loc tl(tok, right_loc());
         push(tl);
         set_action(RA_RETURN);   // return from context;
         return true;             // error pushed
@@ -279,14 +287,15 @@ public:
 
       Before:   A + B    prefix_len=3, put→A,
                 └─PC─┐
-      After:         Z   prefix_len=1, put→Z, PC(Z_ = PC(A)
+      After:         Z   prefix_len=1, put→Z, PC(Z) = PC(A)
     */
    /// @param result token produced by the reduction that replaces the phrase
    void pop_args_push_result(const Token & result)
         {
           Assert1(put >= prefix_len);
           const int ZB = put - prefix_len;             // positions of B and Z
-          content[ZB].get_token().copy(result, LOC);   // replace B with Z
+          const Token_loc Z(result, at(0));   // PC(Z) = PC(A)
+          content[ZB].copy(Z, LOC);                    // replace B with Z
 
           // release any APL value(s) held by the discarded tokens above
           // ZB (e.g. A and F in "A F B") -- put is about to drop below
@@ -301,12 +310,10 @@ public:
           //
           for (int s = ZB + 1; s < put; ++s)
               {
-                Token & discarded = content[s].get_token();
-                if (discarded.get_Class() == TC_VALUE)
-                   discarded.release_apl_val(LOC);
+                if (content[s].get_Class() == TC_VALUE)
+                   content[s].copy(Token_loc(), LOC);   // release the value
               }
 
-          content[ZB].set_PC(at(0).get_PC());          // PC(Z) = PC(A)
           put -= prefix_len - 1;                       // discard A and +
         }
 
@@ -336,10 +343,7 @@ public:
    /// clear the saved_MISC token
    /// @param loc caller location for diagnostics
    void clear_MISC(const char * loc)
-      {
-        saved_MISC.set_PC(Function_PC_invalid);
-        saved_MISC.get_token().clear(loc);
-      }
+      { saved_MISC.copy(Token_loc(Token(TOK_VOID), Function_PC_invalid), loc); }
 
    /// lookahead is a complete index. return \b true if it belongs to a value
    /// (as opposed to a function axis).
@@ -347,7 +351,7 @@ public:
 
    /// jump to new PC
    /// @param new_pc program counter value to jump to
-   void goto_PC(Function_PC new_pc)
+   void goto_PC(Prefix_PC new_pc)
       { reset(LOC);   PC = new_pc; }
 
    /// adjust the right caret after a SYNTAX_ERROR
@@ -366,8 +370,8 @@ protected:
    /// @param RO token for the right operand (or 0 if absent)
    /// @param X optional axis value (empty Value_P if absent)
    /// @param loc caller location for diagnostics
-   DerivedFunction * get_fun_oper_slot(Token * LO, cFunction_P F_or_M_or_D,
-                                       Token * RO, Value_P X,
+   DerivedFunction * get_fun_oper_slot(const Token * LO, cFunction_P F_or_M_or_D,
+                                       const Token * RO, Value_P X,
                                        const char * loc) const;
 
    /// set the prefix parser action
@@ -396,12 +400,23 @@ protected:
 
    /// read and resolve the token class left of )
    /// @param pc program counter of the closing parenthesis token
-   bool is_value_parenthesis(int pc) const;
+   bool is_value_parenthesis(Prefix_PC pc) const;
 
    /// return the idx'th Token_loc (from put position)
    /// @param idx zero-based index from the left (APL order)
    Token_loc & at(int idx)
        { Assert1(idx < put);   return content[put - idx - 1]; }
+
+   /// replace the token at(\b idx) by \b tok. The new Token_loc gets the PC
+   /// of the Token_loc that it replaces.
+   /// @param idx stack position (0 = at0())
+   /// @param tok the new token
+   void replace_at(int idx, const Token & tok)
+       {
+         Token_loc & slot = at(idx);
+         const Token_loc tl(tok, slot);
+         slot.copy(tl, LOC);
+       }
 
    /// return the TokenClass of \b at(idx)
    /// @param idx zero-based index from the left (APL order)
@@ -471,7 +486,7 @@ protected:
 
    /// push a symbol token (of class TC_SYMBOL). Return true iff )SI was pushed.
    /// @param tl token with location for the symbol to push
-   inline bool push_Symbol(Token_loc & tl);
+   inline bool push_Symbol(const Token_loc & tl);
 
    /// Bugs28 #55: push_Symbol() calls this instead of pushing \b symbol
    /// (the first/rightmost name of a value-member chain "A.B.C...symbol")
@@ -486,11 +501,11 @@ protected:
    /// @param tl token with location for the symbol that would have been
    ///        pushed
    /// @param symbol the same symbol, already extracted from tl
-   void push_member_chain(Token_loc & tl, Symbol * symbol);
+   void push_member_chain(const Token_loc & tl, Symbol * symbol);
 
    /// return true if the left (back-)slash in M M means F M.
    /// @param PC program counter of the left slash/backslash token
-   inline bool MM_is_FM(Function_PC PC);
+   inline bool MM_is_FM(Prefix_PC PC);
 
    /// a unique identifier
    const uint64_t instance;
@@ -558,11 +573,18 @@ protected:
    /// the X token (leftmost token in MISC phrase, if any)
    Token_loc saved_MISC;
 
+   /// the position in \b body of the latest token read from \b body,
+   /// or Prefix_PC_invalid if none was read since the last reset().
+   Prefix_PC lookahead_PC;
+
+   /// an invalid Token_loc (for lookahead_loc())
+   static const Token_loc no_loc;
+
    /// the function body. \b this parser parses tokens body[pc_from] ...
    const Token_string & body;
 
    /// the current pc (+1)
-   Function_PC PC;
+   Prefix_PC PC;
 
    /// assignment state
    Assign_state assign_state;

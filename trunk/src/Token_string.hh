@@ -29,7 +29,7 @@
 
 //════════════════════════════════════════════════════════════════════════════
 /// A sequence of Token
-class Token_string : public  std::vector<Token>
+class Token_string : public  std::vector<Token_loc>
 {
 public:
    /// construct an empty string
@@ -39,18 +39,30 @@ public:
    /// @param data  pointer to first Token in the source array
    /// @param len   number of tokens to copy
    Token_string(const Token * data, ShapeItem len)
-      { loop(l, len)   push_back(data[l]); }
+      { loop(l, len)   emplace_back(data[l], Function_PC_invalid); }
 
    /// construct a string of \b len Token from another token string
    /// @param other  source token string
    /// @param pos    starting position in \b other
    /// @param len    number of tokens to copy
-   Token_string(const Token_string & other, uint32_t pos, uint32_t len)
+   Token_string(const Token_string & other, size_t pos, size_t len)
       { loop(l, len)   push_back(other[pos++]); }
 
    /// make size() signed
    ShapeItem ssize() const
-      { return ShapeItem(vector<Token>::size()); }
+      { return ShapeItem(vector<Token_loc>::size()); }
+
+   using std::vector<Token_loc>::operator[];
+
+   /// the token at position \b pc of an executed body. There is no non-const
+   /// variant: a body indexed by Prefix_PCs is immutable (it is modified
+   /// only at ⎕FX time, using Function_PCs).
+   const Token_loc & operator[](Prefix_PC pc) const
+      { return vector<Token_loc>::operator[](size_t(pc)); }
+
+   /// the Prefix_PC at the end of an executed body
+   Prefix_PC end_PC() const
+      { return Prefix_PC(size()); }
 
    /// check that every [, (, resp. { has a matching ], ), resp. },
    /// and no invalid combination like [ ( ] ) is present. Throws an

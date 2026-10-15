@@ -1582,7 +1582,7 @@ Parser parser(PM_EXECUTE, LOC, false);
          //
          loop(t, tos.size())
             {
-              Token & tok = tos[t];
+              Token_loc & tok = tos[t];
               if (t & 1)   // , or ⍪
                  {
                    if (tok.get_tag() != TOK_F12_COMMA &&
@@ -2072,7 +2072,7 @@ const StateIndicator * si = 0;
         else                     LENGTH_ERROR;
       }
 
-const Function_PC PC = Function_PC(si->get_PC() - 1);
+const Prefix_PC PC = si->get_PC() - 1;
 const Executable * exec = si->get_executable();
 const ParseMode pm = exec->get_parse_mode();
 const UCS_string & fun_name = exec->get_name();
@@ -2111,7 +2111,7 @@ const APL_Integer b = B.get_near_int(0);
                 break;
 
         case 5: Z = Value_P(LOC);
-                Z->next_ravel_Int(PC);
+                Z->next_ravel_Int(int(PC));
                 break;
 
         case 6: Z = Value_P(LOC);
@@ -2158,7 +2158,7 @@ std::vector<const StateIndicator *> sis;
        {
          const StateIndicator * si = sis[s];
 
-         const Function_PC PC = Function_PC(si->get_PC() - 1);
+         const Prefix_PC PC = si->get_PC() - 1;
          const Executable * exec = si->get_executable();
          const ParseMode pm = exec->get_parse_mode();
          const UCS_string & fun_name = exec->get_name();
@@ -2198,7 +2198,7 @@ std::vector<const StateIndicator *> sis;
                          }
                       break;
 
-             case 5:  Z->next_ravel_Int(PC);   break;
+             case 5:  Z->next_ravel_Int(int(PC));   break;
              case 6:  Z->next_ravel_Int(pm);   break;
            }
        }

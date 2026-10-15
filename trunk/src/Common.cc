@@ -199,12 +199,14 @@ APL_time_us when = now();
         
         interrupt_context.attention_range.low  = prefix.get_range_low();
         interrupt_context.attention_range.high = prefix.get_range_high();
+        interrupt_context.attention_stat_PC = prefix.get_statement_PC();
         interrupt_context.range_executable = si->get_executable();
       }
    else
       {
         interrupt_context.attention_range.low  = Function_PC_invalid;
         interrupt_context.attention_range.high = Function_PC_invalid;
+        interrupt_context.attention_stat_PC = Prefix_PC_invalid;
         interrupt_context.range_executable = 0;
       }
    interrupt_context.attention_raised = true;
@@ -213,6 +215,7 @@ APL_time_us when = now();
       {
         interrupt_context.interrupt_raised = true;
         interrupt_context.interrupt_range  = interrupt_context.attention_range;
+        interrupt_context.interrupt_stat_PC = interrupt_context.attention_stat_PC;
         ++interrupt_context.interrupt_count;
       }
 

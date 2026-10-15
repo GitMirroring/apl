@@ -232,16 +232,30 @@ const Function_Line before_increment = fl;
    return before_increment;
 }
 //────────────────────────────────────────────────────────────────────────────
-/// an offset into the body of a user-defined function. If we consider the APL
-/// interpreter as a high-level machine that executes token in user defined
-/// functions then this offset is the "program counter" of the high-level
-/// machine.
+/// a position of a token in a token string before it is executed: in
+/// particular Token_loc::pc, i.e. the position of a token in the token string
+/// that the tokenizer has produced for its line, and the positions used by
+/// the tokenizer, the parser, and the optimizations.
 enum Function_PC : int
 {
    Function_PC_0       =  0,   ///< the first token in a function
    Function_PC_done    = -1,   ///< goto 0 (leave function)
    Function_PC_invalid = -1    ///< dito
 };
+//────────────────────────────────────────────────────────────────────────────
+/// a position in the body of an Executable as executed by the prefix parser
+/// (Prefix.cc), i.e. the "program counter" of the high-level machine that
+/// executes the body. The body is optimized and stored statement by
+/// statement in reverse order, so that a Prefix_PC is something entirely
+/// different from a Function_PC (in particular a Token_loc::pc). It is an
+/// enum class so that the compiler rejects any mixup of the two.
+enum class Prefix_PC : int {};
+
+/// the first token in the body
+constexpr Prefix_PC Prefix_PC_0 = Prefix_PC(0);
+
+/// no position (or: leave the function)
+constexpr Prefix_PC Prefix_PC_invalid = Prefix_PC(-1);
 //────────────────────────────────────────────────────────────────────────────
 /// signature of a defined function
 enum Fun_signature

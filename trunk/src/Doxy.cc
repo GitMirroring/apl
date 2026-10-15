@@ -379,7 +379,8 @@ std::vector<const StateIndicator *> stack;
           if (si->get_parse_mode() == PM_FUNCTION)
              {
                Assert(ufun);
-               Function_PC PC = si->get_prefix().get_range_high();
+               // a position in body (not a Token_loc PC)
+               Prefix_PC PC = si->get_prefix().get_statement_PC();
                if (const ErrorCode ec =
                          StateIndicator::get_error(si).get_error_code())
                   {

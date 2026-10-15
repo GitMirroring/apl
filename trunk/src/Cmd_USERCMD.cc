@@ -28,7 +28,6 @@
 #include "Avec.hh"
 #include "Cmd_USERCMD.hh"
 #include "Command.hh"
-#include "ErrorTrail.hh"
 #include "Common.hh"
 #include "Workspace.hh"
 

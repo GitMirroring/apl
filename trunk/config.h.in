@@ -599,9 +599,6 @@
 /* Define to enable dynamic logging */
 #undef cfg_DYNAMIC_LOG_WANTED
 
-/* Define to enable EXPLAIN */
-#undef cfg_EXPLAIN_WANTED
-
 /* max. rank of APL values */
 #undef cfg_MAX_RANK_WANTED
 

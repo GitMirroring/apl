@@ -73,7 +73,7 @@ public:
 
    /// get the line number for pc
    /// @param pc program counter value to map to a line number
-   virtual Function_Line get_line(Function_PC pc) const
+   virtual Function_Line get_line(Prefix_PC pc) const
       { return Function_Line_0; }
 
    /// say where this SI entry was allocated
@@ -110,8 +110,8 @@ public:
 
    /// return the first PC of the \b line
    /// @param line function line number whose start PC is requested
-   virtual Function_PC line_start(Function_Line line) const
-      { return Function_PC_0; }
+   virtual Prefix_PC line_start(Function_Line line) const
+      { return Prefix_PC_0; }
 
    /// print this user defined executable to \b out
    /// @param out output stream to write to
@@ -146,21 +146,11 @@ public:
 
    /// return the end of the statement (excluding) to which pc belongs
    /// @param pc program counter within the statement
-   Function_PC get_statement_end(Function_PC pc) const;
+   Prefix_PC get_statement_end(Prefix_PC pc) const;
 
    /// return the start of the statement to which pc belongs
    /// @param pc program counter within the statement
-   Function_PC get_statement_start(Function_PC pc) const;
-
-   /// return the number of the segment (0 = condition, 1 = after →→, ...)
-   /// that pc belongs to in a conditional statement (C →→ T ←→ F ←←). Each
-   /// segment is a statement of its own in the body.
-   int get_cond_segment(Function_PC pc) const;
-
-   /// print a body range (in APL order)
-   /// @param out output stream to write to
-   /// @param from_to PC range (start and end) to print
-   ostream & print_range(ostream & out, Function_PC2 from_to) const;
+   Prefix_PC get_statement_start(Prefix_PC pc) const;
 
    /// print the text of this user defined executable to \b out
    /// @param out output stream to write to
@@ -171,23 +161,28 @@ public:
    /// @param details non-zero to include additional token detail
    void print_token(ostream & out, int details) const;
 
-   /// restore the original (un-optimized) tokens for a failed statement
-   /// @param original token string to restore into
-   /// @param low_PC first PC of the statement to restore
-   void reparse(Token_string & original, Function_PC low_PC) const;
-
-   /// return the source text of the statement that contains \b low_PC,
-   /// and its line and statement number
-   /// @param low_PC a PC in the statement
-   /// @param line set to the line number of the statement
-   /// @param statement set to the number of the statement in its line
-   UCS_string statement_text(Function_PC low_PC, int & line,
-                             int & statement) const;
+   /// restore the original (un-optimized) tokens of a failed statement
+   /// by parsing its entire line again (without optimizations).
+   /// @param original token string (reversed, like body) to restore into
+   /// @param stat_PC a position in body inside the failed statement
+   /// @param stat the (optimized) failed statement in body
+   /// @param end_pc the (Token_loc-) PC of the end of the statement
+   /// @return true on success
+   bool reparse(Token_string & original, Prefix_PC stat_PC,
+                const Token_string & stat, Function_PC end_pc) const;
 
    /// compute error lines 2 and 3 in \b error
    /// @param error error object to fill with location information
-   /// @param range PC range (start/end) of the failing statement
-   void set_error_info(Error & error, Function_PC2 range) const;
+   /// @param stat_PC a position in body (!) inside the failed statement
+   /// @param pcs the (Token_loc-) PCs of the rightmost (pcs.low) and the
+   ///        leftmost (pcs.high) item of the failed range. These are
+   ///        positions in the token string that the tokenizer produced for
+   ///        the line, NOT positions in body.
+   /// @param fun_of_result mark the function whose (missing) result has
+   ///        PC pcs.high (rather than the item with that PC)
+   /// @param whole_statement mark the whole statement (ignore pcs)
+   void set_error_info(Error & error, Prefix_PC stat_PC, Function_PC2 pcs,
+                       bool fun_of_result, bool whole_statement) const;
 
    /// helper for set_error_info(Error & error, Function_PC2 range).
    /// @param error error object to fill with location information
@@ -205,13 +200,19 @@ public:
 
    /// return the text of statement at \b pc
    /// @param pc program counter identifying the statement
-   UCS_string statement_text(Function_PC pc) const;
+   UCS_string statement_text(Prefix_PC pc) const;
 
    /// clear marked flag in all body tokens
    void unmark_all_values() const;
 
    /// delete values in body and (maybe) remove lambdas
    void clear_body();
+
+   /// check that every token in body has a valid PC (= the position of
+   /// the token in the token string that the tokenizer has produced for
+   /// its line) and that the PCs decrease within each (reversed)
+   /// statement. Return the number of violations (printed on CERR).
+   int check_PCs(const char * loc) const;
 
    /// compute the targets for if/else aka →→ ←→ and ←←.
    /// Maybe set MORE() info and return true on error.
@@ -273,8 +274,11 @@ protected:
    /// @param rev_lambda_body token string receiving the reversed lambda body
    /// @param b index of the opening '{' in the body
    /// @param bend index of the matching '}' in the body
+   /// @param pc_L the PC of the opening '{'
+   /// @param pc_R the PC of the closing '}'
    Fun_signature compute_lambda_body(Token_string & rev_lambda_body,
-                                     ShapeItem b, ShapeItem bend);
+                                     ShapeItem b, ShapeItem bend,
+                                     Function_PC pc_L, Function_PC pc_R);
 
    /// parse the body line number \b line of \b this function
    /// @param line function line number being parsed
@@ -282,16 +286,21 @@ protected:
    /// @param trace true to enable trace output during parsing
    /// @param loc caller location for diagnostics
    /// @param macro true if this line originates from a macro expansion
+   /// @param line_end_PC if non-0: set to the PC of the end of the line
    ErrorCode parse_body_line(Function_Line line, const UCS_string & ucs,
-                             bool trace, const char * loc, bool macro);
+                             bool trace, const char * loc, bool macro,
+                             Function_PC * line_end_PC = 0);
 
    /// parse the body line number \b line of \b this function
    /// @param line function line number being parsed
    /// @param tos pre-tokenised source for the line
+   /// @param end_PC the PC of the end of the line (= the number of tokens
+   ///        that the tokenizer has produced for the line)
    /// @param trace true to enable trace output during parsing
    /// @param loc caller location for diagnostics
    ErrorCode parse_body_line(Function_Line line, const Token_string & tos,
-                             bool trace, const char * loc);
+                             Function_PC end_PC, bool trace,
+                             const char * loc);
 
    /// recursively extract all lambda expressions from body and store
    /// them in lambdas

@@ -407,24 +407,18 @@ public:
    virtual void push_value(Value_P value);
 
    /// set \b token according to the current NC/sym_val of \b this \b Symbol.
-   /// Decrement PC if the name class of \b token is either
-   /// NC_UNUSED_USER_NAME or unexpected (supposedly to re-read the
-   /// the resolved token).
    /// @param token  token to be resolved in place
-   /// @param PC     program counter, decremented on re-read
-   virtual void resolve_left(Token & token, Function_PC & PC) const;
+   /// @param tl     the Token_loc of the symbol (for error reporting)
+   virtual void resolve_left(Token & token, const Token_loc & tl) const;
 
    /// resolve a variable name for an assignment (left of ←)
    /// @param loc  caller location for diagnostics
    virtual Token resolve_lv(const char * loc);
 
    /// set \b token according to the current NC/sym_val of \b this \b Symbol.
-   /// Decrement PC if the name class of \b token is either
-   /// NC_UNUSED_USER_NAME or unexpected (supposedly to re-read the
-   /// the resolved token).
    /// @param token  token to be resolved in place
-   /// @param PC     program counter, decremented on re-read
-   virtual void resolve_right(Token & token, Function_PC & PC) const;
+   /// @param tl     the Token_loc of the symbol (for error reporting)
+   virtual void resolve_right(Token & token, const Token_loc & tl) const;
 
    /// Set current NameClass of this Symbol to \b nc
    /// @param nc  new name class

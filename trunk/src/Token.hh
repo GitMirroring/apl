@@ -44,10 +44,29 @@ class Workspace;
     A Token, consisting of a \b tag and a \b value. The \b tag (actually
     already (tag & TV_MASK) identifies the type of the \b value.
  */
+class Token_loc;
+
 /// One atom of an APL function or expression
 class Token
 {
 public:
+   /// placement new (on an existing Token)
+   static void * operator new(size_t, void * where)
+      { return where; }
+
+   /// no placement new of a Token over a Token_loc: it would bypass the
+   /// PC of the Token_loc (and the reference count of its value).
+   /// Use Token_loc::copy() instead.
+   static void * operator new(size_t, Token_loc * where) = delete;
+
+   /// ordinary new
+   static void * operator new(size_t size)
+      { return ::operator new(size); }
+
+   /// ordinary delete
+   static void operator delete(void * p)
+      { ::operator delete(p); }
+
    /// Construct a VOID token. VOID tokens are used for two purposes: (1) to
    /// fill positions when e.g. 3 tokens were replaced by 2 tokens during
    /// parsing, and (2) as return values of user defined functions that
@@ -175,6 +194,10 @@ public:
    /// @param tg tag identifying the token type
    /// @param idx index expression to store
    Token(TokenTag tg, IndexExpr & idx);
+
+   /// no implicit assignment: it would copy a Value_P without counting it.
+   /// Use copy() or move_from() instead.
+   Token & operator =(const Token & other) = delete;
 
    /// destructor
    ~Token()
@@ -503,6 +526,14 @@ public:
      pc(_pc)
    {}
 
+   /// constructor: Token \b t with the PC of \b pc_of (e.g. the leftmost
+   /// item of a phrase that \b t replaces). This is how Prefix.cc creates
+   /// new Token_locs without looking at their PCs.
+   Token_loc(const Token & t, const Token_loc & pc_of)
+   : token(t),
+     pc(pc_of.pc)
+   {}
+
    /// return the class of the token
    TokenClass get_Class() const
       { return token.get_Class(); }
@@ -526,6 +557,111 @@ public:
    const Token & get_token() const
       { return token; }
 
+   /// return the token (read-only)
+   operator const Token & () const
+      { return token; }
+
+   // read-only shortcuts for the corresponding Token functions
+   //
+   /// return the APL value of the token
+   Value_P get_apl_val() const
+      { return token.get_apl_val(); }
+
+   /// return the symbol of the token
+   Symbol * get_sym_ptr() const
+      { return token.get_sym_ptr(); }
+
+   /// return the character of the token
+   Unicode get_char_val() const
+      { return token.get_char_val(); }
+
+   /// return the (real) float of the token
+   APL_Float get_flt_val() const
+      { return token.get_flt_val(); }
+
+   /// return the real part of the complex token
+   APL_Float get_cpx_real() const
+      { return token.get_cpx_real(); }
+
+   /// return the imaginary part of the complex token
+   APL_Float get_cpx_imag() const
+      { return token.get_cpx_imag(); }
+
+   /// return the (first) integer of the token
+   int64_t get_int_val() const
+      { return token.get_int_val(); }
+
+   /// return the second integer of the token
+   int64_t get_int_val2() const
+      { return token.get_int_val2(); }
+
+   /// return the index of the token
+   IndexExpr & get_index_val() const
+      { return token.get_index_val(); }
+
+   /// return \b true iff the token is a function
+   bool is_function() const
+      { return token.is_function(); }
+
+   /// return \b true iff the token is a conditional branch
+   bool is_COND() const
+      { return token.is_COND(); }
+
+   /// return \b true iff the token is ⍴ or /
+   bool is_RHO_or_SLASH() const
+      { return token.is_RHO_or_SLASH(); }
+
+   /// return the token in canonical form
+   UCS_string canonical(PrintStyle style) const
+      { return token.canonical(style); }
+
+   /// print the error info of the token into \b out
+   int error_info(UCS_string & out) const
+      { return token.error_info(out); }
+
+   // modifications of the token that leave its PC as is
+   //
+   /// change the tag of the token
+   void ChangeTag(TokenTag new_tag)
+      { token.ChangeTag(new_tag); }
+
+   /// set the (first) integer of the token
+   void set_int_val(int64_t val)
+      { token.set_int_val(val); }
+
+   /// set the second integer of the token
+   void set_int_val2(int64_t val)
+      { token.set_int_val2(val); }
+
+   /// release the APL value of the token (if any)
+   void release_apl_val(const char * loc)
+      { token.release_apl_val(loc); }
+
+   // replacement of the entire Token_loc (token and PC)
+   //
+   /// replace this Token_loc by an empty one (TOK_VOID, no PC)
+   void clear(const char * loc)
+      { copy(Token_loc(), loc); }
+
+   /// move \b src (token and PC) to this Token_loc and clear \b src
+   void move_from(Token_loc & src, const char * loc)
+      {
+        pc = src.pc;
+        token.move_from(src.token, loc);
+        src.pc = Function_PC_invalid;
+      }
+
+   /// exchange this Token_loc (token and PC) and \b other
+   void swap(Token_loc & other)
+      {
+        token.swap_token(other.token);
+        const Function_PC tmp = pc;   pc = other.pc;   other.pc = tmp;
+      }
+
+   /// no implicit assignment: it would copy a Value_P without counting it.
+   /// Use copy() instead.
+   Token_loc & operator =(const Token_loc & other) = delete;
+
    /// copy \b other to this Token_loc
    void copy(const Token_loc & other, const char * loc)
       {
@@ -533,19 +669,14 @@ public:
         token.copy(other.token, loc);
       }
 
-   /// return the token
-   Token & get_token()
-      { return token; }
-
-   /// set the position of token in the body that contains it
-   void set_PC(Function_PC new_pc)
-      { pc = new_pc; }
 
 protected:
    /// the token
    Token token;
 
-   /// the PC of the leftmost (highest PC) token
+   /// the PC of the leftmost (in APL order) token that this Token_loc
+   /// represents. It is set when the Token_loc is constructed and never
+   /// changed thereafter.
    Function_PC pc;
 };
 //════════════════════════════════════════════════════════════════════════════

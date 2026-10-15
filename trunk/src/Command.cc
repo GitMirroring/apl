@@ -55,7 +55,6 @@
 #include "Cmd_USERCMD.hh"
 #include "Cmd_WS.hh"
 #include "Command.hh"
-#include "ErrorTrail.hh"
 #include "Common.hh"
 #include "Executable.hh"
 #include "IndexExpr.hh"
@@ -345,7 +344,7 @@ check_EOC:
                    //
                    const uint64_t to = cycle_counter();
                    const uint64_t diff = to - Quad_FIO::benchmark_cycles_from;
-                   token = Token(TOK_APL_VALUE1, IntScalar(diff, LOC));
+                   token.copy(Token(TOK_APL_VALUE1, IntScalar(diff, LOC)), LOC);
                    Quad_FIO::benchmark_cycles_from = 0;
                  }
               else
@@ -381,7 +380,7 @@ check_EOC:
                 Prefix & prefix = Workspace::SI_top()->get_prefix();
                 Assert(prefix.at0().get_tag() == TOK_SI_PUSHED);
 
-                new (&prefix.tos().get_token()) Token(token);
+                prefix.replace_SI_PUSHED(token);
               }
               if (InterruptContext::attention_is_raised())
                  {
@@ -422,7 +421,7 @@ check_EOC:
                    //
                    if (Workspace::SI_top()->get_void_on_orphan_branch())
                       {
-                        token = Token(TOK_VOID);
+                        token.copy(Token(TOK_VOID), LOC);
                         goto check_EOC;
                       }
 

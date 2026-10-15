@@ -247,22 +247,6 @@ VALUE_HISTORY_WANTED=yes
 
     ./configure VALUE_HISTORY_WANTED=yes
 
-EXPLAIN_WANTED=yes
-    Enables the debug command ]EXPLAIN, which shows step by step how the
-    3-line APL error display (the error name, the failed statement, and the
-    carets) was constructed from the statement that was entered, and checks
-    these steps. It helps finding faults in the construction of incorrect
-    error displays (e.g. carets that point to the wrong place). ]EXPLAIN
-    needs hooks in the tokenizer and in every pass of the parser, which are
-    executed for every statement (also when ]EXPLAIN is OFF) and therefore
-    decrease the performance of the interpreter. Without this option, the
-    hooks are not compiled and ]EXPLAIN only says that it is not available.
-    See also "]EXPLAIN Command" in the GNU APL manual (doc/apl.texi).
-    Example:
-
-    ./configure EXPLAIN_WANTED=yes
-
-
 PERFORMANCE_COUNTERS_WANTED=yes
     GNU APL has some build-in counters for performace measurements. These
     counters are normally disabled, but can be enabled via this option.

@@ -234,7 +234,7 @@ ZZ32F[1]  Z←'2'⍴5
       ⍝ compacted, ⊂-less text, e.g. (⊂1)↑M shown as (1)↑M.
       ⍝ The left caret is at the (: the error display used to count 3
       ⍝ tokens (as for A⍴B) for the 2 tokens of ⊂B, which put it one
-      ⍝ token too far left, at the ← (found with ]EXPLAIN CHECK).
+      ⍝ token too far left, at the ←.
       ⍝
       M←2 2⍴⍳4
       Z←(⊂1)↑M

@@ -684,7 +684,6 @@ VF_TRACING_WANTED
 DYNAMIC_LOG_WANTED
 GCOV_WANTED
 GPROF_WANTED
-EXPLAIN_WANTED
 VALUE_HISTORY_WANTED
 PERFORMANCE_COUNTERS_WANTED
 VALUE_CHECK_WANTED
@@ -914,7 +913,6 @@ ALT_MAP_WANTED
 VALUE_CHECK_WANTED
 PERFORMANCE_COUNTERS_WANTED
 VALUE_HISTORY_WANTED
-EXPLAIN_WANTED
 GPROF_WANTED
 GCOV_WANTED
 DYNAMIC_LOG_WANTED
@@ -1635,9 +1633,6 @@ Some influential environment variables:
               enable performance counters (see README-2-configure) default: no
   VALUE_HISTORY_WANTED
               enable value events (a debug facility, see README-2-configure)
-              default: no
-  EXPLAIN_WANTED
-              enable EXPLAIN (explain the construction of error displays)
               default: no
   GPROF_WANTED
               enable gprof (-pg) (see README-2-configure) default: no
@@ -22452,20 +22447,6 @@ else VALUE_HISTORY_WANTED="no"
 fi
 { printf "%s\n" "$as_me:${as_lineno-$LINENO}: result: $VALUE_HISTORY_WANTED" >&5
 printf "%s\n" "$VALUE_HISTORY_WANTED" >&6; }
-
-
-# APL: EXPLAIN (explanation of the 3-line error display) desired ?
-{ printf "%s\n" "$as_me:${as_lineno-$LINENO}: checking whether EXPLAIN (a debug facility) shall be enabled" >&5
-printf %s "checking whether EXPLAIN (a debug facility) shall be enabled... " >&6; }
-
-if test "x$EXPLAIN_WANTED" = "xyes"; then
-
-printf "%s\n" "#define cfg_EXPLAIN_WANTED 1" >>confdefs.h
-
-else EXPLAIN_WANTED="no"
-fi
-{ printf "%s\n" "$as_me:${as_lineno-$LINENO}: result: $EXPLAIN_WANTED" >&5
-printf "%s\n" "$EXPLAIN_WANTED" >&6; }
 
 
 # APL: gprof profiling ?

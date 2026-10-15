@@ -159,8 +159,9 @@ struct AP_num3
    AP_num grand;    ///< the parent of the parent
 };
 //────────────────────────────────────────────────────────────────────────────
-/// two Function_PCs that indicate a token range in the body of a defined
-//  function body
+/// two Function_PCs that indicate a token range: the PCs of two Token_locs
+/// (positions in the token string of a line), or two positions in a
+/// statement displayed in an error message
 struct Function_PC2
 {
    /// an invalid  PC range

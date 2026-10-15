@@ -637,18 +637,6 @@ fi
 AC_MSG_RESULT([$VALUE_HISTORY_WANTED])
 
 
-# APL: EXPLAIN (explanation of the 3-line error display) desired ?
-AC_MSG_CHECKING([whether EXPLAIN (a debug facility) shall be enabled])
-AC_ARG_VAR(EXPLAIN_WANTED,
-   [ enable EXPLAIN (explain the construction of error displays) default: no ])
-if apl_YES($EXPLAIN_WANTED); then
-   AC_DEFINE(cfg_EXPLAIN_WANTED, 1,
-             [ Define to enable EXPLAIN ])
-else EXPLAIN_WANTED="no"
-fi
-AC_MSG_RESULT([$EXPLAIN_WANTED])
-
-
 # APL: gprof profiling ?
 AC_MSG_CHECKING([whether gprof profiling shall be enabled])
 AC_ARG_VAR(GPROF_WANTED,

@@ -2,7 +2,7 @@
 
 # The source tree of this script (i.e. the content of the GNU APL tarball
 # made by "make dist" on the maintainer's machine) is kept up to date by
-# push-apl-server72 on that machine, which rsyncs it here (server72 cannot
+# server72-push-apl on that machine, which rsyncs it here (server72 cannot
 # reach that machine, so it must push). Files that are no longer in the
 # tarball are removed by that rsync, so the build sees exactly the files
 # that a user gets from Savannah.
@@ -62,10 +62,10 @@ cd "$SCRIPT_DIR"
 TOP_BUILD_dir=$(pwd)
 ROOT_dir=$(dirname $TOP_BUILD_dir)
 
-# svnversion reports "Unversioned directory" here: this tree was extracted
-# from a tarball (see the self-refresh block above), never an svn checkout,
-# so there is no .svn metadata for it to read. Fall back to exported_from,
-# a marker file written into the tarball (by "make DIST"/"make server72")
+# svnversion reports "Unversioned directory" here: this tree is the content
+# of a tarball (see the top of this script), never an svn checkout, so
+# there is no .svn metadata for it to read. Fall back to exported_from,
+# a marker file written into the tarball (by "make DIST")
 # from the exporting machine's own svnversion, so the nightly report still
 # shows a real revision instead of "Unversioned directory".
 #
@@ -450,7 +450,7 @@ test_one()
    cd $VSRC_dir
    # all testcases (make test runs testcases/*.tc), their helper and data
    # files (e.g. APnnn_1011.*), and the workspaces they need. Since the tree
-   # is unpacked fresh from the tarball, these are exactly the distributed
+   # is a copy of the tarball content, these are exactly the distributed
    # files.
    cp $ROOT_dir/src/testcases/* testcases/ 2>/dev/null  # (skips subdirs)
    cp $ROOT_dir/src/workspaces/* workspaces/            # needed by testcases
@@ -514,7 +514,7 @@ build_git()
 # is a real risk on server72 (848M RAM, 1 core -- see the disk-full
 # incidents in project history) but not on server68 (15G RAM, 12
 # cores). Rather than maintain two different DEFAULT_CONFIGS lists (and
-# risk them diverging across the "make server72" tarball push), this
+# risk them diverging across the server72-push-apl rsync), this
 # function checks its own host and is a no-op everywhere except
 # server68.
 build_asan()

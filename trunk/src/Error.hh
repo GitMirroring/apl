@@ -222,7 +222,13 @@ public:
    /// returned no value. update_error_info() then places a single caret
    /// under it (instead of deriving it from the range being reduced).
    static void set_failed_token(const Executable * exec, Function_PC pc)
-      { failed_exec = exec;   failed_PC = pc; }
+      { failed_exec = exec;   failed_PC = pc;   failed_is_result = false; }
+
+   /// like set_failed_token(), but for the (missing) result (with PC \b pc)
+   /// of a function: update_error_info() then places a single caret under
+   /// the function.
+   static void set_failed_function(const Executable * exec, Function_PC pc)
+      { failed_exec = exec;   failed_PC = pc;   failed_is_result = true; }
 
 protected:
    /// the error code
@@ -261,6 +267,10 @@ protected:
 
    /// the PC of the failed token (see set_failed_token())
    static Function_PC failed_PC;
+
+   /// true if failed_PC is the PC of a function result (rather than of the
+   /// failed token itself)
+   static bool failed_is_result;
 
 private:
    /// constructor (not implemented): prevent construction without error code

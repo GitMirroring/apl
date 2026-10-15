@@ -278,22 +278,22 @@ public:
    virtual Token eval_XB(cValue_R X, cValue_R B) const;
 
    /// overloaded Executable::get_line()
-   Function_Line get_line(Function_PC pc) const;
+   Function_Line get_line(Prefix_PC pc) const;
 
    /// return e.g. 'FOO[10]' for the given \b pc
    /// @param pc program counter position within the function body
-   UCS_string get_name_and_line(Function_PC pc) const;
+   UCS_string get_name_and_line(Prefix_PC pc) const;
 
    /// print help for this function on out (for the )HELP command)
    /// @param out output stream to write help text to
    void help(ostream & out) const;
 
    /// overloaded Executable::line_start()
-   virtual Function_PC line_start(Function_Line line) const;
+   virtual Prefix_PC line_start(Function_Line line) const;
 
    /// return the pc of the first token in line l (valid line), or
    /// the pc of the last token in the function (invalid line)
-   Function_PC pc_for_line(Function_Line line) const;
+   Prefix_PC pc_for_line(Function_Line line) const;
 
    /// return true iff \b line is a real line of this function (i.e.
    /// pc_for_line(line) would return that line's own first token,
@@ -462,7 +462,7 @@ protected:
       [N] TOK_RETURN_SYMBOL or TOK_RETURN_VOID   <──┘
 
    **/
-   std::vector<Function_PC> line_starts;
+   std::vector<Prefix_PC> line_starts;
 
    /// stop lines (from S∆fun ← lines)
    vector<Function_Line> stop_lines;

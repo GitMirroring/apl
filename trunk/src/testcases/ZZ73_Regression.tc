@@ -88,7 +88,7 @@ A ⎕EB B: B's →N cannot branch out of a lambda
       ⍝
       1 2 3{⍺}¨1 (2 3)
 LENGTH ERROR
-      1 2 3 λ1¨1 (2 3)
+      1 2 3{⍺}¨1 (2 3)
       ^
 
 
@@ -103,7 +103,7 @@ LENGTH ERROR
 
       1 2 3{⍺}¨'ab' 'cd'
 LENGTH ERROR
-      1 2 3 λ1¨'ab' 'cd'
+      1 2 3{⍺}¨'ab' 'cd'
       ^
 
 

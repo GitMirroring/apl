@@ -27,7 +27,6 @@
 #include "Bif_F12_PARTITION_PICK.hh"
 #include "Bif_F12_RHO.hh"
 #include "CharCell.hh"
-#include "ErrorTrail.hh"
 #include "ComplexCell.hh"
 #include "Common.hh"
 #include "FloatCell.hh"
@@ -161,27 +160,9 @@ Multi_line_SM::next(Unicode triple)
    return;   // error
 }
 //════════════════════════════════════════════════════════════════════════════
-#ifdef cfg_EXPLAIN_WANTED
-
-/// ]EXPLAIN replays: a parser pass is about to modify \b tos
-#define TRAIL_BEFORE(tos) \
-   if (ErrorTrail::recorder)   ErrorTrail::recorder->pass_before(tos);
-
-/// ]EXPLAIN replays: parser pass \b name has modified \b tos (its TOK_VOIDs
-/// not yet removed)
-#define TRAIL_AFTER(name, tos) \
-   if (ErrorTrail::recorder)   ErrorTrail::recorder->pass_after(name, tos);
-
-#else   // ]EXPLAIN disabled by ./configure: no runtime overhead
-
-#define TRAIL_BEFORE(tos)
-#define TRAIL_AFTER(name, tos)
-
-#endif // cfg_EXPLAIN_WANTED
-
-//════════════════════════════════════════════════════════════════════════════
 ErrorCode
-Parser::parse(const UCS_string & input, Token_string & tos, bool optimize) const
+Parser::parse(const UCS_string & input, Token_string & tos, bool optimize,
+              Function_PC * end_PC) const
 {
    // convert input characters into token
    //
@@ -190,6 +171,7 @@ Token_string tos1;
    {
      Tokenizer tokenizer(pmode, LOC, macro);
      tokenizer.tokenize(input, tos1);      // throws on lexical failure
+     if (end_PC)   *end_PC = Function_PC(tos1.size());
      tos1.all_brackets_closed();           // throws on bracket mismatch
    }
 
@@ -218,6 +200,7 @@ Parser::parse(const Token_string & input, Token_string & tos,
    // not-yet-freed statement (Blake McBride, Bugs14 #4).
    //
 std::vector<Token_string> statements;
+std::vector<Function_PC> diamond_PCs;   // the PCs of the ◊ between statements
    {
      // mutate statements.back() in place rather than a reused/reassigned
      // local: Token_string's operator= is private ("prevent accidental
@@ -232,7 +215,7 @@ std::vector<Token_string> statements;
              {
                case TOK_L_CURLY:
                     ++curly_depth;
-                    statements.back().push_back(tok);
+                    statements.back().push_back(input[idx]);
                     break;
 
                case TOK_R_CURLY:
@@ -241,22 +224,23 @@ std::vector<Token_string> statements;
                        {
                          return E_UNBALANCED_R_CURLY;
                        }
-                    statements.back().push_back(tok);
+                    statements.back().push_back(input[idx]);
                     break;
 
                case TOK_DIAMOND:
                     if (curly_depth)   // ◊ inside { ... }
                        {
                //        return E_ILLEGAL_DIAMOND;  // single statement { ... }
-                         statements.back().push_back(tok);   // multi statement { ... }
+                         statements.back().push_back(input[idx]);   // multi statement { ... }
                        }
                     else               // normal ◊
                        {
+                         diamond_PCs.push_back(input[idx].get_PC());
                          statements.push_back(Token_string());
                        }
                     break;
           default:
-               statements.back().push_back(tok);
+               statements.back().push_back(input[idx]);
              }
         }
    }
@@ -266,12 +250,12 @@ std::vector<Token_string> statements;
         Token_string & stat = statements[s];
         if (const ErrorCode err = parse_statement(stat, optimize))   return err;
 
-        if (s)   tos.push_back(Token(TOK_DIAMOND));
+        if (s)   tos.emplace_back(Token(TOK_DIAMOND), diamond_PCs[s - 1]);
 
         loop(t, stat.size())
            {
-             tos.push_back(Token());
-             tos[tos.ssize() - 1].move_from(stat[t], LOC);
+             tos.emplace_back();
+             tos.back().move_from(stat[t], LOC);
            }
       }
 
@@ -482,6 +466,9 @@ bool progress = false;
        {
          if (tos[src].get_tag() != TOK_L_BRACK)   continue;
 
+         // the replacement of [ ... ] gets the PC of its leftmost token [
+         //
+         const Function_PC pc_L = tos[src].get_PC();
          const Assign_state assign_state = get_assign_state(tos, src);
          if (assign_state == ASS_unknown)   continue;
 
@@ -493,8 +480,8 @@ bool progress = false;
               IndexExpr * idx = new IndexExpr(assign_state, LOC);
               Log(LOG_delete)
                  CERR << "new    " << voidP(idx) << " at " LOC << endl;
-              new (&tos[src++]) Token(TOK_INDEX, *idx);   // replace [
-              new (&tos[src]) Token(TOK_VOID);            // replace ]
+              tos[src++].copy(Token_loc(Token(TOK_INDEX, *idx), pc_L), LOC);   // replace [
+              tos[src].clear(LOC);                                       // replace ]
               // idx has rank 0 here, so the Token ctor above always took
               // its "case 2a" branch (Token.cc): tag became TOK_AXIS and
               // idx->extract_axis()'s *return value* was stored, not idx
@@ -595,9 +582,9 @@ bool progress = false;
                    const sAxis function_axis = wide_axis;
 
                    Token tok_axis(TOK_FAXIS, function_axis);
-                   new (&tos[src++]) Token(TOK_VOID);   // invalidate [
-                   tos[src++].move_from(tok_axis, LOC);
-                   new (&tos[src])   Token(TOK_VOID);   // invalidate ]
+                   tos[src++].clear(LOC);                         // invalidate [
+                   tos[src++].copy(Token_loc(tok_axis, pc_L), LOC);
+                   tos[src].clear(LOC);                           // invalidate ]
                    OptmizationStatistics::count(OPTI_FT_LITERAL_AXIS);
                    progress = true;
                  }
@@ -607,9 +594,9 @@ bool progress = false;
                    idx->add_index(T1.get_apl_val());
 
                    // T1 is an axis [ N ].
-                   new (&tos[src++]) Token(TOK_VOID);   // invalidate [
-                   new (&tos[src++]) Token(TOK_INDEX, *idx);
-                   new (&tos[src])   Token(TOK_VOID);   // invalidate ]
+                   tos[src++].clear(LOC);                         // invalidate [
+                   tos[src++].copy(Token_loc(Token(TOK_INDEX, *idx), pc_L), LOC);
+                   tos[src].clear(LOC);                           // invalidate ]
                    // idx has rank 1 here, so the Token ctor above always
                    // took its "case 2a" branch and never stored idx
                    // itself -- see the "[]" case above for the full
@@ -696,10 +683,10 @@ vector<ShapeItem> ends;
          const ShapeItem src_F  = src_AQ + 1;   // ends[e] - 2
          const ShapeItem src_B  = src_F  + 1;   // ends[e] - 1
 
-         Token & tok_B = tos[src_B];
+         Token_loc & tok_B = tos[src_B];
          if (tok_B.get_Class() != TC_VALUE)   continue;   // no Value B
 
-         Token & tok_F = tos[src_F];
+         Token_loc & tok_F = tos[src_F];
          if (tok_F.get_Class() != TC_FUN2)    continue;   // no function F
          cFunction_P fun = tok_F.get_function();
 
@@ -725,7 +712,7 @@ vector<ShapeItem> ends;
          Value_P B = tok_B.get_apl_val();
          if (is_dyadic)
             {
-              Token & tok_A = tos[src_AQ];
+              Token_loc & tok_A = tos[src_AQ];
               if (fun == &Bif_F12_RHO::fun)   // dyadic A⍴B
                  {
                     // NOTE: we use Bif_F12_RHO::do_reshape() instead of
@@ -796,11 +783,13 @@ vector<ShapeItem> ends;
                          if (sh_A.fits_into(cfg_SHORT_VALUE_LENGTH_WANTED))
                             {
                               Token tZ = Bif_F12_RHO::fun.do_reshape(sh_A, *B);
+                              // the result A⍴B gets the PC of A (leftmost)
+                              const Token_loc Z(Token(TOK_APL_VALUE4,   // optimized
+                                                      tZ.get_apl_val()),
+                                                tok_A.get_PC());
                               tok_A.clear(LOC);   // set A to TOK_VOID
                               tok_F.clear(LOC);   // set F to TOK_VOID
-                              tok_B.clear(LOC);   // set F to TOK_VOID
-                              new (&tok_B) Token(TOK_APL_VALUE4,   // optimized
-                                                 tZ.get_apl_val());
+                              tok_B.copy(Z, LOC);
                               OptmizationStatistics::count(OPTI_FT_SHORT_PRIMITIVE);
                               progress = true;
                             }
@@ -813,6 +802,9 @@ vector<ShapeItem> ends;
                  {
                    const Shape new_shape(B->element_count());
                    B->set_shape(new_shape);
+                   // the result ,B gets the PC of , (leftmost)
+                   const Token_loc Z(tok_B.get_token(), tok_F.get_PC());
+                   tok_B.copy(Z, LOC);
                    tok_F.clear(LOC);   // set , to TOK_VOID
                    OptmizationStatistics::count(OPTI_FT_SHORT_PRIMITIVE);
                    progress = true;
@@ -831,6 +823,9 @@ vector<ShapeItem> ends;
                    const Shape new_shape(rows, low_volume);
                    B->set_shape(new_shape);
 
+                   // the result ⍪B gets the PC of ⍪ (leftmost)
+                   const Token_loc Z(tok_B.get_token(), tok_F.get_PC());
+                   tok_B.copy(Z, LOC);
                    tok_F.clear(LOC);   // set ⍪ to TOK_VOID
                    OptmizationStatistics::count(OPTI_FT_SHORT_PRIMITIVE);
                    progress = true;
@@ -842,8 +837,9 @@ vector<ShapeItem> ends;
                         Value_P Z(LOC);
                         Z->next_ravel_Pointer(B.get());
                         Z->check_value(LOC);
-                        tok_B.clear(LOC);   // set B to TOK_VOID
-                        new (&tok_B) Token(TOK_APL_VALUE4, Z);
+                        // the result ⊂B gets the PC of ⊂ (leftmost)
+                        tok_B.copy(Token_loc(Token(TOK_APL_VALUE4, Z),
+                                             tok_F.get_PC()), LOC);
                       }
                    else
                       {
@@ -865,8 +861,8 @@ vector<ShapeItem> ends;
                         // same, unmodified value purely so this fold is
                         // detectable too, mirroring the branch above.
                         //
-                        tok_B.clear(LOC);   // set B to TOK_VOID
-                        new (&tok_B) Token(TOK_APL_VALUE4, B);
+                        tok_B.copy(Token_loc(Token(TOK_APL_VALUE4, B),
+                                             tok_F.get_PC()), LOC);
                       }
                    tok_F.clear(LOC);   // set F to TOK_VOID
                    OptmizationStatistics::count(OPTI_FT_SHORT_PRIMITIVE);
@@ -1011,7 +1007,7 @@ vector<Value_P>value_rows;   value_rows.reserve(100);
          Z->check_value(LOC);
          Token tok_Z(TOK_APL_VALUE1, Z);
          tos.clear();
-         tos.push_back(tok_Z);
+         tos.emplace_back(tok_Z, Function_PC_0);   // the whole line
          
 
          const Token & token = tos[0];
@@ -1515,14 +1511,22 @@ int opening = -1;
                    if (opening == -1)      continue;       // ')' without '('
                    if (opening == t - 1)   SYNTAX_ERROR;   // '(' ')'
 
-                   tos[opening].clear(LOC);  // invalidate '('
-                   tos[t].clear(LOC);        // invalidate ')'
-                   create_value(tos, opening + 1, t - opening - 1);
+                   {
+                     // the group (...) gets the PC of its leftmost token (
+                     //
+                     const Function_PC pc_group = tos[opening].get_PC();
+                     tos[opening].clear(LOC);  // invalidate '('
+                     tos[t].clear(LOC);        // invalidate ')'
+                     create_value(tos, opening + 1, t - opening - 1);
 
-                   // we removed parantheses, so we close the value.
-                   //
-                   if (tos[opening + 1].get_Class() == TC_VALUE)
-                      tos[opening + 1].ChangeTag(TOK_APL_VALUE1);
+                     // we removed parantheses, so we close the value.
+                     //
+                     Token_loc & group = tos[opening + 1];
+                     if (group.get_Class() == TC_VALUE)
+                        group.ChangeTag(TOK_APL_VALUE1);
+                     const Token_loc tl_group(group.get_token(), pc_group);
+                     group.copy(tl_group, LOC);
+                   }
 
                    Log(LOG_collect_constants)
                       {
@@ -1542,7 +1546,7 @@ int opening = -1;
 }
 //────────────────────────────────────────────────────────────────────────────
 void
-Parser::create_scalar_value(Token & output)
+Parser::create_scalar_value(Token_loc & output)
 {
    switch(output.get_tag())
       {
@@ -1553,14 +1557,14 @@ Parser::create_scalar_value(Token & output)
                scalar->next_ravel_Char(output.get_char_val());
                scalar->check_value(LOC);
                Token tok(TOK_APL_VALUE3, scalar);
-               output.move_from(tok, LOC);
+               output.copy(Token_loc(tok, output.get_PC()), LOC);
              }
              return;
 
         case TOK_INTEGER:
              {
                Token tok(TOK_APL_VALUE3, IntScalar(output.get_int_val(), LOC));
-               output.move_from(tok, LOC);
+               output.copy(Token_loc(tok, output.get_PC()), LOC);
              }
              return;
 
@@ -1568,7 +1572,7 @@ Parser::create_scalar_value(Token & output)
              {
                Token tok(TOK_APL_VALUE3,
                          FloatScalar(output.get_flt_val(), LOC));
-               output.move_from(tok, LOC);
+               output.copy(Token_loc(tok, output.get_PC()), LOC);
              }
              return;
 
@@ -1577,7 +1581,7 @@ Parser::create_scalar_value(Token & output)
                Token tok(TOK_APL_VALUE3,
                          ComplexScalar(output.get_cpx_real(),
                                        output.get_cpx_imag(), LOC));
-               output.move_from(tok, LOC);
+               output.copy(Token_loc(tok, output.get_PC()), LOC);
              }
              return;
 
@@ -1617,10 +1621,11 @@ void
 Parser::create_vector_value(Token_string & tos, int pos, int count)
 {
 Value_P Z(count, LOC);
+const Function_PC pc_Z = tos[pos].get_PC();   // the PC of the leftmost item
 
    loop(l, count)
        {
-         Token & tok = tos[pos + l];
+         Token_loc & tok = tos[pos + l];
 
          switch(tok.get_tag())
             {
@@ -1664,7 +1669,7 @@ Value_P Z(count, LOC);
    Z->check_value(LOC);
 Token tok(TOK_APL_VALUE3, Z);
 
-   tos[pos].move_from(tok, LOC);
+   tos[pos].copy(Token_loc(tok, pc_Z), LOC);
 
    Log(LOG_create_value)
       {
@@ -1800,7 +1805,9 @@ bool progress = false;
            pos_LO = walk_back_LO_start(tos, pos_LO);
 
            tos.insert_1(pos_LO - 1);   // - 1 means insert before
-           new (&tos[pos_LO])   Token(TOK_L_PARENT, int64_t(0));
+           // the inserted ( gets the PC of the first token of LO
+           tos[pos_LO].copy(Token_loc(Token(TOK_L_PARENT, int64_t(0)),
+                                      tos[pos_LO + 1].get_PC()), LOC);
            ++pos_POWER;   // also shifted: it is a position after pos_LO
          }
 
@@ -1816,7 +1823,9 @@ bool progress = false;
          //
          {
            tos.insert_1(pos_POWER - 1);   // - 1 means insert before
-           new (&tos[pos_POWER])   Token(TOK_R_PARENT, int64_t(0));
+           // the inserted ) gets the PC of the last token of LO
+           tos[pos_POWER].copy(Token_loc(Token(TOK_R_PARENT, int64_t(0)),
+                                      tos[pos_POWER - 1].get_PC()), LOC);
          }
 
          t += 2;   // for the new ( and )
@@ -1959,7 +1968,9 @@ bool progress = false;
            pos_LO = walk_back_LO_start(tos, pos_LO);
 
            tos.insert_1(pos_LO - 1);   // - 1 means insert before
-           new (&tos[pos_LO])   Token(TOK_L_PARENT, int64_t(0));
+           // the inserted ( gets the PC of the first token of LO
+           tos[pos_LO].copy(Token_loc(Token(TOK_L_PARENT, int64_t(0)),
+                                      tos[pos_LO + 1].get_PC()), LOC);
            ++pos_RANK;   // also shifted: it is a position after pos_LO
          }
 
@@ -1975,7 +1986,9 @@ bool progress = false;
          //
          {
            tos.insert_1(pos_RANK - 1);   // - 1 means insert before
-           new (&tos[pos_RANK])   Token(TOK_R_PARENT, int64_t(0));
+           // the inserted ) gets the PC of the last token of LO
+           tos[pos_RANK].copy(Token_loc(Token(TOK_R_PARENT, int64_t(0)),
+                                      tos[pos_RANK - 1].get_PC()), LOC);
          }
 
          t += 2;   // for the new ( and )
@@ -2005,7 +2018,8 @@ int len = 0;
                    ++len;
                    if (len <= 3)   // replace float with integer
                       {
-                        new (&tos[t]) Token(TOK_INTEGER, Cell::near_int(val));
+                        tos[t].copy(Token_loc(Token(TOK_INTEGER, Cell::near_int(val)),
+                                              tos[t].get_PC()), LOC);
                       }
                  }
               else break;   // not literal
@@ -2020,7 +2034,8 @@ int len = 0;
               ++len;
               if (len <= 3)   // replace float with integer
                  {
-                   new (&tos[t]) Token(TOK_INTEGER, Cell::near_int(real));
+                   tos[t].copy(Token_loc(Token(TOK_INTEGER, Cell::near_int(real)),
+                                              tos[t].get_PC()), LOC);
                  }
             }
          else break;
@@ -2069,7 +2084,8 @@ bool progress = false;
                    // valid axis. replace: topfun . subfun with topfun [subfun]
                    //
                    Value_P axis_val = IntScalar(axis, LOC);
-                   new (&tos[t + 1]) Token(TOK_AXIS, axis_val);
+                   tos[t + 1].copy(Token_loc(Token(TOK_AXIS, axis_val),   // . subfun
+                                             tos[t + 1].get_PC()), LOC);
                    tos[t + 2].clear(LOC);
                    t += 2;
                    progress = true;
@@ -2088,7 +2104,8 @@ bool progress = false;
                    if (axis != 3 && axis != 4)   // ⎕SQL[subfun]
                       {
                         Value_P axis_val = IntScalar(axis, LOC);
-                        new (&tos[t + 1]) Token(TOK_AXIS, axis_val);
+                        tos[t + 1].copy(Token_loc(Token(TOK_AXIS, axis_val),   // . subfun
+                                             tos[t + 1].get_PC()), LOC);
                         tos[t + 2].clear(LOC);
                         t += 2;
                         progress = true;
@@ -2110,11 +2127,19 @@ bool progress = false;
                              SYNTAX_ERROR;
                            }
 
-                        tos[t + 0] = SQL_query ? Quad_SQL_3::fun.get_token()
-                                               : Quad_SQL_4::fun.get_token();
-                        tos[t + 1] = Token(TOK_L_BRACK, int64_t(0));    // T1
+                        // T0 keeps its PC, the [ gets the PC of the .
+                        // and the ] gets the PC of DB.
+                        //
+                        tos[t + 0].copy(Token_loc(SQL_query
+                                                  ? Quad_SQL_3::fun.get_token()
+                                                  : Quad_SQL_4::fun.get_token(),
+                                                  tos[t + 0].get_PC()), LOC);
+                        tos[t + 1].copy(Token_loc(Token(TOK_L_BRACK, int64_t(0)),
+                                                  tos[t + 1].get_PC()), LOC);   // T1
+                        const Function_PC pc_DB = tos[t + 3].get_PC();
                         tos[t + 2].move_from(tos[t + 3], LOC);          // T2
-                        tos[t + 3] = Token(TOK_R_BRACK, int64_t(0));    // T3
+                        tos[t + 3].copy(Token_loc(Token(TOK_R_BRACK, int64_t(0)),
+                                                  pc_DB), LOC);   // T3
                         t += 3;
                       }
                  }
@@ -2242,7 +2267,8 @@ bool TOK_VOID_inserted = false;
                  {
                    Value_P function_axis = IntScalar(axis, LOC);
                    Token tok_axis(TOK_AXIS, function_axis);
-                   tos[t++].move_from(tok_axis, LOC);      // replace . with [X]
+                   tos[t].copy(Token_loc(tok_axis, tos[t].get_PC()), LOC);   // replace . with [X]
+                   ++t;
                    tos[t++].clear(LOC);               // invalidate g
                    TOK_VOID_inserted = true;
                  }
@@ -2254,37 +2280,43 @@ bool TOK_VOID_inserted = false;
          switch(tos[t+1].get_tag())
             {
               case TOK_F2_AND:
-                   tos[t] = Token(TOK_F2_AND_B, &Bif_F2_AND_B::fun);
+                   tos[t].copy(Token_loc(Token(TOK_F2_AND_B, &Bif_F2_AND_B::fun),
+                                         tos[t].get_PC()), LOC);
                    tos[++t].clear(LOC);
                    TOK_VOID_inserted = true;
                    continue;
 
               case TOK_F2_OR:
-                   tos[t] = Token(TOK_F2_OR_B, &Bif_F2_OR_B::fun);
+                   tos[t].copy(Token_loc(Token(TOK_F2_OR_B, &Bif_F2_OR_B::fun),
+                                         tos[t].get_PC()), LOC);
                    tos[++t].clear(LOC);
                    TOK_VOID_inserted = true;
                    continue;
 
               case TOK_F2_NAND:
-                   tos[t] = Token(TOK_F2_NAND_B, &Bif_F2_NAND_B::fun);
+                   tos[t].copy(Token_loc(Token(TOK_F2_NAND_B, &Bif_F2_NAND_B::fun),
+                                         tos[t].get_PC()), LOC);
                    tos[++t].clear(LOC);
                    TOK_VOID_inserted = true;
                    continue;
 
               case TOK_F2_NOR:
-                   tos[t] = Token(TOK_F2_NOR_B, &Bif_F2_NOR_B::fun);
+                   tos[t].copy(Token_loc(Token(TOK_F2_NOR_B, &Bif_F2_NOR_B::fun),
+                                         tos[t].get_PC()), LOC);
                    tos[++t].clear(LOC);
                    TOK_VOID_inserted = true;
                    continue;
 
               case TOK_F2_EQUAL:
-                   tos[t] = Token(TOK_F2_EQUAL_B, &Bif_F2_EQUAL_B::fun);
+                   tos[t].copy(Token_loc(Token(TOK_F2_EQUAL_B, &Bif_F2_EQUAL_B::fun),
+                                         tos[t].get_PC()), LOC);
                    tos[++t].clear(LOC);
                    TOK_VOID_inserted = true;
                    continue;
 
               case TOK_F2_UNEQU:
-                   tos[t] = Token(TOK_F2_UNEQ_B, &Bif_F2_UNEQ_B::fun);
+                   tos[t].copy(Token_loc(Token(TOK_F2_UNEQ_B, &Bif_F2_UNEQ_B::fun),
+                                         tos[t].get_PC()), LOC);
                    tos[++t].clear(LOC);
                    TOK_VOID_inserted = true;
                    continue;
@@ -2353,21 +2385,14 @@ Parser::parse_statement(Token_string & tos, bool optimize)
        }
 
    bool has_power_op = false;
-   TRAIL_BEFORE(tos)
    if (fix_RANK_syntax(tos, has_power_op))   parse_log(2, tos);
-   TRAIL_AFTER("fix_RANK_syntax", tos)
 
-   TRAIL_BEFORE(tos)
    if (has_power_op && fix_POWER_syntax(tos))   parse_log(3, tos);
-   TRAIL_AFTER(has_power_op ? "fix_POWER_syntax"
-                            : "fix_POWER_syntax (skipped: no ⍣)", tos)
 
    // 1. convert (X) into X and ((X...)) into (X...)
    //
-   TRAIL_BEFORE(tos)
    {
      const bool progress = remove_nongrouping_parantheses(tos);
-     TRAIL_AFTER("remove_nongrouping_parantheses", tos)
      if (progress)
         {
           tos.remove_TOK_VOID();
@@ -2375,10 +2400,8 @@ Parser::parse_statement(Token_string & tos, bool optimize)
         }
    }
 
-   TRAIL_BEFORE(tos)
    {
      const bool progress = map_function_groups(tos);
-     TRAIL_AFTER("map_function_groups", tos)
      if (progress)
         {
           tos.remove_TOK_VOID();
@@ -2392,9 +2415,7 @@ Parser::parse_statement(Token_string & tos, bool optimize)
    //
    for (int progress = true; progress;)
       {
-        TRAIL_BEFORE(tos)
         progress = collect_value_groups(tos);
-        TRAIL_AFTER("collect_value_groups", tos)
         if (progress)
            {
              tos.remove_TOK_VOID();
@@ -2404,10 +2425,8 @@ Parser::parse_statement(Token_string & tos, bool optimize)
 
    // 3. convert vectors like 1 2 3 or '1' 2 '3' into single APL values
    //
-   TRAIL_BEFORE(tos)
    {
      const bool progress = collect_constants(tos);
-     TRAIL_AFTER("collect_constants", tos)
      if (progress)
         {
           tos.remove_TOK_VOID();
@@ -2427,33 +2446,15 @@ Parser::parse_statement(Token_string & tos, bool optimize)
    //
    if (optimize)
       {
-        TRAIL_BEFORE(tos)
         const bool axes = DO_FT_LITERAL_AXIS && optimize_literal_axes(tos);
-        TRAIL_AFTER(DO_FT_LITERAL_AXIS ? "optimize_literal_axes"
-                    : "optimize_literal_axes (disabled in Performance.def)",
-                    tos)
         if (axes)   tos.remove_TOK_VOID();
 
         for (bool progress = true; progress;)
             {
-              TRAIL_BEFORE(tos)
               progress = DO_FT_SHORT_PRIMITIVE && optimize_short_primitives(tos);
-              TRAIL_AFTER(DO_FT_SHORT_PRIMITIVE ? "optimize_short_primitives"
-                    : "optimize_short_primitives (disabled in Performance.def)",
-                    tos)
               if (progress)   tos.remove_TOK_VOID();
             }
       }
-#ifdef cfg_EXPLAIN_WANTED
-   else if (ErrorTrail::recorder)
-      {
-        TRAIL_BEFORE(tos)
-        TRAIL_AFTER("optimize_literal_axes (skipped: unoptimized parse)", tos)
-        TRAIL_BEFORE(tos)
-        TRAIL_AFTER("optimize_short_primitives (skipped: unoptimized parse)",
-                    tos)
-      }
-#endif // cfg_EXPLAIN_WANTED
    parse_log(8, tos);
 
    // 5. special case: single APL value (to speed up ⍎)
@@ -2471,22 +2472,16 @@ Parser::parse_statement(Token_string & tos, bool optimize)
 
    // 6. mark symbol left of ← as LSYMB
    //
-   TRAIL_BEFORE(tos)
    mark_lsymb(tos);
-   TRAIL_AFTER("mark_lsymb", tos)
    parse_log(10, tos);
 
    // 7. replace bitwise functions ⊤∧, ⊤∨, ⊤⍲, and ⊤⍱ by their bitwise variant
    //
-   TRAIL_BEFORE(tos)
    if (optimize)
       {
         optimize_static_patterns(tos);
         parse_log(11, tos);
       }
-   TRAIL_AFTER(optimize ? "optimize_static_patterns"
-                        : "optimize_static_patterns (skipped: unoptimized "
-                          "parse)", tos)
 
    // 8. update the distances between ( and ), [ and ], or { and }. After
    //    that, tos.ssize() must not be changed anymore.
@@ -2532,6 +2527,12 @@ bool progress = false;   // per iteration progress
                          // ((...)) are not "not separating"
                          //
                          ret = progress = true;
+
+                         // the remaining (...) gets the PC of the outer (
+                         //
+                         const Token_loc tl_L(tos[t + 1].get_token(),
+                                              tos[t].get_PC());
+                         tos[t + 1].copy(tl_L, LOC);
                          tos[t].clear(LOC);
                          tos[closing].clear(LOC);
                          continue;
@@ -2549,7 +2550,13 @@ bool progress = false;   // per iteration progress
                // If X is non-scalar, enclose it
                //
                ret = progress = true;
-               tos[t + 2].move_from(tos[t + 1], LOC);
+
+               // the remaining X gets the PC of the ( (leftmost)
+               //
+               {
+                 const Token_loc tl_X(tos[t + 1].get_token(), tos[t].get_PC());
+                 tos[t + 2].copy(tl_X, LOC);
+               }
 
                // we "remember" the nongrouping parantheses to disambiguate
                // e,g, SYM/xxx from (SYM)/xxx
