@@ -367,15 +367,18 @@ Error::update_error_info(StateIndicator * si)
    // redirected. See Bugs27 #56 residual.
    //
    const StateIndicator * display_si = si;
-   while (display_si && display_si->get_executable() &&
+   while (display_si                                    &&
+          display_si->get_executable()                  &&
           display_si->get_executable()->get_exec_ufun() &&
           display_si->get_executable()->get_exec_ufun()->is_macro())
       display_si = display_si->get_parent();
 
-   if (display_si && display_si->get_executable() &&
+   if (display_si                   &&
+       display_si->get_executable() &&
        display_si->get_executable()->get_exec_ufun())
       {
-        const UserFunction * ufun = display_si->get_executable()->get_exec_ufun();
+        const UserFunction * ufun = display_si->get_executable()
+                                              ->get_exec_ufun();
         // ufun->print_line_PCs(LOC);
         // property 1 (nonsuspendable) is inherited from every calling
         // )SI entry too (apl2lrm.txt p.360-361 "or-ing"), not just ufun's

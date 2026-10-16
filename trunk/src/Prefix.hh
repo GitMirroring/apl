@@ -126,23 +126,26 @@ public:
        are only handed over to the error reporting (which interprets them).
        Prefix itself never looks at them.
     **/
-   /// the PC of the leftmost item in the current statement
+   /// the PC of the leftmost (in APL order) item in the current statement
    Function_PC get_range_high() const
       { return left_loc().get_PC(); }
 
-   /// the PC of the rightmost item in the current statement
+   /// return the PC of the rightmost (in APL order) item in the current
+   /// statement
    Function_PC get_range_low() const
       { return right_loc().get_PC(); }
 
-   /// the leftmost Token_loc on the stack, or else the lookahead token
+   /// return the leftmost (in APL order) Token_loc on the stack,
+   /// or else the lookahead token
    const Token_loc & left_loc() const
       { return put ? content[put - 1] : lookahead_loc(); }
 
-   /// the rightmost Token_loc on the stack, or else the lookahead token
+   /// return the rightmost (in APL order) Token_loc on the stack,
+   /// or else the lookahead token
    const Token_loc & right_loc() const
       { return put ? content[0] : lookahead_loc(); }
 
-   /// the Token_loc of the lookahead token, or else an invalid Token_loc
+   /// return the Token_loc of the lookahead token, or else an invalid Token_loc
    const Token_loc & lookahead_loc() const;
 
    /// return the position (in body) of the current statement

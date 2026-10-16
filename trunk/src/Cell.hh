@@ -758,18 +758,16 @@ protected:
 private:
    /** Cells that are allocated with new() shall always be contained in
        APL values (using placement new() on the ravel of the value.
-       We prevent the accidental use of non-placement new() by defining
-       it but not implementing it.
+       We prevent the accidental use of non-placement new() by deleting it.
     **/
-   void * operator new(std::size_t);
+   void * operator new(std::size_t) = delete;
 
    /** Cells shalle never be overriden with other Cells since they may
        require their desctuctor to be called (e.g. PointerCell)
-       We prevent the accidental use of non-placement new() by defining
-       it but not implementing it.
+       We prevent the accidental use of operator =() by deleting it.
     **/
 
-   Cell & operator =(const Cell & other);
+   Cell & operator =(const Cell & other) = delete;
 };
 //════════════════════════════════════════════════════════════════════════════
 

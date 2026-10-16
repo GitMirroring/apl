@@ -101,12 +101,12 @@ public:
 private:
    /// prevent the inadvertent use of iterator nonsense
    std::vector<UCS_string>::iterator erase(
-        std::vector<UCS_string>::iterator position);
+        std::vector<UCS_string>::iterator position) = delete;
 
    /// prevent the inadvertent use of iterator nonsense
    std::vector<UCS_string>::iterator insert(
         std::vector<UCS_string>::iterator position,
-        const UCS_string & value);
+        const UCS_string & value) = delete;
 };
 //════════════════════════════════════════════════════════════════════════════
 

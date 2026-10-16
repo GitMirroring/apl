@@ -1669,10 +1669,10 @@ protected:
 
 private:
    /// prevent new[] of Value
-   static void * operator new[](size_t sz);
+   static void * operator new[](size_t sz) = delete;
 
    /// prevent delete[] of Value
-   static void operator delete[](void* ptr);
+   static void operator delete[](void* ptr) = delete;
 
    /// limit the use of & (which is frequently a mistake)
    Value * operator &()   { return this; }

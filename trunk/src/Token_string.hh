@@ -132,7 +132,7 @@ public:
 
 private:
    /// prevent accidental copying
-   Token_string & operator =(const Token_string & other);
+   Token_string & operator =(const Token_string & other) = delete;
 };
 //════════════════════════════════════════════════════════════════════════════
 #endif // __TOKEN_STRING_HH_DEFINED__

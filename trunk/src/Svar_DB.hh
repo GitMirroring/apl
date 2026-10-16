@@ -57,10 +57,10 @@ protected:
 
 private:
    /// don't copy...
-  Svar_record_P(const Svar_record_P & other);
+  Svar_record_P(const Svar_record_P & other) = delete;
 
    /// don't copy...
-   Svar_record_P & operator =(const Svar_record_P & other);
+   Svar_record_P & operator =(const Svar_record_P & other) = delete;
 };
 //────────────────────────────────────────────────────────────────────────────
 #define READ_RECORD(key, open_act, closed_act)         \
@@ -218,13 +218,13 @@ protected:
    static bool do_log;
 private:
    /// don't create...
-  Svar_DB();
+  Svar_DB() = delete;
 
    /// don't copy...
-  Svar_DB(const Svar_DB & other);
+  Svar_DB(const Svar_DB & other) = delete;
 
    /// don't copy...
-   Svar_DB& operator =(const Svar_DB & other);
+   Svar_DB& operator =(const Svar_DB & other) = delete;
 };
 //════════════════════════════════════════════════════════════════════════════
 

@@ -273,8 +273,8 @@ protected:
    static bool failed_is_result;
 
 private:
-   /// constructor (not implemented): prevent construction without error code
-   Error();
+   /// constructor (deleted): prevent construction without error code
+   Error() = delete;
 };
 //════════════════════════════════════════════════════════════════════════════
 #endif // __ERROR_HH_DEFINED__

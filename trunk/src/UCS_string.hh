@@ -576,20 +576,20 @@ protected:
 private:
    /// constructor: UCS_string from 0-terminated C string.
    /// Made private because it was far too often used incorrectly.
-   UCS_string(const char * cstring);
+   UCS_string(const char * cstring) = delete;
 
    /// constructor: UCS_string from 0-terminated C string.
-   UCS_string(const UTF8 * cstring);
+   UCS_string(const UTF8 * cstring) = delete;
 
    /// prevent accidental usage of the rather dangerous default len parameter
    /// in basic_strng::erase(pos, len = npos)
-    vector<Unicode> & erase(size_type pos, size_type len);
+    vector<Unicode> & erase(size_type pos, size_type len) = delete;
 
    /// prevent accidental de-allocation
-   void operator delete[](void *);
+   void operator delete[](void *) = delete;
 
    /// prevent accidental allocation
-   void * operator new[](size_t size);
+   void * operator new[](size_t size) = delete;
 };
 //────────────────────────────────────────────────────────────────────────────
 /// an UCS_string that contains only ASCII characters,
