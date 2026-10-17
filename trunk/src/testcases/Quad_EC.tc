@@ -6,7 +6,7 @@
       ⎕EC 'ι4.5'
  0  5 4  DOMAIN ERROR 
                ⍳4.5   
-               ^^     
+               ^      
 
       ⎕EC '2+3'
  1  0 0  5 
@@ -39,14 +39,14 @@
       foo_fails 2
 DOMAIN ERROR
 foo_fails[1]  ÷0
-              ^^
+              ^
       ⎕SI 2
 0 2 2 1 0
 
       ⎕EC 'foo_fails 2'
  0  5 4  DOMAIN ERROR     
          foo_fails[1]  ÷0 
-                       ^^ 
+                       ^  
       
       
       ⎕SI 2
@@ -107,7 +107,7 @@ f
       ⎕EC '⎕EC ''1÷0'' ⋄ 8'
  0  5 4  DOMAIN ERROR 
                1÷0    
-               ^ ^    
+               ^^     
  1  0 0  8 
 
       )SIC
@@ -164,14 +164,14 @@ f
       ⊃Z[3]
 DOMAIN ERROR+
       0J1 2⍸1
-      ^     ^
+      ^    ^
 A⍸B: A contains items that cannot be compared with each other
 
       Z←⎕EC '(''%d %d'' 5) ⎕FIO[22] 0'
       ⊃Z[3]
 LENGTH ERROR+
       '%d %d' 5 ⎕FIO[22]0
-      ^                 ^
+      ^         ^
 Too few arguments in argument B of: ⎕FIO.fprintf B
     Only 1 argument(s) were provided in B.
     The format string was: '%d %d'

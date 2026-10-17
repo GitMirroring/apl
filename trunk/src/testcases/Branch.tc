@@ -146,7 +146,7 @@ TARGET: ⎕←⎕LC
       FOO
 DOMAIN ERROR+
 FOO[2]  100→1
-        ^   ^
+        ^  ^
 
       ⍝ monadic, out-of-range target: still just returns, unaffected --
       ⍝ →0/→N is the standard, deliberate "return" idiom and must stay
@@ -238,7 +238,7 @@ TARGET: ⎕←⎕LC
       FOO
 DOMAIN ERROR+
       100→1
-      ^   ^
+      ^  ^
 
       ⍝ dyadic A→B with nonzero A, jumping between ⋄-separated
       ⍝ statements inside a lambda: also a clean DOMAIN ERROR (a
@@ -251,7 +251,7 @@ DOMAIN ERROR+
 1
 DOMAIN ERROR+
 λ1[1]  2→1
-       ^ ^
+       ^^
 
       ⍝ same two ⍎ A→B cases again, but at top-level immediate
       ⍝ execution (no enclosing function at all) -- A=0 still works,

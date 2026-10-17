@@ -20,7 +20,7 @@
       1 0 1⊂'ABCD'   ⍝ mismatch of argument lengths
 LENGTH ERROR+
       1 0 1⊂'ABCD'
-      ^     ^
+      ^    ^
 
       →
 
@@ -42,7 +42,7 @@ LENGTH ERROR+
       1 0 1⊂'ABCD'
 LENGTH ERROR+
       1 0 1⊂'ABCD'
-      ^     ^
+      ^    ^
 
       →
 
@@ -255,7 +255,7 @@ c
       Z←⊂/⍬
 LENGTH ERROR+
       Z←⊂/⍬
-        ^ ^
+        ^
       )MORE
 Function ⊂ has no identity function, needed to reduce along axis 0 of B (⍴B is 0), whose length there is 0
       )SIC
@@ -265,7 +265,7 @@ Function ⊂ has no identity function, needed to reduce along axis 0 of B (⍴B 
       ⊂/3 0⍴0
 LENGTH ERROR+
       ⊂/3 0⍴0
-      ^ ^
+      ^
       )SIC
 
       ⍝ control: ∪/⍬ (and ∩/⍬, ⍳/⍬, ⍷/⍬ the same way) were already right
@@ -274,7 +274,7 @@ LENGTH ERROR+
       ∪/⍬
 LENGTH ERROR+
       ∪/⍬
-      ^ ^
+      ^
       )SIC
 
       ⍝ regression: ,/0 0⍴0 (reducing along a 0-length axis whose OTHER

@@ -116,12 +116,12 @@ OK      - no duplicate parents
       'ERROR SIMULATION' ⎕ES 101 9
 ERROR SIMULATION
       'ERROR SIMULATION' ⎕ES 101 9
-      ^                      ^
+      ^                  ^
 
       ⎕EM
 ERROR SIMULATION                  
       'ERROR SIMULATION' ⎕ES 101 9
-      ^                      ^    
+      ^                  ^        
 
       ⎕ET
 101 9
@@ -239,7 +239,7 @@ DOMAIN ERROR
       ⎕ES 0 1
 User defined error
       ⎕ES 0 1
-      ^   ^
+      ^
       )MORE
 NO )MORE ERROR INFO
       ⎕ET
@@ -251,13 +251,13 @@ NO )MORE ERROR INFO
       ⎕ES 1E9 1E9
 DOMAIN ERROR+
       ⎕ES 1000000000 1000000000
-      ^   ^
+      ^
       )SIC
 
       ⎕ES ¯5 ¯4
 DOMAIN ERROR+
       ⎕ES ¯5 ¯4
-      ^   ^
+      ^
       )SIC
 
       ⍝ control: in range but with no defined ⎕ET text is still accepted
@@ -266,7 +266,7 @@ DOMAIN ERROR+
       ⍝
       ⎕ES 99 99
       ⎕ES 99 99
-      ^   ^
+      ^
       ⎕ET
 99 99
       )SIC
@@ -274,7 +274,7 @@ DOMAIN ERROR+
       ⎕ES 100 1
 DOMAIN ERROR
       ⎕ES 100 1
-      ^   ^
+      ^
       )SIC
 
       ⍝ ==================================

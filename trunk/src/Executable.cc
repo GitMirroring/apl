@@ -230,7 +230,7 @@ Executable::print_token(ostream & out, int details) const
 //────────────────────────────────────────────────────────────────────────────
 bool
 Executable::reparse(Token_string & original, Prefix_PC stat_PC,
-                    const Token_string & stat, Function_PC end_pc) const
+                    const Token_string & stat) const
 {
    // the line that contains the failed statement. ⍎ and ◊ executables have
    // only line 0.
@@ -269,27 +269,42 @@ Token_string orig;
         return false;
       }
 
-   // the PCs of the failed statement range from the PC of its leftmost
-   // token to (excluding) the PC of its END token (which is the PC of
-   // the ◊ or COND token that ends it, or of the end of the line).
+   // the failed statement starts (in APL order) at its leftmost token, i.e.
+   // at the smallest PC in stat, and extends to the right up to (excluding)
+   // the first ◊ or COND token that is not inside a lambda, or to a ; of
+   // the local variables of a lambda (which were moved to its header), or
+   // to the end of the line.
    //
-Function_PC min_pc = end_pc;
+Function_PC min_pc = Function_PC_invalid;
    loop(s, stat.size())
       {
         const Function_PC pc = stat[s].get_PC();
-        if (pc >= 0 && pc < min_pc)   min_pc = pc;
+        if (pc >= 0 && (min_pc < 0 || pc < min_pc))   min_pc = pc;
       }
+   if (min_pc < 0)   return false;
 
-   // the ◊ or COND tokens that separate the failed statement from its
-   // neighbours are outside [min_pc, end_pc), while a ◊ inside a lambda
-   // is not (and must be kept).
-   //
-   for (ShapeItem j = orig.ssize() - 1; j >= 0; --j)   // reversed
+ShapeItem from = 0;   // the leftmost token of the statement in orig
+   while (from < orig.ssize() && orig[from].get_PC() < min_pc)   ++from;
+
+ShapeItem to = from;   // the token after the rightmost token in orig
+int curly = 0;         // nesting level of { }
+int bracket = 0;       // nesting level of [ ]
+   for (; to < orig.ssize(); ++to)
        {
-         const Token_loc & tl = orig[j];
-         if (tl.get_PC() < min_pc || tl.get_PC() >= end_pc)   continue;
-         original.push_back(tl);
+         const TokenTag tag = orig[to].get_tag();
+         if      (tag == TOK_L_CURLY)   ++curly;
+         else if (tag == TOK_R_CURLY)   --curly;
+         else if (orig[to].get_Class() == TC_L_BRACK &&
+                  tag != TOK_SEMICOL)   ++bracket;
+         else if (orig[to].get_Class() == TC_R_BRACK)   --bracket;
+         else if (curly == 0 && (tag == TOK_DIAMOND || orig[to].is_COND()))
+              break;
+         else if (curly == 0 && bracket == 0 && tag == TOK_SEMICOL)
+              break;
        }
+
+   for (ShapeItem j = to - 1; j >= from; --j)   // reversed
+       original.push_back(orig[j]);
 
    return original.size() != 0;
 }
@@ -443,7 +458,6 @@ Executable::set_error_info(Error & error, Prefix_PC stat_PC,
 
 const Prefix_PC start = get_statement_start(stat_PC);
 const Prefix_PC end   = get_statement_end(stat_PC);
-const Function_PC end_pc = body[end].get_PC();   // the PC of ◊ or EOL
 
    // the tokens of the failed statement (reversed, without its END)
    //
@@ -455,15 +469,12 @@ const Token_string stat_after(body, size_t(start), end - start);
    // optimized) statement in body only if that fails.
    //
 Token_string stat_before;
-const bool reparsed = reparse(stat_before, stat_PC, stat_after, end_pc);
+const bool reparsed = reparse(stat_before, stat_PC, stat_after);
 const Token_string & failed_statement = reparsed ? stat_before : stat_after;
 
    // map the PCs to the tokens of failed_statement (whose index 0 is the
-   // rightmost token). The END token of the statement (PC end_pc) is not
-   // in failed_statement: if it is the leftmost item (i.e. the statement
-   // was read entirely) then the leftmost token is meant, and if it is
-   // the only item then the error belongs to the statement as such and
-   // we mark its leftmost token.
+   // rightmost token). The END token of the statement is not in
+   // failed_statement, but has the PC of its leftmost token.
    //
 Function_PC left_pc  = pcs.high;
 Function_PC right_pc = pcs.low;
@@ -475,14 +486,24 @@ Function_PC right_pc = pcs.low;
    if (left_pc == Function_PC_invalid)    left_pc = right_pc;
    if (right_pc == Function_PC_invalid)   right_pc = left_pc;
 
+   // the failed phrase lies within the failed statement, i.e. (APL order):
+   // left end of statement ≤ left end of phrase ≤ right end of phrase
+   //                       ≤ right end of statement
+   //
+   if (left_pc != Function_PC_invalid)
+      {
+        const Function_PC stat_left  = stat_after[stat_after.size() - 1].get_PC();
+        const Function_PC stat_right = stat_after[0].get_PC();
+        Assert(stat_left <= left_pc && left_pc <= right_pc &&
+               right_pc <= stat_right);
+      }
+
 const Function_PC leftmost = Function_PC(failed_statement.size() - 1);
 Function_PC2 range(Function_PC_0, leftmost);
    if (left_pc != Function_PC_invalid)
       {
-        range.high = left_pc >= end_pc ? leftmost
-                                       : token_at(failed_statement, left_pc);
-        range.low  = right_pc >= end_pc && left_pc >= end_pc
-                   ? leftmost : token_at(failed_statement, right_pc);
+        range.high = token_at(failed_statement, left_pc);
+        range.low  = token_at(failed_statement, right_pc);
         if (fun_of_result)
            {
              // the missing result of a function: mark the function
@@ -729,14 +750,17 @@ int
 Executable::check_PCs(const char * loc) const
 {
 int errors = 0;
-Function_PC end_PC = Function_PC_invalid;   // the PC of the statement END
-Function_PC prev = Function_PC_invalid;     // the PC of the token left of b
+Function_PC left_PC = Function_PC_invalid;   // the PC of the statement END
+bool leftmost = false;                       // the next token is leftmost
+Function_PC prev = Function_PC_invalid;      // the PC of the token left of b
 
    // the body is a sequence of reversed statements, i.e. right-to-left,
    // each followed by a TC_END token (or TC_RETURN at the end of the body).
-   // Since the END token comes last, we scan the body backwards, i.e. from
-   // the END of a statement and then from its leftmost token to its
-   // rightmost token. The PCs must therefore not decrease.
+   // The END token is the left end of its statement and has the PC of the
+   // leftmost token of the statement (or, for an empty statement, the PC of
+   // the ◊ or end of line). We scan the body backwards, i.e. from the END of
+   // a statement and then from its leftmost token to its rightmost token.
+   // The PCs must therefore not decrease.
    //
    for (ShapeItem b = body.ssize() - 1; b >= 0; --b)
        {
@@ -747,15 +771,20 @@ Function_PC prev = Function_PC_invalid;     // the PC of the token left of b
          if (pc < 0)                                  problem = "invalid PC";
          else if (tc == TC_END || tc == TC_RETURN)
             {
-              end_PC = pc;   // the end of a (reversed) statement
+              left_PC = pc;   // the left end of a (reversed) statement
+              leftmost = true;
               prev = Function_PC_invalid;
             }
-         else if (end_PC != Function_PC_invalid && pc > end_PC)
-              problem = "PC beyond the end of the statement";
+         else if (leftmost && pc != left_PC)
+              problem = "PC of the leftmost token differs from its END";
          else if (prev != Function_PC_invalid && pc < prev)
               problem = "PC smaller than the PC of the token left of it";
 
-         if (tc != TC_END && tc != TC_RETURN && pc >= 0)   prev = pc;
+         if (tc != TC_END && tc != TC_RETURN)
+            {
+              leftmost = false;
+              if (pc >= 0)   prev = pc;
+            }
          if (problem == 0)   continue;
 
          if (errors++ == 0)
@@ -1501,9 +1530,13 @@ Token_string output;   // in reverse order
             }
         Assert(stat_len + diamond_len);
 
-        // 3. maybe add a TC_END token. It gets the PC of the ◊ or COND
-        //    token that ends the statement, or else the PC of the end of
-        //    the line.
+        // 3. maybe add a TC_END token. In the body the END token follows
+        //    the leftmost token of the (reversed) statement, i.e. it is the
+        //    left end of the statement (in APL order). It therefore gets the
+        //    PC of the leftmost token of the statement (its neighbour in the
+        //    body). An empty statement has no tokens and its END gets the
+        //    PC of the ◊ or COND token that ends it, or else the PC of the
+        //    end of the line.
         //
         const Function_PC pc_end = diamond_len ? input[idx + stat_len].get_PC()
                                                : end_PC;
@@ -1511,23 +1544,30 @@ Token_string output;   // in reverse order
            {
              if (tag_end != TOK_END)
                 {
+                  // the COND token replaces the END token of the previous
+                  // statement (if any) and is then the left end of it.
+                  //
                   if (output.size() && output.back().get_tag() == TOK_END)
-                         output.pop_back();
-                   output.emplace_back(Token(tag_end, tr), pc_end);
+                     {
+                       const Token_loc prev_end(Token(tag_end, tr),
+                                                output.back());
+                       output.back().copy(prev_end, LOC);
+                     }
+                  else
+                     {
+                       output.emplace_back(Token(tag_end, tr), pc_end);
+                     }
                 }
               ++idx;
            }
         else                 // non-empty statement
            {
-             if (tr < 0)   // always add COND token
+             // output.back() is the leftmost token of the statement
+             //
+             const Token_loc stat_end(Token(tag_end, tr), output.back());
+             if (tr < 0 || diamond_len || get_parse_mode() != PM_EXECUTE)
                 {
-                  if (output.size() && output.back().get_tag() == TOK_END)
-                         output.pop_back();
-                  output.emplace_back(Token(tag_end, tr), pc_end);
-                }
-             else if (diamond_len || get_parse_mode() != PM_EXECUTE)
-                {
-                  output.emplace_back(Token(tag_end, tr), pc_end);
+                  output.push_back(stat_end);
                 }
 
              idx += stat_len + diamond_len;   // skip statement and (if any) ◊
@@ -1610,6 +1650,23 @@ Lambda_number lambda_num = LAMBDA_NUM_0;
 
    Parser::match_par_bra(body, true);
    remove_TOK_VOID();
+   set_END_PCs();
+}
+//────────────────────────────────────────────────────────────────────────────
+void
+Executable::set_END_PCs()
+{
+   for (ShapeItem b = 1; b < body.ssize(); ++b)
+       {
+         const TokenClass tc = body[b].get_Class();
+         if (tc != TC_END && tc != TC_RETURN)   continue;
+
+         const TokenClass prev = body[b - 1].get_Class();
+         if (prev == TC_END || prev == TC_RETURN)   continue;   // empty
+
+         const Token_loc tl(body[b].get_token(), body[b - 1]);
+         body[b].copy(tl, LOC);
+       }
 }
 //────────────────────────────────────────────────────────────────────────────
 ShapeItem
@@ -1653,10 +1710,12 @@ vector<Symbol *> local_vars;   // collector for local variables
         local_vars.push_back(lambda_body[semi + 1].get_sym_ptr());
 
         // the local variables are moved from the lambda text to the
-        // header, so that ENDL and RETURN get the PC of the ;
+        // header. ENDL is the left end of the last statement (and keeps
+        // its PC), while RETURN (an empty statement) gets the PC of the ;
         //
         const Function_PC pc_semi = lambda_body[semi].get_PC();
-        const Token_loc endl(lambda_body[semi + 2].get_token(), pc_semi);
+        const Token_loc endl(lambda_body[semi + 2].get_token(),
+                             lambda_body[semi + 2]);
         const Token_loc ret(lambda_body[semi + 3].get_token(), pc_semi);
         lambda_body[semi]    .copy(endl, LOC);
         lambda_body[semi + 1].copy(ret, LOC);
@@ -1777,7 +1836,7 @@ Function_PC end_PC = Function_PC_0;   // the PC of the end of data
 
    // for ⍎ we do not append TOK_END, but only TOK_RETURN_EXEC.
    //
-   fun->body.emplace_back(Token(TOK_RETURN_EXEC), end_PC);
+   fun->body.append_statement_end(Token(TOK_RETURN_EXEC), end_PC);
    if (fun->compute_if_else_targets())
       {
         delete fun;
@@ -1869,7 +1928,7 @@ Function_PC end_PC = Function_PC_0;   // the PC of the end of data
 
    // for ◊ we do not append TOK_END, but only TOK_RETURN_STATS.
    //
-   fun->body.emplace_back(Token(TOK_RETURN_STATS), end_PC);
+   fun->body.append_statement_end(Token(TOK_RETURN_STATS), end_PC);
    if (fun->compute_if_else_targets())
       {
         delete fun;

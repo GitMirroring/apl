@@ -133,7 +133,7 @@
       0J1 2⍸1
 DOMAIN ERROR+
       0J1 2⍸1
-      ^     ^
+      ^    ^
 
       )MORE
 A⍸B: A contains items that cannot be compared with each other
@@ -142,7 +142,7 @@ A⍸B: A contains items that cannot be compared with each other
       1 2⍸0J1
 DOMAIN ERROR+
       1 2⍸0J1
-      ^   ^
+      ^  ^
 
       )MORE
 A⍸B: B contains items that cannot be compared with each other

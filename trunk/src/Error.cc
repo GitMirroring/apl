@@ -117,7 +117,7 @@ const int diff = right_caret - left_caret;
 }
 //────────────────────────────────────────────────────────────────────────────
 void
-Error::print_em(ostream & out, const char * loc)
+Error::print_EM(ostream & out, const char * loc)
 {
    if (print_loc)
       {
@@ -269,8 +269,8 @@ const bool truncated = utf.size() > cap;
    // (Blake McBride, Bugs23 #6b).
 const int nchars = truncated ? truncate_utf8_boundary(error_message_2)
                               : ucs.size();
-   left_caret = lcaret > nchars ? nchars : lcaret;
-   right_caret = rcaret > nchars ? nchars : rcaret;
+   left_caret  = min(lcaret, nchars);
+   right_caret = min(rcaret, nchars);
 }
 //────────────────────────────────────────────────────────────────────────────
 void
@@ -342,10 +342,12 @@ Error::update_error_info(StateIndicator * si)
      const UTF8_string prompt_utf(Workspace::get_prompt());
      const int nchars = set_error_line_2(prompt_utf.c_str());
      set_right_caret(-1);
+
      // first char after the prompt, clamped to the (possibly truncated)
      // line 2 (Bugs23 #6b)
+     //
      const int after_prompt = Workspace::get_prompt().size();
-     set_left_caret(after_prompt > nchars ? nchars : after_prompt);
+     set_left_caret(min(after_prompt, nchars));
    }
 
    // prepare the second error line (= display of the failed statement)
@@ -426,8 +428,8 @@ Error::update_error_info(StateIndicator * si)
         // the body (inside the failed statement).
         //
         const Prefix & prefix = display_si->get_prefix();
-        Function_PC from = prefix.get_range_low();
-        Function_PC to   = prefix.get_range_high();
+        Function_PC from = prefix.get_phrase_low();
+        Function_PC to   = prefix.get_phrase_high();
         const Prefix_PC stat_PC = prefix.get_statement_PC();
         bool fun_of_result = false;
 
@@ -437,7 +439,7 @@ Error::update_error_info(StateIndicator * si)
         // symbol (it is thrown while the symbol is being resolved), or
         // ends at the statement end (for a function without result).
         //
-        const bool failed_token = failed_exec &&
+        const bool failed_token = failed_exec   &&
                     error_code == E_VALUE_ERROR &&
                     failed_exec == display_si->get_executable();
         if (failed_token)
@@ -468,6 +470,15 @@ Error::update_error_info(StateIndicator * si)
         const bool whole_statement = from == to && display_si != si &&
                                      !failed_token;
 
+        // like IBM APL2, place the right caret under the failed function
+        // or operator (rather than under the right end of the phrase).
+        // A SYNTAX ERROR has no failed function (the phrase matched no
+        // pattern), its right caret is placed by Prefix::adjust_right_caret().
+        //
+        if (!failed_token && !whole_statement &&
+            error_code != E_SYNTAX_ERROR && error_code != E_LEFT_SYNTAX_ERROR)
+           from = prefix.get_failed_function();
+
         const Function_PC2 error_range(from, to);
         display_si->get_executable()->set_error_info(*this, stat_PC,
                                      error_range, fun_of_result,
@@ -478,6 +489,7 @@ Error::update_error_info(StateIndicator * si)
    //
 out:
    failed_exec = 0;   // used (or not) by this error
+
    // E_COMMAND_PUSHED (Bugs28 #95) is Bif_F1_EXECUTE.cc's internal
    // signal that a )LOAD/)QLOAD/)CLEAR/)RESET/)SIC inside ⍎ needs to
    // run via Command::do_APL_expression() instead of here -- its own
@@ -485,7 +497,7 @@ out:
    // it", but nothing here ever exempted it: it was stored as if it
    // were a real error (⎕ET/⎕EM reporting an "error" -- with a
    // function line and carets, inside a defined function -- for a
-   // successful operation) and printed unconditionally by print_em()
+   // successful operation) and printed unconditionally by print_EM()
    // below. Return before either happens; Command.cc's own handling of
    // this code is unaffected (the exception is still thrown/caught the
    // same way either way).
@@ -495,12 +507,13 @@ out:
    StateIndicator::get_error(si) = *this;
 
    // )SI entries below a ⎕ES entry must not print anything but simply return
+   //
    for (const StateIndicator * si1 = si; si1; si1 = si1->get_parent())
        {
          if (si1->get_safe_execution_depth())   return;
        }
 
-   print_em(UERR, LOC);
+   print_EM(UERR, LOC);
 }
 //────────────────────────────────────────────────────────────────────────────
 const char *
@@ -651,12 +664,11 @@ Error::throw_parse_error(ErrorCode code, const UCS_string & line,
 Error error(code, loc);
    error.parser_loc = par_loc;
 
-   if (start < 0)                    start = 0;
-   if (end < start)                  end = start;
-   if (end > int(line.size()))       end = int(line.size());
+   if (start < 0)                start = 0;
+   if (end < start)              end = start;
+   if (end > int(line.size()))   end = line.size();
 
-UCS_string fragment;
-   for (int p = start; p < end; ++p)   fragment << line[p];
+const UCS_string fragment(line, start, end - start);
    error.set_error_line_2(fragment, 0, fragment.size());
 
    // Bugs28 #93: see the other throw_parse_error() overload above --

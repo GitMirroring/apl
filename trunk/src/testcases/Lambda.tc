@@ -196,7 +196,7 @@ SYNTAX ERROR
       1÷0
 DOMAIN ERROR
       1÷0
-      ^ ^
+      ^^
 
       {⍶}1
 DEFN ERROR+

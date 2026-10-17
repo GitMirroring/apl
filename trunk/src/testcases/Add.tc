@@ -115,7 +115,7 @@
       M+['a']1 2
 AXIS ERROR
       M+['a']1 2
-      ^      ^
+      ^^
 
       ⍝ leaves an )SI entry for the failed immediate execution above;
       ⍝ clear it so a clean )SI carries into whatever test3 runs next.

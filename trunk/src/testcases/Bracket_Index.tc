@@ -207,7 +207,7 @@ D E F
       (V[])←1 2 3
 LENGTH ERROR+
       (V[])←1 2 3
-      ^     ^
+      ^    ^
 
       )SIC
       ⍴V
@@ -279,13 +279,13 @@ LENGTH ERROR+
       V←1 2 3 ⋄ (0⌽V)←9 9
 LENGTH ERROR+
       (0⌽V)←9 9
-      ^     ^
+      ^    ^
       )SIC
 
       V←5 ⋄ (⌽V)←9 9
 LENGTH ERROR+
       (⌽V)←9 9
-      ^    ^
+      ^   ^
       )SIC
 
       M←2 3⍴⍳6 ⋄ (1 2⍉M)←9 ⋄ M
@@ -474,7 +474,7 @@ OK      - no duplicate parents
       ⌽[1E10](2 2⍴⍳4)
 AXIS ERROR+
       ⌽[1E10](2 2⍴⍳4)
-      ^      ^
+      ^
 
       )SIC
 

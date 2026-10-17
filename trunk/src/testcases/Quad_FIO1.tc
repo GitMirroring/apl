@@ -42,7 +42,7 @@ DUMPED ³
       FIO∆fclose Handle
 DOMAIN ERROR+
 FIO∆fclose[2]  Ze←⎕FIO[4]Bh
-                  ^      ^
+                  ^
       →
 
       ⍝ create new file

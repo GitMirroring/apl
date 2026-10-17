@@ -202,7 +202,7 @@
       ¯12○0J¯710
 DOMAIN ERROR
       ¯12○0J¯710
-      ^   ^
+      ^  ^
       )SIC
 
       ⍝ Bugs28 #47 regression: A○B with a genuinely complex A (non-zero
@@ -221,13 +221,13 @@ DOMAIN ERROR
       1J1○3.5
 DOMAIN ERROR
       1J1○3.5
-      ^   ^
+      ^  ^
 
       )SIC
       1J1∘.○3.5 4
 DOMAIN ERROR
       1J1∘.○3.5 4
-      ^     ^
+      ^  ^
 
       )SIC
 
@@ -236,7 +236,7 @@ DOMAIN ERROR
       0.5○1
 DOMAIN ERROR
       0.5○1
-      ^   ^
+      ^  ^
 
       )SIC
 

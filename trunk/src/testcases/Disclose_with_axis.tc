@@ -183,7 +183,7 @@ G  H  I  J K L
       ⊃[5]2 3⍴⍳6
 AXIS ERROR+
       ⊃[5]2 3⍴⍳6
-      ^   ^
+      ^
       )MORE
 ⊃[X]B: X[1] = 5 is not a valid axis (expecting 1≤X[1]<3).
       )SIC
@@ -191,7 +191,7 @@ AXIS ERROR+
       ⊃[1 1]2 3⍴⍳6
 AXIS ERROR+
       ⊃[1 1]2 3⍴⍳6
-      ^     ^
+      ^
       )MORE
 ⊃[X]B: X[2] = 1 is a duplicate axis.
       )SIC
@@ -200,7 +200,7 @@ AXIS ERROR+
       ⊃[2]2 3⍴⍳6
 AXIS ERROR+
       ⊃[2]2 3⍴⍳6
-      ^   ^
+      ^
       )MORE
 ⊃[X]B: X[0] = 2 is not a valid axis (expecting 0≤X[0]<2). Note: ⎕IO=0.
       )SIC
@@ -217,7 +217,7 @@ AXIS ERROR+
       ⊃[⍬](1 2)(3 4)             ⍝ items are rank 1, X has 0 items
 AXIS ERROR+
       ⊃[⍬](1 2) (3 4)
-      ^   ^
+      ^
       )MORE
 ⊃[X]B: ⍴,X (0) does not match the rank of the items of B (1)
       )SIC
@@ -225,7 +225,7 @@ AXIS ERROR+
       ⊃[1 2](1 2)(3 4)           ⍝ items are rank 1, X has 2 items
 AXIS ERROR+
       ⊃[1 2](1 2) (3 4)
-      ^     ^
+      ^
       )MORE
 ⊃[X]B: ⍴,X (2) does not match the rank of the items of B (1)
       )SIC
@@ -233,7 +233,7 @@ AXIS ERROR+
       M←2 3⍴⍳6 ⋄ ⍴⊃[1](⊂M),⊂M   ⍝ items are rank 2, X has 1 item
 AXIS ERROR+
       ⍴⊃[1](⊂M),⊂M
-       ^   ^
+       ^
       )MORE
 ⊃[X]B: ⍴,X (1) does not match the rank of the items of B (2)
       )SIC

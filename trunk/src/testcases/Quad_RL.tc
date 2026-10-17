@@ -30,7 +30,7 @@
       ⎕RL←¯1
 DOMAIN ERROR+
       ⎕RL←¯1
-          ^
+      ^  ^
       )MORE
 ⎕RL must be a non-negative integer; GNU APL's valid range is 0 to 9223372036854775807 (2*63-1) -- wider than APL2's documented ¯2+2*31, scaled up to GNU APL's native 64-bit integers (see LanguageVariances.md #31)
 

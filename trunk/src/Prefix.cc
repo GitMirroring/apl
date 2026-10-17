@@ -55,6 +55,51 @@ Prefix::Prefix(StateIndicator & _si, const Token_string & _body)
 {
 }
 //────────────────────────────────────────────────────────────────────────────
+Function_PC
+Prefix::get_failed_function() const
+{
+   // GNU APL used to place the carets under the entire failed phrase
+   // (supposedly the old APL68000 behavior. IBM APL2 places the right caret
+   // under the failed function or operator. This function fixes the old
+   // GNU APL behavior so that it now follows IBM APL2.
+   //
+   // the scan starts at the rightmost (in APL order) item of the reduced
+   // phrase, i.e. B = at(prefix_len - 1) = content[put - prefix_len], and
+   // moves left (towards at0()). It must not start further right (at
+   // content[0]) since the items below the phrase are right of it and were
+   // not yet reduced.
+   //
+const int B = (prefix_len > 0 && prefix_len <= put) ? put - prefix_len : 0;
+
+   // an operator, e.g. f OP2 g. Otherwise the right caret would be placed
+   // under a function argument of the operator rather than under the
+   // operator itself.
+   //
+   for (int s = B; s < put; ++s)   // from right to left (in APL order)
+       {
+         if (is_operator_class(content[s].get_Class()))
+            {
+              return content[s].get_PC();
+            }
+       }
+
+   // a function, →, or ← (the essence of A F B, F B, → B, A ← B, ...)
+   //
+   for (int s = B; s < put; ++s)   // from right to left (in APL order)
+       {
+         enum { BITS = 1 << TC_FUN0 | 1 << TC_FUN2 | 1 << TC_R_ARROW |
+                       1 << TC_ASSIGN };
+         if (BITS & 1 << content[s].get_Class())
+            {
+              return content[s].get_PC();
+            }
+       }
+
+   // no function or operator: the rightmost item of the phrase
+   //
+   return put ? content[B].get_PC() : get_phrase_low();
+}
+//────────────────────────────────────────────────────────────────────────────
 void
 Prefix::neutralize_lval_values()
 {
@@ -1016,8 +1061,11 @@ Prefix::adjust_right_caret(Function_PC2 & range,
    // called after a SYNTAX ERROR. The right caret may be too far right
    // (in APL order). Try to narrow the range.
    //
-   // range.low is the right (in APL order) end of the statement,
-   // range.high is the left (in APL order) end of the statement,
+   // range.low is the right (in APL order) end of the failed phrase and
+   // range.high is its left (in APL order) end, both as indices into
+   // failed_statement (which is reversed, i.e. index 0 is its rightmost
+   // token). Only the tokens of the phrase are searched, not those of the
+   // entire statement.
    //
    // If something upstream (e.g. missing_files(), Missing_Libraries.cc,
    // for a ⎕-function whose library isn't compiled in) already set a
@@ -3686,6 +3734,13 @@ Value_P B = at2().get_apl_val();
    Assert1(B->get_owner_count() >= 2);   // owners are at least B and at2()
 const bool clone = B->get_owner_count() != 2 || at1().get_tag() != TOK_ASSIGN1;
 Symbol * V = at0().get_sym_ptr();
+
+   // assign before popping V and ←, so that a failed assignment (e.g.
+   // ⎕IO←'a') reports the entire phrase V ← B (with the right caret
+   // under ←).
+   //
+   V->assign(B, clone, LOC);
+
    pop_and_discard();   // V
    pop_and_discard();   // ←
 
@@ -3698,8 +3753,6 @@ Symbol * V = at0().get_sym_ptr();
 
    set_assign_state(ASS_none);
    set_action(RA_CONTINUE);   // match again (w/o SHIFT)
-
-   V->assign(B, clone, LOC);
 }
 //────────────────────────────────────────────────────────────────────────────
 void

@@ -76,7 +76,7 @@ CLEAR WS
       2⎕TF 'F1'
 DOMAIN ERROR+
       2 ⎕TF 'F1'
-      ^     ^
+      ^ ^
       )ERASE F1
 
       ⍝ #58 QuadFunction.cc Quad_EX::expunge(): ⎕EX of a name that was
@@ -114,7 +114,7 @@ DOMAIN ERROR+
       ⎕PW←0
 DOMAIN ERROR
       ⎕PW←0
-          ^
+      ^  ^
 
       ⍝ #59(g) Cmd_HOST.cc cmd_HOST(): pclose()'s raw wait status was
       ⍝ printed unconverted (768 for "exit 3" instead of 3); now decoded
@@ -140,7 +140,7 @@ DOMAIN ERROR
       ⎕JSON '"',(⎕UCS 92 117 100 101 48 48),'"'
 DOMAIN ERROR+
       ⎕JSON '"',(⎕UCS 92 117 100 101 48 48),'"'
-      ^     ^
+      ^
 
       ]FILE_CTL NO_SKIP
 
@@ -155,11 +155,11 @@ DOMAIN ERROR+
       ⎕FX B
 DOMAIN ERROR+
       ⎕FX B
-      ^   ^
+      ^
       ⎕STOP 'NONEX'
 DOMAIN ERROR+
       ⎕STOP 'NONEX'
-      ^     ^
+      ^
       )ERASE B
 
       ⍝ #57 (fixed 2026-09-02): ⎕EC's SI unwind (Command.cc) popped the
@@ -175,11 +175,11 @@ DOMAIN ERROR+
       ⎕EC '⎕ES ''hello'''
  0  0 1  hello             
                ⎕ES 'hello' 
-               ^   ^       
+               ^           
       ⎕EC '''msg'' ⎕ES 5 5'
  0  5 5  msg                 
                'msg' ⎕ES 5 5 
-               ^         ^   
+               ^     ^       
       ∇Z←F
       ⎕ES 'inside F'
       Z←0
@@ -371,7 +371,7 @@ SYNTAX ERROR+
       2 ¯1⍕5
 DOMAIN ERROR
       2 ¯1⍕5
-      ^    ^
+      ^   ^
       8 ¯3⍕5.267033354E¯14
 5.27E¯14
       )SIC
@@ -412,7 +412,7 @@ DOMAIN ERROR
       {1÷⍵}¨2 1 0
 DOMAIN ERROR
 λ1[1]  λ←1÷⍵
-         ^ ^
+         ^^
       )SI
 λ1[1]
 *
@@ -569,7 +569,7 @@ DOMAIN ERROR
       '⍳3.3' ⎕EA '⍳4.5'
 DOMAIN ERROR
       ⍳3.3
-      ^^
+      ^
 
       ⍝ #36 (also fixed 2026-09-03) A B that fails to PARSE (not just
       ⍝ fails at runtime) inside ⎕EC used to print straight to the
@@ -601,7 +601,7 @@ DOMAIN ERROR
       1÷0
 DOMAIN ERROR
       1÷0
-      ^ ^
+      ^^
 
       ⍝ #59(k) (fixed 2026-09-03) an AXIS ERROR raised to the right of
       ⍝ a still-pending (not yet reduced into a value) bracket index
@@ -638,7 +638,7 @@ DOMAIN ERROR
       Z[1;1] ⌷[¯1] 1
 AXIS ERROR+
       Z[1;1]⌷[¯1]1
-      ^          ^
+      ^     ^
       )SIC
       )CHECK
 OK      - no stale functions
@@ -648,7 +648,7 @@ OK      - no duplicate parents
       Z[1;1]+1÷0
 DOMAIN ERROR
       Z[1;1]+1÷0
-             ^ ^
+             ^^
       )SIC
       )CHECK
 OK      - no stale functions
@@ -697,7 +697,7 @@ GEN5
       BAD
 DOMAIN ERROR
 BAD[2]  Z←1÷0
-          ^ ^
+          ^^
       ⎕FX 'Z←GEN5' 'Z←2'
 1
       )SIC
@@ -743,7 +743,7 @@ OK      - no duplicate parents
       +⍣1 1⍤1
 VALENCE ERROR+
       +⍣1 1⍤1
-      ^^
+      ^
 
       )SIC
       )CHECK
@@ -1015,7 +1015,7 @@ OK      - no duplicate parents
       (↓V)←9 9
 VALENCE ERROR+
       (↓V)←9 9
-       ^   ^
+       ^
       )SIC
       )CHECK
 OK      - no stale functions
@@ -1039,7 +1039,7 @@ OK      - no duplicate parents
       (A B[1])←1 2
 RANK ERROR+
       (A B[1])←1 2
-         ^     ^
+         ^^
       )SIC
       )CHECK
 OK      - no stale functions
@@ -1081,7 +1081,7 @@ OK      - no duplicate parents
       V←(1 2)(3 4) ◊ (↑⊃V)←9 9
 LENGTH ERROR+
       (↑⊃V)←9 9
-      ^     ^
+      ^    ^
 
       )SIC
       V
@@ -1099,7 +1099,7 @@ LENGTH ERROR+
       V←(1 2 3)(4 5)(6) ◊ (∊⊃V)←9 9 9 9 9
 LENGTH ERROR+
       (ϵ⊃V)←9 9 9 9 9
-      ^     ^
+      ^    ^
 
       )SIC
 
@@ -1116,25 +1116,25 @@ LENGTH ERROR+
       (1⊃∊V)←9
 DOMAIN ERROR+
       (1⊃ϵV)←9
-       ^     ^
+       ^^
 
       )SIC
       (1⊃,∊V)←9
 DOMAIN ERROR+
       (1⊃,ϵV)←9
-       ^      ^
+       ^^
 
       )SIC
       (1⊃⌽∊V)←9
 DOMAIN ERROR+
       (1⊃⌽ϵV)←9
-       ^      ^
+       ^^
 
       )SIC
       (1⊃,⊃V)←9
 DOMAIN ERROR+
       (1⊃,⊃V)←9
-       ^      ^
+       ^^
 
       )SIC
       V
@@ -1262,7 +1262,7 @@ OK      - no duplicate parents
       V←1 2 3 ◊ (⍬⌷[⍬]V)←9 8
 LENGTH ERROR+
       (⍬⌷[⍬]V)←9 8
-      ^        ^
+      ^       ^
       )SIC
 
 
@@ -1398,7 +1398,7 @@ SYNTAX ERROR
       X←5 ◊ (X ⎕IO Y)←1 99 2
 DOMAIN ERROR
       (X ⎕IO Y)←1 99 2
-             ^  ^
+             ^ ^
       )SIC
 
 
@@ -1576,7 +1576,7 @@ not skipped
       ⎕FIO[25] E
 DOMAIN ERROR+
       ⎕FIO[25]E
-      ^       ^
+      ^
 
 
 
@@ -1694,7 +1694,7 @@ A ⎕EB B: B failed with DOMAIN ERROR: the SI-modifying command ')CLEAR' cannot 
       '1÷0' ⎕EB '2÷0'        ⍝ A's error wins, )MORE names B's failure
 DOMAIN ERROR+
       1÷0
-      ^ ^
+      ^^
 
 
       )MORE
@@ -1752,13 +1752,13 @@ NO )MORE ERROR INFO
       (1 0/V)←9
 LENGTH ERROR+
       (1 0/V)←9
-       ^      ^
+       ^  ^
 
 
       (⊂V)←9 9
 LENGTH ERROR+
       (⊂V)←9 9
-      ^    ^
+      ^   ^
 
 
       )CHECK
@@ -1830,7 +1830,7 @@ OK      - no duplicate parents
       2 ⎕TF 'S←''a'',(⎕UCS 99999999999999999),'''''
 DOMAIN ERROR+
       2 ⎕TF 'S←''a'',(⎕UCS 99999999999999999),'''''
-      ^     ^
+      ^ ^
 
 
 
@@ -1862,7 +1862,7 @@ DOMAIN ERROR+
       ⎕UCS ¯129
 DOMAIN ERROR
       ⎕UCS ¯129
-      ^    ^
+      ^
 
 
 

@@ -74,7 +74,7 @@ H LINE 6
       FACTR ¯3
 DOMAIN ERROR
 FACTR[1]  Z←!A
-            ^^
+            ^
 
       ]FILE_CTL SKIP_APL2   ⍝ ⎕LC/⎕NL depend on the test harness
       ⎕LC
@@ -84,7 +84,7 @@ FACTR[1]  Z←!A
       FACTR ¯6
 DOMAIN ERROR
 FACTR[1]  Z←!A
-            ^^
+            ^
 
       ]FILE_CTL SKIP_APL2   ⍝ ⎕LC/⎕NL depend on the test harness
       ⎕LC
@@ -129,11 +129,11 @@ G[3]  H
 *  G
    ^
 FACTR[1]  Z←!A
-            ^^
+            ^
 *  FACTR ¯6
    ^
 FACTR[1]  Z←!A
-            ^^
+            ^
 *  FACTR ¯3
    ^
 

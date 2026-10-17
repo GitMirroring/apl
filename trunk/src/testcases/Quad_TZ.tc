@@ -28,7 +28,7 @@
       ⎕TZ←15
 DOMAIN ERROR+
       ⎕TZ←15
-          ^
+      ^  ^
 
       )MORE
 ⎕TZ←15: expecting -12 ≤ ⎕TZ ≤ 14 (hours UTC offset)
@@ -39,7 +39,7 @@ DOMAIN ERROR+
       ⎕TZ←14.2
 DOMAIN ERROR+
       ⎕TZ←14.2
-          ^
+      ^  ^
 
       )MORE
 ⎕TZ←14.199999999999999: expecting -12 ≤ ⎕TZ ≤ 14 (hours UTC offset)
@@ -50,7 +50,7 @@ DOMAIN ERROR+
       ⎕TZ←¯13
 DOMAIN ERROR+
       ⎕TZ←¯13
-          ^
+      ^  ^
 
       )MORE
 ⎕TZ←¯13: expecting -12 ≤ ⎕TZ ≤ 14 (hours UTC offset)
@@ -61,7 +61,7 @@ DOMAIN ERROR+
       ⎕TZ←¯12.2
 DOMAIN ERROR+
       ⎕TZ←¯12.2
-          ^
+      ^  ^
 
       )MORE
 ⎕TZ←¯12.199999999999999: expecting -12 ≤ ⎕TZ ≤ 14 (hours UTC offset)

@@ -288,7 +288,7 @@ try_again:
               //
               if (InputFile::running_script() ||
                   InputFile::is_validating())   throw;
-              if (!err.get_print_loc())   err.print_em(COUT, LOC);
+              if (!err.get_print_loc())   err.print_EM(COUT, LOC);
               Output::set_color_mode(Output::COLM_INPUT);
             }
        }

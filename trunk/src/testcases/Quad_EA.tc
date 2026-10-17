@@ -13,7 +13,7 @@
       '⍳3.3' ⎕EA '⍳4.5'
 DOMAIN ERROR
       ⍳3.3
-      ^^
+      ^
       ⍝     '⍳3.3' ⎕EA '⍳4.5'
       ⍝     ^      ^
 
@@ -43,7 +43,7 @@ ERR
       foo_fails 2
 DOMAIN ERROR
 foo_fails[1]  ÷0
-              ^^
+              ^
       ⎕SI 2
 0 2 2 1 0
 
@@ -140,7 +140,7 @@ REACHED: FOO(LP)
       Z←'!¯3' ⎕EA '!¯5'
 DOMAIN ERROR
       !¯3
-      ^^
+      ^
 
       →
 
@@ -194,7 +194,7 @@ L1: Z←-1
       '⎕EM' ⎕EA '1÷0'
 DOMAIN ERROR
       1÷0   
-      ^ ^   
+      ^^    
 
       ⍝ control: ⎕ET was already correct
       ⍝
@@ -208,7 +208,7 @@ DOMAIN ERROR
 1
 DOMAIN ERROR
       1÷0   
-      ^ ^   
+      ^^    
 5 4
 
       ⍝ regression (Blake McBride, Bugs31 #7) -- CLOSED AS NOT A BUG

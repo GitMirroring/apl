@@ -23,7 +23,7 @@
       foo[2;3] 4
 AXIS ERROR+
       foo[2;3]4
-      ^       ^
+      ^
 
       →
 

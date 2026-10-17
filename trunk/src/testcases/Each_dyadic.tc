@@ -111,7 +111,7 @@
       (1⌽¨1↑V)←1
 INDEX ERROR
       (1⌽¨1↑V)←1
-       ^       ^
+       ^^
 
       ⍝ leaves an )SI entry for the failed immediate execution above.
       ⍝

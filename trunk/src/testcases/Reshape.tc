@@ -116,7 +116,7 @@
       ¯1⍴1
 DOMAIN ERROR+
       ¯1⍴1
-      ^  ^
+      ^ ^
 
       →
 
@@ -158,7 +158,7 @@ ABCD ¯5 ¯6
       ¯1⍴0,0
 DOMAIN ERROR+
       ¯1⍴0,0
-      ^  ^
+      ^ ^
 
       )SIC
 
@@ -182,12 +182,12 @@ DOMAIN ERROR+
       Z←'2'⍴5
 DOMAIN ERROR
       Z←'2'⍴5
-        ^   ^
+        ^  ^
 
       ⎕EM
 DOMAIN ERROR 
       Z←'2'⍴5
-        ^   ^
+        ^  ^ 
 
       ⎕ET
 5 4
@@ -196,13 +196,13 @@ DOMAIN ERROR
       Z←2.5⍴5
 DOMAIN ERROR
       Z←2.5⍴5
-        ^   ^
+        ^  ^
 
       )SIC
       Z←2J1⍴5
 DOMAIN ERROR
       Z←2J1⍴5
-        ^   ^
+        ^  ^
 
       )SIC
 
@@ -218,7 +218,7 @@ ZZ32F
       ZZ32F 5
 DOMAIN ERROR
 ZZ32F[1]  Z←'2'⍴5
-            ^   ^
+            ^  ^
 
       )SIC
 
@@ -240,7 +240,7 @@ ZZ32F[1]  Z←'2'⍴5
       Z←(⊂1)↑M
 LENGTH ERROR+
       Z←(⊂1)↑M
-        ^    ^
+        ^   ^
 
       )SIC
 
@@ -251,7 +251,7 @@ LENGTH ERROR+
       Z←(⊂1 2)↑M
 DOMAIN ERROR
       Z←(⊂1 2)↑M
-        ^      ^
+        ^     ^
 
       )SIC
 
@@ -269,37 +269,37 @@ DOMAIN ERROR
       ⍴0 ¯2⍴0
 DOMAIN ERROR+
       ⍴0 ¯2⍴0
-       ^    ^
+       ^   ^
 
       )SIC
       ⍴0 ¯2 3⍴0
 DOMAIN ERROR+
       ⍴0 ¯2 3⍴0
-       ^      ^
+       ^     ^
 
       )SIC
       A←0 ¯2 ◊ ⍴A⍴0
 DOMAIN ERROR+
       ⍴A⍴0
-       ^ ^
+       ^^
 
       )SIC
       (⌈/⍤1)0 ¯2⍴0
 DOMAIN ERROR+
       (⌈/⍤1)0 ¯2⍴0
-            ^    ^
+            ^   ^
 
       )SIC
       Z←1 0/0 ¯2⍴0
 DOMAIN ERROR+
       Z←1 0/0 ¯2⍴0
-            ^    ^
+            ^   ^
 
       )SIC
       Z←1/0 ¯2⍴0
 DOMAIN ERROR+
       Z←1/0 ¯2⍴0
-          ^    ^
+          ^   ^
 
       )SIC
       'session still alive'

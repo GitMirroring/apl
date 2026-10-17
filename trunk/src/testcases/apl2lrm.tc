@@ -61,7 +61,7 @@
       ⎕RL←¯1
 DOMAIN ERROR+
       ⎕RL←¯1
-          ^
+      ^  ^
       )MORE
 ⎕RL must be a non-negative integer; GNU APL's valid range is 0 to 9223372036854775807 (2*63-1) -- wider than APL2's documented ¯2+2*31, scaled up to GNU APL's native 64-bit integers (see LanguageVariances.md #31)
 
@@ -84,12 +84,12 @@ DOMAIN ERROR+
       ⎕IO←5
 DOMAIN ERROR
       ⎕IO←5
-          ^
+      ^  ^
       ⎕IO←1
       ⎕PP←0
 DOMAIN ERROR
       ⎕PP←0
-          ^
+      ^  ^
       ⎕PP←10
 
 ⍝ #34 -- ⎕TF transfer forms, LRM p.337-338.
@@ -120,7 +120,7 @@ NA3 2 2 3 2 3 4 5 6 1
       F 0
 DOMAIN ERROR
 F[1]  Z←10÷X
-        ^  ^
+        ^ ^
       ∇F[1]Z←20÷X∇
 DEFN ERROR+
       ∇F[1]Z←20÷X∇
@@ -212,11 +212,11 @@ Z←MEAN B
       ⎕AF ¯1
 DOMAIN ERROR
       ⎕AF ¯1
-      ^   ^
+      ^
       ⎕AF(2*31)
 DOMAIN ERROR
       ⎕AF(2⋆31)
-      ^  ^
+      ^
       ⎕AF(¯1+2*31)
 ◌
       ⎕AF 300
@@ -292,10 +292,10 @@ NOT SAVED, THIS WS IS CLEAR WS+
       F 0
 DOMAIN ERROR
 F[1]  Z←10÷X
-        ^  ^
+        ^ ^
       )SIS
 F[1]  Z←10÷X
-        ^  ^
+        ^ ^
 *  F 0
    ^
       )SIC

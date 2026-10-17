@@ -71,7 +71,7 @@ zZ
       A ⎕MAP B
 DOMAIN ERROR+
       A ⎕MAP B
-      ^      ^
+      ^ ^
 
       )MORE
 Duplicate keys (e.g. A[1] and A[3]) in 'A ⎕MAP B'

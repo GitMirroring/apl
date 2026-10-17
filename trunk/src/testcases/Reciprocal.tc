@@ -32,7 +32,7 @@
       ÷0J0
 DOMAIN ERROR
       ÷0
-      ^^
+      ^
 
       ⍝ regression (Blake McBride, Bugs31 #11): Smith's algorithm (Bugs30
       ⍝ #6) divides by the larger-magnitude component first to keep every

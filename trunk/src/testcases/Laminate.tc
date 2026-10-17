@@ -97,7 +97,7 @@ AD
       ⍴ A ,[¯0.5] B
 AXIS ERROR+
       ⍴A,[¯0.5]B
-       ^       ^
+       ^^
 
       ⍴A,[0.5]B
 2 4 3
@@ -111,13 +111,13 @@ AXIS ERROR+
       ⍴ A ,[3.5] B
 AXIS ERROR+
       ⍴A,[3.5]B
-       ^      ^
+       ^^
 
       ⎕IO←0
       ⍴ A ,[¯1.5] B
 AXIS ERROR+
       ⍴A,[¯1.5]B
-       ^       ^
+       ^^
 
       ⍴A,[¯0.5]B
 2 4 3
@@ -131,7 +131,7 @@ AXIS ERROR+
       ⍴ A ,[2.5] B
 AXIS ERROR+
       ⍴A,[2.5]B
-       ^      ^
+       ^^
 
       )SIC
       ⎕IO←1
@@ -146,7 +146,7 @@ AXIS ERROR+
       Z←1 2 3,[0.5]2 3⍴0
 RANK ERROR+
       Z←1 2 3,[0.5]2 3⍴0
-        ^          ^
+        ^    ^
       )MORE
 A,[X]B: expecting ⍴⍴A = ⍴⍴B (or A or B a scalar); ⍴⍴A is 1, ⍴⍴B is 2
 

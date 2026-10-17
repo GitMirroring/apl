@@ -187,14 +187,14 @@ A BCD
       (3↑A)←⍬
 LENGTH ERROR+
       (3↑A)←⍬
-      ^     ^
+      ^    ^
 
       )SIC
       A←10 20 30
       (2↑A)←0 2⍴0
 LENGTH ERROR+
       (2↑A)←0 2⍴0
-      ^     ^
+      ^    ^
 
       ⍝ control: an each result that happens to be empty (0 0⍴⍵, not a
       ⍝ selective-assignment target) must NOT be affected -- the same

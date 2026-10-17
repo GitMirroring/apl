@@ -16,7 +16,7 @@ SYNTAX ERROR
       (⍳68)⍴15
 SYSTEM LIMIT (rank)+
       (⍳68)⍴15
-      ^     ^
+      ^    ^
 
       ⎕ET
 1 8
@@ -41,7 +41,7 @@ OK      - no duplicate parents
       1÷0
 DOMAIN ERROR
       1÷0
-      ^ ^
+      ^^
 
       ⎕ET
 5 4

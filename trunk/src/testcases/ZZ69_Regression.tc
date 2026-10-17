@@ -53,7 +53,7 @@ L: I←I+1
       V←DEEP 254
 SYSTEM LIMIT (nesting depth)
 DEEP[5]  Z←⊂Z
-           ^^
+           ^
       )SIC
 
       ⎕←V

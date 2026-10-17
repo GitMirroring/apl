@@ -21,7 +21,7 @@ CLEAR WS
       ⌹MM
 DOMAIN ERROR+
       ⌹MM
-      ^^
+      ^
       )SIC
 
       ⍝ H17e, second reproducer: same root cause, different symptom --
@@ -32,7 +32,7 @@ DOMAIN ERROR+
       ⌹MM
 DOMAIN ERROR+
       ⌹MM
-      ^^
+      ^
       )SIC
 
       ⍝ H17d: larfg()'s naive square(ALPHA)/norm2_X can also UNDERflow to
@@ -45,7 +45,7 @@ DOMAIN ERROR+
       ⌹MM
 DOMAIN ERROR+
       ⌹MM
-      ^^
+      ^
       )SIC
 
       )ERASE MM

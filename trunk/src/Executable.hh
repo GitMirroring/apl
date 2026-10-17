@@ -166,10 +166,9 @@ public:
    /// @param original token string (reversed, like body) to restore into
    /// @param stat_PC a position in body inside the failed statement
    /// @param stat the (optimized) failed statement in body
-   /// @param end_pc the (Token_loc-) PC of the end of the statement
    /// @return true on success
    bool reparse(Token_string & original, Prefix_PC stat_PC,
-                const Token_string & stat, Function_PC end_pc) const;
+                const Token_string & stat) const;
 
    /// compute error lines 2 and 3 in \b error
    /// @param error error object to fill with location information
@@ -305,6 +304,13 @@ protected:
    /// recursively extract all lambda expressions from body and store
    /// them in lambdas
    void setup_lambdas();
+
+   /// give every END (or RETURN) token of a non-empty statement the PC of
+   /// the leftmost token of the statement (which precedes it in body).
+   /// Needed after setup_lambdas(), since the statements were split at
+   /// the ◊ inside lambdas (and the END tokens computed) before the
+   /// lambdas were extracted.
+   void set_END_PCs();
 
    /// extract one lambda expressions from body and store it in lambdas
    /// body[b] is { and body[bend] is }.

@@ -83,6 +83,7 @@ UserFunction::UserFunction(Fun_signature sig, Lambda_number lambda_num,
                                       : Function_PC_0,
                    false, LOC);
    setup_lambdas();
+   set_END_PCs();
 #if cfg_ASSERT_LEVEL_WANTED >= 2
    Assert1(check_PCs(LOC) == 0);
 #endif

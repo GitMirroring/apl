@@ -315,7 +315,7 @@ Workspace::immediate_execution(bool exit_on_error)
                  {
                    if (err.get_error_code() != E_DEFN_ERROR)
                       {
-                        err.print_em(UERR, LOC);
+                        err.print_EM(UERR, LOC);
                         if (err.get_error_code() == E_SYNTAX_ERROR)   {}
                         else
                            {

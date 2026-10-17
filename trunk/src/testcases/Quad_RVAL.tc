@@ -72,7 +72,7 @@
       8 ⎕RVAL 2
 DOMAIN ERROR+
       8 ⎕RVAL 2
-      ^       ^
+      ^ ^
 
       )MORE
 8 ⎕RVAL B: B must be 0 or 1
@@ -81,7 +81,7 @@ DOMAIN ERROR+
       8 ⎕RVAL 1 1
 LENGTH ERROR
       8 ⎕RVAL 1 1
-      ^       ^
+      ^ ^
 
       )SIC
       8 ⎕RVAL ⍬

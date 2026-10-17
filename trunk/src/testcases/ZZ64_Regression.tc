@@ -69,23 +69,23 @@ CLEAR WS
       2J3⍴5
 DOMAIN ERROR
       2J3⍴5
-      ^   ^
+      ^  ^
       2J3↑⍳5
 DOMAIN ERROR
       2J3↑⍳5
-      ^   ^
+      ^  ^
       3J¯4⌽⍳5
 DOMAIN ERROR
       3J¯4⌽⍳5
-      ^    ^
-      ⍳2J3
-DOMAIN ERROR
-      ⍳2J3
-      ^^
-      2J3/1 2
-DOMAIN ERROR
-      2J3/1 2
       ^   ^
+      ⍳2J3
+DOMAIN ERROR
+      ⍳2J3
+      ^
+      2J3/1 2
+DOMAIN ERROR
+      2J3/1 2
+      ^  ^
       2J0⍴5
 5 5
       )SIC
@@ -125,7 +125,7 @@ Bad number+
       8.11044318132503E299∧6.744967127130588E287
 DOMAIN ERROR
       8.110443181E299∧6.744967127E287
-      ^               ^
+      ^              ^
       ]FILE_CTL SKIP_APL2   ⍝ GCD/LCM (non-boolean ∧ ∨) is a GNU APL extension
       4∧6
 12
@@ -186,11 +186,11 @@ X←2.5E¯306
       0 ⎕XML ⎕XML '<a><b>text</b>'
 DOMAIN ERROR+
       0 ⎕XML ⎕XML '<a><b>text</b>'
-             ^    ^
+             ^
       0 ⎕XML ⎕XML '<a>hello'
 DOMAIN ERROR+
       0 ⎕XML ⎕XML '<a>hello'
-             ^    ^
+             ^
       )SIC
 
       ⍝ Bugs13 #7 (Blake McBride): Quad_JSON.cc's APL_to_JSON_string() hit
@@ -206,13 +206,13 @@ DOMAIN ERROR+
       2 ⎕JSON ⊂⊂1 2 3
 DOMAIN ERROR+
       2 ⎕JSON⊂⊂1 2 3
-      ^      ^
+      ^ ^
       ⍝ (the carets of the next line used to be one token off, since
       ⍝ the error display counted 3 tokens for every folded ⊂B)
       2 ⎕JSON ⊂⊂2 2⍴'ab'
 DOMAIN ERROR+
       2 ⎕JSON⊂⊂2 2⍴'ab'
-      ^      ^
+      ^ ^
       2 ⎕JSON ⊂⊂'true'
 true
       )SIC
@@ -278,7 +278,7 @@ eval_() called
       (300 65 ¯1 1000) ⎕FIO[7] H
 DOMAIN ERROR+
       300 65 ¯1 1000 ⎕FIO[7]H
-      ^                     ^
+      ^              ^
       (65 66 67) ⎕FIO[7] H
 3
       ⎕FIO[4] H

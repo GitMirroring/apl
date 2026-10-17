@@ -33,7 +33,7 @@ CLEAR WS
       V0←(⊥ 'A' 'B' * ¯60)[]
 DOMAIN ERROR
       V0←(⊥'AB'⋆¯60)[]
-           ^        ^
+           ^   ^
 
       )SIC
       V1←4 -31 32.91 ¯7
@@ -73,7 +73,7 @@ SYNTAX ERROR+
       V6←⍉ ⍎'9+6' ⌷ (('')[¯58;])[V4]
 RANK ERROR+
       V6←⍉⍎'9+6'⌷(''[¯58;])[V4]
-                  ^        ^
+                  ^ ^
 
       )SIC
       V7←3E4 -368 ⍲ {V7}.× 'a' 'bc' 'def' ! V6
@@ -87,7 +87,7 @@ VALUE ERROR+
       V4←⍲ "ab"
 VALENCE ERROR+
       V4←⍲'ab'
-         ^^
+         ^
 
       )SIC
       V1←V0
@@ -119,7 +119,7 @@ VALUE ERROR+
       V2[]←'a' 'bc' 'def'
 RANK ERROR+
       V2[]←'a' 'bc' 'def'
-      ^    ^
+      ^   ^
 
       )SIC
       V2←V6
@@ -131,13 +131,13 @@ VALUE ERROR+
       V4←((⎕WA)[⎕CT;] ∪ ⍎'1+7')[6E4 ⍪ (⍳2)]
 RANK ERROR+
       V4←(⎕WA[⎕CT;]∪⍎'1+7')[60000⍪(⍳2)]
-          ^                ^
+          ^  ^
 
       )SIC
       V1←(+ "ab"∈[1]⎕TC)
 AXIS ERROR+
       V1←(+'ab'ϵ[1]⎕TC)
-           ^          ^
+           ^   ^
 
       )SIC
       V6←⍬
@@ -145,13 +145,13 @@ AXIS ERROR+
       V6[1]←⌊/ ⎕NC 86.54 0 6J9 7E5
 DOMAIN ERROR+
       V6[1]←⌊/⎕NC 86.54 0 6J9 700000
-              ^   ^
+              ^
 
       )SIC
       V7←⍎'0-4'⍉[1]|⍣2 ¯90 4E4
 LENGTH ERROR+
       V7←⍎'0-4'⍉[1]∣⍣2 ¯90 40000
-                   ^ ^
+                   ^^
 
       )SIC
       V2←({χ ⋄ χ}∘.~ ⊖ 'a' 'bc' 'def')[('⍺⍵')[]]
@@ -161,13 +161,13 @@ DEFN ERROR+
       V5←⊥\ = ↑∘.⌈ (⍳1)
 VALENCE ERROR+
       V5←⊥\=↑∘.⌈(⍳1)
-             ^  ^
+             ^
 
       )SIC
       V2←⊤ ((3J6)[;])
 RANK ERROR+
       V2←⊤(3J6[;])
-           ^     ^
+           ^  ^
 
       )SIC
       V5←{⍵} (8)
@@ -189,7 +189,7 @@ Bad number+
       V4[1]←(⍎'1-2')
 RANK ERROR+
       V4[1]←(⍎'1-2')
-      ^     ^
+      ^    ^
 
       )SIC
       V2←-402
@@ -221,13 +221,13 @@ Bad number+
       V1←↓/ 14.15 , V4 ! (⍳1)*[2]-205
 AXIS ERROR
       V1←↓/14.15,V4!(⍳1)⋆[2]-205
-                    ^       ^
+                    ^   ^
 
       )SIC
       V2[1]←¯86 | ⎕SYL
 DOMAIN ERROR
       V2[1]←¯86∣⎕SYL
-            ^   ^
+            ^  ^
 
       )SIC
       V6←(⍳5)
@@ -241,7 +241,7 @@ Bad number+
       (2↑ V6)←(3) ⌊ (48.76)["ab"] , ⍎'4+9'
 RANK ERROR+
       (2↑V6)←3⌊48.76['ab'],⍎'4+9'
-               ^           ^
+               ^    ^
 
       )SIC
       V4←⍎'3+0'
@@ -251,12 +251,12 @@ RANK ERROR+
       (, V6)←(⍳4)
 LENGTH ERROR+
       (,V6)←(⍳4)
-      ^     ^
+      ^    ^
       )SIC
       (∊ V1)←⎕TC
 LENGTH ERROR+
       (ϵV1)←⎕TC
-      ^     ^
+      ^    ^
       )SIC
       V7←(⍳1)
       )SIC
@@ -269,7 +269,7 @@ Bad number+
       V4←(V5÷[2]"⋄") ÷ 180 ↓ "⋄"∩[1](⍳1) ⍸ '⋄'
 AXIS ERROR+
       V4←(V5÷[2]'⋄')÷180↓'⋄'∩[1](⍳1)⍸'⋄'
-                         ^      ^
+                         ^  ^
 
       )SIC
       V6←8E0 ¯75 1J-10 ¯25↓[1]V5![1]9J9 ≥ ⎕SYL ⊂ V1
@@ -281,7 +281,7 @@ Bad number+
       V7[]←⍎'0-4' ⍲ 'a' 'bc' 'def'
 DOMAIN ERROR
       V7[]←⍎'0-4'⍲'a' 'bc' 'def'
-            ^     ^
+            ^    ^
 
       )SIC
       V7←⍎'3+8'
@@ -299,13 +299,13 @@ Bad number+
       V7[]←(⍳3)
 RANK ERROR+
       V7[]←(⍳3)
-      ^    ^
+      ^   ^
 
       )SIC
       V2←⍎'6+3' < ⍲ (⍳2)↓[2]⎕UL
 LENGTH ERROR+
       V2←⍎'6+3'<⍲(⍳2)↓[2]⎕UL
-                 ^       ^
+                 ^   ^
 
       )SIC
       V6←⍉ -8J-4
@@ -327,7 +327,7 @@ DEFN ERROR+
       V2[1]←⍎'4+3'
 RANK ERROR+
       V2[1]←⍎'4+3'
-      ^     ^
+      ^    ^
 
       )SIC
       V1←- ⌊\ (5E5)[119;]
@@ -339,13 +339,13 @@ RANK ERROR+
       (, V7)←((⌊ (⍳0))[0J3])[⎕PP , (⍳0);]
 INDEX ERROR+
       (,V7)←((⌊(⍳0))[0J3])[⎕PP,(⍳0);]
-             ^            ^
+             ^      ^
 
       )SIC
       V7←(⌽⍣2 ⍎'1+0')[-324⊂[2]9 9E2 7E0]
 AXIS ERROR+
       V7←(⌽⍣2⍎'1+0')[-324⊂[2]9 900 7]
-                      ^             ^
+                      ^  ^
 
       )SIC
       V0←¯78
@@ -375,7 +375,7 @@ DEFN ERROR+
       V1←(*⍤, ('⋄')[;])
 RANK ERROR+
       V1←(⋆⍤,'⋄'[;])
-             ^     ^
+             ^  ^
 
       )SIC
       V4←×⌿ ⍟ ⍳/ ⎕AI
@@ -383,13 +383,13 @@ RANK ERROR+
       V4←"⋄"⍱[2](÷ 9 45.66)
 DOMAIN ERROR
       V4←'⋄'⍱[2](÷9 45.66)
-         ^      ^
+         ^  ^
 
       )SIC
       V3←(28.23 9 ¯87)[;{⍵}⍣0 5E1 ¯14]
 LENGTH ERROR+
       V3←28.23 9 ¯87[;({⍵})⍣0 50 ¯14]
-                      ^             ^
+                      ^    ^
 
       )SIC
       V3←⍉ (⍳5) ⍲ 6J-4 + ⍎'7-9'
@@ -407,7 +407,7 @@ Bad number+
       V4←(⍳0)≡[1]⍎'6-0'
 AXIS ERROR+
       V4←(⍳0)≡[1]⍎'6-0'
-         ^       ^
+         ^   ^
 
       )SIC
       V6←(⍎'7+1')
@@ -417,7 +417,7 @@ AXIS ERROR+
       V4←∪ -67 14 6.15⊤[2]¯3 , ⍎'5+2'
 LENGTH ERROR
       V4←∪-67 14 6.15⊤[2]¯3,⍎'5+2'
-           ^             ^
+           ^         ^
 
       )SIC
       V1←{χ} 'abc'
@@ -441,13 +441,13 @@ Bad number+
       V1[1]←⍪¨ (⎕TS)
 RANK ERROR+
       V1[1]←⍪¨⎕TS
-      ^     ^
+      ^    ^
 
       )SIC
       V3[]←((≢ 'x')[⎕CT;'A' 'B'])
 RANK ERROR+
       V3[]←((≢'x')[⎕CT;'AB'])
-            ^               ^
+            ^     ^
 
       )SIC
       V2←V5
@@ -457,7 +457,7 @@ RANK ERROR+
       V6←∈ ⌷ ¯52 × 7
 VALENCE ERROR+
       V6←ϵ⌷¯52×7
-          ^^
+          ^
 
       )SIC
       V1←8
@@ -467,7 +467,7 @@ VALENCE ERROR+
       V3[1]←'⍺⍵'
 LENGTH ERROR+
       V3[1]←'⍺⍵'
-      ^     ^
+      ^    ^
 
       )SIC
       V7←× (⍳0)○[2]↓⌿ V4
@@ -475,7 +475,7 @@ LENGTH ERROR+
       V6←23 ! × 5E1 ⍲ 4J3 6E2 1J2 ¯51
 DOMAIN ERROR
       V6←23!×50⍲4J3 600 1J2 ¯51
-             ^  ^
+             ^ ^
 
       )SIC
       V5←{⍺ ⋄ ⍵ ○ χ} {⍵ ⋄ ⍹} -6J8
@@ -488,7 +488,7 @@ SYNTAX ERROR
       V1[1]←((V3)⍪[1]⎕AV)
 RANK ERROR+
       V1[1]←(V3⍪[1]⎕AV)
-      ^     ^
+      ^    ^
 
       )SIC
       V3←({V3≠[2]39.66 ¯76 ¯100 ⋄ ⍶} (¯66))[;(V2)[5E3;-140]]
@@ -498,7 +498,7 @@ DEFN ERROR+
       V1←(((¯38))[;V4])
 RANK ERROR+
       V1←(¯38[;V4])
-          ^       ^
+          ^  ^
 
       )SIC
       V0[1]←⍱ 5J-9 1E5 ∊ ⎕TC⍲[2]⍎'0-8'
@@ -510,13 +510,13 @@ Bad number+
       V4←⎕NC (84 68.86)
 DOMAIN ERROR+
       V4←⎕NC 84 68.86
-         ^   ^
+         ^
 
       )SIC
       V5[1]←≤ ⍎'2-7'
 VALENCE ERROR+
       V5[1]←≤⍎'2-7'
-            ^^
+            ^
 
       )SIC
       V7←↑ V3
@@ -524,7 +524,7 @@ VALENCE ERROR+
       V7[1]←(⍳0)
 RANK ERROR+
       V7[1]←(⍳0)
-      ^     ^
+      ^    ^
 
       )SIC
       V2[]←{(⍳4)}⍀ 'a'⍳[2]V6 ↓ ~ 1 2J-3 73 ⍲ ⎕TC
@@ -556,7 +556,7 @@ Bad number+
       V3←↓⍨ ('a')
 DOMAIN ERROR
       V3←↓⍨'a'
-         ^ ^
+         ^
 
       )SIC
       (⍉ V2)←⍎'4-0' ⌷ -8J-4 ⍴ ¯65~[2](V2)[]
@@ -570,7 +570,7 @@ Bad number+
       V0←⍎'4-7'⊖[2]* 25.67=[2]⍬
 AXIS ERROR+
       V0←⍎'4-7'⊖[2]⋆25.67=[2]⍬
-          ^        ^
+          ^    ^
 
       )SIC
       V3←((⍳4))[;⍉ ¯14]
@@ -584,7 +584,7 @@ RANK ERROR+
       V1←× ⎕SYL
 DOMAIN ERROR
       V1←×⎕SYL
-         ^^
+         ^
 
       )SIC
       V4←⍎'7+5' < {⍶ ⋄ ⍺} (⍳1) | 1
@@ -598,7 +598,7 @@ VALENCE ERROR+
       (∊ V1)←⌽ ⍎'3+4' ○ 9E0
 DOMAIN ERROR
       (ϵV1)←⌽⍎'3+4'○9
-              ^     ^
+              ^    ^
 
       )SIC
       V7←'abc' ⍪ {⍹ ↑ ⍹}⍤2 V2⍪[1]⎕TS
@@ -614,7 +614,7 @@ RANK ERROR+
       V5←(3E4)⍲[1]⍳ ⍲ 13.91 4J5
 VALENCE ERROR+
       V5←30000⍲[1]⍳⍲13.91 4J5
-                   ^^
+                   ^
 
       )SIC
       V3←V0
@@ -631,7 +631,7 @@ VALUE ERROR+
       V4[]←(⍳0) ~ ''⍉[2]57.8 ⍸ (¯28) ⊥ V5
 AXIS ERROR+
       V4[]←(⍳0)∼''⍉[2]57.8⍸¯28⊥V5
-                ^     ^
+                ^ ^
 
       )SIC
       V5←¯27
@@ -641,7 +641,7 @@ AXIS ERROR+
       V4←((⍳2)≥[2](V1)[])[V7 ≢ 'abc']
 RANK ERROR+
       V4←((⍳2)≥[2]V1[])[V7≢'abc']
-                  ^    ^
+                  ^ ^
 
       )SIC
       V7←V4
@@ -663,19 +663,19 @@ RANK ERROR+
       (⊖ V7)←⍴ ⍟∘.∈ (⍳3)≠[1]⎕MAP -179
 VALENCE ERROR
       (⊖V7)←⍴⍟∘.ϵ(⍳3)≠[1]⎕MAP-179
-                         ^   ^
+                         ^
 
       )SIC
       V6[]←* V0-[2]V1 > ((6E0)[6;'x'])[50.36 59.28]
 RANK ERROR+
       V6[]←⋆V0-[2]V1>(6[6;'x'])[50.36 59.28]
-                      ^        ^
+                      ^^
 
       )SIC
       V2←⍪ (⍳3) , ⍬∩[2]((⍳1))
 AXIS ERROR+
       V2←⍪(⍳3),⍬∩[2](⍳1)
-               ^    ^
+               ^^
 
       )SIC
       V6←(⎕PP)
@@ -687,7 +687,7 @@ AXIS ERROR+
       V7←⌹/ (9⍲[1]⎕SYL)
 DOMAIN ERROR
       V7←⌹/(9⍲[1]⎕SYL)
-            ^        ^
+            ^^
 
       )SIC
       V4←⎕CR ↑\ (51.20 8J5 -134)[;V0]
@@ -699,25 +699,25 @@ RANK ERROR+
       (⊖ V4)←(∨ ⍎'7+1')[V7 ⌊ 'x']
 DOMAIN ERROR
       (⊖V4)←(∨⍎'7+1')[V7⌊'x']
-                      ^     ^
+                      ^ ^
 
       )SIC
       (↓ V7)←((⍎'6+0')[;3 45.51 ¯21])
 RANK ERROR+
       (↓V7)←((⍎'6+0')[;3 45.51 ¯21])
-             ^                     ^
+             ^       ^
 
       )SIC
       (⍉ V1)←⎕AV
 LENGTH ERROR+
       (⍉V1)←⎕AV
-      ^     ^
+      ^    ^
 
       )SIC
       V2[]←(⍎'8+9')÷[2]229
 RANK ERROR+
       V2[]←(⍎'8+9')÷[2]229
-      ^    ^
+      ^   ^
       )SIC
       V0←⍎'9+5'
       )SIC
@@ -728,7 +728,7 @@ RANK ERROR+
       V1←⍱ ⍕/ ≢ -483
 VALENCE ERROR+
       V1←⍱⍕/≢-483
-         ^^
+         ^
 
       )SIC
       V1←-498
@@ -744,13 +744,13 @@ Bad number+
       V4←57 ⍸ , 9J7 3 4E5 ↓ (2E5) ⌽ 413
 DOMAIN ERROR
       V4←57⍸,9J7 3 400000↓200000⌽413
-             ^            ^
+             ^           ^
 
       )SIC
       V6[1]←((-472)[8 ¯36])[V6;'a'] ∊ V4
 RANK ERROR+
       V6[1]←((-472)[8 ¯36])[V6;'a']ϵV4
-             ^                      ^
+             ^     ^
 
       )SIC
       (⊖ V3)←'⋄' ⌈ -3J-3 × 9∪[2]V2
@@ -784,13 +784,13 @@ DEFN ERROR+
       V6←-1J2 ≡ > ⎕UL ∩ ⍎'9+3'
 VALENCE ERROR+
       V6←-1J2≡>⎕UL∩⍎'9+3'
-              ^^
+              ^
 
       )SIC
       V0[1]←{'⋄' ⌈ 5 ∪ ((⍳0)) ⋄ + ⎕TS⍲[1]82.75 1}.∪ V4
 DOMAIN ERROR
 λ1[1]  '⋄'⌈5∪(⍳0)
-       ^   ^
+       ^  ^
 
       )SIC
       (⍉ V0)←¯100
@@ -800,7 +800,7 @@ DOMAIN ERROR
       V2[1]←(⍳3)
 RANK ERROR+
       V2[1]←(⍳3)
-      ^     ^
+      ^    ^
 
       )SIC
       V7←{⍶ ≠ ⍺ ⋄ ⍵}.⊥ ¯34↓[2]{χ | ⍶}\ -1J0 -2J-2 3J-3⊖[2]"ab" ~ -14 > ⍎'9+9'
@@ -812,7 +812,7 @@ Bad number+
       V1←~.⍟ (⍳0)
 VALENCE ERROR+
       V1←∼.⍟(⍳0)
-         ^  ^
+         ^
 
       )SIC
       V2←8J-2
@@ -824,7 +824,7 @@ Bad number+
       V5←○ '⋄'
 DOMAIN ERROR
       V5←○'⋄'
-         ^^
+         ^
 
       )SIC
       V2←⍎'1-4'
@@ -856,7 +856,7 @@ Bad number+
       V2←⎕IO ≤ ⎕AV ∧ ⎕TS | V5 > ⎕CT
 LENGTH ERROR+
       V2←⎕IO≤⎕AV∧⎕TS∣V5>⎕CT
-             ^   ^
+             ^  ^
 
       )SIC
       V1←(¯87≠[1]4 0 6J5 ≡ (⍳0) | V3)[(221 -363 ¯54)]
@@ -868,7 +868,7 @@ RANK ERROR+
       (⊖ V5)←⍎'8+9' ≢ | (⍳1)
 DOMAIN ERROR+
       (⊖V5)←⍎'8+9'≢∣(⍳1)
-            ^^
+            ^
 
       )SIC
       V0←¯25
@@ -886,7 +886,7 @@ RANK ERROR+
       (2↑ V4)←≠ V2↓[1](⍳1)
 LENGTH ERROR+
       (2↑V4)←≠V2↓[1](⍳1)
-      ^      ^
+      ^     ^
 
       )SIC
       V0←¯43
@@ -898,13 +898,13 @@ LENGTH ERROR+
       V3←(7≢[1]-493⍉[1]⍬)
 AXIS ERROR+
       V3←(7≢[1]-493⍉[1]⍬)
-                ^       ^
+                ^  ^
 
       )SIC
       V6←(4E3)[⍬] ∧ -5J9 70.40 7J8
 RANK ERROR+
       V6←4000[⍬]∧-5J9 70.4 7J8
-         ^       ^
+         ^   ^
 
       )SIC
       V3←8E2
@@ -916,7 +916,7 @@ DEFN ERROR+
       V0[1]←((¯2 2E3) ≠ V4)
 RANK ERROR+
       V0[1]←(¯2 2000≠V4)
-      ^     ^
+      ^    ^
 
       )SIC
       V0←{⌹ ⎕LC ⍪ ⍹ ⋄ χ ≥ ⍹}¨ -10J-6
@@ -928,13 +928,13 @@ Bad number+
       V4←⎕EA 'a'
 VALENCE ERROR
       V4←⎕EA 'a'
-         ^   ^
+         ^
 
       )SIC
       V7[1]←⎕STOP 18.12
 DOMAIN ERROR
       V7[1]←⎕STOP 18.12
-            ^     ^
+            ^
 
       )SIC
       V6←{⍶ ⋄ χ} ≡¨ ¯17 ∊ ⍬
@@ -958,13 +958,13 @@ VALUE ERROR+
       V3←⎕ES V2
 LENGTH ERROR
       V3←⎕ES V2
-         ^   ^
+         ^
 
       )SIC
       V1←((⍕.⍟ (⍳3)))[]
 VALENCE ERROR+
       V1←(⍕.⍟(⍳3))[]
-          ^       ^
+          ^
 
       )SIC
       V4←⎕CR V3 ↑ V1 ≡ (⍳2) ⍱ 4J-9
@@ -984,7 +984,7 @@ RANK ERROR+
       (↓ V6)←{17 ⍉ ⍶ ⋄ ⍎'0+4' ∪ ⍺} (('a' 'bc' 'def'))
 VALENCE ERROR+
       (↓V6)←{17⍉⍶◊⍎'0+4'∪⍺}'a' 'bc' 'def'
-       ^                   ^
+       ^
 
       )SIC
       V3[1]←25.37
@@ -992,7 +992,7 @@ VALENCE ERROR+
       V2←((125) ∪ ⊤ 8E2)
 VALENCE ERROR+
       V2←(125∪⊤800)
-              ^   ^
+              ^
 
       )SIC
       V5←(⊂ 3) ⍟ 90.19
@@ -1004,13 +1004,13 @@ DEFN ERROR+
       V1←⌹ ("⋄"∨[1](⍳2))[;64.0]
 DOMAIN ERROR
       V1←⌹('⋄'∨[1](⍳2))[;64]
-           ^           ^
+           ^  ^
 
       )SIC
       V4←(2E1 4 ⍳ 8 ⍸ (76.95)[;⎕SYL])[(⍳3) ≠ (⍳1)]
 RANK ERROR+
       V4←(20 4⍳8⍸76.95[;⎕SYL])[(⍳3)≠(⍳1)]
-                 ^            ^
+                 ^    ^
 
       )SIC
       V3[1]←⍎'5+4'
@@ -1026,7 +1026,7 @@ INDEX ERROR+
       (, V7)←V3
 LENGTH ERROR+
       (,V7)←V3
-      ^     ^
+      ^    ^
       )SIC
       V4←-1J7
       )SIC
@@ -1047,7 +1047,7 @@ VALUE ERROR
       V4←((⍎'3+8')[V6])[]
 RANK ERROR+
       V4←((⍎'3+8')[V6])[]
-          ^            ^
+          ^       ^
 
       )SIC
       V6←"ab"
@@ -1055,7 +1055,7 @@ RANK ERROR+
       V3←⎕CT*[1]1 499≤[1]V4 ⍲ 82.97
 DOMAIN ERROR
       V3←⎕CT⋆[1]1 499≤[1]V4⍲82.97
-                         ^  ^
+                         ^ ^
 
       )SIC
       V7←6E0
@@ -1067,7 +1067,7 @@ DEFN ERROR+
       V3←⌈ -9J1 8E4 2J2≠[1](⍳2)∪[1](⍳4) ⍉ ⍪\ ('A' 'B')
 LENGTH ERROR+
       V3←⌈-9J1 80000 2J2≠[1](⍳2)∪[1](⍳4)⍉⍪\'AB'
-                                    ^    ^
+                                    ^   ^
 
       )SIC
       V2←9 -232 23.59 ¯100
@@ -1075,13 +1075,13 @@ LENGTH ERROR+
       V4←((8 ¯19 7E1 ≥ ¯82)[7;(⍳5)])
 RANK ERROR+
       V4←((8 ¯19 70≥¯82)[7;(⍳5)])
-          ^                     ^
+          ^             ^
 
       )SIC
       V1←1E1 + V5 > ⎕TC⍪[2](20.53)
 AXIS ERROR+
       V1←10+V5>⎕TC⍪[2]20.53
-               ^      ^
+               ^  ^
 
       )SIC
       V4[1]←{V5} {χ} V7 ⌊ (75.39)
@@ -1099,13 +1099,13 @@ Bad number+
       V5←(*⍣1 V3 ⌈ 'abc')
 DOMAIN ERROR
       V5←(⋆⍣1 V3⌈'abc')
-          ^           ^
+          ^     ^
 
       )SIC
       V6←≢¨ (¯26)[] ⊂ ⎕TC
 RANK ERROR+
       V6←≢¨¯26[]⊂⎕TC
-           ^     ^
+           ^  ^
 
       )SIC
       V3[]←∊\ {346 64.19 ¯12} V5 ∧ ⎕AF {⍶}/ -9J6 ¯83 39.43

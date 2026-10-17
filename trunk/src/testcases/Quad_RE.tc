@@ -128,7 +128,7 @@
       '(a+)+$' ⎕RE 'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaab'
 DOMAIN ERROR+
       '(a+)+$' ⎕RE 'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaab'
-      ^            ^
+      ^        ^
       )MORE
 libpcre error: match limit exceeded
       )SIC

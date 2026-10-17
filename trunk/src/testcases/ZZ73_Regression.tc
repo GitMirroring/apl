@@ -183,7 +183,7 @@ OK      - no duplicate parents
       V[2 2⍴1 2 3 4]←1 2 3 4
 RANK ERROR+
       V[2 2⍴1 2 3 4]←1 2 3 4
-      ^              ^
+      ^             ^
 
 
 
@@ -267,7 +267,7 @@ A[B]←C: expecting ⍴C to be ⍴B (2 2); ⍴C is 4
       '1.7000E01'⍕0.1
 DOMAIN ERROR+
       '1.7000E01'⍕0.1
-      ^           ^
+      ^          ^
 
 
 
@@ -554,7 +554,7 @@ F[1]  O
       'MYERR' ⎕ES 5 4
 MYERR
       'MYERR' ⎕ES 5 4
-      ^           ^
+      ^       ^
 
 
 
@@ -641,7 +641,7 @@ A
       ⎕FIO[4] 4294967296
 DOMAIN ERROR+
       ⎕FIO[4]4294967296
-      ^      ^
+      ^
 
 
 
@@ -725,7 +725,7 @@ A←1
       2 ⎕RVAL 2*32
 DOMAIN ERROR+
       2 ⎕RVAL 2⋆32
-      ^       ^
+      ^ ^
 
 
 
@@ -771,7 +771,7 @@ Bad number+
       1 2 3,[1]2 2⍴9
 LENGTH ERROR+
       1 2 3,[1]2 2⍴9
-      ^        ^
+      ^    ^
 
 
 
@@ -790,7 +790,7 @@ LENGTH ERROR+
       ⍬+¨1 2
 LENGTH ERROR+
       ⍬+¨1 2
-      ^  ^
+      ^^
 
 
 
@@ -953,7 +953,7 @@ FOO43
       S[]←6
 RANK ERROR+
       S[]←6
-      ^   ^
+      ^  ^
 
 
 

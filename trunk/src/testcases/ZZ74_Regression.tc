@@ -29,7 +29,7 @@
       M 1
 DOMAIN ERROR
 M[2]  Z←Z+2 3⍴1
-        ^ ^
+        ^^
 
 
 
@@ -55,7 +55,7 @@ M[2]  Z←Z+2 3⍴1
       C 1
 RANK ERROR+
 C[2]  Z←(2 2⍴1)+1 2 3
-        ^       ^
+        ^      ^
 
 
 
@@ -75,7 +75,7 @@ C[2]  Z←(2 2⍴1)+1 2 3
       0 →→ 'T' ←→ (2 2⍴1)+1 2 3 ←←
 RANK ERROR+
       (2 2⍴1)+1 2 3
-      ^       ^
+      ^      ^
 
 
 
@@ -84,7 +84,7 @@ RANK ERROR+
       1 →→ (2 2⍴1)+1 2 3 ←→ 'F' ←←
 RANK ERROR+
       (2 2⍴1)+1 2 3
-      ^       ^
+      ^      ^
 
 
 
@@ -97,7 +97,7 @@ RANK ERROR+
       'a'+(⊂1 2)
 DOMAIN ERROR
       'a'+(⊂1 2)
-      ^   ^
+      ^  ^
 
 
 
@@ -106,7 +106,7 @@ DOMAIN ERROR
       'a'+⊂⊂1 2
 DOMAIN ERROR
       'a'+⊂⊂1 2
-      ^   ^
+      ^  ^
 
 
 
@@ -115,7 +115,7 @@ DOMAIN ERROR
       'a'+2 2⍴⊂1 2
 DOMAIN ERROR
       'a'+2 2⍴⊂1 2
-      ^   ^
+      ^  ^
 
 
 
@@ -124,7 +124,7 @@ DOMAIN ERROR
       X←3 ◊ (X ⊂ ⊂1 2)+'a'
 RANK ERROR+
       (X⊂⊂1 2)+'a'
-       ^       ^
+       ^^
 
 
 
@@ -157,7 +157,7 @@ DOMAIN ERROR
       1 2 3 4 + (2⍴1)⊤∧1 2 3
 LENGTH ERROR+
       1 2 3 4+(2⍴1)⊤∧1 2 3
-              ^      ^
+              ^    ^
 
 
 
@@ -172,7 +172,7 @@ LENGTH ERROR+
       1 2 3 4 + 1 0 1⊤∧(2⍴1)
 LENGTH ERROR+
       1 2 3 4+1 0 1⊤∧(2⍴1)
-              ^      ^
+              ^    ^
 
 
 

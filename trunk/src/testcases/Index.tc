@@ -65,7 +65,7 @@
       Z[1;⍬]←1 2
 LENGTH ERROR+
       Z[1;⍬]←1 2
-      ^      ^
+      ^     ^
 
       )MORE
 A[B]←C: an index is empty, so the selected area is empty, but C has 2 element(s) (expecting 0)
@@ -84,7 +84,7 @@ A[B]←C: an index is empty, so the selected area is empty, but C has 2 element(
       Z[1;1 2]←1 2 3
 LENGTH ERROR+
       Z[1;1 2]←1 2 3
-      ^        ^
+      ^       ^
 
       )SIC
       )ERASE Z
@@ -100,7 +100,7 @@ LENGTH ERROR+
       W[1 2]←2 1⍴1 2
 RANK ERROR+
       W[1 2]←2 1⍴1 2
-      ^      ^
+      ^     ^
 
       )MORE
 A[B]←C: expecting ⍴C to be ⍴B (2); ⍴C is 2 1

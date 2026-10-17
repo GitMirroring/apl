@@ -217,25 +217,25 @@ f
       ⎕UCS 17 ⎕CR '=AAA'
 DOMAIN ERROR
       ⎕UCS 17 ⎕CR '=AAA'
-           ^      ^
+           ^  ^
       )SIC
 
       ⎕UCS 17 ⎕CR '===='
 DOMAIN ERROR
       ⎕UCS 17 ⎕CR '===='
-           ^      ^
+           ^  ^
       )SIC
 
       ⎕UCS 17 ⎕CR 'QQ==QQ=='
 DOMAIN ERROR
       ⎕UCS 17 ⎕CR 'QQ==QQ=='
-           ^      ^
+           ^  ^
       )SIC
 
       ⎕UCS 17 ⎕CR 'AA=A'
 DOMAIN ERROR
       ⎕UCS 17 ⎕CR 'AA=A'
-           ^      ^
+           ^  ^
       )SIC
 
       5 ⎕CR 18 ⎕CR '123∆⎕'
@@ -395,7 +395,7 @@ A ┌2─┐ 1 ┌2──┐ ┌3────────┐
       ¯1 ⎕CR B
 DOMAIN ERROR+
       ¯1 ⎕CR B
-      ^      ^
+      ^  ^
       )more
 A ⎕CR B with invalid A < 0
       →
@@ -682,7 +682,7 @@ FF38
       50 ⎕CR ¯1J1
 DOMAIN ERROR+
       50 ⎕CR ¯1J1
-      ^      ^
+      ^  ^
 
       )MORE
 50/51 ⎕CR B : B is not an integer
@@ -691,7 +691,7 @@ DOMAIN ERROR+
       50 ⎕CR 1.5
 DOMAIN ERROR+
       50 ⎕CR 1.5
-      ^      ^
+      ^  ^
 
       )MORE
 50/51 ⎕CR B : B is not an integer
@@ -703,7 +703,7 @@ DOMAIN ERROR+
       54 ⎕CR B
 DOMAIN ERROR+
       54 ⎕CR B
-      ^      ^
+      ^  ^
 
       )MORE
 A ⎕CR B with invalid A (=54)
@@ -733,7 +733,7 @@ CBF43926
       52 ⎕CR 256
 DOMAIN ERROR+
       52 ⎕CR 256
-      ^      ^
+      ^  ^
 
       )MORE
 integer 256 is too large (> 255) for a byte value
@@ -800,7 +800,7 @@ integer 256 is too large (> 255) for a byte value
       43 ⎕CR '(('
 DOMAIN ERROR+
       43 ⎕CR '(('
-      ^      ^
+      ^  ^
 
       )MORE
 the parser returned error code: Unbalanced left parenthesis

@@ -56,7 +56,7 @@ FUNC
 2
 DOMAIN ERROR
 FUNC[3]  !¯3
-         ^^
+         ^
 
       )SI
 FUNC[3]
@@ -103,7 +103,7 @@ bar
 1
 VALENCE ERROR+
 bar[1]  ++
-        ^^
+        ^
 
       )SI
 bar[1]
@@ -283,7 +283,7 @@ DEFN ERROR+
       Z1←⎕FX 'Z←F70a B' 'Z←B' 'B:'
 DEFN ERROR+
       Z1←⎕FX 'Z←F70a B' 'Z←B' 'B:'
-         ^   ^
+         ^
       Z1
 3
       ⎕NC 'F70a'
@@ -292,7 +292,7 @@ DEFN ERROR+
       Z2←⎕FX 'Z←F70b B' '→X' 'Z←0' 'X:Z←1' '→0' 'X:Z←2'
 DEFN ERROR+
       Z2←⎕FX 'Z←F70b B' '→X' 'Z←0' 'X:Z←1' '→0' 'X:Z←2'
-         ^   ^
+         ^
       Z2
 6
       ⎕NC 'F70b'
@@ -301,7 +301,7 @@ DEFN ERROR+
       Z3←⎕FX 'Z←F70c B' 'Z←B' 'Z:'
 DEFN ERROR+
       Z3←⎕FX 'Z←F70c B' 'Z←B' 'Z:'
-         ^   ^
+         ^
       Z3
 3
       ⎕NC 'F70c'
@@ -391,7 +391,7 @@ M
       1 ⎕TF 'M'
 DOMAIN ERROR+
       1 ⎕TF 'M'
-      ^     ^
+      ^ ^
 
       )MORE
 ⎕TF: 'M' is locked; its definition cannot be disclosed.
@@ -399,7 +399,7 @@ DOMAIN ERROR+
       2 ⎕TF 'M'
 DOMAIN ERROR+
       2 ⎕TF 'M'
-      ^     ^
+      ^ ^
 
       )MORE
 ⎕TF: 'M' is locked; its definition cannot be disclosed.
@@ -407,7 +407,7 @@ DOMAIN ERROR+
       ⎕FX 'Z←M B' 'Z←99'
 DEFN ERROR+
       ⎕FX 'Z←M B' 'Z←99'
-      ^   ^
+      ^
 
       )MORE
 Attempt to re-define locked function 'M'. ⎕EX it first.

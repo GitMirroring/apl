@@ -121,12 +121,12 @@
       ⎕MX[6] ¯5
 DOMAIN ERROR+
       ⎕MX[6]¯5
-      ^     ^
+      ^
 
       ⎕MX[6] ¯1
 DOMAIN ERROR+
       ⎕MX[6]¯1
-      ^     ^
+      ^
 
       ⍝ #2: ⎕MX[4]/[5] (eigenvector/eigenvalue) on an empty square matrix
       ⍝ used to call gsl_eigen_nonsymmv_alloc(0), which aborts the whole
@@ -135,12 +135,12 @@ DOMAIN ERROR+
       ⎕MX[4] 0 0⍴0
 LENGTH ERROR+
       ⎕MX[4]0 0⍴0
-      ^     ^
+      ^
 
       ⎕MX[5] 0 0⍴0
 LENGTH ERROR+
       ⎕MX[5]0 0⍴0
-      ^     ^
+      ^
 
       ⍝ #3: ⎕MX[1] (determinant) of a 1×1 matrix used to return 0 instead
       ⍝ of the single element (getDet() had no rows()==1 base case).
@@ -159,7 +159,7 @@ LENGTH ERROR+
       3 ⎕MX[104] 1.5
 DOMAIN ERROR+
       3 ⎕MX[104]1.5
-      ^         ^
+      ^ ^
       )MORE
 A ⎕MX[X] B: invalid subfunction number X (= 104).
 See: ⎕MX '' or: ⎕MX ⍬ for a list of valid numbers.
@@ -180,12 +180,12 @@ See: ⎕MX '' or: ⎕MX ⍬ for a list of valid numbers.
       3 ⎕MX[10 2] 0
 DOMAIN ERROR+
       3 ⎕MX[10 2]0
-      ^          ^
+      ^ ^
 
       3 ⎕MX[10 3] ¯1
 DOMAIN ERROR+
       3 ⎕MX[10 3]¯1
-      ^          ^
+      ^ ^
 
       ⍝ clear the SI left behind by the DOMAIN/LENGTH ERRORs above
       ⍝

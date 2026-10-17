@@ -206,19 +206,19 @@ A B C D
       2↓[⍬]M
 LENGTH ERROR+
       2↓[⍬]M
-      ^    ^
+      ^^
 
       'abc'↓[⍬]M
 LENGTH ERROR+
       'abc'↓[⍬]M
-      ^        ^
+      ^    ^
 
       ⍝ control: ↑ already got this right
       ⍝
       2↑[⍬]M
 LENGTH ERROR+
       2↑[⍬]M
-      ^    ^
+      ^^
 
       )SIC
 

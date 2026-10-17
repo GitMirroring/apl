@@ -128,15 +128,15 @@ Z←0⍴0
       (,¨1↑V)←,1
 INDEX ERROR
       (,¨1↑V)←,1
-       ^      ^
+       ^
       (⌽¨1↑V)←,1
 INDEX ERROR
       (⌽¨1↑V)←,1
-       ^      ^
+       ^
       (⊂¨1↑V)←,1
 INDEX ERROR
       (⊂¨1↑V)←,1
-       ^      ^
+       ^
 
       ⍝ leaves 3 )SI entries for the failed immediate executions above.
       ⍝

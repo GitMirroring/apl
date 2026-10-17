@@ -197,8 +197,8 @@ APL_time_us when = now();
       {
         const Prefix & prefix = si->get_prefix();
         
-        interrupt_context.attention_range.low  = prefix.get_range_low();
-        interrupt_context.attention_range.high = prefix.get_range_high();
+        interrupt_context.attention_range.low  = prefix.get_phrase_low();
+        interrupt_context.attention_range.high = prefix.get_phrase_high();
         interrupt_context.attention_stat_PC = prefix.get_statement_PC();
         interrupt_context.range_executable = si->get_executable();
       }

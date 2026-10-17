@@ -94,7 +94,7 @@ CLEAR WS
       ⎕FX'λ←Test W ;C;D ⍝⍝ π times ΣW' 'λ←○+/W'
 DEFN ERROR+
       ⎕FX 'λ←Test W ;C;D ⍝⍝ π times ΣW' 'λ←○+/W'
-      ^   ^
+      ^
 
       )MORE
 Attempt (of ⎕FX) to create or edit a lambda. Use { ... } instead.
@@ -273,7 +273,7 @@ CLEAR WS
       Z←(⌽⍤1⊢1 2)÷0
 DOMAIN ERROR
       Z←(⌽⍤1⊢1 2)÷0
-        ^         ^
+        ^        ^
 
       )WSID dws29
 WAS CLEAR WS
@@ -319,7 +319,7 @@ F
       F 0
 DOMAIN ERROR
 F[1]  Z←1÷B
-        ^ ^
+        ^^
 
       )SAVE silevel_test
 20⁰-⁰-⁰  ⁰:⁰:⁰ (GMT⁵⁰) 

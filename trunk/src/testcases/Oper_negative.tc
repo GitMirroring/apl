@@ -31,7 +31,7 @@
       A +.× B
 LENGTH ERROR+
       A+.×B
-      ^   ^
+      ^^
 
       ⍝ A +.× B showing sub-arguments of each iteration
       ⍝
@@ -40,7 +40,7 @@ LENGTH ERROR+
       A LEFT.RIGHT B
 LENGTH ERROR+
       A LEFT.RIGHT B
-      ^            ^
+      ^ ^
 
       )SIC
 

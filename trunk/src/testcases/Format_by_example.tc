@@ -31,7 +31,7 @@ TOTAL ORDER COST: $1,712.78
       ' 55.55'⍕345 .6789
 DOMAIN ERROR+
       ' 55.55'⍕345 0.6789
-      ^        ^
+      ^       ^
 
       )SIC
 
@@ -152,31 +152,31 @@ Hello     33.
       '9E'⍕0
 DOMAIN ERROR+
       '9E'⍕0
+      ^   ^
+      )SIC
+
+      '99E'⍕0
+DOMAIN ERROR+
+      '99E'⍕0
       ^    ^
       )SIC
 
-      '99E'⍕0
-DOMAIN ERROR+
-      '99E'⍕0
-      ^     ^
-      )SIC
-
       '9EE'⍕0
 DOMAIN ERROR+
       '9EE'⍕0
-      ^     ^
+      ^    ^
       )SIC
 
       '9E '⍕0
 DOMAIN ERROR+
       '9E '⍕0
-      ^     ^
+      ^    ^
       )SIC
 
       '9.7E'⍕0
 DOMAIN ERROR+
       '9.7E'⍕0
-      ^      ^
+      ^     ^
       )SIC
 
       '9.9E'⍕1.5
@@ -263,7 +263,7 @@ $1,234
       '5,555'⍕12345
 DOMAIN ERROR+
       '5,555'⍕12345
-      ^       ^
+      ^      ^
       )MORE
 A⍕B : Bad value 12345 (integer part exceeds A specification)
 
@@ -305,7 +305,7 @@ A⍕B : Bad value 12345 (integer part exceeds A specification)
       '55.55'⍕¯1.5
 DOMAIN ERROR+
       '55.55'⍕¯1.5
-      ^       ^
+      ^      ^
       )MORE
 A⍕B : B is negative, but A has no conditional ('1', '2', or '3') decorator to signal that (APL2 LRM p.141)
 
@@ -316,7 +316,7 @@ A⍕B : B is negative, but A has no conditional ('1', '2', or '3') decorator to 
       '-5.5'⍕¯1.5
 DOMAIN ERROR+
       '-5.5'⍕¯1.5
-      ^      ^
+      ^     ^
       )MORE
 A⍕B : B is negative, but A has no conditional ('1', '2', or '3') decorator to signal that (APL2 LRM p.141)
 

@@ -142,13 +142,13 @@ A ⎕EB B: B failed with DOMAIN ERROR in: 3÷0
       '1÷0' ⎕EB '2+2'
 DOMAIN ERROR
       1÷0
-      ^ ^
+      ^^
 
       )SIC
       '1÷0' ⎕EB '3÷0'
 DOMAIN ERROR+
       1÷0
-      ^ ^
+      ^^
 
       )MORE
 A ⎕EB B: B failed with DOMAIN ERROR in: 3÷0

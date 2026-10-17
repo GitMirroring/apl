@@ -467,7 +467,7 @@ M
       1 ⎕TF 'L'
 DOMAIN ERROR+
       1 ⎕TF 'L'
-      ^     ^
+      ^ ^
 
       )MORE
 ⎕TF: 'L' is a lambda (dfn); lambdas cannot be written to a transfer-format (.atf) file or produced by ⎕TF, since other APL systems (and GNU APL's own transfer-format reader) have no way to represent them. Use ⎕FX-style named functions for anything that needs to survive )OUT/)IN or ⎕TF.
@@ -475,7 +475,7 @@ DOMAIN ERROR+
       2 ⎕TF 'L'
 DOMAIN ERROR+
       2 ⎕TF 'L'
-      ^     ^
+      ^ ^
 
       )MORE
 )OUT/⎕TF: 'L' is a lambda (dfn); lambdas cannot be written to a transfer-format (.atf) file or produced by ⎕TF, since other APL systems (and GNU APL's own transfer-format reader) have no way to represent them. Use ⎕FX-style named functions for anything that needs to survive )OUT/)IN or ⎕TF.
@@ -485,12 +485,12 @@ DOMAIN ERROR+
       1 ⎕TF 'M'
 DOMAIN ERROR+
       1 ⎕TF 'M'
-      ^     ^
+      ^ ^
 
       2 ⎕TF 'M'
 DOMAIN ERROR+
       2 ⎕TF 'M'
-      ^     ^
+      ^ ^
 
       )SIC
 

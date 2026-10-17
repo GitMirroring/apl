@@ -125,6 +125,24 @@ public:
    /// @param pos  starting position where replacement begins
    ShapeItem replace_segment(const Token_string & src, ShapeItem pos);
 
+   /// append \b tok as the END (or RETURN) token of the last statement. In
+   /// the (reversed) body that token is the left end of the statement and
+   /// gets the PC of the leftmost token of the statement, or else (for an
+   /// empty statement) \b empty_pc (the PC of the ◊ or of the end of line)
+   void append_statement_end(const Token & tok, Function_PC empty_pc)
+      {
+        if (size() && back().get_Class() != TC_END &&
+                      back().get_Class() != TC_RETURN)
+           {
+             const Token_loc tl(tok, back());
+             push_back(tl);
+           }
+        else
+           {
+             emplace_back(tok, empty_pc);
+           }
+      }
+
    /// reverse the token order from \b from to \b to (including)
    /// @param from  index of first token to reverse
    /// @param to    index of last token to reverse (inclusive)

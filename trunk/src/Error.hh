@@ -147,7 +147,7 @@ public:
    /// print the 3 error message lines as per ⎕EM
    /// @param out output stream to print to
    /// @param loc caller location for diagnostics
-   void print_em(ostream & out, const char * loc);
+   void print_EM(ostream & out, const char * loc);
 
    /// print the error and its related information
    /// @param out output stream to print to

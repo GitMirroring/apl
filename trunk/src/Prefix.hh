@@ -122,17 +122,18 @@ public:
    /// @param value the APL value whose owners are to be listed
    int show_owners(const char * prfx, ostream & out, const Value & value) const;
 
-   /** The (opaque) PCs of the Token_locs of the current statement. They
-       are only handed over to the error reporting (which interprets them).
+   /** The (opaque) PCs of the Token_locs of the current phrase (i.e. the
+       items on the stack, or else the lookahead token). They are only
+       handed over to the error reporting (which interprets them).
        Prefix itself never looks at them.
     **/
-   /// the PC of the leftmost (in APL order) item in the current statement
-   Function_PC get_range_high() const
+   /// the PC of the leftmost (in APL order) item of the current phrase
+   Function_PC get_phrase_high() const
       { return left_loc().get_PC(); }
 
-   /// return the PC of the rightmost (in APL order) item in the current
-   /// statement
-   Function_PC get_range_low() const
+   /// return the PC of the rightmost (in APL order) item of the current
+   /// phrase
+   Function_PC get_phrase_low() const
       { return right_loc().get_PC(); }
 
    /// return the leftmost (in APL order) Token_loc on the stack,
@@ -213,6 +214,13 @@ public:
    /// neutralize the LvalCells in the left values on the stack (after an
    /// error in the statement)
    void neutralize_lval_values();
+
+   /// return the (opaque) PC of the failed function or operator in the
+   /// current phrase, i.e. of its rightmost (in APL order) operator, or else
+   /// of its rightmost function, →, or ←, or else (if the phrase has none of
+   /// them) the PC of the rightmost item B of the phrase. The items are
+   /// found by their token class; their PCs are not inspected.
+   Function_PC get_failed_function() const;
 
    /// return the current assignment state
    Assign_state get_assign_state() const
