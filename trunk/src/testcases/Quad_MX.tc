@@ -32,21 +32,22 @@
       1 2 3 ⎕mx[3] 4 5 6
 0.225726
 
-      ⍝ eigenvectors
+      ⍝ eigenvectors (the rows of ⎕mx[4]). An eigenvector is only defined
+      ⍝ up to its sign, and GSL chooses different signs on different
+      ⍝ platforms (e.g. 32-bit Debian, Bill Heagy): compare their magnitudes
       ⍝
-      4 ⎕cr ⎕mx[4] 3 3⍴((⍳9)-⎕io)
-┏→━━━━━━━━━━━━━━━━━━━━━━━━━━━┓
-↓0.164764  0.505774  0.846785┃
-┃0.7997    0.104206 ¯0.591288┃
-┃0.408248 ¯0.816497  0.408248┃
-┗∼━━━━━━━━━━━━━━━━━━━━━━━━━━━┛
+      4 ⎕cr |⎕mx[4] 3 3⍴((⍳9)-⎕io)
+┏→━━━━━━━━━━━━━━━━━━━━━━━━━┓
+↓0.164764 0.505774 0.846785┃
+┃0.7997   0.104206 0.591288┃
+┃0.408248 0.816497 0.408248┃
+┗∼━━━━━━━━━━━━━━━━━━━━━━━━━┛
 
-      ⍝eigenvalues
+      ⍝eigenvalues. The eigenvalue 0 comes out as a platform-dependent
+      ⍝ rounding residue (¯1.8E¯15, ¯4.2E¯16, ...)
       ⍝
-      4 ⎕cr ⎕mx[5] 3 3⍴((⍳9)-⎕io)
-┏→━━━━━━━━━━━━━━━━━━━━━━━━━━━━┓
-┃13.3485 ¯1.34847 ¯1.76764E¯15┃
-┗∼━━━━━━━━━━━━━━━━━━━━━━━━━━━━┛
+      ⎕mx[5] 3 3⍴((⍳9)-⎕io)
+13.3485 ¯1.34847 ²
 
       ⍝ ident
       ⍝
