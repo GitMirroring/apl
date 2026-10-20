@@ -322,6 +322,16 @@ OK: Z←1
       ( 8○R) INV∆EQUIV S¯8 × (¯1-R⋆2)⋆.5
       (¯8○R) INV∆EQUIV -8○R
 
+⍝ the R above has 0<Re R<1 only, which does not reach the sign cases of ¯4○
+⍝ (Bugs35 #26): try again with ¯3<Re R<3
+      R←¯3+6×⎕RVAL ¯2 ¯3 (0 0 80 20) 4
+      X← 9○R   ⍝ real R
+      Y←11○R   ⍝ imag R
+      S¯4← ¯1+2×(X≥0) ∨ (¯1<X)∧(X<0)∧(Y=0)                     ⍝ sign ¯4○
+      (¯4○R)  INV∆EQUIV  5○¯6○R
+      (¯6○R) INV∆EQUIV ⍟(R+¯4○R)
+      (¯4○R) INV∆EQUIV S¯4 × (¯1 + R⋆2)⋆.5
+
 ⍝ lrm p. 188:   (0≠L)/R   ←→    ⊃,/L⊂R
 
 COMMENT «««

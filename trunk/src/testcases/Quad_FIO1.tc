@@ -21,6 +21,12 @@
       )COPY 5 FILE_IO1.apl
 DUMPED ³
 
+      ⍝ Bugs35 #8: FIO∆file_errno is defined (⎕FIOfile_errno was a DEFN ERROR)
+      ⍝
+      ⎕NC 'FIO∆file_errno'
+3
+
+
       ⍝ fopen this file readonly
       ⍝
       Filename←'testcases/File_IO_1.tc'

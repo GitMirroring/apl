@@ -1215,14 +1215,27 @@ int diff_minutes = local_minutes - gm_minutes;
    return 60*diff_minutes;
 }
 //────────────────────────────────────────────────────────────────────────────
+std::string
+Quad_TZ::gmt_label(int64_t offset)
+{
+const char sign = offset < 0 ? '-' : '+';
+const int64_t abs_offset = offset < 0 ? -offset : offset;
+const int hours   = abs_offset / 3600;
+const int minutes = (abs_offset % 3600) / 60;
+char cc[40];
+   if (minutes)   snprintf(cc, sizeof(cc), "(GMT%c%d:%02d)", sign, hours,
+                           minutes);
+   else           snprintf(cc, sizeof(cc), "(GMT%c%d)", sign, hours);
+   return cc;
+}
+//────────────────────────────────────────────────────────────────────────────
 ostream &
 Quad_TZ::print_timestamp(ostream & out, APL_time_us when) const
 {
 const APL_time_us offset = get_offset();
 const YMDhmsu time(when + 1000000*offset);
 
-char gmt[40];
-   SPRINTF(gmt, "(GMT%+2d)", int(offset/3600));
+const std::string gmt = gmt_label(offset);
 
 ostringstream os;
    os << setfill('0') << time.year  << "-"
@@ -1277,7 +1290,7 @@ const Cell & cell = B->get_cfirst(cache);
                              " (hours UTC offset)";
              DOMAIN_ERROR;
            }
-        offset_seconds = int(0.5 + hours*3600);
+        offset_seconds = int(lround(hours*3600));   // not 0.5+: ¯3.5 (Bugs35 #70)
         Symbol::assign(B, clone, LOC);
         return;
       }

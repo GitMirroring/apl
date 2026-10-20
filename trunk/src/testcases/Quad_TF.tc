@@ -515,7 +515,7 @@ CLEAR WS
       X75←42
       )OUT dwout75
 
-      data ← ⎕FIO[26] 'workspaces/dwout75.atf'
+      data ← ⎕FIO[26] 'testcases/libroot/workspaces/dwout75.atf'
       ~∨/'F1' ⍷ data
 1
       ∨/'X75' ⍷ data

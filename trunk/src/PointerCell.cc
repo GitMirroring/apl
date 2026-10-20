@@ -93,50 +93,10 @@ Value_P val = get_pointer_value();
         if (val->is_char_vector())   return PrintBuffer(*val, pctx, 0);
       }
 
-   if (pctx.get_style() == PR_APL_FUN)   // APL function display
+   if (pctx.get_style() & PST_INPUT)   // APL input format, e.g. (1 2)
       {
-        const ShapeItem ec = val->element_count();
         UCS_string ucs;
-
-        if (val->is_char_vector())
-           {
-             ucs << UNI_SINGLE_QUOTE;
-             loop(e, ec)
-                {
-                  const Unicode uni = val->get_char_value(e);
-                  ucs << uni;
-                  if (uni == UNI_SINGLE_QUOTE)   ucs << uni;   // ' -> ''
-                }
-             ucs << UNI_SINGLE_QUOTE;
-           }
-        else if (ec == 0)   // empty
-           {
-             if (val->get_rank() > 1)   TODO;
-             if (val->is_character_cell(0))
-                {
-                  ucs << UNI_SINGLE_QUOTE << UNI_SINGLE_QUOTE;
-                }
-             else if (val->is_integer_cell(0))
-                {
-                  ucs << UNI_ZILDE;
-                }
-             else TODO;
-           }
-        else
-           {
-             ucs << UNI_L_PARENT;
-             loop(e, ec)
-                {
-                  Cell cache;
-                  PrintBuffer pb = val->get_cravel(e, cache).
-                        character_representation(pctx);
-                  ucs << UCS_string(pb, 0, Workspace::get_PW());
-
-                  if (e < ec - 1)   ucs << UNI_SPACE;
-                }
-             ucs << UNI_R_PARENT;
-           }
-
+        PrintBuffer::append_input_item(ucs, *this);
         ColInfo ci;
         PrintBuffer ret(ucs, ci);
         ret.get_info().int_len  = ret.get_column_count();

@@ -417,6 +417,11 @@ public:
    /// return the number of characters printed.
    int error_info(UCS_string & out) const;
 
+   /// append the \b text of a token to \b out (after a blank if needed).
+   /// Return the number of characters appended to out (negative if a blank
+   /// was inserted).
+   static int error_info(UCS_string & out, const UCS_string & text);
+
    /// return the function axis specification of this token and check its
    /// dimension. That is, throw AXIS error for [] anf for  [;...]
    Value_P get_function_axis() const;

@@ -79,15 +79,15 @@ const double qct = Workspace::get_CT();
 
         const APL_Integer a = A->get_checked_near_int();
         const APL_Integer b =    get_checked_near_int();
-        APL_Integer gcd;
-        const ErrorCode err = int_gcd(gcd, a, b);
-        if (err)   return err;
+        uint64_t gcd;
+        int_gcd(gcd, a, b);
         const APL_Float lcm_double = 1.0 * a * b / gcd;
-        if (lcm_double > LARGE_INT || lcm_double < SMALL_INT)
+        if (gcd > uint64_t(LARGE_INT) ||   // gcd = 2⋆63, see int_gcd()
+            lcm_double > LARGE_INT || lcm_double < SMALL_INT)
            {
              return FloatCell::zF(Z, lcm_double);
            }
-        return IntCell::zI(Z, a * (b / gcd));
+        return IntCell::zI(Z, a * (b / APL_Integer(gcd)));
       }
 
    // if both args are real then return the (real) least common multiple of them
@@ -420,10 +420,11 @@ const double qct = Workspace::get_CT();
       {
         const APL_Integer a = A->get_checked_near_int();
         const APL_Integer b =    get_checked_near_int();
-        APL_Integer gcd;
-        const ErrorCode err = int_gcd(gcd, a, b);
-        if (err)   return err;
-        return IntCell::zI(Z, gcd);
+        uint64_t gcd;
+        int_gcd(gcd, a, b);
+        if (gcd > uint64_t(LARGE_INT))   // 2⋆63, see int_gcd()
+           return FloatCell::zF(Z, APL_Float(gcd));
+        return IntCell::zI(Z, APL_Integer(gcd));
       }
 
    // if both args are real then return the (real) greatest common divisor
@@ -699,8 +700,8 @@ const APL_Float nearest = nearbyint(quotient);
    return E_DOMAIN_ERROR;
 }
 //────────────────────────────────────────────────────────────────────────────
-ErrorCode
-NumericCell::int_gcd(APL_Integer & z, APL_Integer a, APL_Integer b)
+void
+NumericCell::int_gcd(uint64_t & z, APL_Integer a, APL_Integer b)
 {
    // Bugs28 #100(n): FloatCell::gcd()'s abs() cannot negate INT64_MIN
    // (UB / overflow in int64), so this used to reject it outright with
@@ -721,17 +722,14 @@ NumericCell::int_gcd(APL_Integer & z, APL_Integer a, APL_Integer b)
         uint64_t y = b < 0 ? -uint64_t(b) : uint64_t(b);
         while (y)   { const uint64_t r = x % y;   x = y;   y = r; }
 
-        // x is the exact GCD magnitude. It only fails to fit in a
-        // (non-negative) APL_Integer when a and b are both INT64_MIN,
-        // whose GCD magnitude is 2^63 itself -- genuinely irrepresentable,
-        // same as the pre-existing DOMAIN ERROR for that corner case.
-        if (x > uint64_t(0x7FFFFFFFFFFFFFFFULL))   return E_DOMAIN_ERROR;
-        z = APL_Integer(x);
-        return E_NO_ERROR;
+        // x is the exact GCD magnitude. It does not fit into an APL_Integer
+        // if it is 2⋆63 (e.g. X∨0 or X∨X for X = INT64_MIN); the callers
+        // then return it as a float, like |X or -X do (Bugs35 #25).
+        z = x;
+        return;
       }
 
    z = FloatCell::gcd(a, b);
-   return E_NO_ERROR;
 }
 //────────────────────────────────────────────────────────────────────────────
 ErrorCode

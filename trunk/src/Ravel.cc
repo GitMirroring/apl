@@ -42,6 +42,18 @@ static_assert(sizeof(ComplexRavel) == sizeof(Ravel),
               "ComplexRavel must not add data members (vtable upgrade via placement-new)");
 
 //────────────────────────────────────────────────────────────────────────────
+/// true if the int64 ravels of A and B can be compared exactly (see
+/// IntCell::ints_compare_exactly())
+static bool
+ints_compare_exactly(cValue_R A, cValue_R B)
+{
+const double qct = Workspace::get_CT();
+   return IntCell::ints_compare_exactly(A.cravel_int64(), A.element_count(),
+                                        qct)
+       && IntCell::ints_compare_exactly(B.cravel_int64(), B.element_count(),
+                                        qct);
+}
+//────────────────────────────────────────────────────────────────────────────
 bool
 Ravel::apply_fast_dyadic(const ScalarFunction & sf,
                           cValue_R A, int inc_A,
@@ -87,6 +99,9 @@ Ravel::apply_fast_dyadic(const ScalarFunction & sf,
               }
            if (const vv_i2b_t fn = sf.get_vv_i2b())
               {
+                // the comparisons are exact: only if tolerant comparison
+                // gives the same (Bugs35 #34)
+                if (!ints_compare_exactly(A, B))   break;
                 uint64_t * pZ = reinterpret_cast<uint64_t *>(&Z.get_wfirst());
                 fn(pZ, A.cravel_int64(), inc_A,
                        B.cravel_int64(), inc_B, len_Z);
@@ -234,6 +249,9 @@ IntRavel::apply_fast_dyadic(const ScalarFunction & sf,
       }
    if (const vv_i2b_t fn = sf.get_vv_i2b())
       {
+        // the comparisons are exact: only if tolerant comparison gives the
+        // same (Bugs35 #34)
+        if (!ints_compare_exactly(A, B))   return false;
         uint64_t * pZ = reinterpret_cast<uint64_t *>(&Z.get_wfirst());
         fn(pZ, A.cravel_int64(), inc_A,
                B.cravel_int64(), inc_B, len_Z);

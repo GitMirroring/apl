@@ -111,7 +111,21 @@ prim_f2 scalar_LO       = LO->get_scalar_f2();
 
                   Assert(result.get_Class() == TC_VALUE);
                   Value_P ZZ = result.get_apl_val();
-                  accu.init_from_value(ZZ.get(), *Z, LOC);
+
+                  // the item of Z is ZZ itself: a nested SCALAR ZZ (e.g.
+                  // 2,¨3 is ⊂2 3) must be kept enclosed, not stored as its
+                  // own PointerCell like init_from_value() does, which
+                  // to_value() above then discloses (Bugs35 #45)
+                  //
+                  if (ZZ->is_scalar() && !ZZ->is_simple_scalar())
+                     {
+                       Z->invalidate_depth();
+                       new (&accu) PointerCell(ZZ.get(), *Z);
+                     }
+                  else
+                     {
+                       accu.init_from_value(ZZ.get(), *Z, LOC);
+                     }
                 }
            }
       }

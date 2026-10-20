@@ -53,7 +53,7 @@
 
 ∇Ze ← FIO∆file_errno Bh
 ⍝⍝ errno (of last call on Bh)
- Ze ← ⎕FIOfile_errno Bh
+ Ze ← ⎕FIO.errno_B Bh
 ∇
 
 ∇Zi ← Ai FIO∆fread Bh

@@ -524,6 +524,11 @@ public:
    /// (with \b fract_digits fractional digits).
    static UCS_string from_double_to_expo(APL_Float value, int fract_digits);
 
+   /// round the significant digits \b d (of a number d[0].d[1]...E expo)
+   /// to \b keep digits, a tie away from zero. Adjust \b expo on a carry
+   /// (e.g. 9.99 → 1.00E1).
+   static void round_expo_digits(std::string & d, int & expo, size_t keep);
+
    /// the exact exponential format of an integer (cf. from_double_to_expo())
    /// @param value integer to format
    /// @param fract_digits number of digits after the decimal point

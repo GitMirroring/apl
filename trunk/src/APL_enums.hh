@@ -277,6 +277,7 @@ enum Fun_signature
    SIG_OP1             = SIG_LO  | SIG_FUN,   ///< monadic operator
    SIG_OP1_X           = SIG_OP1 | SIG_X,     ///< monadic operator with axis
    SIG_OP2             = SIG_OP1 | SIG_RO,    ///< dyadic operator
+   SIG_OP2_X           = SIG_OP2 | SIG_X,     ///< dyadic operator with axis
    SIG_LORO            = SIG_LO  | SIG_RO,    ///< monadic or dyadic operator
 
    // argument variants
@@ -300,12 +301,14 @@ enum Fun_signature
    SIG_LO_OP1_B        = SIG_MON | SIG_OP1,             ///< dito
    SIG_LO_OP1_X_B      = SIG_MON | SIG_OP1_X,           ///< dito
    SIG_LO_OP2_RO_B     = SIG_MON | SIG_OP2,             ///< dito
+   SIG_LO_OP2_X_RO_B   = SIG_MON | SIG_OP2_X,           ///< dito
 
    SIG_Z_F1_B          = SIG_Z   | SIG_F1_B,            ///< dito
    SIG_Z_F1_X_B        = SIG_Z   | SIG_F1_X_B,          ///< dito
    SIG_Z_LO_OP1_B      = SIG_Z   | SIG_LO_OP1_B,        ///< dito
    SIG_Z_LO_OP1_X_B    = SIG_Z   | SIG_LO_OP1_X_B,      ///< dito
    SIG_Z_LO_OP2_RO_B   = SIG_Z   | SIG_LO_OP2_RO_B,     ///< dito
+   SIG_Z_LO_OP2_X_RO_B = SIG_Z   | SIG_LO_OP2_X_RO_B,   ///< dito
 
    // dyadic
    //
@@ -314,12 +317,14 @@ enum Fun_signature
    SIG_A_LO_OP1_B      = SIG_DYA | SIG_OP1,             ///< dito
    SIG_A_LO_OP1_X_B    = SIG_DYA | SIG_OP1_X,           ///< dito
    SIG_A_LO_OP2_RO_B   = SIG_DYA | SIG_OP2,             ///< dito
+   SIG_A_LO_OP2_X_RO_B = SIG_DYA | SIG_OP2_X,           ///< dito
 
    SIG_Z_A_F2_B        = SIG_Z   | SIG_A_F2_B,          ///< dito
    SIG_Z_A_F2_X_B      = SIG_Z   | SIG_A_F2_X_B,        ///< dito
    SIG_Z_A_LO_OP1_B    = SIG_Z   | SIG_A_LO_OP1_B,      ///< dito
    SIG_Z_A_LO_OP1_X_B  = SIG_Z   | SIG_A_LO_OP1_X_B,    ///< dito
    SIG_Z_A_LO_OP2_RO_B = SIG_Z   | SIG_A_LO_OP2_RO_B,   ///< dito
+   SIG_Z_A_LO_OP2_X_RO_B = SIG_Z | SIG_A_LO_OP2_X_RO_B, ///< dito
 };
 //────────────────────────────────────────────────────────────────────────────
 /// which valence(s) of a function genuinely select (or overtake, as ↑
@@ -401,7 +406,7 @@ enum PrintStyle
 {
    PST_NONE          = 0,                ///< nothing
 
-   // character sets for inner and outer frames
+   // character sets (CS) for inner and outer frames
    //
    PST_CS_NONE       = 0x00000000,       ///< ASCII chars (- | and +)
    PST_CS_ASCII      = 0x00000001,       ///< ASCII chars (- | and +)
@@ -425,8 +430,7 @@ enum PrintStyle
    PST_SIMPLE_MIXED  = 0x00004000,       ///< simple mixed
 
    PST_MATRIX        = 0x00010000,       ///< multi line output
-   PST_INPUT         = 0x00020000,       ///< use '' for chars and () for nested
-   PST_PACKED        = 0x00040000,       ///< 4 byte/char
+   PST_INPUT         = 0x00020000,       ///< APL input format (e.g. ⊂1 2)
    PST_NARS          = 0x00080000,       ///< NARS APL ⎕FMT style
    PST_QUOTE_CHARS   = 0x00100000,       ///< quote chars and strings
    PST_PRETTY        = 0x00200000,       ///< print control characters nicely
@@ -441,11 +445,8 @@ enum PrintStyle
                      | PST_NO_FRACT_0
                      | PST_NO_EXPO_0,
 
-   /// ⎕CR function display
+   /// APL input format (1 ⎕CR, error line 2)
    PR_APL_FUN        = PST_INPUT,
-
-   // ⎕ output
-   PR_Quad           = PST_INPUT,
 
    /// ⍞ output
    PR_QUOTE_Quad     = PST_NONE,

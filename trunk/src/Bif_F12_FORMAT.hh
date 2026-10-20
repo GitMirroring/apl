@@ -62,6 +62,12 @@ struct Format_sub
    Unicode pad_char(Unicode qfc) const
       { return flt_mask & BIT_8 ? qfc : UNI_SPACE; }
 
+   /// return true iff \b format (a decorator) has a non-blank character,
+   /// i.e. if it can show a sign (a blank decorator shows nothing)
+   bool is_visible() const
+      { loop(f, format.ssize())   if (format[f] != UNI_SPACE)   return true;
+        return false; }
+
    /// return the number of characters in \b format
    size_t size() const
       { return format.size(); }
@@ -125,17 +131,17 @@ public:
            { return left_deco.out_len + int_part.out_len + fract_part.out_len
                   + expo_deco.out_len + exponent.out_len + right_deco.out_len; }
 
-        /// format \b value by example
-        /// @param value floating-point number to format
-        UCS_string format_example(APL_Float value);
+        /// format \b cell (an integer or a real number) by example
+        /// @param cell the number to format
+        UCS_string format_example(const Cell & cell);
 
-        /// fill data fields from value
-        /// @param value floating-point number to decompose
+        /// fill data fields from the absolute value of \b cell
+        /// @param cell the number to decompose (exactly if it is an integer)
         /// @param data_int output string for the integer digits
         /// @param data_fract output string for the fractional digits
         /// @param data_expo output string for the exponent digits
         /// @param overflow output flag set if the value exceeds field width
-        void fill_data_fields(APL_Float value, UCS_string & data_int,
+        void fill_data_fields(const Cell & cell, UCS_string & data_int,
                               UCS_string & data_fract, UCS_string & data_expo,
                               bool & overflow);
 
@@ -217,12 +223,13 @@ protected:
                                    UCS_string_vector & col_formats);
 
    /// A character array with one column of B formatted by specification
-   /// @param width total output field width in characters
-   /// @param precision number of digits after the decimal point
+   /// @param width_A total output field width in characters
+   /// @param precision_A number of digits after the decimal point
    /// @param cB pointer to the first cell of the column
    /// @param cols total number of columns in the value
    /// @param rows total number of rows in the value
-   static PrintBuffer format_one_col_by_spec(int width, int precision,
+   static PrintBuffer format_one_col_by_spec(APL_Integer width_A,
+                                             APL_Integer precision_A,
                                              cValue_R B, ShapeItem base,
                                              ShapeItem cols, ShapeItem rows);
 

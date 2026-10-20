@@ -568,10 +568,10 @@ const int dist_len = dist.size();
 
    // dist is a distribution...
 
-   // 1. compute the sum of the weights.
-   //    The weights should be reasonably small (sum ≤ 0xFFFF).
+   // 1. compute the sum of the weights (each weight is < 2⋆31, so the sum
+   //    of at most MAX_RANK + 1 weights fits into an int64_t).
    //
-int sum = 0;
+int64_t sum = 0;
    for (size_t d = 0; d < dist.size(); ++d)   sum += dist[d];
 
    // an all-zero distribution (every weight 0, e.g. ⎕RVAL (⊂0 0)) makes
@@ -588,7 +588,12 @@ int sum = 0;
 
    // 2. pick a random number 0...sum
    //
-const int rand = (rand17() & 0xFFFF) % sum;
+   //    A single rand17() has only 16 good bits: with a sum > 0xFFFF the
+   //    later items could never be chosen (Bugs35 #21). Use 64 bits.
+   //
+uint64_t rnd = 0;
+   loop(r, 4)   rnd = (rnd << 16) | (rand17() & 0xFFFF);
+const int64_t rand = rnd % uint64_t(sum);
 
    // 3. return the index of rand in +\dist
    //
@@ -905,7 +910,14 @@ Value_P Z(desired_ranks.size(), LOC);
         vector<int>new_ranks;
         loop(b, B.element_count())
             {
-              const int rank_b = B.get_int_value(b);
+              const APL_Integer rank_b_A = B.get_int_value(b);
+              if (rank_b_A > 0x7FFFFFFF)   // Bugs35 #21: not truncated
+                 {
+                   MORE_ERROR() << "the weight " << rank_b_A << " in a vector right argument B of 1 ⎕RVAL B"
+                                   " is too large (max. 2147483647)";
+                   DOMAIN_ERROR;
+                 }
+              const int rank_b = rank_b_A;
               if (rank_b < 0)
                  {
                    MORE_ERROR() << "a vector right argument B of 1 ⎕RVAL B "
@@ -1027,7 +1039,14 @@ Value_P Z(desired_types.size(), LOC);
         bool B_has_simple = false;
         loop(b, B.element_count())
             {
-              const int type_b = B.get_int_value(b);
+              const APL_Integer type_b_A = B.get_int_value(b);
+              if (type_b_A > 0x7FFFFFFF)   // Bugs35 #21: not truncated
+                 {
+                   MORE_ERROR() << "the weight " << type_b_A << " in the right argument B of 3 ⎕RVAL B"
+                                   " is too large (max. 2147483647)";
+                   DOMAIN_ERROR;
+                 }
+              const int type_b = type_b_A;
               if (type_b < 0)
                  {
                    MORE_ERROR() << "the right argument B of 3 ⎕RVAL B "

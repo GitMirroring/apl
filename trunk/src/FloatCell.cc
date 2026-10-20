@@ -671,7 +671,6 @@ FloatCell::map_FC(UCS_string & ucs)
         switch(ucs[u])
            {
              case UNI_FULLSTOP: ucs[u] = Workspace::get_FC(0);   break;
-             case UNI_COMMA:    ucs[u] = Workspace::get_FC(1);   break;
              case UNI_OVERBAR:        ucs[u] = Workspace::get_FC(5);   break;
              default:                 break;
            }
@@ -943,7 +942,14 @@ FloatCell::bif_residue_ff(Cell * Z, APL_Float a, APL_Float b)
    if (Workspace::get_CT() == 0.0 && a == floor(a) && b == floor(b))
       {
         APL_Float r = fmod(b, a);   // exact; has the sign of b
-        if (r != 0.0 && ((r < 0.0) != (a < 0.0)))   r += a;
+        if (r != 0.0 && ((r < 0.0) != (a < 0.0)))
+           {
+             r += a;   // NOT exact: rounds to a if |r| < ulp(a)÷2
+             // a is no residue modulo a (Bugs35 #11, e.g. 1E19|¯1). The
+             // exact residue is not representable; return the closest
+             // double strictly between 0 and a.
+             if (r == a)   r = nextafter(a, 0.0);
+           }
         if (r == 0.0)   return IntCell::z0(Z);
         if (fabs(r) < BIG_INT64_F)   return IntCell::zI(Z, APL_Integer(r));
         return FloatCell::zF(Z, r);

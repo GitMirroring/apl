@@ -269,7 +269,8 @@ public:
    /// @param quad_pp current value of ⎕PP (print precision)
    static bool need_scaling(APL_Float val, int quad_pp);
 
-   /// replace normal chars by special chars specified in ⎕FC
+   /// replace . and ¯ by ⎕FC[1] and ⎕FC[6] (for format by specification,
+   /// the only formatter besides format by example that uses ⎕FC, LRM p.291)
    /// @param ucs the string whose characters are mapped in-place
    static void map_FC(UCS_string & ucs);
 

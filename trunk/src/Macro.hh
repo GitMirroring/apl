@@ -163,6 +163,10 @@ public:
    /// @param num macro identifier to look up
    static Macro * get_macro(Macro_num num);
 
+   /// return true if \b sym is the name symbol (header FUN()) of a macro.
+   /// Such symbols must survive )CLEAR because the macros themselves do.
+   static bool is_macro_name(const Symbol * sym);
+
    /// unmark all values used in the bodies of all macros
    static void unmark_all_macros();
 

@@ -51,8 +51,12 @@ const ShapeItem len_A = A.element_count();
         return Token(TOK_APL_VALUE1, Z);
       }
 
-   // INT64 × INT64 fast path: hash set lookup, BOOL result
-   if (A.get_ravel_type() == RPT_INT64 && B.get_ravel_type() == RPT_INT64)
+   // INT64 × INT64 fast path: hash set lookup (exact), BOOL result. Only
+   // if exact and tolerant comparison agree (Bugs35 #34).
+   if (A.get_ravel_type() == RPT_INT64 && B.get_ravel_type() == RPT_INT64 &&
+       IntCell::ints_compare_exactly(A.cravel_int64(), len_A, qct) &&
+       IntCell::ints_compare_exactly(B.cravel_int64(), B.element_count(),
+                                     qct))
       {
         const int64_t * pA = A.cravel_int64();
         const int64_t * pB = B.cravel_int64();

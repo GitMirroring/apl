@@ -581,6 +581,40 @@ again:   // aka. REDUCE
       }
 
    prefix_len = best_phrase->phrase_len;
+
+   // a value immediately followed by an operator that never got its
+   // operand(s), e.g. R←2 3\ or →4 / or 1+2 / or R←9⍤ : the statement is
+   // malformed. Reducing the phrase left of it would execute the
+   // assignment, branch, etc. before the SYNTAX ERROR at the end of the
+   // statement (or, for a branch, never report it at all), Bugs35 #75.
+   //
+   // Only for an assignment or a branch (the side effects): a value can
+   // also be the operand of an operator on its right (2 OP +, ⍣2⍤1).
+   //
+   // The same for a parenthesized group on the right that could not be
+   // reduced, e.g. Z←{⍵+7}(⌿5): a group in parentheses is always reduced
+   // before anything on its left, so the statement is malformed and
+   // nothing (also no function) shall be assigned.
+   //
+   if (ssize() > prefix_len &&
+       (strstr(best_phrase->phrase_name, "ASS") ||
+        strstr(best_phrase->phrase_name, "GOTO")))
+      {
+        const TokenClass next = at(prefix_len).get_Class();
+        if (at(prefix_len - 1).get_Class() == TC_VALUE &&
+            (next == TC_OPER1 || next == TC_OPER2))
+           {
+             MORE_ERROR() << "operator without (left) operand";
+             SYNTAX_ERROR;
+           }
+
+        if (next == TC_L_PARENT)
+           {
+             MORE_ERROR() << "invalid expression in parentheses";
+             SYNTAX_ERROR;
+           }
+      }
+
    Log(LOG_Reduce_XXX)
       {
         loop(s, si.get_depth() + 1)   CERR << "    ";   // indent
@@ -3336,6 +3370,13 @@ const Id id_D = D->get_Id();
       f ⍤ RO with RO←(y B) that were stranded together in Parser.cc, or else
       f ⍣ RO with RO←(N B) that were stranded together in Parser.cc.
 
+      Only a strand (TOK_APL_VALUE3) can contain B. Any other value, i.e.
+      a variable, a parenthesized value, or a function result, is the
+      entire y resp. N, even if it has the wrong shape (Blake McBride,
+      Bugs35 #38, Bugs28 #58). reduce_A_B__() does not glue A B when A
+      is preceded by a dyadic operator, so f ⍤ Y B with variables Y and B
+      arrives here as f ⍤ Y and B stays on the stack.
+
       Unstrand RO into y resp. N and (maybe) B. NOTE that in this context
       B is y resp. N of the strand RO and not the real right argument B of
       (f ⍤ RO) B resp. (f ⍣ RO) B.
@@ -3350,7 +3391,9 @@ DerivedFunction * derived;
    {
      Value_P value_RO;   // j123 (for ⍤) or N (for ⍣)
      const UCS_string LO_name = LO_F.get_function()->get_name();
-     if (id_D == ID_OPER2_RANK)
+     if (at2().get_tag() != TOK_APL_VALUE3)   // not a strand: RO is y or N
+        value_RO = RO_B;
+     else if (id_D == ID_OPER2_RANK)
         Bif_OPER2_RANK::unstrand_RO_B(LO_name, RO_B, value_RO, value_B);
      else
         Bif_OPER2_POWER::unstrand_RO_B(LO_name, RO_B, value_RO, value_B);
@@ -3479,8 +3522,11 @@ Value_P value_B;   // the original B (before stranding j and B).
 DerivedFunction * derived;
    {
      Value_P y123;
-     Bif_OPER2_RANK::unstrand_RO_B(LO_F.get_function()->get_name(),
-                                    RO_B, y123, value_B);
+     if (at3().get_tag() != TOK_APL_VALUE3)   // not a strand (see F D B)
+        y123 = RO_B;
+     else
+        Bif_OPER2_RANK::unstrand_RO_B(LO_F.get_function()->get_name(),
+                                       RO_B, y123, value_B);
      Token T_y123_orig_RO(TOK_APL_VALUE1, y123);
 
      derived = get_fun_oper_slot(&LO_F, D, &T_y123_orig_RO, X_C, LOC);

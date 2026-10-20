@@ -178,6 +178,13 @@ public:
    void clear_FUN()
       { sym_FUN = 0; }
 
+   /// return header line \b text with local names that were separated by
+   /// blanks only separated by semicolons (LRM p.348: "Separating local
+   /// names by semicolons is optional on input. On display, semicolons are
+   /// always included"). Everything else stays as entered.
+   /// @param text the header line (line [0]) of a defined function
+   static UCS_string canonical_locals(const UCS_string & text);
+
 protected:
    /// init the signature from text
    /// @param text UCS string containing the function header line

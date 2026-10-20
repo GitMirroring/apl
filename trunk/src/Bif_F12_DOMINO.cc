@@ -1024,81 +1024,70 @@ int term = 0;
 
         const bool subsequent_term = term++;
 
-        // hide coefficient 1 (unless the term is constant)
-        if (coeff.is_near_one())
-           {
-             if (subsequent_term)   poly << " + ";
-             if (b == 0)            poly << "1";
-           }
-        else if (coeff.is_near_int() && coeff.get_checked_near_int() == -1)
-           {
-             if (subsequent_term && b)   poly << " - ";
-             else if (subsequent_term)   poly << " - 1";
-             else if (b == 0)            poly << "¨1";
-             else                        poly << "-";
-           }
-        else if (coeff.is_integer_cell())   // integer coefficient
-           {
-             const int value = coeff.get_int_value();
-             if (value < 0)
-                {
-                  if (subsequent_term)   poly << " - " << - value;
-                  else                   poly << "¯"   << - value;
-                }
-             else
-                {
-                  if (subsequent_term)   poly << " + " << value;
-                  else                   poly << value;
-                }
-           }
-        else if (coeff.is_float_cell())   // real coefficient
-           {
-             const double value = coeff.get_real_value();
-             if (value < 0)
-                {
-                   if (subsequent_term)   poly << " - " << - value;
-                   else                   poly << "¯"   << - value;
-                }
-             else
-                {
-                  if (subsequent_term)   poly << " + " << value;
-                  else                   poly << value;
-                }
-           }
-        else if (coeff.is_complex_cell())   // complex coefficient
-           {
-             double c_real = coeff.get_real_value();
-             double c_imag = coeff.get_imag_value();
-             if (c_real < 0 && c_imag < 0)
-                {
-                  if (subsequent_term)
-                     poly << " - " << (-c_real) << (-c_imag);
-                  else
-                     poly << "¯" << (-c_real) << "J¯" << (-c_imag);
-                }
-             else if (c_real < 0)   // and c_imag > 0
-                {
-                  if (subsequent_term)
-                     poly << " - " << (-c_real) << "J" << c_imag;
-                  else
-                     poly << "¯" << (-c_real) << "J¯" << (-c_imag);
-                }
-             else if (c_imag < 0)   // and c_real > 0
-               {
-                  if (subsequent_term)   poly << " + ";
-                  poly << c_real << "J¯" << (-c_imag);
-               }
-             else   // both positive
-                {
-                  if (subsequent_term)   poly << " + ";
-                  poly << c_real << "J" << c_imag;
-                }
-           }
-        else
+        if (!coeff.is_numeric())
            {
              MORE_ERROR() << "A ⌹.poly_print B : Bad type of argument B"
                              " (expecting numeric coefficients)";
              DOMAIN_ERROR;
+           }
+
+        // a subsequent negative coefficient c is printed as " - " followed
+        // by -c. Every coefficient is printed as the APL number it is (⎕PP,
+        // complex, and large integers included, Bugs35 #22).
+        //
+        bool negative;
+        if (coeff.is_integer_cell())     negative = coeff.get_int_value() < 0;
+        else if (coeff.is_complex_cell())
+           negative = coeff.get_real_value() < 0 ||
+                      (coeff.get_real_value() == 0 &&
+                       coeff.get_imag_value() < 0);
+        else                             negative = coeff.get_real_value() < 0;
+
+        if (subsequent_term)   poly << (negative ? " - " : " + ");
+        const bool print_neg = negative && subsequent_term;
+
+        // hide coefficient 1 (or -1) unless the term is constant
+        //
+        if (b && coeff.is_near_int() &&
+            coeff.get_checked_near_int() == (print_neg ? -1 : 1))   ;
+        else if (b && !subsequent_term && coeff.is_near_int() &&
+                 coeff.get_checked_near_int() == -1)   poly << "-";   // -x
+        else
+           {
+             const PrintContext pctx =
+                   Workspace::get_PrintContext(PR_APL_MIN);
+             if (!print_neg)
+                {
+                  poly << UCS_string(coeff.character_representation(pctx),
+                                     0, MAX_Quad_PW);
+                }
+             else if (coeff.is_integer_cell())
+                {
+                  const APL_Integer v = coeff.get_int_value();
+                  if (v == INT64_MIN)   // -v overflows: print 2⋆63 exactly
+                     {
+                       poly << UCS_string(UTF8_string("9223372036854775808"));
+                     }
+                  else
+                     {
+                       const IntCell neg(-v);
+                       poly << UCS_string(neg.character_representation(pctx),
+                                          0, MAX_Quad_PW);
+                     }
+                }
+             else if (coeff.is_complex_cell())
+                {
+                  const ComplexCell neg(-coeff.get_real_value(),
+                                        -coeff.get_imag_value());
+                  poly << UCS_string(neg.character_representation(pctx),
+                                     0, MAX_Quad_PW);
+                }
+             else
+                {
+                  const FloatCell neg(-coeff.get_real_value());
+                  poly << UCS_string(neg.character_representation(pctx),
+                                     0, MAX_Quad_PW);
+                }
            }
 
         // show the indeterminant()
@@ -1277,13 +1266,25 @@ Bif_F12_DOMINO::poly_quotient(const cValue & A, const cValue & B)
    if (B.get_rank() > 1)   RANK_ERROR;
 
 const ShapeItem ec_A = A.element_count();
-const ShapeItem ec_B = B.element_count();
+ShapeItem ec_B = B.element_count();
 
    if (ec_A == 0 )   LENGTH_ERROR;
    if (ec_B == 0 )   LENGTH_ERROR;
 
+   // zero coefficients of the highest powers of B do not change the
+   // polynomial B, but the division below divides by the highest one
+   // (Bugs35 #23). Ignore them, and refuse the zero polynomial.
+   //
+   for (Cell cache; ec_B > 0 &&
+                    B.get_cravel(ec_B - 1, cache).is_near_zero();)   --ec_B;
+   if (ec_B == 0)
+      {
+        MORE_ERROR() << "A⌹[9]B: B is the zero polynomial";
+        DOMAIN_ERROR;
+      }
+
    // if the degree of A is less than the degree of B, then the quotient
-   // Q←A÷B is 0 and the remainder A∣B is B.
+   // Q←A÷B is 0 and the remainder A∣B is A (since A = 0×B + A).
    //
    if (ec_A < ec_B)
       {
@@ -1296,8 +1297,11 @@ const ShapeItem ec_B = B.element_count();
         }
 
         {
-          Value_P Z2 = CLONE(&B, LOC);
-          Z->next_ravel_Pointer(Z2.get());         // and remainder B
+          Value_P Z2(ec_A, LOC);   // remainder ,A
+          Cell cache;
+          loop(a, ec_A)   Z2->next_ravel_Cell(A.get_cravel(a, cache));
+          Z2->check_value(LOC);
+          Z->next_ravel_Pointer(Z2.get());
         }
         Z->check_value(LOC);
         return Z;
@@ -1732,6 +1736,11 @@ Bif_F12_DOMINO::scan_polynomial(const UCS_string_vector & vars, const cValue & B
 
 UCS_string text(B);
    text.remove_leading_and_trailing_whitespaces();
+
+   // an empty polynomial is the empty sum 0 (was 1, Bugs35 #24)
+   //
+   if (text.size() == 0)   return IntScalar(0, LOC);
+
 Unicode_source src(text);
 
    // scanner state

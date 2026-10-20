@@ -62,12 +62,11 @@
       N ∨ 3
 1
 
+      ⍝ Bugs35 #25: the GCD 2⋆63 of N and N is returned as a float (like |N)
+      ⍝
       N ∨ N
-DOMAIN ERROR
-      N∨N
-      ^^
+9.223372037E18
 
-      )SIC
       )ERASE N
 
       ⍝ ==================================

@@ -70,6 +70,11 @@ print all command line options with a brief hint what they do.
 .B -L wsname
 )LOAD wsname on start-up.
 .TP
+.B --libroot dir
+use \fBdir\fP as the library root: \fBdir\fP/workspaces is library 0 and
+\fBdir\fP/wslib1 ... \fBdir\fP/wslib9 are libraries 1-9. Overrides
+\fB$APL_LIB_ROOT\fP and the LIBREF-N settings of the \fBpreferences\fP files.
+.TP
 .B --LX expr
 execute expr first (like ⎕LX)
 .TP
@@ -101,6 +106,11 @@ redirect CERR to COUT (like \fB2>&1\fP in bash).
 .TP
 .B --noCONT
 do not load a \fBCONTINUE\fP workspace on start-up.
+.TP
+.B --noPrefs
+do not read the system and user \fBpreferences\fP and
+\fBparallel_thresholds\fP files; use the built-in defaults.
+Used by the testcases so that they do not depend on an installed GNU APL.
 .TP
 .B --OFF
 automatically )OFF (i.e. exit) after the last \fB-f\fP input file has

@@ -97,7 +97,7 @@ RealCell::bif_logarithm(Cell * Z, const Cell * A) const
 }
 //────────────────────────────────────────────────────────────────────────────
 ErrorCode
-RealCell::do_bif_circle_fun(Cell * Z, int fun, APL_Float b)
+RealCell::do_bif_circle_fun(Cell * Z, APL_Integer fun, APL_Float b)
 {
    switch(fun)
       {
@@ -157,9 +157,12 @@ RealCell::do_bif_circle_fun(Cell * Z, int fun, APL_Float b)
                     // perfectly finite; dividing by b² instead of
                     // squaring b keeps every intermediate bounded.
                     //
+                    // b ≤ ¯1 gives the negative root (APL2 LRM Figure
+                    // 18, Bugs35 #26), see ComplexCell case -4.
+                    //
                     const double arg = 1.0 - 1.0/(b*b);
-                    return FloatCell::zF(Z, abs_b * sqrt(arg < 0.0 ? 0.0
-                                                                    : arg));
+                    const double mag = abs_b * sqrt(arg < 0.0 ? 0.0 : arg);
+                    return FloatCell::zF(Z, b < 0.0 ? 0.0 - mag : mag);
                   }
                return ComplexCell::do_bif_circle_fun(Z, -4, APL_Complex(b));
              }

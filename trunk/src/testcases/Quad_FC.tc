@@ -44,8 +44,14 @@ DOMAIN ERROR
       N
 123.456
 
+      ⍝ ⎕FC is used by dyadic ⍕ only (LRM p.291), not by the display
+      ⍝ (Bugs35 #17, #18)
+      ⍝
       ⎕FC[1]←'∆' ◊ N
-123∆456
+123.456
+
+      8 3⍕N
+ 123∆456
 
       ⎕FC←''
 

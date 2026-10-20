@@ -205,6 +205,10 @@ public:
    /// the profile to be used (in the preferences file)
    int user_profile;
 
+   /// true if no preferences or parallel_thresholds files shall be read
+   /// (--noPrefs, e.g. for testcases that must not depend on an installation)
+   bool no_prefs;
+
    /// wait at start-up
    int wait_ms;
 

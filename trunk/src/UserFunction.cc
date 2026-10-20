@@ -216,6 +216,18 @@ UserFunction::eval_ALRB(cValue_R A, Token & LO, Token & RO, cValue_R B) const
    return Token(TOK_SI_PUSHED);
 }
 //────────────────────────────────────────────────────────────────────────────
+void
+UserFunction::axis_error() const
+{
+   if (is_lambda())
+      MORE_ERROR() << get_name() << "[X]: " << get_name()
+                   << " has no axis argument (χ is not used)";
+   else
+      MORE_ERROR() << get_name() << "[X]: " << get_name()
+                   << " has no axis argument ([X] is not in its header)";
+   AXIS_ERROR;
+}
+//────────────────────────────────────────────────────────────────────────────
 Token
 UserFunction::eval_ALRXB(cValue_R A, Token & LO, Token & RO,
                          cValue_R X, cValue_R B) const
@@ -232,7 +244,7 @@ UserFunction::eval_ALRXB(cValue_R A, Token & LO, Token & RO,
 
    if (!header.RO())   SYNTAX_ERROR;   // defined monadic op called dyadically
    if (!header.A())    VALENCE_ERROR;   // monadic
-   if (!header.X())    AXIS_ERROR;
+   if (!header.X())    axis_error();
 
    Workspace::push_SI(this, LOC);
 
@@ -264,7 +276,7 @@ UserFunction::eval_ALXB(cValue_R A, Token & LO, cValue_R X, cValue_R B) const
 
    if (header.RO())    SYNTAX_ERROR;    // defined as dyadic operator
    if (!header.A())    VALENCE_ERROR;   // monadic
-   if (!header.X())    AXIS_ERROR;
+   if (!header.X())    axis_error();
 
    Workspace::push_SI(this, LOC);
 
@@ -292,7 +304,7 @@ UserFunction::eval_AXB(cValue_R A, cValue_R X, cValue_R B) const
 
    if (header.LO())    SYNTAX_ERROR;    // defined as operator
    if (!header.A())    VALENCE_ERROR;   // monadic
-   if (!header.X())    AXIS_ERROR;
+   if (!header.X())    axis_error();
 
    Workspace::push_SI(this, LOC);
 
@@ -398,7 +410,7 @@ UserFunction::eval_LRXB(Token & LO, Token & RO, cValue_R X, cValue_R B) const
       }
 
    if (!header.RO())   SYNTAX_ERROR;   // not defined as dyadic operator
-   if (!header.X())    AXIS_ERROR;
+   if (!header.X())    axis_error();
 
    Workspace::push_SI(this, LOC);
 
@@ -428,7 +440,7 @@ UserFunction::eval_LXB(Token & LO, cValue_R X, cValue_R B) const
       }
 
    if (header.RO())    SYNTAX_ERROR;   // dyadic operator called monadically
-   if (!header.X())    AXIS_ERROR;
+   if (!header.X())    axis_error();
 
    Workspace::push_SI(this, LOC);
 
@@ -453,7 +465,7 @@ UserFunction::eval_XB(cValue_R X, cValue_R B) const
              << Token(TOK_APL_VALUE1, CLONE(&B, LOC)) << ")" << endl;
       }
 
-   if (!header.X())    AXIS_ERROR;
+   if (!header.X())    axis_error();
    if (header.LO())    SYNTAX_ERROR;   // defined as operator
 
    Workspace::push_SI(this, LOC);
@@ -689,7 +701,8 @@ UCS_string message_2(error.get_error_line_2());
 #else
         if (Value_P val_A = header.A()->get_apl_value())
            {
-             PrintContext pctx(PR_BOXED_GRAPHIC);
+             // line 2 shows input (like B below), not boxed output
+             PrintContext pctx(PR_APL_FUN);
              PrintBuffer pb(*val_A, pctx, 0);
              message_2 << UCS_string(pb, 1, DEFAULT_Quad_PW) << UNI_SPACE;
            }
@@ -1112,8 +1125,19 @@ Function_PC end_PC = Function_PC_0;   // the PC of the end of the last line
         text = original_text;
       }
 
-   // recompute the →→ ←→ ←← jump PCs
-   compute_if_else_targets();
+   // recompute the →→ ←→ ←← jump PCs. An unbalanced →→ ←→ ←← makes the
+   // function bad (reported by fix() like any other bad line, Bugs35 #53)
+   //
+   {
+     Function_Line bad_line = Function_Line_0;
+     const char * bad_cause = 0;
+     if (compute_if_else_targets(&bad_line, &bad_cause))
+        {
+          error_line = bad_line;
+          error_info = bad_cause;
+          return;
+        }
+   }
 
    // replace marker tokens with their corresponding literal
    //
@@ -1405,8 +1429,14 @@ const UserFunction * old_ufun = 0;
       }
 
    // only now -- past every remaining error path -- is it safe to free
-   // the old function.
-   delete old_ufun;
+   // the old function. A lambda (e.g. H←{...} re-fixed by ⎕FX) is
+   // reference counted: the body of the function that contains it still
+   // refers to it (Bugs35 #47).
+   //
+   if (old_ufun && old_ufun->is_lambda())
+      const_cast<UserFunction *>(old_ufun)->decrement_refcount(LOC);
+   else
+      delete old_ufun;
 
    // finally: bind function to symbol
    //
@@ -1601,7 +1631,10 @@ UserFunction::UserFunction(const UCS_string txt, const char * loc,
    parse_body(loc, macro);
    if (error_line > 0)
       {
-        error_info = "Error in function body";
+        // keep a more specific error_info set by parse_body(), e.g. an
+        // unbalanced →→ ←→ ←← (Bugs35 #53)
+        if (!error_info || !strcmp(error_info, "Unspecified"))
+           error_info = "Error in function body";
         return;
       }
 
@@ -1620,6 +1653,10 @@ UserFunction::UserFunction(const UCS_string txt, const char * loc,
                  }
             }
       }
+
+   // show blank-separated local names with semicolons (Bugs35 #49)
+   //
+   if (!macro)   set_text(0, UserFunction_header::canonical_locals(get_text(0)));
 
    error_line = -1;   // no error
    error_info = 0;

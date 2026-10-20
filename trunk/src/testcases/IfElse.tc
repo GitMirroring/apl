@@ -57,7 +57,7 @@ True
       1 →→ 1+1 ←→ 'False' ←←
 2
       1 →→ ←→ 'False' ←←   ⍝ empty THEN
-main: Parse error+
+SYNTAX ERROR+
       )MORE
 empty →→ ... ←→ (aka. empty THEN)
       )SIC
@@ -65,14 +65,14 @@ empty →→ ... ←→ (aka. empty THEN)
 
 
       1 →→ 'True' ←→  ←←   ⍝ empty ELSE
-main: Parse error+
+SYNTAX ERROR+
       )MORE
 empty ←→ ... ←← (aka. empty ELSE)
       )SIC
       )CHECK BRIEF
 
       1 →→ ←→ ←←           ⍝ empty THEN and ELSE
-main: Parse error+
+SYNTAX ERROR+
       )MORE
 empty →→ ... ←→ (aka. empty THEN)
       )SIC
@@ -90,7 +90,7 @@ False
       0 →→ 'True' ←→ 'False' ←←
 False
       0 →→  ←→ 'False' ←←   ⍝ empty THEN
-main: Parse error+
+SYNTAX ERROR+
       )MORE
 empty →→ ... ←→ (aka. empty THEN)
       )SIC
@@ -98,7 +98,7 @@ empty →→ ... ←→ (aka. empty THEN)
 
 
       0 →→ 'True' ←→ ←←   ⍝ empty ELSE
-main: Parse error+
+SYNTAX ERROR+
       )MORE
 empty ←→ ... ←← (aka. empty ELSE)
       )SIC
@@ -106,7 +106,7 @@ empty ←→ ... ←← (aka. empty ELSE)
       
 
             0 →→ 'True' ←→ ←←   ⍝ empty ELSE
-main: Parse error+
+SYNTAX ERROR+
       )MORE
 empty ←→ ... ←← (aka. empty ELSE)
       )SIC
@@ -114,7 +114,7 @@ empty ←→ ... ←← (aka. empty ELSE)
 
 
       0 →→ ←→ ←←           ⍝ empty THEN and ELSE
-main: Parse error+
+SYNTAX ERROR+
       )MORE
 empty →→ ... ←→ (aka. empty THEN)
       )SIC

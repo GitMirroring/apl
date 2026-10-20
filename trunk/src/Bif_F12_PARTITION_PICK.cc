@@ -277,8 +277,20 @@ Value_P Z(shape_Z, LOC);
 
    if (Z->is_empty())
       {
-        const ShapeItem len = 0;
+        // the length of an item depends only on A (not on the other, empty
+        // axes of B): the prototype is the first partition of a B with one
+        // row, i.e. (length of partition 0) prototypes of B (Bugs35 #30).
+        //
+        ShapeItem len = 0;
+        if (Zm)
+           {
+             len = partitions[0].length();
+             if (len_A == 1)   len *= B.get_shape_item(axis);
+           }
         Value_P ZZ(len, LOC);
+        Cell cache;
+        const Cell & proto_B = B.get_cproto(cache);
+        loop(l, len)   ZZ->next_ravel_Proto(proto_B);
         ZZ->set_default(B, LOC);
         ZZ->check_value(LOC);
         new (&Z->get_wproto()) PointerCell(ZZ.get(), *Z);
@@ -342,6 +354,18 @@ Bif_F12_PICK::disclose(cValue_R B, bool rank_tolerant)
    // for simple scalars B: B ≡ ⊂ B and therefore B ≡ ⊃ B
    //
    if (B.is_simple_scalar())   return CLONE(&B, LOC);
+
+   // (⊃Z)←C for a scalar Z: ⊃Z ≡ ↑Z, and ↑ marks the item as replaced
+   // wholesale. The per-cell path wrote a simple C into the only cell of a
+   // nested scalar item, leaving a PointerCell to a simple scalar in Z
+   // (Bugs35 #76).
+   //
+   if (B.is_scalar() && B.is_left_value())
+      {
+        Cell cache;
+        if (B.get_cscalar(cache).is_lval_cell())
+           return Bif_F12_TAKE::first(B);
+      }
 
    // compute item_shape, which is the smallest shape into which each
    // item of B fits, and then ⍴Z ←→ (⍴B), item_shape
@@ -629,17 +653,27 @@ ShapeItem ret[MAX_RANK];
             {
               if (!rank_tolerant)   RANK_ERROR;
 
-              if (ret_rank < val_rank)   ret_rank = val_rank;
-
-              // if ret_rank() > v->get_rank() then we are OK because
-              // only the dimensions present in v are expanded below.
+              // the smaller rank is extended by PREPENDING 1s, i.e. the
+              // shapes are aligned at their last axes (like the item copy
+              // does). Aligning them at their first axes lost item data
+              // (Bugs35 #31).
+              //
+              if (ret_rank < val_rank)   // shift ret right
+                 {
+                   const ShapeItem diff = val_rank - ret_rank;
+                   for (ShapeItem r = ret_rank - 1; r >= 0; --r)
+                       ret[r + diff] = ret[r];
+                   loop(r, diff)   ret[r] = 1;
+                   ret_rank = val_rank;
+                 }
             }
 
+         const ShapeItem offset = ret_rank - val_rank;
          loop(r, val_rank)
              {
-               if (ret[r] < val->get_shape_item(r))
+               if (ret[offset + r] < val->get_shape_item(r))
                   {
-                    ret[r] = val->get_shape_item(r);
+                    ret[offset + r] = val->get_shape_item(r);
                   }
              }
        }

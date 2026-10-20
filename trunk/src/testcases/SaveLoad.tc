@@ -146,7 +146,7 @@ WAS CLEAR WS
       X←'hello'
 
       ⍝ case 1: unmodified round-trip -- no WARNING. checksum_test.xml
-      ⍝ resolves (via the default library path) to workspaces/checksum_test.xml
+      ⍝ resolves (via --libroot) to testcases/libroot/workspaces/checksum_test.xml
       ⍝ -- the raw ⎕FIO calls below use that same resolved path so they edit
       ⍝ the exact same file that )SAVE/)LOAD operate on.
       ⍝
@@ -164,12 +164,12 @@ hello
       ⍝ no meaning) using raw ⎕FIO, then )LOAD again: expect a WARNING
       ⍝ but the workspace shall still load correctly
       ⍝
-      data ← ⎕FIO[26] 'workspaces/checksum_test.xml'
+      data ← ⎕FIO[26] 'testcases/libroot/workspaces/checksum_test.xml'
       needle ← '<!-- Symbol Table -->'
       pos ← (needle ⍷ data) ⍳ 1
       replacement ← '<!-- Symbol Table (edited) -->'
       new_data ← ((pos-1)↑data) , replacement , (((pos-1)+≢needle)↓data)
-      Handle ← 'w' ⎕FIO[3] 'workspaces/checksum_test.xml'
+      Handle ← 'w' ⎕FIO[3] 'testcases/libroot/workspaces/checksum_test.xml'
       Wcount ← (⎕UCS new_data) ⎕FIO[7] Handle
 
       ⎕FIO[4] Handle
@@ -237,9 +237,9 @@ WAS CLEAR WS
       )SAVE trunc_test
 20⁰-⁰-⁰  ⁰:⁰:⁰ (GMT⁵⁰) 
 
-      data ← ⎕FIO[26] 'workspaces/trunc_test.xml'
+      data ← ⎕FIO[26] 'testcases/libroot/workspaces/trunc_test.xml'
       new_data ← ¯5↓data
-      Handle ← 'w' ⎕FIO[3] 'workspaces/trunc_test.xml'
+      Handle ← 'w' ⎕FIO[3] 'testcases/libroot/workspaces/trunc_test.xml'
       Wcount ← (⎕UCS new_data) ⎕FIO[7] Handle
 
       ⎕FIO[4] Handle
@@ -324,12 +324,12 @@ F[1]  Z←1÷B
       )SAVE silevel_test
 20⁰-⁰-⁰  ⁰:⁰:⁰ (GMT⁵⁰) 
 
-      data ← ⎕FIO[26] 'workspaces/silevel_test.xml'
+      data ← ⎕FIO[26] 'testcases/libroot/workspaces/silevel_test.xml'
       needle ← '<SI-entry level="1"'
       pos ← (needle ⍷ data) ⍳ 1
       replacement ← '<SI-entry level="5"'
       new_data ← ((pos-1)↑data) , replacement , (((pos-1)+≢needle)↓data)
-      Handle ← 'w' ⎕FIO[3] 'workspaces/silevel_test.xml'
+      Handle ← 'w' ⎕FIO[3] 'testcases/libroot/workspaces/silevel_test.xml'
       Wcount ← (⎕UCS new_data) ⎕FIO[7] Handle
 
       ⎕FIO[4] Handle
@@ -382,7 +382,7 @@ WAS CLEAR WS
       )SAVE copy_test
 20⁰-⁰-⁰  ⁰:⁰:⁰ (GMT⁵⁰) 
 
-      data ← ⎕FIO[26] 'workspaces/copy_test.xml'
+      data ← ⎕FIO[26] 'testcases/libroot/workspaces/copy_test.xml'
       posB ← ('"CPB"' ⍷ data) ⍳ 1
       needleOpen ← 'vid="'
       relOpen ← (needleOpen ⍷ (posB ↓ data)) ⍳ 1
@@ -392,7 +392,7 @@ WAS CLEAR WS
       relQuote ← ('"' ⍷ afterDigits) ⍳ 1
       dropCount ← digitStart + relQuote - 1
       new_data ← ((digitStart - 1) ↑ data) , '99999' , (dropCount ↓ data)
-      Handle ← 'w' ⎕FIO[3] 'workspaces/copy_test.xml'
+      Handle ← 'w' ⎕FIO[3] 'testcases/libroot/workspaces/copy_test.xml'
       Wcount ← (⎕UCS new_data) ⎕FIO[7] Handle
 
       ⎕FIO[4] Handle

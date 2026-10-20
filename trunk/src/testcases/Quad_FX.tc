@@ -277,31 +277,24 @@ DEFN ERROR+
       ⍝ label silently shadowed the argument/result) or another label (so
       ⍝ the last one silently won and the earlier one became unreachable)
       ⍝ -- ISO 13751 / APL2 require header names and labels to all be
-      ⍝ distinct. Now DEFN ERROR at fix time (the ⎕FX result is the
+      ⍝ distinct. Now refused at fix time (the ⎕FX result is the
       ⍝ offending row number, and the function is not defined at all).
+      ⍝ Bugs35 #54: quietly, like any other bad line (no DEFN ERROR is
+      ⍝ printed while ⎕FX returns the row anyway).
       ⍝
       Z1←⎕FX 'Z←F70a B' 'Z←B' 'B:'
-DEFN ERROR+
-      Z1←⎕FX 'Z←F70a B' 'Z←B' 'B:'
-         ^
       Z1
 3
       ⎕NC 'F70a'
 0
 
       Z2←⎕FX 'Z←F70b B' '→X' 'Z←0' 'X:Z←1' '→0' 'X:Z←2'
-DEFN ERROR+
-      Z2←⎕FX 'Z←F70b B' '→X' 'Z←0' 'X:Z←1' '→0' 'X:Z←2'
-         ^
       Z2
 6
       ⎕NC 'F70b'
 0
 
       Z3←⎕FX 'Z←F70c B' 'Z←B' 'Z:'
-DEFN ERROR+
-      Z3←⎕FX 'Z←F70c B' 'Z←B' 'Z:'
-         ^
       Z3
 3
       ⎕NC 'F70c'
@@ -426,30 +419,29 @@ Z←88
 
       )ERASE M
 
-      ⍝ regression (Bugs28 #100(i)): under the default preference
-      ⍝ (OLD-MULTI-LINE-STRINGS, on by default), a '...' string that
-      ⍝ never closes on its own function-body line is still silently
-      ⍝ treated as if it closed at end-of-line -- this is the
-      ⍝ deliberate old-style-multi-line-string leniency, unaffected by
-      ⍝ the Bugs28 #100(i) fix (which only makes Tokenizer.cc's '...'
-      ⍝ handling *also honour* that preference when the user disables
-      ⍝ it, the way the "..."/«...» string tokenizer already did; it
-      ⍝ was never meant to change the default). See
-      ⍝ verify_old_multi_line_strings.sh for the disabled-preference
-      ⍝ case, which an ordinary .tc file (a single already-started
-      ⍝ interpreter) cannot exercise.
+      ⍝ regression (Bugs28 #100(i), Bugs35 #55): a '...' (or "..." or «...»)
+      ⍝ string that never closes on its own function-body line is rejected,
+      ⍝ regardless of the OLD-MULTI-LINE-STRINGS preference (which only
+      ⍝ allows "..." strings spanning several lines, joined before
+      ⍝ tokenization). See also verify_old_multi_line_strings.sh.
       ⍝
       )ERASE ZZ100I
       ⎕FX 'ZZ100I' 'A←''abc' 'B←5'
+2
+
+      ⎕FX 'ZZ100I' 'A←«abc' 'B←5'
+2
+
+      ⎕NC 'ZZ100I'
+0
+
+      ⎕FX 'Z←ZZ100I' 'Z←"abc' 'def"'
 ZZ100I
 
       ZZ100I
-      A
-abc
-      B
-5
+ abc def 
 
-      )ERASE ZZ100I A B
+      )ERASE ZZ100I
 
       ⍝ ==================================
 

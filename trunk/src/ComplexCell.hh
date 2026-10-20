@@ -239,7 +239,7 @@ public:
    /// @param Z uninitialised result cell to be filled in
    /// @param fun circle function selector (APL left argument to ○)
    /// @param b right argument as complex number
-   static ErrorCode do_bif_circle_fun(Cell * Z, int fun, APL_Complex b);
+   static ErrorCode do_bif_circle_fun(Cell * Z, APL_Integer fun, APL_Complex b);
 
 #ifndef __LIBAPL__
  protected:   // public: in libapl.cc

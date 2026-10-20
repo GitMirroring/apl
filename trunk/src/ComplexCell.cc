@@ -318,7 +318,7 @@ const APL_Complex ret( (complex_sqrt(APL_Complex(2*M_PI)) / z)
 }
 //────────────────────────────────────────────────────────────────────────────
 ErrorCode
-ComplexCell::do_bif_circle_fun(Cell * Z, int fun, APL_Complex b)
+ComplexCell::do_bif_circle_fun(Cell * Z, APL_Integer fun, APL_Complex b)
 {
 const APL_Complex one(1.0, 0.0);
    switch(fun)
@@ -398,15 +398,28 @@ const APL_Complex one(1.0, 0.0);
 
         case  -4:
              {
-               // (¯1+B⋆2)⋆0.5, the APL2 convention (always the +
-               // branch of sqrt): RealCell::do_bif_circle_fun() already
-               // uses exactly this form for real B, but this complex
-               // path used to negate when b.real() < -1 (the ISO
-               // (B+1)×((B-1)÷(B+1))^0.5 convention instead), so the
-               // answer depended on whether the value happened to be
-               // stored as a FloatCell or a ComplexCell. Standardized
-               // on the APL2 form to agree with RealCell (Blake
-               // McBride, Bugs26 #4a).
+               // APL2 LRM p. 81, Figure 18: ¯4○B ←→ (¯1+B⋆2)⋆.5 for
+               // X≥0, or for ¯1<X<0 and Y=0, and -(¯1+B⋆2)⋆.5 otherwise
+               // (X = 9○B, Y = 11○B, ⋆.5 = principal root). This is the
+               // (B+1)×((B-1)÷(B+1))⋆.5 form; it keeps ¯6○B ≡ ⍟B+¯4○B
+               // and ¯4○B ≡ 5○¯6○B, and it is continuous across the
+               // imaginary axis (Blake McBride, Bugs35 #26). The
+               // principal root alone (Bugs26 #4a, Bugs32 #5) broke
+               // both. RealCell::do_bif_circle_fun() uses the same rule.
+               //
+               // (¯1+B⋆2) is the same for B and -B, so the negated
+               // branch is minus the principal root of -B.
+               //
+               if (b.real() < 0.0 && (b.real() <= -1.0 || b.imag() != 0.0))
+                  {
+                    const ErrorCode ret = do_bif_circle_fun(Z, -4, -b);
+                    if (ret != E_NO_ERROR)   return ret;
+                    const APL_Complex z = Z->get_complex_value();
+                    return ComplexCell::zC(Z, APL_Complex(0.0 - z.real(),
+                                                          0.0 - z.imag()));
+                  }
+
+               // the principal root (¯1+B⋆2)⋆.5 for the remaining B.
                //
                // For b with an exactly-zero imaginary part (i.e. a
                // real value that reached this complex path only
@@ -464,8 +477,8 @@ const APL_Complex one(1.0, 0.0);
                          // the result is ≈ ±mag + tiny×i, with the sign
                          // only in the (dropped) imaginary part: the
                          // principal root never has a negative real part
-                         // (Blake McBride, Bugs32 #5: negating mag here
-                         // was the r2131 regression).
+                         // (Blake McBride, Bugs32 #5). The LRM negation
+                         // for Re b < 0 is done above.
                          //
                          const double arg = 1.0 - 1.0/(b_re*b_re);
                          const double mag = abs_b * sqrt(arg < 0.0

@@ -14,8 +14,8 @@
 # startup, so this needs its own interpreter invocation with a
 # dedicated HOME -- an ordinary .tc file (a single already-started
 # interpreter, default preferences) cannot exercise the disabled case.
-# See testcases/Quad_FX.tc for the (unaffected) default-preference
-# regression.
+# Since Bugs35 #55 an unterminated '...' string is rejected with either
+# setting; see also testcases/Quad_FX.tc.
 #
 # Usage: ./verify_old_multi_line_strings.sh   (from the src/ directory, after 'make')
 
@@ -46,14 +46,27 @@ run_apl()
    rm -rf "$run_home"
 }
 
-echo "== OLD-MULTI-LINE-STRINGS Yes (default): '...' leniency unaffected =="
+echo "== OLD-MULTI-LINE-STRINGS Yes (default): '...' is rejected as well =="
+# Bugs35 #55: the old-style multi-line string feature is for "..." only,
+# so an unterminated '...' string is rejected regardless of the preference.
 out=$(run_apl "⎕FX 'F' 'A←''abc' 'B←5'
-F
-A" Yes)
-if [[ $out == *"abc"* ]]; then
-   echo "PASS: leniency still accepts the unterminated string"
+⎕NC 'F'" Yes)
+if [[ $out == *$'\n'"0" || $out == "0" ]]; then
+   echo "PASS: F was never defined -- unterminated '...' string rejected"
 else
-   echo "FAIL: expected the string to still be silently accepted, got:"
+   echo "FAIL: expected ⎕NC 'F' to be 0 (undefined), got:"
+   echo "$out"
+   fail=1
+fi
+
+echo
+echo "== OLD-MULTI-LINE-STRINGS Yes (default): \"...\" over 2 lines works =="
+out=$(run_apl "⎕FX 'Z←G' 'Z←\"abc' 'def\"'
+G" Yes)
+if [[ $out == *"abc def"* ]]; then
+   echo "PASS: old-style multi-line string accepted"
+else
+   echo "FAIL: expected ' abc def ', got:"
    echo "$out"
    fail=1
 fi

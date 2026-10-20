@@ -192,7 +192,6 @@ const bool negative = (value < 0.0);
            {
              if (negative)   *this << "¯∞";
              else            *this << "∞";
-             FloatCell::map_FC(*this);
            }
         return;
       }
@@ -376,7 +375,9 @@ int expo = 0;
            }
       }
 
-   FloatCell::map_FC(*this);
+   // ⎕FC is NOT applied here: it is an implicit argument of dyadic ⍕ only
+   // (LRM p.291), not of the display, monadic ⍕, or ⎕TF/)OUT (Bugs35 #17,
+   // #18).
 }
 //────────────────────────────────────────────────────────────────────────────
 UCS_string::UCS_string(istream & in)
@@ -1135,7 +1136,11 @@ size_t max_len = 0;
            }
         else
            {
-             if (uni != UNI_CR)         // ignore \r.
+             // ignore the \r of a \r\n line end, but not a \r inside a
+             // line, e.g. in a string literal (Bugs35 #71)
+             //
+             if (uni != UNI_CR ||
+                 (s + 1 < ssize() && at(s + 1) != UNI_LF))
                 result.back() << uni;
            }
       }
@@ -1577,6 +1582,24 @@ UCS_string ret;
    return ret;
 }
 //────────────────────────────────────────────────────────────────────────────
+void
+UCS_string::round_expo_digits(std::string & d, int & expo, size_t keep)
+{
+   if (d.size() > keep)
+      {
+        const bool round_up = d[keep] >= '5';
+        d.resize(keep);
+        if (round_up)
+           {
+             int pos = keep - 1;
+             while (pos >= 0 && d[pos] == '9')   d[pos--] = '0';
+             if (pos >= 0)   ++d[pos];
+             else   { d.insert(d.begin(), '1');   d.pop_back();   ++expo; }
+           }
+      }
+   while (d.size() < keep)   d += '0';
+}
+//────────────────────────────────────────────────────────────────────────────
 UCS_string
 UCS_string::from_double_to_expo(APL_Float v, int fract_digits)
 {
@@ -1596,20 +1619,40 @@ UCS_string ret;
 
    if (v < 0.0)   { ret << UNI_OVERBAR;   v = -v; }
 
-   // let printf() produce the correctly rounded digits. The former scaling
-   // of v into [1:10) by a cascade of multiplications rounded at every
-   // step and was wrong from the 15th or 16th significant digit on, e.g.
-   // ¯17⍕1E300 gave 9.9999999999999964E299 (Bugs34 #9).
+   // let printf() produce the exact digits. The former scaling of v into
+   // [1:10) by a cascade of multiplications rounded at every step and was
+   // wrong from the 15th or 16th significant digit on, e.g. ¯17⍕1E300 gave
+   // 9.9999999999999964E299 (Bugs34 #9).
    //
-std::vector<char> buffer(fract_digits + 40);
-   snprintf(buffer.data(), buffer.size(), "%.*E", fract_digits, v);
+   // glibc's %E rounds an exact tie (e.g. 2.5 at 0 fraction digits) to
+   // EVEN, while the int path (from_int_to_expo()), fixed format, and the
+   // display round ties away from zero (Bugs35 #3). Therefore request
+   // extra_digits more digits (like from_double_to_fixed()) and round them
+   // with the same rule as from_int_to_expo().
+   //
+   enum { extra_digits = 24 };
+std::vector<char> buffer(fract_digits + extra_digits + 40);
+   snprintf(buffer.data(), buffer.size(), "%.*E",
+            fract_digits + extra_digits, v);
 
-   // buffer is d[.ddd]E±xx
+   // buffer is d.dddE±xx
    //
 const char * e = strchr(buffer.data(), 'E');
    Assert(e);
-   for (const char * m = buffer.data(); m < e; ++m)   ret << Unicode(*m);
-   return ret << UNI_E << from_int(::atoi(e + 1));
+std::string d;
+   for (const char * m = buffer.data(); m < e; ++m)
+       if (*m != '.')   d += *m;
+int expo = ::atoi(e + 1);
+
+   round_expo_digits(d, expo, 1 + fract_digits);
+
+   ret << Unicode(d[0]);
+   if (fract_digits)
+      {
+        ret << UNI_FULLSTOP;
+        for (size_t j = 1; j < d.size(); ++j)   ret << Unicode(d[j]);
+      }
+   return ret << UNI_E << from_int(expo);
 }
 //────────────────────────────────────────────────────────────────────────────
 UCS_string
@@ -1631,20 +1674,7 @@ int expo = d.size() - 1;
    // round d to 1 + fract_digits significant digits (half up: exact,
    // since all digits of an integer are known)
    //
-const size_t keep = 1 + fract_digits;
-   if (d.size() > keep)
-      {
-        const bool round_up = d[keep] >= '5';
-        d.resize(keep);
-        if (round_up)
-           {
-             int pos = keep - 1;
-             while (pos >= 0 && d[pos] == '9')   d[pos--] = '0';
-             if (pos >= 0)   ++d[pos];
-             else   { d.insert(d.begin(), '1');   d.pop_back();   ++expo; }
-           }
-      }
-   while (d.size() < keep)   d += '0';
+   round_expo_digits(d, expo, 1 + fract_digits);
 
    ret << Unicode(d[0]);
    if (fract_digits)

@@ -404,8 +404,9 @@ Bif_OPER2_RANK::eval_ALRB(cValue_R A, Token & LO, Token & y, cValue_R B) const
    //
 Value_P B_hold_;
 const cValue * pB = &B;
-   if (pB->element_count() == 1 && pB->is_pointer_cell(0))
-      { B_hold_ = pB->get_pointer_value(0); pB = B_hold_.get(); }
+   // B is not disclosed here: an f ⍤ y (B) stranded by the parser is
+   // unstranded (and B disclosed) by unstrand_RO_B(); any other 1-item
+   // nested B, e.g. ,⊂1 2, is a genuine argument (Bugs35 #38)
 
 sRank rank_chunk_A = A.get_rank();
 sRank rank_chunk_B = pB->get_rank();
@@ -422,8 +423,9 @@ Bif_OPER2_RANK::eval_ALRXB(cValue_R A, Token & LO, Token & y,
    //
 Value_P B_hold_;
 const cValue * pB = &B;
-   if (pB->element_count() == 1 && pB->is_pointer_cell(0))
-      { B_hold_ = pB->get_pointer_value(0); pB = B_hold_.get(); }
+   // B is not disclosed here: an f ⍤ y (B) stranded by the parser is
+   // unstranded (and B disclosed) by unstrand_RO_B(); any other 1-item
+   // nested B, e.g. ,⊂1 2, is a genuine argument (Bugs35 #38)
 
 sRank rank_chunk_A = A.get_rank();
 sRank rank_chunk_B = pB->get_rank();
@@ -440,8 +442,9 @@ Bif_OPER2_RANK::eval_LRB(Token & LO, Token & y, cValue_R B) const
    //
 Value_P B_hold_;
 const cValue * pB = &B;
-   if (pB->element_count() == 1 && pB->is_pointer_cell(0))
-      { B_hold_ = pB->get_pointer_value(0); pB = B_hold_.get(); }
+   // B is not disclosed here: an f ⍤ y (B) stranded by the parser is
+   // unstranded (and B disclosed) by unstrand_RO_B(); any other 1-item
+   // nested B, e.g. ,⊂1 2, is a genuine argument (Bugs35 #38)
 
 const sRank rank_chunk_B = y123_to_chunk_B_rank(LO.get_function()->get_name(),
                                                  y.get_apl_val().get(),
@@ -456,8 +459,9 @@ Bif_OPER2_RANK::eval_LRXB(Token & LO, Token & y, cValue_R X, cValue_R B) const
    //
 Value_P B_hold_;
 const cValue * pB = &B;
-   if (pB->element_count() == 1 && pB->is_pointer_cell(0))
-      { B_hold_ = pB->get_pointer_value(0); pB = B_hold_.get(); }
+   // B is not disclosed here: an f ⍤ y (B) stranded by the parser is
+   // unstranded (and B disclosed) by unstrand_RO_B(); any other 1-item
+   // nested B, e.g. ,⊂1 2, is a genuine argument (Bugs35 #38)
 
 const sRank rank_chunk_B = y123_to_chunk_B_rank(LO.get_function()->get_name(),
                                                  y.get_apl_val().get(),
@@ -496,32 +500,9 @@ sRank frame_B_rank = B->get_rank() - rank_chunk_B;   // frame_B_rank is y9
 const Shape shape_Z = frame_B_rank ? B->get_shape().frame_shape(frame_B_rank)
                                    : A->get_shape().frame_shape(frame_A_rank);
 
-   if (X)   // ⍤ with axis
-      {
-        // X is the final disclose in the NARS variant of the
-        // rank operator. Every item X[i] of X should be an integer vector
-        // with ⍴X[i] ←→ ⍴⍴B
-        //
-        loop(x, X->element_count())
-            {
-              const APL_Integer axis = X->get_int_value(x);
-              if (axis != B->get_rank())
-                 {
-                   MORE_ERROR() << "A " << LO->get_name() << " ⍤[" << axis
-                                << "] B : Bad axis of B in X (expecting"
-                                   " ⍴⍴B = " << B->get_rank() << ")";
-                   RANK_ERROR;
-                 }
-
-              if (axis != A->get_rank())
-                 {
-                   MORE_ERROR() << "A " << LO->get_name() << " ⍤[" << axis
-                                << "] B : Bad axis of A in X (expecting"
-                                   " ⍴⍴A = " << A->get_rank() << ")";
-                   RANK_ERROR;
-                 }
-            }
-      }
+   // X (if any) is the axis of the final disclose ⊃[X] of the LO results
+   // (the NARS variant of ⍤). Whether X is valid depends on the rank of
+   // the LO results, so ⊃[X] checks it (Bugs35 D15).
 
    if (frame_A_rank && frame_B_rank)   // A and B frames non-scalar
       {
@@ -712,20 +693,7 @@ const Shape chunk_shape_B = B->get_shape().chunk_shape(rank_chunk_B);
         return Token(TOK_APL_VALUE1, Z);
       }
 
-   if (X)   // ⍤ with axis
-      {
-        loop(x, X->element_count())
-            {
-              const APL_Integer axis = X->get_int_value(x);
-              if (axis != B->get_rank())
-                 {
-                   MORE_ERROR() << LO->get_name() << " ⍤[" << axis
-                                << "] B : Bad axis of B in X (expecting"
-                                   " ⍴⍴B = " << B->get_rank() << ")";
-                   RANK_ERROR;
-                 }
-            }
-      }
+   // X is checked by the final ⊃[X], see do_ALyXB()
 
 const Shape shape_B = B->get_shape().chunk_shape(rank_chunk_B);
 
@@ -786,11 +754,10 @@ Bif_OPER2_RANK::y123_to_chunk_B_rank(const UCS_string & LO_name,
         VALUE_ERROR;
       }
 
-   if ( y123->get_rank() > 1)
+   if ( y123->get_rank() > 1)   // RANK ERROR, not ISO's domain-error
       {
-        MORE_ERROR() << "(A) " << LO_name << " ⍤ y B: Bad rank "
-                     << y123->get_rank()
-                     << " of argument y (expecting 1 ≥ ⍴⍴y)";
+        MORE_ERROR() << "f⍤y B: y must be a scalar or vector; ⍴⍴y is "
+                     << y123->get_rank();
         RANK_ERROR;
       }
 
@@ -871,11 +838,11 @@ const sRank rk_A = rank_A;
 const sRank rk_B = rank_B;
 
    if (!y123)                   VALUE_ERROR;
-   if ( y123->get_rank() > 1)
+   if ( y123->get_rank() > 1)   // RANK ERROR, not ISO's domain-error
       {
         MORE_ERROR() << "f⍤y B: y must be a scalar or vector; ⍴⍴y is "
                      << y123->get_rank();
-        DOMAIN_ERROR;
+        RANK_ERROR;
       }
 
    // 2. the number of elements in y determine how rank_A and rank_B

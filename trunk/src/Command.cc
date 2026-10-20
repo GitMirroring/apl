@@ -430,6 +430,45 @@ check_EOC:
                     SYNTAX_ERROR;   // →N without function,
                  }
 
+              // a branch returned by ⍎ (e.g. 2+⍎'→3') is only executed if ⍎
+              // is the leftmost primitive of its statement (LRM p.121),
+              // i.e. if nothing of the calling statement is left
+              // (Bugs35 #52)
+              //
+              if (Workspace::SI_top()->get_parse_mode() == PM_EXECUTE)
+                 {
+                   StateIndicator * caller = Workspace::SI_top()->get_parent();
+                   if (caller && caller == si)
+                      {
+                        const Prefix & cp = caller->get_prefix();
+                        const Token_string & body =
+                                             caller->get_executable()->get_body();
+                        // the prefix has already read the token left of
+                        // ⍎ (the lookahead): the END of the statement if
+                        // ⍎ is leftmost. An assignment Z←⍎'→N' is not a
+                        // primitive and is OK (the old behaviour).
+                        //
+                        // Only for ⍎ (body[pc - 2]), not for ⎕EA, ⎕EC, ...
+                        //
+                        const Prefix_PC pc = cp.get_PC();
+                        const TokenClass left = pc > Prefix_PC_0
+                                              ? body[pc - 1].get_Class()
+                                              : TC_END;
+                        const bool is_execute = pc > Prefix_PC_0 + 1 &&
+                              body[pc - 2].get_tag() == TOK_F1_EXECUTE;
+                        const bool leftmost = cp.ssize() == 1 &&
+                                              (left == TC_END ||
+                                               left == TC_ASSIGN);
+                        if (is_execute && !leftmost)
+                           {
+                             Workspace::pop_SI(LOC);   // the ⍎ context
+                             MORE_ERROR() << "⍎ of a branch is not the"
+                                             " leftmost primitive";
+                             SYNTAX_ERROR;
+                           }
+                      }
+                 }
+
               // pop contexts above defined function
               //
               while (si != Workspace::SI_top())   Workspace::pop_SI(LOC);
@@ -441,14 +480,22 @@ check_EOC:
          if (token.get_tag() == TOK_ESCAPE)
             {
               // remove all SI entries up to (including) the next immediate
-              // execution context
+              // execution context. If the → came from ⍎ (⍎'→') then the
+              // statement containing that ⍎ does not count: ⍎'→' in
+              // immediate execution is → (LRM p.121, Bugs35 #52).
               //
+              const StateIndicator * execute_caller = 0;
+              if (Workspace::SI_top() &&
+                  Workspace::SI_top()->get_parse_mode() == PM_EXECUTE)
+                 execute_caller = Workspace::SI_top()->get_parent();
+
               for (bool goon = true; goon;)
                   {
                     StateIndicator * si = Workspace::SI_top();
                     if (si == 0)   break;   // SI empty
 
-                    goon = si->get_parse_mode() != PM_STATEMENT_LIST;
+                    goon = si->get_parse_mode() != PM_STATEMENT_LIST ||
+                           si == execute_caller;
                     si->escape();   // pop local vars of user defined functions
                     Workspace::pop_SI(LOC);
                   }

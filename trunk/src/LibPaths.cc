@@ -33,6 +33,7 @@
 #include "UCS_string_vector.hh"
 #include "Workspace.hh"
 
+const char * LibPaths::root_arg = 0;
 bool LibPaths::root_from_env = false;
 bool LibPaths::root_from_pwd = false;
 
@@ -164,6 +165,7 @@ LibPaths::get_lib_dir(LibRef libref)
       {
         case LibDir::CSRC_NONE:      return UTF8_string();
 
+        case LibDir::CSRC_ARG:
         case LibDir::CSRC_ENV:
         case LibDir::CSRC_PWD:       break;   // continue below
 
@@ -195,7 +197,8 @@ LibPaths::init(const char * argv0, bool logit)
 
    loop(d, LIB_MAX)
       {
-        if      (root_from_env)   lib_dirs[d].cfg_src = LibDir::CSRC_ENV;
+        if      (root_arg)        lib_dirs[d].cfg_src = LibDir::CSRC_ARG;
+        else if (root_from_env)   lib_dirs[d].cfg_src = LibDir::CSRC_ENV;
         else if (root_from_pwd)   lib_dirs[d].cfg_src = LibDir::CSRC_PWD;
         else                      lib_dirs[d].cfg_src = LibDir::CSRC_NONE;
       }
@@ -406,6 +409,12 @@ void
 LibPaths::search_APL_lib_root()
 {
    APL_lib_root[0] = 0;
+
+   if (root_arg)   // option --libroot (checked in parse_args_1())
+      {
+        set_APL_lib_root(root_arg);
+        return;
+      }
 
    if (const char * path = getenv("APL_LIB_ROOT"))
       {

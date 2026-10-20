@@ -74,6 +74,11 @@ const Cell & first = N_B->get_cfirst(cache);
    N = IntScalar(first.get_int_value(), LOC);
 Cell cache2;
 const Cell & second = N_B->get_cravel(1, cache2);
+   if (Value_P v = second.try_pointer_value())   // f ⍣ N (B): B, not ⊂B
+      {
+        B = v;
+        return;
+      }
    B = Value_P(LOC);
    B->next_ravel_Cell(second);
    B->check_value(LOC);
@@ -109,21 +114,14 @@ cFunction_P LO = _LO.get_function();
    Assert(LO);
 
    Assert(N);
-   if (N->element_count() != 1)
+   if (N->element_count() != 1)   // RANK ERROR like Dyalog (Bugs35 #38)
       {
-        if (N->get_rank() > 1)
-           {
-             MORE_ERROR() << "f⍣N B: N must be a scalar or 1-element"
-                             " vector; ⍴⍴N is " << N->get_rank();
-             RANK_ERROR;
-           }
-        else
-           {
-             MORE_ERROR() << "f⍣N B: N must be a scalar or 1-element"
-                             " vector; N has " << N->element_count()
-                          << " items";
-             LENGTH_ERROR;
-           }
+        UCS_string & more = MORE_ERROR()
+                       << "f⍣N B: N must be a scalar or 1-element vector; ";
+        if (N->get_rank() > 1)   more << "⍴⍴N is " << N->get_rank();
+        else                     more << "N has " << N->element_count()
+                                      << " items";
+        RANK_ERROR;
       }
 
    if (!N->is_near_int(0))

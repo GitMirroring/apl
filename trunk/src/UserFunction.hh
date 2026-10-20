@@ -135,6 +135,10 @@ public:
    virtual bool is_lambda() const
       { return header.get_name()[0] == UNI_LAMBDA; }
 
+   /// throw AXIS ERROR (with )MORE info) for a function or operator that
+   /// was called with an axis but has none
+   void axis_error() const;
+
    /// Overloaded \b Function::is_operator.
    virtual bool is_operator() const
       { return header.is_operator(); }

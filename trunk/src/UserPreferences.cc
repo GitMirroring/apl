@@ -114,6 +114,7 @@ UserPreferences::UserPreferences()
      user_do_svars(true),
 #endif
      user_profile(0),
+     no_prefs(false),
      wait_ms(0),
      WINCH_sets_pw(false)
 {
@@ -150,17 +151,26 @@ const bool log_startup = parse_args_1() || log_startup0;
 
    init_modules(args[0], log_startup);
 
-   // read /etc/gnu-apl.d/preferences
-   read_config_file(true,  log_startup);
+   if (no_prefs)   // --noPrefs: built-in defaults only
+      {
+        if (log_startup)
+           CERR << "--noPrefs: not reading preferences and"
+                   " parallel_thresholds files" << endl;
+      }
+   else
+      {
+        // read /etc/gnu-apl.d/preferences
+        read_config_file(true,  log_startup);
 
-   // read $HOME/.config/gnu_apl/preferences
-   read_config_file(false, log_startup);
+        // read $HOME/.config/gnu_apl/preferences
+        read_config_file(false, log_startup);
 
-  // read /etc/gnu-apl.d/parallel_thresholds
-   read_threshold_file(true, log_startup);
+        // read /etc/gnu-apl.d/parallel_thresholds
+        read_threshold_file(true, log_startup);
 
-  // read $HOME/.config/gnu_apl/parallel_thresholds
-   read_threshold_file(false, log_startup);
+        // read $HOME/.config/gnu_apl/parallel_thresholds
+        read_threshold_file(false, log_startup);
+      }
 
   parse_args_2(log_startup);
 
@@ -234,12 +244,14 @@ UserPreferences::usage(const char * prog)
 "    --tcp_port port      redirect CIN/COUT/CERR to/from TCP port 'port')\n"
 "    --[no]Color          start with ]XTERM ON [OFF])\n"
 "    --noCONT             do not )LOAD CONTINUE or SETUP workspace on startup\n"
+"    --noPrefs            do not read preferences and parallel_thresholds files\n"
 "    --emacs              run in (classical) emacs mode\n"
 "    --emacs_arg arg      run in emacs mode with argument 'arg'\n"
 "    --eval expr          evaluate APL line expr and exit\n"
 "    --gpl                show license (GPL) and exit\n"
 "    --mem limit          memory limit\n"
 "    -L wsname            )LOAD wsname (and not SETUP or CONTINUE) on startup\n"
+"    --libroot dir        use library root dir (workspaces, wslib1...wslib9)\n"
 "    --LX expr            execute APL expression expr first\n"
 "    --OFF                automatically )OFF after last input file\n"
 "    -p N                 use profile N in preferences files\n"
@@ -408,6 +420,32 @@ bool log_startup = false;
                  }
 
               user_profile = atoi(val);
+              continue;
+            }
+
+         IFOPT( --noPrefs )
+            {
+              no_prefs = true;
+              continue;
+            }
+
+         IFOPT( --libroot )
+            {
+              ++a;
+              if (!val)
+                 {
+                   CERR << "--libroot without directory" << endl;
+                   exit(a);
+                 }
+
+              if (!LibPaths::is_lib_root(val))
+                 {
+                   CERR << "--libroot " << val << ": not a library root"
+                           " (needs workspaces and wslib1 in it)" << endl;
+                   exit(a);
+                 }
+
+              LibPaths::set_root_from_arg(val);
               continue;
             }
 
@@ -881,6 +919,17 @@ UserPreferences::parse_args_2(bool logit)
             {
               ++a;
               continue;   // -p already handled in parse_args_1()
+            }
+
+         IFOPT( --noPrefs )
+            {
+              continue;   // already handled in parse_args_1()
+            }
+
+         IFOPT( --libroot )
+            {
+              ++a;
+              continue;   // already handled in parse_args_1()
             }
 
          IFOPT( --par )
@@ -1871,6 +1920,9 @@ int file_profile = 0;   // the current profile in the preferences file
                         << filename << " (ignored)" << endl;
                    continue;
                  }
+
+              // option --libroot overrides the LIBREF-N settings
+              if (LibPaths::is_root_from_arg())   continue;
 
               const UTF8_string arg_utf(arg);
               LibPaths::set_lib_dir(LibRef(lib_ref), arg_utf,

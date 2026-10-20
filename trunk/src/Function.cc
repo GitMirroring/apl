@@ -32,6 +32,7 @@
 #include "Output.hh"
 #include "Parser.hh"
 #include "Prefix.hh"
+#include "Workspace.hh"
 #include "PrintOperator.hh"
 #include "Symbol.hh"
 #include "Value.hh"
@@ -443,7 +444,18 @@ Function::get_attributes(int mode, Value & Z) const
 
         case 2: // creation time (7⍴0 for system functions)
                 {
-                  const YMDhmsu created(get_creation_time());
+                  // in local time (⎕TZ) like ⎕TS and the ∇ display, and
+                  // 7⍴0 rather than the epoch for a system function
+                  // (Bugs35 #69)
+                  //
+                  if (get_creation_time() == 0)
+                     {
+                       loop(z, 7)   Z.next_ravel_Int(0);
+                       return;
+                     }
+                  const APL_time_us offset =
+                        Workspace::get_v_Quad_TZ().get_offset();
+                  const YMDhmsu created(get_creation_time() + 1000000*offset);
                   Z.next_ravel_Int(created.year);
                   Z.next_ravel_Int(created.month);
                   Z.next_ravel_Int(created.day);

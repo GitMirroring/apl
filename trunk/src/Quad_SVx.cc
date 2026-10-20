@@ -157,7 +157,9 @@ const ShapeItem var_count = B.get_rows();
 const UCS_string_vector vars(B, false);
 
 Shape sh_Z;
-   if (var_count > 1)   sh_Z.add_shape_item(var_count);
+   // ⍴Z ←→ ¯1↓⍴B (,4): a matrix B gives a row axis also for 0 or 1 rows
+   // (LRM p.323, p.328, Bugs35 #78)
+   if (B.get_rank() == 2)   sh_Z.add_shape_item(var_count);
    sh_Z.add_shape_item(4);
 Value_P Z(sh_Z, LOC);
 
@@ -202,6 +204,7 @@ ShapeItem aI = 0;
         Z->next_ravel_Int(ctl & USE_BY_2 ? 1 : 0);
       }
 
+   if (Z->is_empty())   Z->set_proto_Int();   // e.g. 0 rows (Bugs35 #78)
    Z->check_value(LOC);
    return Token(TOK_APL_VALUE1, Z);
 }
@@ -215,7 +218,9 @@ const ShapeItem var_count = B.get_rows();
 const UCS_string_vector vars(B, false);
 
 Shape sh_Z;
-   if (var_count > 1)   sh_Z.add_shape_item(var_count);
+   // ⍴Z ←→ ¯1↓⍴B (,4): a matrix B gives a row axis also for 0 or 1 rows
+   // (LRM p.323, p.328, Bugs35 #78)
+   if (B.get_rank() == 2)   sh_Z.add_shape_item(var_count);
    sh_Z.add_shape_item(4);
 Value_P Z(sh_Z, LOC);
 
@@ -238,6 +243,7 @@ Value_P Z(sh_Z, LOC);
         Z->next_ravel_Int(control & USE_BY_2 ? 1 : 0);
       }
 
+   if (Z->is_empty())   Z->set_proto_Int();   // e.g. 0 rows (Bugs35 #78)
    Z->check_value(LOC);
    return Token(TOK_APL_VALUE1, Z);
 }
@@ -321,7 +327,9 @@ const UCS_string_vector apl_vars(B, false);
 const UCS_string_vector surrogates(B, true);
 
 Shape sh_Z;
-   if (var_count > 1)   sh_Z.add_shape_item(var_count);
+   // ⍴Z ←→ ¯1↓⍴B (,4): a matrix B gives a row axis also for 0 or 1 rows
+   // (LRM p.323, p.328, Bugs35 #78)
+   if (B.get_rank() == 2)   sh_Z.add_shape_item(var_count);
 Value_P Z(sh_Z, LOC);
 
    loop(z, var_count)
@@ -386,6 +394,7 @@ Value_P Z(sh_Z, LOC);
         Z->next_ravel_Int(coupling);
       }
 
+   if (Z->is_empty())   Z->set_proto_Int();   // e.g. 0 rows (Bugs35 #78)
    Z->check_value(LOC);
    return Token(TOK_APL_VALUE1, Z);
 }
@@ -402,7 +411,9 @@ const ShapeItem var_count = B.get_rows();
 const UCS_string_vector vars(B, false);
 
 Shape sh_Z;
-   if (var_count > 1)   sh_Z.add_shape_item(var_count);
+   // ⍴Z ←→ ¯1↓⍴B (,4): a matrix B gives a row axis also for 0 or 1 rows
+   // (LRM p.323, p.328, Bugs35 #78)
+   if (B.get_rank() == 2)   sh_Z.add_shape_item(var_count);
 Value_P Z(sh_Z, LOC);
 
    loop(z, var_count)
@@ -427,6 +438,7 @@ Value_P Z(sh_Z, LOC);
          Z->next_ravel_Int(coupling);
       }
 
+   if (Z->is_empty())   Z->set_proto_Int();   // e.g. 0 rows (Bugs35 #78)
    Z->check_value(LOC);
    return Token(TOK_APL_VALUE1, Z);
 }
@@ -692,7 +704,9 @@ const ShapeItem var_count = B.get_rows();
 const UCS_string_vector vars(B, false);
 
 Shape sh_Z;
-   if (var_count > 1)   sh_Z.add_shape_item(var_count);
+   // ⍴Z ←→ ¯1↓⍴B (,4): a matrix B gives a row axis also for 0 or 1 rows
+   // (LRM p.323, p.328, Bugs35 #78)
+   if (B.get_rank() == 2)   sh_Z.add_shape_item(var_count);
 Value_P Z(sh_Z, LOC);
 
    loop(z, var_count)
@@ -709,6 +723,7 @@ Value_P Z(sh_Z, LOC);
            }
       }
 
+   if (Z->is_empty())   Z->set_proto_Int();   // e.g. 0 rows (Bugs35 #78)
    Z->check_value(LOC);
    return Token(TOK_APL_VALUE1, Z);
 }
@@ -722,7 +737,9 @@ const ShapeItem var_count = B.get_rows();
 const UCS_string_vector vars(B, false);
 
 Shape sh_Z;
-   if (var_count > 1)   sh_Z.add_shape_item(var_count);
+   // ⍴Z ←→ ¯1↓⍴B (,4): a matrix B gives a row axis also for 0 or 1 rows
+   // (LRM p.323, p.328, Bugs35 #78)
+   if (B.get_rank() == 2)   sh_Z.add_shape_item(var_count);
    sh_Z.add_shape_item(4);
 Value_P Z(sh_Z, LOC);
 
@@ -744,6 +761,7 @@ Value_P Z(sh_Z, LOC);
         Z->next_ravel_Int(int(state) & int(USE_BY_2) ? 1 : 0);
       }
 
+   if (Z->is_empty())   Z->set_proto_Int();   // e.g. 0 rows (Bugs35 #78)
    Z->check_value(LOC);
    return Token(TOK_APL_VALUE1, Z);
 }

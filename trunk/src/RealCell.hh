@@ -67,7 +67,7 @@ protected:
    /// @param Z output cell for the result
    /// @param fun circle function index
    /// @param b the real value the circle function applies to
-   static ErrorCode do_bif_circle_fun(Cell * Z, int fun, APL_Float b);
+   static ErrorCode do_bif_circle_fun(Cell * Z, APL_Integer fun, APL_Float b);
 };
 //════════════════════════════════════════════════════════════════════════════
 

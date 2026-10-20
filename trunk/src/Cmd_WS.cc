@@ -265,9 +265,19 @@ LibRef libref = LIB_NONE;   // default library reference number to copy from
            }
       }
 
-   Assert(args.size() == 1);   // only wsname left
+   if (args.size() != 1)   // e.g. )COPY_ONCE ab w1 (Bugs35 #65)
+      {
+        out << "BAD COMMAND+" << endl;
+        MORE_ERROR() << ")COPY_ONCE: expecting [lib] wsname";
+        return;
+      }
 const UCS_string wsname(args.front());
    args.erase(0);
+
+   // no library number is library 0 (Bugs35 #65: they were different
+   // entries in the copy_once_table, and LIB_NONE was printed as -1)
+   //
+   if (libref == LIB_NONE)   libref = LIB0;
 
    // lib_wsname is the name in the copy_once_table
    //
@@ -431,7 +441,9 @@ Cmd_WS::cmd_SAVE(ostream & out, const UCS_string_vector & args)
 
    if (args.size() > 0)   // wsname or lib wsname
       {
-        const LibRef_name lib_name(out, args, false);
+        // allow LIB_NONE: the new )WSID shall be what was given (Bugs35
+        // #61); LIB_NONE is the same library as LIB0
+        const LibRef_name lib_name(out, args, true);
         if (lib_name.get_name().size() == 0)   return;   // error, )MORE set
         Workspace::save_WS(out, lib_name, false);
         return;

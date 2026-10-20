@@ -290,6 +290,16 @@ to identify share partners.
 )LOAD wsname on start-up.
 
 @item
+@code{--libroot dir}
+
+Use directory @b{dir} as the library root (@pxref{File Names and Paths}), i.e.
+@b{dir}/workspaces as library 0 and @b{dir}/wslib1 ... @b{dir}/wslib9 as
+libraries 1-9. @b{dir} must contain @b{workspaces} and @b{wslib1}. This option
+takes precedence over environment variable @b{APL_LIB_ROOT} and over the
+@b{LIBREF-0} ... @b{LIBREF-9} settings in the @b{preferences} files. The
+testcases (@code{make test} etc.) use @code{--libroot testcases/libroot}.
+
+@item
 @code{--LX expr}
 
 Execute @b{expr} first. The workspace behaves as if @b{⎕LX} (latent
@@ -393,6 +403,14 @@ the GNU APL source tree.
 @code{--noCONT}
 
 Do not load a SETUP or CONTINUE workspace on start-up.
+
+@item
+@code{--noPrefs}
+
+Do not read the system and user @b{preferences} and
+@b{parallel_thresholds} files; use the built-in defaults instead. The
+testcases (@code{make test} etc.) use this option so that their results
+do not depend on an installed GNU APL and its configuration.
 
 @item
 @code{--OFF}
@@ -889,8 +907,9 @@ The command )LIB [lib] shows the files in library (i.e. directory) lib.
 
 The directory library-root is computed as follows when the interpreter starts:
 
-If environment variable @b{APL_LIB_ROOT} is defined, then its value is used
-as the library-root. Otherwise the path from the current directory (".") up to
+If command line option @code{--libroot dir} is given, then @b{dir} is used
+as the library-root. Otherwise, if environment variable @b{APL_LIB_ROOT} is
+defined, then its value is used as the library-root. Otherwise the path from the current directory (".") up to
 the root directory ("/") is searched until a directory containing two
 sub-directories @b{workspaces} and @b{wslib1} is found. Normally @b{workspaces}
 and @b{wslib1} are directories, but for the computation of library-root files
@@ -919,7 +938,9 @@ For that reason the above library root scheme can be overridden by the
 un-comment any of the @b{LIBREF-0} to @b{LIBREF-9} settings (which correspond
 to library numbers 0 to 9) and provide your own paths. The library numbers
 that are @b{NOT} overridden in a @b{preferences} file still follow the
-library root scheme.
+library root scheme. Command line option @code{--libroot} overrides the
+@b{LIBREF-N} settings, so that all 10 libraries are again below one library
+root.
 
 @c ============================================================================
 @node Non-standard GNU APL Features
@@ -10632,6 +10653,52 @@ IR @tab
 More specific text, e.g. @code{Non-APL character}, @code{Bad number},
 @code{No string end found}
 @end multitable
+
+@c ============================================================================
+@node The Rank and Power Operators
+@section The Rank and Power Operators
+
+IBM APL2 has neither the rank operator @b{⍤} nor the power operator @b{⍣}.
+The descriptions of these operators in other sources (ISO 13751, Dyalog APL,
+NARS, ...) and the results of other interpreters differ in several details,
+for example in how arguments with different frames are handled, in the
+meaning of negative ranks, or in which values are bound to the right operand.
+
+@b{⍤}: GNU APL follows the description of the rank operator in @b{iso}
+(sections 9.3.3 - 9.3.5), which is the most detailed one, literally - after
+correcting the obvious errors in it:
+
+@itemize
+@item for a negative rank y in the monadic case @b{iso} contradicts itself.
+      GNU APL uses @b{0⌈y+⍴⍴B} (as described for the dyadic case) and not
+      @b{(0⌈y)+⍴⍴B} (which would make every negative y the same as ⍴⍴B).
+@item an operand with the wrong rank (e.g. a matrix y) is a
+      @b{RANK ERROR} in GNU APL and not a @b{domain-error} as in @b{iso}.
+@end itemize
+
+In particular, the frames of A and B must agree unless one of them is empty:
+
+@example
+      'ab' (,⍤0) ⊂1 2      ⍝ scalar B (empty frame): B is extended
+ a  1 2
+ b  1 2
+      'ab' (,⍤0) ,⊂1 2     ⍝ frames 2 and 1
+LENGTH ERROR+
+@end example
+
+As a GNU APL extension (taken from NARS), the rank operator may have an axis
+@b{X}: @b{f⍤[X] y B} is the same as @b{f⍤y B}, except that the individual
+results are combined with @b{⊃[X]} instead of @b{⊃}.
+
+@b{⍣}: @b{iso} does not define the power operator. GNU APL follows the
+Dyalog APL definition (@b{f⍣N B} with a scalar or 1-item integer N, and
+@b{f⍣g B} with a function g).
+
+The right operand of both operators can be a value, which makes expressions
+like @b{f⍤y B} or @b{f⍣N B} ambiguous (see @ref{Unexpected Stranding}).
+GNU APL resolves them only as far as needed for the examples in @b{iso}.
+In all other cases, parentheses should be used to make the intended meaning
+explicit, e.g. @b{(f⍤y) B}, @b{(f⍣N) B}, or @b{f⍤y ⊢B}.
 
 @c ============================================================================
 @node Output Formatting

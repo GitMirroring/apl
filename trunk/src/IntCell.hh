@@ -46,6 +46,20 @@ class IntCell : public RealCell
    friend class Value;         // for zI() and friends
 
 public:
+   /// return true if comparing the integers \b p[0] ... \b p[len-1] exactly
+   /// gives the same result as comparing them tolerantly (IntCell::equal()
+   /// with ⎕CT \b qct): two different integers differ by at least 1, so
+   /// they can only be tolerantly equal if their magnitude is ≥ 1÷qct. Fast
+   /// paths that compare packed int64 ravels exactly must use the tolerant
+   /// (generic) path otherwise (Bugs35 #34).
+   static bool ints_compare_exactly(const int64_t * p, ShapeItem len,
+                                    double qct)
+      { if (qct == 0.0)   return true;
+        const double limit = 0.5 / qct;
+        loop(j, len)   if (p[j] >= limit || p[j] <= -limit)   return false;
+        return true;
+      }
+
    /// Construct an integer cell with value \b 0
    IntCell()
       { value.ival = 0;  }

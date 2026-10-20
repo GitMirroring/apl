@@ -1015,17 +1015,26 @@ int idx_to   = find_line(line_set.get_to());
 
 const LineLabel user_edit_to = line_set.get_to();
 
-   if (idx_from == -1)   line_set.set_from(lines[idx_from = 0].label);
-   if (idx_to == -1)     line_set.set_to(lines[idx_to = lines.size() - 1].label);
+   if (line_set.is_range())   // the endpoints need not exist (LRM p. 388)
+      {
+        find_range(idx_from, idx_to);
+      }
+   else
+      {
+        if (idx_from == -1)   line_set.set_from(lines[idx_from = 0].label);
+        if (idx_to == -1)
+           line_set.set_to(lines[idx_to = lines.size() - 1].label);
+      }
 
    Log(LOG_nabla)
       UERR << "Nabla::execute_oper(SHOW) from "
            << line_set.get_from() << " to " << line_set.get_to() << endl;
 
+const bool empty = idx_from > idx_to;   // no line in the range, e.g. [⎕5-6]
    if (idx_from == 0)                     // then print header line
       COUT << "    ∇" << endl;
    for (int e = idx_from; e <= idx_to; ++e)   lines[e].print(COUT);
-   if (idx_to == int(lines.size() - 1))   // then print last line
+   if (!empty && idx_to == int(lines.size() - 1))   // then print last line
       {
         // LRM pp.346,349: the closing ∇ of a full [⎕]-style display is
         // followed by the function's creation time stamp
@@ -1076,13 +1085,36 @@ const LineLabel user_edit_to = line_set.get_to();
 const char *
 Nabla::execute_delete()
 {
-   // for delete we want exact numbers.
+   // NOTE: set modified only after a delete was accepted: a rejected one
+   // re-fixed the unchanged function on close (Bugs34 #42)
+
+   // [∆-N], [∆m-], and [∆m-N]: the endpoints need not exist; the lines
+   // within the range are deleted (LRM p. 391). [∆-N] deletes from line 1
+   // (Bugs35 #2, #7).
+   //
+   if (line_set.is_range())
+      {
+        if (!line_set.get_from().valid())   // [∆-N]
+           {
+             if (lines.size() < 2)   return 0;   // only the header
+             line_set.set_from(lines[1].label);
+           }
+
+        int idx_from, idx_to;
+        find_range(idx_from, idx_to);
+        if (idx_from > idx_to)   return 0;   // no line in the range
+        if (idx_from == 0)       return "cannot delete the header line [0]";
+        modified = true;
+
+        lines.erase(lines.begin() + idx_from, lines.begin() + idx_to + 1);
+        if (lines.size())   current_line = lines.back().label;
+        return 0;
+      }
+
+   // for a single line we want an exact number.
    //
 const int idx_to = find_line(line_set.get_to());
    if (idx_to == -1)   return "Bad line number N in [M∆N] ";
-
-   // NOTE: set modified only after a delete was accepted: a rejected one
-   // re-fixed the unchanged function on close (Bugs34 #42)
 
    if (line_set.get_from() == -1)   // [∆N] : delete single line
       {
@@ -1601,6 +1633,23 @@ Nabla::find_line(const LineLabel & lab) const
    loop(l, lines.size())   if (lab == lines[l].label)   return l;
 
    return -1;   // not found.
+}
+//────────────────────────────────────────────────────────────────────────────
+void
+Nabla::find_range(int & idx_from, int & idx_to) const
+{
+   // lines[] is sorted by label
+   //
+const LineLabel & from = line_set.get_from();
+const LineLabel & to   = line_set.get_to();
+
+   idx_from = lines.size();
+   loop(l, lines.size())
+       if (!from.valid() || !(lines[l].label < from))   { idx_from = l;   break; }
+
+   idx_to = -1;
+   for (int l = lines.size() - 1; l >= 0; --l)
+       if (!to.valid() || !(to < lines[l].label))   { idx_to = l;   break; }
 }
 //════════════════════════════════════════════════════════════════════════════
 

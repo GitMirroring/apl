@@ -239,7 +239,8 @@ const uRank rank = B.get_rank();
         Assert(sh_b.get_rank() == rank);
          loop(rep, Bi)
              {
-               if (rank <= 1)   // simple shape
+               if (rank == 1)   // simple shape. NOT a scalar B: the index
+                                // of its only item is ⍬ (Bugs35 #28)
                   {
                     Z->next_ravel_Int(b + qio);
                   }
@@ -258,7 +259,7 @@ const uRank rank = B.get_rank();
              }
        }
 
-   if (rank > 1 && Z->is_empty())
+   if (rank != 1 && Z->is_empty())
       {
         // Z's prototype item must be a pointer to a rank-item zero vector
         // (Blake McBride, Bugs28 #64), matching a real item (see the

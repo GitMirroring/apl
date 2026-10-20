@@ -473,15 +473,15 @@ OK      - no duplicate parents
 
       ⌽[1E10](2 2⍴⍳4)
 AXIS ERROR+
-      ⌽[1E10](2 2⍴⍳4)
+      ⌽[10000000000](2 2⍴⍳4)
       ^
 
       )SIC
 
       (1 2 3)[1E30]
 INDEX ERROR+
-      1 2 3[1E30]
-      ^    ^
+      (1 2 3)[1E30]
+      ^      ^
 
       )MORE
 A[B]: B is not a valid index for A (not an integer that fits a (signed) 63-bit index)
@@ -492,8 +492,8 @@ FOO
 
       FOO
 INDEX ERROR+
-FOO[1]  Z←1 2 3[1E30]
-          ^    ^
+FOO[1]  Z←(1 2 3)[1E30]
+          ^      ^
 
       )MORE
 A[B]: B is not a valid index for A (not an integer that fits a (signed) 63-bit index)

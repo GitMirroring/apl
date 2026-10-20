@@ -122,6 +122,23 @@ PrintContext pctx(_pctx);
 
 const ShapeItem ec = value.element_count();
 
+   // APL input format (e.g. 1 ⎕CR or error line 2). Test the flag rather
+   // than the style, so that other flags in the style do not silently
+   // select the output format.
+   //
+   if (pctx.get_style() & PST_INPUT)
+      {
+        pb_for_function(value, outer_style);
+        if (out)
+           {
+             UCS_string ucs(*this, value.get_rank(), _pctx.get_PW());
+             if (ucs.size())   *out << ucs << endl;
+            }
+        update_info();
+        complete = true;
+        return;
+      }
+
    if (value.is_scalar())
       {
         PERFORMANCE_START(start_1)
@@ -176,19 +193,6 @@ const ShapeItem ec = value.element_count();
    if (ec == 0)   // empty value of any dimension
       {
         pb_empty(value, pctx, outer_style);
-        if (out)
-           {
-             UCS_string ucs(*this, value.get_rank(), _pctx.get_PW());
-             if (ucs.size())   *out << ucs << endl;
-            }
-        update_info();
-        complete = true;
-        return;
-      }
-
-   if (pctx.get_style() == PR_APL_FUN)
-      {
-        pb_for_function(value, pctx, outer_style);
         if (out)
            {
              UCS_string ucs(*this, value.get_rank(), _pctx.get_PW());
@@ -731,38 +735,226 @@ const bool row_gaps = nested &&
 }
 //════════════════════════════════════════════════════════════════════════════
 void
-PrintBuffer::pb_for_function(const cValue & value, PrintContext pctx, 
-                             PrintStyle outer_style)
+PrintBuffer::pb_for_function(const cValue & value, PrintStyle outer_style)
 {
-const ShapeItem ec = value.element_count();
 UCS_string ucs;
-
-   if (value.is_char_vector())
-      {
-        ucs << UNI_SINGLE_QUOTE;
-        loop(e, ec)
-           {
-             const Unicode uni = value.get_char_value(e);
-             ucs << uni;
-             if (uni == UNI_SINGLE_QUOTE)   ucs << uni;   // ' -> ''
-           }
-        ucs << UNI_SINGLE_QUOTE;
-      }
-   else
-      {
-        loop(e, ec)
-           {
-             Cell cache;
-             PrintBuffer pb = value.get_cravel(e, cache)
-                                          .character_representation(pctx);
-             if (e)   ucs << UNI_SPACE;
-             ucs << UCS_string(pb, 0, pctx.get_PW());
-           }
-      }
+   append_input_form(ucs, value);
 
 ColInfo ci;
    *this = PrintBuffer(ucs, ci);
    add_outer_frame(outer_style);
+}
+//────────────────────────────────────────────────────────────────────────────
+/// append the shortest text of \b value that reads back exactly
+static void
+append_input_float(UCS_string & ucs, APL_Float value)
+{
+char buf[40];
+   for (int prec = 15; prec <= 17; ++prec)
+       {
+         snprintf(buf, sizeof(buf), "%.*g", prec, value);
+         if (strtod(buf, 0) == value)   break;
+       }
+
+   // C notation → APL notation, e.g. -1.5e-05 → ¯1.5E¯5
+   //
+   for (const char * cp = buf; *cp; ++cp)
+       {
+         if      (*cp == '-')   ucs << UNI_OVERBAR;
+         else if (*cp == '+')   ;
+         else if (*cp == 'e')
+            {
+              ucs << UNI_E;
+              if (cp[1] == '-')   { ucs << UNI_OVERBAR;   ++cp; }
+              else if (cp[1] == '+')   ++cp;
+              while (cp[1] == '0' && cp[2])   ++cp;   // leading 0s
+            }
+         else   ucs << Unicode(*cp);
+       }
+}
+//────────────────────────────────────────────────────────────────────────────
+/// append a simple scalar \b cell in APL input format (without quotes for
+/// a character)
+static bool
+append_input_scalar(UCS_string & ucs, const Cell & cell)
+{
+   if (cell.is_character_cell())
+      {
+        const Unicode uni = cell.get_char_value();
+        ucs << uni;
+        if (uni == UNI_SINGLE_QUOTE)   ucs << uni;   // ' → ''
+      }
+   else if (cell.is_integer_cell())
+      {
+        char buf[40];
+        snprintf(buf, sizeof(buf), "%lld",
+                 static_cast<long long>(cell.get_int_value()));
+        for (const char * cp = buf; *cp; ++cp)
+            ucs << (*cp == '-' ? UNI_OVERBAR : Unicode(*cp));
+      }
+   else if (cell.is_complex_cell())
+      {
+        append_input_float(ucs, cell.get_real_value());
+        ucs << UNI_J;
+        append_input_float(ucs, cell.get_imag_value());
+      }
+   else if (cell.is_float_cell())
+      {
+        append_input_float(ucs, cell.get_real_value());
+      }
+   else
+      {
+        return false;
+      }
+
+   return true;
+}
+//────────────────────────────────────────────────────────────────────────────
+void
+PrintBuffer::append_input_item(UCS_string & ucs, const Cell & cell)
+{
+   if (cell.is_character_cell())   // 'c'
+      {
+        ucs << UNI_SINGLE_QUOTE;
+        append_input_scalar(ucs, cell);
+        ucs << UNI_SINGLE_QUOTE;
+        return;
+      }
+
+   if (cell.is_pointer_cell())
+      {
+        // a strand encloses every item that is not a simple scalar (also a
+        // nested scalar): P → (P), except for a character vector of length
+        // ≠ 1 ('ab' or '') and ⍬, which need no parentheses.
+        //
+        const Value_P P = cell.get_pointer_value();
+        Cell cache;
+        if ((P->is_char_vector() && P->element_count() != 1) ||
+            (P->is_vector() && P->element_count() == 0 &&
+             P->get_cproto(cache).is_numeric()))
+           {
+             append_input_form(ucs, *P);
+             return;
+           }
+
+        ucs << UNI_L_PARENT;
+        append_input_form(ucs, *P);
+        ucs << UNI_R_PARENT;
+        return;
+      }
+
+   if (append_input_scalar(ucs, cell))   return;
+
+   // some other cell (e.g. an LvalCell): its normal display
+   //
+const PrintContext pctx(PR_APL_MIN);
+   ucs << UCS_string(cell.character_representation(pctx), 0, MAX_Quad_PW);
+}
+//────────────────────────────────────────────────────────────────────────────
+void
+PrintBuffer::append_input_form(UCS_string & ucs, const cValue & value)
+{
+const ShapeItem ec = value.element_count();
+Cell cache;
+
+   if (value.is_scalar())
+      {
+        const Cell & cell = value.get_cfirst(cache);
+        if (cell.is_pointer_cell())   // ⊂P
+           {
+             ucs << UNI_SUBSET;
+             append_input_form(ucs, *cell.get_pointer_value());
+           }
+        else
+           {
+             append_input_item(ucs, cell);
+           }
+        return;
+      }
+
+   if (value.get_rank() == 1 && ec == 0)   // '', ⍬, or 0⍴⊂P
+      {
+        const Cell & proto = value.get_cfirst(cache);
+        if      (proto.is_character_cell())   ucs << UNI_SINGLE_QUOTE
+                                                  << UNI_SINGLE_QUOTE;
+        else if (proto.is_pointer_cell())
+           {
+             ucs << UNI_0 << UNI_RHO << UNI_SUBSET;
+             append_input_form(ucs, *proto.get_pointer_value());
+           }
+        else                                  ucs << UNI_ZILDE;
+        return;
+      }
+
+   if (value.get_rank() != 1)   // the shape, then ⍴ and the ravel
+      {
+        loop(r, value.get_rank())
+           {
+             if (r)   ucs << UNI_SPACE;
+             append_input_scalar(ucs, IntCell(value.get_shape_item(r)));
+           }
+        ucs << UNI_RHO;
+
+        if (ec == 0)   // the prototype
+           {
+             const Cell & proto = value.get_cfirst(cache);
+             if      (proto.is_character_cell())   ucs << UNI_SINGLE_QUOTE
+                                                       << UNI_SINGLE_QUOTE;
+             else if (proto.is_pointer_cell())
+                {
+                  ucs << UNI_SUBSET;
+                  append_input_form(ucs, *proto.get_pointer_value());
+                }
+             else                                  ucs << UNI_ZILDE;
+             return;
+           }
+
+        if (ec == 1)   // a scalar reshaped, e.g. 1 1⍴5
+           {
+             const Cell & cell = value.get_cfirst(cache);
+             if (cell.is_pointer_cell())
+                {
+                  ucs << UNI_SUBSET;
+                  append_input_form(ucs, *cell.get_pointer_value());
+                }
+             else
+                {
+                  append_input_item(ucs, cell);
+                }
+             return;
+           }
+      }
+   else if (ec == 1)   // a 1-element vector: ,X
+      {
+        ucs << UNI_COMMA;
+        const Cell & cell = value.get_cfirst(cache);
+        if (cell.is_pointer_cell())
+           {
+             ucs << UNI_SUBSET;
+             append_input_form(ucs, *cell.get_pointer_value());
+           }
+        else
+           {
+             append_input_item(ucs, cell);
+           }
+        return;
+      }
+
+   // the ravel (with at least 2 elements) as a string or a strand
+   //
+   if (value.is_char_array())
+      {
+        ucs << UNI_SINGLE_QUOTE;
+        loop(e, ec)   append_input_scalar(ucs, value.get_cravel(e, cache));
+        ucs << UNI_SINGLE_QUOTE;
+        return;
+      }
+
+   loop(e, ec)
+      {
+        if (e)   ucs << UNI_SPACE;
+        append_input_item(ucs, value.get_cravel(e, cache));
+      }
 }
 //────────────────────────────────────────────────────────────────────────────
 void
@@ -771,28 +963,6 @@ PrintBuffer::pb_empty(const cValue & value, PrintContext pctx,
 {
    if (value.get_rank() == 1)   // vector: 1 line
       {
-        if (pctx.get_style() == PR_APL_FUN)
-           {
-             if (value.is_character_cell(0))   // ''
-                {
-                  UCS_string ucs(U"''");
-                  ColInfo ci;
-                  *this = PrintBuffer(ucs, ci);
-                  add_outer_frame(outer_style);
-                  return;
-                }
-
-             if (value.is_numeric(0))   // ⍬
-                {
-                  UTF8_string utf("⍬");
-                  UCS_string ucs(utf);
-                  ColInfo ci;
-                  *this = PrintBuffer(ucs, ci);
-                  add_outer_frame(outer_style);
-                  return;
-                }
-           }
-
         UCS_string ucs;   // empty
         append_ucs(ucs);
         add_outer_frame(outer_style);

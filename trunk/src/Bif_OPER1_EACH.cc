@@ -136,6 +136,15 @@ cFunction_P LO = _LO.get_function();
              RANK_ERROR;
            }
 
+        if (A.is_empty() && B.is_empty() &&
+            A.get_shape() != B.get_shape())   // both empty (Bugs35 #41)
+           {
+             MORE_ERROR() << "A f¨B: ⍴A is " << A.get_shape()
+                          << " but ⍴B is " << B.get_shape();
+             if (A.get_rank() == B.get_rank())   LENGTH_ERROR;
+             RANK_ERROR;
+           }
+
         if (B.is_empty())          shape_Z = B.get_shape();
         else if (!B.is_scalar_or_len1_vector())
            {
@@ -385,7 +394,19 @@ Value_P Z;
              continue;   // next z
            }
 
-        if (result.get_tag() == TOK_VOID)   continue;   // next z: LO without result
+        if (result.get_tag() == TOK_VOID)   // LO without result
+           {
+             // LO claims a result (Z was allocated) but returned none,
+             // e.g. the help listing of ⎕RVAL ⍬: a VALUE ERROR like
+             // without ¨, not an uninitialized item of Z (Bugs35 #46)
+             if (Z)
+                {
+                  MORE_ERROR() << LO->get_name() << "¨: " << LO->get_name()
+                               << " returned no result";
+                  VALUE_ERROR;
+                }
+             continue;   // next z
+           }
 
         if (result.get_tag() == TOK_ERROR)   return result;
 
@@ -579,7 +600,18 @@ Value_P Z;
                   continue;   // next z
            }
 
-             if (result.get_tag() == TOK_VOID)   continue;   // next z
+             if (result.get_tag() == TOK_VOID)
+                {
+                  // LO claims a result (Z was allocated) but returned
+                  // none: see eval_ALB() (Bugs35 #46)
+                  if (Z)
+                     {
+                       MORE_ERROR() << LO->get_name() << "¨: "
+                                    << LO->get_name() << " returned no result";
+                       VALUE_ERROR;
+                     }
+                  continue;   // next z
+                }
 
              if (result.get_tag() == TOK_ERROR)   return result;
 
@@ -633,7 +665,18 @@ Value_P Z;
                   continue;   // next z
                 }
 
-             if (result.get_tag() == TOK_VOID)   continue;   // next z
+             if (result.get_tag() == TOK_VOID)
+                {
+                  // LO claims a result (Z was allocated) but returned
+                  // none: see eval_ALB() (Bugs35 #46)
+                  if (Z)
+                     {
+                       MORE_ERROR() << LO->get_name() << "¨: "
+                                    << LO->get_name() << " returned no result";
+                       VALUE_ERROR;
+                     }
+                  continue;   // next z
+                }
 
              if (result.get_tag() == TOK_ERROR)   return result;
 

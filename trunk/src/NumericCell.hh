@@ -140,7 +140,7 @@ protected:
    /// @param z result integer GCD
    /// @param a first integer operand
    /// @param b second integer operand
-   static ErrorCode int_gcd(APL_Integer & z, APL_Integer a, APL_Integer b);
+   static void int_gcd(uint64_t & z, APL_Integer a, APL_Integer b);
 
    /// N over K for positive integers N and K.
    /// @param Z      result cell pointer

@@ -476,19 +476,6 @@ public:
    /// Constructor.
    Quad_PS();
 
-   /// Return the current print style. MUST NOT CALL get_apl_value()
-   /// because it can be called from parallel Cell functions
-   PrintStyle current() const
-      { switch (style)
-           {
-             case 0: return PR_APL;
-             case 1: return PR_APL_FUN;
-             case 2: return PR_BOXED_CHAR;
-             case 3: return PR_BOXED_GRAPHIC;
-             default: return PST_NONE;
-           }
-      }
-
    /// return the quotient print style
    bool get_print_quotients() const
       { return print_quotients; }
@@ -505,11 +492,21 @@ protected:
    /// @param B the APL value to assign
    virtual void assign_indexed(const cValue * X, Value_P B);
 
-   /// overloaded Symbol::push()
+   /// overloaded Symbol::push(): a localized ⎕PS starts as 0 0. Use
+   /// Quad_PS::assign() (not Symbol::assign()) so that print_quotients,
+   /// style, and Command::boxing_format follow the value
    virtual void push()
       {
         Symbol::push();
-        Symbol::assign(IntScalar(0, LOC), false, LOC);
+        assign(IntScalar(0, LOC), false, LOC);
+      }
+
+   /// overloaded Symbol::pop(): restore print_quotients, style, and
+   /// Command::boxing_format from the restored value
+   virtual void pop()
+      {
+        Symbol::pop();
+        if (Value_P old = get_apl_value())   assign(old, false, LOC);
       }
 
    /// true if quotients shall be printed as A÷B
@@ -732,13 +729,25 @@ public:
    /// does not overflow
    int64_t get_offset() const   { return offset_seconds; }
 
-   /// set the timezone offset
+   /// set the timezone offset, and the value of ⎕TZ accordingly (not only
+   /// the internal offset: after )CLEAR or )LOAD ⎕TZ reported the system
+   /// default while ⎕TS used offset, Bugs35 #63)
    /// @param offset timezone offset in seconds from GMT
    void set_offset(int offset)
-      { offset_seconds = offset; }
+      {
+        offset_seconds = offset;
+        if (offset_seconds % 3600 == 0)   // full hour
+           Symbol::assign(IntScalar(offset_seconds/3600, LOC), false, LOC);
+        else
+           Symbol::assign(FloatScalar(offset_seconds/3600.0, LOC), false, LOC);
+      }
 
    /// compute the offset (in seconds) from GMT
    static int compute_offset();
+
+   /// return e.g. (GMT+2), or (GMT+5:30) for a fractional ⎕TZ (Bugs35 #70)
+   /// @param offset timezone offset in seconds from GMT
+   static std::string gmt_label(int64_t offset);
 
    /// print e.g. 2017-05-17  15:09:12 (GMT+2) to out (no trailing endl)
    /// @param out output stream to print to
@@ -767,8 +776,8 @@ protected:
       {
         Symbol::pop();
         Cell cache;
-        offset_seconds = int(0.5 + 3600
-                     * get_apl_value()->get_cscalar(cache).get_real_value());
+        offset_seconds = int(lround(3600
+                     * get_apl_value()->get_cscalar(cache).get_real_value()));
       }
 
    /// the offset from GMT of the current timezone (in seconds)

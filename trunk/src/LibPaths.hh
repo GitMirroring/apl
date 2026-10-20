@@ -117,6 +117,7 @@ public:
              CSRC_PREF_SYS  = 3,   ///< path from preferences file below /etc/
              CSRC_PREF_HOME = 4,   ///< path from preferences file below $HOME
              CSRC_CMD       = 5,   ///< lib root from )LIBS command
+             CSRC_ARG       = 6,   ///< lib root from option --libroot
            };
 
         /// the path (name) of the lib directory
@@ -169,6 +170,15 @@ public:
    /// @param lib library reference to check
    static const char * is_present(LibRef lib);
 
+   /// remember the library root given with command line option --libroot
+   /// (called before init(); it overrides $APL_LIB_ROOT and the LIBREF-N
+   /// entries of the preferences files)
+   /// @param dir the library root directory
+   static void set_root_from_arg(const char * dir)   { root_arg = dir; }
+
+   /// return true if the library root came from option --libroot
+   static bool is_root_from_arg()   { return root_arg != 0; }
+
    /// set library root to \b new_root
    /// @param new_root new library root directory path
    static void set_APL_lib_root(const char * new_root);
@@ -179,6 +189,11 @@ public:
    /// @param src source that provided this configuration
    static void set_lib_dir(LibRef lib, const UTF8_string & path,
                            LibDir::CfgSrc src);
+
+   /// return true if directory \b dir contains two (files or sub-directories)
+   /// workspaces and wslib1
+   /// @param dir directory path to test
+   static bool is_lib_root(const char * dir);
 
 protected:
    /// maybe warn the user if two files that differ only by extension exist
@@ -198,11 +213,6 @@ protected:
    /// set library root, searching from APL_bin_path
    static void search_APL_lib_root();
 
-   /// return true if directory \b dir contains two (files or sub-directories)
-   /// workspaces and wslib1
-   /// @param dir directory path to test
-   static bool is_lib_root(const char * dir);
-
    /// the path (directory) of the APL interpreter binary
    static char APL_bin_path[];
 
@@ -214,6 +224,9 @@ protected:
 
    /// directories for each library reference as specified in file preferences
    static LibDir lib_dirs[LIB_MAX];
+
+   /// the library root from command line option --libroot (or 0)
+   static const char * root_arg;
 
    /// true if APL_lib_root was computed from environment variable APL_LIB_ROOT
    static bool root_from_env;

@@ -382,9 +382,10 @@ Shape shape_Z;
        {
          const ShapeItem sA = ravel_A.get_shape_item(r);    // A[r]
          const ShapeItem sB = B.get_shape_item(r);         // (⍴B[r]
-         const ShapeItem pA = sA < 0 ? -sA : sA;            // ∣ A[r]
-         if (pA >= sB)   shape_Z.add_shape_item(0);         // over-drop
-         else            shape_Z.add_shape_item(sB - pA);   // normal drop
+         // over-drop if |sA| ≥ sB. Not -sA, which overflows for the
+         // int64 minimum (Bugs35 #35).
+         if (sA >= sB || sA <= -sB)   shape_Z.add_shape_item(0);
+         else   shape_Z.add_shape_item(sB - (sA < 0 ? -sA : sA));
        }
 
 Value_P Z(shape_Z, LOC);

@@ -122,6 +122,12 @@ const Shape shape_A2(shape_B3.h(), shape_B3.l());
       {
         A.get_shape().check_same(B.get_shape().without_axis(axis),
                                  E_RANK_ERROR, E_LENGTH_ERROR, LOC);
+
+        // the items of A are otherwise only checked (by get_near_int())
+        // in the loops below, which do not run if B is empty along the
+        // axis (Bugs35 #29).
+        //
+        loop(a, A.element_count())   A.get_near_int(a);
       }
 
 

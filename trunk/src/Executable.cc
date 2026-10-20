@@ -54,9 +54,14 @@ Executable::Executable(const UCS_string & ucs,  bool multi_line,
         loop(t, ucs.size())
            {
              const Unicode uni = ucs[t];
+             // a CR is ignored if it ends a line (CRLF), but kept e.g. in
+             // a string literal (Bugs35 #71)
+             //
+             if (uni == UNI_CR &&
+                 (t + 1 == ucs.ssize() || ucs[t + 1] == UNI_LF))   continue;
+
              switch (uni)
                 {
-                  case UNI_CR:                                         break;
                   case UNI_LF: text.push_back(line);   line.clear();   break;
                   default:     line << uni;
                }
@@ -250,8 +255,11 @@ int line = 0;
 
 const UCS_string & line_text = get_body_text(line);
 
-   // reparse the entire line without optimizations. The PCs of the
-   // resulting tokens are then the same as those of the optimized body.
+   // parse the entire line again, without optimizations. The PC of every
+   // token is the position of its (leftmost) token in the token string of
+   // the tokenizer, i.e. the same as the PCs of the (optimized) body. Line
+   // 2 shows the canonical form of the parsed tokens (APL input format, see
+   // set_error_info()), not the text as entered.
    //
 const Parser parser(get_parse_mode(), LOC, false);
 Token_string orig;
@@ -285,6 +293,13 @@ Function_PC min_pc = Function_PC_invalid;
 
 ShapeItem from = 0;   // the leftmost token of the statement in orig
    while (from < orig.ssize() && orig[from].get_PC() < min_pc)   ++from;
+
+   // the label of the line (if any) belongs to its first statement. It is
+   // not in the body (see parse_body_line()), but shall be shown in line 2.
+   //
+   if (from == 2 && get_parse_mode() == PM_FUNCTION &&
+       orig[0].get_tag() == TOK_SYMBOL && orig[1].get_tag() == TOK_COLON)
+      from = 0;
 
 ShapeItem to = from;   // the token after the rightmost token in orig
 int curly = 0;         // nesting level of { }
@@ -516,6 +531,84 @@ Function_PC2 range(Function_PC_0, leftmost);
    set_error_info(error, failed_statement, range);
 }
 //────────────────────────────────────────────────────────────────────────────
+/// return true if \b tok is (the right end of) a value, i.e. if a value
+/// token left of it would be part of the same strand
+static bool
+ends_value(const Token & tok)
+{
+   switch(tok.get_Class())
+      {
+        case TC_VALUE:
+        case TC_SYMBOL:
+        case TC_R_PARENT:
+        case TC_R_BRACK:   return true;
+        default:           return false;
+      }
+}
+//────────────────────────────────────────────────────────────────────────────
+/// return true if \b tok is (the left end of) a value or an index, i.e. if a
+/// value token right of it would be part of the same strand or indexed
+static bool
+starts_value(const Token & tok)
+{
+   switch(tok.get_Class())
+      {
+        case TC_VALUE:
+        case TC_SYMBOL:
+        case TC_L_PARENT:   return true;
+        case TC_L_BRACK:    return tok.get_tag() == TOK_L_BRACK;
+        default:            return false;
+      }
+}
+//────────────────────────────────────────────────────────────────────────────
+/// the canonical text (APL input format) of item \b q of the (reversed)
+/// \b statement. The parser has folded a parenthesized group, e.g. (1 2),
+/// into a single (TOK_APL_VALUE1) value. Such a value of 2 or more items is
+/// put in parentheses if it would otherwise merge with a neighbour, e.g.
+/// A (1 2) or (1 2 3)[2]. A string ('AB') is a single item and needs no
+/// parentheses.
+static UCS_string
+canonical_item(const Token_string & statement, ShapeItem q)
+{
+const Token & tok = statement[q].get_token();
+const UCS_string text = tok.canonical(PR_APL_FUN).remove_pad();
+
+   // the : of a label (see reparse()), followed by a blank like in ⎕CR
+   //
+   if (tok.get_tag() == TOK_COLON)   return UCS_string(UTF8_string(": "));
+
+   if (tok.get_tag() != TOK_APL_VALUE1 || !tok.is_apl_val())   return text;
+
+const cValue & value = *tok.get_apl_val();
+   if (value.get_rank() != 1 || value.element_count() < 2 ||
+       value.is_char_vector())   return text;
+
+   // statement is reversed: q + 1 is the left and q - 1 the right neighbour
+   //
+const bool merge_left  = q + 1 < statement.ssize() &&
+                         ends_value(statement[q + 1].get_token());
+const bool merge_right = q > 0 && starts_value(statement[q - 1].get_token());
+
+   // the right operand of ⍣ or ⍤ (possibly after the axis of ⍤): without
+   // the parentheses, e.g. -⍣3 5, the parser would split it into N resp. y
+   // and B (Bugs35 #38)
+   //
+bool after_RO = false;
+   for (ShapeItem l = q + 1; l < statement.ssize(); ++l)
+       {
+         const TokenTag tag = statement[l].get_token().get_tag();
+         if (tag == TOK_FAXIS)   continue;   // a literal axis, e.g. ⍤[1]
+         after_RO = tag == TOK_OPER2_POWER || tag == TOK_OPER2_RANK;
+         break;
+       }
+
+   if (!(merge_left || merge_right || after_RO))   return text;
+
+UCS_string ret;
+   ret << UNI_L_PARENT << text << UNI_R_PARENT;
+   return ret;
+}
+//────────────────────────────────────────────────────────────────────────────
 void
 Executable::set_error_info(Error & error,
                            const Token_string & failed_statement, 
@@ -555,7 +648,8 @@ UCS_string message_2(error.get_error_line_2());
          // Such an inserted space counts for the previous token.
          // The previous token is q + 1 since we count down.
          //
-         int len = failed_statement[q].error_info(message_2);
+         int len = Token::error_info(message_2,
+                                     canonical_item(failed_statement, q));
 
          if (len < 0)   // space inserted, len is negative
             {
@@ -798,7 +892,8 @@ Function_PC prev = Function_PC_invalid;      // the PC of the token left of b
 }
 //────────────────────────────────────────────────────────────────────────────
 bool
-Executable::compute_if_else_targets()
+Executable::compute_if_else_targets(Function_Line * bad_line,
+                                    const char ** bad_cause)
 {
 #if cfg_ASSERT_LEVEL_WANTED >= 2
    Assert1(check_PCs(LOC) == 0);
@@ -986,15 +1081,19 @@ vector<conditional> conditionals;
    return false;   // OK.
 
 error:
+   // the caller reports the error (as a SYNTAX ERROR, or as the bad line
+   // of ⎕FX), not this function on CERR (Bugs35 #53)
+   //
    MORE_ERROR() << cause;
-   CERR <<  cause << ". First observed on line [" << cause_line << "]";
-   if (cause_low  != Function_PC_invalid)   CERR << ", PC=" << cause_low;
-   if (cause_high != Function_PC_invalid)   CERR << "-" << cause_high;
-
-   CERR << "." << endl;
+   if (bad_line)    *bad_line = Function_Line(cause_line);
+   if (bad_cause)   *bad_cause = cause;
 
    Log(LOG_IfElse)
       {
+        CERR <<  cause << ". First observed on line [" << cause_line << "]";
+        if (cause_low  != Function_PC_invalid)   CERR << ", PC=" << cause_low;
+        if (cause_high != Function_PC_invalid)   CERR << "-" << cause_high;
+        CERR << "." << endl;
         CERR << "incorrect body at " <<  LOC "]:" << endl;
         print_token(CERR, 3);
       }
@@ -1356,11 +1455,9 @@ const Function_PC pc_end = Function_PC(pc_R - pc_L - 1 +
         throw_lambda_defn_error();
       }
 
-   if ((signature & SIG_LO) && (signature & SIG_X))   // dyadic oper with axis
-      {
-        MORE_ERROR() << "invalid lambda operator (dyadic with axis)";
-        throw_lambda_defn_error();
-      }
+   // operators with axis are fine, monadic (like ∇Z←(F OPX)[X] B) and
+   // dyadic (like ∇Z←(F OPX G)[X] B): lambdas behave like defined
+   // functions (Bugs35 #44, D15)
 
    // if the lambda has at least one token, then it supposedly returns λ.
    // Otherwise the lambda is empty (and result-less)
@@ -1442,18 +1539,23 @@ const ShapeItem end = input.size();
         // label just silently rebound it to the new line -- both accepted
         // at fix/edit time instead of DEFN ERROR.
         //
+        // throw_parse_error(), not DEFN_ERROR: the latter reported the
+        // error on the session while ⎕FX returned its row anyway (Bugs35
+        // #54). The function name is a header name too.
+        //
         Symbol * label_sym = tok_sym.get_sym_ptr();
-        if (ufun->pushes_sym(label_sym))
+        if (ufun->pushes_sym(label_sym) ||
+            label_sym == ufun->get_header().FUN())
            {
              MORE_ERROR() << "Label " << label_sym->get_name()
                           << " duplicates a header name";
-             DEFN_ERROR;
+             Error::throw_parse_error(E_DEFN_ERROR, LOC, LOC);
            }
         if (ufun->is_label(label_sym))
            {
              MORE_ERROR() << "Label " << label_sym->get_name()
                           << " is already declared";
-             DEFN_ERROR;
+             Error::throw_parse_error(E_DEFN_ERROR, LOC, LOC);
            }
 
         ufun->add_label(label_sym, line);
@@ -1506,13 +1608,16 @@ Token_string output;   // in reverse order
                        tag != TOK_L_CURLY             &&   // but allow {
                        tag != TOK_R_CURLY)                 // and allow }
                  {
-                   if (!quiet_parse)
+                   // e.g. the : of a second label. Explain it in )MORE,
+                   // unless )MORE already has some other information.
+                   //
+                   if (!quiet_parse && Workspace::more_error().size() == 0)
                       {
-                        CERR << "Line " << line << endl
-                             << "Offending token: (tag > TC_MAX_PERM) "
-                             << tag << " " << tok << "\nStatement: ";
-                        input.print(CERR, /* details */ 0);
-                        CERR << endl;
+                        std::ostringstream out;
+                        out << "Line " << line << ": offending token "
+                            << tok << " (tag " << tag << ") in statement: ";
+                        input.print(out, /* details */ 0);
+                        MORE_ERROR() << UCS_string(UTF8_string(out.str().c_str()));
                       }
 
                    return E_SYNTAX_ERROR;
@@ -1648,8 +1753,12 @@ Lambda_number lambda_num = LAMBDA_NUM_0;
    //
    reverse_each_statement(body);
 
-   Parser::match_par_bra(body, true);
+   // remove the TOK_VOIDs left where the lambda texts were BEFORE the
+   // offsets of matching ( ) and [ ] are computed, or the offsets of the
+   // pairs that enclose a lambda are too large (Bugs35 #74)
+   //
    remove_TOK_VOID();
+   Parser::match_par_bra(body, true);
    set_END_PCs();
 }
 //────────────────────────────────────────────────────────────────────────────
@@ -1818,6 +1927,11 @@ Function_PC end_PC = Function_PC_0;   // the PC of the end of data
       {
         fun->parse_body_line(Function_Line_0, data, false, loc, false,
                              &end_PC);
+
+        // inside the try: a lambda rejected at fix time (e.g. {→0}) throws
+        // DEFN ERROR; fun (and the values in its body) leaked, and the
+        // error was not reported (Bugs35 #73)
+        fun->setup_lambdas();
       }
    catch (const Error & err)
       {
@@ -1827,8 +1941,6 @@ Function_PC end_PC = Function_PC_0;   // the PC of the end of data
         return 0;
       }
 
-   fun->setup_lambdas();
-
    Log(LOG_UserFunction__fix)
       {
         CERR << "fun->body.size() is " << fun->body.size() << endl;
@@ -1837,9 +1949,15 @@ Function_PC end_PC = Function_PC_0;   // the PC of the end of data
    // for ⍎ we do not append TOK_END, but only TOK_RETURN_EXEC.
    //
    fun->body.append_statement_end(Token(TOK_RETURN_EXEC), end_PC);
-   if (fun->compute_if_else_targets())
+   if (fun->compute_if_else_targets())   // unbalanced →→ ←→ ←←
       {
+        // a SYNTAX ERROR like any other parse error (Bugs35 #53)
         delete fun;
+        try   { Error::throw_parse_error(E_SYNTAX_ERROR, LOC, LOC); }
+        catch (const Error & err)
+           {
+             if (Error * werr = Workspace::get_error())   *werr = err;
+           }
         return 0;
       }
 
@@ -1929,10 +2047,11 @@ Function_PC end_PC = Function_PC_0;   // the PC of the end of data
    // for ◊ we do not append TOK_END, but only TOK_RETURN_STATS.
    //
    fun->body.append_statement_end(Token(TOK_RETURN_STATS), end_PC);
-   if (fun->compute_if_else_targets())
+   if (fun->compute_if_else_targets())   // unbalanced →→ ←→ ←←
       {
+        // a SYNTAX ERROR like any other parse error (Bugs35 #53)
         delete fun;
-        return 0;
+        Error::throw_parse_error(E_SYNTAX_ERROR, LOC, LOC);
       }
 
    Log(LOG_UserFunction__fix)   fun->print(CERR);

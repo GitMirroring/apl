@@ -799,16 +799,25 @@ const UTF8_string filename =
 
    // at this point it is OK to rename and save the workspace...
    //
+   // the active workspace assumes the library AND name given in the
+   // )SAVE command (LRM p.451). Set it BEFORE the archive is written, so
+   // that the file records the new )WSID, and restore it if the )SAVE
+   // fails (Bugs35 #61, #62).
+   //
+const LibRef_name old_WS_id = the_workspace.WS_id;
+   if (!name_from_WSID)   // otherwise lib_name IS the )WSID
+      the_workspace.WS_id = LibRef_name(lib_name.get_libref(),
+                                        lib_name.get_name());
+
    Log(LOG_archive)   CERR << "constructing XML_Saving_Archive." << endl;
 XML_Saving_Archive ar(out, CERR, filename.c_str());
 
    // print time and date to COUT
    //
+   if (!ar.saved_OK())   the_workspace.WS_id = old_WS_id;
+
    if (ar.saved_OK())
       {
-        the_workspace.WS_id = LibRef_name(the_workspace.WS_id.get_libref(),
-                                          lib_name.get_name());
-
         get_v_Quad_TZ().print_timestamp(out, now());
         if (name_from_WSID)   out << " " << the_workspace.WS_id.get_name();
         out << endl;
@@ -1361,9 +1370,11 @@ XML_Loading_Archive in(out, err, filename.c_str(), dump_fd);
                  << Error::error_name(err.get_error_code()) << endl;
              UCS_string & more = MORE_ERROR();
              more.clear();
+             // not necessarily corrupt: e.g. an )SI entry of a derived
+             // function or lambda that cannot be restored (Bugs35 #43).
+             // The reason (if any) follows.
              more << "workspace file " << filename
-                  << " is corrupt and was not loaded; the workspace is"
-                     " CLEAR WS";
+                  << " could not be loaded; the workspace is CLEAR WS";
              if (reason.size())   more << UNI_LF << reason;
              return;
            }
@@ -1454,7 +1465,7 @@ XML_Loading_Archive in(out, err, filename.c_str(), dump_fd);
         UCS_string & more = MORE_ERROR();
         more.clear();
         more << "workspace file " << filename
-             << " is corrupt; )COPY was aborted and every symbol"
+             << " could not be copied; )COPY was aborted and every symbol"
                 " already copied from it was restored to its"
                 " pre-)COPY state";
         if (reason.size())   more << UNI_LF << reason;

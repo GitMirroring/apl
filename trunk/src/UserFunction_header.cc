@@ -192,7 +192,7 @@ UserFunction_header::pop_local_vars() const
 {
    loop(l, label_values.size())   label_values[l].sym->pop();
 
-   loop(l, local_vars.size())   local_vars[l]->pop();
+   loop(l, local_vars.size())   local_vars[l]->pop_local();   // Bugs35 #47
 
    if (sym_B)    sym_B ->pop();
    if (sym_X)    sym_X ->pop();
@@ -541,44 +541,50 @@ Token_string tos;
         }
    }
 
-   if (tos.size() & 1)
-      {
-        // since each local variable is preceeded by a semicolon, the
-        // number of remaining tokens must be even.
-        //
-        return "local variable list (odd length)";
-      }
-
+   // the local names follow a semicolon and are separated by semicolons
+   // and/or blanks (LRM p.293: "The header may have blanks instead of
+   // semicolons between local names", Bugs35 #49)
+   //
+bool expect_name = false;   // after a ;
    loop(tos_idx, tos.size())
       {
-        if (tos_idx & 1)   // expect variable
+        const TokenTag tag = tos[tos_idx].get_tag();
+        if (tag == TOK_SEMICOL)
            {
-             const TokenTag tag = tos[tos_idx].get_tag();
-             if (tag != TOK_SYMBOL && tag != TOK_Quad_CT
-                                   && tag != TOK_Quad_FC
-                                   && tag != TOK_Quad_IO
-                                   && tag != TOK_Quad_PP
-                                   && tag != TOK_Quad_PR
-                                   && tag != TOK_Quad_PW
-                                   && tag != TOK_Quad_RL)
-                {
-                  // Bugs28 #100(c), same class as Bugs27 #59(i): this
-                  // used to unconditionally leak an internal debug
-                  // trace (the raw offending Token) to the session
-                  // before returning; the returned string alone is
-                  // what the caller (⎕FX's row-number result, or the
-                  // ∇ editor's DEFN ERROR) actually reports.
-                  //
-                  return "Bad local variable (not a name)";
-                }
+             if (expect_name)   return "Name expected (;; in local variables)";
+             expect_name = true;
+             continue;
+           }
 
-             local_vars.push_back(tos[tos_idx].get_sym_ptr());
-           }
-        else if (tos[tos_idx].get_tag() != TOK_SEMICOL)
+        if (tos_idx == 0)   return "Semicolon expected";
+
+        // every system variable may be localized (LRM p.259). For some of
+        // them (⎕AI, ⎕EM, ⎕TS, ...) localizing has no effect: their push()
+        // and pop() do nothing (NL_SystemVariable). ⎕ and ⍞ are not names,
+        // and system functions are not variables (Bugs35 #49, D16).
+        //
+        const bool sys_var = tos[tos_idx].get_Class() == TC_SYMBOL &&
+                             tag != TOK_Quad_Quad && tag != TOK_Quad_QUOTE &&
+                             tos[tos_idx].get_sym_ptr()->get_name().size() &&
+                             Avec::is_quad(tos[tos_idx].get_sym_ptr()
+                                                      ->get_name()[0]);
+        if (tag != TOK_SYMBOL && !sys_var)
            {
-             return "Semicolon expected";
+             // Bugs28 #100(c), same class as Bugs27 #59(i): this
+             // used to unconditionally leak an internal debug
+             // trace (the raw offending Token) to the session
+             // before returning; the returned string alone is
+             // what the caller (⎕FX's row-number result, or the
+             // ∇ editor's DEFN ERROR) actually reports.
+             //
+             return "Bad local variable (not a name)";
            }
+
+        local_vars.push_back(tos[tos_idx].get_sym_ptr());
+        expect_name = false;
       }
+
+   if (expect_name)   return "Name expected (; at the end of the header)";
 
    // NOTE: duplicated variables are not an APL error,
    // but we want to localize them only once.
@@ -586,6 +592,41 @@ Token_string tos;
    remove_duplicate_local_variables();
 
    return 0;
+}
+//────────────────────────────────────────────────────────────────────────────
+UCS_string
+UserFunction_header::canonical_locals(const UCS_string & text)
+{
+   // the local names start at the first ; and end at ⍝ (if any)
+   //
+ShapeItem semi = -1;
+ShapeItem end = text.size();
+   loop(t, text.size())
+      {
+        if (text[t] == UNI_COMMENT)                   { end = t;    break; }
+        if (text[t] == UNI_SEMICOLON && semi == -1)     semi = t;
+      }
+   if (semi == -1)   return text;   // no local names
+
+UCS_string ret(text, 0, semi);
+   for (ShapeItem t = semi; t < end;)
+       {
+         if (text[t] != UNI_SPACE)   { ret << text[t++];   continue; }
+
+         // a run of blanks: replace it by ; if it separates two names
+         //
+         ShapeItem t1 = t;
+         while (t1 < end && text[t1] == UNI_SPACE)   ++t1;
+         const bool between_names = ret.size() &&
+                                    ret.back() != UNI_SEMICOLON &&
+                                    t1 < end && text[t1] != UNI_SEMICOLON;
+         if (between_names)   ret << UNI_SEMICOLON;
+         else                 while (t < t1)   ret << text[t++];
+         t = t1;
+       }
+
+   while (end < text.size())   ret << text[end++];   // the comment
+   return ret;
 }
 //────────────────────────────────────────────────────────────────────────────
 bool
@@ -607,6 +648,7 @@ UserFunction_header::signature_is_valid(Fun_signature sig)
         case SIG_Z_LO_OP1_B:
         case SIG_Z_LO_OP1_X_B:
         case SIG_Z_LO_OP2_RO_B:
+        case SIG_Z_LO_OP2_X_RO_B:
 
         // dyadic
         //
@@ -614,7 +656,8 @@ UserFunction_header::signature_is_valid(Fun_signature sig)
         case SIG_Z_A_F2_X_B:
         case SIG_Z_A_LO_OP1_B:
         case SIG_Z_A_LO_OP1_X_B:
-        case SIG_Z_A_LO_OP2_RO_B:   return true;    // valid signature
+        case SIG_Z_A_LO_OP2_RO_B:
+        case SIG_Z_A_LO_OP2_X_RO_B: return true;    // valid signature
         default:                    return false;   // invalid signature
       }
 }

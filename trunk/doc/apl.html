@@ -76,7 +76,7 @@ Next: <a href="#Installing-and-Starting-GNU-APL" accesskey="n" rel="next">Instal
 </div>
 <span id="GNU-APL-Reference-Manual"></span><h1 class="top">GNU APL Reference Manual</h1>
 
-<p>October 15, 2026.
+<p>October 20, 2026.
 This manual briefly documents GNU APL, an interpreter for APL as described
 in ISO standard 13751, aka. &quot;Programming Language APL, Extended&quot;.
 </p>
@@ -384,7 +384,8 @@ therefore it must be expanded with e.g. <b>gunzip</b> before it can be read.
     <li><a id="toc-System-Limits-1" href="#System-Limits">3.1 System Limits</a></li>
     <li><a id="toc-Shared-Variables-1" href="#Shared-Variables">3.2 Shared Variables</a></li>
     <li><a id="toc-Known-Differences-between-IBM-APL2-and-GNU-APL-1" href="#Known-Differences-between-IBM-APL2-and-GNU-APL">3.3 Known Differences between IBM APL2 and GNU APL</a></li>
-    <li><a id="toc-Output-Formatting-1" href="#Output-Formatting">3.4 Output Formatting</a></li>
+    <li><a id="toc-The-Rank-and-Power-Operators-1" href="#The-Rank-and-Power-Operators">3.4 The Rank and Power Operators</a></li>
+    <li><a id="toc-Output-Formatting-1" href="#Output-Formatting">3.5 Output Formatting</a></li>
   </ul></li>
   <li><a id="toc-Internationalization-1" href="#Internationalization">4 Internationalization</a></li>
   <li><a id="toc-Vector-Notation-1" href="#Vector-Notation">5 Vector Notation</a>
@@ -659,6 +660,15 @@ to identify share partners.
 
 <p>)LOAD wsname on start-up.
 </p>
+</li><li> <code>--libroot dir</code>
+
+<p>Use directory <b>dir</b> as the library root (see <a href="#File-Names-and-Paths">File Names and Paths</a>), i.e.
+<b>dir</b>/workspaces as library 0 and <b>dir</b>/wslib1 ... <b>dir</b>/wslib9 as
+libraries 1-9. <b>dir</b> must contain <b>workspaces</b> and <b>wslib1</b>. This option
+takes precedence over environment variable <b>APL_LIB_ROOT</b> and over the
+<b>LIBREF-0</b> ... <b>LIBREF-9</b> settings in the <b>preferences</b> files. The
+testcases (<code>make test</code> etc.) use <code>--libroot testcases/libroot</code>.
+</p>
 </li><li> <code>--LX expr</code>
 
 <p>Execute <b>expr</b> first. The workspace behaves as if <b>⎕LX</b> (latent
@@ -755,6 +765,13 @@ the GNU APL source tree.
 </li><li> <code>--noCONT</code>
 
 <p>Do not load a SETUP or CONTINUE workspace on start-up.
+</p>
+</li><li> <code>--noPrefs</code>
+
+<p>Do not read the system and user <b>preferences</b> and
+<b>parallel_thresholds</b> files; use the built-in defaults instead. The
+testcases (<code>make test</code> etc.) use this option so that their results
+do not depend on an installed GNU APL and its configuration.
 </p>
 </li><li> <code>--OFF</code>
 
@@ -1246,8 +1263,9 @@ numbers and paths. The command )LIBS with an argument sets a new lib-root.
 </p>
 <p>The directory library-root is computed as follows when the interpreter starts:
 </p>
-<p>If environment variable <b>APL_LIB_ROOT</b> is defined, then its value is used
-as the library-root. Otherwise the path from the current directory (&quot;.&quot;) up to
+<p>If command line option <code>--libroot dir</code> is given, then <b>dir</b> is used
+as the library-root. Otherwise, if environment variable <b>APL_LIB_ROOT</b> is
+defined, then its value is used as the library-root. Otherwise the path from the current directory (&quot;.&quot;) up to
 the root directory (&quot;/&quot;) is searched until a directory containing two
 sub-directories <b>workspaces</b> and <b>wslib1</b> is found. Normally <b>workspaces</b>
 and <b>wslib1</b> are directories, but for the computation of library-root files
@@ -1276,7 +1294,9 @@ are not writable by users and different users have different home directories.
 un-comment any of the <b>LIBREF-0</b> to <b>LIBREF-9</b> settings (which correspond
 to library numbers 0 to 9) and provide your own paths. The library numbers
 that are <b>NOT</b> overridden in a <b>preferences</b> file still follow the
-library root scheme.
+library root scheme. Command line option <code>--libroot</code> overrides the
+<b>LIBREF-N</b> settings, so that all 10 libraries are again below one library
+root.
 </p>
 <hr>
 </div>
@@ -11937,7 +11957,8 @@ an up-to-date description of limitations.
 <li><a href="#System-Limits" accesskey="1">System Limits</a></li>
 <li><a href="#Shared-Variables" accesskey="2">Shared Variables</a></li>
 <li><a href="#Known-Differences-between-IBM-APL2-and-GNU-APL" accesskey="3">Known Differences between IBM APL2 and GNU APL</a></li>
-<li><a href="#Output-Formatting" accesskey="4">Output Formatting</a></li>
+<li><a href="#The-Rank-and-Power-Operators" accesskey="4">The Rank and Power Operators</a></li>
+<li><a href="#Output-Formatting" accesskey="5">Output Formatting</a></li>
 </ul>
 <hr>
 <div class="section" id="System-Limits">
@@ -12003,7 +12024,7 @@ APL interpreter rather than adding auxiliary processors.
 <div class="section" id="Known-Differences-between-IBM-APL2-and-GNU-APL">
 <div class="header">
 <p>
-Next: <a href="#Output-Formatting" accesskey="n" rel="next">Output Formatting</a>, Previous: <a href="#Shared-Variables" accesskey="p" rel="prev">Shared Variables</a>, Up: <a href="#Limitations-and-Missing-Features" accesskey="u" rel="up">Limitations and Missing Features</a> &nbsp; [<a href="#SEC_Contents" title="Table of contents" rel="contents">Contents</a>]</p>
+Next: <a href="#The-Rank-and-Power-Operators" accesskey="n" rel="next">The Rank and Power Operators</a>, Previous: <a href="#Shared-Variables" accesskey="p" rel="prev">Shared Variables</a>, Up: <a href="#Limitations-and-Missing-Features" accesskey="u" rel="up">Limitations and Missing Features</a> &nbsp; [<a href="#SEC_Contents" title="Table of contents" rel="contents">Contents</a>]</p>
 </div>
 <span id="Known-Differences-between-IBM-APL2-and-GNU-APL-1"></span><h3 class="section">3.3 Known Differences between IBM APL2 and GNU APL</h3>
 
@@ -12174,12 +12195,63 @@ fixed, pre-allocated size that would need resizing</td></tr>
 
 <hr>
 </div>
+<div class="section" id="The-Rank-and-Power-Operators">
+<div class="header">
+<p>
+Next: <a href="#Output-Formatting" accesskey="n" rel="next">Output Formatting</a>, Previous: <a href="#Known-Differences-between-IBM-APL2-and-GNU-APL" accesskey="p" rel="prev">Known Differences between IBM APL2 and GNU APL</a>, Up: <a href="#Limitations-and-Missing-Features" accesskey="u" rel="up">Limitations and Missing Features</a> &nbsp; [<a href="#SEC_Contents" title="Table of contents" rel="contents">Contents</a>]</p>
+</div>
+<span id="The-Rank-and-Power-Operators-1"></span><h3 class="section">3.4 The Rank and Power Operators</h3>
+
+<p>IBM APL2 has neither the rank operator <b>⍤</b> nor the power operator <b>⍣</b>.
+The descriptions of these operators in other sources (ISO 13751, Dyalog APL,
+NARS, ...) and the results of other interpreters differ in several details,
+for example in how arguments with different frames are handled, in the
+meaning of negative ranks, or in which values are bound to the right operand.
+</p>
+<p><b>⍤</b>: GNU APL follows the description of the rank operator in <b>iso</b>
+(sections 9.3.3 - 9.3.5), which is the most detailed one, literally - after
+correcting the obvious errors in it:
+</p>
+<ul>
+<li> for a negative rank y in the monadic case <b>iso</b> contradicts itself.
+      GNU APL uses <b>0⌈y+⍴⍴B</b> (as described for the dyadic case) and not
+      <b>(0⌈y)+⍴⍴B</b> (which would make every negative y the same as ⍴⍴B).
+</li><li> an operand with the wrong rank (e.g. a matrix y) is a
+      <b>RANK ERROR</b> in GNU APL and not a <b>domain-error</b> as in <b>iso</b>.
+</li></ul>
+
+<p>In particular, the frames of A and B must agree unless one of them is empty:
+</p>
+<div class="example">
+<pre class="example">      'ab' (,⍤0) ⊂1 2      ⍝ scalar B (empty frame): B is extended
+ a  1 2
+ b  1 2
+      'ab' (,⍤0) ,⊂1 2     ⍝ frames 2 and 1
+LENGTH ERROR+
+</pre></div>
+
+<p>As a GNU APL extension (taken from NARS), the rank operator may have an axis
+<b>X</b>: <b>f⍤[X] y B</b> is the same as <b>f⍤y B</b>, except that the individual
+results are combined with <b>⊃[X]</b> instead of <b>⊃</b>.
+</p>
+<p><b>⍣</b>: <b>iso</b> does not define the power operator. GNU APL follows the
+Dyalog APL definition (<b>f⍣N B</b> with a scalar or 1-item integer N, and
+<b>f⍣g B</b> with a function g).
+</p>
+<p>The right operand of both operators can be a value, which makes expressions
+like <b>f⍤y B</b> or <b>f⍣N B</b> ambiguous (see <a href="#Unexpected-Stranding">Unexpected Stranding</a>).
+GNU APL resolves them only as far as needed for the examples in <b>iso</b>.
+In all other cases, parentheses should be used to make the intended meaning
+explicit, e.g. <b>(f⍤y) B</b>, <b>(f⍣N) B</b>, or <b>f⍤y ⊢B</b>.
+</p>
+<hr>
+</div>
 <div class="section" id="Output-Formatting">
 <div class="header">
 <p>
-Previous: <a href="#Known-Differences-between-IBM-APL2-and-GNU-APL" accesskey="p" rel="prev">Known Differences between IBM APL2 and GNU APL</a>, Up: <a href="#Limitations-and-Missing-Features" accesskey="u" rel="up">Limitations and Missing Features</a> &nbsp; [<a href="#SEC_Contents" title="Table of contents" rel="contents">Contents</a>]</p>
+Previous: <a href="#The-Rank-and-Power-Operators" accesskey="p" rel="prev">The Rank and Power Operators</a>, Up: <a href="#Limitations-and-Missing-Features" accesskey="u" rel="up">Limitations and Missing Features</a> &nbsp; [<a href="#SEC_Contents" title="Table of contents" rel="contents">Contents</a>]</p>
 </div>
-<span id="Output-Formatting-1"></span><h3 class="section">3.4 Output Formatting</h3>
+<span id="Output-Formatting-1"></span><h3 class="section">3.5 Output Formatting</h3>
 
 <span id="Introduction"></span><h4 class="subheading">Introduction</h4>
 

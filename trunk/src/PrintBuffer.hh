@@ -125,12 +125,19 @@ public:
                          ostream * out, PrintStyle outer_style,
                          PrintBuffer * item_matrix);
 
-   /// PrintBuffer from an APL value in function-style
+   /// PrintBuffer from an APL value in APL input format (PST_INPUT)
    /// @param value APL value to render
-   /// @param pctx print context controlling formatting
    /// @param outer_style print style of the enclosing context
-   void pb_for_function(const cValue & value, PrintContext pctx,
-                        PrintStyle outer_style);
+   void pb_for_function(const cValue & value, PrintStyle outer_style);
+
+   /// append \b value in APL input format to \b ucs: the shortest text
+   /// that ⍎ turns into a value identical to \b value (full precision,
+   /// independent of ⎕PP), e.g. ⊂1 2, ,'a', or 2 2⍴1 2 3 4.
+   static void append_input_form(UCS_string & ucs, const cValue & value);
+
+   /// append the item \b cell of a vector in APL input format to \b ucs,
+   /// i.e. as it would be written in a strand, e.g. 5, 'a', or (1 2)
+   static void append_input_item(UCS_string & ucs, const Cell & cell);
 
    /// PrintBuffer from an empty APL value
    /// @param value empty APL value to render

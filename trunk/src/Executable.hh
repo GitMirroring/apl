@@ -215,7 +215,10 @@ public:
 
    /// compute the targets for if/else aka →→ ←→ and ←←.
    /// Maybe set MORE() info and return true on error.
-   bool compute_if_else_targets();
+   /// @param bad_line if non-0: the (function-) line of an error
+   /// @param bad_cause if non-0: the description of an error
+   bool compute_if_else_targets(Function_Line * bad_line = 0,
+                                const char ** bad_cause = 0);
 
    /// decrement the reference counter
    /// @param loc caller location for diagnostics

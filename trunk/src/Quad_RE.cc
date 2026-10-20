@@ -262,6 +262,10 @@ std::vector<Value_P> matches;
          if (B_offset == -1)   break;   // no more matches
 
          matches.push_back(ZZ);
+
+         // a zero-width match at the end of B moves B_offset beyond B;
+         // searching again would be PCRE2_ERROR_BADOFFSET (Bugs35 #57)
+         if (B_offset > B.ssize())   break;
        }
 
 Value_P Z(matches.size(), LOC);

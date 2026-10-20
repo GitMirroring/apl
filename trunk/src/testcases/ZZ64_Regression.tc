@@ -124,8 +124,8 @@ Bad number+
       ⍝
       8.11044318132503E299∧6.744967127130588E287
 DOMAIN ERROR
-      8.110443181E299∧6.744967127E287
-      ^              ^
+      8.11044318132503E299∧6.744967127130588E287
+      ^                   ^
       ]FILE_CTL SKIP_APL2   ⍝ GCD/LCM (non-boolean ∧ ∨) is a GNU APL extension
       4∧6
 12

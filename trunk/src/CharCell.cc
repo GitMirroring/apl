@@ -37,7 +37,7 @@ Unicode uni = get_char_value();
    if ((style & PST_PRETTY) && uni < UNI_SPACE)
       uni = Unicode(uni + 0x2400);
 
-   if (style == PR_APL_FUN)
+   if (style & PST_INPUT)   // APL input format: 'c'
       {
         ucs << UNI_SINGLE_QUOTE << uni;
         if (uni == UNI_SINGLE_QUOTE)   ucs << uni;   // ' → ''

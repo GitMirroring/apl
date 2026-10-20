@@ -369,7 +369,7 @@ SYNTAX ERROR+
       ⍝ column spec.
       ⍝
       2 ¯1⍕5
-DOMAIN ERROR
+DOMAIN ERROR+
       2 ¯1⍕5
       ^   ^
       8 ¯3⍕5.267033354E¯14
@@ -1232,9 +1232,11 @@ OK      - no duplicate parents
       ⍝ ═══════════════════════════════════════════════════════════════
       ⍝
       ⍝ regression (Bugs32 #5): the near-real ¯4○ shortcut negated the real
-      ⍝ part for |Re B| ≥ 1, and had the wrong imaginary sign at Re B = 0
+      ⍝ part for |Re B| ≥ 1, and had the wrong imaginary sign at Re B = 0.
+      ⍝ Since Bugs35 #26 (LRM Figure 18), Re B ≤ ¯1 is negative again, but
+      ⍝ for complex and real B alike
       ⍝
-      (9○¯4○2J0 ¯2J0 2J¯1E¯11) = ¯4○2   ⍝ the real parts (Im since #27)
+      (9○¯4○2J0 ¯2J0 2J¯1E¯11) = ¯4○2 ¯2 2   ⍝ the real parts (Im since #27)
 1 1 1
 
 

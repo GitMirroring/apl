@@ -203,6 +203,15 @@ size_t found_len = 0;
         int power = 0;
          while (src.has_more() && expo_digits.contains(*src))
                {
+                // the power must fit into an int (Bugs35 #24). A power that
+                // fits but is too large for the result is a WS FULL later.
+                //
+                if (power > (0x7FFFFFFF - 9) / 10)
+                   {
+                     MORE_ERROR() << "⌹[11]B: the power of '" << vars[found]
+                                  << "' is too large";
+                     DOMAIN_ERROR;
+                   }
                 power *= 10;
                 loop(e, expo_digits.size())
                     {

@@ -1004,8 +1004,10 @@ bool got_end = false;
               string_value << UNI_SINGLE_QUOTE;
               ++src;      // skip the second '
             }
-         else if (uni == UNI_CR)
+         else if (uni == UNI_CR &&   // CR of a CRLF line end: ignore it
+                  (src.rest_len() == 0 || *src == UNI_LF))
             {
+              // but keep a CR inside the literal (Bugs35 #71)
               continue;
             }
          else if (uni == UNI_LF)
@@ -1020,31 +1022,12 @@ bool got_end = false;
             }
        }
 
-   // at this point, got_end could be false if (the start of )an old-style
-   // multiline string was tokenized. Such strings are, however, only allowed
-   // in function definition mode (aka. PM_FUNCTION).
+   // an unterminated '...' string is always an error. Old-style multi-line
+   // strings ("..." only) were already joined into single lines by
+   // Parser::transform_old_multi_line_strings() before tokenization
+   // (Bugs28 #100(i), Bugs35 #55).
    //
-   if (pmode != PM_FUNCTION && !got_end)
-      {
-        const int pos = start_pos + Workspace::get_IO();
-        MORE_ERROR() << "Standard APL string (i.e. '...'): start at "
-                        "column (prompt+" << pos << "), but no end.";
-        Error::throw_parse_error(E_NO_STRING_END, src.data(), start_pos,
-                                 src.get_pos(), LOC, loc);
-      }
-
-   // Bugs28 #100(i): unlike tokenize_string2() (the "..."/«...» string
-   // tokenizer just below), which already gates this same old-style
-   // multi-line leniency behind UserPreferences::uprefs.
-   // old_multi_line_strings, this function (the far more commonly used
-   // '...' string) accepted an unterminated string in PM_FUNCTION mode
-   // (⎕FX, the ∇ editor) unconditionally -- so a user who explicitly
-   // disabled the leniency (OLD-MULTI-LINE-STRINGS NO) to get strict,
-   // typo-catching behaviour in their own functions still silently got
-   // it for '...' strings. Bring '...' in line with ".../«...»: reject
-   // when the string never closed and the leniency itself is off.
-   //
-   if (!got_end && !UserPreferences::uprefs.old_multi_line_strings)
+   if (!got_end)
       {
         const int pos = start_pos + Workspace::get_IO();
         MORE_ERROR() << "Standard APL string (i.e. '...'): start at "
@@ -1117,7 +1100,8 @@ bool got_end = false;
               break;
             }
 
-         if (uni == UNI_CR)          // ignore CR
+         if (uni == UNI_CR &&        // ignore the CR of a CRLF line end,
+             (src.rest_len() == 0 || *src == UNI_LF))   // (Bugs35 #71)
             {
               continue;   // while (src.has_more())
             }
@@ -1125,11 +1109,8 @@ bool got_end = false;
          if (uni == UNI_LF)          // end of line before " or »
             {
               rest_2 = src.rest_len();
-              if (UserPreferences::uprefs.old_multi_line_strings)
-                 break;   // while (src.has_more())
-              else
-                 Error::throw_parse_error(E_NO_STRING_END, src.data(),
-                                          start_pos, src.get_pos(), LOC, loc);
+              Error::throw_parse_error(E_NO_STRING_END, src.data(),
+                                       start_pos, src.get_pos(), LOC, loc);
             }
          else if (uni == UNI_BACKSLASH)   // backslash
             {
@@ -1175,11 +1156,11 @@ bool got_end = false;
             }
        }
 
-   // at this point, got_end could be false if (the start of )an old-style
-   // multiline string was tokenized. Such strings are, however, only allowed
-   // in function definition mode (aka. PM_FUNCTION).
+   // an unterminated "..." or «...» is always an error: old-style multi-line
+   // strings were already joined by Parser::transform_old_multi_line_strings()
+   // (Bugs35 #55).
    //
-   if (pmode != PM_FUNCTION && !got_end)
+   if (!got_end)
       {
         const int pos = start_pos + Workspace::get_IO();
         if (first == UNI_DOUBLE_QUOTE)
@@ -1203,15 +1184,8 @@ bool got_end = false;
                                  src.get_pos(), LOC, loc);
       }
 
-   if (got_end || UserPreferences::uprefs.old_multi_line_strings)
-      {
-        tos.emplace_back(Token(TOK_APL_VALUE1, Value_P(string_value, LOC)), Function_PC(tos.size()));
-      }
-   else
-      {
-        Error::throw_parse_error(E_NO_STRING_END, src.data(), start_pos,
-                                 src.get_pos(), LOC, loc);
-      }
+   tos.emplace_back(Token(TOK_APL_VALUE1, Value_P(string_value, LOC)),
+                    Function_PC(tos.size()));
 }
 //────────────────────────────────────────────────────────────────────────────
 void

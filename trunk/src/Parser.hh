@@ -213,7 +213,8 @@ public:
    /// substitute some primitives with short arguments and short result,
    /// like 4⍴0 in place.
    /// @param tos token string to optimise in place
-   static bool optimize_short_primitives(Token_string & tos);
+   static bool optimize_short_primitives(Token_string & tos,
+                                         bool keep_left_value = false);
 
    /// parse a multi-line literal into a single value
    /// @param text lines of APL source containing the literal
@@ -310,7 +311,8 @@ protected:
    /// Parse token string \b tos (a statement without diamonds).
    /// @param tos token string for a single statement, modified in place
    /// @param optimize true to apply optimisation passes
-   static ErrorCode parse_statement(Token_string & tos, bool optimize);
+   static ErrorCode parse_statement(Token_string & tos, bool optimize,
+                                    bool keep_left_value = false);
 
    /// Replace (X) with X and ((..) with (..) in \b tos (where X is a
    // single token).

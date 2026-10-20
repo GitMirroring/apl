@@ -532,7 +532,6 @@ AC_CONFIG_FILES([Makefile
                  src/sql/Makefile
                  src/testcases/Makefile
                  src/testcases/invariants/Makefile
-                 src/workspaces/Makefile
                  support-files/Makefile
                  support-files/fonts/Makefile
                  support-files/105-key-International-Keyboard/Makefile

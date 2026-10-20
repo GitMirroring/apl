@@ -179,7 +179,8 @@ Token_string tos1;
    //
    if (tos1.size() == 1)
       {
-        const ErrorCode err = parse_statement(tos1, optimize);
+        const ErrorCode err = parse_statement(tos1, optimize,
+                                              pmode == PM_EXECUTE);
         if (err == E_NO_ERROR)   tos.push_back(tos1[0]);
         return err;
       }
@@ -248,7 +249,9 @@ std::vector<Function_PC> diamond_PCs;   // the PCs of the ◊ between statements
    loop(s, statements.size())
       {
         Token_string & stat = statements[s];
-        if (const ErrorCode err = parse_statement(stat, optimize))   return err;
+        if (const ErrorCode err = parse_statement(stat, optimize,
+                                                  pmode == PM_EXECUTE))
+           return err;
 
         if (s)   tos.emplace_back(Token(TOK_DIAMOND), diamond_PCs[s - 1]);
 
@@ -612,12 +615,17 @@ bool progress = false;
 }
 //────────────────────────────────────────────────────────────────────────────
 bool
-Parser::optimize_short_primitives(Token_string & tos)
+Parser::optimize_short_primitives(Token_string & tos, bool keep_left_value)
 {
    if (DONT_FT_SHORT_PRIMITIVE)   return false;
 
    // multi-line comment, i.e. ⊣ ««« ... »»»
-   if (tos.size() == 2                 &&
+   // ⊣ «««...»»» (multi-line comment): remove it. Not when the value of
+   // the statement is used (⍎, ⎕EC, ...: keep_left_value): ⊣ 7 is then the
+   // committed value 0 (Bugs35 #77).
+   //
+   if (!keep_left_value                &&
+       tos.size() == 2                 &&
        tos[0].get_tag() == TOK_F2_LEFT &&   // ⊣
        tos[1].get_Class() == TC_VALUE)      // multi-line string
       {
@@ -1694,6 +1702,40 @@ Token tok(TOK_APL_VALUE3, Z);
 /// Bugs27 #20/#21/#38: the walk-back used to only handle the first of
 /// these (Bugs26 #5's fix), silently mis-splitting or outright failing
 /// to parse an inner/outer-product or bracket-axis LO.
+/// return true if the lambda starting at tos[pos_L] (a {) is a monadic
+/// operator, i.e. uses ⍶ but not ⍹ (at its own nesting level)
+static bool
+is_monadic_operator_lambda(const Token_string & tos, int pos_L)
+{
+bool LO = false;
+bool RO = false;
+int level = 0;
+   for (int t = pos_L + 1; t < tos.ssize(); ++t)
+       {
+         const TokenTag tag = tos[t].get_tag();
+         if (tag == TOK_L_CURLY)        ++level;
+         else if (tag == TOK_R_CURLY)   { if (level-- == 0)   break; }
+         else if (level == 0)
+            {
+              if (tag == TOK_ALPHA_U)   LO = true;
+              if (tag == TOK_OMEGA_U)   RO = true;
+            }
+       }
+   return LO && !RO;
+}
+//────────────────────────────────────────────────────────────────────────────
+/// return true if tos[pos] is the name of a (currently defined) monadic
+/// operator, e.g. a ∇-defined OPX before its axis in ⌽OPX[1]⍤2
+static bool
+is_monadic_operator_name(const Token_string & tos, int pos)
+{
+   if (tos[pos].get_Class() != TC_SYMBOL)   return false;
+const Symbol * sym = tos[pos].get_sym_ptr();
+   if (!sym)   return false;
+const Function * fun = sym->get_function();
+   return fun && fun->get_token().get_Class() == TC_OPER1;
+}
+//────────────────────────────────────────────────────────────────────────────
 static int
 walk_back_LO_start(const Token_string & tos, int pos_LO)
 {
@@ -1715,7 +1757,23 @@ walk_back_LO_start(const Token_string & tos, int pos_LO)
          if (tos[pos_LO].get_Class() == TC_R_PARENT)
             pos_LO = tos.find_opening_parent(pos_LO);
          else if (tos[pos_LO].get_Class() == TC_R_CURLY)
-            pos_LO = tos.find_opening_curly(pos_LO);
+            {
+              pos_LO = tos.find_opening_curly(pos_LO);
+
+              // a monadic-operator lambda {⍶ ...} belongs together with its
+              // left operand further left (Bugs35 #39)
+              //
+              if (pos_LO > 0 && is_monadic_operator_lambda(tos, pos_LO))
+                 --pos_LO;
+            }
+         else if (pos_LO > 0 && pos_LO != start &&
+                  is_monadic_operator_name(tos, pos_LO))
+            {
+              // a named monadic operator reached after skipping its axis,
+              // e.g. OPX in ⌽OPX[1]⍤2 (Bugs35 #39)
+              //
+              --pos_LO;
+            }
 
          if (pos_LO == start)   return pos_LO;   // no more progress
        }
@@ -1922,8 +1980,12 @@ bool progress = false;
 
          if (len_y > 3)   // ISO p. 124
             {
+              // a parse error, not a runtime one: LENGTH_ERROR (i.e.
+              // throw_apl_error()) built the error display from the
+              // PREVIOUS statement and printed it twice (Bugs35 #37).
+              //
               MORE_ERROR() << "⍤ y B: j too long (⍴j = " << len_y << ")";
-              LENGTH_ERROR;
+              Error::throw_parse_error(E_LENGTH_ERROR, LOC, LOC);
             }
 
          // The EOS and already-parenthesized "(LO⍤y)" shortcuts below
@@ -2013,7 +2075,9 @@ int len = 0;
          else if (tag == TOK_REAL)   // stupid ?
             {
               const APL_Float val = T.get_flt_val();
-              if (Cell::is_near_int(val))
+              // is_near_int64_t(), not is_near_int(): near_int() below
+              // throws DOMAIN ERROR for e.g. 1E20 while parsing (Bugs35 #37)
+              if (Cell::is_near_int64_t(val))
                  {
                    ++len;
                    if (len <= 3)   // replace float with integer
@@ -2029,7 +2093,7 @@ int len = 0;
               const APL_Float imag = T.get_cpx_imag();
               if (!(Cell::is_near_zero(imag)))   break;
               const APL_Float real = T.get_cpx_real();
-              if (!(Cell::is_near_int(real)))   break;
+              if (!(Cell::is_near_int64_t(real)))   break;
 
               ++len;
               if (len <= 3)   // replace float with integer
@@ -2339,7 +2403,8 @@ Parser::parse_log(int N, const Token_string & tos)
 }
 //────────────────────────────────────────────────────────────────────────────
 ErrorCode
-Parser::parse_statement(Token_string & tos, bool optimize)
+Parser::parse_statement(Token_string & tos, bool optimize,
+                        bool keep_left_value)
 {
    // Unbalanced-paren/bracket/curly pre-check, before any step below
    // that could itself throw on the same imbalance. remove_nongrouping_
@@ -2451,7 +2516,8 @@ Parser::parse_statement(Token_string & tos, bool optimize)
 
         for (bool progress = true; progress;)
             {
-              progress = DO_FT_SHORT_PRIMITIVE && optimize_short_primitives(tos);
+              progress = DO_FT_SHORT_PRIMITIVE &&
+                         optimize_short_primitives(tos, keep_left_value);
               if (progress)   tos.remove_TOK_VOID();
             }
       }

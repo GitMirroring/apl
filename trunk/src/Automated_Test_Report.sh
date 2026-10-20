@@ -531,7 +531,7 @@ action "run every .tc file in '$LOGDIR' (as 'make test'/'make test3'" \
 run_home=$(mktemp -d)
 run_log=$SRC_DIR/$LOGDIR/culprits_run1.log
 run_apl_hang_safe run_rc "$run_log" "$AUTOMATED_TEST_REPORT_TIMEOUT" \
-   "$run_home" ./apl --id 1010 -T "${tc_files[@]}"
+   "$run_home" ./apl --id 1010 --noPrefs --libroot testcases/libroot -T "${tc_files[@]}"
 rm -rf "$run_home"
 
 if [[ "$run_rc" == hung ]]; then
@@ -835,7 +835,7 @@ run_apl_and_check()
    logfile=$(mktemp)
    local run_rc
    run_apl_hang_safe run_rc "$logfile" "$AUTOMATED_TEST_REPORT_TIMEOUT" \
-      "$run_home" ./apl --id 1010 --noColor -T "$@"
+      "$run_home" ./apl --id 1010 --noPrefs --libroot testcases/libroot --noColor -T "$@"
    rm -rf "$run_home"
 
    # apl -T always (re)writes a summary.log next to the given testcase
@@ -1134,7 +1134,7 @@ echo "  $target   <- fails"
 echo
 if [[ "$DEGRADED" == no ]]; then
    echo "Left behind in $WORK for inspection:"
-   printf '  HOME=$(mktemp -d) ./apl --id 1010 --TM 3 -T'
+   printf '  HOME=$(mktemp -d) ./apl --id 1010 --noPrefs --libroot testcases/libroot --TM 3 -T'
    printf ' %s' "${paths[@]}"
    echo
 fi
@@ -1145,7 +1145,10 @@ fi
 # (see IO_Files::get_file_line() -- every line read from the test file is
 # echoed with that prefix before it is executed; expected-output/diff
 # lines are written separately, by a different code path, and never get
-# the prefix). So extracting exactly the '----> '-prefixed lines from
+# the prefix; lines of a script executed by the test file, e.g. by
+# )COPY 5 FILE_IO.apl, are echoed as '-scr> ' instead, since replaying
+# the )COPY line itself executes them again). So extracting exactly the
+# '----> '-prefixed lines from
 # the minimal set's .tc.log files, in order, and stripping the prefix,
 # gives the literal raw APL source that was typed -- comments and blank
 # lines included, since those are harmless no-ops when replayed too --
@@ -1235,7 +1238,7 @@ verify_logfile=$(mktemp)
 verify_rc_raw=""
 run_apl_hang_safe verify_rc_raw "$verify_logfile" \
    "$AUTOMATED_TEST_REPORT_TIMEOUT" "$verify_home" \
-   ./apl --id 1010 --noColor --TM 3 -f "$APL_FILE"
+   ./apl --id 1010 --noPrefs --libroot testcases/libroot --noColor --TM 3 -f "$APL_FILE"
 rm -rf "$verify_home"
 verify_out=$(cat "$verify_logfile")
 

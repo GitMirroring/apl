@@ -1449,9 +1449,36 @@ const ValueStackItem & vs = value_stack.back();
              if (value_stack.size() == 0)   CERR << " (last)";
              CERR << endl;
            }
+
         value_stack.pop_back();
         if (monitor_callback)   monitor_callback(*this, SEV_POPED);
       }
+}
+//────────────────────────────────────────────────────────────────────────────
+void
+Symbol::pop_local()
+{
+   // a function FIXED into a localized name (e.g. by ⎕FX inside the
+   // function that localizes it: its header names this symbol) is owned by
+   // the local stack entry: free it like expunge() does when the function
+   // returns, or it leaks on every call (Bugs35 #47). NOT a function merely
+   // bound to the name, and not a lambda (reference counted). Not in pop()
+   // itself: e.g. )LOAD pops a binding only to push the same function again.
+   //
+   if (value_stack.size() > 1)
+      {
+        const ValueStackItem & vs = value_stack.back();
+        if ((vs.get_NC() & NC_FUN_OPER) && vs.get_function() &&
+            !vs.get_function()->is_native())
+           {
+             const UserFunction * ufun = vs.get_function()->get_func_ufun();
+             if (ufun && !ufun->is_lambda() &&
+                 ufun->get_header().FUN() == this)
+                Workspace::add_expunged_function(ufun);
+           }
+      }
+
+   pop();
 }
 //────────────────────────────────────────────────────────────────────────────
 ostream &

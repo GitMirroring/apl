@@ -70,7 +70,11 @@ UCS_string UA1 = UA.unique();
          push_back(entry);
        }
 
-   // move entries back
+   // move entries back. ISO 13751 10.2.21: "A character's lowest index
+   // along an axis defines its position in the order described by that
+   // axis", i.e. the minimum of every axis separately (e.g. A and B are
+   // equivalent in 2 2⍴'ABBA'). Not the position where it is first found
+   // (APL2 LRM p.155, Bugs35 #32).
    //
    loop(a, ec_A)
       {
@@ -273,7 +277,15 @@ const char * where = order == SORT_ASCENDING ? "A⍋B" : "A⍒B";
         MORE_ERROR() << where << ": B must be characters";
         DOMAIN_ERROR;
       }
-   if (B.is_scalar())   return Token(TOK_APL_VALUE1, IntScalar(qio, LOC));
+   // APL2 LRM p.155: "R: Simple nonscalar character array" (Bugs35 #33).
+   // An empty A is allowed (ISO 13751 10.2.21: "If A is empty, return
+   // IO+⍳1↑⍴B").
+   //
+   if (B.is_scalar())
+      {
+        MORE_ERROR() << where << ": B is a scalar; B must have rank ≥ 1";
+        RANK_ERROR;
+      }
 
 const ShapeItem len_BZ = B.get_shape_item(0);
    if (len_BZ == 0)   return Token(TOK_APL_VALUE1, Idx0(LOC));   // return ⍬

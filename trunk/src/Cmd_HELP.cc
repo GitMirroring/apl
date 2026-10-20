@@ -300,7 +300,7 @@ Cmd_HELP::primitive_help(ostream & out, const char * arg, int arity,
         case -5: out << "quasi-dyadic operator:\n"
                         "   Z ← A (∘ . G) B";               break;
         case -4: out << "dyadic primitive operator:\n"
-                        "   Z ← A (F . G) B";               break;
+                        "   Z ← A (F " << prim << " G) B";  break;
         case -3: out << "dyadic primitive operator:\n"
                         "   Z ← (F " << prim << " G) B";    break;
         case -2: out << "monadic primitive operator:\n"

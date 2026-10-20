@@ -383,6 +383,10 @@ public:
    /// Pop latest entry from the stack of \b this \b Symbol
    virtual void pop();
 
+   /// pop a localized name when its function returns (frees a function that
+   /// was fixed into it, Bugs35 #47)
+   void pop_local();
+
    /// Print \b this \b Symbol to \b out
    /// @param out  output stream
    virtual ostream & print(ostream & out) const;

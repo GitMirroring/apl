@@ -62,7 +62,14 @@ RegexpMatch::RegexpMatch(pcre2_code * code, const UCS_string & B,
    // still caught as a real PCRE2 error.
    //
 const uint32_t options = start ? PCRE2_NO_UTF_CHECK : 0;
-   match_result = pcre2_match_32(code, B.raw<PCRE2_UCHAR32>(), B.size(),
+
+   // an empty B may have no buffer at all, but PCRE2 rejects a NULL
+   // subject even with length 0 ("NULL argument passed", Bugs35 #57)
+   //
+static const PCRE2_UCHAR32 empty_subject[1] = { 0 };
+const PCRE2_UCHAR32 * subject = B.size() ? B.raw<PCRE2_UCHAR32>()
+                                         : empty_subject;
+   match_result = pcre2_match_32(code, subject, B.size(),
                                  start, options, match_data, NULL);
    if (match_result == 0)
       {

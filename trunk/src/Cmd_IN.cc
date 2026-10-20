@@ -92,6 +92,33 @@ transfer_context tctx(protection);
         CERR << "BAD record charset (neither ASCII nor EBCDIC)" << endl;
         break;
       }
+
+   // )PIN: LRM p.447 "If a name conflict does occur, the object from the
+   // transfer file is listed in a NOT COPIED: message" (Bugs35 #64)
+   //
+   if (tctx.not_copied.size())
+      {
+        out << "NOT COPIED:";
+        loop(n, tctx.not_copied.size())   out << " " << tctx.not_copied[n];
+        out << endl;
+      }
+}
+//════════════════════════════════════════════════════════════════════════════
+bool
+Cmd_IN::transfer_context::is_protected(const UCS_string & name) const
+{
+   if (!protection || name.size() == 0)   return false;
+
+bool exists = true;   // system variables always exist
+   if (!Avec::is_quad(name[0]))
+      {
+        const Symbol * sym = Workspace::lookup_existing_symbol(name);
+        exists = sym && sym->get_NC() != NC_UNUSED_USER_NAME;
+      }
+   if (!exists)   return false;
+
+   if (!not_copied.contains(name))   not_copied.push_back(name);
+   return true;
 }
 //════════════════════════════════════════════════════════════════════════════
 void
@@ -230,6 +257,7 @@ int idx = get_nrs(var_name, shape);
 
    if (objects.size() && !objects.contains(var_name))   return;
    if (var_name.size() == 0)   return;   // malformed record: empty object name
+   if (is_protected(var_name))   return;   // )PIN
 
 Symbol * sym = 0;
    if (Avec::is_quad(var_name.front()))   // system variable.
@@ -301,6 +329,7 @@ int idx = get_nrs(var_name, shape);
 
    if (objects.size() && !objects.contains(var_name))   return;
    if (var_name.size() == 0)   return;   // malformed record: empty object name
+   if (is_protected(var_name))   return;   // )PIN
 
 Symbol * sym = 0;
    if (Avec::is_quad(var_name.front()))   // system variable.
@@ -366,18 +395,18 @@ UCS_string var_or_fun;
 
    // data1 is: VARNAME←data...
    //
-   if (objects.size())
-      {
-        UCS_string var_name;
-        loop(d, data1.size())
-           {
-             const Unicode uni = data1[d];
-             if (uni == UNI_LEFT_ARROW)   break;
-             var_name << uni;
-           }
+   {
+     UCS_string var_name;
+     loop(d, data1.size())
+        {
+          const Unicode uni = data1[d];
+          if (uni == UNI_LEFT_ARROW)   break;
+          var_name << uni;
+        }
 
-        if (!objects.contains(var_name))   return;
-      }
+     if (objects.size() && !objects.contains(var_name))   return;
+     if (is_protected(var_name))   return;   // )PIN
+   }
 
    var_or_fun = Quad_TF::tf2_inverse(data1);
 
@@ -399,6 +428,7 @@ UCS_string fun_name;
    ++idx;
 
    if (objects.size() && !objects.contains(fun_name))   return;
+   if (is_protected(fun_name))   return;   // )PIN
 
 UCS_string statement;
    while (idx < data.ssize())   statement << data[idx++];

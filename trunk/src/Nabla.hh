@@ -220,6 +220,12 @@ protected:
    bool line_exists(const LineLabel & lab) const
       { return find_line(lab) != -1; }
 
+   /// set \b idx_from and \b idx_to to the indices of the first and the last
+   /// line whose label lies in the range from-to of line_set (both included).
+   /// The endpoints need not exist (LRM pp. 388, 391); idx_from > idx_to if
+   /// no line lies in the range.
+   void find_range(int & idx_from, int & idx_to) const;
+
    /// return \b true if line \b lab is inside a multi-line string (or
    /// literal) that an earlier line has started and not yet ended
    bool inside_multi_line(const LineLabel & lab) const;
@@ -296,6 +302,10 @@ protected:
            /// the (syntactic) form of the line numbers entered
            Mode get_mode() const
               { return mode; }
+
+           /// true for the range forms -N, m-, and m-N
+           bool is_range() const
+              { return mode == LSM__N || mode == LSM_m_ || mode == LSM_mN; }
 
            /// the number before the command character (invalid if none)
            const LineLabel & get_from() const

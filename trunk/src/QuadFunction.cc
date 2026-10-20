@@ -1229,7 +1229,18 @@ Quad_EX::expunge(const UCS_string & name)
         // "available" for (re)definition the way a plain user name
         // is, and testcases/Quad_EX.tc already pins ⎕EX '⎕NC' at 0
         // (failure). See Bugs27 #58.
-        if (symbol == 0)   return Avec::is_quad(name[0]) ? 0 : 1;
+        // Bugs35 #56: but an invalid name (e.g. 1x, like ⎕NC's ¯1) or ⍞
+        // (a system variable, like ⎕) cannot be disassociated: 0.
+        //
+        if (symbol == 0)
+           {
+             if (Avec::is_quad(name[0]) || name[0] == UNI_QUOTE_Quad)
+                return 0;
+             if (!Avec::is_first_symbol_char(name[0]))   return 0;
+             loop(n, name.size())
+                 if (!Avec::is_symbol_char(name[n]))   return 0;
+             return 1;
+           }
         return symbol->expunge();
       }
 
@@ -1986,14 +1997,17 @@ const bool funs = requested_NCs & 1 << 6;
    if (first_chars.size() == 0 ||                  // all
        first_chars.contains(UNI_Quad_Quad))   // ⎕-variables and -functions
       {
-#define ro_sv_def(x, _str, _txt)                            \
-   { const Symbol * symbol = &Workspace::get_v_ ## x();     \
-     if (vars && symbol->get_NC() != 0)                     \
+// not unbound names, e.g. ⍺ ⍵ λ outside a lambda, which ⎕NC reports as 6
+// (Bugs35 #72). (No NameClass is 0, so the former != 0 test was void.)
+//
+#define ro_sv_def(x, _str, _txt)                                    \
+   { const Symbol * symbol = &Workspace::get_v_ ## x();             \
+     if (vars && symbol->get_NC() != NC_UNUSED_USER_NAME)           \
         names.push_back(symbol->get_name()); }
 
-#define rw_sv_def(x, _str, _txt)                            \
-   { const Symbol * symbol = &Workspace::get_v_ ## x();     \
-     if (vars && symbol->get_NC() != 0)                     \
+#define rw_sv_def(x, _str, _txt)                                    \
+   { const Symbol * symbol = &Workspace::get_v_ ## x();             \
+     if (vars && symbol->get_NC() != NC_UNUSED_USER_NAME)           \
         names.push_back(symbol->get_name()); }
 
 #define sf_def(_x, str, _txt)                               \

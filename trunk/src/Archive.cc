@@ -1947,7 +1947,6 @@ const char ** tag_pos = tag_order;
 
    if (reading_vids)   return;
 
-const char * tz_sign = (offset < 0) ? "" : "+";
    if (!silent)   out
         << "SAVED "
         << setfill('0') << year        << "-"
@@ -1955,8 +1954,8 @@ const char * tz_sign = (offset < 0) ? "" : "+";
         << setw(2)      << day         << " "
         << setw(2)      << hour        << ":"
         << setw(2)      << min         << ":"
-        << setw(2)      << sec         << " (GMT"
-        << tz_sign      << offset/3600 << ")"
+        << setw(2)      << sec         << " "
+        << Quad_TZ::gmt_label(offset)
         << setfill(' ') <<  endl;
 
    if (!copying)
@@ -2253,7 +2252,19 @@ DerivedFunction * const slot = static_cast<DerivedFunction *>(todo.cache);
 
         Assert(todo.OPER_fid != -1);
         cFunction_P OPER = find_function(todo.OPER_fid);
-        Assert(OPER);
+        if (!OPER)
+           {
+             // e.g. an anonymous lambda operator ({⍶ ...}) that was on the
+             // )SI: it has no <Function> element of its own (Bugs35 #43).
+             // Refuse cleanly rather than asserting.
+             //
+             MORE_ERROR() << "the operator of a derived function on the )SI"
+                             " (e.g. an anonymous lambda operator) cannot"
+                             " be restored";
+             // not DOMAIN_ERROR: that would build (and print) an error
+             // display from the half-loaded )SI
+             Error::throw_parse_error(E_DOMAIN_ERROR, LOC, LOC);
+           }
 
         // LO_fid is -1 for a plain function bound only to an axis (no
         // operator, no left operand) -- mirrors how RO_fid/AXIS_vid are
@@ -2799,8 +2810,9 @@ UCS_string text;
            {
              err << "   *** loading of native function " << text
                   << " failed" << endl << endl;
-             if (d == 0)   symbol.pop();
-             symbol.push();
+             // keep an existing level 0 (e.g. )COPY into a workspace that
+             // has the name), Bugs35 #59
+             if (d > 0)   symbol.push();
            }
       }
    else
@@ -2810,6 +2822,15 @@ UCS_string text;
         UCS_string creator_UCS(filename_utf);
         creator_UCS << UNI_COLON << line_no;
         UTF8_string creator(creator_UCS);
+
+        // fix() binds the function to the current top of the symbol's
+        // value stack. For a level d > 0 (a function fixed into a
+        // localized name of a suspended function) that top is still level
+        // d-1, e.g. the global function or variable that the local
+        // shadows: push level d first, or fix() replaces (resp. refuses)
+        // the level d-1 entry (Bugs35 #48).
+        //
+        if (d > 0)   symbol.push();
 
         UserFunction * ufun = 0;
         if (text[0] == UNI_LAMBDA)
@@ -2824,9 +2845,9 @@ UCS_string text;
                                      /* quiet = */ true);
            }
 
-        if (d == 0)   symbol.pop();
         if (ufun)
            {
+             symbol.pop();   // level d (bound by fix())
              ufun->set_creation_time(creation_time);
              symbol.push_function(ufun);
              add_fid_function(fid, ufun, LOC);
@@ -2845,7 +2866,9 @@ UCS_string text;
            {
              err << "    ⎕FX " << symbol.get_name() << " failed: "
                   << Workspace::more_error() << endl;
-             symbol.push();
+             // level d > 0 is the empty entry pushed above. Level 0 is
+             // left as it was: e.g. a )COPY refused because the existing
+             // function is on the )SI must not erase it (Bugs35 #59).
              add_fid_function(fid, 0, LOC);
            }
       }
@@ -2870,7 +2893,12 @@ const UTF8 * fun_name = find_optional_attr("ufun-name");
 
         const Symbol & symbol = *Workspace::lookup_symbol(name_UCS);
 
-        Assert(level >= 0);
+        if (level < 0)   // e.g. λ1 of an unreduced lambda operator (Bugs35 #43)
+           {
+             MORE_ERROR() << "function " << name_UCS << " on the )SI cannot"
+                             " be restored";
+             Error::throw_parse_error(E_DOMAIN_ERROR, LOC, LOC);
+           }
         Assert(level < symbol.value_stack_size());
         const ValueStackItem & vsi = symbol[level];
         Assert(vsi.get_NC() == NC_FUNCTION);
@@ -2946,11 +2974,13 @@ Prefix & parser = si.current_stack;
           read_Derived(si, lev);
        }
 
-   // read parser token
+   // read parser token. The loop above has already read the first tag
+   // (the first <Token> or </Parser>): handle it before reading the next
+   // one, or the first token (the bottom of the stack) is lost (Bugs35
+   // #58).
    //
    for (;;)
        {
-         next_tag(LOC);
          if (is_tag("/Parser"))   break;
 
          if (is_tag("Token"))
@@ -2961,6 +2991,7 @@ Prefix & parser = si.current_stack;
               if (parser.ssize() < stack_size)   parser.push(tl);
               else                             parser.saved_MISC.copy(tl, LOC);
             }
+         next_tag(LOC);
        }
 
    Log(LOG_archive)
@@ -3769,6 +3800,24 @@ const int vid = find_int_attr("vid", false, 10);
 
    while (symbol.value_stack_size() <= d)   symbol.push();
 // if (d != 0)   symbol.push();
+
+   // )COPY of a variable over a function of the same name: replace the
+   // function (LRM p.423) unless it is on the )SI (then refuse, as for a
+   // function, see read_Function()). Symbol::assign() would throw a
+   // SYNTAX ERROR that is reported against the suspended function's line
+   // (Bugs35 #60).
+   //
+   if (d == 0 && symbol.value_stack_size() == 1 &&
+       (symbol.get_NC() & NC_FUN_OPER))
+      {
+        if (const char * why = symbol.cant_be_defined())
+           {
+             err << "NOT COPIED: " << symbol.get_name() << " (" << why
+                 << ")" << endl;
+             return;
+           }
+        symbol.expunge();
+      }
 
    try
       {

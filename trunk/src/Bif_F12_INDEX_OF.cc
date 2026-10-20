@@ -33,6 +33,28 @@ Bif_F12_INDEX_OF Bif_F12_INDEX_OF ::fun;    // ⍳
 //════════════════════════════════════════════════════════════════════════════
 /// search elements of B in A. ⍴Z is ⍴B, and elements of Z are indices of A.
 //════════════════════════════════════════════════════════════════════════════
+/// return true if \b V has an integer item that could be tolerantly equal
+/// to a different integer (see IntCell::ints_compare_exactly())
+static bool
+has_big_ints(const cValue & V, double qct)
+{
+   if (qct == 0.0)   return false;
+const ShapeItem len = V.element_count();
+   if (V.get_ravel_type() == RPT_INT64)
+      return !IntCell::ints_compare_exactly(V.cravel_int64(), len, qct);
+
+const double limit = 0.5 / qct;
+   loop(v, len)
+       {
+         Cell cache;
+         const Cell & cell = V.get_cravel(v, cache);
+         if (!cell.is_integer_cell())   continue;
+         const APL_Integer iv = cell.get_int_value();
+         if (iv >= limit || iv <= -limit)   return true;
+       }
+   return false;
+}
+//════════════════════════════════════════════════════════════════════════════
 Token
 Bif_F12_INDEX_OF::eval_AB(cValue_R A, cValue_R B) const
 {
@@ -45,11 +67,20 @@ const APL_Integer qio = Workspace::get_IO();
 const ShapeItem len_A  = A.element_count();
 const ShapeItem len_BZ = B.element_count();
 
+   // the INT × INT fast paths below compare exactly (no ⎕CT), which is
+   // only correct if no two of the integers can be tolerantly equal
+   // (Bugs35 #34).
+   //
+const bool int_fast = A.get_ravel_type() == RPT_INT64
+                   && B.get_ravel_type() == RPT_INT64
+                   && IntCell::ints_compare_exactly(A.cravel_int64(),
+                                                    len_A, qct)
+                   && IntCell::ints_compare_exactly(B.cravel_int64(),
+                                                    len_BZ, qct);
+
    // INT × INT linear fast path: exact comparison (no ⎕CT), direct int64_t I/O.
    // Only taken when the linear search branch would run anyway (small A or B).
-   if (simple_result
-       && A.get_ravel_type() == RPT_INT64
-       && B.get_ravel_type() == RPT_INT64
+   if (simple_result && int_fast
        && !(len_A >= 64 && len_BZ > 5))
       {
         const int64_t * pA = A.cravel_int64();
@@ -73,9 +104,7 @@ const ShapeItem len_BZ = B.element_count();
 
    // INT64 × INT64 sorted fast path: O(N log N) build + O(M log N) lookups.
    // Only applicable when A is a vector (simple_result=true).
-   if (simple_result
-       && A.get_ravel_type() == RPT_INT64
-       && B.get_ravel_type() == RPT_INT64
+   if (simple_result && int_fast
        && len_A >= 64 && len_BZ > 5)
       {
         const int64_t * pA = A.cravel_int64();
@@ -109,7 +138,11 @@ Value_P Z(B.get_shape(), LOC);
 #if 1
    // ⎕RL←42 ◊ D←?100 100⍴100 ◊ T←⎕FIO ¯1 ◊ ⊣(⍳100) ⍳ D ◊ -T-⎕FIO ¯1
 
-   if (len_A >= 64 && len_BZ > 5)
+   // the binary search below uses Cell::compare(), which is exact for two
+   // IntCells: not if two integers could be tolerantly equal (Bugs35 #34)
+   //
+   if (len_A >= 64 && len_BZ > 5 &&
+       !has_big_ints(A, qct) && !has_big_ints(B, qct))
       {
         // array A is being searched len_BZ times. We therefore reduce the
         // per-item search time from O(len_A) to O(log(len_A)). That costs us
@@ -181,6 +214,17 @@ Value_P Z(B.get_shape(), LOC);
                    Z->next_ravel_Pointer(Vz.get());
                  }
             }
+      }
+
+   if (!simple_result && Z->is_empty())   // empty B: prototype ⊂(⍴⍴A)⍴0
+      {
+        // like the generalized monadic ⍳ (Bugs35 #36): every item of Z is
+        // a nested index vector (or ⍬), never a simple scalar.
+        //
+        Value_P ZZ(A.get_rank(), LOC);
+        while (ZZ->more())   ZZ->next_ravel_0();
+        ZZ->check_value(LOC);
+        new (&Z->get_wproto())   PointerCell(ZZ.get(), *Z);
       }
 
    Z->check_value(LOC);

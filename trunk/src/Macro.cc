@@ -70,6 +70,17 @@ Macro::Macro(Macro_num num, const UTF8_string & text)
       }
 }
 //────────────────────────────────────────────────────────────────────────────
+bool
+Macro::is_macro_name(const Symbol * sym)
+{
+   loop(m, MAC_COUNT)
+      {
+        if (all_macros[m] && all_macros[m]->get_header().FUN() == sym)
+           return true;
+      }
+   return false;
+}
+//────────────────────────────────────────────────────────────────────────────
 Macro *
 Macro::get_macro(Macro_num num)
 {

@@ -23,6 +23,8 @@
 
 #include <string.h>
 #include <stdio.h>
+#include <string>
+#include <vector>
 
 #include "ArgCheck.hh"
 #include "Avec.hh"
@@ -148,7 +150,12 @@ size_t d = data.size();
 
    if (d)   // format too short
       {
-         if (Workspace::get_FC(3) == UNI_0)   DOMAIN_ERROR;
+         if (Workspace::get_FC(3) == UNI_0)
+            {
+              MORE_ERROR() << "A⍕B : B does not fit into A (a value has"
+                              " more digits than A)";
+              DOMAIN_ERROR;
+            }
          else                             overflow = true;
       }
 
@@ -238,11 +245,18 @@ integral_part:
              have_decimal_point = true;
              goto fractional_part;
            }
-        if (cc == UNI_E)          goto exponent_part;
+        if (cc == UNI_E && !exponent_pending)   goto exponent_part;
+        if (cc == UNI_7)          exponent_pending = true;
+
         if (is_picture_char(cc))
            {
              int_part.format << cc;
              if (cc == UNI_6)          goto right_decorator;
+           }
+        else if (exponent_pending)   // like fractional_part (Bugs35 #13)
+           {
+             exponent_char = cc;
+             goto exponent_decorator;
            }
         else
            {
@@ -398,30 +412,40 @@ fields_done:
    // display. Checked once at construction time (independent of the
    // actual B values formatted later) since it depends only on A.
    //
-   negative_representable = !int_part.no_float() || !fract_part.no_float();
+   // Bugs35 #1: a 1 or 3 can only signal a negative B if its side has a
+   // decorator that it can show ('5.1' has none, like '5.5'). A blank
+   // decorator (' 15.5') shows nothing either: the sign would be lost
+   // without an error. A 2 alone shows a negative B without its sign by
+   // definition (LRM p.142) and remains accepted.
+   //
+   struct _side
+      {
+        static bool signals(const Format_sub & digits, const Format_sub & deco)
+           {
+             if (digits.no_float())   return false;
+             if (!(digits.flt_mask & (BIT_1 | BIT_3)))   return true;   // 2
+             return deco.is_visible();
+           }
+      };
+
+   negative_representable = _side::signals(int_part, left_deco) ||
+                            _side::signals(fract_part, right_deco);
 }
 //────────────────────────────────────────────────────────────────────────────
 UCS_string
-Bif_F12_FORMAT::Format_LIFER::format_example(APL_Float value)
+Bif_F12_FORMAT::Format_LIFER::format_example(const Cell & cell)
 {
+const bool is_negative = cell.is_integer_cell() ? cell.get_int_value() < 0
+                                                : cell.get_real_value() < 0.0;
+
    // Bugs28 #46: see the (more detailed) comment on negative_representable's
    // computation, above.
    //
-   if (value < 0.0 && !negative_representable)
-      {
-        MORE_ERROR() << "A⍕B : B is negative, but A has no conditional"
-                        " ('1', '2', or '3') decorator to signal that"
-                        " (APL2 LRM p.141)";
-        DOMAIN_ERROR;
-      }
-
 UCS_string data_int;
 UCS_string data_fract;
 UCS_string data_expo;
-const APL_Float val_1 = (value < 0.0) ? APL_Float(-value) : value;
-
 bool overflow = false;
-   fill_data_fields(val_1, data_int, data_fract, data_expo, overflow);
+   fill_data_fields(cell, data_int, data_fract, data_expo, overflow);
    Log(LOG_Bif_F12_FORMAT)
       {
         Q1(overflow)
@@ -431,38 +455,140 @@ bool overflow = false;
       }
    if (overflow)   return UCS_string(out_size(), Workspace::get_FC(3));
 
-const UCS_string left = format_left_side(data_int, value < 0.0, overflow);
+   // a B that is shown as 0 (e.g. ¯0.2 in '¯155') is not negative: no ¯0,
+   // and no DOMAIN ERROR below (Bugs35 #14). Only the mantissa digits
+   // count in E-format.
+   //
+bool shown_as_0 = true;
+   loop(d, data_int.size())     if (data_int[d] != UNI_0)     shown_as_0 = false;
+   loop(d, data_fract.size())   if (data_fract[d] != UNI_0)   shown_as_0 = false;
+const bool negative = is_negative && !shown_as_0;
+
+   if (negative && !negative_representable)
+      {
+        MORE_ERROR() << "A⍕B : B does not fit into A (B is negative, but A"
+                        " has no conditional ('1', '2', or '3') non-blank"
+                        " decorator to show that, APL2 LRM p.141)";
+        DOMAIN_ERROR;
+      }
+
+const UCS_string left = format_left_side(data_int, negative, overflow);
    if (overflow)   return UCS_string(out_size(), Workspace::get_FC(3));
    Assert(left.ssize() == (left_deco.out_len + int_part.out_len));
 
-const UCS_string right = format_right_side(data_fract, value < 0.0, data_expo);
+const UCS_string right = format_right_side(data_fract, negative, data_expo);
    Assert(right.ssize() == (fract_part.out_len + expo_deco.out_len +
                            exponent.out_len + right_deco.out_len));
 
    return left + right;
 }
 //────────────────────────────────────────────────────────────────────────────
+/// a by-specification column of \b width is too narrow for \b data
+static void
+too_narrow(int width, const UCS_string & data)
+{
+   MORE_ERROR() << "A⍕B : B does not fit into A (width " << width
+                << " is too small for " << data << ")";
+   DOMAIN_ERROR;
+}
+//────────────────────────────────────────────────────────────────────────────
+/// print the non-negative \b value like printf() with "%.<fract>E" (if
+/// \b expo) or "%.<fract>f" (otherwise), but round an exact tie away from
+/// zero (like 0⍕, ¯N⍕, and the display) and not to even as glibc does
+/// (Bugs35 #12, #3).
+static std::string
+print_half_up(APL_Float value, int fract, bool expo)
+{
+   enum { extra_digits = 24 };   // like UCS_string::from_double_to_expo()
+std::vector<char> buffer(fract + extra_digits + 400);
+   snprintf(buffer.data(), buffer.size(), expo ? "%.*E" : "%.*f",
+            fract + extra_digits, value);
+
+   // split buffer (iii.fff or d.fffE±xx) into its digits d and the number
+   // of digits before the decimal point (int_len)
+   //
+const char * e = expo ? strchr(buffer.data(), 'E') : 0;
+const char * end = e ? e : buffer.data() + strlen(buffer.data());
+std::string d;
+int int_len = 0;
+   for (const char * m = buffer.data(); m < end; ++m)
+       {
+         if (*m == '.')   int_len = d.size();
+         else             d += *m;
+       }
+
+int expo_val = e ? ::atoi(e + 1) : 0;
+const int int_len_0 = int_len;
+   UCS_string::round_expo_digits(d, e ? expo_val : int_len, int_len + fract);
+   if (!e && int_len > int_len_0)   d += '0';   // carry: 9.5 → 10
+
+std::string ret(d, 0, int_len);
+   if (fract)   ret += '.' + d.substr(int_len);
+   if (e)
+      {
+        char ex[20];
+        snprintf(ex, sizeof(ex), "E%+03d", expo_val);
+        ret += ex;
+      }
+   return ret;
+}
+//────────────────────────────────────────────────────────────────────────────
+/// print the integer \b uv like print_half_up(), but exactly: an integer may
+/// have more digits than a double can hold (Bugs35 #15, Bugs28 #44)
+static std::string
+print_int(uint64_t uv, int fract, bool expo)
+{
+char digits[32];
+   snprintf(digits, sizeof(digits), "%llu",
+            static_cast<unsigned long long>(uv));
+std::string d(digits);
+   if (!expo)   return fract ? d + '.' + std::string(fract, '0') : d;
+
+int expo_val = d.size() - 1;
+   UCS_string::round_expo_digits(d, expo_val, 1 + fract);
+
+std::string ret(d, 0, 1);
+   if (fract)   ret += '.' + d.substr(1);
+char ex[20];
+   snprintf(ex, sizeof(ex), "E%+03d", expo_val);
+   return ret + ex;
+}
+//────────────────────────────────────────────────────────────────────────────
 void
-Bif_F12_FORMAT::Format_LIFER::fill_data_fields(APL_Float value,
+Bif_F12_FORMAT::Format_LIFER::fill_data_fields(const Cell & cell,
                 UCS_string & data_int, UCS_string & data_fract,
                 UCS_string & data_expo, bool & overflow)
 {
-char format[40];
 const int data_buf_len = int_part.out_len + 1        // 123.
                        + fract_part.out_len          // 456
                        + 1 + exponent.out_len + 1;   // E-22
 
    if (data_buf_len > 100)   DOMAIN_ERROR;
 
+   // the absolute value of cell, exactly if it is an integer. value is
+   // only used in error messages then.
+   //
+const bool is_int = cell.is_integer_cell();
+uint64_t int_val = 0;
+   if (is_int)
+      {
+        const APL_Integer iv = cell.get_int_value();
+        int_val = iv < 0 ? -uint64_t(iv) : uint64_t(iv);
+      }
+const APL_Float real_val = cell.get_real_value();
+const APL_Float value = real_val < 0.0 ? -real_val : real_val;
+
 char data_buf[101];
 char * fract_end = 0;
 
    if (exponent.size())   // E in format string
       {
-        // create a format like %.5E (if fract_part has 5 digits)
+        // like %.5E (if fract_part has 5 digits), but a tie rounded up
         //
-        SPRINTF(format, "%%.%luE", ulong(fract_part.size()));
-        SPRINTF(data_buf, format, value);
+        const std::string txt = is_int
+              ? print_int(int_val, fract_part.size(), true)
+              : print_half_up(value, fract_part.size(), true);
+        snprintf(data_buf, sizeof(data_buf), "%s", txt.c_str());
 
         char * ep = strchr(&data_buf[0], 'E');
         Assert(ep);
@@ -476,12 +602,12 @@ char * fract_end = 0;
         // the sign of a negative exponent is simply lost, i.e. the text
         // is a different number (0.1 printed as 1.0000E01, Bugs34 #10).
         //
-        if (expo_negative && expo_deco.format.size() == 0)
+        if (expo_negative && !expo_deco.is_visible())
            {
-             MORE_ERROR() << "A⍕B : the exponent of " << value
-                          << " is negative, but A has no decorator (such as"
-                             " ¯) in front of the exponent digits to show"
-                             " that";
+             MORE_ERROR() << "A⍕B : B does not fit into A (the exponent of "
+                          << value << " is negative, but A has no non-blank"
+                             " decorator, such as ¯, in front of the"
+                             " exponent digits to show that)";
              DOMAIN_ERROR;
            }
         if (*ep == '0' && ep[1])   ++ep;          // skip leading 0 in exponent
@@ -500,8 +626,9 @@ char * fract_end = 0;
            {
              if (Workspace::get_FC(3) == UNI_0)
                 {
-                  MORE_ERROR() << "A⍕B : Bad value " << value
-                               << " (exponent exceeds A specification)";
+                  MORE_ERROR() << "A⍕B : B does not fit into A (the"
+                                  " exponent of " << value
+                               << " has more digits than A)";
                   DOMAIN_ERROR;
                 }
              overflow = true;
@@ -517,9 +644,12 @@ char * fract_end = 0;
       }
    else   // no exponent in format string.
       {
-        SPRINTF(format, "%%.%luf", ulong(fract_part.size()));
-
-        const int dlen = snprintf(data_buf, data_buf_len, format, value);
+        // like %.5f (if fract_part has 5 digits), but a tie rounded up
+        //
+        const std::string txt = is_int
+              ? print_int(int_val, fract_part.size(), false)
+              : print_half_up(value, fract_part.size(), false);
+        const int dlen = snprintf(data_buf, data_buf_len, "%s", txt.c_str());
         NULL_TERMINATE(data_buf)
 
         // the int part could be longer than allowed by the example string.
@@ -530,8 +660,9 @@ char * fract_end = 0;
            {
              if (Workspace::get_FC(3) == UNI_0)
                 {
-                  MORE_ERROR() << "A⍕B : Bad value " << value
-                               << " (integer part exceeds A specification)";
+                  MORE_ERROR() << "A⍕B : B does not fit into A (the"
+                                  " integer part of " << value
+                               << " has more digits than A)";
                   DOMAIN_ERROR;
                 }
              overflow = true;
@@ -572,17 +703,19 @@ const int ilen = int_end - &data_buf[0];
 
    loop(i, ilen)   data_int << Unicode(data_buf[i]);
 
-   // convert 0.xxx to .xxx
+   // convert 0.xxx to .xxx, and a 0 integer part without a fraction to
+   // blanks ("Display blanks for a value of 0", LRM p.141, Bugs35 #14).
+   // Not in E-format: the mantissa of 0 is 0, not nothing (LRM p.12).
    //
    if (  data_int.size() == 1
       && data_int[0] == UNI_0
       && int_part.min_len == 0
-      && fract_part.size())   data_int.clear();
+      && exponent.size() == 0)   data_int.clear();
 
    Log(LOG_Bif_F12_FORMAT)
       {
         CERR << "At " LOC " in Format_LIFER::fill_data_fields()" << endl
-             << "    format:     '" << format << "'"     << endl
+             << "    data_buf:   '" << data_buf << "'"     << endl
              << "    value:      "  << value             << endl
              << "    data_int:   '" << data_int << "'"   << endl
              << "    data_fract: '" << data_fract << "'" << endl
@@ -668,13 +801,17 @@ UCS_string ucs;
      if (pad_count < 0)   pad_count = 0;   // defensive: see fill_data_fields()
      const UCS_string pad(pad_count, pad_char);
 
+     // the mirror image of format_left_side(): a simple decorator stays at
+     // its position in A (the right edge), a floating decorator is placed
+     // right after the number (Bugs35 #16, LRM p.140).
+     //
      if (fract_part.no_float())                // floating disabled.
         {
-          ucs << right_deco.format << pad;
+          ucs << pad << right_deco.format;
         }
      else if (fract_part.do_float(negative))  // floating, deco shown
         {
-          ucs << pad << right_deco.format;
+          ucs << right_deco.format << pad;
         }
      else                                      // floating, deco hidden
         {
@@ -1153,9 +1290,9 @@ Value_P Z(shape_Z, LOC);
                   const ShapeItem idx_B = c + r*cols;
                   if (!B.is_real_cell(idx_B))   DOMAIN_ERROR;
 
-                  const APL_Float value = B.get_real_value(idx_B);
-
-                  const UCS_string item = col_items[c].format_example(value);
+                  Cell cache;
+                  const Cell & cell = B.get_cravel(idx_B, cache);
+                  const UCS_string item = col_items[c].format_example(cell);
                   Log(LOG_Bif_F12_FORMAT)   Q1(item)
                   row << item;
                 }
@@ -1230,10 +1367,15 @@ UCS_string current_format;
 }
 //────────────────────────────────────────────────────────────────────────────
 PrintBuffer
-Bif_F12_FORMAT::format_one_col_by_spec(int width, int precision,
+Bif_F12_FORMAT::format_one_col_by_spec(APL_Integer width_A,
+                                       APL_Integer precision_A,
                                        cValue_R B, ShapeItem base,
                                        ShapeItem cols, ShapeItem rows)
 {
+   // width_A and precision_A are checked BEFORE they are narrowed to int:
+   // otherwise only their low 32 bits were used, e.g. 0 ¯4294967297⍕1.5
+   // as 0 ¯1⍕1.5 (Bugs35 #19).
+   //
    // precision comes straight from the left argument with no upper bound
    // otherwise: a large positive precision drives an unbounded
    // UCS_string(size_t, Unicode)-style allocation in format_float_by_spec()
@@ -1242,9 +1384,9 @@ Bif_F12_FORMAT::format_one_col_by_spec(int width, int precision,
    // memory and aborts uncleanly (glibc sysmalloc assertion, not a clean
    // bad_alloc). No legitimate format specification needs anywhere near
    // this many digits.
-   if (precision > 1000 || precision < -1000)
+   if (precision_A > 1000 || precision_A < -1000)
       {
-        MORE_ERROR() << "A⍕B: precision " << precision
+        MORE_ERROR() << "A⍕B: precision " << precision_A
                      << " is too far from 0 (expecting ¯1000..1000)";
         DOMAIN_ERROR;
       }
@@ -1255,13 +1397,20 @@ Bif_F12_FORMAT::format_one_col_by_spec(int width, int precision,
    // non-negative ssize() is > any negative int) and then
    // UCS_string(width, ...) sign-extends the negative int to a
    // near-SIZE_MAX count, whose internal reserve() throws
-   // std::length_error. (A positive width of 2^31 truncates to INT_MIN
-   // at the int parameter and reaches the same path.)
-   if (width < 0)
+   // std::length_error.
+   if (width_A < 0)
       {
-        MORE_ERROR() << "A⍕B: width " << width << " is negative";
+        MORE_ERROR() << "A⍕B: width " << width_A << " is negative";
         DOMAIN_ERROR;
       }
+   if (width_A > 0x7FFFFFFF)
+      {
+        MORE_ERROR() << "A⍕B: width " << width_A << " is too large";
+        DOMAIN_ERROR;
+      }
+
+const int width = width_A;
+const int precision = precision_A;
 
 PrintBuffer ret;
 
@@ -1354,7 +1503,7 @@ bool has_complex = false;
 
              if (width && data.ssize() > width)   // overflow
                 {
-                  if (Workspace::get_FC(3) == UNI_0)   DOMAIN_ERROR;
+                  if (Workspace::get_FC(3) == UNI_0)   too_narrow(width, data);
 
                   data = UCS_string(width, Workspace::get_FC(3));
                 }
@@ -1418,9 +1567,10 @@ bool has_complex = false;
                 {
                   data = format_float_by_spec(value, precision);
                 }
+             FloatCell::map_FC(data);   // ⎕FC[1 6] (LRM p.291, Bugs35 #18)
              if (width && data.ssize() > width)   // overflow
                 {
-                  if (Workspace::get_FC(3) == UNI_0)   DOMAIN_ERROR;
+                  if (Workspace::get_FC(3) == UNI_0)   too_narrow(width, data);
                   data = UCS_string(width, Workspace::get_FC(3));
                 }
 
@@ -1449,9 +1599,10 @@ bool has_complex = false;
              // for both fixed and exponential form -- no format-
              // specific exception.
              //
+             FloatCell::map_FC(data);   // ⎕FC[1 6] (LRM p.291, Bugs35 #18)
              if (width && data.ssize() > width)   // overflow
                 {
-                  if (Workspace::get_FC(3) == UNI_0)   DOMAIN_ERROR;
+                  if (Workspace::get_FC(3) == UNI_0)   too_narrow(width, data);
                   data = UCS_string(width, Workspace::get_FC(3));
                 }
 

@@ -312,9 +312,12 @@ Symbol * next;   // the symbol after sym
        {
          next = sym->next;
 
-         // keep system-defined symbols
+         // keep system-defined symbols, and the μ and name symbols of the
+         // macros (which live as long as the interpreter): a suspended
+         // macro frame still uses them, e.g. Workspace::is_bound_as_operand()
          //
-         if (sym->is_user_defined() && sym->get_name()[0] != UNI_MUE)
+         if (sym->is_user_defined() && sym->get_name()[0] != UNI_MUE &&
+             !Macro::is_macro_name(sym))
             {
               sym->call_monitor_callback(SEV_ERASED);
               delete sym;

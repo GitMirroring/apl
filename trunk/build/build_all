@@ -449,11 +449,11 @@ test_one()
    local summ="$TOP_LOG_dir/summary.log"
    cd $VSRC_dir
    # all testcases (make test runs testcases/*.tc), their helper and data
-   # files (e.g. APnnn_1011.*), and the workspaces they need. Since the tree
-   # is a copy of the tarball content, these are exactly the distributed
-   # files.
+   # files (e.g. APnnn_1011.*), and their library root testcases/libroot
+   # (make test runs ./apl --libroot testcases/libroot). Since the tree is a
+   # copy of the tarball content, these are exactly the distributed files.
    cp $ROOT_dir/src/testcases/* testcases/ 2>/dev/null  # (skips subdirs)
-   cp $ROOT_dir/src/workspaces/* workspaces/            # needed by testcases
+   cp -R $ROOT_dir/src/testcases/libroot testcases/     # needed by testcases
    make test > /dev/null 2>&1
    local make_result=$?
    local time_TO=$(date +%s)

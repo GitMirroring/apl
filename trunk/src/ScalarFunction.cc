@@ -1403,8 +1403,13 @@ const ShapeItem count = B.nz_element_count();
 Token
 Bif_F12_WITHOUT::eval_AB(cValue_R A, cValue_R B) const
 {
-   if (A.get_rank() > 1)   RANK_ERROR;
-   if (B.get_rank() > 1)   RANK_ERROR;
+   if (A.get_rank() > 1)
+      {
+        MORE_ERROR() << "A∼B: A must be a scalar or a vector";
+        RANK_ERROR;
+      }
+   // B can have any rank: APL2 LRM p. 258 and L∼R ←→ (∼L∊R)/L, unlike
+   // ISO 13751 10.2.16 (Blake McBride, Bugs35 #27).
 
 const ShapeItem len_A = A.element_count();
 const ShapeItem len_B = B.element_count();

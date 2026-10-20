@@ -100,13 +100,13 @@ d 4
 e 5
 f 6
 
-      c6 ,⍤0,⊂⍳6                ⍝ a.k.a. L,[1.5] R
-a 1
-b 2
-c 3
-d 4
-e 5
-f 6
+      ⍝ the right operand binds stronger than , (LRM p.35): this is
+      ⍝ c6 (,⍤0) (,⊂⍳6), and the frames 6 and 1 differ (Bugs35 #38)
+      ⍝
+      c6 ,⍤0,⊂⍳6
+LENGTH ERROR+
+      c6,⍤0,⊂⍳6
+      ^ ^
 
       ⍝ with axis...
       ⍝
@@ -122,9 +122,12 @@ a b c d e f
 a b c d e f
 1 2 3 4 5 6
 
-      c6 ,⍤[1] 0 ,⊂(⍳6)         ⍝ a.k.a. L,[0.5] R
-a b c d e f
-1 2 3 4 5 6
+      ⍝ with axis: ambiguous, use c6 (,⍤[1] 0) ⍳6 (Bugs35 #38)
+      ⍝
+      c6 ,⍤[1] 0 ,⊂(⍳6)
+SYNTAX ERROR+
+      c6,⍤[1]0,⊂(⍳6)
+      ^ ^
 
       ⍝ Regression
       ⍝

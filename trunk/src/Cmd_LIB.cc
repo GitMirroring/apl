@@ -112,6 +112,7 @@ const bool query = args.size() &&
                 case LibPaths::LibDir::CSRC_PREF_SYS:  out << "PSYS │";   break;
                 case LibPaths::LibDir::CSRC_PREF_HOME: out << "PUSER│";   break;
                 case LibPaths::LibDir::CSRC_CMD:       out << "CMD  │";   break;
+                case LibPaths::LibDir::CSRC_ARG:       out << "ARG  │";   break;
              }
 
         if (DIR * dir = opendir(path.c_str()))
@@ -130,6 +131,7 @@ const bool query = args.size() &&
 "╚═══╧══╤══╧═════════════╧══════════════════════════════════════════════════════╝\n"
 "       │\n"
 "       ├── NONE:  found no method to compute the library path\n"
+"       ├── ARG:   the path came from command line option --libroot\n"
 "       ├── CMD:   the path was set with )LIBS N path\n"
 "       ├── ENV:   the path came from environment variable $APL_LIB_ROOT\n"
 "       ├── PSYS:  the path came from the system preferences in file\n"

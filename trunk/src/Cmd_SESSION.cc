@@ -55,6 +55,20 @@ Cmd_SESSION::cmd_BOXING(ostream & out, const UCS_string & arg)
 {
 int format = arg.atoi();
 
+   // the parameter is OFF or an integer (Bugs35 #67: atoi() made every
+   // non-number OFF, e.g. ON, and ignored trailing garbage, e.g. 4abc)
+   //
+bool valid = arg.size() > 0;
+   if (arg.size() == 3 && arg.starts_iwith("OFF"))   format = 0;
+   else
+      {
+        loop(a, arg.size())
+            {
+              if (a == 0 && arg[a] == UNI_MINUS && arg.size() > 1)   continue;
+              if (!Avec::is_digit(arg[a]))   valid = false;
+            }
+      }
+
    if (arg.size() == 0)
       {
         out << "]BOXING ";
@@ -64,8 +78,7 @@ int format = arg.atoi();
         return;
       }
 
-   if (arg.starts_iwith("OFF"))   format = 0;
-   switch (format)
+   if (valid)   switch (format)
       {
         case -29:
         case -25: case -24: case -23:

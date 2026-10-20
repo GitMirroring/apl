@@ -268,7 +268,15 @@ IO_Files::get_file_line(UTF8_string & line, bool & eof)
               else                        break;      // done
            }
 
-        current_testreport << "----> " << line.c_str() << endl;
+        // lines of a script executed by the testcase (e.g. )COPY 5 X.apl)
+        // are marked differently, so that tools that read the .tc.log
+        // (accept_tc.py, Automated_Test_Report.sh) can tell them from the
+        // input lines of the testcase itself.
+        //
+        if (InputFile::current_file()->test)
+           current_testreport << "----> " << line.c_str() << endl;
+        else
+           current_testreport << "-scr> " << line.c_str() << endl;
         return;
       }
 

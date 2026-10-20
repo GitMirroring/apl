@@ -265,7 +265,7 @@ DOMAIN ERROR+
       '5,555'⍕12345
       ^      ^
       )MORE
-A⍕B : Bad value 12345 (integer part exceeds A specification)
+A⍕B : B does not fit into A (the integer part of 12345 has more digits than A)
 
       ⍝ Bugs28 #46: formatting a negative B through a picture with no
       ⍝ conditional ('1', '2', or '3') decorator is a DOMAIN ERROR, per
@@ -307,7 +307,7 @@ DOMAIN ERROR+
       '55.55'⍕¯1.5
       ^      ^
       )MORE
-A⍕B : B is negative, but A has no conditional ('1', '2', or '3') decorator to signal that (APL2 LRM p.141)
+A⍕B : B does not fit into A (B is negative, but A has no conditional ('1', '2', or '3') non-blank decorator to show that, APL2 LRM p.141)
 
       )SIC
 
@@ -318,7 +318,7 @@ DOMAIN ERROR+
       '-5.5'⍕¯1.5
       ^     ^
       )MORE
-A⍕B : B is negative, but A has no conditional ('1', '2', or '3') decorator to signal that (APL2 LRM p.141)
+A⍕B : B does not fit into A (B is negative, but A has no conditional ('1', '2', or '3') non-blank decorator to show that, APL2 LRM p.141)
 
       )SIC
 

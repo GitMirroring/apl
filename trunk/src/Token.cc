@@ -323,6 +323,18 @@ UCS_string ucs;
              break;
 
         case TC_VALUE:
+             if (get_tag() == TOK_CHARACTER)
+                {
+                  // a raw character literal 'c' as produced by the Tokenizer
+                  // (before it is packed into a value). It has no Value_P.
+                  //
+                  const Unicode uni = get_char_val();
+                  ucs << UNI_SINGLE_QUOTE << uni;
+                  if (uni == UNI_SINGLE_QUOTE)   ucs << UNI_SINGLE_QUOTE;
+                  ucs << UNI_SINGLE_QUOTE;
+                  break;
+                }
+             if (!is_apl_val())   break;   // no value (yet)
              {
                PrintContext pctx(style, DEFAULT_Quad_PP, DEFAULT_Quad_PW);
                PrintBuffer pbuf(*get_apl_val(), pctx, 0);
@@ -485,19 +497,24 @@ UCS_string ucs;
 int
 Token::error_info(UCS_string & ucs) const
 {
-UCS_string canon = canonical(PR_APL_FUN).remove_pad();
-
-const Unicode c1 = ucs.back();
-const Unicode c2 = canon.size() ? canon[0] : Invalid_Unicode;
+   return error_info(ucs, canonical(PR_APL_FUN).remove_pad());
+}
+//────────────────────────────────────────────────────────────────────────────
+int
+Token::error_info(UCS_string & ucs, const UCS_string & text)
+{
+const Unicode c1 = ucs.size() ? ucs.back() : Invalid_Unicode;
+const Unicode c2 = text.size() ? text[0] : Invalid_Unicode;
 
    // conditions when we don't need a space
    //
-bool need_space = ! (Avec::no_space_after(c1) || Avec::no_space_before(c2));
+const bool need_space = text.size() &&
+                        ! (Avec::no_space_after(c1) || Avec::no_space_before(c2));
 
    if (need_space)   ucs << UNI_SPACE;
 
-   ucs << canon;
-   return need_space ? -canon.size() : canon.size();
+   ucs << text;
+   return need_space ? -text.size() : text.size();
 }
 //════════════════════════════════════════════════════════════════════════════
 Value_P

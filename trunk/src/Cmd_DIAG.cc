@@ -393,7 +393,7 @@ std::vector<Row> rows;
    built("⎕RE",              apl_PCRE,     "libpcre2-32 not found or disabled");
    built("⎕SQL (PostgreSQL)", apl_POSTGRES, "libpq not found or disabled");
    built("⎕SQL (SQLite3)",   apl_SQLITE3,  "libsqlite3 not found or disabled");
-   built("GSL (⎕MX, ⌹)",     apl_GSL,      "libgsl not found or disabled");
+   built("GSL (⎕MX, ⌹[2]…⌹[6])", apl_GSL, "libgsl not found or disabled");
 
    group("Execution");
 #if PARALLEL_ENABLED

@@ -243,6 +243,14 @@ protected:
         /// true if )IN shall not iverride existing objects
         bool protection;   // protect existing objects
 
+        /// return true (and remember \b name for the NOT COPIED: message)
+        /// if \b protection and \b name already exists (Bugs35 #64)
+        /// @param name  the name of an object in the transfer file
+        bool is_protected(const UCS_string & name) const;
+
+        /// the objects that )PIN did not copy
+        mutable UCS_string_vector not_copied;
+
         /// the record number
         int recnum;
 
