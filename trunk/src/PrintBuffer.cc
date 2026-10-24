@@ -96,8 +96,14 @@ PrintBuffer::PrintBuffer(const UCS_string & ucs, const ColInfo & ci)
    buffer.push_back(ucs);
 }
 //────────────────────────────────────────────────────────────────────────────
-PrintBuffer::PrintBuffer(const cValue & value, const PrintContext & _pctx,
+PrintBuffer::PrintBuffer(const cValue & value, const PrintContext & pctx,
                          ostream * out)
+   : PrintBuffer(value, pctx, get_frame_chars(pctx.get_style()), out)
+{
+}
+//────────────────────────────────────────────────────────────────────────────
+PrintBuffer::PrintBuffer(const cValue & value, const PrintContext & _pctx,
+                         const UCS_string & frame_chars, ostream * out)
    : complete(false)
 {
 PERFORMANCE_START(start_0)
@@ -115,10 +121,13 @@ PERFORMANCE_START(start_0)
    // (as indicated by member complete if it is huge). This is to speed
    // up printing if the value is discarded after having been printed
 
-const PrintStyle outer_style = _pctx.get_style();
-const bool framed = outer_style & (PST_CS_MASK | PST_CS_OUTER);
+   // the outer frame (if any) is drawn around this value only, but not
+   // around its items.
+   //
+const bool framed = has_frame(frame_chars) || has_outer_frame(frame_chars);
+const UCS_string item_chars = without_outer_frame(frame_chars);
 PrintContext pctx(_pctx);
-   pctx.set_style(PrintStyle(outer_style &~ PST_CS_OUTER));
+   pctx.set_style(PrintStyle(_pctx.get_style() &~ PST_CS_OUTER));
 
 const ShapeItem ec = value.element_count();
 
@@ -128,7 +137,7 @@ const ShapeItem ec = value.element_count();
    //
    if (pctx.get_style() & PST_INPUT)
       {
-        pb_for_function(value, outer_style);
+        pb_for_function(value, frame_chars);
         if (out)
            {
              UCS_string ucs(*this, value.get_rank(), _pctx.get_PW());
@@ -147,7 +156,7 @@ const ShapeItem ec = value.element_count();
         PrintContext pctx1(pctx);
         if (cell.need_scaling(pctx))   pctx1.set_scaled();
 
-        *this = cell.character_representation(pctx1);
+        *this = item_representation(cell, pctx1, item_chars);
 
         // pad the value unless it is framed
         if (value.compute_depth() > 1 && !framed)
@@ -156,7 +165,7 @@ const ShapeItem ec = value.element_count();
              pad_r(UNI_PAD_r_VALUE, 1);
            }
 
-        add_outer_frame(outer_style);
+        add_outer_frame(frame_chars);
 
         if (out)
            {
@@ -192,7 +201,7 @@ const ShapeItem ec = value.element_count();
 
    if (ec == 0)   // empty value of any dimension
       {
-        pb_empty(value, pctx, outer_style);
+        pb_empty(value, pctx, frame_chars);
         if (out)
            {
              UCS_string ucs(*this, value.get_rank(), _pctx.get_PW());
@@ -227,7 +236,7 @@ const ShapeItem ec = value.element_count();
              ucs << uni;
            }
         append_ucs(ucs);
-        add_outer_frame(outer_style);
+        add_outer_frame(frame_chars);
 
         if (ec > 10000 && out)
            print_interruptible(*out, value.get_rank(), pctx.get_PW());
@@ -264,7 +273,7 @@ PrintBuffer * item_matrix = 0;
    //
 bool interrupted = false;
    try            { interrupted = do_PrintBuffer(value, pctx, out,
-                                                 outer_style, item_matrix); }
+                                                 frame_chars, item_matrix); }
    catch (...)   { delete [] item_matrix;   throw; }
 
    if (interrupted)   // ^C hit
@@ -283,10 +292,11 @@ bool interrupted = false;
 //────────────────────────────────────────────────────────────────────────────
 bool
 PrintBuffer::do_PrintBuffer(const cValue & value, const PrintContext & pctx,
-                            ostream * out, PrintStyle outer_style,
+                            ostream * out, const UCS_string & frame_chars,
                             PrintBuffer * item_matrix)
 {
-const bool framed = outer_style & (PST_CS_MASK | PST_CS_OUTER);
+const bool framed = has_frame(frame_chars) || has_outer_frame(frame_chars);
+const UCS_string item_chars = without_outer_frame(frame_chars);
 const ShapeItem ec = value.element_count();
 const uint64_t ii_count = InterruptContext::get_interrupt_count();
 const bool huge = out && ec > 10000;
@@ -403,7 +413,7 @@ bool complex_storage = false;     // a. with a complex item
                  {
                    pctx1.set_scaled();
                  }
-              item = cell.character_representation(pctx1);
+              item = item_representation(cell, pctx1, item_chars);
               if (!item.get_row_count())
                  {
                    UCS_string empty;
@@ -420,8 +430,7 @@ bool complex_storage = false;     // a. with a complex item
                  {
                    if (sub->element_count() == 0)   empty_sub = sub.get();
                  }
-              if (empty_sub && !strict && !framed &&
-                  !(pctx.get_style() & PST_CS_INNER))
+              if (empty_sub && !strict && !framed)
                  {
                    ColInfo ci = item.get_info();
                    const UCS_string ucs(1, UNI_SPACE);
@@ -579,8 +588,7 @@ bool complex_storage = false;     // a. with a complex item
    // parentheses, which show the structure (STRICT_IBM_APL2_FORMATTING
    // parentheses)
    //
-const bool row_gaps = nested &&
-                      (pctx.get_style() & PST_CS_MASK) != PST_CS_PARENS;
+const bool row_gaps = nested && frame_chars[FC_PARENS] != UNI_L_PARENT;
 
    int last_col_spacing = 0;    // the col_spacing of the previous column
    bool last_non_char_col = false;   // the previous column has a non-char
@@ -711,7 +719,7 @@ const bool row_gaps = nested &&
       }
 
    Assert(is_rectangular());
-   add_outer_frame(outer_style);
+   add_outer_frame(frame_chars);
 
    PERFORMANCE_END(fs_PrintBuffer4_B, start_4, ec)
    
@@ -735,14 +743,15 @@ const bool row_gaps = nested &&
 }
 //════════════════════════════════════════════════════════════════════════════
 void
-PrintBuffer::pb_for_function(const cValue & value, PrintStyle outer_style)
+PrintBuffer::pb_for_function(const cValue & value,
+                             const UCS_string & frame_chars)
 {
 UCS_string ucs;
    append_input_form(ucs, value);
 
 ColInfo ci;
    *this = PrintBuffer(ucs, ci);
-   add_outer_frame(outer_style);
+   add_outer_frame(frame_chars);
 }
 //────────────────────────────────────────────────────────────────────────────
 /// append the shortest text of \b value that reads back exactly
@@ -959,13 +968,13 @@ Cell cache;
 //────────────────────────────────────────────────────────────────────────────
 void
 PrintBuffer::pb_empty(const cValue & value, PrintContext pctx, 
-                             PrintStyle outer_style)
+                      const UCS_string & frame_chars)
 {
    if (value.get_rank() == 1)   // vector: 1 line
       {
         UCS_string ucs;   // empty
         append_ucs(ucs);
-        add_outer_frame(outer_style);
+        add_outer_frame(frame_chars);
         return;   // 1 row
       }
 
@@ -991,7 +1000,7 @@ const Shape sh = value.get_shape().without_last_axis();
         //
         if (UserPreferences::uprefs.strict_IBM_APL2_formatting)
            buffer.resize(value.empty_lines());
-        add_outer_frame(outer_style);
+        add_outer_frame(frame_chars);
         return;
       }
 
@@ -1002,7 +1011,7 @@ ShapeItem lines = sh.get_volume();
       lines += s * (sh.get_shape_item(sh.get_rank() - s - 1));
 
    buffer.resize(lines);
-   add_outer_frame(outer_style);
+   add_outer_frame(frame_chars);
 }
 //────────────────────────────────────────────────────────────────────────────
 void
@@ -1155,25 +1164,30 @@ PrintBuffer::pad_to_spaces()
 void
 PrintBuffer::add_frame(PrintStyle style, const Shape & shape, int depth)
 {
+   add_frame(get_frame_chars(style), shape, depth, style);
+}
+//────────────────────────────────────────────────────────────────────────────
+void
+PrintBuffer::add_frame(const UCS_string & chars, const Shape & shape,
+                       int depth, int value_flags)
+{
    Assert(is_rectangular());
+   Assert(chars.size() == FC_COUNT);
 
-   if ((style & PST_CS_MASK) == PST_CS_PARENS)
+   if (chars[FC_PARENS] == UNI_L_PARENT)
       {
         add_parentheses();
         return;
       }
 
-Unicode HORI, VERT, NW, NE, SE, SW;
-   get_frame_chars(style, HORI, VERT, NW, NE, SE, SW);
-
    if (get_row_count() == 0)   // empty
       {
         UCS_string upper;
-        upper << NE << NW;
+        upper << chars[FC_TOP_LEFT] << chars[FC_TOP_RIGHT];
         buffer.push_back(upper);
 
         UCS_string lower;
-        lower << SE << SW;
+        lower << chars[FC_BOTTOM_LEFT] << chars[FC_BOTTOM_RIGHT];
         buffer.push_back(lower);
 
         Assert(is_rectangular());
@@ -1184,8 +1198,8 @@ Unicode HORI, VERT, NW, NE, SE, SW;
    //
    loop(y, get_row_count())
       {
-        buffer[y].prepend(VERT);
-        buffer[y] << VERT;
+        buffer[y].prepend(chars[FC_VERT]);
+        buffer[y] << chars[FC_VERT];
 
         // change internal pad characters to SPACE so that they will
         // not be removed later and the frame is printed correctly
@@ -1194,9 +1208,9 @@ Unicode HORI, VERT, NW, NE, SE, SW;
 
       }
 
-   // draw ─ above the top and nelow the bottom.
+   // draw ─ above the top and below the bottom.
    //
-UCS_string hori(get_column_count(), HORI);
+UCS_string hori(get_column_count(), chars[FC_HORI]);
 
    buffer.insert(0, hori);
    buffer.push_back(hori);
@@ -1206,23 +1220,18 @@ UCS_string hori(get_column_count(), HORI);
    {
      const int XX = get_column_count() - 1;
      const int YY = get_row_count() - 1;
-     set_char(0,  0, NE);   // e.g. ╔
-     set_char(0,  YY,SE);   // e.g. ╚
-     set_char(XX, 0, NW);   // e.g. ╗
-     set_char(XX, YY,SW);   // e.g. ╝
+     set_char(0,  0,  chars[FC_TOP_LEFT]);       // e.g. ╔
+     set_char(0,  YY, chars[FC_BOTTOM_LEFT]);    // e.g. ╚
+     set_char(XX, 0,  chars[FC_TOP_RIGHT]);      // e.g. ╗
+     set_char(XX, YY, chars[FC_BOTTOM_RIGHT]);   // e.g. ╝
    }
 
-   // maybe draw frame decorators
+   // draw the frame decorators. A blank in chars means: no such decorator.
+   // value_flags tells which of the value-dependent decorators apply.
    //
-    if (style & PST_PLAIN)   // no decorators
-       {
-         Assert(is_rectangular());
-         return;
-       }
-
    if (shape.get_rank() > 0)               // → on top frame line
       {
-        if (style & PST_NARS)   // digit(s) indicating axis lengths
+        if (chars[FC_RANK_X] == UNI_NUMBER_SIGN)   // axis length (NARS)
            {
              UCS_string ucs;
              ucs << shape.get_last_shape_item();
@@ -1231,20 +1240,20 @@ UCS_string hori(get_column_count(), HORI);
                   loop(u, ucs.ssize())   set_char(u + 1, 0, ucs[u]);
                 }
            }
-        else   // IBM DISPLAY workspace style
+        else if (chars[FC_RANK_X] != UNI_SPACE)   // e.g. →
            {
-             set_char(1, 0, UNI_RIGHT_ARROW);
+             set_char(1, 0, chars[FC_RANK_X]);
            }
       }
    
    if (shape.get_rank() > 1)               // ↓ on left frame line
       {
-        if (style & PST_NARS)
+        if (chars[FC_RANK_Y] == UNI_NUMBER_SIGN)   // axis lengths (NARS)
            {
              UCS_string ucs;
              loop(r, shape.get_rank() - 1)
                 {
-                  if (r)   ucs << VERT;
+                  if (r)   ucs << chars[FC_VERT];
                   ucs << shape.get_shape_item(r);
                 }
              if (ucs.ssize() < get_row_count() - 2)
@@ -1252,35 +1261,42 @@ UCS_string hori(get_column_count(), HORI);
                   loop(u, ucs.size())   set_char(0, u + 1, ucs[u]);
                 }
            }
-        else   // IBM DISPLAY workspace style
+        else if (chars[FC_RANK_Y] != UNI_SPACE)   // e.g. ↓
            {
-             set_char(0, 1, UNI_DOWN_ARROW);
+             set_char(0, 1, chars[FC_RANK_Y]);
            }
       }
 
-   if (depth > 1)                      // one or more ϵ on bottom frame line
+   if (chars[FC_NESTED] == UNI_SPACE)   // no type decorators
+      {
+      }
+   else if (depth > 1)                 // one or more ϵ on bottom frame line
       {
         loop(d, depth - 1)
             if (d + 1 < get_column_count() - 1)
-               set_char(1 + d, get_row_count() - 1, UNI_ELEMENT);
+               set_char(1 + d, get_row_count() - 1, chars[FC_NESTED]);
       }
-   else if (style & PST_SIMPLE_NUMER)   // simple numeric
+   else if (value_flags & PST_SIMPLE_NUMER)   // simple numeric
      {
-        set_char(1, get_row_count() - 1, UNI_TILDE_OPERATOR);   // ∼
+        if (chars[FC_NUMERIC] != UNI_SPACE)
+           set_char(1, get_row_count() - 1, chars[FC_NUMERIC]);   // e.g. ∼
      }
-   else if (style & PST_SIMPLE_MIXED)   // simple numeric
+   else if (value_flags & PST_SIMPLE_MIXED)   // simple mixed
      {
-        set_char(1, get_row_count() - 1, UNI_PLUS);   // +
+        if (chars[FC_MIXED] != UNI_SPACE)
+           set_char(1, get_row_count() - 1, chars[FC_MIXED]);   // e.g. +
      }
    
-   if (style & PST_EMPTY_LAST)   // last (X-) dimension is empty
+   if ((value_flags & PST_EMPTY_LAST) &&   // last (X-) dimension is empty
+       chars[FC_EMPTY_X] != UNI_SPACE)
       {
-        set_char(1, 0, UNI_CIRCLE_BAR);   // ⊖
+        set_char(1, 0, chars[FC_EMPTY_X]);   // e.g. ⊖
       }
    
-   if (style & PST_EMPTY_NLAST)   // a non-last (Y-) dimension is empty
+   if ((value_flags & PST_EMPTY_NLAST) &&   // a non-last (Y-) axis is empty
+       chars[FC_EMPTY_Y] != UNI_SPACE)
       {
-        set_char(0, 1, UNI_CIRCLE_STILE);   // ⌽
+        set_char(0, 1, chars[FC_EMPTY_Y]);   // e.g. ⌽
       }
    
 
@@ -1331,20 +1347,24 @@ const ShapeItem rows = get_row_count();
 void
 PrintBuffer::add_outer_frame(PrintStyle style)
 {
-   style = PrintStyle(style >> 4 & PST_CS_MASK);
-   if (style == PST_CS_NONE)   return;
+   add_outer_frame(get_frame_chars(style));
+}
+//────────────────────────────────────────────────────────────────────────────
+void
+PrintBuffer::add_outer_frame(const UCS_string & chars)
+{
+   Assert(chars.size() == FC_COUNT);
 
-Unicode HORI, VERT, NW, NE, SE, SW;
-   get_frame_chars(style, HORI, VERT, NW, NE, SE, SW);
+   if (chars[FC_OUTER_TOP_LEFT] == UNI_SPACE)   return;   // no outer frame
 
    if (get_row_count() == 0)   // empty
       {
         UCS_string upper;
-        upper << NE << NW;
+        upper << chars[FC_OUTER_TOP_LEFT] << chars[FC_OUTER_TOP_RIGHT];
         buffer.push_back(upper);
 
         UCS_string lower;
-        lower << SE << SW;
+        lower << chars[FC_OUTER_BOTTOM_LEFT] << chars[FC_OUTER_BOTTOM_RIGHT];
         buffer.push_back(lower);
 
         Assert(is_rectangular());
@@ -1355,8 +1375,8 @@ Unicode HORI, VERT, NW, NE, SE, SW;
    //
    loop(y, get_row_count())
       {
-        buffer[y].prepend(VERT);
-        buffer[y] << VERT;
+        buffer[y].prepend(chars[FC_OUTER_VERT]);
+        buffer[y] << chars[FC_OUTER_VERT];
 
         // change internal pad characters to SPACE so that they will
         // not be removed later and the frame is printed correctly
@@ -1366,17 +1386,21 @@ Unicode HORI, VERT, NW, NE, SE, SW;
 
    // draw a bar on top and bottom.
    //
-UCS_string hori(get_column_count(), HORI);
+UCS_string hori(get_column_count(), chars[FC_OUTER_HORI]);
 
    buffer.insert(0, hori);
    buffer.push_back(hori);
 
    // draw the corners
    //
-   set_char(0,                       0,                   NE);
-   set_char(0,                       get_row_count() - 1, SE);
-   set_char(get_column_count() - 1, 0,                   NW);
-   set_char(get_column_count() - 1, get_row_count() - 1, SW);
+   {
+     const int XX = get_column_count() - 1;
+     const int YY = get_row_count() - 1;
+     set_char(0,  0,  chars[FC_OUTER_TOP_LEFT]);
+     set_char(0,  YY, chars[FC_OUTER_BOTTOM_LEFT]);
+     set_char(XX, 0,  chars[FC_OUTER_TOP_RIGHT]);
+     set_char(XX, YY, chars[FC_OUTER_BOTTOM_RIGHT]);
+   }
 
    Assert(is_rectangular());
 }
@@ -1599,68 +1623,109 @@ PrintBuffer::is_rectangular() const
    return true;
 }
 //────────────────────────────────────────────────────────────────────────────
-void
-PrintBuffer::get_frame_chars(PrintStyle pst,
-                             Unicode & HORI, Unicode & VERT,
-                             Unicode & NW, Unicode & NE,
-                             Unicode & SE, Unicode & SW)
+const char *
+PrintBuffer::frame_lines(int cs)
 {
-   switch(pst & PST_CS_MASK)
+   // index: the legs present: 1 (N) + 2 (E) + 4 (S) + 8 (W)
+   //
+   //                     0123456789012345
+   switch(cs)
       {
-        case PST_CS_ASCII:
-             HORI = UNI_MINUS;
-             VERT = UNI_BAR;
-             NW   = UNI_FULLSTOP;
-             NE   = UNI_FULLSTOP;
-             SE   = UNI_SINGLE_QUOTE;
-             SW   = UNI_SINGLE_QUOTE;
-             break;
-
-        case PST_CS_THIN:
-             HORI = UNI_LINE_HORI;
-             VERT = UNI_LINE_VERT;
-             NW   = UNI_LINE_DOWN_LEFT;
-             NE   = UNI_LINE_DOWN_RIGHT;
-             SE   = UNI_LINE_UP_RIGHT;
-             SW   = UNI_LINE_UP_LEFT;
-             break;
-
-        case PST_CS_THICK:
-             HORI = UNI_LINE_HORI2;
-             VERT = UNI_LINE_VERT2;
-             NW   = UNI_LINE_DOWN2_LEFT2;
-             NE   = UNI_LINE_DOWN2_RIGHT2;
-             SE   = UNI_LINE_UP2_RIGHT2;
-             SW   = UNI_LINE_UP2_LEFT2;
-             break;
-
-        case PST_CS_PARENS:   // see add_parentheses()
-             HORI = UNI_SPACE;
-             VERT = UNI_SPACE;
-             NW   = UNI_R_PARENT;
-             NE   = UNI_L_PARENT;
-             SE   = UNI_L_PARENT;
-             SW   = UNI_R_PARENT;
-             break;
-
-        case PST_CS_DOUBLE:
-             HORI = UNI_LINE2_HORI;
-             VERT = UNI_LINE2_VERT;
-             NW   = UNI_LINE2_DOWN_LEFT;
-             NE   = UNI_LINE2_DOWN_RIGHT;
-             SE   = UNI_LINE2_UP_RIGHT;
-             SW   = UNI_LINE2_UP_LEFT;
-             break;
-
-        default:
-             HORI = Unicode_0;
-             VERT = Unicode_0;
-             NW   = Unicode_0;
-             NE   = Unicode_0;
-             SE   = Unicode_0;
-             SW   = Unicode_0;
-             FIXME;
+        case PST_CS_NONE:   return "                ";   // no frame
+        case PST_CS_ASCII:  return " |-'||.+-'-+.+++";
+        case PST_CS_THIN:   return " ╵╶└╷│┌├╴┘─┴┐┤┬┼";
+        case PST_CS_THICK:  return " ╹╺┗╻┃┏┣╸┛━┻┓┫┳╋";
+        case PST_CS_DOUBLE: return "   ╚ ║╔╠ ╝═╩╗╣╦╬";   // no single legs
+        case PST_CS_PARENS: return "   (  (  )  )   ";   // add_parentheses()
       }
+
+   FIXME;
+}
+//────────────────────────────────────────────────────────────────────────────
+UCS_string
+PrintBuffer::make_frame_chars(const UCS_string & lines1,
+                              const UCS_string & lines2,
+                              const UCS_string & decor)
+{
+   Assert(lines1.size() == 16);
+   Assert(lines2.size() == 16);
+   Assert(decor.size() == FC_DECOR_COUNT);
+
+   // the 81 line-drawing characters. A character whose legs are all in
+   // the same line style (or absent) is taken from that line style. The
+   // characters with legs in both line styles are not (yet) needed and
+   // remain blank.
+   //
+UCS_string chars(FC_LINES_COUNT, UNI_SPACE);
+   loop(fc, FC_LINES_COUNT)
+      {
+        const int legs[4] = { fc / 27, fc / 9 % 3, fc / 3 % 3, fc % 3 };
+        int mask1 = 0;   // legs in line style 1
+        int mask2 = 0;   // legs in line style 2
+        loop(l, 4)
+           {
+             if (legs[l] == 1)   mask1 |= 1 << l;
+             if (legs[l] == 2)   mask2 |= 1 << l;
+           }
+
+        if      (mask2 == 0)   chars[fc] = lines1[mask1];
+        else if (mask1 == 0)   chars[fc] = lines2[mask2];
+      }
+
+   chars << decor;
+   Assert(chars.size() == FC_COUNT);
+   return chars;
+}
+//────────────────────────────────────────────────────────────────────────────
+UCS_string
+PrintBuffer::get_frame_chars(PrintStyle pst)
+{
+   // the frame decorators and options, blank if not wanted. Whether a
+   // decorator for a property of the value (∼ + ⊖ ⌽) applies is decided by
+   // add_frame().
+   //
+const bool plain = pst & PST_PLAIN;
+const bool nars  = pst & PST_NARS;
+UCS_string decor;
+   decor << (plain ? UNI_SPACE : nars ? UNI_NUMBER_SIGN : UNI_DOWN_ARROW)
+         << (plain ? UNI_SPACE : nars ? UNI_NUMBER_SIGN : UNI_RIGHT_ARROW)
+         << (plain ? UNI_SPACE : UNI_TILDE_OPERATOR)
+         << (plain ? UNI_SPACE : UNI_PLUS)
+         << (plain ? UNI_SPACE : UNI_ELEMENT)
+         << (plain ? UNI_SPACE : UNI_CIRCLE_BAR)
+         << (plain ? UNI_SPACE : UNI_CIRCLE_STILE)
+         << ((pst & PST_CS_MASK) == PST_CS_PARENS ? UNI_L_PARENT : UNI_SPACE);
+
+   // line style 1: the (inner) frame, line style 2: the outer frame
+   //
+   return make_frame_chars(UCS_string(UTF8_string(frame_lines(pst & PST_CS_MASK))),
+                           UCS_string(UTF8_string(frame_lines(pst >> 4 & PST_CS_MASK))),
+                           decor);
+}
+//────────────────────────────────────────────────────────────────────────────
+UCS_string
+PrintBuffer::without_outer_frame(const UCS_string & chars)
+{
+   // blank all line-drawing characters with a leg in line style 2
+   //
+UCS_string ret(chars);
+   loop(fc, FC_LINES_COUNT)
+      {
+        if (fc / 27 == 2 || fc / 9 % 3 == 2 || fc / 3 % 3 == 2 || fc % 3 == 2)
+           ret[fc] = UNI_SPACE;
+      }
+   return ret;
+}
+//────────────────────────────────────────────────────────────────────────────
+PrintBuffer
+PrintBuffer::item_representation(const Cell & cell, const PrintContext & pctx,
+                                 const UCS_string & frame_chars)
+{
+   if (cell.is_pointer_cell())
+      return static_cast<const PointerCell &>(cell)
+                        .character_representation(pctx, frame_chars);
+
+   return cell.character_representation(pctx);
 }
 //────────────────────────────────────────────────────────────────────────────
 void

@@ -341,3 +341,10 @@ DOMAIN ERROR
       ⍝
       (¯7○0.5J1E¯11) = 0.54930614433405484J1.3333333333333333E¯11
 1
+
+
+      ⍝ restore the default for the testcases that follow (see --TR)
+      ⍝
+      ⎕PP←10
+
+

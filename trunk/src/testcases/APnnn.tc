@@ -84,3 +84,17 @@ SYNC OK
 
       )ERASE X
 
+
+      ⍝ retract VAR444 and give the partner (apl --id 1011) and AP100,
+      ⍝ which started it and exits after the partner, time to finish.
+      ⍝ Otherwise, a testcase that runs right after this one (--TR) may
+      ⍝ offer its OS to the exiting AP100, and the coupling is lost.
+      ⍝
+      ⎕SVR 'VAR444'
+2
+
+      0 0⍴⎕DL 2
+
+
+
+

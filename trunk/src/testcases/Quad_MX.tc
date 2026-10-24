@@ -192,3 +192,9 @@ DOMAIN ERROR+
       ⍝
       )SIC
 
+
+      ⍝ restore the default for the testcases that follow (see --TR)
+      ⍝
+      ⎕PP←10 ◊ ⎕CT←1E¯13
+
+

@@ -26,6 +26,7 @@
 #define __Quad_CR_HH_DEFINED__
 
 #include "QuadFunction.hh"
+#include "UCS_string_vector.hh"
 
 //════════════════════════════════════════════════════════════════════════════
 /**
@@ -59,6 +60,29 @@ public:
    /// @param B right argument APL value
    /// @param pctx print context controlling formatting options
    static Value_P do_CR(APL_Integer a, cValue_R B, PrintContext pctx);
+
+   /// the frame styles of the boxing variants of ⎕CR (indices into
+   /// frame_styles())
+   enum Frame_style
+      {
+        FS_APL           = 0,    ///< 0 ⎕CR: no frames
+        FS_APL_FUN       = 1,    ///< 1 ⎕CR: no frames
+        FS_BOXED_CHAR    = 2,    ///< 2 ⎕CR: ASCII frames
+        FS_BOXED_GRAPHIC = 3,    ///< 3, 4 ⎕CR: thick frames
+        FS_BOXED_THIN    = 4,    ///< 7, 8 ⎕CR: thin frames
+        FS_BOXED_DOUBLE  = 5,    ///< 9 ⎕CR: thick frames in a double frame
+        FS_BOXED_QUOTED  = 6,    ///< 29 ⎕CR: thick frames, quoted strings
+        FS_PLAIN_THIN    = 7,    ///< 46 ⎕CR: thin frames, no decorators
+        FS_PLAIN_THICK   = 8,    ///< 47 ⎕CR: thick frames, no decorators
+        FS_NARS          = 9,    ///< 20, 23 ⎕CR: thick frames, axis lengths
+        FS_NARS_THIN     = 10,   ///< 21, 24 ⎕CR: thin frames, axis lengths
+        FS_NARS_DOUBLE   = 11,   ///< 22, 25 ⎕CR: like 20 in a double frame
+        FS_COUNT         = 12    ///< the number of frame styles
+      };
+
+   /// return the frame characters (see PrintBuffer::Frame_char) of all
+   /// frame styles, indexed by Frame_style
+   static const UCS_string_vector & frame_styles();
 
    /// compute a good default type and value for the top-level ⍴ of 10 ⎕CR.
    /// Return true for INT and false for CHAR.

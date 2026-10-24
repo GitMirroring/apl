@@ -185,9 +185,9 @@ Too few arguments in argument B of: ⎕FIO.fprintf B
       ⍝ non-SI-modifying command) or refusing it the same honest way a
       ⍝ )command reached via ⍎ already does (Bugs28 #95).
       ⍝
-      A←1
-      ⎕EC ')VARS A'
- 1  0 0   A  
+      QECA←1
+      ⎕EC ')VARS QECA'
+ 1  0 0   QECA  
 
       ⎕EC ')CLEAR'
  0  5 4  DOMAIN ERROR
@@ -195,7 +195,7 @@ Too few arguments in argument B of: ⎕FIO.fprintf B
       A
        
 
-      )ERASE A
+      )ERASE QECA
 
       ⍝ ==================================
 

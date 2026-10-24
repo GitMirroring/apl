@@ -74,6 +74,13 @@ public:
    /// @param pcx print context controlling formatting options
    virtual PrintBuffer character_representation(const PrintContext &pcx) const;
 
+   /// the Quad_CR representation of this cell, with frames drawn with the
+   /// characters \b frame_chars (see PrintBuffer::Frame_char)
+   /// @param pcx print context controlling formatting options
+   /// @param frame_chars the frame lines and decorators
+   PrintBuffer character_representation(const PrintContext &pcx,
+                                        const UCS_string & frame_chars) const;
+
    /// compare \b this with other, throw DOMAIN ERROR on illegal comparisons
    /// @param other the cell to compare against
    virtual Comp_result compare(const Cell & other) const;

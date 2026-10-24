@@ -1419,6 +1419,16 @@ const UserFunction * old_ufun = 0;
         old_ufun = old_function->get_func_ufun();
         Assert(old_ufun);
       }
+   else if (!(symbol->top_of_stack()->get_NC() & NC_DEFINABLE))
+      {
+        // the name is not free, e.g. a variable. set_NC() below would
+        // throw the DEFN_ERROR, but after ufun was created and ufun (and
+        // the values in its body) would leak, i.e. show up as stale
+        // values in every subsequent )CHECK.
+        //
+        delete ufun;
+        DEFN_ERROR;
+      }
 
    ufun->optimize_labels();
    ufun->optimize_label_vectors();

@@ -114,21 +114,32 @@ public:
    /// @param out optional output stream for interruptible printing
    PrintBuffer(const cValue & value, const PrintContext & pctx, ostream * out);
 
+   /// contructor: a PrintBuffer from an APL value with frames (if any) drawn
+   /// with \b frame_chars (see Frame_char) instead of those selected by the
+   /// print style in \b pctx. frame_chars plays a similar role for boxed
+   /// output as ⎕FC does for numbers.
+   /// @param value APL value to render
+   /// @param pctx print context controlling formatting
+   /// @param frame_chars the lines and decorators of the frames
+   /// @param out optional output stream for interruptible printing
+   PrintBuffer(const cValue & value, const PrintContext & pctx,
+               const UCS_string & frame_chars, ostream * out);
+
    /// helper for non-trivial PrintBuffer(const cValue & ...) constructor.
    /// return \b true iff the user has hit ^C twice
    /// @param value APL value to render
    /// @param pctx print context controlling formatting
    /// @param out optional output stream for interruptible printing
-   /// @param outer_style print style of the enclosing context
+   /// @param frame_chars the frame characters of value (see Frame_char)
    /// @param item_matrix pre-allocated matrix of per-item PrintBuffers
    bool do_PrintBuffer(const cValue & value,const PrintContext & pctx,
-                         ostream * out, PrintStyle outer_style,
+                         ostream * out, const UCS_string & frame_chars,
                          PrintBuffer * item_matrix);
 
    /// PrintBuffer from an APL value in APL input format (PST_INPUT)
    /// @param value APL value to render
-   /// @param outer_style print style of the enclosing context
-   void pb_for_function(const cValue & value, PrintStyle outer_style);
+   /// @param frame_chars the frame characters of value (see Frame_char)
+   void pb_for_function(const cValue & value, const UCS_string & frame_chars);
 
    /// append \b value in APL input format to \b ucs: the shortest text
    /// that ⍎ turns into a value identical to \b value (full precision,
@@ -142,9 +153,9 @@ public:
    /// PrintBuffer from an empty APL value
    /// @param value empty APL value to render
    /// @param pctx print context controlling formatting
-   /// @param outer_style print style of the enclosing context
+   /// @param frame_chars the frame characters of value (see Frame_char)
    void pb_empty(const cValue & value, PrintContext pctx,
-                        PrintStyle outer_style);
+                 const UCS_string & frame_chars);
 
    /// return the number of rows
    int get_row_count() const
@@ -216,15 +227,199 @@ public:
    /// replace pad chars by spaces
    void pad_to_spaces();
 
-   /// add a decorator frame around this buffer
-   /// @param style print style determining frame characters
+   /// the positions of the characters in the \b chars argument of
+   /// add_frame() and add_outer_frame(): first the 81 line-drawing
+   /// characters, then the frame decorators and options.
+   ///
+   /// A line-drawing character has 4 legs: North, East, South, and West.
+   /// In FC_Nn_Ee_Ss_Ww, each of n, e, s, and w is 0 (leg absent), 1 (leg
+   /// in line style 1), or 2 (leg in line style 2), and the position is
+   /// the base 3 number nesw, i.e. 27n + 9e + 3s + w. Line style 1 draws the
+   /// (inner) frames and line style 2 the outer frame.
+   ///
+   /// A blank character, decorator, or option means: none. Not every
+   /// combination of legs exists in Unicode (e.g. a single double leg).
+   ///
+   /// The comments below are a table of the Unicode characters (U+25xx) at
+   /// each position, with one column for each combination of line styles
+   /// that Unicode has (· where Unicode has no character):
+   ///
+   ///     L:  light            (line style 1)
+   ///     D:  double           (line style 2)
+   ///     LD: light and double (line styles 1 and 2)
+   ///     H:  heavy            (line style 2)
+   ///     LH: light and heavy  (line styles 1 and 2)
+   ///     A:  light arc, i.e. rounded corners (line style 1)
+   ///     L2, L3, L4: light double, triple, quadruple dashed (line style 1)
+   ///     H2, H3, H4: heavy double, triple, quadruple dashed (line style 2)
+   ///
+   /// The diagonals ╱╲╳ are the only line-drawing characters of U+25xx
+   /// that have no North, East, South, and West legs.
+   ///
+   ///                               L  D  LD H  LH A  L2 L3 L4 H2 H3 H4
+   enum Frame_char
+      {
+        FC_N0_E0_S0_W0  =  0,   ///< (no legs)
+        FC_N0_E0_S0_W1  =  1,   ///< ╴  ·  ·  ·  ·  ·  ·  ·  ·  ·  ·  ·
+        FC_N0_E0_S0_W2  =  2,   ///< ·  ·  ·  ╸  ·  ·  ·  ·  ·  ·  ·  ·
+        FC_N0_E0_S1_W0  =  3,   ///< ╷  ·  ·  ·  ·  ·  ·  ·  ·  ·  ·  ·
+        FC_N0_E0_S1_W1  =  4,   ///< ┐  ·  ·  ·  ·  ╮  ·  ·  ·  ·  ·  ·
+        FC_N0_E0_S1_W2  =  5,   ///< ·  ·  ╕  ·  ┑  ·  ·  ·  ·  ·  ·  ·
+        FC_N0_E0_S2_W0  =  6,   ///< ·  ·  ·  ╻  ·  ·  ·  ·  ·  ·  ·  ·
+        FC_N0_E0_S2_W1  =  7,   ///< ·  ·  ╖  ·  ┒  ·  ·  ·  ·  ·  ·  ·
+        FC_N0_E0_S2_W2  =  8,   ///< ·  ╗  ·  ┓  ·  ·  ·  ·  ·  ·  ·  ·
+        FC_N0_E1_S0_W0  =  9,   ///< ╶  ·  ·  ·  ·  ·  ·  ·  ·  ·  ·  ·
+        FC_N0_E1_S0_W1  = 10,   ///< ─  ·  ·  ·  ·  ·  ╌  ┄  ┈  ·  ·  ·
+        FC_N0_E1_S0_W2  = 11,   ///< ·  ·  ·  ·  ╾  ·  ·  ·  ·  ·  ·  ·
+        FC_N0_E1_S1_W0  = 12,   ///< ┌  ·  ·  ·  ·  ╭  ·  ·  ·  ·  ·  ·
+        FC_N0_E1_S1_W1  = 13,   ///< ┬  ·  ·  ·  ·  ·  ·  ·  ·  ·  ·  ·
+        FC_N0_E1_S1_W2  = 14,   ///< ·  ·  ·  ·  ┭  ·  ·  ·  ·  ·  ·  ·
+        FC_N0_E1_S2_W0  = 15,   ///< ·  ·  ╓  ·  ┎  ·  ·  ·  ·  ·  ·  ·
+        FC_N0_E1_S2_W1  = 16,   ///< ·  ·  ╥  ·  ┰  ·  ·  ·  ·  ·  ·  ·
+        FC_N0_E1_S2_W2  = 17,   ///< ·  ·  ·  ·  ┱  ·  ·  ·  ·  ·  ·  ·
+        FC_N0_E2_S0_W0  = 18,   ///< ·  ·  ·  ╺  ·  ·  ·  ·  ·  ·  ·  ·
+        FC_N0_E2_S0_W1  = 19,   ///< ·  ·  ·  ·  ╼  ·  ·  ·  ·  ·  ·  ·
+        FC_N0_E2_S0_W2  = 20,   ///< ·  ═  ·  ━  ·  ·  ·  ·  ·  ╍  ┅  ┉
+        FC_N0_E2_S1_W0  = 21,   ///< ·  ·  ╒  ·  ┍  ·  ·  ·  ·  ·  ·  ·
+        FC_N0_E2_S1_W1  = 22,   ///< ·  ·  ·  ·  ┮  ·  ·  ·  ·  ·  ·  ·
+        FC_N0_E2_S1_W2  = 23,   ///< ·  ·  ╤  ·  ┯  ·  ·  ·  ·  ·  ·  ·
+        FC_N0_E2_S2_W0  = 24,   ///< ·  ╔  ·  ┏  ·  ·  ·  ·  ·  ·  ·  ·
+        FC_N0_E2_S2_W1  = 25,   ///< ·  ·  ·  ·  ┲  ·  ·  ·  ·  ·  ·  ·
+        FC_N0_E2_S2_W2  = 26,   ///< ·  ╦  ·  ┳  ·  ·  ·  ·  ·  ·  ·  ·
+        FC_N1_E0_S0_W0  = 27,   ///< ╵  ·  ·  ·  ·  ·  ·  ·  ·  ·  ·  ·
+        FC_N1_E0_S0_W1  = 28,   ///< ┘  ·  ·  ·  ·  ╯  ·  ·  ·  ·  ·  ·
+        FC_N1_E0_S0_W2  = 29,   ///< ·  ·  ╛  ·  ┙  ·  ·  ·  ·  ·  ·  ·
+        FC_N1_E0_S1_W0  = 30,   ///< │  ·  ·  ·  ·  ·  ╎  ┆  ┊  ·  ·  ·
+        FC_N1_E0_S1_W1  = 31,   ///< ┤  ·  ·  ·  ·  ·  ·  ·  ·  ·  ·  ·
+        FC_N1_E0_S1_W2  = 32,   ///< ·  ·  ╡  ·  ┥  ·  ·  ·  ·  ·  ·  ·
+        FC_N1_E0_S2_W0  = 33,   ///< ·  ·  ·  ·  ╽  ·  ·  ·  ·  ·  ·  ·
+        FC_N1_E0_S2_W1  = 34,   ///< ·  ·  ·  ·  ┧  ·  ·  ·  ·  ·  ·  ·
+        FC_N1_E0_S2_W2  = 35,   ///< ·  ·  ·  ·  ┪  ·  ·  ·  ·  ·  ·  ·
+        FC_N1_E1_S0_W0  = 36,   ///< └  ·  ·  ·  ·  ╰  ·  ·  ·  ·  ·  ·
+        FC_N1_E1_S0_W1  = 37,   ///< ┴  ·  ·  ·  ·  ·  ·  ·  ·  ·  ·  ·
+        FC_N1_E1_S0_W2  = 38,   ///< ·  ·  ·  ·  ┵  ·  ·  ·  ·  ·  ·  ·
+        FC_N1_E1_S1_W0  = 39,   ///< ├  ·  ·  ·  ·  ·  ·  ·  ·  ·  ·  ·
+        FC_N1_E1_S1_W1  = 40,   ///< ┼  ·  ·  ·  ·  ·  ·  ·  ·  ·  ·  ·
+        FC_N1_E1_S1_W2  = 41,   ///< ·  ·  ·  ·  ┽  ·  ·  ·  ·  ·  ·  ·
+        FC_N1_E1_S2_W0  = 42,   ///< ·  ·  ·  ·  ┟  ·  ·  ·  ·  ·  ·  ·
+        FC_N1_E1_S2_W1  = 43,   ///< ·  ·  ·  ·  ╁  ·  ·  ·  ·  ·  ·  ·
+        FC_N1_E1_S2_W2  = 44,   ///< ·  ·  ·  ·  ╅  ·  ·  ·  ·  ·  ·  ·
+        FC_N1_E2_S0_W0  = 45,   ///< ·  ·  ╘  ·  ┕  ·  ·  ·  ·  ·  ·  ·
+        FC_N1_E2_S0_W1  = 46,   ///< ·  ·  ·  ·  ┶  ·  ·  ·  ·  ·  ·  ·
+        FC_N1_E2_S0_W2  = 47,   ///< ·  ·  ╧  ·  ┷  ·  ·  ·  ·  ·  ·  ·
+        FC_N1_E2_S1_W0  = 48,   ///< ·  ·  ╞  ·  ┝  ·  ·  ·  ·  ·  ·  ·
+        FC_N1_E2_S1_W1  = 49,   ///< ·  ·  ·  ·  ┾  ·  ·  ·  ·  ·  ·  ·
+        FC_N1_E2_S1_W2  = 50,   ///< ·  ·  ╪  ·  ┿  ·  ·  ·  ·  ·  ·  ·
+        FC_N1_E2_S2_W0  = 51,   ///< ·  ·  ·  ·  ┢  ·  ·  ·  ·  ·  ·  ·
+        FC_N1_E2_S2_W1  = 52,   ///< ·  ·  ·  ·  ╆  ·  ·  ·  ·  ·  ·  ·
+        FC_N1_E2_S2_W2  = 53,   ///< ·  ·  ·  ·  ╈  ·  ·  ·  ·  ·  ·  ·
+        FC_N2_E0_S0_W0  = 54,   ///< ·  ·  ·  ╹  ·  ·  ·  ·  ·  ·  ·  ·
+        FC_N2_E0_S0_W1  = 55,   ///< ·  ·  ╜  ·  ┚  ·  ·  ·  ·  ·  ·  ·
+        FC_N2_E0_S0_W2  = 56,   ///< ·  ╝  ·  ┛  ·  ·  ·  ·  ·  ·  ·  ·
+        FC_N2_E0_S1_W0  = 57,   ///< ·  ·  ·  ·  ╿  ·  ·  ·  ·  ·  ·  ·
+        FC_N2_E0_S1_W1  = 58,   ///< ·  ·  ·  ·  ┦  ·  ·  ·  ·  ·  ·  ·
+        FC_N2_E0_S1_W2  = 59,   ///< ·  ·  ·  ·  ┩  ·  ·  ·  ·  ·  ·  ·
+        FC_N2_E0_S2_W0  = 60,   ///< ·  ║  ·  ┃  ·  ·  ·  ·  ·  ╏  ┇  ┋
+        FC_N2_E0_S2_W1  = 61,   ///< ·  ·  ╢  ·  ┨  ·  ·  ·  ·  ·  ·  ·
+        FC_N2_E0_S2_W2  = 62,   ///< ·  ╣  ·  ┫  ·  ·  ·  ·  ·  ·  ·  ·
+        FC_N2_E1_S0_W0  = 63,   ///< ·  ·  ╙  ·  ┖  ·  ·  ·  ·  ·  ·  ·
+        FC_N2_E1_S0_W1  = 64,   ///< ·  ·  ╨  ·  ┸  ·  ·  ·  ·  ·  ·  ·
+        FC_N2_E1_S0_W2  = 65,   ///< ·  ·  ·  ·  ┹  ·  ·  ·  ·  ·  ·  ·
+        FC_N2_E1_S1_W0  = 66,   ///< ·  ·  ·  ·  ┞  ·  ·  ·  ·  ·  ·  ·
+        FC_N2_E1_S1_W1  = 67,   ///< ·  ·  ·  ·  ╀  ·  ·  ·  ·  ·  ·  ·
+        FC_N2_E1_S1_W2  = 68,   ///< ·  ·  ·  ·  ╃  ·  ·  ·  ·  ·  ·  ·
+        FC_N2_E1_S2_W0  = 69,   ///< ·  ·  ╟  ·  ┠  ·  ·  ·  ·  ·  ·  ·
+        FC_N2_E1_S2_W1  = 70,   ///< ·  ·  ╫  ·  ╂  ·  ·  ·  ·  ·  ·  ·
+        FC_N2_E1_S2_W2  = 71,   ///< ·  ·  ·  ·  ╉  ·  ·  ·  ·  ·  ·  ·
+        FC_N2_E2_S0_W0  = 72,   ///< ·  ╚  ·  ┗  ·  ·  ·  ·  ·  ·  ·  ·
+        FC_N2_E2_S0_W1  = 73,   ///< ·  ·  ·  ·  ┺  ·  ·  ·  ·  ·  ·  ·
+        FC_N2_E2_S0_W2  = 74,   ///< ·  ╩  ·  ┻  ·  ·  ·  ·  ·  ·  ·  ·
+        FC_N2_E2_S1_W0  = 75,   ///< ·  ·  ·  ·  ┡  ·  ·  ·  ·  ·  ·  ·
+        FC_N2_E2_S1_W1  = 76,   ///< ·  ·  ·  ·  ╄  ·  ·  ·  ·  ·  ·  ·
+        FC_N2_E2_S1_W2  = 77,   ///< ·  ·  ·  ·  ╇  ·  ·  ·  ·  ·  ·  ·
+        FC_N2_E2_S2_W0  = 78,   ///< ·  ╠  ·  ┣  ·  ·  ·  ·  ·  ·  ·  ·
+        FC_N2_E2_S2_W1  = 79,   ///< ·  ·  ·  ·  ╊  ·  ·  ·  ·  ·  ·  ·
+        FC_N2_E2_S2_W2  = 80,   ///< ·  ╬  ·  ╋  ·  ·  ·  ·  ·  ·  ·  ·
+        // │  │  │  │                │  │  │  │  │  │  │  │  │  │  │  │      Style1 / Style2
+        // │  │  │  │      Leg       │  │  │  │  │  │  │  │  │  │  │  │      ───────────────
+        // │  │  │  │     ─────      │  │  │  │  │  │  │  │  │  │  │  ╰────           heavy┉
+        // │  │  │  ╰──── West       │  │  │  │  │  │  │  │  │  │  ╰───────           heavy┅
+        // │  │  ╰─────── South      │  │  │  │  │  │  │  │  │  ╰──────────           heavy╍
+        // │  ╰────────── East       │  │  │  │  │  │  │  │  ╰─────────────  light┈
+        // ╰───────────── North      │  │  │  │  │  │  │  ╰────────────────  light┄
+        //                           │  │  │  │  │  │  ╰───────────────────  light╌
+        //                           │  │  │  │  │  ╰──────────────────────  arc
+        //                           │  │  │  │  ╰─────────────────────────  light  / heavy
+        //                           │  │  │  ╰────────────────────────────           heavy
+        //                           │  │  ╰───────────────────────────────  light  / double
+        //                           │  ╰──────────────────────────────────           double
+        //                           ╰─────────────────────────────────────  light
+
+        FC_LINES_COUNT  = 81,   ///< the number of line-drawing characters
+
+        // the line-drawing characters of the (inner) frame
+        //
+        FC_TOP_LEFT     = FC_N0_E1_S1_W0,   ///< top left corner, e.g. ┌
+        FC_TOP_RIGHT    = FC_N0_E0_S1_W1,   ///< top right corner, e.g. ┐
+        FC_BOTTOM_LEFT  = FC_N1_E1_S0_W0,   ///< bottom left corner, e.g. └
+        FC_BOTTOM_RIGHT = FC_N1_E0_S0_W1,   ///< bottom right corner, e.g. ┘
+        FC_VERT         = FC_N1_E0_S1_W0,   ///< left and right line, e.g. │
+        FC_HORI         = FC_N0_E1_S0_W1,   ///< top and bottom line, e.g. ─
+
+        // the line-drawing characters of the outer frame
+        //
+        FC_OUTER_TOP_LEFT     = FC_N0_E2_S2_W0,   ///< top left corner, e.g. ╔
+                                                  ///< (blank: no outer frame)
+        FC_OUTER_TOP_RIGHT    = FC_N0_E0_S2_W2,   ///< top right corner, e.g. ╗
+        FC_OUTER_BOTTOM_LEFT  = FC_N2_E2_S0_W0,   ///< bottom left corner, ╚
+        FC_OUTER_BOTTOM_RIGHT = FC_N2_E0_S0_W2,   ///< bottom right corner, ╝
+        FC_OUTER_VERT         = FC_N2_E0_S2_W0,   ///< left and right line, ║
+        FC_OUTER_HORI         = FC_N0_E2_S0_W2,   ///< top and bottom line, ═
+
+        // the frame decorators and options
+        //
+        FC_RANK_Y       = 81,   ///< rank > 1 (left line): ↓, or # for the
+                                ///< axis lengths (NARS)
+        FC_RANK_X       = 82,   ///< rank > 0 (top line): →, or # for the
+                                ///< axis length (NARS)
+        FC_NUMERIC      = 83,   ///< simple numeric (bottom line), e.g. ∼
+        FC_MIXED        = 84,   ///< simple mixed (bottom line), e.g. +
+        FC_NESTED       = 85,   ///< per depth level (bottom line), e.g. ϵ.
+                                ///< Blank: no type decorators at all
+        FC_EMPTY_X      = 86,   ///< last axis empty (top line), e.g. ⊖
+        FC_EMPTY_Y      = 87,   ///< non-last axis empty (left line), e.g. ⌽
+        FC_PARENS       = 88,   ///< ( for parentheses instead of a frame
+        FC_DECOR_COUNT  = 8,    ///< the number of decorators and options
+
+        FC_COUNT        = 89    ///< the number of characters
+      };
+
+   /// add a decorator frame around this buffer, drawn with the
+   /// line-drawing characters that \b style selects (or parentheses)
+   /// @param style print style determining frame characters and decorators
    /// @param shape shape of the APL value being framed
    /// @param depth nesting depth for the frame label
    void add_frame(PrintStyle style, const Shape & shape, int depth);
 
+   /// add a decorator frame around this buffer, drawn with the characters
+   /// \b chars (see Frame_char)
+   /// @param chars the FC_COUNT frame line, decorator, and option characters
+   /// @param shape shape of the APL value being framed
+   /// @param depth nesting depth for the frame label
+   /// @param value_flags the properties of the value that select the
+   ///        value-dependent decorators: PST_SIMPLE_NUMER (∼),
+   ///        PST_SIMPLE_MIXED (+), PST_EMPTY_LAST (⊖), and PST_EMPTY_NLAST (⌽)
+   void add_frame(const UCS_string & chars, const Shape & shape, int depth,
+                  int value_flags);
+
    /// add an outer frame around this buffer
    /// @param style print style determining frame characters
    void add_outer_frame(PrintStyle style);
+
+   /// add an outer frame around this buffer, drawn with the characters
+   /// \b chars (see Frame_char)
+   /// @param chars the FC_COUNT characters (only FC_OUTER_... are used)
+   void add_outer_frame(const UCS_string & chars);
 
    /// print properties of \b this PrintBuffer
    /// @param out destination output stream
@@ -273,16 +468,52 @@ public:
    /// return true iff all strings have the same size.
    bool is_rectangular() const;
 
-   /// return the characters for style \b pst
-   /// @param pst print style selecting the frame character set
-   /// @param HORI receives horizontal border character
-   /// @param VERT receives vertical border character
-   /// @param NW receives north-west corner character
-   /// @param NE receives north-east corner character
-   /// @param SE receives south-east corner character
-   /// @param SW receives south-west corner character
-   static void get_frame_chars(PrintStyle pst, Unicode & HORI, Unicode & VERT,
-                       Unicode & NW, Unicode & NE, Unicode & SE, Unicode & SW);
+   /// return the 16 line-drawing characters of line style \b cs
+   /// (PST_CS_NONE, PST_CS_ASCII, ...) as UTF8, indexed by the legs that
+   /// are present: 1 (North) + 2 (East) + 4 (South) + 8 (West), e.g.
+   /// " ╵╶└╷│┌├╴┘─┴┐┤┬┼"
+   /// @param cs the character set
+   static const char * frame_lines(int cs);
+
+   /// return the FC_COUNT frame characters (see Frame_char) for the
+   /// line styles \b lines1 and \b lines2 (16 characters each, as
+   /// returned by frame_lines()) and the decorators and options \b decor
+   /// (FC_DECOR_COUNT characters).
+   /// @param lines1 the line-drawing characters of line style 1
+   /// @param lines2 the line-drawing characters of line style 2
+   /// @param decor the decorators and options
+   static UCS_string make_frame_chars(const UCS_string & lines1,
+                                      const UCS_string & lines2,
+                                      const UCS_string & decor);
+
+   /// return the character equivalent of style \b pst for add_frame() and
+   /// add_outer_frame(): the lines, decorators, and options of the (inner)
+   /// frame, and the lines of the outer frame (see Frame_char)
+   /// @param pst print style selecting the frame characters
+   static UCS_string get_frame_chars(PrintStyle pst);
+
+   /// return \b true iff \b chars (see Frame_char) has an (inner) frame
+   /// @param chars frame characters
+   static bool has_frame(const UCS_string & chars)
+      { return chars[FC_TOP_LEFT] != UNI_SPACE; }
+
+   /// return \b true iff \b chars (see Frame_char) has an outer frame
+   /// @param chars frame characters
+   static bool has_outer_frame(const UCS_string & chars)
+      { return chars[FC_OUTER_TOP_LEFT] != UNI_SPACE; }
+
+   /// return \b chars (see Frame_char) without its outer frame
+   /// @param chars frame characters
+   static UCS_string without_outer_frame(const UCS_string & chars);
+
+   /// return the character representation of \b cell, with the frames of
+   /// a nested cell drawn with \b frame_chars
+   /// @param cell the cell
+   /// @param pctx print context controlling formatting
+   /// @param frame_chars frame characters (see Frame_char)
+   static PrintBuffer item_representation(const Cell & cell,
+                                          const PrintContext & pctx,
+                                          const UCS_string & frame_chars);
 
 protected:
    /// align this PrintBuffer to col

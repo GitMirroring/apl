@@ -62,9 +62,12 @@ bool valid = arg.size() > 0;
    if (arg.size() == 3 && arg.starts_iwith("OFF"))   format = 0;
    else
       {
+        // a negative N may be written as -N or (APL style) as ¯N
+        //
         loop(a, arg.size())
             {
-              if (a == 0 && arg[a] == UNI_MINUS && arg.size() > 1)   continue;
+              if (a == 0 && arg.size() > 1 &&
+                  (arg[a] == UNI_MINUS || arg[a] == UNI_OVERBAR))   continue;
               if (!Avec::is_digit(arg[a]))   valid = false;
             }
       }
@@ -72,8 +75,10 @@ bool valid = arg.size() > 0;
    if (arg.size() == 0)
       {
         out << "]BOXING ";
-        if (Command::boxing_format == 0) out << "OFF";
-        else out << Command::boxing_format;
+        if (Command::boxing_format == 0)     out << "OFF";
+        else if (Command::boxing_format < 0) out << UNI_OVERBAR
+                                                 << -Command::boxing_format;
+        else                                 out << Command::boxing_format;
         out << endl;
         return;
       }
@@ -91,13 +96,15 @@ bool valid = arg.size() > 0;
         case 20: case  21: case  22:
         case 23: case  24: case  25:
         case 29:
-                 Command::boxing_format = format;
+                 // through ⎕PS so that ⎕PS[2] follows ]BOXING
+                 //
+                 Workspace::get_v_Quad_PS().set_style(format);
                  return;
       }
 
    out << "BAD ]BOXING PARAMETER+" << endl;
    MORE_ERROR() << "Parameter " << arg << " is not valid for command ]BOXING.\n"
-      "  Valid parameters are OFF, N, and -N with\n"
+      "  Valid parameters are OFF, N, and -N (or ¯N) with\n"
       "  N ϵ { 2, 3, 4, 7, 8, 9, 20, 21, 22, 23, 24, 25, 29 }";
 }
 //────────────────────────────────────────────────────────────────────────────

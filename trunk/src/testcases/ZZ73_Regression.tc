@@ -536,16 +536,16 @@ DOMAIN ERROR
       ⍝ #20 ⎕ES in immediate execution reports at its own statement and
       ⍝ leaves an earlier suspension alone
       ⍝
-      ⊣⎕FX 'Z←F B' 'O'
+      ⊣⎕FX 'Z←FES20 B' 'O'
 
 
 
 
 
-      F 1
+      FES20 1
 VALUE ERROR+
-F[1]  O
-      ^
+FES20[1]  O
+          ^
 
 
 
@@ -562,7 +562,7 @@ MYERR
 
       )SI
 *
-F[1]
+FES20[1]
 *
 
 
@@ -977,25 +977,25 @@ RANK ERROR+
       ⍝ redefining a function (∇-editor, ⎕FX) resets its ⎕STOP and ⎕TRACE
       ⍝ settings
       ⍝
-      ⊣⎕FX 'G' 'A←1' 'B←2'
+      ⊣⎕FX 'GSTOP' 'A←1' 'B←2'
 
 
 
 
 
-      2 ⎕STOP 'G'
+      2 ⎕STOP 'GSTOP'
 
 
 
 
 
-      ⊣⎕FX 'G' 'A←5' 'B←6'
+      ⊣⎕FX 'GSTOP' 'A←5' 'B←6'
 
 
 
 
 
-      ⍴⎕STOP 'G'
+      ⍴⎕STOP 'GSTOP'
 0
 
 

@@ -3,9 +3,9 @@
 
 ⍝@ test3.
 
-      ]USERCMD ]FOO BAR 1
+      ]USERCMD ]FOO UCBAR 1
 
-∇ A BAR B
+∇ A UCBAR B
  'A:' ◊ 4 ⎕CR A
  'B:' ◊ 4 ⎕CR B
 ∇

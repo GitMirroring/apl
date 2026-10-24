@@ -85,12 +85,21 @@ PointerCell::PointerCell(Value * sub_val, Value & cell_owner, uint32_t magic)
 PrintBuffer
 PointerCell::character_representation(const PrintContext & pctx) const
 {
+   return character_representation(pctx,
+                                   PrintBuffer::get_frame_chars(pctx.get_style()));
+}
+//────────────────────────────────────────────────────────────────────────────
+PrintBuffer
+PointerCell::character_representation(const PrintContext & pctx,
+                                      const UCS_string & frame_chars) const
+{
 Value_P val = get_pointer_value();
    Assert(val);
 
    if (pctx.get_style() & PST_QUOTE_CHARS)
       {
-        if (val->is_char_vector())   return PrintBuffer(*val, pctx, 0);
+        if (val->is_char_vector())
+           return PrintBuffer(*val, pctx, frame_chars, 0);
       }
 
    if (pctx.get_style() & PST_INPUT)   // APL input format, e.g. (1 2)
@@ -104,22 +113,24 @@ Value_P val = get_pointer_value();
         return ret;
       }
 
-PrintBuffer ret(*val, pctx, 0);
+PrintBuffer ret(*val, pctx, frame_chars, 0);
    ret.get_info().flags &= ~CT_MASK;
    ret.get_info().flags |= CT_POINTER;
 
-   if (pctx.get_style() & PST_CS_INNER)
+   if (PrintBuffer::has_frame(frame_chars))
       {
         const ShapeItem ec = val->element_count();
         if (ec == 0)   // empty value
            {
-             int style = pctx.get_style();
+             int value_flags = 0;
              loop(r, val->get_rank())
                 {
                   if (val->get_shape_item(r) == 0)   // an empty axis
                      {
-                       if (r == val->get_rank()-1)   style |= PST_EMPTY_LAST;
-                       else                          style |= PST_EMPTY_NLAST;
+                       if (r == val->get_rank()-1)
+                          value_flags |= PST_EMPTY_LAST;
+                       else
+                          value_flags |= PST_EMPTY_NLAST;
                      }
                 }
 
@@ -143,23 +154,23 @@ PrintBuffer ret(*val, pctx, 0);
              loop(rv, len)   proto_reshaped->next_ravel_Value(proto.get());
 
              proto_reshaped->check_value(LOC);
-             ret = PrintBuffer(*proto_reshaped, pctx, 0);
-             if ((style & PST_CS_MASK) == PST_CS_PARENS)
+             ret = PrintBuffer(*proto_reshaped, pctx, frame_chars, 0);
+             if (frame_chars[PrintBuffer::FC_PARENS] == UNI_L_PARENT)
                 {
                   // as IBM APL2: blanks as wide as one row of prototypes
                   // (none if the last axis is 0) in parentheses
                   //
-                  const int width = (style & PST_EMPTY_LAST)
+                  const int width = (value_flags & PST_EMPTY_LAST)
                                   ? 0 : ret.get_column_count();
                   ColInfo ci;
                   ret = PrintBuffer(UCS_string(width, UNI_SPACE), ci);
                 }
-             ret.add_frame(PrintStyle(style), proto_reshaped->get_shape(),
-                           proto_reshaped->compute_depth());
+             ret.add_frame(frame_chars, proto_reshaped->get_shape(),
+                           proto_reshaped->compute_depth(), value_flags);
            }
        else
            {
-             int style = pctx.get_style();
+             int value_flags = 0;
              bool is_simple   = true;
              bool has_chars   = false;
              bool has_numbers = false;
@@ -173,17 +184,17 @@ PrintBuffer ret(*val, pctx, 0);
                  }
               if (has_chars && has_numbers)
                  {
-                   style |= PST_SIMPLE_MIXED;
+                   value_flags |= PST_SIMPLE_MIXED;
                  }
               else if (is_simple && has_numbers)
                  {
-                   style |= PST_SIMPLE_NUMER;
+                   value_flags |= PST_SIMPLE_NUMER;
                  }
 
              if (!(pctx.get_style() & PST_QUOTE_CHARS && val->is_char_array()))
                 {
-                  ret.add_frame(PrintStyle(style),
-                                val->get_shape(), val->compute_depth());
+                  ret.add_frame(frame_chars, val->get_shape(),
+                                val->compute_depth(), value_flags);
                 }
            }
       }

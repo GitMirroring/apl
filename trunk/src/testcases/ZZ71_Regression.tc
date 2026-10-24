@@ -402,9 +402,9 @@ DOMAIN ERROR+
       ⍝
       ⎕IO←0
       ]FILE_CTL SKIP_APL2   ⍝ lambdas are a GNU APL extension
-      F←{⍺+⍵+1000×⎕IO}
+      F71L←{⍺+⍵+1000×⎕IO}
       ]FILE_CTL NO_SKIP
-      (2 2⍴1 2 3 4) +.F (2 2⍴5 6 7 8)
+      (2 2⍴1 2 3 4) +.F71L (2 2⍴5 6 7 8)
 15 17
 19 21
       ⎕IO←1

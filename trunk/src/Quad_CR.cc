@@ -136,22 +136,24 @@ bool extra_frame = false;
 
       }
 
+Frame_style frame_style = FS_APL;
    switch(a)
       {
 
-/// a local shortcut for the various frame variants of ⎕CR
-#define FRAME(x)   pctx.set_style(x);   break;
+/// a local shortcut for the various frame variants of ⎕CR: the print style
+/// x (for everything but the frames) and the frame style fs
+#define FRAME(x, fs)   pctx.set_style(x);   frame_style = fs;   break;
 
-        case  0: FRAME(PR_APL)
-        case  1: FRAME(PR_APL_FUN)
-        case  2: FRAME(PR_BOXED_CHAR)           // fraed with ASCII chars
-        case  3: FRAME(PR_BOXED_GRAPHIC)
-        case  4: FRAME(PR_BOXED_GRAPHIC)       // with extra frame
+        case  0: FRAME(PR_APL,            FS_APL)
+        case  1: FRAME(PR_APL_FUN,        FS_APL_FUN)
+        case  2: FRAME(PR_BOXED_CHAR,     FS_BOXED_CHAR)   // ASCII chars
+        case  3: FRAME(PR_BOXED_GRAPHIC,  FS_BOXED_GRAPHIC)
+        case  4: FRAME(PR_BOXED_GRAPHIC,  FS_BOXED_GRAPHIC)   // extra frame
         case  5:                               // byte-vector → HEX
         case  6: return do_CR5_6(a, B);        // byte-vector → hex
-        case  7: FRAME(PR_BOXED_GRAPHIC1)
-        case  8: FRAME(PR_BOXED_GRAPHIC1)       // with extra frame
-        case  9: FRAME(PR_BOXED_GRAPHIC2)
+        case  7: FRAME(PR_BOXED_GRAPHIC1, FS_BOXED_THIN)
+        case  8: FRAME(PR_BOXED_GRAPHIC1, FS_BOXED_THIN)   // extra frame
+        case  9: FRAME(PR_BOXED_GRAPHIC2, FS_BOXED_DOUBLE)
         case 10: return do_CR10(B);
         case 11: return do_CR11(B);            // Value → CDR conversion
         case 12: return do_CR12(B);            // CDR → Value conversion
@@ -162,16 +164,16 @@ bool extra_frame = false;
         case 17: return do_CR17(B);            // base64 → byte vector, RFC 4648
         case 18: return do_CR18(B);            // UCS → UTF8 byte vector
         case 19: return do_CR19(B);            // UTF8 byte vector → UCS string
-        case 20: FRAME(PR_NARS)
-        case 21: FRAME(PR_NARS1)
-        case 22: FRAME(PR_NARS2)
-        case 23: FRAME(PR_NARS)                // with extra frame
-        case 24: FRAME(PR_NARS1)               // with extra frame
-        case 25: FRAME(PR_NARS2)               // with extra frame
+        case 20: FRAME(PR_NARS,           FS_NARS)
+        case 21: FRAME(PR_NARS1,          FS_NARS_THIN)
+        case 22: FRAME(PR_NARS2,          FS_NARS_DOUBLE)
+        case 23: FRAME(PR_NARS,           FS_NARS)          // extra frame
+        case 24: FRAME(PR_NARS1,          FS_NARS_THIN)     // extra frame
+        case 25: FRAME(PR_NARS2,          FS_NARS_DOUBLE)   // extra frame
         case 26: return do_CR26(B);            // Cell types
         case 27:                               // value as int
         case 28: return do_CR27_28(a, B);      // value2 as int
-        case 29: FRAME(PR_BOXED_GRAPHIC3)      // with extra frame
+        case 29: FRAME(PR_BOXED_GRAPHIC3, FS_BOXED_QUOTED)  // extra frame
         case 30: return do_CR30(B);            // conform B (for ⍤ macro)
         case 31:                               // ⎕INP helper
         case 32: return do_CR31_32(a, B);      // ⎕INP helper
@@ -187,8 +189,8 @@ bool extra_frame = false;
         case 42: return do_CR42_43(B, false);  // tokenize B
         case 43: return do_CR42_43(B, true);   // parse B
         case 44: return do_CR44(B);            // decode token tags
-        case 46: FRAME(PR_BOXED_GRAPHIC4)
-        case 47: FRAME(PR_BOXED_GRAPHIC5)
+        case 46: FRAME(PR_BOXED_GRAPHIC4, FS_PLAIN_THIN)
+        case 47: FRAME(PR_BOXED_GRAPHIC5, FS_PLAIN_THICK)
         case 48: return do_CR48(B);            // ravel packing type as scalar
         case 49: return do_CR49(B);            // packing threshold as scalar
         case 50:                               // int (elementwise) → HEX
@@ -201,22 +203,134 @@ bool extra_frame = false;
 #undef FRAME
       }
 
-   // common code for ⎕CR variants that only differ by print style...
+   // common code for ⎕CR variants that only differ by their frames...
    //
+const UCS_string & frame_chars = frame_styles()[frame_style];
    if (extra_frame && !B.is_simple_scalar())
       {
         Value_P Z(LOC);                          // a nested scalar
         Value * Zsub = static_cast<Value *>(const_cast<cValue *>(&B));   // will die at } below
         Z->next_ravel_Pointer(Zsub);             // Z ← ⊂ B
         Z->check_value(LOC);
-        PrintBuffer pb(*Z, pctx, 0);
+        PrintBuffer pb(*Z, pctx, frame_chars, 0);
         return Value_P(pb, LOC);
       }
    else   // no frame
       {
-         PrintBuffer pb(B, pctx, 0);
+         PrintBuffer pb(B, pctx, frame_chars, 0);
          return Value_P(pb, LOC);
       }
+}
+//────────────────────────────────────────────────────────────────────────────
+const UCS_string_vector &
+Quad_CR::frame_styles()
+{
+   // the frame characters (see PrintBuffer::Frame_char) of each Frame_style:
+   // the 81 line-drawing characters, followed by the decorators and options.
+   //
+   // The line-drawing character FC_Nn_Ee_Ss_Ww is at position 27n + 9e + 3s
+   // + w, where n, e, s, and w are 0 (leg absent), 1 (leg in line style 1,
+   // the inner frames), or 2 (leg in line style 2, the outer frame). Below,
+   // each line holds the 9 characters for one n and e: s,w = 00 01 02 10 11
+   // 12 20 21 22. A · means: no character (no legs, Unicode has no such
+   // character, or the line style is not used); it is drawn as a blank.
+   //
+   // line style 1: ASCII (IBM APL2 DISPLAY workspace)
+static const char * LINES_ASCII =
+   "·-·|.····"   // N0 E0
+   "--·.+····"   // N0 E1
+   "·········"   // N0 E2
+   "|'·|+····"   // N1 E0
+   "'+·++····"   // N1 E1
+   "·········"   // N1 E2
+   "·········"   // N2 E0
+   "·········"   // N2 E1
+   "·········";  // N2 E2
+
+   // line style 1: thin
+static const char * LINES_THIN =
+   "·╴·╷┐····"   // N0 E0
+   "╶─·┌┬····"   // N0 E1
+   "·········"   // N0 E2
+   "╵┘·│┤····"   // N1 E0
+   "└┴·├┼····"   // N1 E1
+   "·········"   // N1 E2
+   "·········"   // N2 E0
+   "·········"   // N2 E1
+   "·········";  // N2 E2
+
+   // line style 1: thick
+static const char * LINES_THICK =
+   "·╸·╻┓····"   // N0 E0
+   "╺━·┏┳····"   // N0 E1
+   "·········"   // N0 E2
+   "╹┛·┃┫····"   // N1 E0
+   "┗┻·┣╋····"   // N1 E1
+   "·········"   // N1 E2
+   "·········"   // N2 E0
+   "·········"   // N2 E1
+   "·········";  // N2 E2
+
+   // line style 1: thick, line style 2: double
+static const char * LINES_THICK_DOUBLE =
+   "·╸·╻┓···╗"   // N0 E0
+   "╺━·┏┳····"   // N0 E1
+   "··═···╔·╦"   // N0 E2
+   "╹┛·┃┫····"   // N1 E0
+   "┗┻·┣╋····"   // N1 E1
+   "·········"   // N1 E2
+   "··╝···║·╣"   // N2 E0
+   "·········"   // N2 E1
+   "╚·╩···╠·╬";  // N2 E2
+
+   // the decorators and options: ↓→∼+ϵ⊖⌽( (blank: none).
+   // # instead of ↓ and → means: the axis lengths (NARS style).
+   //
+static const char * NO_DECOR = "        ";
+static const char * DECOR    = "↓→∼+ϵ⊖⌽ ";
+static const char * NARS     = "##∼+ϵ⊖⌽ ";
+
+   // 0 for the line-drawing characters means: no frames at all
+   //
+static const char * styles[FS_COUNT][2] =
+   {
+     //  line-drawing         decorators
+     { 0,                  NO_DECOR },   // FS_APL
+     { 0,                  NO_DECOR },   // FS_APL_FUN
+     { LINES_ASCII,        DECOR    },   // FS_BOXED_CHAR
+     { LINES_THICK,        DECOR    },   // FS_BOXED_GRAPHIC
+     { LINES_THIN,         DECOR    },   // FS_BOXED_THIN
+     { LINES_THICK_DOUBLE, DECOR    },   // FS_BOXED_DOUBLE
+     { LINES_THICK,        DECOR    },   // FS_BOXED_QUOTED
+     { LINES_THIN,         NO_DECOR },   // FS_PLAIN_THIN
+     { LINES_THICK,        NO_DECOR },   // FS_PLAIN_THICK
+     { LINES_THICK,        NARS     },   // FS_NARS
+     { LINES_THIN,         NARS     },   // FS_NARS_THIN
+     { LINES_THICK_DOUBLE, NARS     },   // FS_NARS_DOUBLE
+   };
+
+   // initialized on the first call (thread-safe since C++11)
+   //
+static const UCS_string_vector frame_chars = []()
+   {
+     UCS_string_vector ret;
+     loop(fs, FS_COUNT)
+        {
+          const char * lines = styles[fs][0];
+          UCS_string chars = lines ? UCS_string(UTF8_string(lines))
+                                   : UCS_string(PrintBuffer::FC_LINES_COUNT,
+                                                UNI_SPACE);
+          Assert(chars.size() == PrintBuffer::FC_LINES_COUNT);
+          loop(c, chars.size())   // · (no character) → blank
+             if (chars[c] == Unicode(0x00B7))   chars[c] = UNI_SPACE;
+          chars << UCS_string(UTF8_string(styles[fs][1]));
+          Assert(chars.size() == PrintBuffer::FC_COUNT);
+          ret.push_back(chars);
+        }
+     return ret;
+   }();
+
+   return frame_chars;
 }
 //────────────────────────────────────────────────────────────────────────────
 bool

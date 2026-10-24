@@ -213,8 +213,8 @@ VALENCE ERROR+
 
       ⍝ real member-access chains are unaffected
       ⍝
-      MM.a.b←2
-      MM.a.b
+      SV_MM.a.b←2
+      SV_MM.a.b
 2
 
       ⍝ regression (Blake McBride, Bugs31 #27): a member chain ending in
@@ -528,5 +528,5 @@ OK      - no stale values
 OK      - no stale indices
 OK      - no duplicate parents
 
-      )ERASE A C MM
+      )ERASE A C SV_MM
 

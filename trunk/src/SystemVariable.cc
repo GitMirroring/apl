@@ -684,7 +684,7 @@ APL_Integer B_style = 0;
 
         default: MORE_ERROR() <<
                  "Invalid style in ⎕PS←quot style or ⎕PS←style:\n"
-                 "style is not ± 0, 2-4, 7-9, 20-25, or 29";
+                 "style is not 0, N, or ¯N with N ϵ 2-4, 7-9, 20-25, or 29";
                   DOMAIN_ERROR;
       }
 
@@ -701,6 +701,21 @@ Value_P B2(2, LOC);
 
    Symbol::assign(B2, false, LOC);
    return;
+}
+//────────────────────────────────────────────────────────────────────────────
+void
+Quad_PS::set_style(int new_style)
+{
+   // new_style was validated by ]BOXING
+   //
+   Command::boxing_format = new_style;
+   style = new_style;
+
+Value_P Z(2, LOC);
+   Z->next_ravel_Int(print_quotients);
+   Z->next_ravel_Int(style);
+   Z->check_value(LOC);
+   Symbol::assign(Z, false, LOC);
 }
 //────────────────────────────────────────────────────────────────────────────
 void
@@ -747,7 +762,8 @@ APL_Integer Z_style = style;
  
              default:
                   MORE_ERROR() <<
-                       "Invalid print style (try 0, 2-4, 7-9, 20-25, or 29)";
+                       "Invalid print style (try 0, N, or ¯N with N ϵ 2-4, 7-9, "
+                       "20-25, or 29)";
                   DOMAIN_ERROR;
            }
         else

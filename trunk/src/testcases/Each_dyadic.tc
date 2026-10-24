@@ -152,15 +152,15 @@ SYNTAX ERROR
       ⍝ once the original array is freed); reject it up front instead,
       ⍝ for both operands of a dyadic each.
 
-      K←{⍺}
+      KLAM←{⍺}
       W←1 2 3
-      (1 1 1 K¨W)←9 9 9
+      (1 1 1 KLAM¨W)←9 9 9
 SYNTAX ERROR
-      (1 1 1 K¨W)←9 9 9
-       ^          ^
+      (1 1 1 KLAM¨W)←9 9 9
+       ^             ^
 
       ⍝ leaves an )SI entry for the failed immediate execution above.
       ⍝
       )SIC
-      )ERASE K
+      )ERASE KLAM
 

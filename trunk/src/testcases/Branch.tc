@@ -284,14 +284,14 @@ SYNTAX ERROR+
       ⎕EC '{⍎''→2''}1'
  3  0 0    
 
-      ⎕FX 'Z←F B' 'Z←⍎''→0'''
-F
+      ⎕FX 'Z←FBR B' 'Z←⍎''→0'''
+FBR
 
-      F 1
+      FBR 1
 
       ⍝ the )SI stays usable afterward
       ⍝
-      )ERASE F
+      )ERASE FBR
 
       )SIC
       )ERASE FOO

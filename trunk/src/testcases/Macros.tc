@@ -31,23 +31,23 @@
 
       ⍝ create a defined function
       ⍝
-∇Z←A PLUS B
+∇Z←A PLUS_M B
  Z←A + B
 ∇
 
       ⍝ check that EACH with the defined function
       ⍝ is equivalent to EACH with the prmitive function
       ⍝
-      SS ≡  S PLUS ¨ S
+      SS ≡  S PLUS_M ¨ S
 1
 
-      SB ≡  S PLUS ¨ B
+      SB ≡  S PLUS_M ¨ B
 1
 
-      AS ≡  A PLUS ¨ S
+      AS ≡  A PLUS_M ¨ S
 1
 
-      AB ≡  A PLUS ¨ B
+      AB ≡  A PLUS_M ¨ B
 1
 
       ⍝⍝⍝⍝⍝⍝⍝⍝⍝⍝⍝⍝⍝⍝⍝⍝⍝⍝⍝⍝⍝⍝⍝⍝⍝⍝⍝⍝⍝⍝⍝⍝⍝⍝⍝⍝⍝⍝⍝⍝⍝⍝⍝⍝⍝⍝⍝⍝⍝⍝⍝⍝⍝⍝⍝⍝⍝⍝⍝⍝⍝⍝⍝
@@ -89,23 +89,23 @@
 
       ⍝ create a defined function
       ⍝
-∇Z←A EQUIV B
+∇Z←A EQUIV_M B
  Z←A ≡ B
 ∇
 
       ⍝ check that EACH with the defined function
       ⍝ is equivalent to EACH with the prmitive function
       ⍝
-      SS ≡  S EQUIV ¨ S
+      SS ≡  S EQUIV_M ¨ S
 1
 
-      SB ≡  S EQUIV ¨ B
+      SB ≡  S EQUIV_M ¨ B
 1
 
-      AS ≡  A EQUIV ¨ S
+      AS ≡  A EQUIV_M ¨ S
 1
 
-      AB ≡  A EQUIV ¨ B
+      AB ≡  A EQUIV_M ¨ B
 1
 
       ⍝⍝⍝⍝⍝⍝⍝⍝⍝⍝⍝⍝⍝⍝⍝⍝⍝⍝⍝⍝⍝⍝⍝⍝⍝⍝⍝⍝⍝⍝⍝⍝⍝⍝⍝⍝⍝⍝⍝⍝⍝⍝⍝⍝⍝⍝⍝⍝⍝⍝⍝⍝⍝⍝⍝⍝⍝⍝⍝⍝⍝⍝⍝
@@ -128,5 +128,5 @@
 1
 
       )SIC
-      )ERASE A B S SS SB AS AB PLUS COMMA
+      )ERASE A B S SS SB AS AB PLUS_M COMMA
 

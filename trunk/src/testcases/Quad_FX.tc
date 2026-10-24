@@ -211,20 +211,20 @@ OK      - no duplicate parents
       )CLEAR
 CLEAR WS
 
-      ⎕FX 'Z←F B' 'Z←B'
-F
+      ⎕FX 'Z←FN16 B' 'Z←B'
+FN16
 
       ⎕FX 'Z←A (LO OP2 RO) B' 'Z←A LO RO B'
 OP2
 
-      ⊥ OP2 F 0                    ⍝ VALUE ERROR; OP2[1] suspended with RO←F
+      ⊥ OP2 FN16 0                  ⍝ VALUE ERROR; OP2[1] suspended with RO←FN16
 VALUE ERROR+
 OP2[1]  Z←A LO RO B
           ^
 
       ⍝ refused: ⎕FX returns an error line, not the function's name
       ⍝
-      ⎕FX 'Z←F B' 'Z←B+1'
+      ⎕FX 'Z←FN16 B' 'Z←B+1'
 1
 
       )CHECK
@@ -233,10 +233,10 @@ OK      - no stale values
 OK      - no stale indices
 OK      - no duplicate parents
 
-      ⍝ once the suspended frame is gone, F is unaffected
+      ⍝ once the suspended frame is gone, FN16 is unaffected
       ⍝
       )SIC
-      F 5
+      FN16 5
 5
 
       )CHECK

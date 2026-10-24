@@ -599,6 +599,17 @@ const bool testcase_ends = InputFile::is_validating();
              // (Blake McBride, Bugs24 #3).
              Workspace::clear_SI(CERR);
            }
+        else if (Workspace::SI_entry_count() == 1)
+           {
+             // a testcase may end with an error in immediate execution
+             // (e.g. NaturalLogarithm.tc: ⍟0J0), which is not complained
+             // about. But its SI entry must not leak into the next
+             // testcase either: it keeps the functions that the next
+             // testcase )ERASEs alive, and a )CHECK there reports them
+             // as stale functions (OperPower.tc).
+             //
+             Workspace::clear_SI(CERR);
+           }
 
         // check for stale values and indices
         //

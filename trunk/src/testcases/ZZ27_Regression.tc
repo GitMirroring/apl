@@ -6,7 +6,7 @@
       ⍝ marking of lambdas
       ⍝
 
-∇Z←NK K
+∇Z←NK27 K
  Z←0 3⍴0
  ⊣ { Z←Z⍪ 1 3⍴K,⍵,K!⍵ }¨0 1 2 3 4 5, (? 5⍴MAX_N[K]), MAX_N[K]
 ∇

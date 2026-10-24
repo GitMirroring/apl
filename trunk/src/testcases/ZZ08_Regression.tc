@@ -80,24 +80,24 @@ SYNTAX ERROR+
 
       ⍝ bad function example from Elias Mårtenson
       ⍝
-      )ERASE foo z
+      )ERASE foo zfn
 
-∇r←x z y
+∇r←x zfn y
   foo
   r←x+y
 ∇
 
-      10 z 20
+      10 zfn 20
 VALUE ERROR+
-z[1]  foo
-      ^
+zfn[1]  foo
+        ^
 
       →
 
 
-      ∇r←x z y
+      ∇r←x zfn y
 DEFN ERROR+
-      ∇r←x z y
-             ^
+      ∇r←x zfn y
+               ^
 
 

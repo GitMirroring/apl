@@ -2848,6 +2848,25 @@ functions do nothing unless they were armed immediately before:
 @end example
 
 @c ----------------------------------------------------------------------------
+@node ]BOXING Command
+@section ]BOXING Command
+
+The debug command ]BOXING controls the "boxing" of values that are displayed
+automatically (e.g. the value of an expression entered in immediate
+execution):
+
+@example
+]BOXING                  ⍝ show the current setting
+]BOXING OFF              ⍝ normal APL display (the default)
+]BOXING N                ⍝ display V as N ⎕CR V
+]BOXING ¯N               ⍝ as ]BOXING N, but only if the result fits into ⎕PW
+]BOXING -N               ⍝ the same as ]BOXING ¯N
+@end example
+
+]BOXING is an alternative way of setting @b{⎕PS}[2]. Both are described,
+together with examples, in @ref{Boxing of Displayed Values}.
+
+@c ----------------------------------------------------------------------------
 @node ]DOXY Command
 @section ]DOXY Command
 
@@ -7597,15 +7616,105 @@ the @strong{)LOAD}ing of workspaces.
 
 Note: @b{⎕PS}[1] has no effect if rational numbers were not ./configure'd.
 
-@b{⎕PS}[2] = 0: no "boxing" of APL values
-
-@b{⎕PS}[2] > 0: "boxing" of APL values according to @b{⎕PS}[2].
-
-Setting @b{⎕PS}[2] has the same effect as the debug command ]BOXING and uses
-the same values.
+@b{⎕PS}[2] controls the "boxing" of displayed values, see the next
+subsection.
 
 Note: For compatibility with older workspaces, assigning a single value to
 @b{⎕PS} assigns that value to @b{⎕PS}[2] and sets @b{⎕PS}[1] to 0.
+
+
+@c ............................................................................
+@node Boxing of Displayed Values
+@subsection Boxing of Displayed Values (⎕PS[2] and ]BOXING)
+
+Normally a value V that is displayed automatically (e.g. the value of an
+expression entered in immediate execution) is printed in the usual APL
+fashion. With boxing, V is printed as @b{N ⎕CR V} instead, which shows the
+structure of V (nesting, shape, and type of its items). Boxing is controlled
+by @b{⎕PS}[2], which can be set either by assigning @b{⎕PS} or by the debug
+command ]BOXING. Both use the same values:
+
+@multitable @columnfractions .25 .25 .5
+@headitem ⎕PS[2] @tab ]BOXING @tab Effect
+@item 0 @tab OFF @tab no boxing (the default)
+@item N > 0 @tab N @tab V is displayed as @b{N ⎕CR V}
+@item ¯N < 0 @tab ¯N or -N @tab conditional boxing: like N, but V is displayed
+unboxed if @b{N ⎕CR V} has @b{⎕PW} or more columns
+@end multitable
+
+Valid values of N are 2, 3, 4, 7, 8, 9, 20, 21, 22, 23, 24, 25, and 29 (the
+boxing styles of @b{⎕CR}). An invalid value is a DOMAIN ERROR in
+@b{⎕PS}←, and BAD ]BOXING PARAMETER in ]BOXING (where )MORE then lists the
+valid parameters).
+
+The two are kept in sync: ]BOXING changes @b{⎕PS}[2], and ]BOXING without
+an argument shows the current @b{⎕PS}[2] (as OFF, N, or ¯N).
+
+Boxing only applies to values that are displayed automatically, not to
+output like @b{⎕←V}.
+
+Examples:
+
+@example
+      ]BOXING
+]BOXING OFF
+      V←1 'ab' (2 2⍴⍳4)
+      V
+ 1 ab   1 2 
+        3 4 
+
+      ]BOXING 2
+      V
+1 .→-. .→--.
+  |ab| ↓1 2|
+  '--' |3 4|
+       '∼--'
+
+      ]BOXING 8
+      V
+┌→───────────┐
+│1 ┌→─┐ ┌→──┐│
+│  │ab│ ↓1 2││
+│  └──┘ │3 4││
+│       └∼──┘│
+└ϵ───────────┘
+
+      ⎕PS←0 29         ⍝ the same as ]BOXING 29
+      V
+┏→━━━━━━━━━━━┓
+┃1 "ab" ┏→━━┓┃
+┃       ↓1 2┃┃
+┃       ┃3 4┃┃
+┃       ┗∼━━┛┃
+┗ϵ━━━━━━━━━━━┛
+      ]BOXING
+]BOXING 29
+@end example
+
+Conditional boxing (a negative N) avoids boxes that are broken up by the
+folding of long lines:
+
+@example
+      ⎕PW←30
+      ]BOXING ¯4       ⍝ the same as ⎕PS←0 ¯4
+      ⎕←⎕PS            ⍝ ⎕←V is not boxed
+0 ¯4
+      1 2 (3 4)
+┏→━━━━━━━━┓
+┃1 2 ┏→━━┓┃
+┃    ┃3 4┃┃
+┃    ┗∼━━┛┃
+┗ϵ━━━━━━━━┛
+      27⍴'x'           ⍝ 29 columns when boxed: fits
+┏→━━━━━━━━━━━━━━━━━━━━━━━━━━┓
+┃xxxxxxxxxxxxxxxxxxxxxxxxxxx┃
+┗━━━━━━━━━━━━━━━━━━━━━━━━━━━┛
+      28⍴'x'           ⍝ 30 columns when boxed: displayed unboxed
+xxxxxxxxxxxxxxxxxxxxxxxxxxxx
+      ]BOXING OFF
+      ⎕PS
+0 0
+@end example
 
 
 @c ----------------------------------------------------------------------------

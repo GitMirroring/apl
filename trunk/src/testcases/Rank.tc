@@ -421,14 +421,14 @@ Z←0 5⍴' '
 
       ⍝ a ⎕EC around the entire ⍤ still catches an error of F
       ⍝
-∇Z←H B
+∇Z←HEC B
  Z←÷0
 ∇
 
-      ↑⎕EC '⍴(H⍤1)0 3⍴0'
+      ↑⎕EC '⍴(HEC⍤1)0 3⍴0'
 0
 
-      )ERASE G G2 G3 G4 H
+      )ERASE G G2 G3 G4 HEC
 
       )CHECK BRIEF
       )CLEAR

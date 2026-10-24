@@ -59,7 +59,7 @@ do_Assert(const char * cond, const char * fun, const char * file, int line)
         // do_Assert() was called again while already unwinding from an
         // earlier assertion failure -- typically because that failure's
         // own error-reporting path (do_Assert -> throw_apl_error ->
-        // ... -> Error::print_em() -> cout) writes through a streambuf
+        // ... -> Error::print_EM() -> cout) writes through a streambuf
         // whose overflow() contains an Assert() of its own (e.g.
         // DiffOut::overflow()'s Assert(report.is_open())), which fails
         // for the same underlying reason and re-enters here. Recursing

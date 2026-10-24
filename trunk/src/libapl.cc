@@ -389,7 +389,7 @@ UCS_string line_ucs(line_utf8);
 const StateIndicator * si = Workspace::SI_top();
    try { Command::process_line(line_ucs, 0); }
    catch (Error & err)
-      { if (err.get_print_loc() == 0)   err.print_em(UERR, LOC);
+      { if (err.get_print_loc() == 0)   err.print_EM(UERR, LOC);
         return LIBAPL_error(err.get_error_code()); }
    catch (...) { return LAE_UNKNOWN_ERROR; }
    if (si == Workspace::SI_top())   return LAE_NO_ERROR;
@@ -409,7 +409,7 @@ UCS_string line;
 const StateIndicator * si = Workspace::SI_top();
    try { Command::process_line(line, 0); }
    catch (Error & err)
-      { if (err.get_print_loc() == 0)   err.print_em(UERR, LOC);
+      { if (err.get_print_loc() == 0)   err.print_EM(UERR, LOC);
         return LIBAPL_error(err.get_error_code()); }
    catch (...) { return LAE_UNKNOWN_ERROR; }
    if (si == Workspace::SI_top())   return LAE_NO_ERROR;

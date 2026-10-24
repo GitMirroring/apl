@@ -480,6 +480,9 @@ public:
    bool get_print_quotients() const
       { return print_quotients; }
 
+   /// set the boxing style (from ]BOXING) so that ⎕PS[2] follows it
+   void set_style(int new_style);
+
 protected:
    /// overloaded Symbol::assign().
    /// @param B the APL value to assign

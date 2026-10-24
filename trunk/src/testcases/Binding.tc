@@ -233,18 +233,18 @@ OK      - no stale values
 OK      - no stale indices
 OK      - no duplicate parents
 
-      ⎕FX'R←(F L G)Y' 'R←F Y'
-L
-      ⎕FX'R←(F R G)Y' 'R←G Y'
-R
-      + L × R - 33
+      ⎕FX'R←(F LOP G)Y' 'R←F Y'
+LOP
+      ⎕FX'R←(F ROP G)Y' 'R←G Y'
+ROP
+      + LOP × ROP - 33
 ¯33
-      (+ L ×) R - 33
+      (+ LOP ×) ROP - 33
 ¯33
-      + L (× R -) 33
+      + LOP (× ROP -) 33
 33
 
-      )ERASE L R
+      )ERASE LOP ROP
 
       ⍝ ==================================
 

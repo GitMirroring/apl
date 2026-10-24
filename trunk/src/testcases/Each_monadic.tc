@@ -164,17 +164,17 @@ INDEX ERROR
       ⍝ is exactly the hole being closed, so it must now be SYNTAX
       ⍝ ERROR regardless of what F does.
 
-      F←{⍵}
+      FLAM←{⍵}
       W←1 2 3
-      (F¨W)←9 9 9
+      (FLAM¨W)←9 9 9
 SYNTAX ERROR
-      (F¨W)←9 9 9
-       ^    ^
+      (FLAM¨W)←9 9 9
+       ^       ^
 
       ⍝ leaves an )SI entry for the failed immediate execution above.
       ⍝
       )SIC
-      )ERASE F
+      )ERASE FLAM
 
       ⍝ regression (Blake McBride, Bugs31 #4): (∊¨0↑V)←9 used to print a
       ⍝ C++ stack trace and exit(0) instead of behaving like the non-Each
