@@ -2895,6 +2895,63 @@ Parameter ON is not valid for command ]BOXING.
 
 
 
+      ⍝ the print length limit ⎕SYL[28;2] also applies with ]BOXING. The
+      ⍝ unboxed fallback of ]BOXING ¯N printed all 1000 items; 500 now (the
+      ⍝ note about the truncation goes to CERR, which is not compared here)
+      ⍝
+      ⎕PW←80
+      ⎕SYL[28;2]←1000
+      ]BOXING ¯4
+      1000⍴'x'
+xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+      xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+      xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+      xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+      xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+      xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+      xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+
+      ]BOXING OFF
+      ⎕SYL[28;2]←0
+      ⎕SYL[28;2]
+0
+
+
+
+
+
+      ⍝ ⎕SYL[28;2] (print length limit) is 0 (no limit) or at least 1000
+      ⍝
+      ⎕SYL[28;2]←100
+DOMAIN ERROR+
+      ⎕SYL[28;2]←100
+      ^         ^
+
+      )MORE
+Bad print length limit 100 in ⎕SYL[28;2] (expecting 0 for no limit or at least 1000)
+
+      )SIC
+
+
+
+
+
+      ⍝ )MORE of ⎕SYL assignments shows the index as written (⎕IO)
+      ⍝
+      ⎕SYL[4;2]←1
+INDEX ERROR+
+      ⎕SYL[4;2]←1
+      ^        ^
+
+      )MORE
+Bad ⎕SYL index 4 (not a writable limit)
+
+      )SIC
+
+
+
+
+
       ⍝ )OUT then )IN keeps the ASCII * in ⎕FC[3] (ATF has only one * which
       ⍝ )IN reads as ⋆)
       ⍝

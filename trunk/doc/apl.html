@@ -76,7 +76,7 @@ Next: <a href="#Installing-and-Starting-GNU-APL" accesskey="n" rel="next">Instal
 </div>
 <span id="GNU-APL-Reference-Manual"></span><h1 class="top">GNU APL Reference Manual</h1>
 
-<p>October 24, 2026.
+<p>October 25, 2026.
 This manual briefly documents GNU APL, an interpreter for APL as described
 in ISO standard 13751, aka. &quot;Programming Language APL, Extended&quot;.
 </p>
@@ -361,9 +361,10 @@ therefore it must be expanded with e.g. <b>gunzip</b> before it can be read.
     <li><a id="toc-_005b_003f_005dSYL-_002d-System-limits" href="#g_t_2395SYL-_002d-System-limits">2.49 ⎕SYL - System limits</a>
     <ul class="no-bullet">
       <li><a id="toc-_005b_003f_005dSYL_005b1-2-3-4-5-6_003b_005d" href="#g_t_2395SYL_005b1-2-3-4-5-6_003b_005d">2.49.1 ⎕SYL[1 2 3 4 5 6;]</a></li>
-      <li><a id="toc-_005b_003f_005dSYL_005b7-8-9-10-11-12-13-14-15-16-17-18-19-20-21-22-23_003b_005d" href="#g_t_2395SYL_005b7-8-9-10-11-12-13-14-15-16-17-18-19-20-21-22-23_003b_005d">2.49.2 ⎕SYL[7 8 9 10 11 12 13 14 15 16 17 18 19 20 21 22 23;]</a></li>
-      <li><a id="toc-_005b_003f_005dSYL_005b24-25-26_003b_005d" href="#g_t_2395SYL_005b24-25-26_003b_005d">2.49.3 ⎕SYL[24 25 26;]</a></li>
-      <li><a id="toc-_005b_003f_005dSYL_005b27_003b_005d" href="#g_t_2395SYL_005b27_003b_005d">2.49.4 ⎕SYL[27;]</a></li>
+      <li><a id="toc-_005b_003f_005dSYL_005b7-_002e_002e_002e-24_003b_005d" href="#g_t_2395SYL_005b7-_002e_002e_002e-24_003b_005d">2.49.2 ⎕SYL[7 ... 24;]</a></li>
+      <li><a id="toc-_005b_003f_005dSYL_005b25-26-27_003b_005d" href="#g_t_2395SYL_005b25-26-27_003b_005d">2.49.3 ⎕SYL[25 26 27;]</a></li>
+      <li><a id="toc-_005b_003f_005dSYL_005b28_003b_005d" href="#g_t_2395SYL_005b28_003b_005d">2.49.4 ⎕SYL[28;]</a></li>
+      <li><a id="toc-_005b_003f_005dSYL_005b29-_002e_002e_002e-34_003b_005d" href="#g_t_2395SYL_005b29-_002e_002e_002e-34_003b_005d">2.49.5 ⎕SYL[29 ... 34;]</a></li>
     </ul></li>
     <li><a id="toc-_005b_003f_005dXML-_002d-XML-Parsing" href="#g_t_2395XML-_002d-XML-Parsing">2.50 ⎕XML  - XML Parsing</a>
     <ul class="no-bullet">
@@ -10829,50 +10830,62 @@ Next: <a href="#g_t_2395XML-_002d-XML-Parsing" accesskey="n" rel="next">⎕XML  
 </p>
 <div class="example">
 <pre class="example">      ⎕SYL
- SI depth limit          (0 = no limit)                    0 
+ SI depth limit          (0 = no limit)               100000 
  number of values limit  (0 = no limit)                    0 
  total ravel bytes limit (0 = no limit)                    0 
  current SI depth                                          1 
- current number of values                                 54 
- current total ravel bytes                              9072 
+ current number of values                                206 
+ current total ravel bytes                             14448 
  max. rank for APL values                                  8 
+ max. depth for APL values                               254 
  min. ⎕PW                                                 30 
- max. ⎕PW                                               1000 
+ max. ⎕PW                                              10000 
  min. ⎕PP                                                  1 
- max. ⎕PP                                                 16 
+ max. ⎕PP                                                 17 
+ log₁₀(max. ⎕CT)                                          ¯9 
  max. input line length                                 2000 
- hash table size (obsolete)                            65536 
+ hash table size                                       65536 
  max. shared variable name length                         64 
  max. length of filenames (paths)                       4096 
  max. # of shared variables (obsolete)                    64 
  max. number of APs                                       16 
- max. operators per statement                             16 
- largest integer                         9000000000000000000 
- smallest integer                       ¯9000000000000000000 
+ max. operators per statement                             32 
+ largest integer                         9200000000000000000 
+ smallest (negative) integer            ¯9200000000000000000 
  largest numeric exponent                                308 
  max. shared variable size (bytes)                     65000 
- max. cores (per ./configure)                              0 
- max. cores (per max_cores())                              1 
- current cores (per core_count())                          1 
+ CORE_COUNT_WANTED (per ./configure)                       0 
+ cores available                                           1 
+ cores used                                                1 
  print length limit (0 = no limit)                         0 
+ max. prefix length                                       40 
+ log₁₀(integer tolerance (aka. fuzz))                    ¯10 
+ log₁₀(real tolerance (aka. fuzz))                       ¯10 
+ ⎕WA safety margin (bytes)                                 0 
+ ⎕WA memory scale (%)                                     90 
+ min. element count for packed ravels                     12 
 </pre></div>
 
-<p>Most system limits are read-only; attempting to assign <b>⎕SYL</b> will result
-in a SYNTAX ERROR. Indexed assignment to <b>⎕SYL</b> will result in an
-INDEX ERROR unless the limit is writable. Some read-only limits can
-be changed at compile-time via ./configure
+<p>(the current values in rows 4, 5, and 6 vary, of course). Most system limits
+are read-only; attempting to assign <b>⎕SYL</b> will result in a SYNTAX ERROR.
+Indexed assignment to <b>⎕SYL</b> (of the form <b>⎕SYL[X;2]←B</b>) will result in
+an INDEX ERROR unless the limit is writable, and in a DOMAIN ERROR if the
+new value is not valid for the limit; )MORE then tells why. Some read-only
+limits can be changed at compile-time via ./configure. The writable limits are
+rows 1, 2, 3, 27 (if PARALLEL_ENABLED was ./configure&rsquo;d), 28, 32, 33, and 34.
 </p>
 <ul class="section-toc">
 <li><a href="#g_t_2395SYL_005b1-2-3-4-5-6_003b_005d" accesskey="1">⎕SYL[1 2 3 4 5 6;]</a></li>
-<li><a href="#g_t_2395SYL_005b7-8-9-10-11-12-13-14-15-16-17-18-19-20-21-22-23_003b_005d" accesskey="2">⎕SYL[7 8 9 10 11 12 13 14 15 16 17 18 19 20 21 22 23;]</a></li>
-<li><a href="#g_t_2395SYL_005b24-25-26_003b_005d" accesskey="3">⎕SYL[24 25 26;]</a></li>
-<li><a href="#g_t_2395SYL_005b27_003b_005d" accesskey="4">⎕SYL[27;]</a></li>
+<li><a href="#g_t_2395SYL_005b7-_002e_002e_002e-24_003b_005d" accesskey="2">⎕SYL[7 ... 24;]</a></li>
+<li><a href="#g_t_2395SYL_005b25-26-27_003b_005d" accesskey="3">⎕SYL[25 26 27;]</a></li>
+<li><a href="#g_t_2395SYL_005b28_003b_005d" accesskey="4">⎕SYL[28;]</a></li>
+<li><a href="#g_t_2395SYL_005b29-_002e_002e_002e-34_003b_005d" accesskey="5">⎕SYL[29 ... 34;]</a></li>
 </ul>
 <hr>
 <div class="subsection" id="g_t_2395SYL_005b1-2-3-4-5-6_003b_005d">
 <div class="header">
 <p>
-Next: <a href="#g_t_2395SYL_005b7-8-9-10-11-12-13-14-15-16-17-18-19-20-21-22-23_003b_005d" accesskey="n" rel="next">⎕SYL[7 8 9 10 11 12 13 14 15 16 17 18 19 20 21 22 23;]</a>, Up: <a href="#g_t_2395SYL-_002d-System-limits" accesskey="u" rel="up">⎕SYL - System limits</a> &nbsp; [<a href="#SEC_Contents" title="Table of contents" rel="contents">Contents</a>]</p>
+Next: <a href="#g_t_2395SYL_005b7-_002e_002e_002e-24_003b_005d" accesskey="n" rel="next">⎕SYL[7 ... 24;]</a>, Up: <a href="#g_t_2395SYL-_002d-System-limits" accesskey="u" rel="up">⎕SYL - System limits</a> &nbsp; [<a href="#SEC_Contents" title="Table of contents" rel="contents">Contents</a>]</p>
 </div>
 <span id="g_t_005b_003f_005dSYL_005b1-2-3-4-5-6_003b_005d"></span><h4 class="subsection">2.49.1 ⎕SYL[1 2 3 4 5 6;]</h4>
 
@@ -10908,14 +10921,17 @@ set the number of values limit and the total ravel bytes limit together.
 <p>An attempt to set a too small limit, for example one that is close to the
 current value, is rejected with a DOMAIN ERROR.
 </p>
+<p>Rows 4, 5, and 6 show the current values that are compared with the limits
+in rows 1, 2, and 3.
+</p>
 <hr>
 </div>
-<div class="subsection" id="g_t_2395SYL_005b7-8-9-10-11-12-13-14-15-16-17-18-19-20-21-22-23_003b_005d">
+<div class="subsection" id="g_t_2395SYL_005b7-_002e_002e_002e-24_003b_005d">
 <div class="header">
 <p>
-Next: <a href="#g_t_2395SYL_005b24-25-26_003b_005d" accesskey="n" rel="next">⎕SYL[24 25 26;]</a>, Previous: <a href="#g_t_2395SYL_005b1-2-3-4-5-6_003b_005d" accesskey="p" rel="prev">⎕SYL[1 2 3 4 5 6;]</a>, Up: <a href="#g_t_2395SYL-_002d-System-limits" accesskey="u" rel="up">⎕SYL - System limits</a> &nbsp; [<a href="#SEC_Contents" title="Table of contents" rel="contents">Contents</a>]</p>
+Next: <a href="#g_t_2395SYL_005b25-26-27_003b_005d" accesskey="n" rel="next">⎕SYL[25 26 27;]</a>, Previous: <a href="#g_t_2395SYL_005b1-2-3-4-5-6_003b_005d" accesskey="p" rel="prev">⎕SYL[1 2 3 4 5 6;]</a>, Up: <a href="#g_t_2395SYL-_002d-System-limits" accesskey="u" rel="up">⎕SYL - System limits</a> &nbsp; [<a href="#SEC_Contents" title="Table of contents" rel="contents">Contents</a>]</p>
 </div>
-<span id="g_t_005b_003f_005dSYL_005b7-8-9-10-11-12-13-14-15-16-17-18-19-20-21-22-23_003b_005d"></span><h4 class="subsection">2.49.2 ⎕SYL[7 8 9 10 11 12 13 14 15 16 17 18 19 20 21 22 23;]</h4>
+<span id="g_t_005b_003f_005dSYL_005b7-_002e_002e_002e-24_003b_005d"></span><h4 class="subsection">2.49.2 ⎕SYL[7 ... 24;]</h4>
 
 <p>These system limits are read-only. Some of them can be changed at
 compile time via ./configure. Most others can be changed in the source code
@@ -10923,37 +10939,71 @@ of GNU APL, but doing so is not recommended.
 </p>
 <hr>
 </div>
-<div class="subsection" id="g_t_2395SYL_005b24-25-26_003b_005d">
+<div class="subsection" id="g_t_2395SYL_005b25-26-27_003b_005d">
 <div class="header">
 <p>
-Next: <a href="#g_t_2395SYL_005b27_003b_005d" accesskey="n" rel="next">⎕SYL[27;]</a>, Previous: <a href="#g_t_2395SYL_005b7-8-9-10-11-12-13-14-15-16-17-18-19-20-21-22-23_003b_005d" accesskey="p" rel="prev">⎕SYL[7 8 9 10 11 12 13 14 15 16 17 18 19 20 21 22 23;]</a>, Up: <a href="#g_t_2395SYL-_002d-System-limits" accesskey="u" rel="up">⎕SYL - System limits</a> &nbsp; [<a href="#SEC_Contents" title="Table of contents" rel="contents">Contents</a>]</p>
+Next: <a href="#g_t_2395SYL_005b28_003b_005d" accesskey="n" rel="next">⎕SYL[28;]</a>, Previous: <a href="#g_t_2395SYL_005b7-_002e_002e_002e-24_003b_005d" accesskey="p" rel="prev">⎕SYL[7 ... 24;]</a>, Up: <a href="#g_t_2395SYL-_002d-System-limits" accesskey="u" rel="up">⎕SYL - System limits</a> &nbsp; [<a href="#SEC_Contents" title="Table of contents" rel="contents">Contents</a>]</p>
 </div>
-<span id="g_t_005b_003f_005dSYL_005b24-25-26_003b_005d"></span><h4 class="subsection">2.49.3 ⎕SYL[24 25 26;]</h4>
+<span id="g_t_005b_003f_005dSYL_005b25-26-27_003b_005d"></span><h4 class="subsection">2.49.3 ⎕SYL[25 26 27;]</h4>
 
-<p>These system limits have been added in preparation for multi-core GNU APL.
-They are currently not used.
+<p>These rows show the number of CPU cores for parallel execution: the number
+requested by ./configure (CORE_COUNT_WANTED), the number available, and the
+number currently used. Row 27 is writable if PARALLEL_ENABLED was
+./configure&rsquo;d (see README-8-parallel); otherwise an assignment to it is a
+DOMAIN ERROR.
 </p>
 <hr>
 </div>
-<div class="subsection" id="g_t_2395SYL_005b27_003b_005d">
+<div class="subsection" id="g_t_2395SYL_005b28_003b_005d">
 <div class="header">
 <p>
-Previous: <a href="#g_t_2395SYL_005b24-25-26_003b_005d" accesskey="p" rel="prev">⎕SYL[24 25 26;]</a>, Up: <a href="#g_t_2395SYL-_002d-System-limits" accesskey="u" rel="up">⎕SYL - System limits</a> &nbsp; [<a href="#SEC_Contents" title="Table of contents" rel="contents">Contents</a>]</p>
+Next: <a href="#g_t_2395SYL_005b29-_002e_002e_002e-34_003b_005d" accesskey="n" rel="next">⎕SYL[29 ... 34;]</a>, Previous: <a href="#g_t_2395SYL_005b25-26-27_003b_005d" accesskey="p" rel="prev">⎕SYL[25 26 27;]</a>, Up: <a href="#g_t_2395SYL-_002d-System-limits" accesskey="u" rel="up">⎕SYL - System limits</a> &nbsp; [<a href="#SEC_Contents" title="Table of contents" rel="contents">Contents</a>]</p>
 </div>
-<span id="g_t_005b_003f_005dSYL_005b27_003b_005d"></span><h4 class="subsection">2.49.4 ⎕SYL[27;]</h4>
+<span id="g_t_005b_003f_005dSYL_005b28_003b_005d"></span><h4 class="subsection">2.49.4 ⎕SYL[28;]</h4>
 
 <p>This is not a limit that raises a limit error. Instead it limits the
 size of APL values when printed as statement results. It is fairly easy
 in APL to create huge APL values by mistake. During development it can
 be useful to limit the amount of data printed. If the ravel length of,
-say, VALUE exceeds <b>⎕SYL</b>[27;2] (i.e. if <b>⎕SYL</b>[27;2] ≤ ⍴,VALUE) then SH↑VALUE
-is printed instead of VALUE. The shape SH is computed like this:
+say, VALUE exceeds <b>⎕SYL</b>[28;2] (i.e. if <b>⎕SYL</b>[28;2] ≤ ⍴,VALUE) then SH↑VALUE
+is printed instead of VALUE, followed by a note that the display was
+truncated. The shape SH is computed like this:
 </p>
 <div class="example">
 <pre class="example">      SH←⍴VALUE
-      while (ravel-length(SH) ≥ ⎕SYL[27;2]) { divide longest axis in SH by 2 }
+      while (ravel-length(SH) ≥ ⎕SYL[28;2]) { divide longest axis in SH by 2 }
 </pre></div>
 
+<p>The limit applies regardless of boxing (see <a href="#Boxing-of-Displayed-Values">Boxing of Displayed Values (⎕PS[2] and ]BOXING)</a>):
+with boxing, the boxed value is SH↑VALUE.
+</p>
+<p><b>⎕SYL</b>[28;2] is 0 (no limit) by default. It can be set to 0 again, or
+to a value of at least 1000:
+</p>
+<div class="example">
+<pre class="example">      ⎕SYL[28;2]←1000    ⍝ limit the display of values to &lt; 1000 items
+      ⎕SYL[28;2]←0       ⍝ no limit
+</pre></div>
+
+<hr>
+</div>
+<div class="subsection" id="g_t_2395SYL_005b29-_002e_002e_002e-34_003b_005d">
+<div class="header">
+<p>
+Previous: <a href="#g_t_2395SYL_005b28_003b_005d" accesskey="p" rel="prev">⎕SYL[28;]</a>, Up: <a href="#g_t_2395SYL-_002d-System-limits" accesskey="u" rel="up">⎕SYL - System limits</a> &nbsp; [<a href="#SEC_Contents" title="Table of contents" rel="contents">Contents</a>]</p>
+</div>
+<span id="g_t_005b_003f_005dSYL_005b29-_002e_002e_002e-34_003b_005d"></span><h4 class="subsection">2.49.5 ⎕SYL[29 ... 34;]</h4>
+
+<p>Rows 29, 30, and 31 are read-only: the maximum length of the prefix (the
+parser&rsquo;s look-ahead) and the tolerances (fuzz) used for integer and real
+comparisons.
+</p>
+<p>Rows 32 and 33 control <b>⎕WA</b>: a safety margin in bytes (at least 1000000
+when assigned) and a memory scale in percent (45 to 200).
+</p>
+<p>Row 34 is the minimum element count for packed ravels (at least 1), see
+also command line option <code>--pack_min</code>.
+</p>
 <hr>
 </div>
 </div>

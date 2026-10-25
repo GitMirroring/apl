@@ -1063,17 +1063,29 @@ const APL_Integer qio = Workspace::get_IO();
              if (CPU_pool::change_core_count(CoreCount(b), false))
                 {
                   MORE_ERROR() << "Bad core count " << b
-                               << " in ⎕SYL[" << x << "] ";
+                               << " in ⎕SYL[" << (x + qio) << ";"
+                               << (qio + 1) << "]";
                   DOMAIN_ERROR;
                 }
 #else
-             MORE_ERROR() << "PARALLEL_ENABLED not set in ⎕SYL[" << x << "] ";
+             MORE_ERROR() << "⎕SYL[" << (x + qio) << ";" << (qio + 1)
+                          << "] (cores used) cannot be changed because "
+                             "PARALLEL_ENABLED was not ./configure'd";
              DOMAIN_ERROR;
 #endif
            }
         else if (x == SYL_PRINT_LIMIT)   // print length limit
            {
-             if (b < 1000)   DOMAIN_ERROR;
+             // 0 means no limit, other values must be at least 1000
+             //
+             if (b < 0 || (b && b < 1000))
+                {
+                  MORE_ERROR() << "Bad print length limit " << b
+                               << " in ⎕SYL[" << (x + qio) << ";"
+                               << (qio + 1) << "] (expecting 0 for no "
+                                  "limit or at least 1000)";
+                  DOMAIN_ERROR;
+                }
              print_length_limit = b;
            }
         else if (x == SYL_WA_MARGIN)   // ⎕WA safety margin
@@ -1094,7 +1106,8 @@ const APL_Integer qio = Workspace::get_IO();
            }
         else
            {
-             MORE_ERROR() << "Bad ⎕SYL index " << x;
+             MORE_ERROR() << "Bad ⎕SYL index " << (x + qio)
+                          << " (not a writable limit)";
              INDEX_ERROR;
            }
       }

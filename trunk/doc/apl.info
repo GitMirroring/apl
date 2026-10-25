@@ -16,7 +16,7 @@ File: apl.info,  Node: Top,  Next: Installing and Starting GNU APL,  Up: (dir)
 GNU APL Reference Manual
 ************************
 
-October 24, 2026.  This manual briefly documents GNU APL, an interpreter
+October 25, 2026.  This manual briefly documents GNU APL, an interpreter
 for APL as described in ISO standard 13751, aka.  "Programming Language
 APL, Extended".
 
@@ -9302,47 +9302,60 @@ File: apl.info,  Node: ⎕SYL - System limits,  Next: ⎕XML - XML Parsing,  Pre
 System variable ⎕SYL shows a number of system limits when referenced:
 
            ⎕SYL
-      SI depth limit          (0 = no limit)                    0
+      SI depth limit          (0 = no limit)               100000
       number of values limit  (0 = no limit)                    0
       total ravel bytes limit (0 = no limit)                    0
       current SI depth                                          1
-      current number of values                                 54
-      current total ravel bytes                              9072
+      current number of values                                206
+      current total ravel bytes                             14448
       max. rank for APL values                                  8
+      max. depth for APL values                               254
       min. ⎕PW                                                 30
-      max. ⎕PW                                               1000
+      max. ⎕PW                                              10000
       min. ⎕PP                                                  1
-      max. ⎕PP                                                 16
+      max. ⎕PP                                                 17
+      log₁₀(max. ⎕CT)                                          ¯9
       max. input line length                                 2000
-      hash table size (obsolete)                            65536
+      hash table size                                       65536
       max. shared variable name length                         64
       max. length of filenames (paths)                       4096
       max. # of shared variables (obsolete)                    64
       max. number of APs                                       16
-      max. operators per statement                             16
-      largest integer                         9000000000000000000
-      smallest integer                       ¯9000000000000000000
+      max. operators per statement                             32
+      largest integer                         9200000000000000000
+      smallest (negative) integer            ¯9200000000000000000
       largest numeric exponent                                308
       max. shared variable size (bytes)                     65000
-      max. cores (per ./configure)                              0
-      max. cores (per max_cores())                              1
-      current cores (per core_count())                          1
+      CORE_COUNT_WANTED (per ./configure)                       0
+      cores available                                           1
+      cores used                                                1
       print length limit (0 = no limit)                         0
+      max. prefix length                                       40
+      log₁₀(integer tolerance (aka. fuzz))                    ¯10
+      log₁₀(real tolerance (aka. fuzz))                       ¯10
+      ⎕WA safety margin (bytes)                                 0
+      ⎕WA memory scale (%)                                     90
+      min. element count for packed ravels                     12
 
-   Most system limits are read-only; attempting to assign ⎕SYL will
-result in a SYNTAX ERROR. Indexed assignment to ⎕SYL will result in an
-INDEX ERROR unless the limit is writable.  Some read-only limits can be
-changed at compile-time via ./configure
+   (the current values in rows 4, 5, and 6 vary, of course).  Most
+system limits are read-only; attempting to assign ⎕SYL will result in a
+SYNTAX ERROR. Indexed assignment to ⎕SYL (of the form ⎕SYL[X;2]←B) will
+result in an INDEX ERROR unless the limit is writable, and in a DOMAIN
+ERROR if the new value is not valid for the limit; )MORE then tells why.
+Some read-only limits can be changed at compile-time via ./configure.
+The writable limits are rows 1, 2, 3, 27 (if PARALLEL_ENABLED was
+./configure’d), 28, 32, 33, and 34.
 
 * Menu:
 
 * ⎕SYL[1 2 3 4 5 6;]::
-* ⎕SYL[7 8 9 10 11 12 13 14 15 16 17 18 19 20 21 22 23;]::
-* ⎕SYL[24 25 26;]::
-* ⎕SYL[27;]::
+* ⎕SYL[7 ... 24;]::
+* ⎕SYL[25 26 27;]::
+* ⎕SYL[28;]::
+* ⎕SYL[29 ... 34;]::
 
 
-File: apl.info,  Node: ⎕SYL[1 2 3 4 5 6;],  Next: ⎕SYL[7 8 9 10 11 12 13 14 15 16 17 18 19 20 21 22 23;],  Up: ⎕SYL - System limits
+File: apl.info,  Node: ⎕SYL[1 2 3 4 5 6;],  Next: ⎕SYL[7 ... 24;],  Up: ⎕SYL - System limits
 
 2.49.1 ⎕SYL[1 2 3 4 5 6;]
 -------------------------
@@ -9376,41 +9389,72 @@ bytes limit together.
    An attempt to set a too small limit, for example one that is close to
 the current value, is rejected with a DOMAIN ERROR.
 
-
-File: apl.info,  Node: ⎕SYL[7 8 9 10 11 12 13 14 15 16 17 18 19 20 21 22 23;],  Next: ⎕SYL[24 25 26;],  Prev: ⎕SYL[1 2 3 4 5 6;],  Up: ⎕SYL - System limits
+   Rows 4, 5, and 6 show the current values that are compared with the
+limits in rows 1, 2, and 3.
 
-2.49.2 ⎕SYL[7 8 9 10 11 12 13 14 15 16 17 18 19 20 21 22 23;]
--------------------------------------------------------------
+
+File: apl.info,  Node: ⎕SYL[7 ... 24;],  Next: ⎕SYL[25 26 27;],  Prev: ⎕SYL[1 2 3 4 5 6;],  Up: ⎕SYL - System limits
+
+2.49.2 ⎕SYL[7 ... 24;]
+----------------------
 
 These system limits are read-only.  Some of them can be changed at
 compile time via ./configure.  Most others can be changed in the source
 code of GNU APL, but doing so is not recommended.
 
 
-File: apl.info,  Node: ⎕SYL[24 25 26;],  Next: ⎕SYL[27;],  Prev: ⎕SYL[7 8 9 10 11 12 13 14 15 16 17 18 19 20 21 22 23;],  Up: ⎕SYL - System limits
+File: apl.info,  Node: ⎕SYL[25 26 27;],  Next: ⎕SYL[28;],  Prev: ⎕SYL[7 ... 24;],  Up: ⎕SYL - System limits
 
-2.49.3 ⎕SYL[24 25 26;]
+2.49.3 ⎕SYL[25 26 27;]
 ----------------------
 
-These system limits have been added in preparation for multi-core GNU
-APL. They are currently not used.
+These rows show the number of CPU cores for parallel execution: the
+number requested by ./configure (CORE_COUNT_WANTED), the number
+available, and the number currently used.  Row 27 is writable if
+PARALLEL_ENABLED was ./configure’d (see README-8-parallel); otherwise an
+assignment to it is a DOMAIN ERROR.
 
 
-File: apl.info,  Node: ⎕SYL[27;],  Prev: ⎕SYL[24 25 26;],  Up: ⎕SYL - System limits
+File: apl.info,  Node: ⎕SYL[28;],  Next: ⎕SYL[29 ... 34;],  Prev: ⎕SYL[25 26 27;],  Up: ⎕SYL - System limits
 
-2.49.4 ⎕SYL[27;]
+2.49.4 ⎕SYL[28;]
 ----------------
 
 This is not a limit that raises a limit error.  Instead it limits the
 size of APL values when printed as statement results.  It is fairly easy
 in APL to create huge APL values by mistake.  During development it can
 be useful to limit the amount of data printed.  If the ravel length of,
-say, VALUE exceeds ⎕SYL[27;2] (i.e.  if ⎕SYL[27;2] ≤ ⍴,VALUE) then
-SH↑VALUE is printed instead of VALUE. The shape SH is computed like
-this:
+say, VALUE exceeds ⎕SYL[28;2] (i.e.  if ⎕SYL[28;2] ≤ ⍴,VALUE) then
+SH↑VALUE is printed instead of VALUE, followed by a note that the
+display was truncated.  The shape SH is computed like this:
 
            SH←⍴VALUE
-           while (ravel-length(SH) ≥ ⎕SYL[27;2]) { divide longest axis in SH by 2 }
+           while (ravel-length(SH) ≥ ⎕SYL[28;2]) { divide longest axis in SH by 2 }
+
+   The limit applies regardless of boxing (*note Boxing of Displayed
+Values::): with boxing, the boxed value is SH↑VALUE.
+
+   ⎕SYL[28;2] is 0 (no limit) by default.  It can be set to 0 again, or
+to a value of at least 1000:
+
+           ⎕SYL[28;2]←1000    ⍝ limit the display of values to < 1000 items
+           ⎕SYL[28;2]←0       ⍝ no limit
+
+
+File: apl.info,  Node: ⎕SYL[29 ... 34;],  Prev: ⎕SYL[28;],  Up: ⎕SYL - System limits
+
+2.49.5 ⎕SYL[29 ... 34;]
+-----------------------
+
+Rows 29, 30, and 31 are read-only: the maximum length of the prefix (the
+parser’s look-ahead) and the tolerances (fuzz) used for integer and real
+comparisons.
+
+   Rows 32 and 33 control ⎕WA: a safety margin in bytes (at least
+1000000 when assigned) and a memory scale in percent (45 to 200).
+
+   Row 34 is the minimum element count for packed ravels (at least 1),
+see also command line option ‘--pack_min’.
 
 
 File: apl.info,  Node: ⎕XML - XML Parsing,  Next: Conditionals,  Prev: ⎕SYL - System limits,  Up: Non-standard GNU APL Features
@@ -13637,56 +13681,57 @@ Node: Reading a Database Table into an APL Matrix393942
 Node: Updating a Database Table395713
 Node: Deleting Rows From a Database Table398342
 Node: ⎕SYL - System limits399114
-Node: ⎕SYL[1 2 3 4 5 6;]401530
-Node: ⎕SYL[7 8 9 10 11 12 13 14 15 16 17 18 19 20 21 22 23;]402925
-Node: ⎕SYL[24 25 26;]403409
-Node: ⎕SYL[27;]403721
-Node: ⎕XML - XML Parsing404404
-Node: Purpose404738
-Node: Some XML Terminology406314
-Node: How ⎕XML maps XML documents to APL Values409762
-Node: Monadic ⎕XML416425
-Node: Dyadic ⎕XML417238
-Node: XML Queries425531
-Node: Conditionals426401
-Node: Design considerations.426831
-Node: Syntax434229
-Node: A Possible Pitfall437382
-Node: Matrix Product441639
-Node: Monadic ≠ (Nub Sieve)444942
-Node: Limitations and Missing Features445490
-Node: System Limits446031
-Node: Shared Variables447333
-Node: Known Differences between IBM APL2 and GNU APL448470
-Node: The Rank and Power Operators464426
-Node: Output Formatting466550
-Ref: STRICT_IBM_APL2_FORMATTING470264
-Node: Internationalization491071
-Node: Vector Notation492252
-Node: History492847
-Node: Standardization493585
-Node: Quotes from the lrm494092
-Node: Some APL2 Tests496251
-Node: Test 1 - Binding strength of []496668
-Node: Test 2 - Binding strength of the left operand497561
-Node: Definitions502355
-Node: Unexpected Stranding505380
-Node: GNU APL Vector Notation514146
-Node: GNU APL Project Structure520134
-Node: The sub-directory src521662
-Node: The sub-directory support-files523034
-Node: The sub-directory doc523453
-Node: The sub-directory HOWTOs523757
-Node: The sub-directories workspaces and wslib2 ... wslib5524502
-Node: The sub-directory m4525062
-Node: The sub-directories debian and debian_tmp525934
-Node: The sub-directory tools526431
-Node: Libraries Contributed by GNU APL Users526894
-Node: The GNU APL Community Webpage527371
-Node: Core Libraries528108
-Node: Licenses for this GNU APL Manual and for GNU APL528989
-Node: The GNU Free Documentation License529534
-Node: The GNU GENERAL PUBLIC LICENSE554928
+Node: ⎕SYL[1 2 3 4 5 6;]402345
+Node: ⎕SYL[7 ... 24;]403801
+Node: ⎕SYL[25 26 27;]404168
+Node: ⎕SYL[28;]404645
+Node: ⎕SYL[29 ... 34;]405766
+Node: ⎕XML - XML Parsing406327
+Node: Purpose406661
+Node: Some XML Terminology408237
+Node: How ⎕XML maps XML documents to APL Values411685
+Node: Monadic ⎕XML418348
+Node: Dyadic ⎕XML419161
+Node: XML Queries427454
+Node: Conditionals428324
+Node: Design considerations.428754
+Node: Syntax436152
+Node: A Possible Pitfall439305
+Node: Matrix Product443562
+Node: Monadic ≠ (Nub Sieve)446865
+Node: Limitations and Missing Features447413
+Node: System Limits447954
+Node: Shared Variables449256
+Node: Known Differences between IBM APL2 and GNU APL450393
+Node: The Rank and Power Operators466349
+Node: Output Formatting468473
+Ref: STRICT_IBM_APL2_FORMATTING472187
+Node: Internationalization492994
+Node: Vector Notation494175
+Node: History494770
+Node: Standardization495508
+Node: Quotes from the lrm496015
+Node: Some APL2 Tests498174
+Node: Test 1 - Binding strength of []498591
+Node: Test 2 - Binding strength of the left operand499484
+Node: Definitions504278
+Node: Unexpected Stranding507303
+Node: GNU APL Vector Notation516069
+Node: GNU APL Project Structure522057
+Node: The sub-directory src523585
+Node: The sub-directory support-files524957
+Node: The sub-directory doc525376
+Node: The sub-directory HOWTOs525680
+Node: The sub-directories workspaces and wslib2 ... wslib5526425
+Node: The sub-directory m4526985
+Node: The sub-directories debian and debian_tmp527857
+Node: The sub-directory tools528354
+Node: Libraries Contributed by GNU APL Users528817
+Node: The GNU APL Community Webpage529294
+Node: Core Libraries530031
+Node: Licenses for this GNU APL Manual and for GNU APL530912
+Node: The GNU Free Documentation License531457
+Node: The GNU GENERAL PUBLIC LICENSE556851
 
 End Tag Table
 

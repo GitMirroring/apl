@@ -9319,38 +9319,49 @@ System variable @b{⎕SYL} shows a number of system limits when referenced:
 
 @example
       ⎕SYL
- SI depth limit          (0 = no limit)                    0 
+ SI depth limit          (0 = no limit)               100000 
  number of values limit  (0 = no limit)                    0 
  total ravel bytes limit (0 = no limit)                    0 
  current SI depth                                          1 
- current number of values                                 54 
- current total ravel bytes                              9072 
+ current number of values                                206 
+ current total ravel bytes                             14448 
  max. rank for APL values                                  8 
+ max. depth for APL values                               254 
  min. ⎕PW                                                 30 
- max. ⎕PW                                               1000 
+ max. ⎕PW                                              10000 
  min. ⎕PP                                                  1 
- max. ⎕PP                                                 16 
+ max. ⎕PP                                                 17 
+ log₁₀(max. ⎕CT)                                          ¯9 
  max. input line length                                 2000 
- hash table size (obsolete)                            65536 
+ hash table size                                       65536 
  max. shared variable name length                         64 
  max. length of filenames (paths)                       4096 
  max. # of shared variables (obsolete)                    64 
  max. number of APs                                       16 
- max. operators per statement                             16 
- largest integer                         9000000000000000000 
- smallest integer                       ¯9000000000000000000 
+ max. operators per statement                             32 
+ largest integer                         9200000000000000000 
+ smallest (negative) integer            ¯9200000000000000000 
  largest numeric exponent                                308 
  max. shared variable size (bytes)                     65000 
- max. cores (per ./configure)                              0 
- max. cores (per max_cores())                              1 
- current cores (per core_count())                          1 
+ CORE_COUNT_WANTED (per ./configure)                       0 
+ cores available                                           1 
+ cores used                                                1 
  print length limit (0 = no limit)                         0 
+ max. prefix length                                       40 
+ log₁₀(integer tolerance (aka. fuzz))                    ¯10 
+ log₁₀(real tolerance (aka. fuzz))                       ¯10 
+ ⎕WA safety margin (bytes)                                 0 
+ ⎕WA memory scale (%)                                     90 
+ min. element count for packed ravels                     12 
 @end example
 
-Most system limits are read-only; attempting to assign @b{⎕SYL} will result
-in a SYNTAX ERROR. Indexed assignment to @b{⎕SYL} will result in an
-INDEX ERROR unless the limit is writable. Some read-only limits can
-be changed at compile-time via ./configure
+(the current values in rows 4, 5, and 6 vary, of course). Most system limits
+are read-only; attempting to assign @b{⎕SYL} will result in a SYNTAX ERROR.
+Indexed assignment to @b{⎕SYL} (of the form @b{⎕SYL[X;2]←B}) will result in
+an INDEX ERROR unless the limit is writable, and in a DOMAIN ERROR if the
+new value is not valid for the limit; )MORE then tells why. Some read-only
+limits can be changed at compile-time via ./configure. The writable limits are
+rows 1, 2, 3, 27 (if PARALLEL_ENABLED was ./configure'd), 28, 32, 33, and 34.
 
 @c ............................................................................
 @node ⎕SYL[1 2 3 4 5 6;]
@@ -9388,36 +9399,68 @@ set the number of values limit and the total ravel bytes limit together.
 An attempt to set a too small limit, for example one that is close to the
 current value, is rejected with a DOMAIN ERROR.
 
+Rows 4, 5, and 6 show the current values that are compared with the limits
+in rows 1, 2, and 3.
+
 @c ............................................................................
-@node ⎕SYL[7 8 9 10 11 12 13 14 15 16 17 18 19 20 21 22 23;]
-@subsection ⎕SYL[7 8 9 10 11 12 13 14 15 16 17 18 19 20 21 22 23;]
+@node ⎕SYL[7 ... 24;]
+@subsection ⎕SYL[7 ... 24;]
 
 These system limits are read-only. Some of them can be changed at
 compile time via ./configure. Most others can be changed in the source code
 of GNU APL, but doing so is not recommended.
 
 @c ............................................................................
-@node ⎕SYL[24 25 26;]
-@subsection ⎕SYL[24 25 26;]
+@node ⎕SYL[25 26 27;]
+@subsection ⎕SYL[25 26 27;]
 
-These system limits have been added in preparation for multi-core GNU APL.
-They are currently not used.
+These rows show the number of CPU cores for parallel execution: the number
+requested by ./configure (CORE_COUNT_WANTED), the number available, and the
+number currently used. Row 27 is writable if PARALLEL_ENABLED was
+./configure'd (see README-8-parallel); otherwise an assignment to it is a
+DOMAIN ERROR.
 
 @c ............................................................................
-@node ⎕SYL[27;]
-@subsection ⎕SYL[27;]
+@node ⎕SYL[28;]
+@subsection ⎕SYL[28;]
 
 This is not a limit that raises a limit error. Instead it limits the
 size of APL values when printed as statement results. It is fairly easy
 in APL to create huge APL values by mistake. During development it can
 be useful to limit the amount of data printed. If the ravel length of,
-say, VALUE exceeds @b{⎕SYL}[27;2] (i.e. if @b{⎕SYL}[27;2] ≤ ⍴,VALUE) then SH↑VALUE
-is printed instead of VALUE. The shape SH is computed like this:
+say, VALUE exceeds @b{⎕SYL}[28;2] (i.e. if @b{⎕SYL}[28;2] ≤ ⍴,VALUE) then SH↑VALUE
+is printed instead of VALUE, followed by a note that the display was
+truncated. The shape SH is computed like this:
 
 @example
       SH←⍴VALUE
-      while (ravel-length(SH) ≥ ⎕SYL[27;2]) @{ divide longest axis in SH by 2 @}
+      while (ravel-length(SH) ≥ ⎕SYL[28;2]) @{ divide longest axis in SH by 2 @}
 @end example
+
+The limit applies regardless of boxing (@pxref{Boxing of Displayed Values}):
+with boxing, the boxed value is SH↑VALUE.
+
+@b{⎕SYL}[28;2] is 0 (no limit) by default. It can be set to 0 again, or
+to a value of at least 1000:
+
+@example
+      ⎕SYL[28;2]←1000    ⍝ limit the display of values to < 1000 items
+      ⎕SYL[28;2]←0       ⍝ no limit
+@end example
+
+@c ............................................................................
+@node ⎕SYL[29 ... 34;]
+@subsection ⎕SYL[29 ... 34;]
+
+Rows 29, 30, and 31 are read-only: the maximum length of the prefix (the
+parser's look-ahead) and the tolerances (fuzz) used for integer and real
+comparisons.
+
+Rows 32 and 33 control @b{⎕WA}: a safety margin in bytes (at least 1000000
+when assigned) and a memory scale in percent (45 to 200).
+
+Row 34 is the minimum element count for packed ravels (at least 1), see
+also command line option @code{--pack_min}.
 
 @c ----------------------------------------------------------------------------
 @node ⎕XML - XML Parsing

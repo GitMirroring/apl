@@ -674,55 +674,57 @@ bool print_value = result.get_Class() == TC_VALUE && tag != TOK_APL_VALUE2;
 
    Quad_QUOTE::done(false, LOC);
 
+   // the print length limit (⎕SYL) applies to every display of a value,
+   // whether boxed or not: if B exceeds it then the longest dimension of B
+   // is cut in half until B is below the limit.
+   //
+Value_P B0 = B;
+const bool truncated = Quad_SYL::print_length_limit &&
+                       B->element_count() >= Quad_SYL::print_length_limit;
+   if (truncated)
+      {
+        Shape sh(B->get_shape());
+        while (sh.get_volume() >= Quad_SYL::print_length_limit)
+           {
+             sRank longest = 0;
+             loop(r, sh.get_rank())
+                {
+                  if (sh.get_shape_item(r) > sh.get_shape_item(longest))
+                     longest = r;
+                }
+
+             sh.set_shape_item(longest, sh.get_shape_item(longest) / 2);
+           }
+
+        B0 = Bif_F12_TAKE::do_take(sh, *B, false);
+      }
+
 const int boxing_format = Command::get_boxing_format();
    if (boxing_format == 0)   // no boxing
       {
-        if (Quad_SYL::print_length_limit &&
-            B->element_count() >= Quad_SYL::print_length_limit)
-           {
-             // the value exceeds print_length_limit.
-             // We cut the longest dimension in half until we are below the
-             // limit
-             //
-             Shape sh(B->get_shape());
-             while (sh.get_volume() >= Quad_SYL::print_length_limit)
-                {
-                  sRank longest = 0;
-                  loop(r, sh.get_rank())
-                     {
-                       if (sh.get_shape_item(r) > sh.get_shape_item(longest))
-                          longest = r;
-                     }
-
-                  sh.set_shape_item(longest, sh.get_shape_item(longest) / 2);
-                }
-
-             Value_P B1 = Bif_F12_TAKE::do_take(sh, *B, false);
-             B1->print(COUT);
-
-             CERR << "      *** display of value was truncated (limit "
-                     "⎕SYL[⎕IO + " << Quad_SYL::SYL_PRINT_LIMIT
-                  << "] reached)  ***" << endl;
-           }
-        else   // no print length limit or small B
-           {
-             B->print(COUT);
-           }
+        B0->print(COUT);
       }
-   else if (boxing_format < 0)
+   else if (boxing_format < 0)   // box B0 only if the boxed B0 fits into ⎕PW
       {
         const PrintContext pctx = Workspace::get_PrintContext(PST_NONE);
-        Value_P B1 = Quad_CR::do_CR(-boxing_format, *B, pctx);
+        Value_P B1 = Quad_CR::do_CR(-boxing_format, *B0, pctx);
         if (B1->get_cols() >= Workspace::get_PW())   // too large
-           B->print(COUT);   // don't box
+           B0->print(COUT);   // don't box
         else
            B1->print(COUT);   // do box
       }
    else
       {
         const PrintContext pctx = Workspace::get_PrintContext(PST_NONE);
-        Value_P B1 = Quad_CR::do_CR(boxing_format, *B, pctx);
+        Value_P B1 = Quad_CR::do_CR(boxing_format, *B0, pctx);
         B1->print(COUT);
+      }
+
+   if (truncated)
+      {
+        CERR << "      *** display of value was truncated (limit "
+                "⎕SYL[⎕IO + " << Quad_SYL::SYL_PRINT_LIMIT
+             << "] reached)  ***" << endl;
       }
 }
 //════════════════════════════════════════════════════════════════════════════
