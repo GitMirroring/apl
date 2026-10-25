@@ -55,6 +55,12 @@ public:
    virtual Token eval_XB(cValue_R X, cValue_R B) const
       { return eval_AB(X, B); }
 
+   /// overloaded Function::eval_AXB()
+   /// @param A left argument APL value
+   /// @param X axis argument APL value
+   /// @param B right argument APL value
+   virtual Token eval_AXB(cValue_R A, cValue_R X, cValue_R B) const;
+
    /// compute \b a ⎕CR \b B
    /// @param a integer selector choosing the character-representation format
    /// @param B right argument APL value
@@ -63,7 +69,7 @@ public:
 
    /// the frame styles of the boxing variants of ⎕CR (indices into
    /// frame_styles())
-   enum Frame_style
+   enum FrameStyle
       {
         FS_APL           = 0,    ///< 0 ⎕CR: no frames
         FS_APL_FUN       = 1,    ///< 1 ⎕CR: no frames
@@ -81,7 +87,7 @@ public:
       };
 
    /// return the frame characters (see PrintBuffer::Frame_char) of all
-   /// frame styles, indexed by Frame_style
+   /// frame styles, indexed by FrameStyle
    static const UCS_string_vector & frame_styles();
 
    /// compute a good default type and value for the top-level ⍴ of 10 ⎕CR.
@@ -113,6 +119,25 @@ public:
    static Value_P do_CR38(cValue_R B);
 
 protected:
+   /// return \b true if the frame defined by fun has an extra (outer) frame.
+   /// \b true for fun ∈ 4 8 23 24 25 29 46 47.
+   /// @param fun the frame sub-function
+   static bool extra_frame(int fun)
+      {
+        enum { HAS_EXTRA = 1ULL <<  4 | 1ULL << 8  |
+                           1ULL << 23 | 1ULL << 24 | 1ULL << 25 |
+                           1ULL << 29 | 1ULL << 46 |
+                           1ULL << 47 };
+         return (1ULL << fun & HAS_EXTRA) != 0;
+      }
+
+   /// draw B in one of the boxed styles, possibly with an outer frame
+   /// @param B the value to be printed
+   /// @param pctx line styles etc.
+   /// @param extra draw an extra frame around B
+   static Value_P draw_B_boxed(cValue_R B, PrintContext pctx, bool extra,
+                                const UCS_string & frame_chars);
+
    /// a mapping between function names and function numbers
    static const FunctionGroup::function_info subfunction_infos[];
 

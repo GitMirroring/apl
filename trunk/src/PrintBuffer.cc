@@ -193,7 +193,7 @@ const ShapeItem ec = value.element_count();
 
         if (value.is_char_array())
            {
-             pctx.set_style(PR_BOXED_GRAPHIC2);
+             pctx.set_style(PR_BOXED_DOUBLE);
              new (this)   PrintBuffer(value, pctx, out);
              return;
            }
@@ -1659,7 +1659,8 @@ PrintBuffer::make_frame_chars(const UCS_string & lines1,
 UCS_string chars(FC_LINES_COUNT, UNI_SPACE);
    loop(fc, FC_LINES_COUNT)
       {
-        const int legs[4] = { fc / 27, fc / 9 % 3, fc / 3 % 3, fc % 3 };
+        const int f = fc;
+        const int legs[4] = { f / 27, f / 9 % 3, f / 3 % 3, f % 3 };
         int mask1 = 0;   // legs in line style 1
         int mask2 = 0;   // legs in line style 2
         loop(l, 4)

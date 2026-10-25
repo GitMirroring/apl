@@ -463,33 +463,33 @@ enum PrintStyle
                      | PST_CS_THICK,
 
    /// 7/8 ⎕CR (boxed with thin line graphics chars)
-   PR_BOXED_GRAPHIC1 = 0
+   PR_BOXED_THIN     = 0
                      | PST_MATRIX
                      | PST_PRETTY
                      | PST_CS_THIN,
 
    /// 9 ⎕CR (boxed with thick line graphics chars in a double box)
-   PR_BOXED_GRAPHIC2 = 0
+   PR_BOXED_DOUBLE   = 0
                      | PST_MATRIX
                      | PST_PRETTY
                      | PST_CS_THICK 
                      | PST_CS_DOUBLE << 4, ///< DISPLAY graphic in double box
 
    /// 29 ⎕CR (boxed with thick line graphics chars, but strings quoted)
-   PR_BOXED_GRAPHIC3 = 0
+   PR_BOXED_QUOTED   = 0
                      | PST_MATRIX
                      | PST_PRETTY
                      | PST_CS_THICK
                      | PST_QUOTE_CHARS,
 
    /// 46 ⎕CR (8 ⎕CR but without frame decorators)
-   PR_BOXED_GRAPHIC4 = 0
+   PR_PLAIN_THIN     = 0
                      | PST_PRETTY
                      | PST_CS_THIN
                      | PST_PLAIN,
 
    /// 47 ⎕CR (4 ⎕CR but without frame decorators)
-   PR_BOXED_GRAPHIC5 = 0
+   PR_PLAIN_THICK    = 0
                      | PST_PRETTY
                      | PST_CS_THICK
                      | PST_PLAIN,
@@ -500,13 +500,13 @@ enum PrintStyle
                      | PST_NARS,
 
    /// 21 ⎕CR (7 ⎕CR in NARS style (shape lengths instead of ↓ and →)
-   PR_NARS1          = 0
-                     | PR_BOXED_GRAPHIC1
+   PR_NARS_THIN      = 0
+                     | PR_BOXED_THIN
                      | PST_NARS,
 
    /// 22 ⎕CR (9 ⎕CR in NARS style (shape lengths instead of ↓ and →)
-   PR_NARS2          = 0
-                     | PR_BOXED_GRAPHIC2
+   PR_NARS_DOUBLE    = 0
+                     | PR_BOXED_DOUBLE
                      | PST_NARS,
 };
 //────────────────────────────────────────────────────────────────────────────

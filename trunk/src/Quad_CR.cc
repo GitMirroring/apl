@@ -89,6 +89,74 @@ Value_P Z = do_CR(subfunction, B, pctx);
    Z->check_value(LOC);
    return Token(TOK_APL_VALUE1, Z);
 }
+//────────────────────────────────────────────────────────────────────────────
+Token
+Quad_CR::eval_AXB(cValue_R A, cValue_R X, cValue_R B) const
+{
+const sAxis a = value_to_subfun(A);
+FrameStyle frame_style;
+PrintContext pctx = Workspace::get_PrintContext(PST_NONE);
+#define FRAME(f)   pctx.set_style(PR_ ## f); frame_style = FS_ ## f; break;
+   switch(a)
+      {
+        case  0: FRAME(APL)
+        case  1: FRAME(APL_FUN)
+        case  2: FRAME(BOXED_CHAR)
+        case  3: FRAME(BOXED_GRAPHIC)
+        case  4: FRAME(BOXED_GRAPHIC)
+        case  7: FRAME(BOXED_THIN)
+        case  8: FRAME(BOXED_THIN)
+        case  9: FRAME(BOXED_DOUBLE)
+        case 20: FRAME(NARS)
+        case 21: FRAME(NARS_THIN)
+        case 22: FRAME(NARS_DOUBLE)
+        case 23: FRAME(NARS)
+        case 24: FRAME(NARS_THIN)
+        case 25: FRAME(NARS_DOUBLE)
+        case 29: FRAME(BOXED_QUOTED)
+        case 46: FRAME(PLAIN_THIN)
+        case 47: FRAME(PLAIN_THICK)
+        default: MORE_ERROR() << "A ⎕CR[X] B with invalid subfunction A (="
+                              << a << ")";
+                 DOMAIN_ERROR;
+      }
+#undef FRAME
+
+   // valid style
+   //
+   if (X.get_rank() != 1)
+      {
+        MORE_ERROR() << "A ⎕CR[X] B with non-vector X";
+        RANK_ERROR;
+      }
+
+   // empty X means: return the frame chars for the subfunction
+   //
+UCS_string frame_chars = frame_styles()[frame_style];
+   if (X.element_count() == 0)
+      {
+        Value_P Z(frame_chars, LOC);
+        return Token(TOK_APL_VALUE1, Z);
+      }
+
+   if (X.element_count() > frame_chars.ssize())
+      {
+        MORE_ERROR() << "A ⎕CR[X] B with too long X (max. is "
+                     << frame_chars.size() << ")";
+        LENGTH_ERROR;
+      }
+
+   // fill in items present in X
+   //
+   loop(e, X.element_count())
+       {
+         Cell cache;
+         frame_chars[e] = X.get_cravel(e, cache).get_char_value();
+       }
+
+Value_P Z = draw_B_boxed(B, pctx, extra_frame(a), frame_chars);
+   return Token(TOK_APL_VALUE1, Z);
+}
 //════════════════════════════════════════════════════════════════════════════
 Value_P
 Quad_CR::do_CR(APL_Integer a, cValue_R B, PrintContext pctx)
@@ -117,43 +185,27 @@ Quad_CR::do_CR(APL_Integer a, cValue_R B, PrintContext pctx)
         case -39: a = 38;   break;
         case -40: a = 41;   break;
         case -41: a = 40;   break;
-        default: MORE_ERROR() << "A ⎕CR B with invalid A < 0";
+        default: MORE_ERROR() << "A ⎕CR B with invalid subfunction A < 0";
                  DOMAIN_ERROR;
       }
 
-// extra_frame draws an extra frame (even if B is not nested).
-bool extra_frame = false;
+FrameStyle frame_style = FS_APL;
    switch(a)
       {
-        case  4:
-        case  8:
-        case 23:
-        case 24:
-        case 25:
-        case 29:
-        case 46:
-        case 47: extra_frame = true;
-
-      }
-
-Frame_style frame_style = FS_APL;
-   switch(a)
-      {
-
 /// a local shortcut for the various frame variants of ⎕CR: the print style
 /// x (for everything but the frames) and the frame style fs
-#define FRAME(x, fs)   pctx.set_style(x);   frame_style = fs;   break;
+#define FRAME(f)   pctx.set_style(PR_ ## f); frame_style = FS_ ## f; break;
 
-        case  0: FRAME(PR_APL,            FS_APL)
-        case  1: FRAME(PR_APL_FUN,        FS_APL_FUN)
-        case  2: FRAME(PR_BOXED_CHAR,     FS_BOXED_CHAR)   // ASCII chars
-        case  3: FRAME(PR_BOXED_GRAPHIC,  FS_BOXED_GRAPHIC)
-        case  4: FRAME(PR_BOXED_GRAPHIC,  FS_BOXED_GRAPHIC)   // extra frame
+        case  0: FRAME(APL)
+        case  1: FRAME(APL_FUN)
+        case  2: FRAME(BOXED_CHAR)     // ASCII chars
+        case  3: FRAME(BOXED_GRAPHIC)
+        case  4: FRAME(BOXED_GRAPHIC)  // extra frame
         case  5:                               // byte-vector → HEX
         case  6: return do_CR5_6(a, B);        // byte-vector → hex
-        case  7: FRAME(PR_BOXED_GRAPHIC1, FS_BOXED_THIN)
-        case  8: FRAME(PR_BOXED_GRAPHIC1, FS_BOXED_THIN)   // extra frame
-        case  9: FRAME(PR_BOXED_GRAPHIC2, FS_BOXED_DOUBLE)
+        case  7: FRAME(BOXED_THIN)
+        case  8: FRAME(BOXED_THIN)     // extra frame
+        case  9: FRAME(BOXED_DOUBLE)
         case 10: return do_CR10(B);
         case 11: return do_CR11(B);            // Value → CDR conversion
         case 12: return do_CR12(B);            // CDR → Value conversion
@@ -164,16 +216,16 @@ Frame_style frame_style = FS_APL;
         case 17: return do_CR17(B);            // base64 → byte vector, RFC 4648
         case 18: return do_CR18(B);            // UCS → UTF8 byte vector
         case 19: return do_CR19(B);            // UTF8 byte vector → UCS string
-        case 20: FRAME(PR_NARS,           FS_NARS)
-        case 21: FRAME(PR_NARS1,          FS_NARS_THIN)
-        case 22: FRAME(PR_NARS2,          FS_NARS_DOUBLE)
-        case 23: FRAME(PR_NARS,           FS_NARS)          // extra frame
-        case 24: FRAME(PR_NARS1,          FS_NARS_THIN)     // extra frame
-        case 25: FRAME(PR_NARS2,          FS_NARS_DOUBLE)   // extra frame
+        case 20: FRAME(NARS)
+        case 21: FRAME(NARS_THIN)
+        case 22: FRAME(NARS_DOUBLE)
+        case 23: FRAME(NARS)           // extra frame
+        case 24: FRAME(NARS_THIN)      // extra frame
+        case 25: FRAME(NARS_DOUBLE)    // extra frame
         case 26: return do_CR26(B);            // Cell types
         case 27:                               // value as int
         case 28: return do_CR27_28(a, B);      // value2 as int
-        case 29: FRAME(PR_BOXED_GRAPHIC3, FS_BOXED_QUOTED)  // extra frame
+        case 29: FRAME(BOXED_QUOTED)    // extra frame
         case 30: return do_CR30(B);            // conform B (for ⍤ macro)
         case 31:                               // ⎕INP helper
         case 32: return do_CR31_32(a, B);      // ⎕INP helper
@@ -189,8 +241,8 @@ Frame_style frame_style = FS_APL;
         case 42: return do_CR42_43(B, false);  // tokenize B
         case 43: return do_CR42_43(B, true);   // parse B
         case 44: return do_CR44(B);            // decode token tags
-        case 46: FRAME(PR_BOXED_GRAPHIC4, FS_PLAIN_THIN)
-        case 47: FRAME(PR_BOXED_GRAPHIC5, FS_PLAIN_THICK)
+        case 46: FRAME(PLAIN_THIN)
+        case 47: FRAME(PLAIN_THICK)
         case 48: return do_CR48(B);            // ravel packing type as scalar
         case 49: return do_CR49(B);            // packing threshold as scalar
         case 50:                               // int (elementwise) → HEX
@@ -198,7 +250,8 @@ Frame_style frame_style = FS_APL;
         case 52: return do_CR52(B);            // byte vector → CRC32
         case 53: return do_CR53(B);            // byte vector → CRC32 hex string
 
-        default: MORE_ERROR() << "A ⎕CR B with invalid A (=" << a << ")";
+        default: MORE_ERROR() << "A ⎕CR B with invalid subfunction A (="
+                              << a << ")";
                  DOMAIN_ERROR;
 #undef FRAME
       }
@@ -206,16 +259,25 @@ Frame_style frame_style = FS_APL;
    // common code for ⎕CR variants that only differ by their frames...
    //
 const UCS_string & frame_chars = frame_styles()[frame_style];
-   if (extra_frame && !B.is_simple_scalar())
+   return draw_B_boxed(B, pctx, extra_frame(a), frame_chars);
+}
+//────────────────────────────────────────────────────────────────────────────
+Value_P
+Quad_CR::draw_B_boxed(cValue_R B, PrintContext pctx, bool extra,
+                      const UCS_string & frame_chars)
+{
+   if (extra && !B.is_simple_scalar())
       {
-        Value_P Z(LOC);                          // a nested scalar
-        Value * Zsub = static_cast<Value *>(const_cast<cValue *>(&B));   // will die at } below
-        Z->next_ravel_Pointer(Zsub);             // Z ← ⊂ B
+        // we print the extra frame around B by printing ⊂B instead of B
+        //
+        Value_P Z(LOC);                      // a nested scalar
+        Value_P Zsub = B.clone(LOC); 
+        Z->next_ravel_Pointer(Zsub.get());   // Z ← ⊂B
         Z->check_value(LOC);
         PrintBuffer pb(*Z, pctx, frame_chars, 0);
         return Value_P(pb, LOC);
       }
-   else   // no frame
+   else   // no extra frame
       {
          PrintBuffer pb(B, pctx, frame_chars, 0);
          return Value_P(pb, LOC);
@@ -225,7 +287,7 @@ const UCS_string & frame_chars = frame_styles()[frame_style];
 const UCS_string_vector &
 Quad_CR::frame_styles()
 {
-   // the frame characters (see PrintBuffer::Frame_char) of each Frame_style:
+   // the frame characters (see PrintBuffer::Frame_char) of each FrameStyle:
    // the 81 line-drawing characters, followed by the decorators and options.
    //
    // The line-drawing character FC_Nn_Ee_Ss_Ww is at position 27n + 9e + 3s

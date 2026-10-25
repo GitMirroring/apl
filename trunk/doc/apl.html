@@ -241,7 +241,10 @@ therefore it must be expanded with e.g. <b>gunzip</b> before it can be read.
       <li><a id="toc-monadic-_005b_003f_005dCC-B_003a-Return-character-class" href="#monadic-_2395CC-B-_002d-Return-character-class">2.29.1 monadic ⎕CC B: Return character class</a></li>
       <li><a id="toc-dyadic-A-_005b_003f_005dCC-B_003a-Test-character-class" href="#dyadic-A-_2395CC-B-_002d-Test-character-class">2.29.2 dyadic A ⎕CC B: Test character class</a></li>
     </ul></li>
-    <li><a id="toc-Dyadic-_005b_003f_005dCR" href="#Dyadic-_2395CR">2.30 Dyadic ⎕CR</a></li>
+    <li><a id="toc-Dyadic-_005b_003f_005dCR" href="#Dyadic-_2395CR">2.30 Dyadic ⎕CR</a>
+    <ul class="no-bullet">
+      <li><a id="toc-User_002ddefined-boxing_003a-A-_005b_003f_005dCR_005bX_005d-B" href="#User_002ddefined-boxing-_0028A-_2395CR_005bX_005d-B_0029">2.30.1 User-defined boxing: A ⎕CR[X] B</a></li>
+    </ul></li>
     <li><a id="toc-Dyadic-_005b_003f_005dFX-_0028Native-Functions_0029" href="#Dyadic-_2395FX-_0028Native-Functions_0029">2.31 Dyadic ⎕FX (Native Functions)</a></li>
     <li><a id="toc-_005b_003f_005dARG-_002d-Interpreter-command-line-arguments" href="#g_t_2395ARG-_002d-Interpreter-command-line-arguments">2.32 ⎕ARG - Interpreter command line arguments</a></li>
     <li><a id="toc-_005b_003f_005dDLX-_002d-Knuth_0027s-Dancing-Links-Algorithm" href="#g_t_2395DLX-_002d-Knuth_0027s-Dancing-Links-Algorithm">2.33 ⎕DLX - Knuth&rsquo;s Dancing Links Algorithm</a></li>
@@ -6421,8 +6424,9 @@ of <b>⎕FIO</b> functions.
 of <b>⎕CR</b>:
 </p>
 <ul>
-<li> <b>A∈0 1 2 3 4 7 8 9 29</b>: various formatting styles (boxed, 
-      APL input/output, etc.).  Just try them out.
+<li> <b>A∈0 1 2 3 4 7 8 9 29 46 47</b>: various formatting styles (boxed,
+      APL input/output, etc.).  Just try them out. See also
+      <a href="#User_002ddefined-boxing-_0028A-_2395CR_005bX_005d-B_0029">User-defined boxing: A ⎕CR[X] B</a>.
 
 </li><li> <b>A∈5 6</b>: convert byte vector B to a string of uppercase or lowercase
       hex digits respectively. Every byte in <b>B</b> becomes 2 characters
@@ -6459,9 +6463,10 @@ number. For example, <b>12 ⎕CR B</b> is the same as <b>¯11 ⎕CR B</b>.
 </li><li> <b>A=19</b>: convert byte vector B into text vector <b>Z</b> (UTF8 encoding,
       <b>RFC 3629</b>)
 
-</li><li> <b>A=20-25</b>: like 3,4,i or 7-9 but using a formatting similar to
-      NARS APL <b>⎕FMT</b> (showing the axis lengths as numbers instead of
-      <b>→</b> and <b>↓</b>)
+</li><li> <b>A=20-25</b>: boxed like 3, 7, or 9 (20, 21, 22), and the same with
+      an extra frame (23, 24, 25), but using a formatting similar to NARS APL
+      <b>⎕FMT</b> (showing the axis lengths as numbers instead of <b>→</b> and
+      <b>↓</b>)
 
 </li><li> <b>A=26</b>: <b>Z</b> is the cell types of the ravel elements of <b>B</b>, i.e.
       <ul>
@@ -6549,6 +6554,46 @@ GNU APL with <b>⎕FIO[57]</b> (aka. <b>fork()</b> and <b>execve()</b>).
 </li><li> <b>A=43</b>: parse the APL statement Bs.
 
 </li><li> <b>A=44</b>: decode the (integer) token tag B or the (nested) token B.
+
+</li><li> <b>A=45</b>: print the addresses of value <b>B</b> and of its nested items
+      (a debugging aid), and return <b>B</b> unchanged.
+
+</li><li> <b>A=46</b>: like <b>8 ⎕CR</b> (thin lines), but without frame decorators.
+
+</li><li> <b>A=47</b>: like <b>4 ⎕CR</b> (thick lines), but without frame decorators.
+
+</li><li> <b>A=48</b>: <b>Z</b> is the (integer scalar) packing type of the ravel of
+      <b>B</b>: 0 if the ravel is not packed, otherwise a code for the type
+      of the packed items (e.g. 64-bit integers).
+
+</li><li> <b>A=49</b>: <b>Z</b> is the (integer scalar) minimum length of a ravel
+      for automatic packing, see <b>⎕SYL[34;]</b>. <b>B</b> is ignored.
+
+</li><li> <b>A∈50 51</b>: convert every integer of <b>B</b> separately to a string
+      of uppercase (50) or lowercase (51) hex digits (in 2&rsquo;s complement if
+      negative). Unlike <b>5 ⎕CR</b> and <b>6 ⎕CR</b>, <b>B</b> is not limited to
+      bytes. A scalar <b>B</b> yields a simple string; otherwise <b>Z</b> has the
+      shape of <b>B</b> with one (nested) hex string per item of <b>B</b>.
+
+<div class="example">
+<pre class="example">      50 ⎕CR 255
+FF
+      51 ⎕CR 255 4096
+ ff 1000
+</pre></div>
+
+</li><li> <b>A=52</b>: <b>Z</b> is the CRC32 checksum of byte vector <b>B</b> as an
+      integer scalar.
+
+</li><li> <b>A=53</b>: <b>Z</b> is the CRC32 checksum of byte vector <b>B</b> as a string
+      of 8 uppercase hex digits.
+
+<div class="example">
+<pre class="example">      52 ⎕CR 18 ⎕CR 'Hello'
+4157704578
+      53 ⎕CR 18 ⎕CR 'Hello'
+F7D18982
+</pre></div>
 </li></ul>
 
 <p>Most dyadic <b>⎕CR</b> variants whose argument <b>B</b> is expected to be a byte
@@ -6571,7 +6616,216 @@ values or values being assigned.
 a name. For example: monadic <b>⎕CR.hex_to_bytes</b> is the same as monadic
 <b>⎕CR[13]</b> or dyadic <b>13 ⎕CR</b>.
 </p>
+<ul class="section-toc">
+<li><a href="#User_002ddefined-boxing-_0028A-_2395CR_005bX_005d-B_0029" accesskey="1">User-defined boxing: A ⎕CR[X] B</a></li>
+</ul>
 <hr>
+<div class="subsection" id="User_002ddefined-boxing-_0028A-_2395CR_005bX_005d-B_0029">
+<div class="header">
+<p>
+Up: <a href="#Dyadic-_2395CR" accesskey="u" rel="up">Dyadic ⎕CR</a> &nbsp; [<a href="#SEC_Contents" title="Table of contents" rel="contents">Contents</a>]</p>
+</div>
+<span id="User_002ddefined-boxing_003a-A-_005b_003f_005dCR_005bX_005d-B"></span><h4 class="subsection">2.30.1 User-defined boxing: A ⎕CR[X] B</h4>
+
+<p>The boxing sub-functions of <b>⎕CR</b> (<b>A∈2 3 4 7 8 9 20 ... 25 29 46 47</b>)
+display a value <b>B</b> in one of a few fixed boxing styles. Each of these
+styles is defined by a character vector of length 89: the line-drawing
+characters for the frames, followed by the decorators that are printed into
+the frames (like <b>↓</b> or <b>∼</b>). The dyadic form with an axis,
+<b>Z←A ⎕CR[X] B</b>, gives access to that vector, so that you can define your
+own boxing style:
+</p>
+<ul>
+<li> <b>A ⎕CR[⍬] B</b> returns the 89-character vector of boxing style <b>A</b>
+(<b>B</b> is ignored).
+
+</li><li> <b>A ⎕CR[X] B</b> with a non-empty character vector <b>X</b> formats <b>B</b>
+like <b>A ⎕CR B</b>, but with the first <b>⍴X</b> characters of the boxing style
+of <b>A</b> replaced by <b>X</b>. Usually <b>X</b> is the (modified) result of
+<b>A ⎕CR[⍬] B</b>.
+</li></ul>
+
+<p>The usual way to define your own boxing style is therefore: start with the
+style that comes closest to what you want, modify it, and use the modified
+vector as axis:
+</p>
+<div class="example">
+<pre class="example">      F←8 ⎕CR[⍬] 0   ⍝ the boxing style of 8 ⎕CR
+      ⍴F
+89
+</pre></div>
+
+<p><b>The line-drawing characters (positions 1 ... 81)</b>
+</p>
+<p>Every line-drawing character has 4 <i>legs</i>: North, East, South, and West.
+With two line styles, each leg is either absent (0), or drawn in line style
+1 (1), or drawn in line style 2 (2). The character whose legs are
+<b>N E S W</b> is at position <b>1+3⊥N E S W</b>, so the 81 positions cover all
+3⋆4 combinations of two line styles. Displayed as a 9×9 matrix, row
+<b>1+3⊥N E</b> and column <b>1+3⊥S W</b> hold the character with legs <b>N E S W</b>:
+</p>
+<div class="example">
+<pre class="example">      9 9⍴81↑F
+ ╴ ╷┐
+╶─ ┌┬
+
+╵┘ │┤
+└┴ ├┼
+</pre></div>
+
+<p>(the last 4 rows are blank and not shown).
+</p>
+<p>Boxing uses only the characters whose legs are all in the same line style:
+</p>
+<ul>
+<li> the characters of line style 1 (no leg is 2) are used, recursively,
+for the frames of the nested items of <b>B</b> (and, depending on <b>A</b>, for a
+frame around <b>B</b> itself, see below). For example, the top left
+corner of these frames has legs towards East and South, i.e. it is at
+position <b>1+3⊥0 1 1 0</b> (= 13).
+
+</li><li> the characters of line style 2 (no leg is 1) are used for an
+(optional) outer frame (without decorators) around all of <b>B</b>, for
+example the double outer
+frame of <b>9 ⎕CR</b>. They are blank in the style of <b>8 ⎕CR</b> above. No outer
+frame is drawn if its top left corner (position <b>1+3⊥0 2 2 0</b> = 25) is
+blank.
+</li></ul>
+
+<p>Of these, boxing uses the 4 corners and the horizontal and vertical lines
+of each line style, i.e. 12 positions. The examples show line style 1 as
+thin and line style 2 as double lines (as Unicode has them; the actual
+characters depend on the boxing style):
+</p>
+<table>
+<thead><tr><th>Character</th><th>N E S W</th><th>Style 1</th><th>Example</th><th>Style 2</th><th>Example</th></tr></thead>
+<tr><td>top left corner</td><td>0 1 1 0</td><td>13</td><td>┌</td><td>25</td><td>╔</td></tr>
+<tr><td>top right corner</td><td>0 0 1 1</td><td>5</td><td>┐</td><td>9</td><td>╗</td></tr>
+<tr><td>bottom left corner</td><td>1 1 0 0</td><td>37</td><td>└</td><td>73</td><td>╚</td></tr>
+<tr><td>bottom right corner</td><td>1 0 0 1</td><td>29</td><td>┘</td><td>57</td><td>╝</td></tr>
+<tr><td>horizontal line</td><td>0 1 0 1</td><td>11</td><td>─</td><td>21</td><td>═</td></tr>
+<tr><td>vertical line</td><td>1 0 1 0</td><td>31</td><td>│</td><td>61</td><td>║</td></tr>
+</table>
+
+<p>The legs of a style 2 character are those of the corresponding style 1
+character times 2, so its position is <b>1+2×3⊥N E S W</b>. The other
+non-mixed characters (for example <b>┬</b> and <b>┼</b> at positions 14 and 41,
+or <b>╦</b> and <b>╬</b> at positions 27 and 81) are not used for boxing.
+</p>
+<p>The mixed characters, i.e. those with legs in both line styles (such as
+<b>╪</b> with vertical thin and horizontal double legs), are not used for
+boxing. Their positions are reserved for other uses, for example tables
+with a mix of thin and double lines (the combination of line styles that
+Unicode supports best). A blank in any position means: no character.
+</p>
+<p><b>The decorators and options (positions 82 ... 89)</b>
+</p>
+<p>The decorators describe the APL value inside a frame (its rank, type,
+nesting, and empty axes). They are therefore only printed into the frames
+of line style 1, i.e. the frames of APL values (the items of <b>B</b>, or
+<b>B</b> itself). The outer frame (line style 2) is not the frame of an APL
+value and has no decorators.
+</p>
+<table>
+<thead><tr><th>Position</th><th>Default</th><th>Printed (if not blank)</th></tr></thead>
+<tr><td>82</td><td>↓</td><td>on the left frame line if the item has rank &gt; 1</td></tr>
+<tr><td>83</td><td>→</td><td>on the top frame line if the item has rank &gt; 0</td></tr>
+<tr><td>84</td><td>∼</td><td>on the bottom frame line if the item is simple numeric</td></tr>
+<tr><td>85</td><td>+</td><td>on the bottom frame line if the item is simple mixed</td></tr>
+<tr><td>86</td><td>ϵ</td><td>on the bottom frame line, once for every level of
+nesting of the item</td></tr>
+<tr><td>87</td><td>⊖</td><td>on the top frame line if the last axis is empty</td></tr>
+<tr><td>88</td><td>⌽</td><td>on the left frame line if a non-last axis is empty</td></tr>
+<tr><td>89</td><td>(blank)</td><td><b>(</b>: parentheses instead of frames</td></tr>
+</table>
+
+<p>A blank decorator is not printed (the frame line is drawn instead). If
+position 86 (<b>ϵ</b>) is blank, then positions 84 and 85 (<b>∼</b> and <b>+</b>)
+are not printed either. A <b>#</b> in position 82 or 83 prints the axis
+lengths instead of <b>↓</b> and <b>→</b> (as NARS APL and <b>20 ⎕CR</b> do).
+</p>
+<p><b>Examples</b>
+</p>
+<div class="example">
+<pre class="example">      V←1 'ab' (2 2⍴⍳4)
+      8 ⎕CR V
+┌→───────────┐
+│1 ┌→─┐ ┌→──┐│
+│  │ab│ ↓1 2││
+│  └──┘ │3 4││
+│       └∼──┘│
+└ϵ───────────┘
+
+      ⍝ rounded corners
+      F[1+3⊥⍉4 4⍴0 1 1 0  0 0 1 1  1 1 0 0  1 0 0 1]←'╭╮╰╯'
+      8 ⎕CR[F] V
+╭→───────────╮
+│1 ╭→─╮ ╭→──╮│
+│  │ab│ ↓1 2││
+│  ╰──╯ │3 4││
+│       ╰∼──╯│
+╰ϵ───────────╯
+
+      ⍝ no decorators
+      F[81+⍳7]←' '      ⍝ positions 82 ... 88
+      8 ⎕CR[F] V
+╭────────────╮
+│1 ╭──╮ ╭───╮│
+│  │ab│ │1 2││
+│  ╰──╯ │3 4││
+│       ╰───╯│
+╰────────────╯
+
+      ⍝ axis lengths instead of ↓ and →
+      F[82 83]←'#'
+      8 ⎕CR[F] V
+╭3───────────╮
+│1 ╭2─╮ ╭2──╮│
+│  │ab│ 21 2││
+│  ╰──╯ │3 4││
+│       ╰───╯│
+╰────────────╯
+
+      ⍝ parentheses instead of frames
+      F[89]←'('
+      8 ⎕CR[F] V
+⎛1 (ab) ⎛1 2⎞⎞
+⎝       ⎝3 4⎠⎠
+
+      ⍝ the double outer frame of 9 ⎕CR for 3 ⎕CR
+      3 ⎕CR[9 ⎕CR[⍬] 0] V
+╔════════════╗
+║1 ┏→━┓ ┏→━━┓║
+║  ┃ab┃ ↓1 2┃║
+║  ┗━━┛ ┃3 4┃║
+║       ┗∼━━┛║
+╚════════════╝
+</pre></div>
+
+<p>The frame characters and decorators are taken entirely from <b>X</b> (and,
+beyond <b>⍴X</b>, from the style of <b>A</b>). The left argument <b>A</b> still
+determines the rest of the formatting, in particular:
+</p>
+<ul>
+<li> whether <b>B</b> as a whole gets a frame in line style 1 (as for
+<b>A∈4 8 23 24 25 29 46 47</b>) or only the items of <b>B</b> (as for
+<b>A∈2 3 7 9 20 21 22</b>), and
+</li><li> whether strings are quoted (<b>A=29</b>).
+</li></ul>
+
+<p><b>0 ⎕CR[⍬] B</b> and <b>1 ⎕CR[⍬] B</b> return 89 blanks, since these styles
+have no frames. <b>A ⎕CR[X] B</b> throws:
+</p>
+<ul>
+<li> DOMAIN ERROR if <b>A</b> is not one of the boxing sub-functions
+<b>0 1 2 3 4 7 8 9 20 ... 25 29 46 47</b>, or if an item of <b>X</b> is not a
+character,
+</li><li> RANK ERROR if <b>X</b> is not a vector, and
+</li><li> LENGTH ERROR if <b>X</b> has more than 89 items.
+</li></ul>
+
+<hr>
+</div>
 </div>
 <div class="section" id="Dyadic-_2395FX-_0028Native-Functions_0029">
 <div class="header">
