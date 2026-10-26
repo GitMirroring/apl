@@ -372,6 +372,14 @@ fields_done:
 
    if (fract_part.format.ssize())
       fract_part.out_len = fract_part.format.ssize() + 1;
+   else if (have_decimal_point && exponent.size())
+      {
+        // a decimal point without fractional digits, but followed by an
+        // exponent (e.g. '7.A1', Bugs36 F2): the decimal point is part of
+        // the number (not of the right decorator, see the quirk above).
+        //
+        fract_part.out_len = 1;
+      }
 
    if (exponent.size())
       {
@@ -766,9 +774,13 @@ UCS_string ucs;
         Assert(fract_part.size() >= data.size());
         pad_count += fract_part.size() - data.size();
 
-        // print nothing instead of .
-        if (data.size() == 0)   ++pad_count;
-        else                    ucs << Workspace::get_FC(0);
+        // print nothing instead of . (but the . of a number without
+        // fractional digits and with an exponent, see fields_done:)
+        //
+        if (data.size() || fract_part.format.ssize() == 0)
+           ucs << Workspace::get_FC(0);
+        else
+           ++pad_count;
         ucs << data;
       }
 

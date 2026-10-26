@@ -765,7 +765,17 @@ Unicode_source src(input);
                            case 2:   or an operator:            e.g. +.*
                            case 3:   or a syntax error:         e.g. Done.
                          */
-                        if (src.rest_len() == 1)   // case 3: syntax error
+                        if (src.rest_len() == 1 &&   // . at the end and
+                            tos.size() &&            // after a function, e.g.
+                            tos.back().get_Class() == TC_FUN12)   // 5∘. or +.
+                           {
+                             // case 2: an operator without its right
+                             // operand. Let the parser report that (with
+                             // the entire statement in line 2), Bugs36 F3.
+                             //
+                             tokenize_function(src, tos);
+                           }
+                        else if (src.rest_len() == 1)   // case 3: syntax error
                            {
                              MORE_ERROR() << "no digit before or after '.'.";
                              Error::throw_parse_error(E_SYNTAX_ERROR, input,
@@ -773,13 +783,17 @@ Unicode_source src(input);
                                                       src.get_pos() + 1,
                                                       LOC, loc);
                            }
-
-                        Unicode uni_1 = src[1];
-                        const Token tok_1 = Avec::uni_to_token(uni_1, LOC);
-                        if ((int(tok_1.get_tag()) & int(TC_MASK)) == TC_NUMERIC)
-                           tokenize_number(src, tos, rest_2);
                         else
-                           tokenize_function(src, tos);
+                           {
+                             Unicode uni_1 = src[1];
+                             const Token tok_1 = Avec::uni_to_token(uni_1,
+                                                                    LOC);
+                             if ((int(tok_1.get_tag()) & int(TC_MASK)) ==
+                                 TC_NUMERIC)
+                                tokenize_number(src, tos, rest_2);
+                             else
+                                tokenize_function(src, tos);
+                           }
                       }
                    else
                       {

@@ -597,7 +597,7 @@ DOMAIN ERROR
       Z
  0  2 6658  Unbalanced right parenthesis 
             A←B)←2)                      
-               ^^                        
+               ^                         
       1÷0
 DOMAIN ERROR
       1÷0

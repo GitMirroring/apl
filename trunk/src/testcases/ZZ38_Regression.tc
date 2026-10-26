@@ -25,4 +25,6 @@ DOMAIN ERROR+
       ]FILE_CTL NO_SKIP
       ⍎ 1{⍺{⍺{⍺{⍺{⍺ + ⍵}2⍵}2⍵}2⍵
 Unbalanced left curly bracket+
+      ⍎1{⍺{⍺{⍺{⍺{⍺+⍵}2 ⍵}2 ⍵}2 ⍵
+        ^
 

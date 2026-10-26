@@ -264,19 +264,19 @@ DOMAIN ERROR
       'a'◊2)
 Unbalanced right parenthesis+
       'a'◊2)
-           ^^
+           ^
 
 
       X←'a' ◊ 2)
 Unbalanced right parenthesis+
       X←'a'◊2)
-             ^^
+             ^
 
 
       'a' ◊ 2]
 Unbalanced right square bracket+
       'a'◊2]
-           ^^
+           ^
 
 
       ⍝ Bugs35 #6: an empty statement or a conditional statement before
@@ -3334,6 +3334,194 @@ invalid expression in parentheses
 
       ⍴⎕SVO 0 3⍴'a'
 0
+
+
+
+
+
+      ⍝ Bugs36 F1: a value followed by a function without right argument
+      ⍝ (R←5 ∘. 1, R←5 +): SYNTAX ERROR before the assignment or branch
+      ⍝
+      R←0
+      R←5 ∘. 1
+SYNTAX ERROR+
+      R←5∘.1
+      ^  ^
+
+      )MORE
+function without right argument
+      R
+0
+      )SIC
+
+
+
+
+
+      R←5 +
+SYNTAX ERROR+
+      R←5+
+      ^  ^
+
+      R
+0
+      )SIC
+
+
+
+
+
+∇Z←FB36_GOTO
+Z←0
+→4 ∘. 1
+Z←1
+Z←2
+∇
+
+
+
+
+
+      FB36_GOTO
+SYNTAX ERROR+
+FB36_GOTO[2]  →4∘.1
+              ^ ^
+
+      )SIC
+
+
+
+
+
+      ⍝ Bugs36 F2: a decimal point without fractional digits, followed by
+      ⍝ an exponent, used to trip Assert(row.size() == all_formats.size())
+      ⍝
+      '7.A1'⍕1
+1.A0
+
+
+
+
+
+      '7.A1'⍕12
+1.A1
+
+
+
+
+
+      '97.E11'⍕1234
+01.E3 
+
+
+
+
+
+      '43473.A(,5'⍕1
+    1.A(0 
+
+
+
+
+
+      ',297.A01'⍕1.234
+  01.A00
+
+
+
+
+
+      ⍝ Bugs36 F3: error line 2 of a dangling ∘. or +. is the statement
+      ⍝
+      5∘.
+SYNTAX ERROR+
+      5∘.
+      ^^
+
+      )SIC
+
+
+
+
+
+      R←5 ∘.
+SYNTAX ERROR+
+      R←5∘.
+      ^  ^
+
+      R
+0
+      )SIC
+
+
+
+
+
+      ⍝ Bugs36 F4: the caret of an unbalanced closing delimiter is on the
+      ⍝ delimiter (not past the end of the line); an unbalanced opening
+      ⍝ delimiter shows the statement and a caret on the outermost opener
+      ⍝
+      2)
+Unbalanced right parenthesis+
+      2)
+       ^
+
+      )SIC
+
+
+
+
+
+      1 2 3]
+Unbalanced right square bracket+
+      1 2 3]
+           ^
+
+      )SIC
+
+
+
+
+
+      (1 2]
+Unbalanced right square bracket+
+      (1 2]
+      ^   ^
+
+      )SIC
+
+
+
+
+
+      (2
+Unbalanced left parenthesis+
+      (2
+      ^
+
+      )SIC
+
+
+
+
+
+      A←(1 2
+Unbalanced left parenthesis+
+      A←(1 2
+        ^
+
+      )SIC
+
+
+
+
+
+      A[1
+Unbalanced left square bracket+
+      A[1
+       ^
+
+      )SIC
 
 
 

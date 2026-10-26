@@ -88,6 +88,29 @@ vector<Open_bracket> expected;
 
         throw error;
       }
+
+   // an opener without its closer: report the outermost one (like
+   // Parser::match_par_bra()), but with the statement in line 2 (which
+   // the ErrorCode returned by match_par_bra() does not have).
+   //
+   if (expected.size())
+      {
+        const Open_bracket & outer = expected[0];
+        const ErrorCode ec =
+              outer.closer == TOK_R_BRACK ? E_UNBALANCED_L_BRACK
+            : outer.closer == TOK_R_CURLY ? E_UNBALANCED_L_CURLY
+                                          : E_UNBALANCED_L_PARENT;
+
+        if (Workspace::more_error().size() == 0)
+           MORE_ERROR() << Error::error_name(ec);
+        Error error(ec, LOC);
+        build_error_line_2(error, outer.pos, outer.pos);
+
+        if (StateIndicator * si = Workspace::SI_top())
+           StateIndicator::get_error(si) = error;
+
+        throw error;
+      }
 }
 //────────────────────────────────────────────────────────────────────────────
 void
@@ -118,7 +141,7 @@ int right_caret = -1;
            }
 
         if (q == lo)   left_caret  = message_2.size() - alen;
-        if (q == hi)   right_caret = message_2.size();
+        if (q == hi)   right_caret = message_2.size() - 1;   // last char
       }
 
    error.set_error_line_2(message_2, left_caret, right_caret);

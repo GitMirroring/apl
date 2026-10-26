@@ -613,6 +613,18 @@ again:   // aka. REDUCE
              MORE_ERROR() << "invalid expression in parentheses";
              SYNTAX_ERROR;
            }
+
+        // a value followed by a function that has no right argument, e.g.
+        // R←5 + or R←5 ∘. 1 (∘. 1 was reduced to a derived function before
+        // the assignment), Bugs36 F1. Everything right of the value has
+        // already been reduced, so the function can no longer get its
+        // right argument.
+        //
+        if (at(prefix_len - 1).get_Class() == TC_VALUE && next == TC_FUN12)
+           {
+             MORE_ERROR() << "function without right argument";
+             SYNTAX_ERROR;
+           }
       }
 
    Log(LOG_Reduce_XXX)
