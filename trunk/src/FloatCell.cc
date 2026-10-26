@@ -944,7 +944,12 @@ FloatCell::bif_residue_ff(Cell * Z, APL_Float a, APL_Float b)
         APL_Float r = fmod(b, a);   // exact; has the sign of b
         if (r != 0.0 && ((r < 0.0) != (a < 0.0)))
            {
-             r += a;   // NOT exact: rounds to a if |r| < ulp(a)÷2
+             // NOT exact: rounds to a if |r| < ulp(a)÷2. The volatile
+             // forces the rounding to double before the comparison below;
+             // with x87 arithmetic (32-bit i386) the sum would otherwise
+             // remain in an 80-bit register where it still differs from a.
+             volatile APL_Float sum = r + a;
+             r = sum;
              // a is no residue modulo a (Bugs35 #11, e.g. 1E19|¯1). The
              // exact residue is not representable; return the closest
              // double strictly between 0 and a.
