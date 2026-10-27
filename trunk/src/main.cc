@@ -224,7 +224,9 @@ show_welcome(ostream & out, const char * argv0, Silence silence)
 
    if (silence == BRIEF_BANNER)
       {
-        out << "GNU APL version " << build_tag[1] << endl;
+        out << "GNU APL version " << build_tag[1];
+        if (Output::color_enabled())   out << Output::clear_EOL;
+        out << endl;
         return;
       }
 
@@ -277,7 +279,12 @@ const int left_pad = (80 - len)/2;
               loop(p, pad)   out << " ";
               out << cl;
             }
-         out<< endl;
+         // extend the background color to the end of the line. Without it,
+         // only the characters written get the color, unless the terminal
+         // scrolls (Linux terminals then fill the new line with the current
+         // background, macOS Terminal does not).
+         if (Output::color_enabled())   out << Output::clear_EOL;
+         out << endl;
        }
 
 }
