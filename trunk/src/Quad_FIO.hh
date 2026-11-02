@@ -52,10 +52,16 @@ public:
    /// the default buffer size if the user does not provide one
    enum { SMALL_BUF = 5000 };
 
+   /// like fgets(), but return the number of bytes read (NUL-safe)
+   /// @param buffer receives the line (NUL-terminated)
+   /// @param size the size of \b buffer
+   /// @param file the file to read from
+   static int fgets_len(char * buffer, int size, FILE * file);
+
    /// return the open FILE * for (APL integer value) \b handle
    /// @param handle APL value holding the integer file handle
    static FILE * get_FILE(const cValue & handle)
-      { Cell cache; return get_FILE(handle.get_cscalar(cache).get_near_int()); }
+      { return get_FILE(handle.get_sole_integer()); }   // Bugs37 #83c
 
    /// overloaded Function::eval_AB().
    virtual Token eval_AB(cValue_R A, cValue_R B) const;
@@ -178,8 +184,8 @@ protected:
       {
         if (UserPreferences::uprefs.safe_mode)
            {
-             MORE_ERROR() << "⎕FIO[" << funnum
-                          << " is not permitted in safe mode (see ⎕ARG)";
+             MORE_ERROR() << "⎕FIO[" << funnum   // ] added (Bugs37 #83h)
+                          << "] is not permitted in safe mode (see ⎕ARG)";
              DOMAIN_ERROR;
            }
       }
@@ -195,8 +201,7 @@ protected:
    /// return the open file for (APL integer) \b handle
    /// @param handle APL value holding the integer file handle
    static file_entry & get_file_entry(const cValue & handle)
-      { Cell cache;
-        return get_file_entry(handle.get_cscalar(cache).get_near_int()); }
+      { return get_file_entry(handle.get_sole_integer()); }   // Bugs37 #83c
 
    /// overloaded Function::eval_ALXB().
    /// @param A left APL value argument
@@ -495,6 +500,31 @@ protected:
    /// return the open file for (APL integer) \b handle
    /// @param handle integer file handle index
    static file_entry & get_file_entry(APL_Integer handle);
+
+   /// throw a DOMAIN ERROR if \b path contains a NUL character
+   /// @param path a file or directory name
+   static void check_path(const UCS_string & path);
+
+   /// the handle of the last get_file_entry() (or -1), for Handle_errno
+   static APL_Integer last_handle;
+
+   /// store errno into the file_entry of the handle used by a ⎕FIO call
+   /// when the call ends (⎕FIO[5] Bh, Bugs37 #54)
+   class Handle_errno
+      {
+        public:
+           /// constructor: forget the last handle
+           Handle_errno(bool act)
+           : active(act)
+           { last_handle = -1; }
+
+           /// destructor: store errno into the entry of last_handle
+           ~Handle_errno();
+
+        protected:
+           /// false for ⎕FIO[5] itself
+           const bool active;
+      };
 
    /// return one or more random values
    /// @param mode distribution/type selector for random generation

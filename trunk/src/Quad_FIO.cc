@@ -92,6 +92,38 @@ uint64_t Quad_FIO::benchmark_cycles_from = 0;
 APL_Integer Quad_FIO::TM3_trigger = 0;
 
 std::vector<Quad_FIO::file_entry> Quad_FIO::open_files;
+APL_Integer Quad_FIO::last_handle = -1;
+
+//────────────────────────────────────────────────────────────────────────────
+void
+Quad_FIO::check_path(const UCS_string & path)
+{
+   // a NUL character would silently truncate the path in its C string
+   //
+   loop(p, path.size())
+      {
+        if (path[p] == 0)
+           {
+             MORE_ERROR() << "⎕FIO: path contains a NUL character (⎕UCS 0)";
+             DOMAIN_ERROR;
+           }
+      }
+}
+//────────────────────────────────────────────────────────────────────────────
+Quad_FIO::Handle_errno::~Handle_errno()
+{
+   if (!active || last_handle == -1)   return;
+
+const int err = errno;
+   loop(h, open_files.size())   // the handle may have been closed
+      {
+        if (open_files[h].fe_fd == last_handle)
+           {
+             open_files[h].fe_errno = err;
+             break;
+           }
+      }
+}
 
 Quad_FIO  Quad_FIO::fun;
 
@@ -175,7 +207,7 @@ Quad_FIO::eval_AB(cValue_R A, cValue_R B) const
    if (B.is_str0())    return list_functions(CERR);
    if (B.is_zilde())   return list_mappings(CERR);
 
-const APL_Integer function_number = B.get_int_value(0);
+const APL_Integer function_number = B.get_near_int(0);
 Value_P B_vp = CLONE(&B, LOC);
    switch(function_number)
       {
@@ -205,6 +237,7 @@ Quad_FIO::eval_AXB(cValue_R A, cValue_R X, cValue_R B) const
 Value_P A_vp = CLONE(&A, LOC);
 Value_P B_vp = CLONE(&B, LOC);
 const sAxis function_number = value_to_subfun(X);
+const Handle_errno handle_errno(true);
    switch(function_number)
       {
          case 0:   // list functions
@@ -323,7 +356,7 @@ Quad_FIO::eval_B(cValue_R B) const
         DOMAIN_ERROR;
       }
 
-const APL_Integer function_number = B.get_int_value(0);
+const APL_Integer function_number = B.get_near_int(0);
 Value_P B_vp = CLONE(&B, LOC);
    switch(function_number)
       {
@@ -417,7 +450,9 @@ Quad_FIO::eval_XB(cValue_R X, cValue_R B) const
    if (B.get_rank() > 1)   RANK_ERROR;
 
 Value_P B_vp = CLONE(&B, LOC);
-   switch(const APL_Integer function_number = value_to_subfun(X))
+const APL_Integer function_number = value_to_subfun(X);
+const Handle_errno handle_errno(function_number != 5);
+   switch(function_number)
       {
          case 0:   // list functions
               return list_functions(CERR);
@@ -692,6 +727,7 @@ const int sock = spair[1];
    ::close(sock);   // close the extra reference so fd 3 is the sole owner
 
 const UCS_string path_ucs(B);
+check_path(path_ucs);   // Bugs37 #83a
 const UTF8_string path(path_ucs);
 char * filename = strdup(path.c_str());
 if (!filename)   DOMAIN_ERROR;
@@ -763,7 +799,7 @@ uint32_t uni = 0;
 Token
 Quad_FIO::eval_ALXB(cValue_R A, Token & LO, cValue_R X, cValue_R B) const
 {
-const APL_Integer function_number = X.get_int_value(0);
+const APL_Integer function_number = X.get_near_int(0);
    switch(function_number)
       {
         case -1:   // benchmark monadic LO with argument B
@@ -793,7 +829,7 @@ Quad_FIO::eval_LXB(Token & LO, cValue_R X, cValue_R B) const
          return result;
       }
 
-const APL_Integer function_number = X.get_int_value(0);
+const APL_Integer function_number = X.get_near_int(0);
    switch (function_number)
       {
         case -1:   // benchmark monadic LO with argument B
@@ -840,11 +876,9 @@ Quad_FIO::list_functions(ostream & out) const
 "   │    A1, A2, ...  nested vector with elements A1, A2, ...       │\n"
 "   └───────────────────────────────────────────────────────────────┘\n"
 "\n"
-"           ⎕FIO      ⍬   ⍝ print this text on stderr\n"
-"           ⎕FIO     ''   ⍝ print function-number to -name mapping on stderr\n"
+"           ⎕FIO     ''   ⍝ print this text on stderr\n"
+"           ⎕FIO      ⍬   ⍝ print function-number to -name mapping on stderr\n"
 "           ⎕FIO      0   ⍝ return a list of open file descriptors\n"
-"        '' ⎕FIO      ⍬   ⍝ print this text on stdout\n"
-"           ⎕FIO     ''   ⍝ print function-number to -name mapping on stdout\n"
 "           ⎕FIO[ 0] ''   ⍝ print this text on stderr\n"
 "        '' ⎕FIO[ 0] ''   ⍝ print this text on stdout\n"
 "\n"
@@ -873,10 +907,10 @@ Quad_FIO::list_functions(ostream & out) const
 "   Zi ←    ⎕FIO[16] Bh   ⍝ fflush(Bh)\n"
 "   Zi ←    ⎕FIO[17] Bh   ⍝ fsync(Bh)\n"
 "   Zi ←    ⎕FIO[18] Bh   ⍝ fstat(Bh)\n"
-"   Zi ←    ⎕FIO[19] Bh   ⍝ unlink(Bc)\n"
-"   Zi ←    ⎕FIO[20] Bh   ⍝ mkdir(Bc, 0777)\n"
-"   Zi ← Ai ⎕FIO[20] Bh   ⍝ mkdir(Bc, AI)\n"
-"   Zi ←    ⎕FIO[21] Bh   ⍝ rmdir(Bc)\n"
+"   Zi ←    ⎕FIO[19] Bp   ⍝ unlink(Bp)\n"
+"   Zi ←    ⎕FIO[20] Bp   ⍝ mkdir(Bp, 0777)\n"
+"   Zi ← Ai ⎕FIO[20] Bp   ⍝ mkdir(Bp, Ai)\n"
+"   Zi ←    ⎕FIO[21] Bp   ⍝ rmdir(Bp)\n"
 "   Zi ← A  ⎕FIO[22] 1    ⍝ printf(         A1, A2...) format A1\n"
 "   Zi ← A  ⎕FIO[22] 2    ⍝ fprintf(stderr, A1, A2...) format A1\n"
 "   Zi ← A  ⎕FIO[22] Bh   ⍝ fprintf(Bh,     A1, A2...) format A1\n"
@@ -885,11 +919,11 @@ Quad_FIO::list_functions(ostream & out) const
 "   Zh ←    ⎕FIO[24] Bs   ⍝ popen(Bs, \"r\") command Bs\n"
 "   Ze ←    ⎕FIO[25] Bh   ⍝ pclose(Bh)\n"
 "   Zb ←    ⎕FIO[26] Bp   ⍝ return entire file Bp as byte vector\n"
-"   Zs ← Ap ⎕FIO[27] Bp   ⍝ rename file Ap to Bp\n"
+"   Ze ← Ap ⎕FIO[27] Bp   ⍝ rename file Ap to Bp\n"
 "   Zd ←    ⎕FIO[28] Bp   ⍝ return content of directory Bp\n"
 "   Zn ←    ⎕FIO[29] Bp   ⍝ return file names in directory Bp\n"
 "   Zs ←    ⎕FIO 30       ⍝ getcwd()\n"
-"   Zn ← As ⎕FIO[31] Bs   ⍝ access(As, Bp) As ϵ 'RWXF'\n"
+"   Ze ← As ⎕FIO[31] Bp   ⍝ access(As, Bp) As ϵ 'RWXF'\n"
 "   Zh ←    ⎕FIO[32] Bi   ⍝ socket(Bi=AF_INET, SOCK_STREAM, 0)\n"
 "   Ze ← Aa ⎕FIO[33] Bh   ⍝ bind(Bh, Aa)\n"
 "   Ze ←    ⎕FIO[34] Bh   ⍝ listen(Bh, 10)\n"
@@ -1036,6 +1070,36 @@ public:
             }
       }
 
+   /// return the number of characters consumed thus far, i.e. without the
+   /// lookahead character \b la (if any) of the caller (Bugs37 #30)
+   ShapeItem get_consumed(Unicode la) const
+      {
+        ShapeItem count = get_count();
+        if (la == Invalid_Unicode || la == UNI_EOF)   return count;
+        if (file)   return count - UTF8_string(UCS_string(la)).size();
+        return count - 1;
+      }
+
+   /// return the lookahead character \b la (if any) of the caller, as
+   /// well as an ungotten character, to the file, so that the next
+   /// operation on the file sees it (like C's fscanf() does). Bugs37 #30.
+   void finish(Unicode la)
+      {
+        if (!file)   return;
+        put_back(lookahead);
+        lookahead = Invalid_Unicode;
+        put_back(la);
+      }
+
+   /// put \b uni back to the file
+   void put_back(Unicode uni)
+      {
+        if (uni == Invalid_Unicode || uni == UNI_EOF)   return;
+        const long len = UTF8_string(UCS_string(uni)).size();
+        if (len == 1)   ungetc(uni, file);
+        else            fseek(file, -len, SEEK_CUR);
+      }
+
    /// unget uni. At most one Unicode (= lookahead char) can be ungotten.
    void unget(Unicode uni)
       {
@@ -1058,7 +1122,7 @@ public:
               //
               if (lookahead != Invalid_Unicode)
                  {
-                   ungetc(lookahead, file);
+                   put_back(lookahead);   // also for a multi-byte char
                    lookahead = Invalid_Unicode;
                  }
               char fmt[32];
@@ -1067,17 +1131,28 @@ public:
                           (long long)conv_len, conv);
               else
                  snprintf(fmt, sizeof(fmt), "%%ll%c", conv);
-              return fscanf(file, fmt, &value);
+              errno = 0;
+              const int ret = fscanf(file, fmt, &value);
+              check_range(ret == 1 && errno == ERANGE, 0);
+              return ret;
             }
 
          // string input...
          //
+         // the digits collected in cc have no length limit (other than
+         // conv_len), like C. A fixed buffer silently cut long fields,
+         // which then gave a different number (Bugs37 #53).
+         //
          const bool hex = (conv == 'X') || (conv == 'x');
-         char cc[40];
-         unsigned int cidx = 0;
+         std::string cc;
          if (lookahead == UNI_OVERBAR || lookahead == UNI_MINUS)
             {
-              cc[cidx++] = '-';
+              cc += '-';
+              lookahead = Invalid_Unicode;
+            }
+         else if (lookahead == UNI_PLUS)   // C scanf: optional + (Bugs37 #31)
+            {
+              cc += '+';
               lookahead = Invalid_Unicode;
             }
          else if (hex ? Avec::is_hex_digit(lookahead)
@@ -1094,37 +1169,64 @@ public:
               // the loop below before this fix, accept hex letters for
               // %x/%X so e.g. 'ff' converts fully instead of stopping
               // after the first digit).
-              cc[cidx++] = lookahead;
+              cc += char(lookahead);
               lookahead = Invalid_Unicode;
             }
             // else: a non-numeric lookahead is left untouched here; the
             // loop below's get_next() will hand it back as its first
             // character and reject it the same way.
 
-         while (cidx < (sizeof(cc) - 1) &&
-                (conv_len == 0 || int64_t(cidx) < conv_len) &&
+         while ((conv_len == 0 || int64_t(cc.size()) < conv_len) &&
                 offset < string->ssize())
             {
+              // a sign is only valid as the first character (Bugs37 #31)
               const Unicode uni = get_next();
+              const bool first = cc.size() == 0;
               if (hex && Avec::is_hex_digit(uni))
-                                              cc[cidx++] = uni;   // 0-9a-fA-F
-              else if (Avec::is_digit(uni))  cc[cidx++] = uni;   // 0-9
-              else if (uni == UNI_OVERBAR)   cc[cidx++] = '-';   // ¯
-              else if (uni == UNI_MINUS)     cc[cidx++] = '-';   // -
+                                              cc += char(uni);   // 0-9a-fA-F
+              else if (Avec::is_digit(uni))  cc += char(uni);   // 0-9
+              else if (first && uni == UNI_OVERBAR)   cc += '-';
+              else if (first && uni == UNI_MINUS)     cc += '-';
+              else if (first && uni == UNI_PLUS)      cc += '+';
               else { unget(uni);   break; }
             }
 
-         cc[cidx] = 0;
          // nothing was consumed: not a conversion, and errno alone
          // can't tell the difference from a genuine strtoll() failure
          // (Blake McBride, Bugs23 #9).
-         if (cidx == 0)   return 0;
+         if (cc.size() == 0)   return 0;
          const int base =  (conv == 'X') || (conv == 'x') ? 16 : 10;
          errno = 0;
-         char * endptr = cc;
-         value = strtoll(cc, &endptr, base);
-         if (endptr == cc)   return 0;   // no digits converted (Bugs25 #4)
+         const char * cp = cc.c_str();
+         char * endptr = const_cast<char *>(cp);
+         value = strtoll(cp, &endptr, base);
+         if (endptr == cp)   return 0;   // no digits converted (Bugs25 #4)
+         check_range(errno == ERANGE, cc.c_str());
          return errno ? 0 : 1;
+      }
+
+   /// throw a DOMAIN ERROR if a scanned number does not fit into an APL
+   /// number (C would return a clamped integer or an infinite value).
+   /// Losing the number silently is not an option (Bugs37 #53).
+   /// @param overflow true if the number did not fit
+   /// @param text the scanned text (if known)
+   static void check_range(bool overflow, const char * text)
+      {
+        if (!overflow)   return;
+        UCS_string & more = MORE_ERROR();
+        more << "⎕FIO scanf: ";
+        if (!text)   more << "a number";
+        else
+           {
+             more << "the number ";
+             const UCS_string ucs{UTF8_string(text)};
+             if (ucs.size() <= 40)   more << ucs;
+             else   more << UCS_string(ucs, 0, 20) << "…"
+                         << UCS_string(ucs, ucs.size() - 10, 10)
+                         << " (" << ucs.size() << " characters)";
+           }
+        more << " in B is out of range";
+        DOMAIN_ERROR;
       }
 
    /// scan a double in string or file. Return either 0 or 1 for
@@ -1137,7 +1239,7 @@ public:
             {
               if (lookahead != Invalid_Unicode)
                  {
-                   ungetc(lookahead, file);
+                   put_back(lookahead);   // also for a multi-byte char
                    lookahead = Invalid_Unicode;
                  }
               char fmt[32];
@@ -1146,20 +1248,21 @@ public:
                           (long long)conv_len, conv);
               else
                  snprintf(fmt, sizeof(fmt), "%%l%c", conv);
-              return fscanf(file, fmt, &value);
+              const int ret = fscanf(file, fmt, &value);
+              check_range(ret == 1 && !isfinite(value), 0);
+              return ret;
             }
 
          // string input...
          //
-         char cc[40];
-         unsigned int cidx = 0;
+         std::string cc;   // no length limit, see scanf_long_long()
          if (lookahead == UNI_OVERBAR)
             {
-              cc[cidx++] = '-';
+              cc += '-';
               lookahead = Invalid_Unicode;
             }
          else if (lookahead > 0 && lookahead < 128 &&
-                  strchr(".0123456789eE-", char(lookahead)))
+                  strchr(".0123456789eE-+", char(lookahead)))
             {
               // strchr() truncates its int argument to char, so without
               // the ASCII range check above, any code point whose low
@@ -1169,33 +1272,46 @@ public:
               // character to strtod(). Also fixes a ⎕UCS 0 inside B
               // being accepted (strchr(s, 0) matches the NUL terminator).
               // (Blake McBride, Bugs23 #9.)
-              cc[cidx++] = char(lookahead);
+              cc += char(lookahead);
               lookahead = Invalid_Unicode;
             }
             // else: a non-numeric lookahead is left untouched here; the
             // loop below's get_next() will hand it back as its first
             // character and reject it the same way.
 
-         while (cidx < (sizeof(cc)) - 1 &&
-                (conv_len == 0 || int64_t(cidx) < conv_len) &&
+         while ((conv_len == 0 || int64_t(cc.size()) < conv_len) &&
                 offset < string->ssize())
             {
+              // a sign is only valid as the first character or after the
+              // e or E of an exponent, e.g. 1e+5 (Bugs37 #31)
+              //
               const Unicode uni = get_next();
-              if (uni == UNI_OVERBAR)   cc[cidx++] = '-';   // ¯
+              const bool sign_ok = cc.size() == 0 ||
+                                   cc.back() == 'e' || cc.back() == 'E';
+              if (uni == UNI_OVERBAR && sign_ok)   cc += '-';   // ¯
+              else if ((uni == UNI_MINUS || uni == UNI_PLUS) && sign_ok)
+                 cc += char(uni);
               else if (uni > 0 && uni < 128 &&
-                       strchr(".0123456789eE-", char(uni)))
-                 cc[cidx++] = char(uni);
+                       strchr(".0123456789eE", char(uni)))
+                 cc += char(uni);
               else { unget(uni);   break; }
             }
 
-         cc[cidx] = 0;
          // nothing was consumed: not a conversion, and errno alone
          // can't tell the difference from a genuine strtod() failure
          // (Blake McBride, Bugs23 #9).
-         if (cidx == 0)   return 0;
+         if (cc.size() == 0)   return 0;
          errno = 0;
-         value = strtod(cc, 0);
-         return errno ? 0 : 1;
+         const char * cp = cc.c_str();
+         char * endptr = const_cast<char *>(cp);
+         value = strtod(cp, &endptr);
+         if (endptr == cp)   return 0;   // no digits converted (Bugs37 #52)
+
+         // an overflow is an error, an underflow (ERANGE with a result
+         // of 0 or a denormal) gives that result, like C
+         //
+         check_range(!isfinite(value), cc.c_str());
+         return 1;
       }
 
 protected:
@@ -1233,21 +1349,27 @@ ShapeItem count = 0;
 
 Value_P Z(count, LOC);
 
+   // lookahead is the next (unconsumed) input character, or UNI_EOF at
+   // the end of the input, or Invalid_Unicode if it was handed back to
+   // input (input.unget()). The end of the input only ends the scan for
+   // a directive that needs input (unlike %n). Bugs37 #29.
+   //
 Unicode lookahead = input.get_next();
-   if (lookahead == UNI_EOF)   goto out;
+
+   // white space as defined by C's isspace()
+   //
+struct _ { static bool is_space(Unicode uni)
+   { return uni == UNI_SPACE || (uni >= UNI_HT && uni <= UNI_CR); } };
 
    loop(f, format.ssize())
       {
         const Unicode fmt_ch = format[f];
-        if (fmt_ch == UNI_SPACE)
+        if (_::is_space(fmt_ch))
            {
-             // one space in the format matches 0 or more spaces in the input
+             // white space in the format matches 0 or more white space
+             // characters in the input (like C)
              //
-             while (lookahead == UNI_SPACE)
-                {
-                 lookahead = input.get_next();
-                 if (lookahead == UNI_EOF)   goto out;
-                }
+             while (_::is_space(lookahead))   lookahead = input.get_next();
              continue;
            }
 
@@ -1256,9 +1378,8 @@ Unicode lookahead = input.get_next();
              // normal character in format: match with input
              //
              match:
-             if (fmt_ch != lookahead)   goto out;
+             if (fmt_ch != lookahead)   goto out;   // incl. UNI_EOF
              lookahead = input.get_next();
-             if (lookahead == UNI_EOF)   goto out;
              continue;
            }
 
@@ -1326,9 +1447,17 @@ Unicode lookahead = input.get_next();
              DOMAIN_ERROR;
            }
 
+        // like C, all conversions except %c, %[, and %n skip leading white
+        // space in the input (Bugs37 #53)
+        //
+        if (conv != UNI_c && conv != UNI_L_BRACK && conv != UNI_n)
+           while (_::is_space(lookahead))   lookahead = input.get_next();
+
         if (strchr("dDiouxX", conv))  // integer conversion
            {
+             if (lookahead == UNI_EOF)   goto out;
              input.unget(lookahead);   // so that scanf_long_long() can read it
+             lookahead = Invalid_Unicode;
              long long value = 0;
              const int count = input.scanf_long_long(conv, value, conv_len);
              // Bugs28 #49: a suppressed conversion (%*d) still
@@ -1344,11 +1473,12 @@ Unicode lookahead = input.get_next();
              if (!suppress)   Z->next_ravel_Int(value);
 
              lookahead = input.get_next();
-             if (lookahead == UNI_EOF)   goto out;
            }
         else if (strchr("fFeg", conv))  // float conversion
            {
+             if (lookahead == UNI_EOF)   goto out;
              input.unget(lookahead);   // let scanf_double() read it
+             lookahead = Invalid_Unicode;
              APL_Float value = 0;
              const int count = input.scanf_double(conv, value, conv_len);
              // Bugs28 #49: see the matching, more detailed comment on
@@ -1358,15 +1488,14 @@ Unicode lookahead = input.get_next();
              if (!suppress)   Z->next_ravel_Float(value);
 
              lookahead = input.get_next();
-             if (lookahead == UNI_EOF)   goto out;
            }
         else if (conv == UNI_c)  // char(s)
            {
+             if (lookahead == UNI_EOF)   goto out;   // no char (Bugs37 #29)
              if (conv_len == 0)   // default: single char
                 {
                   if (!suppress)   Z->next_ravel_Char(lookahead);
                   lookahead = input.get_next();
-                  if (lookahead == UNI_EOF)   goto out;
                 }
              else
                 {
@@ -1387,13 +1516,13 @@ Unicode lookahead = input.get_next();
            }
         else if (conv == UNI_s)  // string
            {
+             if (lookahead == UNI_EOF)   goto out;   // no string (Bugs37 #29)
              UCS_string ucs;
              while (lookahead > UNI_SPACE)
                  {
                    ucs << lookahead;
+                   lookahead = input.get_next();   // Bugs37 #28
                    if (conv_len && ucs.ssize() >= conv_len)   break;
-                   lookahead = input.get_next();
-                   if (lookahead == UNI_EOF)   break;
                  }
 
              if (!suppress)
@@ -1404,7 +1533,7 @@ Unicode lookahead = input.get_next();
            }
         else if (conv == UNI_n)  // characters consumed thus far
            {
-             if (!suppress)   Z->next_ravel_Int(input.get_count());
+             if (!suppress)   Z->next_ravel_Int(input.get_consumed(lookahead));
            }
         else if (conv == UNI_L_BRACK)   // character range
            {
@@ -1516,6 +1645,8 @@ Unicode lookahead = input.get_next();
       }
 
 out:
+   input.finish(lookahead);   // return the lookahead to a file
+
    // shrink Z to the actual number of converted items
    //
 const Shape sh_Z(Z->get_valid_item_count());
@@ -1735,7 +1866,7 @@ int conversion_count_A = 0;   // the number of conversions (in A_format)
                     UTF8_string utf(fmt);
                     UCS_string ufmt(utf);
                     UZ << ufmt;
-                    return;
+                    goto check_unused;   // not return (Bugs37 #83e)
                   }
 
                if (fm >= sizeof(fmt) - 3)
@@ -1793,7 +1924,7 @@ int conversion_count_A = 0;   // the number of conversions (in A_format)
                             APL_Integer int_val;
                             if (B.is_integer_cell(idx_B))
                                {
-                                 int_val = B.get_int_value(idx_B);
+                                 int_val = B.get_near_int(idx_B);
                                }
                             else
                                {
@@ -1825,7 +1956,23 @@ int conversion_count_A = 0;   // the number of conversions (in A_format)
                                          << "' in " << funname;
                                       DOMAIN_ERROR;
                                     }
-                                 int_val = APL_Integer(fv);
+
+                                 // Bugs37 #83(f): truncating 2.5 to 2 lost
+                                 // information silently. Near-ints are
+                                 // rounded (2.9999999999999 → 3), others
+                                 // are a DOMAIN ERROR (use ⌊B to truncate).
+                                 //
+                                 if (!B.is_near_int(idx_B))
+                                    {
+                                      MORE_ERROR() << "B["
+                                         << (idx_B + Workspace::get_IO())
+                                         << "] (= " << fv
+                                         << ") is not an integer, as"
+                                            " required by format '%"
+                                         << uni_1 << "' in " << funname;
+                                      DOMAIN_ERROR;
+                                    }
+                                 int_val = B.get_near_int(idx_B);
                                }
 
                             // APL integers are 64 bits; drop any
@@ -2023,6 +2170,7 @@ int conversion_count_A = 0;   // the number of conversions (in A_format)
          field_done: ;
        }
 
+check_unused:
    if (B.element_count() > off_B)
       {
         const int unused = B.element_count() - off_B;
@@ -2046,7 +2194,7 @@ missing_arg:
 Token
 Quad_FIO::eval_AB___3(Value_P A)
 {
-APL_Integer probe = A->get_int_value(0);
+APL_Integer probe = A->get_near_int(0);
    if (probe < 0)   probe = Probe::PROBE_COUNT + probe;
    if (probe >= Probe::PROBE_COUNT)
       return Token(TOK_APL_VALUE1, IntScalar(-1, LOC));
@@ -2067,7 +2215,7 @@ Token
 Quad_FIO::eval_AB___19(Value_P A)
 {
 const APL_Integer old_trigger = TM3_trigger;
-   TM3_trigger = A->get_int_value(0);
+   TM3_trigger = A->get_near_int(0);
    return Token(TOK_APL_VALUE1, IntScalar(old_trigger, LOC));
 }
 //────────────────────────────────────────────────────────────────────────────
@@ -2161,6 +2309,7 @@ Token
 Quad_FIO::eval_AXB__20(Value_P A, Value_P B)
 {
 const UCS_string path_ucs(*B.get());
+check_path(path_ucs);   // Bugs37 #83a
 const UTF8_string path(path_ucs);
 #if MINGW_SRC
    errno = 0;
@@ -2177,7 +2326,7 @@ const int err = mkdir(path.c_str(), mask);
 Token
 Quad_FIO::eval_AXB__202(Value_P A, Value_P B, APL_Integer function_number)
 {
-const APL_Integer threshold = A->get_int_value(0);
+const APL_Integer threshold = A->get_near_int(0);
 cFunction_P fun = 0;
    if (B->element_count() == 3)   // dyadic operator
       {
@@ -2260,6 +2409,7 @@ NOT_MINGW(
      const UCS_string mode_ucs(*A.get());
      const UCS_string path_ucs(*B.get());
      const UTF8_string mode(mode_ucs);
+     check_path(path_ucs);   // Bugs37 #83a
      const UTF8_string path(path_ucs);
      const char * m = mode.c_str();
      bool read = false;
@@ -2304,6 +2454,7 @@ Quad_FIO::eval_AXB__3(Value_P A, Value_P B)
 const UCS_string mode_ucs(*A.get());
 const UCS_string path_ucs(*B.get());
 UTF8_string mode(mode_ucs);
+check_path(path_ucs);   // Bugs37 #83a
 const UTF8_string path(path_ucs);
 const char * m = mode.c_str();
 bool read = false;
@@ -2332,6 +2483,7 @@ Quad_FIO::eval_AXB__31(Value_P A, Value_P B)
 const UCS_string mode_ucs(*A.get());
 const UCS_string path_ucs(*B.get());
 UTF8_string permissions(mode_ucs);
+check_path(path_ucs);   // Bugs37 #83a
 const UTF8_string path(path_ucs);
 int perms = 0;
    loop(a, permissions.size())
@@ -2359,9 +2511,9 @@ Quad_FIO::eval_AXB__33(Value_P A, Value_P B)
 const int fd = get_fd(*B.get());
 SockAddr addr;
    memset(&addr, 0, sizeof(addr.inet));
-   addr.inet.sin_family      = A->get_int_value(0);
-   addr.inet.sin_addr.s_addr = htonl(A->get_int_value(1));
-   addr.inet.sin_port        = htons(A->get_int_value(2));
+   addr.inet.sin_family      = A->get_near_int(0);
+   addr.inet.sin_addr.s_addr = htonl(A->get_near_int(1));
+   addr.inet.sin_port        = htons(A->get_near_int(2));
    // return value now checked, not just inferred from errno being
    // nonzero (Blake McBride, Bugs17 #7): a successful call is explicitly
    // permitted to leave errno set from something earlier.
@@ -2376,7 +2528,7 @@ Quad_FIO::eval_AXB__34(Value_P A, Value_P B)
 const int fd = get_fd(*B.get());
 APL_Integer backlog = 10;
    if (A->element_count() > 0)
-      backlog = A->get_int_value(0);
+      backlog = A->get_near_int(0);
    errno = 0;
 const int err = listen(fd, backlog);
    return Token(TOK_APL_VALUE1, IntScalar(err ? -errno : 0, LOC));
@@ -2388,9 +2540,9 @@ Quad_FIO::eval_AXB__36(Value_P A, Value_P B)
 const int fd = get_fd(*B.get());
 SockAddr addr;
    memset(&addr, 0, sizeof(addr.inet));
-   addr.inet.sin_family      = A->get_int_value(0);
-   addr.inet.sin_addr.s_addr = htonl(A->get_int_value(1));
-   addr.inet.sin_port        = htons(A->get_int_value(2));
+   addr.inet.sin_family      = A->get_near_int(0);
+   addr.inet.sin_addr.s_addr = htonl(A->get_near_int(1));
+   addr.inet.sin_port        = htons(A->get_near_int(2));
    errno = 0;
    // was 'sizeof(addr)': addr is a union also containing sockaddr_un
    // (much larger than sockaddr_in on this platform), so sizeof(addr)
@@ -2500,8 +2652,8 @@ const ssize_t len = write(fd, utf.c_str(), utf.size());
 Token
 Quad_FIO::eval_AXB__46(Value_P A, Value_P B)
 {
-const APL_Integer level   = A->get_int_value(0);
-const APL_Integer optname = A->get_int_value(1);
+const APL_Integer level   = A->get_near_int(0);
+const APL_Integer optname = A->get_near_int(1);
 const int fd = get_fd(*B.get());
 int optval = 0;
 socklen_t olen = sizeof(optval);
@@ -2514,9 +2666,9 @@ const int ret = sys_getsockopt(fd, level, optname, &optval, &olen);
 Token
 Quad_FIO::eval_AXB__47(Value_P A, Value_P B)
 {
-const APL_Integer level   = A->get_int_value(0);
-const APL_Integer optname = A->get_int_value(1);
-const int optval          = A->get_int_value(2);
+const APL_Integer level   = A->get_near_int(0);
+const APL_Integer optname = A->get_near_int(1);
+const int optval          = A->get_near_int(2);
 const int fd = get_fd(*B.get());
    errno = 0;
    sys_setsockopt(fd, level, optname, &optval, sizeof(optval));
@@ -2553,6 +2705,7 @@ Quad_FIO::eval_AXB__56(Value_P A, Value_P B)
    errno = 0;
 size_t items_written = 0;
 const UCS_string path_ucs(*B.get());
+check_path(path_ucs);   // Bugs37 #83a
 const UTF8_string path(path_ucs);
    if (A->get_rank() > 1)   RANK_ERROR;
 const ShapeItem line_count = A->element_count();
@@ -2623,11 +2776,11 @@ NOT_MINGW(
      int result = -1;
      switch(A->element_count())
         {
-           case 1: result = fcntl(fd, A->get_int_value(0));
+           case 1: result = fcntl(fd, A->get_near_int(0));
                    break;
 
-           case 2: result = fcntl(fd, A->get_int_value(0),
-                                      A->get_int_value(1));
+           case 2: result = fcntl(fd, A->get_near_int(0),
+                                      A->get_near_int(1));
                    break;
 
            default: LENGTH_ERROR;
@@ -2672,10 +2825,11 @@ Quad_FIO::eval_AXB__60(Value_P A, Value_P B)
    errno = 0;
    if (!A->is_scalar())   RANK_ERROR;
    if (!B->is_scalar())   RANK_ERROR;
-const APL_Integer mode = A->get_int_value(0);
-const APL_Integer len  = B->get_int_value(0);
+const APL_Integer mode = A->get_near_int(0);
+const APL_Integer len  = B->get_near_int(0);
    if (len < 1)    LENGTH_ERROR;
    if (len > 32)   LENGTH_ERROR;
+   if (mode == 0 && len > 8)   LENGTH_ERROR;   // one int64 (Bugs37 #81)
 Value_P Z = get_random(mode, len);
    return Token(TOK_APL_VALUE1, Z);
 }
@@ -2691,6 +2845,25 @@ vector<char> buffer(bytes);
    loop(z, bytes)   buffer[z] = A->get_byte_value(z);
 const size_t len = fwrite(buffer.data(), 1, bytes, file);
    return Token(TOK_APL_VALUE1, IntScalar(len, LOC));
+}
+//────────────────────────────────────────────────────────────────────────────
+int
+Quad_FIO::fgets_len(char * buffer, int size, FILE * file)
+{
+   // like fgets(buffer, size, file), but return the number of bytes read
+   // (0 at EOF or on error). Unlike strlen() after fgets(), a NUL byte in
+   // the line does not truncate it. Bugs37 #32.
+   //
+int len = 0;
+   while (len < size - 1)
+      {
+        const int cc = getc(file);
+        if (cc == EOF)   break;
+        buffer[len++] = cc;
+        if (cc == '\n')   break;
+      }
+   buffer[len] = 0;
+   return len;
 }
 //────────────────────────────────────────────────────────────────────────────
 Token
@@ -2709,8 +2882,7 @@ const size_t bytes = bytes_signed;
 FILE * file = get_FILE(*B);
    clearerr(file);
 vector<char> buffer(bytes + 1);
-const char * s = fgets(buffer.data(), int(bytes), file);
-const int len = s ? strlen(s) : 0;
+const int len = fgets_len(buffer.data(), int(bytes), file);
 Value_P Z(len, LOC);
    loop(z, len)   Z->next_ravel_Int(buffer[z] & 0xFF);
    Z->check_value(LOC);
@@ -2785,8 +2957,8 @@ Value_P Z(sh, LOC);
 Token
 Quad_FIO::eval_B___18(Value_P B)
 {
-const int64_t blocks = B->get_int_value(1);
-const int64_t verbo  = B->get_int_value(2);
+const int64_t blocks = B->get_near_int(1);
+const int64_t verbo  = B->get_near_int(2);
    // blocks * 512 below is computed in signed 64-bit and can itself wrap
    // to a small (or negative) value for a large blocks, in which case the
    // allocation SUCCEEDS at the wrapped-small size while probe_memory()
@@ -2989,6 +3161,7 @@ Quad_FIO::eval_XB__19(Value_P B)
 {
    errno = 0;
 const UCS_string path_ucs(*B.get());
+check_path(path_ucs);   // Bugs37 #83a
 const UTF8_string path(path_ucs);
    unlink(path.c_str());
    return Token(TOK_APL_VALUE1, IntScalar(-errno, LOC));
@@ -2997,9 +3170,15 @@ const UTF8_string path(path_ucs);
 Token
 Quad_FIO::eval_XB__2(Value_P B)
 {
-int b = B->get_near_int(0);
+// APL_Integer, not int: 2147483648 wrapped (Bugs37 #83g)
+APL_Integer b = B->get_near_int(0);
    if (b < 0)   b = -b;
-const char * text = strerror(b);
+   if (b > 0x7FFFFFFF)
+      {
+        MORE_ERROR() << "⎕FIO[2] B: " << b << " is not an errno value";
+        DOMAIN_ERROR;
+      }
+const char * text = strerror(int(b));
 const int len = strlen(text);
 Value_P Z(len, LOC);
    loop(t, len)   Z->next_ravel_Char(Unicode(text[t]));
@@ -3012,6 +3191,7 @@ Quad_FIO::eval_XB__20(Value_P B)
 {
    errno = 0;
 const UCS_string path_ucs(*B.get());
+check_path(path_ucs);   // Bugs37 #83a
 const UTF8_string path(path_ucs);
 #if MINGW_SRC
    mkdir(path.c_str());
@@ -3025,7 +3205,7 @@ const UTF8_string path(path_ucs);
 Token
 Quad_FIO::eval_XB__200(Value_P B, APL_Integer function_number)
 {
-const Pfstat_ID b = Pfstat_ID(B->get_int_value(0));
+const Pfstat_ID b = Pfstat_ID(B->get_near_int(0));
 Statistics * stat = Performance::get_statistics(b);
    if (stat == 0)   DOMAIN_ERROR;   // bad statistics ID
 
@@ -3119,6 +3299,7 @@ Quad_FIO::eval_XB__21(Value_P B)
 {
    errno = 0;
 const UCS_string path_ucs(*B.get());
+check_path(path_ucs);   // Bugs37 #83a
 const UTF8_string path(path_ucs);
    rmdir(path.c_str());
    return Token(TOK_APL_VALUE1, IntScalar(-errno, LOC));
@@ -3139,6 +3320,7 @@ Quad_FIO::eval_XB__24(Value_P B)
    //
    if (UserPreferences::uprefs.safe_mode)   not_allowed("--safe");
 const UCS_string path_ucs(*B.get());
+check_path(path_ucs);   // Bugs37 #83a
 const UTF8_string path(path_ucs);
    errno = 0;
 FILE * f = sys_popen(path.c_str(), "r");
@@ -3163,7 +3345,12 @@ file_entry & fe = get_file_entry(*B);
    // never pclose() stdin, stdout, or stderr (matches close_handle()'s
    // guard for fclose())
    //
-   if (fe.fe_fd <= STDERR_FILENO)   DOMAIN_ERROR;
+   if (fe.fe_fd <= STDERR_FILENO)   // Bugs37 #83d
+      {
+        MORE_ERROR() << "Attempt to close fd " << fe.fe_fd
+                     << " (stdin, stdout, or stderr)";
+        DOMAIN_ERROR;
+      }
 
    // Bugs31 #20 (Blake McBride): only a handle opened via sys_popen()
    // (⎕FIO[24]) may reach sys_pclose(); pclose() of any other FILE is
@@ -3200,6 +3387,7 @@ NOT_MINGW(
    {
      errno = 0;
      const UCS_string path_ucs(*B.get());
+     check_path(path_ucs);   // Bugs37 #83a
      const UTF8_string path(path_ucs);
      int fd = open(path.c_str(), O_RDONLY);
      if (fd == -1)   return Token(TOK_APL_VALUE1, IntScalar(-errno, LOC));
@@ -3215,12 +3403,30 @@ NOT_MINGW(
           MORE_ERROR() << path << " is not a regular file";
           DOMAIN_ERROR;
         }
-     const ShapeItem len = st.st_size;
+     ShapeItem len = st.st_size;
+
+     // some regular files (e.g. in /proc) report st_size 0 but have
+     // content: read them (instead of mmap()ing them), Bugs37 #83b
+     //
+     std::vector<UTF8> buffer;
+     if (len == 0)
+        {
+          UTF8 chunk[4096];
+          for (;;)
+              {
+                const ssize_t got = read(fd, chunk, sizeof(chunk));
+                if (got <= 0)   break;
+                buffer.insert(buffer.end(), chunk, chunk + got);
+              }
+          len = buffer.size();
+        }
+     const bool mapped = buffer.size() == 0;
      // mmap()ing 0 bytes is invalid (EINVAL) whenever HAVE_SYS_MMAN_H's
      // real mmap() is active -- an empty regular file is not an error,
      // so skip the call rather than surface -EINVAL for it; data is
      // never dereferenced below when len==0 (the fill loop is a no-op).
-     const UTF8 * data = len ? Sys::mmap(fd, len) : 0;
+     const UTF8 * data = !mapped ? buffer.data()
+                       : len ? Sys::mmap(fd, len) : 0;
      close(fd);
      if (len && data == 0)   return Token(TOK_APL_VALUE1, IntScalar(-errno, LOC));
 
@@ -3232,14 +3438,14 @@ NOT_MINGW(
           Value_P Z(len, LOC);
           Z->set_proto_Spc();
           loop(z, len)   Z->next_ravel_Char(Unicode(data[z]));
-          Sys::munmap(data, len);
+          if (mapped)   Sys::munmap(data, len);
           Z->set_proto_Spc();
           Z->check_value(LOC);
           return Token(TOK_APL_VALUE1, Z);
         }
      catch (...)
         {
-          Sys::munmap(data, len);
+          if (mapped)   Sys::munmap(data, len);
           throw;
         }
    }
@@ -3251,6 +3457,7 @@ Quad_FIO::eval_XB__28(Value_P B, APL_Integer function_number)
 {
    errno = 0;
 const UCS_string path_ucs(*B.get());
+check_path(path_ucs);   // Bugs37 #83a
 const UTF8_string path(path_ucs);
 DIR * dir = opendir(path.c_str());
    if (dir == 0)   return Token(TOK_APL_VALUE1, IntScalar(-errno, LOC));
@@ -3326,6 +3533,7 @@ Quad_FIO::eval_XB__3(Value_P B)
 {
    CHECK_SECURITY(disable_Quad_FIO__open);
 const UCS_string path_ucs(*B.get());
+check_path(path_ucs);   // Bugs37 #83a
 const UTF8_string path(path_ucs);
    errno = 0;
 FILE * f = fopen(path.c_str(), "r");
@@ -3346,9 +3554,9 @@ Quad_FIO::eval_XB__32(Value_P B)
 APL_Integer domain = AF_INET;
 APL_Integer type = SOCK_STREAM;
 APL_Integer protocol = 0;
-   if (B->element_count() > 0)   domain   = B->get_int_value(0);
-   if (B->element_count() > 1)   type     = B->get_int_value(1);
-   if (B->element_count() > 2)   protocol = B->get_int_value(2);
+   if (B->element_count() > 0)   domain   = B->get_near_int(0);
+   if (B->element_count() > 1)   type     = B->get_near_int(1);
+   if (B->element_count() > 2)   protocol = B->get_near_int(2);
 const int sock = socket(domain, type, protocol);
    if (sock == -1)   return Token(TOK_APL_VALUE1, IntScalar(-errno, LOC));
 file_entry fe(0, sock);
@@ -3415,7 +3623,12 @@ Quad_FIO::eval_XB__4(Value_P B)
    CHECK_SECURITY(disable_Quad_FIO__open);
    errno = 0;
 file_entry & fe = get_file_entry(*B);
-   if (fe.fe_fd <= STDERR_FILENO)   DOMAIN_ERROR;
+   if (fe.fe_fd <= STDERR_FILENO)   // Bugs37 #83d
+      {
+        MORE_ERROR() << "Attempt to close fd " << fe.fe_fd
+                     << " (stdin, stdout, or stderr)";
+        DOMAIN_ERROR;
+      }
 
    // a popen() handle must be closed with sys_pclose(), which keeps its
    // SIGCHLD nesting counter balanced: fclose() left it incremented for
@@ -3448,7 +3661,7 @@ APL_Integer max_fd = -1;
 
    if (B->element_count() >= 4)
       {
-        const APL_Integer milli = B->get_int_value(3);
+        const APL_Integer milli = B->get_near_int(3);
         if (milli < 0)   DOMAIN_ERROR;
         timeout.tv_sec = milli / 1000;
         timeout.tv_usec = (milli%1000) * 1000;
@@ -3464,7 +3677,7 @@ APL_Integer max_fd = -1;
         Value_P vex = b2.get_pointer_value();
         loop(l, vex->element_count())
             {
-              const int fd(vex->get_int_value(l));
+              const int fd(vex->get_near_int(l));
               if (fd < 0)              DOMAIN_ERROR;
               if (fd >= FD_SETSIZE)    DOMAIN_ERROR;   // was >, off-by-one
               FD_SET(SOCKET(fd), &exceptfds);
@@ -3481,7 +3694,7 @@ APL_Integer max_fd = -1;
         Value_P vwr = b1.get_pointer_value();
         loop(l, vwr->element_count())
             {
-              const APL_Integer fd = vwr->get_int_value(l);
+              const APL_Integer fd = vwr->get_near_int(l);
               if (fd < 0)              DOMAIN_ERROR;
               if (fd >= FD_SETSIZE)    DOMAIN_ERROR;   // was >, off-by-one
               FD_SET(SOCKET(fd), &writefds);
@@ -3498,7 +3711,7 @@ APL_Integer max_fd = -1;
         Value_P vrd = b0.get_pointer_value();
         loop(l, vrd->element_count())
             {
-              const APL_Integer fd = vrd->get_int_value(l);
+              const APL_Integer fd = vrd->get_near_int(l);
               if (fd < 0)              DOMAIN_ERROR;
               if (fd >= FD_SETSIZE)    DOMAIN_ERROR;   // was >, off-by-one
               FD_SET(SOCKET(fd), &readfds);
@@ -3583,6 +3796,7 @@ NOT_MINGW(
    {
      errno = 0;
      const UCS_string path_ucs(*B.get());
+     check_path(path_ucs);   // Bugs37 #83a
      const UTF8_string path(path_ucs);
      const int fd = open(path.c_str(), O_RDONLY);
      if (fd == -1)   return Token(TOK_APL_VALUE1, IntScalar(-errno, LOC));
@@ -3598,13 +3812,31 @@ NOT_MINGW(
           MORE_ERROR() << path << " is not a regular file";
           DOMAIN_ERROR;
         }
-     const ShapeItem len = st.st_size;
+     ShapeItem len = st.st_size;
+
+     // some regular files (e.g. in /proc) report st_size 0 but have
+     // content: read them (instead of mmap()ing them), Bugs37 #83b
+     //
+     std::vector<UTF8> buffer;
+     if (len == 0)
+        {
+          UTF8 chunk[4096];
+          for (;;)
+              {
+                const ssize_t got = read(fd, chunk, sizeof(chunk));
+                if (got <= 0)   break;
+                buffer.insert(buffer.end(), chunk, chunk + got);
+              }
+          len = buffer.size();
+        }
+     const bool mapped = buffer.size() == 0;
      // mmap()ing 0 bytes is invalid (EINVAL) whenever HAVE_SYS_MMAN_H's
      // real mmap() is active -- an empty regular file is not an error
      // (0 lines), so skip the call rather than surface -EINVAL for it;
      // data is never dereferenced below when len==0 (both loops and the
      // "last line" check are gated on len).
-     const UTF8 * data = len ? Sys::mmap(fd, len) : 0;
+     const UTF8 * data = !mapped ? buffer.data()
+                       : len ? Sys::mmap(fd, len) : 0;
      close(fd);
      if (len && data == 0)   return Token(TOK_APL_VALUE1, IntScalar(-errno, LOC));
 
@@ -3651,14 +3883,14 @@ NOT_MINGW(
                 Z->next_ravel_Pointer(ZZ.get());
              }
 
-          Sys::munmap(data, len);
+          if (mapped)   Sys::munmap(data, len);
           Z->set_proto_Spc();
           Z->check_value(LOC);
           return Token(TOK_APL_VALUE1, Z);
         }
      catch (...)
         {
-          Sys::munmap(data, len);
+          if (mapped)   Sys::munmap(data, len);
           throw;
         }
    }
@@ -3692,14 +3924,14 @@ Quad_FIO::eval_XB__51(Value_P B)
 {
    if (B->element_count() < 6 || B->element_count() > 9)   LENGTH_ERROR;
 tm t;
-   t.tm_year = B->get_int_value(0) - 1900;
-   t.tm_mon  = B->get_int_value(1) - 1;
-   t.tm_mday = B->get_int_value(2);
-   t.tm_hour = B->get_int_value(3);
-   t.tm_min  = B->get_int_value(4);
-   t.tm_sec  = B->get_int_value(5);
+   t.tm_year = B->get_near_int(0) - 1900;
+   t.tm_mon  = B->get_near_int(1) - 1;
+   t.tm_mday = B->get_near_int(2);
+   t.tm_hour = B->get_near_int(3);
+   t.tm_min  = B->get_near_int(4);
+   t.tm_sec  = B->get_near_int(5);
    if (B->element_count() > 6)   // dst provided
-      t.tm_isdst = B->get_int_value(6);
+      t.tm_isdst = B->get_near_int(6);
    else
       t.tm_isdst = -1;
 const time_t seconds = mktime(&t);
@@ -3717,7 +3949,7 @@ Token
 Quad_FIO::eval_XB__52(Value_P B, APL_Integer function_number)
 {
    if (B->element_count() != 1)   LENGTH_ERROR;
-const time_t t = B->get_int_value(0);
+const time_t t = B->get_near_int(0);
 const tm * tmp = (function_number == 52) ? localtime(&t) : gmtime(&t);
    if (tmp == 0)   DOMAIN_ERROR;
 Value_P Z(9, LOC);
@@ -3744,6 +3976,7 @@ Quad_FIO::eval_XB__54(Value_P B)
    // losing the real failure reason.
    //
 const UCS_string path_ucs(*B.get());
+check_path(path_ucs);   // Bugs37 #83a
 const UTF8_string path(path_ucs);
    // errno = 0 immediately before the call, and the return value checked
    // before consulting errno at all: POSIX only guarantees errno is *set*
@@ -3795,7 +4028,7 @@ Token
 Quad_FIO::eval_XB__60(Value_P B)
 {
    if (!B->is_scalar())   RANK_ERROR;
-const APL_Integer len = B->get_int_value(0);
+const APL_Integer len = B->get_near_int(0);
    if (len < 1)   LENGTH_ERROR;
    if (len > 8)   LENGTH_ERROR;
 Value_P Z = get_random(0, len);
@@ -3809,8 +4042,7 @@ Quad_FIO::eval_XB__8(Value_P B)
 FILE * file = get_FILE(*B);
    clearerr(file);
 char buffer[SMALL_BUF];
-const char * s = fgets(buffer, SMALL_BUF, file);
-const int len = s ? strlen(s) : 0;
+const int len = fgets_len(buffer, SMALL_BUF, file);
 Value_P Z(len, LOC);
    loop(z, len)   Z->next_ravel_Int(buffer[z] & 0xFF);
    Z->check_value(LOC);
@@ -3866,7 +4098,11 @@ Quad_FIO::get_file_entry(APL_Integer handle)
 
    loop(h, open_files.size())
       {
-        if (open_files[h].fe_fd == handle)   return open_files[h];
+        if (open_files[h].fe_fd == handle)
+           {
+             last_handle = handle;   // see Handle_errno
+             return open_files[h];
+           }
       }
 
    MORE_ERROR() << handle
@@ -4021,11 +4257,13 @@ const struct {
                { "second", 0,      60 },
              };
 
-int Bv[6];  // values as provided in B
+// APL_Integer, not int: the range checks below must see the value as
+// given, not narrowed to int (Bugs37 #55)
+APL_Integer Bv[6];  // values as provided in B
    loop(b, 6)
        {
          if (len_B <= b)   Bv[b] = range[b].min_val;
-         else              Bv[b] = B.get_int_value(b);
+         else              Bv[b] = B.get_near_int(b);
          if (Bv[b] < range[b].min_val)
             {
               MORE_ERROR() << "⎕FIO[61]: B["

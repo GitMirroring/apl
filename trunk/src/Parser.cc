@@ -36,6 +36,7 @@
 #include "Parser.hh"
 #include "UserPreferences.hh"
 #include "PointerCell.hh"
+#include "StateIndicator.hh"
 #include "PrintOperator.hh"
 #include "Quad_SQL.hh"
 #include "Symbol.hh"
@@ -173,6 +174,7 @@ Token_string tos1;
      tokenizer.tokenize(input, tos1);      // throws on lexical failure
      if (end_PC)   *end_PC = Function_PC(tos1.size());
      tos1.all_brackets_closed();           // throws on bracket mismatch
+     tos1.check_semicolons(lambda_body);   // throws on ; outside [...]
    }
 
    // special case: single token (to speed up ⍎)
@@ -2261,8 +2263,20 @@ Parser::mark_lsymb(Token_string & tos)
                 {
                   MORE_ERROR() <<
                       "Left of )← seems to be neither a vector "
-                      "specification nor a selective specvification";
-                  LEFT_SYNTAX_ERROR;
+                      "specification nor a selective specification";
+
+                  // throw with the statement in line 2, since the error
+                  // would otherwise show the statement of an earlier
+                  // error (Bugs37 #42). tos is (still) in source order.
+                  //
+                  int lpar = (ass - 1) - tos[ass - 1].get_int_val2();
+                  if (lpar < 0 || tos[lpar].get_Class() != TC_L_PARENT)
+                     lpar = ass - 1;
+                  Error error(E_LEFT_SYNTAX_ERROR, LOC);
+                  tos.build_error_line_2(error, lpar, ass);
+                  if (StateIndicator * si = Workspace::SI_top())
+                     StateIndicator::get_error(si) = error;
+                  throw error;
                 }
 
              // if this is a vector specification, then mark all symbols

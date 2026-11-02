@@ -33,6 +33,7 @@
 #include "Quad_CR.hh"
 #include "Quad_FX.hh"
 #include "Quad_TF.hh"
+#include "StateIndicator.hh"
 #include "Symbol.hh"
 #include "Tokenizer.hh"
 #include "Token_string.hh"
@@ -312,7 +313,8 @@ const Symbol * symbol = obj->get_symbol();
 }
 //════════════════════════════════════════════════════════════════════════════
 void
-Quad_TF::tf2_char_vec(UCS_string & ucs, const UCS_string & vec)
+Quad_TF::tf2_char_vec(UCS_string & ucs, const UCS_string & vec,
+                      bool fun_line)
 {
    if (vec.size() == 0)   // an empty function line
       {
@@ -335,9 +337,16 @@ Quad_TF::tf2_char_vec(UCS_string & ucs, const UCS_string & vec)
    // its own). A plain literal with no ⎕UCS at all needs no such
    // wrapping, exactly as for tf2_shape()'s self_delimiting case above.
    //
+   // in APL code (outside strings and comments), ⋆ ∧ ∼ are written as
+   // * ^ ~ (their ATF codes) and )IN maps them back (Bugs37 #7)
+   //
+const std::vector<bool> in_text = fun_line
+                                ? text_mask(vec)
+                                : std::vector<bool>(vec.size(), true);
+
 bool any_ucs = false;
    loop(v, vec.size())
-       if (Avec::need_UCS(vec[v]))   { any_ucs = true;   break; }
+       if (Avec::need_UCS(vec[v], in_text[v]))   { any_ucs = true;   break; }
 
    if (any_ucs)   ucs << UNI_L_PARENT;
 
@@ -347,7 +356,7 @@ bool in_UCS = false;
    loop(v, vec.size())
        {
          const Unicode uni = vec[v];
-         const bool need_UCS = Avec::need_UCS(uni);
+         const bool need_UCS = Avec::need_UCS(uni, in_text[v]);
          if (in_UCS != need_UCS)   // mode changed
             {
               if (in_UCS)   ucs << "),'";       // UCS() → 'xxx'
@@ -370,6 +379,96 @@ bool in_UCS = false;
    else          ucs << UNI_SINGLE_QUOTE;
 
    if (any_ucs)   ucs << UNI_R_PARENT;
+}
+//────────────────────────────────────────────────────────────────────────────
+std::vector<bool>
+Quad_TF::text_mask(const UCS_string & line)
+{
+std::vector<bool> mask(line.size(), false);
+Unicode end = Invalid_Unicode;   // the end of the current string, if any
+   loop(l, line.size())
+       {
+         const Unicode uni = line[l];
+         if (end != Invalid_Unicode)   // in a string
+            {
+              mask[l] = true;
+              if (uni == end)   end = Invalid_Unicode;
+              else if (end == UNI_DOUBLE_QUOTE && uni == UNI_BACKSLASH &&
+                       l + 1 < line.ssize())   mask[++l] = true;   // \x
+              continue;
+            }
+
+         if (uni == UNI_COMMENT || uni == UNI_NUMBER_SIGN)   // comment
+            {
+              while (l < line.ssize())   mask[l++] = true;
+              break;
+            }
+
+         if      (uni == UNI_SINGLE_QUOTE)   end = UNI_SINGLE_QUOTE;
+         else if (uni == UNI_DOUBLE_QUOTE)   end = UNI_DOUBLE_QUOTE;
+         else if (uni == UNI_LEFT_DAQ)       end = UNI_RIGHT_DAQ;
+         if (end != Invalid_Unicode)   mask[l] = true;
+       }
+
+   return mask;
+}
+//────────────────────────────────────────────────────────────────────────────
+Value_P
+Quad_TF::ATF_principal_chars(const cValue & B)
+{
+UCS_string_vector lines;
+   if (B.get_rank() == 2)   // character matrix
+      {
+        loop(r, B.get_rows())
+           {
+             UCS_string line;
+             loop(c, B.get_cols())
+                {
+                  const ShapeItem idx = c + r*B.get_cols();
+                  if (!B.is_character_cell(idx))   return Value_P();
+                  line << B.get_char_value(idx);
+                }
+             lines.push_back(line);
+           }
+      }
+   else if (B.is_char_string())   // a single line
+      {
+        lines.push_back(UCS_string(B));
+      }
+   else                           // nested vector of lines
+      {
+        loop(l, B.element_count())
+           {
+             UCS_string line;
+             if (B.is_character_cell(l))
+                line << B.get_char_value(l);
+             else if (B.is_pointer_cell(l) &&
+                      B.get_pointer_value(l)->is_char_string())
+                line = UCS_string(*B.get_pointer_value(l));
+             else
+                return Value_P();   // not a function text
+             lines.push_back(line);
+           }
+      }
+
+Value_P Z(ShapeItem(lines.size()), LOC);
+   loop(l, lines.size())
+      {
+        UCS_string & line = lines[l];
+        const std::vector<bool> in_text = text_mask(line);
+        loop(u, line.size())
+           {
+             if (in_text[u])   continue;
+             if      (line[u] == UNI_ASTERISK)     line[u] = UNI_STAR_OPERATOR;
+             else if (line[u] == UNI_CIRCUMFLEX)   line[u] = UNI_AND;
+             else if (line[u] == UNI_TILDE)        line[u] = UNI_TILDE_OPERATOR;
+           }
+        Value_P ZZ(line, LOC);
+        Z->next_ravel_Pointer(ZZ.get());
+      }
+
+   Z->check_value(LOC);
+   return Z;
 }
 //────────────────────────────────────────────────────────────────────────────
 void
@@ -433,12 +532,12 @@ UCS_string_vector lines;
    loop(l, lines.size())
       {
         ucs << UNI_SPACE;
-        tf2_char_vec(ucs, lines[l]);
+        tf2_char_vec(ucs, lines[l], true);
       }
 }
 //────────────────────────────────────────────────────────────────────────────
 UCS_string
-Quad_TF::tf2_inverse(const UCS_string & ravel)
+Quad_TF::tf2_inverse(const UCS_string & ravel, bool from_ATF)
 {
 Token_string tos;
    tos.emplace_back(Token(TOK_L_PARENT, int64_t(0)), Function_PC_invalid);
@@ -535,7 +634,43 @@ Token_string tos;
         if (tos.size() != 3)                  return UCS_string();
         if (tos[2].get_Class() != TC_VALUE)   return UCS_string();
 
-         tos[0].get_sym_ptr()->assign(tos[2].get_apl_val(), true, LOC);
+        // a read-only system variable (e.g. ⎕TS) ignores the assignment,
+        // so the transfer form is invalid (lrm p. 339, Bugs37 #75)
+        //
+        if (dynamic_cast<const RO_SystemVariable *>(tos[0].get_sym_ptr()))
+           return UCS_string();
+
+         // the assignment can fail, e.g. for a system variable with an
+         // invalid value like ⎕IO←7. Then the transfer form is invalid
+         // and Z is '' (lrm p. 339), so that )IN can continue with the
+         // next record (Bugs37 #48).
+         //
+         // Run the assignment in safe execution mode (like ⎕EA) so that
+         // a failure is not displayed, and restore the error of the )SI
+         // entry afterwards.
+         //
+         StateIndicator * si = Workspace::SI_top();
+         const int saved_depth = si ? si->get_safe_execution_depth() : 0;
+         Error saved_error = si ? StateIndicator::get_error(si)
+                                : Error(E_NO_ERROR, LOC);
+         if (si)   si->set_safe_execution_depth();
+
+         try
+            {
+              tos[0].get_sym_ptr()->assign(tos[2].get_apl_val(), true, LOC);
+            }
+         catch (Error &)
+            {
+              if (si)
+                 {
+                   si->restore_safe_execution_depth(saved_depth);
+                   StateIndicator::get_error(si) = saved_error;
+                 }
+              Log(LOG_Quad_TF)
+                 CERR << "assignment failed in tf2_inverse()" << endl;
+              return UCS_string();
+            }
+         if (si)   si->restore_safe_execution_depth(saved_depth);
          Log(LOG_Quad_TF)   CERR << "valid inverse 2 ⎕TF" << endl;
          return tos[0].get_sym_ptr()->get_name();   // valid 2⎕TF
       }
@@ -577,11 +712,20 @@ Token_string tos;
    if (tos[1].get_tag() != TOK_Quad_FX)   return UCS_string();
    if (tos[2].get_Class() != TC_VALUE)    return UCS_string();
 
-static const int eprops[] = { 0, 0, 0, 0 };
-const Token tok = Quad_FX::do_quad_FX(eprops, *tos[2].get_apl_val(),
-                                      UTF8_string("2 ⎕TF"));
+Value_P B = tos[2].get_apl_val();
+   if (from_ATF)   // * ^ ~ in APL code → ⋆ ∧ ∼ (Bugs37 #7)
+      {
+        Value_P B1 = ATF_principal_chars(*B);
+        if (!!B1)   B = B1;
+      }
 
-   if (tok.get_Class() != TC_VALUE)
+static const int eprops[] = { 0, 0, 0, 0 };
+const Token tok = Quad_FX::do_quad_FX(eprops, *B, UTF8_string("2 ⎕TF"));
+
+   // ⎕FX returns the (integer) row number of the offending line if it
+   // has failed (Bugs37 #21)
+   //
+   if (tok.get_Class() != TC_VALUE || !tok.get_apl_val()->is_char_string())
       {
         Log(LOG_Quad_TF)
            CERR << "Quad_FX::do_quad_FX() failed in tf2_inverse()" << endl;
@@ -801,10 +945,14 @@ const NamedObject * obj = Workspace::lookup_existing_name(name);
 const Symbol * symbol = obj->get_symbol();
    if (symbol)
       {
-        if (const cValue * value = symbol->get_apl_value().get())
+        // NOTE: some system variables (e.g. ⎕SYL) compute a fresh value
+        // in get_apl_value(), so the Value_P must stay alive while the
+        // value is being used.
+        //
+        if (const Value_P value = symbol->get_apl_value())
            {
              CDR_string cdr;
-             CDR::to_CDR(cdr, value);
+             CDR::to_CDR(cdr, value.get());
 
              return Value_P(cdr, LOC);
            }
@@ -1350,7 +1498,16 @@ const int data_chars = len - idx;
         loop(d, data_chars)   new_val->next_ravel_Char(ravel[idx + d]);
         new_val->check_value(LOC);
 
-         Token t = Quad_FX::do_eval_B(*new_val);
+        // ⎕FX returns the function name if it was established, or else the
+        // (integer) row number of the offending line. LRM p. 339: Z is ''
+        // if the function was not established. Bugs37 #21.
+        //
+        const Token t = Quad_FX::do_eval_B(*new_val);
+        if (t.get_Class() != TC_VALUE ||
+            !t.get_apl_val()->is_char_string())
+           {
+             return Str0(LOC);
+           }
       }
    else if (mode == UNI_C)   // char array
       {

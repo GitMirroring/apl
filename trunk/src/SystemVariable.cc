@@ -604,6 +604,8 @@ Value_P Qpp = IntScalar(DEFAULT_Quad_PP, LOC);
 void
 Quad_PP::assign(Value_P B, bool clone, const char * loc)
 {
+// a scalar or a one-item vector, like ⎕IO and ⎕CT (Bugs37 #78)
+   if (B->get_rank() > 1)   RANK_ERROR;
 APL_Integer pp = B->get_sole_integer();
    if (pp < MIN_Quad_PP)   DOMAIN_ERROR;
    if (pp > MAX_Quad_PP)   pp = MAX_Quad_PP;
@@ -627,9 +629,12 @@ UCS_string ucs = B->get_UCS_ravel();
    Symbol::assign(B, clone, LOC);
 }
 //════════════════════════════════════════════════════════════════════════════
+// ⎕PS is a session variable that survives )CLEAR and )LOAD (both items:
+// ⎕PS[2] lives in Command::boxing_format, ⎕PS[1] here). Bugs37 #60.
+bool Quad_PS::print_quotients = false;
+
 Quad_PS::Quad_PS()
    : SystemVariable(ID_Quad_PS),
-     print_quotients(false),
      style(Command::boxing_format)
 {
 Value_P Z(2, LOC);
@@ -650,12 +655,6 @@ APL_Integer B_style = 0;
    if (B->element_count() < 1)   LENGTH_ERROR;
    if (B->element_count() > 2)   LENGTH_ERROR;
 
-   if (!B->is_near_bool(0))
-      {
-        MORE_ERROR() << "Bad quot in ⎕PS←quot style: quot is not near bool";
-        DOMAIN_ERROR;
-      }
-
    if (B->element_count() == 1)
       {
         // for compatibility with old workspaces
@@ -664,6 +663,14 @@ APL_Integer B_style = 0;
       }
    else
       {
+        // only in ⎕PS←quot style is B[1] the quot flag (Bugs37 #33)
+        //
+        if (!B->is_near_bool(0))
+           {
+             MORE_ERROR() << "Bad quot in ⎕PS←quot style: quot is not"
+                             " near bool";
+             DOMAIN_ERROR;
+           }
         B_quot  = B->get_near_bool(0);
         B_style = B->get_near_int(1);
       }
@@ -757,7 +764,6 @@ APL_Integer Z_style = style;
              case 20: case  21: case  22:
              case 23: case  24: case  25:
              case 29: Z_style = b;
-                  Command::boxing_format = b;
                   break;
  
              default:
@@ -772,11 +778,14 @@ APL_Integer Z_style = style;
            }
       }
 
+   // all items of X and B are valid. assign() (rather than Symbol::assign())
+   // also updates print_quotients, style, and ]BOXING. Bugs37 #8.
+   //
 Value_P Z(2, LOC);
    Z->next_ravel_Int(Z_quot);
    Z->next_ravel_Int(Z_style);
    Z->check_value(LOC);
-   Symbol::assign(Z, false, LOC);
+   assign(Z, false, LOC);
 }
 //════════════════════════════════════════════════════════════════════════════
 Quad_PW::Quad_PW()
@@ -794,6 +803,8 @@ int pw = UserPreferences::uprefs.initial_PW;
 void
 Quad_PW::assign(Value_P B, bool clone, const char * loc)
 {
+// a scalar or a one-item vector, like ⎕IO and ⎕CT (Bugs37 #78)
+   if (B->get_rank() > 1)   RANK_ERROR;
 APL_Integer pw = B->get_sole_integer();
 
    // min. ⎕PW is 30. A smaller value used to be silently ignored
@@ -849,7 +860,12 @@ Quad_Quad::assign(Value_P B, bool clone, const char * loc)
    //
    Quad_QUOTE::done(false, LOC);
 
-   B->print(COUT);
+   // same display as the default display (print length limit), but never
+   // boxed: ]BOXING affects only the display of statement results. ⎕←
+   // was never meant to box its argument, and boxing it would change the
+   // output of the many existing ⎕← in applications (Bugs37 #35).
+   //
+   StateIndicator::display_value(B, false);
 }
 //════════════════════════════════════════════════════════════════════════════
 Quad_QUOTE::Quad_QUOTE()
@@ -1026,34 +1042,85 @@ Quad_SYL::assign_indexed(const cValue * X, Value_P B)
    //
    if (!(X->is_int_scalar() || X->is_int_vector()))   INDEX_ERROR;
    if (!(B->is_int_scalar() || B->is_int_vector()))   DOMAIN_ERROR;
-   if (X->element_count() != B->element_count())      LENGTH_ERROR;
+
+   // a one-element B is scalar-extended (Bugs37 #77)
+   //
+const bool extend_B = B->element_count() == 1;
+   if (!extend_B && X->element_count() != B->element_count())   LENGTH_ERROR;
 
 const ShapeItem ec = X->element_count();
 const APL_Integer qio = Workspace::get_IO();
 
+   // check all indices before assigning any of them, so that e.g.
+   // ⎕SYL[;2]←B does not assign some rows and then fail (Bugs37 #77)
+   //
    loop(e, ec)
       {
         const APL_Integer x = X->get_near_int(e) - qio;
-        const APL_Integer b = B->get_near_int(e);
+        switch(x)
+           {
+             case SYL_SI_DEPTH_LIMIT:
+             case SYL_VALUE_COUNT_LIMIT:
+             case SYL_RAVEL_BYTES_LIMIT:
+             case SYL_CURRENT_CORES:
+             case SYL_PRINT_LIMIT:
+             case SYL_WA_MARGIN:
+             case SYL_WA_SCALE:
+             case SYL_PACK_MIN_LENGTH:   continue;   // writable
+             default:                    break;
+           }
+
+        MORE_ERROR() << "Bad ⎕SYL index " << (x + qio)
+                     << " (not a writable limit)";
+        INDEX_ERROR;
+      }
+
+   loop(e, ec)
+      {
+        const APL_Integer x = X->get_near_int(e) - qio;
+        const APL_Integer b = B->get_near_int(extend_B ? 0 : e);
 
         if (x == SYL_SI_DEPTH_LIMIT)   // SI depth limit
            {
              const int depth = Workspace::SI_entry_count();
-             if (b && (b < (depth + 4)))   DOMAIN_ERROR;    // limit too low
+             if (b && (b < (depth + 4)))   // limit too low
+                {
+                  MORE_ERROR() << "Bad SI depth limit " << b << " in ⎕SYL["
+                               << (x + qio) << ";" << (qio + 1)
+                               << "] (expecting 0 for no limit or at least "
+                               << (depth + 4) << ")";
+                  DOMAIN_ERROR;
+                }
              si_depth_limit = b;
            }
         else if (x == SYL_VALUE_COUNT_LIMIT)   // value count limit
            {
              if (b && (b < APL_Integer(Value::value_count + 10)))    // too low
-                DOMAIN_ERROR;
+                {
+                  MORE_ERROR() << "Bad value count limit " << b
+                               << " in ⎕SYL[" << (x + qio) << ";"
+                               << (qio + 1) << "] (expecting 0 for no limit"
+                                  " or at least "
+                               << (Value::value_count + 10) << ")";
+                  DOMAIN_ERROR;
+                }
              value_count_limit = b;
            }
         else if (x == SYL_RAVEL_BYTES_LIMIT)   // ravel bytes limit
            {
-             const int cells = b / sizeof(Cell);
+             // ShapeItem, not int: limits ≥ 2⋆35 bytes wrapped (Bugs37 #49)
+             const ShapeItem cells = b / sizeof(Cell);
              if (cells &&
                  cells < APL_Integer(Value::total_ravel_count + 1000))
-                DOMAIN_ERROR;
+                {
+                  MORE_ERROR() << "Bad ravel bytes limit " << b
+                               << " in ⎕SYL[" << (x + qio) << ";"
+                               << (qio + 1) << "] (expecting 0 for no limit"
+                                  " or at least "
+                               << ((Value::total_ravel_count + 1000)
+                                   * sizeof(Cell)) << ")";
+                  DOMAIN_ERROR;
+                }
 
              ravel_count_limit = cells;
            }
@@ -1090,18 +1157,64 @@ const APL_Integer qio = Workspace::get_IO();
            }
         else if (x == SYL_WA_MARGIN)   // ⎕WA safety margin
            {
-             if (b < 1000000)   DOMAIN_ERROR;
+             if (b < 1000000)
+                {
+                  MORE_ERROR() << "Bad ⎕WA safety margin " << b
+                               << " in ⎕SYL[" << (x + qio) << ";"
+                               << (qio + 1) << "] (expecting at least"
+                                  " 1000000 bytes)";
+                  DOMAIN_ERROR;
+                }
+
+             // a larger margin that makes the workspace full right away
+             // would make every subsequent statement (including the
+             // one lowering the margin again) a WS FULL. Bugs37 #5.
+             //
+             const int64_t old_margin = Quad_WA::WA_margin;
              Quad_WA::WA_margin = b;
+             if (b > old_margin && Value::check_WS_FULL("⎕SYL", 0, LOC))
+                {
+                  Quad_WA::WA_margin = old_margin;
+                  MORE_ERROR() << "⎕WA safety margin " << b
+                               << " in ⎕SYL[" << (x + qio) << ";"
+                               << (qio + 1) << "] is too large (it"
+                                  " leaves no free workspace memory)";
+                  DOMAIN_ERROR;
+                }
            }
         else if (x == SYL_WA_SCALE)   // ⎕WA memory scale (45% - 200% %
            {
-             if (b <  45)   DOMAIN_ERROR;
-             if (b > 200)   DOMAIN_ERROR;
+             if (b < 45 || b > 200)
+                {
+                  MORE_ERROR() << "Bad ⎕WA memory scale " << b
+                               << " in ⎕SYL[" << (x + qio) << ";"
+                               << (qio + 1) << "] (expecting 45-200 %)";
+                  DOMAIN_ERROR;
+                }
+
+             // same as for SYL_WA_MARGIN above, but for a smaller scale
+             //
+             const int old_scale = Quad_WA::WA_scale;
              Quad_WA::WA_scale = b;
+             if (b < old_scale && Value::check_WS_FULL("⎕SYL", 0, LOC))
+                {
+                  Quad_WA::WA_scale = old_scale;
+                  MORE_ERROR() << "⎕WA memory scale " << b
+                               << "% in ⎕SYL[" << (x + qio) << ";"
+                               << (qio + 1) << "] is too small (it"
+                                  " leaves no free workspace memory)";
+                  DOMAIN_ERROR;
+                }
            }
         else if (x == SYL_PACK_MIN_LENGTH)   // min. element count for packed ravels
            {
-             if (b < 1)   DOMAIN_ERROR;
+             if (b < 1)
+                {
+                  MORE_ERROR() << "Bad minimum packed length " << b
+                               << " in ⎕SYL[" << (x + qio) << ";"
+                               << (qio + 1) << "] (expecting at least 1)";
+                  DOMAIN_ERROR;
+                }
              pack_min_length = b;
            }
         else
@@ -1281,7 +1394,13 @@ ostringstream os;
 void
 Quad_TZ::assign(Value_P B, bool clone, const char * loc)
 {
-   if (!B->is_scalar())   RANK_ERROR;
+   // a scalar or a one-item vector, like ⎕IO and ⎕CT (Bugs37 #78)
+   //
+   if (!B->is_scalar_or_len1_vector())
+      {
+        if (B->get_rank() > 1)   RANK_ERROR;
+        else                     LENGTH_ERROR;
+      }
 
    // Bugs28 #100(k): an out-of-range offset used to be silently
    // ignored (⎕TZ←¯13 / ⎕TZ←1E20 left ⎕TZ unchanged with no

@@ -39,9 +39,11 @@ NumericCell::bif_and(Cell * Z, const Cell * A) const
 {
 const double qct = Workspace::get_CT();
 
-   // if either value is 0 then return 0
+   // if either value is 0 then return 0. But a tiny nonzero float like
+   // 1E¯11 is not 0 (Bugs37 #11).
    //
-   if (A->is_near_zero() || is_near_zero())   return IntCell::z0(Z);
+   if ((A->is_near_zero() && !A->is_snapped_to_0()) ||
+       (   is_near_zero() &&    !is_snapped_to_0()))   return IntCell::z0(Z);
 
    // if both args are 1 then return the classical A ∧ B
    //
@@ -72,7 +74,11 @@ const double qct = Workspace::get_CT();
    // (UB, e.g. yields INT64_MIN for 1E19) -- is_near_int64_t() correctly
    // excludes those and lets them fall through to the real/float LCM path
    // a few lines below instead.
-   if (A->is_near_int64_t() && is_near_int64_t())
+   // Bugs37 #11: a tiny nonzero float (e.g. 1E¯11) is near the integer 0,
+   // but must not be snapped to 0 (same guard as Bugs31 #15 for A!B).
+   //
+   if (A->is_near_int64_t() && is_near_int64_t() &&
+       !A->is_snapped_to_0() && !is_snapped_to_0())
       {
         if (!A->is_near_int64_t())   return E_DOMAIN_ERROR;
         if (!is_near_int64_t())      return E_DOMAIN_ERROR;
@@ -280,6 +286,18 @@ const APL_Float i_A    = A->get_imag_value();
 const APL_Float i_B    = get_imag_value();
 const APL_Float i_B__A = i_B - i_A;
 
+   // Γ(x) has poles at the real x = 0, ¯1, ¯2, ... A pole of Γ(1+A) or
+   // Γ(1+B-A) in the denominator makes the result 0 (Bugs37 #36, see
+   // real_binomial() above); a pole of Γ(1+B) is a DOMAIN ERROR.
+   //
+   if (is_near_zero(i_B) && r_B + 1.0 < 0.5 && is_near_int(r_B + 1.0))
+      return E_DOMAIN_ERROR;
+   if (is_near_zero(i_A) && r_A + 1.0 < 0.5 && is_near_int(r_A + 1.0))
+      return IntCell::z0(Z);
+   if (is_near_zero(i_B__A) && r_B__A + 1.0 < 0.5 &&
+       is_near_int(r_B__A + 1.0))
+      return IntCell::z0(Z);
+
 const APL_Complex gam_1_a    = ComplexCell::gamma(r_A +    1.0, i_A);
    if (!isfinite(gam_1_a.real()) || !isfinite(gam_1_a.imag()))
       return E_DOMAIN_ERROR;
@@ -382,9 +400,11 @@ NumericCell::bif_or(Cell * Z, const Cell * A) const
 {
 const double qct = Workspace::get_CT();
 
-   // if both args are boolean then return the classical A ∨ B
+   // if both args are boolean then return the classical A ∨ B. But a
+   // tiny nonzero float like 1E¯11 is not 0 (Bugs37 #11).
    //
-   if (A->is_near_bool() && is_near_bool())
+   if (A->is_near_bool() && is_near_bool() &&
+       !A->is_snapped_to_0() && !is_snapped_to_0())
       {
         if ( A->get_near_bool() || get_near_bool())   return IntCell::z1(Z);
         else                                          return IntCell::z0(Z);
@@ -416,7 +436,10 @@ const double qct = Workspace::get_CT();
    // is_near_int64_t(), not is_near_int(): see the LCM function above for
    // why (get_checked_near_int()'s unchecked cast is UB for a magnitude
    // is_near_int() alone doesn't exclude).
-   if (A->is_near_int64_t() && is_near_int64_t())
+   // Bugs37 #11: see the LCM function above.
+   //
+   if (A->is_near_int64_t() && is_near_int64_t() &&
+       !A->is_snapped_to_0() && !is_snapped_to_0())
       {
         const APL_Integer a = A->get_checked_near_int();
         const APL_Integer b =    get_checked_near_int();
@@ -491,9 +514,15 @@ const APL_Float r_1_A    = 1.0 + A->get_real_value();
 const APL_Float r_1_B    = 1.0 +    get_real_value();
 const APL_Float r_1_B__A = r_1_B - A->get_real_value();
 
-   if (r_1_A    < 0.0 && is_near_int(r_1_A))      return E_DOMAIN_ERROR;
-   if (r_1_B    < 0.0 && is_near_int(r_1_B))      return E_DOMAIN_ERROR;
-   if (r_1_B__A < 0.0 && is_near_int(r_1_B__A))   return E_DOMAIN_ERROR;
+   // Γ has poles at 0, ¯1, ¯2, ... A pole of the numerator Γ(1+B) is a
+   // DOMAIN ERROR (LRM p. 66: "except in the case where R is a negative
+   // integer and L is not an integer"), while a pole of Γ(1+A) or of
+   // Γ(1+B-A) in the denominator (with a finite numerator) makes the
+   // result 0, e.g. 0.5!¯0.5 or ¯1!0.5 (APL2 binomial table, Bugs37 #36).
+   //
+   if (r_1_B    < 0.5 && is_near_int(r_1_B))      return E_DOMAIN_ERROR;
+   if (r_1_A    < 0.5 && is_near_int(r_1_A))      return IntCell::z0(Z);
+   if (r_1_B__A < 0.5 && is_near_int(r_1_B__A))   return IntCell::z0(Z);
 
 const APL_Float gam_r_1_B = tgamma(r_1_B);
    if (!isfinite(gam_r_1_B))
@@ -666,7 +695,11 @@ NumericCell::flt_gcd(APL_Float & z, APL_Float a, APL_Float b, double qct)
    enum { MAX_GCD_ITERATIONS = 5000 };
    loop(iteration, MAX_GCD_ITERATIONS)
        {
-         if (is_near_zero(a))   { z = b;   return E_NO_ERROR; }
+         // Bugs37 #11: only an exact 0 ends the iteration here; an absolute
+         // is_near_zero(a) made gcd(1E¯11,1) = 1 and thus 1E¯11∧1 = 1E¯11.
+         // A tiny but nonzero a is handled by the quotient test below.
+         //
+         if (a == 0.0)   { z = b;   return E_NO_ERROR; }
 
          // Bugs28 #43: plain Euclid on doubles, stopping only on an
          // ABSOLUTE is_near_zero(a) above, ignores qct entirely --

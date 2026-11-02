@@ -60,7 +60,20 @@ public:
    /// 'xxx' or as (UCS nn nnn ...)
    /// @param ucs output string being built
    /// @param vec character vector to encode
-   static void tf2_char_vec(UCS_string & ucs, const UCS_string & vec);
+   /// @param fun_line true if \b vec is a line of a defined function
+   static void tf2_char_vec(UCS_string & ucs, const UCS_string & vec,
+                            bool fun_line);
+
+   /// return a mask that is true for the characters of function line
+   /// \b line that are in a string ('...', "...", or «...») or comment
+   /// @param line a line of a defined function
+   static std::vector<bool> text_mask(const UCS_string & line);
+
+   /// return the lines in \b B (the argument of ⎕FX in an ATF record) with
+   /// the ASCII * ^ ~ in APL code (i.e. not in strings or comments)
+   /// replaced by the principal APL characters ⋆ ∧ ∼
+   /// @param B nested vector of lines or character matrix
+   static Value_P ATF_principal_chars(const cValue & B);
 
    /// store B in transfer format 2 (new APL format) into \b ucs
    /// @param ucs output string being built
@@ -71,7 +84,9 @@ public:
 
    /// try inverse ⎕TF2 of ucs, set \b new_var_or_fun if successful
    /// @param ravel transfer-format-2 encoded string to decode
-   static UCS_string tf2_inverse(const UCS_string & ravel);
+   /// @param from_ATF true if \b ravel comes from an ATF file ()IN)
+   static UCS_string tf2_inverse(const UCS_string & ravel,
+                                 bool from_ATF = false);
 
    /// append ravel of \b value in tf2_format to \b ucs.
    /// Return true iff the value should be enclosed in parentheses when grouped.

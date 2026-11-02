@@ -2511,16 +2511,16 @@ lambda when the  lambda is executed. The valence of the lambda is determined
 as follows:
 
 @itemize
-@item If @b{⍶} and @b{⍹} are present then the lambda is a @i{dyadic operator}.
+@item If @b{⍹} is present (with or without @b{⍶}) then the lambda is a
+      @i{dyadic operator}.
 @item If only @b{⍶} is present then the lambda is a @i{monadic operator}.
 @item If neither @b{⍶} nor @b{⍹} is present then the lambda is a normal
       defined function.
-@item If both @b{⍺} and @b{⍵} are present in the body_statement(s) then the
-      operator or defined function is dyadic.
+@item If @b{⍺} is present in the body_statement(s) (with or without @b{⍵})
+      then the operator or defined function is dyadic. For example,
+      @b{3 @{⍺@} 5} is @b{3}.
 @item If only @b{⍵} is present then the operator or defined function is monadic.
 @item If neither @b{⍺} nor @b{⍵} is present then the lambda is niladic.
-@item Lambdas with the left value argument @b{⍺} but without the right
-      value argument @b{⍵} are invalid (SYNTAX ERROR).
 @end itemize
 
 There is a noteworthy pitfall related to niladic named lambdas. Recalling
@@ -4023,6 +4023,44 @@ the variable was created, then one can manually increase the capacity like this:
       ⊣ ⎕EX 'ASSOC_ARRAY'        ⍝ erase it so that it can be assigned
       ASSOC_ARRAY ← 38 ⎕CR TMP   ⍝ new associative array with ≥ twice the size
 @end example
+
+This works only for structured variables without sub-structures (i.e.
+without members that are structured variables themselves). @b{39 ⎕CR}
+converts sub-structures into N×2 matrices as well, but @b{38 ⎕CR} converts
+only the top level of its argument back: a sub-structure comes back as
+an ordinary N×2 matrix, and its members can no longer be accessed (e.g.
+@b{ASSOC_ARRAY.c.d} becomes a DOMAIN ERROR). @b{38 ⎕CR} cannot do that
+on its own, because the result of @b{39 ⎕CR} does not tell a
+sub-structure from a member whose value happens to be an N×2 matrix:
+
+@example
+      S.c.d←1 2              ⍝ a sub-structure
+      S.m←2 2⍴'x' 1 'y' 2    ⍝ an ordinary nested matrix
+      39 ⎕CR S
+ m   x 1
+     y 2
+
+ c    d  1 2
+@end example
+
+If a structured variable has sub-structures, then convert them yourself,
+i.e. apply @b{38 ⎕CR} to those items of @b{TMP[;2]} that were
+sub-structures before applying it to @b{TMP} itself:
+
+@example
+      TMP ← 39 ⎕CR S
+      I ← TMP[;1]⍳⊂,'c'              ⍝ the row of sub-structure c
+      TMP[I;2] ← ⊂38 ⎕CR ⊃TMP[I;2]   ⍝ c is a structured variable again
+      ⊣ ⎕EX 'S'
+      S ← 38 ⎕CR TMP
+      S.c.d
+1 2
+@end example
+
+Note also that the
+N×2 matrix is only an exchange format between structured variables and
+ordinary APL values; it does not describe how structured variables are
+stored internally, which may change in the future.
 
 As a rule of thumb, associative arrays will be fast as long their capacity is
 more than twice the number of their members. The expression ASSOC_ARRAY[;1]
@@ -5631,7 +5669,7 @@ a name. For example: monadic @b{⎕CR.hex_to_bytes} is the same as monadic
 @node User-defined boxing (A ⎕CR[X] B)
 @subsection User-defined boxing: A ⎕CR[X] B
 
-The boxing sub-functions of @b{⎕CR} (@b{A∈2 3 4 7 8 9 20 ... 25 29 46 47})
+The boxing sub-functions of @b{⎕CR} (@b{A∈2 3 4 7 8 9 20 ... 25 46 47})
 display a value @b{B} in one of a few fixed boxing styles. Each of these
 styles is defined by a character vector of length 89: the line-drawing
 characters for the frames, followed by the decorators that are printed into
@@ -5810,20 +5848,21 @@ The frame characters and decorators are taken entirely from @b{X} (and,
 beyond @b{⍴X}, from the style of @b{A}). The left argument @b{A} still
 determines the rest of the formatting, in particular:
 
-@itemize
-@item whether @b{B} as a whole gets a frame in line style 1 (as for
-@b{A∈4 8 23 24 25 29 46 47}) or only the items of @b{B} (as for
-@b{A∈2 3 7 9 20 21 22}), and
-@item whether strings are quoted (@b{A=29}).
-@end itemize
+whether @b{B} as a whole gets a frame in line style 1 (as for
+@b{A∈4 8 23 24 25 46 47}) or only the items of @b{B} (as for
+@b{A∈2 3 7 9 20 21 22}).
+
+Style @b{29} (@b{4 ⎕CR} with quoted strings) has no axis form: it shows
+character vectors in quotes rather than in frames, so user-defined frame
+characters do not fit it.
 
 @b{0 ⎕CR[⍬] B} and @b{1 ⎕CR[⍬] B} return 89 blanks, since these styles
 have no frames. @b{A ⎕CR[X] B} throws:
 
 @itemize
 @item DOMAIN ERROR if @b{A} is not one of the boxing sub-functions
-@b{0 1 2 3 4 7 8 9 20 ... 25 29 46 47}, or if an item of @b{X} is not a
-character,
+@b{0 1 2 3 4 7 8 9 20 ... 25 46 47} (in particular for @b{A=29}), or if
+an item of @b{X} is not a character,
 @item RANK ERROR if @b{X} is not a vector, and
 @item LENGTH ERROR if @b{X} has more than 89 items.
 @end itemize
@@ -6291,7 +6330,7 @@ shows a list of all functions provided by @b{⎕FIO}:
            A1, A2, ...  nested vector with elements A1, A2, ...
 
            ⎕FIO     ''    print this text on stderr
-        '' ⎕FIO     ''    print this text on stdout
+           ⎕FIO      ⍬    print function-number to -name mapping on stderr
            ⎕FIO[ 0] ''    print this text on stderr
         '' ⎕FIO[ 0] ''    print this text on stdout
 
@@ -6319,10 +6358,10 @@ File I/O functions:
    Zi ←    ⎕FIO[16] Bh    fflush(Bh)
    Zi ←    ⎕FIO[17] Bh    fsync(Bh)
    Zi ←    ⎕FIO[18] Bh    fstat(Bh)
-   Zi ←    ⎕FIO[19] Bh    unlink(Bc)
-   Zi ←    ⎕FIO[20] Bh    mkdir(Bc, 0777)
-   Zi ← Ai ⎕FIO[20] Bh    mkdir(Bc, AI)
-   Zi ←    ⎕FIO[21] Bh    rmdir(Bc)
+   Zi ←    ⎕FIO[19] Bp    unlink(Bp)
+   Zi ←    ⎕FIO[20] Bp    mkdir(Bp, 0777)
+   Zi ← Ai ⎕FIO[20] Bp    mkdir(Bp, Ai)
+   Zi ←    ⎕FIO[21] Bp    rmdir(Bp)
    Zi ← A  ⎕FIO[22] 1     printf(         A1, A2...) format A1
    Zi ← A  ⎕FIO[22] 2     fprintf(stderr, A1, A2...) format A1
    Zi ← A  ⎕FIO[22] Bh    fprintf(Bh,     A1, A2...) format A1
@@ -6331,11 +6370,11 @@ File I/O functions:
    Zh ←    ⎕FIO[24] Bs    popen(Bs, "r") command Bs
    Ze ←    ⎕FIO[25] Bh    pclose(Bh)
    Zs ←    ⎕FIO[26] Bs    return entire file Bs as byte vector
-   Zs ← As ⎕FIO[27] Bs    rename file As to Bs
+   Ze ← As ⎕FIO[27] Bs    rename file As to Bs
    Zd ←    ⎕FIO[28] Bs    return content of directory Bs
    Zn ←    ⎕FIO[29] Bs    return file names in directory Bs
    Zs ←    ⎕FIO 30        getcwd()
-   Zn ← As ⎕FIO[31] Bs    access(As, Bs) As ∈ 'RWXF'
+   Ze ← As ⎕FIO[31] Bs    access(As, Bs) As ∈ 'RWXF'
    Zh ←    ⎕FIO[32] Bi    socket(Bi=AF_INET, SOCK_STREAM, 0)
    Ze ← Aa ⎕FIO[33] Bh    bind(Bh, Aa)
    Ze ←    ⎕FIO[34] Bh    listen(Bh, 10)
@@ -11708,6 +11747,20 @@ As wide as one row of its prototype; spacing by its rank @tab
 A single blank, spaced like a simple cell @tab
 not yet
 @end multitable
+
+The preference also affects one detail of dyadic @b{⍕} (format by
+example): in scaled form (E-format), both IBM APL2 and GNU APL show all
+mantissa digits of the pattern and right-align the exponent in its
+digit positions, so that the E's of a column stay aligned. IBM APL2
+fills the unused exponent positions with blanks, which puts a blank
+inside the number (rule 2 above), while GNU APL fills them with 0
+(strict mode: blanks, like IBM APL2):
+
+@example
+      ' 5.75E55'⍕1 1E10 1.25E9
+ 1.00E00 1.00E10 1.25E09        @r{GNU APL}
+ 1.00E 0 1.00E10 1.25E 9        @r{IBM APL2 and strict mode}
+@end example
 
 @c ============================================================================
 @node Internationalization

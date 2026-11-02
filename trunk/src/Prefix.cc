@@ -1358,8 +1358,7 @@ TokenClass next = body[pc].get_Class();
         // stranded 2 3⍴⍳6 with the value parenthesis instead of passing
         // it to the derived function. See Bugs27 #21.
         //
-        if (pc < body.end_PC() - 1 &&
-            body[pc + 1].get_Class() == TC_OPER2)   return false;
+        if (is_OPER2_left_of_RO(pc))   return false;
 
         const Symbol * sym = body[pc].get_sym_ptr();
         const NameClass nc = sym->get_NC();
@@ -1423,11 +1422,35 @@ TokenClass next = body[pc].get_Class();
 
    // dyadic operator with numeric function argument, for example:  ⍤ 0
    //
-   if (next == TC_VALUE                  &&
-       pc < body.end_PC() - 1 &&
-       body[pc+1].get_Class() == TC_OPER2)   return false;
+   if (next == TC_VALUE && is_OPER2_left_of_RO(pc))   return false;
 
    return true;
+}
+//────────────────────────────────────────────────────────────────────────────
+bool
+Prefix::is_OPER2_left_of_RO(Prefix_PC pc) const
+{
+   // body[pc] is a possible right operand RO. Return true if it is the RO
+   // of a dyadic operator, possibly with an axis between the operator and
+   // RO, e.g. (⌽⍤[1]1). Bugs37 #15.
+   //
+   ++pc;   // the token left of RO
+   if (pc >= body.end_PC())   return false;
+
+   if (body[pc].get_Class() == TC_INDEX &&
+       body[pc].get_tag() == TOK_FAXIS)   // literal axis, e.g. [1]
+      {
+        ++pc;
+      }
+   else if (body[pc].get_Class() == TC_R_BRACK)   // [ ... ]
+      {
+        pc = pc + body[pc].get_int_val2();
+        if (pc >= body.end_PC())   return false;
+        if (body[pc].get_Class() != TC_L_BRACK)   return false;
+        ++pc;
+      }
+
+   return pc < body.end_PC() && body[pc].get_Class() == TC_OPER2;
 }
 //────────────────────────────────────────────────────────────────────────────
 inline bool
@@ -1445,6 +1468,9 @@ Prefix::push_next_token()
 
 again:
 
+   // the first token of a statement is its rightmost token
+   //
+const bool statement_start = ssize() == 0;
 const Prefix_PC old_PC = PC++;
 const Token_loc & tloc = body[old_PC];   // incl. its (opaque) PC
 const Token & tok = tloc.get_token();
@@ -1468,7 +1494,9 @@ const TokenClass tcl = tok.get_Class();
 
    if (tcl == TC_SYMBOL)          // resolve symbol if necessary
       {
-        return push_Symbol(tloc);   // true iff )SI pushed
+        if (push_Symbol(tloc))   return true;   // )SI pushed (e.g. niladic)
+        if (statement_start)   check_dangling_function();
+        return false;
       }
 
    if (tcl == TC_ASSIGN)     // update assign_state (from right to left)
@@ -1478,7 +1506,107 @@ const TokenClass tcl = tok.get_Class();
       }
 
    push(tloc);
+   if (statement_start)   check_dangling_function();
    return false;   // )SI not pushed
+}
+//────────────────────────────────────────────────────────────────────────────
+void
+Prefix::check_dangling_function()
+{
+   // A function (or operator) at the right end of a statement can never
+   // get its right argument, so the statement is malformed. Detect that
+   // before anything to its left is evaluated: otherwise parenthesized
+   // assignments, function calls, or niladic functions left of it were
+   // executed before the SYNTAX ERROR (Blake McBride, Bugs37 #34).
+   //
+   // Note: a function before a ) is not checked since it can be valid
+   // (e.g. as an operand).
+   //
+   // return true if tok is a function or operator (but not a niladic one)
+   //
+   struct _ { static bool is_fun_or_oper(const Token & tok)
+      {
+        switch(tok.get_Class())
+           {
+             case TC_FUN12:
+             case TC_OPER1:
+             case TC_OPER2: return true;
+
+             case TC_SYMBOL:   // a defined function or operator?
+                  {
+                    const Symbol * sym = tok.get_sym_ptr();
+                    const Function * fun = sym ? sym->get_function() : 0;
+                    return fun && (fun->get_oper_valence() ||
+                                   fun->get_fun_valence());
+                  }
+
+             default: return false;
+           }
+      } };
+
+   // FOO←{...} assigns a lambda (a function) to FOO. A function right of
+   // ← is therefore not checked here.
+   //
+   if (PC < body.end_PC() && body[PC].get_Class() == TC_ASSIGN)   return;
+
+const Token * fun_tok = 0;   // the dangling function or operator, if any
+const Token & tok = at(0).get_token();
+   switch(tok.get_Class())
+      {
+        case TC_FUN12:   // e.g. 5 +
+        case TC_OPER1:   // e.g. +/
+        case TC_OPER2:   // e.g. +.
+             fun_tok = &tok;
+             break;
+
+        case TC_INDEX:   // e.g. ,[1] (constant axis) as opposed to X[1]
+             if (tok.get_tag() != TOK_MARKER && PC < body.end_PC() &&
+                 _::is_fun_or_oper(body[PC].get_token()))
+                fun_tok = &body[PC].get_token();
+             break;
+
+        case TC_R_BRACK:   // e.g. ,[I] (axis) as opposed to X[I] (index)
+             {
+               int depth = 1;
+               for (Prefix_PC pc = PC; pc < body.end_PC(); ++pc)
+                   {
+                     const Token & bt = body[pc].get_token();
+                     if (bt.get_Class() == TC_END)   return;   // no [
+                     if (bt.get_Class() == TC_R_BRACK)   ++depth;
+                     else if (bt.get_tag() == TOK_L_BRACK && --depth == 0)
+                        {
+                          if (pc + 1 < body.end_PC() &&
+                              _::is_fun_or_oper(body[pc + 1].get_token()))
+                             fun_tok = &body[pc + 1].get_token();
+                          break;
+                        }
+                   }
+             }
+             break;
+
+        default: return;   // a value, ), etc.
+      }
+
+   if (fun_tok == 0)   return;
+
+UCS_string fun_name;
+   if (fun_tok->get_Class() == TC_SYMBOL)
+      fun_name = fun_tok->get_sym_ptr()->get_name();
+   else if (fun_tok->is_function())
+      fun_name = fun_tok->get_function()->get_name();
+
+   MORE_ERROR() << "Missing mandatory right argument of function "
+                << fun_name << " (at the right end of the statement)";
+
+   // syntax_error() and the line number of the error (StateIndicator::
+   // get_line()) expect PC after the end of the failed statement.
+   //
+   while (PC < body.end_PC())
+      {
+        const TokenClass tc = body[PC++].get_Class();
+        if (tc == TC_END || tc == TC_RETURN)   break;
+      }
+   syntax_error(LOC);
 }
 //────────────────────────────────────────────────────────────────────────────
 inline void
@@ -1660,7 +1788,12 @@ UCS_string & more = MORE_ERROR();
             }
          else
             {
-              const UCS_string name = at(j).get_token().tag_name();
+              // the end of a ⍎ context (TOK_RETURN_EXEC etc.) is shown as
+              // ENDL, like the end of a ◊ or ∇ statement (Bugs37 #43)
+              //
+              const UCS_string name = at(j).get_Class() == TC_RETURN
+                                    ? UCS_string(U"ENDL")
+                                    : at(j).get_token().tag_name();
               if (name.starts_with("TOK_"))   more << UCS_string(name, 4);
               else
                  more << name;
@@ -2836,6 +2969,16 @@ Value_P     A = at0().get_apl_val();
 cFunction_P F = at1().get_function();
 Value_P     C = at2().get_function_axis();
 Value_P     B = at3().get_apl_val();
+
+   // same selectivity guard as in reduce_A_F_B_(), but for a dyadic
+   // function with axis, e.g. (M,[1]M)←0 or (M+[1]V)←0 (Bugs37 #39)
+   //
+   if (B->is_left_value() &&
+       (!F->has_result() || !(F->get_selectivity() & SEL_DYA_X)))
+      {
+        B->neutralize_lval_cells(LOC);
+        syntax_error(LOC);
+      }
 
 const Token Z = F->eval_AXB(*A, *C, *B);
 
@@ -4051,8 +4194,7 @@ Prefix::reduce_A_B__()
       (since bracket (i.e. B[...]) and specification left (i.e. ←A) ido
       obviously not apply here.
 
-       The only cases where A is a right operand are:
-
+       The only case where A is a right operand is case 1 below.
     */
    // A is the latest token read, so the token left of A is the next unread
    // token body[PC]. Prefix uses only its own PC (a position in body) here,
@@ -4066,33 +4208,16 @@ Prefix::reduce_A_B__()
                   ┌────────── PC
                   │   ┌────── A
                   │   │ ┌──── B
-         ... LO OPER2 A B ...   and
+         ... LO OPER2 A B ...
          */
         set_action(RA_PUSH_NEXT);
         return;
       }
 
-   if (body[PC].get_Class() == TC_R_PARENT)   // maybe case 2.
-      {
-        /* case 2:
-
-                    ┌───────────────── PC + 2 + n   (with n = 0 if single ')')
-                    │    ┌──────────── PC + 1 + n   (with n = 0 if single ')')
-                    │    │ ┌────────── PC
-                    │    │ │ ┌──────── A
-                    │    │ │ │ ┌────── B
-         ... ( LO OPER2 RO ) A B) ...
-         */
-        // normally there is only one ), but there could be more.
-        //
-        Prefix_PC pc_RPAR = PC;   // rightmost RPAR
-        while (body[pc_RPAR + 1].get_Class() == TC_R_PARENT)   ++pc_RPAR;
-        if (body[pc_RPAR + 2].get_Class() == TC_OPER2)   // definitively case 2
-           {
-             set_action(RA_PUSH_NEXT);
-             return;
-           }
-      }
+   // Bugs37 #14: a former "case 2" also pushed for ( LO OPER2 RO ) A B,
+   // but there RO is inside the parentheses and A B is an ordinary right
+   // argument (vector notation binds tighter than function application):
+   // (f⍣N) A B ←→ (f⍣N) (A B).
 
 Value_P Z = Value::glue(at0(), at1(), LOC);
 const Token result(TOK_APL_VALUE3, Z);
@@ -4700,7 +4825,10 @@ Prefix::reduce_RETC___()
 {
    Assert1(prefix_len == 1);
 
-   if (ssize() != 1)   syntax_error(LOC);
+   // same diagnostic as at the end of a ◊ or ∇ statement, e.g. VALENCE
+   // ERROR for ⍎'+/' like for +/ (Bugs37 #43)
+   //
+   if (ssize() != 1)   push_END_error();
 
    // action is RA_RETURN, therefore the entire si.fun_oper_cache will be
    // discarded and no reset() of it is required.
@@ -4785,6 +4913,11 @@ Prefix::reduce_RETC_VOID__()
    // since they always have a result λ←.
 
    Assert1(prefix_len == 2);
+
+   // a value left of the function, e.g. ⍎'N 0': VALUE ERROR (from
+   // syntax_error()) like in reduce_END_VOID__(). Bugs37 #46.
+   //
+   if (ssize() != 2)   syntax_error(LOC);
 
    // action is RA_RETURN, therefore the entire si.fun_oper_cache will be
    // discarded and no reset() of it is required.

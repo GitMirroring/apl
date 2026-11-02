@@ -1529,7 +1529,8 @@ int signature = SIG_FUN | SIG_Z;
    //
    body_text << lvars_text;
 
-const Parser parser(PM_FUNCTION, LOC, false);
+Parser parser(PM_FUNCTION, LOC, false);
+   parser.set_lambda_body();   // body_text may end with ;C;D
 Token_string body;
 Function_PC end_PC = Function_PC_0;   // the end of body_text
    // if parsing fails at this point, then something is wrong in )SAVE

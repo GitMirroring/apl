@@ -29,6 +29,7 @@
 #include "Macro.hh"
 #include "PointerCell.hh"
 #include "Quad_CR.hh"
+#include "Quad_TF.hh"
 #include "Symbol.hh"
 #include "SystemVariable.hh"
 #include "Tokenizer.hh"
@@ -113,7 +114,11 @@ PrintContext pctx = Workspace::get_PrintContext(PST_NONE);
         case 23: FRAME(NARS)
         case 24: FRAME(NARS_THIN)
         case 25: FRAME(NARS_DOUBLE)
-        case 29: FRAME(BOXED_QUOTED)
+        case 29: // strings are quoted, not framed, so user-defined frame
+                 // characters do not fit (Bugs37 #58)
+                 MORE_ERROR() << "A ⎕CR[X] B: style 29 (quoted strings) "
+                                 "has no user-defined frame characters";
+                 DOMAIN_ERROR;
         case 46: FRAME(PLAIN_THIN)
         case 47: FRAME(PLAIN_THICK)
         default: MORE_ERROR() << "A ⎕CR[X] B with invalid subfunction A (="
@@ -528,6 +533,56 @@ UCS_string line;
 }
 //────────────────────────────────────────────────────────────────────────────
 void
+Quad_CR::check_duplicate_member(Value & Z, const UCS_string & name)
+{
+   // member names are the keys of an associative array and must be unique
+   // (Bugs37 #41)
+   //
+   if (Z.get_member_data(name))
+      {
+        MORE_ERROR() << "38 ⎕CR B: duplicate member name " << name
+                     << " in B";
+        DOMAIN_ERROR;
+      }
+}
+//────────────────────────────────────────────────────────────────────────────
+bool
+Quad_CR::members_are_names(const cValue & value)
+{
+   // return true if structured value is non-empty and all its member names
+   // (recursively) are APL identifiers
+   //
+   if (value.get_rank() != 2 || value.get_cols() != 2)   return false;
+
+bool empty = true;
+   loop(r, value.get_rows())
+       {
+         Cell cache_m;
+         const Cell & member_cell = value.get_cravel(2*r, cache_m);
+         if (member_cell.is_integer_cell())   continue;   // unused row
+         empty = false;
+
+         Value_P name_v = member_cell.try_pointer_value();
+         if (!name_v || !name_v->is_char_string())   return false;
+         const UCS_string name(*name_v);
+         if (name.size() == 0)   return false;
+         if (!Avec::is_first_symbol_char(name[0]))   return false;
+         loop(n, name.size())
+            if (!Avec::is_symbol_char(name[n]))   return false;
+
+         Cell cache_d;
+         const Cell & data_cell = value.get_cravel(2*r + 1, cache_d);
+         if (Value_P sub = data_cell.try_pointer_value())
+            {
+              if (sub->is_member() && !members_are_names(*sub))
+                 return false;
+            }
+       }
+
+   return !empty;
+}
+//────────────────────────────────────────────────────────────────────────────
+void
 Quad_CR::do_CR10_variable(UCS_string_vector & result,
                           const UCS_string & var_name,
                           const cValue * value)
@@ -535,6 +590,23 @@ Quad_CR::do_CR10_variable(UCS_string_vector & result,
    // avoid any disturbances by ⎕FC (Format Control).
    //
    Workspace::push_FC();
+
+   // the NAME.member←value form below requires that all member names are
+   // APL identifiers, and it produces no line at all for an empty
+   // structure. Otherwise use the 2 ⎕TF form NAME←38⎕CR... Bugs37 #18.
+   //
+   if (value->is_member() && !members_are_names(*value))
+      {
+        const Token tok = Quad_TF::tf2_var(var_name, *value);
+        if (tok.get_Class() == TC_VALUE &&
+            tok.get_apl_val()->is_char_string() &&
+            tok.get_apl_val()->element_count())
+           {
+             result.push_back(UCS_string(*tok.get_apl_val()));
+             Workspace::pop_FC();   // restore ⎕FC
+             return;   // OK
+           }
+      }
 
    if (value->is_member())   // structured variable
       {
@@ -810,8 +882,11 @@ const Symbol * symbol = Workspace::lookup_existing_symbol(symbol_name);
       {
         case NC_VARIABLE:
              {
-               const cValue * value = symbol->get_apl_value().get();
-               do_CR10_variable(result, symbol_name, value);
+               // keep the Value_P alive: some system variables (e.g. ⎕SYL)
+               // compute a fresh value in get_apl_value().
+               //
+               const Value_P value = symbol->get_apl_value();
+               do_CR10_variable(result, symbol_name, value.get());
                return;
              }
 
@@ -827,10 +902,15 @@ const Symbol * symbol = Workspace::lookup_existing_symbol(symbol_name);
                // the full body (with a ⍫ closer to mark it locked, but
                // the body was there regardless).
                //
+               // the bare name is not an expression that produces the
+               // function: DOMAIN ERROR like 2 ⎕TF (Bugs37 #74)
+               //
                if (ufun.get_exec_properties()[0])
                   {
-                    result.push_back(symbol_name);
-                    return;
+                    MORE_ERROR() << "10 ⎕CR: '" << symbol_name
+                                 << "' is locked; its definition cannot be"
+                                    " disclosed.";
+                    DOMAIN_ERROR;
                   }
 
                const UCS_string text = ufun.canonical(false);
@@ -1230,6 +1310,10 @@ Value_P
 Quad_CR::do_CR15(cValue_R B)
 {
    if (B.get_rank() > 1)   RANK_ERROR;
+
+   // an odd length is a LENGTH ERROR, like for 13 ⎕CR (Bugs37 #73)
+   //
+   if (B.element_count() & 1)   LENGTH_ERROR;
 
 CDR_string cdr;
 const ShapeItem len = B.element_count()/2;
@@ -1782,18 +1866,22 @@ sRank max_rank = 0;
         if (B.is_lval_cell(b))   DOMAIN_ERROR;
         if (!B.is_pointer_cell(b))   continue;   // simple scalar
 
+        // the items are expanded to max_rank by prepending 1s (see below),
+        // so their shapes are aligned on the trailing axes: max_shape[t]
+        // is the maximum of the t'th axis counted from the END. Bugs37 #13.
+        //
         const Shape sh = B.get_pointer_value(b)->get_shape();
         const sRank rk = sh.get_rank();
         if (max_rank < rk)   max_rank = rk;
-        loop(s, rk)
+        loop(t, rk)
            {
-             const ShapeItem sh_s = sh.get_shape_item(s);
-             if (max_shape[s] < sh_s) max_shape[s] = sh_s;
+             const ShapeItem sh_t = sh.get_shape_item(rk - 1 - t);
+             if (max_shape[t] < sh_t) max_shape[t] = sh_t;
            }
       }
 
 Shape conformed;
-   loop(r, max_rank)   conformed.add_shape_item(max_shape[r]);
+   loop(r, max_rank)   conformed.add_shape_item(max_shape[max_rank - 1 - r]);
 const ShapeItem conformed_len = conformed.get_volume();
 
 Shape shape_Z(B.get_shape() + conformed);
@@ -1805,10 +1893,19 @@ Value_P Z(shape_Z, LOC);
         const Cell & cB = B.get_cravel(b, cache);
         if (Value_P v = cB.try_pointer_value())
            {
-             Value_P B_sub = CLONE_P(v, LOC);
-             Shape sh_sub = B_sub->get_shape();
-             sh_sub.expand_rank(conformed.get_rank());
-             B_sub->set_shape(sh_sub);
+             // v may be shared with other values (variables, constants
+             // in defined functions, structured variables), so the rank
+             // must be expanded in a real copy (CLONE_P() under NEW_CLONE
+             // is not one).
+             //
+             Value_P B_sub = v;
+             if (v->get_rank() < conformed.get_rank())
+                {
+                  B_sub = v->clone(LOC);
+                  Shape sh_sub = B_sub->get_shape();
+                  sh_sub.expand_rank(conformed.get_rank());
+                  B_sub->set_shape(sh_sub);
+                }
 
              Value_P ZZ = Bif_F12_TAKE::do_take(conformed, *B_sub, false);
              loop(zz, conformed_len)
@@ -1899,6 +1996,13 @@ const ShapeItem len_B1 = len_B - 1;
 
 Value_P Z(len_B + 7, LOC);
 const APL_Integer tag = B.get_int_value(0);
+   // the TLV header has 4 bytes, decoded as int32_t by 34 ⎕CR (Bugs37 #50)
+   if (tag != int32_t(tag))
+      {
+        MORE_ERROR() << "33 ⎕CR B: the tag B[1] does not fit into the"
+                        " 4-byte (signed) tag of the TLV header";
+        DOMAIN_ERROR;
+      }
     Z->next_ravel_Char(Unicode(tag >> 24 & 0xFF));
     Z->next_ravel_Char(Unicode(tag >> 16 & 0xFF));
     Z->next_ravel_Char(Unicode(tag >>  8 & 0xFF));
@@ -1946,10 +2050,14 @@ Quad_CR::do_CR36(cValue_R B)
 {
    if (B.get_rank() != 1)   RANK_ERROR;
 
+   // a simple character item of B is a 1-character line, e.g. 'c' in
+   // 36 ⎕CR 'ab' 'c' (Bugs37 #72)
+   //
 const ShapeItem len_B = B.element_count();
 ShapeItem len_Z = B.element_count();
    loop(b, len_B)
        {
+         if (B.is_character_cell(b))   { len_Z += 2;   continue; }
          const cValue & Bb = *B.get_pointer_value(b);
          if (Bb.get_rank() > 1)   RANK_ERROR;
          len_Z += 1 + Bb.element_count();
@@ -1959,6 +2067,11 @@ UCS_string UZ;
    UZ.reserve(len_Z);
    loop(b, len_B)
        {
+         if (B.is_character_cell(b))
+            {
+              UZ << B.get_char_value(b) << UNI_LF;
+              continue;
+            }
          const cValue & Bb = *B.get_pointer_value(b);
          UCS_string Ub(Bb);
          UZ << Ub << UNI_LF;
@@ -2045,6 +2158,7 @@ Value_P Z(shape_Z, LOC);
         if (B.is_character_cell(2*r))   // valid row (1-character member)
            {
              UCS_string name(B.get_char_value(2*r));
+             check_duplicate_member(*Z, name);
              Cell * data = Z->get_new_member(name);
              Cell cache;
              B.get_cravel(2*r + 1, cache).init_other(data, *Z, LOC);
@@ -2052,6 +2166,7 @@ Value_P Z(shape_Z, LOC);
         else if (B.is_pointer_cell(2*r)) // valid row (string member)
            {
              UCS_string name(*B.get_pointer_value(2*r));
+             check_duplicate_member(*Z, name);
              Cell * data = Z->get_new_member(name);
              Cell cache;
              B.get_cravel(2*r + 1, cache).init_other(data, *Z, LOC);

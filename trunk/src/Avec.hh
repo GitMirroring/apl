@@ -155,7 +155,9 @@ public:
 
    /// return true if unicode \b uni needs ⎕UCS in 2 ⎕TF or )OUT
    /// @param uni Unicode character to test
-   static bool need_UCS(Unicode uni);
+   /// @param in_text true if \b uni is in a string or comment (as opposed
+   ///        to APL code outside strings in a function line)
+   static bool need_UCS(Unicode uni, bool in_text = true);
 
    /// return \b true iff a token printed after \b av never needs a space
    /// @param uni Unicode character to test

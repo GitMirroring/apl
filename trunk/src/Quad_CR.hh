@@ -104,6 +104,16 @@ public:
    /// @param B right argument APL value
    static Value_P do_CR35(cValue_R B);
 
+   /// throw a DOMAIN ERROR if \b Z already has a member \b name
+   /// @param Z the structured value being built
+   /// @param name the member name
+   static void check_duplicate_member(Value & Z, const UCS_string & name);
+
+   /// return true if the structured \b value is not empty and all its
+   /// member names (recursively) are APL identifiers
+   /// @param value the structured value
+   static bool members_are_names(const cValue & value);
+
    /// portable variable encoding of value \b name (varname or varname ⊂)
    /// @param result vector of UCS strings that receives the encoded lines
    /// @param var_name name of the APL variable being encoded

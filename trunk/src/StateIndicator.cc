@@ -674,6 +674,15 @@ bool print_value = result.get_Class() == TC_VALUE && tag != TOK_APL_VALUE2;
 
    Quad_QUOTE::done(false, LOC);
 
+   display_value(B);
+}
+//────────────────────────────────────────────────────────────────────────────
+void
+StateIndicator::display_value(Value_P B, bool boxing)
+{
+   // the default display of B, also used (without boxing) by ⎕←B (Bugs37
+   // #35).
+   //
    // the print length limit (⎕SYL) applies to every display of a value,
    // whether boxed or not: if B exceeds it then the longest dimension of B
    // is cut in half until B is below the limit.
@@ -699,7 +708,7 @@ const bool truncated = Quad_SYL::print_length_limit &&
         B0 = Bif_F12_TAKE::do_take(sh, *B, false);
       }
 
-const int boxing_format = Command::get_boxing_format();
+const int boxing_format = boxing ? Command::get_boxing_format() : 0;
    if (boxing_format == 0)   // no boxing
       {
         B0->print(COUT);

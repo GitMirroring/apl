@@ -59,7 +59,7 @@ cFunction_P LO = tok_LO.get_function();
       {
         MORE_ERROR() << LO->get_name() << get_name() << " B : Bad function "
                      << LO->get_name() << " (expecting a dyadic function)";
-        SYNTAX_ERROR;
+        VALENCE_ERROR;   // like A F/ B (Bugs37 #67)
       }
 
    if (axis >= B->get_rank())

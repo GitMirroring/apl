@@ -1559,10 +1559,22 @@ ShapeItem xI = 0;
          const Cell & xcell = X.get_cravel(this_xI, x_cache);
          if (!xcell.is_near_int64_t())
             {
-              MORE_ERROR() << "A[B]: B is not a valid index for A (not an"
-                              " integer that fits a (signed) 63-bit index)";
+              // a character, nested, or non-integer index is outside the
+              // domain of indices (LRM p. 70) like for M[I;J] or V[I]←B,
+              // while an integer too large for an index is out of range.
+              // Bugs37 #40.
+              //
               Z->rollback(Z->get_valid_item_count(), LOC);
-              INDEX_ERROR;
+              if (xcell.is_near_int())
+                 {
+                   MORE_ERROR() << "A[B]: B is not a valid index for A (an"
+                                   " integer too large for a (signed) 63-bit"
+                                   " index)";
+                   INDEX_ERROR;
+                 }
+              MORE_ERROR() << "A[B]: B is not a valid index for A (not an"
+                              " integer)";
+              DOMAIN_ERROR;
             }
 
          ++xI;

@@ -375,6 +375,11 @@ Value::neutralize_lval_cells(const char * loc)
    // Only LvalCells are changed, so recursing into the items of an
    // ordinary (right-) value has no effect.
    //
+   // A packed ravel has neither LvalCells nor PointerCells (and no Cells
+   // at all, so get_wravel() must not be used on it). Bugs37 #4.
+   //
+   if (is_packed())   return;
+
    loop(d, nz_element_count())
        {
          Cell & cell = get_wravel(d);
@@ -2258,8 +2263,12 @@ void
 Value::catch_Error(const Error & error, const char * args, const char * loc)
 {
    Log(LOG_Value_alloc)   CERR << "Ravel allocation failed" << endl;
-   MORE_ERROR() << "new Value(" << args
-                << ") failed (APL error in ravel allocation)";
+
+   // keep a more specific )MORE text, e.g. the ⎕SYL limit (Bugs37 #49)
+   //
+   if (Workspace::more_error().size() == 0)
+      MORE_ERROR() << "new Value(" << args
+                   << ") failed (APL error in ravel allocation)";
    throw error;   // rethrow
 }
 //────────────────────────────────────────────────────────────────────────────
@@ -2347,23 +2356,16 @@ const ShapeItem length = shape.checked_volume();
    if (Quad_SYL::ravel_count_limit &&
        Quad_SYL::ravel_count_limit < APL_Integer(total_ravel_count + length))
       {
-CERR << "*** Quad_SYL::ravel_count_limit hit ***" << endl;
-        // make sure that the value is properly initialized
+        // throw WS FULL right away (like for MAX_LEN above) rather than
+        // continuing with a fake value and an INTERRUPT later, which
+        // computed a wrong result and leaked the value (Bugs37 #49).
+        // The limit remains in place; ⎕SYL[…;2]←0 clears it.
         //
-        new (&shape) Shape();
-        ravel.cells = ravel.short_value;
-        IntCell::zI(ravel.cells, 42);
-
         MORE_ERROR() <<
 "the system limit on the total ravel size (as set in ⎕SYL["
 << (Quad_SYL::SYL_RAVEL_BYTES_LIMIT + Workspace::get_IO())
-<< ";2]) was reached\n"
-"(and to avoid lock-up, this system limit in ⎕SYL was automatically cleared).";
-        // reset the limit so that we don't get stuck here.
-        //
-        Quad_SYL::ravel_count_limit = 0;
-        InterruptContext::set_attention_raised(LOC);
-        InterruptContext::set_interrupt_raised(LOC);
+<< ";2]) was reached";
+        throw_apl_error(E_WS_FULL, alloc_loc);
       }
 
    alloc_size = length * sizeof(Cell);

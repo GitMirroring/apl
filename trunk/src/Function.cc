@@ -129,8 +129,17 @@ FunctionGroup::value_to_subfun(const cValue & A_or_X) const
    if (A_or_X.is_int_scalar())   // function number
       {
         // we do not check (here) if the number is valid. The caller will.
+        // But a number that does not fit into sAxis would be truncated
+        // to some other (possibly valid) number (Bugs37 #47).
         //
-        return A_or_X.get_int_value(0);   // but possibly invalid
+        // near-int, like is_int_scalar() above (Bugs37 #56)
+        const APL_Integer number = A_or_X.get_near_int(0);
+        if (number != sAxis(number))
+           {
+             MORE_ERROR() << "invalid subfunction number " << number;
+             DOMAIN_ERROR;
+           }
+        return number;   // but possibly invalid
       }
 
    if (A_or_X.is_char_string())   // function name

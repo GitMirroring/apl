@@ -71,6 +71,11 @@ public:
    /// devel_doc/Carets.txt) if not.
    void all_brackets_closed() const;
 
+   /// throw a SYNTAX ERROR (with line 2) if a ; is outside [...] (except
+   /// for the trailing local variables ;A;B... of a lambda body)
+   /// @param lambda_locals true if trailing ;A;B... are allowed
+   void check_semicolons(bool lambda_locals) const;
+
    /// build error_message_2 (rendered token text of *this) and the
    /// left_caret/right_caret positions for tokens [lo, hi] (inclusive,
    /// plain left-to-right index order, i.e. the order a freshly

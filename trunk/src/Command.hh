@@ -89,6 +89,11 @@ public:
    /// @param exit_val  process exit status code
    static void cmd_OFF(int exit_val);
 
+   /// )OFF [exit_code] with a validated exit_code (0-255)
+   /// @param out stream for the BAD COMMAND message
+   /// @param arg the (optional) exit code
+   static void cmd_OFF(ostream & out, const UCS_string & arg);
+
    /// process \b line which contains an APL command. Return true iff the
    /// command was user-defined (and then the function for that command is
    /// stored in \b line and shall be executed)).

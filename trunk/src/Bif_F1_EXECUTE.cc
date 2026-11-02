@@ -91,6 +91,7 @@ Bif_F1_EXECUTE::execute_command(UCS_string & command)
                                               // checks that the SI is
                                               // clear), so it must run
                                               // after ⍎ has returned
+       command.starts_iwith(")CONTINUE") ||  // Bugs37 #22: )SAVE + )OFF
        command.starts_iwith(")SAVE"))  // Bugs30 #25: )SAVE from within
                                         // ⎕EC/⎕EA persists the transient
                                         // ⎕EC/⎕EA SI B-frame itself into

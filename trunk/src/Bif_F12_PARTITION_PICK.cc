@@ -205,10 +205,12 @@ Value_P Z(shape_Z, LOC);
 Value_P
 Bif_F12_PARTITION::partition(cValue_R A, cValue_R B, sAxis axis)
 {
-   // A must be a scalar or vector (of non-negative integers)
+   // A must be a scalar or vector (of non-negative integers), or any
+   // 1-element value (Bugs37 #66 scalar-extension rule).
    // B must be non-scalar
    //
-   ArgCheck::require_scalar_or_vector("A⊂B", "A", A);
+   if (!A.is_scalar_extensible())
+      ArgCheck::require_scalar_or_vector("A⊂B", "A", A);
 
    if (B.get_rank() == 0)
       {

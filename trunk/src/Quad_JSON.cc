@@ -393,6 +393,16 @@ Quad_JSON::APL_to_JSON_string(UCS_string & result, const Cell & cell,
         DOMAIN_ERROR;
       }
 
+   if (cell.is_character_cell())   // a one-character string, e.g. S.z←'t'
+      {
+        // a scalar character is how APL stores a one-character string in
+        // a strand or a member, so encode it as a JSON string. Bugs37 #20.
+        //
+        const UCS_string ucs_string(1, cell.get_char_value());
+        escape_JSON_string(result, ucs_string);
+        return;
+      }
+
    if (!cell.is_pointer_cell())
       {
         MORE_ERROR() << "2 ⎕JSON B: Unexpected/unsupported Celltype "

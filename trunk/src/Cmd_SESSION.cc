@@ -70,6 +70,11 @@ bool valid = arg.size() > 0;
                   (arg[a] == UNI_MINUS || arg[a] == UNI_OVERBAR))   continue;
               if (!Avec::is_digit(arg[a]))   valid = false;
             }
+
+        // every valid N has at most 2 digits; a longer digit string could
+        // overflow atoi() and wrap to a valid N (Bugs37 #57)
+        //
+        if (arg.size() > 3)   valid = false;
       }
 
    if (arg.size() == 0)

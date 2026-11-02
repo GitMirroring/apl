@@ -103,9 +103,9 @@ const ShapeItem name_len = val.get_cols();
 
              // 'last' is true thus to_varnames() was called from ⎕SVO and
              // the line may contains two variable names.
-             // Return the second (i.e. surrogate name)
+             // Return the second (i.e. surrogate name). NOTE: do not
+             // clear 'surrogate' here, since it applies to all rows.
              //
-             surrogate = false;
              while (start < end)
                 {
                   const Unicode uni = val.get_char_value(start++);

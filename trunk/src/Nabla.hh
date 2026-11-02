@@ -115,6 +115,9 @@ protected:
    /// edit this function
    void edit();
 
+   /// skip the body lines (up to the closing ∇) after a refused header
+   void skip_body();
+
    /// a line label and program text, e.g.  [1.1] TEXT←TEXT
    struct FunLine
       {
@@ -171,6 +174,9 @@ protected:
    /// delete function
    const char * execute_delete();
 
+   /// set current_line after deleting lines up to \b highest
+   void prompt_after_delete(const LineLabel & highest);
+
    /// edit function line
    const char * execute_edit();
 
@@ -203,6 +209,11 @@ protected:
 
    /// return the position of the ⍝ that starts a comment in \b line, or -1
    static int comment_pos(const UCS_string & line);
+
+   /// return the position of the first closing ∇ or ⍫ in \b line (outside
+   /// of strings and before a comment), or -1 if none
+   /// @param line the line entered in the editor
+   static int close_pos(const UCS_string & line);
 
    /// parse [nn.mm] into a LineLabel;
    /// @param c iterator positioned at the '['; advanced past the ']' on return

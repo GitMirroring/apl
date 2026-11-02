@@ -364,20 +364,12 @@ Value_P Z(shape, LOC);
 const ShapeItem ec = Z->element_count();
    Z->set_proto_Spc();   // prototype
 
-   // ATF has only one * which add() maps to ⋆ (power in APL code). In ⎕FC
-   // the * is a fill character, and its default is the ASCII *. Without
-   // mapping it back, )OUT followed by )IN would change ⎕FC[3] from * to ⋆,
-   // and format-by-example overflows would print ⋆⋆⋆ instead of ***.
-   //
-const bool is_FC = sym->get_Id() == ID_Quad_FC;
-
 ShapeItem padded = 0;
    loop(e, ec)
       {
         Unicode uni = UNI_SPACE;
         if (e < (data.ssize() - idx))   uni = data[e + idx];
         else                            ++padded;
-        if (is_FC && uni == UNI_STAR_OPERATOR)   uni = UNI_ASTERISK;
         Z->next_ravel_Char(uni);
       }
 
@@ -414,12 +406,6 @@ UCS_string var_or_fun;
 
      if (objects.size() && !objects.contains(var_name))   return;
      if (is_protected(var_name))   return;   // )PIN
-
-     // ⎕FC: map the ⋆ (from the ATF *) back to * (see chars_1TF() above)
-     //
-     if (var_name == ID::get_name_UCS(ID_Quad_FC))
-        loop(d, data1.size())
-           if (data1[d] == UNI_STAR_OPERATOR)   data1[d] = UNI_ASTERISK;
    }
 
    var_or_fun = Quad_TF::tf2_inverse(data1);
@@ -448,7 +434,7 @@ UCS_string statement;
    while (idx < data.ssize())   statement << data[idx++];
    statement << UNI_LF;
 
-UCS_string fun_name1 = Quad_TF::tf2_inverse(statement);
+UCS_string fun_name1 = Quad_TF::tf2_inverse(statement, true);
    if (fun_name1.size() == 0)   // tf2_inverse() failed
       {
         CERR << "inverse 2 ⎕TF failed for the following APL statement: "
@@ -487,17 +473,12 @@ Cmd_IN::transfer_context::add(const UTF8 * str, int len)
    DOMAIN_ERROR;
 #endif
 
+   // the ATF codes of * ^ ~ are kept as the ASCII characters, so that
+   // strings come back unchanged. In APL code (i.e. outside strings and
+   // comments of a function line) they become ⋆ ∧ ∼ later on, see
+   // Quad_TF::ATF_principal_chars() (Bugs37 #7).
+   //
 const Unicode * cp_to_uni_map = Avec::IBM_quad_AV();
-   loop(l, len)
-      {
-        const UTF8 utf = str[l];
-        switch(utf)
-           {
-             case '^': data << UNI_AND;              break;   // ~ → ∼
-             case '*': data << UNI_STAR_OPERATOR;    break;   // * → ⋆
-             case '~': data << UNI_TILDE_OPERATOR;   break;   // ~ → ∼
-             default:  data << Unicode(cp_to_uni_map[utf]);
-           }
-      }
+   loop(l, len)   data << Unicode(cp_to_uni_map[str[l]]);
 }
 //════════════════════════════════════════════════════════════════════════════

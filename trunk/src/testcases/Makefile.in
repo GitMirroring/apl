@@ -414,6 +414,10 @@ dist_noinst_DATA = \
         Boolean.tc                              \
         Bracket_Index.tc                        \
         Bugs35_Workspace.tc                     \
+        Bugs37_A.tc                             \
+        Bugs37_B.tc                             \
+        Bugs37_CD.tc                            \
+        Bugs37_Workspace.tc                     \
         Catenate.tc                             \
         Catenate_with_Axis.tc                   \
         Ceiling.tc                              \

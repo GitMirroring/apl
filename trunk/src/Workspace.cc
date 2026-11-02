@@ -757,21 +757,33 @@ const UTF8_string filename =
      const bool file_exists = access(filename.c_str(), W_OK) == 0;
      if (file_exists)
         {
-          if (lib_name.get_name()
+          // the WSID includes the library (LRM p. 460), so the libraries
+          // must be the same as well (Bugs37 #24). LIB_NONE is library 0.
+          //
+          const LibRef lib_cmd  = lib_name.get_libref() == LIB_NONE
+                                ? LIB0 : lib_name.get_libref();
+          const LibRef lib_wsid = the_workspace.WS_id.get_libref() == LIB_NONE
+                                ? LIB0 : the_workspace.WS_id.get_libref();
+          if (lib_cmd != lib_wsid ||
+              lib_name.get_name()
                       .compare(the_workspace.WS_id.get_name()) != COMP_EQ)
              {
                // names differ. Complain.
                //
-               const UCS_string & wsid = the_workspace.WS_id.get_name();
+               UCS_string wsid;
+               if (lib_wsid != LIB0)   wsid << int(lib_wsid) << " ";
+               wsid << the_workspace.WS_id.get_name();
                out << "NOT SAVED, THIS WS IS " << wsid << endl;
     
-               MORE_ERROR() <<
+               UCS_string & more = MORE_ERROR() <<
                   "the workspace was not saved because"
                   " the workspace name '" << wsid << "' according\n"
                   "   to )WSID does not match the name '" << lib_name.get_name()
                << "' in the )SAVE command, AND the\n"
                   "   workspace file " << filename << " already exists.\n"
-                  "   Use )WSID " << lib_name.get_name() << " first."; 
+                  "   Use )WSID ";
+               if (lib_cmd != LIB0)   more << int(lib_cmd) << " ";
+               more << lib_name.get_name() << " first.";
                return;
              }
         }
@@ -824,7 +836,7 @@ XML_Saving_Archive ar(out, CERR, filename.c_str());
       }
    else
       {
-        COUT << "NOT SAVED" << endl;
+        COUT << "NOT SAVED";   // no endl: the . follows (Bugs37 #80)
         if ((!name_from_WSID) &&
             (lib_name.get_name() != the_workspace.WS_id.get_name()))
            {

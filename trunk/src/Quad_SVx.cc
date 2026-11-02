@@ -354,10 +354,33 @@ Value_P Z(sh_Z, LOC);
              continue;
            }
 
+        // apl_vars[z] is empty if row z of B is a name and a surrogate
+        // name (LRM p. 323). The APL name is then the first name in row z.
+        //
+        UCS_string apl_var = apl_vars[z];
+        if (apl_var.size() == 0)
+           {
+             const ShapeItem cols = B.get_cols();
+             loop(c, cols)
+                {
+                  const Unicode uni = B.get_char_value(z*cols + c);
+                  if (uni == UNI_SPACE)
+                     {
+                       if (apl_var.size())   break;   // end of first name
+                       continue;                      // leading space
+                     }
+                  apl_var << uni;
+                }
+           }
+
         // make sure current name class allows ⎕SVO
         //
-        Symbol * sym = Workspace::lookup_symbol(apl_vars[z]);
-        assert(sym);
+        Symbol * sym = Workspace::lookup_symbol(apl_var);
+        if (sym == 0)   // bad APL name (Bugs37 #6)
+           {
+             Z->next_ravel_Int(NO_COUPLING);
+             continue;
+           }
 
         const AP_num proc = AP_num(A.get_int_value(a));
 

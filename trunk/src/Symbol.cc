@@ -622,6 +622,22 @@ Symbol::unmark_all_values() const
 }
 //────────────────────────────────────────────────────────────────────────────
 void
+Symbol::assign_lambda_var(Value_P value, bool clone, const char * loc)
+{
+   // Bugs37 #70: outside a lambda the assignment was silently ignored.
+   // A suspended lambda on the SI still localizes the name (debugging).
+   //
+   if (value_stack_size() <= 1)
+      {
+        MORE_ERROR() << get_name() << " can only be assigned inside a"
+                        " lambda (or while a lambda is suspended)";
+        SYNTAX_ERROR;
+      }
+
+   Symbol::assign(value, clone, loc);
+}
+//────────────────────────────────────────────────────────────────────────────
+void
 Symbol::assign(Value_P new_value, bool clone, const char * loc)
 {
    Assert(new_value);
@@ -684,6 +700,20 @@ Symbol::assign_indexed(const IndexExpr & IX, Value_P B)   // A[IX;...] ← B
 
    value_stack.back().isolate(LOC);
 Value_P Z = get_apl_value();
+
+   // The rows of a structured variable are its (hashed) member table.
+   // Writing into that table directly (e.g. S[1;1]←'q' or S[;]←0) would
+   // destroy it; the only write forms are S.m←B and S['m']←B.
+   //
+   if (Z->is_member())
+      {
+        MORE_ERROR() << "A[B;C]←D: member access: the member table of "
+                        "structured variable " << get_name()
+                     << " cannot be assigned.\n      Use "
+                     << get_name() << ".member←D or " << get_name()
+                     << "['member']←D instead.";
+        DOMAIN_ERROR;
+      }
 
    if (Z->get_rank() != IX.get_rank())   // ISO p. 159
       {
@@ -1839,8 +1869,17 @@ UCS_string data;
         case NC_VARIABLE:
              {
                data << UNI_A;
-               Token tok = Quad_TF::tf2_var(get_name(),
-                                            *value_stack[0].get_val_cptr());
+
+               // a system variable like ⎕TS computes its value in
+               // get_apl_value(); value_stack[0] is only a placeholder
+               // for it (Bugs37 #75). A user variable is written with its
+               // global value.
+               //
+               const Value_P sys_val = get_Id() == ID_USER_SYMBOL
+                                     ? Value_P() : get_apl_value();
+               const cValue & val = !!sys_val ? *sys_val
+                                  : *value_stack[0].get_val_cptr();
+               Token tok = Quad_TF::tf2_var(get_name(), val);
                const UCS_string ucs(*tok.get_apl_val());
                data << ucs;
              }
@@ -1868,6 +1907,18 @@ UCS_string data;
                   {
                     CERR << "Warning: )OUT: '" << get_name() << "' is a "
                             "lambda (dfn) and cannot be written to a "
+                            "transfer-format (.atf) file -- skipped."
+                         << endl;
+                    return;
+                  }
+
+               // same for a locked function (its text is not available,
+               // see Quad_TF::tf2_fun_ucs(), Bugs28 #92). Bugs37 #19.
+               //
+               if (fun->get_exec_properties()[0])
+                  {
+                    CERR << "Warning: )OUT: '" << get_name() << "' is "
+                            "locked and cannot be written to a "
                             "transfer-format (.atf) file -- skipped."
                          << endl;
                     return;

@@ -294,10 +294,20 @@ Avec::digit_value(Unicode uni, bool hex)
 }
 //────────────────────────────────────────────────────────────────────────────
 bool
-Avec::need_UCS(Unicode uni)
+Avec::need_UCS(Unicode uni, bool in_text)
 {
    if (is_control(uni))   return true;                      // ASCII control
    if (uni >= 0 && uni < UNI_DELETE)  return false;   // printable ASCII
+
+   // ⋆ ∧ ∼ share their ATF code with the ASCII * ^ ~ and come back as
+   // the latter in strings and comments (Bugs37 #7). In APL code they
+   // come back as ⋆ ∧ ∼, see Quad_TF::ATF_principal_chars().
+   //
+   if (in_text)
+      {
+        const int cp = unicode_to_cp(uni);
+        if (cp >= UNI_SPACE && cp < UNI_DELETE)   return true;
+      }
 
 const CHT_Index idx = find_char(uni);
    if (idx == Invalid_CHT)   return true;           // char not in GNU APL's ⎕AV

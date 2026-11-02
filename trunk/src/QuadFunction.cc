@@ -1241,6 +1241,12 @@ Quad_EX::expunge(const UCS_string & name)
                  if (!Avec::is_symbol_char(name[n]))   return 0;
              return 1;
            }
+
+        // Bugs37 #69: a label is a local constant (LRM p. 340) that
+        // cannot be disassociated: 0, and the label stays.
+        //
+        if (symbol->get_NC() == NC_LABEL)   return 0;
+
         return symbol->expunge();
       }
 

@@ -337,6 +337,10 @@ public:
    /// @param loc    caller location for diagnostics
    virtual void assign(Value_P value, bool clone, const char * loc);
 
+   /// assign \b value to a lambda variable (⍺ ⍵ ⍶ ⍹ χ λ): only while a
+   /// lambda frame (active or suspended) has localized it, else SYNTAX ERROR
+   void assign_lambda_var(Value_P value, bool clone, const char * loc);
+
    /// Indexed (multi-dimensional) assign \b value to \b this \b Symbol
    /// @param index  multi-dimensional index expression
    /// @param value  APL value to assign at the indexed positions
@@ -490,12 +494,12 @@ public:
    : Symbol(ID_LAMBDA)
    {}
 
-   /// overloaded Symbol::assign(), suppressing assignment if not localized
+   /// overloaded Symbol::assign(), SYNTAX ERROR if not localized
    /// @param value  APL value to assign
    /// @param clone  if true, clone the value before storing
    /// @param loc    caller location for diagnostics
    virtual void assign(Value_P value, bool clone, const char * loc)
-      { if (value_stack_size() > 1)   Symbol::assign(value, clone, loc); }
+      { assign_lambda_var(value, clone, loc); }
 
    /// destroy variable (don't)
    void destroy_var() {}
@@ -510,12 +514,12 @@ public:
    : Symbol(ID_ALPHA)
    {}
 
-   /// overloaded Symbol::assign(), suppressing assignment if not localized
+   /// overloaded Symbol::assign(), SYNTAX ERROR if not localized
    /// @param value  APL value to assign
    /// @param clone  if true, clone the value before storing
    /// @param loc    caller location for diagnostics
    virtual void assign(Value_P value, bool clone, const char * loc)
-      { if (value_stack_size() > 1)   Symbol::assign(value, clone, loc); }
+      { assign_lambda_var(value, clone, loc); }
 
    /// destroy variable (don't)
    void destroy_var() {}
@@ -530,12 +534,12 @@ public:
    : Symbol(ID_ALPHA_U)
    {}
 
-   /// overloaded Symbol::assign(), suppressing assignment if not localized
+   /// overloaded Symbol::assign(), SYNTAX ERROR if not localized
    /// @param value  APL value to assign
    /// @param clone  if true, clone the value before storing
    /// @param loc    caller location for diagnostics
    virtual void assign(Value_P value, bool clone, const char * loc)
-      { if (value_stack_size() > 1)   Symbol::assign(value, clone, loc); }
+      { assign_lambda_var(value, clone, loc); }
 
    /// destroy variable (don't)
    void destroy_var() {}
@@ -550,12 +554,12 @@ public:
    : Symbol(ID_CHI)
    {}
 
-   /// overloaded Symbol::assign(), suppressing assignment if not localized
+   /// overloaded Symbol::assign(), SYNTAX ERROR if not localized
    /// @param value  APL value to assign
    /// @param clone  if true, clone the value before storing
    /// @param loc    caller location for diagnostics
    virtual void assign(Value_P value, bool clone, const char * loc)
-      { if (value_stack_size() > 1)   Symbol::assign(value, clone, loc); }
+      { assign_lambda_var(value, clone, loc); }
 
    /// destroy variable (don't)
    void destroy_var() {}
@@ -570,12 +574,12 @@ public:
    : Symbol(ID_OMEGA)
    {}
 
-   /// overloaded Symbol::assign(), suppressing assignment if not localized
+   /// overloaded Symbol::assign(), SYNTAX ERROR if not localized
    /// @param value  APL value to assign
    /// @param clone  if true, clone the value before storing
    /// @param loc    caller location for diagnostics
    virtual void assign(Value_P value, bool clone, const char * loc)
-      { if (value_stack_size() > 1)   Symbol::assign(value, clone, loc); }
+      { assign_lambda_var(value, clone, loc); }
 
    /// destroy variable (don't)
    void destroy_var() {}
@@ -590,12 +594,12 @@ public:
    : Symbol(ID_OMEGA_U)
    {}
 
-   /// overloaded Symbol::assign(), suppressing assignment if not localized
+   /// overloaded Symbol::assign(), SYNTAX ERROR if not localized
    /// @param value  APL value to assign
    /// @param clone  if true, clone the value before storing
    /// @param loc    caller location for diagnostics
    virtual void assign(Value_P value, bool clone, const char * loc)
-      { if (value_stack_size() > 1)   Symbol::assign(value, clone, loc); }
+      { assign_lambda_var(value, clone, loc); }
 
    /// destroy variable (don't)
    void destroy_var() {}

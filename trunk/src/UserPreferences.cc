@@ -1199,7 +1199,15 @@ UserPreferences::parse_args_2(bool logit)
                    CERR << "-w without milli(seconds)" << endl;
                    exit(a);
                  }
-              wait_ms = atoi(val);
+              // a negative value would become a huge usleep() (Bugs37 #64)
+              char * end = 0;
+              const long ms = strtol(val, &end, 10);
+              if (end == val || *end || ms < 0 || ms > 1000000)
+                 CERR << "bad -w value " << val
+                      << " (expecting 0-1000000 milliseconds, ignored)"
+                      << endl;
+              else
+                 wait_ms = ms;
               continue;
             }
 

@@ -413,6 +413,9 @@ protected:
    /// @param pc program counter of the closing parenthesis token
    bool is_value_parenthesis(Prefix_PC pc) const;
 
+   /// return true if body[pc] is the right operand of a dyadic operator
+   bool is_OPER2_left_of_RO(Prefix_PC pc) const;
+
    /// return the idx'th Token_loc (from put position)
    /// @param idx zero-based index from the left (APL order)
    Token_loc & at(int idx)
@@ -471,6 +474,11 @@ protected:
    /// push the next token onto the stack. Return \b true iff )SI was pushed.
    //  called often but from the same place in reduce_body()
    inline bool push_next_token();
+
+   /// throw a SYNTAX ERROR if the rightmost token of a statement (= at(0)
+   /// at the start of the statement) is a function or operator that can
+   /// never get its right argument (Bugs37 #34)
+   void check_dangling_function();
 
    /// find a phrase that matches the current stack. Return \b true iff found.
    //  called often but from the same place in reduce_body()

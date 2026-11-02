@@ -73,6 +73,10 @@ struct Format_sub
       { return format.size(); }
 
    /// Fill buf at position x,y with data according to fmt
+   /// return true if all digits in \b ucs are 0 (ignoring separators)
+   /// @param ucs the formatted digits (with separators)
+   static bool zero_digits(const UCS_string & ucs);
+
    /// @param data digit string for the fractional part
    UCS_string insert_fract_commas(const UCS_string & data) const;
 

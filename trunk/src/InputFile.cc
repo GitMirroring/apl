@@ -42,6 +42,17 @@ int InputFile::stdin_line_no = 1;
 int64_t InputFile::next_file_seq = 0;
 
 //════════════════════════════════════════════════════════════════════════════
+void
+InputFile::COPY_filter::replace_variable(const UCS_string & fun_name)
+{
+   // )COPY of a function F over a variable F: the function replaces the
+   // variable (LRM p. 423), as for )COPY of a .xml workspace (Bugs37 #26).
+   // Otherwise the ∇-editor refuses the header (Bugs37 #27).
+   //
+   if (Symbol * sym = Workspace::lookup_existing_symbol(fun_name))
+      if (sym->get_NC() == NC_VARIABLE)   sym->expunge();
+}
+//────────────────────────────────────────────────────────────────────────────
 bool
 InputFile::COPY_filter::check_filter(const UTF8_string & line)
 {
@@ -57,7 +68,12 @@ static const UCS_string struct_end(UTF8_string("⍝ end of structured variable "
    //
    if (!has_object_filter() && !protection)
       {
-        if (ucs_line.starts_with(struct_start))
+        if (ucs_line.size() > 1 && ucs_line.front() == UNI_NABLA)
+           {
+             const UserFunction_header uh(ucs_line.drop(1), false);
+             replace_variable(uh.get_name());   // function header
+           }
+        else if (ucs_line.starts_with(struct_start))
            {
              UCS_string var_name(ucs_line, struct_start.size(),
                                  ucs_line.size() - struct_start.size());
@@ -165,6 +181,8 @@ static const UCS_string struct_end(UTF8_string("⍝ end of structured variable "
         //
         if (selected && protection && Workspace::lookup_existing_symbol(fun_name))
            selected = false;
+
+        if (selected && !protection)   replace_variable(fun_name);
 
         return in_matched = selected;
       }

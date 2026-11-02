@@ -40,24 +40,25 @@ Bif_OPER1_EACH::eval_ALB(cValue_R A, Token & _LO, cValue_R B) const
 
    if (!A.same_shape(B))
       {
-        // if the shapes differ then either A or B must be a scalar or
-        // 1-element vector.
+        // if the shapes differ then either A or B must be a 1-element
+        // value of any rank (scalar extension as for the scalar functions,
+        // see Value::is_scalar_extensible(), for every LO, Bugs37 #66).
         //
         if (A.get_rank() != B.get_rank())
            {
-             if      (A.is_scalar_or_len1_vector())    ;   // OK
-             else if (B.is_scalar_or_len1_vector())    ;   // OK
+             if      (A.is_scalar_extensible())    ;   // OK
+             else if (B.is_scalar_extensible())    ;   // OK
              else if (A.get_rank() != B.get_rank())
                 {
-                  MORE_ERROR() << "A f¨B: expecting ⍴⍴A = ⍴⍴B (or A or B a"
-                                  " scalar/1-element vector); ⍴⍴A is "
+                  MORE_ERROR() << "A f¨B: expecting ⍴⍴A = ⍴⍴B (or A or B with"
+                                  " 1 element); ⍴⍴A is "
                                << A.get_rank() << ", ⍴⍴B is " << B.get_rank();
                   RANK_ERROR;
                 }
              else
                 {
-                  MORE_ERROR() << "A f¨B: expecting ⍴A = ⍴B (or A or B a"
-                                  " scalar/1-element vector); ⍴A is "
+                  MORE_ERROR() << "A f¨B: expecting ⍴A = ⍴B (or A or B with"
+                                  " 1 element); ⍴A is "
                                << A.get_shape() << ", ⍴B is " << B.get_shape();
                   LENGTH_ERROR;
                 }
@@ -120,17 +121,17 @@ cFunction_P LO = _LO.get_function();
         Value_P first_B = Bif_F12_TAKE::first(B);
         Shape shape_Z;   // will be ⍴A or ⍴B and therefore empty
 
-        // is_scalar_or_len1_vector(), not is_scalar(): the general
+        // is_scalar_extensible(), not is_scalar(): the general
         // (non-empty) conformance test a few lines above already accepts
         // a 1-element vector partner for scalar-extension, but this
         // empty-arg branch required a strict scalar -- ⍬+¨,5 gave
         // DOMAIN_ERROR (B=,5 is a 1-element vector, not scalar) though
         // the same B would extend fine against any non-empty A.
         if (A.is_empty())          shape_Z = A.get_shape();
-        else if (!A.is_scalar_or_len1_vector())
+        else if (!A.is_scalar_extensible())
            {
-             MORE_ERROR() << "A f¨B: B is empty and A is not a scalar or"
-                             " 1-element vector; ⍴A is " << A.get_shape();
+             MORE_ERROR() << "A f¨B: B is empty and A has more than 1"
+                             " element; ⍴A is " << A.get_shape();
              // a conformance error, not a DOMAIN ERROR (Bugs34 #33)
              if (A.get_rank() == B.get_rank())   LENGTH_ERROR;
              RANK_ERROR;
@@ -146,10 +147,10 @@ cFunction_P LO = _LO.get_function();
            }
 
         if (B.is_empty())          shape_Z = B.get_shape();
-        else if (!B.is_scalar_or_len1_vector())
+        else if (!B.is_scalar_extensible())
            {
-             MORE_ERROR() << "A f¨B: A is empty and B is not a scalar or"
-                             " 1-element vector; ⍴B is " << B.get_shape();
+             MORE_ERROR() << "A f¨B: A is empty and B has more than 1"
+                             " element; ⍴B is " << B.get_shape();
              // a conformance error, not a DOMAIN ERROR (Bugs34 #33)
              if (A.get_rank() == B.get_rank())   LENGTH_ERROR;
              RANK_ERROR;
@@ -211,8 +212,15 @@ cFunction_P LO = _LO.get_function();
 
    if (LO->may_push_SI())   // user defined LO
       {
-         const bool extend_A = A.is_scalar_or_len1_vector() && !B.is_scalar();
-         const bool extend_B = B.is_scalar_or_len1_vector();
+         // the shape of Z is chosen as for a primitive LO (see shape_Z
+         // below): ⍴B if A is a scalar, ⍴A if B is a scalar, and otherwise
+         // the shape of the argument that is not extended. If both have
+         // 1 element (but neither is a scalar), then A is extended and Z
+         // has the shape of B (Bugs37 #66).
+         //
+         const bool extend_A = A.is_scalar_extensible() && !B.is_scalar();
+         const bool extend_B = B.is_scalar_extensible() &&
+                               (B.is_scalar() || !A.is_scalar_extensible());
 
          Macro * macro = 0;
          if (LO->has_result())
@@ -252,39 +260,12 @@ cFunction_P LO = _LO.get_function();
 
         if (extend_A && !A.is_scalar())        // 1-element non-scalar A
            {
-             if (extend_B && !B.is_scalar())   // 1-element non-scalar B
-                {
-                  Value_P A1(LOC);   // A1 ← , A
-                  Cell cache_A;
-                  // was "A1->get_wscalar().init(...)": a non-static
-                  // member call on get_wscalar()'s raw, not-yet-
-                  // constructed storage -- UB per [basic.life], mirrors
-                  // Bugs15 #12's Cell::init_type() finding. init_other()
-                  // is the established pattern for this (called on the
-                  // live source, destination passed as void*).
-                  //
-                  A.get_cscalar(cache_A).init_other(&A1->get_wscalar(),
-                                                    *A1, LOC);
-                  A1->check_value(LOC);
+             Value_P A1(LOC);
+             Cell cache;
+             A.get_cfirst(cache).init_other(&A1->get_wscalar(), *A1, LOC);
+             A1->check_value(LOC);
 
-                  Value_P B1(LOC);   // B1 ← , B
-                  Cell cache_B;
-                  B.get_cscalar(cache_B).init_other(&B1->get_wscalar(),
-                                                    *B1, LOC);
-                  B1->check_value(LOC);
-
-                  return macro->eval_ALB(*A1, _LO, *B1);
-                }
-             else
-                {
-                  Value_P A1(LOC);
-                  Cell cache;
-                  A.get_cfirst(cache).init_other(&A1->get_wscalar(),
-                                                 *A1, LOC);
-                  A1->check_value(LOC);
-
-                  return macro->eval_ALB(*A1, _LO, B);
-                }
+             return macro->eval_ALB(*A1, _LO, B);
            }
         else if (extend_B && !B.is_scalar())   // 1-element non-scalar B
            {

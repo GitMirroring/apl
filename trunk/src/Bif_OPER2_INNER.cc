@@ -46,7 +46,15 @@ cFunction_P RO = _RO.get_function();
 
    // LO and RO must both be dyadic and must return a result.
    //
-   if (LO->get_fun_valence() + RO->get_fun_valence() != 4)   SYNTAX_ERROR;
+   // a monadic LO or RO: VALENCE ERROR, like for A F/ B (Bugs37 #67)
+   //
+   if (LO->get_fun_valence() != 2 || RO->get_fun_valence() != 2)
+      {
+        const cFunction_P bad = LO->get_fun_valence() != 2 ? LO : RO;
+        MORE_ERROR() << "A f.g B : Bad function " << bad->get_name()
+                     << " (expecting a dyadic function)";
+        VALENCE_ERROR;
+      }
    if (!LO->has_result() || !RO->has_result())
       {
         MORE_ERROR() << "A LO.RO B: both LO and RO must return a result;"

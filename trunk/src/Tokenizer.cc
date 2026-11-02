@@ -63,6 +63,7 @@
 #include "Tokenizer.hh"
 #include "Token_string.hh"
 #include "Value.hh"
+#include "StateIndicator.hh"
 #include "Workspace.hh"
 
 //════════════════════════════════════════════════════════════════════════════
@@ -504,9 +505,13 @@ char * b = buffer;
       }
    else
       {
+        // keep the errno of the user's last ⎕FIO call (⎕FIO[1], Bugs37 #54)
+        const int saved_errno = errno;
         errno = 0;
         const long long  result = strtoll(buffer, 0, 10);   // may set errno
-        if (errno)   // strtoll() failed (int_digits too large)
+        const bool failed = errno != 0;
+        errno = saved_errno;
+        if (failed)   // strtoll() failed (int_digits too large)
            {
              const APL_Float dval = APL_Float(strtod(buffer, 0));
              if (!isfinite(dval))
@@ -765,23 +770,37 @@ Unicode_source src(input);
                            case 2:   or an operator:            e.g. +.*
                            case 3:   or a syntax error:         e.g. Done.
                          */
+                        const TokenClass prev = tos.size()
+                                              ? tos.back().get_Class()
+                                              : TC_INVALID;
                         if (src.rest_len() == 1 &&   // . at the end and
-                            tos.size() &&            // after a function, e.g.
-                            tos.back().get_Class() == TC_FUN12)   // 5∘. or +.
+                            (prev == TC_FUN12   ||   // after a function, e.g.
+                             prev == TC_SYMBOL  ||   // 5∘. or +. or G2. or
+                             prev == TC_R_CURLY ||   // {⍵}. or (+/).
+                             prev == TC_R_PARENT))
                            {
                              // case 2: an operator without its right
                              // operand. Let the parser report that (with
-                             // the entire statement in line 2), Bugs36 F3.
+                             // the entire statement in line 2), Bugs36 F3,
+                             // also for a defined function or lambda,
+                             // Bugs37 #63.
                              //
                              tokenize_function(src, tos);
                            }
                         else if (src.rest_len() == 1)   // case 3: syntax error
                            {
+                             // e.g. 1 2 3 . : the entire statement in line
+                             // 2 and the caret under the . (Bugs37 #63)
+                             //
                              MORE_ERROR() << "no digit before or after '.'.";
-                             Error::throw_parse_error(E_SYNTAX_ERROR, input,
-                                                      src.get_pos(),
-                                                      src.get_pos() + 1,
-                                                      LOC, loc);
+                             Error error(E_SYNTAX_ERROR, LOC);
+                             UCS_string line_2(Workspace::get_prompt());
+                             const int dot = line_2.size() + src.get_pos();
+                             line_2 << input;
+                             error.set_error_line_2(line_2, dot, dot);
+                             if (StateIndicator * si = Workspace::SI_top())
+                                StateIndicator::get_error(si) = error;
+                             throw error;
                            }
                         else
                            {

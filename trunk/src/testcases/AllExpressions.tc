@@ -337,7 +337,7 @@ RANK ERROR+
 
       )SIC
       (, V7)←((⌊ (⍳0))[0J3])[⎕PP , (⍳0);]
-INDEX ERROR+
+DOMAIN ERROR+
       (,V7)←((⌊(⍳0))[0J3])[⎕PP,(⍳0);]
              ^      ^
 
@@ -588,7 +588,7 @@ DOMAIN ERROR
 
       )SIC
       V4←⍎'7+5' < {⍶ ⋄ ⍺} (⍳1) | 1
-VALENCE ERROR+
+SYNTAX ERROR+
 λ1[1]  ⍶
        ^
 

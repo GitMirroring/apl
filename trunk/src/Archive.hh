@@ -647,6 +647,10 @@ protected:
    void read_Shared_Variable(int d, Symbol & symbol);
 
    /// read next StateIndicator entry
+   /// read the Error of an SI entry
+   /// @param si the SI entry (being read)
+   void read_SI_Error(StateIndicator & si);
+
    /// @param level nesting depth of the SI entry to read
    void read_SI_entry(int level);
 

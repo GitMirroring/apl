@@ -166,8 +166,14 @@ public:
    Parser(ParseMode pm, const char * loc, bool mac)
    : create_loc(loc),
      macro(mac),
-     pmode(pm)
+     pmode(pm),
+     lambda_body(false)
    {}
+
+   /// the input is the body of a lambda, which may end with local
+   /// variables ;A;B... (see UserFunction::fix_lambda())
+   void set_lambda_body()
+      { lambda_body = true; }
 
    /// Parse \b UCS_string \b input into token string \b tos.
    /// @param input APL source text to parse
@@ -327,6 +333,9 @@ protected:
 
    /// the parsing mode of this parser
    const ParseMode pmode;
+
+   /// true if parsing the body of a lambda
+   bool lambda_body;
 };
 //════════════════════════════════════════════════════════════════════════════
 

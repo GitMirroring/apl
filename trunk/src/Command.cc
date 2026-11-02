@@ -92,6 +92,28 @@ Command::clear_copy_once_table()
 }
 //────────────────────────────────────────────────────────────────────────────
 void
+Command::cmd_OFF(ostream & out, const UCS_string & arg)
+{
+   // the exit status has 8 bits: anything else would silently become a
+   // different exit status (Bugs37 #76)
+   //
+bool valid = arg.size() <= 3;
+   loop(a, arg.size())   if (!Avec::is_digit(arg[a]))   valid = false;
+   if (valid && arg.size() && arg.atoi() > 255)   valid = false;
+
+   if (!valid)
+      {
+        out << "BAD COMMAND+" << endl;
+        MORE_ERROR() << ")OFF " << arg << ": the exit code must be an"
+                        " integer from 0 to 255";
+        if (auto_MORE)   CERR << Workspace::more_error() << endl;
+        return;
+      }
+
+   cmd_OFF(arg.size() ? arg.atoi() : 0);
+}
+//────────────────────────────────────────────────────────────────────────────
+void
 Command::cmd_OFF(int exit_val)
 {
    COUT << endl;
@@ -222,10 +244,13 @@ Executable * statements = 0;
         UERR << error_name;
         if (plus)   UERR << UNI_PLUS;
         UERR << endl;
+        // line 2 (and thus line 3) already has its margin, like the
+        // error lines of every other error (Bugs37 #62)
+        //
         if (err.get_error_line_2().size())
            {
-             COUT << "      " << err.get_error_line_2() << endl
-                  << "      " << err.get_error_line_3() << endl;
+             COUT << err.get_error_line_2() << endl
+                  << err.get_error_line_3() << endl;
            }
 
         // err.print() prints nothing further here in a non-verbose

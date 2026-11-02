@@ -513,7 +513,7 @@ protected:
       }
 
    /// true if quotients shall be printed as A÷B
-   bool print_quotients;
+   static bool print_quotients;   // static: survives )CLEAR (Bugs37 #60)
 
    /// the current style
    int style;

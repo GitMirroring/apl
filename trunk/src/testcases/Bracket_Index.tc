@@ -484,7 +484,7 @@ INDEX ERROR+
       ^      ^
 
       )MORE
-A[B]: B is not a valid index for A (not an integer that fits a (signed) 63-bit index)
+A[B]: B is not a valid index for A (an integer too large for a (signed) 63-bit index)
       )SIC
 
       ⎕FX 'Z←FOO' 'Z←(1 2 3)[1E30]'
@@ -496,7 +496,7 @@ FOO[1]  Z←(1 2 3)[1E30]
           ^      ^
 
       )MORE
-A[B]: B is not a valid index for A (not an integer that fits a (signed) 63-bit index)
+A[B]: B is not a valid index for A (an integer too large for a (signed) 63-bit index)
       )SIC
 
       ⎕EX 'FOO'

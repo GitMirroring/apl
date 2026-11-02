@@ -1235,7 +1235,8 @@ UCS_string hori(get_column_count(), chars[FC_HORI]);
            {
              UCS_string ucs;
              ucs << shape.get_last_shape_item();
-             if (ucs.ssize() < (get_column_count() - 2))
+             // fits into the interior of the frame line (Bugs37 #59)
+             if (ucs.ssize() <= (get_column_count() - 2))
                 {
                   loop(u, ucs.ssize())   set_char(u + 1, 0, ucs[u]);
                 }
@@ -1256,7 +1257,7 @@ UCS_string hori(get_column_count(), chars[FC_HORI]);
                   if (r)   ucs << chars[FC_VERT];
                   ucs << shape.get_shape_item(r);
                 }
-             if (ucs.ssize() < get_row_count() - 2)
+             if (ucs.ssize() <= get_row_count() - 2)   // Bugs37 #59
                 {
                   loop(u, ucs.size())   set_char(0, u + 1, ucs[u]);
                 }

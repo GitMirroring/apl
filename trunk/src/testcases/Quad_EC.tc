@@ -63,13 +63,13 @@ foo_fails[1]  ÷0
 
       ⎕EC¨'1¯' 
   1  0 0  1    0  2 1538  Bad number  
-                          ¯           
-                          ^^          
+                                ¯     
+                                ^^    
 
       ⎕EC¨'¯1'
   0  2 1538  Bad number    1  0 0  1  
-             ¯                        
-             ^^                       
+                   ¯                  
+                   ^^                 
 
       )ERASE f
 
@@ -113,15 +113,19 @@ f
       )SIC
       ⎕EC '⎕EC ''7'' ⋄ ⍳'
  1  0 0  7 
- 0  2 2  SYNTAX ERROR 
-               ⍳      
-               ^      
+ 0  2 2  SYNTAX ERROR+
+               ⍳
+               ^
+         Missing mandatory right argument of function ⍳ (at the right end of the
+       statement)
 
       )SIC
       '8' ⎕EA '⎕EC ''⍳'''
- 0  2 2  SYNTAX ERROR 
-               ⍳      
-               ^      
+ 0  2 2  SYNTAX ERROR+
+               ⍳
+               ^
+         Missing mandatory right argument of function ⍳ (at the right end of the
+       statement)
 
       )SIC
 

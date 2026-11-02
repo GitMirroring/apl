@@ -669,7 +669,13 @@ Error error(code, loc);
    if (end > int(line.size()))   end = line.size();
 
 const UCS_string fragment(line, start, end - start);
-   error.set_error_line_2(fragment, 0, fragment.size());
+
+   // line 2 has the same margin (the prompt) as other errors (Bugs37 #62)
+   //
+UCS_string margined(Workspace::get_prompt());
+const int margin = margined.size();
+   margined << fragment;
+   error.set_error_line_2(margined, margin, margin + fragment.size());
 
    // Bugs28 #93: see the other throw_parse_error() overload above --
    // store directly, not via the full update_error_info().

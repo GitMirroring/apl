@@ -279,25 +279,35 @@ const UCS_string wsname(args.front());
    //
    if (libref == LIB_NONE)   libref = LIB0;
 
-   // lib_wsname is the name in the copy_once_table
+   // lib_wsname is the name in the copy_once_table. Use the file that
+   // wsname resolves to, so that e.g. ws and ws.xml are the same workspace
+   // (Bugs37 #79).
    //
+LibRef_name lib_name(libref, wsname);
+const UTF8_string filename = LibPaths::get_filename(lib_name, true,
+                                                    ".xml", ".apl");
+const char * basename = strrchr(filename.c_str(), '/');
+const UTF8_string base_utf(basename ? basename + 1 : filename.c_str());
+const UCS_string file_ucs(base_utf);
 UCS_string lib_wsname(Unicode('0' + char(libref)));
    lib_wsname << UNI_UNDERSCORE;
-   lib_wsname << wsname;
+   lib_wsname << file_ucs;
 
    // silently return if wsname is already contained in the copy_once_table
    //
    if (Command::copy_once_table.contains(lib_wsname))   return;
 
-   // add it to the table;
-   //
    out << "NEW )COPY_ONCE workspace: ";
    if (libref)   out << libref << " ";
    out << wsname << endl;
 
-   Command::copy_once_table.push_back(lib_wsname);
-   LibRef_name lib_name(libref, wsname);
    Workspace::copy_WS(out, CERR, lib_name, args, false);
+
+   // add it to the table, but only if the workspace could be copied, so
+   // that a failed )COPY_ONCE can be retried (Bugs37 #79)
+   //
+   if (access(filename.c_str(), R_OK) == 0)
+      Command::copy_once_table.push_back(lib_wsname);
 }
 //────────────────────────────────────────────────────────────────────────────
 void

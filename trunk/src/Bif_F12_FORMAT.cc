@@ -39,6 +39,25 @@
 Bif_F12_FORMAT   Bif_F12_FORMAT::fun;       // ⍕
 
 //════════════════════════════════════════════════════════════════════════════
+bool
+Format_sub::zero_digits(const UCS_string & ucs)
+{
+   // return true if all digits in ucs are 0, ignoring the separators (⎕FC[2])
+   // and print-as-blank positions (⎕FC[5]) inserted into ucs. A 9 field is
+   // blanked for a zero value even with separators, e.g. '9,999'⍕0 (LRM
+   // p. 142, Bugs37 #37).
+   //
+   loop(u, ucs.size())
+      {
+        const Unicode uni = ucs[u];
+        if (uni == UNI_0)                      continue;
+        if (uni == UNI_SPACE)                  continue;
+        if (uni == Workspace::get_FC(1))       continue;
+        return false;
+      }
+   return true;
+}
+//────────────────────────────────────────────────────────────────────────────
 UCS_string
 Format_sub::insert_fract_commas(const UCS_string & data) const
 {
@@ -70,7 +89,7 @@ int d = 0;
             }
       }
 
-   if ((flt_mask & BIT_9) && ucs.all_zeroes())   ucs.clear();
+   if ((flt_mask & BIT_9) && zero_digits(ucs))   ucs.clear();
 
    return ucs;
 }
@@ -159,7 +178,7 @@ size_t d = data.size();
          else                             overflow = true;
       }
 
-   if ((flt_mask & BIT_9) && ucs.all_zeroes())   ucs.clear();
+   if ((flt_mask & BIT_9) && zero_digits(ucs))   ucs.clear();
 
    ucs.reverse();
    return ucs;
@@ -643,9 +662,19 @@ char * fract_end = 0;
              return;
            }
 
-        // insert leading zeros until we have at least min_len digits.
+        // right-align the exponent in its digit positions so that the E
+        // and the exponents of a column align (Bugs37 #9). IBM APL2 pads
+        // with blanks (1.00E 9), but then the text is no longer a number,
+        // so we pad with zeros (1.00E09) unless STRICT_IBM_APL2_FORMATTING.
+        // A 0 in the exponent of A forces leading zeros in both cases.
         //
-        for (; elen < exponent.min_len; ++elen)   data_expo << UNI_0;
+        {
+          const Unicode pad =
+                UserPreferences::uprefs.strict_IBM_APL2_formatting
+                ? exponent.pad_char(Workspace::get_FC(2)) : UNI_0;
+          for (; elen < exponent.digit_count; ++elen)
+              data_expo << (elen < exponent.min_len ? UNI_0 : pad);
+        }
 
         const UTF8_string ep_utf(ep);
         data_expo << UCS_string(ep_utf);
@@ -694,10 +723,13 @@ char * int_end = strchr(data_buf, '.');
 
         int flen = fract_end - fract_digits;
 
-        // remove trailing zeros, but leave at least min_len chars.
+        // remove trailing zeros, but leave at least min_len chars. Not in
+        // E-format: there all mantissa digits are shown (like IBM APL2),
+        // so that the E stays at its position in A (Bugs37 #9).
         //
-        while (fract_digits[flen - 1] == '0' && flen > fract_part.min_len)
-               fract_digits[--flen] = 0;
+        if (exponent.size() == 0)
+           while (fract_digits[flen - 1] == '0' && flen > fract_part.min_len)
+                  fract_digits[--flen] = 0;
 
         loop(f, flen)   data_fract << Unicode(fract_digits[f]);
       }
@@ -1246,6 +1278,15 @@ UCS_string_vector col_formats;
              all_formats << f;
              col_formats.push_back(col0);
            }
+      }
+
+   // one field is applied to every column, also to none (LRM p. 140, e.g.
+   // '555'⍕⍬, Bugs37 #38)
+   //
+   if (cols == 0 && col_formats.size() == 1)
+      {
+        col_formats.clear();
+        all_formats.clear();
       }
 
    if (cols != ShapeItem(col_formats.size()))

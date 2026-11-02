@@ -644,6 +644,7 @@ const Prefix & prefix = si.current_stack;
         << "\" assign-pending=\"" << prefix.get_assign_state()
         << "\" action=\""         << prefix.action
         << "\" lookahead-high=\"" << prefix.get_lookahead_PC()
+        << "\" prefix-len=\""     << prefix.prefix_len   // for ⎕L/⎕R
         << "\">" << endl;
 
    ++indent;
@@ -790,6 +791,28 @@ const Executable & exec = *si.get_executable();
    // print the parser states...
    //
    save_Parser(si);
+
+   // the error (if any) that has suspended this SI entry (Bugs37 #51)
+   //
+   {
+     const Error & error =
+           StateIndicator::get_error(&si);
+     if (error.get_error_code() != E_NO_ERROR)
+        {
+          do_indent();
+          outf << "<Error code=\"" << int(error.get_error_code())
+               << "\" left-caret=\"" << error.get_left_caret()
+               << "\" right-caret=\"" << error.get_right_caret()
+               << "\" show-locked=\"" << int(error.get_show_locked())
+               << "\">" << endl;
+          ++indent;
+          save_UCS(error.get_error_line_1());
+          save_UCS(error.get_error_line_2());
+          --indent;
+          do_indent();
+          outf << "</Error>" << endl;
+        }
+   }
 
    --indent;
 
@@ -1278,10 +1301,16 @@ const int offset = Workspace::get_v_Quad_TZ().get_offset();   // timezone offset
 "        <!ATTLIST StateIndicator levels CDATA #REQUIRED>\n"
 "\n"
 "            <!ELEMENT SI-entry ((Execute | Statements | UserFunction),\n"
-"                                Parser+)>\n"
+"                                Parser+, Error?)>\n"
 "            <!ATTLIST SI-entry level     CDATA #REQUIRED>\n"
 "            <!ATTLIST SI-entry pc        CDATA #REQUIRED>\n"
 "            <!ATTLIST SI-entry line      CDATA #REQUIRED>\n"
+"\n"
+"                <!ELEMENT Error (UCS, UCS)>\n"
+"                <!ATTLIST Error code         CDATA #REQUIRED>\n"
+"                <!ATTLIST Error left-caret   CDATA #REQUIRED>\n"
+"                <!ATTLIST Error right-caret  CDATA #REQUIRED>\n"
+"                <!ATTLIST Error show-locked  CDATA #REQUIRED>\n"
 "\n"
 "                <!ELEMENT Statements (UCS)>\n"
 "\n"
@@ -1298,6 +1327,7 @@ const int offset = Workspace::get_v_Quad_TZ().get_offset();   // timezone offset
 "                <!ATTLIST Parser assign-pending CDATA #REQUIRED>\n"
 "                <!ATTLIST Parser lookahead-high CDATA #REQUIRED>\n"
 "                <!ATTLIST Parser action         CDATA #REQUIRED>\n"
+"                <!ATTLIST Parser prefix-len     CDATA #IMPLIED>\n"
 
 "                    <!ELEMENT Token (#PCDATA)>\n"
 "                    <!ATTLIST Token pc           CDATA #REQUIRED>\n"
@@ -1964,8 +1994,23 @@ const char ** tag_pos = tag_order;
 
         const UTF8_string wsname_utf(wsid, end - wsid);
         const UCS_string wsname_ucs(wsname_utf);
-        const LibRef_name lib_name(wsname_ucs, true);
-        Workspace::set_WSID(lib_name);
+
+        // the wsid attribute is "lib name" if )SAVEd with a libref (see
+        // XML_Saving_Archive::save()) or else "name". Bugs37 #23.
+        //
+        if (wsname_ucs.size() > 2               &&
+            Avec::is_digit(wsname_ucs[0])       &&
+            wsname_ucs[1] == UNI_SPACE)
+           {
+             const LibRef lib = LibRef(wsname_ucs[0] - '0');
+             const UCS_string name(wsname_ucs, 2, wsname_ucs.size() - 2);
+             Workspace::set_WSID(LibRef_name(lib, name));
+           }
+        else
+           {
+             const LibRef_name lib_name(wsname_ucs, true);
+             Workspace::set_WSID(lib_name);
+           }
       }
 
    if (have_allowed_objects && allowed_objects.size())
@@ -2832,6 +2877,19 @@ UCS_string text;
         //
         if (d > 0)   symbol.push();
 
+        // )COPY of a function over a (global) variable of the same name:
+        // replace the variable (LRM p.423), like read_Variable() does for
+        // a variable over a function. Otherwise fix() throws a DEFN ERROR
+        // which aborts the entire )COPY. Bugs37 #26.
+        //
+        Value_P replaced_var;
+        if (copying && d == 0 && symbol.value_stack_size() == 1 &&
+            symbol.get_NC() == NC_VARIABLE)
+           {
+             replaced_var = symbol.get_apl_value();
+             symbol.expunge();
+           }
+
         UserFunction * ufun = 0;
         if (text[0] == UNI_LAMBDA)
            {
@@ -2869,6 +2927,7 @@ UCS_string text;
              // level d > 0 is the empty entry pushed above. Level 0 is
              // left as it was: e.g. a )COPY refused because the existing
              // function is on the )SI must not erase it (Bugs35 #59).
+             if (!!replaced_var)   symbol.assign(replaced_var, false, LOC);
              add_fid_function(fid, 0, LOC);
            }
       }
@@ -2956,8 +3015,13 @@ const int stack_size = find_int_attr("size",           false, 10);
 const int ass_state  = find_int_attr("assign-pending", false, 10);
 const int lah_high   = find_int_attr("lookahead-high", false, 10);
 const int action     = find_int_attr("action",         false, 10);
+const int prefix_len = find_int_attr("prefix-len",     true,  10);
 
 Prefix & parser = si.current_stack;
+   // the length of the last phrase, needed by ⎕L and ⎕R (Bugs37 #51).
+   // Optional (-1) in workspaces saved by older versions.
+   //
+   if (prefix_len >= 0)   parser.prefix_len = prefix_len;
 
    parser.set_assign_state(Assign_state(ass_state));
    parser.action = R_action(action);
@@ -3136,7 +3200,38 @@ StateIndicator * si = Workspace::SI_top();
          //
          next_tag(LOC);
          if (is_tag("/SI-entry"))   break;
+         if (is_tag("Error"))       read_SI_Error(*si);
        }
+}
+//────────────────────────────────────────────────────────────────────────────
+void
+XML_Loading_Archive::read_SI_Error(StateIndicator & si)
+{
+   // the error that has suspended si (Bugs37 #51)
+   //
+const int code        = find_int_attr("code",        false, 10);
+const int left_caret  = find_int_attr("left-caret",  false, 10);
+const int right_caret = find_int_attr("right-caret", false, 10);
+const int show_locked = find_int_attr("show-locked", false, 10);
+
+UCS_string line_1;
+   next_tag(LOC);
+   expect_tag("UCS", LOC);
+   read_XML_string(line_1, find_mandatory_attr("uni"));
+
+UCS_string line_2;
+   next_tag(LOC);
+   expect_tag("UCS", LOC);
+   read_XML_string(line_2, find_mandatory_attr("uni"));
+
+   next_tag(LOC);
+   expect_tag("/Error", LOC);
+
+Error error(ErrorCode(code), LOC);
+   error.set_error_line_1(UTF8_string(line_1).c_str());
+   error.set_error_line_2(line_2, left_caret, right_caret);
+   error.set_show_locked(show_locked != 0);
+   StateIndicator::get_error(&si) = error;
 }
 //════════════════════════════════════════════════════════════════════════════
 const Executable *
@@ -3386,12 +3481,15 @@ bool no_copy = is_protected || (have_allowed_objects && !is_selected);
         return;
       }
 
-   // in a )COPY without dedicated objects only
-   // ⎕CT, ⎕FC, ⎕IO, ⎕LX, ⎕PP, ⎕PR, and ⎕RL shall be copied
+   // in a )COPY without dedicated objects, the only system variables that
+   // shall be copied are ⎕CT, ⎕FC, ⎕IO, ⎕LX, ⎕PP, ⎕PR, and ⎕RL (LRM p.
+   // 423). In particular not the session variables ⎕PW and ⎕TZ. Bugs37 #25.
    //
    if (!have_allowed_objects       &&   // no dedicated object list
         copying                    &&   // )COPY
-        (name_UCS == ID::get_name_UCS(ID_Quad_CT) ||
+        name_UCS.size()            &&
+        Avec::is_quad(name_UCS[0]) &&   // system variable
+       !(name_UCS == ID::get_name_UCS(ID_Quad_CT) ||
          name_UCS == ID::get_name_UCS(ID_Quad_FC) ||
          name_UCS == ID::get_name_UCS(ID_Quad_IO) ||
          name_UCS == ID::get_name_UCS(ID_Quad_LX) ||

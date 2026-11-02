@@ -164,7 +164,7 @@ cFunction_P LO = tok_LO.get_function();
         MORE_ERROR() << LO->get_name() << "/ B resp. "
                      << LO->get_name() << "⌿ B : Bad function "
                      << LO->get_name() << " (expecting a dyadic function)";
-        SYNTAX_ERROR;
+        VALENCE_ERROR;   // like A F/ B (Bugs37 #67)
       }
 
    if (axis >= B->get_rank())
@@ -461,7 +461,11 @@ Shape shape_B = B.get_shape();
          axis = 0;
       }
 
-   ArgCheck::require_scalar_or_vector("A/B resp. A⌿B", "A", A);
+   // LRM: a scalar or one-item vector A is extended along the axis.
+   // GNU APL: any 1-element A (Bugs37 #66 scalar-extension rule).
+   //
+   if (!A.is_scalar_extensible())
+      ArgCheck::require_scalar_or_vector("A/B resp. A⌿B", "A", A);
    if (axis >= shape_B.get_rank())
       {
         MORE_ERROR() << "A/B resp. A⌿B: axis " << axis

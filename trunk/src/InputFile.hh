@@ -108,6 +108,9 @@ struct InputFile
         /// @param line the UTF-8 source line to evaluate against the filter
         bool check_filter(const UTF8_string & line);
 
+        /// )COPY of function \b fun_name: expunge a variable of that name
+        static void replace_variable(const UCS_string & fun_name);
+
         // where the current (and subsequent) line(s) are located
         enum
            {

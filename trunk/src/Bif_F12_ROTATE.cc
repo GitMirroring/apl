@@ -105,7 +105,10 @@ ShapeItem gsh = 0;   // global shift (scalar A); 0 means local shift (A) used.
 const Shape3 shape_B3(B.get_shape(), axis);
 const Shape shape_A2(shape_B3.h(), shape_B3.l());
 
-   if (A.is_scalar_or_len1_vector())
+   // LRM: a scalar or one-item vector L rotates all vectors along the
+   // axis by L. GNU APL: any 1-element L (Bugs37 #66 scalar-extension rule).
+   //
+   if (A.is_scalar_extensible())
       {
         gsh = A.get_near_int(0);
         if (gsh == 0)   // nothing to do.

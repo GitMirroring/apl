@@ -38,6 +38,29 @@ Token_string::all_brackets_closed() const
 
 vector<Open_bracket> expected;
 
+   // throw for the outermost of the openers expected[from...] (which have
+   // no closer): with the statement in line 2 (which the ErrorCode returned
+   // by Parser::match_par_bra() does not have).
+   //
+const auto throw_unclosed = [&](size_t from)
+   {
+     const Open_bracket & outer = expected[from];
+     const ErrorCode ec =
+           outer.closer == TOK_R_BRACK ? E_UNBALANCED_L_BRACK
+         : outer.closer == TOK_R_CURLY ? E_UNBALANCED_L_CURLY
+                                       : E_UNBALANCED_L_PARENT;
+
+     if (Workspace::more_error().size() == 0)
+        MORE_ERROR() << Error::error_name(ec);
+     Error error(ec, LOC);
+     build_error_line_2(error, outer.pos, outer.pos);
+
+     if (StateIndicator * si = Workspace::SI_top())
+        StateIndicator::get_error(si) = error;
+
+     throw error;
+   };
+
    loop(s, size())
       {
         const TokenTag tag = at(s).get_tag();
@@ -45,6 +68,22 @@ vector<Open_bracket> expected;
         switch(tag)      // *right* bracket, regardless of which case below
            {
              default: continue;   // not (, ), [, ], {, ot }.
+
+             case TOK_DIAMOND:
+                  // a ◊ ends the statement (or the lambda statement):
+                  // a ( or [ opened in it is unclosed (Bugs37 #68).
+                  // Otherwise A[1◊2] or (1◊2) look balanced here.
+                  //
+                  if (expected.size() &&
+                      expected.back().closer != TOK_R_CURLY)
+                     {
+                       size_t from = expected.size() - 1;
+                       while (from > 0 &&
+                              expected[from - 1].closer != TOK_R_CURLY)
+                             --from;
+                       throw_unclosed(from);
+                     }
+                  continue;
 
              case TOK_L_BRACK:
                   expected.push_back({int(s), TOK_R_BRACK});    continue;
@@ -93,19 +132,70 @@ vector<Open_bracket> expected;
    // Parser::match_par_bra()), but with the statement in line 2 (which
    // the ErrorCode returned by match_par_bra() does not have).
    //
-   if (expected.size())
+   if (expected.size())   throw_unclosed(0);
+}
+//────────────────────────────────────────────────────────────────────────────
+void
+Token_string::check_semicolons(bool lambda_locals) const
+{
+   // a ; is only valid:
+   //
+   // 1. between [ and ] (an index or axis), or
+   // 2. between { and } (the local variables of a lambda; the lambda body
+   //    itself is checked again when the lambda is created), or
+   // 3. at the end of a lambda body: ;A;B... (lambda_locals)
+   //
+   // Otherwise the input is a SYNTAX ERROR before anything in it was
+   // executed (Bugs37 #17).
+   //
+vector<TokenTag> openers;   // TOK_L_BRACK, TOK_L_PARENT, or TOK_L_CURLY
+   loop(s, size())
       {
-        const Open_bracket & outer = expected[0];
-        const ErrorCode ec =
-              outer.closer == TOK_R_BRACK ? E_UNBALANCED_L_BRACK
-            : outer.closer == TOK_R_CURLY ? E_UNBALANCED_L_CURLY
-                                          : E_UNBALANCED_L_PARENT;
+        const TokenTag tag = at(s).get_tag();
+        switch(tag)
+           {
+             case TOK_L_BRACK:
+             case TOK_L_PARENT:
+             case TOK_L_CURLY:  openers.push_back(tag);
+                                continue;
 
-        if (Workspace::more_error().size() == 0)
-           MORE_ERROR() << Error::error_name(ec);
-        Error error(ec, LOC);
-        build_error_line_2(error, outer.pos, outer.pos);
+             case TOK_R_BRACK:
+             case TOK_R_PARENT:
+             case TOK_R_CURLY:  if (openers.size())   openers.pop_back();
+                                continue;   // balance: all_brackets_closed()
 
+             case TOK_SEMICOL:  break;
+             default:           continue;
+           }
+
+        // at(s) is a ;
+        //
+        if (openers.size() && openers.back() == TOK_L_BRACK)   continue;
+        if (openers.size() && openers.back() == TOK_L_CURLY)   continue;
+
+        if (lambda_locals && openers.size() == 0)   // maybe 3.
+           {
+             bool locals = true;
+             for (ShapeItem l = s; l < ssize(); l += 2)
+                 {
+                   if (l + 1 >= ssize()                        ||
+                       at(l).get_tag() != TOK_SEMICOL          ||
+                       at(l + 1).get_Class() != TC_SYMBOL)
+                      {
+                        locals = false;
+                        break;
+                      }
+                 }
+             if (locals)   return;
+           }
+
+        MORE_ERROR() << "; outside of [...] (only an index or an axis"
+                        " can contain ;)";
+        Error error(E_SYNTAX_ERROR, LOC);
+        build_error_line_2(error, int(s), int(s));
+
+        // see all_brackets_closed() above
+        //
         if (StateIndicator * si = Workspace::SI_top())
            StateIndicator::get_error(si) = error;
 
@@ -122,9 +212,20 @@ int right_caret = -1;
 
    loop(q, size())
       {
+        // avoid duplicate ∘ in ∘.f (like Executable::set_error_info()),
+        // Bugs37 #61
+        //
+        if (at(q).get_tag() == TOK_JOT && q + 1 < ssize() &&
+            at(q + 1).get_tag() == TOK_OPER2_OUTER)
+           {
+             if (q == lo)   ++lo;   // caret on the ∘. instead
+             if (q == hi)   ++hi;
+             continue;
+           }
+
         int alen;   // chars added by this token itself (a leading
                     // space, if any, belongs to the gap before it)
-        if (q == 0)   // Token::error_info() assumes a non-empty ucs
+        if (message_2.size() == 0)   // Token::error_info() assumes a non-empty ucs
                       // (it checks ucs.back() to decide on a leading
                       // space) -- nothing precedes the first token, so
                       // append its canonical text directly.
@@ -144,7 +245,14 @@ int right_caret = -1;
         if (q == hi)   right_caret = message_2.size() - 1;   // last char
       }
 
-   error.set_error_line_2(message_2, left_caret, right_caret);
+   // the same margin (the prompt) as other errors in line 2 (Bugs37 #62)
+   //
+UCS_string margined(Workspace::get_prompt());
+const int margin = margined.size();
+   margined << message_2;
+   error.set_error_line_2(margined,
+                          left_caret  < 0 ? left_caret  : left_caret  + margin,
+                          right_caret < 0 ? right_caret : right_caret + margin);
 }
 //────────────────────────────────────────────────────────────────────────────
 int

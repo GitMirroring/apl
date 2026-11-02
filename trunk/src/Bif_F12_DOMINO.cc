@@ -113,22 +113,40 @@ Bif_F12_DOMINO::eval_B(cValue_R B) const
         // that, which drops the imaginary parts entirely and never
         // conjugates. See Bugs27 #26.
         //
-        const double qct = Workspace::get_CT();
+        // Σ|b|² is computed with B scaled by its largest magnitude M (like
+        // hypot()), so that it neither overflows (|b| ≥ 1E154) nor
+        // underflows (|b| ≤ 1E¯154): Z = conjugate(B÷M) ÷ M×Σ|B÷M|⋆2.
+        // ⎕CT is a relative tolerance and has no say here; only B=0 (M=0)
+        // cannot be inverted. Bugs37 #10.
+        //
         const ShapeItem len = B.get_shape_item(0);
-        APL_Float r2 = 0.0;   // Σ|b|², always real and >= 0
+        APL_Float M = 0.0;    // max |b|
         bool b_real = true;
         loop(l, len)
             {
               const APL_Complex b = B.get_complex_value(l);
-              r2 += b.real()*b.real() + b.imag()*b.imag();
+              const APL_Float abs_b = abs(b);
+              if (M < abs_b)   M = abs_b;
               if (b.imag() != 0.0)   b_real = false;
             }
 
-        if (r2 < qct && r2 > -qct)
+        if (M == 0.0 || !isfinite(M))
            {
-             MORE_ERROR() << "⌹B: B is too close to the origin (+/|B|⋆2"
-                             " is 0 within ⎕CT) to invert at the unit"
-                             " sphere";
+             MORE_ERROR() << "⌹B: B is 0 (or not finite) and cannot be"
+                             " inverted at the unit sphere";
+             DOMAIN_ERROR;
+           }
+
+        APL_Float r2 = 0.0;   // Σ|b÷M|², always real and in [1, len]
+        loop(l, len)
+            {
+              const APL_Complex b = B.get_complex_value(l) / M;
+              r2 += b.real()*b.real() + b.imag()*b.imag();
+            }
+        const APL_Float Mr2 = M * r2;
+        if (!isfinite(1.0 / Mr2))   // largest |z|, e.g. ⌹,1E¯320
+           {
+             MORE_ERROR() << "⌹B: the inverse of B is too large";
              DOMAIN_ERROR;
            }
 
@@ -138,16 +156,16 @@ Bif_F12_DOMINO::eval_B(cValue_R B) const
            {
              loop(l, len)
                  {
-                   const APL_Float b = B.get_real_value(l);
-                   Z->next_ravel_Float(b / r2);
+                   const APL_Float b = B.get_real_value(l) / M;
+                   Z->next_ravel_Float(b / Mr2);
                  }
            }
         else                                       // complex result
            {
              loop(l, len)
                  {
-                   const APL_Complex b = B.get_complex_value(l);
-                   Z->next_ravel_Complex(conj(b) / r2);
+                   const APL_Complex b = B.get_complex_value(l) / M;
+                   Z->next_ravel_Complex(conj(b) / Mr2);
                  }
            }
 

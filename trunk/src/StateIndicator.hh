@@ -46,6 +46,12 @@ class StateIndicator
    friend class XML_Saving_Archive;
 
 public:
+   /// display \b B like the result of a statement (the print length limit
+   /// in ⎕SYL and, if \b boxing, ]BOXING apply)
+   /// @param B the value to display
+   /// @param boxing true if ]BOXING applies
+   static void display_value(Value_P B, bool boxing = true);
+
    /// constructor
    /// @param exec executable (function or statements) being entered
    /// @param _par parent SI entry (caller), or null for the outermost level

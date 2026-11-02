@@ -101,9 +101,9 @@ bar
 
       foo
 1
-VALENCE ERROR+
+SYNTAX ERROR+
 bar[1]  ++
-        ^
+         ^
 
       )SI
 bar[1]
@@ -116,7 +116,7 @@ bar
 
       foo
 1
-VALENCE ERROR+
+SYNTAX ERROR+
       bar
       ^ ^
 
@@ -379,7 +379,12 @@ M
 
       ⎕CR 'M'
       10 ⎕CR 'M'
- M 
+DOMAIN ERROR+
+      10 ⎕CR 'M'
+      ^  ^
+
+      )MORE
+10 ⎕CR: 'M' is locked; its definition cannot be disclosed.
 
       1 ⎕TF 'M'
 DOMAIN ERROR+

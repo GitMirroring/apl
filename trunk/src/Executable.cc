@@ -1372,6 +1372,11 @@ ShapeItem insertion_point = b;
          t.move_from(body[b], LOC);
          body[b].clear(LOC);   // invalidate in main body
 
+         // drop empty statements, e.g. {⋄} or {A⋄⋄B}: their TOK_END has
+         // no valid PC in the lambda body (Bugs37 #45).
+         //
+         if (t.get_tag() == TOK_END && at_stmt_start)   continue;
+
          // figure the signature by looking for ⍺, ⍶, ⍵, ⍹, and χ
          // and complain about ◊ and →
          switch(t.get_tag())

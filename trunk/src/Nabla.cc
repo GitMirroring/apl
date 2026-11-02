@@ -214,6 +214,29 @@ UCS_string command = first_command;
 }
 //────────────────────────────────────────────────────────────────────────────
 void
+Nabla::skip_body()
+{
+   for (;;)
+       {
+         bool eof = false;
+         UCS_string line;
+         LineHistory lh(10);
+         InputMux::get_line(LIM_Nabla, UCS_string(), line, eof, lh);
+         if (eof)   return;
+
+         line.remove_leading_and_trailing_whitespaces();
+         if (line.size() == 0)   continue;
+
+         // a line ∇ or ⍫, or a line ending with ∇ or ⍫ (but not in a comment)
+         //
+         const Unicode last = line.back();
+         if (line[0] == UNI_NABLA || line[0] == UNI_DEL_TILDE)   return;
+         if ((last == UNI_NABLA || last == UNI_DEL_TILDE) &&
+             comment_pos(line) == -1)   return;
+       }
+}
+//────────────────────────────────────────────────────────────────────────────
+void
 Nabla::edit()
 {
    if (const char * error = start())
@@ -226,6 +249,17 @@ Nabla::edit()
                        << "' : '" << error << "'" << endl;
                 }
            }
+
+        // Bugs37 #27: in a )COPY of a .apl file the lines after a refused
+        // header are the body of that function. They must not be executed
+        // as statements in the user's workspace: skip them up to and
+        // including the closing ∇ (or ⍫). (Not in general scripts and
+        // testcases: there a refused header is often not followed by a body.)
+        //
+        const InputFile * file = InputFile::current_file();
+        if (!trailing_nabla && file && file->copy_filter.copying)
+           skip_body();
+
         throw_edit_error(error);
       }
 
@@ -723,22 +757,15 @@ Nabla::parse_oper(UCS_string & oper, bool initial)
         return 0;
       }
 
-   if (comment_pos(oper) != -1)
-      {
-        // a closing ∇ or ⍫ at the end of a line with a comment belongs to
-        // the comment (lrm p. 388)
-      }
-   else if (oper.size() > 0 && oper.back() == UNI_NABLA)
-      {
-        do_close = true;
-        oper.pop_back();
-        while (oper.size() > 0 && oper.back() <= ' ')   oper.pop_back();
-      }
-   else if (oper.size() > 0 && oper.back() == UNI_DEL_TILDE)
+   // a ∇ or ⍫ (outside of strings and before a comment, lrm p. 388) closes
+   // the definition; the rest of the line is discarded. Not only at the end
+   // of the line, the same as in the [N] text path below (Bugs37 #44).
+   //
+   if (const int cpos = close_pos(oper); cpos != -1)
       {
         do_close = true;
-        locked = true;
-        oper.pop_back();
+        if (oper[cpos] == UNI_DEL_TILDE)   locked = true;
+        oper.resize(cpos);
         while (oper.size() > 0 && oper.back() <= ' ')   oper.pop_back();
       }
 
@@ -1106,8 +1133,9 @@ Nabla::execute_delete()
         if (idx_from == 0)       return "cannot delete the header line [0]";
         modified = true;
 
+        const LineLabel highest = lines[idx_to].label;
         lines.erase(lines.begin() + idx_from, lines.begin() + idx_to + 1);
-        if (lines.size())   current_line = lines.back().label;
+        prompt_after_delete(highest);
         return 0;
       }
 
@@ -1123,7 +1151,9 @@ const int idx_to = find_line(line_set.get_to());
         // line index from its label. Reject rather than corrupt.
         if (idx_to == 0)   return "cannot delete the header line [0]";
         modified = true;
+        const LineLabel highest = lines[idx_to].label;
         lines.erase(lines.begin() + idx_to);
+        prompt_after_delete(highest);
         return 0;
       }
 
@@ -1135,10 +1165,27 @@ const int idx_from = find_line(line_set.get_from());
    if (idx_from == 0)        return "cannot delete the header line [0]";
    modified = true;
 
+const LineLabel highest = lines[idx_to].label;
    loop(j, 1 + idx_to - idx_from)   lines.erase(lines.begin() + idx_from);
-   // guard defensively: were lines ever emptied above, .back() is UB.
-   if (lines.size())   current_line = lines.back().label;
+   prompt_after_delete(highest);
    return 0;
+}
+//────────────────────────────────────────────────────────────────────────────
+void
+Nabla::prompt_after_delete(const LineLabel & highest)
+{
+   // the prompt after a delete must not be an existing line, since the
+   // next text line would then replace it (LRM p. 391: [∆4-7] at [9]
+   // gives [7.1], [∆4-] gives [8]). Like [⎕N] in execute_show(): continue
+   // after the highest line deleted. Bugs37 #16.
+   //
+   current_line = highest;
+   current_line.next();
+   if (line_exists(current_line))   // highest was not the last line
+      {
+        current_line = highest;
+        current_line.insert();
+      }
 }
 //────────────────────────────────────────────────────────────────────────────
 const char *
@@ -1552,6 +1599,29 @@ Nabla::comment_pos(const UCS_string & line)
       {
         const Unicode uni = line[u];
         if (uni == UNI_COMMENT)   return u;
+        if (uni == UNI_SINGLE_QUOTE || uni == UNI_DOUBLE_QUOTE)   // string
+           {
+             for (++u; u < ShapeItem(line.size()) && line[u] != uni; ++u)
+                 {
+                   if (uni == UNI_DOUBLE_QUOTE && line[u] == UNI_BACKSLASH)
+                      ++u;   // skip \x
+                 }
+           }
+      }
+   return -1;
+}
+//────────────────────────────────────────────────────────────────────────────
+int
+Nabla::close_pos(const UCS_string & line)
+{
+   // return the position of the first ∇ or ⍫ in line that is outside of
+   // strings and before a comment, or else -1.
+   //
+   loop(u, line.size())
+      {
+        const Unicode uni = line[u];
+        if (uni == UNI_COMMENT)   return -1;
+        if (uni == UNI_NABLA || uni == UNI_DEL_TILDE)   return u;
         if (uni == UNI_SINGLE_QUOTE || uni == UNI_DOUBLE_QUOTE)   // string
            {
              for (++u; u < ShapeItem(line.size()) && line[u] != uni; ++u)
