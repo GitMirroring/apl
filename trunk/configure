@@ -18549,7 +18549,7 @@ CXXFLAGS="$CXXFLAGS -I `pwd`"
 # keep headers in roughy alphabetical order as to find them more easily
 #
 apl_missing_headers=-1 # since either sys/socket,h or winsock2.h will be missing
-       for ac_header in dirent.h execinfo.h ext/atomicity.h fcntl.h fenv.h fftw3.h inttypes.h libpng16/png.h limits.h locale.h malloc.h netdb.h netinet/in.h netinet/tcp.h stdint.h stdlib.h string.h strings.h sys/fcntl.h sys/ioctl.h sys/mman.h sys/resource.h sys/select.h sys/socket.h sys/stat.h sys/time.h sys/types.h sys/time.h sys/un.h sys/wait.h termios.h unistd.h utmpx.h vector zlib.h windows.h winsock2.h
+       for ac_header in dirent.h execinfo.h fcntl.h fenv.h fftw3.h inttypes.h libpng16/png.h limits.h locale.h malloc.h netdb.h netinet/in.h netinet/tcp.h stdint.h stdlib.h string.h strings.h sys/fcntl.h sys/ioctl.h sys/mman.h sys/resource.h sys/select.h sys/socket.h sys/stat.h sys/time.h sys/types.h sys/time.h sys/un.h sys/wait.h termios.h unistd.h utmpx.h vector zlib.h windows.h winsock2.h
 do :
   as_ac_Header=`printf "%s\n" "ac_cv_header_$ac_header" | $as_tr_sh`
 ac_fn_cxx_check_header_compile "$LINENO" "$ac_header" "$as_ac_Header" "$ac_includes_default"
@@ -20058,48 +20058,6 @@ then :
   printf "%s\n" "#define HAVE_LIBC 1" >>confdefs.h
 
   LIBS="-lc $LIBS"
-
-fi
-
-{ printf "%s\n" "$as_me:${as_lineno-$LINENO}: checking for __atomic_fetch_add_4 in -latomicity" >&5
-printf %s "checking for __atomic_fetch_add_4 in -latomicity... " >&6; }
-if test ${ac_cv_lib_atomicity___atomic_fetch_add_4+y}
-then :
-  printf %s "(cached) " >&6
-else $as_nop
-  ac_check_lib_save_LIBS=$LIBS
-LIBS="-latomicity  $LIBS"
-cat confdefs.h - <<_ACEOF >conftest.$ac_ext
-/* end confdefs.h.  */
-
-namespace conftest {
-  extern "C" int __atomic_fetch_add_4 ();
-}
-int
-main (void)
-{
-return conftest::__atomic_fetch_add_4 ();
-  ;
-  return 0;
-}
-_ACEOF
-if ac_fn_cxx_try_link "$LINENO"
-then :
-  ac_cv_lib_atomicity___atomic_fetch_add_4=yes
-else $as_nop
-  ac_cv_lib_atomicity___atomic_fetch_add_4=no
-fi
-rm -f core conftest.err conftest.$ac_objext conftest.beam \
-    conftest$ac_exeext conftest.$ac_ext
-LIBS=$ac_check_lib_save_LIBS
-fi
-{ printf "%s\n" "$as_me:${as_lineno-$LINENO}: result: $ac_cv_lib_atomicity___atomic_fetch_add_4" >&5
-printf "%s\n" "$ac_cv_lib_atomicity___atomic_fetch_add_4" >&6; }
-if test "x$ac_cv_lib_atomicity___atomic_fetch_add_4" = xyes
-then :
-  printf "%s\n" "#define HAVE_LIBATOMICITY 1" >>confdefs.h
-
-  LIBS="-latomicity $LIBS"
 
 fi
 
@@ -22202,7 +22160,6 @@ printf %s "checking whether pthread_setaffinity_np is available... " >&6; }
 cat confdefs.h - <<_ACEOF >conftest.$ac_ext
 /* end confdefs.h.  */
  #include <pthread.h>
-                       #include <ext/atomicity.h>
 
 int
 main (void)
@@ -22210,9 +22167,6 @@ main (void)
  cpu_set_t cpuset;
                        pthread_setaffinity_np(0, sizeof(cpuset), &cpuset);
                        pthread_getaffinity_np(0, sizeof(cpuset), &cpuset);
-                       _Atomic_word count = 0;
-                       __gnu_cxx::__exchange_and_add_dispatch(&count, 1);
-                       __gnu_cxx::__atomic_add_dispatch(&count, 1);
 
   ;
   return 0;
@@ -22264,72 +22218,6 @@ fi
 rm -f core conftest.err conftest.$ac_objext conftest.beam conftest.$ac_ext
 { printf "%s\n" "$as_me:${as_lineno-$LINENO}: result: $HAVE_PTHREAD_SETNAME_NP" >&5
 printf "%s\n" "$HAVE_PTHREAD_SETNAME_NP" >&6; }
-
-############################### atomicity checks ##############################
-# check for alternatives for ext/atomicity.h on OS/X
-#
-{ printf "%s\n" "$as_me:${as_lineno-$LINENO}: checking whether OSAtomicAdd32Barrier() is available" >&5
-printf %s "checking whether OSAtomicAdd32Barrier() is available... " >&6; }
-apl_save_CXXFLAGS=$CXXFLAGS
-CXXFLAGS="-Wall -Werror"
-cat confdefs.h - <<_ACEOF >conftest.$ac_ext
-/* end confdefs.h.  */
- #include <libkern/OSAtomic.h>
-int
-main (void)
-{
- OSAtomicAdd32Barrier(0, 0);
-  ;
-  return 0;
-}
-_ACEOF
-if ac_fn_cxx_try_compile "$LINENO"
-then :
-  HAVE_OSX_ATOMIC=yes
-
-printf "%s\n" "#define HAVE_OSX_ATOMIC 1" >>confdefs.h
-
-
-else $as_nop
-  HAVE_OSX_ATOMIC=no
-fi
-rm -f core conftest.err conftest.$ac_objext conftest.beam conftest.$ac_ext
-CXXFLAGS=$apl_save_CXXFLAGS
-{ printf "%s\n" "$as_me:${as_lineno-$LINENO}: result: $HAVE_OSX_ATOMIC" >&5
-printf "%s\n" "$HAVE_OSX_ATOMIC" >&6; }
-
-
-# check for alternatives for ext/atomicity.h on Solaris
-#
-{ printf "%s\n" "$as_me:${as_lineno-$LINENO}: checking whether atomic_add_32_nv() is available" >&5
-printf %s "checking whether atomic_add_32_nv() is available... " >&6; }
-cat confdefs.h - <<_ACEOF >conftest.$ac_ext
-/* end confdefs.h.  */
- #include <atomic.h>
-int
-main (void)
-{
- atomic_add_32_nv(0, 0);
-                       atomic_add_32   (0, 0);
-
-  ;
-  return 0;
-}
-_ACEOF
-if ac_fn_cxx_try_compile "$LINENO"
-then :
-  HAVE_SOLARIS_ATOMIC=yes
-
-printf "%s\n" "#define HAVE_SOLARIS_ATOMIC 1" >>confdefs.h
-
-
-else $as_nop
-  HAVE_SOLARIS_ATOMIC=no
-fi
-rm -f core conftest.err conftest.$ac_objext conftest.beam conftest.$ac_ext
-{ printf "%s\n" "$as_me:${as_lineno-$LINENO}: result: $HAVE_SOLARIS_ATOMIC" >&5
-printf "%s\n" "$HAVE_SOLARIS_ATOMIC" >&6; }
-
 
  { printf "%s\n" ; printf "%s\n" "    *** choices made by the user (via ./configure arguments)... ***"; printf "%s\n" ; }
 

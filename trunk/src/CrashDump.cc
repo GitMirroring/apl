@@ -342,7 +342,11 @@ CrashDump::provoke(const char * name)
 #else
    if (!strcmp(name, "SEGV"))
       {
-        *reinterpret_cast<volatile char *>(16) = 0;
+        // a volatile pointer, so that the compiler cannot see (and warn
+        // about) the invalid address
+        volatile char * volatile bad_address =
+                        reinterpret_cast<volatile char *>(16);
+        *bad_address = 0;
         raise(SIGSEGV);
         return true;
       }
@@ -775,6 +779,9 @@ auto put = [&ok, fd](const char * data, size_t len)
 const time_t now = time(0);
    for (const Tar_member & member : members)
        {
+         // the size field has 11 octal digits, i.e. less than 8 GiB
+         if (member.content.size() > 077777777777UL)   { ok = false;   break; }
+
          // a POSIX ustar header (see 'info tar', "Standard")
          //
          char header[512];
@@ -785,9 +792,10 @@ const time_t now = time(0);
          snprintf(header + 108,   8, "%07o", 0);                 // uid
          snprintf(header + 116,   8, "%07o", 0);                 // gid
          snprintf(header + 124,  12, "%011lo",
-                  static_cast<unsigned long>(member.content.size()));
+                  static_cast<unsigned long>(member.content.size())
+                  & 077777777777UL);                             // size
          snprintf(header + 136,  12, "%011lo",
-                  static_cast<unsigned long>(now));              // mtime
+                  static_cast<unsigned long>(now) & 077777777777UL);   // mtime
          memset(header + 148, ' ', 8);                           // chksum
          header[156] = '0';                                      // typeflag
          memcpy(header + 257, "ustar", 6);                       // magic
@@ -795,7 +803,7 @@ const time_t now = time(0);
 
          unsigned int checksum = 0;
          for (const char c : header)   checksum += uint8_t(c);
-         snprintf(header + 148, 8, "%06o", checksum);
+         snprintf(header + 148, 8, "%06o", checksum & 0777777);   // ≤ 512*255
          header[155] = ' ';
 
          put(header, sizeof(header));

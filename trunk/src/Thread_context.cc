@@ -37,7 +37,7 @@ CoreCount Thread_context::thread_contexts_count = CCNT_0;
 
 Thread_context::PoolFunction * Thread_context::do_work =
     &Thread_context::PF_no_work;
-volatile _Atomic_word Thread_context::busy_worker_count = 0;
+std::atomic<int> Thread_context::busy_worker_count(0);
 volatile bool Thread_context::pool_exit = false;
 
 //════════════════════════════════════════════════════════════════════════════
@@ -145,7 +145,7 @@ Thread_context::print_all(ostream & out)
       {
         PRINT_LOCKED(
            out << "thread_contexts_count: " << thread_contexts_count << endl
-               << "busy_worker_count:     " << busy_worker_count     << endl
+               << "busy_worker_count:     " << busy_worker_count.load() << endl
                << "active_core_count:     " << active_core_count     << endl;
 
            loop(e, thread_contexts_count)   thread_contexts[e].print(out);

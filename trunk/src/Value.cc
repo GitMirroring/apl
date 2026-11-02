@@ -1198,10 +1198,7 @@ Cell * dst = ravel.cells + N;
         case RPT_BOOL:
              rev_loop(i, N)
                  {
-                   const uint8_t & src =
-                         reinterpret_cast<const int8_t *>(ravel.cells)[i >> 3];
-
-                   new (--dst) IntCell((src >> (i & 7)) & 1);
+                   new (--dst) IntCell(Ravel::get_packed_bit(ravel.cells, i));
                  }
              break;
 
@@ -1311,11 +1308,8 @@ auto dst = reinterpret_cast<double *>(ravel.cells) + 2 * N;
              {
                rev_loop(i, N)
                    {
-                     auto src =
-                           reinterpret_cast<const int8_t *>(ravel.cells)[i>>3];
-              
                      *--dst = 0.0;
-                     *--dst = double((src >> (i & 7)) & 1);
+                     *--dst = double(Ravel::get_packed_bit(ravel.cells, i));
                    }
              }
         break;
@@ -1373,10 +1367,7 @@ auto dst = reinterpret_cast<double *>(ravel.cells) + N;
              {
                rev_loop(i, N)
                    {
-                     const uint8_t & src =
-                           reinterpret_cast<const int8_t *>(ravel.cells)[i>>3];
-             
-                     *--dst = double((src >> (i & 7)) & 1);
+                     *--dst = double(Ravel::get_packed_bit(ravel.cells, i));
                    }
              }
         break;
@@ -1416,8 +1407,7 @@ auto dst = reinterpret_cast<int64_t *>(ravel.cells) + N;
    Assert1(get_ravel_type() == RPT_BOOL);
    rev_loop(i, N)
       {
-        auto src = reinterpret_cast<const int8_t *>(ravel.cells)[i >> 3];
-        *--dst = int64_t((src >> (i & 7)) & 1);
+        *--dst = int64_t(Ravel::get_packed_bit(ravel.cells, i));
       }
 
    flags.ravel_type        = RPT_INT64;

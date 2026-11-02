@@ -191,6 +191,14 @@ public:
                                     Cell & not_used)
       { return cells[offset]; }
 
+   /// return bit \b idx of a bool-packed ravel. The ravel is written and
+   /// read (e.g. by the ScalarFunction fast paths) as uint64_t words, bit b
+   /// being bit b&63 of word b>>6. Accessing it bytewise instead (bit b&7 of
+   /// byte b>>3) gives the same result on little-endian machines only.
+   static APL_Integer get_packed_bit(const Cell * cells, ShapeItem idx)
+      { return (reinterpret_cast<const uint64_t *>(cells)[idx >> 6]
+                >> (idx & 63)) & 1; }
+
    /// fetch function for packed (bit-array) boolean ravels.
    /// @param offset ravel index (0-based)
    /// @param cells pointer to the packed bit array cast to Cell *
@@ -198,8 +206,7 @@ public:
    static const Cell & bool_fetcher(ShapeItem offset, const Cell * cells,
                                     Cell & cache)
       {
-        new (&cache) IntCell((1 << (offset & 7) &
-              reinterpret_cast<const uint8_t *>(cells)[offset >> 3]) ? 1 : 0);
+        new (&cache) IntCell(get_packed_bit(cells, offset));
         return cache;
       }
 
@@ -530,13 +537,13 @@ public:
    BoolRavel() : Ravel(upgrade_tag{}) {}
 
    virtual APL_Integer get_int_value(ShapeItem idx) const override
-      { return (reinterpret_cast<const uint8_t *>(cells)[idx >> 3] >> (idx & 7)) & 1; }
+      { return get_packed_bit(cells, idx); }
 
    virtual APL_Integer get_near_int(ShapeItem idx) const override
       { return get_int_value(idx); }
 
    virtual bool get_near_bool(ShapeItem idx) const override
-      { return (reinterpret_cast<const uint8_t *>(cells)[idx >> 3] >> (idx & 7)) & 1; }
+      { return get_packed_bit(cells, idx); }
 
    virtual APL_Float get_real_value(ShapeItem idx) const override
       { return APL_Float(get_int_value(idx)); }

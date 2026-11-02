@@ -60,6 +60,15 @@ struct CDR_header
                  ret |= *data++;
         return ret;
       }
+
+   /// convert little endian 32 bit value to 32 bit host value. CDR headers
+   /// are big endian, but ravel items are stored little endian.
+   /// @param data pointer to 4 little-endian bytes
+   static uint32_t get_le32(const uint8_t * data)
+      {
+        return uint32_t(data[0])       | uint32_t(data[1]) <<  8
+             | uint32_t(data[2]) << 16 | uint32_t(data[3]) << 24;
+      }
 };
 
 /// a string containing a CDR record

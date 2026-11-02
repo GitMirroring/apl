@@ -352,11 +352,11 @@ const int nelm = cdr.header().get_nelm();
       }
    else if (cdr.get_type() == CDR_INT32)
       {
-        const uint32_t * ravel =
-                         reinterpret_cast<const uint32_t *>(cdr.ravel());
-        op                        = ravel[0];
-        if (nelm >= 2)   ctx.rec_num  = ravel[1];
-        if (nelm >= 3)   ctx.rec_size = ravel[2];
+        // CDR ravel items are little endian on any host
+        const uint8_t * ravel = cdr.ravel();
+        op                        = CDR_header::get_le32(ravel);
+        if (nelm >= 2)   ctx.rec_num  = CDR_header::get_le32(ravel + 4);
+        if (nelm >= 3)   ctx.rec_size = CDR_header::get_le32(ravel + 8);
       }
    else   // neither int nor bool:
       {

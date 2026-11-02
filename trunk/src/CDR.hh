@@ -24,6 +24,8 @@
 #ifndef __CDR_HH_DEFINED__
 #define __CDR_HH_DEFINED__
 
+#include <string.h>
+
 #include "CDR_string.hh"
 #include "Value_P.hh"
 
@@ -56,6 +58,27 @@ public:
       {
         uint64_t ret = get_4_be(data);   ret <<= 32;
                  return ret | get_4_be(data + 4);
+      }
+
+   /// return 4 bytes starting at \b data in little endian byte order (the
+   /// byte order in which fill() stores ravel items, regardless of the host)
+   /// @param data pointer to at least 4 bytes of raw data
+   static uint32_t get_4_le(const uint8_t * data)
+      { return CDR_header::get_le32(data); }
+
+   /// return 8 bytes starting at \b data in little endian byte order
+   /// @param data pointer to at least 8 bytes of raw data
+   static uint64_t get_8_le(const uint8_t * data)
+      { return get_4_le(data) | uint64_t(get_4_le(data + 4)) << 32; }
+
+   /// return the APL_Float stored at \b data in little endian byte order
+   /// @param data pointer to at least 8 bytes of raw data
+   static APL_Float get_float_le(const uint8_t * data)
+      {
+        const uint64_t bits = get_8_le(data);
+        APL_Float ret;
+        memcpy(&ret, &bits, sizeof(ret));
+        return ret;
       }
 
    /// create a value from a CDR_string, throwing

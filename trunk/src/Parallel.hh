@@ -61,113 +61,7 @@
 
 #endif // PARALLEL_ENABLED
 
-// define some atomic functions (even if the platform does not support them)
-//
-#ifndef PARALLEL_ENABLED
-   //
-   // parallel execution disabled, no need for atomicity
-   //
-typedef int _Atomic_word;
-
-/// @param counter counter to update atomically
-/// @param increment amount to add
-inline int atomic_fetch_add(volatile _Atomic_word & counter, int increment)
-   { const int ret = counter;   counter += increment;   return ret; }
-
-/// read \b counter
-/// @param counter counter to read
-inline int atomic_read(volatile _Atomic_word & counter)
-   { return counter; }
-
-/// add to \b counter
-/// @param counter counter to update
-/// @param increment amount to add
-inline void atomic_add(volatile _Atomic_word & counter, int increment)
-   { counter += increment; }
-
-#elif HAVE_EXT_ATOMICITY_H
-#  include <ext/atomicity.h>
-
-/// atomic \b counter += \b increment, return old value
-inline int atomic_fetch_add(volatile _Atomic_word & counter, int increment)
-   { _GLIBCXX_READ_MEM_BARRIER;
-     const int ret = __gnu_cxx::__exchange_and_add_dispatch(
-                         const_cast<_Atomic_word *>(&counter), increment);
-     _GLIBCXX_WRITE_MEM_BARRIER;
-     return ret; }
-
-/// atomic read \b counter
-inline int atomic_read(volatile _Atomic_word & counter)
-   { _GLIBCXX_READ_MEM_BARRIER;
-     return __gnu_cxx::__exchange_and_add_dispatch(
-                         const_cast<_Atomic_word *>(&counter), 0); }
-
-/// atomic \b counter += \b increment
-inline void atomic_add(volatile _Atomic_word & counter, int increment)
-   { __gnu_cxx::__atomic_add_dispatch(
-                         const_cast<_Atomic_word *>(&counter), increment);
-     _GLIBCXX_WRITE_MEM_BARRIER;
-   }
-
-#elif HAVE_OSX_ATOMIC
-
-#  include <libkern/OSAtomic.h>
-
-/// a counter for atomic operations
-typedef int32_t _Atomic_word;
-
-/// atomic \b counter += \b increment, return old value
-inline int atomic_fetch_add(volatile _Atomic_word & counter, int increment)
-   { return OSAtomicAdd32Barrier(increment, &counter) - increment; }
-
-/// atomic read \b counter
-inline int atomic_read(volatile _Atomic_word & counter)
-   { return OSAtomicAdd32Barrier(0, &counter); }
-
-/// atomic \b counter += \b increment
-inline void atomic_add(volatile _Atomic_word & counter, int increment)
-   { OSAtomicAdd32Barrier(increment, &counter); }
-
-#elif HAVE_SOLARIS_ATOMIC
-
-#  include <atomic.h>
-
-/// a counter for atomic operations
-typedef uint32_t _Atomic_word;
-
-/// atomic \b counter += \b increment, return old value
-inline int atomic_fetch_add(volatile _Atomic_word & counter, int increment)
-   { return atomic_add_32_nv(&counter, increment) - increment; }
-
-/// atomic read \b counter
-inline int atomic_read(volatile _Atomic_word & counter)
-   { return atomic_add_32_nv(&counter, 0); }
-
-/// atomic \b counter += \b increment
-inline void atomic_add(volatile _Atomic_word & counter, int increment)
-   { atomic_add_32(&counter, increment); }
-
-#else
-
-/// a counter for atomic operations
-typedef int _Atomic_word;
-
-/// atomic \b counter += \b increment, return old value
-inline int atomic_fetch_add(volatile _Atomic_word & counter, int increment)
-   { CERR << "\n*** something is VERY WRONG if this function is called" << endl;
-      counter += increment; return counter - increment; }
-
-/// atomic read \b counter
-inline int atomic_read(volatile _Atomic_word & counter)
-   { CERR << "\n*** something is VERY WRONG if this function is called" << endl;
-     return counter; }
-
-/// atomic \b counter += \b increment
-inline void atomic_add(volatile _Atomic_word & counter, int increment)
-   { CERR << "\n*** something is VERY WRONG if this function is called" << endl;
-     counter += increment; }
-
-#endif
+#include <atomic>
 
 #include <ostream>
 #include <semaphore.h>
@@ -261,7 +155,7 @@ protected:
 };
 //════════════════════════════════════════════════════════════════════════════
 /**
-  _Atomic_word class coordinating the different cores working in parallel on the
+  A class coordinating the different cores working in parallel on the
   same ravel(s)
 **/
 /// Parallel APL execution
@@ -269,31 +163,31 @@ class Parallel
 {
 public:
 
-   // we have two approaches to locking. One is based on atomic_fetch_add(),
+   // we have two approaches to locking. One is based on std::atomic<int>,
    // the other is based on pthread_rwlock_wrlock().
    //
-#if 1   /* use atomic_fetch_add() */
+#if 1   /* use std::atomic<int> */
 
    /// a lock coordinating parallel access to shared objects
-   typedef _Atomic_word parallel_lock_t;
-#  define LOCK_INITIALIZER 0
+   typedef std::atomic<int> parallel_lock_t;
+#  define LOCK_INITIALIZER { 0 }
 
    /// acquire \b lock
    /// @param lock lock variable to acquire
-   static inline void acquire_lock(volatile parallel_lock_t & lock)
+   static inline void acquire_lock(parallel_lock_t & lock)
       {
         for (;;)
             {
-              if (atomic_fetch_add(lock, 1) == 0)   return;   // got the lock
-              atomic_add(lock, -1);   // undo the atomic_fetch_add()
+              if (lock.fetch_add(1) == 0)   return;   // got the lock
+              lock.fetch_add(-1);   // undo the fetch_add()
             }
       }
 
    /// release \b lock
    /// @param lock lock variable to release
-   static inline void release_lock(volatile parallel_lock_t & lock)
+   static inline void release_lock(parallel_lock_t & lock)
       {
-        atomic_add(lock, -1);
+        lock.fetch_add(-1);
       }
 
 #else   /* use pthread_rwlock_wrlock() */

@@ -528,8 +528,9 @@ print_half_up(APL_Float value, int fract, bool expo)
 {
    enum { extra_digits = 24 };   // like UCS_string::from_double_to_expo()
 std::vector<char> buffer(fract + extra_digits + 400);
-   snprintf(buffer.data(), buffer.size(), expo ? "%.*E" : "%.*f",
-            fract + extra_digits, value);
+const int len = snprintf(buffer.data(), buffer.size(),
+                         expo ? "%.*E" : "%.*f", fract + extra_digits, value);
+   Assert(len > 0 && size_t(len) < buffer.size());   // a double fits always
 
    // split buffer (iii.fff or d.fffE±xx) into its digits d and the number
    // of digits before the decimal point (int_len)

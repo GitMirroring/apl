@@ -2621,7 +2621,11 @@ UTF8 * end = 0;
                // per-element cases above, is not bounded by Z.more()).
                //
                const ShapeItem max_bytes = ((Z.element_count() + 63) >> 6) << 3;
-               uint8_t * const dst = reinterpret_cast<uint8_t *>(&Z.get_wfirst());
+               // byte n of the archive holds items 8n...8n+7, i.e. bits
+               // 8(n&7)... of uint64_t word n>>3 of the ravel.
+               //
+               uint64_t * const dst = reinterpret_cast<uint64_t *>(&Z.get_wfirst());
+               memset(dst, 0, max_bytes);
                ShapeItem count = 0;
 
                for (;;)
@@ -2639,7 +2643,11 @@ UTF8 * end = 0;
 
                      const int converted = end - cc;
                      if (converted == 0)   break;   // nothing converted
-                     if (count < max_bytes)   dst[count++] = byte;   // bounded
+                     if (count < max_bytes)   // bounded
+                        {
+                          dst[count >> 3] |= uint64_t(byte) << ((count & 7) << 3);
+                          ++count;
+                        }
                      if (converted == 1)   { ++input;   break; }
                    }
                return input;

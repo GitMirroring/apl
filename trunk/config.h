@@ -2,10 +2,10 @@
 /* config.h.in.  Generated from configure.ac by autoheader.  */
 
 /* the SVN version of Archive.cc */
-#define ARCHIVE_SVN " 3887"
+#define ARCHIVE_SVN " 3891"
 
 /* How and when GNU APL was configured */
-#define BUILDTAG PACKAGE_NAME, PACKAGE_VERSION " / SVN: 3890", "2026-11-02 12:56:11 CET", "Linux 5.15.0-177-generic x86_64", "default ./configure options"
+#define BUILDTAG PACKAGE_NAME, PACKAGE_VERSION " / SVN: 3891", "2026-11-02 21:46:03 CET", "Linux 5.15.0-177-generic x86_64", "default ./configure options"
 
 /* Define to 1 iff pthread_setaffinity_np() is available */
 #define HAVE_AFFINITY_NP 1
@@ -24,9 +24,6 @@
 
 /* Define to 1 if you have the <execinfo.h> header file. */
 #define HAVE_EXECINFO_H 1
-
-/* Define to 1 if you have the <ext/atomicity.h> header file. */
-#define HAVE_EXT_ATOMICITY_H 1
 
 /* Define to 1 if you have the <fcntl.h> header file. */
 #define HAVE_FCNTL_H 1
@@ -60,9 +57,6 @@
 
 /* Define to 1 iff ioctl(fd, TIOCGWINSZ, ...) is available */
 #define HAVE_IOCTL_TIOCGWINSZ 1
-
-/* Define to 1 if you have the `atomicity' library (-latomicity). */
-/* #undef HAVE_LIBATOMICITY */
 
 /* Define to 1 if you have the `c' library (-lc). */
 #define HAVE_LIBC 1
@@ -161,9 +155,6 @@
 /* Define to 1 if you have the <netinet/tcp.h> header file. */
 #define HAVE_NETINET_TCP_H 1
 
-/* Define to 1 iff OSAtomicAdd32Barrier() is available */
-/* #undef HAVE_OSX_ATOMIC */
-
 /* Define to 1 if PostgreSQL libraries are available */
 #define HAVE_POSTGRESQL 1
 
@@ -202,9 +193,6 @@
 
 /* Define to 1 if you have the `socket' function. */
 #define HAVE_SOCKET 1
-
-/* Define to 1 iff atomic_add_32_nv() is available */
-/* #undef HAVE_SOLARIS_ATOMIC */
 
 /* Define to 1 if libsqlite3 library is available */
 #define HAVE_SQLITE3 1

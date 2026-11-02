@@ -157,7 +157,6 @@ apl_missing_headers=-1 # since either sys/socket,h or winsock2.h will be missing
 AC_CHECK_HEADERS([  \
    dirent.h         \
    execinfo.h       \
-   ext/atomicity.h  \
    fcntl.h fenv.h   \
    fftw3.h          \
    inttypes.h       \
@@ -261,7 +260,6 @@ AC_CHECK_LIB([nsl],       [yp_all])   # for Solaris
 AC_CHECK_LIB([m],         [acosh])
 AC_CHECK_LIB([dl],        [dlopen])
 AC_CHECK_LIB([c],         [initstate_r])
-AC_CHECK_LIB([atomicity], [__atomic_fetch_add_4])
 
 AC_STRUCT_ST_BLOCKS
 
@@ -424,14 +422,10 @@ AC_MSG_RESULT([$HAVE_PTHREAD_SETNAME_NP])
 AC_MSG_CHECKING([whether pthread_setaffinity_np is available])
 AC_COMPILE_IFELSE(
     [AC_LANG_PROGRAM([ [#include <pthread.h>]
-                       [#include <ext/atomicity.h>]
                      ],
                      [ [cpu_set_t cpuset;]
                        [pthread_setaffinity_np(0, sizeof(cpuset), &cpuset);]
                        [pthread_getaffinity_np(0, sizeof(cpuset), &cpuset);]
-                       [_Atomic_word count = 0;]
-                       [__gnu_cxx::__exchange_and_add_dispatch(&count, 1);]
-                       [__gnu_cxx::__atomic_add_dispatch(&count, 1);]
                      ])],
     [HAVE_AFFINITY_NP=yes
      AC_DEFINE(HAVE_AFFINITY_NP, 1,
@@ -456,40 +450,6 @@ AC_COMPILE_IFELSE(
     ],
     [HAVE_PTHREAD_SETNAME_NP=no])
 AC_MSG_RESULT([$HAVE_PTHREAD_SETNAME_NP])
-
-############################### atomicity checks ##############################
-# check for alternatives for ext/atomicity.h on OS/X
-#
-AC_MSG_CHECKING([whether OSAtomicAdd32Barrier() is available])
-apl_save_CXXFLAGS=$CXXFLAGS
-CXXFLAGS="-Wall -Werror"
-AC_COMPILE_IFELSE(
-    [AC_LANG_PROGRAM([ [#include <libkern/OSAtomic.h>] ],
-                     [ [OSAtomicAdd32Barrier(0, 0);]   ])],
-    [HAVE_OSX_ATOMIC=yes
-     AC_DEFINE(HAVE_OSX_ATOMIC, 1,
-               [Define to 1 iff OSAtomicAdd32Barrier() is available])
-    ],
-    [HAVE_OSX_ATOMIC=no])
-CXXFLAGS=$apl_save_CXXFLAGS
-AC_MSG_RESULT([$HAVE_OSX_ATOMIC])
-
-
-# check for alternatives for ext/atomicity.h on Solaris
-#
-AC_MSG_CHECKING([whether atomic_add_32_nv() is available])
-AC_COMPILE_IFELSE(
-    [AC_LANG_PROGRAM([ [#include <atomic.h>] ],
-                     [ [atomic_add_32_nv(0, 0);]
-                       [atomic_add_32   (0, 0);]
-                     ])],
-    [HAVE_SOLARIS_ATOMIC=yes
-     AC_DEFINE(HAVE_SOLARIS_ATOMIC, 1,
-               [Define to 1 iff atomic_add_32_nv() is available])
-    ],
-    [HAVE_SOLARIS_ATOMIC=no])
-AC_MSG_RESULT([$HAVE_SOLARIS_ATOMIC])
-
 
 apl_TOPIC([choices made by the user (via ./configure arguments)])
 

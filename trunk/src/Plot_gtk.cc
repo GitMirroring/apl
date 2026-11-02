@@ -53,7 +53,7 @@
 const char * FONT_NAME = "sans-serif";
 
 /// the size of the font to be used for texts
-enum {  FONT_SIZE = 10 };
+static const int FONT_SIZE = 10;
 
 /// close \b window on the gtk_main() thread (via g_idle_add()); see
 /// GTK_context::plot_stop()'s comment for why this must not call
@@ -373,7 +373,7 @@ const double Uy = dy/len;
 
    // arrow dimensions (pixel)
    //
-   enum { SHAFT = 20, WING  = 5, TIP = 15 };
+const int SHAFT = 20, WING  = 5, TIP = 15;
 
    // draw the shaft
    //
@@ -784,7 +784,7 @@ const Pixel_Y dy = w_props.get_legend_dY();
      //
      const double ly2 = 0.5*FONT_SIZE;
 
-     enum { BORDER = 10 };   // border around legend block
+     const int BORDER = 10;   // border around legend block
      const double X0 = x0                             - BORDER;
      const double X1 = xe                             + BORDER;
      const double Y0 = y0 - ly2                       - BORDER;

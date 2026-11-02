@@ -24,9 +24,6 @@
 /* Define to 1 if you have the <execinfo.h> header file. */
 #undef HAVE_EXECINFO_H
 
-/* Define to 1 if you have the <ext/atomicity.h> header file. */
-#undef HAVE_EXT_ATOMICITY_H
-
 /* Define to 1 if you have the <fcntl.h> header file. */
 #undef HAVE_FCNTL_H
 
@@ -59,9 +56,6 @@
 
 /* Define to 1 iff ioctl(fd, TIOCGWINSZ, ...) is available */
 #undef HAVE_IOCTL_TIOCGWINSZ
-
-/* Define to 1 if you have the `atomicity' library (-latomicity). */
-#undef HAVE_LIBATOMICITY
 
 /* Define to 1 if you have the `c' library (-lc). */
 #undef HAVE_LIBC
@@ -160,9 +154,6 @@
 /* Define to 1 if you have the <netinet/tcp.h> header file. */
 #undef HAVE_NETINET_TCP_H
 
-/* Define to 1 iff OSAtomicAdd32Barrier() is available */
-#undef HAVE_OSX_ATOMIC
-
 /* Define to 1 if PostgreSQL libraries are available */
 #undef HAVE_POSTGRESQL
 
@@ -201,9 +192,6 @@
 
 /* Define to 1 if you have the `socket' function. */
 #undef HAVE_SOCKET
-
-/* Define to 1 iff atomic_add_32_nv() is available */
-#undef HAVE_SOLARIS_ATOMIC
 
 /* Define to 1 if libsqlite3 library is available */
 #undef HAVE_SQLITE3

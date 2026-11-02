@@ -625,7 +625,7 @@ UCS_string ret(text, 0, semi);
          t = t1;
        }
 
-   while (end < text.size())   ret << text[end++];   // the comment
+   while (end < text.ssize())   ret << text[end++];   // the comment
    return ret;
 }
 //────────────────────────────────────────────────────────────────────────────

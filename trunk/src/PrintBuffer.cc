@@ -2088,7 +2088,7 @@ const size_t width = real_len + (any_imag ? 1 + imag_len : 0);
            ucs << UCS_string(width - ucs.size(), UNI_PAD_r_FRACT);
 
         ColInfo info;
-        info.flags = CT_COMPLEX | has_j;
+        info.flags = int(CT_COMPLEX) | has_j;
         info.int_len = width;
         info.real_len = width;
         info.imag_len = 0;

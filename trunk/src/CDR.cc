@@ -171,7 +171,7 @@ const uint8_t * ravel = data + 16 + 4*rank;
       {
         loop(n, nelm)
            {
-             APL_Integer d = *reinterpret_cast<const uint32_t *>(ravel + 4*n);
+             APL_Integer d = get_4_le(ravel + 4*n);
              if (d & 0x80000000)   d |= 0xFFFFFFFF00000000ULL;
              Z->next_ravel_Int(d);
            }
@@ -181,7 +181,7 @@ const uint8_t * ravel = data + 16 + 4*rank;
         loop(n, nelm)
            {
              const APL_Float v =
-                  *reinterpret_cast<const APL_Float *>(ravel + 8*n);
+                  get_float_le(ravel + 8*n);
              Z->next_ravel_Float(v);
            }
       }
@@ -190,9 +190,9 @@ const uint8_t * ravel = data + 16 + 4*rank;
         loop(n, nelm)
            {
              const APL_Float vr =
-                  *reinterpret_cast<const APL_Float *>(ravel + 16*n);
+                  get_float_le(ravel + 16*n);
              const APL_Float vi =
-                  *reinterpret_cast<const APL_Float *>(ravel + 16*n + 8);
+                  get_float_le(ravel + 16*n + 8);
              Z->next_ravel_Complex(vr, vi);
            }
       }
@@ -209,15 +209,15 @@ const uint8_t * ravel = data + 16 + 4*rank;
       {
         loop(n, nelm)
            {
-             const uint32_t d = *reinterpret_cast<const uint32_t *>(ravel+4*n);
+             const uint32_t d = get_4_le(ravel+4*n);
              Z->next_ravel_Char(Unicode(d));
            }
       }
    else if (vtype == CDR_PROG64)   // arithmetic progression: first, incr
       {
-        APL_Integer first = *reinterpret_cast<const uint32_t *>(ravel);
+        APL_Integer first = get_4_le(ravel);
         if (first & 0x80000000)   first |= 0xFFFFFFFF00000000ULL;
-        APL_Integer incr = *reinterpret_cast<const uint32_t *>(ravel + 4);
+        APL_Integer incr = get_4_le(ravel + 4);
         if (incr & 0x80000000)    incr  |= 0xFFFFFFFF00000000ULL;
 
         loop(n, nelm)   Z->next_ravel_Int(first + n*incr);
@@ -227,7 +227,7 @@ const uint8_t * ravel = data + 16 + 4*rank;
         loop(n, nelm)
             {
               APL_Integer offset =
-                         *reinterpret_cast<const uint32_t *>(ravel + 4*n);
+                         get_4_le(ravel + 4*n);
               if ((size_t)(offset + 14) > cdr.size())
                  {
                    MORE_ERROR() << "CDR nested offset " << offset
@@ -275,8 +275,7 @@ const uint8_t * ravel = data + 16 + 4*rank;
 
                    if (sub_vtype == 1)        // 4 byte int
                       {
-                        APL_Integer d = *reinterpret_cast<const uint32_t *>
-                                                         (sub_ravel);
+                        APL_Integer d = get_4_le(sub_ravel);
                         if (d & 0x80000000)   d |= 0xFFFFFFFF00000000ULL;
                         Z->next_ravel_Int(d);
                         continue;   // next n
@@ -285,18 +284,15 @@ const uint8_t * ravel = data + 16 + 4*rank;
                    if (sub_vtype == 2)        // 8 byte real
                       {
                         Z->next_ravel_Float(
-                                        *reinterpret_cast<const APL_Float *>
-                                                                (sub_ravel));
+                                        get_float_le(sub_ravel));
                         continue;   // next n
                       }
 
                    if (sub_vtype == 3)        // 16 byte complex
                       {
                         Z->next_ravel_Complex(
-                                        *reinterpret_cast<const APL_Float *>
-                                                         (sub_ravel),
-                                        *reinterpret_cast<const APL_Float *>
-                                                          (sub_ravel + 8));
+                                        get_float_le(sub_ravel),
+                                        get_float_le(sub_ravel + 8));
                         continue;   // next n
                       }
 
@@ -312,13 +308,12 @@ const uint8_t * ravel = data + 16 + 4*rank;
                         // deliberately mixed-endian -- header fields use
                         // get_4_be(), but ravel data (including this nested
                         // scalar, matching the writer at CDR.cc and the
-                        // sibling int branch just above) is native/little-
-                        // endian. Using get_4_be() here read written bytes
+                        // sibling int branch just above) is little-endian
+                        // (byte-wise, so on any host: Barak Pearlmutter). Using get_4_be() here read written bytes
                         // in the wrong order (e.g. U+012C came back as
                         // 0x2C010000).
                         Z->next_ravel_Char(Unicode(
-                               *reinterpret_cast<const uint32_t *>
-                                                 (sub_ravel)));
+                               get_4_le(sub_ravel)));
                         continue;   // next n
                       }
 
@@ -356,10 +351,10 @@ const uint8_t * ravel = data + 16 + 4*rank;
 
                    const uint8_t * sub_body = sub_data + 16 + 4*sub_rank;
                    APL_Integer first =
-                        *reinterpret_cast<const uint32_t *>(sub_body);
+                        get_4_le(sub_body);
                    if (first & 0x80000000)   first |= 0xFFFFFFFF00000000ULL;
                    APL_Integer incr =
-                        *reinterpret_cast<const uint32_t *>(sub_body + 4);
+                        get_4_le(sub_body + 4);
                    if (incr & 0x80000000)    incr  |= 0xFFFFFFFF00000000ULL;
 
                    Value_P sub_val(sh, LOC);

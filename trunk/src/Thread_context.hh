@@ -24,6 +24,7 @@
 #ifndef __THREAD_CONTEXT_HH_DEFINED__
 #define __THREAD_CONTEXT_HH_DEFINED__
 
+#include <atomic>
 #include <pthread.h>
 
 #include "PJob.hh"
@@ -90,11 +91,11 @@ public:
    /// end parallel execution of work in a worker
    void PF_join()
       {
-        atomic_add(busy_worker_count, -1);   // we are ready
+        busy_worker_count.fetch_add(-1);  // we are ready
         job_number = job_number + 1;   // we reached master job_number
 
         // wait until all workers finished or new job from master
-        while (atomic_read(busy_worker_count) != 0 &&
+        while (busy_worker_count.load() != 0 &&
                get_master().job_number == job_number)
               /* busy wait */ ;
       }
@@ -131,14 +132,14 @@ public:
    static void M_fork(const char * jname)
       {
         get_master().job_name = jname;
-        atomic_add(busy_worker_count, active_core_count - 1);
+        busy_worker_count.fetch_add(active_core_count - 1);
         get_master().job_number = get_master().job_number + 1;
       }
 
    /// end parallel execution of work at the master
    static void M_join()
       {
-        while (atomic_read(busy_worker_count) != 0)   /* busy wait */ ;
+        while (busy_worker_count.load() != 0)   /* busy wait */ ;
       }
 
    /// bind thread to core
@@ -235,7 +236,7 @@ protected:
    static CoreCount thread_contexts_count;
 
    /// the number of unfinished workers (excluding master)
-   static volatile _Atomic_word busy_worker_count;
+   static std::atomic<int> busy_worker_count;
 
    /// the number of cores currently used
    static CoreCount active_core_count;
