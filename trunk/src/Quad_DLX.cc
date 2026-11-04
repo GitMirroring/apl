@@ -33,7 +33,12 @@
 Quad_DLX  Quad_DLX::fun;
 
 //════════════════════════════════════════════════════════════════════════════
-/// one '1' in a sparse constraint matrix
+/// one '1' in a sparse constraint matrix. The nodes (and header nodes) are
+/// constructed in place (placement new) in pre-allocated vectors, therefore
+/// DLX_Node must not have const (or reference) members: re-constructing an
+/// object with const members in place is undefined behaviour (the compiler
+/// may keep using the old values), which made the similar Bif_F12_DOMINO
+/// Matrix crash ⌹ with newer GCC versions (Debian patch 0012).
 class DLX_Node
 {
 public:
@@ -59,10 +64,6 @@ public:
       right(r),
      is_header(hdr)
    { insert_lr();   insert_ud(); }
-
-   /// assignment
-   void operator = (const DLX_Node & other)
-      { new (this) DLX_Node(other); }
 
    /// (re-)insert \b this node horizontally (between left and right)
    void insert_lr()   { left->right = this;  right->left = this; }
@@ -118,10 +119,10 @@ public:
    static Col_Type get_col_type(const Cell & cell);
 
    /// the row of this node
-   const ShapeItem row;
+   ShapeItem row;
 
    /// the column of this node
-   const ShapeItem col;
+   ShapeItem col;
 
    /// link to the next node above
    DLX_Node * up;
@@ -135,8 +136,8 @@ public:
    /// link to the next node on the right
    DLX_Node * right;
 
-   /// true if ths node is a header node (containing no data)
-   const bool is_header;
+   /// true if this node is a header node (containing no data)
+   bool is_header;
 };
 //════════════════════════════════════════════════════════════════════════════
 /// A (column-) header node

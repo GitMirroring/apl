@@ -575,7 +575,10 @@ test_one()
 # build the standard configuration in the source tree itself (a plain,
 # non-VPATH build, like a user who unpacks the GNU APL tar file and runs
 # ./configure; make). The tree is the unpacked tar file (see above), so
-# copy it, without build/, and build the copy.
+# copy it, without the build results in build/, and build the copy. build/
+# itself must be copied, since it is one of the SUBDIRS (config.status
+# fails without build/Makefile.in), but builddir_* must not: the copy is
+# made into build/builddir_tar.
 build_tar()
 {
   echo "building configuration 'standard' from a copy of the GNU APL tree"
@@ -583,7 +586,16 @@ build_tar()
   cd $TOP_BUILD_dir
   rm -Rf builddir_tar
   mkdir builddir_tar
-  tar -C $ROOT_dir --exclude=./build -cf - . | tar -C builddir_tar -xf -
+  tar -C $ROOT_dir                     \
+      --exclude='./build/builddir_*'   \
+      --exclude='./build/apl--*'       \
+      --exclude='./build/failed-*'     \
+      --exclude='./build/details-*'    \
+      --exclude='./build/*.log'        \
+      --exclude='./build/*.log2'       \
+      --exclude='./build/*.so'         \
+      --exclude='./build/*.a'          \
+      -cf - . | tar -C builddir_tar -xf -
   cd builddir_tar
   local time_FROM=$(date +%s)
   ./configure > "$TOP_LOG_dir/configure-tar.log" 2>&1
