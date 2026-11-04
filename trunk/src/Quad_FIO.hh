@@ -485,6 +485,9 @@ protected:
    /// eval_XB case 60: random value
    static Token eval_XB__60(Value_P B);
 
+   /// eval_XB case 62: socket constants
+   static Token eval_XB__62(Value_P B);
+
    /// eval_XB case 8: fgets(Zi, SMALL_BUF, Bh)
    static Token eval_XB__8(Value_P B);
 

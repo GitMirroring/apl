@@ -76,7 +76,7 @@ Next: <a href="#Installing-and-Starting-GNU-APL" accesskey="n" rel="next">Instal
 </div>
 <span id="GNU-APL-Reference-Manual"></span><h1 class="top">GNU APL Reference Manual</h1>
 
-<p>November 2, 2026.
+<p>November 4, 2026.
 This manual briefly documents GNU APL, an interpreter for APL as described
 in ISO standard 13751, aka. &quot;Programming Language APL, Extended&quot;.
 </p>
@@ -7422,6 +7422,16 @@ File I/O functions:
    Zi ←    ⎕FIO[54] Bs    chdir(Bs)
    Ze ← As ⎕FIO[55] Bh    sscanf(Bs, As) As is the format string
    Zs ← As ⎕FIO[56] Bs    write nested lines As to file named Bs
+   Zh ←    ⎕FIO[57] Bs    fork() and execve(Bs, { Bs, 0}, {0})
+   Zs ← Af ⎕FIO[58] B     snprintf(Af, B...) Af is the format string
+   Zi ← Ai ⎕FIO[59] Bh    fcntl(Bh, Ai...) file control
+   Zi ←    ⎕FIO[60] Bi    return a Bi-byte random integer (for setting ⎕RL)
+   Zi ← 0  ⎕FIO[60] Bi    same as monadic ⎕FIO[60] Bi (random scalar, Bi≤8)
+   Zb ← 1  ⎕FIO[60] Bi    return a vector of random bytes, (Bi ≥ ⍴Zi)
+   Zi ←    ⎕FIO[61] Bv    seconds since 1/1/1970; Bv←YYYY [MM DD [HH MM SS]]
+   Zi ←    ⎕FIO[62] Bs    value of the socket constant named Bs, e.g. 'AF_INET'
+   Zi ←    ⎕FIO[62] Bn    values of the socket constants named Bn
+   Zn ←    ⎕FIO[62] ''    all socket constants (N×2 matrix: name value)
 
 Benchmarking functions:
 
@@ -7433,6 +7443,24 @@ Benchmarking functions:
         Ai ⎕FIO[203] Bs    set dyadic parallel threshold for primitive Bs
 </pre></div>
 
+<p>The numeric arguments of the socket functions (address families, socket
+types, protocols, socket options, etc.) are platform-dependent. For example,
+<b>SOL_SOCKET</b> is 1 on x86 GNU/Linux, but 65535 on sparc64 GNU/Linux.
+Therefore they should not be hard-coded in APL programs, but taken from
+<b>⎕FIO[62]</b>, which returns the values of the platform on which the
+interpreter was compiled:
+</p>
+<div class="example">
+<pre class="example">      ⎕FIO[62] 'AF_INET' 'SOCK_STREAM' 'IPPROTO_TCP'
+2 1 6
+      ((⎕FIO[62] 'SOL_SOCKET' 'SO_REUSEADDR'), 1) ⎕FIO[47] Handle
+0
+</pre></div>
+
+<p><b>⎕FIO[62] &rdquo;</b> returns all known socket constants as a 2-column matrix
+of names and values. Function <b>FIO∆SockHelper</b> in workspace
+<b>5 FILE_IO</b> uses it.
+</p>
 <p>A new feature of <b>⎕FIO</b> (which is not available with the native function FILE_IO)
 is <b>⎕FIO</b>[49]. <b>⎕FIO</b>[49] is a monadic operator which takes a monadic conversion
 function as function argument. For example:

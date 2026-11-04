@@ -23,8 +23,10 @@
 
 #include <string.h>
 #include <stdio.h>
+#include <iomanip>
+#include <locale>
+#include <sstream>
 #include <string>
-#include <vector>
 
 #include "ArgCheck.hh"
 #include "Avec.hh"
@@ -527,19 +529,24 @@ static std::string
 print_half_up(APL_Float value, int fract, bool expo)
 {
    enum { extra_digits = 24 };   // like UCS_string::from_double_to_expo()
-std::vector<char> buffer(fract + extra_digits + 400);
-const int len = snprintf(buffer.data(), buffer.size(),
-                         expo ? "%.*E" : "%.*f", fract + extra_digits, value);
-   Assert(len > 0 && size_t(len) < buffer.size());   // a double fits always
+   // an ostringstream (rather than snprintf() into a buffer) since some
+   // compilers falsely warn that the buffer may be too small (Blake
+   // McBride). It uses the same conversion ("%.*E" or "%.*f") as printf().
+   //
+std::ostringstream out;
+   out.imbue(std::locale::classic());   // decimal point . in any locale
+   out << (expo ? std::scientific : std::fixed) << std::uppercase
+       << std::setprecision(fract + extra_digits) << value;
+const std::string buffer = out.str();
 
    // split buffer (iii.fff or d.fffE±xx) into its digits d and the number
    // of digits before the decimal point (int_len)
    //
-const char * e = expo ? strchr(buffer.data(), 'E') : 0;
-const char * end = e ? e : buffer.data() + strlen(buffer.data());
+const char * e = expo ? strchr(buffer.c_str(), 'E') : 0;
+const char * end = e ? e : buffer.c_str() + buffer.size();
 std::string d;
 int int_len = 0;
-   for (const char * m = buffer.data(); m < end; ++m)
+   for (const char * m = buffer.c_str(); m < end; ++m)
        {
          if (*m == '.')   int_len = d.size();
          else             d += *m;

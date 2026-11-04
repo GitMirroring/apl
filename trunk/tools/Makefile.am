@@ -11,7 +11,6 @@ noinst_PROGRAMS = APL_keyboard       \
                   check_command_def  \
                   lines              \
                   phrase_gen         \
-                  sockconst          \
                   TLV_server         \
                   unicodes_used
 

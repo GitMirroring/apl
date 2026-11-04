@@ -41,6 +41,9 @@
 #if HAVE_SYS_SOCKET_H
 #include <sys/socket.h>
 #endif // HAVE_SYS_SOCKET_H
+#if HAVE_NETINET_TCP_H
+#include <netinet/tcp.h>   // TCP_NODELAY for ⎕FIO[62]
+#endif // HAVE_NETINET_TCP_H
 
 #if HAVE_SYS_SELECT_H
 #include <sys/select.h>
@@ -593,6 +596,9 @@ const Handle_errno handle_errno(function_number != 5);
          case 60:   // random value
               return eval_XB__60(B_vp);
 
+         case 62:   // socket constants
+              return eval_XB__62(B_vp);
+
          case 200:   // clear statistics Bi
          case 201:   // get statistics Bi
               return eval_XB__200(B_vp, function_number);
@@ -960,6 +966,9 @@ Quad_FIO::list_functions(ostream & out) const
 "   Zi ← 0  ⎕FIO[60] Bi   ⍝ same as monadic ⎕FIO[60] Bi (random scalar, Bi≤8)\n"
 "   Zb ← 1  ⎕FIO[60] Bi   ⍝ return a vector of random bytes, (Bi ≥ ⍴Zi)\n"
 "   Zi ←    ⎕FIO[61] Bv   ⍝ seconds since 1/1/1970; Bv←YYYY [MM DD [HH MM SS]]\n"
+"   Zi ←    ⎕FIO[62] Bs   ⍝ value of the socket constant named Bs, e.g. 'AF_INET'\n"
+"   Zi ←    ⎕FIO[62] Bn   ⍝ values of the socket constants named Bn\n"
+"   Zn ←    ⎕FIO[62] ''   ⍝ all socket constants (N×2 matrix: name value)\n"
 "\n"
 "Benchmarking functions:\n"
 "\n"
@@ -4032,6 +4041,298 @@ const APL_Integer len = B->get_near_int(0);
    if (len < 1)   LENGTH_ERROR;
    if (len > 8)   LENGTH_ERROR;
 Value_P Z = get_random(0, len);
+   return Token(TOK_APL_VALUE1, Z);
+}
+//────────────────────────────────────────────────────────────────────────────
+Token
+Quad_FIO::eval_XB__62(Value_P B)
+{
+   // the socket constants of the platform on which GNU APL was compiled.
+   // They differ between platforms (e.g. SOL_SOCKET is 1 on x86 Linux but
+   // 0xFFFF on sparc64 Linux), so APL code should take them from here
+   // rather than hard-coding them (Barak Pearlmutter).
+   //
+struct sock_const
+   {
+     const char * name;    ///< the name of the constant, e.g. "AF_INET"
+     APL_Integer  value;   ///< the value of the constant on this platform
+   };
+
+#define SOCK_CONST(x) { #x, APL_Integer(x) },
+static const sock_const constants[] =
+   {
+#ifdef AF_UNSPEC
+     SOCK_CONST(AF_UNSPEC)
+#endif
+#ifdef AF_LOCAL
+     SOCK_CONST(AF_LOCAL)
+#endif
+#ifdef AF_UNIX
+     SOCK_CONST(AF_UNIX)
+#endif
+#ifdef AF_INET
+     SOCK_CONST(AF_INET)
+#endif
+#ifdef AF_SNA
+     SOCK_CONST(AF_SNA)
+#endif
+#ifdef AF_DECnet
+     SOCK_CONST(AF_DECnet)
+#endif
+#ifdef AF_APPLETALK
+     SOCK_CONST(AF_APPLETALK)
+#endif
+#ifdef AF_ROUTE
+     SOCK_CONST(AF_ROUTE)
+#endif
+#ifdef AF_IPX
+     SOCK_CONST(AF_IPX)
+#endif
+#ifdef AF_ISDN
+     SOCK_CONST(AF_ISDN)
+#endif
+#ifdef AF_INET6
+     SOCK_CONST(AF_INET6)
+#endif
+#ifdef AF_BLUETOOTH
+     SOCK_CONST(AF_BLUETOOTH)
+#endif
+#ifdef AF_MAX
+     SOCK_CONST(AF_MAX)
+#endif
+#ifdef PF_INET
+     SOCK_CONST(PF_INET)
+#endif
+#ifdef PF_LOCAL
+     SOCK_CONST(PF_LOCAL)
+#endif
+#ifdef PF_UNIX
+     SOCK_CONST(PF_UNIX)
+#endif
+#ifdef SOCK_STREAM
+     SOCK_CONST(SOCK_STREAM)
+#endif
+#ifdef SOCK_DGRAM
+     SOCK_CONST(SOCK_DGRAM)
+#endif
+#ifdef SOCK_RAW
+     SOCK_CONST(SOCK_RAW)
+#endif
+#ifdef SOCK_RDM
+     SOCK_CONST(SOCK_RDM)
+#endif
+#ifdef SOCK_SEQPACKET
+     SOCK_CONST(SOCK_SEQPACKET)
+#endif
+#ifdef SOCK_DCCP
+     SOCK_CONST(SOCK_DCCP)
+#endif
+#ifdef SOCK_PACKET
+     SOCK_CONST(SOCK_PACKET)
+#endif
+#ifdef SOCK_CLOEXEC
+     SOCK_CONST(SOCK_CLOEXEC)
+#endif
+#ifdef SOCK_NONBLOCK
+     SOCK_CONST(SOCK_NONBLOCK)
+#endif
+#ifdef IPPROTO_IP
+     SOCK_CONST(IPPROTO_IP)
+#endif
+#ifdef IPPROTO_ICMP
+     SOCK_CONST(IPPROTO_ICMP)
+#endif
+#ifdef IPPROTO_IPIP
+     SOCK_CONST(IPPROTO_IPIP)
+#endif
+#ifdef IPPROTO_TCP
+     SOCK_CONST(IPPROTO_TCP)
+#endif
+#ifdef IPPROTO_PUP
+     SOCK_CONST(IPPROTO_PUP)
+#endif
+#ifdef IPPROTO_UDP
+     SOCK_CONST(IPPROTO_UDP)
+#endif
+#ifdef IPPROTO_IDP
+     SOCK_CONST(IPPROTO_IDP)
+#endif
+#ifdef IPPROTO_TP
+     SOCK_CONST(IPPROTO_TP)
+#endif
+#ifdef IPPROTO_DCCP
+     SOCK_CONST(IPPROTO_DCCP)
+#endif
+#ifdef IPPROTO_IPV6
+     SOCK_CONST(IPPROTO_IPV6)
+#endif
+#ifdef IPPROTO_ROUTING
+     SOCK_CONST(IPPROTO_ROUTING)
+#endif
+#ifdef IPPROTO_FRAGMENT
+     SOCK_CONST(IPPROTO_FRAGMENT)
+#endif
+#ifdef IPPROTO_RSVP
+     SOCK_CONST(IPPROTO_RSVP)
+#endif
+#ifdef IPPROTO_GRE
+     SOCK_CONST(IPPROTO_GRE)
+#endif
+#ifdef IPPROTO_ESP
+     SOCK_CONST(IPPROTO_ESP)
+#endif
+#ifdef IPPROTO_AH
+     SOCK_CONST(IPPROTO_AH)
+#endif
+#ifdef IPPROTO_ICMPV6
+     SOCK_CONST(IPPROTO_ICMPV6)
+#endif
+#ifdef IPPROTO_NONE
+     SOCK_CONST(IPPROTO_NONE)
+#endif
+#ifdef IPPROTO_DSTOPTS
+     SOCK_CONST(IPPROTO_DSTOPTS)
+#endif
+#ifdef IPPROTO_MTP
+     SOCK_CONST(IPPROTO_MTP)
+#endif
+#ifdef IPPROTO_ENCAP
+     SOCK_CONST(IPPROTO_ENCAP)
+#endif
+#ifdef IPPROTO_PIM
+     SOCK_CONST(IPPROTO_PIM)
+#endif
+#ifdef IPPROTO_COMP
+     SOCK_CONST(IPPROTO_COMP)
+#endif
+#ifdef IPPROTO_SCTP
+     SOCK_CONST(IPPROTO_SCTP)
+#endif
+#ifdef IPPROTO_UDPLITE
+     SOCK_CONST(IPPROTO_UDPLITE)
+#endif
+#ifdef IPPROTO_RAW
+     SOCK_CONST(IPPROTO_RAW)
+#endif
+#ifdef SOL_SOCKET
+     SOCK_CONST(SOL_SOCKET)
+#endif
+#ifdef SO_BINDTODEVICE
+     SOCK_CONST(SO_BINDTODEVICE)
+#endif
+#ifdef SO_REUSEADDR
+     SOCK_CONST(SO_REUSEADDR)
+#endif
+#ifdef SO_BROADCAST
+     SOCK_CONST(SO_BROADCAST)
+#endif
+#ifdef SO_REUSEPORT
+     SOCK_CONST(SO_REUSEPORT)
+#endif
+#ifdef SO_KEEPALIVE
+     SOCK_CONST(SO_KEEPALIVE)
+#endif
+#ifdef SO_LINGER
+     SOCK_CONST(SO_LINGER)
+#endif
+#ifdef SO_RCVBUF
+     SOCK_CONST(SO_RCVBUF)
+#endif
+#ifdef SO_SNDBUF
+     SOCK_CONST(SO_SNDBUF)
+#endif
+#ifdef SO_RCVTIMEO
+     SOCK_CONST(SO_RCVTIMEO)
+#endif
+#ifdef SO_SNDTIMEO
+     SOCK_CONST(SO_SNDTIMEO)
+#endif
+#ifdef SO_ERROR
+     SOCK_CONST(SO_ERROR)
+#endif
+#ifdef SO_TYPE
+     SOCK_CONST(SO_TYPE)
+#endif
+#ifdef INADDR_ANY
+     SOCK_CONST(INADDR_ANY)
+#endif
+#ifdef INADDR_LOOPBACK
+     SOCK_CONST(INADDR_LOOPBACK)
+#endif
+#ifdef INADDR_BROADCAST
+     SOCK_CONST(INADDR_BROADCAST)
+#endif
+#ifdef TCP_NODELAY
+     SOCK_CONST(TCP_NODELAY)
+#endif
+   };
+#undef SOCK_CONST
+enum { CONST_COUNT = sizeof(constants) / sizeof(*constants) };
+
+   // B empty: return all constants as a CONST_COUNT×2 matrix (name value)
+   //
+   if (B->element_count() == 0)
+      {
+        Value_P Z(Shape(CONST_COUNT, 2), LOC);
+        loop(c, CONST_COUNT)
+           {
+             Value_P Zname(UCS_string(UTF8_string(constants[c].name)), LOC);
+             Z->next_ravel_Pointer(Zname.get());
+             Z->next_ravel_Int(constants[c].value);
+           }
+        Z->check_value(LOC);
+        return Token(TOK_APL_VALUE1, Z);
+      }
+
+   // return the value of the constant named name_val
+   //
+auto lookup = [](const Value & name_val) -> APL_Integer
+   {
+     if (!name_val.is_char_string())
+        {
+          MORE_ERROR() << "⎕FIO[62]: B shall be empty, a name, "
+                          "or a vector of names";
+          DOMAIN_ERROR;
+        }
+
+     const UCS_string name_ucs(name_val);
+     const UTF8_string name(name_ucs);
+     loop(c, CONST_COUNT)
+        {
+          if (!strcmp(name.c_str(), constants[c].name))
+             return constants[c].value;
+        }
+
+     MORE_ERROR() << "⎕FIO[62]: unknown socket constant '" << name_ucs
+                  << "' (⎕FIO[62] '' lists the known ones)";
+     DOMAIN_ERROR;
+   };
+
+   // B is a name: return its value
+   //
+   if (B->is_char_string())
+      return Token(TOK_APL_VALUE1, IntScalar(lookup(*B), LOC));
+
+   // B is a vector of names: return their values
+   //
+   if (B->get_rank() > 1)   RANK_ERROR;
+
+const ShapeItem len_B = B->element_count();
+Value_P Z(len_B, LOC);
+   loop(b, len_B)
+       {
+         Cell cache;
+         const Cell & cB = B->get_cravel(b, cache);
+         if (!cB.is_pointer_cell())
+            {
+              MORE_ERROR() << "⎕FIO[62]: B[" << (b + Workspace::get_IO())
+                           << "] is not a name";
+              DOMAIN_ERROR;
+            }
+         Z->next_ravel_Int(lookup(*cB.get_pointer_value()));
+       }
+
+   Z->check_value(LOC);
    return Token(TOK_APL_VALUE1, Z);
 }
 //────────────────────────────────────────────────────────────────────────────

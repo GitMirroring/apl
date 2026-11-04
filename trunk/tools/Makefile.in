@@ -95,7 +95,7 @@ host_triplet = @host@
 @apl_TARGET_MINGW_FALSE@	apl2html$(EXEEXT) \
 @apl_TARGET_MINGW_FALSE@	check_command_def$(EXEEXT) \
 @apl_TARGET_MINGW_FALSE@	lines$(EXEEXT) phrase_gen$(EXEEXT) \
-@apl_TARGET_MINGW_FALSE@	sockconst$(EXEEXT) TLV_server$(EXEEXT) \
+@apl_TARGET_MINGW_FALSE@	TLV_server$(EXEEXT) \
 @apl_TARGET_MINGW_FALSE@	unicodes_used$(EXEEXT)
 subdir = tools
 ACLOCAL_M4 = $(top_srcdir)/aclocal.m4
@@ -150,9 +150,6 @@ lines_LDADD = $(LDADD)
 am_phrase_gen_OBJECTS = phrase_gen.$(OBJEXT)
 phrase_gen_OBJECTS = $(am_phrase_gen_OBJECTS)
 phrase_gen_LDADD = $(LDADD)
-sockconst_SOURCES = sockconst.c
-sockconst_OBJECTS = sockconst.$(OBJEXT)
-sockconst_LDADD = $(LDADD)
 am_unicodes_used_OBJECTS = unicodes_used.$(OBJEXT)
 unicodes_used_OBJECTS = $(am_unicodes_used_OBJECTS)
 unicodes_used_LDADD = $(LDADD)
@@ -177,7 +174,7 @@ am__depfiles_remade = ./$(DEPDIR)/APL_keyboard.Po \
 	./$(DEPDIR)/APL_keyboard_show.Po ./$(DEPDIR)/TLV_server.Po \
 	./$(DEPDIR)/apl2html.Po ./$(DEPDIR)/check_command_def.Po \
 	./$(DEPDIR)/lines.Po ./$(DEPDIR)/phrase_gen.Po \
-	./$(DEPDIR)/sockconst.Po ./$(DEPDIR)/unicodes_used.Po
+	./$(DEPDIR)/unicodes_used.Po
 am__mv = mv -f
 COMPILE = $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) \
 	$(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS)
@@ -218,12 +215,12 @@ am__v_CXXLD_1 =
 SOURCES = $(APL_keyboard_SOURCES) $(APL_keyboard_learn_SOURCES) \
 	$(APL_keyboard_show_SOURCES) $(TLV_server_SOURCES) \
 	$(apl2html_SOURCES) $(check_command_def_SOURCES) \
-	$(lines_SOURCES) $(phrase_gen_SOURCES) sockconst.c \
+	$(lines_SOURCES) $(phrase_gen_SOURCES) \
 	$(unicodes_used_SOURCES)
 DIST_SOURCES = $(APL_keyboard_SOURCES) $(APL_keyboard_learn_SOURCES) \
 	$(APL_keyboard_show_SOURCES) $(TLV_server_SOURCES) \
 	$(apl2html_SOURCES) $(check_command_def_SOURCES) \
-	$(lines_SOURCES) $(phrase_gen_SOURCES) sockconst.c \
+	$(lines_SOURCES) $(phrase_gen_SOURCES) \
 	$(unicodes_used_SOURCES)
 am__can_run_installinfo = \
   case $$AM_UPDATE_INFO_DIR in \
@@ -509,10 +506,6 @@ phrase_gen$(EXEEXT): $(phrase_gen_OBJECTS) $(phrase_gen_DEPENDENCIES) $(EXTRA_ph
 	@rm -f phrase_gen$(EXEEXT)
 	$(AM_V_CXXLD)$(CXXLINK) $(phrase_gen_OBJECTS) $(phrase_gen_LDADD) $(LIBS)
 
-sockconst$(EXEEXT): $(sockconst_OBJECTS) $(sockconst_DEPENDENCIES) $(EXTRA_sockconst_DEPENDENCIES) 
-	@rm -f sockconst$(EXEEXT)
-	$(AM_V_CCLD)$(LINK) $(sockconst_OBJECTS) $(sockconst_LDADD) $(LIBS)
-
 unicodes_used$(EXEEXT): $(unicodes_used_OBJECTS) $(unicodes_used_DEPENDENCIES) $(EXTRA_unicodes_used_DEPENDENCIES) 
 	@rm -f unicodes_used$(EXEEXT)
 	$(AM_V_CXXLD)$(CXXLINK) $(unicodes_used_OBJECTS) $(unicodes_used_LDADD) $(LIBS)
@@ -531,7 +524,6 @@ distclean-compile:
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/check_command_def.Po@am__quote@ # am--include-marker
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/lines.Po@am__quote@ # am--include-marker
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/phrase_gen.Po@am__quote@ # am--include-marker
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/sockconst.Po@am__quote@ # am--include-marker
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/unicodes_used.Po@am__quote@ # am--include-marker
 
 $(am__depfiles_remade):
@@ -726,7 +718,6 @@ distclean: distclean-am
 	-rm -f ./$(DEPDIR)/check_command_def.Po
 	-rm -f ./$(DEPDIR)/lines.Po
 	-rm -f ./$(DEPDIR)/phrase_gen.Po
-	-rm -f ./$(DEPDIR)/sockconst.Po
 	-rm -f ./$(DEPDIR)/unicodes_used.Po
 	-rm -f Makefile
 distclean-am: clean-am distclean-compile distclean-generic \
@@ -781,7 +772,6 @@ maintainer-clean: maintainer-clean-am
 	-rm -f ./$(DEPDIR)/check_command_def.Po
 	-rm -f ./$(DEPDIR)/lines.Po
 	-rm -f ./$(DEPDIR)/phrase_gen.Po
-	-rm -f ./$(DEPDIR)/sockconst.Po
 	-rm -f ./$(DEPDIR)/unicodes_used.Po
 	-rm -f Makefile
 maintainer-clean-am: distclean-am maintainer-clean-generic

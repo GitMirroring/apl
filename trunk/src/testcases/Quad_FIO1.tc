@@ -188,9 +188,9 @@ HELLO ⍋ ⌽ ⍒ ⍴ ⍵
       ⍝ socket communication: send 'Hello' from one socket to another socket
       ⍝ and send 'World!' back.
       ⍝
-      AF_INET     ← 2           ⍝ see /usr/include/.../bits/socket.h
-      SOCK_STREAM ← 1           ⍝ see /usr/include/.../bits/socket_type.h
-      IPPROTO_IP       ← 0      ⍝ see /usr/include/netinet/in.h
+      AF_INET     ← ⎕FIO[62] 'AF_INET'   ⍝ socket constants of this platform
+      SOCK_STREAM ← ⎕FIO[62] 'SOCK_STREAM'
+      IPPROTO_IP  ← ⎕FIO[62] 'IPPROTO_IP'
       LOCALHOST←256⊥127 0 0 1   ⍝ 127.0.0.1 in host byte order
       Port ← 22222
       Server←AF_INET, LOCALHOST, Port
@@ -202,8 +202,8 @@ HELLO ⍋ ⌽ ⍒ ⍴ ⍵
 
       ⍝ setsockopt(Handle, SOL_SOCKET, SO_REUSEADDR, 1)
       ⍝
-      SOL_SOCKET←1              ⍝ see /usr/include/asm-generic/socket.h
-      SO_REUSEADDR←2            ⍝ see /usr/include/asm-generic/socket.h
+      SOL_SOCKET  ← ⎕FIO[62] 'SOL_SOCKET'     ⍝ e.g. 1 on x86, 65535 on sparc64
+      SO_REUSEADDR← ⎕FIO[62] 'SO_REUSEADDR'
       (SOL_SOCKET, SO_REUSEADDR, 1) FIO∆setsockopt Handle
 0
 

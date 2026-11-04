@@ -562,8 +562,11 @@ DOMAIN ERROR+
       ^
 
 
-      ⎕FIO[61] 2017 1.0 1
-1483225200
+      ⍝ ⎕FIO[61] uses the local time zone, so compare with an integer B
+      ⍝ rather than with a fixed number of seconds (Bill Heagy)
+      ⍝
+      (⎕FIO[61] 2017 1.0 1) = ⎕FIO[61] 2017 1 1
+1
 
 
 
