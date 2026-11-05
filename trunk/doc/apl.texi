@@ -538,6 +538,9 @@ the interpreter is compared with the expected output in the testcase file(s)
 and differences are marked. In addition a summary file is created that tells
 whether or not each of the testcases was successful.
 
+A testcase argument of the form @code{@@file} is not a testcase but a list of
+testcases: @code{-T @@file} does the same as @code{--TL file} (see below).
+
 The expected output in a testcase file can contain the following wildcards,
 for output that may legitimately differ (e.g. the last digit of a number
 on different floating point hardware, or a time):
@@ -598,6 +601,43 @@ Normally, when the interpreter is run with the @code{T} option,
 an existing summary.log file is overwritten without notice.
 This option causes new test results to be appended to a possibly
 existing summary.log instead of overwriting it.
+
+@item
+@code{--TL file ...}
+
+Run one or more lists of testcases (test suites). Every @code{file} is either a text file
+that contains the names of testcase files, one per line, or a directory (a
+test suite directory) that contains such a text file named
+@code{zzzz_selection}. Every testcase file is run as if it were given with the
+@code{-T} option, in the order of the list. Empty lines and lines starting
+with @code{#} or @code{⍝} are ignored, and so are leading and trailing
+blanks. Relative file names are relative to the directory of the list
+file, and the log files of the testcases are written next to them (as
+with @code{-T}). For example, a directory @code{my_suite} containing the
+testcases @code{Add.tc} and @code{Minus.tc} and a file
+@code{my_suite/zzzz_selection} containing:
+
+@example
+# the arithmetic testcases
+Add.tc
+Minus.tc
+@end example
+
+is run with:
+
+@example
+apl --TL my_suite
+@end example
+
+The test suites of GNU APL itself are the subdirectories of
+@code{src/testsuites} (see the file README there).
+Like @code{-T}, @code{--TL} takes several arguments: all files up to the
+next option or @code{--}, e.g. @code{apl --TL suite1 suite2 suite3}. The
+test suites run in the order given. @code{--TL} can be combined with
+@code{-T} and can be given more than once. @code{-T @@my_suite} is the same
+as @code{--TL my_suite}. Since @code{-T} takes all remaining arguments (up
+to @code{--}) as testcase files, @code{--TL} must then be given before
+@code{-T}.
 
 @item
 @code{-v}, @code{--version},
@@ -12495,7 +12535,7 @@ The top-level directory of the GNU APL project has a structure like this:
 @example
     apl-2.0/
     ├── build
-    ├── debian
+    ├── deb
     ├── doc
     ├── erlang
     ├── gnu-apl.d
@@ -12603,13 +12643,15 @@ Re-creating the ./configure script requires:
 @item running autoreconf
 @end itemize
 
-@node The sub-directories debian and debian_tmp
-@section The sub-directories debian and debian_tmp
+@node The sub-directories deb and debian_tmp
+@section The sub-directories deb and debian_tmp
 
-These sub-directories are templates for building Debian
-packages that contain GNU APL. Sub-directory debian_tmp is initially empty and
-acts as a scratch directory inside which the interpreter is being compiled
-when a Debian package is built.
+Sub-directory deb contains the templates for building Debian packages that
+contain GNU APL (@b{make DEB}). It is not named debian because that name is
+reserved for the Debian maintainers of GNU APL; @b{make DEB} copies it to
+debian in its copy of the sources. Sub-directory debian_tmp is initially
+empty and acts as a scratch directory inside which the interpreter is being
+compiled when a Debian package is built.
 
 @node The sub-directory tools
 @section The sub-directory tools

@@ -475,7 +475,9 @@ int Ucount = 0;
    return false;   // OK
 }
 //────────────────────────────────────────────────────────────────────────────
-#if HAVE_X11_XKBLIB_H
+// both the header and the library are needed (the header alone can be present
+// without a usable libX11, e.g. in a -m32 build on a 64-bit host)
+#if HAVE_X11_XKBLIB_H && HAVE_LIBX11
 
 bool
 Cmd_KEYB::read_xkbd_map()
@@ -580,12 +582,19 @@ bool data_coming = false;
 bool
 Cmd_KEYB::read_xkbd_map()
 {
-   MORE_ERROR() << "]KEYB XKBD failed: missing header file X11/XKBlib.h";
+   MORE_ERROR() << "]KEYB XKBD failed: missing"
+#if !HAVE_X11_XKBLIB_H
+                   " header file X11/XKBlib.h"
+#endif
+#if !HAVE_LIBX11
+                   " library libX11"
+#endif
+                   ;
    if (Command::auto_MORE)   CERR << Workspace::more_error() << endl;
 
    return true;   // error
 }
-#endif   // do/don't HAVE_X11_XKBLIB_H
+#endif   // do/don't HAVE_X11_XKBLIB_H && HAVE_LIBX11
 
 //────────────────────────────────────────────────────────────────────────────
 bool

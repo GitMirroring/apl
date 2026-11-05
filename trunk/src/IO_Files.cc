@@ -25,6 +25,8 @@
 #include <stdlib.h>
 #include <unistd.h>
 
+#include <fstream>
+
 #include "Backtrace.hh"
 #include "Common.hh"
 #include "Command.hh"
@@ -56,6 +58,33 @@ UTF8_string IO_Files::summary_path("testcases/summary.log");
 APL_time_us IO_Files::start_usecs = 0;
 
 static  ios_base::openmode summary_flags = ofstream::trunc;
+
+//────────────────────────────────────────────────────────────────────────────
+void
+IO_Files::init_summary(bool append)
+{
+   summary_flags = append ? ofstream::app : ofstream::trunc;
+
+   // summary.log goes into the directory of the first testcase file
+   //
+   loop(f, InputFile::files_orig.size())
+       {
+         if (!InputFile::files_orig[f].is_test())   continue;   // -f file
+         const UTF8_string & name = InputFile::files_orig[f].filename;
+         if (const char * slash = strrchr(name.c_str(), '/'))
+            {
+              summary_path = UTF8_string(name.c_str(),
+                                         slash + 1 - name.c_str());
+              summary_path << "summary.log";
+            }
+         break;
+       }
+
+   if (!append)   // remove the results of a previous run
+      {
+        ofstream summary(summary_path.c_str(), ofstream::trunc);
+      }
+}
 
 //────────────────────────────────────────────────────────────────────────────
 UTF8_string
@@ -334,12 +363,6 @@ IO_Files::open_next_file()
               {
                 SPRINTF(log_file_name, "%s.log",
                         InputFile::current_filename());
-                if (const char * slash = strrchr(log_file_name, '/'))
-                   {
-                     summary_path = UTF8_string(log_file_name,
-                                                slash + 1 - log_file_name);
-                     summary_path << "summary.log";
-                   }
 
                 CERR << "  #######################################"
                         "#####################################\n"

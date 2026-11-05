@@ -76,7 +76,7 @@ Next: <a href="#Installing-and-Starting-GNU-APL" accesskey="n" rel="next">Instal
 </div>
 <span id="GNU-APL-Reference-Manual"></span><h1 class="top">GNU APL Reference Manual</h1>
 
-<p>November 4, 2026.
+<p>November 5, 2026.
 This manual briefly documents GNU APL, an interpreter for APL as described
 in ISO standard 13751, aka. &quot;Programming Language APL, Extended&quot;.
 </p>
@@ -424,7 +424,7 @@ therefore it must be expanded with e.g. <b>gunzip</b> before it can be read.
     <li><a id="toc-The-sub_002ddirectory-HOWTOs-1" href="#The-sub_002ddirectory-HOWTOs">6.4 The sub-directory HOWTOs</a></li>
     <li><a id="toc-The-sub_002ddirectories-workspaces-and-wslib2-_002e_002e_002e-wslib5-1" href="#The-sub_002ddirectories-workspaces-and-wslib2-_002e_002e_002e-wslib5">6.5 The sub-directories workspaces and wslib2 ... wslib5</a></li>
     <li><a id="toc-The-sub_002ddirectory-m4-1" href="#The-sub_002ddirectory-m4">6.6 The sub-directory m4</a></li>
-    <li><a id="toc-The-sub_002ddirectories-debian-and-debian_005ftmp-1" href="#The-sub_002ddirectories-debian-and-debian_005ftmp">6.7 The sub-directories debian and debian_tmp</a></li>
+    <li><a id="toc-The-sub_002ddirectories-deb-and-debian_005ftmp-1" href="#The-sub_002ddirectories-deb-and-debian_005ftmp">6.7 The sub-directories deb and debian_tmp</a></li>
     <li><a id="toc-The-sub_002ddirectory-tools-1" href="#The-sub_002ddirectory-tools">6.8 The sub-directory tools</a></li>
   </ul></li>
   <li><a id="toc-Libraries-Contributed-by-GNU-APL-Users-1" href="#Libraries-Contributed-by-GNU-APL-Users">7 Libraries Contributed by GNU APL Users</a>
@@ -888,6 +888,9 @@ the interpreter is compared with the expected output in the testcase file(s)
 and differences are marked. In addition a summary file is created that tells
 whether or not each of the testcases was successful.
 
+<p>A testcase argument of the form <code>@file</code> is not a testcase but a list of
+testcases: <code>-T @file</code> does the same as <code>--TL file</code> (see below).
+</p>
 <p>The expected output in a testcase file can contain the following wildcards,
 for output that may legitimately differ (e.g. the last digit of a number
 on different floating point hardware, or a time):
@@ -945,6 +948,42 @@ so that the failure can be investigated right away.
 an existing summary.log file is overwritten without notice.
 This option causes new test results to be appended to a possibly
 existing summary.log instead of overwriting it.
+</p>
+</li><li> <code>--TL file ...</code>
+
+<p>Run one or more lists of testcases (test suites). Every <code>file</code> is either a text file
+that contains the names of testcase files, one per line, or a directory (a
+test suite directory) that contains such a text file named
+<code>zzzz_selection</code>. Every testcase file is run as if it were given with the
+<code>-T</code> option, in the order of the list. Empty lines and lines starting
+with <code>#</code> or <code>⍝</code> are ignored, and so are leading and trailing
+blanks. Relative file names are relative to the directory of the list
+file, and the log files of the testcases are written next to them (as
+with <code>-T</code>). For example, a directory <code>my_suite</code> containing the
+testcases <code>Add.tc</code> and <code>Minus.tc</code> and a file
+<code>my_suite/zzzz_selection</code> containing:
+</p>
+<div class="example">
+<pre class="example"># the arithmetic testcases
+Add.tc
+Minus.tc
+</pre></div>
+
+<p>is run with:
+</p>
+<div class="example">
+<pre class="example">apl --TL my_suite
+</pre></div>
+
+<p>The test suites of GNU APL itself are the subdirectories of
+<code>src/testsuites</code> (see the file README there).
+Like <code>-T</code>, <code>--TL</code> takes several arguments: all files up to the
+next option or <code>--</code>, e.g. <code>apl --TL suite1 suite2 suite3</code>. The
+test suites run in the order given. <code>--TL</code> can be combined with
+<code>-T</code> and can be given more than once. <code>-T @my_suite</code> is the same
+as <code>--TL my_suite</code>. Since <code>-T</code> takes all remaining arguments (up
+to <code>--</code>) as testcase files, <code>--TL</code> must then be given before
+<code>-T</code>.
 </p>
 </li><li> <code>-v</code>, <code>--version</code>,
 
@@ -14127,7 +14166,7 @@ Next: <a href="#Libraries-Contributed-by-GNU-APL-Users" accesskey="n" rel="next"
 <div class="example">
 <pre class="example">    apl-2.0/
     ├── build
-    ├── debian
+    ├── deb
     ├── doc
     ├── erlang
     ├── gnu-apl.d
@@ -14163,7 +14202,7 @@ handful of README-XXX files that might be of interest when building GNU APL.
 <li><a href="#The-sub_002ddirectory-HOWTOs" accesskey="4">The sub-directory HOWTOs</a></li>
 <li><a href="#The-sub_002ddirectories-workspaces-and-wslib2-_002e_002e_002e-wslib5" accesskey="5">The sub-directories workspaces and wslib2 ... wslib5</a></li>
 <li><a href="#The-sub_002ddirectory-m4" accesskey="6">The sub-directory m4</a></li>
-<li><a href="#The-sub_002ddirectories-debian-and-debian_005ftmp" accesskey="7">The sub-directories debian and debian_tmp</a></li>
+<li><a href="#The-sub_002ddirectories-deb-and-debian_005ftmp" accesskey="7">The sub-directories deb and debian_tmp</a></li>
 <li><a href="#The-sub_002ddirectory-tools" accesskey="8">The sub-directory tools</a></li>
 </ul>
 <hr>
@@ -14260,7 +14299,7 @@ demonstrating the use of some non-standard APL features).
 <div class="section" id="The-sub_002ddirectory-m4">
 <div class="header">
 <p>
-Next: <a href="#The-sub_002ddirectories-debian-and-debian_005ftmp" accesskey="n" rel="next">The sub-directories debian and debian_tmp</a>, Previous: <a href="#The-sub_002ddirectories-workspaces-and-wslib2-_002e_002e_002e-wslib5" accesskey="p" rel="prev">The sub-directories workspaces and wslib2 ... wslib5</a>, Up: <a href="#GNU-APL-Project-Structure" accesskey="u" rel="up">GNU APL Project Structure</a> &nbsp; [<a href="#SEC_Contents" title="Table of contents" rel="contents">Contents</a>]</p>
+Next: <a href="#The-sub_002ddirectories-deb-and-debian_005ftmp" accesskey="n" rel="next">The sub-directories deb and debian_tmp</a>, Previous: <a href="#The-sub_002ddirectories-workspaces-and-wslib2-_002e_002e_002e-wslib5" accesskey="p" rel="prev">The sub-directories workspaces and wslib2 ... wslib5</a>, Up: <a href="#GNU-APL-Project-Structure" accesskey="u" rel="up">GNU APL Project Structure</a> &nbsp; [<a href="#SEC_Contents" title="Table of contents" rel="contents">Contents</a>]</p>
 </div>
 <span id="The-sub_002ddirectory-m4-1"></span><h3 class="section">6.6 The sub-directory m4</h3>
 
@@ -14282,24 +14321,26 @@ be necessary to re-create the ./configure script on the platform.
 
 <hr>
 </div>
-<div class="section" id="The-sub_002ddirectories-debian-and-debian_005ftmp">
+<div class="section" id="The-sub_002ddirectories-deb-and-debian_005ftmp">
 <div class="header">
 <p>
 Next: <a href="#The-sub_002ddirectory-tools" accesskey="n" rel="next">The sub-directory tools</a>, Previous: <a href="#The-sub_002ddirectory-m4" accesskey="p" rel="prev">The sub-directory m4</a>, Up: <a href="#GNU-APL-Project-Structure" accesskey="u" rel="up">GNU APL Project Structure</a> &nbsp; [<a href="#SEC_Contents" title="Table of contents" rel="contents">Contents</a>]</p>
 </div>
-<span id="The-sub_002ddirectories-debian-and-debian_005ftmp-1"></span><h3 class="section">6.7 The sub-directories debian and debian_tmp</h3>
+<span id="The-sub_002ddirectories-deb-and-debian_005ftmp-1"></span><h3 class="section">6.7 The sub-directories deb and debian_tmp</h3>
 
-<p>These sub-directories are templates for building Debian
-packages that contain GNU APL. Sub-directory debian_tmp is initially empty and
-acts as a scratch directory inside which the interpreter is being compiled
-when a Debian package is built.
+<p>Sub-directory deb contains the templates for building Debian packages that
+contain GNU APL (<b>make DEB</b>). It is not named debian because that name is
+reserved for the Debian maintainers of GNU APL; <b>make DEB</b> copies it to
+debian in its copy of the sources. Sub-directory debian_tmp is initially
+empty and acts as a scratch directory inside which the interpreter is being
+compiled when a Debian package is built.
 </p>
 <hr>
 </div>
 <div class="section" id="The-sub_002ddirectory-tools">
 <div class="header">
 <p>
-Previous: <a href="#The-sub_002ddirectories-debian-and-debian_005ftmp" accesskey="p" rel="prev">The sub-directories debian and debian_tmp</a>, Up: <a href="#GNU-APL-Project-Structure" accesskey="u" rel="up">GNU APL Project Structure</a> &nbsp; [<a href="#SEC_Contents" title="Table of contents" rel="contents">Contents</a>]</p>
+Previous: <a href="#The-sub_002ddirectories-deb-and-debian_005ftmp" accesskey="p" rel="prev">The sub-directories deb and debian_tmp</a>, Up: <a href="#GNU-APL-Project-Structure" accesskey="u" rel="up">GNU APL Project Structure</a> &nbsp; [<a href="#SEC_Contents" title="Table of contents" rel="contents">Contents</a>]</p>
 </div>
 <span id="The-sub_002ddirectory-tools-1"></span><h3 class="section">6.8 The sub-directory tools</h3>
 

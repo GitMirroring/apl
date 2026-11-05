@@ -471,8 +471,8 @@ AC_MSG_RESULT([$cfg_CTRLD_DEL])
 AC_CONFIG_FILES([Makefile
                  build/Makefile
                  Claude/Makefile
-                 debian/Makefile
-                 debian/source/Makefile
+                 deb/Makefile
+                 deb/source/Makefile
                  doc/Makefile
                  doc/DALY/Makefile
                  erlang/Makefile
@@ -491,7 +491,11 @@ AC_CONFIG_FILES([Makefile
                  src/native/Makefile
                  src/sql/Makefile
                  src/testcases/Makefile
-                 src/testcases/invariants/Makefile
+                 src/testsuites/Makefile
+                 src/testsuites/extra/Makefile
+                 src/testsuites/invariants/Makefile
+                 src/testsuites/main/Makefile
+                 src/testsuites/regression/Makefile
                  support-files/Makefile
                  support-files/fonts/Makefile
                  support-files/105-key-International-Keyboard/Makefile

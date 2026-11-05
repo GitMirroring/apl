@@ -7,7 +7,7 @@ APL_DIRS	= workspaces wslib3 wslib4 wslib5
 SUBDIRS		= $(APL_DIRS)
 SUBDIRS		+= build Claude doc erlang gnu-apl.d HOWTOs
 SUBDIRS		+= src support-files tools websock
-DIST_SUBDIRS	= $(SUBDIRS) rpm debian
+DIST_SUBDIRS	= $(SUBDIRS) rpm deb
 
 dist_doc_DATA = 							\
 		README								\
@@ -67,7 +67,10 @@ RPM:	DIST all
 	cp rpm/SRPMS/$(PACKAGE)-$(PACKAGE_VERSION)-0.src.rpm  ftp-upload/
 	cp rpm/RPMS/*/$(PACKAGE)-$(PACKAGE_VERSION)-0.*.rpm   ftp-upload/
 
-# build source and binary Debian packages
+# build source and binary Debian packages. The Debian packaging files are in
+# deb/ (not debian/, which would conflict with the debian/ directory of the
+# Debian maintainers); dpkg-buildpackage needs them in debian/ (a copy, since
+# dh_autoreconf reruns automake, which needs deb/).
 #
 .PHONY:	DEB
 DEB:	DIST
@@ -76,6 +79,7 @@ DEB:	DIST
 	cp $(distdir).tar.gz \
            debian_tmp/$(PACKAGE)_$(PACKAGE_VERSION).orig.tar.gz
 	cd debian_tmp ; tar xf $(PACKAGE)_$(PACKAGE_VERSION).orig.tar.gz
+	cp -R debian_tmp/$(distdir)/deb debian_tmp/$(distdir)/debian
 	cp doc/apl.1 debian_tmp/$(distdir)/debian/manpage.1
 	cd debian_tmp/$(distdir) ; MAKEFLAGS="" dpkg-buildpackage -b -j10
 	mkdir -p ftp-upload
@@ -105,7 +109,8 @@ SYNC:	DIST
 	cd ../savannah-repo-apl ; git add .
 	cd ../savannah-repo-apl ; git commit -m "sync from SVN"
 
-# build all packages and SYNC the repos
+# commit, build and check the tarball, and SYNC the repos (no Debian or RPM
+# packages: make DEB and make RPM build them separately)
 #
 .PHONY:	EXPO
 EXPO:
@@ -119,11 +124,9 @@ EXPO:
 	$(MAKE) -j10 all
 	$(MAKE) -j10 dist
 	tools/check_DIST apl-$(VERSION).tar.gz   # files missing in the tarball?
-	$(MAKE) -j10 DEB
-#	$(MAKE) -j10 RPM
 	$(MAKE) -j10 SYNC
 
-# EXPO1 is EXPO without updating/committing from/to SVN
+# EXPO1 is EXPO without updating/committing from/to SVN (and without SYNC)
 .PHONY:	EXPO1
 EXPO1:
 	$(MAKE) -C tools -j10
@@ -133,8 +136,6 @@ EXPO1:
 	$(MAKE) -j10
 	$(MAKE) -j10 dist
 	tools/check_DIST apl-$(VERSION).tar.gz   # files missing in the tarball?
-	$(MAKE) -j10 DEB
-	$(MAKE) -j10 RPM
 
 # Stage a DESTDIR install tree containing only the platform-independent
 # library content (workspaces, wslib1-5, the default preferences file) -

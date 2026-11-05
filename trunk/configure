@@ -20875,6 +20875,9 @@ printf %s "checking for SQLite3 library >= $sqlite3_version_req... " >&6; }
         saved_CPPFLAGS="$CPPFLAGS"
         CPPFLAGS="$CPPFLAGS $ac_sqlite3_cppflags"
 
+                        saved_LIBS="$LIBS"
+        LIBS="$LIBS $ac_sqlite3_ldflags"
+
         ac_ext=cpp
 ac_cpp='$CXXCPP $CPPFLAGS'
 ac_compile='$CXX -c $CXXFLAGS $CPPFLAGS conftest.$ac_ext >&5'
@@ -20894,6 +20897,7 @@ main (void)
 #else
 #  error SQLite version is too old
 #endif
+                  return sqlite3_libversion_number() > 0 ? 0 : 1;
 
 
   ;
@@ -20901,7 +20905,7 @@ main (void)
 }
 
 _ACEOF
-if ac_fn_cxx_try_compile "$LINENO"
+if ac_fn_cxx_try_link "$LINENO"
 then :
 
             { printf "%s\n" "$as_me:${as_lineno-$LINENO}: result: yes" >&5
@@ -20913,11 +20917,12 @@ else $as_nop
 
             { printf "%s\n" "$as_me:${as_lineno-$LINENO}: result: not found" >&5
 printf "%s\n" "not found" >&6; }
-            succees="no"
+            success="no"
 
 
 fi
-rm -f core conftest.err conftest.$ac_objext conftest.beam conftest.$ac_ext
+rm -f core conftest.err conftest.$ac_objext conftest.beam \
+    conftest$ac_exeext conftest.$ac_ext
         ac_ext=cpp
 ac_cpp='$CXXCPP $CPPFLAGS'
 ac_compile='$CXX -c $CXXFLAGS $CPPFLAGS conftest.$ac_ext >&5'
@@ -20926,6 +20931,7 @@ ac_compiler_gnu=$ac_cv_cxx_compiler_gnu
 
 
         CPPFLAGS="$saved_CPPFLAGS"
+        LIBS="$saved_LIBS"
 
         if test "$success" = "yes"; then
 
@@ -21233,8 +21239,13 @@ test "x$found_postgresql" != "xyes" && return   # no POSTGRESQL
     #
 { printf "%s\n" "$as_me:${as_lineno-$LINENO}: checking for PostgreSQL usability" >&5
 printf %s "checking for PostgreSQL usability... " >&6; }
+   # link (not only compile): the header alone can be present without a
+   # usable library, e.g. in a -m32 build on a 64-bit host.
+   #
    saved_CPPFLAGS="$CPPFLAGS"
+   saved_LIBS="$LIBS"
    CPPFLAGS="$CPPFLAGS $POSTGRESQL_CFLAGS"
+   LIBS="$LIBS $POSTGRESQL_LDFLAGS"
    cat confdefs.h - <<_ACEOF >conftest.$ac_ext
 /* end confdefs.h.  */
 #include <libpq-fe.h>
@@ -21246,15 +21257,17 @@ PGconn *db = PQconnectdbParams(0, 0, 1);
   return 0;
 }
 _ACEOF
-if ac_fn_cxx_try_compile "$LINENO"
+if ac_fn_cxx_try_link "$LINENO"
 then :
   apl_POSTGRES=yes
 else $as_nop
   apl_POSTGRES=no
 fi
-rm -f core conftest.err conftest.$ac_objext conftest.beam conftest.$ac_ext
+rm -f core conftest.err conftest.$ac_objext conftest.beam \
+    conftest$ac_exeext conftest.$ac_ext
 
    CPPFLAGS="$saved_CPPFLAGS"
+   LIBS="$saved_LIBS"
 { printf "%s\n" "$as_me:${as_lineno-$LINENO}: result: $apl_POSTGRES" >&5
 printf "%s\n" "$apl_POSTGRES" >&6; }
 
@@ -22243,7 +22256,7 @@ fi
 { printf "%s\n" "$as_me:${as_lineno-$LINENO}: result: $cfg_CTRLD_DEL" >&5
 printf "%s\n" "$cfg_CTRLD_DEL" >&6; }
 
-ac_config_files="$ac_config_files Makefile build/Makefile Claude/Makefile debian/Makefile debian/source/Makefile doc/Makefile doc/DALY/Makefile erlang/Makefile erlang/apl.erl gnu-apl.d/Makefile gnu-apl.d/preferences HOWTOs/Makefile HOWTOs/Bible/Makefile rpm/Makefile rpm/apl.spec src/Makefile src/APs/Makefile src/Gtk/Makefile src/emacs_mode/Makefile src/libapl.pc src/native/Makefile src/sql/Makefile src/testcases/Makefile src/testcases/invariants/Makefile support-files/Makefile support-files/fonts/Makefile support-files/105-key-International-Keyboard/Makefile support-files/Bill_Daly_Ubuntu/Makefile support-files/Dirk/Makefile support-files/Dyalog-Keyboard/Makefile support-files/Juergen-Mint-19/Makefile support-files/Juergen-Mint-21/Makefile support-files/old-Keyboard/Makefile support-files/OS-X-Keyboard/Makefile support-files/Unicomp-Keyboard/Makefile support-files/WASD-Keyboard/Makefile support-files/windows-installer/Makefile tools/Makefile websock/Makefile websock/client/Makefile websock/server/Makefile workspaces/Makefile wslib3/Makefile wslib3/DALY/Makefile wslib4/Makefile wslib5/Makefile wslib5/APLComponentFiles/Makefile wslib5/DALY/Makefile wslib5/iso-apl-cf/Makefile"
+ac_config_files="$ac_config_files Makefile build/Makefile Claude/Makefile deb/Makefile deb/source/Makefile doc/Makefile doc/DALY/Makefile erlang/Makefile erlang/apl.erl gnu-apl.d/Makefile gnu-apl.d/preferences HOWTOs/Makefile HOWTOs/Bible/Makefile rpm/Makefile rpm/apl.spec src/Makefile src/APs/Makefile src/Gtk/Makefile src/emacs_mode/Makefile src/libapl.pc src/native/Makefile src/sql/Makefile src/testcases/Makefile src/testsuites/Makefile src/testsuites/extra/Makefile src/testsuites/invariants/Makefile src/testsuites/main/Makefile src/testsuites/regression/Makefile support-files/Makefile support-files/fonts/Makefile support-files/105-key-International-Keyboard/Makefile support-files/Bill_Daly_Ubuntu/Makefile support-files/Dirk/Makefile support-files/Dyalog-Keyboard/Makefile support-files/Juergen-Mint-19/Makefile support-files/Juergen-Mint-21/Makefile support-files/old-Keyboard/Makefile support-files/OS-X-Keyboard/Makefile support-files/Unicomp-Keyboard/Makefile support-files/WASD-Keyboard/Makefile support-files/windows-installer/Makefile tools/Makefile websock/Makefile websock/client/Makefile websock/server/Makefile workspaces/Makefile wslib3/Makefile wslib3/DALY/Makefile wslib4/Makefile wslib5/Makefile wslib5/APLComponentFiles/Makefile wslib5/DALY/Makefile wslib5/iso-apl-cf/Makefile"
 
 
 # AM_CXXFLAGS: do/dont -Werror ?
@@ -24093,8 +24106,8 @@ do
     "Makefile") CONFIG_FILES="$CONFIG_FILES Makefile" ;;
     "build/Makefile") CONFIG_FILES="$CONFIG_FILES build/Makefile" ;;
     "Claude/Makefile") CONFIG_FILES="$CONFIG_FILES Claude/Makefile" ;;
-    "debian/Makefile") CONFIG_FILES="$CONFIG_FILES debian/Makefile" ;;
-    "debian/source/Makefile") CONFIG_FILES="$CONFIG_FILES debian/source/Makefile" ;;
+    "deb/Makefile") CONFIG_FILES="$CONFIG_FILES deb/Makefile" ;;
+    "deb/source/Makefile") CONFIG_FILES="$CONFIG_FILES deb/source/Makefile" ;;
     "doc/Makefile") CONFIG_FILES="$CONFIG_FILES doc/Makefile" ;;
     "doc/DALY/Makefile") CONFIG_FILES="$CONFIG_FILES doc/DALY/Makefile" ;;
     "erlang/Makefile") CONFIG_FILES="$CONFIG_FILES erlang/Makefile" ;;
@@ -24113,7 +24126,11 @@ do
     "src/native/Makefile") CONFIG_FILES="$CONFIG_FILES src/native/Makefile" ;;
     "src/sql/Makefile") CONFIG_FILES="$CONFIG_FILES src/sql/Makefile" ;;
     "src/testcases/Makefile") CONFIG_FILES="$CONFIG_FILES src/testcases/Makefile" ;;
-    "src/testcases/invariants/Makefile") CONFIG_FILES="$CONFIG_FILES src/testcases/invariants/Makefile" ;;
+    "src/testsuites/Makefile") CONFIG_FILES="$CONFIG_FILES src/testsuites/Makefile" ;;
+    "src/testsuites/extra/Makefile") CONFIG_FILES="$CONFIG_FILES src/testsuites/extra/Makefile" ;;
+    "src/testsuites/invariants/Makefile") CONFIG_FILES="$CONFIG_FILES src/testsuites/invariants/Makefile" ;;
+    "src/testsuites/main/Makefile") CONFIG_FILES="$CONFIG_FILES src/testsuites/main/Makefile" ;;
+    "src/testsuites/regression/Makefile") CONFIG_FILES="$CONFIG_FILES src/testsuites/regression/Makefile" ;;
     "support-files/Makefile") CONFIG_FILES="$CONFIG_FILES support-files/Makefile" ;;
     "support-files/fonts/Makefile") CONFIG_FILES="$CONFIG_FILES support-files/fonts/Makefile" ;;
     "support-files/105-key-International-Keyboard/Makefile") CONFIG_FILES="$CONFIG_FILES support-files/105-key-International-Keyboard/Makefile" ;;

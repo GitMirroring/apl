@@ -16,7 +16,7 @@ File: apl.info,  Node: Top,  Next: Installing and Starting GNU APL,  Up: (dir)
 GNU APL Reference Manual
 ************************
 
-November 4, 2026.  This manual briefly documents GNU APL, an interpreter
+November 5, 2026.  This manual briefly documents GNU APL, an interpreter
 for APL as described in ISO standard 13751, aka.  "Programming Language
 APL, Extended".
 
@@ -491,6 +491,10 @@ GNU APL understands the following command line options:
      are marked.  In addition a summary file is created that tells
      whether or not each of the testcases was successful.
 
+     A testcase argument of the form ‘@file’ is not a testcase but a
+     list of testcases: ‘-T @file’ does the same as ‘--TL file’ (see
+     below).
+
      The expected output in a testcase file can contain the following
      wildcards, for output that may legitimately differ (e.g.  the last
      digit of a number on different floating point hardware, or a time):
@@ -548,6 +552,37 @@ GNU APL understands the following command line options:
      existing summary.log file is overwritten without notice.  This
      option causes new test results to be appended to a possibly
      existing summary.log instead of overwriting it.
+
+   • ‘--TL file ...’
+
+     Run one or more lists of testcases (test suites).  Every ‘file’ is
+     either a text file that contains the names of testcase files, one
+     per line, or a directory (a test suite directory) that contains
+     such a text file named ‘zzzz_selection’.  Every testcase file is
+     run as if it were given with the ‘-T’ option, in the order of the
+     list.  Empty lines and lines starting with ‘#’ or ‘⍝’ are ignored,
+     and so are leading and trailing blanks.  Relative file names are
+     relative to the directory of the list file, and the log files of
+     the testcases are written next to them (as with ‘-T’).  For
+     example, a directory ‘my_suite’ containing the testcases ‘Add.tc’
+     and ‘Minus.tc’ and a file ‘my_suite/zzzz_selection’ containing:
+
+          # the arithmetic testcases
+          Add.tc
+          Minus.tc
+
+     is run with:
+
+          apl --TL my_suite
+
+     The test suites of GNU APL itself are the subdirectories of
+     ‘src/testsuites’ (see the file README there).  Like ‘-T’, ‘--TL’
+     takes several arguments: all files up to the next option or ‘--’,
+     e.g.  ‘apl --TL suite1 suite2 suite3’.  The test suites run in the
+     order given.  ‘--TL’ can be combined with ‘-T’ and can be given
+     more than once.  ‘-T @my_suite’ is the same as ‘--TL my_suite’.
+     Since ‘-T’ takes all remaining arguments (up to ‘--’) as testcase
+     files, ‘--TL’ must then be given before ‘-T’.
 
    • ‘-v’, ‘--version’,
 
@@ -12390,7 +12425,7 @@ this:
 
          apl-2.0/
          ├── build
-         ├── debian
+         ├── deb
          ├── doc
          ├── erlang
          ├── gnu-apl.d
@@ -12427,7 +12462,7 @@ interest when building GNU APL.
 * The sub-directory HOWTOs::
 * The sub-directories workspaces and wslib2 ... wslib5::
 * The sub-directory m4::
-* The sub-directories debian and debian_tmp::
+* The sub-directories deb and debian_tmp::
 * The sub-directory tools::
 
 
@@ -12506,7 +12541,7 @@ while others contain small workspaces or libraries for various purposes
 (mostly demonstrating the use of some non-standard APL features).
 
 
-File: apl.info,  Node: The sub-directory m4,  Next: The sub-directories debian and debian_tmp,  Prev: The sub-directories workspaces and wslib2 ... wslib5,  Up: GNU APL Project Structure
+File: apl.info,  Node: The sub-directory m4,  Next: The sub-directories deb and debian_tmp,  Prev: The sub-directories workspaces and wslib2 ... wslib5,  Up: GNU APL Project Structure
 
 6.6 The sub-directory m4
 ========================
@@ -12527,18 +12562,20 @@ script on the platform.
    • running autoreconf
 
 
-File: apl.info,  Node: The sub-directories debian and debian_tmp,  Next: The sub-directory tools,  Prev: The sub-directory m4,  Up: GNU APL Project Structure
+File: apl.info,  Node: The sub-directories deb and debian_tmp,  Next: The sub-directory tools,  Prev: The sub-directory m4,  Up: GNU APL Project Structure
 
-6.7 The sub-directories debian and debian_tmp
-=============================================
+6.7 The sub-directories deb and debian_tmp
+==========================================
 
-These sub-directories are templates for building Debian packages that
-contain GNU APL. Sub-directory debian_tmp is initially empty and acts as
-a scratch directory inside which the interpreter is being compiled when
-a Debian package is built.
+Sub-directory deb contains the templates for building Debian packages
+that contain GNU APL (make DEB). It is not named debian because that
+name is reserved for the Debian maintainers of GNU APL; make DEB copies
+it to debian in its copy of the sources.  Sub-directory debian_tmp is
+initially empty and acts as a scratch directory inside which the
+interpreter is being compiled when a Debian package is built.
 
 
-File: apl.info,  Node: The sub-directory tools,  Prev: The sub-directories debian and debian_tmp,  Up: GNU APL Project Structure
+File: apl.info,  Node: The sub-directory tools,  Prev: The sub-directories deb and debian_tmp,  Up: GNU APL Project Structure
 
 6.8 The sub-directory tools
 ===========================
@@ -13796,247 +13833,247 @@ Node: Installing and Starting GNU APL1587
 Node: Installing APL1965
 Node: Starting APL2892
 Node: Command Line Options4964
-Node: Command Line Completion22014
-Node: The preferences Files23552
-Node: Tuning Parallel Execution Thresholds25648
-Node: File Names and Paths29972
-Node: Non-standard GNU APL Features35415
-Node: APL Scripting37257
-Node: Introduction and Terminology37795
-Node: Redirect the script file to the stdin of the GNU APL interpreter42967
-Node: Make the script file executable43820
-Node: Starting GNU APL Scripts - a Conclusion44729
-Node: How command line arguments are handled46097
-Node: Helpful Features for Scripting52612
-Node: ⎕ARG53250
-Node: ⎕ENV53565
-Node: ⎕INP55335
-Node: Double-quoted Strings56856
-Node: Multi-Line Strings57740
-Node: Old-style Multi-Line Strings58573
-Node: New-style Multi-Line Strings61404
-Node: « » Strings64149
-Node: Multi-Line Comments67055
-Node: Multi-Line Literals67970
-Node: Automatic )MORE78138
-Node: Script Example79948
-Node: Axis argument in defined functions83359
-Node: Function Groups84200
-Node: Phase 1 - Numerical Axis Argument86930
-Node: Phase 2 - String Axis Argument88033
-Node: Phase 3 - Member Notation89631
-Node: Subfunction Lists90275
-Node: Colored Output90861
-Node: Comparison Rules92175
-Node: Complex Numbers96704
-Node: Debug Commands96909
-Node: Direct Functions (Lambdas)97581
-Node: Named Lambdas98151
-Node: Unnamed Lambdas102833
-Node: Limitations of GNU APL Lambdas103721
-Node: Commands )COPY_ONCE )DUMP and DUMP-HTML105305
-Node: )DUMP Command105788
-Node: )DUMP-HTML Command106409
-Node: )COPY_ONCE Command107326
-Node: ]STATUS Command107899
-Node: Crash Reports110372
-Node: ]BOXING Command113299
-Node: ]DOXY Command114092
-Node: ]KEYB Command116491
-Node: The transformation of Keycodes to Unicodes119743
-Node: xmodmap and friends122159
-Node: The ]KEYB command124861
-Node: ]KEYB Syntax125131
-Node: ]KEYB without a mode126620
-Node: ]KEYB XMOD127966
-Node: ]KEYB USER130898
-Node: ]KEYB GUESS131489
-Node: Optional ]KEYB arguments131884
-Node: ]NEXTFILE and ]PUSHFILE Commands145917
-Node: ]NEXTFILE146175
-Node: ]PUSHFILE148010
-Node: ]FILE_CTL Command148621
-Node: History and TAB completion150808
-Node: Logging Facilities152634
-Node: Static Logging153398
-Node: Dynamic Logging154142
-Node: Rational Numbers154836
-Node: Hex Numbers155806
-Node: User-defined Commands156109
-Node: Structured Variables and Associative Arrays157579
-Node: Structured Variables158127
-Node: Limitations of Member Variables163706
-Node: Associative Arrays166098
-Node: Monadic ⊢ and ⊣; dyadic ⊢ with Axis172807
-Node: Bit-wise Logical Functions - ⊤∧ ⊤∨ ⊤⍲ ⊤⍱ ⊤≠ and ⊤=175494
-Node: Dyadic ⊤∧ ⊤∨ ⊤⍲ ⊤⍱ ⊤= and ⊤≠177828
-Node: Monadic ⊤∨ and ⊤⍱178789
-Node: Monadic ⊤∧180630
-Node: Character Arguments for Monadic ⊤⍱ and Dyadic ⊤∧ ⊤∨ == and ≠≠182593
-Node: ⊤ (Encode) with Axis183603
-Node: Generalized ⍳188132
-Node: Generalized monadic ⍳188368
-Node: Generalized dyadic ⍳189105
-Node: Dyadic A→B189939
-Node: ⌹[X] - Miscellaneous Matrix and Vector Operations194620
-Node: ⌹[1] and ⌹[2] - QR Factorizations194986
-Node: The Impact of ⎕CT for ⌹200268
-Node: A⌹B and ⌹B201027
-Node: ⌹[X] B - Various Factorizations of B206657
-Node: Matrix Inverse209438
-Node: ⌹[7] B - Print Polynomial B210211
-Node: A ⌹[8] B - Multiply Polynomials A and B213395
-Node: A ⌹[9] B - Divide Polynomial A by Polynomial B (univariate)214719
-Node: A ⌹[10] B - Divide Polynomial A by Polynomial B (multivariate)215909
-Node: A ⌹[11] B - Divide Polynomial A by Polynomial B (with order)222072
-Node: ⌹[11] B Scan Polynomial B224891
-Node: A ⌹[20] B - Integral B226912
-Node: ⎕CC - Character Classes229707
-Node: monadic ⎕CC B - Return character class230247
-Node: dyadic A ⎕CC B - Test character class233175
-Node: Dyadic ⎕CR233929
-Node: User-defined boxing (A ⎕CR[X] B)242153
-Node: Dyadic ⎕FX (Native Functions)250302
-Node: ⎕ARG - Interpreter command line arguments254026
-Node: ⎕DLX - Knuth's Dancing Links Algorithm254417
-Node: ⎕EA and ⎕EB - Execute Alternate and Execute Both265389
-Node: ⎕ENV - Environment Variables268951
-Node: ⎕FIO - File I/O Functions269318
-Node: ⎕FFT - Fast Fourier Transform277970
-Node: ⎕GTK - GTK Interface280488
-Node: ⎕JSON - JSON Parsing281216
-Node: Monadic ⎕JSON281958
-Node: Dyadic ⎕JSON282294
-Node: ⎕MAP - Map Value283150
-Node: ⎕MX - Matrix/Statistics287123
-Node: Determinant288901
-Node: Cross Product289286
-Node: Vector Angle290582
-Node: Eigenvector290970
-Node: Eigenvalue292130
-Node: Ident294628
-Node: Rotation294958
-Node: Homogeneous transform295295
-Node: Norm295917
-Node: Randoms296854
-Node: Covariance298715
-Node: Histograms299792
-Node: Print300712
-Node: ⎕PLOT - Plot Data303148
-Node: The Plot Data B304442
-Node: Complex Plot Data B305231
-Node: Real Plot Data B306227
-Node: The Plot Attributes A307304
-Node: Plot Window Handling320836
-Node: Output File Format322174
-Node: GUI driver323404
-Node: ⎕PNG - Portable Network Graphics327493
-Node: The GNU APL Color Model328060
-Node: Monadic ⎕PNG333573
-Node: Dyadic ⎕PNG335790
-Node: APL Examples336617
-Node: ⎕PS - Print Style337553
-Node: Boxing of Displayed Values338554
-Node: ⎕RE - Regular Expressions341821
-Node: Preconditions342443
-Node: ⎕RE Syntax342926
-Node: The Regular Expression A343624
-Node: The String(s) B Being Matched344291
-Node: The Flags X345693
-Node: The libpcre2 flags - i m s and x346673
-Node: The ⎕RE (APL output format) flags ↓ ⊂ and /347341
-Node: the ⎕RE global flag g349821
-Node: the ⎕RE error flag E353326
-Node: Complex Matches354638
-Node: ⎕RVAL - Random APL value359128
-Node: General360162
-Node: Dyadic ⎕RVAL361150
-Node: Control of the underlying random number generator - 0 ⎕RVAL B362404
-Node: Control of the ranks - 1 ⎕RVAL B364029
-Node: Control of the shapes - 2 ⎕RVAL B365737
-Node: Control of the data types - 3 ⎕RVAL B367183
-Node: Control of a maximum depth - 4 ⎕RVAL B369022
-Node: Control of the element count - 5 ⎕RVAL B369939
-Node: The primitive table - 6 ⎕RVAL B371669
-Node: The purpose - 8 ⎕RVAL B373133
-Node: monadic ⎕RVAL B374703
-Node: Syntax Alternatives377471
-Node: ⎕SI - State Indicator378481
-Node: ⎕SQL - SQL Database Interface380729
-Node: ⎕SQL[0] ⍬ - display sub-function numbers381828
-Node: ⎕SQL[0] '' - display sub-function names383739
-Node: ref ← A ⎕SQL[1] B - open database386521
-Node: ⎕SQL[2] B - close database387581
-Node: Z ← A ⎕SQL[3 ref] B - database query (with result)388138
-Node: Z ← A ⎕SQL[4 ref] B - database query (w/o result)389121
-Node: ⎕SQL[5] B - start transaction389695
-Node: ⎕SQL[6] B - commit transaction390022
-Node: ⎕SQL[7] B - rollback transaction390333
-Node: Z←⎕SQL[8] B - table names390660
-Node: Z←⎕SQL[9] B - column names390990
-Node: Z ← ⎕SQL[10] B - library version number391508
-Node: Z ← ⎕SQL[11] B - library version string392104
-Node: SQLite Quickstart392670
-Node: Deleting a Database394615
-Node: Creating a new Database396025
-Node: Creating a Database Table397774
-Node: Excursus - Dynamic Query Strings401131
-Node: Writing an APL matrix into a Database Table404079
-Node: Reading a Database Table into an APL Matrix406481
-Node: Updating a Database Table408252
-Node: Deleting Rows From a Database Table410881
-Node: ⎕SYL - System limits411653
-Node: ⎕SYL[1 2 3 4 5 6;]414884
-Node: ⎕SYL[7 ... 24;]416340
-Node: ⎕SYL[25 26 27;]416707
-Node: ⎕SYL[28;]417184
-Node: ⎕SYL[29 ... 34;]418305
-Node: ⎕XML - XML Parsing418866
-Node: Purpose419200
-Node: Some XML Terminology420776
-Node: How ⎕XML maps XML documents to APL Values424224
-Node: Monadic ⎕XML430887
-Node: Dyadic ⎕XML431700
-Node: XML Queries439993
-Node: Conditionals440863
-Node: Design considerations.441293
-Node: Syntax448691
-Node: A Possible Pitfall451844
-Node: Matrix Product456101
-Node: Monadic ≠ (Nub Sieve)459404
-Node: Limitations and Missing Features459952
-Node: System Limits460493
-Node: Shared Variables461795
-Node: Known Differences between IBM APL2 and GNU APL462932
-Node: The Rank and Power Operators478888
-Node: Output Formatting481012
-Ref: STRICT_IBM_APL2_FORMATTING484726
-Node: Internationalization506129
-Node: Vector Notation507310
-Node: History507905
-Node: Standardization508643
-Node: Quotes from the lrm509150
-Node: Some APL2 Tests511309
-Node: Test 1 - Binding strength of []511726
-Node: Test 2 - Binding strength of the left operand512619
-Node: Definitions517413
-Node: Unexpected Stranding520438
-Node: GNU APL Vector Notation529204
-Node: GNU APL Project Structure535192
-Node: The sub-directory src536720
-Node: The sub-directory support-files538092
-Node: The sub-directory doc538511
-Node: The sub-directory HOWTOs538815
-Node: The sub-directories workspaces and wslib2 ... wslib5539560
-Node: The sub-directory m4540120
-Node: The sub-directories debian and debian_tmp540992
-Node: The sub-directory tools541489
-Node: Libraries Contributed by GNU APL Users541952
-Node: The GNU APL Community Webpage542429
-Node: Core Libraries543166
-Node: Licenses for this GNU APL Manual and for GNU APL544047
-Node: The GNU Free Documentation License544592
-Node: The GNU GENERAL PUBLIC LICENSE569986
+Node: Command Line Completion23732
+Node: The preferences Files25270
+Node: Tuning Parallel Execution Thresholds27366
+Node: File Names and Paths31690
+Node: Non-standard GNU APL Features37133
+Node: APL Scripting38975
+Node: Introduction and Terminology39513
+Node: Redirect the script file to the stdin of the GNU APL interpreter44685
+Node: Make the script file executable45538
+Node: Starting GNU APL Scripts - a Conclusion46447
+Node: How command line arguments are handled47815
+Node: Helpful Features for Scripting54330
+Node: ⎕ARG54968
+Node: ⎕ENV55283
+Node: ⎕INP57053
+Node: Double-quoted Strings58574
+Node: Multi-Line Strings59458
+Node: Old-style Multi-Line Strings60291
+Node: New-style Multi-Line Strings63122
+Node: « » Strings65867
+Node: Multi-Line Comments68773
+Node: Multi-Line Literals69688
+Node: Automatic )MORE79856
+Node: Script Example81666
+Node: Axis argument in defined functions85077
+Node: Function Groups85918
+Node: Phase 1 - Numerical Axis Argument88648
+Node: Phase 2 - String Axis Argument89751
+Node: Phase 3 - Member Notation91349
+Node: Subfunction Lists91993
+Node: Colored Output92579
+Node: Comparison Rules93893
+Node: Complex Numbers98422
+Node: Debug Commands98627
+Node: Direct Functions (Lambdas)99299
+Node: Named Lambdas99869
+Node: Unnamed Lambdas104551
+Node: Limitations of GNU APL Lambdas105439
+Node: Commands )COPY_ONCE )DUMP and DUMP-HTML107023
+Node: )DUMP Command107506
+Node: )DUMP-HTML Command108127
+Node: )COPY_ONCE Command109044
+Node: ]STATUS Command109617
+Node: Crash Reports112090
+Node: ]BOXING Command115017
+Node: ]DOXY Command115810
+Node: ]KEYB Command118209
+Node: The transformation of Keycodes to Unicodes121461
+Node: xmodmap and friends123877
+Node: The ]KEYB command126579
+Node: ]KEYB Syntax126849
+Node: ]KEYB without a mode128338
+Node: ]KEYB XMOD129684
+Node: ]KEYB USER132616
+Node: ]KEYB GUESS133207
+Node: Optional ]KEYB arguments133602
+Node: ]NEXTFILE and ]PUSHFILE Commands147635
+Node: ]NEXTFILE147893
+Node: ]PUSHFILE149728
+Node: ]FILE_CTL Command150339
+Node: History and TAB completion152526
+Node: Logging Facilities154352
+Node: Static Logging155116
+Node: Dynamic Logging155860
+Node: Rational Numbers156554
+Node: Hex Numbers157524
+Node: User-defined Commands157827
+Node: Structured Variables and Associative Arrays159297
+Node: Structured Variables159845
+Node: Limitations of Member Variables165424
+Node: Associative Arrays167816
+Node: Monadic ⊢ and ⊣; dyadic ⊢ with Axis174525
+Node: Bit-wise Logical Functions - ⊤∧ ⊤∨ ⊤⍲ ⊤⍱ ⊤≠ and ⊤=177212
+Node: Dyadic ⊤∧ ⊤∨ ⊤⍲ ⊤⍱ ⊤= and ⊤≠179546
+Node: Monadic ⊤∨ and ⊤⍱180507
+Node: Monadic ⊤∧182348
+Node: Character Arguments for Monadic ⊤⍱ and Dyadic ⊤∧ ⊤∨ == and ≠≠184311
+Node: ⊤ (Encode) with Axis185321
+Node: Generalized ⍳189850
+Node: Generalized monadic ⍳190086
+Node: Generalized dyadic ⍳190823
+Node: Dyadic A→B191657
+Node: ⌹[X] - Miscellaneous Matrix and Vector Operations196338
+Node: ⌹[1] and ⌹[2] - QR Factorizations196704
+Node: The Impact of ⎕CT for ⌹201986
+Node: A⌹B and ⌹B202745
+Node: ⌹[X] B - Various Factorizations of B208375
+Node: Matrix Inverse211156
+Node: ⌹[7] B - Print Polynomial B211929
+Node: A ⌹[8] B - Multiply Polynomials A and B215113
+Node: A ⌹[9] B - Divide Polynomial A by Polynomial B (univariate)216437
+Node: A ⌹[10] B - Divide Polynomial A by Polynomial B (multivariate)217627
+Node: A ⌹[11] B - Divide Polynomial A by Polynomial B (with order)223790
+Node: ⌹[11] B Scan Polynomial B226609
+Node: A ⌹[20] B - Integral B228630
+Node: ⎕CC - Character Classes231425
+Node: monadic ⎕CC B - Return character class231965
+Node: dyadic A ⎕CC B - Test character class234893
+Node: Dyadic ⎕CR235647
+Node: User-defined boxing (A ⎕CR[X] B)243871
+Node: Dyadic ⎕FX (Native Functions)252020
+Node: ⎕ARG - Interpreter command line arguments255744
+Node: ⎕DLX - Knuth's Dancing Links Algorithm256135
+Node: ⎕EA and ⎕EB - Execute Alternate and Execute Both267107
+Node: ⎕ENV - Environment Variables270669
+Node: ⎕FIO - File I/O Functions271036
+Node: ⎕FFT - Fast Fourier Transform279688
+Node: ⎕GTK - GTK Interface282206
+Node: ⎕JSON - JSON Parsing282934
+Node: Monadic ⎕JSON283676
+Node: Dyadic ⎕JSON284012
+Node: ⎕MAP - Map Value284868
+Node: ⎕MX - Matrix/Statistics288841
+Node: Determinant290619
+Node: Cross Product291004
+Node: Vector Angle292300
+Node: Eigenvector292688
+Node: Eigenvalue293848
+Node: Ident296346
+Node: Rotation296676
+Node: Homogeneous transform297013
+Node: Norm297635
+Node: Randoms298572
+Node: Covariance300433
+Node: Histograms301510
+Node: Print302430
+Node: ⎕PLOT - Plot Data304866
+Node: The Plot Data B306160
+Node: Complex Plot Data B306949
+Node: Real Plot Data B307945
+Node: The Plot Attributes A309022
+Node: Plot Window Handling322554
+Node: Output File Format323892
+Node: GUI driver325122
+Node: ⎕PNG - Portable Network Graphics329211
+Node: The GNU APL Color Model329778
+Node: Monadic ⎕PNG335291
+Node: Dyadic ⎕PNG337508
+Node: APL Examples338335
+Node: ⎕PS - Print Style339271
+Node: Boxing of Displayed Values340272
+Node: ⎕RE - Regular Expressions343539
+Node: Preconditions344161
+Node: ⎕RE Syntax344644
+Node: The Regular Expression A345342
+Node: The String(s) B Being Matched346009
+Node: The Flags X347411
+Node: The libpcre2 flags - i m s and x348391
+Node: The ⎕RE (APL output format) flags ↓ ⊂ and /349059
+Node: the ⎕RE global flag g351539
+Node: the ⎕RE error flag E355044
+Node: Complex Matches356356
+Node: ⎕RVAL - Random APL value360846
+Node: General361880
+Node: Dyadic ⎕RVAL362868
+Node: Control of the underlying random number generator - 0 ⎕RVAL B364122
+Node: Control of the ranks - 1 ⎕RVAL B365747
+Node: Control of the shapes - 2 ⎕RVAL B367455
+Node: Control of the data types - 3 ⎕RVAL B368901
+Node: Control of a maximum depth - 4 ⎕RVAL B370740
+Node: Control of the element count - 5 ⎕RVAL B371657
+Node: The primitive table - 6 ⎕RVAL B373387
+Node: The purpose - 8 ⎕RVAL B374851
+Node: monadic ⎕RVAL B376421
+Node: Syntax Alternatives379189
+Node: ⎕SI - State Indicator380199
+Node: ⎕SQL - SQL Database Interface382447
+Node: ⎕SQL[0] ⍬ - display sub-function numbers383546
+Node: ⎕SQL[0] '' - display sub-function names385457
+Node: ref ← A ⎕SQL[1] B - open database388239
+Node: ⎕SQL[2] B - close database389299
+Node: Z ← A ⎕SQL[3 ref] B - database query (with result)389856
+Node: Z ← A ⎕SQL[4 ref] B - database query (w/o result)390839
+Node: ⎕SQL[5] B - start transaction391413
+Node: ⎕SQL[6] B - commit transaction391740
+Node: ⎕SQL[7] B - rollback transaction392051
+Node: Z←⎕SQL[8] B - table names392378
+Node: Z←⎕SQL[9] B - column names392708
+Node: Z ← ⎕SQL[10] B - library version number393226
+Node: Z ← ⎕SQL[11] B - library version string393822
+Node: SQLite Quickstart394388
+Node: Deleting a Database396333
+Node: Creating a new Database397743
+Node: Creating a Database Table399492
+Node: Excursus - Dynamic Query Strings402849
+Node: Writing an APL matrix into a Database Table405797
+Node: Reading a Database Table into an APL Matrix408199
+Node: Updating a Database Table409970
+Node: Deleting Rows From a Database Table412599
+Node: ⎕SYL - System limits413371
+Node: ⎕SYL[1 2 3 4 5 6;]416602
+Node: ⎕SYL[7 ... 24;]418058
+Node: ⎕SYL[25 26 27;]418425
+Node: ⎕SYL[28;]418902
+Node: ⎕SYL[29 ... 34;]420023
+Node: ⎕XML - XML Parsing420584
+Node: Purpose420918
+Node: Some XML Terminology422494
+Node: How ⎕XML maps XML documents to APL Values425942
+Node: Monadic ⎕XML432605
+Node: Dyadic ⎕XML433418
+Node: XML Queries441711
+Node: Conditionals442581
+Node: Design considerations.443011
+Node: Syntax450409
+Node: A Possible Pitfall453562
+Node: Matrix Product457819
+Node: Monadic ≠ (Nub Sieve)461122
+Node: Limitations and Missing Features461670
+Node: System Limits462211
+Node: Shared Variables463513
+Node: Known Differences between IBM APL2 and GNU APL464650
+Node: The Rank and Power Operators480606
+Node: Output Formatting482730
+Ref: STRICT_IBM_APL2_FORMATTING486444
+Node: Internationalization507847
+Node: Vector Notation509028
+Node: History509623
+Node: Standardization510361
+Node: Quotes from the lrm510868
+Node: Some APL2 Tests513027
+Node: Test 1 - Binding strength of []513444
+Node: Test 2 - Binding strength of the left operand514337
+Node: Definitions519131
+Node: Unexpected Stranding522156
+Node: GNU APL Vector Notation530922
+Node: GNU APL Project Structure536910
+Node: The sub-directory src538432
+Node: The sub-directory support-files539804
+Node: The sub-directory doc540223
+Node: The sub-directory HOWTOs540527
+Node: The sub-directories workspaces and wslib2 ... wslib5541272
+Node: The sub-directory m4541832
+Node: The sub-directories deb and debian_tmp542701
+Node: The sub-directory tools543355
+Node: Libraries Contributed by GNU APL Users543815
+Node: The GNU APL Community Webpage544292
+Node: Core Libraries545029
+Node: Licenses for this GNU APL Manual and for GNU APL545910
+Node: The GNU Free Documentation License546455
+Node: The GNU GENERAL PUBLIC LICENSE571849
 
 End Tag Table
 

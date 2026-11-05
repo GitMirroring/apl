@@ -230,6 +230,10 @@ struct InputFile
    /// the file name
    UTF8_string filename;
 
+   /// true for a testcase file (-T, --TL), false for an APL file (-f)
+   bool is_test() const
+      { return test; }
+
    /// a COPY_filter instance
    COPY_filter copy_filter;
 

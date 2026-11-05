@@ -127,6 +127,12 @@ public:
    /// read.
    static void report_abnormal_exit();
 
+   /// set summary_path to summary.log in the directory of the first
+   /// testcase file, and truncate it
+   /// unless \b append (--TS). Called once, after all -T and --TL options
+   /// were parsed, so that all testcases of a run share one summary.log.
+   static void init_summary(bool append);
+
    /// the file path used by report_abnormal_exit() to persist a raw
    /// backtrace for the testcase file that is executing right now (the
    /// same testcase named in its summary.log entry), so that a crash's
@@ -257,7 +263,8 @@ protected:
    /// the current test report
    static ofstream current_testreport;
 
-   /// name of the summary file (same directory as first testcase).
+   /// name of the summary file (same directory as first testcase, see
+   /// init_summary()).
    static UTF8_string summary_path;
 
    /// when a .tc file was started
