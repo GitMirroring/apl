@@ -158,8 +158,8 @@ am__uninstall_files_from_dir = { \
     || { echo " ( cd '$$dir' && rm -f" $$files ")"; \
          $(am__cd) "$$dir" && rm -f $$files; }; \
   }
-am__installdirs = "$(DESTDIR)$(gnuapldir)" "$(DESTDIR)$(gnuapldir)"
-DATA = $(dist_gnuapl_DATA) $(dist_noinst_DATA) $(nodist_gnuapl_DATA)
+am__installdirs = "$(DESTDIR)$(gnuapldir)"
+DATA = $(dist_gnuapl_DATA) $(dist_noinst_DATA) $(noinst_DATA)
 am__tagged_files = $(HEADERS) $(SOURCES) $(TAGS_FILES) $(LISP)
 am__DIST_COMMON = $(srcdir)/Makefile.in
 DISTFILES = $(DIST_COMMON) $(DIST_SOURCES) $(TEXINFOS) $(EXTRA_DIST)
@@ -333,7 +333,10 @@ top_srcdir = @top_srcdir@
 gnuapldir = $(sysconfdir)/gnu-apl.d
 dist_noinst_DATA = preferences.in
 dist_gnuapl_DATA = keyboard1.txt parallel_thresholds
-nodist_gnuapl_DATA = preferences
+
+# preferences is built by 'make all', but installed by install-data-local
+# below, since the user may have adapted the installed one
+noinst_DATA = preferences
 CLEANFILES = preferences
 all: all-am
 
@@ -394,27 +397,6 @@ uninstall-dist_gnuaplDATA:
 	@list='$(dist_gnuapl_DATA)'; test -n "$(gnuapldir)" || list=; \
 	files=`for p in $$list; do echo $$p; done | sed -e 's|^.*/||'`; \
 	dir='$(DESTDIR)$(gnuapldir)'; $(am__uninstall_files_from_dir)
-install-nodist_gnuaplDATA: $(nodist_gnuapl_DATA)
-	@$(NORMAL_INSTALL)
-	@list='$(nodist_gnuapl_DATA)'; test -n "$(gnuapldir)" || list=; \
-	if test -n "$$list"; then \
-	  echo " $(MKDIR_P) '$(DESTDIR)$(gnuapldir)'"; \
-	  $(MKDIR_P) "$(DESTDIR)$(gnuapldir)" || exit 1; \
-	fi; \
-	for p in $$list; do \
-	  if test -f "$$p"; then d=; else d="$(srcdir)/"; fi; \
-	  echo "$$d$$p"; \
-	done | $(am__base_list) | \
-	while read files; do \
-	  echo " $(INSTALL_DATA) $$files '$(DESTDIR)$(gnuapldir)'"; \
-	  $(INSTALL_DATA) $$files "$(DESTDIR)$(gnuapldir)" || exit $$?; \
-	done
-
-uninstall-nodist_gnuaplDATA:
-	@$(NORMAL_UNINSTALL)
-	@list='$(nodist_gnuapl_DATA)'; test -n "$(gnuapldir)" || list=; \
-	files=`for p in $$list; do echo $$p; done | sed -e 's|^.*/||'`; \
-	dir='$(DESTDIR)$(gnuapldir)'; $(am__uninstall_files_from_dir)
 tags TAGS:
 
 ctags CTAGS:
@@ -458,7 +440,7 @@ check-am: all-am
 check: check-am
 all-am: Makefile $(DATA)
 installdirs:
-	for dir in "$(DESTDIR)$(gnuapldir)" "$(DESTDIR)$(gnuapldir)"; do \
+	for dir in "$(DESTDIR)$(gnuapldir)"; do \
 	  test -z "$$dir" || $(MKDIR_P) "$$dir"; \
 	done
 install: install-am
@@ -512,7 +494,7 @@ info: info-am
 
 info-am:
 
-install-data-am: install-dist_gnuaplDATA install-nodist_gnuaplDATA
+install-data-am: install-data-local install-dist_gnuaplDATA
 
 install-dvi: install-dvi-am
 
@@ -556,7 +538,7 @@ ps: ps-am
 
 ps-am:
 
-uninstall-am: uninstall-dist_gnuaplDATA uninstall-nodist_gnuaplDATA
+uninstall-am: uninstall-dist_gnuaplDATA uninstall-local
 
 .MAKE: install-am install-strip
 
@@ -564,16 +546,15 @@ uninstall-am: uninstall-dist_gnuaplDATA uninstall-nodist_gnuaplDATA
 	cscopelist-am ctags-am distclean distclean-generic \
 	distclean-libtool distdir dvi dvi-am html html-am info info-am \
 	install install-am install-data install-data-am \
-	install-dist_gnuaplDATA install-dvi install-dvi-am \
-	install-exec install-exec-am install-html install-html-am \
-	install-info install-info-am install-man \
-	install-nodist_gnuaplDATA install-pdf install-pdf-am \
-	install-ps install-ps-am install-strip installcheck \
-	installcheck-am installdirs maintainer-clean \
-	maintainer-clean-generic mostlyclean mostlyclean-generic \
-	mostlyclean-libtool pdf pdf-am ps ps-am tags-am uninstall \
-	uninstall-am uninstall-dist_gnuaplDATA \
-	uninstall-nodist_gnuaplDATA
+	install-data-local install-dist_gnuaplDATA install-dvi \
+	install-dvi-am install-exec install-exec-am install-html \
+	install-html-am install-info install-info-am install-man \
+	install-pdf install-pdf-am install-ps install-ps-am \
+	install-strip installcheck installcheck-am installdirs \
+	maintainer-clean maintainer-clean-generic mostlyclean \
+	mostlyclean-generic mostlyclean-libtool pdf pdf-am ps ps-am \
+	tags-am uninstall uninstall-am uninstall-dist_gnuaplDATA \
+	uninstall-local
 
 .PRECIOUS: Makefile
 
@@ -584,6 +565,36 @@ preferences: preferences.in Makefile
 	$(AM_V_GEN)$(SED) -e 's|[@]pkglibdir[@]|$(pkglibdir)|g'   \
 	                  -e 's|[@]sysconfdir[@]|$(sysconfdir)|g' \
 	                  $(srcdir)/preferences.in > $@
+
+# install preferences only if there is none yet. An existing preferences file
+# (most likely adapted by the user) is never overwritten: if it differs from
+# the new default, then the new default is installed as preferences.new.
+#
+install-data-local: preferences
+	@$(MKDIR_P) "$(DESTDIR)$(gnuapldir)"
+	@f="$(DESTDIR)$(gnuapldir)/preferences";                             \
+	if test ! -f "$$f"; then                                             \
+	   echo " $(INSTALL_DATA) preferences '$$f'";                        \
+	   $(INSTALL_DATA) preferences "$$f" || exit 1;                      \
+	elif cmp -s preferences "$$f"; then                                  \
+	   echo " $$f: unchanged";                                           \
+	else                                                                 \
+	   echo " $(INSTALL_DATA) preferences '$$f.new'";                    \
+	   $(INSTALL_DATA) preferences "$$f.new" || exit 1;                  \
+	   echo "NOTE: kept your existing $$f";                              \
+	   echo "      The new default preferences were installed as $$f.new"; \
+	fi
+
+# remove preferences only if the user has not modified it
+#
+uninstall-local:
+	@f="$(DESTDIR)$(gnuapldir)/preferences";                             \
+	rm -f "$$f.new";                                                     \
+	if cmp -s preferences "$$f"; then                                    \
+	   echo " rm -f '$$f'"; rm -f "$$f";                                 \
+	elif test -f "$$f"; then                                             \
+	   echo "NOTE: $$f was modified and was not removed";                \
+	fi
 
 # Tell versions [3.59,3.63) of GNU make to not export all variables.
 # Otherwise a system limit (for SysV at least) may be exceeded.
