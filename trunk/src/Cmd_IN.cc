@@ -211,6 +211,14 @@ const char sub_type = record[1];
       }
 }
 //────────────────────────────────────────────────────────────────────────────
+bool
+Cmd_IN::transfer_context::valid_user_name(const UCS_string & name)
+{
+   if (name.size() == 0 || !Avec::is_first_symbol_char(name[0]))   return false;
+   loop(n, name.size())   if (!Avec::is_symbol_char(name[n]))      return false;
+   return true;
+}
+//────────────────────────────────────────────────────────────────────────────
 uint32_t
 Cmd_IN::transfer_context::get_nrs(UCS_string & name, Shape & shape) const
 {
@@ -277,6 +285,12 @@ Symbol * sym = 0;
       }
    else                            // user defined variable
       {
+        if (!valid_user_name(var_name))   // e.g. 1Y or A+B (Bugs38 #40)
+           {
+             CERR << ")IN: " << var_name
+                  << " is not a valid name (record skipped)" << endl;
+             return;
+           }
         sym = Workspace::lookup_symbol(var_name);
         Assert(sym);
       }
@@ -316,8 +330,13 @@ const ShapeItem ec = Z->element_count();
       }
    Z->check_value(LOC);
 
+   // an invalid value (e.g. ⎕IO←7) skips this record, like for A records
+   // (Bugs37 #48, Bugs38 #84)
+   //
    Assert(sym);
-   sym->assign(Z, false, LOC);
+   if (!Quad_TF::safe_assign(*sym, Z, false))
+      CERR << "ERROR: )IN: the value of " << sym->get_name()
+           << " in the transfer file is invalid (record skipped)" << endl;
 }
 //────────────────────────────────────────────────────────────────────────────
 void
@@ -349,6 +368,12 @@ Symbol * sym = 0;
       }
    else                            // user defined variable
       {
+        if (!valid_user_name(var_name))   // e.g. 1Y or A+B (Bugs38 #40)
+           {
+             CERR << ")IN: " << var_name
+                  << " is not a valid name (record skipped)" << endl;
+             return;
+           }
         sym = Workspace::lookup_symbol(var_name);
         Assert(sym);
       }
@@ -381,8 +406,13 @@ ShapeItem padded = 0;
 
    Z->check_value(LOC);
 
+   // an invalid value (e.g. ⎕IO←7) skips this record, like for A records
+   // (Bugs37 #48, Bugs38 #84)
+   //
    Assert(sym);
-   sym->assign(Z, false, LOC);
+   if (!Quad_TF::safe_assign(*sym, Z, false))
+      CERR << "ERROR: )IN: the value of " << sym->get_name()
+           << " in the transfer file is invalid (record skipped)" << endl;
 }
 //────────────────────────────────────────────────────────────────────────────
 void

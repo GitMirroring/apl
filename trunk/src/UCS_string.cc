@@ -1767,9 +1767,13 @@ UCS_string
 UCS_string::from_int_to_fixed(int64_t value, int fract_digits)
 {
 UCS_string ret;
-   if (value < 0)   { ret << UNI_OVERBAR;   value = - value; }
+   // the magnitude in uint64_t: -value overflows for the int64 minimum
+   // (Bugs38 #92)
+   //
+uint64_t magnitude = value;
+   if (value < 0)   { ret << UNI_OVERBAR;   magnitude = 0 - magnitude; }
 
-   ret << from_uint(value);
+   ret << from_uint(magnitude);
 
    // fract_digits == 0 (integer format): no decimal point at all,
    // matching from_double_to_fixed()'s round_last_digit(), which

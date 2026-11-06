@@ -101,7 +101,7 @@ CLEAR WS
       1+(ZZ50F2←{⍵})
 SYNTAX ERROR+
       1+(ZZ50F2←{⍵})
-      ^ ^
+                   ^
 
       )SIC
 

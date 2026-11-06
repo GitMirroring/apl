@@ -85,9 +85,9 @@ A ⎕EB B: B's →N cannot branch out of a lambda
       ⍝ A{⍺}¨B) read a deleted SI entry
       ⍝
       1 2 3{⍺}¨1 (2 3)
-LENGTH ERROR
+LENGTH ERROR+
       1 2 3{⍺}¨1 (2 3)
-      ^
+      ^    ^
 
 
 
@@ -100,9 +100,9 @@ LENGTH ERROR
 
 
       1 2 3{⍺}¨'ab' 'cd'
-LENGTH ERROR
+LENGTH ERROR+
       1 2 3{⍺}¨'ab' 'cd'
-      ^
+      ^    ^
 
 
 

@@ -63,6 +63,50 @@ cFunction_P RO = _RO.get_function();
         DOMAIN_ERROR;
       }
 
+   // a length-1 inner axis of a non-scalar A or B is extended to the
+   // length of the other one (APL2 LRM, decode: "If either the first axis
+   // of R or the last axis of L is 1, it is extended"), on every path
+   // (it was LENGTH ERROR on some paths and extended on others, Bugs38 #76)
+   //
+   if (!A.is_scalar_extensible() && !B.is_scalar_extensible() &&
+       A.get_rank() >= 1 && B.get_rank() >= 1)
+      {
+        const ShapeItem lenA = A.get_shape().get_last_shape_item();
+        const ShapeItem lenB = B.get_shape().get_shape_item(0);
+        if (lenA == 1 && lenB != 1)   // extend the last axis of A
+           {
+             Shape sh_A2 = A.get_shape();
+             sh_A2.set_last_shape_item(lenB);
+             Value_P A2(sh_A2, LOC);
+             const ShapeItem rows = A.element_count();   // lenA is 1
+             loop(r, rows)
+             loop(c, lenB)
+                {
+                  Cell cache;
+                  A2->next_ravel_Cell(A.get_cravel(r, cache));
+                }
+             A2->set_default(A, LOC);
+             A2->check_value(LOC);
+             return eval_ALRB(*A2, _LO, _RO, B);
+           }
+        if (lenB == 1 && lenA != 1)   // extend the first axis of B
+           {
+             Shape sh_B2 = B.get_shape();
+             sh_B2.set_shape_item(0, lenA);
+             Value_P B2(sh_B2, LOC);
+             const ShapeItem cols = B.element_count();   // lenB is 1
+             loop(r, lenA)
+             loop(c, cols)
+                {
+                  Cell cache;
+                  B2->next_ravel_Cell(B.get_cravel(c, cache));
+                }
+             B2->set_default(B, LOC);
+             B2->check_value(LOC);
+             return eval_ALRB(A, _LO, _RO, *B2);
+           }
+      }
+
    if (!A.is_scalar_extensible() &&
        !B.is_scalar_extensible() &&
        A.get_rank() > 1          &&

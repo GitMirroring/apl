@@ -35,10 +35,6 @@ Bif_OPER1_SCAN1   Bif_OPER1_SCAN1::fun;
 Token
 Bif_SCAN::scan(Token & tok_LO, Value_P B, uAxis axis) const
 {
-   // if B is a scalar, then Z is B.
-   //
-   if (B->get_rank() == 0)      return Token(TOK_APL_VALUE1, CLONE_P(B, LOC));
-
    if (!tok_LO.is_function())
       {
         MORE_ERROR() << "f" << get_name() << " B : Bad left argument f"
@@ -61,6 +57,10 @@ cFunction_P LO = tok_LO.get_function();
                      << LO->get_name() << " (expecting a dyadic function)";
         VALENCE_ERROR;   // like A F/ B (Bugs37 #67)
       }
+
+   // if B is a scalar, then Z is B. Checked after LO (Bugs38 #105).
+   //
+   if (B->get_rank() == 0)      return Token(TOK_APL_VALUE1, CLONE_P(B, LOC));
 
    if (axis >= B->get_rank())
       {

@@ -497,6 +497,8 @@ protected:
         NameClass nc;            ///< its top_of_stack()->get_NC() before )COPY
         Value_P value;           ///< valid iff nc == NC_VARIABLE
         cFunction_P function;    ///< valid iff nc == NC_FUNCTION/NC_OPERATOR
+        bool localized;          ///< the snapshot is of the global level 0
+                                 ///< (with the local levels set aside)
       };
 
    /// return true iff there is more data in the file
@@ -550,7 +552,8 @@ protected:
    /// remember symbol's current top-of-stack state before a )COPY
    /// overwrites it (no-op for )LOAD, i.e. unless copying is set).
    /// @param symbol the Symbol about to be overwritten by )COPY
-   void copy_snapshot_symbol(Symbol * symbol);
+   /// @param localized true if the local levels of symbol are set aside
+   void copy_snapshot_symbol(Symbol * symbol, bool localized);
 
    /// find attribute \b att_name and return: a pointer to its value if found,
    /// 0 if optional is true, and throw DOMAIN ERROR if optional is false.
@@ -712,6 +715,9 @@ protected:
    /// pre-)COPY snapshots of every Symbol touched so far by the current
    /// )COPY, for copy_restore_snapshots() to undo on failure.
    vector<_copy_snapshot> copy_snapshots;
+
+   /// read_lambda() has created the lambda of the current SI entry
+   bool SI_lambda_created;
 
    /// the current char
    Unicode current_char;

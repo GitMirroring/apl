@@ -202,8 +202,8 @@ const ShapeItem count = nz_element_count();
        Cell cache;
        const Cell & cell = get_cravel(c, cache);
        const CellType ctype = cell.get_cell_type();
-       if (ctype & (CT_CHAR | CT_INT | CT_FLOAT))   continue;
-       if (cell.is_near_real())                     continue;
+       // complex numbers are ordered too, like by < (Bugs38 #124)
+       if (ctype & (CT_CHAR | CT_INT | CT_FLOAT | CT_COMPLEX))   continue;
        if (cell.is_pointer_cell() &&
            cell.get_pointer_value()->can_be_compared())   continue;
        return false;
@@ -553,7 +553,7 @@ ShapeItem valid_rows = 0;
              if (name_cell.get_int_value() != 0)   // invalid unused
                 {
                    MORE_ERROR() << "invalid member name in row "
-                                << r << " (integer)";
+                                << (r + Workspace::get_IO()) << " (integer)";
                    DOMAIN_ERROR;
                 }
            }
@@ -566,14 +566,14 @@ ShapeItem valid_rows = 0;
                   if (!v->is_char_string())   // no.
                      {
                        MORE_ERROR() << "invalid member name in row "
-                                    << r << " (nested non-string)";
+                                    << (r + Workspace::get_IO()) << " (nested non-string)";
                       DOMAIN_ERROR;
                      }
                 }
              else if (!name_cell.is_character_cell())   // unexpected type
                      {
                        MORE_ERROR() << "invalid member name in row "
-                                    << r << " (type)";
+                                    << (r + Workspace::get_IO()) << " (type)";
                        DOMAIN_ERROR;
                      }
            }

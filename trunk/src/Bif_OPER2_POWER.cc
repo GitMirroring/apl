@@ -20,6 +20,8 @@
 
 /** @file
 */
+#include <limits>
+
 #include "Bif_OPER2_POWER.hh"
 #include "IntCell.hh"
 #include "Macro.hh"
@@ -130,7 +132,13 @@ cFunction_P LO = _LO.get_function();
         DOMAIN_ERROR;
       }
 Cell cache;
-ShapeItem repeat_cnt = N->get_cfirst(cache).get_checked_near_int();
+const Cell & N0 = N->get_cfirst(cache);
+   if (!N0.is_near_int64_t())   // e.g. 1E19 (used to become INT64_MIN)
+      {
+        MORE_ERROR() << "f⍣N B: N is too large (not a 64-bit integer)";
+        DOMAIN_ERROR;   // Bugs38 #13
+      }
+ShapeItem repeat_cnt = N0.get_checked_near_int();
 
    // special cases: 0, negative, and 1
    //
@@ -167,14 +175,15 @@ ShapeItem repeat_cnt = N->get_cfirst(cache).get_checked_near_int();
         // (`if (--repeat_cnt == 0) return ...`) then wraps it from
         // INT64_MIN down through INT64_MAX and applies the inverse
         // ~2⁶³ times -- a near-infinite loop.
-        const ShapeItem neg_repeat_cnt = - repeat_cnt;
-        if (Cell::diff_overflow(neg_repeat_cnt, 0, repeat_cnt))
+        // Test BEFORE negating: computing - repeat_cnt first is itself
+        // the overflow (UB), and the optimiser removed the test (Bugs38 #13).
+        if (repeat_cnt == std::numeric_limits<ShapeItem>::min())
            {
              MORE_ERROR() << "f⍣N B: N = " << repeat_cnt
                           << " overflows on negation";
              DOMAIN_ERROR;
            }
-        repeat_cnt = neg_repeat_cnt;
+        repeat_cnt = - repeat_cnt;
       }
 
    if (repeat_cnt == 1)
@@ -208,6 +217,15 @@ ShapeItem repeat_cnt = N->get_cfirst(cache).get_checked_near_int();
          if (result.get_tag() == TOK_ERROR)   return result;
          Assert(result.get_Class() == TC_VALUE);
          if (--repeat_cnt == 0)   return result;
+
+         // a large N must be interruptible, like eval_form_2() (Bugs38 #12)
+         if (InterruptContext::interrupt_is_raised())
+            {
+              InterruptContext::clear_attention_raised(LOC);
+              InterruptContext::clear_interrupt_raised(LOC);
+              INTERRUPT
+            }
+
          B = result.get_apl_val();
        }
 }

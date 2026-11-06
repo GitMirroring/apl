@@ -66,7 +66,7 @@ IndexExpr index_expr(ASS_none, LOC);
             }
         else
             {
-              const APL_Integer I = A.get_near_int(idx);
+              const APL_Integer I = A.get_index_int(idx);
               if (I < 0)
                  {
                    MORE_ERROR() << "A⌷B: A["
@@ -166,7 +166,7 @@ IndexExpr index_expr(ASS_none, LOC);   // start with an empty IndexExpr
              }
          else   // single index
              {
-               const APL_Integer I = A.get_near_int(a);
+               const APL_Integer I = A.get_index_int(a);
                if (I < 0)
                   {
                     MORE_ERROR() << "A⌷[X]B: A[" << (a + Workspace::get_IO())

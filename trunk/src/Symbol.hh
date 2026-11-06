@@ -246,6 +246,20 @@ public:
    const int value_stack_size() const
       { return value_stack.size(); }
 
+   /// )COPY: move the local levels (all but the global level 0) of \b this
+   /// symbol to \b locals, so that the global level is the top level that
+   /// )COPY replaces (LRM p. 423, Bugs38 #24)
+   /// @param locals  receives the local levels
+   void hide_locals(std::vector<ValueStackItem> & locals)
+      { while (value_stack.size() > 1)
+           { locals.push_back(value_stack.back());   value_stack.pop_back(); } }
+
+   /// undo hide_locals()
+   /// @param locals  the local levels from hide_locals()
+   void restore_locals(std::vector<ValueStackItem> & locals)
+      { while (locals.size())
+           { value_stack.push_back(locals.back());   locals.pop_back(); } }
+
    /// call the monitor callback function (if any) with event \b ev
    /// @param ev  symbol event to report
    void call_monitor_callback(Symbol_Event ev)

@@ -757,12 +757,20 @@ double f;
                             | (uint64_t(rand64) >> 56 & 0x0F) << 48
                             | (uint64_t(rand64) & 0xFFFFFFFFFFFFULL);
         memcpy(&f, &bits, sizeof(f));
-      } while (!isnormal(f));
+      } while (!isnormal(f) || f == 1.0);   // 0 is excluded (Bugs38 #119)
 
    // at this point: 1.0 < f < 2.0
    //
    if (desired_purpose == 1)   // APL2 mode: an IEEE 32-bit (float) value
-      return double(float(f - 1.0));
+      {
+        // truncate (not round) to float, so that the result is < 1.0
+        // (Bugs38 #119)
+        //
+        const double d = f - 1.0;
+        float r = float(d);
+        if (double(r) > d)   r = nextafterf(r, 0.0f);
+        return double(r);
+      }
 
    return f - 1.0;
 }

@@ -574,7 +574,8 @@ protected:
                                    ErrorCode ec_on_failure,
                                    const char * why,
                                    const UCS_string * b_line2 = 0,
-                                   int b_lcaret = -1, int b_rcaret = -1);
+                                   int b_lcaret = -1, int b_rcaret = -1,
+                                   const UCS_string * b_reason = 0);
 
    /// the StateIndicator that contains this parser
    StateIndicator & si;

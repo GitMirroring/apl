@@ -690,53 +690,16 @@ int
 Quad_FIO::do_FIO_57(const UCS_string & B, char * const * envp)
 {
 NOT_MINGW(
-int spair[2];
-   if (socketpair(AF_UNIX, SOCK_STREAM, 0, spair))
-      {
-        MORE_ERROR() << "⎕FIO[49]: socketpair() failed: " << strerror(errno);
-        DOMAIN_ERROR;
-      }
-
-const pid_t child = fork();
-   if (child == -1)
-      {
-        MORE_ERROR() << "⎕FIO[49]: fork() failed: " << strerror(errno);
-        DOMAIN_ERROR;
-      }
-
-   if (child)   // parent process: return handle
-      {
-        sys_auto_reap(child);   // nobody waits for the child (see Sys.hh)
-        ::close(spair[1]);   // close child's end so read(spair[0]) gets EOF when child exits
-        file_entry fe(0, spair[0]);
-        fe.fe_may_read = true;
-        fe.fe_may_write = true;
-        open_files.push_back(fe);
-        return fe.fe_fd;
-      }
-
-   // code executed in the forked child.,,
-   // Close some fds and then execve(Bs)
-   // No need to free any strings allocated here
+   // check B and build argv[] BEFORE fork(): an APL error in the forked
+   // child would continue the child as a second interpreter (Bugs38 #1).
+   // After fork() the child must only execve() or _exit().
    //
-const int sock = spair[1];
-   ::close(STDIN_FILENO);
-   for (int j = STDERR_FILENO+2; j < 100; ++j)
-       {
-         if (j != sock)   ::close(j);
-       }
-
-   // make the communication socket file descriptor 3
-   //  (== STDERR + 1) in the client
-   //
-   dup2(sock, 3);
-   ::close(sock);   // close the extra reference so fd 3 is the sole owner
-
 const UCS_string path_ucs(B);
-check_path(path_ucs);   // Bugs37 #83a
+   check_path(path_ucs);   // Bugs37 #83a
 const UTF8_string path(path_ucs);
 char * filename = strdup(path.c_str());
-if (!filename)   DOMAIN_ERROR;
+   if (!filename)   WS_FULL;
+
 int argc = 1;
    for (const char * f = filename; *f; ++f)
        if (f[0] == ' ' && f[1] != ' ')   ++ argc;
@@ -758,17 +721,66 @@ char * from = filename;
    if (*from)  argv[ai++] = from;
    argv[ai] = 0;
 
+int spair[2];
+   if (socketpair(AF_UNIX, SOCK_STREAM, 0, spair))
+      {
+        delete[] argv;
+        free(filename);
+        MORE_ERROR() << "⎕FIO[57]: socketpair() failed: " << strerror(errno);
+        DOMAIN_ERROR;
+      }
+
+const pid_t child = fork();
+   if (child == -1)
+      {
+        ::close(spair[0]);
+        ::close(spair[1]);
+        delete[] argv;
+        free(filename);
+        MORE_ERROR() << "⎕FIO[57]: fork() failed: " << strerror(errno);
+        DOMAIN_ERROR;
+      }
+
+   if (child)   // parent process: return handle
+      {
+        delete[] argv;
+        free(filename);
+        sys_auto_reap(child);   // nobody waits for the child (see Sys.hh)
+        ::close(spair[1]);   // close child's end so read(spair[0]) gets EOF when child exits
+        file_entry fe(0, spair[0]);
+        fe.fe_may_read = true;
+        fe.fe_may_write = true;
+        open_files.push_back(fe);
+        return fe.fe_fd;
+      }
+
+   // code executed in the forked child.,,
+   // Close some fds and then execve(Bs)
+   //
+const int sock = spair[1];
+   ::close(STDIN_FILENO);
+   for (int j = STDERR_FILENO+2; j < 100; ++j)
+       {
+         if (j != sock)   ::close(j);
+       }
+
+   // make the communication socket file descriptor 3
+   //  (== STDERR + 1) in the client
+   //
+   dup2(sock, 3);
+   ::close(sock);   // close the extra reference so fd 3 is the sole owner
+
    execve(filename, argv, envp);   // no return on success
 
-   // execve() failed
+   // execve() failed. _exit() (not exit()): the child must not run the
+   // atexit() handlers or flush the stdio buffers inherited from the parent.
    //
-   free(filename);
    ::close(3);
-
    usleep(100000);
    CERR << "*** execve() failed in 57 ⎕FIO: " << strerror(errno) << endl;
+   _exit(-1);
          ) // NOT_MINGW
-   exit(-1);
+   return -1;
 }
 //────────────────────────────────────────────────────────────────────────────
 Unicode
@@ -1034,7 +1046,8 @@ public:
    : file(f),
      string(0),
      lookahead(Invalid_Unicode),
-     unicodes_read(0)
+     unicodes_read(0),
+     bytes_read(0)
    { offset = ftell(f);  }
 
    /// constructor: from string
@@ -1043,13 +1056,16 @@ public:
      string(u),
      offset(0),
      lookahead(Invalid_Unicode),
-     unicodes_read(0)
+     unicodes_read(0),
+     bytes_read(0)
    {}
 
    /// return the number of characters
    ShapeItem get_count() const
       {
-        if (file)    return ftell(file) - offset;
+        // ftell() fails on a non-seekable file (a pipe or a socket): count
+        // the bytes read instead (Bugs38 #83)
+        if (file)    return offset < 0 ? bytes_read : ftell(file) - offset;
         return unicodes_read;
       }
 
@@ -1068,7 +1084,11 @@ public:
             {
               ShapeItem utf8_len = 0;
               const Unicode ret = Quad_FIO::fget_utf8(file, utf8_len);
-              if (ret != UNI_EOF)   ++unicodes_read;
+              if (ret != UNI_EOF)
+                 {
+                   ++unicodes_read;
+                   bytes_read += UTF8_string(UCS_string(ret)).size();
+                 }
               return ret;
             }
          else        // data comes from a UCS_string
@@ -1104,9 +1124,15 @@ public:
    void put_back(Unicode uni)
       {
         if (uni == Invalid_Unicode || uni == UNI_EOF)   return;
-        const long len = UTF8_string(UCS_string(uni)).size();
-        if (len == 1)   ungetc(uni, file);
-        else            fseek(file, -len, SEEK_CUR);
+        const UTF8_string utf{UCS_string(uni)};
+        bytes_read -= utf.size();
+        if (utf.size() == 1)   { ungetc(uni, file);   return; }
+
+        // a multi-byte character: fseek() fails on a pipe or a socket,
+        // then push its bytes back in reverse order (Bugs38 #27)
+        if (fseek(file, -long(utf.size()), SEEK_CUR) == 0)   return;
+        for (ShapeItem b = utf.size() - 1; b >= 0; --b)
+            ungetc(utf[b] & 0xFF, file);
       }
 
    /// unget uni. At most one Unicode (= lookahead char) can be ungotten.
@@ -1140,78 +1166,34 @@ public:
                           (long long)conv_len, conv);
               else
                  snprintf(fmt, sizeof(fmt), "%%ll%c", conv);
+              strncat(fmt, "%n", sizeof(fmt) - strlen(fmt) - 1);
               errno = 0;
-              const int ret = fscanf(file, fmt, &value);
+              int nread = 0;
+              const int ret = fscanf(file, fmt, &value, &nread);
+              if (ret == 1)   bytes_read += nread;   // Bugs38 #83
               check_range(ret == 1 && errno == ERANGE, 0);
               return ret;
             }
 
-         // string input...
+         // string input: let C's sscanf() convert it, like fscanf() for a
+         // file, so that e.g. %o, %i, and %x use C's bases and prefixes
+         // (Bugs38 #28)
          //
-         // the digits collected in cc have no length limit (other than
-         // conv_len), like C. A fixed buffer silently cut long fields,
-         // which then gave a different number (Bugs37 #53).
-         //
-         const bool hex = (conv == 'X') || (conv == 'x');
-         std::string cc;
-         if (lookahead == UNI_OVERBAR || lookahead == UNI_MINUS)
-            {
-              cc += '-';
-              lookahead = Invalid_Unicode;
-            }
-         else if (lookahead == UNI_PLUS)   // C scanf: optional + (Bugs37 #31)
-            {
-              cc += '+';
-              lookahead = Invalid_Unicode;
-            }
-         else if (hex ? Avec::is_hex_digit(lookahead)
-                      : Avec::is_digit(lookahead))
-            {
-              // caution: the lookahead was accepted unconditionally here
-              // (any character, not just a digit), so e.g. 'x' became
-              // cc = "x" and strtoll("x", ...) reports "no digits
-              // converted" only via errno, which strtoll() does NOT set
-              // for that case (only for overflow) -- so a failed
-              // conversion silently returned 0, a value never in the
-              // input (Blake McBride, Bugs25 #4). Filter the lookahead
-              // the same way the loop below already does (and, unlike
-              // the loop below before this fix, accept hex letters for
-              // %x/%X so e.g. 'ff' converts fully instead of stopping
-              // after the first digit).
-              cc += char(lookahead);
-              lookahead = Invalid_Unicode;
-            }
-            // else: a non-numeric lookahead is left untouched here; the
-            // loop below's get_next() will hand it back as its first
-            // character and reject it the same way.
-
-         while ((conv_len == 0 || int64_t(cc.size()) < conv_len) &&
-                offset < string->ssize())
-            {
-              // a sign is only valid as the first character (Bugs37 #31)
-              const Unicode uni = get_next();
-              const bool first = cc.size() == 0;
-              if (hex && Avec::is_hex_digit(uni))
-                                              cc += char(uni);   // 0-9a-fA-F
-              else if (Avec::is_digit(uni))  cc += char(uni);   // 0-9
-              else if (first && uni == UNI_OVERBAR)   cc += '-';
-              else if (first && uni == UNI_MINUS)     cc += '-';
-              else if (first && uni == UNI_PLUS)      cc += '+';
-              else { unget(uni);   break; }
-            }
-
-         // nothing was consumed: not a conversion, and errno alone
-         // can't tell the difference from a genuine strtoll() failure
-         // (Blake McBride, Bugs23 #9).
-         if (cc.size() == 0)   return 0;
-         const int base =  (conv == 'X') || (conv == 'x') ? 16 : 10;
+         ShapeItem pos = 0;
+         const std::string rest = string_rest(pos);
+         char fmt[40];
+         if (conv_len > 0)
+            snprintf(fmt, sizeof(fmt), "%%%lldll%c%%n",
+                     (long long)conv_len, conv);
+         else
+            snprintf(fmt, sizeof(fmt), "%%ll%c%%n", conv);
          errno = 0;
-         const char * cp = cc.c_str();
-         char * endptr = const_cast<char *>(cp);
-         value = strtoll(cp, &endptr, base);
-         if (endptr == cp)   return 0;   // no digits converted (Bugs25 #4)
-         check_range(errno == ERANGE, cc.c_str());
-         return errno ? 0 : 1;
+         int nread = 0;
+         const int ret = sscanf(rest.c_str(), fmt, &value, &nread);
+         if (ret != 1)   { string_consume(pos, 0);   return 0; }
+         check_range(errno == ERANGE, rest.substr(0, nread).c_str());
+         string_consume(pos, nread);
+         return 1;
       }
 
    /// throw a DOMAIN ERROR if a scanned number does not fit into an APL
@@ -1257,70 +1239,66 @@ public:
                           (long long)conv_len, conv);
               else
                  snprintf(fmt, sizeof(fmt), "%%l%c", conv);
-              const int ret = fscanf(file, fmt, &value);
+              strncat(fmt, "%n", sizeof(fmt) - strlen(fmt) - 1);
+              int nread = 0;
+              const int ret = fscanf(file, fmt, &value, &nread);
+              if (ret == 1)   bytes_read += nread;   // Bugs38 #83
               check_range(ret == 1 && !isfinite(value), 0);
               return ret;
             }
 
-         // string input...
+         // string input: let C's sscanf() convert it, like fscanf() for a
+         // file, so that the characters that strtod() did not convert stay
+         // in the input, e.g. '%f%f' ⎕FIO[55] '1.2.3' (Bugs38 #28)
          //
-         std::string cc;   // no length limit, see scanf_long_long()
-         if (lookahead == UNI_OVERBAR)
-            {
-              cc += '-';
-              lookahead = Invalid_Unicode;
-            }
-         else if (lookahead > 0 && lookahead < 128 &&
-                  strchr(".0123456789eE-+", char(lookahead)))
-            {
-              // strchr() truncates its int argument to char, so without
-              // the ASCII range check above, any code point whose low
-              // byte happened to match one of these ASCII characters
-              // (e.g. U+012E -> 0x2E '.', U+0130 -> 0x30 '0') was wrongly
-              // accepted and then truncated into cc, feeding a mangled
-              // character to strtod(). Also fixes a ⎕UCS 0 inside B
-              // being accepted (strchr(s, 0) matches the NUL terminator).
-              // (Blake McBride, Bugs23 #9.)
-              cc += char(lookahead);
-              lookahead = Invalid_Unicode;
-            }
-            // else: a non-numeric lookahead is left untouched here; the
-            // loop below's get_next() will hand it back as its first
-            // character and reject it the same way.
-
-         while ((conv_len == 0 || int64_t(cc.size()) < conv_len) &&
-                offset < string->ssize())
-            {
-              // a sign is only valid as the first character or after the
-              // e or E of an exponent, e.g. 1e+5 (Bugs37 #31)
-              //
-              const Unicode uni = get_next();
-              const bool sign_ok = cc.size() == 0 ||
-                                   cc.back() == 'e' || cc.back() == 'E';
-              if (uni == UNI_OVERBAR && sign_ok)   cc += '-';   // ¯
-              else if ((uni == UNI_MINUS || uni == UNI_PLUS) && sign_ok)
-                 cc += char(uni);
-              else if (uni > 0 && uni < 128 &&
-                       strchr(".0123456789eE", char(uni)))
-                 cc += char(uni);
-              else { unget(uni);   break; }
-            }
-
-         // nothing was consumed: not a conversion, and errno alone
-         // can't tell the difference from a genuine strtod() failure
-         // (Blake McBride, Bugs23 #9).
-         if (cc.size() == 0)   return 0;
-         errno = 0;
-         const char * cp = cc.c_str();
-         char * endptr = const_cast<char *>(cp);
-         value = strtod(cp, &endptr);
-         if (endptr == cp)   return 0;   // no digits converted (Bugs37 #52)
+         ShapeItem pos = 0;
+         const std::string rest = string_rest(pos);
+         char fmt[40];
+         if (conv_len > 0)
+            snprintf(fmt, sizeof(fmt), "%%%lldl%c%%n",
+                     (long long)conv_len, conv);
+         else
+            snprintf(fmt, sizeof(fmt), "%%l%c%%n", conv);
+         int nread = 0;
+         const int ret = sscanf(rest.c_str(), fmt, &value, &nread);
+         if (ret != 1)   { string_consume(pos, 0);   return 0; }
 
          // an overflow is an error, an underflow (ERANGE with a result
          // of 0 or a denormal) gives that result, like C
          //
-         check_range(!isfinite(value), cc.c_str());
+         check_range(!isfinite(value), rest.substr(0, nread).c_str());
+         string_consume(pos, nread);
          return 1;
+      }
+
+   /// return the rest of the string input, including the lookahead (if
+   /// any) and up to the first non-ASCII character, for sscanf(). APL's
+   /// negative sign ¯ becomes -. Set \b pos to the position of its first
+   /// character in the string.
+   /// @param pos receives the position of the rest in the string
+   std::string string_rest(ShapeItem & pos) const
+      {
+        pos = offset;
+        if (lookahead != Invalid_Unicode && lookahead != UNI_EOF)   --pos;
+        std::string ret;
+        for (ShapeItem p = pos; p < string->ssize(); ++p)
+            {
+              const Unicode uni = (*string)[p];
+              if (uni == UNI_OVERBAR)           ret += '-';
+              else if (uni > 0 && uni < 128)    ret += char(uni);
+              else                              break;
+            }
+        return ret;
+      }
+
+   /// consume \b count characters of the string input from position \b pos
+   /// @param pos the position (from string_rest())
+   /// @param count the number of characters consumed by sscanf()
+   void string_consume(ShapeItem pos, ShapeItem count)
+      {
+        lookahead = Invalid_Unicode;
+        unicodes_read += pos + count - offset;
+        offset = pos + count;
       }
 
 protected:
@@ -1338,6 +1316,9 @@ protected:
 
    /// number of chars consumed thus far
    ShapeItem unicodes_read;
+
+   /// number of bytes consumed thus far (from a file)
+   ShapeItem bytes_read;
 };
 //────────────────────────────────────────────────────────────────────────────
 Token
@@ -2288,7 +2269,7 @@ Quad_FIO::eval_AXB__13(Value_P A, Value_P B)
    // idiom as Bugs15 #7's chdir() fix -- get_FILE()/get_near_int() sat
    // between the old errno=0 and the call and could disturb it).
 FILE * file = get_FILE(*B);
-const APL_Integer pos = A->get_near_int(0);
+const APL_Integer pos = A->get_sole_integer();
    errno = 0;
 const int err = fseek(file, pos, SEEK_SET);
    return Token(TOK_APL_VALUE1, IntScalar(err ? -errno : 0, LOC));
@@ -2298,7 +2279,7 @@ Token
 Quad_FIO::eval_AXB__14(Value_P A, Value_P B)
 {
 FILE * file = get_FILE(*B);
-const APL_Integer pos = A->get_near_int(0);
+const APL_Integer pos = A->get_sole_integer();
    errno = 0;
 const int err = fseek(file, pos, SEEK_CUR);
    return Token(TOK_APL_VALUE1, IntScalar(err ? -errno : 0, LOC));
@@ -2308,7 +2289,7 @@ Token
 Quad_FIO::eval_AXB__15(Value_P A, Value_P B)
 {
 FILE * file = get_FILE(*B);
-const APL_Integer pos = A->get_near_int(0);
+const APL_Integer pos = A->get_sole_integer();
    errno = 0;
 const int err = fseek(file, pos, SEEK_END);
    return Token(TOK_APL_VALUE1, IntScalar(err ? -errno : 0, LOC));
@@ -2324,7 +2305,7 @@ const UTF8_string path(path_ucs);
    errno = 0;
 const int err = mkdir(path.c_str());
 #else // ! MINGW_SRC
-const int mask = A->get_near_int(0);
+const int mask = A->get_sole_integer();
    errno = 0;
 const int err = mkdir(path.c_str(), mask);
 #endif // ! MINGW_SRC
@@ -2335,7 +2316,7 @@ const int err = mkdir(path.c_str(), mask);
 Token
 Quad_FIO::eval_AXB__202(Value_P A, Value_P B, APL_Integer function_number)
 {
-const APL_Integer threshold = A->get_near_int(0);
+const APL_Integer threshold = A->get_sole_integer();
 cFunction_P fun = 0;
    if (B->element_count() == 3)   // dyadic operator
       {
@@ -2449,6 +2430,8 @@ Quad_FIO::eval_AXB__27(Value_P A, Value_P B)
 {
 const UCS_string old_name_ucs(*A.get());
 const UCS_string new_name_ucs(*B.get());
+   check_path(old_name_ucs);   // Bugs38 #86
+   check_path(new_name_ucs);
 UTF8_string old_name(old_name_ucs);
 UTF8_string new_name(new_name_ucs);
    errno = 0;
@@ -2537,7 +2520,7 @@ Quad_FIO::eval_AXB__34(Value_P A, Value_P B)
 const int fd = get_fd(*B.get());
 APL_Integer backlog = 10;
    if (A->element_count() > 0)
-      backlog = A->get_near_int(0);
+      backlog = A->get_sole_integer();
    errno = 0;
 const int err = listen(fd, backlog);
    return Token(TOK_APL_VALUE1, IntScalar(err ? -errno : 0, LOC));
@@ -2573,7 +2556,7 @@ Quad_FIO::eval_AXB__37(Value_P A, Value_P B)
    // has no lower bound, so a negative A wraps to a huge size_t and
    // "new char[bytes]" attempts a huge allocation -- same bug already
    // fixed for the sibling ⎕FIO[8], see the comment there.
-const APL_Integer bytes_signed = A->get_near_int(0);
+const APL_Integer bytes_signed = A->get_sole_integer();
    if (bytes_signed < 0)   LENGTH_ERROR;
 const size_t bytes = bytes_signed;
 const int fd = get_fd(*B.get());
@@ -2617,7 +2600,7 @@ Quad_FIO::eval_AXB__41(Value_P A, Value_P B)
 {
    // see eval_AXB__37 above: A->get_near_int(0) is signed and has no
    // lower bound when copied straight into a size_t.
-const APL_Integer bytes_signed = A->get_near_int(0);
+const APL_Integer bytes_signed = A->get_sole_integer();
    if (bytes_signed < 0)   LENGTH_ERROR;
 const size_t bytes = bytes_signed;
 const int fd = get_fd(*B.get());
@@ -2814,7 +2797,7 @@ Quad_FIO::eval_AXB__6(Value_P A, Value_P B)
    // reason to let a single ⎕FIO[6] ask for e.g. petabytes before finding
    // that out.
    //
-const APL_Integer bytes_signed = A->get_near_int(0);
+const APL_Integer bytes_signed = A->get_sole_integer();
    if (bytes_signed < 0 || bytes_signed > 100000000)   LENGTH_ERROR;
 const size_t bytes = bytes_signed;
 FILE * file = get_FILE(*B);
@@ -2885,7 +2868,7 @@ Quad_FIO::eval_AXB__8(Value_P A, Value_P B)
    // "bytes" (truncated to fgets's int size parameter) became ¯1 --
    // a libc that accepts a non-positive size then writes a full line into
    // that 0-byte heap buffer. Validate the signed value first.
-const APL_Integer bytes_signed = A->get_near_int(0);
+const APL_Integer bytes_signed = A->get_sole_integer();
    if (bytes_signed < 1 || bytes_signed > 100000000)   LENGTH_ERROR;
 const size_t bytes = bytes_signed;
 FILE * file = get_FILE(*B);
@@ -3179,8 +3162,9 @@ const UTF8_string path(path_ucs);
 Token
 Quad_FIO::eval_XB__2(Value_P B)
 {
-// APL_Integer, not int: 2147483648 wrapped (Bugs37 #83g)
-APL_Integer b = B->get_near_int(0);
+// APL_Integer, not int: 2147483648 wrapped (Bugs37 #83g); get_sole_integer():
+// a vector B was silently truncated to its first item (Bugs38 #102)
+APL_Integer b = B->get_sole_integer();
    if (b < 0)   b = -b;
    if (b > 0x7FFFFFFF)
       {
@@ -3214,7 +3198,7 @@ const UTF8_string path(path_ucs);
 Token
 Quad_FIO::eval_XB__200(Value_P B, APL_Integer function_number)
 {
-const Pfstat_ID b = Pfstat_ID(B->get_near_int(0));
+const Pfstat_ID b = Pfstat_ID(B->get_sole_integer());
 Statistics * stat = Performance::get_statistics(b);
    if (stat == 0)   DOMAIN_ERROR;   // bad statistics ID
 
@@ -3909,7 +3893,7 @@ NOT_MINGW(
 Token
 Quad_FIO::eval_XB__50(Value_P B)
 {
-const APL_Integer unit = B->get_near_int(0);
+const APL_Integer unit = B->get_sole_integer();
 timeval tv;
    gettimeofday(&tv, 0);
 int64_t usec = tv.tv_sec;
@@ -4269,10 +4253,15 @@ static const sock_const constants[] =
 #undef SOCK_CONST
 enum { CONST_COUNT = sizeof(constants) / sizeof(*constants) };
 
-   // B empty: return all constants as a CONST_COUNT×2 matrix (name value)
+   // B empty: return all constants as a CONST_COUNT×2 matrix (name value),
+   // except for an empty vector of names (Bugs38 #125)
    //
    if (B->element_count() == 0)
       {
+        Cell cache;
+        if (B->get_cfirst(cache).is_pointer_cell())   // 0⍴⊂'name'
+           return Token(TOK_APL_VALUE1, Idx0(LOC));
+
         Value_P Z(Shape(CONST_COUNT, 2), LOC);
         loop(c, CONST_COUNT)
            {
@@ -4299,7 +4288,10 @@ auto lookup = [](const Value & name_val) -> APL_Integer
      const UTF8_string name(name_ucs);
      loop(c, CONST_COUNT)
         {
-          if (!strcmp(name.c_str(), constants[c].name))
+          // compare the lengths too: a ⎕UCS 0 in name would end the
+          // C string and match a prefix (Bugs38 #103)
+          if (name.size() == strlen(constants[c].name) &&
+              !strcmp(name.c_str(), constants[c].name))
              return constants[c].value;
         }
 
@@ -4318,7 +4310,7 @@ auto lookup = [](const Value & name_val) -> APL_Integer
    if (B->get_rank() > 1)   RANK_ERROR;
 
 const ShapeItem len_B = B->element_count();
-Value_P Z(len_B, LOC);
+Value_P Z(B->get_shape(), LOC);   // a scalar for ⊂'name' (Bugs38 #125)
    loop(b, len_B)
        {
          Cell cache;

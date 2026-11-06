@@ -23,6 +23,13 @@ Bugs37_A.tc
 Bugs37_B.tc
 Bugs37_CD.tc
 Bugs37_Workspace.tc
+Bugs38_A.tc
+Bugs38_B.tc
+Bugs38_CD.tc
+Bugs38_FFT.tc
+Bugs38_MX.tc
+Bugs38_PNG.tc
+Bugs38_Workspace.tc
 COPY.tc
 Catenate.tc
 Catenate_with_Axis.tc

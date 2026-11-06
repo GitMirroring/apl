@@ -60,14 +60,16 @@ foo_fails[1]  ÷0
 
 
       ⎕EC¨'1¯' 
-  1  0 0  1    0  2 1538  Bad number  
-                                ¯     
-                                ^^    
+  1  0 0  1    0  2 2  SYNTAX ERROR+                                 
+                             ¯                                       
+                             ^^                                      
+                       expecting 0. or .0 but not . without digits.  
 
       ⎕EC¨'¯1'
-  0  2 1538  Bad number    1  0 0  1  
-                   ¯                  
-                   ^^                 
+  0  2 2  SYNTAX ERROR+                                   1  0 0  1  
+                ¯                                                    
+                ^^                                                   
+          expecting 0. or .0 but not . without digits.               
 
       )ERASE f
 
@@ -111,17 +113,23 @@ f
       )SIC
       ⎕EC '⎕EC ''7'' ⋄ ⍳'
  1  0 0  7 
- 0  2 2  SYNTAX ERROR+
-               ⍳
-               ^
+ 0  2 2  SYNTAX ERROR+                                                          
+                 
+               ⍳                                                                
+                 
+               ^                                                                
+                 
          Missing mandatory right argument of function ⍳ (at the right end of the
        statement)
 
       )SIC
       '8' ⎕EA '⎕EC ''⍳'''
- 0  2 2  SYNTAX ERROR+
-               ⍳
-               ^
+ 0  2 2  SYNTAX ERROR+                                                          
+                 
+               ⍳                                                                
+                 
+               ^                                                                
+                 
          Missing mandatory right argument of function ⍳ (at the right end of the
        statement)
 
@@ -143,9 +151,11 @@ f
 42
 
       Z
- 0  5 4  DOMAIN ERROR
+ 0  5 4  DOMAIN ERROR                                                           
+       
          the SI-modifying command ')CLEAR' cannot be executed from within ⎕EC/⎕E
       A
+                                                                                
        
 
       )ERASE V Z
@@ -162,21 +172,21 @@ f
       ⍝ later cut it at column boundaries instead of the author's
       ⍝ intended line breaks.
       ⍝
-      Z←⎕EC '0J1 2⍸1'
+      Z←⎕EC '2 1⍸1'
       ⊃Z[3]
-DOMAIN ERROR+
-      0J1 2⍸1
-      ^    ^
-A⍸B: A contains items that cannot be compared with each other
+DOMAIN ERROR+                                           
+      2 1⍸1                                             
+      ^  ^                                              
+A⍸B: Bad value of argument A (expecting ascending order)
 
       Z←⎕EC '(''%d %d'' 5) ⎕FIO[22] 0'
       ⊃Z[3]
-LENGTH ERROR+
-      '%d %d' 5 ⎕FIO[22]0
-      ^         ^
+LENGTH ERROR+                                     
+      '%d %d' 5 ⎕FIO[22]0                         
+      ^         ^                                 
 Too few arguments in argument B of: ⎕FIO.fprintf B
-    Only 1 argument(s) were provided in B.
-    The format string was: '%d %d'
+    Only 1 argument(s) were provided in B.        
+    The format string was: '%d %d'                
 
       )ERASE Z
 
@@ -192,9 +202,11 @@ Too few arguments in argument B of: ⎕FIO.fprintf B
  1  0 0   QECA  
 
       ⎕EC ')CLEAR'
- 0  5 4  DOMAIN ERROR
+ 0  5 4  DOMAIN ERROR                                                           
+       
          the SI-modifying command ')CLEAR' cannot be executed from within ⎕EC/⎕E
       A
+                                                                                
        
 
       )ERASE QECA

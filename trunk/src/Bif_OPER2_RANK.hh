@@ -98,6 +98,14 @@ protected:
    /// @param LO         left operator function argument
    /// @param X          axis specification value
    /// @param B          right value argument
+   /// the empty result of f⍤[X]y B with the (empty) frame \b shape_Z and
+   /// the LO result \b Z1 of one (fill) cell: ⊃[X] shape_Z⍴⊂Z1
+   /// @param X the axis
+   /// @param shape_Z the (empty) frame shape
+   /// @param Z1 the result of LO on a fill cell
+   static Value_P disclose_empty(const Value & X, const Shape & shape_Z,
+                                 const Value & Z1);
+
    /// @param rk_chunk_B  chunk rank for right argument
    static Token do_ALyXB(Value_P A, sRank rk_chunk_A, Token & LO,
                          Value_P X, Value_P B, sRank rk_chunk_B);

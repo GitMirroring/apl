@@ -43,7 +43,9 @@ Error::Error(ErrorCode ec, const char * loc)
      print_loc(0)
 {
 const bool have_more = Workspace::more_error().size();
-   if (have_more && Workspace::more_error().back() != UNI_PLUS)
+   // check the error name, not the )MORE text, which may well end with
+   // e.g. the function name + (Bugs38 #107)
+   if (have_more && !strchr(error_name(error_code), UNI_PLUS))
       {
         SPRINTF(error_message_1, "%s%c", error_name(error_code), UNI_PLUS);
       }
@@ -174,7 +176,8 @@ Error::print(ostream & out, const char * loc) const
         else
            {
              out << error_name(error_code);
-             if (Workspace::more_error().back() != UNI_PLUS)   out << UNI_PLUS;
+             if (Workspace::more_error().size() &&             // Bugs38 #107
+                 !strchr(error_name(error_code), UNI_PLUS))   out << UNI_PLUS;
              out << endl;
            }
 
@@ -635,8 +638,8 @@ Error error(code, loc);
    // is used instead, a few callers up) and clobber the message just
    // built above. The caller already prints this error itself.
    //
-   if (StateIndicator * si = Workspace::SI_top())
-      StateIndicator::get_error(si) = error;
+   // with an empty SI: the top-level error, for ⎕EM and ⎕ET (Bugs38 #70)
+   StateIndicator::get_error(Workspace::SI_top()) = error;
 
 const Error & eref = error;
    throw eref;
@@ -680,8 +683,8 @@ const int margin = margined.size();
    // Bugs28 #93: see the other throw_parse_error() overload above --
    // store directly, not via the full update_error_info().
    //
-   if (StateIndicator * si = Workspace::SI_top())
-      StateIndicator::get_error(si) = error;
+   // with an empty SI: the top-level error, for ⎕EM and ⎕ET (Bugs38 #70)
+   StateIndicator::get_error(Workspace::SI_top()) = error;
 
 const Error & eref = error;
    throw eref;

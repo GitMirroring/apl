@@ -240,11 +240,9 @@ LibRef libref = LIB_NONE;   // default library reference number to copy from
         UCS_string_vector usv;
         loop(row, Command::copy_once_table.size())
             {
-              const UCS_string & src = Command::copy_once_table[row];
+              // the entries are the workspace file names (Bugs38 #20)
               UCS_string ws(UNI_SPACE);
-              ws << src.front();      // wsname
-              ws << UNI_SPACE;
-              ws << UCS_string(src, 2, src.size() - 2);
+              ws << Command::copy_once_table[row];
               ws << UNI_SPACE;
               usv.push_back(ws);
             }
@@ -279,19 +277,14 @@ const UCS_string wsname(args.front());
    //
    if (libref == LIB_NONE)   libref = LIB0;
 
-   // lib_wsname is the name in the copy_once_table. Use the file that
-   // wsname resolves to, so that e.g. ws and ws.xml are the same workspace
-   // (Bugs37 #79).
+   // lib_wsname is the name in the copy_once_table: the (full) file name
+   // that wsname resolves to, so that e.g. ws and ws.xml are the same
+   // workspace (Bugs37 #79), but d1/ws and d2/ws are not (Bugs38 #20).
    //
 LibRef_name lib_name(libref, wsname);
 const UTF8_string filename = LibPaths::get_filename(lib_name, true,
                                                     ".xml", ".apl");
-const char * basename = strrchr(filename.c_str(), '/');
-const UTF8_string base_utf(basename ? basename + 1 : filename.c_str());
-const UCS_string file_ucs(base_utf);
-UCS_string lib_wsname(Unicode('0' + char(libref)));
-   lib_wsname << UNI_UNDERSCORE;
-   lib_wsname << file_ucs;
+const UCS_string lib_wsname(filename);
 
    // silently return if wsname is already contained in the copy_once_table
    //
@@ -301,12 +294,10 @@ UCS_string lib_wsname(Unicode('0' + char(libref)));
    if (libref)   out << libref << " ";
    out << wsname << endl;
 
-   Workspace::copy_WS(out, CERR, lib_name, args, false);
-
    // add it to the table, but only if the workspace could be copied, so
-   // that a failed )COPY_ONCE can be retried (Bugs37 #79)
+   // that a failed )COPY_ONCE can be retried (Bugs37 #79, Bugs38 #114)
    //
-   if (access(filename.c_str(), R_OK) == 0)
+   if (Workspace::copy_WS(out, CERR, lib_name, args, false))
       Command::copy_once_table.push_back(lib_wsname);
 }
 //────────────────────────────────────────────────────────────────────────────

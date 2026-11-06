@@ -114,50 +114,6 @@ Value::Value(const Shape & sh, const char * loc)
    init_ravel();
 }
 //────────────────────────────────────────────────────────────────────────────
-Value::Value(const Shape & sh, uint64_t * bits, const char * loc)
-   : DynamicObject(loc, &all_values),
-     owner_count(0)
-{
-   sh.checked_volume();   // throw WS_FULL if sh's true volume overflows
-   shape = sh;
-   pointer_cell_count = 0;
-   ravel.fetcher = &Ravel::bool_fetcher;
-   flags = {}; flags.ravel_type = RPT_BOOL;
-   ravel.valid_ravel_items = sh.get_nz_volume();
-   ravel.cells = reinterpret_cast<Cell *>(bits);
-   ADD_EVENT(this, VHE_Create, 0, loc);
-   check_ptr = charP(this) + 7;
-
-   // this constructor bypasses init_ravel() entirely, but ~Value()'s
-   // RPT_BOOL branch always does --value_count (unconditionally) and,
-   // since ravel.cells here is always heap (this constructor never uses
-   // ravel.short_value), always total_ravel_count -= nz_element_count()
-   // too -- without mirroring init_ravel()'s ++value_count/
-   // total_ravel_count here, both counters silently underflow over
-   // repeated )LOADs of bit-packed values, corrupting WS-FULL decisions
-   // that depend on them.
-   ++value_count;
-   total_ravel_count += sh.get_nz_volume();
-
-   if (ravel.cells)   { set_complete();   return; }   // caller has
-                                                       // allocated -- this
-                                                       // value is already
-                                                       // fully populated
-                                                       // too, just like
-                                                       // the self-
-                                                       // allocated branch
-                                                       // below, which
-                                                       // already called
-                                                       // set_complete().
-
-   // round the size up to the next 64 bit boundary.
-const size_t uint64_count = (sh.get_nz_volume() + 63) >> 6;
-   bits = new uint64_t[uint64_count];
-   loop(u, uint64_count)   bits[u] = 0;
-   ravel.cells = reinterpret_cast<Cell *>(bits);
-   set_complete();
-}
-//────────────────────────────────────────────────────────────────────────────
 Value::Value(const UCS_string & ucs, const char * loc)
    : DynamicObject(loc, &all_values)
 {
@@ -192,7 +148,9 @@ Value::Value(const CDR_string & ui8, const char * loc)
    init_ravel();
 
    set_proto_Spc();                          // prototype
-   loop(l, ui8.size())   next_ravel_Char(Unicode(ui8[l]));
+   // 0xFF: CDR_string is a std::string of (signed) chars, and a byte ≥ 128
+   // must not become a negative Unicode (Bugs38 #37)
+   loop(l, ui8.size())   next_ravel_Char(Unicode(0xFF & ui8[l]));
    set_complete();
    try_pack();
 }
@@ -395,6 +353,31 @@ Value::neutralize_lval_cells(const char * loc)
        }
 }
 //────────────────────────────────────────────────────────────────────────────
+bool
+Value::is_writable_member_cell(const Cell * target) const
+{
+   if (!is_member() || get_rank() != 2 || get_cols() != 2)   return false;
+
+const ShapeItem idx = get_offset(target);
+   if (idx < 0 || idx >= element_count())   return false;
+   if ((idx & 1) == 0)                      return false;   // a name
+
+Cell cache;
+const Cell & key = get_cravel(idx - 1, cache);
+   if (!key.is_pointer_cell())   return false;   // an unused row
+
+   return !target->is_member_anchor();   // not a sub-structure
+}
+//────────────────────────────────────────────────────────────────────────────
+void
+Value::throw_member_table_target()
+{
+   MORE_ERROR() << "(f S)←B: the member table of a structured variable "
+                   "cannot be assigned.\n      Use S.member←B or "
+                   "S['member']←B instead.";
+   DOMAIN_ERROR;
+}
+//────────────────────────────────────────────────────────────────────────────
 void
 Value::assign_cellrefs(Value_P new_value)
 {
@@ -433,6 +416,8 @@ Value::assign_cellrefs(Value_P new_value)
         if (get_lval_pick_owner() == 0)   LvalCell::throw_no_owner();
 
         Value & owner = *get_lval_pick_owner();
+        if (owner.is_member() && !owner.is_writable_member_cell(slot))
+           throw_member_table_target();   // Bugs38 #3
         owner.depth_update_for_overwrite(slot - owner.ravel.cells,
                                 new_value->is_simple_scalar() ? -1 : 0);
         slot->release(LOC);
@@ -489,6 +474,27 @@ const ShapeItem dest_count  = element_count();
    // the legitimate no-op it always was.
    //
    check_lval_consistency();
+
+   // The rows of a structured variable are its (hashed) member table.
+   // A selective specification into it, e.g. (↑S)←B, (⌽S)←B, or (,S)[1]←B,
+   // would destroy it (Bugs38 #3, like S[I;J]←B in Symbol::assign_indexed()).
+   // After check_lval_consistency(): the owners are then valid.
+   //
+   loop(c, nz_element_count())
+      {
+        const Cell & cell = get_wravel(c);
+        if (cell.is_lval_cell())
+           {
+             const Value * owner = cell.get_cell_owner();
+             if (owner && owner->is_member() &&
+                 !owner->is_writable_member_cell(cell.get_lval_value()))
+                {
+                  neutralize_lval_cells(LOC);
+                  throw_member_table_target();
+                }
+           }
+      }
+
    if (dest_count == 0)   return;   // nothing to assign; established
                                      // (Bugs28 #52) leniency for a
                                      // genuinely empty selection, e.g.
@@ -2229,12 +2235,18 @@ Value::check_WS_FULL(const char * args, ShapeItem requested_cell_count,
                      const char * loc)
 {
 const int64_t used_memory
-               = (total_ravel_count + requested_cell_count) * sizeof(Cell)
+               = total_ravel_count * sizeof(Cell)
                + (value_count + 1) * sizeof(Value)
                + Workspace::SI_entry_count() * sizeof(StateIndicator);
 
-   if (int64_t((Quad_WA::total_memory*Quad_WA::WA_scale/100)) >
-       (used_memory + Quad_WA::WA_margin))   return false;   // OK
+   // compare without adding used_memory, WA_margin, and the requested
+   // memory (any of them can be close to INT64_MAX, Bugs38 #6)
+   //
+const int64_t limit = int64_t(Quad_WA::total_memory / 100) * Quad_WA::WA_scale;
+const int64_t avail = limit - used_memory;   // may be negative
+   if (avail > Quad_WA::WA_margin &&
+       requested_cell_count < (avail - Quad_WA::WA_margin) / ShapeItem(sizeof(Cell)))
+      return false;   // OK
 
    Log(LOG_Value_alloc) CERR
    << "    value_count:       " << value_count             << endl
@@ -2526,4 +2538,22 @@ operator << (ostream & out, const AP_num3 & ap3)
    return out << ap3.proc << "." << ap3.parent << "." << ap3.grand;
 }
 //════════════════════════════════════════════════════════════════════════════
+APL_Integer
+cValue::index_int(const Cell & cell)
+{
+   if (cell.is_near_int64_t())   return cell.get_near_int();
 
+   // a character, nested, or non-integer index is outside the domain of
+   // indices, while an integer too large for an index is out of range
+   // (like in cValue::index(), Bugs37 #40 and Bugs38 #104)
+   //
+   if (cell.is_near_int())
+      {
+        MORE_ERROR() << "the index " << cell.get_real_value()
+                     << " is too large for a (signed) 63-bit index";
+        INDEX_ERROR;
+      }
+
+   return cell.get_near_int();   // DOMAIN ERROR
+}
+//════════════════════════════════════════════════════════════════════════════

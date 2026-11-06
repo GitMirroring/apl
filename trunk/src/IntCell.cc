@@ -21,6 +21,7 @@
 /** @file
 */
 
+#include <limits>
 #include <stdio.h>
 #include <math.h>
 
@@ -621,41 +622,11 @@ const APL_Float a = A->get_real_value();
    if (Cell::is_near_int64_t(a) && a == nearbyint(a))
       return IntCell::bif_residue_ii(Z, APL_Integer(a), value.ival);
 
-   // for a genuinely non-integer A near INT64 limit, use float arithmetic
-   if (a > (BIG_INT64_F - 1E10) || a < (1E10 - BIG_INT64_F))
-      return FloatCell::bif_residue_ff(Z, a, APL_Float(value.ival));
-
-   // non-integer float A: use CT tolerance check and near-zero guard
-   // (mirrors the original IntCell::bif_residue for float A)
-   if (a == 0.0)   return IntCell::zI(Z, value.ival);
-   if (value.ival == 0)   return IntCell::z0(Z);
-
-const APL_Float quot = value.ival / a;
-   // same overflow guard as FloatCell::bif_residue_ff(): when |a| is
-   // small enough that B÷a overflows, quot (and qf below) become
-   // +-inf, the ⎕CT tests below compare inf against inf and never
-   // match, and z = B - a*inf silently comes out +-inf instead of 0
-   // (Blake McBride, Bugs23 #4 -- e.g. 1E¯308|2 gave ¯∞).
-   if (!isfinite(quot))        return IntCell::z0(Z);
-   if (fabs(quot) > 4.5E15)    return IntCell::z0(Z);
-const APL_Float qf = floor(quot);
-const double qct = Workspace::get_CT();
-   if (qct != 0)
-      {
-        // a nearby integer of 0 is never a match here either -- same
-        // near-zero-quotient bug and fix as Cell::integral_within(),
-        // whose two branches this duplicates by hand (Blake McBride,
-        // Bugs22 #1).
-        const APL_Float qc = ceil(quot);
-        if (qc != 0.0 && quot > qc - qct)   return IntCell::z0(Z);
-        if (qf != 0.0 && quot < qf + qct)   return IntCell::z0(Z);
-      }
-
-APL_Float z = value.ival - a * qf;
-   if (Cell::is_near_zero(z))   return IntCell::z0(Z);
-   if (a < 0.0 && z > 0.0)   z = z + a;
-   else if (a > 0.0 && z < 0.0)   z = z + a;
-   return FloatCell::zF(Z, z);
+   // a non-integer A: the same residue as for a float B of the same value
+   // (Bugs38 #47: 1E¯5|¯1 was 0 but 1E¯5|¯1.0 was 4.6E¯17, and a hand-made
+   // copy of the float residue here differed in the last digits)
+   //
+   return FloatCell::bif_residue_ff(Z, a, APL_Float(value.ival));
 }
 //════════════════════════════════════════════════════════════════════════════
 ErrorCode
@@ -937,6 +908,16 @@ const APL_Integer i_quot = a / b;
 ErrorCode
 IntCell::bif_power_ii(Cell * Z, APL_Integer a, APL_Integer b)
 {
+   // -b below would overflow for the int64 minimum: use the (exact) double
+   // exponent instead, e.g. 2⋆M underflows to 0 like 2⋆M+1 (Bugs38 #44)
+   //
+   if (b == std::numeric_limits<APL_Integer>::min())
+      {
+        const APL_Float z = pow(APL_Float(a), APL_Float(b));
+        if (!isfinite(z))   return E_DOMAIN_ERROR;
+        return FloatCell::zF(Z, z);
+      }
+
 const bool invert_Z = b < 0;
    if (invert_Z)   b = -b;
 

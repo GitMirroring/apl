@@ -138,10 +138,6 @@ prim_f2 scalar_LO       = LO->get_scalar_f2();
 Token
 Bif_REDUCE::reduce(Token & tok_LO, Value_P B, uAxis axis)
 {
-   // if B is a scalar, then Z is B.
-   //
-   if (B->get_rank() == 0)      return Token(TOK_APL_VALUE1, CLONE_P(B, LOC));
-
    if (!tok_LO.is_function())
       {
         MORE_ERROR() << "f/ B resp. f⌿ B : Bad left argument f"
@@ -166,6 +162,10 @@ cFunction_P LO = tok_LO.get_function();
                      << LO->get_name() << " (expecting a dyadic function)";
         VALENCE_ERROR;   // like A F/ B (Bugs37 #67)
       }
+
+   // if B is a scalar, then Z is B. Checked after LO (Bugs38 #105).
+   //
+   if (B->get_rank() == 0)      return Token(TOK_APL_VALUE1, CLONE_P(B, LOC));
 
    if (axis >= B->get_rank())
       {
@@ -279,14 +279,16 @@ const APL_Integer A0 = A->get_near_int(0);
    // anything, and the negation itself needs its own overflow guard
    // (negating APL_Integer's own most negative value overflows the same
    // way).
-const APL_Integer neg_A0 = -A0;
-   if (A0 < 0 && Cell::diff_overflow(neg_A0, 0, A0))
+   // test BEFORE negating: computing -A0 first is itself the overflow
+   // (UB), and the optimiser removed the test (Bugs38 #51)
+   //
+   if (A0 == std::numeric_limits<APL_Integer>::min())
       {
         MORE_ERROR() << "A f/B resp. A f⌿B: A = " << A0
                      << " overflows on negation";
         DOMAIN_ERROR;
       }
-const APL_Integer n_wise = A0 < 0 ? neg_A0 : A0;
+const APL_Integer n_wise = A0 < 0 ? -A0 : A0;
 
    if (B->is_scalar())
       {
@@ -545,6 +547,13 @@ Shape shape_Z(shape_B);
    shape_Z.set_shape_item(axis, len_Z);
 
 Value_P Z(shape_Z, LOC);
+   if (Z->is_empty())   // Bugs38 #11: e.g. 1E15⌿3 0⍴0 looped 1E15 times
+      {
+        Z->set_default(B, LOC);
+        if (B.is_left_value())   Z->set_left_value();
+        Z->check_value(LOC);
+        return Token(TOK_APL_VALUE1, Z);
+      }
 
 const Shape3 shape_B3(shape_B, axis);
 

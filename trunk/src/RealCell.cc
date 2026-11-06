@@ -34,7 +34,7 @@
 ErrorCode
 RealCell::bif_circle_fun(Cell * Z, const Cell * A) const
 {
-   if (!A->is_near_int())   return E_DOMAIN_ERROR;
+   if (!A->is_near_int64_t())   return E_DOMAIN_ERROR;   // Bugs38 #93
 
    // do_bif_circle_fun() has several cases (e.g. fun 3 = tan, 4, 8, ¯8)
    // that can overflow to Inf for large but perfectly ordinary finite B
@@ -56,7 +56,7 @@ const ErrorCode ret = do_bif_circle_fun(Z, A->get_checked_near_int(), b);
 ErrorCode
 RealCell::bif_circle_fun_inverse(Cell * Z, const Cell * A) const
 {
-   if (!A->is_near_int())   return E_DOMAIN_ERROR;
+   if (!A->is_near_int64_t())   return E_DOMAIN_ERROR;   // Bugs38 #93
 const APL_Integer fun = A->get_checked_near_int();
 const APL_Float b = get_real_value();   // see bif_circle_fun() above
    switch (fun)

@@ -76,7 +76,7 @@ Next: <a href="#Installing-and-Starting-GNU-APL" accesskey="n" rel="next">Instal
 </div>
 <span id="GNU-APL-Reference-Manual"></span><h1 class="top">GNU APL Reference Manual</h1>
 
-<p>November 5, 2026.
+<p>November 6, 2026.
 This manual briefly documents GNU APL, an interpreter for APL as described
 in ISO standard 13751, aka. &quot;Programming Language APL, Extended&quot;.
 </p>
@@ -272,8 +272,9 @@ therefore it must be expanded with e.g. <b>gunzip</b> before it can be read.
       <li><a id="toc-Norm-1" href="#Norm">2.41.9 Norm</a></li>
       <li><a id="toc-Randoms-1" href="#Randoms">2.41.10 Randoms</a></li>
       <li><a id="toc-Covariance-1" href="#Covariance">2.41.11 Covariance</a></li>
-      <li><a id="toc-Histograms-1" href="#Histograms">2.41.12 Histograms</a></li>
-      <li><a id="toc-Print-1" href="#Print">2.41.13 Print</a></li>
+      <li><a id="toc-Correlation-1" href="#Correlation">2.41.12 Correlation</a></li>
+      <li><a id="toc-Histograms-1" href="#Histograms">2.41.13 Histograms</a></li>
+      <li><a id="toc-Print-1" href="#Print">2.41.14 Print</a></li>
     </ul></li>
     <li><a id="toc-_005b_003f_005dPLOT-_002d-Plot-Data" href="#g_t_2395PLOT-_002d-Plot-Data">2.42 ⎕PLOT - Plot Data</a>
     <ul class="no-bullet">
@@ -2965,12 +2966,24 @@ Next: <a href="#Complex-Numbers" accesskey="n" rel="next">Complex Numbers</a>, P
 <p>Both IBM APL2 and the ISO standard require that the arguments of &lt;, ≤, ≥,
 and &gt; (but not of = or ≠) are integer or real numbers. As a consequence,
 the argument(s) of ⍋ or ⍒ (which require comparison) must also be a vector
-of integer or real numbers.
+of integer or real numbers, and so must the arguments of dyadic ⌈ and ⌊.
 </p>
 <p>In contrast, GNU APL also allows the comparison of characters and numbers or
 the comparison of complex numbers according to the following, more general,
-rules.
+rules. The same rules (and therefore the same order) are used by &lt;, ≤, ≥,
+and &gt;, by ⍋ and ⍒, by dyadic ⍸, and (for numbers) by dyadic ⌈ and ⌊, which
+return the greater or the smaller one of A and B, respectively:
 </p>
+<div class="example">
+<pre class="example">      ⍋2J1 2 2J¯1 1J5
+4 3 2 1
+      1J1⌈2
+2
+      2J¯1⌊2
+2J¯1
+</pre></div>
+
+
 <p>Let A and B be two APL values to be compared. The final result of comparing
 A and B is the first verdict (i.e. either A &lt; B, or A &gt; B, or A = B)
 obtained when following the rules below in the indicated order:
@@ -6369,7 +6382,7 @@ Next: <a href="#dyadic-A-_2395CC-B-_002d-Test-character-class" accesskey="n" rel
 
 <p><b>⎕CC B</b> returns all characters of character class(es) <b>B</b>. If <b>B</b> is an
 integer scalar then the result is a character vector, If <b>B</b> is an integer
-vector then the result is a nested vector of integer vectors, with one item
+vector then the result is a nested vector of character vectors, with one item
 per character class.
 </p>
 <div class="example">
@@ -6396,7 +6409,7 @@ abcdefghijklmnopqrstuvwxyz
 ╙─╨─╜╚═╩═╝
 
       ⍝ Some mathematical symbols
-      ⎕CC 8
+      ⎕CC 9
 ⎲⎛⎞⎡⎤⎧⎫
 ⎳⎜⎟⎢⎥⎨⎬
 ↔⎝⎠⎣⎦⎮⎮
@@ -6408,21 +6421,21 @@ character classes for <b>⎕CC</b>:
 </p>
 <div class="example">
 <pre class="example">      ⎕CC ⍬
-      ⎕CC   1:  digits 0-9 (same as ⎕CC 10)
-      ⎕CC   2:  uppercase characters A-Z (same as ⎕CC 26)
+      ⎕CC   1:  Digits 0-9 (same as ⎕CC 10)
+      ⎕CC   2:  UPPERCASE CHARACTERS A-Z (same as ⎕CC 26)
       ⎕CC   3:  lowercase characters a-z (same as ⎕CC ¯26)
-      ⎕CC   4:  ASCII characters (same as ⎕CC 127)
-      ⎕CC   5:  superscripts ( ²³¹ʲᵏᵐᵗ⁰ⁱ⁴⁵⁶⁷⁸⁹⁺⁻⁼⁽⁾ⁿ )
+      ⎕CC   4:  ASCII characters (same as ⎕CC 128)
+      ⎕CC   5:  Superscripts ( ²³¹ʲᵏᵐᵗ⁰ⁱ⁴⁵⁶⁷⁸⁹⁺⁻⁼⁽⁾ⁿ )
       ⎕CC   6:  subscripts ( ᵢ₀₁₂₃₄₅₆₇₈₉₊₋₌₍₎ₖₘₙⱼ )
-      ⎕CC   7:  line drawing characters
-      ⎕CC   8:  octal digits 0-7
-      ⎕CC   9:  some mathematical symbols
-      ⎕CC  10:  decimal digits 0-9
+      ⎕CC   7:  Line drawing characters
+      ⎕CC   8:  Octal digits 0-7
+      ⎕CC   9:  Some mathematical symbols
+      ⎕CC  10:  Decimal digits 0-9
       ⎕CC  16:  UPPERCASE HEXADECIMAL DIGITS 0-9 A-F
-      ⎕CC ¯16:  lowercase hexadecimal digits 0-9 A-F a-f
+      ⎕CC ¯16:  lowercase hexadecimal digits 0-9 a-f
       ⎕CC  17:  Hexadecimal Digits 0-9 A-F a-f
       ⎕CC  26:  UPPERCASE CHARACTERS A-Z
-      ⎕CC ¯26:  lowercase characters A-Z
+      ⎕CC ¯26:  lowercase characters a-z
       ⎕CC  33:  base32 encoding (RFC 4648)
       ⎕CC  48:  greek characters A-Ω α-ω
       ⎕CC  52:  characters A-Z a-z
@@ -6438,7 +6451,9 @@ character classes for <b>⎕CC</b>:
       the class, e.g. <b>26</b> for <b>A-Z</b>, <b>52</b> for <b>A-Z and a-z</b>,
 </li><li> negative numbers are the lowercase variants of the uppercase class,
       e.g. <b>26</b> for <b>A-Z</b> and <b>¯26</b>  for <b>a-z</b>, and
-</li><li> <b>2*class</b> is the mixed case of the uppercase <b>class</b>.
+</li><li> <b>2×class</b> is (for letters) the mixed case of the uppercase <b>class</b>,
+      e.g. <b>52</b> for <b>A-Z and a-z</b> (but <b>17</b> for the mixed case
+      hexadecimal digits).
 </li></ul>
 
 <hr>
@@ -6461,9 +6476,12 @@ is contained in one of the character classes <b>B</b> and <b>0</b> if not.
 0 1 1 1
 
        (⎕CC 7) ⎕CC 7
-1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1
-1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1
-1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1
+1 1 1 1 1 1 1 1 1 1
+1 1 1 1 1 1 1 1 1 1
+1 1 1 1 1 1 1 1 1 1
+1 1 1 1 1 1 1 1 1 1
+1 1 1 1 1 1 1 1 1 1
+1 1 1 1 1 1 1 1 1 1
 </pre></div>
 
 <p>For most classes this lookup is an optimized constant time operation (for
@@ -7806,9 +7824,10 @@ operations are selected through the use of the axis specifier <b>x</b>:
           A ⎕MX[12] B      (dyadic)  Histogram
           A ⎕MX[13] B      (dyadic)  Print
             ⎕MX[14] B      (monadic) Set RNG seed
+        (A) ⎕MX[15] B      (nomadic) Correlation
 </pre></div>
 
-<p>(These may by shown by entering <b>⎕MX</b> &rdquo; or <b>⎕MX</b>[0]0 on the APL command line.)
+<p>(These may be shown by entering <b>⎕MX</b> &rdquo; or <b>⎕MX</b> ⍬ on the APL command line.)
 In the function list above, <b>A</b> indicates a mandatory left argument,
 while (<b>A</b>) indicates an optional left argument. The right argument <b>B</b>
 of <b>⎕MX[X]</b> is always mandatory.
@@ -7825,6 +7844,7 @@ of <b>⎕MX[X]</b> is always mandatory.
 <li><a href="#Norm" accesskey="9">Norm</a></li>
 <li><a href="#Randoms">Randoms</a></li>
 <li><a href="#Covariance">Covariance</a></li>
+<li><a href="#Correlation">Correlation</a></li>
 <li><a href="#Histograms">Histograms</a></li>
 <li><a href="#Print">Print</a></li>
 </ul>
@@ -7899,7 +7919,7 @@ two isomorphic real or complex vectors where ⍴⍴A = 1, ⍴⍴B = 1, and ⍴A 
 </p>
 <div class="example">
 <pre class="example">      (⍳8) ⎕MX[3] 4j4+⍳8
-0.2515670406J0.09930859532
+0.4715439237
 </pre></div>
 
 <hr>
@@ -8088,8 +8108,8 @@ of the squares of the elements equals 1:
 1
 </pre></div>
 
-<p>If the magnitude of the argument is zero, the operation returns an all-zero
-result with the same shape as the argument.
+<p>If the magnitude of the argument is zero, then the argument has no direction
+and the operation gives a DOMAIN ERROR.
 </p>
 
 <hr>
@@ -8165,7 +8185,7 @@ Student T distribution. See Histograms below.)
 <div class="subsection" id="Covariance">
 <div class="header">
 <p>
-Next: <a href="#Histograms" accesskey="n" rel="next">Histograms</a>, Previous: <a href="#Randoms" accesskey="p" rel="prev">Randoms</a>, Up: <a href="#g_t_2395MX-_002d-Matrix_002fStatistics" accesskey="u" rel="up">⎕MX - Matrix/Statistics</a> &nbsp; [<a href="#SEC_Contents" title="Table of contents" rel="contents">Contents</a>]</p>
+Next: <a href="#Correlation" accesskey="n" rel="next">Correlation</a>, Previous: <a href="#Randoms" accesskey="p" rel="prev">Randoms</a>, Up: <a href="#g_t_2395MX-_002d-Matrix_002fStatistics" accesskey="u" rel="up">⎕MX - Matrix/Statistics</a> &nbsp; [<a href="#SEC_Contents" title="Table of contents" rel="contents">Contents</a>]</p>
 </div>
 <span id="Covariance-1"></span><h4 class="subsection">2.41.11 Covariance</h4>
 
@@ -8196,6 +8216,19 @@ example:
 
 <p>In dyadic form, ⍴⍴A = 1, ⍴⍴B = 1, and ⍴A = ⍴B.
 </p>
+<p>The covariance is the sample covariance, i.e. for vectors A and B with
+N items:
+</p>
+<div class="example">
+<pre class="example">      (+/(A-(+/A)÷N)×B-(+/B)÷N)÷N-1
+</pre></div>
+
+<p>and (⎕MX[11] B)[I;J] is the same as B[I;] ⎕MX[11] B[J;]. At least 2
+samples are needed. For complex arguments, the real and the imaginary
+parts are treated as separate sample sets: the real part of the result
+is the covariance of the real parts of A and B, and the imaginary part
+of the result is the covariance of the imaginary parts of A and B.
+</p>
 <p>Sample variance can be computed by supplying the same argument on the
 left and right:
 </p>
@@ -8205,14 +8238,78 @@ left and right:
 36.67777778 
 </pre></div>
 
+<p>The covariance depends on the scale of the samples (multiplying A by 10
+multiplies the covariance by 10). See <b>⎕MX</b>[15] (Correlation) below
+for a measure that is independent of the scale.
+</p>
+<hr>
+</div>
+<div class="subsection" id="Correlation">
+<div class="header">
+<p>
+Next: <a href="#Histograms" accesskey="n" rel="next">Histograms</a>, Previous: <a href="#Covariance" accesskey="p" rel="prev">Covariance</a>, Up: <a href="#g_t_2395MX-_002d-Matrix_002fStatistics" accesskey="u" rel="up">⎕MX - Matrix/Statistics</a> &nbsp; [<a href="#SEC_Contents" title="Table of contents" rel="contents">Contents</a>]</p>
+</div>
+<span id="Correlation-1"></span><h4 class="subsection">2.41.12 Correlation</h4>
+
+<p>The correlation operation, <b>⎕MX</b>[15], is nomadic and takes the same
+arguments as the covariance operation, <b>⎕MX</b>[11]. It computes the
+(Pearson) correlation coefficient instead of the covariance, i.e. the
+covariance divided by the product of the standard deviations of the two
+sample sets. A correlation coefficient lies between ¯1 and 1: 1 means
+that the samples lie on a straight line with a positive slope, ¯1 that
+they lie on a straight line with a negative slope, and 0 that they are
+not linearly related at all. Unlike the covariance, the correlation does
+not change if a sample set is multiplied by a positive number.
+</p>
+<p>In monadic form, it computes the correlation of each row of B with every
+other row of B. The diagonal of the result is therefore 1. For the
+matrix B from the covariance example above:
+</p>
+<div class="example">
+<pre class="example">      ⎕PP←10
+      ⎕MX[15] B
+ 1             0.8821359145 ¯0.9786290052
+ 0.8821359145  1            ¯0.9471678676
+¯0.9786290052 ¯0.9471678676  1
+</pre></div>
+
+<p>The result can also be computed from the covariance matrix C:
+</p>
+<div class="example">
+<pre class="example">      C←⎕MX[11] B
+      C÷∘.×⍨(1 1⍉C)*0.5
+ 1             0.8821359145 ¯0.9786290052
+ 0.8821359145  1            ¯0.9471678676
+¯0.9786290052 ¯0.9471678676  1
+</pre></div>
+
+<p>In dyadic form, it computes the correlation of the argument vectors:
+</p>
+<div class="example">
+<pre class="example">      1 2 3 4 ⎕MX[15] 2 4 5 9
+0.9647638212
+      1 2 3 4 ⎕MX[15] 8 6 4 2
+¯1
+</pre></div>
+
+<p>Complex arguments are treated like in the covariance operation: the real
+and the imaginary parts of the result are the correlations of the real
+and of the imaginary parts of the arguments, respectively. A part that
+is 0 in all samples (such as the imaginary part of real arguments) is
+ignored, so that real arguments give a real result.
+</p>
+<p>The correlation is not defined for a sample set whose samples are all
+equal (and whose standard deviation is therefore 0). In that case, a
+DOMAIN ERROR is raised.
+</p>
 <hr>
 </div>
 <div class="subsection" id="Histograms">
 <div class="header">
 <p>
-Next: <a href="#Print" accesskey="n" rel="next">Print</a>, Previous: <a href="#Covariance" accesskey="p" rel="prev">Covariance</a>, Up: <a href="#g_t_2395MX-_002d-Matrix_002fStatistics" accesskey="u" rel="up">⎕MX - Matrix/Statistics</a> &nbsp; [<a href="#SEC_Contents" title="Table of contents" rel="contents">Contents</a>]</p>
+Next: <a href="#Print" accesskey="n" rel="next">Print</a>, Previous: <a href="#Correlation" accesskey="p" rel="prev">Correlation</a>, Up: <a href="#g_t_2395MX-_002d-Matrix_002fStatistics" accesskey="u" rel="up">⎕MX - Matrix/Statistics</a> &nbsp; [<a href="#SEC_Contents" title="Table of contents" rel="contents">Contents</a>]</p>
 </div>
-<span id="Histograms-1"></span><h4 class="subsection">2.41.12 Histograms</h4>
+<span id="Histograms-1"></span><h4 class="subsection">2.41.13 Histograms</h4>
 
 <p>The histogram operation, <b>⎕MX</b>[12], is dyadic and requires a single integer
 left argument (the number of buckets) and a real or complex vector as a
@@ -8243,7 +8340,7 @@ normally distributed samples with a standard deviation of 1.
 <p>
 Previous: <a href="#Histograms" accesskey="p" rel="prev">Histograms</a>, Up: <a href="#g_t_2395MX-_002d-Matrix_002fStatistics" accesskey="u" rel="up">⎕MX - Matrix/Statistics</a> &nbsp; [<a href="#SEC_Contents" title="Table of contents" rel="contents">Contents</a>]</p>
 </div>
-<span id="Print-1"></span><h4 class="subsection">2.41.13 Print</h4>
+<span id="Print-1"></span><h4 class="subsection">2.41.14 Print</h4>
 
 <p>The print operation, <b>⎕MX</b>[13], is dyadic and provides an easy way to
 dump large quantities of data to files. It&rsquo;s left argument is a
@@ -9596,7 +9693,7 @@ formats &rsquo;string&rsquo; and &rsquo;position/length&rsquo;, but not of the r
 <p>The output formats ⊂ and / are related like this:
 </p>
 <div class="example">
-<pre class="example">      A ⌷RE['/'] B   ←→   0 ≠ A  A ⌷RE['⊂'] B
+<pre class="example">      A ⎕RE['/'] B   ←→   0 ≠ A  A ⎕RE['⊂'] B
 </pre></div>
 
 
@@ -9616,7 +9713,7 @@ raise an error if no match is found. This can be achieved with the E flag:
 <div class="example">
 <pre class="example">       4 ⎕CR 'g..' ⎕RE[''] '__foo___fun____fox'
 ┏⊖┓
-┃0┃
+┃ ┃
 ┗━┛
        'g..' ⎕RE['E'] '__foo___fun____fox'
 DOMAIN ERROR+
@@ -12727,7 +12824,9 @@ so there is nothing to select</td></tr>
 fixed, pre-allocated size that would need resizing</td></tr>
 <tr><td width="30%"><code>SYSTEM LIMIT</code> message</td><td width="24%">Bare <code>SYSTEM LIMIT+</code> (detail available via <code>)MORE</code>)</td><td width="8%">IR</td><td width="38%">Always qualified inline, e.g. <code>SYSTEM LIMIT (rank)</code></td></tr>
 <tr><td width="30%">Certain lexical/tokenizer errors</td><td width="24%">Generic <code>ENTRY ERROR</code> / <code>SYNTAX ERROR</code></td><td width="8%">IR</td><td width="38%">More specific text, e.g. <code>Non-APL character</code>, <code>Bad number</code>,
-<code>No string end found</code></td></tr>
+<code>No string end found</code>, in immediate execution. In <b>⍎</b>, <b>⎕EA</b>,
+<b>⎕EB</b> and <b>⎕EC</b> they are <code>SYNTAX ERROR</code> (<b>⎕ET</b> 2 2) like in
+IBM APL2, with the specific text in <code>)MORE</code></td></tr>
 </table>
 
 <hr>

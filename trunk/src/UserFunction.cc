@@ -1464,7 +1464,8 @@ const UserFunction * old_ufun = 0;
 }
 //════════════════════════════════════════════════════════════════════════════
 UserFunction *
-UserFunction::fix_lambda(Symbol & var, const UCS_string & text)
+UserFunction::fix_lambda(Symbol & var, const UCS_string & text,
+                         Lambda_number lambda_num)
 {
    // NOTE: only called from Archive::read_Function(). extract the local
    //       vars the first line of text,
@@ -1552,7 +1553,8 @@ Function_PC end_PC = Function_PC_0;   // the end of body_text
       }
 
 Function_PC last_statement = Function_PC(-1);
-   for (int b = body.size() - 1; b; --b)
+   // b ≥ 0: also a diamond at body[0], e.g. {⋄⍵+1} (Bugs38 #38)
+   for (int b = body.size() - 1; b >= 0; --b)
        {
          if (body[b].get_tag() == TOK_DIAMOND)
             {
@@ -1594,7 +1596,7 @@ vector<Symbol *> local_vars;
         else break;
       }
 
-   return new UserFunction(Fun_signature(signature), LAMBDA_NUM_0,
+   return new UserFunction(Fun_signature(signature), lambda_num,
                                          body_text, body, local_vars);
 }
 //────────────────────────────────────────────────────────────────────────────

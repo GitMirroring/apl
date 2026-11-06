@@ -97,6 +97,25 @@ const APL_Float mag2_max = mag2_A > mag2_B ? mag2_A : mag2_B;
 }
 //════════════════════════════════════════════════════════════════════════════
 inline bool
+Cell::rounded_integral(APL_Float Q)
+{
+   // The tolerance of integral_within() is absolute (as in ISO 13751,
+   // where the fractional part of B÷A is compared with 1). Above about
+   // 1E3 the doubles are farther apart than ⎕CT, so B÷A is integral
+   // within ⎕CT only if it is exactly integral. But A and B are rounded
+   // (1E¯5 is not exactly 10⋆¯5) and so is B÷A: 1E¯5|3.0 has the exact
+   // quotient 300000 but 1E¯5|¯1.0 has ¯99999.999999999985 (Bugs38 #47).
+   // These three roundings (half a step each) move Q by less than
+   // DBL_EPSILON×|Q|, which is accepted instead. That is less than any
+   // fractional part that B÷A can still represent (7|1E15+0.5 stays 6.5).
+   // Like integral_within(), 0 is never a match (Bugs22 #1).
+   //
+const APL_Float nearest = nearbyint(Q);
+   if (nearest == 0.0)   return false;
+   return fabs(Q - nearest) <= DBL_EPSILON * fabs(Q);
+}
+//────────────────────────────────────────────────────────────────────────────
+inline bool
 Cell::integral_within(APL_Float A, double qct)
 {
    // A nearby integer of 0 is never a match: ⎕CT never tolerantly

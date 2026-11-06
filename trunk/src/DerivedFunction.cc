@@ -113,6 +113,19 @@ DerivedFunction::has_result() const
    return true;   // operator bound to left value
 }
 //────────────────────────────────────────────────────────────────────────────
+int
+DerivedFunction::get_fun_valence() const
+{
+   // every derived function is a TOK_FUN2, but e.g. the function derived
+   // from a monadic-only defined operator, or f¨ for a monadic-only f is
+   // monadic (Bugs38 #105)
+   //
+   if (oper->get_func_ufun())   return oper->get_fun_valence();
+   if (oper == &Bif_OPER1_EACH::fun && left_arg.is_function())
+      return left_arg.get_function()->get_fun_valence();
+   return 2;   // ambivalent or dyadic
+}
+//────────────────────────────────────────────────────────────────────────────
 void
 DerivedFunction::unmark_all_values() const
 {

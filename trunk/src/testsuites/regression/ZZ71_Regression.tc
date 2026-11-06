@@ -593,9 +593,10 @@ DOMAIN ERROR
       ⍝
       Z←⎕EC 'A←B)←2)'
       Z
- 0  2 6658  Unbalanced right parenthesis 
-                  A←B)←2)                
-                     ^                   
+ 0  2 2  SYNTAX ERROR+                
+               A←B)←2)                
+                  ^                   
+         Unbalanced right parenthesis 
       1÷0
 DOMAIN ERROR
       1÷0
@@ -739,9 +740,9 @@ OK      - no stale indices
 OK      - no duplicate parents
 
       +⍣1 1⍤1
-VALENCE ERROR+
+SYNTAX ERROR+
       +⍣1 1⍤1
-      ^
+            ^
 
       )SIC
       )CHECK
@@ -1668,13 +1669,14 @@ MY SPECIAL ERROR+
 
 
       '' ⎕EB '((('
-Unbalanced left parenthesis+
+SYNTAX ERROR+
       '' ⎕EB '((('
       ^
 
 
       )MORE
-A ⎕EB B: B failed with Unbalanced left parenthesis in: (((
+A ⎕EB B: B failed with SYNTAX ERROR in: (((
+Unbalanced left parenthesis
 
 
 

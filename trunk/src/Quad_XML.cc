@@ -143,19 +143,21 @@ const Unicode ucs1 = src[src_pos + 1];          // the character after <
       }
    else if (ucs1 == '?')   // <? ... >
       {
-        if (src_len < 7)   // at least <?xml?>
+        // a processing instruction <?target ...?> with any target, e.g.
+        // <?xml-stylesheet ...?> or <?pi?> (XML 1.0 §2.6, Bugs38 #60)
+        //
+        if (src_len < 5)   // at least <?x?>
            {
              err_loc = LOC;
              MORE_ERROR() << "⎕XML: processing instruction not terminated: "
                           << UCS_string(src, src_pos, src_len);
              return;
            }
-        else if (src[src_pos + 2] !='x' ||
-                 src[src_pos + 3] !='m' ||
-                 src[src_pos + 4] !='l')   // not <?xml
+        else if (!is_first_name_char(src[src_pos + 2]))   // no target
            {
              err_loc = LOC;
-             MORE_ERROR() << "⎕XML: bad declaration start (expecting <?xml): "
+             MORE_ERROR() << "⎕XML: bad processing instruction (expecting"
+                             " <?target): "
                           << UCS_string(src, src_pos, src_len);
              return;
            }
@@ -517,13 +519,9 @@ vector<size_t> pos_stack;   // a stack of node positions
          switch(node->get_node_type())
             {
               case NT_declaration:
-                   if (stack.size())   // only allowed at top-level
-                      {
-                        MORE_ERROR() <<
-                        "⎕XML: XML declaration below top-level: "
-                        << node->get_item();
-                        return true;
-                      }
+                   // a processing instruction inside an element becomes a
+                   // member of that element, like a comment (Bugs38 #60)
+                   if (stack.size())   continue;
 
                    add_member(Z, UNI_DELTA, "declaration", position,
                               node->APL_value.get());
@@ -1219,7 +1217,8 @@ Quad_XML::eval_AB(cValue_R A, cValue_R B) const
 {
    if (A.get_rank() > 1)   RANK_ERROR;
 
-const int function_number = A.get_int_value(0);
+// APL_Integer, not int: e.g. 4294967296 was 0 (Bugs38 #87)
+const APL_Integer function_number = A.get_int_value(0);
    switch(function_number)
       {
          case 0:   // same as monadic ⎕XML

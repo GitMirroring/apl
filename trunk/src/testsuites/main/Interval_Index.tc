@@ -121,28 +121,26 @@
 │1 2 3 4 5 1 2 1 0 4 5│
 └∼────────────────────┘
 
-      ⍝ regression (Bugs28 #100(r)): A⍸B used to order genuinely complex
-      ⍝ numbers silently via Cell::compare()'s arbitrary real-then-
-      ⍝ imaginary fallback (e.g. 1J1 2⍸1 gave 0 instead of a DOMAIN
-      ⍝ ERROR), unlike ⍋/⍒ (Bif_F12_SORT::sort()), which already rejects
-      ⍝ exactly this with the same can_be_compared() check now used here.
+      ⍝ complex numbers are ordered like by < (real parts first, then
+      ⍝ imaginary parts), as for ⍋ and ⍒ (Bugs38 #124, which reverts the
+      ⍝ DOMAIN ERROR of Bugs28 #100(r))
       ⍝
       ]FILE_CTL SKIP_APL2   ⍝ ⍤ ⍣ ⍸ ≢ are not in IBM APL2
       0J1 2⍸1
+1
+
+      1 2⍸0J1
+0
+
+      1J1 2⍸1J2 1.5 3
+1 1 2
+
+      2J1 2⍸1
 DOMAIN ERROR+
-      0J1 2⍸1
+      2J1 2⍸1
       ^    ^
 
       )MORE
-A⍸B: A contains items that cannot be compared with each other
-      )SIC
-
-      1 2⍸0J1
-DOMAIN ERROR+
-      1 2⍸0J1
-      ^  ^
-
-      )MORE
-A⍸B: B contains items that cannot be compared with each other
+A⍸B: Bad value of argument A (expecting ascending order)
       )SIC
 

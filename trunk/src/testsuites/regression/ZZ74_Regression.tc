@@ -2243,7 +2243,7 @@ LENGTH ERROR+
 
 
       )MORE
-A f¨B: ⍴A is 0 2 but ⍴B is 2 0
+A f¨B: expecting ⍴A = ⍴B (or A or B with 1 element); ⍴A is 0 2, ⍴B is 2 0
 
 
 
@@ -3025,9 +3025,9 @@ G71
 
 
       ⍎'2 3 4,{→0} 5'
-SYNTAX ERROR+
+DEFN ERROR+
       ⍎'2 3 4,{→0} 5'
-      ^^
+      ^
 
 
 
@@ -3308,10 +3308,10 @@ invalid expression in parentheses
       R←5 ∘. 1
 SYNTAX ERROR+
       R←5∘.1
-      ^  ^
+           ^
 
       )MORE
-function without right argument
+Missing mandatory right argument of the (derived) function at the right end of the statement
       R
 0
       )SIC
@@ -3347,7 +3347,7 @@ Z←2
       FB36_GOTO
 SYNTAX ERROR+
 FB36_GOTO[2]  →4∘.1
-              ^ ^
+                  ^
 
       )SIC
 

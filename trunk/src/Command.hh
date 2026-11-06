@@ -218,6 +218,10 @@ protected:
         /// @param shape  filled with the array shape from the record
         uint32_t get_nrs(UCS_string & name, Shape & shape) const;
 
+        /// return true iff \b name is a valid user name (Bugs38 #40)
+        /// @param name the object name of an )IN record
+        static bool valid_user_name(const UCS_string & name);
+
         /// process an 'N' (numeric in 1 ⎕TF format) item.
         /// @param objects  list of object names to selectively import (empty = all)
         void numeric_1TF(const UCS_string_vector & objects) const;

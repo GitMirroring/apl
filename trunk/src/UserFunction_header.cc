@@ -199,7 +199,7 @@ UserFunction_header::pop_local_vars() const
    if (sym_RO)   sym_RO->pop();
    if (sym_LO)   sym_LO->pop();
    if (sym_A)    sym_A ->pop();
-   if (sym_Z)    sym_Z ->pop();
+   if (sym_Z)    sym_Z ->pop_local();   // e.g. λ←⍶ (Bugs38 #78)
 }
 //────────────────────────────────────────────────────────────────────────────
 void

@@ -265,7 +265,7 @@ public:
    static void flush_expunged();
 
    /// copy objects from another workspace
-   static void copy_WS(ostream & out, ostream & err,
+   static bool copy_WS(ostream & out, ostream & err,
                       const LibRef_name & lib_name,
                        UCS_string_vector & objects, bool protection);
 

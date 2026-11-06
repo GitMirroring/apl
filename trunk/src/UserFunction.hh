@@ -379,7 +379,9 @@ public:
    /// (re-)create a lambda
    /// @param var symbol to which the lambda will be bound
    /// @param text source text of the lambda expression
-   static UserFunction * fix_lambda(Symbol & var, const UCS_string & text);
+   /// @param lambda_num the number of an anonymous lambda (e.g. 1 for λ1)
+   static UserFunction * fix_lambda(Symbol & var, const UCS_string & text,
+                                    Lambda_number lambda_num = LAMBDA_NUM_0);
 
 protected:
    /// constructor for a normal (i.e. non-lambda) user defined function

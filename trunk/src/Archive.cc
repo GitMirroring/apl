@@ -1424,6 +1424,7 @@ XML_Loading_Archive::XML_Loading_Archive(ostream & of, ostream & ef,
      tag_name(0),
      valid_format(true)
 {
+   SI_lambda_created = false;
    Log(LOG_archive)   err << "Loading workspace file " << filename << endl;
 
    errno = 0;
@@ -2402,6 +2403,16 @@ int type_len = 0;
 const Unicode type = UTF8_string::toUni(input, type_len, true, file_end);
    input += type_len;   // skip type in input
 
+   // a (legacy) bool-packed value has only ⁹ cells: the other cases below
+   // would write Cells into its packed ravel (Bugs38 #9)
+   //
+   if (Z.is_bool_packed() && type != UNI_PAD_U9)
+      {
+        MORE_ERROR() << "corrupt workspace: non-packed cell in a "
+                        "packed-boolean value";
+        DOMAIN_ERROR;
+      }
+
    // result pointer for u8::strtoll() / u8::strtod()
 UTF8 * end = 0;
 
@@ -2903,7 +2914,9 @@ UCS_string text;
            {
              const char * creator = ")LOAD λ";
              ufun = UserFunction::fix_lambda(symbol, text);
-             ufun->increment_refcount(LOC, creator);
+             // ufun is 0 if the lambda cannot be parsed (e.g. a lambda
+             // with a bad ; tail that older versions accepted, Bugs38 #2)
+             if (ufun)   ufun->increment_refcount(LOC, creator);
            }
         else
            {
@@ -3000,11 +3013,29 @@ XML_Loading_Archive::read_lambda(const UTF8 * lambda_name)
 {
 UCS_string lambda = read_UCS();
 
+   // the name of the lambda, e.g. λ1 (it was λ0, Bugs38 #80)
+   //
+Lambda_number lambda_num = LAMBDA_NUM_0;
+   if (lambda_name)
+      {
+        const UTF8_string lambda_utf("λ");
+        if (!strncmp(charP(lambda_name), lambda_utf.c_str(), lambda_utf.size()))
+           lambda_num = Lambda_number(atoi(charP(lambda_name) +
+                                           lambda_utf.size()));
+      }
+
 Symbol dummy(ID_No_ID);
-UserFunction * ufun = UserFunction::fix_lambda(dummy, lambda);
-   Assert(ufun);
+UserFunction * ufun = UserFunction::fix_lambda(dummy, lambda, lambda_num);
+   if (ufun == 0)   // e.g. a bad ; tail that older versions accepted
+      {
+        // the Error refuses the whole workspace (see read_StateIndicator())
+        MORE_ERROR() << "corrupt workspace: the lambda " << lambda
+                     << " on the )SI cannot be parsed (Bugs38 #2)";
+        DOMAIN_ERROR;
+      }
 const char * creator = ")LOAD )SI λ";
    ufun->increment_refcount(LOC, creator);
+   SI_lambda_created = true;
 
    next_tag(LOC);
    expect_tag("/UserFunction", LOC);
@@ -3199,6 +3230,11 @@ const Executable * exec = 0;
    Workspace::push_SI(exec, LOC);
 StateIndicator * si = Workspace::SI_top();
    Assert(si);
+
+   // an anonymous lambda created by read_lambda() is owned by its SI entry
+   // (Bugs38 #80)
+   if (SI_lambda_created)   si->set_owns_lambda();
+   SI_lambda_created = false;
    si->get_prefix().goto_PC(Prefix_PC(pc));
    read_Parser(*si, lev);
 
@@ -3347,12 +3383,13 @@ const int levels = find_int_attr("levels", false, 10);
 }
 //────────────────────────────────────────────────────────────────────────────
 void
-XML_Loading_Archive::copy_snapshot_symbol(Symbol * symbol)
+XML_Loading_Archive::copy_snapshot_symbol(Symbol * symbol, bool localized)
 {
    if (!copying)   return;
 
 _copy_snapshot snap;
    snap.symbol = symbol;
+   snap.localized = localized;
    snap.size = symbol->value_stack_size();
    snap.nc = snap.size ? symbol->top_of_stack()->get_NC()
                         : NC_UNUSED_USER_NAME;
@@ -3369,6 +3406,11 @@ XML_Loading_Archive::copy_restore_snapshots()
    loop(s, copy_snapshots.size())
       {
         _copy_snapshot & snap = copy_snapshots[s];
+
+        // a localized symbol: restore its global level (Bugs38 #24)
+        //
+        std::vector<ValueStackItem> locals;
+        if (snap.localized)   snap.symbol->hide_locals(locals);
 
         // undo any net growth/shrinkage of the value stack left behind
         // by the (possibly only partially executed) d==0 mutator...
@@ -3398,6 +3440,8 @@ XML_Loading_Archive::copy_restore_snapshots()
                   snap.symbol->push();
                   break;
            }
+
+        if (snap.localized)   snap.symbol->restore_locals(locals);
       }
 
    copy_snapshots.clear();
@@ -3489,12 +3533,13 @@ bool no_copy = is_protected || (have_allowed_objects && !is_selected);
         return;
       }
 
-   // in a )COPY without dedicated objects, the only system variables that
-   // shall be copied are ⎕CT, ⎕FC, ⎕IO, ⎕LX, ⎕PP, ⎕PR, and ⎕RL (LRM p.
-   // 423). In particular not the session variables ⎕PW and ⎕TZ. Bugs37 #25.
+   // in a )COPY (with or without dedicated objects, Bugs38 #82), the only
+   // system variables that shall be copied are ⎕CT, ⎕FC, ⎕IO, ⎕LX, ⎕PP,
+   // ⎕PR, and ⎕RL (LRM p. 423). In particular not the session variables
+   // ⎕PW and ⎕TZ. Bugs37 #25. A dedicated one stays in allowed_objects
+   // and is then reported as NOT COPIED.
    //
-   if (!have_allowed_objects       &&   // no dedicated object list
-        copying                    &&   // )COPY
+   if ( copying                    &&   // )COPY
         name_UCS.size()            &&
         Avec::is_quad(name_UCS[0]) &&   // system variable
        !(name_UCS == ID::get_name_UCS(ID_Quad_CT) ||
@@ -3510,11 +3555,13 @@ bool no_copy = is_protected || (have_allowed_objects && !is_selected);
         no_copy = true;
       }
 
-   // in a )LOAD silently ignore session variables (⎕PW and ⎕TZ)
+   // in a )LOAD silently ignore session variables (⎕PW, ⎕TZ, and ⎕PS,
+   // which survives )CLEAR and )LOAD since Bugs37 #60, Bugs38 #23)
    //
    if (!copying &&   // )LOAD
         (name_UCS == ID::get_name_UCS(ID_Quad_PW) ||
-         name_UCS == ID::get_name_UCS(ID_Quad_TZ)))
+         name_UCS == ID::get_name_UCS(ID_Quad_TZ) ||
+         name_UCS == ID::get_name_UCS(ID_Quad_PS)))
       {
         skip_to_tag("/Symbol");
         return;
@@ -3548,10 +3595,27 @@ bool no_copy = is_protected || (have_allowed_objects && !is_selected);
       }
    Assert(symbol);
 
+   // )COPY replaces the global level (level 0) of a symbol, not a local
+   // level of a suspended function that localizes the name (LRM p. 423,
+   // Bugs38 #24): set the local levels aside while the symbol is read.
+   //
+struct _locals_guard
+   {
+     _locals_guard(Symbol * sym, bool copy)
+     : symbol(copy ? sym : 0)
+     { if (symbol)   symbol->hide_locals(locals); }
+
+     ~_locals_guard()
+     { if (symbol)   symbol->restore_locals(locals); }
+
+     Symbol * symbol;
+     std::vector<ValueStackItem> locals;
+   } locals_guard(symbol, copying && symbol->value_stack_size() > 1);
+
    // remember symbol's pre-)COPY state so a )COPY that fails on a later
    // <Symbol> can restore it (Workspace::copy_WS()). No-op for )LOAD.
    //
-   copy_snapshot_symbol(symbol);
+   copy_snapshot_symbol(symbol, locals_guard.locals.size() > 0);
 
    loop(d, SI_depth)
       {
@@ -3851,9 +3915,13 @@ bool no_copy = false;   // assume the value is needed
         // longer written, but still readable in old archives.
         if (flags & 0x10)   // legacy: bool-packed archive format
            {
-             Value_P val(sh_value, /* constructor allocates */ 0, LOC);
+             // a normal (Cell-sized) ravel, packed like 40 ⎕CR does, so
+             // that a later explode() fits into it (Bugs38 #9)
+             Value_P val(sh_value, LOC);
+             val->commit_ravel_Bool(sh_value.get_nz_volume());
+             val->set_complete();
              values.push_back(val);
-            }
+           }
         else
            {
              Value_P val(sh_value, LOC);

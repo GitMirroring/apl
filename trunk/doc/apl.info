@@ -16,7 +16,7 @@ File: apl.info,  Node: Top,  Next: Installing and Starting GNU APL,  Up: (dir)
 GNU APL Reference Manual
 ************************
 
-November 5, 2026.  This manual briefly documents GNU APL, an interpreter
+November 6, 2026.  This manual briefly documents GNU APL, an interpreter
 for APL as described in ISO standard 13751, aka.  "Programming Language
 APL, Extended".
 
@@ -2351,11 +2351,22 @@ File: apl.info,  Node: Comparison Rules,  Next: Complex Numbers,  Prev: Colored 
 Both IBM APL2 and the ISO standard require that the arguments of <, ≤,
 ≥, and > (but not of = or ≠) are integer or real numbers.  As a
 consequence, the argument(s) of ⍋ or ⍒ (which require comparison) must
-also be a vector of integer or real numbers.
+also be a vector of integer or real numbers, and so must the arguments
+of dyadic ⌈ and ⌊.
 
    In contrast, GNU APL also allows the comparison of characters and
 numbers or the comparison of complex numbers according to the following,
-more general, rules.
+more general, rules.  The same rules (and therefore the same order) are
+used by <, ≤, ≥, and >, by ⍋ and ⍒, by dyadic ⍸, and (for numbers) by
+dyadic ⌈ and ⌊, which return the greater or the smaller one of A and B,
+respectively:
+
+           ⍋2J1 2 2J¯1 1J5
+     4 3 2 1
+           1J1⌈2
+     2
+           2J¯1⌊2
+     2J¯1
 
    Let A and B be two APL values to be compared.  The final result of
 comparing A and B is the first verdict (i.e.  either A < B, or A > B, or
@@ -5360,7 +5371,7 @@ File: apl.info,  Node: monadic ⎕CC B - Return character class,  Next: dyadic A
 
 ⎕CC B returns all characters of character class(es) B. If B is an
 integer scalar then the result is a character vector, If B is an integer
-vector then the result is a nested vector of integer vectors, with one
+vector then the result is a nested vector of character vectors, with one
 item per character class.
 
            ⍝ character class 1: digits (old ⎕D)
@@ -5386,7 +5397,7 @@ item per character class.
      ╙─╨─╜╚═╩═╝
 
            ⍝ Some mathematical symbols
-           ⎕CC 8
+           ⎕CC 9
      ⎲⎛⎞⎡⎤⎧⎫
      ⎳⎜⎟⎢⎥⎨⎬
      ↔⎝⎠⎣⎦⎮⎮
@@ -5396,21 +5407,21 @@ item per character class.
 classes for ⎕CC:
 
            ⎕CC ⍬
-           ⎕CC   1:  digits 0-9 (same as ⎕CC 10)
-           ⎕CC   2:  uppercase characters A-Z (same as ⎕CC 26)
+           ⎕CC   1:  Digits 0-9 (same as ⎕CC 10)
+           ⎕CC   2:  UPPERCASE CHARACTERS A-Z (same as ⎕CC 26)
            ⎕CC   3:  lowercase characters a-z (same as ⎕CC ¯26)
-           ⎕CC   4:  ASCII characters (same as ⎕CC 127)
-           ⎕CC   5:  superscripts ( ²³¹ʲᵏᵐᵗ⁰ⁱ⁴⁵⁶⁷⁸⁹⁺⁻⁼⁽⁾ⁿ )
+           ⎕CC   4:  ASCII characters (same as ⎕CC 128)
+           ⎕CC   5:  Superscripts ( ²³¹ʲᵏᵐᵗ⁰ⁱ⁴⁵⁶⁷⁸⁹⁺⁻⁼⁽⁾ⁿ )
            ⎕CC   6:  subscripts ( ᵢ₀₁₂₃₄₅₆₇₈₉₊₋₌₍₎ₖₘₙⱼ )
-           ⎕CC   7:  line drawing characters
-           ⎕CC   8:  octal digits 0-7
-           ⎕CC   9:  some mathematical symbols
-           ⎕CC  10:  decimal digits 0-9
+           ⎕CC   7:  Line drawing characters
+           ⎕CC   8:  Octal digits 0-7
+           ⎕CC   9:  Some mathematical symbols
+           ⎕CC  10:  Decimal digits 0-9
            ⎕CC  16:  UPPERCASE HEXADECIMAL DIGITS 0-9 A-F
-           ⎕CC ¯16:  lowercase hexadecimal digits 0-9 A-F a-f
+           ⎕CC ¯16:  lowercase hexadecimal digits 0-9 a-f
            ⎕CC  17:  Hexadecimal Digits 0-9 A-F a-f
            ⎕CC  26:  UPPERCASE CHARACTERS A-Z
-           ⎕CC ¯26:  lowercase characters A-Z
+           ⎕CC ¯26:  lowercase characters a-z
            ⎕CC  33:  base32 encoding (RFC 4648)
            ⎕CC  48:  greek characters A-Ω α-ω
            ⎕CC  52:  characters A-Z a-z
@@ -5424,7 +5435,9 @@ classes for ⎕CC:
      the class, e.g.  26 for A-Z, 52 for A-Z and a-z,
    • negative numbers are the lowercase variants of the uppercase class,
      e.g.  26 for A-Z and ¯26 for a-z, and
-   • 2*class is the mixed case of the uppercase class.
+   • 2×class is (for letters) the mixed case of the uppercase class,
+     e.g.  52 for A-Z and a-z (but 17 for the mixed case hexadecimal
+     digits).
 
 
 File: apl.info,  Node: dyadic A ⎕CC B - Test character class,  Prev: monadic ⎕CC B - Return character class,  Up: ⎕CC - Character Classes
@@ -5442,9 +5455,12 @@ is contained in one of the character classes B and 0 if not.
      0 1 1 1
 
             (⎕CC 7) ⎕CC 7
-     1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1
-     1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1
-     1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1
+     1 1 1 1 1 1 1 1 1 1
+     1 1 1 1 1 1 1 1 1 1
+     1 1 1 1 1 1 1 1 1 1
+     1 1 1 1 1 1 1 1 1 1
+     1 1 1 1 1 1 1 1 1 1
+     1 1 1 1 1 1 1 1 1 1
 
    For most classes this lookup is an optimized constant time operation
 (for every item of A and faster than e.g.  (⎕CC n) ⍳ A.
@@ -6683,8 +6699,9 @@ the axis specifier x:
                A ⎕MX[12] B      (dyadic)  Histogram
                A ⎕MX[13] B      (dyadic)  Print
                  ⎕MX[14] B      (monadic) Set RNG seed
+             (A) ⎕MX[15] B      (nomadic) Correlation
 
-   (These may by shown by entering ⎕MX ” or ⎕MX[0]0 on the APL command
+   (These may be shown by entering ⎕MX ” or ⎕MX ⍬ on the APL command
 line.)  In the function list above, A indicates a mandatory left
 argument, while (A) indicates an optional left argument.  The right
 argument B of ⎕MX[X] is always mandatory.
@@ -6702,6 +6719,7 @@ argument B of ⎕MX[X] is always mandatory.
 * Norm::
 * Randoms::
 * Covariance::
+* Correlation::
 * Histograms::
 * Print::
 
@@ -6762,7 +6780,7 @@ between two isomorphic real or complex vectors where ⍴⍴A = 1, ⍴⍴B = 1,
 and ⍴A = ⍴B:
 
            (⍳8) ⎕MX[3] 4j4+⍳8
-     0.2515670406J0.09930859532
+     0.4715439237
 
 
 File: apl.info,  Node: Eigenvector,  Next: Eigenvalue,  Prev: Vector Angle,  Up: ⎕MX - Matrix/Statistics
@@ -6913,8 +6931,8 @@ sum of the squares of the elements equals 1:
            +/,(⎕MX[9] B)*2
      1
 
-   If the magnitude of the argument is zero, the operation returns an
-all-zero result with the same shape as the argument.
+   If the magnitude of the argument is zero, then the argument has no
+direction and the operation gives a DOMAIN ERROR.
 
 
 File: apl.info,  Node: Randoms,  Next: Covariance,  Prev: Norm,  Up: ⎕MX - Matrix/Statistics
@@ -6976,7 +6994,7 @@ sequences:
      ¯1.358348261 ¯1.75175064 ¯2.009430519 ¯0.5167968281
 
 
-File: apl.info,  Node: Covariance,  Next: Histograms,  Prev: Randoms,  Up: ⎕MX - Matrix/Statistics
+File: apl.info,  Node: Covariance,  Next: Correlation,  Prev: Randoms,  Up: ⎕MX - Matrix/Statistics
 
 2.41.11 Covariance
 ------------------
@@ -7003,6 +7021,17 @@ sample set, and presents the covariances as a matrix.  For example:
 
    In dyadic form, ⍴⍴A = 1, ⍴⍴B = 1, and ⍴A = ⍴B.
 
+   The covariance is the sample covariance, i.e.  for vectors A and B
+with N items:
+
+           (+/(A-(+/A)÷N)×B-(+/B)÷N)÷N-1
+
+   and (⎕MX[11] B)[I;J] is the same as B[I;] ⎕MX[11] B[J;].  At least 2
+samples are needed.  For complex arguments, the real and the imaginary
+parts are treated as separate sample sets: the real part of the result
+is the covariance of the real parts of A and B, and the imaginary part
+of the result is the covariance of the imaginary parts of A and B.
+
    Sample variance can be computed by supplying the same argument on the
 left and right:
 
@@ -7010,10 +7039,65 @@ left and right:
            A ⎕MX[11] A ⍝ or ⎕MX[11]⍨ A
      36.67777778
 
-
-File: apl.info,  Node: Histograms,  Next: Print,  Prev: Covariance,  Up: ⎕MX - Matrix/Statistics
+   The covariance depends on the scale of the samples (multiplying A by
+10 multiplies the covariance by 10).  See ⎕MX[15] (Correlation) below
+for a measure that is independent of the scale.
 
-2.41.12 Histograms
+
+File: apl.info,  Node: Correlation,  Next: Histograms,  Prev: Covariance,  Up: ⎕MX - Matrix/Statistics
+
+2.41.12 Correlation
+-------------------
+
+The correlation operation, ⎕MX[15], is nomadic and takes the same
+arguments as the covariance operation, ⎕MX[11].  It computes the
+(Pearson) correlation coefficient instead of the covariance, i.e.  the
+covariance divided by the product of the standard deviations of the two
+sample sets.  A correlation coefficient lies between ¯1 and 1: 1 means
+that the samples lie on a straight line with a positive slope, ¯1 that
+they lie on a straight line with a negative slope, and 0 that they are
+not linearly related at all.  Unlike the covariance, the correlation
+does not change if a sample set is multiplied by a positive number.
+
+   In monadic form, it computes the correlation of each row of B with
+every other row of B. The diagonal of the result is therefore 1.  For
+the matrix B from the covariance example above:
+
+           ⎕PP←10
+           ⎕MX[15] B
+      1             0.8821359145 ¯0.9786290052
+      0.8821359145  1            ¯0.9471678676
+     ¯0.9786290052 ¯0.9471678676  1
+
+   The result can also be computed from the covariance matrix C:
+
+           C←⎕MX[11] B
+           C÷∘.×⍨(1 1⍉C)*0.5
+      1             0.8821359145 ¯0.9786290052
+      0.8821359145  1            ¯0.9471678676
+     ¯0.9786290052 ¯0.9471678676  1
+
+   In dyadic form, it computes the correlation of the argument vectors:
+
+           1 2 3 4 ⎕MX[15] 2 4 5 9
+     0.9647638212
+           1 2 3 4 ⎕MX[15] 8 6 4 2
+     ¯1
+
+   Complex arguments are treated like in the covariance operation: the
+real and the imaginary parts of the result are the correlations of the
+real and of the imaginary parts of the arguments, respectively.  A part
+that is 0 in all samples (such as the imaginary part of real arguments)
+is ignored, so that real arguments give a real result.
+
+   The correlation is not defined for a sample set whose samples are all
+equal (and whose standard deviation is therefore 0).  In that case, a
+DOMAIN ERROR is raised.
+
+
+File: apl.info,  Node: Histograms,  Next: Print,  Prev: Correlation,  Up: ⎕MX - Matrix/Statistics
+
+2.41.13 Histograms
 ------------------
 
 The histogram operation, ⎕MX[12], is dyadic and requires a single
@@ -7037,7 +7121,7 @@ normally distributed samples with a standard deviation of 1.
 
 File: apl.info,  Node: Print,  Prev: Histograms,  Up: ⎕MX - Matrix/Statistics
 
-2.41.13 Print
+2.41.14 Print
 -------------
 
 The print operation, ⎕MX[13], is dyadic and provides an easy way to dump
@@ -8253,7 +8337,7 @@ of output formats ’partition’ and ’compress’.
 
    The output formats ⊂ and / are related like this:
 
-           A ⌷RE['/'] B   ←→   0 ≠ A  A ⌷RE['⊂'] B
+           A ⎕RE['/'] B   ←→   0 ≠ A  A ⎕RE['⊂'] B
 
 
 File: apl.info,  Node: the ⎕RE error flag E,  Prev: the ⎕RE global flag g,  Up: The Flags X
@@ -8268,7 +8352,7 @@ flag:
 
             4 ⎕CR 'g..' ⎕RE[''] '__foo___fun____fox'
      ┏⊖┓
-     ┃0┃
+     ┃ ┃
      ┗━┛
             'g..' ⎕RE['E'] '__foo___fun____fox'
      DOMAIN ERROR+
@@ -11098,7 +11182,13 @@ message                LIMIT+’ (detail          e.g.  ‘SYSTEM LIMIT
 Certain                Generic ‘ENTRY    IR     More specific text, e.g.
 lexical/tokenizer      ERROR’ /                 ‘Non-APL character’, ‘Bad
 errors                 ‘SYNTAX ERROR’           number’, ‘No string end
-                                                found’
+                                                found’, in immediate
+                                                execution.  In ⍎, ⎕EA,
+                                                ⎕EB and ⎕EC they are
+                                                ‘SYNTAX ERROR’ (⎕ET 2 2)
+                                                like in IBM APL2, with
+                                                the specific text in
+                                                ‘)MORE’
 
 
 File: apl.info,  Node: The Rank and Power Operators,  Next: Output Formatting,  Prev: Known Differences between IBM APL2 and GNU APL,  Up: Limitations and Missing Features
@@ -13865,215 +13955,216 @@ Node: Phase 3 - Member Notation91349
 Node: Subfunction Lists91993
 Node: Colored Output92579
 Node: Comparison Rules93893
-Node: Complex Numbers98422
-Node: Debug Commands98627
-Node: Direct Functions (Lambdas)99299
-Node: Named Lambdas99869
-Node: Unnamed Lambdas104551
-Node: Limitations of GNU APL Lambdas105439
-Node: Commands )COPY_ONCE )DUMP and DUMP-HTML107023
-Node: )DUMP Command107506
-Node: )DUMP-HTML Command108127
-Node: )COPY_ONCE Command109044
-Node: ]STATUS Command109617
-Node: Crash Reports112090
-Node: ]BOXING Command115017
-Node: ]DOXY Command115810
-Node: ]KEYB Command118209
-Node: The transformation of Keycodes to Unicodes121461
-Node: xmodmap and friends123877
-Node: The ]KEYB command126579
-Node: ]KEYB Syntax126849
-Node: ]KEYB without a mode128338
-Node: ]KEYB XMOD129684
-Node: ]KEYB USER132616
-Node: ]KEYB GUESS133207
-Node: Optional ]KEYB arguments133602
-Node: ]NEXTFILE and ]PUSHFILE Commands147635
-Node: ]NEXTFILE147893
-Node: ]PUSHFILE149728
-Node: ]FILE_CTL Command150339
-Node: History and TAB completion152526
-Node: Logging Facilities154352
-Node: Static Logging155116
-Node: Dynamic Logging155860
-Node: Rational Numbers156554
-Node: Hex Numbers157524
-Node: User-defined Commands157827
-Node: Structured Variables and Associative Arrays159297
-Node: Structured Variables159845
-Node: Limitations of Member Variables165424
-Node: Associative Arrays167816
-Node: Monadic ⊢ and ⊣; dyadic ⊢ with Axis174525
-Node: Bit-wise Logical Functions - ⊤∧ ⊤∨ ⊤⍲ ⊤⍱ ⊤≠ and ⊤=177212
-Node: Dyadic ⊤∧ ⊤∨ ⊤⍲ ⊤⍱ ⊤= and ⊤≠179546
-Node: Monadic ⊤∨ and ⊤⍱180507
-Node: Monadic ⊤∧182348
-Node: Character Arguments for Monadic ⊤⍱ and Dyadic ⊤∧ ⊤∨ == and ≠≠184311
-Node: ⊤ (Encode) with Axis185321
-Node: Generalized ⍳189850
-Node: Generalized monadic ⍳190086
-Node: Generalized dyadic ⍳190823
-Node: Dyadic A→B191657
-Node: ⌹[X] - Miscellaneous Matrix and Vector Operations196338
-Node: ⌹[1] and ⌹[2] - QR Factorizations196704
-Node: The Impact of ⎕CT for ⌹201986
-Node: A⌹B and ⌹B202745
-Node: ⌹[X] B - Various Factorizations of B208375
-Node: Matrix Inverse211156
-Node: ⌹[7] B - Print Polynomial B211929
-Node: A ⌹[8] B - Multiply Polynomials A and B215113
-Node: A ⌹[9] B - Divide Polynomial A by Polynomial B (univariate)216437
-Node: A ⌹[10] B - Divide Polynomial A by Polynomial B (multivariate)217627
-Node: A ⌹[11] B - Divide Polynomial A by Polynomial B (with order)223790
-Node: ⌹[11] B Scan Polynomial B226609
-Node: A ⌹[20] B - Integral B228630
-Node: ⎕CC - Character Classes231425
-Node: monadic ⎕CC B - Return character class231965
-Node: dyadic A ⎕CC B - Test character class234893
-Node: Dyadic ⎕CR235647
-Node: User-defined boxing (A ⎕CR[X] B)243871
-Node: Dyadic ⎕FX (Native Functions)252020
-Node: ⎕ARG - Interpreter command line arguments255744
-Node: ⎕DLX - Knuth's Dancing Links Algorithm256135
-Node: ⎕EA and ⎕EB - Execute Alternate and Execute Both267107
-Node: ⎕ENV - Environment Variables270669
-Node: ⎕FIO - File I/O Functions271036
-Node: ⎕FFT - Fast Fourier Transform279688
-Node: ⎕GTK - GTK Interface282206
-Node: ⎕JSON - JSON Parsing282934
-Node: Monadic ⎕JSON283676
-Node: Dyadic ⎕JSON284012
-Node: ⎕MAP - Map Value284868
-Node: ⎕MX - Matrix/Statistics288841
-Node: Determinant290619
-Node: Cross Product291004
-Node: Vector Angle292300
-Node: Eigenvector292688
-Node: Eigenvalue293848
-Node: Ident296346
-Node: Rotation296676
-Node: Homogeneous transform297013
-Node: Norm297635
-Node: Randoms298572
-Node: Covariance300433
-Node: Histograms301510
-Node: Print302430
-Node: ⎕PLOT - Plot Data304866
-Node: The Plot Data B306160
-Node: Complex Plot Data B306949
-Node: Real Plot Data B307945
-Node: The Plot Attributes A309022
-Node: Plot Window Handling322554
-Node: Output File Format323892
-Node: GUI driver325122
-Node: ⎕PNG - Portable Network Graphics329211
-Node: The GNU APL Color Model329778
-Node: Monadic ⎕PNG335291
-Node: Dyadic ⎕PNG337508
-Node: APL Examples338335
-Node: ⎕PS - Print Style339271
-Node: Boxing of Displayed Values340272
-Node: ⎕RE - Regular Expressions343539
-Node: Preconditions344161
-Node: ⎕RE Syntax344644
-Node: The Regular Expression A345342
-Node: The String(s) B Being Matched346009
-Node: The Flags X347411
-Node: The libpcre2 flags - i m s and x348391
-Node: The ⎕RE (APL output format) flags ↓ ⊂ and /349059
-Node: the ⎕RE global flag g351539
-Node: the ⎕RE error flag E355044
-Node: Complex Matches356356
-Node: ⎕RVAL - Random APL value360846
-Node: General361880
-Node: Dyadic ⎕RVAL362868
-Node: Control of the underlying random number generator - 0 ⎕RVAL B364122
-Node: Control of the ranks - 1 ⎕RVAL B365747
-Node: Control of the shapes - 2 ⎕RVAL B367455
-Node: Control of the data types - 3 ⎕RVAL B368901
-Node: Control of a maximum depth - 4 ⎕RVAL B370740
-Node: Control of the element count - 5 ⎕RVAL B371657
-Node: The primitive table - 6 ⎕RVAL B373387
-Node: The purpose - 8 ⎕RVAL B374851
-Node: monadic ⎕RVAL B376421
-Node: Syntax Alternatives379189
-Node: ⎕SI - State Indicator380199
-Node: ⎕SQL - SQL Database Interface382447
-Node: ⎕SQL[0] ⍬ - display sub-function numbers383546
-Node: ⎕SQL[0] '' - display sub-function names385457
-Node: ref ← A ⎕SQL[1] B - open database388239
-Node: ⎕SQL[2] B - close database389299
-Node: Z ← A ⎕SQL[3 ref] B - database query (with result)389856
-Node: Z ← A ⎕SQL[4 ref] B - database query (w/o result)390839
-Node: ⎕SQL[5] B - start transaction391413
-Node: ⎕SQL[6] B - commit transaction391740
-Node: ⎕SQL[7] B - rollback transaction392051
-Node: Z←⎕SQL[8] B - table names392378
-Node: Z←⎕SQL[9] B - column names392708
-Node: Z ← ⎕SQL[10] B - library version number393226
-Node: Z ← ⎕SQL[11] B - library version string393822
-Node: SQLite Quickstart394388
-Node: Deleting a Database396333
-Node: Creating a new Database397743
-Node: Creating a Database Table399492
-Node: Excursus - Dynamic Query Strings402849
-Node: Writing an APL matrix into a Database Table405797
-Node: Reading a Database Table into an APL Matrix408199
-Node: Updating a Database Table409970
-Node: Deleting Rows From a Database Table412599
-Node: ⎕SYL - System limits413371
-Node: ⎕SYL[1 2 3 4 5 6;]416602
-Node: ⎕SYL[7 ... 24;]418058
-Node: ⎕SYL[25 26 27;]418425
-Node: ⎕SYL[28;]418902
-Node: ⎕SYL[29 ... 34;]420023
-Node: ⎕XML - XML Parsing420584
-Node: Purpose420918
-Node: Some XML Terminology422494
-Node: How ⎕XML maps XML documents to APL Values425942
-Node: Monadic ⎕XML432605
-Node: Dyadic ⎕XML433418
-Node: XML Queries441711
-Node: Conditionals442581
-Node: Design considerations.443011
-Node: Syntax450409
-Node: A Possible Pitfall453562
-Node: Matrix Product457819
-Node: Monadic ≠ (Nub Sieve)461122
-Node: Limitations and Missing Features461670
-Node: System Limits462211
-Node: Shared Variables463513
-Node: Known Differences between IBM APL2 and GNU APL464650
-Node: The Rank and Power Operators480606
-Node: Output Formatting482730
-Ref: STRICT_IBM_APL2_FORMATTING486444
-Node: Internationalization507847
-Node: Vector Notation509028
-Node: History509623
-Node: Standardization510361
-Node: Quotes from the lrm510868
-Node: Some APL2 Tests513027
-Node: Test 1 - Binding strength of []513444
-Node: Test 2 - Binding strength of the left operand514337
-Node: Definitions519131
-Node: Unexpected Stranding522156
-Node: GNU APL Vector Notation530922
-Node: GNU APL Project Structure536910
-Node: The sub-directory src538432
-Node: The sub-directory support-files539804
-Node: The sub-directory doc540223
-Node: The sub-directory HOWTOs540527
-Node: The sub-directories workspaces and wslib2 ... wslib5541272
-Node: The sub-directory m4541832
-Node: The sub-directories deb and debian_tmp542701
-Node: The sub-directory tools543355
-Node: Libraries Contributed by GNU APL Users543815
-Node: The GNU APL Community Webpage544292
-Node: Core Libraries545029
-Node: Licenses for this GNU APL Manual and for GNU APL545910
-Node: The GNU Free Documentation License546455
-Node: The GNU GENERAL PUBLIC LICENSE571849
+Node: Complex Numbers98794
+Node: Debug Commands98999
+Node: Direct Functions (Lambdas)99671
+Node: Named Lambdas100241
+Node: Unnamed Lambdas104923
+Node: Limitations of GNU APL Lambdas105811
+Node: Commands )COPY_ONCE )DUMP and DUMP-HTML107395
+Node: )DUMP Command107878
+Node: )DUMP-HTML Command108499
+Node: )COPY_ONCE Command109416
+Node: ]STATUS Command109989
+Node: Crash Reports112462
+Node: ]BOXING Command115389
+Node: ]DOXY Command116182
+Node: ]KEYB Command118581
+Node: The transformation of Keycodes to Unicodes121833
+Node: xmodmap and friends124249
+Node: The ]KEYB command126951
+Node: ]KEYB Syntax127221
+Node: ]KEYB without a mode128710
+Node: ]KEYB XMOD130056
+Node: ]KEYB USER132988
+Node: ]KEYB GUESS133579
+Node: Optional ]KEYB arguments133974
+Node: ]NEXTFILE and ]PUSHFILE Commands148007
+Node: ]NEXTFILE148265
+Node: ]PUSHFILE150100
+Node: ]FILE_CTL Command150711
+Node: History and TAB completion152898
+Node: Logging Facilities154724
+Node: Static Logging155488
+Node: Dynamic Logging156232
+Node: Rational Numbers156926
+Node: Hex Numbers157896
+Node: User-defined Commands158199
+Node: Structured Variables and Associative Arrays159669
+Node: Structured Variables160217
+Node: Limitations of Member Variables165796
+Node: Associative Arrays168188
+Node: Monadic ⊢ and ⊣; dyadic ⊢ with Axis174897
+Node: Bit-wise Logical Functions - ⊤∧ ⊤∨ ⊤⍲ ⊤⍱ ⊤≠ and ⊤=177584
+Node: Dyadic ⊤∧ ⊤∨ ⊤⍲ ⊤⍱ ⊤= and ⊤≠179918
+Node: Monadic ⊤∨ and ⊤⍱180879
+Node: Monadic ⊤∧182720
+Node: Character Arguments for Monadic ⊤⍱ and Dyadic ⊤∧ ⊤∨ == and ≠≠184683
+Node: ⊤ (Encode) with Axis185693
+Node: Generalized ⍳190222
+Node: Generalized monadic ⍳190458
+Node: Generalized dyadic ⍳191195
+Node: Dyadic A→B192029
+Node: ⌹[X] - Miscellaneous Matrix and Vector Operations196710
+Node: ⌹[1] and ⌹[2] - QR Factorizations197076
+Node: The Impact of ⎕CT for ⌹202358
+Node: A⌹B and ⌹B203117
+Node: ⌹[X] B - Various Factorizations of B208747
+Node: Matrix Inverse211528
+Node: ⌹[7] B - Print Polynomial B212301
+Node: A ⌹[8] B - Multiply Polynomials A and B215485
+Node: A ⌹[9] B - Divide Polynomial A by Polynomial B (univariate)216809
+Node: A ⌹[10] B - Divide Polynomial A by Polynomial B (multivariate)217999
+Node: A ⌹[11] B - Divide Polynomial A by Polynomial B (with order)224162
+Node: ⌹[11] B Scan Polynomial B226981
+Node: A ⌹[20] B - Integral B229002
+Node: ⎕CC - Character Classes231797
+Node: monadic ⎕CC B - Return character class232337
+Node: dyadic A ⎕CC B - Test character class235361
+Node: Dyadic ⎕CR236130
+Node: User-defined boxing (A ⎕CR[X] B)244354
+Node: Dyadic ⎕FX (Native Functions)252503
+Node: ⎕ARG - Interpreter command line arguments256227
+Node: ⎕DLX - Knuth's Dancing Links Algorithm256618
+Node: ⎕EA and ⎕EB - Execute Alternate and Execute Both267590
+Node: ⎕ENV - Environment Variables271152
+Node: ⎕FIO - File I/O Functions271519
+Node: ⎕FFT - Fast Fourier Transform280171
+Node: ⎕GTK - GTK Interface282689
+Node: ⎕JSON - JSON Parsing283417
+Node: Monadic ⎕JSON284159
+Node: Dyadic ⎕JSON284495
+Node: ⎕MAP - Map Value285351
+Node: ⎕MX - Matrix/Statistics289324
+Node: Determinant291174
+Node: Cross Product291559
+Node: Vector Angle292855
+Node: Eigenvector293229
+Node: Eigenvalue294389
+Node: Ident296887
+Node: Rotation297217
+Node: Homogeneous transform297554
+Node: Norm298176
+Node: Randoms299110
+Node: Covariance300971
+Node: Correlation302730
+Node: Histograms304829
+Node: Print305750
+Node: ⎕PLOT - Plot Data308186
+Node: The Plot Data B309480
+Node: Complex Plot Data B310269
+Node: Real Plot Data B311265
+Node: The Plot Attributes A312342
+Node: Plot Window Handling325874
+Node: Output File Format327212
+Node: GUI driver328442
+Node: ⎕PNG - Portable Network Graphics332531
+Node: The GNU APL Color Model333098
+Node: Monadic ⎕PNG338611
+Node: Dyadic ⎕PNG340828
+Node: APL Examples341655
+Node: ⎕PS - Print Style342591
+Node: Boxing of Displayed Values343592
+Node: ⎕RE - Regular Expressions346859
+Node: Preconditions347481
+Node: ⎕RE Syntax347964
+Node: The Regular Expression A348662
+Node: The String(s) B Being Matched349329
+Node: The Flags X350731
+Node: The libpcre2 flags - i m s and x351711
+Node: The ⎕RE (APL output format) flags ↓ ⊂ and /352379
+Node: the ⎕RE global flag g354859
+Node: the ⎕RE error flag E358364
+Node: Complex Matches359676
+Node: ⎕RVAL - Random APL value364166
+Node: General365200
+Node: Dyadic ⎕RVAL366188
+Node: Control of the underlying random number generator - 0 ⎕RVAL B367442
+Node: Control of the ranks - 1 ⎕RVAL B369067
+Node: Control of the shapes - 2 ⎕RVAL B370775
+Node: Control of the data types - 3 ⎕RVAL B372221
+Node: Control of a maximum depth - 4 ⎕RVAL B374060
+Node: Control of the element count - 5 ⎕RVAL B374977
+Node: The primitive table - 6 ⎕RVAL B376707
+Node: The purpose - 8 ⎕RVAL B378171
+Node: monadic ⎕RVAL B379741
+Node: Syntax Alternatives382509
+Node: ⎕SI - State Indicator383519
+Node: ⎕SQL - SQL Database Interface385767
+Node: ⎕SQL[0] ⍬ - display sub-function numbers386866
+Node: ⎕SQL[0] '' - display sub-function names388777
+Node: ref ← A ⎕SQL[1] B - open database391559
+Node: ⎕SQL[2] B - close database392619
+Node: Z ← A ⎕SQL[3 ref] B - database query (with result)393176
+Node: Z ← A ⎕SQL[4 ref] B - database query (w/o result)394159
+Node: ⎕SQL[5] B - start transaction394733
+Node: ⎕SQL[6] B - commit transaction395060
+Node: ⎕SQL[7] B - rollback transaction395371
+Node: Z←⎕SQL[8] B - table names395698
+Node: Z←⎕SQL[9] B - column names396028
+Node: Z ← ⎕SQL[10] B - library version number396546
+Node: Z ← ⎕SQL[11] B - library version string397142
+Node: SQLite Quickstart397708
+Node: Deleting a Database399653
+Node: Creating a new Database401063
+Node: Creating a Database Table402812
+Node: Excursus - Dynamic Query Strings406169
+Node: Writing an APL matrix into a Database Table409117
+Node: Reading a Database Table into an APL Matrix411519
+Node: Updating a Database Table413290
+Node: Deleting Rows From a Database Table415919
+Node: ⎕SYL - System limits416691
+Node: ⎕SYL[1 2 3 4 5 6;]419922
+Node: ⎕SYL[7 ... 24;]421378
+Node: ⎕SYL[25 26 27;]421745
+Node: ⎕SYL[28;]422222
+Node: ⎕SYL[29 ... 34;]423343
+Node: ⎕XML - XML Parsing423904
+Node: Purpose424238
+Node: Some XML Terminology425814
+Node: How ⎕XML maps XML documents to APL Values429262
+Node: Monadic ⎕XML435925
+Node: Dyadic ⎕XML436738
+Node: XML Queries445031
+Node: Conditionals445901
+Node: Design considerations.446331
+Node: Syntax453729
+Node: A Possible Pitfall456882
+Node: Matrix Product461139
+Node: Monadic ≠ (Nub Sieve)464442
+Node: Limitations and Missing Features464990
+Node: System Limits465531
+Node: Shared Variables466833
+Node: Known Differences between IBM APL2 and GNU APL467970
+Node: The Rank and Power Operators484367
+Node: Output Formatting486491
+Ref: STRICT_IBM_APL2_FORMATTING490205
+Node: Internationalization511608
+Node: Vector Notation512789
+Node: History513384
+Node: Standardization514122
+Node: Quotes from the lrm514629
+Node: Some APL2 Tests516788
+Node: Test 1 - Binding strength of []517205
+Node: Test 2 - Binding strength of the left operand518098
+Node: Definitions522892
+Node: Unexpected Stranding525917
+Node: GNU APL Vector Notation534683
+Node: GNU APL Project Structure540671
+Node: The sub-directory src542193
+Node: The sub-directory support-files543565
+Node: The sub-directory doc543984
+Node: The sub-directory HOWTOs544288
+Node: The sub-directories workspaces and wslib2 ... wslib5545033
+Node: The sub-directory m4545593
+Node: The sub-directories deb and debian_tmp546462
+Node: The sub-directory tools547116
+Node: Libraries Contributed by GNU APL Users547576
+Node: The GNU APL Community Webpage548053
+Node: Core Libraries548790
+Node: Licenses for this GNU APL Manual and for GNU APL549671
+Node: The GNU Free Documentation License550216
+Node: The GNU GENERAL PUBLIC LICENSE575610
 
 End Tag Table
 

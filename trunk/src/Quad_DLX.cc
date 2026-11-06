@@ -186,7 +186,8 @@ DLX_Node::get_col_type(const Cell & cell)
       }
    if (cell.is_numeric())
       {
-        switch(cell.get_int_value())
+        if (!cell.is_near_int())   return Col_INVALID;   // e.g. 1.5
+        switch(cell.get_near_int())   // near-int: Bugs38 #98
            {
              case 0:   return Col_NULL;
              case 1:   return Col_PRIMARY;
@@ -700,7 +701,7 @@ DLX_Root_Node::preset(cValue_R A_steps, ShapeItem stepsIdx, ShapeItem step_count
 const int qio = Workspace::get_IO();
    loop(a, step_count)
       {
-        const APL_Integer row = A_steps.get_int_value(stepsIdx++) - qio;
+        const APL_Integer row = A_steps.get_near_int(stepsIdx++) - qio;
         if (row < 0 || row >= rows)
            {
              MORE_ERROR() << "bad row: " << row;
@@ -787,7 +788,7 @@ Quad_DLX::eval_AB(cValue_R A, cValue_R B) const
    if (A.element_count() < 1)   LENGTH_ERROR;
 
    if (B.get_rank() != 2)   RANK_ERROR;
-const APL_Integer a0 = A.get_int_value(0);
+const APL_Integer a0 = A.get_near_int(0);   // near-int: Bugs38 #98
 
    if (a0 < -4)   DOMAIN_ERROR;
    if (a0 == -4)   // perform some dance steps with the constraints matrix

@@ -35,7 +35,7 @@ PCRE2_UCHAR32 * buf = new PCRE2_UCHAR32[size];
 }
 //════════════════════════════════════════════════════════════════════════════
 RegexpMatch::RegexpMatch(pcre2_code * code, const UCS_string & B,
-                         PCRE2_SIZE start)
+                         PCRE2_SIZE start, uint32_t extra_options)
    : matched_B(B)
 {
    match_data = pcre2_match_data_create_from_pattern_32(code, NULL);
@@ -61,7 +61,7 @@ RegexpMatch::RegexpMatch(pcre2_code * code, const UCS_string & B,
    // GNU APL's Unicode is not restricted to legal Unicode scalars) is
    // still caught as a real PCRE2 error.
    //
-const uint32_t options = start ? PCRE2_NO_UTF_CHECK : 0;
+const uint32_t options = (start ? PCRE2_NO_UTF_CHECK : 0) | extra_options;
 
    // an empty B may have no buffer at all, but PCRE2 rejects a NULL
    // subject even with length 0 ("NULL argument passed", Bugs35 #57)
@@ -156,7 +156,11 @@ PCRE2_SIZE error_offset = -1;
                            &error_offset, 0);
    delete[] pattern_ucs;
 
-   if (code)   return;   // OK
+   if (code)   // OK
+      {
+        compute_group_parents(pattern);
+        return;
+      }
 
    MORE_ERROR() << 
 "in (say) Z←A ⎕RE B: error when compiling the regular expression A.\n"
@@ -167,6 +171,86 @@ PCRE2_SIZE error_offset = -1;
    << UCS_string(pattern, error_offset) << "'";
 
    DOMAIN_ERROR;
+}
+//────────────────────────────────────────────────────────────────────────────
+void
+Regexp::compute_group_parents(const UCS_string & pattern)
+{
+   // the structure of the ⎕RE result is the structure of the capturing
+   // groups in the pattern (apl.texi "Complex Matches"), not of the spans
+   // of one match (Bugs38 #55). group_parents[g] is the innermost capturing
+   // group that contains group g (0 = the whole match).
+   //
+std::vector<int> parents(1, -1);   // group 0: the whole match
+std::vector<int> open;             // the groups of the open ( (or -1)
+const ShapeItem len = pattern.size();
+   for (ShapeItem p = 0; p < len; ++p)
+       {
+         const Unicode uni = pattern[p];
+         if (uni == UNI_BACKSLASH)
+            {
+              if (p + 1 < len && pattern[p + 1] == UNI_Q)   // \Q ... \E
+                 {
+                   for (p += 2; p + 1 < len; ++p)
+                       if (pattern[p] == UNI_BACKSLASH &&
+                           pattern[p + 1] == UNI_E)   { ++p;   break; }
+                 }
+              else ++p;   // skip the escaped character
+              continue;
+            }
+
+         if (uni == UNI_L_BRACK)   // character class [...]
+            {
+              ++p;
+              if (p < len && pattern[p] == UNI_CIRCUMFLEX)   ++p;
+              if (p < len && pattern[p] == UNI_R_BRACK)      ++p;   // []...]
+              for (; p < len && pattern[p] != UNI_R_BRACK; ++p)
+                  if (pattern[p] == UNI_BACKSLASH)   ++p;
+              continue;
+            }
+
+         if (uni == UNI_L_PARENT)
+            {
+              const Unicode n1 = p + 1 < len ? pattern[p + 1] : Unicode_0;
+              const Unicode n2 = p + 2 < len ? pattern[p + 2] : Unicode_0;
+              const Unicode n3 = p + 3 < len ? pattern[p + 3] : Unicode_0;
+              if (n1 == UNI_QUESTION && n2 == UNI_NUMBER_SIGN)   // (?# ...)
+                 {
+                   while (p < len && pattern[p] != UNI_R_PARENT)   ++p;
+                   continue;
+                 }
+
+              bool capturing = n1 != UNI_QUESTION && n1 != UNI_ASTERISK;
+              if (n1 == UNI_QUESTION)   // named groups capture
+                 {
+                   if (n2 == UNI_SINGLE_QUOTE)   capturing = true;
+                   if (n2 == UNI_P && n3 == UNI_LESS)   capturing = true;
+                   if (n2 == UNI_LESS && n3 != UNI_EQUAL &&
+                       n3 != UNI_EXCLAM)   capturing = true;
+                 }
+
+              if (capturing)
+                 {
+                   int parent = 0;
+                   for (ShapeItem o = open.size() - 1; o >= 0; --o)
+                       if (open[o] > 0)   { parent = open[o];   break; }
+                   open.push_back(parents.size());
+                   parents.push_back(parent);
+                 }
+              else
+                 {
+                   open.push_back(-1);
+                 }
+              continue;
+            }
+
+         if (uni == UNI_R_PARENT && open.size())   open.pop_back();
+       }
+
+   // use the result only if it agrees with PCRE2 (e.g. not for (?|...),
+   // where several groups share a number)
+   //
+   if (int(parents.size()) == expression_count() + 1)   group_parents = parents;
 }
 //────────────────────────────────────────────────────────────────────────────
 Regexp::~Regexp()

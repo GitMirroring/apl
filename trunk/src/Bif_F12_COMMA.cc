@@ -74,6 +74,15 @@ const APL_Integer qio = Workspace::get_IO();
    //
    if (!X.is_near_int(0))  // fraction: insert an axis
       {
+        // a fraction is only valid as a scalar (LRM p. 204), e.g. not
+        // ,[1.5 99]M (Bugs38 #88)
+        if (X.element_count() != 1)
+           {
+             MORE_ERROR() << where << ": a fractional axis X must be a"
+                             " scalar or a 1-item vector";
+             AXIS_ERROR;
+           }
+
         if (B.get_rank() == MAX_RANK)
            {
              MORE_ERROR() << where << ": ⍴⍴B (=" << B.get_rank()
@@ -414,6 +423,18 @@ const Shape3 shape_A3(A.get_shape(), axis);
 const ShapeItem slice_a = shape_A3.l() * A.get_shape_item(axis);
 const ShapeItem slice_b = shape_A3.l() * B.get_shape_item(axis);
 
+   // an empty Z: return it before looping over the (possibly huge) h()
+   // of e.g. (1E15 0⍴0),1E15 0⍴0 (Bugs38 #11)
+   //
+   if (shape_Z.get_volume() == 0)
+      {
+        Value_P Z(shape_Z, LOC);
+        if (B.is_empty() && A.get_rank() >= 2)   Z->set_default(A, LOC);
+        else                                     Z->set_default(B, LOC);
+        Z->check_value(LOC);
+        return Z;
+      }
+
 const RavelType rtype = A.get_ravel_type();
 const ShapeItem bpi   = A.packed_bytes_per_item();   // 0 for CELLS or BOOL
 if (bpi > 0 && rtype == B.get_ravel_type())
@@ -596,6 +617,12 @@ const APL_Integer qio = Workspace::get_IO();
         // the valid range instead of being rejected (M,[65537]M
         // silently catenated along axis 0 -- 65537 wrapped to 1, minus
         // ⎕IO -- instead of raising AXIS_ERROR).
+        if (!cX.is_near_int64_t())   // Bugs38 #93: X beyond int64
+           {
+             MORE_ERROR() << where << ": X = " << cX.get_real_value()
+                          << " is not a valid axis";
+             AXIS_ERROR;
+           }
         const APL_Integer wide_axis = cX.get_checked_near_int() - qio;
         const ShapeItem max_rank = A.get_rank() > B.get_rank()
                                   ? A.get_rank() : B.get_rank();

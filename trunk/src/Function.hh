@@ -51,6 +51,10 @@ class RavelIterator;
 /** additional functionality for functions with named sub-functions.
     I.e one of ⌹, ⎕CR, ⎕FFT, FIO, ⎕MX, ⎕RVAL, or ⎕SQL.
   */
+/// the result of FunctionGroup::subfun_to_axis() for an unknown name. Not -1
+/// since ⎕FFT has negative function numbers (Bugs38 #95).
+static const sAxis SUBFUN_NOT_FOUND = INT16_MIN;
+
 class FunctionGroup
 {
 protected:
@@ -97,7 +101,7 @@ public:
       { return subfun_count != 0; }
 
    /// return a function number (pseudo-axis) for subfunction \b name,
-   /// or -1 if \b name is not a valid subfunction name
+   /// or SUBFUN_NOT_FOUND if \b name is not a valid subfunction name
    /// @param subfun_name the subfunction name to look up
    sAxis subfun_to_axis(const UCS_string & subfun_name) const;
 

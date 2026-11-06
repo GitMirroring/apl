@@ -49,6 +49,14 @@ public:
    Token get_token()
       { return Token(ID::get_token_tag(get_Id()), this); }
 
+   /// return true if an assignment to this variable would be ignored
+   /// (e.g. ⎕L without a function on the SI)
+   virtual bool assign_ignored() const
+      { return false; }
+
+   /// return true if an assignment to ⎕L, ⎕R, or ⎕X would be ignored
+   static bool lrx_assign_ignored();
+
    /// overloaded Symbol::print().
    /// @param out output stream to print to
    virtual ostream & print(ostream & out) const;
@@ -350,6 +358,10 @@ protected:
 class Quad_L : public NL_SystemVariable
 {
 public:
+   /// overloaded SystemVariable::assign_ignored()
+   virtual bool assign_ignored() const
+      { return lrx_assign_ignored(); }
+
    /// Constructor.
    Quad_L();
 
@@ -616,6 +628,10 @@ protected:
 class Quad_R : public NL_SystemVariable
 {
 public:
+   /// overloaded SystemVariable::assign_ignored()
+   virtual bool assign_ignored() const
+      { return lrx_assign_ignored(); }
+
    /// Constructor.
    Quad_R();
 
@@ -688,6 +704,11 @@ public:
 
         SYL_MAX                      ///< max. system limit value (excluding)
       };
+
+   /// the number of cells that a new ⎕WA margin or scale must leave free:
+   /// every statement needs 1000 cells for Workspace::push_SI(), plus its
+   /// values (Bugs38 #5)
+   enum { SYL_WA_RESERVE = 10000 };
 
 protected:
 };
@@ -809,6 +830,10 @@ protected:
 class Quad_X : public NL_SystemVariable
 {
 public:
+   /// overloaded SystemVariable::assign_ignored()
+   virtual bool assign_ignored() const
+      { return lrx_assign_ignored(); }
+
    /// Constructor.
    Quad_X();
 

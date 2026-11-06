@@ -50,13 +50,13 @@ const auto throw_unclosed = [&](size_t from)
          : outer.closer == TOK_R_CURLY ? E_UNBALANCED_L_CURLY
                                        : E_UNBALANCED_L_PARENT;
 
-     if (Workspace::more_error().size() == 0)
-        MORE_ERROR() << Error::error_name(ec);
+     // always: an earlier )MORE text belongs to another error (Bugs38 #113)
+     MORE_ERROR() << Error::error_name(ec);
      Error error(ec, LOC);
      build_error_line_2(error, outer.pos, outer.pos);
 
-     if (StateIndicator * si = Workspace::SI_top())
-        StateIndicator::get_error(si) = error;
+     // with an empty SI: the top-level error, for ⎕EM and ⎕ET (Bugs38 #70)
+     StateIndicator::get_error(Workspace::SI_top()) = error;
 
      throw error;
    };
@@ -109,8 +109,8 @@ const auto throw_unclosed = [&](size_t from)
         //
         const int lo = expected.size() ? expected.back().pos : int(s);
 
-        if (Workspace::more_error().size() == 0)
-           MORE_ERROR() << Error::error_name(ec);
+        // always: an earlier )MORE text belongs to another error (Bugs38 #113)
+        MORE_ERROR() << Error::error_name(ec);
         Error error(ec, LOC);
         build_error_line_2(error, lo, int(s));
 
@@ -122,8 +122,8 @@ const auto throw_unclosed = [&](size_t from)
         // statement's still-current Executable/prefix state and
         // clobber the message build_error_line_2() just built above.
         //
-        if (StateIndicator * si = Workspace::SI_top())
-           StateIndicator::get_error(si) = error;
+        // with an empty SI: the top-level error, for ⎕EM and ⎕ET (Bugs38 #70)
+        StateIndicator::get_error(Workspace::SI_top()) = error;
 
         throw error;
       }
@@ -141,8 +141,9 @@ Token_string::check_semicolons(bool lambda_locals) const
    // a ; is only valid:
    //
    // 1. between [ and ] (an index or axis), or
-   // 2. between { and } (the local variables of a lambda; the lambda body
-   //    itself is checked again when the lambda is created), or
+   // 2. between { and }, but only as the local variables of the lambda
+   //    at the end of its body: {...;A;B} (Bugs38 #2: other ; inside {...}
+   //    created lambdas that )SAVE wrote but )LOAD could not read), or
    // 3. at the end of a lambda body: ;A;B... (lambda_locals)
    //
    // Otherwise the input is a SYNTAX ERROR before anything in it was
@@ -171,7 +172,22 @@ vector<TokenTag> openers;   // TOK_L_BRACK, TOK_L_PARENT, or TOK_L_CURLY
         // at(s) is a ;
         //
         if (openers.size() && openers.back() == TOK_L_BRACK)   continue;
-        if (openers.size() && openers.back() == TOK_L_CURLY)   continue;
+        if (openers.size() && openers.back() == TOK_L_CURLY)   // maybe 2.
+           {
+             bool locals = false;
+             for (ShapeItem l = s; l + 1 < ssize(); l += 2)
+                 {
+                   if (at(l).get_tag() != TOK_SEMICOL          ||
+                       at(l + 1).get_Class() != TC_SYMBOL)   break;
+                   if (l + 2 < ssize() &&
+                       at(l + 2).get_tag() == TOK_R_CURLY)
+                      {
+                        locals = true;
+                        break;
+                      }
+                 }
+             if (locals)   continue;
+           }
 
         if (lambda_locals && openers.size() == 0)   // maybe 3.
            {
@@ -196,8 +212,8 @@ vector<TokenTag> openers;   // TOK_L_BRACK, TOK_L_PARENT, or TOK_L_CURLY
 
         // see all_brackets_closed() above
         //
-        if (StateIndicator * si = Workspace::SI_top())
-           StateIndicator::get_error(si) = error;
+        // with an empty SI: the top-level error, for ⎕EM and ⎕ET (Bugs38 #70)
+        StateIndicator::get_error(Workspace::SI_top()) = error;
 
         throw error;
       }

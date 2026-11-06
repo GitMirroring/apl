@@ -58,52 +58,52 @@
       ⍝ ⎕ES via ⍎ in TEST, TEST called from immediate execution
       ⍝
       3⊃⎕EC 'TEST'
-HELLO
+HELLO     
       TEST
-      ^
+      ^   
 
       ⍝ ... TEST called from W
       ⍝
       3⊃⎕EC 'W'
-HELLO
+HELLO     
 W[1]  TEST
-      ^
+      ^   
 
       ⍝ ⎕ES directly in EXPO, EXPO called from immediate execution
       ⍝
       3⊃⎕EC 'EXPO 0'
 ZERO INVALID
       EXPO 0
-      ^
+      ^     
 
       ⍝ ... EXPO called from V
       ⍝
       3⊃⎕EC 'V'
 ZERO INVALID
 V[1]  EXPO 0
-      ^
+      ^     
 
       ⍝ ⎕ES directly in U, U called from T3 (after 'x', before 'y')
       ⍝
       3⊃⎕EC 'T3'
 x
 DOMAIN ERROR
-T3[1]  U
-       ^
+T3[1]  U    
+       ^    
 
       ⍝ ⎕ES in A of ⎕EA in T4, T4 called from immediate execution
       ⍝
       3⊃⎕EC 'T4'
-HELLO
+HELLO   
       T4
-      ^
+      ^ 
 
       ⍝ ... T4 called from W4
       ⍝
       3⊃⎕EC 'W4'
-HELLO
+HELLO    
 W4[1]  T4
-       ^
+       ^ 
 
       )ERASE TEST W EXPO V U T3 T4 W4
 

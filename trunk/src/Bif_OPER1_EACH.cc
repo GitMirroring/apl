@@ -26,12 +26,25 @@
 #include "Bif_F1_EXECUTE.hh"
 #include "Bif_OPER1_EACH.hh"
 #include "Macro.hh"
+#include "DerivedFunction.hh"
 #include "PointerCell.hh"
+#include "QuadFunction.hh"
 #include "UserFunction.hh"
 #include "Workspace.hh"
 
 Bif_OPER1_EACH Bif_OPER1_EACH::fun;
 
+//════════════════════════════════════════════════════════════════════════════
+/// return true if \b fun is a system function, possibly with an axis
+/// (e.g. ⎕FIO[4]), see Bugs38 #108
+static bool
+is_system_function(const Function * fun)
+{
+   if (dynamic_cast<const QuadFunction *>(fun))   return true;
+   if (const DerivedFunction * dfun = dynamic_cast<const DerivedFunction *>(fun))
+      return dynamic_cast<const QuadFunction *>(dfun->get_OPER()) != 0;
+   return false;
+}
 //════════════════════════════════════════════════════════════════════════════
 Token
 Bif_OPER1_EACH::eval_ALB(cValue_R A, Token & _LO, cValue_R B) const
@@ -43,25 +56,24 @@ Bif_OPER1_EACH::eval_ALB(cValue_R A, Token & _LO, cValue_R B) const
         // if the shapes differ then either A or B must be a 1-element
         // value of any rank (scalar extension as for the scalar functions,
         // see Value::is_scalar_extensible(), for every LO, Bugs37 #66).
+        // Also for equal ranks, and for every LO, i.e. also for a defined
+        // LO without a result (Bugs38 #34).
         //
-        if (A.get_rank() != B.get_rank())
+        if      (A.is_scalar_extensible())    ;   // OK
+        else if (B.is_scalar_extensible())    ;   // OK
+        else if (A.get_rank() != B.get_rank())
            {
-             if      (A.is_scalar_extensible())    ;   // OK
-             else if (B.is_scalar_extensible())    ;   // OK
-             else if (A.get_rank() != B.get_rank())
-                {
-                  MORE_ERROR() << "A f¨B: expecting ⍴⍴A = ⍴⍴B (or A or B with"
-                                  " 1 element); ⍴⍴A is "
-                               << A.get_rank() << ", ⍴⍴B is " << B.get_rank();
-                  RANK_ERROR;
-                }
-             else
-                {
-                  MORE_ERROR() << "A f¨B: expecting ⍴A = ⍴B (or A or B with"
-                                  " 1 element); ⍴A is "
-                               << A.get_shape() << ", ⍴B is " << B.get_shape();
-                  LENGTH_ERROR;
-                }
+             MORE_ERROR() << "A f¨B: expecting ⍴⍴A = ⍴⍴B (or A or B with"
+                             " 1 element); ⍴⍴A is "
+                          << A.get_rank() << ", ⍴⍴B is " << B.get_rank();
+             RANK_ERROR;
+           }
+        else
+           {
+             MORE_ERROR() << "A f¨B: expecting ⍴A = ⍴B (or A or B with"
+                             " 1 element); ⍴A is "
+                          << A.get_shape() << ", ⍴B is " << B.get_shape();
+             LENGTH_ERROR;
            }
       }
 
@@ -115,8 +127,6 @@ cFunction_P LO = _LO.get_function();
 
    if (A.is_empty() || B.is_empty())
       {
-        if (!LO->has_result())   return Token(TOK_VOID);
-
         Value_P first_A = Bif_F12_TAKE::first(A);
         Value_P first_B = Bif_F12_TAKE::first(B);
         Shape shape_Z;   // will be ⍴A or ⍴B and therefore empty
@@ -156,6 +166,9 @@ cFunction_P LO = _LO.get_function();
              RANK_ERROR;
            }
 
+        // after the conformance checks above (Bugs38 #34)
+        if (!LO->has_result())   return Token(TOK_VOID);
+
         // evaluate the fill function (lrm p. 245)
         //
         Value_P Z1;
@@ -182,6 +195,13 @@ cFunction_P LO = _LO.get_function();
              if (tok_Z1.get_Class() != TC_VALUE)   return tok_Z1;
              Z1 = tok_Z1.get_apl_val();
            }
+        else if (is_system_function(LO))
+           {
+             // system functions have no fill function and must not be
+             // executed (LRM p. 56): e.g. ⎕ES¨'' or ⎕FIO[4]¨⍬ (Bugs38 #108)
+             //
+             Z1 = first_B;
+           }
         else
            {
              // the fill function is the function itself
@@ -206,7 +226,12 @@ cFunction_P LO = _LO.get_function();
            }
 
         Z->check_value(LOC);
-        Z->to_type(true);
+
+        // only the fill function of a scalar function is numeric (LRM p.
+        // 56); otherwise the fill result keeps its type, e.g. ⌽¨'' ≡ '',
+        // like for ∘.f (Bif_OPER2_OUTER.cc, Bugs28 #37, Bugs38 #35)
+        //
+        Z->to_type(LO->is_scalar_function());
         return Token(TOK_APL_VALUE1, Z);
       }
 
@@ -215,12 +240,16 @@ cFunction_P LO = _LO.get_function();
          // the shape of Z is chosen as for a primitive LO (see shape_Z
          // below): ⍴B if A is a scalar, ⍴A if B is a scalar, and otherwise
          // the shape of the argument that is not extended. If both have
-         // 1 element (but neither is a scalar), then A is extended and Z
-         // has the shape of B (Bugs37 #66).
+         // 1 element (but neither is a scalar), then the argument with the
+         // lower rank is extended and Z has the shape of the other, like
+         // for the scalar functions (Bugs20 #5, Bugs37 #66, Bugs38 #106).
          //
-         const bool extend_A = A.is_scalar_extensible() && !B.is_scalar();
+         const bool A_higher = A.get_rank() > B.get_rank();
+         const bool extend_A = A.is_scalar_extensible() && !B.is_scalar() &&
+                               !(B.is_scalar_extensible() && A_higher);
          const bool extend_B = B.is_scalar_extensible() &&
-                               (B.is_scalar() || !A.is_scalar_extensible());
+                               (B.is_scalar() || !A.is_scalar_extensible() ||
+                                A_higher);
 
          Macro * macro = 0;
          if (LO->has_result())
@@ -293,6 +322,9 @@ const int inc_B = B.get_increment();
 const Shape * shape_Z = 0;
    if      (A.is_scalar())      shape_Z = &B.get_shape();
    else if (B.is_scalar())      shape_Z = &A.get_shape();
+   else if (inc_A == 0 && inc_B == 0)   // both 1-element: higher rank wins
+      shape_Z = A.get_rank() > B.get_rank() ? &A.get_shape()   // Bugs38 #106
+                                            : &B.get_shape();
    else if (inc_A == 0)          shape_Z = &B.get_shape();
    else if (inc_B == 0)          shape_Z = &A.get_shape();
    else if (A.same_shape(B))   shape_Z = &B.get_shape();
@@ -512,6 +544,13 @@ cFunction_P LO = _LO.get_function();
              Value_P sub2 = Idx0_0(LOC);
              Z1->next_ravel_Pointer(sub2.get());
            }
+        else if (is_system_function(LO))
+           {
+             // system functions have no fill function and must not be
+             // executed (LRM p. 56): e.g. ⎕ES¨'' or ⎕FIO[4]¨⍬ (Bugs38 #108)
+             //
+             Z1 = first_B;
+           }
         else
            {
              // the fill function is the function itself
@@ -537,7 +576,12 @@ cFunction_P LO = _LO.get_function();
         // placeholder, so B here is never a selective-assignment target.
         //
         Z->check_value(LOC);
-        Z->to_type(true);
+
+        // only the fill function of a scalar function is numeric (LRM p.
+        // 56); otherwise the fill result keeps its type, e.g. ⌽¨'' ≡ '',
+        // like for ∘.f (Bif_OPER2_OUTER.cc, Bugs28 #37, Bugs38 #35)
+        //
+        Z->to_type(LO->is_scalar_function());
         return Token(TOK_APL_VALUE1, Z);
       }
 

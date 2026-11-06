@@ -616,14 +616,20 @@ APL_Integer weight = 1;
    // __builtin_{mul,add}_overflow report overflow of the exact int64_t
    // computation directly, so the float shadow is no longer needed.
    //
+   // An overflowed weight matters only if a non-zero digit meets it, e.g.
+   // not for the leading 0s of 10⊥0 0,18⍴9 (Bugs38 #42).
+   //
+bool weight_overflow = false;
    loop(l, len)
       {
         idxA -= dec_A;
         idxB -= dec_B;
 
         const APL_Integer vB = VB.get_near_int(idxB);
-        APL_Integer term;
-        if (__builtin_mul_overflow(weight, vB, &term))      return true;
+        if (weight_overflow && vB != 0)   return true;
+        APL_Integer term = 0;
+        if (!weight_overflow &&
+            __builtin_mul_overflow(weight, vB, &term))      return true;
         if (__builtin_add_overflow(value, term, &value))    return true;
 
         // weight is only needed for a further iteration -- e.g.
@@ -637,9 +643,11 @@ APL_Integer weight = 1;
         //
         if (l + 1 < len)
            {
-             if (__builtin_mul_overflow(weight, VA.get_near_int(idxA),
-                                         &weight))
-                return true;
+             const APL_Integer vA = VA.get_near_int(idxA);
+             if (vA == 0)   { weight = 0;   weight_overflow = false; }
+             else if (!weight_overflow &&
+                      __builtin_mul_overflow(weight, vA, &weight))
+                weight_overflow = true;
            }
       }
 

@@ -128,7 +128,7 @@ Value_P Z(B.get_shape(), LOC);
                   else           Z->next_ravel_Int(pos);
                   continue;
                 }
-             if (B.is_integer_cell(v))
+             if (B.is_near_int(v))   // not only IntCell (Bugs38 #98)
                 {
                   const APL_Integer idx = B.get_near_int(v);
                   if (idx < 0 || idx >= (APL_Integer(1) << 31))   DOMAIN_ERROR;
@@ -240,14 +240,19 @@ const APL_time_us start = now();
    if (B.get_rank() > 0)                 RANK_ERROR;
    if (!B.is_real_cell(0))   DOMAIN_ERROR;
 
-const APL_time_us end = start + 1000000 * B.get_real_value(0);
-   if (end < start)                           DOMAIN_ERROR;
-   if (end > start + 31*24*60*60*1000000LL)   DOMAIN_ERROR;   // > 1 month
+   // check B as a double before converting it to APL_time_us (Bugs38 #93)
+const APL_Float seconds = B.get_real_value(0);
+   if (!(seconds >= 0.0))              DOMAIN_ERROR;   // also NaN
+   if (seconds > 31*24*60*60)          DOMAIN_ERROR;   // > 1 month
+
+const APL_time_us end = start + APL_time_us(1000000 * seconds);
 
 bool need_LF = false;
-   while (now() < end)
+   for (APL_time_us t = now(); t < end; t = now())
        {
-         usleep(20000);
+         // at most 20 ms, but not beyond end (Bugs38 #130)
+         const APL_time_us step = end - t;
+         usleep(step < 20000 ? step : 20000);
          if (InterruptContext::attention_is_raised())   need_LF = true;   // first ^C
          if (InterruptContext::interrupt_is_raised())                     // second ^C
             {
@@ -345,6 +350,7 @@ Value_P Z2(2, LOC);
     Z2->next_ravel_Int(Error::error_minor(E_DOMAIN_ERROR));
    Z2->check_value(LOC);
 
+   pb.pad_to_spaces();   // blanks, not pad characters (Bugs38 #89)
 Value_P Z3(pb, LOC);
 
 Value_P Z(3, LOC);
@@ -533,6 +539,7 @@ Value_P Z(3, LOC);
             Z2->next_ravel_Int(Error::error_minor(ec));
         Z2->check_value(LOC);
 
+        pb.pad_to_spaces();   // blanks, not pad characters (Bugs38 #89)
         Value_P Z3(pb, LOC);   // 3 line message like ⎕EM
 
         Z->next_ravel_0();
@@ -684,6 +691,7 @@ const int top_depth_before = top->get_safe_execution_depth();
                    Z2->next_ravel_Int(Error::error_minor(ec));
                    Z2->check_value(LOC);
 
+               pb.pad_to_spaces();   // blanks, not pad characters (Bugs38 #89)
                Value_P Z3(pb, LOC);
                Value_P Z(3, LOC);
                Z->next_ravel_0();
@@ -761,10 +769,28 @@ Error fix_error(E_SYNTAX_ERROR, LOC);   // fallback if nothing better is caught
         // would make Z3 inconsistent in rank between fix-time and
         // run-time errors).
         //
-        const ErrorCode ec = fix_error.get_error_code();
+        // A syntax error is SYNTAX ERROR (⎕ET 2 2) like in ⍎ and ⎕EA (APL2
+        // LRM, ⎕ES example); its specific reason goes into )MORE, which
+        // is then folded into Z3 like for run-time errors (Bugs38 #73).
+        //
+        ErrorCode ec = fix_error.get_error_code();
+        if (Error::error_major(ec) == Error::error_major(E_SYNTAX_ERROR) &&
+            ec != E_SYNTAX_ERROR)
+           {
+             if (Workspace::more_error().size() == 0)
+                MORE_ERROR() << Error::error_name(ec);
+             ec = E_SYNTAX_ERROR;
+           }
+        const UCS_string more_info = Workspace::more_error();
+        Workspace::more_error().clear();
+
+        UCS_string line_1((UTF8_string(Error::error_name(ec))));
+        if (more_info.size() &&
+            (line_1.size() == 0 || line_1.back() != UNI_PLUS))
+           line_1 << UNI_PLUS;
 
         PrintBuffer pb;
-        pb.append_ucs(UTF8_string(Error::error_name(ec)));
+        pb.append_ucs(line_1);
 
         // the fix() error has no statement line: show B itself, like the
         // run-time errors do (Blake McBride, Bugs32 #24)
@@ -783,6 +809,7 @@ Error fix_error(E_SYNTAX_ERROR, LOC);   // fallback if nothing better is caught
            }
         pb.append_ucs(line_2);
         pb.append_ucs(line_3);
+        if (more_info.size())   append_more_error(pb, more_info);
 
         Value_P Z2(2, LOC);
             Z2->next_ravel_Int(Error::error_major(ec));
@@ -837,18 +864,21 @@ Quad_ENV::eval_B(cValue_R B) const
 
 const ShapeItem ec_B = B.element_count();
 
-std::vector<const char *> evars;
-
+   // the environment strings are UTF-8 encoded, like file names etc.
+   // (Bugs38 #58), and B can only match within an environment string
+   //
+std::vector<UCS_string> evars;
    for (char **e = environ; *e; ++e)
        {
-         const char * env = *e;
+         const UCS_string env{UTF8_string(*e)};
+         if (ec_B > env.ssize())   continue;
 
          // check if env starts with B.
          //
          bool match = true;
          loop(b, ec_B)
             {
-              if (B.get_char_value(b) != Unicode(env[b]))
+              if (B.get_char_value(b) != env[b])
                  {
                    match = false;
                    break;
@@ -863,21 +893,13 @@ Value_P Z(sh_Z, LOC);
 
    loop(e, evars.size())
       {
-        const char * env = evars[e];
-        UCS_string ucs;
-        while (*env)
-           {
-             if (*env != '=')   ucs << Unicode(*env++);
-             else               break;
-           }
-        ++env;   // skip '='
+        const UCS_string & env = evars[e];
+        ShapeItem eq = 0;
+        while (eq < env.ssize() && env[eq] != UNI_EQUAL)   ++eq;
 
-        Value_P varname(ucs, LOC);
-
-        ucs.clear();
-        while (*env)   ucs << Unicode(*env++);
-
-        Value_P varval(ucs, LOC);
+        Value_P varname(UCS_string(env, 0, eq), LOC);
+        const ShapeItem vstart = eq < env.ssize() ? eq + 1 : eq;
+        Value_P varval(UCS_string(env, vstart, env.size() - vstart), LOC);
 
         Z->next_ravel_Pointer(varname.get());
         Z->next_ravel_Pointer(varval.get());
@@ -1665,8 +1687,9 @@ Quad_INP::get_esc(Value_P A, UCS_string & esc1, UCS_string & esc2)
                 }
              else                          // char scalar
                 {
-                  if (e)   esc2 = cell.get_pointer_value()->get_UCS_ravel();
-                  else     esc1 = cell.get_pointer_value()->get_UCS_ravel();
+                  // e.g. '>' in '<?apl' '>' ⎕INP 'END' (Bugs38 #59)
+                  if (e)   esc2 = UCS_string(1, cell.get_char_value());
+                  else     esc1 = UCS_string(1, cell.get_char_value());
                 }
            }
 
@@ -2158,7 +2181,7 @@ const APL_Integer b = B.get_near_int(0);
 const ShapeItem len = Workspace::SI_entry_count();
 
    if (b < 1)   DOMAIN_ERROR;
-   if (b > 4)   DOMAIN_ERROR;
+   if (b > 6)   DOMAIN_ERROR;   // 5 and 6 as for A ⎕SI B (Bugs38 #97)
 
    // at this point we should not fail...
    //

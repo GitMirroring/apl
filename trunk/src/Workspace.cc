@@ -144,8 +144,11 @@ Workspace::push_SI(const Executable * fun, const char * loc)
         // the recursion instead of only setting flags nothing reads
         // until a line boundary that is never reached. See Bugs27 #17.
         //
-        InterruptContext::set_attention_raised(LOC);
-        InterruptContext::set_interrupt_raised(LOC);
+        // Only throw: the flags that were also set here were never
+        // consumed if the push failed before a new SI entry existed (e.g.
+        // for an immediate-execution statement), so the next statement got
+        // a spurious INTERRUPT (Bugs38 #79).
+        //
         LIMIT_ERROR_SIDEPTH;
       }
 
@@ -733,6 +736,9 @@ Workspace::clear_SI(ostream & out)
         SI_top()->escape();
         pop_SI(LOC);
       }
+
+   // also a parse error at top level (Bugs38 #70)
+   StateIndicator::top_level_error.clear_error_code();
 }
 //────────────────────────────────────────────────────────────────────────────
 void
@@ -1081,6 +1087,10 @@ InputFile fam(filename, file, false, false, true, with_LX);
         fam.set_COPY();
         ++Bif_F1_EXECUTE::copy_pending;
       }
+   else                 // )LOAD: keep the session variables (Bugs38 #23)
+      {
+        fam.copy_filter.set_loading();
+      }
    InputFile::files_todo.insert(InputFile::files_todo.begin(), fam);
 }
 //────────────────────────────────────────────────────────────────────────────
@@ -1240,7 +1250,11 @@ int variable_count = 0;
 /// Read/Write System Variable
 #define ro_sv_def(x, _str, _txt)
 /// Read-Only System Variable
-#define rw_sv_def(x, _str, _txt) if (ID_ ## x != ID_Quad_SYL) \
+// ⎕L, ⎕R, and ⎕X belong to the SI, which is not dumped (Bugs38 #115)
+#define rw_sv_def(x, _str, _txt) if (ID_ ## x != ID_Quad_SYL &&   \
+                                     ID_ ## x != ID_Quad_L   &&   \
+                                     ID_ ## x != ID_Quad_R   &&   \
+                                     ID_ ## x != ID_Quad_X)       \
    { get_v_ ## x().dump(*sout);   ++variable_count; }
 #include "SystemVariable.def"
 
@@ -1409,10 +1423,13 @@ XML_Loading_Archive in(out, err, filename.c_str(), dump_fd);
    if (Workspace::get_LX().size())  quad_lx = Workspace::get_LX();
 }
 //════════════════════════════════════════════════════════════════════════════
-void
+bool
 Workspace::copy_WS(ostream & out, ostream & err, const LibRef_name & lib_name,
                    UCS_string_vector & lib_ws_objects, bool protection)
 {
+   // return true unless the copy has failed (for )COPY_ONCE, Bugs38 #114).
+   // A )DUMPed .apl file is only queued here, so its result is not known.
+
    // )COPY WS_name                              WS_name /absolute or relative
    // )COPY libnum WS_name                       WS_name relative
    // )COPY WS_name objects...                   WS_name /absolute or relative
@@ -1433,18 +1450,18 @@ XML_Loading_Archive in(out, err, filename.c_str(), dump_fd);
         load_DUMP(out, filename, dump_fd, no_LX, false, &lib_ws_objects,
                   protection);
         // load_DUMP closes dump_fd
-        return;
+        return true;
       }
 
    if (!in.is_open())   // case 3: open failed
       {
         CERR << ")COPY " << lib_name.get_name() << " (file " << filename
              << ") failed: " << strerror(errno) << endl;
-        return;
+        return false;
       }
 
    if (!in.is_valid_format())   // wrong format; diagnostic already
-      return;                  // printed by the constructor
+      return false;            // printed by the constructor
 
    // case 2: )SAVEd .xml file
    //
@@ -1481,7 +1498,10 @@ XML_Loading_Archive in(out, err, filename.c_str(), dump_fd);
                 " already copied from it was restored to its"
                 " pre-)COPY state";
         if (reason.size())   more << UNI_LF << reason;
+        return false;
       }
+
+   return true;
 }
 //════════════════════════════════════════════════════════════════════════════
 void

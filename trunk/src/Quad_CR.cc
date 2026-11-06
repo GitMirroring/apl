@@ -1225,7 +1225,11 @@ UCS_string text;
         // which the doubling above does handle). Fall back to (⎕UCS n)
         // for those, same as for other characters that don't fit '...'.
         //
-        if (uni < ' ' || uni == 127 || Avec::is_single_quote(uni))
+        // also a character that UTF-8 cannot encode, e.g. a surrogate
+        // code point, which )LOAD would decode differently (Bugs38 #41)
+        //
+        if (uni < ' ' || uni == 127 || Avec::is_single_quote(uni) ||
+            !is_UTF8_encodable(uni))
            {
              return text << "(⎕UCS " << int(uni) << UNI_R_PARENT;
            }
@@ -1922,8 +1926,10 @@ Value_P Z(shape_Z, LOC);
                                    // cells at all for this b -- writing
                                    // one unconditionally overflows Z's
                                    // allocation by one cell.
+             // pad with the fill of the cell, e.g. ' ' for a character,
+             // like ⊃ does (Bugs38 #29)
              Z->next_ravel_Cell(cB);
-             loop(zz, (conformed_len - 1))   Z->next_ravel_0();
+             loop(zz, (conformed_len - 1))   Z->next_ravel_Proto(cB);
            }
       }
 
@@ -2630,6 +2636,13 @@ UCS_string sub_prefix = prefix;   sub_prefix << "────";
 }
 //────────────────────────────────────────────────────────────────────────────
 bool
+Quad_CR::is_UTF8_encodable(Unicode uni)
+{
+   if (uni >= 0xD800 && uni <= 0xDFFF)   return false;   // a surrogate
+   return uni >= 0 && uni <= 0x10FFFF;
+}
+//────────────────────────────────────────────────────────────────────────────
+bool
 Quad_CR::is_plain_string(const cValue * value)
 {
    if (value->get_rank() != 1)   return false;   // not a vector
@@ -2643,6 +2656,7 @@ Quad_CR::is_plain_string(const cValue * value)
          if (uni < UNI_SPACE)           return false;   // control character
          if (uni == UNI_SINGLE_QUOTE)   return false;
          if (uni == UNI_DELETE)         return false;
+         if (!is_UTF8_encodable(uni))   return false;   // Bugs38 #41
 
          // the caller emits the string between " " without any escaping,
          // so both the delimiter and the escape introducer of "..."

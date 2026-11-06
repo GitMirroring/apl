@@ -132,16 +132,20 @@ protected:
    /// @param X        match flags controlling result format
    /// @param B        subject string to match against
    /// @param B_offset current offset into B; updated past last match on return
+   /// @param after_empty in: the previous match was empty; out: this one is
    static Value_P string_result(const Regexp & A, const Flags & X,
-                                 const UCS_string & B, ShapeItem & B_offset);
+                                 const UCS_string & B, ShapeItem & B_offset,
+                                 bool & after_empty);
 
    /// return a result that can be used by [] (position and length)
    /// @param regex    compiled regular expression
    /// @param X        match flags controlling result format
    /// @param B        subject string to match against
    /// @param B_offset current offset into B; updated past last match on return
+   /// @param after_empty in: the previous match was empty; out: this one is
    static Value_P index_result(const Regexp & regex, const Flags & X,
-                                const UCS_string & B, ShapeItem & B_offset);
+                                const UCS_string & B, ShapeItem & B_offset,
+                                bool & after_empty);
 
 #endif
 };

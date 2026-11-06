@@ -61,6 +61,9 @@ Shape ret;
    loop(r, rho_rho)
       {
         const ShapeItem len = rho[r];
+        // -len overflows for the int64 minimum (Bugs38 #92): that length
+        // is not representable anyway
+        if (len == std::numeric_limits<ShapeItem>::min())   WS_FULL;
         if (len < 0)   ret.add_shape_item(- len);
         else           ret.add_shape_item(  len);
       }

@@ -392,6 +392,14 @@ public:
    APL_Integer get_near_int(ShapeItem idx) const
       { return ravel.get_near_int(idx); }
 
+   /// return the index at \b idx, like get_near_int(), but INDEX ERROR
+   /// (not DOMAIN ERROR) for an integer too large for int64 (Bugs38 #104)
+   APL_Integer get_index_int(ShapeItem idx) const
+      { Cell cache;   return index_int(get_cravel(idx, cache)); }
+
+   /// return the index in \b cell, see get_index_int()
+   static APL_Integer index_int(const Cell & cell);
+
    bool get_near_bool(ShapeItem idx) const
       { return ravel.get_near_bool(idx); }
 
@@ -887,13 +895,6 @@ protected:
    /// @param loc caller location for diagnostics
    Value(const Shape & sh, const char * loc);
 
-   /// constructor: a packed array with shape \b sh. The caller has allocated
-   /// the ravel (bits)
-   /// @param sh shape of the new array
-   /// @param bits caller-allocated packed bit ravel
-   /// @param loc caller location for diagnostics
-   Value(const Shape & sh, uint64_t * bits, const char * loc);
-
    /// constructor: a simple character vector from a UCS string.
    /// Rank is always 1, so that is_char_vector() will be true.
    /// @param ucs source Unicode string
@@ -1058,6 +1059,17 @@ public:
    /// assign \b val to the cell references in this value.
    /// @param val value whose elements are assigned to the cell references
    void assign_cellrefs(Value_P val);
+
+   /// throw a DOMAIN ERROR for a selective specification into the member
+   /// table of a structured variable (Bugs38 #3)
+   [[noreturn]] static void throw_member_table_target();
+
+   /// return true if \b this is the member table of a structured variable
+   /// and \b target a cell that a selective specification may write: the
+   /// value of a (used) member that is not a sub-structure, e.g. the cell
+   /// of a scalar member S.a in (⌽S.a)←B. Not a name, not an unused row
+   /// (Bugs38 #3).
+   bool is_writable_member_cell(const Cell * target) const;
 
    /// overwrite every LvalCell in this value's ravel with a harmless
    /// IntCell 0, in place (shape and cell count unchanged). Used by

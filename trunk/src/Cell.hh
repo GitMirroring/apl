@@ -716,6 +716,11 @@ public:
    /// @param qct  comparison tolerance (⎕CT)
    static bool integral_within(APL_Float A, double qct);
 
+   /// true iff the quotient \b Q (of a residue) is a non-zero integer up to
+   /// the rounding errors of its operands and of the division (Bugs38 #47)
+   /// @param Q  the quotient B÷A of A|B
+   static bool rounded_integral(APL_Float Q);
+
    /// true iff value is close to an int (within +- qct)
    static bool is_near_int(APL_Float value);
 

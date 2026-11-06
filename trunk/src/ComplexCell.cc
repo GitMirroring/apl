@@ -21,6 +21,7 @@
 /** @file
 */
 
+#include <limits>
 #include <errno.h>
 #include <fenv.h>
 #include <math.h>
@@ -244,14 +245,14 @@ ComplexCell::bif_residue(Cell * Z, const Cell * A) const
 ErrorCode
 ComplexCell::bif_circle_fun(Cell * Z, const Cell * A) const
 {
-   if (!A->is_near_int())   return E_DOMAIN_ERROR;
+   if (!A->is_near_int64_t())   return E_DOMAIN_ERROR;   // Bugs38 #93
    return ComplexCell::bif_circle_fun_c(Z, A->get_checked_near_int(), cval());
 }
 //────────────────────────────────────────────────────────────────────────────
 ErrorCode
 ComplexCell::bif_circle_fun_inverse(Cell * Z, const Cell * A) const
 {
-   if (!A->is_near_int())   return E_DOMAIN_ERROR;
+   if (!A->is_near_int64_t())   return E_DOMAIN_ERROR;   // Bugs38 #93
    return ComplexCell::bif_circle_fun_inverse_c(Z, A->get_checked_near_int(),
                                                    cval());
 }
@@ -1125,6 +1126,18 @@ ComplexCell::bif_power_ci(Cell * Z, APL_Complex a, APL_Integer b)
    //
    if (a.imag() == 0.0)   return FloatCell::bif_power_fi(Z, a.real(), b);
 
+   // -b below would overflow for the int64 minimum -2⋆63, and the squaring
+   // loop then never ended: a⋆-2⋆63 is (÷a) squared 63 times (Bugs38 #44)
+   //
+   if (b == std::numeric_limits<APL_Integer>::min())
+      {
+        if (a == APL_Complex(0.0, 0.0))   return E_DOMAIN_ERROR;
+        APL_Complex z = APL_Complex(1.0, 0.0) / a;
+        loop(s, 63)   z *= z;
+        if (!isfinite(z.real()) || !isfinite(z.imag()))   return E_DOMAIN_ERROR;
+        return ComplexCell::zC(Z, z);
+      }
+
 const bool invert_Z = b < 0;
    if (invert_Z)   b = -b;
 
@@ -1287,6 +1300,19 @@ ComplexCell::bif_power_cc(Cell * Z, APL_Complex a, APL_Complex b)
        b.real() == nearbyint(b.real()))
       return ComplexCell::bif_power_ci(Z, a, APL_Integer(b.real()));
 
+   // a purely imaginary a and a real b: (0J±m)⋆b = (m⋆b) × ¯1⋆(±b÷2),
+   // like FloatCell::bif_power_ff() for a negative real a: the phase
+   // b×○÷2 of exp(b×ln a) is noise for a large b (Bugs38 #48).
+   //
+   if (a.real() == 0.0 && b.imag() == 0.0)
+      {
+        const APL_Float t = (a.imag() > 0.0 ? 0.5 : -0.5) * b.real();
+        const APL_Complex z = pow(fabs(a.imag()), b.real()) *
+                    complex_power(APL_Complex(-1.0, 0.0), fmod(t, 2.0));
+        if (!isfinite(z.real()) || !isfinite(z.imag()))   return E_DOMAIN_ERROR;
+        return ComplexCell::zC(Z, z);
+      }
+
 const APL_Complex z = complex_power(a, b);
    if (!isfinite(z.real()))   return E_DOMAIN_ERROR;
    if (!isfinite(z.imag()))   return E_DOMAIN_ERROR;
@@ -1307,8 +1333,15 @@ ComplexCell::bif_logarithm_cc(Cell * Z, APL_Complex a, APL_Complex b)
    // INTEGER_TOLERANCE on each component independently (Bugs28 #87,
    // same rationale as FloatCell::bif_logarithm_ff()).
    //
+   // a base of 1 is valid only for B = 1 (APL2 LRM p. 171, Bugs38 #122)
+   //
    if (Cell::tolerantly_equal(a, APL_Complex(1.0, 0.0), Workspace::get_CT()))
-      return E_DOMAIN_ERROR;
+      {
+        if (Cell::tolerantly_equal(b, APL_Complex(1.0, 0.0),
+                                   Workspace::get_CT()))
+           return IntCell::z1(Z);
+        return E_DOMAIN_ERROR;
+      }
    if (b == a)   return IntCell::z1(Z);
    if (b.real() == 0.0 && b.imag() == 0.0)   return E_DOMAIN_ERROR;
 
@@ -1348,11 +1381,27 @@ nc_near_real(APL_Complex c)
    return fabs(c.imag()) < REAL_TOLERANCE * fabs(c.real());   // relatively small
 }
 //────────────────────────────────────────────────────────────────────────────
+/// true if a is greater than b in the order of < (real parts first, then
+/// imaginary parts, see apl.texi "Comparison Rules", Bugs38 #124)
+static bool
+complex_greater(APL_Complex a, APL_Complex b)
+{
+   if (!Cell::tolerantly_equal(a.real(), b.real(), Workspace::get_CT()))
+      return a.real() > b.real();
+   return a.imag() > b.imag();
+}
+//────────────────────────────────────────────────────────────────────────────
 ErrorCode
 ComplexCell::bif_maximum_cc(Cell * Z, APL_Complex a, APL_Complex b)
 {
-   if (!nc_near_real(a))   return E_DOMAIN_ERROR;
-   if (!nc_near_real(b))   return E_DOMAIN_ERROR;
+   // A⌈B and A⌊B select by the same order as < (Bugs38 #124)
+   //
+   if (!(nc_near_real(a) && nc_near_real(b)))   // the selected operand
+      {
+        const APL_Complex z = complex_greater(b, a) ? b : a;
+        if (z.imag() == 0.0)   return FloatCell::zF(Z, z.real());
+        return ComplexCell::zC(Z, z);
+      }
 
    // FloatCell::zF() (unrounded), not ComplexCell::zV(): zV rounds a
    // value within ⎕CT-tolerance of an integer to an IntCell instead of
@@ -1367,8 +1416,12 @@ ComplexCell::bif_maximum_cc(Cell * Z, APL_Complex a, APL_Complex b)
 ErrorCode
 ComplexCell::bif_minimum_cc(Cell * Z, APL_Complex a, APL_Complex b)
 {
-   if (!nc_near_real(a))   return E_DOMAIN_ERROR;
-   if (!nc_near_real(b))   return E_DOMAIN_ERROR;
+   if (!(nc_near_real(a) && nc_near_real(b)))   // the selected operand
+      {
+        const APL_Complex z = complex_greater(a, b) ? b : a;
+        if (z.imag() == 0.0)   return FloatCell::zF(Z, z.real());
+        return ComplexCell::zC(Z, z);
+      }
    return FloatCell::zF(Z, a.real() <= b.real() ? a.real() : b.real());
 }
 //────────────────────────────────────────────────────────────────────────────
@@ -1518,9 +1571,16 @@ ComplexCell::bif_conjugate_c(Cell * Z, APL_Complex b)
 ErrorCode
 ComplexCell::bif_direction_c(Cell * Z, APL_Complex b)
 {
-const APL_Float mag = abs(b);
-   if (mag == 0.0)   return IntCell::z0(Z);
-   return ComplexCell::zC(Z, b.real()/mag, b.imag()/mag);
+   // scale b by its larger component first: abs(b) overflows for huge
+   // components and is coarse for subnormal ones, but the direction always
+   // has magnitude 1 (Bugs38 #46)
+   //
+const APL_Float scale = std::max(fabs(b.real()), fabs(b.imag()));
+   if (scale == 0.0)   return IntCell::z0(Z);
+const APL_Float br = b.real() / scale;
+const APL_Float bi = b.imag() / scale;
+const APL_Float mag = hypot(br, bi);
+   return ComplexCell::zC(Z, br/mag, bi/mag);
 }
 //────────────────────────────────────────────────────────────────────────────
 ErrorCode
@@ -1545,7 +1605,9 @@ ErrorCode ret = ComplexCell::zC(Z, ComplexCell::gamma(b.real() + 1.0,
 ErrorCode
 ComplexCell::bif_magnitude_c(Cell * Z, APL_Complex b)
 {
-   return FloatCell::zF(Z, abs(b));
+const APL_Float z = abs(b);
+   if (!isfinite(z))   return E_DOMAIN_ERROR;   // Bugs38 #46
+   return FloatCell::zF(Z, z);
 }
 //────────────────────────────────────────────────────────────────────────────
 ErrorCode
@@ -1710,7 +1772,7 @@ ComplexCell::bif_near_int64_t_c(Cell * Z, APL_Complex b)
        b.imag() > -INTEGER_TOLERANCE &&
        b.real() <  BIG_INT64_F       &&
        b.real() > -BIG_INT64_F)
-      return FloatCell::zF(Z, round(b.real()));
+      return IntCell::zI(Z, APL_Integer(nearbyint(b.real())));   // Bugs38 #96
 
    return ComplexCell::zC(Z, round(b.real()), round(b.imag()));
 }
@@ -1733,16 +1795,20 @@ const APL_Float val_up_r = ceil(val_r);
 const APL_Float val_dn_i = floor(val_i);
 const APL_Float val_up_i = ceil(val_i);
 
+   // <= and >=: an exact integer part (e.g. the imaginary part 0) is at
+   // distance 0 from itself (Bugs38 #54)
+   //
 double z_r;
-   if      (val_r < (val_dn_r + max_diff_r))   z_r = val_dn_r;
-   else if (val_r > (val_up_r - max_diff_r))   z_r = val_up_r;
-   else                                        return E_DOMAIN_ERROR;
+   if      (val_r <= (val_dn_r + max_diff_r))   z_r = val_dn_r;
+   else if (val_r >= (val_up_r - max_diff_r))   z_r = val_up_r;
+   else                                         return E_DOMAIN_ERROR;
 
 double z_i;
-   if      (val_i < (val_dn_i + max_diff_i))   z_i = val_dn_i;
-   else if (val_i > (val_up_i - max_diff_i))   z_i = val_up_i;
-   else                                        return E_DOMAIN_ERROR;
+   if      (val_i <= (val_dn_i + max_diff_i))   z_i = val_dn_i;
+   else if (val_i >= (val_up_i - max_diff_i))   z_i = val_up_i;
+   else                                         return E_DOMAIN_ERROR;
 
+   if (z_i == 0.0)   return IntCell::zI(Z, APL_Integer(z_r));
    return ComplexCell::zC(Z, z_r, z_i);
 }
 //════════════════════════════════════════════════════════════════════════════

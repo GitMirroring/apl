@@ -252,7 +252,7 @@ SYNTAX ERROR
 
 
       (M+[1]1 2)←0
-SYNTAX ERROR
+SYNTAX ERROR+
       (M+[1]1 2)←0
       ^          ^
 
@@ -677,9 +677,10 @@ Unbalanced right square bracket+
 
 
       ⎕EC '(1 2'
- 0  2 2562  Unbalanced left parenthesis 
-                  (1 2                  
-                  ^                     
+ 0  2 2  SYNTAX ERROR+               
+               (1 2                  
+               ^                     
+         Unbalanced left parenthesis 
 
 
       ⍝ Bugs37 #63: a trailing . after a value or a defined function

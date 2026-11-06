@@ -2145,7 +2145,8 @@ bool progress = false;
                    const Symbol * subfun_symbol = tos[t + 2].get_sym_ptr();
                    const UCS_string sub_name = subfun_symbol->get_name();
                    const sAxis axis = topfun->subfun_to_axis(sub_name);
-                   if (axis < 0)   topfun->bad_subfun_name_ERROR(sub_name);
+                   if (axis == SUBFUN_NOT_FOUND)
+                      topfun->bad_subfun_name_ERROR(sub_name);
 
                    // valid axis. replace: topfun . subfun with topfun [subfun]
                    //
@@ -2162,7 +2163,8 @@ bool progress = false;
                    const UCS_string sub_name = subfun_symbol->get_name();
                    const Function * topfun = tos[t].get_function();
                    const sAxis axis = topfun->subfun_to_axis(sub_name);
-                   if (axis < 0)   topfun->bad_subfun_name_ERROR(sub_name);
+                   if (axis == SUBFUN_NOT_FOUND)
+                      topfun->bad_subfun_name_ERROR(sub_name);
 
                    // valid axis. replace: ⎕SQL.subfun with either
                    // ⎕SQL[subfun] or with ⎕SQL[subfun;DB]
@@ -2269,13 +2271,26 @@ Parser::mark_lsymb(Token_string & tos)
                   // would otherwise show the statement of an earlier
                   // error (Bugs37 #42). tos is (still) in source order.
                   //
-                  int lpar = (ass - 1) - tos[ass - 1].get_int_val2();
-                  if (lpar < 0 || tos[lpar].get_Class() != TC_L_PARENT)
-                     lpar = ass - 1;
+                  // scan for the matching ( rather than using the
+                  // bracket distance of ), which is stale after values
+                  // were collapsed or (V) was removed (Bugs38 #110)
+                  //
+                  int lpar = ass - 1;
+                  int depth = 0;
+                  for (int p = ass - 1; p >= 0; --p)
+                      {
+                        const TokenClass tc = tos[p].get_Class();
+                        if (tc == TC_R_PARENT)        ++depth;
+                        else if (tc == TC_L_PARENT && --depth == 0)
+                           {
+                             lpar = p;
+                             break;
+                           }
+                      }
                   Error error(E_LEFT_SYNTAX_ERROR, LOC);
                   tos.build_error_line_2(error, lpar, ass);
-                  if (StateIndicator * si = Workspace::SI_top())
-                     StateIndicator::get_error(si) = error;
+                  // with an empty SI: the top-level error, for ⎕EM and ⎕ET (Bugs38 #70)
+                  StateIndicator::get_error(Workspace::SI_top()) = error;
                   throw error;
                 }
 
@@ -2341,7 +2356,7 @@ bool TOK_VOID_inserted = false;
               const Symbol * symbol = tos[t+1].get_sym_ptr();   // subfun name
               cFunction_P fun = tos[t-1].get_function();
               const sAxis axis = fun->subfun_to_axis(symbol->get_name());
-              if (axis != -1)   // subfunction is valid
+              if (axis != SUBFUN_NOT_FOUND)   // subfunction is valid
                  {
                    Value_P function_axis = IntScalar(axis, LOC);
                    Token tok_axis(TOK_AXIS, function_axis);

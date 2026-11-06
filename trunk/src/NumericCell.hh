@@ -133,6 +133,10 @@ protected:
    /// @param a   first floating-point operand
    /// @param b   second floating-point operand
    /// @param qct comparison tolerance ⎕CT
+   /// true iff x is (exactly) a pole of Γ, i.e. 0, ¯1, ¯2, ... (Bugs38 #18)
+   static bool is_pole(APL_Float x)
+      { return x <= 0.0 && x == nearbyint(x); }
+
    static ErrorCode flt_gcd(APL_Float & z, APL_Float a, APL_Float b,
                             double qct);
 

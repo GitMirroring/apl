@@ -168,9 +168,11 @@ protected:
   /// @param v complex vector whose magnitude (Euclidean norm) is returned
   static Dcomplex magnitude(const vector<Dcomplex> & v);
 
-  /// normalize \b v to length 1
-  /// @param v real vector to normalize in-place
-  static void normalise(vector<double> & v);
+  /// return the Pearson correlation coefficient (clamped to ¯1...1)
+  /// @param cov the covariance of two sample sets
+  /// @param var1 the (non-zero) variance of the first sample set
+  /// @param var2 the (non-zero) variance of the second sample set
+  static double pearson(double cov, double var1, double var2);
 
   /// generate a matrix suitable for libgsl
   /// @param B APL matrix value to convert
@@ -221,18 +223,21 @@ protected:
   /// @param B APL integer scalar giving the size of the identity matrix
   static Value_P ident(const Value_P B);
 
-  //// return the monadic Covariance
+  //// return the monadic covariance (or correlation) matrix
   /// @param B APL matrix value (rows are observations)
-  static Value_P monadicCovariance(const Value_P B);
+  /// @param corr return the correlation instead of the covariance
+  static Value_P monadicCovariance(const Value_P B, bool corr);
 
   /// @param A left APL value (group labels or second data set)
   /// @param B right APL value (data vector or matrix)
   static Value_P histogram(const Value_P A, const Value_P B);
 
-  //// return the dyadic Covariance
-  /// @param A left APL data vector or matrix
-  /// @param B right APL data vector or matrix
-  static Value_P dyadicCovariance(const Value_P A, const Value_P B);
+  //// return the dyadic covariance (or correlation)
+  /// @param A left APL data vector
+  /// @param B right APL data vector
+  /// @param corr return the correlation instead of the covariance
+  static Value_P dyadicCovariance(const Value_P A, const Value_P B,
+                                  bool corr);
 
   /// return random numbers
   /// @param opt_A optional left argument specifying distribution parameters

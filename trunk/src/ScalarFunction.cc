@@ -22,6 +22,7 @@
 /** @file
 */
 
+#include <unordered_set>
 #include "ArgCheck.hh"
 #include "ArrayIterator.hh"
 #include "Avec.hh"
@@ -79,6 +80,7 @@ Bif_F12_WITHOUT Bif_F12_WITHOUT::fun;                // ∼ (monadic is scalar)
 
 const IntCell ScalarFunction::integer_0(0);
 const IntCell ScalarFunction::integer_1(1);
+const IntCell ScalarFunction::integer_m1(-1);
 const FloatCell ScalarFunction::float_min(-BIG_FLOAT);
 const FloatCell ScalarFunction::float_max(BIG_FLOAT);
 
@@ -1345,7 +1347,6 @@ APL_Integer set_size = B.get_near_int(0);
    if (zlen > set_size)         DOMAIN_ERROR;
    if (zlen <  0)               DOMAIN_ERROR;
    if (set_size <  0)           DOMAIN_ERROR;
-   if (set_size > 0x7FFFFFFF)   DOMAIN_ERROR;
 
    // at this point, A and B are OK. We use a bitmap 'used' to keep track
    // of items alrady drawn.
@@ -1358,6 +1359,30 @@ Value_P Z(zlen, LOC);
    // McBride, Bugs14 #14d); operator new[] itself never returns 0 (it
    // throws std::bad_alloc), so the old null check was already dead
    // code (Bugs14 #14c).
+   //
+   // If A is small compared to B then remember the drawn items in a set
+   // rather than in a bitmap of B bits. Both draw the same sequence. This
+   // removes the former limit B < 2⋆31 (Bugs38 #123).
+   //
+   if (zlen < set_size / 16)
+      {
+        std::unordered_set<uint64_t> drawn;
+        drawn.reserve(zlen);
+        loop(z, zlen)
+            {
+              const uint64_t rnd = Workspace::get_RL(set_size);
+              if (!drawn.insert(rnd).second)   // already drawn: try again
+                 {
+                   --z;
+                   continue;
+                 }
+              Z->next_ravel_Int(rnd + Workspace::get_IO());
+            }
+        Z->check_value(LOC);
+        return Token(TOK_APL_VALUE1, Z);
+      }
+
+   // here zlen ≥ set_size/16, so the bitmap is smaller than Z
    //
 vector<uint8_t> used((set_size + 7)/8, 0);
 
@@ -1393,7 +1418,7 @@ const ShapeItem count = B.nz_element_count();
             continue;
           }
 
-       if (!C.is_near_int())               return true;
+       if (!C.is_near_int64_t())           return true;   // Bugs38 #93
        if (C.get_checked_near_int() < 0)   return true;
       }
 

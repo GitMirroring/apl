@@ -8,9 +8,12 @@
 # below are separate copies for the testcases.
 #
 EXTRA_DIST  = libroot/workspaces/DIJKSTRA.atf           \
+              libroot/workspaces/B38_BADIO.atf          \
+              libroot/workspaces/B38_BADNAMES.atf       \
               libroot/workspaces/DOMINO-APL.apl         \
               libroot/workspaces/FORMAT_FUZZ.apl        \
               libroot/workspaces/GPROF_LOOP.apl         \
+              libroot/workspaces/LEGACY38.xml           \
               libroot/workspaces/Performance.apl        \
               libroot/workspaces/Performance.gnuplot    \
               libroot/workspaces/TEST3.atf              \

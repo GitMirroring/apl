@@ -170,7 +170,7 @@ Value_P Z(A.get_shape(), LOC);
          loop(b, B.element_count())
              {
                const CC_base::CharClass cc =
-                     CC_base::CharClass(B.get_int_value(b));
+                     CC_base::CharClass(B.get_near_int(b));
                if (contained_in(uni_a, cc))
                   {
                     found = true;
@@ -198,7 +198,7 @@ Quad_CC::eval_B(cValue_R B) const
    if (B.is_scalar())
       {
         const CC_base::CharClass b =
-              CC_base::CharClass(B.get_int_value(0));
+              CC_base::CharClass(B.get_near_int(0));
         Value_P Z = get_character_class(b);
         return Token(TOK_APL_VALUE1, Z);
       }
@@ -207,7 +207,7 @@ Value_P Z(B.get_shape(), LOC);
    loop(b, B.element_count())
        {
          const CC_base::CharClass bb =
-               CC_base::CharClass(B.get_int_value(b));
+               CC_base::CharClass(B.get_near_int(b));
         Value_P ZZ = get_character_class(bb);
         Z->next_ravel_Pointer(ZZ.get());
        }
@@ -252,7 +252,7 @@ Quad_CC::print_classes(ostream & out)
    out << "      ⎕CC   1:  Digits 0-9 (same as ⎕CC 10)"                << endl
        << "      ⎕CC   2:  UPPERCASE CHARACTERS A-Z (same as ⎕CC 26)"  << endl
        << "      ⎕CC   3:  lowercase characters a-z (same as ⎕CC ¯26)" << endl
-       << "      ⎕CC   4:  ASCII characters (same as ⎕CC 127)"         << endl
+       << "      ⎕CC   4:  ASCII characters (same as ⎕CC 128)"         << endl
        << "      ⎕CC   5:  Superscripts ( ²³¹ʲᵏᵐᵗ⁰ⁱ⁴⁵⁶⁷⁸⁹⁺⁻⁼⁽⁾ⁿ )"     << endl
        << "      ⎕CC   6:  subscripts ( ᵢ₀₁₂₃₄₅₆₇₈₉₊₋₌₍₎ₖₘₙⱼ )"        << endl
        << "      ⎕CC   7:  Line drawing characters"                    << endl

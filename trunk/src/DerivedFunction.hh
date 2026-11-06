@@ -126,6 +126,9 @@ public:
    /// Overloaded Function::has_result();
    virtual bool has_result() const;
 
+   /// Overloaded Function::get_fun_valence()
+   virtual int get_fun_valence() const;
+
    /// clear the marked bit in values bound to this derived functions (if any).
    void unmark_all_values() const;   // unmark values bound to this operator
 

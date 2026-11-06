@@ -120,12 +120,14 @@ Bif_F12_DOMINO::eval_B(cValue_R B) const
         // cannot be inverted. Bugs37 #10.
         //
         const ShapeItem len = B.get_shape_item(0);
-        APL_Float M = 0.0;    // max |b|
+        APL_Float M = 0.0;    // max of |Re b| and |Im b|
         bool b_real = true;
         loop(l, len)
             {
+              // not abs(b), which overflows for e.g. 1.7E308J1.7E308
+              // although b is finite (Bugs38 #100)
               const APL_Complex b = B.get_complex_value(l);
-              const APL_Float abs_b = abs(b);
+              const APL_Float abs_b = max(fabs(b.real()), fabs(b.imag()));
               if (M < abs_b)   M = abs_b;
               if (b.imag() != 0.0)   b_real = false;
             }
@@ -137,14 +139,15 @@ Bif_F12_DOMINO::eval_B(cValue_R B) const
              DOMAIN_ERROR;
            }
 
-        APL_Float r2 = 0.0;   // Σ|b÷M|², always real and in [1, len]
+        APL_Float r2 = 0.0;   // Σ|b÷M|², always real and in [1, 2×len]
         loop(l, len)
             {
               const APL_Complex b = B.get_complex_value(l) / M;
               r2 += b.real()*b.real() + b.imag()*b.imag();
             }
+        // divide by r2 and M separately: M × r2 may overflow (Bugs38 #99)
         const APL_Float Mr2 = M * r2;
-        if (!isfinite(1.0 / Mr2))   // largest |z|, e.g. ⌹,1E¯320
+        if (isfinite(Mr2) && !isfinite(1.0 / Mr2))   // e.g. ⌹,1E¯320
            {
              MORE_ERROR() << "⌹B: the inverse of B is too large";
              DOMAIN_ERROR;
@@ -157,7 +160,7 @@ Bif_F12_DOMINO::eval_B(cValue_R B) const
              loop(l, len)
                  {
                    const APL_Float b = B.get_real_value(l) / M;
-                   Z->next_ravel_Float(b / Mr2);
+                   Z->next_ravel_Float(b / r2 / M);
                  }
            }
         else                                       // complex result
@@ -165,7 +168,7 @@ Bif_F12_DOMINO::eval_B(cValue_R B) const
              loop(l, len)
                  {
                    const APL_Complex b = B.get_complex_value(l) / M;
-                   Z->next_ravel_Complex(conj(b) / Mr2);
+                   Z->next_ravel_Complex(conj(b) / r2 / M);
                  }
            }
 

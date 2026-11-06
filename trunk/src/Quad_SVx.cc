@@ -361,16 +361,29 @@ Value_P Z(sh_Z, LOC);
         if (apl_var.size() == 0)
            {
              const ShapeItem cols = B.get_cols();
+             int words = 0;
+             bool in_word = false;
              loop(c, cols)
                 {
                   const Unicode uni = B.get_char_value(z*cols + c);
-                  if (uni == UNI_SPACE)
-                     {
-                       if (apl_var.size())   break;   // end of first name
-                       continue;                      // leading space
-                     }
-                  apl_var << uni;
+                  if (uni == UNI_SPACE)   { in_word = false;   continue; }
+                  if (!in_word)   { ++words;   in_word = true; }
+                  if (words == 1)   apl_var << uni;
                 }
+             if (words != 2)   apl_var.clear();   // e.g. 'x1 y z'
+           }
+
+        // the APL name must be a valid user name (not e.g. ⎕IO, S.m, ⍺,
+        // or 1x), like the surrogate name above (Bugs38 #7)
+        //
+        bool bad_var = apl_var.size() == 0 ||
+                       !Avec::is_first_symbol_char(apl_var[0]);
+        loop(v, apl_var.size())
+           if (!Avec::is_symbol_char(apl_var[v]))   bad_var = true;
+        if (bad_var)
+           {
+             Z->next_ravel_Int(NO_COUPLING);
+             continue;
            }
 
         // make sure current name class allows ⎕SVO

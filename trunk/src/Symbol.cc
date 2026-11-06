@@ -976,7 +976,7 @@ const ShapeItem max_idx = Z->element_count();
        B->is_scalar() &&     // B is a scalar, and
        Z->get_rank() == 1)   // Z is a vector
       {
-        const APL_Integer idx = X->get_near_int(0) - qio;
+        const APL_Integer idx = X->get_index_int(0) - qio;
         if (idx >= 0 && idx < max_idx)   // idx is a valid index of Z
            {
              Cell cache;
@@ -1033,7 +1033,7 @@ ShapeItem idxB = 0;
    loop(x, ec_X)
       {
         const ShapeItem this_idxX = idxX;
-        const ShapeItem idx = X->get_near_int(idxX++) - qio;
+        const ShapeItem idx = X->get_index_int(idxX++) - qio;
         if (idx < 0 || idx >= max_idx)
            {
              MORE_ERROR() << "A[B]←C: B[" << (this_idxX + qio) << "] = "
@@ -1505,6 +1505,19 @@ Symbol::pop_local()
              if (ufun && !ufun->is_lambda() &&
                  ufun->get_header().FUN() == this)
                 Workspace::add_expunged_function(ufun);
+
+             // a lambda bound to a local name (or to the result name, e.g.
+             // λ←⍶) by assign_named_lambda(), which took a reference:
+             // release it like expunge() does (Bugs38 #78, #81). Operands
+             // (⍶, ⍹, ...) are bound without a reference and popped by
+             // pop(), not by pop_local().
+             //
+             if (ufun && ufun->is_lambda())
+                {
+                  pop();
+                  const_cast<UserFunction *>(ufun)->decrement_refcount(LOC);
+                  return;
+                }
            }
       }
 

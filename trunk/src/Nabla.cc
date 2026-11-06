@@ -1085,16 +1085,12 @@ const bool empty = idx_from > idx_to;   // no line in the range, e.g. [⎕5-6]
 
    if (user_edit_to.valid())   // eg. [⎕42] or [2⎕42]
       {
+        // e.g. [9] if [8] is the last line, or [8.1] if [9] exists
+        // (unless [8.1] exists as well, Bugs38 #21)
+        //
         current_line = user_edit_to;
-        if (line_exists(current_line))   current_line.next();
         if (line_exists(current_line))
-           {
-             // user_edit_to and its next line exist. Increase minor length
-             // That is, if both [8] and [9] exist then use [8.1]
-             //
-             current_line = user_edit_to;
-             current_line.insert();
-           }
+           current_line = free_label_after(user_edit_to);
       }
    else                      // eg. [42⎕] or [⎕]
       {
@@ -1179,13 +1175,25 @@ Nabla::prompt_after_delete(const LineLabel & highest)
    // gives [7.1], [∆4-] gives [8]). Like [⎕N] in execute_show(): continue
    // after the highest line deleted. Bugs37 #16.
    //
-   current_line = highest;
-   current_line.next();
-   if (line_exists(current_line))   // highest was not the last line
-      {
-        current_line = highest;
-        current_line.insert();
-      }
+   current_line = free_label_after(highest);
+}
+//────────────────────────────────────────────────────────────────────────────
+LineLabel
+Nabla::free_label_after(const LineLabel & lab) const
+{
+   // the label for a new line after lab: lab+1 if that line does not exist,
+   // otherwise the first free label lab.1, lab.2, ... (they sort between
+   // lab and lab+1). Never an existing line, since the next text line
+   // would then replace it (Bugs38 #21).
+   //
+LineLabel ret = lab;
+   ret.next();
+   if (!line_exists(ret))   return ret;
+
+   ret = lab;
+   ret.insert();
+   while (line_exists(ret))   ret.next();
+   return ret;
 }
 //────────────────────────────────────────────────────────────────────────────
 const char *
@@ -1651,12 +1659,7 @@ const vector<LineLabel> & items = line_set.get_items();
    //
    current_line = items.back();
    if (line_exists(current_line))
-      {
-        LineLabel next = current_line;
-        next.next();
-        if (line_exists(next))   current_line.insert();
-        else                     current_line = next;
-      }
+      current_line = free_label_after(current_line);   // Bugs38 #21
    return 0;
 }
 //────────────────────────────────────────────────────────────────────────────
@@ -1688,10 +1691,7 @@ LineLabel highest(0);
    // continue after the highest line deleted, e.g. [4.1] after [∆1 4]
    //
    if (!highest.is_header_line_number())
-      {
-        current_line = highest;
-        current_line.insert();
-      }
+      current_line = free_label_after(highest);   // Bugs38 #21
    return 0;
 }
 //────────────────────────────────────────────────────────────────────────────

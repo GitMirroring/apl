@@ -1326,8 +1326,8 @@ static void
 throw_lambda_defn_error()
 {
 Error error(E_DEFN_ERROR, LOC);
-   if (StateIndicator * si = Workspace::SI_top())
-      StateIndicator::get_error(si) = error;
+   // with an empty SI: the top-level error, for ⎕EM and ⎕ET (Bugs38 #70)
+   StateIndicator::get_error(Workspace::SI_top()) = error;
    throw error;
 }
 //────────────────────────────────────────────────────────────────────────────
@@ -1360,11 +1360,19 @@ ShapeItem insertion_point = b;
             }
        }
 
+   // a last statement that consists only of the local variables (e.g.
+   // {;A} or {⍵⋄;A}) is empty: no λ← (Bugs38 #111)
+   //
+   if (insertion_point < bend &&
+       body[insertion_point].get_tag() == TOK_SEMICOL)
+      insertion_point = bend;
+
    // at_stmt_start tracks whether the next token is statement-initial (true at
    // the very first token, and after every TOK_END).  A statement-initial
    // TOK_R_ARROW is a branch-as-statement (→N) which is illegal in a lambda.
    // A mid-statement TOK_R_ARROW is the supported dyadic form A→B.
    bool at_stmt_start = true;
+TokenClass prev_class = TC_END;   // the class of the token left of body[b]
 
    for (; b < bend; ++b)
        {
@@ -1401,12 +1409,25 @@ ShapeItem insertion_point = b;
               // When statement-initial it is a branch (→N) and must be
               // rejected.  When mid-statement it is the supported dyadic
               // form A→B (conditional branch with a value).
+              //
+              // Unless the token left of the → (prev_class, the body is not
+              // yet reversed here) can end a value (a value, a name, ⍺, ⍵,
+              // ...), ) or ], the → is a monadic branch used as a function
+              // argument, e.g. {1+→0} (Bugs38 #8).
               case TOK_R_ARROW:
-                   if (at_stmt_start)
-                      {
-                        MORE_ERROR() << "→ is not allowed in λ expression ";
-                        throw_lambda_defn_error();
-                      }
+                   {
+                     const bool left_value = !at_stmt_start &&
+                                             (prev_class == TC_VALUE    ||
+                                              prev_class == TC_SYMBOL   ||
+                                              prev_class == TC_R_PARENT ||
+                                              prev_class == TC_R_BRACK  ||
+                                              prev_class == TC_INDEX);
+                     if (!left_value)
+                        {
+                          MORE_ERROR() << "→ is not allowed in λ expression ";
+                          throw_lambda_defn_error();
+                        }
+                   }
                    break;
 
               // TOK_END marks a statement boundary inside a multi-statement
@@ -1428,6 +1449,7 @@ ShapeItem insertion_point = b;
               default: break;
             }
          at_stmt_start = (t.get_tag() == TOK_END);
+         prev_class = t.get_Class();
 
          const Function_PC pc_t = Function_PC(t.get_PC() - pc_L - 1);
          if (b == insertion_point)

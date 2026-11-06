@@ -310,9 +310,17 @@ Quad_FFT::do_window(Value_P B, window_function win)
 {
    Assert(win);
 
-   if (B->get_rank() == 0)   return Token(TOK_APL_VALUE1, IntScalar(1, LOC));
-
 const ShapeItem N = B->element_count();
+
+   // a single sample has the window weight 1 (like in fill_window()), so
+   // Z is B (Bugs38 #128)
+   //
+   if (N == 1)
+      {
+        if (!B->is_numeric(0))   DOMAIN_ERROR;
+        return Token(TOK_APL_VALUE1, CLONE_P(B, LOC));
+      }
+
    if (N < 2)   LENGTH_ERROR;
 
 Value_P Z(B->get_shape(), LOC);

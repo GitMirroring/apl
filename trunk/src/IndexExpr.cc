@@ -78,7 +78,7 @@ IndexExpr::check_index_range(const Shape & shape) const
              const ShapeItem dim = shape.get_shape_item(r);
              loop(i, ival->element_count())
                 {
-                  const APL_Integer idx = ival->get_near_int(i) - quad_io;
+                  const APL_Integer idx = ival->get_index_int(i) - quad_io;
                   if (idx < 0 || idx >= dim)   // invalid index
                      {
                        MORE_ERROR() << "A[B]: index " << (idx + quad_io)

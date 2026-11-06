@@ -237,9 +237,8 @@ Executable * statements = 0;
         bool plus = Workspace::more_error().size();   // assume + needed
         const char * error_name = Error::error_name(err.get_error_code());
         if (strchr(error_name, UNI_PLUS))   plus = false;   // not needed
-        if (Workspace::more_error().size() &&
-               Workspace::more_error().back() == UNI_PLUS)
-           plus = false; // dito.
+        // NOTE: the )MORE text may end with a + (e.g. a function name)
+        // which says nothing about the error name (Bugs38 #107)
 
         UERR << error_name;
         if (plus)   UERR << UNI_PLUS;
@@ -313,9 +312,11 @@ Executable * statements = 0;
 
 // statements->print(CERR);
 
-   // push a new context for the statements.
+   // push a new context for the statements. If that fails (the SI depth
+   // limit), then release them (Bugs38 #79).
    //
-   Workspace::push_SI(statements, LOC);
+   try           { Workspace::push_SI(statements, LOC); }
+   catch (...)   { delete statements;   throw; }
    finish_context();
 }
 //────────────────────────────────────────────────────────────────────────────

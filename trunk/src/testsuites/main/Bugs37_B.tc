@@ -548,10 +548,12 @@ SYNTAX ERROR+
 
 
       ⎕EC ')CONTINUE'
- 0  5 4  DOMAIN ERROR
+ 0  5 4  DOMAIN ERROR                                                           
+          
          the SI-modifying command ')CONTINUE' cannot be executed from within ⎕EC
       /⎕EA
-       
+                                                                                
+          
 
       ⍝ Bugs37 #28 - #31: ⎕FIO[55] (sscanf)
       ⍝

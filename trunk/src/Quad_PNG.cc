@@ -32,6 +32,7 @@
 #endif   // HAVE_LOCALE_H
 
 #include "Quad_PNG.hh"
+#include "Workspace.hh"
 #include "Sys.hh"
 #include "Token.hh"
 
@@ -387,14 +388,13 @@ Quad_PNG::read_PNG_file(const UTF8_string & filename1)
    // filename1 is the file to be read. It may or may not have a .png extension
    // If opening filename1 fails we try filename2 = filename1.png
    //
-int errno1 = 0;
 FileReader reader(filename1.c_str());
+const int errno1 = errno;   // why filename1 has failed (Bugs38 #129)
    if (!reader && !filename1.ends_with(".png"))
       {
          // .png file could not be openend and the filename did not have
          // the .png extension. Try again with .png appended,
-         // 
-         errno1 = errno;              // remember why filename1 has failed
+         //
          UTF8_string filename2(filename1);
          filename2 << ".png";
          new (&reader) FileReader(filename2.c_str());
@@ -549,21 +549,12 @@ Value_P Z(shape_Z, LOC);
                     const uint16_t value = color[0] << 8 | color[1];
                     Z->next_ravel_Float(int(value) / 65535.0);
                   }
-               else if (bit_depth == 8)
+               else if (bit_depth <= 8)
                   {
+                    // 1-, 2-, and 4-bit gray and palette samples were
+                    // expanded to 8 bits by libpng (see above), so they
+                    // are 0...255 like 8-bit samples (Bugs38 #57)
                     Z->next_ravel_Float(int(color[0]) / 255.0);
-                  }
-               else if (bit_depth == 4)
-                  {
-                    Z->next_ravel_Float(int(color[0]) / 15.0);
-                  }
-               else if (bit_depth == 2)
-                  {
-                    Z->next_ravel_Float(int(color[0]) / 3.0);
-                  }
-               else if (bit_depth == 1)
-                  {
-                    Z->next_ravel_Float(color[0] ? 1.0 : 0.0);
                   }
                else
                   {
@@ -660,6 +651,26 @@ const bool alpha_used   = color_type & PNG_COLOR_MASK_ALPHA;     // 0x04
                      << ".";
         DOMAIN_ERROR;
       }
+
+   // check B before the output file is created (or truncated), so that an
+   // invalid B does not destroy an existing file (Bugs38 #129)
+   //
+   loop(b, B.element_count())
+       {
+         if (!B.is_real_cell(b))   // characters, complex, or nested
+            {
+              MORE_ERROR() << "A ⎕PNG B: (,B)[" << (b + Workspace::get_IO()) << "]"
+                              " is not a real number";
+              DOMAIN_ERROR;
+            }
+         const double val = B.get_real_value(b);
+         if (!(val >= 0.0 && val <= 1.0))
+            {
+              MORE_ERROR() << "A ⎕PNG B: color component " << val
+                           << " not in the range 0…1";
+              DOMAIN_ERROR;
+            }
+       }
 
 FileWriter writer(filename);
    if (!writer)

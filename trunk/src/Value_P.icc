@@ -290,15 +290,6 @@ const char * args = "const Shape & shape, const char * loc";
    ADD_EVENT(value_p, VHE_PtrNew, value_p->owner_count, loc);
 }
 //──────────────────────────────────────────────────────────────────────────
-inline Value_P::Value_P(const Shape & shape, uint64_t * bits, const char * loc)
-{
-   // cannot WS_FULL since bits were allocated beforehand
-   //
-   value_p = new Value(shape, bits, loc);
-   value_p->increment_owner_count(loc);
-   ADD_EVENT(value_p, VHE_PtrNew, value_p->owner_count, loc);
-}
-//──────────────────────────────────────────────────────────────────────────
 inline Value_P::Value_P(Value * val, const char * loc)
 {
    value_p = val;

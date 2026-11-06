@@ -10,9 +10,22 @@
       10⍟100 500 1000
 2 2.698970004 3
 
+      ⍝ a base of 1 is valid only for B = 1 (APL2 LRM p. 171, Bugs38 #122)
+      ⍝
       1⍟1
+1
+
+      1J0⍟1
+1
+
+      1⍟5
 DOMAIN ERROR
-      1⍟1
+      1⍟5
+      ^^
+
+      0⍟0
+DOMAIN ERROR
+      0⍟0
       ^^
 
       )SIC
