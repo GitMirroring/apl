@@ -485,38 +485,8 @@
    #define below would cause a syntax error. */
 #undef _UINT8_T
 
-/* --bindir */
-#undef apl_DIR__bin
-
-/* --datarootdir */
-#undef apl_DIR__datarootdir
-
-/* --docdir */
-#undef apl_DIR__doc
-
-/* --exec_prefix */
-#undef apl_DIR__exec_prefix
-
-/* --libdir */
-#undef apl_DIR__lib
-
-/* --localedir */
-#undef apl_DIR__locale
-
-/* installation directory for GNU APL data files */
-#undef apl_DIR__pkgdata
-
-/* installation directory for GNU APL libraries */
-#undef apl_DIR__pkglib
-
-/* --prefix */
-#undef apl_DIR__prefix
-
 /* top-level GNU APL source directory */
 #undef apl_DIR__src
-
-/* --sysconfdir */
-#undef apl_DIR__sysconf
 
 /* FFT available ? */
 #undef apl_FFT

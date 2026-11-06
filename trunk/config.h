@@ -5,7 +5,7 @@
 #define ARCHIVE_SVN " 3897"
 
 /* How and when GNU APL was configured */
-#define BUILDTAG PACKAGE_NAME, PACKAGE_VERSION " / SVN: 3898", "2026-11-06 14:37:26 CET", "Linux 5.15.0-177-generic x86_64", "default ./configure options"
+#define BUILDTAG PACKAGE_NAME, PACKAGE_VERSION " / SVN: 3899", "2026-11-06 17:42:40 CET", "Linux 5.15.0-177-generic x86_64", "default ./configure options"
 
 /* Define to 1 iff pthread_setaffinity_np() is available */
 #define HAVE_AFFINITY_NP 1
@@ -486,38 +486,8 @@
    #define below would cause a syntax error. */
 /* #undef _UINT8_T */
 
-/* --bindir */
-#define apl_DIR__bin "/usr/local/bin"
-
-/* --datarootdir */
-#define apl_DIR__datarootdir "/usr/local/share"
-
-/* --docdir */
-#define apl_DIR__doc "/usr/local/share/doc/apl"
-
-/* --exec_prefix */
-#define apl_DIR__exec_prefix "/usr/local"
-
-/* --libdir */
-#define apl_DIR__lib "/usr/local/lib"
-
-/* --localedir */
-#define apl_DIR__locale "/usr/local/share/locale"
-
-/* installation directory for GNU APL data files */
-#define apl_DIR__pkgdata "/usr/local/share/apl"
-
-/* installation directory for GNU APL libraries */
-#define apl_DIR__pkglib "/usr/local/lib/apl"
-
-/* --prefix */
-#define apl_DIR__prefix "/usr/local"
-
 /* top-level GNU APL source directory */
 #define apl_DIR__src "/home/eedjsa/apl-2.0/src"
-
-/* --sysconfdir */
-#define apl_DIR__sysconf "/usr/local/etc"
 
 /* FFT available ? */
 #define apl_FFT 1

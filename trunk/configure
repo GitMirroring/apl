@@ -723,6 +723,12 @@ apl_X11_TRUE
 XMKMF
 POW_LIB
 LIBOBJS
+apl_MAKEINFO_FALSE
+apl_MAKEINFO_TRUE
+apl_MAKEINFO
+PKG_CONFIG_LIBDIR
+PKG_CONFIG_PATH
+PKG_CONFIG
 CXXCPP
 LT_SYS_LIBRARY_PATH
 OTOOL64
@@ -762,7 +768,6 @@ CXXFLAGS
 CXX
 apl_TARGET_PYTHON_FALSE
 apl_TARGET_PYTHON_TRUE
-PKG_CONFIG
 PYTHON_CFLAGS
 apl_TARGET_LIBAPL_FALSE
 apl_TARGET_LIBAPL_TRUE
@@ -905,6 +910,9 @@ CXXFLAGS
 CCC
 LT_SYS_LIBRARY_PATH
 CXXCPP
+PKG_CONFIG
+PKG_CONFIG_PATH
+PKG_CONFIG_LIBDIR
 XMKMF
 CXX_WERROR
 DEVELOP_WANTED
@@ -1618,6 +1626,11 @@ Some influential environment variables:
   LT_SYS_LIBRARY_PATH
               User-defined run-time library search path.
   CXXCPP      C++ preprocessor
+  PKG_CONFIG  path to pkg-config utility
+  PKG_CONFIG_PATH
+              directories to add to pkg-config's search path
+  PKG_CONFIG_LIBDIR
+              path overriding pkg-config's built-in search path
   XMKMF       Path to xmkmf, Makefile generator for X Window System
   CXX_WERROR  turn all warnings into errors (compiler flag -Werror) default:
               no)
@@ -5736,57 +5749,7 @@ if test "x$apl_TARGET_PYTHON" = "xyes"; then
 
 printf "%s\n" "#define apl_TARGET_PYTHON 1" >>confdefs.h
 
-    # Extract the first word of "pkg-config", so it can be a program name with args.
-set dummy pkg-config; ac_word=$2
-{ printf "%s\n" "$as_me:${as_lineno-$LINENO}: checking for $ac_word" >&5
-printf %s "checking for $ac_word... " >&6; }
-if test ${ac_cv_path_PKG_CONFIG+y}
-then :
-  printf %s "(cached) " >&6
-else $as_nop
-  case $PKG_CONFIG in
-  [\\/]* | ?:[\\/]*)
-  ac_cv_path_PKG_CONFIG="$PKG_CONFIG" # Let the user override the test with a path.
-  ;;
-  *)
-  as_save_IFS=$IFS; IFS=$PATH_SEPARATOR
-for as_dir in $PATH
-do
-  IFS=$as_save_IFS
-  case $as_dir in #(((
-    '') as_dir=./ ;;
-    */) ;;
-    *) as_dir=$as_dir/ ;;
-  esac
-    for ac_exec_ext in '' $ac_executable_extensions; do
-  if as_fn_executable_p "$as_dir$ac_word$ac_exec_ext"; then
-    ac_cv_path_PKG_CONFIG="$as_dir$ac_word$ac_exec_ext"
-    printf "%s\n" "$as_me:${as_lineno-$LINENO}: found $as_dir$ac_word$ac_exec_ext" >&5
-    break 2
-  fi
-done
-  done
-IFS=$as_save_IFS
-
-  test -z "$ac_cv_path_PKG_CONFIG" && ac_cv_path_PKG_CONFIG="no"
-  ;;
-esac
-fi
-PKG_CONFIG=$ac_cv_path_PKG_CONFIG
-if test -n "$PKG_CONFIG"; then
-  { printf "%s\n" "$as_me:${as_lineno-$LINENO}: result: $PKG_CONFIG" >&5
-printf "%s\n" "$PKG_CONFIG" >&6; }
-else
-  { printf "%s\n" "$as_me:${as_lineno-$LINENO}: result: no" >&5
-printf "%s\n" "no" >&6; }
-fi
-
-  # locate pkg-config
-    if test "x$PKG_CONFIG" != "xno"; then             # we have pkg-config
-       if $PKG_CONFIG --exists python3; then   # and pkg-config knows python3
-            PYTHON_CFLAGS=$( $PKG_CONFIG --cflags python3 )
-       fi
-   fi
+   # PYTHON_CFLAGS is set in configure.ac, after pkg-config is located
 fi
  if test "x$apl_TARGET_PYTHON" = "xyes"; then
   apl_TARGET_PYTHON_TRUE=
@@ -18522,6 +18485,200 @@ ac_compiler_gnu=$ac_cv_cxx_compiler_gnu
 
 
 
+# locate pkg-config for the host, i.e. <host>-pkg-config when cross
+# compiling.  This must follow AC_CANONICAL_HOST (in LT_INIT), so that
+# --with-mingw can set host_alias first (see m4/apl_TARGETs.m4).
+#
+
+
+
+
+
+
+
+if test "x$ac_cv_env_PKG_CONFIG_set" != "xset"; then
+	if test -n "$ac_tool_prefix"; then
+  # Extract the first word of "${ac_tool_prefix}pkg-config", so it can be a program name with args.
+set dummy ${ac_tool_prefix}pkg-config; ac_word=$2
+{ printf "%s\n" "$as_me:${as_lineno-$LINENO}: checking for $ac_word" >&5
+printf %s "checking for $ac_word... " >&6; }
+if test ${ac_cv_path_PKG_CONFIG+y}
+then :
+  printf %s "(cached) " >&6
+else $as_nop
+  case $PKG_CONFIG in
+  [\\/]* | ?:[\\/]*)
+  ac_cv_path_PKG_CONFIG="$PKG_CONFIG" # Let the user override the test with a path.
+  ;;
+  *)
+  as_save_IFS=$IFS; IFS=$PATH_SEPARATOR
+for as_dir in $PATH
+do
+  IFS=$as_save_IFS
+  case $as_dir in #(((
+    '') as_dir=./ ;;
+    */) ;;
+    *) as_dir=$as_dir/ ;;
+  esac
+    for ac_exec_ext in '' $ac_executable_extensions; do
+  if as_fn_executable_p "$as_dir$ac_word$ac_exec_ext"; then
+    ac_cv_path_PKG_CONFIG="$as_dir$ac_word$ac_exec_ext"
+    printf "%s\n" "$as_me:${as_lineno-$LINENO}: found $as_dir$ac_word$ac_exec_ext" >&5
+    break 2
+  fi
+done
+  done
+IFS=$as_save_IFS
+
+  ;;
+esac
+fi
+PKG_CONFIG=$ac_cv_path_PKG_CONFIG
+if test -n "$PKG_CONFIG"; then
+  { printf "%s\n" "$as_me:${as_lineno-$LINENO}: result: $PKG_CONFIG" >&5
+printf "%s\n" "$PKG_CONFIG" >&6; }
+else
+  { printf "%s\n" "$as_me:${as_lineno-$LINENO}: result: no" >&5
+printf "%s\n" "no" >&6; }
+fi
+
+
+fi
+if test -z "$ac_cv_path_PKG_CONFIG"; then
+  ac_pt_PKG_CONFIG=$PKG_CONFIG
+  # Extract the first word of "pkg-config", so it can be a program name with args.
+set dummy pkg-config; ac_word=$2
+{ printf "%s\n" "$as_me:${as_lineno-$LINENO}: checking for $ac_word" >&5
+printf %s "checking for $ac_word... " >&6; }
+if test ${ac_cv_path_ac_pt_PKG_CONFIG+y}
+then :
+  printf %s "(cached) " >&6
+else $as_nop
+  case $ac_pt_PKG_CONFIG in
+  [\\/]* | ?:[\\/]*)
+  ac_cv_path_ac_pt_PKG_CONFIG="$ac_pt_PKG_CONFIG" # Let the user override the test with a path.
+  ;;
+  *)
+  as_save_IFS=$IFS; IFS=$PATH_SEPARATOR
+for as_dir in $PATH
+do
+  IFS=$as_save_IFS
+  case $as_dir in #(((
+    '') as_dir=./ ;;
+    */) ;;
+    *) as_dir=$as_dir/ ;;
+  esac
+    for ac_exec_ext in '' $ac_executable_extensions; do
+  if as_fn_executable_p "$as_dir$ac_word$ac_exec_ext"; then
+    ac_cv_path_ac_pt_PKG_CONFIG="$as_dir$ac_word$ac_exec_ext"
+    printf "%s\n" "$as_me:${as_lineno-$LINENO}: found $as_dir$ac_word$ac_exec_ext" >&5
+    break 2
+  fi
+done
+  done
+IFS=$as_save_IFS
+
+  ;;
+esac
+fi
+ac_pt_PKG_CONFIG=$ac_cv_path_ac_pt_PKG_CONFIG
+if test -n "$ac_pt_PKG_CONFIG"; then
+  { printf "%s\n" "$as_me:${as_lineno-$LINENO}: result: $ac_pt_PKG_CONFIG" >&5
+printf "%s\n" "$ac_pt_PKG_CONFIG" >&6; }
+else
+  { printf "%s\n" "$as_me:${as_lineno-$LINENO}: result: no" >&5
+printf "%s\n" "no" >&6; }
+fi
+
+  if test "x$ac_pt_PKG_CONFIG" = x; then
+    PKG_CONFIG=""
+  else
+    case $cross_compiling:$ac_tool_warned in
+yes:)
+{ printf "%s\n" "$as_me:${as_lineno-$LINENO}: WARNING: using cross tools not prefixed with host triplet" >&5
+printf "%s\n" "$as_me: WARNING: using cross tools not prefixed with host triplet" >&2;}
+ac_tool_warned=yes ;;
+esac
+    PKG_CONFIG=$ac_pt_PKG_CONFIG
+  fi
+else
+  PKG_CONFIG="$ac_cv_path_PKG_CONFIG"
+fi
+
+fi
+if test -n "$PKG_CONFIG"; then
+	_pkg_min_version=0.9.0
+	{ printf "%s\n" "$as_me:${as_lineno-$LINENO}: checking pkg-config is at least version $_pkg_min_version" >&5
+printf %s "checking pkg-config is at least version $_pkg_min_version... " >&6; }
+	if $PKG_CONFIG --atleast-pkgconfig-version $_pkg_min_version; then
+		{ printf "%s\n" "$as_me:${as_lineno-$LINENO}: result: yes" >&5
+printf "%s\n" "yes" >&6; }
+	else
+		{ printf "%s\n" "$as_me:${as_lineno-$LINENO}: result: no" >&5
+printf "%s\n" "no" >&6; }
+		PKG_CONFIG=""
+	fi
+fi
+if test "x$apl_TARGET_PYTHON" = "xyes" && test -n "$PKG_CONFIG" &&
+   $PKG_CONFIG --exists python3; then
+   PYTHON_CFLAGS=`$PKG_CONFIG --cflags python3`
+fi
+
+# makeinfo is optional: doc/apl.info, doc/apl.html etc. are shipped pre-built
+# and rebuilt (from their .texi sources) only if makeinfo is present.
+#
+# Extract the first word of "makeinfo", so it can be a program name with args.
+set dummy makeinfo; ac_word=$2
+{ printf "%s\n" "$as_me:${as_lineno-$LINENO}: checking for $ac_word" >&5
+printf %s "checking for $ac_word... " >&6; }
+if test ${ac_cv_prog_apl_MAKEINFO+y}
+then :
+  printf %s "(cached) " >&6
+else $as_nop
+  if test -n "$apl_MAKEINFO"; then
+  ac_cv_prog_apl_MAKEINFO="$apl_MAKEINFO" # Let the user override the test.
+else
+as_save_IFS=$IFS; IFS=$PATH_SEPARATOR
+for as_dir in $PATH
+do
+  IFS=$as_save_IFS
+  case $as_dir in #(((
+    '') as_dir=./ ;;
+    */) ;;
+    *) as_dir=$as_dir/ ;;
+  esac
+    for ac_exec_ext in '' $ac_executable_extensions; do
+  if as_fn_executable_p "$as_dir$ac_word$ac_exec_ext"; then
+    ac_cv_prog_apl_MAKEINFO="yes"
+    printf "%s\n" "$as_me:${as_lineno-$LINENO}: found $as_dir$ac_word$ac_exec_ext" >&5
+    break 2
+  fi
+done
+  done
+IFS=$as_save_IFS
+
+  test -z "$ac_cv_prog_apl_MAKEINFO" && ac_cv_prog_apl_MAKEINFO="no"
+fi
+fi
+apl_MAKEINFO=$ac_cv_prog_apl_MAKEINFO
+if test -n "$apl_MAKEINFO"; then
+  { printf "%s\n" "$as_me:${as_lineno-$LINENO}: result: $apl_MAKEINFO" >&5
+printf "%s\n" "$apl_MAKEINFO" >&6; }
+else
+  { printf "%s\n" "$as_me:${as_lineno-$LINENO}: result: no" >&5
+printf "%s\n" "no" >&6; }
+fi
+
+
+ if test "x$apl_MAKEINFO" = "xyes"; then
+  apl_MAKEINFO_TRUE=
+  apl_MAKEINFO_FALSE='#'
+else
+  apl_MAKEINFO_TRUE='#'
+  apl_MAKEINFO_FALSE=
+fi
+
+
 apl_MAINTAINER_MODE=$USE_MAINTAINER_MODE
 
 
@@ -18532,14 +18689,6 @@ apl_MAINTAINER_MODE=$USE_MAINTAINER_MODE
 # AC_PROG_RANLIB   obsoleted by LT_INIT
 
 
-
-# add the current directory (i.e. from where ./configure was called) to the
-# include path, so that the files created by ./configure are found. This
-# is (only) needed for VPATH builds since otherwise the directory from which
-# ./configure is run is the same as the directory where ./configure places
-# its output files (i.e. directory '.').
-#
-CXXFLAGS="$CXXFLAGS -I `pwd`"
 
 ##############################################################################
 # Checks for various header files.
@@ -21682,54 +21831,8 @@ fi
 
    # user allows GTK...
 
-   # check for pkg-config
-# Extract the first word of "pkg-config", so it can be a program name with args.
-set dummy pkg-config; ac_word=$2
-{ printf "%s\n" "$as_me:${as_lineno-$LINENO}: checking for $ac_word" >&5
-printf %s "checking for $ac_word... " >&6; }
-if test ${ac_cv_path_PKG_CONFIG+y}
-then :
-  printf %s "(cached) " >&6
-else $as_nop
-  case $PKG_CONFIG in
-  [\\/]* | ?:[\\/]*)
-  ac_cv_path_PKG_CONFIG="$PKG_CONFIG" # Let the user override the test with a path.
-  ;;
-  *)
-  as_save_IFS=$IFS; IFS=$PATH_SEPARATOR
-for as_dir in $PATH
-do
-  IFS=$as_save_IFS
-  case $as_dir in #(((
-    '') as_dir=./ ;;
-    */) ;;
-    *) as_dir=$as_dir/ ;;
-  esac
-    for ac_exec_ext in '' $ac_executable_extensions; do
-  if as_fn_executable_p "$as_dir$ac_word$ac_exec_ext"; then
-    ac_cv_path_PKG_CONFIG="$as_dir$ac_word$ac_exec_ext"
-    printf "%s\n" "$as_me:${as_lineno-$LINENO}: found $as_dir$ac_word$ac_exec_ext" >&5
-    break 2
-  fi
-done
-  done
-IFS=$as_save_IFS
-
-  test -z "$ac_cv_path_PKG_CONFIG" && ac_cv_path_PKG_CONFIG="no"
-  ;;
-esac
-fi
-PKG_CONFIG=$ac_cv_path_PKG_CONFIG
-if test -n "$PKG_CONFIG"; then
-  { printf "%s\n" "$as_me:${as_lineno-$LINENO}: result: $PKG_CONFIG" >&5
-printf "%s\n" "$PKG_CONFIG" >&6; }
-else
-  { printf "%s\n" "$as_me:${as_lineno-$LINENO}: result: no" >&5
-printf "%s\n" "no" >&6; }
-fi
-
-   # locate pkg-config
-if test "x$PKG_CONFIG" = "xno"; then               # pkg-config missing
+   # check for pkg-config (located in configure.ac)
+if test -z "$PKG_CONFIG"; then             # pkg-config missing
    { printf "%s\n" "$as_me:${as_lineno-$LINENO}: checking for pkg-config (GTK prerequisite)" >&5
 printf %s "checking for pkg-config (GTK prerequisite)... " >&6; }
    { printf "%s\n" "$as_me:${as_lineno-$LINENO}: result: no" >&5
@@ -22256,7 +22359,7 @@ fi
 { printf "%s\n" "$as_me:${as_lineno-$LINENO}: result: $cfg_CTRLD_DEL" >&5
 printf "%s\n" "$cfg_CTRLD_DEL" >&6; }
 
-ac_config_files="$ac_config_files Makefile build/Makefile Claude/Makefile deb/Makefile deb/source/Makefile doc/Makefile doc/DALY/Makefile erlang/Makefile erlang/apl.erl gnu-apl.d/Makefile gnu-apl.d/preferences HOWTOs/Makefile HOWTOs/Bible/Makefile rpm/Makefile rpm/apl.spec src/Makefile src/APs/Makefile src/Gtk/Makefile src/emacs_mode/Makefile src/libapl.pc src/native/Makefile src/sql/Makefile src/testcases/Makefile src/testsuites/Makefile src/testsuites/extra/Makefile src/testsuites/invariants/Makefile src/testsuites/main/Makefile src/testsuites/regression/Makefile support-files/Makefile support-files/fonts/Makefile support-files/105-key-International-Keyboard/Makefile support-files/Bill_Daly_Ubuntu/Makefile support-files/Dirk/Makefile support-files/Dyalog-Keyboard/Makefile support-files/Juergen-Mint-19/Makefile support-files/Juergen-Mint-21/Makefile support-files/old-Keyboard/Makefile support-files/OS-X-Keyboard/Makefile support-files/Unicomp-Keyboard/Makefile support-files/WASD-Keyboard/Makefile support-files/windows-installer/Makefile tools/Makefile websock/Makefile websock/client/Makefile websock/server/Makefile workspaces/Makefile wslib3/Makefile wslib3/DALY/Makefile wslib4/Makefile wslib5/Makefile wslib5/APLComponentFiles/Makefile wslib5/DALY/Makefile wslib5/iso-apl-cf/Makefile"
+ac_config_files="$ac_config_files Makefile build/Makefile Claude/Makefile deb/Makefile deb/source/Makefile doc/Makefile doc/DALY/Makefile erlang/Makefile erlang/apl.erl gnu-apl.d/Makefile HOWTOs/Makefile HOWTOs/Bible/Makefile rpm/Makefile rpm/apl.spec src/Makefile src/APs/Makefile src/Gtk/Makefile src/emacs_mode/Makefile src/libapl.pc src/native/Makefile src/sql/Makefile src/testcases/Makefile src/testsuites/Makefile src/testsuites/extra/Makefile src/testsuites/invariants/Makefile src/testsuites/main/Makefile src/testsuites/regression/Makefile support-files/Makefile support-files/fonts/Makefile support-files/105-key-International-Keyboard/Makefile support-files/Bill_Daly_Ubuntu/Makefile support-files/Dirk/Makefile support-files/Dyalog-Keyboard/Makefile support-files/Juergen-Mint-19/Makefile support-files/Juergen-Mint-21/Makefile support-files/old-Keyboard/Makefile support-files/OS-X-Keyboard/Makefile support-files/Unicomp-Keyboard/Makefile support-files/WASD-Keyboard/Makefile support-files/windows-installer/Makefile tools/Makefile websock/Makefile websock/client/Makefile websock/server/Makefile workspaces/Makefile wslib3/Makefile wslib3/DALY/Makefile wslib4/Makefile wslib5/Makefile wslib5/APLComponentFiles/Makefile wslib5/DALY/Makefile wslib5/iso-apl-cf/Makefile"
 
 
 # AM_CXXFLAGS: do/dont -Werror ?
@@ -22583,33 +22686,9 @@ dash_build_date     # set apl_BUILD_DATE and apl_BUILD_OS
 { printf "%s\n" "$as_me:${as_lineno-$LINENO}: result: $apl_BUILD_DATE" >&5
 printf "%s\n" "$apl_BUILD_DATE" >&6; }
 
-# set 'abs_apl_top' to the "real" top-level directory. The "real" top-level
-# directory contains file configure.ac, while the VPATH copies of it do not.
+# the absolute top-level source directory
 #
-if test -f configure.ac; then   # normal build
-   abs_apl_top=`pwd`
-else                            # VPATH build
-   abs_apl_top="not-found"      # assume not found
-   apl_top=`pwd`                # start search at current directory
-   printf "%s\n" "
-   $as_me: VPATH build: locating the real GNU APL top-level directory..."
-
-   for q in 1 2 3 4; do                    # at most 4 times...
-      if test -f "$apl_top/configure.ac"   # configure.ac exists in $apl_top ?
-      then                                 # yes...
-         printf "%s\n" "$as_me: └── found at: $apl_top"
-         abs_apl_top="$apl_top"            # and remember the directory
-         break                             # done.
-      else                                 # no...
-         apl_top=`dirname $apl_top`        # move upwards towards /
-      fi
-   done
-
-   if test "x$abs_apl_top" = "xnot-found"; then
-      abs_apl_top=`pwd`
-      printf "%s\n" "$as_me: └── *** NOT FOUND, using . (i.e. $abs_apl_top)"
-   fi
-fi
+abs_apl_top=`cd "$srcdir" && pwd`
 
 
 # figure the SVN versions of the interpreter and the (usually older) Archive.cc
@@ -22618,7 +22697,7 @@ apl_SVNINFO="no-svnversion"
 apl_ARCHIVE_SVNINFO="no-svn"
 SVNPROG=`which svn`
 SVNVERSION=`which svnversion`
-test $SVNVERSION && test -x $SVNVERSION && apl_SVNINFO=`$SVNVERSION`
+test $SVNVERSION && test -x $SVNVERSION && apl_SVNINFO=`$SVNVERSION "$abs_apl_top"`
 
 if test $SVNPROG && test -x $SVNPROG; then
    apl_ARCHIVE_SVNINFO=`$SVNPROG info "$abs_apl_top"/src/Archive.cc \
@@ -22644,135 +22723,10 @@ _ACEOF
 printf "%s\n" "#define ARCHIVE_SVN \"$apl_ARCHIVE_SVNINFO\"" >>confdefs.h
 
 
-# the user may override the install directories, either with --prefix or
-# --exec_prefix (affecting several directories), or by --bindir and friends.
-# Figure out the details.
-#
-# NOTE that, unfortunately, the variables in ./configure will be quoted:
-#
-# bindir='${exec_prefix}/bin'
-# libdir='${exec_prefix}/lib'
-# datarootdir='${prefix}/share'
-# sysconfdir='${prefix}/etc'
-# docdir='${datarootdir}/doc/${PACKAGE_TARNAME}'
-# ...
-#
-# Therefore, to figure if a user has overwritten them with ./configure command
-# line arguments, we need to prevent the expansion of variables in the second
-# argument of apl_EQ() by escaping their leading $. For example (note the \$
-# instead of $):
-#
-# if apl_EQ($bindir, \${exec_prefix}/bin)
-#
-# NOTE also that some ./configure variables will default to "NONE" instead
-#      of "" if the user does not overwrite them:
-#
-# exec_prefix=NONE
-# prefix=NONE
-# program_prefix=NONE
-# program_suffix=NONE
-# x_includes=NONE
-# x_libraries=NONE
-#
-if test "x$prefix" = "xNONE"
-then                                                   # no user --prefix
-   apl_prefix="$ac_default_prefix"                     # default: /usr/local
-else                                                   # --prefix given
-   apl_prefix=$prefix
-   printf "%s\n" "   --prefix overwrite: $apl_prefix"
-fi
-
-if test "x$exec_prefix" = "xNONE"
-then                                                   # no user --exec_prefix
-   apl_exec_prefix="$apl_prefix"                       # default: PREFIX
-else                                                   # --exec_prefix given
-   apl_exec_prefix=$exec_prefix
-   printf "%s\n" "   --exec_prefix overwrite: $apl_exec_prefix"
-fi
-
-
-if test "x$bindir" = "x\${exec_prefix}/bin"
-then                                                   # no user --bindir
-   apl_bindir="$apl_exec_prefix/bin"                   # default: EPREFIX/bin
-else                                                   # --bindir given
-   apl_bindir="$bindir"
-   printf "%s\n" "   --bindir overwrite: $apl_bindir"
-fi
-
-
-if test "x$libdir" = "x\${exec_prefix}/lib"
-then                                                   # no user --libdir
-   apl_libdir="$apl_exec_prefix/lib"                   # default: EPREFIX/lib
-else                                                   # --libdir given
-   apl_libdir="$libdir"
-   printf "%s\n" "   --libdir overwrite: $apl_libdir"
-fi
-
-
-if test "x$datarootdir" = "x\${prefix}/share"
-then                                                   # no user --datarootdir
-   apl_datarootdir="${apl_prefix}/share"               # default: PREFIX/share
-else                                                   # --datarootdir given
-   apl_datarootdir="${datarootdir}"
-   printf "%s\n" "   --apl_datarootdir overwrite: ${apl_datarootdir}"
-fi
-
-
-if test "x$docdir" = "x\${datarootdir}/doc/\${PACKAGE_TARNAME}"
-then                                                   # no user --docdir
-   apl_docdir="${apl_datarootdir}/doc/apl"             # default
-else                                                   # --docdir given
-   apl_docdir="$docdir"
-   printf "%s\n" "   --docdir overwrite: $apl_docdir"
-fi
-
-if test "x$localedir" = "x\${datarootdir}/locale"
-then                                                   # no user --localedir
-   apl_localedir="${apl_datarootdir}/locale"           # default
-else                                                   # --localedir given
-   apl_localedir="$localedir"
-   printf "%s\n" "   --localedir overwrite: $apl_localedir"
-fi
-
-
-if test "x$sysconfdir" = "x\${prefix}/etc"
-then                                                   # no user --sysconfdir
-   apl_sysconfdir="${apl_prefix}/etc"                  # default: PREFIX/etc
-else                                                   # --sysconfdir given
-   apl_sysconfdir="${sysconfdir}"
-   printf "%s\n" "   --sysconfdir overwrite: ${apl_sysconfdir}"
-fi
-
-
-printf "%s\n" "#define apl_DIR__bin \"$apl_bindir\"" >>confdefs.h
-
-
-printf "%s\n" "#define apl_DIR__datarootdir \"$apl_datarootdir\"" >>confdefs.h
-
-
-printf "%s\n" "#define apl_DIR__doc \"$apl_docdir\"" >>confdefs.h
-
-
-printf "%s\n" "#define apl_DIR__exec_prefix \"$apl_exec_prefix\"" >>confdefs.h
-
-
-printf "%s\n" "#define apl_DIR__lib \"$apl_libdir\"" >>confdefs.h
-
-
-printf "%s\n" "#define apl_DIR__locale \"$apl_localedir\"" >>confdefs.h
-
-
-printf "%s\n" "#define apl_DIR__prefix \"$apl_prefix\"" >>confdefs.h
-
-
-printf "%s\n" "#define apl_DIR__sysconf \"$apl_sysconfdir\"" >>confdefs.h
-
-
-printf "%s\n" "#define apl_DIR__pkglib \"$apl_libdir/apl\"" >>confdefs.h
-
-
-printf "%s\n" "#define apl_DIR__pkgdata \"$apl_datarootdir/apl\"" >>confdefs.h
-
+# The installation directories (apl_DIR__bin, apl_DIR__pkglib, ...) are
+# passed to the compiler at make time, see AM_CPPFLAGS in src/Makefile.am
+# and src/APs/Makefile.am, so that they are fully expanded and can be
+# overridden with e.g. make prefix=...
 
 # where to install support-files/apl (bash command-line completion for the
 # "apl" command itself, see that file's own header comment). Prefer asking
@@ -22784,51 +22738,6 @@ printf "%s\n" "#define apl_DIR__pkgdata \"$apl_datarootdir/apl\"" >>confdefs.h
 # on a system without bash-completion -- completion simply starts working
 # automatically if bash-completion is installed later).
 #
-# Extract the first word of "pkg-config", so it can be a program name with args.
-set dummy pkg-config; ac_word=$2
-{ printf "%s\n" "$as_me:${as_lineno-$LINENO}: checking for $ac_word" >&5
-printf %s "checking for $ac_word... " >&6; }
-if test ${ac_cv_path_PKG_CONFIG+y}
-then :
-  printf %s "(cached) " >&6
-else $as_nop
-  case $PKG_CONFIG in
-  [\\/]* | ?:[\\/]*)
-  ac_cv_path_PKG_CONFIG="$PKG_CONFIG" # Let the user override the test with a path.
-  ;;
-  *)
-  as_save_IFS=$IFS; IFS=$PATH_SEPARATOR
-for as_dir in $PATH
-do
-  IFS=$as_save_IFS
-  case $as_dir in #(((
-    '') as_dir=./ ;;
-    */) ;;
-    *) as_dir=$as_dir/ ;;
-  esac
-    for ac_exec_ext in '' $ac_executable_extensions; do
-  if as_fn_executable_p "$as_dir$ac_word$ac_exec_ext"; then
-    ac_cv_path_PKG_CONFIG="$as_dir$ac_word$ac_exec_ext"
-    printf "%s\n" "$as_me:${as_lineno-$LINENO}: found $as_dir$ac_word$ac_exec_ext" >&5
-    break 2
-  fi
-done
-  done
-IFS=$as_save_IFS
-
-  ;;
-esac
-fi
-PKG_CONFIG=$ac_cv_path_PKG_CONFIG
-if test -n "$PKG_CONFIG"; then
-  { printf "%s\n" "$as_me:${as_lineno-$LINENO}: result: $PKG_CONFIG" >&5
-printf "%s\n" "$PKG_CONFIG" >&6; }
-else
-  { printf "%s\n" "$as_me:${as_lineno-$LINENO}: result: no" >&5
-printf "%s\n" "no" >&6; }
-fi
-
-
 if test -n "$PKG_CONFIG" && "$PKG_CONFIG" --exists bash-completion 2>/dev/null
 then
    bashcompletiondir=`"$PKG_CONFIG" --variable=completionsdir bash-completion`
@@ -23084,6 +22993,10 @@ Usually this means the macro was only invoked conditionally." "$LINENO" 5
 fi
 if test -z "${am__fastdepCXX_TRUE}" && test -z "${am__fastdepCXX_FALSE}"; then
   as_fn_error $? "conditional \"am__fastdepCXX\" was never defined.
+Usually this means the macro was only invoked conditionally." "$LINENO" 5
+fi
+if test -z "${apl_MAKEINFO_TRUE}" && test -z "${apl_MAKEINFO_FALSE}"; then
+  as_fn_error $? "conditional \"apl_MAKEINFO\" was never defined.
 Usually this means the macro was only invoked conditionally." "$LINENO" 5
 fi
 if test -z "${apl_X11_TRUE}" && test -z "${apl_X11_FALSE}"; then
@@ -24113,7 +24026,6 @@ do
     "erlang/Makefile") CONFIG_FILES="$CONFIG_FILES erlang/Makefile" ;;
     "erlang/apl.erl") CONFIG_FILES="$CONFIG_FILES erlang/apl.erl" ;;
     "gnu-apl.d/Makefile") CONFIG_FILES="$CONFIG_FILES gnu-apl.d/Makefile" ;;
-    "gnu-apl.d/preferences") CONFIG_FILES="$CONFIG_FILES gnu-apl.d/preferences" ;;
     "HOWTOs/Makefile") CONFIG_FILES="$CONFIG_FILES HOWTOs/Makefile" ;;
     "HOWTOs/Bible/Makefile") CONFIG_FILES="$CONFIG_FILES HOWTOs/Bible/Makefile" ;;
     "rpm/Makefile") CONFIG_FILES="$CONFIG_FILES rpm/Makefile" ;;

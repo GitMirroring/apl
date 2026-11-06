@@ -351,6 +351,8 @@ PCRE_LIBS = @PCRE_LIBS@
 PERFORMANCE_COUNTERS_WANTED = @PERFORMANCE_COUNTERS_WANTED@
 PG_CONFIG = @PG_CONFIG@
 PKG_CONFIG = @PKG_CONFIG@
+PKG_CONFIG_LIBDIR = @PKG_CONFIG_LIBDIR@
+PKG_CONFIG_PATH = @PKG_CONFIG_PATH@
 POSTGRESQL_CFLAGS = @POSTGRESQL_CFLAGS@
 POSTGRESQL_LDFLAGS = @POSTGRESQL_LDFLAGS@
 POSTGRESQL_VERSION = @POSTGRESQL_VERSION@
@@ -388,6 +390,7 @@ am__tar = @am__tar@
 am__untar = @am__untar@
 apl_BUILD_DATE = @apl_BUILD_DATE@
 apl_BUILD_OS = @apl_BUILD_OS@
+apl_MAKEINFO = @apl_MAKEINFO@
 bashcompletiondir = @bashcompletiondir@
 bindir = @bindir@
 build = @build@
@@ -441,6 +444,11 @@ SUBDIRS = DALY
 #
 info_TEXINFOS = 
 man1_MANS = apl.1
+@apl_MAKEINFO_FALSE@SHIPPED_MANUAL = if test -f $@ || test -f $(srcdir)/$@; then                 \
+@apl_MAKEINFO_FALSE@   echo "WARNING: makeinfo not found: using the shipped (older) $@";         \
+@apl_MAKEINFO_FALSE@   else echo "ERROR: $@ is missing and ./configure found no makeinfo";       \
+@apl_MAKEINFO_FALSE@   exit 1; fi
+
 
 # NOTE that the .html version of aspl.text refers
 # to some of the files in dist_doc_DATA.
@@ -980,13 +988,17 @@ uninstall-man: uninstall-man1
 
 
 # info_TEXINFOS = fails for more than one .info file. We therefore install
-# libapl.info explicitly
+# apl.info and libapl.info explicitly: from the build directory if they were
+# rebuilt there (VPATH build), and otherwise the shipped ones from $(srcdir).
 #
-install-info-am:
+install-info-am: apl.info libapl.info
 	@echo " $(MKDIR_P) $(DESTDIR)$(infodir)"
 	@       $(MKDIR_P) "$(DESTDIR)$(infodir)" || exit 1
-	@echo " $(INSTALL_DATA) $(srcdir)/apl.info  $(srcdir)/libapl.info $(DESTDIR)$(infodir)"
-	@       $(INSTALL_DATA) $(srcdir)/apl.info  $(srcdir)/libapl.info $(DESTDIR)$(infodir)
+	@for f in apl.info libapl.info; do                               \
+	    if test -f $$f; then d=; else d="$(srcdir)/"; fi;            \
+	    echo " $(INSTALL_DATA) $$d$$f $(DESTDIR)$(infodir)";         \
+	    $(INSTALL_DATA) "$$d$$f" "$(DESTDIR)$(infodir)" || exit 1;   \
+	 done
 
 uninstall-info-am:
 	 @echo " rm -f $(DESTDIR)$(infodir)/apl.info"
@@ -994,25 +1006,38 @@ uninstall-info-am:
 	 @echo " rm -f $(DESTDIR)$(infodir)/libapl.info"
 	 @       rm -f $(DESTDIR)$(infodir)/libapl.info
 
+# The manuals in .info and .html format are shipped pre-built, so that
+# building GNU APL does not need makeinfo. They are rebuilt from their .texi
+# sources only if ./configure has found makeinfo; a makeinfo error then stops
+# the build. Without makeinfo, the shipped files are used (with a warning if
+# the .texi source is newer), and a missing file is an error.
+#
+
 # apl.texi in HTML format
 #
-apl.html:   apl.texi apl-info.css
-	@$(MAKEINFOHTML) $< -o $@ --no-split --css-include=apl-info.css || touch $@
+@apl_MAKEINFO_TRUE@apl.html:   apl.texi apl-info.css
+@apl_MAKEINFO_TRUE@	$(MAKEINFOHTML) $< -o $@ --no-split --css-include=$(srcdir)/apl-info.css
 
 # apl.texi in info format
 #
-apl.info:   apl.texi
-	@$(MAKEINFO) $< -o $@ --no-split || touch $@
+@apl_MAKEINFO_TRUE@apl.info:   apl.texi
+@apl_MAKEINFO_TRUE@	$(MAKEINFO) $< -o $@ --no-split
 
 # libapl.texi in HTML format
 #
-libapl.html: libapl.texi
-	$(MAKEINFOHTML) $< -o $@ --no-split || touch $@
+@apl_MAKEINFO_TRUE@libapl.html: libapl.texi
+@apl_MAKEINFO_TRUE@	$(MAKEINFOHTML) $< -o $@ --no-split
 
 # libapl.texi in info format
 #
-libapl.info: libapl.texi
-	$(MAKEINFO) $< -o $@ --no-split || touch $@
+@apl_MAKEINFO_TRUE@libapl.info: libapl.texi
+@apl_MAKEINFO_TRUE@	$(MAKEINFO) $< -o $@ --no-split
+
+@apl_MAKEINFO_FALSE@apl.html apl.info: apl.texi
+@apl_MAKEINFO_FALSE@	@$(SHIPPED_MANUAL)
+
+@apl_MAKEINFO_FALSE@libapl.html libapl.info: libapl.texi
+@apl_MAKEINFO_FALSE@	@$(SHIPPED_MANUAL)
 
 # Tell versions [3.59,3.63) of GNU make to not export all variables.
 # Otherwise a system limit (for SysV at least) may be exceeded.

@@ -317,6 +317,8 @@ PCRE_LIBS = @PCRE_LIBS@
 PERFORMANCE_COUNTERS_WANTED = @PERFORMANCE_COUNTERS_WANTED@
 PG_CONFIG = @PG_CONFIG@
 PKG_CONFIG = @PKG_CONFIG@
+PKG_CONFIG_LIBDIR = @PKG_CONFIG_LIBDIR@
+PKG_CONFIG_PATH = @PKG_CONFIG_PATH@
 POSTGRESQL_CFLAGS = @POSTGRESQL_CFLAGS@
 POSTGRESQL_LDFLAGS = @POSTGRESQL_LDFLAGS@
 POSTGRESQL_VERSION = @POSTGRESQL_VERSION@
@@ -354,6 +356,7 @@ am__tar = @am__tar@
 am__untar = @am__untar@
 apl_BUILD_DATE = @apl_BUILD_DATE@
 apl_BUILD_OS = @apl_BUILD_OS@
+apl_MAKEINFO = @apl_MAKEINFO@
 bashcompletiondir = @bashcompletiondir@
 bindir = @bindir@
 build = @build@
@@ -407,6 +410,14 @@ AP210_SOURCES = AP210.cc $(common_files)
 APserver_SOURCES = APserver.cc				\
 		Svar_DB_server.cc Svar_DB_server.hh	\
 		../Svar_record.cc ../Svar_record.hh
+
+
+# installation directories, expanded at make time (see configure.ac)
+AM_CPPFLAGS = -Dapl_DIR__bin='"$(bindir)"'             \
+              -Dapl_DIR__doc='"$(docdir)"'             \
+              -Dapl_DIR__sysconf='"$(sysconfdir)"'     \
+              -Dapl_DIR__pkglib='"$(pkglibdir)"'       \
+              -Dapl_DIR__pkgdata='"$(pkgdatadir)"'
 
 AM_CXXFLAGS = $(CXX_RDYNAMIC) -I $(srcdir)/.. -g -O2 $(am__append_1)
 AP100_CXXFLAGS = $(AM_CXXFLAGS) -DAP_NUM=100

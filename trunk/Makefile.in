@@ -112,7 +112,7 @@ am__configure_deps = $(am__aclocal_m4_deps) $(CONFIGURE_DEPENDENCIES) \
 	$(ACLOCAL_M4)
 DIST_COMMON = $(srcdir)/Makefile.am $(top_srcdir)/configure \
 	$(am__configure_deps) $(dist_doc_DATA) $(dist_noinst_DATA) \
-	$(nobase_dist_sysconf_DATA) $(am__DIST_COMMON)
+	$(am__DIST_COMMON)
 am__CONFIG_DISTCLEAN_FILES = config.status config.cache config.log \
  configure.lineno config.status.lineno
 mkinstalldirs = $(install_sh) -d
@@ -173,9 +173,8 @@ am__uninstall_files_from_dir = { \
     || { echo " ( cd '$$dir' && rm -f" $$files ")"; \
          $(am__cd) "$$dir" && rm -f $$files; }; \
   }
-am__installdirs = "$(DESTDIR)$(docdir)" "$(DESTDIR)$(sysconfdir)"
-DATA = $(dist_doc_DATA) $(dist_noinst_DATA) \
-	$(nobase_dist_sysconf_DATA)
+am__installdirs = "$(DESTDIR)$(docdir)"
+DATA = $(dist_doc_DATA) $(dist_noinst_DATA)
 RECURSIVE_CLEAN_TARGETS = mostlyclean-recursive clean-recursive	\
   distclean-recursive maintainer-clean-recursive
 am__recursive_targets = \
@@ -335,6 +334,8 @@ PCRE_LIBS = @PCRE_LIBS@
 PERFORMANCE_COUNTERS_WANTED = @PERFORMANCE_COUNTERS_WANTED@
 PG_CONFIG = @PG_CONFIG@
 PKG_CONFIG = @PKG_CONFIG@
+PKG_CONFIG_LIBDIR = @PKG_CONFIG_LIBDIR@
+PKG_CONFIG_PATH = @PKG_CONFIG_PATH@
 POSTGRESQL_CFLAGS = @POSTGRESQL_CFLAGS@
 POSTGRESQL_LDFLAGS = @POSTGRESQL_LDFLAGS@
 POSTGRESQL_VERSION = @POSTGRESQL_VERSION@
@@ -372,6 +373,7 @@ am__tar = @am__tar@
 am__untar = @am__untar@
 apl_BUILD_DATE = @apl_BUILD_DATE@
 apl_BUILD_OS = @apl_BUILD_OS@
+apl_MAKEINFO = @apl_MAKEINFO@
 bashcompletiondir = @bashcompletiondir@
 bindir = @bindir@
 build = @build@
@@ -435,7 +437,6 @@ dist_doc_DATA = \
 		README-12-vpath-builds				\
 		README-13-build-pitfalls
 
-nobase_dist_sysconf_DATA = gnu-apl.d/preferences
 dist_noinst_DATA = \
 		Doxyfile				\
 		Makefile.incl			\
@@ -525,30 +526,6 @@ uninstall-dist_docDATA:
 	@list='$(dist_doc_DATA)'; test -n "$(docdir)" || list=; \
 	files=`for p in $$list; do echo $$p; done | sed -e 's|^.*/||'`; \
 	dir='$(DESTDIR)$(docdir)'; $(am__uninstall_files_from_dir)
-install-nobase_dist_sysconfDATA: $(nobase_dist_sysconf_DATA)
-	@$(NORMAL_INSTALL)
-	@list='$(nobase_dist_sysconf_DATA)'; test -n "$(sysconfdir)" || list=; \
-	if test -n "$$list"; then \
-	  echo " $(MKDIR_P) '$(DESTDIR)$(sysconfdir)'"; \
-	  $(MKDIR_P) "$(DESTDIR)$(sysconfdir)" || exit 1; \
-	fi; \
-	$(am__nobase_list) | while read dir files; do \
-	  xfiles=; for file in $$files; do \
-	    if test -f "$$file"; then xfiles="$$xfiles $$file"; \
-	    else xfiles="$$xfiles $(srcdir)/$$file"; fi; done; \
-	  test -z "$$xfiles" || { \
-	    test "x$$dir" = x. || { \
-	      echo " $(MKDIR_P) '$(DESTDIR)$(sysconfdir)/$$dir'"; \
-	      $(MKDIR_P) "$(DESTDIR)$(sysconfdir)/$$dir"; }; \
-	    echo " $(INSTALL_DATA) $$xfiles '$(DESTDIR)$(sysconfdir)/$$dir'"; \
-	    $(INSTALL_DATA) $$xfiles "$(DESTDIR)$(sysconfdir)/$$dir" || exit $$?; }; \
-	done
-
-uninstall-nobase_dist_sysconfDATA:
-	@$(NORMAL_UNINSTALL)
-	@list='$(nobase_dist_sysconf_DATA)'; test -n "$(sysconfdir)" || list=; \
-	$(am__nobase_strip_setup); files=`$(am__nobase_strip)`; \
-	dir='$(DESTDIR)$(sysconfdir)'; $(am__uninstall_files_from_dir)
 
 # This directory's subdirectories are mostly independent; you can cd
 # into them and run 'make' without going through this Makefile.
@@ -860,7 +837,7 @@ check: check-recursive
 all-am: Makefile $(DATA) config.h
 installdirs: installdirs-recursive
 installdirs-am:
-	for dir in "$(DESTDIR)$(docdir)" "$(DESTDIR)$(sysconfdir)"; do \
+	for dir in "$(DESTDIR)$(docdir)"; do \
 	  test -z "$$dir" || $(MKDIR_P) "$$dir"; \
 	done
 install: install-recursive
@@ -922,7 +899,7 @@ install-dvi: install-dvi-recursive
 
 install-dvi-am:
 
-install-exec-am: install-nobase_dist_sysconfDATA
+install-exec-am:
 
 install-html: install-html-recursive
 
@@ -962,7 +939,7 @@ ps: ps-recursive
 
 ps-am:
 
-uninstall-am: uninstall-dist_docDATA uninstall-nobase_dist_sysconfDATA
+uninstall-am: uninstall-dist_docDATA
 
 .MAKE: $(am__recursive_targets) all install-am install-data-am \
 	install-strip
@@ -978,13 +955,12 @@ uninstall-am: uninstall-dist_docDATA uninstall-nobase_dist_sysconfDATA
 	install-data install-data-am install-data-hook \
 	install-dist_docDATA install-dvi install-dvi-am install-exec \
 	install-exec-am install-html install-html-am install-info \
-	install-info-am install-man install-nobase_dist_sysconfDATA \
-	install-pdf install-pdf-am install-ps install-ps-am \
-	install-strip installcheck installcheck-am installdirs \
-	installdirs-am maintainer-clean maintainer-clean-generic \
-	mostlyclean mostlyclean-generic mostlyclean-libtool pdf pdf-am \
-	ps ps-am tags tags-am uninstall uninstall-am \
-	uninstall-dist_docDATA uninstall-nobase_dist_sysconfDATA
+	install-info-am install-man install-pdf install-pdf-am \
+	install-ps install-ps-am install-strip installcheck \
+	installcheck-am installdirs installdirs-am maintainer-clean \
+	maintainer-clean-generic mostlyclean mostlyclean-generic \
+	mostlyclean-libtool pdf pdf-am ps ps-am tags tags-am uninstall \
+	uninstall-am uninstall-dist_docDATA
 
 .PRECIOUS: Makefile
 
@@ -1124,7 +1100,7 @@ parallel1:
 VPATH_clean: clean
 	echo "Making VPATH_clean..."
 	rm -f config.status config.h
-	make make distclean || true
+	make distclean || true
 	echo "Done VPATH_clean..."
 
 .PHONY: check_sources
@@ -1240,6 +1216,7 @@ windows-installer-stage:
 	$(MKDIR_P) support-files/windows-installer/stage$(pkglibdir)/wslib8
 	$(MKDIR_P) support-files/windows-installer/stage$(pkglibdir)/wslib9
 	$(MKDIR_P) support-files/windows-installer/stage$(sysconfdir)
+	$(MAKE) -C gnu-apl.d preferences
 	$(INSTALL_DATA) gnu-apl.d/preferences support-files/windows-installer/stage$(sysconfdir)/
 	sed -i 's/^  LIBREF-\([345]\) /# LIBREF-\1 /' \
 	    support-files/windows-installer/stage$(sysconfdir)/preferences

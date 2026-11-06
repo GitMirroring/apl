@@ -5,8 +5,15 @@
 # integral.py is a support script that ⌹ (matrix divide, see Bif_F12_DOMINO.cc)
 # pipes through python3.  It is data, not an executable, so it is installed
 # below $(pkgdatadir) rather than in $(bindir).  PythonPipe.cc locates it via
-# apl_DIR__pkgdata (from config.h, i.e. ./configure --datarootdir).
+# apl_DIR__pkgdata (from AM_CPPFLAGS below).
 dist_pkgdata_DATA = integral.py
+
+# installation directories, expanded at make time (see configure.ac)
+AM_CPPFLAGS = -Dapl_DIR__bin='"$(bindir)"'             \
+              -Dapl_DIR__doc='"$(docdir)"'             \
+              -Dapl_DIR__sysconf='"$(sysconfdir)"'     \
+              -Dapl_DIR__pkglib='"$(pkglibdir)"'       \
+              -Dapl_DIR__pkgdata='"$(pkgdatadir)"'
 
 EXTRA_DIRS =
 if ! apl_TARGET_ANDROID

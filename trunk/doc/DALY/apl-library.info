@@ -1,4 +1,4 @@
-This is apl-library.info, produced by makeinfo version 6.7 from
+This is apl-library.info, produced by makeinfo version 6.8 from
 apl-library.texi.
 
 This manual documents the APL-Library, a collection of useful functions
@@ -13,6 +13,11 @@ for the APL programmer.
      no Back-Cover Texts.  A copy of the license is included in the
      section entitled "GNU Free Documentation License".
 
+INFO-DIR-SECTION GNU programming tools
+START-INFO-DIR-ENTRY
+* APL-LIBRARY: (apl-library). Collection of useful functions for the APL programmer
+END-INFO-DIR-ENTRY
+
 
 File: apl-library.info,  Node: Top,  Next: apl_kbd,  Up: (dir)
 
@@ -23,8 +28,8 @@ A collection of usefull functions for the APL programmer.
 
 * Menu:
 
-*  apl_kbd:: Turn the apl keyboard on and off
-*  arg_parser:: Functions to parse a script's command line.
+*  apl_kbd:: Turn the apl keyboard on and off.
+*  aparse:: Functions to parse a script's command line.
 *  assert::   Workspace to test source code
 *  cfg:: Workspace to read a Windows' configuration file
 *  date::     Workspace to store dates by number of days
@@ -38,23 +43,23 @@ A collection of usefull functions for the APL programmer.
 *  lex1::     Workspace for storing name-value pairs in a hash
 *  cl::       Workspace for storing name-value pairs in a component file
 *  lpr::      Functions for printing
-*  password:: Generate pseudorandom passwords
-*  preferences:: Reading GNU-apl preferences
+*  pw:: Generate pseudorandom passwords
+*  pref:: Reading GNU-apl preferences
 *  prompt::   Prompt a user for answers
 *  seq::      Sequences with prefixes
 *  stack::    A Simple Stack
 *  stat::     Workspace of statistical functions
 *  utf8::     Access to disk files encoded with utf8.
 *  utl::      Workspace of general utility functions.
-*  web_log::  Workspace to read Apache access files.
+*  wblg::  Workspace to read Apache access files.
 *  wp::       Workspace to print workpapers
 *  xml::      Workspace to create xml applications
-*  apl-pkg-mgr::   Install the library's workspaces into APL Package Manager
+*  apl-pkg-mgr:: Install the library's workspaces into APL Package Manager
 *  license::
 *  Index::
 
 
-File: apl-library.info,  Node: apl_kbd,  Next: arg_parser,  Prev: Top,  Up: Top
+File: apl-library.info,  Node: apl_kbd,  Next: aparse,  Prev: Top,  Up: Top
 
 1 apl_kbd
 *********
@@ -81,12 +86,12 @@ might be using it.  Some window managers will use the Windows key for
 its own purposes.
 
 
-File: apl-library.info,  Node: arg_parser,  Next: assert,  Prev: apl_kbd,  Up: Top
+File: apl-library.info,  Node: aparse,  Next: assert,  Prev: apl_kbd,  Up: Top
 
-2 arg_parser, Command line arguments
-************************************
+2 aparse, Command line arguments
+********************************
 
-arg_parser parses command line arguments that follow posix long-name
+aparse parses command line arguments that follow posix long-name
 options.  That is a double dash followed by the argument and,
 optionally, followed by an equals sign and a value.  That is
      --option[=value].
@@ -97,12 +102,12 @@ optionally, followed by an equals sign and a value.  That is
 * API::
 
 
-File: apl-library.info,  Node: Overview,  Next: API,  Up: arg_parser
+File: apl-library.info,  Node: Overview,  Next: API,  Up: aparse
 
 2.1 Overview
 ============
 
-arg_parser presents an application programming interface:
+aparse presents an application programming interface:
 
   1. Create a parser object with ap∆init.
 
@@ -127,13 +132,13 @@ arg_parser presents an application programming interface:
      First←po ap∇get_option_value 'first'
      Second←po ap∆get_option_value 'second'
 
-   arg_parser uses both the utl and lex workspace.  As shipped the
-arg_parser.apl file copies these utilities into its workspace.  APL may
-not be able to find these utilities at run time.  We recomend copying
-all three apl files into your script file to avoid any confusion.
+   aparse uses both the utl and lex workspace.  As shipped the
+aparse.apl file copies these utilities into its workspace.  APL may not
+be able to find these utilities at run time.  We recomend copying all
+three apl files into your script file to avoid any confusion.
 
 
-File: apl-library.info,  Node: API,  Prev: Overview,  Up: arg_parser
+File: apl-library.info,  Node: API,  Prev: Overview,  Up: aparse
 
 2.2 API
 =======
@@ -188,7 +193,7 @@ File: apl-library.info,  Node: API,  Prev: Overview,  Up: arg_parser
      Function returns a help message showing each defined object.
 
 
-File: apl-library.info,  Node: assert,  Next: cfg,  Prev: arg_parser,  Up: Top
+File: apl-library.info,  Node: assert,  Next: cfg,  Prev: aparse,  Up: Top
 
 3 Assert, Testing source Code
 *****************************
@@ -1090,7 +1095,7 @@ functions:
      CF_DBDISCONNECT.
 
 
-File: apl-library.info,  Node: lpr,  Next: password,  Prev: cl,  Up: Top
+File: apl-library.info,  Node: lpr,  Next: pw,  Prev: cl,  Up: Top
 
 15 lpr - print from APL
 ***********************
@@ -1157,7 +1162,7 @@ up of the following items:
      Ubuntu and Debian.
 
 
-File: apl-library.info,  Node: password,  Next: preferences,  Prev: lpr,  Up: Top
+File: apl-library.info,  Node: pw,  Next: pref,  Prev: lpr,  Up: Top
 
 16 (Pseudo) Randomly generated password
 ***************************************
@@ -1190,14 +1195,14 @@ Workspace to generate passwords.
           pw∆password pw∆alpha,pw∆numeric,'!*%^$'
 
 
-File: apl-library.info,  Node: preferences,  Next: prompt,  Prev: password,  Up: Top
+File: apl-library.info,  Node: pref,  Next: prompt,  Prev: pw,  Up: Top
 
-17 preferences - workspace to view apl preferences
-**************************************************
+17 pref - workspace to view apl preferences
+*******************************************
 
-preferences is a workspace that displays the currently active settings
-in the gnu-apl preference file.  The command 'pref∆current
-pref∆find_prefs' does the displaying.
+pref is a workspace that displays the currently active settings in the
+gnu-apl preference file.  The command 'pref∆current pref∆find_prefs'
+does the displaying.
 
            pref∆current pref∆find_prefs
       Welcome                  No
@@ -1235,7 +1240,7 @@ pref∆find_prefs' does the displaying.
       LIBREF-9                 /mnt/wslib1
 
 
-File: apl-library.info,  Node: prompt,  Next: seq,  Prev: preferences,  Up: Top
+File: apl-library.info,  Node: prompt,  Next: seq,  Prev: pref,  Up: Top
 
 18 Seeking answers in a top - quit - done world.
 ************************************************
@@ -1434,7 +1439,7 @@ Workspace provides access to utf8 files.
      Functions returns the standard out of a command.
 
 
-File: apl-library.info,  Node: utl,  Next: web_log,  Prev: utf8,  Up: Top
+File: apl-library.info,  Node: utl,  Next: wblg,  Prev: utf8,  Up: Top
 
 23 utl
 ******
@@ -1472,12 +1477,12 @@ Utl is a collection of generally usefull routines.
      spaces.
 
 
-File: apl-library.info,  Node: web_log,  Next: wp,  Prev: utl,  Up: Top
+File: apl-library.info,  Node: wblg,  Next: wp,  Prev: utl,  Up: Top
 
-24 web_log -- parse web server logs
-***********************************
+24 wblg -- parse web server logs
+********************************
 
-web_log parses web server logs in the common format.  Web servers keep a
+wblg parses web server logs in the common format.  Web servers keep a
 log of requests made of the server and the servers response.  Analyzing
 those logs may confirm the relative popularity of a site monitoring
 those logs may yield insight into what content changes were well
@@ -1487,7 +1492,7 @@ received.
 workspace with function log∆loadFile, apply several tests to the file
 and remove irrelevant entries, and count the number of entries.
 
-   To that end web_log provides a function, log∆filter_hits, to remove
+   To that end wblg provides a function, log∆filter_hits, to remove
 entries that I thought were not actual visits to a site.  Each line of
 this function applies a test to each line of the log using one of two
 operators, log∆filter and log∆not_filter.  To use log∆filter_hits call
@@ -1519,7 +1524,7 @@ work.
 line of the log.  log∆filter returns lines where the test is true while
 log∆not_filter returns lines where the test is false.
 
-   web_log provides a series of tests.  Each test's name starts with
+   wblg provides a series of tests.  Each test's name starts with
 'log∆test_'.  Provided tests are:
 
  -- ∇: bool←string log∆test_agent_contents log_line
@@ -1555,8 +1560,8 @@ log∆not_filter returns lines where the test is false.
      Function tests if the file name from the target field has a suffix
      in the list of supplied suffixes.
 
-   There are ten fields in each log line.  The web_log workspace
-provides a function for each field.
+   There are ten fields in each log line.  The wblg workspace provides a
+function for each field.
 
  -- ∇: log∆ip log_line
      Function returns the client's ip address.
@@ -1583,8 +1588,8 @@ provides a function for each field.
 
      HTTP defines 'POST' 'GET' among others as methods.
 
-     web_log provides the functions log∆method and log∆target for the
-     first two parts.
+     wblg provides the functions log∆method and log∆target for the first
+     two parts.
 
  -- ∇: log∆status log-line
      Function returns the HTTP status code that the server used to
@@ -1604,7 +1609,7 @@ provides a function for each field.
      client's computer that made the request.
 
 
-File: apl-library.info,  Node: wp,  Next: xml,  Prev: web_log,  Up: Top
+File: apl-library.info,  Node: wp,  Next: xml,  Prev: wblg,  Up: Top
 
 25 wp Workspace
 ***************
@@ -2441,15 +2446,15 @@ Index
 * Menu:
 
 * ⎕fmt:                                  fmt.                  (line  6)
+* aparse:                                aparse.               (line  6)
 * APL Package Manager:                   apl-pkg-mgr.          (line  6)
 * apl_kbd:                               apl_kbd.              (line  6)
-* arguments:                             arg_parser.           (line  6)
-* arg_parser:                            arg_parser.           (line  6)
+* arguments:                             aparse.               (line  6)
 * assert, testing source code:           assert.               (line  6)
 * cascading style sheet:                 xml.                  (line 47)
 * cfg -- Windows style configuration files: cfg.               (line  6)
 * cl:                                    cl.                   (line  6)
-* command line:                          arg_parser.           (line  6)
+* command line:                          aparse.               (line  6)
 * component file:                        cl.                   (line  6)
 * css:                                   xml.                  (line 47)
 * csv:                                   export.               (line  6)
@@ -2471,9 +2476,8 @@ Index
 * lex1:                                  lex1.                 (line  6)
 * lpr:                                   lpr.                  (line  6)
 * name-value pairs:                      lex.                  (line  6)
-* password:                              password.             (line  6)
-* preferences - workspace to view apl preferences: preferences.
-                                                               (line  6)
+* password:                              pw.                   (line  6)
+* pref - workspace to view apl preferences: pref.              (line  6)
 * present value:                         finance.              (line  6)
 * print arrays:                          wp.                   (line  6)
 * schema, xml:                           xml.                  (line  6)
@@ -2485,7 +2489,7 @@ Index
 * utilities:                             apl_kbd.              (line  6)
 * utilities <1>:                         utl.                  (line  6)
 * utl:                                   utl.                  (line  6)
-* web_log - parse web server logs:       web_log.              (line  6)
+* wblg - parse web server logs:          wblg.                 (line  6)
 * workpapers:                            wp.                   (line  6)
 * wp:                                    wp.                   (line  6)
 * xml:                                   xml.                  (line  6)
@@ -2493,52 +2497,52 @@ Index
 
 
 Tag Table:
-Node: Top619
-Node: apl_kbd2203
-Node: arg_parser3074
-Node: Overview3482
-Node: API4701
-Node: assert6416
-Node: cfg8356
-Node: date9216
-Node: dom12186
-Node: export13626
-Node: finance14112
-Node: fmt21710
-Node: Phrase22878
-Node: F24482
-Node: I25982
-Node: E27432
-Node: A27933
-Node: Delimiters29350
-Node: html29777
-Node: import30724
-Node: lex31487
-Node: lex132479
-Node: cl33760
-Node: lpr35600
-Node: password37595
-Node: preferences38506
-Node: prompt40641
-Node: seq41660
-Node: stack42624
-Node: stat43536
-Node: utf845083
-Node: utl45792
-Node: web_log46747
-Node: wp52285
-Node: Howto53095
-Node: Init53821
-Node: Set data54310
-Node: Attributes55165
-Node: Stylesheet57050
-Node: Required Classes58496
-Node: Other Tweaks59221
-Node: Distances59452
-Node: xml60740
-Node: apl-pkg-mgr62586
-Node: license63771
-Node: Index88894
+Node: Top783
+Node: apl_kbd2346
+Node: aparse3213
+Node: Overview3605
+Node: API4808
+Node: assert6519
+Node: cfg8455
+Node: date9315
+Node: dom12285
+Node: export13725
+Node: finance14211
+Node: fmt21809
+Node: Phrase22977
+Node: F24581
+Node: I26081
+Node: E27531
+Node: A28032
+Node: Delimiters29449
+Node: html29876
+Node: import30823
+Node: lex31586
+Node: lex132578
+Node: cl33859
+Node: lpr35699
+Node: pw37688
+Node: pref38586
+Node: prompt40687
+Node: seq41699
+Node: stack42663
+Node: stat43575
+Node: utf845122
+Node: utl45831
+Node: wblg46783
+Node: wp52297
+Node: Howto53104
+Node: Init53830
+Node: Set data54319
+Node: Attributes55174
+Node: Stylesheet57059
+Node: Required Classes58505
+Node: Other Tweaks59230
+Node: Distances59461
+Node: xml60749
+Node: apl-pkg-mgr62595
+Node: license63780
+Node: Index88903
 
 End Tag Table
 

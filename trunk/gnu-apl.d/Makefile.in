@@ -106,11 +106,11 @@ am__aclocal_m4_deps = $(top_srcdir)/m4/depend.m4 \
 	$(top_srcdir)/m4/build_date.m4 $(top_srcdir)/configure.ac
 am__configure_deps = $(am__aclocal_m4_deps) $(CONFIGURE_DEPENDENCIES) \
 	$(ACLOCAL_M4)
-DIST_COMMON = $(srcdir)/Makefile.am $(dist_noinst_DATA) \
-	$(am__DIST_COMMON)
+DIST_COMMON = $(srcdir)/Makefile.am $(dist_gnuapl_DATA) \
+	$(dist_noinst_DATA) $(am__DIST_COMMON)
 mkinstalldirs = $(install_sh) -d
 CONFIG_HEADER = $(top_builddir)/config.h
-CONFIG_CLEAN_FILES = preferences
+CONFIG_CLEAN_FILES =
 CONFIG_CLEAN_VPATH_FILES =
 AM_V_P = $(am__v_P_@AM_V@)
 am__v_P_ = $(am__v_P_@AM_DEFAULT_V@)
@@ -158,10 +158,10 @@ am__uninstall_files_from_dir = { \
     || { echo " ( cd '$$dir' && rm -f" $$files ")"; \
          $(am__cd) "$$dir" && rm -f $$files; }; \
   }
-am__installdirs = "$(DESTDIR)$(distdir)"
-DATA = $(dist_DATA) $(dist_noinst_DATA)
+am__installdirs = "$(DESTDIR)$(gnuapldir)" "$(DESTDIR)$(gnuapldir)"
+DATA = $(dist_gnuapl_DATA) $(dist_noinst_DATA) $(nodist_gnuapl_DATA)
 am__tagged_files = $(HEADERS) $(SOURCES) $(TAGS_FILES) $(LISP)
-am__DIST_COMMON = $(srcdir)/Makefile.in $(srcdir)/preferences.in
+am__DIST_COMMON = $(srcdir)/Makefile.in
 DISTFILES = $(DIST_COMMON) $(DIST_SOURCES) $(TEXINFOS) $(EXTRA_DIST)
 ACLOCAL = @ACLOCAL@
 ALT_MAP_WANTED = @ALT_MAP_WANTED@
@@ -248,6 +248,8 @@ PCRE_LIBS = @PCRE_LIBS@
 PERFORMANCE_COUNTERS_WANTED = @PERFORMANCE_COUNTERS_WANTED@
 PG_CONFIG = @PG_CONFIG@
 PKG_CONFIG = @PKG_CONFIG@
+PKG_CONFIG_LIBDIR = @PKG_CONFIG_LIBDIR@
+PKG_CONFIG_PATH = @PKG_CONFIG_PATH@
 POSTGRESQL_CFLAGS = @POSTGRESQL_CFLAGS@
 POSTGRESQL_LDFLAGS = @POSTGRESQL_LDFLAGS@
 POSTGRESQL_VERSION = @POSTGRESQL_VERSION@
@@ -285,6 +287,7 @@ am__tar = @am__tar@
 am__untar = @am__untar@
 apl_BUILD_DATE = @apl_BUILD_DATE@
 apl_BUILD_OS = @apl_BUILD_OS@
+apl_MAKEINFO = @apl_MAKEINFO@
 bashcompletiondir = @bashcompletiondir@
 bindir = @bindir@
 build = @build@
@@ -327,9 +330,11 @@ target_alias = @target_alias@
 top_build_prefix = @top_build_prefix@
 top_builddir = @top_builddir@
 top_srcdir = @top_srcdir@
-dist_noinst_DATA = preferences.in keyboard1.txt parallel_thresholds
-dist_DATA = preferences    keyboard1.txt parallel_thresholds
-distdir = ${sysconfdir}/gnu-apl.d
+gnuapldir = $(sysconfdir)/gnu-apl.d
+dist_noinst_DATA = preferences.in
+dist_gnuapl_DATA = keyboard1.txt parallel_thresholds
+nodist_gnuapl_DATA = preferences
+CLEANFILES = preferences
 all: all-am
 
 .SUFFIXES:
@@ -362,35 +367,54 @@ $(top_srcdir)/configure: @MAINTAINER_MODE_TRUE@ $(am__configure_deps)
 $(ACLOCAL_M4): @MAINTAINER_MODE_TRUE@ $(am__aclocal_m4_deps)
 	cd $(top_builddir) && $(MAKE) $(AM_MAKEFLAGS) am--refresh
 $(am__aclocal_m4_deps):
-preferences: $(top_builddir)/config.status $(srcdir)/preferences.in
-	cd $(top_builddir) && $(SHELL) ./config.status $(subdir)/$@
 
 mostlyclean-libtool:
 	-rm -f *.lo
 
 clean-libtool:
 	-rm -rf .libs _libs
-install-distDATA: $(dist_DATA)
+install-dist_gnuaplDATA: $(dist_gnuapl_DATA)
 	@$(NORMAL_INSTALL)
-	@list='$(dist_DATA)'; test -n "$(distdir)" || list=; \
+	@list='$(dist_gnuapl_DATA)'; test -n "$(gnuapldir)" || list=; \
 	if test -n "$$list"; then \
-	  echo " $(MKDIR_P) '$(DESTDIR)$(distdir)'"; \
-	  $(MKDIR_P) "$(DESTDIR)$(distdir)" || exit 1; \
+	  echo " $(MKDIR_P) '$(DESTDIR)$(gnuapldir)'"; \
+	  $(MKDIR_P) "$(DESTDIR)$(gnuapldir)" || exit 1; \
 	fi; \
 	for p in $$list; do \
 	  if test -f "$$p"; then d=; else d="$(srcdir)/"; fi; \
 	  echo "$$d$$p"; \
 	done | $(am__base_list) | \
 	while read files; do \
-	  echo " $(INSTALL_DATA) $$files '$(DESTDIR)$(distdir)'"; \
-	  $(INSTALL_DATA) $$files "$(DESTDIR)$(distdir)" || exit $$?; \
+	  echo " $(INSTALL_DATA) $$files '$(DESTDIR)$(gnuapldir)'"; \
+	  $(INSTALL_DATA) $$files "$(DESTDIR)$(gnuapldir)" || exit $$?; \
 	done
 
-uninstall-distDATA:
+uninstall-dist_gnuaplDATA:
 	@$(NORMAL_UNINSTALL)
-	@list='$(dist_DATA)'; test -n "$(distdir)" || list=; \
+	@list='$(dist_gnuapl_DATA)'; test -n "$(gnuapldir)" || list=; \
 	files=`for p in $$list; do echo $$p; done | sed -e 's|^.*/||'`; \
-	dir='$(DESTDIR)$(distdir)'; $(am__uninstall_files_from_dir)
+	dir='$(DESTDIR)$(gnuapldir)'; $(am__uninstall_files_from_dir)
+install-nodist_gnuaplDATA: $(nodist_gnuapl_DATA)
+	@$(NORMAL_INSTALL)
+	@list='$(nodist_gnuapl_DATA)'; test -n "$(gnuapldir)" || list=; \
+	if test -n "$$list"; then \
+	  echo " $(MKDIR_P) '$(DESTDIR)$(gnuapldir)'"; \
+	  $(MKDIR_P) "$(DESTDIR)$(gnuapldir)" || exit 1; \
+	fi; \
+	for p in $$list; do \
+	  if test -f "$$p"; then d=; else d="$(srcdir)/"; fi; \
+	  echo "$$d$$p"; \
+	done | $(am__base_list) | \
+	while read files; do \
+	  echo " $(INSTALL_DATA) $$files '$(DESTDIR)$(gnuapldir)'"; \
+	  $(INSTALL_DATA) $$files "$(DESTDIR)$(gnuapldir)" || exit $$?; \
+	done
+
+uninstall-nodist_gnuaplDATA:
+	@$(NORMAL_UNINSTALL)
+	@list='$(nodist_gnuapl_DATA)'; test -n "$(gnuapldir)" || list=; \
+	files=`for p in $$list; do echo $$p; done | sed -e 's|^.*/||'`; \
+	dir='$(DESTDIR)$(gnuapldir)'; $(am__uninstall_files_from_dir)
 tags TAGS:
 
 ctags CTAGS:
@@ -434,7 +458,7 @@ check-am: all-am
 check: check-am
 all-am: Makefile $(DATA)
 installdirs:
-	for dir in "$(DESTDIR)$(distdir)"; do \
+	for dir in "$(DESTDIR)$(gnuapldir)" "$(DESTDIR)$(gnuapldir)"; do \
 	  test -z "$$dir" || $(MKDIR_P) "$$dir"; \
 	done
 install: install-am
@@ -459,6 +483,7 @@ install-strip:
 mostlyclean-generic:
 
 clean-generic:
+	-test -z "$(CLEANFILES)" || rm -f $(CLEANFILES)
 
 distclean-generic:
 	-test -z "$(CONFIG_CLEAN_FILES)" || rm -f $(CONFIG_CLEAN_FILES)
@@ -487,7 +512,7 @@ info: info-am
 
 info-am:
 
-install-data-am: install-distDATA
+install-data-am: install-dist_gnuaplDATA install-nodist_gnuaplDATA
 
 install-dvi: install-dvi-am
 
@@ -531,7 +556,7 @@ ps: ps-am
 
 ps-am:
 
-uninstall-am: uninstall-distDATA
+uninstall-am: uninstall-dist_gnuaplDATA uninstall-nodist_gnuaplDATA
 
 .MAKE: install-am install-strip
 
@@ -539,17 +564,26 @@ uninstall-am: uninstall-distDATA
 	cscopelist-am ctags-am distclean distclean-generic \
 	distclean-libtool distdir dvi dvi-am html html-am info info-am \
 	install install-am install-data install-data-am \
-	install-distDATA install-dvi install-dvi-am install-exec \
-	install-exec-am install-html install-html-am install-info \
-	install-info-am install-man install-pdf install-pdf-am \
+	install-dist_gnuaplDATA install-dvi install-dvi-am \
+	install-exec install-exec-am install-html install-html-am \
+	install-info install-info-am install-man \
+	install-nodist_gnuaplDATA install-pdf install-pdf-am \
 	install-ps install-ps-am install-strip installcheck \
 	installcheck-am installdirs maintainer-clean \
 	maintainer-clean-generic mostlyclean mostlyclean-generic \
 	mostlyclean-libtool pdf pdf-am ps ps-am tags-am uninstall \
-	uninstall-am uninstall-distDATA
+	uninstall-am uninstall-dist_gnuaplDATA \
+	uninstall-nodist_gnuaplDATA
 
 .PRECIOUS: Makefile
 
+
+# preferences is made here rather than by configure, so that the
+# installation directories in it are fully expanded
+preferences: preferences.in Makefile
+	$(AM_V_GEN)$(SED) -e 's|[@]pkglibdir[@]|$(pkglibdir)|g'   \
+	                  -e 's|[@]sysconfdir[@]|$(sysconfdir)|g' \
+	                  $(srcdir)/preferences.in > $@
 
 # Tell versions [3.59,3.63) of GNU make to not export all variables.
 # Otherwise a system limit (for SysV at least) may be exceeded.

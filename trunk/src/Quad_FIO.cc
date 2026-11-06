@@ -3049,9 +3049,8 @@ Quad_FIO::eval_B___8()
 {
 NOT_MINGW(
    {
-     struct winsize ws;
-     ioctl(STDIN_FILENO, TIOCGWINSZ, &ws);
-     if (ws.ws_col)
+     struct winsize ws = {};   // ⎕PW if stdin is not a terminal
+     if (ioctl(STDIN_FILENO, TIOCGWINSZ, &ws) == 0 && ws.ws_col)
         return Token(TOK_APL_VALUE1, IntScalar(ws.ws_col, LOC));
    }
 ) // NOT_MINGW
@@ -3063,11 +3062,12 @@ Quad_FIO::eval_B___9()
 {
 NOT_MINGW(
    {
-     struct winsize ws;
+     struct winsize ws = {};   // 0 if stdin is not a terminal
      ioctl(STDIN_FILENO, TIOCGWINSZ, &ws);
      return Token(TOK_APL_VALUE1, IntScalar(ws.ws_row, LOC));
    }
 ) // NOT_MINGW
+   return Token(TOK_APL_VALUE1, IntScalar(0, LOC));
 }
 //────────────────────────────────────────────────────────────────────────────
 Token

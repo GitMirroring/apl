@@ -1389,6 +1389,8 @@ PCRE_LIBS = @PCRE_LIBS@
 PERFORMANCE_COUNTERS_WANTED = @PERFORMANCE_COUNTERS_WANTED@
 PG_CONFIG = @PG_CONFIG@
 PKG_CONFIG = @PKG_CONFIG@
+PKG_CONFIG_LIBDIR = @PKG_CONFIG_LIBDIR@
+PKG_CONFIG_PATH = @PKG_CONFIG_PATH@
 POSTGRESQL_CFLAGS = @POSTGRESQL_CFLAGS@
 POSTGRESQL_LDFLAGS = @POSTGRESQL_LDFLAGS@
 POSTGRESQL_VERSION = @POSTGRESQL_VERSION@
@@ -1426,6 +1428,7 @@ am__tar = @am__tar@
 am__untar = @am__untar@
 apl_BUILD_DATE = @apl_BUILD_DATE@
 apl_BUILD_OS = @apl_BUILD_OS@
+apl_MAKEINFO = @apl_MAKEINFO@
 bashcompletiondir = @bashcompletiondir@
 bindir = @bindir@
 build = @build@
@@ -1472,8 +1475,16 @@ top_srcdir = @top_srcdir@
 # integral.py is a support script that ⌹ (matrix divide, see Bif_F12_DOMINO.cc)
 # pipes through python3.  It is data, not an executable, so it is installed
 # below $(pkgdatadir) rather than in $(bindir).  PythonPipe.cc locates it via
-# apl_DIR__pkgdata (from config.h, i.e. ./configure --datarootdir).
+# apl_DIR__pkgdata (from AM_CPPFLAGS below).
 dist_pkgdata_DATA = integral.py
+
+# installation directories, expanded at make time (see configure.ac)
+AM_CPPFLAGS = -Dapl_DIR__bin='"$(bindir)"'             \
+              -Dapl_DIR__doc='"$(docdir)"'             \
+              -Dapl_DIR__sysconf='"$(sysconfdir)"'     \
+              -Dapl_DIR__pkglib='"$(pkglibdir)"'       \
+              -Dapl_DIR__pkgdata='"$(pkgdatadir)"'
+
 EXTRA_DIRS = $(am__append_1)
 @apl_TARGET_MINGW_FALSE@SUBDIRS = native $(EXTRA_DIRS) $(am__append_2)
 @apl_TARGET_MINGW_TRUE@SUBDIRS = $(EXTRA_DIRS) $(am__append_2)

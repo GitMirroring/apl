@@ -25,8 +25,6 @@ dist_doc_DATA = 							\
 		README-12-vpath-builds				\
 		README-13-build-pitfalls
 
-nobase_dist_sysconf_DATA = gnu-apl.d/preferences
-
 dist_noinst_DATA =				\
 		Doxyfile				\
 		Makefile.incl			\
@@ -159,6 +157,7 @@ windows-installer-stage:
 	$(MKDIR_P) support-files/windows-installer/stage$(pkglibdir)/wslib8
 	$(MKDIR_P) support-files/windows-installer/stage$(pkglibdir)/wslib9
 	$(MKDIR_P) support-files/windows-installer/stage$(sysconfdir)
+	$(MAKE) -C gnu-apl.d preferences
 	$(INSTALL_DATA) gnu-apl.d/preferences support-files/windows-installer/stage$(sysconfdir)/
 	sed -i 's/^  LIBREF-\([345]\) /# LIBREF-\1 /' \
 	    support-files/windows-installer/stage$(sysconfdir)/preferences
