@@ -115,7 +115,7 @@ const AxesBitmap axes_X = X.to_bitmap("A↑[X]B", B.get_rank());
 Shape sh_take = B.get_shape();   // start with ⍴B
    loop(x, len_X)                 // for exery axis X[x] in X
       {
-        const APL_Integer axis = X.get_near_int(x) - qio;
+        const APL_Integer axis = Cell::minus_IO(X.get_near_int(x), qio);
         const APL_Integer alen = A.get_near_int(x);
         sh_take.set_shape_item(axis, alen);
       }
@@ -251,6 +251,24 @@ const Cell & first_B = B.get_cfirst(cache);
    if (Value_P sub = first_B.try_pointer_value())   // first item is nested
       {
         return CLONE_P(sub, LOC);
+      }
+
+   // (f ↑B)←V with a nested first item: like Bif_F12_PICK::pick(), return
+   // the cellrefs of that item (so that an outer selector f selects its
+   // cells), marked as the pick slot (so that an unbroken (↑B)←V replaces
+   // the item wholesale), Bugs39 #47
+   //
+   if (first_B.is_lval_cell())
+      {
+        Cell * target = first_B.get_lval_value();
+        Value * owner = first_B.get_cell_owner();
+        if (target && owner && target->is_pointer_cell())
+           {
+             Value_P subval = target->get_pointer_value();
+             Value_P subrefs = subval->get_cellrefs(LOC);
+             subrefs->set_lval_pick_slot(target, owner);
+             return subrefs;
+           }
       }
 
    if (B.element_count() ||      // the normal case,         e.g. Z ← ↑ 1 2 3
@@ -477,7 +495,7 @@ Shape ravel_A(B.get_shape());
    loop(r, len_X)
        {
          const APL_Integer a = A.get_near_int(r);
-         const APL_Integer x = X.get_near_int(r) - qio;
+         const APL_Integer x = Cell::minus_IO(X.get_near_int(r), qio);
 
          const ShapeItem amax = B.get_shape_item(x);
          if      (a >= amax)   ravel_A.set_shape_item(x, 0);

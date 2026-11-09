@@ -158,7 +158,7 @@ PCRE2_SIZE error_offset = -1;
 
    if (code)   // OK
       {
-        compute_group_parents(pattern);
+        compute_group_parents(pattern, flags);
         return;
       }
 
@@ -174,15 +174,23 @@ PCRE2_SIZE error_offset = -1;
 }
 //────────────────────────────────────────────────────────────────────────────
 void
-Regexp::compute_group_parents(const UCS_string & pattern)
+Regexp::compute_group_parents(const UCS_string & pattern, int flags)
 {
    // the structure of the ⎕RE result is the structure of the capturing
    // groups in the pattern (apl.texi "Complex Matches"), not of the spans
    // of one match (Bugs38 #55). group_parents[g] is the innermost capturing
    // group that contains group g (0 = the whole match).
    //
+   // The scanner skips escapes, character classes (including POSIX items
+   // like [:space:]), comments (also # comments in extended mode, see
+   // (?x) and ⎕RE['x']), and the condition of a conditional group like
+   // (?(2)...|...), so that no ( or ) in them is taken for a group
+   // (Bugs39 #28).
+   //
 std::vector<int> parents(1, -1);   // group 0: the whole match
 std::vector<int> open;             // the groups of the open ( (or -1)
+std::vector<bool> open_extended;   // the extended mode outside each open (
+bool extended = (flags & PCRE2_EXTENDED) != 0;
 const ShapeItem len = pattern.size();
    for (ShapeItem p = 0; p < len; ++p)
        {
@@ -195,7 +203,15 @@ const ShapeItem len = pattern.size();
                        if (pattern[p] == UNI_BACKSLASH &&
                            pattern[p + 1] == UNI_E)   { ++p;   break; }
                  }
+              else if (p + 1 < len && pattern[p + 1] == Unicode('c'))
+                 p += 2;   // \cX: a control character, e.g. \c(
               else ++p;   // skip the escaped character
+              continue;
+            }
+
+         if (extended && uni == UNI_NUMBER_SIGN)   // # comment
+            {
+              while (p < len && pattern[p] != UNI_LF)   ++p;
               continue;
             }
 
@@ -205,7 +221,22 @@ const ShapeItem len = pattern.size();
               if (p < len && pattern[p] == UNI_CIRCUMFLEX)   ++p;
               if (p < len && pattern[p] == UNI_R_BRACK)      ++p;   // []...]
               for (; p < len && pattern[p] != UNI_R_BRACK; ++p)
-                  if (pattern[p] == UNI_BACKSLASH)   ++p;
+                  {
+                    if (pattern[p] == UNI_BACKSLASH)   { ++p;   continue; }
+                    if (pattern[p] == UNI_L_BRACK && p + 1 < len &&
+                        (pattern[p + 1] == UNI_COLON ||   // [:alpha:]
+                         pattern[p + 1] == UNI_FULLSTOP ||
+                         pattern[p + 1] == UNI_EQUAL))
+                       {
+                         const Unicode delim = pattern[p + 1];
+                         for (ShapeItem q = p + 2; q + 1 < len; ++q)
+                             {
+                               if (pattern[q] == delim &&
+                                   pattern[q + 1] == UNI_R_BRACK)
+                                  { p = q + 1;   break; }
+                             }
+                       }
+                  }
               continue;
             }
 
@@ -220,6 +251,38 @@ const ShapeItem len = pattern.size();
                    continue;
                  }
 
+              // option settings, e.g. (?x) or (?i-x:...)
+              //
+              bool opt_extended = extended;
+              bool is_option = false;
+              ShapeItem opt_end = p + 2;
+              if (n1 == UNI_QUESTION)
+                 {
+                   bool negative = false;
+                   for (; opt_end < len; ++opt_end)
+                       {
+                         const Unicode o = pattern[opt_end];
+                         if (o == UNI_MINUS)   { negative = true;   continue; }
+                         if (o == Unicode('x'))
+                            { opt_extended = !negative;   continue; }
+                         if (o == UNI_CIRCUMFLEX)   { opt_extended = false;
+                                                      continue; }
+                         if ((o >= 'a' && o <= 'z') || (o >= 'A' && o <= 'Z'))
+                            continue;
+                         break;
+                       }
+                   is_option = opt_end > p + 2 && opt_end < len &&
+                               (pattern[opt_end] == UNI_R_PARENT ||
+                                pattern[opt_end] == UNI_COLON);
+                 }
+
+              if (is_option && pattern[opt_end] == UNI_R_PARENT)   // (?x)
+                 {
+                   extended = opt_extended;   // until the end of the group
+                   p = opt_end;
+                   continue;
+                 }
+
               bool capturing = n1 != UNI_QUESTION && n1 != UNI_ASTERISK;
               if (n1 == UNI_QUESTION)   // named groups capture
                  {
@@ -229,6 +292,7 @@ const ShapeItem len = pattern.size();
                        n3 != UNI_EXCLAM)   capturing = true;
                  }
 
+              open_extended.push_back(extended);
               if (capturing)
                  {
                    int parent = 0;
@@ -241,10 +305,38 @@ const ShapeItem len = pattern.size();
                  {
                    open.push_back(-1);
                  }
+
+              if (is_option)   // (?x: ...)
+                 {
+                   extended = opt_extended;
+                   p = opt_end;
+                 }
+              else if (n1 == UNI_QUESTION && n2 == UNI_L_PARENT)   // (?(
+                 {
+                   // the condition of a conditional group, e.g. (2), (<n>),
+                   // or (R): skip it. An assertion condition (?(?=...)...)
+                   // is an ordinary (non-capturing) group.
+                   //
+                   if (n3 != UNI_QUESTION && n3 != UNI_ASTERISK)
+                      {
+                        ShapeItem q = p + 3;
+                        while (q < len && pattern[q] != UNI_R_PARENT)   ++q;
+                        p = q;
+                      }
+                   else
+                      {
+                        p += 1;   // the next ++p is the condition's (
+                      }
+                 }
               continue;
             }
 
-         if (uni == UNI_R_PARENT && open.size())   open.pop_back();
+         if (uni == UNI_R_PARENT && open.size())
+            {
+              open.pop_back();
+              extended = open_extended.back();
+              open_extended.pop_back();
+            }
        }
 
    // use the result only if it agrees with PCRE2 (e.g. not for (?|...),

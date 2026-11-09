@@ -302,6 +302,7 @@ const double norm = sqrt(N);
    fftw_free(out);
 
    Z->check_value(LOC);
+   Z->check_finite("⎕FFT");   // Bugs39 #31
    return Token(TOK_APL_VALUE1, Z);
 }
 //────────────────────────────────────────────────────────────────────────────
@@ -373,6 +374,7 @@ const RavelType rt = B->get_ravel_type();
       }
 
    Z->check_value(LOC);
+   Z->check_finite("⎕FFT");   // Bugs39 #31
    return Token(TOK_APL_VALUE1, Z);
 }
 //────────────────────────────────────────────────────────────────────────────

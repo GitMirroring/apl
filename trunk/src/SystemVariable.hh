@@ -54,8 +54,9 @@ public:
    virtual bool assign_ignored() const
       { return false; }
 
-   /// return true if an assignment to ⎕L, ⎕R, or ⎕X would be ignored
-   static bool lrx_assign_ignored();
+   /// return true if an assignment to ⎕L, ⎕R, or ⎕X (\b which = 'L', 'R',
+   /// or 'X') would be ignored
+   static bool lrx_assign_ignored(char which);
 
    /// overloaded Symbol::print().
    /// @param out output stream to print to
@@ -360,7 +361,7 @@ class Quad_L : public NL_SystemVariable
 public:
    /// overloaded SystemVariable::assign_ignored()
    virtual bool assign_ignored() const
-      { return lrx_assign_ignored(); }
+      { return lrx_assign_ignored('L'); }
 
    /// Constructor.
    Quad_L();
@@ -630,7 +631,7 @@ class Quad_R : public NL_SystemVariable
 public:
    /// overloaded SystemVariable::assign_ignored()
    virtual bool assign_ignored() const
-      { return lrx_assign_ignored(); }
+      { return lrx_assign_ignored('R'); }
 
    /// Constructor.
    Quad_R();
@@ -681,6 +682,10 @@ public:
 
    /// maximum depth of SI stack
    static ShapeItem si_depth_limit;
+
+   /// the SI depth limit that was automatically cleared when it was reached
+   /// (restored when the SI was unwound), or 0
+   static ShapeItem si_depth_limit_cleared;
 
    /// maximum number of values
    static ShapeItem value_count_limit;
@@ -832,7 +837,7 @@ class Quad_X : public NL_SystemVariable
 public:
    /// overloaded SystemVariable::assign_ignored()
    virtual bool assign_ignored() const
-      { return lrx_assign_ignored(); }
+      { return lrx_assign_ignored('X'); }
 
    /// Constructor.
    Quad_X();

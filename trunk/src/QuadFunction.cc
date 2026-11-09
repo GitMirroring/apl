@@ -554,6 +554,40 @@ Value_P Z(3, LOC);
         return;
       }
 
+   // a value that already has the maximum depth cannot become an item of
+   // Z. Report that as an error result (rather than throwing SYSTEM LIMIT
+   // here, at the end of the ⎕EC context, which escaped to the top level
+   // and left ⎕EC's frame on the SI, Bugs39 #12).
+   //
+   if (result.get_ValueType() == TV_VAL && result.get_apl_val() &&
+       !result.get_apl_val()->is_simple_scalar() &&
+       1 + result.get_apl_val()->compute_depth() > MAX_DEPTH)
+      {
+        Value_P Z2(2, LOC);
+        Z2->next_ravel_Int(Error::error_major(E_SYS_LIMIT_NESTING));
+        Z2->next_ravel_Int(Error::error_minor(E_SYS_LIMIT_NESTING));
+        Z2->check_value(LOC);
+
+        PrintBuffer pb;
+        pb.append_ucs(UCS_string(UTF8_string(
+                                 Error::error_name(E_SYS_LIMIT_NESTING))));
+        pb.append_ucs(UCS_string(UTF8_string(
+                      "      (the result of ⎕EC B is nested too deeply)")));
+        pb.append_ucs(UCS_string());
+        pb.pad_to_spaces();
+        Value_P Z3(pb, LOC);
+
+        Z->next_ravel_0();
+        Z->next_ravel_Pointer(Z2.get());
+        Z->next_ravel_Pointer(Z3.get());
+        Z->check_value(LOC);
+        register_EB_B_failure(*Z3, true);
+
+        Token tok_Z(TOK_APL_VALUE1, Z);
+        result.move_from(tok_Z, LOC);
+        return;
+      }
+
    // all other cases have Z2 = 0 0
    //
 Value_P Z2(2, LOC);
@@ -816,6 +850,7 @@ Error fix_error(E_SYNTAX_ERROR, LOC);   // fallback if nothing better is caught
             Z2->next_ravel_Int(Error::error_minor(ec));
             Z2->check_value(LOC);
 
+        pb.pad_to_spaces();   // blanks, not pad characters (Bugs39 #64)
         Value_P Z3(pb, LOC);   // 3 line message like ⎕EM
         Value_P Z(3, LOC);
         Z->next_ravel_0();              // return code = error
@@ -831,7 +866,8 @@ Error fix_error(E_SYNTAX_ERROR, LOC);   // fallback if nothing better is caught
 
    Log(LOG_UserFunction__execute)   fun->print(CERR);
 
-   Workspace::push_SI(fun, LOC);
+   try   { Workspace::push_SI(fun, LOC); }   // e.g. the SI depth limit
+   catch (...)   { delete fun;   throw; }      // (Bugs39 #66)
    Workspace::SI_top()->set_safe_execution_depth();
 
    return Token(TOK_SI_PUSHED);

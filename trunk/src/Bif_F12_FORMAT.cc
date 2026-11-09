@@ -276,6 +276,16 @@ fractional_part:
         const Unicode cc = format[f++];
         if (cc == UNI_7)          exponent_pending = true;
 
+        // a field has (at most) one decimal point (LRM p. 140). A second
+        // one printed an internal diagnostic (Bugs39 #70)
+        //
+        if (cc == UNI_FULLSTOP)
+           {
+             MORE_ERROR() << "A⍕B: a field of A (the format) has more than "
+                             "one decimal point";
+             DOMAIN_ERROR;
+           }
+
         if (is_picture_char(cc))
            {
              fract_part.format << cc;
@@ -894,8 +904,13 @@ const ShapeItem len_A = A.element_count();
 
    if (shape_B.get_volume() == 0)   // empty B
       {
+        // with a 1- or 2-item A every column has the same width, so only
+        // the first column is computed (and multiplied by cols_B below).
+        // A loop over every column hung for e.g. 5⍕0 1E15⍴0 (Bugs39 #7).
+        //
+        const ShapeItem cols_computed = len_A <= 2 && cols_B > 1 ? 1 : cols_B;
         ShapeItem W = 0;
-        loop(c, cols_B)
+        loop(c, cols_computed)
            {
              // width (unlike the non-empty-B path's
              // format_one_col_by_spec(), which enforces width>=0) was
@@ -941,6 +956,13 @@ const ShapeItem len_A = A.element_count();
                   MORE_ERROR() << "A⍕B: the result is too wide";
                   DOMAIN_ERROR;
                 }
+           }
+
+        if (cols_computed != cols_B &&   // same width w = W for every column
+            __builtin_mul_overflow(W, cols_B, &W))
+           {
+             MORE_ERROR() << "A⍕B: the result is too wide";
+             DOMAIN_ERROR;
            }
 
         Shape shape_Z = shape_B.without_last_axis();
@@ -1303,6 +1325,28 @@ const ShapeItem rows = B.get_rows();
    //
 UCS_string_vector col_formats;
    split_example_into_columns(all_formats, col_formats);
+
+   // an empty B with a single field: an empty result, without building the
+   // (possibly huge) per-column tables below (Bugs39 #58)
+   //
+   if (col_formats.size() == 1 && cols > 1 && B.element_count() == 0)
+      {
+        const Format_LIFER check(col_formats[0]);   // DOMAIN ERROR if bad
+        ShapeItem width;
+        if (__builtin_mul_overflow(ShapeItem(all_formats.size()), cols,
+                                   &width))
+           {
+             MORE_ERROR() << "A⍕B: the result is too wide";
+             DOMAIN_ERROR;
+           }
+        Shape shape_Z(B.get_shape());
+        shape_Z.set_last_shape_item(width);
+        Value_P Z(shape_Z, LOC);
+        Z->set_proto_Spc();
+        Z->check_value(LOC);
+        return Z;
+      }
+
    if (col_formats. size() == 1)
       {
         const UCS_string f = all_formats;

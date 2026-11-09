@@ -52,6 +52,9 @@ int IO_Files::parse_errors = 0;
 IO_Files::TestMode IO_Files::test_mode = TM_EXIT_AFTER_LAST_FILE;
 IO_Files::Skip_mode IO_Files::skip_mode = SKIP_NONE;
 bool IO_Files::need_total = false;
+bool IO_Files::nabla_reading = false;
+bool IO_Files::abandon_input = false;
+bool IO_Files::line_error_pending = false;
 ofstream IO_Files::current_testreport;
 //════════════════════════════════════════════════════════════════════════════
 UTF8_string IO_Files::summary_path("testcases/summary.log");
@@ -76,6 +79,10 @@ IO_Files::init_summary(bool append)
               summary_path = UTF8_string(name.c_str(),
                                          slash + 1 - name.c_str());
               summary_path << "summary.log";
+            }
+         else   // in the current directory (not testcases/, Bugs39 #102)
+            {
+              summary_path = UTF8_string("summary.log");
             }
          break;
        }
@@ -235,19 +242,52 @@ IO_Files::diff_error()
    Log(LOG_test_execution)
       CERR << "Diff errors incremented to " << diff_errors << endl;
 
-   if (test_mode & TM_DONE_AFTER_LINE_ERROR)
+   // --TM 5 or 6: the testcase is ended by line_error_done() (after the
+   // caller has written the diff into the .tc.log), so that the failing
+   // file reaches summary.log (Bugs39 #79)
+   //
+   if (test_mode & TM_DONE_AFTER_LINE_ERROR)   line_error_pending = true;
+}
+//────────────────────────────────────────────────────────────────────────────
+void
+IO_Files::line_error_done()
+{
+   if (!line_error_pending)   return;
+   line_error_pending = false;
+
+   // end the current testcase normally (its summary.log line) and drop
+   // the others
+   //
+   if (InputFile::files_todo.size() > 1)
+      InputFile::files_todo.erase(InputFile::files_todo.begin() + 1,
+                                  InputFile::files_todo.end());
+   end_of_current_file();
+   InputFile::files_todo.clear();
+   print_summary();
+   need_total = false;
+
+   if (test_mode == TM_EXIT_AFTER_LINE_ERROR)
       {
-        ++total_errors;
-        ++testcases_done;
-        InputFile::close_current_file();
-        InputFile::files_todo.clear();
-        if (test_mode == TM_EXIT_AFTER_LINE_ERROR)   Command::cmd_OFF(1);
+        CERR << "Exiting (test_mode " << test_mode << ") : "
+             << total_errors << " errors" << endl;
+        cleanup(true);
+        Command::cmd_OFF(1);
       }
 }
 //────────────────────────────────────────────────────────────────────────────
 void
 IO_Files::get_file_line(UTF8_string & line, bool & eof)
 {
+   // --TM 5 or 6 after a line error: end the testcase before its next line
+   // (the statement with the line error has finished, Bugs39 #79)
+   //
+   if (line_error_pending)
+      {
+        line_error_done();   // may exit
+        eof = true;
+        return;
+      }
+
    while (InputFile::current_file())   // as long as we have input files
       {
         if (!InputFile::current_file()->file)
@@ -264,7 +304,29 @@ IO_Files::get_file_line(UTF8_string & line, bool & eof)
         read_file_line(line, eof);
         if (eof)   // end of file reached: do some global checks
            {
-             if (Command::inside_multi())
+             // a testcase file that ends inside a ∇-editor session or a
+             // multi-line string is an error. That session or string is
+             // abandoned, rather than continued with the lines of the next
+             // testcase files (which then all "passed", Bugs39 #52).
+             //
+             const bool open_input = InputFile::is_validating() &&
+                                     (nabla_reading || Command::inside_multi());
+             if (open_input)
+                {
+                  const char * what = nabla_reading
+                                    ? "∇-definition"
+                                    : "multi-line string";
+                  CERR << "\n*** " << what << " not closed at the end of "
+                       << InputFile::current_filename() << endl;
+                  if (current_testreport.is_open())
+                     current_testreport << "*** " << what << " not closed"
+                                           " at the end of "
+                                        << InputFile::current_filename()
+                                        << endl;
+                  apl_error(LOC);
+                }
+
+             if (Command::inside_multi() && !open_input)
              {
                   CERR << "\n*** WARNING: Multiline string not closed "
                           "at the end of a file.\n";
@@ -293,6 +355,15 @@ IO_Files::get_file_line(UTF8_string & line, bool & eof)
                        return;
                      }
                 }
+             if (open_input)   // abandon the session or string
+                {
+                  end_of_current_file();
+                  abandon_input = true;
+                  line.clear();
+                  eof = false;
+                  return;
+                }
+
              if (end_of_current_file())   continue;   // try again.
               else                        break;      // done
            }
@@ -317,8 +388,10 @@ IO_Files::get_file_line(UTF8_string & line, bool & eof)
         print_summary();
         need_total = false;   // forget the -T option
 
+        // total_errors, not error_count(): the error counts of the last
+        // file were reset by end_of_current_file() (Bugs39 #78)
         if ((test_mode == TM_EXIT_AFTER_LAST_FILE) ||
-            (test_mode == TM_EXIT_AFTER_LAST_FILE_IF_OK && !error_count()))
+            (test_mode == TM_EXIT_AFTER_LAST_FILE_IF_OK && !total_errors))
           {
             CERR << "Exiting (test_mode " << test_mode << ") : "
                  << total_errors << " errors" << endl;
@@ -384,6 +457,27 @@ IO_Files::open_next_file()
               {
                 CERR << "could not open "
                      << InputFile::current_filename() << endl;
+
+                // a testcase that cannot be run is a failed testcase
+                // (Bugs39 #76)
+                //
+                if (InputFile::current_file()->test)
+                   {
+                     ++total_errors;
+                     ++testcases_done;
+                     const char * path = summary_path.c_str();
+                     ofstream summary(path, summary_flags);
+                     if (summary_flags == ofstream::trunc)   // first file
+                        {
+                          summary << "Errors   Time File\n---------------"
+                                     "-----------------------------------"
+                                     "--------------------" << endl;
+                          summary_flags = ofstream::app;
+                        }
+                     summary << endl << "  1  missing or unreadable "
+                                "testcase file "
+                             << InputFile::current_filename() << endl;
+                   }
                 InputFile::files_todo.erase(InputFile::files_todo.begin());
 
                 if (UserPreferences::uprefs.auto_OFF &&
@@ -746,6 +840,18 @@ const bool testcase_ends = InputFile::is_validating();
                   << endl;
 
              InputFile::files_todo.clear();
+
+             // --TM 4: exit (Bugs39 #78)
+             //
+             if (test_mode == TM_EXIT_AFTER_FILE_ERROR)
+                {
+                  print_summary();
+                  need_total = false;
+                  CERR << "Exiting (test_mode " << test_mode << ") : "
+                       << total_errors << " errors" << endl;
+                  cleanup(true);
+                  Command::cmd_OFF(1);
+                }
              return false;
            }
       }

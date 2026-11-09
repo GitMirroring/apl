@@ -478,8 +478,10 @@ Bif_OPER2_RANK::disclose_empty(const Value & X, const Shape & shape_Z,
    // the empty frame shape_Z of results like Z1, combined with ⊃[X]: the
    // shape of ⊃[X] shape_Z⍴⊂Z1 (also checking X like ⊃[X] does)
    //
-Value_P EZ1(LOC);   // ⊂Z1
-   EZ1->next_ravel_Pointer(Z1.clone(LOC).get());
+Value_P EZ1(LOC);   // ⊂Z1 (which is Z1 itself for a simple scalar Z1)
+Cell cache;
+   if (Z1.is_simple_scalar())   EZ1->next_ravel_Cell(Z1.get_cscalar(cache));
+   else                         EZ1->next_ravel_Pointer(Z1.clone(LOC).get());
    EZ1->check_value(LOC);
 
 Value_P V(shape_Z, LOC);   // shape_Z⍴⊂Z1 (empty)

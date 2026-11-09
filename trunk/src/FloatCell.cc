@@ -396,10 +396,9 @@ FloatCell::bif_maximum(Cell * Z, const Cell * A) const
 {
    if (!A->is_numeric())   return E_DOMAIN_ERROR;
    if (A->is_complex_cell())
-      return ComplexCell::bif_maximum_cc(Z, A->get_complex_value(),
-                                            APL_Complex(dfval(), 0));
+      return ComplexCell::max_min_cc(Z, *A, *this, true);
 
-   if (A->is_integer_cell() && Workspace::get_CT() == 0.0)
+   if (A->is_integer_cell())   // at any ⎕CT (Bugs39 #41)
       {
         // Bugs31 #8 (Blake McBride): A->get_real_value() below converts
         // A's exact int64 through double first, losing precision beyond
@@ -419,10 +418,9 @@ FloatCell::bif_minimum(Cell * Z, const Cell * A) const
 {
    if (!A->is_numeric())   return E_DOMAIN_ERROR;
    if (A->is_complex_cell())
-      return ComplexCell::bif_minimum_cc(Z, A->get_complex_value(),
-                                            APL_Complex(dfval(), 0));
+      return ComplexCell::max_min_cc(Z, *A, *this, false);
 
-   if (A->is_integer_cell() && Workspace::get_CT() == 0.0)
+   if (A->is_integer_cell())   // at any ⎕CT (Bugs39 #41)
       {
         // see FloatCell::bif_maximum() above (Bugs31 #8)
         //
@@ -1041,9 +1039,12 @@ const APL_Integer floor_candidate = bi - 1;
         const APL_Float D = bi - b;
         if (D >= (1.0 - Workspace::get_CT()))   --bi;
       }
-   else if (Cell::tolerantly_equal(b, APL_Float(floor_candidate),
+   else if ((b - floor_candidate) < (bi - b) &&   // the nearest integer
+            Cell::tolerantly_equal(b, APL_Float(floor_candidate),
                                     Workspace::get_CT()))
       {
+        // for a large b every non-integer is tolerantly equal to both
+        // neighbours: only the nearest one counts (Bugs39 #42)
         --bi;
       }
    return IntCell::zI(Z, bi);
@@ -1069,9 +1070,11 @@ const APL_Integer ceil_candidate = bi + 1;
         const APL_Float D = b - bi;
         if (D >= (1.0 - Workspace::get_CT()))   ++bi;
       }
-   else if (Cell::tolerantly_equal(b, APL_Float(ceil_candidate),
+   else if ((ceil_candidate - b) < (b - bi) &&   // the nearest integer
+            Cell::tolerantly_equal(b, APL_Float(ceil_candidate),
                                     Workspace::get_CT()))
       {
+        // see bif_ceiling_f() (Bugs39 #42)
         ++bi;
       }
    return IntCell::zI(Z, bi);

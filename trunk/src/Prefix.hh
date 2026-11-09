@@ -416,6 +416,15 @@ protected:
    /// return true if body[pc] is the right operand of a dyadic operator
    bool is_OPER2_left_of_RO(Prefix_PC pc) const;
 
+   /// return true if the value right operand body[pc] cannot contain B
+   bool is_entire_value_RO(Prefix_PC pc) const;
+
+   /// return true if the name body[pc] is a member, e.g. m in S.m
+   bool is_member_access(Prefix_PC pc) const;
+
+   /// return true if the ( ... ) ending at body[pc] is certainly a function
+   bool is_function_parenthesis(Prefix_PC pc) const;
+
    /// return the idx'th Token_loc (from put position)
    /// @param idx zero-based index from the left (APL order)
    Token_loc & at(int idx)
@@ -534,6 +543,10 @@ protected:
 #define P_(_name, _suffix, _idx, _prio, _misc, _len)
 #include "Prefix.def"
 
+   /// reduce phrases F C D B and F C D G (aliases, therefore not declared
+   /// by the generated Prefix.def), Bugs39 #71
+   void reduce_F_C_D_G();
+
    /// ⎕ES result helper
    static void handle_QUAD_ES_COM(const Token & result);
 
@@ -608,6 +621,10 @@ protected:
 
    /// assignment state
    Assign_state assign_state;
+
+   /// the PC of the last ← read (to resume a failed selective
+   /// specification, Bugs39 #49)
+   Prefix_PC assign_PC;
 
    /// length of matched prefix (before calling a reduce_XXX() function)
    int prefix_len;

@@ -570,6 +570,15 @@ Token result = current_stack.reduce_body();
    return result;
 }
 //────────────────────────────────────────────────────────────────────────────
+bool
+StateIndicator::has_LRX(char which)
+{
+UCS_string function;
+   if (which == 'L')   return current_stack.locate_L(function) != 0;
+   if (which == 'R')   return current_stack.locate_R(function) != 0;
+   return current_stack.locate_X(function) != 0;
+}
+//────────────────────────────────────────────────────────────────────────────
 void
 StateIndicator::set_L(Value_P new_value)
 {

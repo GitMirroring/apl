@@ -47,6 +47,19 @@ public:
    virtual Token eval_B(cValue_R B) const
       { VALENCE_ERROR; }
 
+   /// overloaded Function::eval_fill_AB(): a system function is not
+   /// executed for an empty argument (LRM p. 56); the fill is the prototype
+   /// \b B, e.g. for A∘.⎕ES B or A f.⎕ES B (Bugs39 #90)
+   /// @param A left argument APL value (a prototype)
+   /// @param B right argument APL value (a prototype)
+   virtual Token eval_fill_AB(cValue_R A, cValue_R B) const
+      { return Token(TOK_APL_VALUE1, CLONE(&B, LOC)); }
+
+   /// overloaded Function::eval_fill_B(), see eval_fill_AB()
+   /// @param B right argument APL value (a prototype)
+   virtual Token eval_fill_B(cValue_R B) const
+      { return Token(TOK_APL_VALUE1, CLONE(&B, LOC)); }
+
    /// overloaded Function::has_alpha()
    virtual bool has_alpha() const   { return true; }
 

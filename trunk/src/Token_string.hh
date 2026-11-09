@@ -64,6 +64,9 @@ public:
    Prefix_PC end_PC() const
       { return Prefix_PC(size()); }
 
+   /// return true if \b tok can be the name of a lambda's local variable
+   static bool is_local_name(const Token & tok);
+
    /// check that every [, (, resp. { has a matching ], ), resp. },
    /// and no invalid combination like [ ( ] ) is present. Throws an
    /// Error (full statement text + carets, same visual convention as

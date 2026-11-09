@@ -125,6 +125,19 @@ Symbol::cant_be_defined() const
    return "bad name class";
 }
 //────────────────────────────────────────────────────────────────────────────
+bool
+Symbol::is_UTF8_text(const UCS_string & text)
+{
+   // like Quad_CR::is_UTF8_encodable(): no surrogate, at most U+10FFFF
+   loop(t, text.size())
+       {
+         const Unicode uni = text[t];
+         if (uni >= 0xD800 && uni <= 0xDFFF)   return false;
+         if (uni < 0 || uni > 0x10FFFF)        return false;
+       }
+   return true;
+}
+//────────────────────────────────────────────────────────────────────────────
 void
 Symbol::dump(ostream & out) const
 {
@@ -226,6 +239,33 @@ const ValueStackItem & vs = value_stack[0];
                    out << ";" << ufun->get_local_var(l)->get_name();
                  }
              out << UNI_R_CURLY << endl;
+           }
+        else if (!is_UTF8_text(text))
+           {
+             // a character that cannot be written as UTF-8 (e.g. a
+             // surrogate from ⎕UCS 56000) would change the function when
+             // it is )LOADed: write ⎕FX of strings with ⎕UCS instead, like
+             // a variable (Bugs39 #60)
+             //
+             UCS_string_vector lines;
+             text.to_vector(lines);
+             out << "0 0⍴";   // do not display the result of ⎕FX
+             if (ufun->get_exec_properties()[0])   out << "1 ";   // locked
+             out << "⎕FX";
+             if (lines.size() == 1)   out << " ,⊂";
+             loop(l, lines.size())
+                {
+                  Value_P line(lines[l], LOC);
+                  UCS_string_vector CR10;
+                  const UCS_string tmp(UTF8_string("X"));
+                  Quad_CR::do_CR10_variable(CR10, tmp, line.get());
+                  UCS_string expr;
+                  loop(c, CR10.size())   expr << CR10[c];
+                  if (expr.starts_with(UCS_string(UTF8_string("X←"))))
+                     expr = UCS_string(expr, 2, expr.size() - 2);
+                  out << " (" << expr << ")";
+                }
+             out << endl;
            }
         else
            {
@@ -976,7 +1016,7 @@ const ShapeItem max_idx = Z->element_count();
        B->is_scalar() &&     // B is a scalar, and
        Z->get_rank() == 1)   // Z is a vector
       {
-        const APL_Integer idx = X->get_index_int(0) - qio;
+        const APL_Integer idx = Cell::minus_IO(X->get_index_int(0), qio);
         if (idx >= 0 && idx < max_idx)   // idx is a valid index of Z
            {
              Cell cache;
@@ -1033,7 +1073,7 @@ ShapeItem idxB = 0;
    loop(x, ec_X)
       {
         const ShapeItem this_idxX = idxX;
-        const ShapeItem idx = X->get_index_int(idxX++) - qio;
+        const ShapeItem idx = Cell::minus_IO(X->get_index_int(idxX++), qio);
         if (idx < 0 || idx >= max_idx)
            {
              MORE_ERROR() << "A[B]←C: B[" << (this_idxX + qio) << "] = "
@@ -1699,6 +1739,15 @@ Symbol::resolve_lv(const char * loc)
 
    if (value_stack.back().get_NC() == NC_VARIABLE)
       {
+        // the rows of a structured variable are its (hashed) member table.
+        // A selective specification of S itself, e.g. (f S)←B, could only
+        // corrupt it, no matter which cells f selects (names, unused rows,
+        // or the values of whatever members happen to be hashed there),
+        // so it is not allowed at all. The members of S can be assigned
+        // with S.member←B or selectively with (f S.member)←B (Bugs39 #4).
+        //
+        if (get_var_value()->is_member())   Value::throw_member_table_target();
+
         value_stack.back().isolate_deep(loc);
         Value_P Z = get_var_value();
         Value_P refs = Z->get_cellrefs(loc);

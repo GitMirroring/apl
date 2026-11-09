@@ -169,6 +169,35 @@ const Unicode ucs1 = src[src_pos + 1];          // the character after <
                           << UCS_string(src, src_pos, src_len);
              return;
            }
+
+        // the target xml (in any case) is reserved (XML 1.0 §2.6): <?xml
+        // is the XML declaration, which is only allowed at the start of the
+        // document (§2.8), Bugs39 #82
+        //
+        UCS_string target;
+        for (ShapeItem t = src_pos + 2; t < src_pos + src_len - 2; ++t)
+            {
+              const Unicode tc = src[t];
+              if (tc <= ' ' || tc == '?')   break;
+              target << tc;
+            }
+        if (target.size() == 3 &&
+            (target[0] | 0x20) == 'x' && (target[1] | 0x20) == 'm' &&
+            (target[2] | 0x20) == 'l')
+           {
+             bool at_start = target[0] == 'x' && target[1] == 'm' &&
+                             target[2] == 'l';
+             for (ShapeItem p = 0; at_start && p < src_pos; ++p)
+                 if (src[p] > ' ' && src[p] != 0xFEFF)   at_start = false;
+             if (!at_start)
+                {
+                  err_loc = LOC;
+                  MORE_ERROR() << "⎕XML: XML declaration (or reserved"
+                                  " target xml) below top-level: "
+                               << UCS_string(src, src_pos, src_len);
+                  return;
+                }
+           }
         node_type = NT_declaration;
       }
    else if (ucs1 == '/')   // </ ... >
@@ -1218,7 +1247,7 @@ Quad_XML::eval_AB(cValue_R A, cValue_R B) const
    if (A.get_rank() > 1)   RANK_ERROR;
 
 // APL_Integer, not int: e.g. 4294967296 was 0 (Bugs38 #87)
-const APL_Integer function_number = A.get_int_value(0);
+const APL_Integer function_number = A.get_near_int(0);
    switch(function_number)
       {
          case 0:   // same as monadic ⎕XML

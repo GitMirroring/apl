@@ -16,6 +16,7 @@
 
 # testcases that may be of interest
 
+
 VPATH = @srcdir@
 am__is_gnu_make = { \
   if test -z '$(MAKELEVEL)'; then \
@@ -108,12 +109,13 @@ am__aclocal_m4_deps = $(top_srcdir)/m4/depend.m4 \
 	$(top_srcdir)/m4/build_date.m4 $(top_srcdir)/configure.ac
 am__configure_deps = $(am__aclocal_m4_deps) $(CONFIGURE_DEPENDENCIES) \
 	$(ACLOCAL_M4)
-DIST_COMMON = $(srcdir)/Makefile.am $(dist_noinst_DATA) \
-	$(am__DIST_COMMON)
+DIST_COMMON = $(srcdir)/Makefile.am $(dist_noinst_SCRIPTS) \
+	$(dist_noinst_DATA) $(am__DIST_COMMON)
 mkinstalldirs = $(install_sh) -d
 CONFIG_HEADER = $(top_builddir)/config.h
 CONFIG_CLEAN_FILES =
 CONFIG_CLEAN_VPATH_FILES =
+SCRIPTS = $(dist_noinst_SCRIPTS)
 AM_V_P = $(am__v_P_@AM_V@)
 am__v_P_ = $(am__v_P_@AM_DEFAULT_V@)
 am__v_P_0 = false
@@ -311,6 +313,10 @@ top_srcdir = @top_srcdir@
 # copies in ../../wslib5/ by src/Makefile (TEST_LIBROOT_COPIES); the files
 # below are separate copies for the testcases.
 #
+# accept_tc.py accepts the result of a failed testcase (see
+# ../testsuites/README), Bugs39 #106
+#
+dist_noinst_SCRIPTS = accept_tc.py
 EXTRA_DIST = libroot/workspaces/DIJKSTRA.atf           \
               libroot/workspaces/B38_BADIO.atf          \
               libroot/workspaces/B38_BADNAMES.atf       \
@@ -420,7 +426,7 @@ distdir-am: $(DISTFILES)
 	done
 check-am: all-am
 check: check-am
-all-am: Makefile $(DATA)
+all-am: Makefile $(SCRIPTS) $(DATA)
 installdirs:
 install: install-am
 install-exec: install-exec-am

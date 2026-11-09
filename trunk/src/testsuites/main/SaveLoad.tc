@@ -47,11 +47,11 @@ SAVED 20⁰-⁰-⁰ ⁰:⁰:⁰ (GMT⁵⁰)
 20⁰-⁰-⁰  ⁰:⁰:⁰ (GMT⁵⁰)  test
 
       ⎕CR 'cmp_a'
-λ←⍺ λ0 ⍵                    
+λ←⍺ λ1 ⍵                    
 λ←{⍵[⍋⍵]} (∨/[1] ⍺∘.= ⍵) / ⍵
 
       ⎕CR 'cmp_b'
-λ←⍺ λ0 ⍵                 
+λ←⍺ λ1 ⍵                 
 λ←{⍵[⍋⍵]} (∨⌿ ⍺∘.= ⍵) / ⍵
 
 
@@ -244,6 +244,7 @@ WAS CLEAR WS
 0
 
       )LOAD trunc_test
+)LOAD trunc_test failed: DOMAIN ERROR
       ⎕NC 'TRUNCTEST'
 0
 

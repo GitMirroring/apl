@@ -347,6 +347,7 @@ Value_P Z(3, LOC);
 
    Z->set_proto_Int();   // never since M*cols__B ≠ 0. Just for clarity
    Z->check_value(LOC);
+   Z->check_finite("⌹[X]B");   // Bugs39 #31, #32
    return Token(TOK_APL_VALUE1, Z);
 }
 //════════════════════════════════════════════════════════════════════════════
@@ -456,6 +457,7 @@ const sRank rank = need_complex ?  LA_pack::divide_ZZ_matrix(*Z, rows_A,
    Z->set_default(B, LOC);
 
    Z->check_value(LOC);
+   Z->check_finite("A⌹B");   // e.g. 1E300⌹1E¯10 (Bugs39 #31)
    return Token(TOK_APL_VALUE1, Z);
 }
 //════════════════════════════════════════════════════════════════════════════
@@ -1069,9 +1071,12 @@ int term = 0;
 
         // hide coefficient 1 (or -1) unless the term is constant
         //
-        if (b && coeff.is_near_int() &&
+        // is_near_int64_t(), not is_near_int(), which is true for every
+        // huge value that get_checked_near_int() cannot convert (Bugs39 #65)
+        //
+        if (b && coeff.is_near_int64_t() &&
             coeff.get_checked_near_int() == (print_neg ? -1 : 1))   ;
-        else if (b && !subsequent_term && coeff.is_near_int() &&
+        else if (b && !subsequent_term && coeff.is_near_int64_t() &&
                  coeff.get_checked_near_int() == -1)   poly << "-";   // -x
         else
            {

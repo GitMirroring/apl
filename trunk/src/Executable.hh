@@ -304,6 +304,10 @@ protected:
                              Function_PC end_PC, bool trace,
                              const char * loc);
 
+   /// the body position of the { of the lambda that setup_lambdas() is
+   /// currently setting up (for the line of a DEFN ERROR, Bugs39 #48)
+   static ShapeItem lambda_error_pos;
+
    /// recursively extract all lambda expressions from body and store
    /// them in lambdas
    void setup_lambdas();

@@ -571,7 +571,14 @@ StateIndicator * si = Workspace::SI_top();   // the current )SI entry
    code = maybe_convert_to_domain_error(code, si);
 
 Error error(code, loc);
-   if (si)   error.update_error_info(si);
+   if (si)
+      {
+        error.update_error_info(si);
+
+        // an older parse error (without an SI entry) is superseded by this
+        // error, also after this error was cleared with → (Bugs39 #53)
+        StateIndicator::top_level_error.clear_error_code();
+      }
 
 const Error & eref = error;
    throw eref;

@@ -830,9 +830,9 @@ DOMAIN ERROR
       V2←⍎'1-4'
       )SIC
       V4←{⍹ , ⍺ ⋄ ¯66 5 7E4 4E1 ⍴ ⊤⍀ '⋄' ∊ χ} '⍺⍵'
-SYNTAX ERROR
+SYNTAX ERROR+
       V4←{⍹,⍺◊¯66 5 70000 40⍴⊤⍀'⋄'ϵχ}'⍺⍵'
-      ^                              ^
+                                     ^
 
       )SIC
       V3←9J8

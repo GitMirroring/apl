@@ -30,6 +30,11 @@ Bugs38_FFT.tc
 Bugs38_MX.tc
 Bugs38_PNG.tc
 Bugs38_Workspace.tc
+Bugs39_A.tc
+Bugs39_B.tc
+Bugs39_CD.tc
+Bugs39_MX.tc
+Bugs39_Workspace.tc
 COPY.tc
 Catenate.tc
 Catenate_with_Axis.tc

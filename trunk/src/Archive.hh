@@ -375,7 +375,8 @@ public:
    /// far by the current )COPY, in response to a )COPY that failed
    /// part-way through; clears the snapshot list afterwards. Called by
    /// Workspace::copy_WS() when read_Workspace() throws.
-   void copy_restore_snapshots();
+   /// @param replaced the functions that were replaced by this )COPY
+   void copy_restore_snapshots(std::vector<const UserFunction *> & replaced);
 
    /// check compatibility information in the workspace and maybe warn the
    /// user

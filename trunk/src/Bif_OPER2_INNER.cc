@@ -63,13 +63,19 @@ cFunction_P RO = _RO.get_function();
         DOMAIN_ERROR;
       }
 
-   // a length-1 inner axis of a non-scalar A or B is extended to the
-   // length of the other one (APL2 LRM, decode: "If either the first axis
-   // of R or the last axis of L is 1, it is extended"), on every path
-   // (it was LENGTH ERROR on some paths and extended on others, Bugs38 #76)
+   // a length-1 inner axis of a non-scalar A or B is accepted (it was
+   // LENGTH ERROR on some paths, Bugs38 #76). RO is applied to the row of
+   // A and the column of B as they are (LRM: Z[I;J] ←→ LO/A[I;] RO B[;J]),
+   // so for a scalar RO, the length-1 axis is extended to the length of the
+   // other one (RO's scalar extension), which the scalar fast path below
+   // requires. For a non-scalar RO it must not be extended, e.g.
+   // (2 1⍴5)+.,1 2 3 is 11 11 (Bugs39 #22). An empty result needs no
+   // extension either (Bugs39 #59).
    //
    if (!A.is_scalar_extensible() && !B.is_scalar_extensible() &&
-       A.get_rank() >= 1 && B.get_rank() >= 1)
+       A.get_rank() >= 1 && B.get_rank() >= 1 && RO->get_scalar_f2() &&
+       A.get_shape().without_last_axis().get_volume() &&
+       B.get_shape().without_first_axis().get_volume())
       {
         const ShapeItem lenA = A.get_shape().get_last_shape_item();
         const ShapeItem lenB = B.get_shape().get_shape_item(0);
@@ -112,7 +118,9 @@ cFunction_P RO = _RO.get_function();
        A.get_rank() > 1          &&
        B.get_rank() > 1          &&
        A.get_shape().get_last_shape_item() !=
-       B.get_shape().get_shape_item(0)
+       B.get_shape().get_shape_item(0) &&
+       A.get_shape().get_last_shape_item() != 1 &&   // see above
+       B.get_shape().get_shape_item(0)     != 1
       )
       {
         MORE_ERROR() << "A LO.RO B: expecting ¯1↑⍴A = 1↑⍴B; ¯1↑⍴A is "
@@ -146,7 +154,9 @@ const ShapeItem items_B1 = shape_B1.get_volume();
       {
         // ISO: if A1 and B1 are both vectors, return f/A1 g B1.
         //
-        if (A.get_rank() <= 1 && B.get_rank() <= 1)
+        // (not for a scalar A or B, which must not be ravelled, Bugs39 #72)
+        //
+        if (A.get_rank() == 1 && B.get_rank() == 1)
            return Macro::get_macro(Macro::MAC_Z__vA_LO_INNER_RO_vB)
                        ->eval_ALRB(A, _LO, _RO, B);
         else
@@ -354,7 +364,13 @@ Value_P Fill_B;   // argument B of the fill function
    if (B->is_empty())   Fill_B = B->prototype(LOC);
    else                 Fill_B = Bif_F12_TAKE::first(*B);
 
-Token tok = fun->eval_fill_AB(*Fill_A, *Fill_B);
+   // like A∘.g B (Bif_OPER2_OUTER.cc): the fill function of a defined g,
+   // or of a derived g whose chain contains one (or a macro, e.g. ×⍤0),
+   // is the identity (Bugs38 #75, Bugs39 #67)
+   //
+Token tok = (fun->is_defined() || fun->may_push_SI())
+          ? Token(TOK_APL_VALUE1, Fill_B)
+          : fun->eval_fill_AB(*Fill_A, *Fill_B);
 
    if (tok.get_Class() != TC_VALUE)   return tok;
 

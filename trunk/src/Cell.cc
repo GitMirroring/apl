@@ -408,6 +408,7 @@ Cell::is_near_int(APL_Float value)
    // has been rounded off. However, they may not fit into an int64_t,
    // and if that is the concern then use is_near_int64_t() below.
 
+   if (isnan(value))        return false;   // Bugs39 #32
    if (value > LARGE_INT)   return true;
    if (value < SMALL_INT)   return true;
 
@@ -422,8 +423,9 @@ const APL_Float diff = value - result;
 bool
 Cell::is_near_int64_t(APL_Float value)
 {
-   if (value > LARGE_INT)   return false;
-   if (value < SMALL_INT)   return false;
+   // NOTE: the negated comparisons also return false for a NaN (Bugs39 #32)
+   if (!(value <= LARGE_INT))   return false;
+   if (!(value >= SMALL_INT))   return false;
 
 const APL_Float result = nearbyint(value);
 const APL_Float diff = value - result;
@@ -436,8 +438,8 @@ const APL_Float diff = value - result;
 APL_Integer
 Cell::near_int(APL_Float value)
 {
-   if (value >= LARGE_INT)   DOMAIN_ERROR;
-   if (value <= SMALL_INT)   DOMAIN_ERROR;
+   if (!(value < LARGE_INT))   DOMAIN_ERROR;   // also NaN
+   if (!(value > SMALL_INT))   DOMAIN_ERROR;   // also NaN
 
 const APL_Float result = nearbyint(value);
 const APL_Float diff = value - result;

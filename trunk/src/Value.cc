@@ -1001,6 +1001,37 @@ Value::rollback(ShapeItem items, const char * loc)
 }
 //────────────────────────────────────────────────────────────────────────────
 void
+Value::check_finite(const char * who) const
+{
+const ShapeItem count = nz_element_count();
+   loop(c, count)
+       {
+         Cell cache;
+         const Cell & cell = get_cravel(c, cache);
+         if (cell.is_pointer_cell())
+            {
+              cell.get_pointer_value()->check_finite(who);
+            }
+         else if (cell.is_float_cell())
+            {
+              if (isfinite(cell.get_real_value()))   continue;
+            }
+         else if (cell.is_complex_cell())
+            {
+              if (isfinite(cell.get_real_value()) &&
+                  isfinite(cell.get_imag_value()))   continue;
+            }
+         else continue;   // char or int
+
+         if (cell.is_pointer_cell())   continue;
+
+         MORE_ERROR() << who << ": a result item exceeds the range of "
+                                "floating point numbers (overflow)";
+         DOMAIN_ERROR;
+       }
+}
+//────────────────────────────────────────────────────────────────────────────
+void
 Value::check_value(const char * loc)
 {
 #ifdef cfg_VALUE_CHECK_WANTED

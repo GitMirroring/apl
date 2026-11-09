@@ -58,6 +58,7 @@
 #include "Common.hh"
 #include "Executable.hh"
 #include "IndexExpr.hh"
+#include "IO_Files.hh"
 #include "LineInput.hh"
 #include "Nabla.hh"
 #include "Parser.hh"
@@ -316,6 +317,16 @@ Executable * statements = 0;
    // limit), then release them (Bugs38 #79).
    //
    try           { Workspace::push_SI(statements, LOC); }
+   catch (Error & err)   // e.g. the SI depth limit, for this statement
+      {
+        delete statements;
+        if (err.get_error_code() != E_SYS_LIMIT_SIDEPTH)   throw;
+
+        // report it like an error of the statement (Bugs39 #61)
+        expression_failed = true;
+        err.print_EM(UERR, LOC);
+        return;
+      }
    catch (...)   { delete statements;   throw; }
    finish_context();
 }
@@ -834,6 +845,14 @@ const UCS_string prompt = UCS_string(UNI_RIGHT_ARROW) + Workspace::get_prompt();
                 // InputMux::get_line() has removed the trailing \n.
 
               if (eof) CERR << "EOF at " << LOC << endl;
+
+              if (IO_Files::abandon_input)   // testcase ended (Bugs39 #52)
+                 {
+                   IO_Files::abandon_input = false;
+                   multiline_status = MLS_APL_text;
+                   multiline_start = 0;
+                   return;
+                 }
 
               multi_pos = line.multi_pos();
               if (multi_pos != -1)   // some triple

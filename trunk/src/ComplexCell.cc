@@ -205,7 +205,7 @@ ComplexCell::bif_maximum(Cell * Z, const Cell * A) const
         const FloatCell B_real(value.cval[0]);
         return B_real.bif_maximum(Z, A);
       }
-   return ComplexCell::bif_maximum_cc(Z, A->get_complex_value(), cval());
+   return ComplexCell::max_min_cc(Z, *A, *this, true);
 }
 //────────────────────────────────────────────────────────────────────────────
 ErrorCode
@@ -222,7 +222,7 @@ ComplexCell::bif_minimum(Cell * Z, const Cell * A) const
         const FloatCell B_real(value.cval[0]);
         return B_real.bif_minimum(Z, A);
       }
-   return ComplexCell::bif_minimum_cc(Z, A->get_complex_value(), cval());
+   return ComplexCell::max_min_cc(Z, *A, *this, false);
 }
 //────────────────────────────────────────────────────────────────────────────
 ErrorCode
@@ -272,9 +272,42 @@ ComplexCell::bif_multiply_inverse(Cell * Z, const Cell * A) const
 APL_Complex
 ComplexCell::gamma(APL_Float x, const APL_Float & y)
 {
+const APL_Complex ret = gamma_nothrow(x, y);
+   if (!isfinite(ret.real()))   DOMAIN_ERROR;
+   if (!isfinite(ret.imag()))   DOMAIN_ERROR;
+   return ret;
+}
+//────────────────────────────────────────────────────────────────────────────
+APL_Complex
+ComplexCell::log_gamma(APL_Float x, APL_Float y)
+{
+   // ln Γ(x + iy) (up to a multiple of 2πi, which does not matter for its
+   // exp()), with the same Lanczos approximation as gamma_nothrow(), for
+   // arguments whose Γ overflows (Bugs39 #36)
+   //
+const APL_Complex pi(M_PI, 0);
+const APL_Complex z(x, y);
+   if (x < 0.5)   // reflection: Γ(z) = π ÷ sin(πz) × Γ(1-z)
+      return log(pi) - log(sin(pi * z)) - log_gamma(1.0 - x, -y);
+
+const APL_Complex series = 1.000000000190015
+                         + 76.18009172947146    / APL_Complex(x + 1.0, y)
+                         - 86.50532032941677    / APL_Complex(x + 2.0, y)
+                         + 24.01409824083091    / APL_Complex(x + 3.0, y)
+                         - 1.231739572450155    / APL_Complex(x + 4.0, y)
+                         + 1.208650973866179E-3 / APL_Complex(x + 5.0, y)
+                         - 5.395239384953E-6    / APL_Complex(x + 6.0, y);
+const APL_Complex z1(x + 5.5, y);
+const APL_Complex z2(x + 0.5, y);
+   return 0.5*log(2*M_PI) - log(z) + log(series) + z2*log(z1) - z1;
+}
+//────────────────────────────────────────────────────────────────────────────
+APL_Complex
+ComplexCell::gamma_nothrow(APL_Float x, const APL_Float & y)
+{
 const APL_Complex pi(M_PI, 0);
    if (x < 0.5)
-      return pi / (sin(pi * APL_Complex(x, y)) * gamma(1.0 - x, -y));
+      return pi / (sin(pi * APL_Complex(x, y)) * gamma_nothrow(1.0 - x, -y));
 
    // coefficients for lanczos approximation of the gamma function.
    //
@@ -305,8 +338,6 @@ const APL_Complex ret( (complex_sqrt(APL_Complex(2*M_PI)) / z)
                        * complex_exponent(-z1)
                      );
 
-   if (!isfinite(ret.real()))   DOMAIN_ERROR;
-   if (!isfinite(ret.imag()))   DOMAIN_ERROR;
    return ret;
 
 #undef p0
@@ -834,7 +865,10 @@ APL_Float breal = get_real_value();
    // are equal. In that case we compare the imag parts. The reason for
    // comparing this way is compatibility with the comparison of real numbers
    //
-   if (tolerantly_equal(areal, breal, qct))
+   // the real parts are compared exactly (apl.texi "Comparison Rules",
+   // rule 7): a tolerant comparison made the order intransitive (Bugs39 #56)
+   //
+   if (areal == breal)
       {
         areal = other.get_imag_value();
         breal = get_imag_value();
@@ -970,6 +1004,10 @@ ComplexCell::exponent_rule(APL_Float real, APL_Float imag, int quad_PP)
 
 const APL_Float pos_real = real < 0.0 ? -real : real;
 const APL_Float pos_imag = imag < 0.0 ? -imag : imag;
+   // a non-finite part (which should never be stored, Bugs39 #31) is shown
+   // with the other part: int(floor(log10(∞))) is undefined behaviour
+   if (!isfinite(pos_real) || !isfinite(pos_imag))   return DP_BOTH;
+
 const int expo_real = pos_real == 0.0 ? 0 : int(floor(log10(pos_real)));
 const int expo_imag = pos_imag == 0.0 ? 0 : int(floor(log10(pos_imag)));
 
@@ -1381,48 +1419,36 @@ nc_near_real(APL_Complex c)
    return fabs(c.imag()) < REAL_TOLERANCE * fabs(c.real());   // relatively small
 }
 //────────────────────────────────────────────────────────────────────────────
-/// true if a is greater than b in the order of < (real parts first, then
-/// imaginary parts, see apl.texi "Comparison Rules", Bugs38 #124)
+/// true if a is greater than b in the order of < (see apl.texi "Comparison
+/// Rules", Bugs38 #124): a and b are not tolerantly equal, and the real
+/// part of a is greater than that of b, or else (equal real parts) the
+/// imaginary part. The real parts are compared exactly (rule 7), so that
+/// the order is transitive (Bugs39 #56).
 static bool
 complex_greater(APL_Complex a, APL_Complex b)
 {
-   if (!Cell::tolerantly_equal(a.real(), b.real(), Workspace::get_CT()))
-      return a.real() > b.real();
+   if (Cell::tolerantly_equal(a, b, Workspace::get_CT()))   return false;
+   if (a.real() != b.real())   return a.real() > b.real();
    return a.imag() > b.imag();
 }
 //────────────────────────────────────────────────────────────────────────────
 ErrorCode
-ComplexCell::bif_maximum_cc(Cell * Z, APL_Complex a, APL_Complex b)
+ComplexCell::max_min_cc(Cell * Z, const Cell & A, const Cell & B, bool max)
 {
-   // A⌈B and A⌊B select by the same order as < (Bugs38 #124)
+   // A⌈B and A⌊B select by the same order as < (Bugs38 #124), also for
+   // near-real values like 5J1E¯12 (Bugs39 #93), and return the selected
+   // argument exactly, e.g. an IntCell 9007199254740993 (Bugs39 #41)
    //
-   if (!(nc_near_real(a) && nc_near_real(b)))   // the selected operand
-      {
-        const APL_Complex z = complex_greater(b, a) ? b : a;
-        if (z.imag() == 0.0)   return FloatCell::zF(Z, z.real());
-        return ComplexCell::zC(Z, z);
-      }
+const APL_Complex a = A.get_complex_value();
+const APL_Complex b = B.get_complex_value();
+const bool B_selected = max ? complex_greater(b, a) : complex_greater(a, b);
+const Cell & selected = B_selected ? B : A;
 
-   // FloatCell::zF() (unrounded), not ComplexCell::zV(): zV rounds a
-   // value within ⎕CT-tolerance of an integer to an IntCell instead of
-   // storing the selected operand verbatim -- dyadic max/min must
-   // return one of its two arguments exactly, same as
-   // FloatCell::bif_maximum_ff() (Bugs28 #78). 1E¯11J0⌈0 gave 0 instead
-   // of 1E¯11.
-   //
-   return FloatCell::zF(Z, a.real() >= b.real() ? a.real() : b.real());
-}
-//────────────────────────────────────────────────────────────────────────────
-ErrorCode
-ComplexCell::bif_minimum_cc(Cell * Z, APL_Complex a, APL_Complex b)
-{
-   if (!(nc_near_real(a) && nc_near_real(b)))   // the selected operand
-      {
-        const APL_Complex z = complex_greater(a, b) ? b : a;
-        if (z.imag() == 0.0)   return FloatCell::zF(Z, z.real());
-        return ComplexCell::zC(Z, z);
-      }
-   return FloatCell::zF(Z, a.real() <= b.real() ? a.real() : b.real());
+   if (selected.is_integer_cell())
+      return IntCell::zI(Z, selected.get_int_value());
+   if (selected.get_imag_value() == 0.0)
+      return FloatCell::zF(Z, selected.get_real_value());
+   return ComplexCell::zC(Z, selected.get_complex_value());
 }
 //────────────────────────────────────────────────────────────────────────────
 ErrorCode
@@ -1443,6 +1469,21 @@ ComplexCell::bif_residue_cc(Cell * Z, APL_Complex a, APL_Complex b)
       return FloatCell::bif_residue_ff(Z, a.real(), b.real());
 
 const APL_Complex quot = b / a;
+const double qct = Workspace::get_CT();
+
+   // a quotient that is a non-zero Gaussian integer up to the rounding of
+   // a, b, and b÷a gives 0, like Cell::rounded_integral() on the real path
+   // (Bugs38 #47), e.g. 1E¯5|0J1 (Bugs39 #34)
+   //
+   if (qct != 0)
+      {
+        const APL_Float nr = nearbyint(quot.real());
+        const APL_Float ni = nearbyint(quot.imag());
+        const APL_Float tolerance = 2 * DBL_EPSILON * abs(quot);
+        if ((nr != 0.0 || ni != 0.0)              &&
+            fabs(quot.real() - nr) <= tolerance   &&
+            fabs(quot.imag() - ni) <= tolerance)   return IntCell::z0(Z);
+      }
 
    // complex floor of quot
    //
@@ -1450,7 +1491,6 @@ APL_Float fr = floor(quot.real());
 APL_Float Dr = quot.real() - fr;
 APL_Float fi = floor(quot.imag());
 APL_Float Di = quot.imag() - fi;
-const double qct = Workspace::get_CT();
 const double limit = 1.0 - qct;
    if (Dr > limit)   { fr += 1.0;   Dr = 0.0; }
    if (Di > limit)   { fi += 1.0;   Di = 0.0; }

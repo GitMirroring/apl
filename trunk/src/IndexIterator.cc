@@ -71,7 +71,7 @@ TrueIndexIterator::TrueIndexIterator(ShapeItem w, Value_P value,
    indices = new ShapeItem[count];
    loop(v, count)
       {
-        const ShapeItem idx = value->get_index_int(v) - qio;
+        const ShapeItem idx = Cell::minus_IO(value->get_index_int(v), qio);
 
         // idx and max_idx are both (signed) ShapeItem, so "idx >= max_idx"
         // alone is a signed comparison and does NOT catch a negative idx.

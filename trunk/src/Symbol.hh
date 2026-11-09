@@ -293,6 +293,9 @@ public:
    /// return a reason why this symbol cant become a defined function
    const char * cant_be_defined() const;
 
+   /// return true if every character of \b text can be written as UTF-8
+   static bool is_UTF8_text(const UCS_string & text);
+
    /// dump this symbol to out
    /// @param out  output stream
    void dump(ostream & out) const;

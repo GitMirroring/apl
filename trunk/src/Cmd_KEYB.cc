@@ -618,10 +618,11 @@ Cmd_KEYB::parse_xmodmap_Unicode(Keycode keycode, const char * & p,
    while (*p == ' ')   ++p;   // skip leading whitespace
    if (*p == 0)   return false;
 
-   if (*p && p[1] == ' ')   // case 1: single ASCII
+   // a single ASCII also at the end of the line (Bugs39 #105)
+   if (*p && (p[1] == ' ' || p[1] == 0 || p[1] == '\n' || p[1] == '\r'))
       {
         unicode = *p;
-        p += 2;
+        p += (p[1] == ' ') ? 2 : 1;
         return true;
       }
 
@@ -649,7 +650,7 @@ static const struct symkey
 { "Escape",         0x001B },
 { "space",          0x0020 },
 { "exclam",         0x0021 },
-{ "at macron",      0x0022 },
+{ "at",             0x0040 },
 { "quotedbl",       0x0022 },
 { "numbersign",     0x0023 },
 { "less",           0x003c },
@@ -662,8 +663,8 @@ static const struct symkey
 { "parenright",     0x0029 },
 { "asterisk",       0x002A },
 { "plus",           0x002B },
-{ "colon",          0x002A },
-{ "semicolon",      0x002B },
+{ "colon",          0x003A },   // was 0x002A (Bugs39 #105)
+{ "semicolon",      0x003B },   // was 0x002B (Bugs39 #105)
 { "comma",          0x002C },
 { "minus",          0x002D },
 { "period",         0x002E },
@@ -700,7 +701,8 @@ static const struct symkey
 { "odiaeresis",     0x00F6 },
 { "udiaeresis",     0x00FC },
 { "division",       0x00F7 },
-{ "Adiaeresis",     0x07A5 },
+{ "Adiaeresis",     0x00C4 },   // was 0x07A5 (Bugs39 #105)
+{ "plusminus",      0x00B1 },
 { "notidentical",   0x2262 },
 { "elementof"   ,   0x2208 },
               };
@@ -709,7 +711,8 @@ static const struct symkey
        {
          const symkey & sk = sym_map[s];
          const size_t len = strlen(sk.name);
-         if (!strncmp(sk.name, p, len))   // found
+         // the entire name, not a prefix, e.g. not plus of plusminus
+         if (!strncmp(sk.name, p, len) && p[len] <= ' ')   // found
             {
               unicode = sk.unicode;
               p += len;

@@ -1378,6 +1378,12 @@ public:
    /// @param loc caller location for diagnostics
    void check_value(const char * loc);
 
+   /// throw a DOMAIN ERROR (with )MORE text "who: ...") if this value
+   /// (or a nested item of it) contains a non-finite number (±∞ or NaN),
+   /// e.g. the result of a library (GSL, LAPACK, FFTW) function (Bugs39 #31)
+   /// @param who the function that computed this value
+   void check_finite(const char * who) const;
+
    /// If this value is a single axis between ⎕IO and ⎕IO + max_axis then
    /// return that axis. Otherwise throw AXIS_ERROR.
    /// @param val value expected to contain a single axis number

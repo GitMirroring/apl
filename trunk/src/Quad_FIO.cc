@@ -1148,31 +1148,27 @@ public:
    ///        or 0 for none (Bugs28 #100(j): this used to be silently
    ///        ignored, so e.g. "%5d" ⎕FIO[55] '1234567' consumed and
    ///        returned the whole 1234567 instead of stopping at 12345).
-   int scanf_long_long(const char conv, long long & value, int64_t conv_len)
+   int scanf_long_long(const char conv_, long long & value, int64_t conv_len)
       {
+         // %D is a GNU APL alias for %d (C has no %lld, Bugs39 #23)
+         const char conv = conv_ == 'D' ? 'd' : conv_;
+
          if (file)
             {
-              // if we have read the next character from a file, then we
-              // need to push it back so that fscanf() will get it.
+              // collect the field from the file and convert it like a
+              // string (rather than fscanf()), so that the same grammar
+              // applies, e.g. ¯ is a minus sign (Bugs39 #101)
               //
-              if (lookahead != Invalid_Unicode)
-                 {
-                   put_back(lookahead);   // also for a multi-byte char
-                   lookahead = Invalid_Unicode;
-                 }
-              char fmt[32];
-              if (conv_len > 0)
-                 snprintf(fmt, sizeof(fmt), "%%%lldll%c",
-                          (long long)conv_len, conv);
-              else
-                 snprintf(fmt, sizeof(fmt), "%%ll%c", conv);
-              strncat(fmt, "%n", sizeof(fmt) - strlen(fmt) - 1);
+              const std::string field = file_field(conv, conv_len);
+              char fmt[40];
+              snprintf(fmt, sizeof(fmt), "%%ll%c%%n", conv);
               errno = 0;
               int nread = 0;
-              const int ret = fscanf(file, fmt, &value, &nread);
-              if (ret == 1)   bytes_read += nread;   // Bugs38 #83
-              check_range(ret == 1 && errno == ERANGE, 0);
-              return ret;
+              const int ret = sscanf(field.c_str(), fmt, &value, &nread);
+              if (ret != 1)   return 0;
+              check_range(errno == ERANGE || (conv == 'u' && value < 0),
+                          field.substr(0, nread).c_str());
+              return 1;
             }
 
          // string input: let C's sscanf() convert it, like fscanf() for a
@@ -1191,7 +1187,10 @@ public:
          int nread = 0;
          const int ret = sscanf(rest.c_str(), fmt, &value, &nread);
          if (ret != 1)   { string_consume(pos, 0);   return 0; }
-         check_range(errno == ERANGE, rest.substr(0, nread).c_str());
+         // a %u value ≥ 2⋆63 does not fit into an APL integer: C returns
+         // it as a negative long long (Bugs39 #24)
+         check_range(errno == ERANGE || (conv == 'u' && value < 0),
+                     rest.substr(0, nread).c_str());
          string_consume(pos, nread);
          return 1;
       }
@@ -1226,25 +1225,16 @@ public:
    ///        (Bugs28 #100(j), same fix as scanf_long_long() above).
    int scanf_double(const char conv, APL_Float & value, int64_t conv_len)
       {
-         if (file)
+         if (file)   // see scanf_long_long()
             {
-              if (lookahead != Invalid_Unicode)
-                 {
-                   put_back(lookahead);   // also for a multi-byte char
-                   lookahead = Invalid_Unicode;
-                 }
-              char fmt[32];
-              if (conv_len > 0)
-                 snprintf(fmt, sizeof(fmt), "%%%lldl%c",
-                          (long long)conv_len, conv);
-              else
-                 snprintf(fmt, sizeof(fmt), "%%l%c", conv);
-              strncat(fmt, "%n", sizeof(fmt) - strlen(fmt) - 1);
+              const std::string field = file_field(conv, conv_len);
+              char fmt[40];
+              snprintf(fmt, sizeof(fmt), "%%l%c%%n", conv);
               int nread = 0;
-              const int ret = fscanf(file, fmt, &value, &nread);
-              if (ret == 1)   bytes_read += nread;   // Bugs38 #83
-              check_range(ret == 1 && !isfinite(value), 0);
-              return ret;
+              const int ret = sscanf(field.c_str(), fmt, &value, &nread);
+              if (ret != 1)   return 0;
+              check_range(!isfinite(value), field.substr(0, nread).c_str());
+              return 1;
             }
 
          // string input: let C's sscanf() convert it, like fscanf() for a
@@ -1253,6 +1243,16 @@ public:
          //
          ShapeItem pos = 0;
          const std::string rest = string_rest(pos);
+
+         // C's nan, inf, and infinity (also the start of e.g. nancy or
+         // info) are not APL numbers: no conversion (Bugs39 #55)
+         //
+         if (!is_number_start(rest.c_str()))
+            {
+              string_consume(pos, 0);
+              return 0;
+            }
+
          char fmt[40];
          if (conv_len > 0)
             snprintf(fmt, sizeof(fmt), "%%%lldl%c%%n",
@@ -1269,6 +1269,51 @@ public:
          check_range(!isfinite(value), rest.substr(0, nread).c_str());
          string_consume(pos, nread);
          return 1;
+      }
+
+   /// return true if \b text (after blanks) starts with a decimal number,
+   /// i.e. with a digit or . (after an optional sign), as opposed to C's
+   /// nan or inf
+   static bool is_number_start(const char * text)
+      {
+        while (*text == ' ' || *text == '\t' || *text == '\n' ||
+               *text == '\r' || *text == '\f' || *text == '\v')   ++text;
+        if (*text == '+' || *text == '-')   ++text;
+        return (*text >= '0' && *text <= '9') || *text == '.';
+      }
+
+   /// collect the text of a numeric field of conversion \b conv (and at
+   /// most \b conv_len characters, if > 0) from the file. APL's negative
+   /// sign ¯ becomes -. The first character that cannot belong to the
+   /// field is left in lookahead (like C's fscanf(), which also pushes
+   /// back only one character).
+   std::string file_field(char conv, int64_t conv_len)
+      {
+        const bool hex   = strchr("xXi", conv) != 0;
+        const bool flt   = strchr("fFeg", conv) != 0;
+        std::string ret;
+        for (;;)
+            {
+              if (conv_len > 0 && int64_t(ret.size()) >= conv_len)   break;
+              const Unicode uni = get_next();
+              char cc = 0;
+              if (uni == UNI_OVERBAR)           cc = '-';
+              else if (uni > 0 && uni < 128)    cc = char(uni);
+
+              const char prev = ret.size() ? ret.back() : 0;
+              bool take = false;
+              if (cc >= '0' && cc <= '9')                       take = true;
+              else if (cc == '+' || cc == '-')
+                   take = ret.size() == 0 ||   // leading sign
+                          (flt && (prev == 'e' || prev == 'E'));
+              else if (hex && cc && strchr("abcdefABCDEFxX", cc))
+                   take = true;
+              else if (flt && cc && strchr(".eE", cc))         take = true;
+
+              if (!take)   { unget(uni);   break; }
+              ret += cc;
+            }
+        return ret;
       }
 
    /// return the rest of the string input, including the lookahead (if
@@ -1395,7 +1440,10 @@ struct _ { static bool is_space(Unicode uni)
                   continue;
                 }
 
-             if (strchr("hjlLmqtz", cc))   // type modifier
+             // only ASCII format characters: strchr() truncates cc to
+             // its low byte (and matches the terminating 0), Bugs39 #74
+             //
+             if (cc > 0 && cc < 128 && strchr("hjlLmqtz", cc))   // modifier
                 {
                   // we provide our own conversion modifiers and ignore
                   // the conversion modifiers given by the user (that only
@@ -1403,7 +1451,7 @@ struct _ { static bool is_space(Unicode uni)
                   continue;
                 }
 
-             if (strchr("0123456789", cc))   // field length
+             if (cc >= '0' && cc <= '9')   // field length
                 {
                   // accumulate in int64_t and bound it, same pattern (and
                   // same class of bug, Bugs15 #8) as pad_and_append()'s
@@ -1423,11 +1471,13 @@ struct _ { static bool is_space(Unicode uni)
                   continue;
                 }
 
-             if (strchr("cdDfFeginousxX[", cc))
+             if (cc > 0 && cc < 128 && strchr("cdDfFeginousxX[", cc))
                 {
                   conv = cc;
                   break; // conversion
                 }
+
+             break;   // any other character: no conversion (Bugs39 #74)
            }
 
         if (conv == Unicode_0)   // no conversion specifier
@@ -2503,9 +2553,9 @@ Quad_FIO::eval_AXB__33(Value_P A, Value_P B)
 const int fd = get_fd(*B.get());
 SockAddr addr;
    memset(&addr, 0, sizeof(addr.inet));
-   addr.inet.sin_family      = A->get_near_int(0);
-   addr.inet.sin_addr.s_addr = htonl(A->get_near_int(1));
-   addr.inet.sin_port        = htons(A->get_near_int(2));
+   addr.inet.sin_family      = checked_int(*A, 0, 0, 0xFFFF);
+   addr.inet.sin_addr.s_addr = htonl(checked_int(*A, 1, 0, 0xFFFFFFFFLL));
+   addr.inet.sin_port        = htons(checked_int(*A, 2, 0, 0xFFFF));
    // return value now checked, not just inferred from errno being
    // nonzero (Blake McBride, Bugs17 #7): a successful call is explicitly
    // permitted to leave errno set from something earlier.
@@ -2532,9 +2582,9 @@ Quad_FIO::eval_AXB__36(Value_P A, Value_P B)
 const int fd = get_fd(*B.get());
 SockAddr addr;
    memset(&addr, 0, sizeof(addr.inet));
-   addr.inet.sin_family      = A->get_near_int(0);
-   addr.inet.sin_addr.s_addr = htonl(A->get_near_int(1));
-   addr.inet.sin_port        = htons(A->get_near_int(2));
+   addr.inet.sin_family      = checked_int(*A, 0, 0, 0xFFFF);
+   addr.inet.sin_addr.s_addr = htonl(checked_int(*A, 1, 0, 0xFFFFFFFFLL));
+   addr.inet.sin_port        = htons(checked_int(*A, 2, 0, 0xFFFF));
    errno = 0;
    // was 'sizeof(addr)': addr is a union also containing sockaddr_un
    // (much larger than sockaddr_in on this platform), so sizeof(addr)
@@ -2660,7 +2710,7 @@ Quad_FIO::eval_AXB__47(Value_P A, Value_P B)
 {
 const APL_Integer level   = A->get_near_int(0);
 const APL_Integer optname = A->get_near_int(1);
-const int optval          = A->get_near_int(2);
+const int optval          = checked_int(*A, 2, INT_MIN, INT_MAX);
 const int fd = get_fd(*B.get());
    errno = 0;
    sys_setsockopt(fd, level, optname, &optval, sizeof(optval));
@@ -2768,11 +2818,11 @@ NOT_MINGW(
      int result = -1;
      switch(A->element_count())
         {
-           case 1: result = fcntl(fd, A->get_near_int(0));
+           case 1: result = fcntl(fd, checked_int(*A, 0, INT_MIN, INT_MAX));
                    break;
 
-           case 2: result = fcntl(fd, A->get_near_int(0),
-                                      A->get_near_int(1));
+           case 2: result = fcntl(fd, checked_int(*A, 0, INT_MIN, INT_MAX),
+                                      checked_int(*A, 1, LONG_MIN, LONG_MAX));
                    break;
 
            default: LENGTH_ERROR;
@@ -3912,19 +3962,37 @@ APL_Integer z = 0;
    return Token(TOK_APL_VALUE1, IntScalar(z, LOC));
 }
 //────────────────────────────────────────────────────────────────────────────
+APL_Integer
+Quad_FIO::checked_int(const Value & V, ShapeItem idx,
+                      APL_Integer min, APL_Integer max)
+{
+   // V[idx] as an integer that fits into the C parameter it is passed to
+   // (min..max). It was silently truncated before (Bugs39 #68).
+   //
+const APL_Integer ret = V.get_near_int(idx);
+   if (ret < min || ret > max)
+      {
+        MORE_ERROR() << "⎕FIO: the argument item " << ret
+                     << " is out of range (expecting " << min << " to "
+                     << max << ")";
+        DOMAIN_ERROR;
+      }
+   return ret;
+}
+//────────────────────────────────────────────────────────────────────────────
 Token
 Quad_FIO::eval_XB__51(Value_P B)
 {
    if (B->element_count() < 6 || B->element_count() > 9)   LENGTH_ERROR;
 tm t;
-   t.tm_year = B->get_near_int(0) - 1900;
-   t.tm_mon  = B->get_near_int(1) - 1;
-   t.tm_mday = B->get_near_int(2);
-   t.tm_hour = B->get_near_int(3);
-   t.tm_min  = B->get_near_int(4);
-   t.tm_sec  = B->get_near_int(5);
+   t.tm_year = checked_int(*B, 0, INT_MIN + 1900, INT_MAX) - 1900;
+   t.tm_mon  = checked_int(*B, 1, INT_MIN + 1, INT_MAX) - 1;
+   t.tm_mday = checked_int(*B, 2, INT_MIN, INT_MAX);
+   t.tm_hour = checked_int(*B, 3, INT_MIN, INT_MAX);
+   t.tm_min  = checked_int(*B, 4, INT_MIN, INT_MAX);
+   t.tm_sec  = checked_int(*B, 5, INT_MIN, INT_MAX);
    if (B->element_count() > 6)   // dst provided
-      t.tm_isdst = B->get_near_int(6);
+      t.tm_isdst = checked_int(*B, 6, INT_MIN, INT_MAX);
    else
       t.tm_isdst = -1;
 const time_t seconds = mktime(&t);

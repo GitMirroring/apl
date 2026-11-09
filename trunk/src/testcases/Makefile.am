@@ -7,6 +7,11 @@
 # copies in ../../wslib5/ by src/Makefile (TEST_LIBROOT_COPIES); the files
 # below are separate copies for the testcases.
 #
+# accept_tc.py accepts the result of a failed testcase (see
+# ../testsuites/README), Bugs39 #106
+#
+dist_noinst_SCRIPTS = accept_tc.py
+
 EXTRA_DIST  = libroot/workspaces/DIJKSTRA.atf           \
               libroot/workspaces/B38_BADIO.atf          \
               libroot/workspaces/B38_BADNAMES.atf       \

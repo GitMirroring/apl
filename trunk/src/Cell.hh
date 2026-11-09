@@ -721,6 +721,11 @@ public:
    /// @param Q  the quotient B÷A of A|B
    static bool rounded_integral(APL_Float Q);
 
+   /// return \b value - \b qio (⎕IO) without a signed overflow: an index or
+   /// axis of ¯2⋆63 stays ¯2⋆63, which is out of range anyway (Bugs39 #73)
+   static APL_Integer minus_IO(APL_Integer value, APL_Integer qio)
+      { return value < INT64_MIN + qio ? INT64_MIN : value - qio; }
+
    /// true iff value is close to an int (within +- qct)
    static bool is_near_int(APL_Float value);
 

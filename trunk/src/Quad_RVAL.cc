@@ -176,7 +176,7 @@ bool need_restore = false;
                  }
               else   // rank as scalar
                  {
-                   Value_P rank = IntScalar(B.get_int_value(0), LOC);
+                   Value_P rank = IntScalar(B.get_near_int(0), LOC);
                    do_eval_AB(1, *rank);
                  }
             }
@@ -804,7 +804,7 @@ Value_P Z = IntScalar(desired_maxdepth, LOC);
 
    if (B.element_count())   // set the desired maxdepth
       {
-        const APL_Integer mxd = B.get_int_value(0);
+        const APL_Integer mxd = B.get_near_int(0);
         if (mxd < 0 || mxd > INT_MAX)   // was truncated to int (Bugs34 #30)
            {
              MORE_ERROR() << "bad max.depth";
@@ -831,7 +831,7 @@ Value_P Z = IntScalar(desired_max_ecount, LOC);   // return previous value
 
    if (B.element_count())   // set the limit
       {
-        const APL_Integer ec = B.get_int_value(0);
+        const APL_Integer ec = B.get_near_int(0);
         if (ec < 0)
            {
              MORE_ERROR() << "5 ⎕RVAL B: B must be ≥ 0 (0 = unlimited)";
@@ -858,7 +858,7 @@ Value_P Z = IntScalar(desired_purpose, LOC);   // return previous value
 
    if (B.element_count())   // set the purpose
       {
-        const APL_Integer purpose = B.get_int_value(0);
+        const APL_Integer purpose = B.get_near_int(0);
         if (purpose != 0 && purpose != 1)
            {
              MORE_ERROR() << "8 ⎕RVAL B: B must be 0 or 1";
@@ -889,7 +889,7 @@ Value_P Z(desired_ranks.size(), LOC);
 
    if (B.is_scalar())   // single rank (fixed or equal distribution)
       {
-        ShapeItem rk = B.get_int_value(0);
+        ShapeItem rk = B.get_near_int(0);
 
         if ((rk < -MAX_RANK) || (rk > MAX_RANK))
            {
@@ -966,7 +966,7 @@ Value_P Z(MAX_RANK, LOC);
 
         if (B.is_scalar())   // scalar-extend B
            {
-              const APL_Integer len = B.get_int_value(0);
+              const APL_Integer len = B.get_near_int(0);
               loop(b, MAX_RANK)   new_shape.add_shape_item(len);
            }
         else                 // vector B: prepend 1s as needed
@@ -1044,7 +1044,7 @@ Value_P Z(desired_types.size(), LOC);
         bool B_has_simple = false;
         loop(b, B.element_count())
             {
-              const APL_Integer type_b_A = B.get_int_value(b);
+              const APL_Integer type_b_A = B.get_near_int(b);
               if (type_b_A > 0x7FFFFFFF)   // Bugs35 #21: not truncated
                  {
                    MORE_ERROR() << "the weight " << type_b_A << " in the right argument B of 3 ⎕RVAL B"

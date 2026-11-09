@@ -106,6 +106,10 @@ public:
    cFunction_P get_OPER() const
       { return oper; }
 
+   /// return true if a system function (e.g. ⎕ES) is part of this derived
+   /// function (as operator or, recursively, as an operand)
+   bool contains_system_function() const;
+
    /// return the right operand (or 0) of this derived function
    cFunction_P get_RO() const
       {

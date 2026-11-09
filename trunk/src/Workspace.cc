@@ -122,6 +122,17 @@ Workspace::push_SI(const Executable * fun, const char * loc)
 {
    Assert1(fun);
 
+   // restore the SI depth limit that was automatically cleared when it
+   // was reached (below), once the SI was unwound, e.g. by )SIC (Bugs39 #17)
+   //
+   if (Quad_SYL::si_depth_limit_cleared && Quad_SYL::si_depth_limit == 0 &&
+       (SI_top() == 0 ||
+        SI_top()->get_level() < Quad_SYL::si_depth_limit_cleared / 2))
+      {
+        Quad_SYL::si_depth_limit = Quad_SYL::si_depth_limit_cleared;
+        Quad_SYL::si_depth_limit_cleared = 0;
+      }
+
    if (Quad_SYL::si_depth_limit && SI_top() &&
        Quad_SYL::si_depth_limit <= SI_top()->get_level())
       {
@@ -131,7 +142,11 @@ Workspace::push_SI(const Executable * fun, const char * loc)
 << ";2]) was reached\n"
 "(and to avoid lock-up, this system limit in ⎕SYL was automatically cleared).";
 
-
+        // the limit is restored (see below) once the SI was unwound.
+        // Otherwise the next runaway recursion of the session ended the
+        // interpreter with std::bad_alloc (Bugs39 #17).
+        //
+        Quad_SYL::si_depth_limit_cleared = Quad_SYL::si_depth_limit;
         Quad_SYL::si_depth_limit = 0;
 
         // Setting these flags alone (the old behaviour) is not enough: a
@@ -149,6 +164,20 @@ Workspace::push_SI(const Executable * fun, const char * loc)
         // for an immediate-execution statement), so the next statement got
         // a spurious INTERRUPT (Bugs38 #79).
         //
+        // An immediate-execution statement that cannot be pushed is the
+        // failed statement: report it (as for a parse error) instead of
+        // the line of (and in the ⎕EM/⎕ET of) the suspended function on
+        // top of the SI (Bugs39 #61).
+        //
+        if (fun->get_parse_mode() == PM_STATEMENT_LIST)
+           {
+             Error error(E_SYS_LIMIT_SIDEPTH, LOC);
+             UCS_string line_2(Workspace::get_prompt());
+             const int margin = line_2.size();
+             line_2 << fun->get_text(0);
+             error.set_error_line_2(line_2, margin, margin);
+             throw error;
+           }
         LIMIT_ERROR_SIDEPTH;
       }
 
@@ -730,6 +759,14 @@ const LibRef_name lib_name(UCS_ASCII_string("CLEAR WS"), true);
 void
 Workspace::clear_SI(ostream & out)
 {
+   // the SI depth limit, if it was cleared when it was reached (Bugs39 #17)
+   //
+   if (Quad_SYL::si_depth_limit_cleared && Quad_SYL::si_depth_limit == 0)
+      {
+        Quad_SYL::si_depth_limit = Quad_SYL::si_depth_limit_cleared;
+        Quad_SYL::si_depth_limit_cleared = 0;
+      }
+
    // clear the SI (pops all localized symbols)
    while (SI_top())
       {
@@ -858,6 +895,25 @@ Workspace::backup_existing_file(const char * filename)
    // 1. if file 'filename' does not exist then no backup is needed.
    //
    if (access(filename, F_OK) != 0)   return false;   // OK
+
+   // 1a. only a regular (writable) file is replaced. A directory (or a
+   //     read-only file) was silently renamed to .bak (Bugs39 #75)
+   //
+   {
+     struct stat st;
+     if (stat(filename, &st) == 0 && !S_ISREG(st.st_mode))
+        {
+          CERR << filename << " is a directory (or some other non-file), "
+                  "not a GNU APL workspace file" << endl;
+          return true;   // error
+        }
+     if (access(filename, W_OK) != 0)
+        {
+          CERR << "workspace file " << filename << " is not writable"
+               << endl;
+          return true;   // error
+        }
+   }
 
 UTF8_string backup_filename = filename;
    backup_filename << ".bak";
@@ -1479,6 +1535,23 @@ XML_Loading_Archive in(out, err, filename.c_str(), dump_fd);
    // read-only pass over the same file) can throw on the same corruption
    // too, so it is covered by the same try as read_Workspace() below.
    //
+   // The functions replaced by this )COPY are deleted only after it has
+   // succeeded, since a failing )COPY restores them (Bugs39 #10).
+   //
+   struct deferred_deletes
+      {
+        deferred_deletes()
+           { UserFunction::deferred_deletes = &replaced; }
+
+        ~deferred_deletes()
+           {
+             UserFunction::deferred_deletes = 0;
+             loop(r, replaced.size())   UserFunction::release(replaced[r]);
+           }
+
+        std::vector<const UserFunction *> replaced;
+      } replaced_functions;
+
    try
       {
         in.read_vids();
@@ -1488,7 +1561,8 @@ XML_Loading_Archive in(out, err, filename.c_str(), dump_fd);
       {
         // the specific reason, if the reader gave one (e.g. Bugs32 #26)
         const UCS_string reason = Workspace::more_error();
-        in.copy_restore_snapshots();
+        UserFunction::deferred_deletes = 0;
+        in.copy_restore_snapshots(replaced_functions.replaced);
         CERR << ")COPY " << lib_name.get_name() << " failed: "
              << Error::error_name(err.get_error_code()) << endl;
         UCS_string & more = MORE_ERROR();

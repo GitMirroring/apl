@@ -1401,7 +1401,7 @@ AxesBitmap ret = 0;
               AXIS_ERROR;
             }
 
-         const APL_Integer axis = cX.get_near_int() - qio;
+         const APL_Integer axis = Cell::minus_IO(cX.get_near_int(), qio);
          if (axis < 0)
             {
               MORE_ERROR() << where << ": X[" << (e + qio)
@@ -1648,7 +1648,7 @@ const APL_Integer qio = Workspace::get_IO();
 // into the valid range instead of being rejected (confirmed: ⌽[4294967298]M
 // silently reversed axis 2 -- 4294967298 truncated to 32 bits -- instead
 // of raising AXIS_ERROR).
-const APL_Integer axis = val->get_near_int(0) - qio;
+const APL_Integer axis = Cell::minus_IO(val->get_near_int(0), qio);
 
    // axis is a plain (32-bit) signed int here while max_axis is the
    // (16-bit) signed sRank, so "axis >= max_axis" alone is a signed
@@ -1662,7 +1662,7 @@ const APL_Integer axis = val->get_near_int(0) - qio;
         // like an off-by-one mistake if the reader assumes the (far
         // more common) ⎕IO=1; call that out explicitly rather than
         // silently -- but only when it actually explains the error.
-        const APL_Integer axis_at_1 = val->get_near_int(0) - 1;
+        const APL_Integer axis_at_1 = Cell::minus_IO(val->get_near_int(0), 1);
         const char * io_note = (qio == 0 && axis_at_1 >= 0
                                 && axis_at_1 < APL_Integer(max_axis))
                               ? " Note: ⎕IO=0." : "";
@@ -1689,7 +1689,7 @@ const APL_Integer qio = Workspace::get_IO();
 
 Shape shape;
      loop(x, xlen)
-        shape.add_shape_item(val->get_near_int(x) - qio);
+        shape.add_shape_item(Cell::minus_IO(val->get_near_int(x), qio));
 
    return shape;
 }

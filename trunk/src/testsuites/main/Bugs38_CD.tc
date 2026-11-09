@@ -307,9 +307,9 @@ A ⎕EA B: B failed to execute (Unbalanced left parenthesis)
 
 
       3⊃⎕EC 'A←B)←2)'
-SYNTAX ERROR+
-      A←B)←2)
-         ^
+SYNTAX ERROR+               
+      A←B)←2)               
+         ^                  
 Unbalanced right parenthesis
 
 
@@ -458,9 +458,9 @@ MV78
 
 
       {2+⍵}{⍶ MV78 ⍵} 5
-SYNTAX ERROR+
+VALUE ERROR+
 λ2[1]  λ←⍶ MV78 ⍵
-       ^   ^
+           ^
 
 
       )SIC

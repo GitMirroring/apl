@@ -918,7 +918,7 @@ const Cell & cA = A.get_cravel(idx_A, cache);
                           << B.get_rank();
              RANK_ERROR;
            }
-        const APL_Integer a = cValue::index_int(cA) - qio;
+        const APL_Integer a = Cell::minus_IO(cValue::index_int(cA), qio);
         const ShapeItem dim = B.get_shape_item(0);
         if (a < 0 || a >= dim)
            {

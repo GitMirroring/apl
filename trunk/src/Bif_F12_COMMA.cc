@@ -74,6 +74,17 @@ const APL_Integer qio = Workspace::get_IO();
    //
    if (!X.is_near_int(0))  // fraction: insert an axis
       {
+        // a complex X (other than e.g. 1.5J0) is not a fraction (Bugs39 #63)
+        //
+        Cell cache;
+        const Cell & x0 = X.get_cfirst(cache);
+        if (!x0.is_numeric() ||
+            (x0.is_complex_cell() && x0.get_imag_value() != 0.0))
+           {
+             MORE_ERROR() << where << ": X is not real";
+             AXIS_ERROR;
+           }
+
         // a fraction is only valid as a scalar (LRM p. 204), e.g. not
         // ,[1.5 99]M (Bugs38 #88)
         if (X.element_count() != 1)
@@ -131,7 +142,7 @@ const APL_Integer qio = Workspace::get_IO();
         // this shortcut had no range check on n at all: ,[99]M and
         // ,[¯5]M both silently returned M unchanged instead of
         // AXIS_ERROR.
-        const APL_Integer n = X.get_near_int(0) - qio;
+        const APL_Integer n = Cell::minus_IO(X.get_near_int(0), qio);
         if (n < 0 || n >= B.get_rank())
            {
              MORE_ERROR() << where << ": X = " << (n + qio)
@@ -302,7 +313,7 @@ Bif_COMMA::catenate(const char * where, const cValue & A, sAxis axis,
                   }
                else
                   {
-                    shape_Z.add_shape_item(B.get_shape_item(rb) + 1);
+                    shape_Z.add_shape_item(axis_plus_1(where, B.get_shape_item(rb)));
                   }
              }
         }
@@ -358,7 +369,7 @@ Bif_COMMA::catenate(const char * where, const cValue & A, sAxis axis,
                   }
                else
                   {
-                    shape_Z.add_shape_item(A.get_shape_item(ra) + 1);
+                    shape_Z.add_shape_item(axis_plus_1(where, A.get_shape_item(ra)));
                   }
              }
         }
@@ -413,8 +424,16 @@ Shape shape_Z;
             }
          else
             {
-              shape_Z.add_shape_item(A.get_shape_item(r) +
-                                   + B.get_shape_item(r));
+              ShapeItem len_Z;   // not a negative (wrapped) sum (Bugs39 #38)
+              if (__builtin_add_overflow(A.get_shape_item(r),
+                                         B.get_shape_item(r), &len_Z))
+                 {
+                   MORE_ERROR() << where << ": the length of axis "
+                                << (axis + Workspace::get_IO())
+                                << " of the result is too large";
+                   WS_FULL;
+                 }
+              shape_Z.add_shape_item(len_Z);
             }
        }
 
@@ -518,7 +537,10 @@ const Shape3 shape_Z3(shape_Z, axis);
 
 ShapeItem idxA = 0;
 ShapeItem idxB = 0;
-   if (A.is_scalar())
+   if (shape_Z.is_empty())   // no cells, but maybe huge h() (Bugs39 #9)
+      {
+      }
+   else if (A.is_scalar())
       {
         if (B.is_scalar())
            {
@@ -591,6 +613,16 @@ Cell cache;
 const Cell & cX = X.get_cfirst(cache);
 const APL_Integer qio = Workspace::get_IO();
 
+   // a complex X (other than e.g. 1.5J0) is neither an integer nor a
+   // fraction (Bugs39 #63)
+   //
+   if (!cX.is_numeric() ||
+       (cX.is_complex_cell() && cX.get_imag_value() != 0.0))
+      {
+        MORE_ERROR() << where << ": X is not real";
+        AXIS_ERROR;
+      }
+
    if (cX.is_near_int())   // catenate along existing axis
       {
         // catenate genuinely needs two conformable arrays sharing an
@@ -623,7 +655,7 @@ const APL_Integer qio = Workspace::get_IO();
                           << " is not a valid axis";
              AXIS_ERROR;
            }
-        const APL_Integer wide_axis = cX.get_checked_near_int() - qio;
+        const APL_Integer wide_axis = Cell::minus_IO(cX.get_checked_near_int(), qio);
         const ShapeItem max_rank = A.get_rank() > B.get_rank()
                                   ? A.get_rank() : B.get_rank();
         if (wide_axis < 0 || wide_axis >= max_rank)
@@ -653,13 +685,25 @@ const APL_Float axis = cX.get_real_value() - qio;
    return laminate(where, A, sAxis(axis + 1.0), B);
 }
 //════════════════════════════════════════════════════════════════════════════
+ShapeItem
+Bif_COMMA::axis_plus_1(const char * where, ShapeItem len)
+{
+   if (len >= LARGE_INT)   // not a negative (wrapped) length (Bugs39 #38)
+      {
+        MORE_ERROR() << where << ": an axis of the result is too long";
+        WS_FULL;
+      }
+   return len + 1;
+}
+//────────────────────────────────────────────────────────────────────────────
 Value_P
 Bif_COMMA::prepend_scalar(const Cell & cell_A, uAxis axis, const cValue & B)
 {
    if (B.is_empty())
       {
         Shape shape_Z = B.get_shape();
-        shape_Z.set_shape_item(axis, shape_Z.get_shape_item(axis) + 1);
+        shape_Z.set_shape_item(axis, axis_plus_1("A,B",
+                                                 shape_Z.get_shape_item(axis)));
         Value_P Z(shape_Z, LOC);
         if (Z->is_empty())
            {
@@ -712,7 +756,8 @@ Bif_COMMA::append_scalar(const cValue & A, uAxis axis, const Cell & cell_B)
    if (A.is_empty())
       {
         Shape shape_Z = A.get_shape();
-        shape_Z.set_shape_item(axis, shape_Z.get_shape_item(axis) + 1);
+        shape_Z.set_shape_item(axis, axis_plus_1("A,B",
+                                                 shape_Z.get_shape_item(axis)));
         Value_P Z(shape_Z, LOC);
         if (Z->is_empty())
            {

@@ -104,7 +104,7 @@ SYNTAX ERROR+
       (↑S38)←7
 DOMAIN ERROR+
       (↑S38)←7
-      ^     ^
+        ^   ^
 
 
       )MORE
@@ -116,55 +116,55 @@ DOMAIN ERROR+
       (S38[1;1])←'q'
 DOMAIN ERROR+
       (S38[1;1])←'q'
-      ^         ^
+       ^  ^
 
 
       (,S38)←⍳16
 DOMAIN ERROR+
       (,S38)←⍳16
-      ^     ^
+        ^   ^
 
 
       (⊃S38)←0
 DOMAIN ERROR+
       (⊃S38)←0
-      ^     ^
+        ^   ^
 
 
       ((⊂1 1)⊃S38)←7
 DOMAIN ERROR+
       ((⊂1 1)⊃S38)←7
-      ^           ^
+              ^   ^
 
 
       (8 2↑S38)←8 2⍴5
 DOMAIN ERROR+
       (8 2↑S38)←8 2⍴5
-      ^        ^
+           ^   ^
 
 
       (,S38)[1]←5
 DOMAIN ERROR+
       (,S38)[1]←5
-      ^        ^
+       ^
 
 
       (⌽S38)←8 2⍴0
 DOMAIN ERROR+
       (⌽S38)←8 2⍴0
-      ^     ^
+        ^   ^
 
 
       (16⍴S38)←0
 DOMAIN ERROR+
       (16⍴S38)←0
-      ^       ^
+          ^   ^
 
 
       (2⌷[2]S38)←0
 DOMAIN ERROR+
       (2⌷[2]S38)←0
-      ^         ^
+            ^   ^
 
 
       S38.a

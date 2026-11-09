@@ -25,6 +25,7 @@
 
 #include <limits.h>
 #include <string.h>
+#include <sys/stat.h>
 #include <sys/time.h>
 
 #include "Bif_F1_EXECUTE.hh"
@@ -157,6 +158,8 @@ UCS_string ucs_line(line);
       {
         if (ucs_line.size() && ucs_line.front() == UNI_NABLA)
            where = (ucs_line.size() > 1) ? WH_in_function : WH_outside;
+        else if (ucs_line.size() == 1 && ucs_line.front() == UNI_DEL_TILDE)
+           where = WH_outside;   // end of a locked function (Bugs39 #50)
 
         if (where == WH_outside)
            {
@@ -183,8 +186,9 @@ const bool plain_copy = !has_object_filter() && !protection;
    if (where == WH_in_function)
       {
         bool ret = in_matched;   // state of the current line
-        if (ucs_line.size() && ucs_line[0] == UNI_NABLA)   // end of a function
-           {
+        if (ucs_line.size() && (ucs_line[0] == UNI_NABLA ||   // end of a
+                                ucs_line[0] == UNI_DEL_TILDE))   // function
+           {                                       // (⍫: locked, Bugs39 #50)
              where = WH_outside;
              in_matched  = false;
            }
@@ -392,7 +396,15 @@ InputFile::open_current_file()
         else if (!strcmp(current_filename(), "stdin"))
            files_todo[0].file = stdin;
         else
-             files_todo[0].file = fopen(current_filename(), "r");
+           {
+             // not a directory (fopen() succeeds and it "passed" as an
+             // empty testcase, Bugs39 #76)
+             struct stat st;
+             if (stat(current_filename(), &st) == 0 && S_ISDIR(st.st_mode))
+                files_todo[0].file = 0;
+             else
+                files_todo[0].file = fopen(current_filename(), "r");
+           }
 
         files_todo[0].line_no = 0;
         files_todo[0].bom_checked = false;
@@ -420,6 +432,18 @@ InputFile::randomize_files()
              return;
            }
       }
+
+   // the loop below swaps only files that are not named AAA... or ZZZ...,
+   // so it would never end with fewer than 2 such files (Bugs39 #18).
+   //
+size_t swappable = 0;
+   loop(f, files_todo.size())
+      {
+        const char * ff = strrchr(files_todo[f].filename.c_str(), '/');
+        if (!ff++)   ff = files_todo[f].filename.c_str();
+        if (strncmp(ff, "AAA", 3) && strncmp(ff, "ZZZ", 3))   ++swappable;
+      }
+   if (swappable < 2)   return;
 
    for (size_t done = 0; done < 4*files_todo.size();)
        {

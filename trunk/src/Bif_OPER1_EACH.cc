@@ -41,8 +41,10 @@ static bool
 is_system_function(const Function * fun)
 {
    if (dynamic_cast<const QuadFunction *>(fun))   return true;
+
+   // also as part of a derived function, e.g. ⎕ES⍨ (Bugs39 #90)
    if (const DerivedFunction * dfun = dynamic_cast<const DerivedFunction *>(fun))
-      return dynamic_cast<const QuadFunction *>(dfun->get_OPER()) != 0;
+      return dfun->contains_system_function();
    return false;
 }
 //════════════════════════════════════════════════════════════════════════════

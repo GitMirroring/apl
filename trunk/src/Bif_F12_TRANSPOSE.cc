@@ -179,6 +179,7 @@ Bif_F12_TRANSPOSE::transpose(const Shape & sh_A, cValue_R B)
                    Z->next_ravel_Cell(B.get_cravel(rZ + cZ*cols_B, cache));
                  }
            }
+        if (Z->is_empty())   Z->set_default(B, LOC);   // Bugs39 #86
         Z->check_value(LOC);
         return Z;
       }

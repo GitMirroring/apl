@@ -84,7 +84,7 @@ UTF8_string creator("⎕FX");
              }
              /* no break */
         case 1:   // format 2a.
-             eprops[0] = A.get_int_value(0);
+             eprops[0] = A.get_near_int(0);
              if (eprops[0] < 0)   DOMAIN_ERROR;
              if (eprops[0] > 1)   DOMAIN_ERROR;
              eprops[3] = eprops[2] = eprops[1] = eprops[0];
@@ -100,7 +100,7 @@ UTF8_string creator("⎕FX");
         case 4:   // format 2c.
              loop(e, 4)
                 {
-                  eprops[e] = A.get_int_value(e);
+                  eprops[e] = A.get_near_int(e);
                   if (eprops[e] < 0)   DOMAIN_ERROR;
                   if (eprops[e] > 1)   DOMAIN_ERROR;
                 }

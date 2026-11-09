@@ -78,7 +78,7 @@ IndexExpr::check_index_range(const Shape & shape) const
              const ShapeItem dim = shape.get_shape_item(r);
              loop(i, ival->element_count())
                 {
-                  const APL_Integer idx = ival->get_index_int(i) - quad_io;
+                  const APL_Integer idx = Cell::minus_IO(ival->get_index_int(i), quad_io);
                   if (idx < 0 || idx >= dim)   // invalid index
                      {
                        MORE_ERROR() << "A[B]: index " << (idx + quad_io)
@@ -106,7 +106,7 @@ Value_P I = values[0];
 
    if (!I->is_near_int(0))   INDEX_ERROR;
 
-const APL_Integer wide_axis = I->get_near_int(0) - qio;
+const APL_Integer wide_axis = Cell::minus_IO(I->get_near_int(0), qio);
 
    // axis and max_axis are both signed, so "axis >= max_axis" alone does
    // not catch a negative axis (same class of bug as cValue.cc's

@@ -92,6 +92,8 @@ UserFunction::UserFunction(Fun_signature sig, Lambda_number lambda_num,
    error_line = -1;   // no error
    error_info = 0;
 }
+std::vector<const UserFunction *> * UserFunction::deferred_deletes = 0;
+
 //────────────────────────────────────────────────────────────────────────────
 UserFunction::~UserFunction()
 {
@@ -1090,8 +1092,24 @@ Function_PC end_PC = Function_PC_0;   // the PC of the end of the last line
             }
       }
 
+   // a lambda that is rejected (e.g. {→0}) is an error in its line, like
+   // any other error in a body line (it escaped ⎕FX and the ∇-editor
+   // before, Bugs39 #48)
+   //
+   try { setup_lambdas(); }
+   catch (const Error & err)
+      {
+        error_line = 1;
+        for (size_t l = 2; l < line_starts.size(); ++l)
+            {
+              if (lambda_error_pos < ShapeItem(line_starts[l]))   break;
+              error_line = l;
+            }
+        if (!error_info || !strcmp(error_info, "Unspecified"))
+           error_info = "bad lambda";
+        return;
+      }
    error_line = -1;   // OK
-   setup_lambdas();
 
    Log(LOG_UserFunction__fix)
       {
@@ -1443,10 +1461,11 @@ const UserFunction * old_ufun = 0;
    // reference counted: the body of the function that contains it still
    // refers to it (Bugs35 #47).
    //
-   if (old_ufun && old_ufun->is_lambda())
-      const_cast<UserFunction *>(old_ufun)->decrement_refcount(LOC);
-   else
-      delete old_ufun;
+   // During a )COPY, the old function is kept until the )COPY has
+   // succeeded, since a failing )COPY restores it (Bugs39 #10).
+   //
+   if (old_ufun && deferred_deletes)   deferred_deletes->push_back(old_ufun);
+   else                                release(old_ufun);
 
    // finally: bind function to symbol
    //
@@ -1461,6 +1480,20 @@ const UserFunction * old_ufun = 0;
       }
 
    return ufun;
+}
+//────────────────────────────────────────────────────────────────────────────
+void
+UserFunction::release(const UserFunction * ufun)
+{
+   if (ufun == 0)   return;
+
+   // a lambda is reference counted: the body of the function that contains
+   // it may still refer to it (Bugs35 #47).
+   //
+   if (ufun->is_lambda())
+      const_cast<UserFunction *>(ufun)->decrement_refcount(LOC);
+   else
+      delete ufun;
 }
 //════════════════════════════════════════════════════════════════════════════
 UserFunction *
@@ -1491,7 +1524,13 @@ UserFunction::fix_lambda(Symbol & var, const UCS_string & text,
    //
 UCS_string header_text, lvars_text, comment, body_text;
 UCS_string * dest = &header_text;
-int signature = SIG_FUN | SIG_Z;
+
+   // a lambda without a result, e.g. {⍺ ⋄ }, is saved without λ← in its
+   // header, e.g. ⍺ λ1 ⍵ (Bugs39 #40)
+   //
+const bool has_result = text.size() > 1 && text[0] == UNI_LAMBDA &&
+                                           text[1] == UNI_LEFT_ARROW;
+int signature = has_result ? SIG_FUN | SIG_Z : SIG_FUN;
 
 
    loop(t, text.size())
@@ -1524,6 +1563,25 @@ int signature = SIG_FUN | SIG_Z;
    lvars_text.remove_trailing_whitespaces();
    body_text.remove_trailing_whitespaces();
    body_text << comment;
+
+   // the lambda number, e.g. 1 in λ←λ1 ⍵ or ⍺ λ1 ⍵ (Bugs39 #40: was λ0)
+   //
+   if (lambda_num == LAMBDA_NUM_0)
+      {
+        loop(h, header_text.size())
+           {
+             if (header_text[h] != UNI_LAMBDA)   continue;
+             int num = 0;
+             bool digits = false;
+             for (ShapeItem d = h + 1; d < header_text.ssize() &&
+                  header_text[d] >= '0' && header_text[d] <= '9'; ++d)
+                 {
+                   num = 10*num + (header_text[d] - '0');
+                   digits = true;
+                 }
+             if (digits)   lambda_num = Lambda_number(num);
+           }
+      }
 
    // append lvars_text to body (as in e.g. { ... ;C;D }. This will also
    // parse the lvars_text needed below.
@@ -1563,6 +1621,7 @@ Function_PC last_statement = Function_PC(-1);
             }
        }
 
+   if (has_result)
    {
      body.insert_2(last_statement);
      Token ret_lambda(TOK_RETURN_SYMBOL, &Workspace::get_v_LAMBDA());
@@ -1584,16 +1643,27 @@ Function_PC last_statement = Function_PC(-1);
    }
 
 vector<Symbol *> local_vars;
+Function_PC pc_void = end_PC;   // the PC of RETURN_VOID (if any)
    while (body.size() >= 2)
       {
         const Token & Tsem = body[body.size() - 2];
         const Token & Tsym = body[body.size() - 1];
         if (Tsem.get_tag() == TOK_SEMICOL && Tsym.get_Class() == TC_SYMBOL)
            {
+             pc_void = body[body.size() - 2].get_PC();
              local_vars.push_back(Tsym.get_sym_ptr());
              body.resize(body.size() - 2);
            }
         else break;
+      }
+
+   // a lambda without a result ends with RETURN_VOID, like in
+   // Executable::compute_lambda_body()
+   //
+   if (!has_result)
+      {
+        Token ret_void(TOK_RETURN_VOID);
+        body.push_back(Token_loc(ret_void, pc_void));
       }
 
    return new UserFunction(Fun_signature(signature), lambda_num,

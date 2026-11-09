@@ -605,10 +605,30 @@ XML_Saving_Archive::save_Function_name(const Function & fun)
 const UserFunction * ufun = fun.get_func_ufun();
    if (ufun)   // user defined function
       {
-        const UCS_string & fname = ufun->get_name();
+        UCS_string fname = ufun->get_name();
         Symbol * sym = Workspace::lookup_symbol(fname);
         Assert(sym);
-        const int sym_depth = sym->get_exec_ufun_depth(ufun);
+        int sym_depth = sym->get_exec_ufun_depth(ufun);
+
+        // a named lambda, e.g. L←{÷⍵}, is called λ1 internally, which is
+        // no symbol of the workspace: use the symbol that holds it, so
+        // that )LOAD finds it (Bugs39 #51)
+        //
+        if (sym_depth < 0 && ufun->is_lambda())
+           {
+             const std::vector<const Symbol *> all =
+                                               Workspace::get_all_symbols();
+             loop(a, all.size())
+                 {
+                   Symbol * s = const_cast<Symbol *>(all[a]);
+                   const int depth = s->get_exec_ufun_depth(ufun);
+                   if (depth < 0)   continue;
+                   fname = s->get_name();
+                   sym_depth = depth;
+                   break;
+                 }
+           }
+
         outf << " ufun-name=\""  << fname     << "\""
             << " symbol-level=\"" << sym_depth << "\"";
         return 2;   // two attributes
@@ -746,12 +766,34 @@ const Executable & exec = *si.get_executable();
                Assert(sym);
                const UserFunction * ufun = exec.get_exec_ufun();
                Assert(ufun);
-               const int sym_depth = sym->get_exec_ufun_depth(ufun);
+               int sym_depth = sym->get_exec_ufun_depth(ufun);
+
+               // a named lambda is called λN internally: find the symbol
+               // that holds it (Bugs39 #96)
+               //
+               if (sym_depth < 0 && ufun->is_lambda() && !ufun->is_macro())
+                  {
+                    const std::vector<const Symbol *> all =
+                                               Workspace::get_all_symbols();
+                    loop(a, all.size())
+                        {
+                          Symbol * s = const_cast<Symbol *>(all[a]);
+                          const int depth = s->get_exec_ufun_depth(ufun);
+                          if (depth < 0)   continue;
+                          sym = s;
+                          sym_depth = depth;
+                          break;
+                        }
+                  }
 
                if (ufun->is_macro())
                   outf << "<UserFunction macro-num=\"" << ufun->get_macnum()
                       << "\"/>" << endl;
-               else if (ufun->is_lambda())
+               // a named lambda (e.g. F←{...}) is saved by the name of its
+               // symbol, like a ∇-function, so that it is still F after
+               // )LOAD (it became the anonymous λ1, Bugs39 #96)
+               //
+               else if (ufun->is_lambda() && sym_depth < 0)
                   {
                     outf << "<UserFunction lambda-name=\"" << ufun->get_name()
                         << "\">" << endl;
@@ -1818,11 +1860,14 @@ XML_Loading_Archive::read_Workspace(bool silent)
    //
    if (!has_trailing_NUL())
       {
-        err << "*** workspace file " << filename << endl
-            << "    is corrupt or truncated (missing the trailing NUL"
-               " bytes that )SAVE always writes)." << endl
-            << "NOT LOADED/COPIED" << endl;
-        return;
+        // an error (not a silent return), so that the callers know that
+        // the workspace was not loaded or copied, e.g. )COPY_ONCE (which
+        // recorded it as copied, Bugs39 #92)
+        //
+        MORE_ERROR() << "workspace file " << filename << " is corrupt or "
+                        "truncated (missing the trailing NUL bytes that"
+                        " )SAVE always writes)";
+        Error::throw_parse_error(E_DOMAIN_ERROR, LOC, LOC);
       }
 
    expect_tag("Workspace", LOC);
@@ -2909,8 +2954,19 @@ UCS_string text;
              symbol.expunge();
            }
 
+        // a lambda: λ←λ1 ⍵ ... (with result) or e.g. ⍺ λ1 ⍵ ... (without
+        // result, Bugs39 #40), i.e. λ followed by a digit in the header
+        //
+        bool is_lambda = text.size() && text[0] == UNI_LAMBDA;
+        for (ShapeItem t = 0; !is_lambda && t + 1 < text.ssize() &&
+                              text[t] != UNI_LF; ++t)
+            {
+              if (text[t] == UNI_LAMBDA &&
+                  text[t + 1] >= '0' && text[t + 1] <= '9')   is_lambda = true;
+            }
+
         UserFunction * ufun = 0;
-        if (text[0] == UNI_LAMBDA)
+        if (is_lambda)
            {
              const char * creator = ")LOAD λ";
              ufun = UserFunction::fix_lambda(symbol, text);
@@ -2991,7 +3047,12 @@ const int fun_id = find_int_attr("fun-id", true, 16);
    if (fun_id != -1)
       {
         cFunction_P sysfun = ID::get_system_function(Id(fun_id));
-        Assert(sysfun);
+        if (sysfun == 0)   // e.g. the derived function +/ (Bugs39 #11)
+           {
+             MORE_ERROR() << "a derived function on the )SI cannot be"
+                             " restored";
+             Error::throw_parse_error(E_DOMAIN_ERROR, LOC, LOC);
+           }
         return sysfun;
       }
 
@@ -3401,11 +3462,40 @@ _copy_snapshot snap;
 }
 //────────────────────────────────────────────────────────────────────────────
 void
-XML_Loading_Archive::copy_restore_snapshots()
+XML_Loading_Archive::copy_restore_snapshots(
+                          std::vector<const UserFunction *> & replaced)
 {
    loop(s, copy_snapshots.size())
       {
         _copy_snapshot & snap = copy_snapshots[s];
+
+        // a function that this )COPY has fixed is dropped below (it leaked
+        // before, Bugs39 #10).
+        //
+        if (snap.symbol->value_stack_size() &&
+            snap.symbol->top_of_stack()->get_NC() & (NC_FUNCTION|NC_OPERATOR))
+           {
+             const Function * fun = snap.symbol->get_function();
+             const UserFunction * ufun = fun ? fun->get_func_ufun() : 0;
+             if (ufun && fun != snap.function)
+                {
+                  snap.symbol->pop();
+                  snap.symbol->push();
+                  UserFunction::release(ufun);
+                }
+           }
+
+        // the function that this )COPY has replaced: deferred by fix(), it
+        // is restored below and must not be deleted (Bugs39 #10).
+        //
+        loop(r, replaced.size())
+           {
+             if (replaced[r] == snap.function)
+                {
+                  replaced.erase(replaced.begin() + r);
+                  break;
+                }
+           }
 
         // a localized symbol: restore its global level (Bugs38 #24)
         //

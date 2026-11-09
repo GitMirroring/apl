@@ -125,8 +125,17 @@ int modifier = 0;
         // at most op and modifier, both (near-) integers (Bugs38 #127)
         const ShapeItem X_count = X.element_count();
         if (X_count > 2)   LENGTH_ERROR;
-        op = MX_ops(X.get_near_int(0));
-        if (X_count > 1)   modifier = X.get_near_int(1);
+        // no narrowing to int (Bugs39 #68)
+        const APL_Integer x0 = X.get_near_int(0);
+        const APL_Integer x1 = X_count > 1 ? X.get_near_int(1) : 0;
+        if (x0 != int(x0))   bad_subfun_number_ERROR(-1);
+        if (x1 != int(x1))
+           {
+             MORE_ERROR() << "⎕MX[X] B: bad modifier X[2] (= " << x1 << ")";
+             DOMAIN_ERROR;
+           }
+        op = MX_ops(x0);
+        modifier = x1;
       }
    else
       {
@@ -165,6 +174,8 @@ Value_P Z;
     }
 
   Z->check_value(LOC);
+  Z->check_finite("A ⎕MX[X] B");   // Bugs39 #31
+  real_cells(*Z);          // Bugs39 #100
   return Token(TOK_APL_VALUE1, Z);
 }
 //────────────────────────────────────────────────────────────────────────────
@@ -182,9 +193,18 @@ int modifier = 0;
      {
        // at most op and modifier, both (near-) integers (Bugs38 #127)
        const ShapeItem X_count = X.element_count();
-       if (X_count > 2)   LENGTH_ERROR;
-       op = MX_ops(X.get_near_int(0));
-        if (X_count > 1)   modifier = X.get_near_int(1);
+        if (X_count > 2)   LENGTH_ERROR;
+        // no narrowing to int (Bugs39 #68)
+        const APL_Integer x0 = X.get_near_int(0);
+        const APL_Integer x1 = X_count > 1 ? X.get_near_int(1) : 0;
+        if (x0 != int(x0))   bad_subfun_number_ERROR(-1);
+        if (x1 != int(x1))
+           {
+             MORE_ERROR() << "⎕MX[X] B: bad modifier X[2] (= " << x1 << ")";
+             DOMAIN_ERROR;
+           }
+        op = MX_ops(x0);
+        modifier = x1;
       }
    else
       {
@@ -223,6 +243,8 @@ Value_P Z = Idx0_0(LOC);
       }
 
   Z->check_value(LOC);
+  Z->check_finite("⎕MX[X] B");   // Bugs39 #31
+  real_cells(*Z);          // Bugs39 #100
   return Token(TOK_APL_VALUE1, Z);
 }
 
@@ -302,30 +324,95 @@ Quad_MX::Dcomplex
 Quad_MX::getDet(GSL_Matrix * mtx)
 {
 const int n = mtx->rows();
+
+   // the determinant of a 0×0 matrix is the empty product 1. It occurs as
+   // the cofactor in ⎕MX[2] 0 1⍴0 (Bugs39 #1).
+   //
+   if (n == 0)   return Dcomplex(1.0, 0.0);
    if (n == 1)   return mtx->val(0, 0);
 
-   if (n == 2)
-      {
-        return (mtx->val(0, 0) * mtx->val(1, 1)) -   // diagonal
-               (mtx->val(0, 1) * mtx->val(1, 0));    // off-diagonal
-      }
-
-   // Bareiss (fraction-free) elimination with row pivoting: O(n³) instead
-   // of the O(n!) Laplace expansion that hung for a 14×14 matrix (Bugs38
-   // #15). For integer matrices every division is exact, so the result
-   // stays an exact integer (as long as the minors fit into a double).
+   // If all items are (Gaussian) integers, then use Bareiss's fraction-free
+   // elimination: every minor that it computes is an integer, so the
+   // result is exact (Bugs38 #15) as long as the minors (bounded by
+   // Hadamard's bound, the product of the row norms) are below 2⋆53. If
+   // an intermediate result overflows, then fall back to the Gaussian
+   // elimination below.
+   //
+   // Otherwise use Gaussian elimination with partial pivoting and multiply
+   // the pivots with separate exponents, so that no intermediate product
+   // overflows or underflows unless the determinant itself does (Bareiss
+   // computed products like 1E160×1E160 and returned ∞J-nan- for a
+   // determinant of 1E20, Bugs39 #25).
    //
 std::vector<Dcomplex> a(size_t(n) * n);
-   loop(r, n)   loop(c, n)   a[r*n + c] = mtx->val(r, c);
+bool integral = true;
+double log2_bound = 0.0;
+   loop(r, n)
+      {
+        double row_max = 0.0;   // scaled row norm (avoid overflow)
+        loop(c, n)
+           {
+             const Dcomplex v = mtx->val(r, c);
+             a[r*n + c] = v;
+             if (integral && (v.real() != nearbyint(v.real()) ||
+                              v.imag() != nearbyint(v.imag())))
+                integral = false;
+             const double av = abs(v);
+             if (row_max < av)   row_max = av;
+           }
+        if (row_max == 0.0)   return Dcomplex(0.0, 0.0);   // zero row
 
-Dcomplex prev(1.0, 0.0);
+        double sum = 0.0;
+        loop(c, n)   { const double q = abs(a[r*n + c]) / row_max;
+                       sum += q*q; }
+        log2_bound += log2(row_max) + 0.5*log2(sum);
+      }
+
 bool negate = false;
-   for (int k = 0; k < n - 1; ++k)
+   if (integral && log2_bound < 1000.0)   // Bareiss (exact)
+      {
+        const std::vector<Dcomplex> a0 = a;   // for the fallback
+        Dcomplex prev(1.0, 0.0);
+        for (int k = 0; k < n - 1; ++k)
+            {
+              int piv = k;
+              while (piv < n && a[piv*n + k] == Dcomplex(0.0, 0.0))   ++piv;
+              if (piv == n)   return Dcomplex(0.0, 0.0);
+              if (piv != k)
+                 {
+                   loop(c, n)   std::swap(a[k*n + c], a[piv*n + c]);
+                   negate = !negate;
+                 }
+
+              const Dcomplex akk = a[k*n + k];
+              for (int r = k + 1; r < n; ++r)
+                  {
+                    const Dcomplex ark = a[r*n + k];
+                    for (int c = k + 1; c < n; ++c)
+                        a[r*n + c] = (a[r*n + c] * akk - ark * a[k*n + c])
+                                   / prev;
+                  }
+              prev = akk;
+            }
+
+        const Dcomplex det = a[(n - 1)*n + (n - 1)];
+        if (isfinite(det.real()) && isfinite(det.imag()))
+           return negate ? -det : det;
+
+        a = a0;   // overflow: fall back to Gaussian elimination
+        negate = false;
+      }
+
+   // Gaussian elimination: det = ± (mant × 2⋆expo)
+   //
+Dcomplex mant(1.0, 0.0);
+long expo = 0;
+   for (int k = 0; k < n; ++k)
        {
          // pivot: the largest |a[r;k]| in column k, rows k...
          int piv = k;
-         loop(r, n)
-            if (r > k && abs(a[r*n + k]) > abs(a[piv*n + k]))   piv = r;
+         for (int r = k + 1; r < n; ++r)
+             if (abs(a[r*n + k]) > abs(a[piv*n + k]))   piv = r;
          if (a[piv*n + k] == Dcomplex(0.0, 0.0))   return Dcomplex(0.0, 0.0);
          if (piv != k)
             {
@@ -336,15 +423,43 @@ bool negate = false;
          const Dcomplex akk = a[k*n + k];
          for (int r = k + 1; r < n; ++r)
              {
-               const Dcomplex ark = a[r*n + k];
-               for (int c = k + 1; c < n; ++c)
-                   a[r*n + c] = (a[r*n + c] * akk - ark * a[k*n + c]) / prev;
+               const Dcomplex f = a[r*n + k] / akk;
+               if (f == Dcomplex(0.0, 0.0))   continue;
+               for (int c = k + 1; c < n; ++c)   a[r*n + c] -= f * a[k*n + c];
              }
-         prev = akk;
+
+         // mant ← mant × akk, keeping |mant| in [0.5, 1)
+         int e = 0;
+         frexp(abs(akk), &e);
+         mant *= akk / ldexp(1.0, e);
+         expo += e;
+         frexp(abs(mant), &e);
+         mant /= ldexp(1.0, e);
+         expo += e;
        }
 
-const Dcomplex det = a[(n - 1)*n + (n - 1)];
+   if (expo >  2000)   expo =  2000;   // ∞ (ldexp() would overflow anyway)
+   if (expo < -2000)   expo = -2000;   // 0
+const Dcomplex det(ldexp(mant.real(), int(expo)), ldexp(mant.imag(), int(expo)));
    return negate ? -det : det;
+}
+//────────────────────────────────────────────────────────────────────────────
+bool
+Quad_MX::unit_vector(vector<Dcomplex> & v)
+{
+double max_abs = 0.0;   // max. of |Re v[i]| and |Im v[i]|
+   loop(i, v.size())
+       {
+         if (max_abs < fabs(v[i].real()))   max_abs = fabs(v[i].real());
+         if (max_abs < fabs(v[i].imag()))   max_abs = fabs(v[i].imag());
+       }
+   if (max_abs == 0.0 || !isfinite(max_abs))   return false;
+
+double len = 0.0;   // the length of v ÷ max_abs (1 ≤ len ≤ √(2×⍴v))
+   loop(i, v.size())   { v[i] /= max_abs;   len += std::norm(v[i]); }
+   len = sqrt(len);
+   loop(i, v.size())   v[i] /= len;
+   return true;
 }
 //────────────────────────────────────────────────────────────────────────────
 Quad_MX::Dcomplex
@@ -818,6 +933,13 @@ GSL_Matrix * mtx = genMtx(B, false);
 const Dcomplex det = getDet(mtx);
   delete mtx;
 
+   if (!(isfinite(det.real()) && isfinite(det.imag())))   // Bugs39 #25
+      {
+        MORE_ERROR() << "⎕MX.determinant B: the determinant of B exceeds "
+                        "the range of floating point numbers.";
+        DOMAIN_ERROR;
+      }
+
   return det.imag() == 0.0 ? FloatScalar(det.real(), LOC)
                            : ComplexScalar(det.real(), det.imag(), LOC);
 }
@@ -969,26 +1091,23 @@ vector<Dcomplex> Bv(A_count);
          Bv[a] = Dcomplex(Ba.get_real_value(), Ba.get_imag_value());
        }
 
-const Dcomplex Amag = magnitude(Av);
-const Dcomplex Bmag = magnitude(Bv);
-const Dcomplex mag = Amag * Bmag;
-   if (mag != Dcomplex(0.0, 0.0))
+   // the (real) angle acos(Re⟨A,B⟩÷|A||B|) of A and B as real vectors,
+   // i.e. with the Hermitian inner product like magnitude(), computed
+   // with Kahan's stable formula 2×atan2(‖a-b‖, ‖a+b‖) for the unit vectors
+   // a and b of A and B: acos() of a rounded cosine near 1 is noise, e.g.
+   // 2.1E¯8 for a vector and itself (Bugs38 #68).
+   //
+   // A and B are first scaled by their largest component, so that the
+   // result does not depend on their lengths (no overflow or underflow of
+   // the squares, Bugs39 #26).
+   //
+   if (unit_vector(Av) && unit_vector(Bv))
       {
-        // the (real) angle acos(Re⟨A,B⟩÷|A||B|) of A and B as real vectors,
-        // i.e. with the Hermitian inner product like magnitude(), computed
-        // with Kahan's stable formula 2×atan2(‖A|B|-B|A|‖, ‖A|B|+B|A|‖):
-        // acos() of a rounded cosine near 1 is noise, e.g. 2.1E¯8 for a
-        // vector and itself (Bugs38 #68)
-        //
-        double na = 0.0, nb = 0.0;
-        loop(i, Av.size())   { na += std::norm(Av[i]);   nb += std::norm(Bv[i]); }
-        na = sqrt(na);
-        nb = sqrt(nb);
         double diff = 0.0, sum = 0.0;
         loop(i, Av.size())
            {
-             diff += std::norm(Av[i]*nb - Bv[i]*na);
-             sum  += std::norm(Av[i]*nb + Bv[i]*na);
+             diff += std::norm(Av[i] - Bv[i]);
+             sum  += std::norm(Av[i] + Bv[i]);
            }
         return FloatScalar(2.0 * atan2(sqrt(diff), sqrt(sum)), LOC);
      }
@@ -1063,6 +1182,14 @@ bool imag_used = false;   // some imaginary part is non-zero
              }
        }
 
+   // the correlation does not change if a sample is scaled by a positive
+   // factor. Scale every sample by its largest magnitude, so that neither
+   // the (co-)variances nor their products overflow or underflow (Bugs39
+   // #30).
+   //
+   if (corr)   loop(r, rows)   { scale_samples(Breals[r]);
+                                 scale_samples(Bimags[r]); }
+
    // the (co-)variances of the real and imaginary parts (Bugs38 #63:
    // the covariance, not the correlation that the former normalization
    // of each row produced). Z is symmetric, so only the upper half is
@@ -1116,17 +1243,56 @@ Value_P Z(rows, rows, LOC);
               imag = !imag_used ? 0.0 : r == c ? 1.0
                    : pearson(imag, imag_cov[rr], imag_cov[cc]);
             }
-         Z->next_ravel_Number(real, imag);
+         // not next_ravel_Number(), which would round e.g. a covariance
+         // of 1E¯12 to the integer 0 (Bugs39 #33)
+         if (imag == 0.0)   Z->next_ravel_Float(real);
+         else               Z->next_ravel_Complex(real, imag);
        }
 
    Z->check_value(LOC);
    return Z;
 }
 //────────────────────────────────────────────────────────────────────────────
+void
+Quad_MX::real_cells(Value & Z)
+{
+   // store a complex result item with imaginary part 0 as a real number,
+   // like ⎕MX[1] and the covariance do, e.g. the identity matrix ⎕MX[6] 2
+   // (Bugs39 #100)
+   //
+   if (Z.is_packed())   return;   // no ComplexCells
+
+const ShapeItem count = Z.nz_element_count();
+   loop(z, count)
+       {
+         Cell & cell = Z.get_wravel(z);
+         if (cell.is_pointer_cell())
+            {
+              real_cells(*cell.get_pointer_value());
+            }
+         else if (cell.is_complex_cell() && cell.get_imag_value() == 0.0)
+            {
+              Z.set_ravel_Float(z, cell.get_real_value());
+            }
+       }
+}
+//────────────────────────────────────────────────────────────────────────────
+void
+Quad_MX::scale_samples(vector<double> & samples)
+{
+double max_abs = 0.0;
+   for (size_t s = 0; s < samples.size(); ++s)
+       if (max_abs < fabs(samples[s]))   max_abs = fabs(samples[s]);
+
+   if (max_abs == 0.0 || !isfinite(max_abs))   return;
+   for (size_t s = 0; s < samples.size(); ++s)   samples[s] /= max_abs;
+}
+//────────────────────────────────────────────────────────────────────────────
 double
 Quad_MX::pearson(double cov, double var1, double var2)
 {
-const double rho = cov / sqrt(var1 * var2);
+   // not sqrt(var1 * var2), which may overflow or underflow (Bugs39 #30)
+const double rho = cov / (sqrt(var1) * sqrt(var2));
    // rounding may push rho slightly beyond ±1
    if (rho >  1.0)   return  1.0;
    if (rho < -1.0)   return -1.0;
@@ -1188,12 +1354,17 @@ vector<ShapeItem> buckets(nr_buckets);
          // values that lie on an edge (up to rounding) onto that edge,
          // so that the histogram is invariant under scaling (Bugs38 #94).
          //
+         // The halves keep the differences finite also when maxv - minv
+         // exceeds the double range (Bugs39 #29). The snap tolerance is a
+         // few hundred ulps of q, i.e. rounding errors only, so that
+         // values clearly below an edge are not moved up (Bugs39 #27).
+         //
          ShapeItem bucket = nr_buckets - 1;   // also if maxv == minv
          if (maxv > minv)
             {
-              double q = (val - minv) / (maxv - minv) * nr_buckets;
+              double q = (val/2 - minv/2) / (maxv/2 - minv/2) * nr_buckets;
               const double edge = nearbyint(q);
-              if (fabs(q - edge) < 1E-9 * (1.0 + fabs(edge)))   q = edge;
+              if (fabs(q - edge) < 1E-13 * (1.0 + fabs(edge)))   q = edge;
               if (q < double(nr_buckets - 1))   bucket = ShapeItem(q);
             }
          buckets[bucket]++;
@@ -1254,6 +1425,12 @@ bool imag_used = false;   // some imaginary part is non-zero
          if (Aimags[ab] != 0.0 || Bimags[ab] != 0.0)   imag_used = true;
        }
 
+   if (corr)   // see monadicCovariance() (Bugs39 #30)
+      {
+        scale_samples(Areals);   scale_samples(Aimags);
+        scale_samples(Breals);   scale_samples(Bimags);
+      }
+
 double real =
     gsl_stats_covariance(Areals.data(), 1, Breals.data(), 1, AB_count);
 double imag =
@@ -1290,7 +1467,7 @@ double imag =
 Value_P
 Quad_MX::randoms(Value_P opt_A, Value_P B, int dist)
 {
-int rcnt = 0;   // assume error
+APL_Integer rcnt = 0;   // assume error (not int: Bugs39 #68)
 
    if (!rng_initialised)
      {
@@ -1507,13 +1684,13 @@ const ShapeItem B_count   = B->element_count();
     
    if (!A->is_vector())
       {
-        MORE_ERROR() << "A ⎕MX.rotation_matrix B: vector A expected.";
+        MORE_ERROR() << "A ⎕MX.homogeneous_matrix B: vector A expected.";
         RANK_ERROR;
       }
 
    if (!B->is_vector())
       {
-        MORE_ERROR() << "A ⎕MX.rotation_matrix B: vector B expected.";
+        MORE_ERROR() << "A ⎕MX.homogeneous_matrix B: vector B expected.";
         RANK_ERROR;
       }
 

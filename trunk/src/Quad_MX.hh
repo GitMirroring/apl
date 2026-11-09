@@ -160,9 +160,18 @@ protected:
   /// @param col column to exclude
   static GSL_Matrix * genCofactor(GSL_Matrix * mtx, int row, int col);
 
+  /// replace the complex items with imaginary part 0 of \b Z by real ones
+  static void real_cells(Value & Z);
+
+  /// scale \b samples by their largest magnitude (for the correlation)
+  static void scale_samples(vector<double> & samples);
+
   /// return the determinant of \b mtx
   /// @param mtx square matrix whose determinant is to be computed
   static Dcomplex getDet(GSL_Matrix * mtx);
+
+  /// scale \b v to length 1; return false if v is 0 (or not finite)
+  static bool unit_vector(vector<Dcomplex> & v);
 
   /// return the magnitude of \b v
   /// @param v complex vector whose magnitude (Euclidean norm) is returned

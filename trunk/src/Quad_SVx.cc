@@ -348,6 +348,9 @@ Value_P Z(sh_Z, LOC);
            }
         vname[vlen] = 0;
 
+        // like the APL name below: a valid first character (Bugs39 #84)
+        if (vlen && !Avec::is_first_symbol_char(Unicode(vname[0])))   bad_name = true;
+
         if (bad_name || vlen == 0)
            {
              Z->next_ravel_Int(NO_COUPLING);
@@ -376,8 +379,12 @@ Value_P Z(sh_Z, LOC);
         // the APL name must be a valid user name (not e.g. ⎕IO, S.m, ⍺,
         // or 1x), like the surrogate name above (Bugs38 #7)
         //
+        // λ and λN are the internal names of lambdas, not user names, e.g.
+        // λ←5 is a SYNTAX ERROR (Bugs39 #84)
+        //
         bool bad_var = apl_var.size() == 0 ||
-                       !Avec::is_first_symbol_char(apl_var[0]);
+                       !Avec::is_first_symbol_char(apl_var[0]) ||
+                       apl_var[0] == UNI_LAMBDA;
         loop(v, apl_var.size())
            if (!Avec::is_symbol_char(apl_var[v]))   bad_var = true;
         if (bad_var)
@@ -395,7 +402,7 @@ Value_P Z(sh_Z, LOC);
              continue;
            }
 
-        const AP_num proc = AP_num(A.get_int_value(a));
+        const AP_num proc = AP_num(A.get_near_int(a));
 
         ValueStackItem * vsp = sym->top_of_stack();
         Assert(vsp);
@@ -548,7 +555,7 @@ Value_P Z;
       }
    else                            // return variables offered by processor ↑B
       {
-        const AP_num proc = AP_num(B.get_int_value(0));
+        const AP_num proc = AP_num(B.get_near_int(0));
         Z = get_variables(proc);
       }
 

@@ -79,6 +79,18 @@ const ShapeItem m_len = B->get_shape_item(axis);
    // dropping the scanned axis as without_axis() would do.
    if (m_len == 1)      return Token(TOK_APL_VALUE1, CLONE_P(B, LOC));
 
+   // an empty B (some other axis is 0) has no cells to compute. This is
+   // checked again (with an explanation) below, but must come before the
+   // associative fast path, whose loops over the non-empty axes hung for
+   // e.g. +⍀1E15 0⍴0 (Bugs39 #8).
+   //
+   if (B->get_shape().is_empty())
+      {
+        Value_P Z(B->get_shape(), LOC);
+        Z->check_value(LOC);
+        return Token(TOK_APL_VALUE1, Z);
+      }
+
 const Shape3 shape_Z3(B->get_shape(), axis);
 
 Value_P Z(B->get_shape(), LOC);
@@ -206,6 +218,19 @@ std::vector<ShapeItem> rep_counts;
                           << "] = " << rep_A << " is neither 0 nor 1";
              DOMAIN_ERROR;
            }
+      }
+
+   // check +/A before Z is allocated: a non-conforming B with a huge other
+   // axis was WS FULL instead of LENGTH ERROR (Bugs39 #99)
+   //
+   if (ec_A && !B.is_scalar() && shape_B.get_shape_item(axis) != 1 &&
+       ones_A != shape_B.get_shape_item(axis))
+      {
+        MORE_ERROR() << where << ": expecting +/A = (⍴B)["
+                     << (axis + Workspace::get_IO()) << "] = "
+                     << shape_B.get_shape_item(axis) << " (the number of"
+                        " 1s in A); +/A is " << ones_A;
+        LENGTH_ERROR;
       }
 
 Shape shape_Z(shape_B);

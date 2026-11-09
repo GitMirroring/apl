@@ -666,8 +666,15 @@ UTF8_string dir;
       dir = UTF8_string(list_file.c_str(), slash + 1 - list_file.c_str());
 
 std::string line;
+bool first_line = true;
    while (std::getline(test_list, line))
       {
+        // skip a UTF-8 BOM at the start of the file (Bugs39 #103)
+        //
+        if (first_line && !line.compare(0, 3, "\xEF\xBB\xBF"))
+           line.erase(0, 3);
+        first_line = false;
+
         // ignore leading and trailing white space (incl. \r)
         //
         const size_t from = line.find_first_not_of(" \t\r");
@@ -1125,6 +1132,11 @@ UserPreferences::parse_args_2(bool logit)
                     // -T @list_file is the same as --TL list_file
                     //
                     const char * arg = expanded_args[a];
+
+                    // like --TL: the files end at the next option (they
+                    // swallowed e.g. --TS or --TL as testcases, Bugs39 #77)
+                    //
+                    if (arg[0] == '-' && arg[1])   break;   // next option
                     if (arg[0] == '@' && arg[1])
                        {
                          UTF8_string list_file;
@@ -1760,7 +1772,7 @@ int line = 0;
 int file_profile = 0;   // the current profile in the preferences file
    for (;;)
        {
-         enum { BUFSIZE = 200 };
+         enum { BUFSIZE = 4000 };   // was 200 (Bugs39 #80)
          char buffer[BUFSIZE + 1];
          const char * s = reader.fgets(buffer, BUFSIZE);
          if (s == 0)   break;   // end of file
@@ -1768,12 +1780,28 @@ int file_profile = 0;   // the current profile in the preferences file
          buffer[BUFSIZE] = 0;
          ++line;
 
+         // a line that is too long: report it and skip its rest (which was
+         // read as the next line before, Bugs39 #80)
+         //
+         if (strlen(buffer) == BUFSIZE - 1 && buffer[BUFSIZE - 2] != '\n')
+            {
+              CERR << "line " << line << " of config file " << filename
+                   << " is too long (ignored)" << endl;
+              char rest[BUFSIZE + 1];
+              while (const char * r = reader.fgets(rest, BUFSIZE))
+                  if (strchr(r, '\n'))   break;
+              continue;
+            }
+
          // skip leading spaces
          //
          while (*s && *s <= ' ')   ++s;
 
          if (*s == 0)     continue;   // empty line
          if (*s == '#')   continue;   // comment line
+
+         // the entire line (s may be modified below)
+         const std::string full_line(s);
 
          char opt[BUFSIZE] = { 0 };
          char arg[BUFSIZE] = { 0 };
@@ -2025,10 +2053,14 @@ int file_profile = 0;   // the current profile in the preferences file
             }
          else if (!strncasecmp(opt, "LIBREF-", 7))
             {
-              const int lib_ref = atoi(opt + 7);
+              // exactly one digit N (atoi() made e.g. LIBREF-abc library 0,
+              // Bugs39 #80)
+              const bool one_digit = opt[7] >= '0' && opt[7] <= '9' &&
+                                     opt[8] == 0;
+              const int lib_ref = one_digit ? opt[7] - '0' : -1;
               if (lib_ref < 0 || lib_ref > 9)
                  {
-                   CERR << "bad library reference number " << lib_ref
+                   CERR << "bad library reference number in " << opt
                         << " at line " << line << " of config file "
                         << filename << " (ignored)" << endl;
                    continue;
@@ -2037,7 +2069,14 @@ int file_profile = 0;   // the current profile in the preferences file
               // option --libroot overrides the LIBREF-N settings
               if (LibPaths::is_root_from_arg())   continue;
 
-              const UTF8_string arg_utf(arg);
+              // the rest of the line (a path may contain blanks; only its
+              // first word was used, Bugs39 #80)
+              //
+              const char * path = full_line.c_str() + strlen(opt);
+              while (*path && *path <= ' ')   ++path;
+              UTF8_string arg_utf(path);
+              while (arg_utf.size() && arg_utf.back() <= ' ')
+                    arg_utf.pop_back();
               LibPaths::set_lib_dir(LibRef(lib_ref), arg_utf,
                                     sys ? LibPaths::LibDir::CSRC_PREF_SYS
                                         : LibPaths::LibDir::CSRC_PREF_HOME);
@@ -2277,13 +2316,26 @@ FileReader reader(open_user_file("parallel_thresholds",
 int line = 0;
    for (;;)
        {
-         enum { BUFSIZE = 200 };
+         enum { BUFSIZE = 4000 };   // was 200 (Bugs39 #80)
          char buffer[BUFSIZE + 1];
          const char * s = reader.fgets(buffer, BUFSIZE);
          if (s == 0)   break;   // end of file
 
          buffer[BUFSIZE] = 0;
          ++line;
+
+         // a line that is too long: report it and skip its rest (which was
+         // read as the next line before, Bugs39 #80)
+         //
+         if (strlen(buffer) == BUFSIZE - 1 && buffer[BUFSIZE - 2] != '\n')
+            {
+              CERR << "line " << line << " of config file " << filename
+                   << " is too long (ignored)" << endl;
+              char rest[BUFSIZE + 1];
+              while (const char * r = reader.fgets(rest, BUFSIZE))
+                  if (strchr(r, '\n'))   break;
+              continue;
+            }
 
          // skip leading spaces
          //

@@ -1772,6 +1772,7 @@ Lambda_number lambda_num = LAMBDA_NUM_0;
              }
          Assert(end != -1);
          lambda_num = Lambda_number(lambda_num + 1);
+         lambda_error_pos = b;   // for a DEFN ERROR in this lambda (Bugs39 #48)
          b = setup_one_lambda(b, end, lambda_num);
        }
 
@@ -1788,6 +1789,8 @@ Lambda_number lambda_num = LAMBDA_NUM_0;
    Parser::match_par_bra(body, true);
    set_END_PCs();
 }
+//────────────────────────────────────────────────────────────────────────────
+ShapeItem Executable::lambda_error_pos = 0;
 //────────────────────────────────────────────────────────────────────────────
 void
 Executable::set_END_PCs()
@@ -1858,6 +1861,24 @@ vector<Symbol *> local_vars;   // collector for local variables
         lambda_body.resize(semi + 2);   // leave ENDL and RETURN_SYMBOL
       }
 
+   // the same for a lambda without a result, e.g. {A←⍵ ⋄ ;A}, whose body
+   // ends with ; SYMBOL RETURN_VOID (no ENDL), see compute_lambda_body().
+   // Its locals were not localized (Bugs39 #21).
+   //
+   while (lambda_body.size() >= 3 &&
+          lambda_body.back().get_tag() == TOK_RETURN_VOID)
+      {
+        const size_t semi = lambda_body.size() - 3;   // maybe ';' SYMBOL ?
+        if (lambda_body[semi]  .get_tag() != TOK_SEMICOL)   break;   // no
+        if (lambda_body[semi+1].get_Class() != TC_SYMBOL)   break;   // no
+        local_vars.push_back(lambda_body[semi + 1].get_sym_ptr());
+
+        const Function_PC pc_semi = lambda_body[semi].get_PC();
+        const Token_loc ret(lambda_body[semi + 2].get_token(), pc_semi);
+        lambda_body[semi].copy(ret, LOC);
+        lambda_body.resize(semi + 1);   // leave RETURN_VOID
+      }
+
 const UCS_string lambda_text = extract_lambda_text(signature, lambda_num - 1);
 
    reverse_each_statement(lambda_body);
@@ -1920,9 +1941,24 @@ const ShapeItem last = tos.size();
 ExecuteList *
 ExecuteList::fix(const UCS_string & data, const char * loc)
 {
-   // clear any errors that may have occurred before
+   // clear any errors that may have occurred before, so that an error of
+   // this fix can be detected below. A successful fix restores the error
+   // (of the caller of ⍎ or ⎕EC, e.g. one recorded by ⎕EA), see the end of
+   // this function (LRM p. 280: "The current value of ⎕ET is not
+   // affected", Bugs39 #69).
    //
-   if (Error * err = Workspace::get_error())   err->clear_error_code();
+Error caller_error(E_NO_ERROR, LOC);
+   if (Error * err = Workspace::get_error())
+      {
+        caller_error = *err;
+        err->clear_error_code();
+      }
+
+   // likewise for )MORE: a parse error of data must not show an older )MORE
+   // text (Bugs39 #91)
+   //
+const UCS_string caller_more = Workspace::more_error();
+   Workspace::more_error().clear();
 
 ExecuteList * fun = new ExecuteList(data, loc);
 
@@ -1989,6 +2025,9 @@ Function_PC end_PC = Function_PC_0;   // the PC of the end of data
       }
 
    Log(LOG_UserFunction__fix)   fun->print(CERR);
+
+   if (Error * err = Workspace::get_error())   *err = caller_error;
+   Workspace::more_error() = caller_more;
    return fun;
 }
 //════════════════════════════════════════════════════════════════════════════

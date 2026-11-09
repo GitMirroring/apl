@@ -1933,6 +1933,17 @@ Value_P Z(shape_Z, LOC);
            }
       }
 
+   // an empty Z gets the prototype of the first item of B, like ⊃ (e.g. ' '
+   // for (⍕⍤1)2 0⍴0, Bugs39 #85)
+   //
+   if (Z->is_empty() && len_B)
+      {
+        Cell cache;
+        const Cell & cB0 = B.get_cfirst(cache);
+        if (Value_P v = cB0.try_pointer_value())   Z->set_default(*v, LOC);
+        else                                       Z->set_default(cB0, LOC);
+      }
+
    Z->check_value(LOC);
    return Z;
 }

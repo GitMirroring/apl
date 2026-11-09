@@ -703,7 +703,9 @@ bool interactive = (mode == LIM_Quote_Quad) || (mode == LIM_Quad_Quad);
       {
         UTF8_string file_line;
         bool file_eof = false;
+        IO_Files::nabla_reading = mode == LIM_Nabla;
         IO_Files::get_file_line(file_line, file_eof);
+        IO_Files::nabla_reading = false;
 
         if (!file_eof)
            {

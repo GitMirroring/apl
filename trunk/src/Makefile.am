@@ -438,7 +438,8 @@ test3: all $(TEST_LIBROOT_COPIES)
 	  D=/tmp/apl-test3-$$(date +%Y%m%d_%H%M%S); \
 	  mkdir "$$D"; \
 	  cp testsuites/main/summary.log "$$D/"; \
-	  awk '$$1+0>0 && $$NF ~ /\.tc$$/ {print $$NF ".log"}' \
+	  awk '/^ *[0-9]+ / && $$2 != "assert," { e = $$1 + 0 } \
+	       $$NF ~ /\.tc$$/ { if (e > 0) print $$NF ".log"; e = 0 }' \
 	      testsuites/main/summary.log | xargs -r cp -t "$$D"; \
 	  echo "$(MAKE): $$RC failure(s) -- logs saved to $$D"; \
 	fi

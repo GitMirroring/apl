@@ -69,6 +69,7 @@ UCS_string Quad_QUOTE::buffer;
 // realistic recursive program; users needing deeper recursion can still
 // raise or clear ⎕SYL[1;2] explicitly.
 ShapeItem Quad_SYL::si_depth_limit = 100000;
+ShapeItem Quad_SYL::si_depth_limit_cleared = 0;
 ShapeItem Quad_SYL::value_count_limit = 0;
 ShapeItem Quad_SYL::ravel_count_limit = 0;
 ShapeItem Quad_SYL::print_length_limit = 0;
@@ -433,7 +434,7 @@ Unicode fc[6];
 
    loop(e, ec)
       {
-        const APL_Integer idx = X->get_near_int(e) - qio;
+        const APL_Integer idx = Cell::minus_IO(X->get_near_int(e), qio);
         // an out-of-range index used to be silently ignored here, unlike
         // a REFERENCE to the same index (⎕FC[7], say), which already
         // correctly gives INDEX ERROR -- an assignment must be at least
@@ -508,13 +509,16 @@ StateIndicator * si = Workspace::SI_top_fun();
 }
 //════════════════════════════════════════════════════════════════════════════
 bool
-SystemVariable::lrx_assign_ignored()
+SystemVariable::lrx_assign_ignored(char which)
 {
-   // the same conditions as in Quad_L::assign() (Bugs38 #115)
+   // the same conditions as in Quad_L::assign() (Bugs38 #115), and also
+   // StateIndicator::set_L(), set_R(), and set_X(), which do nothing if the
+   // failed function has no left argument (or axis), Bugs39 #95
    //
 StateIndicator * si = Workspace::SI_top_fun();
    if (si == 0)   return true;
-   return StateIndicator::get_error(si).is_syntax_or_value_error();
+   if (StateIndicator::get_error(si).is_syntax_or_value_error())   return true;
+   return !si->has_LRX(which);
 }
 //════════════════════════════════════════════════════════════════════════════
 Value_P
@@ -610,7 +614,7 @@ UCS_string lx(*old);
 
    loop(e, ec)
       {
-        const APL_Integer idx = X->get_near_int(e) - qio;
+        const APL_Integer idx = Cell::minus_IO(X->get_near_int(e), qio);
         // Bugs28 #100(a): ⎕LX[idx]←B was silently ignored (empty inline
         // body); an out-of-range idx must be rejected just like it is
         // for a plain reference (⎕LX[idx]), matching the ⎕FC/⎕PS/⎕SYL
@@ -780,7 +784,7 @@ APL_Integer Z_quot = print_quotients;
 APL_Integer Z_style = style;
    loop(e, ec)
       {
-        const APL_Integer x = X->get_near_int(e) - qio;
+        const APL_Integer x = Cell::minus_IO(X->get_near_int(e), qio);
         const APL_Integer b = B->get_near_int(e);
 
         if (x == 0)   // display quotients
@@ -1094,7 +1098,7 @@ const APL_Integer qio = Workspace::get_IO();
    //
    loop(e, ec)
       {
-        const APL_Integer x = X->get_near_int(e) - qio;
+        const APL_Integer x = Cell::minus_IO(X->get_near_int(e), qio);
         switch(x)
            {
              case SYL_SI_DEPTH_LIMIT:
@@ -1132,7 +1136,7 @@ const CoreCount   old_core_count = Thread_context::get_active_core_count();
       {
       loop(e, ec)
          {
-           const APL_Integer x = X->get_near_int(e) - qio;
+           const APL_Integer x = Cell::minus_IO(X->get_near_int(e), qio);
            const APL_Integer b = B->get_near_int(extend_B ? 0 : e);
 
            if (x == SYL_SI_DEPTH_LIMIT)   // SI depth limit
@@ -1147,6 +1151,7 @@ const CoreCount   old_core_count = Thread_context::get_active_core_count();
                      DOMAIN_ERROR;
                    }
                 si_depth_limit = b;
+                si_depth_limit_cleared = 0;   // explicitly set (Bugs39 #17)
               }
            else if (x == SYL_VALUE_COUNT_LIMIT)   // value count limit
               {

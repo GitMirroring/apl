@@ -633,7 +633,7 @@ const ShapeItem len_X = X.element_count();
          // (near-integer); otherwise AXIS ERROR, not the DOMAIN ERROR
          // that a raw get_near_int() would throw for e.g. a character.
          if (!X.is_near_int(iX))           AXIS_ERROR;
-         APL_Integer i = X.get_near_int(iX) - qio;
+         APL_Integer i = Cell::minus_IO(X.get_near_int(iX), qio);
          if (i < 0)                        AXIS_ERROR;   // axis i too small
          if (i >= rank_A && i >= rank_B)   AXIS_ERROR;   // axis i too large
          if (axes_X & 1 << i)              AXIS_ERROR;   // axis i used twice

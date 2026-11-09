@@ -178,7 +178,7 @@ vector<TokenTag> openers;   // TOK_L_BRACK, TOK_L_PARENT, or TOK_L_CURLY
              for (ShapeItem l = s; l + 1 < ssize(); l += 2)
                  {
                    if (at(l).get_tag() != TOK_SEMICOL          ||
-                       at(l + 1).get_Class() != TC_SYMBOL)   break;
+                       !is_local_name(at(l + 1)))   break;
                    if (l + 2 < ssize() &&
                        at(l + 2).get_tag() == TOK_R_CURLY)
                       {
@@ -196,7 +196,7 @@ vector<TokenTag> openers;   // TOK_L_BRACK, TOK_L_PARENT, or TOK_L_CURLY
                  {
                    if (l + 1 >= ssize()                        ||
                        at(l).get_tag() != TOK_SEMICOL          ||
-                       at(l + 1).get_Class() != TC_SYMBOL)
+                       !is_local_name(at(l + 1)))
                       {
                         locals = false;
                         break;
@@ -205,8 +205,14 @@ vector<TokenTag> openers;   // TOK_L_BRACK, TOK_L_PARENT, or TOK_L_CURLY
              if (locals)   return;
            }
 
-        MORE_ERROR() << "; outside of [...] (only an index or an axis"
-                        " can contain ;)";
+        if ((openers.size() && openers.back() == TOK_L_CURLY) ||
+            (lambda_locals && openers.size() == 0))   // in a lambda
+           MORE_ERROR() << "; in {...} is only allowed in the trailing list"
+                           " ;NAME1;NAME2... of local variable names (with"
+                           " ; between the names)";   // Bugs39 #81, #83
+        else
+           MORE_ERROR() << "; outside of [...] (only an index or an axis"
+                           " can contain ;)";
         Error error(E_SYNTAX_ERROR, LOC);
         build_error_line_2(error, int(s), int(s));
 
@@ -216,6 +222,25 @@ vector<TokenTag> openers;   // TOK_L_BRACK, TOK_L_PARENT, or TOK_L_CURLY
         StateIndicator::get_error(Workspace::SI_top()) = error;
 
         throw error;
+      }
+}
+//────────────────────────────────────────────────────────────────────────────
+bool
+Token_string::is_local_name(const Token & tok)
+{
+   // a name that can be a local variable of a lambda: not ⍺, ⍵, ⍶, ⍹, or χ
+   // (which are TC_SYMBOLs as well, Bugs39 #83). System variables (e.g. ⎕IO)
+   // are fine.
+   //
+   if (tok.get_Class() != TC_SYMBOL)   return false;
+   switch(tok.get_tag())
+      {
+        case TOK_ALPHA:
+        case TOK_OMEGA:
+        case TOK_ALPHA_U:
+        case TOK_OMEGA_U:
+        case TOK_CHI:      return false;
+        default:           return true;
       }
 }
 //────────────────────────────────────────────────────────────────────────────

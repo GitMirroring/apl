@@ -357,6 +357,14 @@ public:
    /// @param stop true to set stop lines, false to set trace lines
    void set_trace_stop(const std::vector<Function_Line> & lines, bool stop);
 
+   /// delete \b ufun (or decrement its reference count if it is a lambda)
+   /// @param ufun the function to release (may be 0)
+   static void release(const UserFunction * ufun);
+
+   /// if non-zero: the functions replaced by fix() are not deleted but
+   /// collected here (by )COPY, which may need to restore them)
+   static std::vector<const UserFunction *> * deferred_deletes;
+
    /// create a user defined function according to \b data of length \b len
    /// in workspace \b w.
    /// @param text full source text of the function definition

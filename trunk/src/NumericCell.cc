@@ -123,6 +123,13 @@ const double qct = Workspace::get_CT();
         // divide the operand that gcd divides without overflow: b÷gcd
         // overflows for e.g. 1E¯320∧1, while a÷gcd does not (Bugs38 #17)
         //
+        // if gcd is one of the operands, then the LCM is (± with the sign
+        // of a×b) the other one, exactly: a × (b÷a) reintroduced the
+        // rounding of b÷a, e.g. 0.3∧1E17 was 1E17+16 (Bugs39 #43)
+        //
+        if (gcd == fabs(a))   return FloatCell::zF(Z, a < 0 ? -b : b);
+        if (gcd == fabs(b))   return FloatCell::zF(Z, b < 0 ? -a : a);
+
         const APL_Float b_gcd = b / gcd;
         const APL_Float lcm = isfinite(b_gcd) ? a * b_gcd : (a / gcd) * b;
         if (!isfinite(lcm))   return E_DOMAIN_ERROR;
@@ -298,12 +305,15 @@ const bool B_snap0 =    is_near_int() &&    get_real_value() != 0.0 &&
    // the parity of the (exact) doubles N and K is well defined: every
    // double ≥ 2⋆53 is an even integer (Bugs38 #19).
    //
-   if (row == 6 && A->is_near_int() && is_near_int())
+   // Not for a B that merely snaps to 0, e.g. ¯1!¯1E¯14: then N is ¯0 and
+   // NK is ¯1 (Bugs39 #20).
+   //
+   if (row == 6 && A->is_near_int() && is_near_int() && !B_snap0)
       {
         const APL_Float N = nearbyint(r_B);
         const APL_Float K = nearbyint(r_A);
         const APL_Float NK = - N - 1.0;   // 0 ≤ NK
-        if (NK <= 170.0)
+        if (NK >= 0.0 && NK <= 170.0)
            {
              const APL_Float KK = - K - 1.0;
              APL_Float z = 1.0;
@@ -343,25 +353,29 @@ const APL_Float i_B__A = i_B - i_A;
    if (i_A == 0.0 && is_pole(r_A + 1.0))      return IntCell::z0(Z);
    if (i_B__A == 0.0 && is_pole(r_B__A + 1.0))   return IntCell::z0(Z);
 
-const APL_Complex gam_1_a    = ComplexCell::gamma(r_A +    1.0, i_A);
-   if (!isfinite(gam_1_a.real()) || !isfinite(gam_1_a.imag()))
-      return E_DOMAIN_ERROR;
-
-const APL_Complex gam_1_b    = ComplexCell::gamma(r_B +    1.0, i_B);
-   if (!isfinite(gam_1_b.real()) || !isfinite(gam_1_b.imag()))
-      return E_DOMAIN_ERROR;
-
-const APL_Complex gam_1_b__a = ComplexCell::gamma(r_B__A + 1.0, i_B__A);
-   if (!isfinite(gam_1_b__a.real()) || !isfinite(gam_1_b__a.imag()))
-      return E_DOMAIN_ERROR;
+const APL_Complex gam_1_a    = ComplexCell::gamma_nothrow(r_A + 1.0, i_A);
+const APL_Complex gam_1_b    = ComplexCell::gamma_nothrow(r_B + 1.0, i_B);
+const APL_Complex gam_1_b__a = ComplexCell::gamma_nothrow(r_B__A + 1.0, i_B__A);
 
    // same finiteness guard as NumericCell::real_binomial() above,
    // applied to all three intermediate gamma results plus the final
    // division (Blake McBride, Bugs23 #3c -- (0J1)!¯1 gave -nan-J¯∞
    // instead of DOMAIN ERROR).
    //
-const APL_Complex z = gam_1_b / (gam_1_a * gam_1_b__a);
-   if (!isfinite(z.real()) || !isfinite(z.imag()))   return E_DOMAIN_ERROR;
+APL_Complex z = gam_1_b / (gam_1_a * gam_1_b__a);
+   if (!(isfinite(gam_1_a.real())    && isfinite(gam_1_a.imag())    &&
+         isfinite(gam_1_b.real())    && isfinite(gam_1_b.imag())    &&
+         isfinite(gam_1_b__a.real()) && isfinite(gam_1_b__a.imag()) &&
+         isfinite(z.real())          && isfinite(z.imag())))
+      {
+        // some Γ overflows, but the binomial may be small, e.g.
+        // 1000!1E¯11J1E¯11 (Bugs39 #36): use the logarithms
+        //
+        z = exp(ComplexCell::log_gamma(r_B + 1.0, i_B)
+              - ComplexCell::log_gamma(r_A + 1.0, i_A)
+              - ComplexCell::log_gamma(r_B__A + 1.0, i_B__A));
+        if (!isfinite(z.real()) || !isfinite(z.imag()))   return E_DOMAIN_ERROR;
+      }
 
    return ComplexCell::zC(Z, z);
 }
@@ -457,12 +471,14 @@ const double qct = Workspace::get_CT();
 
    if (!A->is_near_real() || !is_near_real())   // complex
       {
-        if (A->is_near_zero())
+        // only an exact 0, not a tiny nonzero value (Bugs39 #37)
+        //
+        if (A->get_complex_value() == APL_Complex(0.0, 0.0))
            {
              return ComplexCell::zC(Z, get_complex_value());
            }
 
-        if (is_near_zero())
+        if (get_complex_value() == APL_Complex(0.0, 0.0))
            {
              return ComplexCell::zC(Z, A->get_complex_value());
            }
@@ -550,8 +566,9 @@ NumericCell::real_binomial(Cell * Z, const Cell * A) const
          !(nearbyint(r_A) == 0.0 && r_A != 0.0))
         K = nearbyint(r_A);
      else if (r_B__A >= 0.0 && r_B__A <= 170.0 &&
-              r_B__A == nearbyint(r_B__A))
-        K = r_B__A;
+              r_B__A == nearbyint(r_B__A) &&
+              r_B__A + r_A == r_B && r_B - r_B__A == r_A)   // exact B-A
+        K = r_B__A;   // e.g. not for ¯1!1E¯20 (B-A rounded, Bugs39 #20)
 
      if (K >= 0.0)
         {
@@ -614,19 +631,37 @@ const APL_Float gam_r_1_B = tgamma(r_1_B);
              if (!isfinite(z))   return E_DOMAIN_ERROR;
              return FloatCell::zF(Z, z);
            }
-        return E_DOMAIN_ERROR;
+        return log_binomial(Z, r_1_A, r_1_B, r_1_B__A);
       }
 
 const APL_Float gam_r_1_A = tgamma(r_1_A);
-   if (!isfinite(gam_r_1_A))   return E_DOMAIN_ERROR;
-
 const APL_Float gam_r_1_B__A = tgamma(r_1_B__A);
-   if (!isfinite(gam_r_1_B__A))   return E_DOMAIN_ERROR;
-
 const APL_Float z = (gam_r_1_B / gam_r_1_A) / gam_r_1_B__A;
-   if (!isfinite(z))   return E_DOMAIN_ERROR;
+
+   // a Γ in the denominator may overflow although the binomial is small,
+   // e.g. 171!¯0.5 or 171!1E¯11 (Bugs39 #36)
+   //
+   if (!(isfinite(gam_r_1_A) && isfinite(gam_r_1_B__A) && isfinite(z)))
+      return log_binomial(Z, r_1_A, r_1_B, r_1_B__A);
 
    return FloatCell::zF(Z, z);
+}
+//────────────────────────────────────────────────────────────────────────────
+ErrorCode
+NumericCell::log_binomial(Cell * Z, APL_Float r_1_A, APL_Float r_1_B,
+                          APL_Float r_1_B__A)
+{
+   // Γ(1+B) ÷ Γ(1+A) × Γ(1+B-A) computed from the logarithms of the
+   // magnitudes (and the signs) of the three Γ values, for Γ values that
+   // overflow individually (Bugs39 #36). None of them is a pole here.
+   //
+int sign_B = 1, sign_A = 1, sign_B__A = 1;
+const APL_Float lg_B    = lgamma_r(r_1_B,    &sign_B);
+const APL_Float lg_A    = lgamma_r(r_1_A,    &sign_A);
+const APL_Float lg_B__A = lgamma_r(r_1_B__A, &sign_B__A);
+const APL_Float z = exp(lg_B - lg_A - lg_B__A);
+   if (!isfinite(z))   return E_DOMAIN_ERROR;
+   return FloatCell::zF(Z, (sign_B * sign_A * sign_B__A) < 0 ? -z : z);
 }
 //────────────────────────────────────────────────────────────────────────────
 ErrorCode
@@ -645,6 +680,31 @@ NumericCell::cpx_gcd(APL_Complex & z, APL_Complex a, APL_Complex b, double qct)
         z = APL_Complex(zz, 0.0);
         return E_NO_ERROR;
       }
+
+   // a real operand that is not a Gaussian integer (e.g. 1E¯11 or 0.5)
+   // is the GCD if it divides the other operand, i.e. if the quotient is a
+   // non-zero Gaussian integer (relative to its magnitude, like flt_gcd()),
+   // e.g. 1E¯11∨3J4 is 1E¯11 like 1E¯11∨3, not 3J4 (since 1E¯11 is not
+   // snapped to 0, Bugs39 #37)
+   //
+   {
+     const bool a_small = abs(a*0.5) <= abs(b*0.5);
+     const APL_Complex small = a_small ? a : b;
+     const APL_Complex big   = a_small ? b : a;
+     if (small != APL_Complex(0.0, 0.0) && small.imag() == 0.0 &&
+         (!is_near_int(small.real()) || nearbyint(small.real()) == 0.0))
+        {
+          const APL_Complex q = big / small;
+          const APL_Complex n(nearbyint(q.real()), nearbyint(q.imag()));
+          const APL_Float tolerance = (qct + 2*DBL_EPSILON) * abs(n);
+          if (isfinite(q.real()) && isfinite(q.imag()) &&
+              n != APL_Complex(0.0, 0.0) && abs(q - n) <= tolerance)
+             {
+               z = small;
+               return E_NO_ERROR;
+             }
+        }
+   }
 
    // case (2) ?
    //
@@ -665,16 +725,25 @@ NumericCell::cpx_gcd(APL_Complex & z, APL_Complex a, APL_Complex b, double qct)
    a = APL_Complex(round(a.real()), round(a.imag()));
    b = APL_Complex(round(b.real()), round(b.imag()));
 
-   for (;;)
+   // abs(x×0.5) instead of abs(x): the magnitude of a finite x may exceed
+   // the double range, e.g. 1.3E308J1.3E308. Then abs(x) is ∞, the loop
+   // computed NaNs and never ended (Bugs39 #13). For the same reason, the
+   // number of iterations is limited like in flt_gcd().
+   //
+   enum { MAX_GCD_ITERATIONS = 5000 };
+   loop(iteration, MAX_GCD_ITERATIONS)
        {
-         if (abs(a) > abs(b))   // make ∣b∣ > ∣a∣
+         if (!(isfinite(a.real()) && isfinite(a.imag()) &&
+               isfinite(b.real()) && isfinite(b.imag())))   break;
+
+         if (abs(a*0.5) > abs(b*0.5))   // make ∣b∣ > ∣a∣
             {
                const APL_Complex _b = b;
                b = a;
                a = _b;
             }
 
-         if (abs(a) < 0.2)
+         if (abs(a*0.5) < 0.1)
             {
               z = b;
               // Bugs28 #100(l) investigated: a Gaussian-integer GCD is
@@ -702,6 +771,8 @@ NumericCell::cpx_gcd(APL_Complex & z, APL_Complex a, APL_Complex b, double qct)
          b = a;
          a = r;
        }
+
+   return E_DOMAIN_ERROR;   // not computable
 }
 //────────────────────────────────────────────────────────────────────────────
 APL_Complex
@@ -808,6 +879,13 @@ const APL_Float nearest = nearbyint(quotient);
 
          const APL_Float r = fmod(b, a);
          const APL_Float err_r = err_b + nearbyint((b - r) / a) * err_a;
+
+         // a remainder within its error *below* a (b is a near-multiple of
+         // a from below) is 0 as well (at ⎕CT←0 the quotient test above
+         // does not catch it), e.g. 1E¯9∨1E5 (Bugs39 #35)
+         //
+         if (a - r <= 2*err_r && err_a <= 1E-3*a)   { z = a;   return E_NO_ERROR; }
+
          b = a;
          a = r;
          err_b = err_a;

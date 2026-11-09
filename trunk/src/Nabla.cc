@@ -25,6 +25,7 @@
 
 #include "Command.hh"
 #include "InputFile.hh"
+#include "IO_Files.hh"
 #include "LineInput.hh"
 #include "Logging.hh"
 #include "Nabla.hh"
@@ -223,6 +224,11 @@ Nabla::skip_body()
          LineHistory lh(10);
          InputMux::get_line(LIM_Nabla, UCS_string(), line, eof, lh);
          if (eof)   return;
+         if (IO_Files::abandon_input)   // testcase ended (Bugs39 #52)
+            {
+              IO_Files::abandon_input = false;
+              return;
+            }
 
          line.remove_leading_and_trailing_whitespaces();
          if (line.size() == 0)   continue;
@@ -282,6 +288,13 @@ try_again:
             {
               LineHistory lh(*this);
               InputMux::get_line(LIM_Nabla, prompt, line, eof, lh);
+            }
+
+         if (IO_Files::abandon_input)   // the testcase ended (Bugs39 #52)
+            {
+              IO_Files::abandon_input = false;
+              execute_escape();   // like [→]
+              break;
             }
 
          if (eof)   // end-of-input (^D) pressed
@@ -1308,6 +1321,10 @@ UCS_string parse_text = current_text;   // a copy that can be modified.
 
    if (parse_text.size())
       {
+        // the )MORE text of an earlier line belongs to another error
+        // (Bugs39 #91)
+        Workspace::more_error().clear();
+
         const Parser parser(PM_FUNCTION, LOC, false);
         Token_string in;
 

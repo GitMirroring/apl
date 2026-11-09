@@ -608,7 +608,11 @@ DLX_Node * item = right;
 
    if (item != this)   // matrix not empty: select shortest column
       {
-        ShapeItem col_size = 2*cols;
+        // a column has at most rows items, so that a primary column is
+        // always chosen (not the first column, which may be a secondary
+        // one, as with the former start value 2*cols, Bugs39 #44)
+        //
+        ShapeItem col_size = rows + 1;
         for (DLX_Node * i = right; i != this; i = i->right)
             {
               if (headers[i->col].col_type != Col_PRIMARY)   continue;
@@ -699,16 +703,40 @@ DLX_Root_Node::preset(cValue_R A_steps, ShapeItem stepsIdx, ShapeItem step_count
                       cValue_R B_mat)
 {
 const int qio = Workspace::get_IO();
+std::vector<bool> covered(headers.size(), false);   // by an earlier step
    loop(a, step_count)
       {
-        const APL_Integer row = A_steps.get_near_int(stepsIdx++) - qio;
+        const APL_Integer row = Cell::minus_IO(A_steps.get_near_int(stepsIdx++), qio);
         if (row < 0 || row >= rows)
            {
              MORE_ERROR() << "bad row: " << row;
              DOMAIN_ERROR;
            }
 
-        bool found_a = false;
+        // the step row must have a '1' or '2' item, and none of its columns
+        // may have been covered by an earlier step (i.e. the row was not
+        // chosen or eliminated before), Bugs39 #14
+        //
+        bool has_items = false;
+        loop(b, nodes.size())
+           {
+             const DLX_Node & n = nodes[b];
+             if (n.row != row)   continue;
+             has_items = true;
+             if (covered[n.col])
+                {
+                  MORE_ERROR() << "(¯4,R) ⎕DLX B: step row "
+                               << (row + qio) << " is not available (it was"
+                                  " chosen or eliminated by an earlier step)";
+                  DOMAIN_ERROR;
+                }
+           }
+        if (!has_items)
+           {
+             MORE_ERROR() << "(¯4,R) ⎕DLX B: step row " << (row + qio)
+                          << " has no 1 or 2";
+             DOMAIN_ERROR;
+           }
 
         // find a '1' or '2' item in row
         //
@@ -717,7 +745,9 @@ const int qio = Workspace::get_IO();
              const DLX_Node & n = nodes[b];
              if (n.row == row)   // found '1' or '2'
                 {
-                  found_a = true;
+                  covered[n.col] = true;
+                  for (DLX_Node * j = n.right; j != &n; j = j->right)
+                      covered[j->col] = true;
                   Log(LOG_Quad_DLX)
                      n.print_RC(CERR << "Covering column " << n.col
                                      << " of rightmost item ") << endl;
@@ -735,7 +765,6 @@ const int qio = Workspace::get_IO();
                   break;   // next row a
                 }
            }
-        Assert(found_a);
       }
 
    // construct return value

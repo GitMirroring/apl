@@ -483,12 +483,13 @@ ShapeItem len_A = A.element_count();
    //
 ShapeItem len_Z = 0;
 std::vector<ShapeItem> rep_counts;
-   rep_counts.reserve(len_B);
+APL_Integer single_rep = 0;   // the single a (if len_A == 1)
    if (len_A == 1)   // single a -> a a ... a (len_B times)
       {
+        // rep_counts is filled below, after the empty-Z check (it took
+        // len_B items even for an empty Z, Bugs39 #58)
         len_A = len_B;
-        APL_Integer rep_A = A.get_near_int(0);
-        loop(a, len_A)   rep_counts.push_back(rep_A);
+        const APL_Integer rep_A = single_rep = A.get_near_int(0);
         // -rep_A is UB for rep_A == INT64_MIN, and would overflow anyway.
         if (rep_A == INT64_MIN || Cell::prod_overflow(rep_A, len_B))
            WS_FULL;
@@ -497,6 +498,7 @@ std::vector<ShapeItem> rep_counts;
       }
    else              // normal A
       {
+        rep_counts.reserve(len_B);
         ShapeItem nonneg_A = 0;   // number of items >= 0 in A
         loop(a, len_A)
            {
@@ -553,6 +555,12 @@ Value_P Z(shape_Z, LOC);
         if (B.is_left_value())   Z->set_left_value();
         Z->check_value(LOC);
         return Token(TOK_APL_VALUE1, Z);
+      }
+
+   if (rep_counts.size() == 0)   // single a (see above)
+      {
+        rep_counts.reserve(len_B);
+        loop(a, len_B)   rep_counts.push_back(single_rep);
       }
 
 const Shape3 shape_B3(shape_B, axis);

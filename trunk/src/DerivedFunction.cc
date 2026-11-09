@@ -23,6 +23,7 @@
 
 #include "Bif_OPER1_EACH.hh"
 #include "Common.hh"
+#include "QuadFunction.hh"
 #include "DerivedFunction.hh"
 #include "Id.hh"
 #include "Output.hh"
@@ -123,6 +124,34 @@ DerivedFunction::get_fun_valence() const
    if (oper->get_func_ufun())   return oper->get_fun_valence();
    if (oper == &Bif_OPER1_EACH::fun && left_arg.is_function())
       return left_arg.get_function()->get_fun_valence();
+
+   // f⍨, f⍤y, and f⍣n call f dyadically when called dyadically (f⍨ even
+   // when called monadically), and f.g calls g dyadically: a monadic-only
+   // f (resp. g) makes them monadic (Bugs39 #97)
+   //
+   switch(oper->get_Id())
+      {
+        case ID_OPER1_COMMUTE:
+        case ID_OPER2_RANK:
+        case ID_OPER2_POWER:
+             if (left_arg.is_function())
+                return min(2, left_arg.get_function()->get_fun_valence());
+             break;
+
+        case ID_OPER2_INNER:
+             {
+               int valence = 2;
+               if (left_arg.is_function())
+                  valence = min(valence,
+                                left_arg.get_function()->get_fun_valence());
+               if (right_arg.is_function())
+                  valence = min(valence,
+                                right_arg.get_function()->get_fun_valence());
+               return valence;
+             }
+
+        default: break;
+      }
    return 2;   // ambivalent or dyadic
 }
 //────────────────────────────────────────────────────────────────────────────
@@ -383,8 +412,35 @@ DerivedFunction::eval_fill_AB(cValue_R A, cValue_R B) const
    // interaction for real is a separate, deeper piece of work. See
    // Bugs27 #28.
    //
+   // a chain that contains a system function is not executed, e.g. for
+   // ⎕ES⍨¨'' (see QuadFunction::eval_fill_AB(), Bugs39 #90)
+   //
+   if (contains_system_function())   return Token(TOK_APL_VALUE1,
+                                                  CLONE(&B, LOC));
+
    if (may_push_SI())   return Function::eval_fill_AB(A, B);
    return eval_AB(A, B);
+}
+//────────────────────────────────────────────────────────────────────────────
+bool
+DerivedFunction::contains_system_function() const
+{
+   if (dynamic_cast<const QuadFunction *>(oper))   return true;
+
+const Token * operands[] = { &left_arg, &right_arg };
+   loop(o, 2)
+      {
+        const Token & tok = *operands[o];
+        if (!tok.is_function())   continue;
+        const Function * fun = tok.get_function();
+        if (dynamic_cast<const QuadFunction *>(fun))   return true;
+        if (const DerivedFunction * dfun =
+                  dynamic_cast<const DerivedFunction *>(fun))
+           {
+             if (dfun->contains_system_function())   return true;
+           }
+      }
+   return false;
 }
 //────────────────────────────────────────────────────────────────────────────
 Token
@@ -392,6 +448,8 @@ DerivedFunction::eval_fill_B(cValue_R B) const
 {
    // see eval_fill_AB() above for the may_push_SI() guard's rationale.
    //
+   if (contains_system_function())   return Token(TOK_APL_VALUE1,
+                                                  CLONE(&B, LOC));
    if (may_push_SI())   return Function::eval_fill_B(B);
    return eval_B(B);
 }

@@ -116,6 +116,11 @@ protected:
    /// @param A left operand cell (N in N!K)
    ErrorCode real_binomial(Cell * Z, const Cell * A) const;
 
+   /// Z←A!B computed from lgamma() of 1+A, 1+B, and 1+B-A (for Γ values
+   /// that overflow, Bugs39 #36)
+   static ErrorCode log_binomial(Cell * Z, APL_Float r_1_A, APL_Float r_1_B,
+                                 APL_Float r_1_B__A);
+
    /// return the greatest common divisor of complex a and b
    /// @param z   result complex GCD
    /// @param a   first complex operand

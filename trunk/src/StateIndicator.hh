@@ -262,6 +262,10 @@ public:
    /// execute token in body...
    Token run();
 
+   /// return true if the failed function of this SI entry has a left
+   /// argument (which = 'L'), a right argument ('R'), or an axis ('X')
+   bool has_LRX(char which);
+
    /// change the left argument (if any) of a failed primitive
    void set_L(Value_P value);
 

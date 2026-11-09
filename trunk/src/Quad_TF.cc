@@ -53,7 +53,7 @@ Quad_TF::eval_AB(cValue_R A, cValue_R B) const
    if (A.get_rank() > 0)         RANK_ERROR;
    if (A.element_count() != 1)   LENGTH_ERROR;
 
-const APL_Integer mode = A.get_int_value(0);
+const APL_Integer mode = A.get_near_int(0);
 const UCS_string symbol_name(B);
 
 Value_P Z;
@@ -1567,6 +1567,10 @@ const int data_chars = len - idx;
 
         // an invalid value (e.g. for ⎕PR) makes the transfer form invalid
         // (lrm p. 339, Bugs38 #85)
+        // an ignored ⎕L, ⎕R, or ⎕X assignment is invalid (Bugs39 #95)
+        if (const SystemVariable * sv =
+               dynamic_cast<const SystemVariable *>(symbol))
+           if (sv->assign_ignored())   return Str0(LOC);
         if (!safe_assign(*const_cast<Symbol *>(symbol), new_val, false))
            return Str0(LOC);
       }
@@ -1629,6 +1633,10 @@ const int data_chars = len - idx;
 
         // an invalid value (e.g. ⎕IO←7) makes the transfer form invalid
         // (lrm p. 339, Bugs38 #85)
+        // an ignored ⎕L, ⎕R, or ⎕X assignment is invalid (Bugs39 #95)
+        if (const SystemVariable * sv =
+               dynamic_cast<const SystemVariable *>(symbol))
+           if (sv->assign_ignored())   return Str0(LOC);
         if (!safe_assign(*const_cast<Symbol *>(symbol), ZZ, false))
            return Str0(LOC);
       }

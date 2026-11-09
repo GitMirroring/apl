@@ -282,8 +282,17 @@ const UCS_string wsname(args.front());
    // workspace (Bugs37 #79), but d1/ws and d2/ws are not (Bugs38 #20).
    //
 LibRef_name lib_name(libref, wsname);
-const UTF8_string filename = LibPaths::get_filename(lib_name, true,
-                                                    ".xml", ".apl");
+UTF8_string filename = LibPaths::get_filename(lib_name, true,
+                                              ".xml", ".apl");
+
+   // the canonical name of an existing file, so that e.g. ./da/ws,
+   // ./da//ws, and ./da/../da/ws are the same workspace (Bugs39 #87)
+   //
+   if (char * real = realpath(filename.c_str(), 0))
+      {
+        filename = UTF8_string(real);
+        free(real);
+      }
 const UCS_string lib_wsname(filename);
 
    // silently return if wsname is already contained in the copy_once_table

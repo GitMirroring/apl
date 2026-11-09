@@ -38,7 +38,7 @@ local1
 SAVED 20⁰-⁰-⁰¹⁰:⁰:⁰ (GMT⁵⁰)³
 
       ⎕CR 'FOO'
-λ←⍺ λ0 ⍵;LOCAL
+λ←⍺ λ1 ⍵;LOCAL
 λ←⍺+LOCAL←⍵   
 
       LOCAL←'local2'

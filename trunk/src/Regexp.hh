@@ -116,7 +116,7 @@ public:
 protected:
    /// compute group_parents from the (compiled) \b pattern
    /// @param pattern the regular expression pattern string
-   void compute_group_parents(const UCS_string & pattern);
+   void compute_group_parents(const UCS_string & pattern, int flags);
 
    /// compiled regular expression
    pcre2_code * code;

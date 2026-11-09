@@ -77,6 +77,20 @@ class IO_Files
    friend class UserPreferences;
 
 public:
+   /// true if the line requested from get_file_line() is for the ∇-editor
+   static bool nabla_reading;
+
+   /// end the current testcase after a line error (--TM 5 or 6)
+   static void line_error_done();
+
+   /// true if diff_error() has found a line error with --TM 5 or 6
+   static bool line_error_pending;
+
+   /// set by get_file_line() when a testcase file ended inside a ∇-editor
+   /// session or a multi-line string, which shall then be abandoned
+   /// (Bugs39 #52)
+   static bool abandon_input;
+
    /// count an error
    static void reset_errors()
       {
@@ -232,6 +246,7 @@ protected:
 
    /// true until total error count is printed.
    static bool need_total;
+
 
    /// the number of testcases provided
    static int testcase_count;

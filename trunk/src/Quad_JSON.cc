@@ -107,7 +107,7 @@ Quad_JSON::eval_AB(cValue_R A, cValue_R B) const
    if (A.get_rank() > 0)   RANK_ERROR;
 
 // APL_Integer, not int: e.g. 4294967298 was 2 (Bugs38 #87)
-const APL_Integer function_number = A.get_int_value(0);
+const APL_Integer function_number = A.get_near_int(0);
    switch(function_number)
       {
         case 0:   // same as monadic ⎕JSON

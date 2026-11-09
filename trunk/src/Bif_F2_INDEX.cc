@@ -72,7 +72,7 @@ IndexExpr index_expr(ASS_none, LOC);
                    MORE_ERROR() << "A⌷B: A["
                                 << (idx + Workspace::get_IO())
                                 << "] = " << I << " is negative";
-                   DOMAIN_ERROR;
+                   INDEX_ERROR;   // like B[I] (Bugs39 #98)
                  }
               index_expr.add_index(IntScalar(I, LOC));
             }
@@ -131,7 +131,7 @@ vector<ShapeItem> axis_to_pos(B.get_rank(), -1);
    loop(e, X.element_count())
        {
          Cell cache;
-         const APL_Integer axis = X.get_cravel(e, cache).get_near_int() - qio;
+         const APL_Integer axis = Cell::minus_IO(X.get_cravel(e, cache).get_near_int(), qio);
          axis_to_pos[axis] = e;
        }
 
@@ -171,7 +171,7 @@ IndexExpr index_expr(ASS_none, LOC);   // start with an empty IndexExpr
                   {
                     MORE_ERROR() << "A⌷[X]B: A[" << (a + Workspace::get_IO())
                                  << "] = " << I << " is negative";
-                    DOMAIN_ERROR;
+                    INDEX_ERROR;   // like B[I] (Bugs39 #98)
                   }
                Value_P val = IntScalar(I, LOC);
               index_expr.add_index(val);
