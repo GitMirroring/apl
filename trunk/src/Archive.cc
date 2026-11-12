@@ -491,16 +491,6 @@ XML_Saving_Archive::save_Function(const Function & fun)
       }
    else if (fun.is_derived())
       {
-        err << endl <<
-"WARNING: The )SI stack contains a derived function. )SAVEing a workspace in\n"
-"         such a state is currently not supported and WILL cause problems\n"
-"         when )LOADing the workspace. Please perform )SIC (or →) and then\n"
-"         )SAVE this workspace again.\n"
-"\n"
-"         As a precaution for loosing data or function definitions, please\n"
-"         also )DUMP this workspace (before )SIC or →).\n"
-             << endl;
-
         const DerivedFunction & dfn = static_cast<const DerivedFunction &>(fun);
 
         // LO/RO can each be bound to a VALUE instead of a function (e.g.
@@ -509,11 +499,12 @@ XML_Saving_Archive::save_Function(const Function & fun)
         // tag isn't TOK_VOID, which SYNTAX_ERRORs on a value token. That
         // used to abort )SAVE half-way through writing this element,
         // leaving a truncated file that then clobbered a perfectly good
-        // previous one on rename (Bugs28 #29). )LOADing a derived
-        // function is already documented above as unsupported/lossy, so
-        // a value-bound operand is written as a "*-vid" reference (like
-        // AXIS already is) rather than reproduced exactly -- the goal
-        // here is only that )SAVE itself completes.
+        // previous one on rename (Bugs28 #29). A value-bound operand is
+        // therefore written as a "*-vid" reference (like AXIS), and
+        // )LOAD binds that value again (instantiate_derived_functions()).
+        // The <Function> elements of a derived function's operands (and
+        // of its operator) are written before it: as primitives, as
+        // values of symbols (e.g. ⍶), or as lambdas on the )SI.
         //
         const Value_P lo_val = dfn.get_bound_LO_value();
         const Function * lo = lo_val ? 0 : dfn.get_LO();
@@ -589,17 +580,13 @@ XML_Saving_Archive::save_Function(const Function & fun)
 int
 XML_Saving_Archive::save_Function_name(const Function & fun)
 {
+   // a derived function (e.g. +/ or F¨) is saved (before the tokens of its
+   // Parser) by save_Derived(). Refer to it by its fid.
+   //
    if (fun.is_derived())
       {
-        err << endl <<
-"WARNING: The )SI stack contains a derived function. )SAVEing a workspace in\n"
-"         such a state is currently not supported and WILL cause problems\n"
-"         when )LOADing the workspace. Please perform )SIC (or →) and then\n"
-"         )SAVE this workspace again.\n"
-"\n"
-"         As an alternative (and to be on the safe side), you should also\n"
-"         consider to )DUMP this workspace.\n"
-             << endl;
+        outf << " fid=\"" << HEX(&fun) << "\"";
+        return 1;   // one attribute
       }
 
 const UserFunction * ufun = fun.get_func_ufun();
@@ -631,6 +618,15 @@ const UserFunction * ufun = fun.get_func_ufun();
 
         outf << " ufun-name=\""  << fname     << "\""
             << " symbol-level=\"" << sym_depth << "\"";
+
+        // an anonymous lambda: also its fid, since its name (e.g. λ1) need
+        // not be unique
+        //
+        if (sym_depth < 0)
+           {
+             outf << " fid=\"" << HEX(&fun) << "\"";
+             return 3;   // three attributes
+           }
         return 2;   // two attributes
       }
    else        // primitive or quad function
@@ -795,7 +791,12 @@ const Executable & exec = *si.get_executable();
                //
                else if (ufun->is_lambda() && sym_depth < 0)
                   {
+                    // fid: e.g. the operator of a derived function, like
+                    // λ2 in {⍺×⍵}{⍶ ⍵}3, refers to it
+                    //
                     outf << "<UserFunction lambda-name=\"" << ufun->get_name()
+                        << "\" fid=\""
+                        << HEX(static_cast<const Function *>(ufun))
                         << "\">" << endl;
                     ++indent;
                     save_UCS(ufun->canonical(false));
@@ -1315,6 +1316,8 @@ const int offset = Workspace::get_v_Quad_TZ().get_offset();   // timezone offset
 "                <!ATTLIST Function LO-fid          CDATA #IMPLIED>\n"
 "                <!ATTLIST Function OPER-fid        CDATA #IMPLIED>\n"
 "                <!ATTLIST Function RO-fid          CDATA #IMPLIED>\n"
+"                <!ATTLIST Function LO-vid          CDATA #IMPLIED>\n"
+"                <!ATTLIST Function RO-vid          CDATA #IMPLIED>\n"
 "                <!ATTLIST Function AXIS-vid        CDATA #IMPLIED>\n"
 "                <!ATTLIST Function exec-properties CDATA #IMPLIED>\n"
 "                <!ATTLIST Function stop-lines      CDATA #IMPLIED>\n"
@@ -1362,6 +1365,7 @@ const int offset = Workspace::get_v_Quad_TZ().get_offset();   // timezone offset
 "                <!ATTLIST UserFunction ufun-name       CDATA #IMPLIED>\n"
 "                <!ATTLIST UserFunction macro-num       CDATA #IMPLIED>\n"
 "                <!ATTLIST UserFunction lambda-name     CDATA #IMPLIED>\n"
+"                <!ATTLIST UserFunction fid             CDATA #IMPLIED>\n"
 "                <!ATTLIST UserFunction symbol-level    CDATA #IMPLIED>\n"
 "\n"
 "                <!ELEMENT Parser (Token*, Function*)>\n"
@@ -1384,6 +1388,7 @@ const int offset = Workspace::get_v_Quad_TZ().get_offset();   // timezone offset
 "                    <!ATTLIST Token vid          CDATA #IMPLIED>\n"
 "                    <!ATTLIST Token index        CDATA #IMPLIED>\n"
 "                    <!ATTLIST Token fun-id       CDATA #IMPLIED>\n"
+"                    <!ATTLIST Token fid          CDATA #IMPLIED>\n"
 "                    <!ATTLIST Token ufun-name    CDATA #IMPLIED>\n"
 "                    <!ATTLIST Token symbol-level CDATA #IMPLIED>\n"
 "                    <!ATTLIST Token comment      CDATA #IMPLIED>\n"
@@ -2321,7 +2326,10 @@ XML_Loading_Archive::instantiate_derived_functions(bool allocate)
    /* derived functions are allocated i 2 phases:
 
       phase 1: allocate=true and todo.cache set: create the function
-      phase 2: allocate=false and todo.symptr set: store pointer
+      phase 2: allocate=false and todo.symbol set: bind the function
+               (created in phase 1 from the <Function> in the Parser of
+               the )SI entry that owns it) to level sym_level of the
+               symbol, e.g. ⍶ of a macro (Bugs39: was left unused)
     */
 
    loop(d, derived_todos.size())
@@ -2330,11 +2338,16 @@ XML_Loading_Archive::instantiate_derived_functions(bool allocate)
         Assert(todo.fid != -1);
 
         cFunction_P fun = find_function(todo.fid);
-        Assert(fun);
+        if (fun == 0)
+           {
+             MORE_ERROR() << "a derived function on the )SI was not found";
+             Error::throw_parse_error(E_DOMAIN_ERROR, LOC, LOC);
+           }
 
         if (!allocate)
            {
-             if (todo.symptr)   *todo.symptr = fun;
+             if (todo.symbol)   todo.symbol->set_function_at(todo.sym_level,
+                                                             fun);
              continue;
            }
 
@@ -2357,74 +2370,56 @@ DerivedFunction * const slot = static_cast<DerivedFunction *>(todo.cache);
              Error::throw_parse_error(E_DOMAIN_ERROR, LOC, LOC);
            }
 
-        // LO_fid is -1 for a plain function bound only to an axis (no
-        // operator, no left operand) -- mirrors how RO_fid/AXIS_vid are
-        // already handled as optional just below. LO_arg stays 0 (no
-        // left operand passed to construct_at()) in that case; tok_LO
-        // is still constructed either way (Token's TOK_FUN2 constructor
-        // does not itself validate the function pointer, only stores
-        // it -- see Token.hh), but is only ever referenced via LO_arg,
-        // so a null LO here is never actually dereferenced.
-        // find_function() can legitimately come up empty here even
-        // though LO_fid/RO_fid were recorded: an operand that was an
-        // anonymous lambda (bound only as a suspended derived
-        // function's operand, never given a name) has no symbol-table
-        // entry of its own to drive saving its *own* <Function>
-        // element, so nothing to resolve it against exists in the
-        // loaded file. )SAVEing a derived function on the )SI is
-        // already documented (the WARNING above) as producing an
-        // imperfect reload -- degrade gracefully (drop the operand, as
-        // an absent LO_fid/RO_fid already does just below) rather than
-        // crashing the whole )LOAD (Bugs28 #29).
+        // the operands: a function (LO_fid/RO_fid), a value (LO_vid/RO_vid,
+        // e.g. the 0 in F⍤0), or none (e.g. LO of a function bound only to
+        // an axis, or RO of a monadic operator).
         //
-        cFunction_P LO = 0;
-        if (todo.LO_fid != -1)   LO = find_function(todo.LO_fid);
-        Token tok_LO(TOK_FUN2, LO);
-        Token * const LO_arg = LO ? &tok_LO : 0;
+        Token tok_LO;
+        Token tok_RO;
+        const bool has_LO = derived_operand(tok_LO, todo.LO_fid, todo.LO_vid);
+        const bool has_RO = derived_operand(tok_RO, todo.RO_fid, todo.RO_vid);
 
-        cFunction_P RO = (todo.RO_fid != -1) ? find_function(todo.RO_fid) : 0;
-        if (RO)   // dyadic operator
+        Value_P X;
+        if (todo.AXIS_vid != -1)
            {
-             Token tok_RO(TOK_FUN2, RO);
+             // AXIS_vid comes straight from the file index (an
+             // attacker-controlled "<Derived AXIS-vid=...>" attribute)
+             // with only the -1 (no axis) sentinel filtered above --
+             // any other out-of-range value was an OOB vector read.
+             if (todo.AXIS_vid < 0 || size_t(todo.AXIS_vid) >= values.size())
+                DOMAIN_ERROR;
+             X = values[todo.AXIS_vid];
+           }
 
-             if (todo.AXIS_vid == -1)   // dyadic operator without axis
-                {
-                  DerivedFunctionCache::construct_at(slot, LO_arg, OPER,
-                                                     &tok_RO, Value_P(), LOC);
-                }
-             else                       // dyadic operator with axis
-                {
-                  // AXIS_vid comes straight from the file index (an
-                  // attacker-controlled "<Derived AXIS-vid=...>" attribute)
-                  // with only the -1 (no axis) sentinel filtered above --
-                  // any other out-of-range value was an OOB vector read.
-                  if (todo.AXIS_vid < 0 ||
-                      size_t(todo.AXIS_vid) >= values.size())
-                     DOMAIN_ERROR;
-                  Value_P val_X = values[todo.AXIS_vid];
-                  DerivedFunctionCache::construct_at(slot, LO_arg, OPER,
-                                                     &tok_RO, val_X, LOC);
-                }
-           }
-        else                       // monadic operator
-           {
-             if (todo.AXIS_vid == -1)   // monadic operator without axis
-                {
-                  DerivedFunctionCache::construct_at(slot, LO_arg, OPER,
-                                                     0, Value_P(), LOC);
-                }
-             else                       // monadic operator with axis
-                {
-                  // see the dyadic-operator-with-axis branch above.
-                  if (todo.AXIS_vid < 0 ||
-                      size_t(todo.AXIS_vid) >= values.size())
-                     DOMAIN_ERROR;
-                  Value_P X = values[todo.AXIS_vid];
-                  DerivedFunctionCache::construct_at(slot, LO_arg, OPER,
-                                                     0, X, LOC);
-                }
-           }
+        DerivedFunctionCache::construct_at(slot, has_LO ? &tok_LO : 0, OPER,
+                                           has_RO ? &tok_RO : 0, X, LOC);
       }
+}
+//────────────────────────────────────────────────────────────────────────────
+bool
+XML_Loading_Archive::derived_operand(Token & tok, Fid fid, Vid vid)
+{
+   if (fid != NO_FID)   // a function
+      {
+        cFunction_P fun = find_function(fid);
+        if (fun == 0)
+           {
+             MORE_ERROR() << "an operand of a derived function on the )SI"
+                             " cannot be restored";
+             Error::throw_parse_error(E_DOMAIN_ERROR, LOC, LOC);
+           }
+        new (&tok) Token(TOK_FUN2, fun);
+        return true;
+      }
+
+   if (vid != -1)       // a value
+      {
+        if (vid < 0 || size_t(vid) >= values.size())   DOMAIN_ERROR;
+        new (&tok) Token(TOK_APL_VALUE1, values[vid]);
+        return true;
+      }
+
+   return false;        // no operand
 }
 //────────────────────────────────────────────────────────────────────────────
 const UTF8 *
@@ -2765,7 +2760,9 @@ const Fid fid      = find_Fid_attr("fid", false, 16);   // in the )SAVEing WS
 const Fid LO_fid   = find_Fid_attr("LO-fid",   true,  16);
 const Fid OPER_fid = find_Fid_attr("OPER-fid", true,  16);
 const Fid RO_fid   = find_Fid_attr("RO-fid",   true,  16);
-const Vid AXIS_vid = find_Vid_attr("AXIS-vid", true,  10);
+const Vid LO_vid   = find_Vid_attr("LO-vid",   true,  16);
+const Vid RO_vid   = find_Vid_attr("RO-vid",   true,  16);
+const Vid AXIS_vid = find_Vid_attr("AXIS-vid", true,  16);
 Function * derived = si.fun_oper_cache.reserve_slot(LOC);
 
    if (OPER_fid == NO_FID)
@@ -2774,8 +2771,8 @@ Function * derived = si.fun_oper_cache.reserve_slot(LOC);
         return;
       }
 
-_derived_todo td = { derived, 0, fid, LO_fid, OPER_fid, RO_fid,
-                     AXIS_vid, LOC };
+_derived_todo td = { derived, 0, 0, fid, LO_fid, OPER_fid, RO_fid,
+                     LO_vid, RO_vid, AXIS_vid, LOC };
    add_fid_function(fid, derived, LOC);
    derived_todos.push_back(td);
 }
@@ -2840,22 +2837,36 @@ const Fid OPER_fid_probe = find_Fid_attr("OPER-fid", true, 16);
         const Fid LO_fid = find_Fid_attr("LO-fid", true, 16);
         const Fid OPER_fid = OPER_fid_probe;
         const Fid RO_fid = find_Fid_attr("RO-fid", true, 16);
+        const Vid LO_vid = find_Vid_attr("LO-vid", true, 16);
+        const Vid RO_vid = find_Vid_attr("RO-vid", true, 16);
         const Vid AXIS_vid = find_Vid_attr("AXIS-vid", true, 16);
 
-        symbol.push();   // placeholder (for now)
+        if (d > 0)   symbol.push();   // placeholder, bound in phase 2
         add_fid_function(fid, 0, LOC);
 
-        _derived_todo td = { 0, symbol.top_of_stack()->get_function_P(),
-                             fid, LO_fid, OPER_fid, RO_fid, AXIS_vid, LOC };
+        _derived_todo td = { 0, &symbol, symbol.value_stack_size() - 1,
+                             fid, LO_fid, OPER_fid, RO_fid,
+                             LO_vid, RO_vid, AXIS_vid, LOC };
         derived_todos.push_back(td);
         return;
       }
 
    if (find_optional_attr("ref"))   // function pointer
       {
-        cFunction_P fun = find_function(fid);
-        Assert(fun);
-        symbol.push_function(fun);
+        if (cFunction_P fun = find_function(fid))
+           {
+             symbol.push_function(fun);
+             return;
+           }
+
+        // a derived function that is created later (from its <Function>
+        // in the Parser of its )SI entry)
+        //
+        if (d > 0)   symbol.push();   // placeholder, bound in phase 2
+        _derived_todo td = { 0, &symbol, symbol.value_stack_size() - 1,
+                             fid, NO_FID, NO_FID, NO_FID,
+                             NO_VID, NO_VID, NO_VID, LOC };
+        derived_todos.push_back(td);
         return;
       }
 
@@ -2985,6 +2996,12 @@ UCS_string text;
              symbol.pop();   // level d (bound by fix())
              ufun->set_creation_time(creation_time);
              symbol.push_function(ufun);
+
+             // the reference taken by fix_lambda() above belongs to level
+             // d. A local name releases it in pop_local(), but an operand
+             // (e.g. ⍶) is popped by pop() only (Bugs39 #89)
+             //
+             if (is_lambda && d > 0)   symbol.set_top_owns_lambda();
              add_fid_function(fid, ufun, LOC);
              ufun->set_exec_properties(eprops);
              if (!copying && (stop_lines.size() || trace_lines.size()))
@@ -3015,6 +3032,22 @@ XML_Loading_Archive::read_Function_name()
 {
 const UTF8 * fun_name = find_optional_attr("ufun-name");
 
+   // a derived function, read by read_Derived() (and constructed later
+   // by instantiate_derived_functions())
+   //
+   if (!fun_name && find_optional_attr("fid"))
+      {
+        const Fid fid = find_Fid_attr("fid", false, 16);
+        cFunction_P fun = find_function(fid);
+        if (fun == 0)
+           {
+             MORE_ERROR() << "a derived function on the )SI was not found"
+                             " (line " << line_no << ")";
+             Error::throw_parse_error(E_DOMAIN_ERROR, LOC, LOC);
+           }
+        return fun;
+      }
+
    if (fun_name)   // user defined function
       {
         const int level = find_int_attr("symbol-level", false, 10);
@@ -3027,14 +3060,27 @@ const UTF8 * fun_name = find_optional_attr("ufun-name");
              return find_lambda(name_UCS);
            }
 
-        const Symbol & symbol = *Workspace::lookup_symbol(name_UCS);
-
-        if (level < 0)   // e.g. λ1 of an unreduced lambda operator (Bugs35 #43)
+        // an anonymous lambda, e.g. λ1 of an unreduced lambda operator
+        // (Bugs35 #43): the lambda with the same fid (e.g. on the )SI or
+        // an operand), or else the lambda of that name in the body of the
+        // current )SI entry.
+        //
+        if (level < 0)
            {
+             const Fid fid = find_Fid_attr("fid", true, 16);
+             if (fid != NO_FID)
+                {
+                  if (cFunction_P fun = find_function(fid))   return fun;
+                }
+
+             if (cFunction_P fun = find_lambda(name_UCS))   return fun;
+
              MORE_ERROR() << "function " << name_UCS << " on the )SI cannot"
                              " be restored";
              Error::throw_parse_error(E_DOMAIN_ERROR, LOC, LOC);
            }
+
+        const Symbol & symbol = *Workspace::lookup_symbol(name_UCS);
         Assert(level < symbol.value_stack_size());
         const ValueStackItem & vsi = symbol[level];
         Assert(vsi.get_NC() == NC_FUNCTION);
@@ -3072,6 +3118,7 @@ const int value = find_int_attr("value", false, 10);
 Executable *
 XML_Loading_Archive::read_lambda(const UTF8 * lambda_name)
 {
+const Fid fid = find_Fid_attr("fid", true, 16);   // absent before Bugs39
 UCS_string lambda = read_UCS();
 
    // the name of the lambda, e.g. λ1 (it was λ0, Bugs38 #80)
@@ -3085,8 +3132,27 @@ Lambda_number lambda_num = LAMBDA_NUM_0;
                                            lambda_utf.size()));
       }
 
+   // the same lambda, if it was already read: e.g. as an operand (⍶) or
+   // on a lower )SI level (recursion). Otherwise a new one.
+   //
+UserFunction * ufun = 0;
+   if (fid != NO_FID)
+      {
+        if (cFunction_P fun = find_function(fid))
+           {
+             const UserFunction * old = fun->get_func_ufun();
+             if (old && old->is_lambda())
+                ufun = const_cast<UserFunction *>(old);
+           }
+      }
+
 Symbol dummy(ID_No_ID);
-UserFunction * ufun = UserFunction::fix_lambda(dummy, lambda, lambda_num);
+   if (ufun == 0)
+      {
+        ufun = UserFunction::fix_lambda(dummy, lambda, lambda_num);
+        if (ufun && fid != NO_FID)   add_fid_function(fid, ufun, LOC);
+      }
+
    if (ufun == 0)   // e.g. a bad ; tail that older versions accepted
       {
         // the Error refuses the whole workspace (see read_StateIndicator())
@@ -3280,7 +3346,10 @@ const Executable * exec = 0;
    // unconditionally, so an out-of-range value must be rejected here, not
    // left to crash whichever command happens to list the SI later.
    //
-   if (pc < 0 || size_t(pc) >= exec->get_body().size())
+   // pc == size is valid: e.g. a ⍎ whose statement was fully reduced
+   // while it executes a function (like ⍎'F¨1 2' with F suspended)
+   //
+   if (pc < 0 || size_t(pc) > exec->get_body().size())
       {
         MORE_ERROR() << "corrupt workspace: SI-entry pc=" << pc
                      << " out of range (body has "

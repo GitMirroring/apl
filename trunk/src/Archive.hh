@@ -475,11 +475,14 @@ protected:
    struct _derived_todo
       {
         Function * cache;       ///< the new()-address of the function
-        cFunction_P * symptr;   ///< the address of a function * to be set
+        Symbol * symbol;        ///< the symbol to which the function is bound
+        int sym_level;          ///< the level in \b symbol
         Fid fid;                ///< the address of \b this derived function
         Fid LO_fid;             ///< the address of \b LO of this function
         Fid OPER_fid;           ///< the address of \b OPER of this function
         Fid RO_fid;             ///< the address of \b RO of this function
+        Vid LO_vid;             ///< the value \b LO of this function (if any)
+        Vid RO_vid;             ///< the value \b RO of this function (if any)
         Vid AXIS_vid;           ///< the AXIS of \b this function
         const char * loc;       ///< where \b this was initialized
       };
@@ -594,6 +597,10 @@ protected:
 
    /// set \b current_char to next (UTF-8 encoded) char, return true if EOF
    bool get_uni();
+
+   /// set \b tok to the function \b fid or else to the value \b vid of an
+   /// operand of a derived function. Return false if there is neither.
+   bool derived_operand(Token & tok, Fid fid, Vid vid);
 
    /// instantiate the derived functions in \b derived_todos
    /// @param allocate true to allocate new derived functions, false to link them

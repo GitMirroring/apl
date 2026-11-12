@@ -1496,6 +1496,20 @@ UserFunction::release(const UserFunction * ufun)
       delete ufun;
 }
 //════════════════════════════════════════════════════════════════════════════
+ShapeItem
+UserFunction::locals_start(const Token_string & body, ShapeItem end)
+{
+   // if body[semi] ... body[end - 1] is ; NAME... (one or more names, e.g.
+   // ;A or, like in a ∇-header, ;A B, Bugs39 #81) then return semi.
+   // Otherwise return -1.
+   //
+ShapeItem semi = end;
+   while (semi > 0 && body[semi - 1].get_Class() == TC_SYMBOL)   --semi;
+   if (semi == end || semi == 0)                      return -1;   // no names
+   if (body[semi - 1].get_tag() != TOK_SEMICOL)       return -1;   // no ;
+   return semi - 1;
+}
+//────────────────────────────────────────────────────────────────────────────
 UserFunction *
 UserFunction::fix_lambda(Symbol & var, const UCS_string & text,
                          Lambda_number lambda_num)
@@ -1547,7 +1561,19 @@ int signature = has_result ? SIG_FUN | SIG_Z : SIG_FUN;
               case UNI_NUMBER_SIGN:    dest = &comment;       break;
               case UNI_COMMENT:        dest = &comment;       break;
               case UNI_SPACE:
-                   if (dest == &lvars_text)   dest = &comment;
+                   // the locals may be separated by blanks, e.g. ;C D
+                   // (Bugs39 #81). Only a ⍝ or the end of the header
+                   // after the blanks start the comment.
+                   //
+                   if (dest == &lvars_text)
+                      {
+                        ShapeItem n = t + 1;
+                        while (n < text.ssize() && text[n] == UNI_SPACE)  ++n;
+                        if (n >= text.ssize()               ||
+                            text[n] == UNI_LF               ||
+                            text[n] == UNI_COMMENT          ||
+                            text[n] == UNI_NUMBER_SIGN)   dest = &comment;
+                      }
                    break;
 
               case UNI_LF:   // end of header
@@ -1562,7 +1588,29 @@ int signature = has_result ? SIG_FUN | SIG_Z : SIG_FUN;
 
    lvars_text.remove_trailing_whitespaces();
    body_text.remove_trailing_whitespaces();
+
    body_text << comment;
+
+   // older SVNs (before Bugs39 #81) treated the blank in e.g. ; X as the
+   // start of a comment: )LOAD then moved X to the end of the body and
+   // kept a ; without names, which a later )SAVE wrote into the header.
+   // Ignore that ; (as those SVNs did), but tell the user, since the end
+   // of the body may now contain the former local variable names.
+   //
+   {
+     bool names = false;
+     loop(l, lvars_text.size())
+        if (lvars_text[l] != UNI_SEMICOLON && lvars_text[l] != UNI_SPACE)
+           names = true;
+     if (lvars_text.size() && !names)
+        {
+          CERR << "WARNING: lambda " << var.get_name()
+               << " has a ; without local variable names (from an older"
+                  " )SAVE). Please check the end of its body: "
+               << body_text << endl;
+          lvars_text.clear();
+        }
+   }
 
    // the lambda number, e.g. 1 in λ←λ1 ⍵ or ⍺ λ1 ⍵ (Bugs39 #40: was λ0)
    //
@@ -1632,10 +1680,10 @@ Function_PC last_statement = Function_PC(-1);
      // since they are removed from the lambda text.
      //
      Function_PC pc_end = end_PC;
-     for (ShapeItem b = body.ssize() - 2; b >= 0; b -= 2)
+     for (ShapeItem b = body.ssize();;)
          {
-           if (body[b].get_tag() != TOK_SEMICOL)          break;
-           if (body[b + 1].get_Class() != TC_SYMBOL)      break;
+           b = locals_start(body, b);
+           if (b < 0)   break;
            pc_end = body[b].get_PC();
          }
      body[last_statement + 1].copy(Token_loc(ret_lambda, pc_end), LOC);
@@ -1644,17 +1692,15 @@ Function_PC last_statement = Function_PC(-1);
 
 vector<Symbol *> local_vars;
 Function_PC pc_void = end_PC;   // the PC of RETURN_VOID (if any)
-   while (body.size() >= 2)
+   for (;;)
       {
-        const Token & Tsem = body[body.size() - 2];
-        const Token & Tsym = body[body.size() - 1];
-        if (Tsem.get_tag() == TOK_SEMICOL && Tsym.get_Class() == TC_SYMBOL)
-           {
-             pc_void = body[body.size() - 2].get_PC();
-             local_vars.push_back(Tsym.get_sym_ptr());
-             body.resize(body.size() - 2);
-           }
-        else break;
+        const ShapeItem semi = locals_start(body, body.ssize());
+        if (semi < 0)   break;
+
+        for (ShapeItem n = body.ssize() - 1; n > semi; --n)
+            local_vars.push_back(body[n].get_sym_ptr());
+        pc_void = body[semi].get_PC();
+        body.resize(semi);
       }
 
    // a lambda without a result ends with RETURN_VOID, like in

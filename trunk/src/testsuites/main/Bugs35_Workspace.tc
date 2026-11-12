@@ -5,7 +5,7 @@
 ⍝ The workspaces are created in the testcase libraries and dropped again.
 
       ⍝ Bugs35 #43: )LOAD of a workspace with an anonymous lambda operator on the
-      ⍝ SI fails cleanly (no assertion) and leaves a CLEAR WS
+      ⍝ SI (no assertion; since Bugs39 #11 the )SI is restored)
       ⍝
 
 
@@ -37,21 +37,22 @@ DOMAIN ERROR
 
 
       )LOAD B35_A43
-)LOAD B35_A43 failed: DOMAIN ERROR
+³
 
 
 
 
-      )MORE
-workspace file ³
-the operator of a derived function on the )SI (e.g. an anonymous lambda operator) cannot be restored
+      )SI
+λ1[1]
+*
+
 
 
 
       V
-VALUE ERROR+
-      V
-      ^
+1 2 3 4 5
+
+
 
 
       )SIC

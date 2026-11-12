@@ -142,7 +142,8 @@ Token_string::check_semicolons(bool lambda_locals) const
    //
    // 1. between [ and ] (an index or axis), or
    // 2. between { and }, but only as the local variables of the lambda
-   //    at the end of its body: {...;A;B} (Bugs38 #2: other ; inside {...}
+   //    at the end of its body: {...;A;B} or, like in a ∇-header (LRM
+   //    p. 293), {...;A B} (Bugs39 #81). (Bugs38 #2: other ; inside {...}
    //    created lambdas that )SAVE wrote but )LOAD could not read), or
    // 3. at the end of a lambda body: ;A;B... (lambda_locals)
    //
@@ -172,44 +173,17 @@ vector<TokenTag> openers;   // TOK_L_BRACK, TOK_L_PARENT, or TOK_L_CURLY
         // at(s) is a ;
         //
         if (openers.size() && openers.back() == TOK_L_BRACK)   continue;
-        if (openers.size() && openers.back() == TOK_L_CURLY)   // maybe 2.
-           {
-             bool locals = false;
-             for (ShapeItem l = s; l + 1 < ssize(); l += 2)
-                 {
-                   if (at(l).get_tag() != TOK_SEMICOL          ||
-                       !is_local_name(at(l + 1)))   break;
-                   if (l + 2 < ssize() &&
-                       at(l + 2).get_tag() == TOK_R_CURLY)
-                      {
-                        locals = true;
-                        break;
-                      }
-                 }
-             if (locals)   continue;
-           }
+        if (openers.size() && openers.back() == TOK_L_CURLY &&   // maybe 2.
+            is_locals_tail(s, true))   continue;
 
-        if (lambda_locals && openers.size() == 0)   // maybe 3.
-           {
-             bool locals = true;
-             for (ShapeItem l = s; l < ssize(); l += 2)
-                 {
-                   if (l + 1 >= ssize()                        ||
-                       at(l).get_tag() != TOK_SEMICOL          ||
-                       !is_local_name(at(l + 1)))
-                      {
-                        locals = false;
-                        break;
-                      }
-                 }
-             if (locals)   return;
-           }
+        if (lambda_locals && openers.size() == 0 &&   // maybe 3.
+            is_locals_tail(s, false))   return;
 
         if ((openers.size() && openers.back() == TOK_L_CURLY) ||
             (lambda_locals && openers.size() == 0))   // in a lambda
            MORE_ERROR() << "; in {...} is only allowed in the trailing list"
-                           " ;NAME1;NAME2... of local variable names (with"
-                           " ; between the names)";   // Bugs39 #81, #83
+                           " ;NAME1;NAME2... (or ;NAME1 NAME2...) of local"
+                           " variable names";   // Bugs39 #81, #83
         else
            MORE_ERROR() << "; outside of [...] (only an index or an axis"
                            " can contain ;)";
@@ -223,6 +197,24 @@ vector<TokenTag> openers;   // TOK_L_BRACK, TOK_L_PARENT, or TOK_L_CURLY
 
         throw error;
       }
+}
+//────────────────────────────────────────────────────────────────────────────
+bool
+Token_string::is_locals_tail(ShapeItem s, bool in_curly) const
+{
+   // at(s) is a ;. Return true if at(s) starts a list of local names
+   // ;A B;C... (each ; followed by one or more names) that ends with the
+   // closing } of the lambda (in_curly) or at the end of this string.
+   //
+   while (s < ssize() && at(s).get_tag() == TOK_SEMICOL)
+      {
+        ++s;   // the ;
+        if (s >= ssize() || !is_local_name(at(s)))   return false;
+        while (s < ssize() && is_local_name(at(s)))   ++s;
+      }
+
+   if (in_curly)   return s < ssize() && at(s).get_tag() == TOK_R_CURLY;
+   return s == ssize();
 }
 //────────────────────────────────────────────────────────────────────────────
 bool

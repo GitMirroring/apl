@@ -384,6 +384,10 @@ public:
                              bool quiet = false,
                              bool honor_lock = true);
 
+   /// return the position of the ; if body[...end) ends with ;NAME...,
+   /// and -1 otherwise
+   static ShapeItem locals_start(const Token_string & body, ShapeItem end);
+
    /// (re-)create a lambda
    /// @param var symbol to which the lambda will be bound
    /// @param text source text of the lambda expression

@@ -296,7 +296,7 @@ const ShapeItem len = pattern.size();
               if (capturing)
                  {
                    int parent = 0;
-                   for (ShapeItem o = open.size() - 1; o >= 0; --o)
+                   for (ShapeItem o = ShapeItem(open.size()) - 1; o >= 0; --o)
                        if (open[o] > 0)   { parent = open[o];   break; }
                    open.push_back(parents.size());
                    parents.push_back(parent);

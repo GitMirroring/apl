@@ -350,7 +350,9 @@ StateIndicator::print(ostream & out) const
 
    out << "PC:         " << get_PC() << " (" << executable->get_body().size()
                        << ")";
-   out << " " << executable->get_body()[get_PC()] << endl;
+   if (size_t(get_PC()) < executable->get_body().size())   // not at the end
+      out << " " << executable->get_body()[get_PC()];
+   out << endl;
    out << "Stat:       " << executable->statement_text(get_PC());
    out << endl;
 

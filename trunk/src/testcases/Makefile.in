@@ -324,6 +324,7 @@ EXTRA_DIST = libroot/workspaces/DIJKSTRA.atf           \
               libroot/workspaces/FORMAT_FUZZ.apl        \
               libroot/workspaces/GPROF_LOOP.apl         \
               libroot/workspaces/LEGACY38.xml           \
+              libroot/workspaces/LEGACY39.xml           \
               libroot/workspaces/Performance.apl        \
               libroot/workspaces/Performance.gnuplot    \
               libroot/workspaces/TEST3.atf              \

@@ -948,7 +948,7 @@ const Symbol * symbol = Workspace::lookup_existing_symbol(symbol_name);
                     // or brace-aware) ◊ scan exactly. See Bugs27 #37.
                     //
                     ShapeItem sols = 0;
-                    for (ShapeItem j = body.size() - 1; j >= 0; --j)
+                    for (ShapeItem j = body.ssize() - 1; j >= 0; --j)
                         {
                           if (Avec::is_DIAMOND(body[j]))
                              {

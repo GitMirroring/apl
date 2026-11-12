@@ -138,6 +138,48 @@ Symbol::is_UTF8_text(const UCS_string & text)
    return true;
 }
 //────────────────────────────────────────────────────────────────────────────
+UCS_string
+Symbol::CR10_text(const UCS_string & text)
+{
+   // an APL expression whose value is the string text, e.g. 'a',(⎕UCS 56000)
+   // for a character that cannot be written as UTF-8 or in a '...' string
+   // (like in Quad_CR::do_CR10_simple_cell()).
+   //
+UCS_string expr;
+int items = 0;        // number of items joined by ,
+bool quoted = false;   // inside '...'
+   loop(t, text.size())
+       {
+         const Unicode uni = text[t];
+         const bool plain = uni == UNI_SINGLE_QUOTE ||
+                            (uni >= ' ' && uni != 127 &&
+                             !Avec::is_single_quote(uni) &&
+                             !(uni >= 0xD800 && uni <= 0xDFFF) &&
+                             uni <= 0x10FFFF);
+         if (plain)
+            {
+              if (!quoted)
+                 {
+                   if (items++)   expr << ",";
+                   expr << "'";
+                   quoted = true;
+                 }
+              expr << uni;
+              if (uni == UNI_SINGLE_QUOTE)   expr << uni;   // ''
+            }
+         else
+            {
+              if (quoted)   { expr << "'";   quoted = false; }
+              if (items++)   expr << ",";
+              expr << "(⎕UCS " << int(uni) << ")";
+            }
+       }
+   if (quoted)        expr << "'";
+   if (items == 0)    return expr << "''";
+   if (items == 1 && text.size() == 1)   return UCS_string(UTF8_string(",")) << expr;
+   return expr;
+}
+//────────────────────────────────────────────────────────────────────────────
 void
 Symbol::dump(ostream & out) const
 {
@@ -181,8 +223,8 @@ const ValueStackItem & vs = value_stack[0];
         const UCS_string text = ufun->canonical(false);
         if (ufun->is_lambda())
            {
-             out << get_name();
-             out << "←{";
+             UCS_string lambda;   // NAME←{...}
+             lambda << get_name() << "←{";
              int t = 0;
              while (t < text.ssize())   // skip λ header
                 {
@@ -212,7 +254,7 @@ const ValueStackItem & vs = value_stack[0];
                 }
 
              ShapeItem sols = 0;
-             for (ShapeItem j = body.size() - 1; j >= 0; --j)
+             for (ShapeItem j = body.ssize() - 1; j >= 0; --j)
                  {
                    if (Avec::is_DIAMOND(body[j]))
                       {
@@ -230,15 +272,21 @@ const ValueStackItem & vs = value_stack[0];
                   body.erase(sols);
                 }
 
-             out << body;
+             lambda << body;
 
              // append local variables
              //
              loop(l, ufun->local_var_count())
                  {
-                   out << ";" << ufun->get_local_var(l)->get_name();
+                   lambda << ";" << ufun->get_local_var(l)->get_name();
                  }
-             out << UNI_R_CURLY << endl;
+             lambda << UNI_R_CURLY;
+
+             // a character that cannot be written as UTF-8 (see below):
+             // write ⍎ of a string with ⎕UCS instead (Bugs39 #60)
+             //
+             if (is_UTF8_text(lambda))   out << lambda << endl;
+             else   out << "⍎" << CR10_text(lambda) << endl;
            }
         else if (!is_UTF8_text(text))
            {
@@ -255,15 +303,7 @@ const ValueStackItem & vs = value_stack[0];
              if (lines.size() == 1)   out << " ,⊂";
              loop(l, lines.size())
                 {
-                  Value_P line(lines[l], LOC);
-                  UCS_string_vector CR10;
-                  const UCS_string tmp(UTF8_string("X"));
-                  Quad_CR::do_CR10_variable(CR10, tmp, line.get());
-                  UCS_string expr;
-                  loop(c, CR10.size())   expr << CR10[c];
-                  if (expr.starts_with(UCS_string(UTF8_string("X←"))))
-                     expr = UCS_string(expr, 2, expr.size() - 2);
-                  out << " (" << expr << ")";
+                  out << " (" << CR10_text(lines[l]) << ")";
                 }
              out << endl;
            }
@@ -1496,6 +1536,19 @@ Symbol::pop()
 
 const ValueStackItem & vs = value_stack.back();
 
+   // a lambda bound by )LOAD with a reference (Bugs39 #89)
+   //
+   if (vs.get_owns_lambda() && (vs.get_NC() & NC_FUN_OPER) &&
+       vs.get_function())
+      {
+        const UserFunction * ufun = vs.get_function()->get_func_ufun();
+        value_stack.pop_back();
+        if (monitor_callback)   monitor_callback(*this, SEV_POPED);
+        if (ufun && ufun->is_lambda())
+           const_cast<UserFunction *>(ufun)->decrement_refcount(LOC);
+        return;
+      }
+
    if (get_NC() == NC_VARIABLE)
       {
         Log(LOG_SYMBOL_push_pop)
@@ -1554,8 +1607,11 @@ Symbol::pop_local()
              //
              if (ufun && ufun->is_lambda())
                 {
+                  // pop() itself releases a reference taken by )LOAD
+                  const bool released = vs.get_owns_lambda();
                   pop();
-                  const_cast<UserFunction *>(ufun)->decrement_refcount(LOC);
+                  if (!released)
+                     const_cast<UserFunction *>(ufun)->decrement_refcount(LOC);
                   return;
                 }
            }

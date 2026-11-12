@@ -1829,7 +1829,8 @@ const Fun_signature signature = compute_lambda_body(lambda_body, b, bend,
    /* strip off the trailing local variables.
 
       The function body ends with ENDL RETURN.
-      To strip off a local variable we have to:
+      To strip off a local variable we have to (for ;A B C: likewise, with
+      ENDL and RETURN moved to the ; and its right neighbour):
 
       body[-4]        body[-3]        body[-2]        body[-1] 
       ─────────────────────────────────────────────────────────────
@@ -1841,42 +1842,47 @@ const Fun_signature signature = compute_lambda_body(lambda_body, b, bend,
       ENDL            RETURN
     */
 vector<Symbol *> local_vars;   // collector for local variables
-   while (lambda_body.size() >= 4)
+   for (;;)
       {
-        const size_t semi = lambda_body.size() - 4;   // maybe ';' SYMBOL ?
-        if (lambda_body[semi]  .get_tag() != TOK_SEMICOL)   break;   // no
-        if (lambda_body[semi+1].get_Class() != TC_SYMBOL)   break;   // no
-        local_vars.push_back(lambda_body[semi + 1].get_sym_ptr());
+        // the tokens after the local names: ENDL RETURN, or RETURN_VOID
+        // for a lambda without a result, e.g. {A←⍵ ⋄ ;A}, whose body ends
+        // with ; SYMBOL RETURN_VOID (no ENDL), see compute_lambda_body().
+        // Its locals were not localized (Bugs39 #21).
+        //
+        const bool no_result = lambda_body.size() &&
+                               lambda_body.back().get_tag() == TOK_RETURN_VOID;
+        const size_t tail = no_result ? 1 : 2;
+        if (lambda_body.size() < tail + 2)   break;
+
+        // the names before the tail: ;A or, like in a ∇-header, ;A B C
+        // (Bugs39 #81)
+        //
+        size_t semi = lambda_body.size() - tail;
+        while (semi > 0 && lambda_body[semi - 1].get_Class() == TC_SYMBOL)
+              --semi;
+        if (semi == 0 || semi == lambda_body.size() - tail)   break;   // none
+        --semi;                                            // maybe ';' ?
+        if (lambda_body[semi].get_tag() != TOK_SEMICOL)   break;   // no
+
+        for (size_t n = lambda_body.size() - tail - 1; n > semi; --n)
+            local_vars.push_back(lambda_body[n].get_sym_ptr());
 
         // the local variables are moved from the lambda text to the
         // header. ENDL is the left end of the last statement (and keeps
-        // its PC), while RETURN (an empty statement) gets the PC of the ;
+        // its PC), while RETURN (an empty statement) resp. RETURN_VOID gets
+        // the PC of the ;
         //
         const Function_PC pc_semi = lambda_body[semi].get_PC();
-        const Token_loc endl(lambda_body[semi + 2].get_token(),
-                             lambda_body[semi + 2]);
-        const Token_loc ret(lambda_body[semi + 3].get_token(), pc_semi);
-        lambda_body[semi]    .copy(endl, LOC);
-        lambda_body[semi + 1].copy(ret, LOC);
-        lambda_body.resize(semi + 2);   // leave ENDL and RETURN_SYMBOL
-      }
-
-   // the same for a lambda without a result, e.g. {A←⍵ ⋄ ;A}, whose body
-   // ends with ; SYMBOL RETURN_VOID (no ENDL), see compute_lambda_body().
-   // Its locals were not localized (Bugs39 #21).
-   //
-   while (lambda_body.size() >= 3 &&
-          lambda_body.back().get_tag() == TOK_RETURN_VOID)
-      {
-        const size_t semi = lambda_body.size() - 3;   // maybe ';' SYMBOL ?
-        if (lambda_body[semi]  .get_tag() != TOK_SEMICOL)   break;   // no
-        if (lambda_body[semi+1].get_Class() != TC_SYMBOL)   break;   // no
-        local_vars.push_back(lambda_body[semi + 1].get_sym_ptr());
-
-        const Function_PC pc_semi = lambda_body[semi].get_PC();
-        const Token_loc ret(lambda_body[semi + 2].get_token(), pc_semi);
+        const size_t ret_pos = lambda_body.size() - 1;
+        if (!no_result)
+           {
+             const Token_loc endl(lambda_body[ret_pos - 1].get_token(),
+                                  lambda_body[ret_pos - 1]);
+             lambda_body[semi++].copy(endl, LOC);
+           }
+        const Token_loc ret(lambda_body[ret_pos].get_token(), pc_semi);
         lambda_body[semi].copy(ret, LOC);
-        lambda_body.resize(semi + 1);   // leave RETURN_VOID
+        lambda_body.resize(semi + 1);   // leave (ENDL) RETURN(_VOID)
       }
 
 const UCS_string lambda_text = extract_lambda_text(signature, lambda_num - 1);

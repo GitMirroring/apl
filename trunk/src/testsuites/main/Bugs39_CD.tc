@@ -581,21 +581,67 @@ SYNTAX ERROR+
 
 
       )MORE
-; in {...} is only allowed in the trailing list ;NAME1;NAME2... of local variable names (with ; between the names)
+; in {...} is only allowed in the trailing list ;NAME1;NAME2... (or ;NAME1 NAME2...) of local variable names
 
 
 
 
-      {A←1 ⋄ ⍵+A;A B}1
+      A←B←C←100
+
+
+
+
+
+      {A←1 ⋄ B←2 ⋄ ⍵+A+B;A B}1
+4
+
+
+
+
+      {A←1 ⋄ B←2 ⋄ C←3 ⋄ ⍵+A+B+C;A;B C}1
+7
+
+
+
+
+      {A←⍵ ⋄ B←⍵ ⋄ ;A B}1
+
+
+
+
+
+      A B C
+100 100 100
+
+
+
+
+      {⍵;A B 1}1
 SYNTAX ERROR+
-      {A←1◊⍵+A;A B}1
-              ^
+      {⍵;A B 1}1
+        ^
 
 
 
 
-      )MORE
-; in {...} is only allowed in the trailing list ;NAME1;NAME2... of local variable names (with ; between the names)
+      {⍵;A B;}1
+SYNTAX ERROR+
+      {⍵;A B;}1
+        ^
+
+
+
+
+      {⍵;A ⍵}1
+SYNTAX ERROR+
+      {⍵;A ⍵}1
+        ^
+
+
+
+
+      )ERASE A B C
+
 
 
 
