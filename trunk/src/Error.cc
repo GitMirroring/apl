@@ -89,6 +89,14 @@ Error::add_MORE_indicator(bool have_more)
 {
    if (have_more)   // )MORE info available
       {
+        // the + may also follow the error name, e.g. in the message
+        // SYNTAX ERROR+ in macro ⍎¨ (Bugs40 #97)
+        //
+        const char * name = error_name(error_code);
+        const size_t name_len = strlen(name);
+        if (name_len && !strncmp(error_message_1, name, name_len) &&
+            error_message_1[name_len] == UNI_PLUS)   return;
+
         const size_t len = strlen(error_message_1);
         if (len && error_message_1[len - 1] != UNI_PLUS &&
             len < sizeof(error_message_1) - 1)
@@ -279,6 +287,13 @@ const int nchars = truncated ? truncate_utf8_boundary(error_message_2)
 void
 Error::update_error_info(StateIndicator * si)
 {
+   // an older parse error (without an SI entry) is superseded by this
+   // error, also after this error was cleared with → (Bugs39 #53). Here
+   // for every error, not only for those of throw_apl_error(), e.g. also
+   // the VALUE ERROR of an undefined name or a ⎕ES error (Bugs40 #66)
+   //
+   if (si)   StateIndicator::top_level_error.clear_error_code();
+
    /*
       construct lines 2 and 3 of the standard 3-line APL error message.
       Line 1 was already constructed in Error::Error(ErrorCode ec...).
@@ -573,11 +588,7 @@ StateIndicator * si = Workspace::SI_top();   // the current )SI entry
 Error error(code, loc);
    if (si)
       {
-        error.update_error_info(si);
-
-        // an older parse error (without an SI entry) is superseded by this
-        // error, also after this error was cleared with → (Bugs39 #53)
-        StateIndicator::top_level_error.clear_error_code();
+        error.update_error_info(si);   // clears top_level_error
       }
 
 const Error & eref = error;

@@ -117,6 +117,7 @@ bool valid = arg.size() <= 3;
 void
 Command::cmd_OFF(int exit_val)
 {
+   exit_val = IO_Files::finish_tests(exit_val);   // Bugs40 #78
    COUT << endl;
    if (UserPreferences::uprefs.silence < NO_BANNER)
       {

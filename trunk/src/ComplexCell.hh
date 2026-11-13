@@ -342,6 +342,10 @@ protected:
    static ErrorCode bif_power_ci(Cell * Z, APL_Complex a, APL_Integer b);
    static ErrorCode bif_power_cc(Cell * Z, APL_Complex a, APL_Complex b);
    static ErrorCode bif_logarithm_cc(Cell * Z, APL_Complex a, APL_Complex b);
+   /// return true if \b b is tolerantly equal to the non-zero Gaussian
+   /// integer \b N (Bugs40 #30)
+   static bool gaussian_near(APL_Complex b, double qct, APL_Complex & N);
+
    /// Z←A⌈B (if max) or Z←A⌊B (if not) for a complex A or B
    static ErrorCode max_min_cc(Cell * Z, const Cell & A, const Cell & B,
                                bool max);

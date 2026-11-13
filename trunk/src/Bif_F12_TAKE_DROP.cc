@@ -162,12 +162,15 @@ Value_P Z(ravel_A1.abs(), LOC);
       }
    else
       {
-        // 1D packed fast path for numeric types (fill element is 0)
+        // 1D packed fast path for numeric types (fill element is 0). The
+        // fill item is the IntCell 0 (B's prototype), so a float or complex
+        // B can use it only without fill items (Bugs40 #99)
         const ShapeItem bpi   = B.packed_bytes_per_item();
         const RavelType rtype = B.get_ravel_type();
         const bool zero_fill  = rtype == RPT_INT64
-                             || rtype == RPT_FLOAT64
-                             || rtype == RPT_COMPLEX;
+                             || ((rtype == RPT_FLOAT64 ||
+                                  rtype == RPT_COMPLEX) &&
+                                 Z->element_count() <= B.element_count());
         if (ravel_A1.get_rank() == 1 && B.get_rank() == 1
             && bpi > 0 && zero_fill && axes == 0)
            {
@@ -251,6 +254,28 @@ const Cell & first_B = B.get_cfirst(cache);
    if (Value_P sub = first_B.try_pointer_value())   // first item is nested
       {
         return CLONE_P(sub, LOC);
+      }
+
+   // (↑B)←C (or (f ↑B)←C) with an empty B: B has no first item, so the
+   // assignment is a no-op (like (,B)←C). Writing into the prototype of B
+   // made it atypical (Bugs40 #58). Return ↑B with placeholder LvalCells
+   // (no target), so that (f ↑B)←C still checks that C conforms to f ↑B.
+   // An unbroken (↑B)←C (which replaces the first item wholesale) is
+   // marked as the pick slot; Value::assign_cellrefs() ignores it.
+   //
+   if (B.element_count() == 0 && first_B.is_lval_cell())
+      {
+        Cell * proto = first_B.get_lval_value();
+        Value_P Z = (proto && proto->is_pointer_cell())
+                  ? Value_P(proto->get_pointer_value()->get_shape(), LOC)
+                  : Value_P(LOC);
+        loop(z, Z->nz_element_count())
+            new (&Z->get_wravel(z)) LvalCell(0, 0);
+        Z->set_left_value();
+        if (proto && first_B.get_cell_owner())
+           Z->set_lval_pick_slot(proto, first_B.get_cell_owner());
+        Z->check_value(LOC);
+        return Z;
       }
 
    // (f ↑B)←V with a nested first item: like Bif_F12_PICK::pick(), return

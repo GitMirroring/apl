@@ -464,9 +464,11 @@ public:
    /// True iff value is near the integer 0 but not 0, e.g. 1E¯11. Such a
    /// value must not be snapped to 0 where a 0 changes the result (e.g.
    /// A!B, A∨B, A∧B; see Bugs31 #15 and Bugs37 #11).
-   bool is_snapped_to_0() const
-      { return is_near_int() && get_real_value() != 0.0 &&
-               nearbyint(get_real_value()) == 0.0; }
+   bool is_snapped_to_0() const   // also e.g. 0J1E¯11 (Bugs40 #28)
+      { return is_near_int() &&
+               (get_real_value() != 0.0 || get_imag_value() != 0.0) &&
+               nearbyint(get_real_value()) == 0.0 &&
+               nearbyint(get_imag_value()) == 0.0; }
 
    /// return true iff value is numeric and close to 1
    virtual bool is_near_one() const

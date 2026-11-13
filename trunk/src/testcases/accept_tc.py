@@ -189,6 +189,10 @@ for tcfile_name in sys.argv[1:]:
         elif line[:8] == " ∆ : ⋅⋅⋅":   # delta
             apl_delta = line[8:-1]
             print("delta='%s'" % apl_delta)
+        elif line[:6] == "-skp> ":   # a line that the run did not read
+            # (]FILE_CTL SKIP_*, or after ]NEXTFILE or a --TM 5/6 stop):
+            # keep it unchanged (it was deleted, Bugs40 #59)
+            emit(line[6:-1])
         elif line[:6] == "extra:":   # reference
             apl_extra = line[6:-1]
             print("apl='%s'" % apl_extra)

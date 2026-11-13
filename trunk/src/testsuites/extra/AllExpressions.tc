@@ -65,9 +65,9 @@ Bad number+
       V5←(1 ⍴ ¯11 ↓ 7E5)[(⍳0)]
       )SIC
       (1↑ V2)←⍎'9+8'
-SYNTAX ERROR+
+VALUE ERROR+
       (1↑V2)←⍎'9+8'
-         ^   ^
+         ^
 
       )SIC
       V6←⍉ ⍎'9+6' ⌷ (('')[¯58;])[V4]
@@ -199,9 +199,9 @@ RANK ERROR+
       V5←⎕TS
       )SIC
       (↓ V0)←⍎'1+4'
-SYNTAX ERROR+
+VALUE ERROR+
       (↓V0)←⍎'1+4'
-        ^   ^
+        ^
 
       )SIC
       V2←{⍶} (⍳1)
@@ -1101,7 +1101,7 @@ Bad number+
       V5←(*⍣1 V3 ⌈ 'abc')
 DOMAIN ERROR
       V5←(⋆⍣1 V3⌈'abc')
-          ^     ^
+              ^ ^
 
       )SIC
       V6←≢¨ (¯26)[] ⊂ ⎕TC

@@ -8,7 +8,9 @@
 # Inactive: FORMAT_PARENS.tc needs the command line option
 # --strict_IBM_APL2_formatting parentheses (make testPARENS), and
 # FORMAT_CPLX.tc and FORMAT_STRICT.tc need --strict_IBM_APL2_formatting yes
-# (make testSTRICT).
+# (make testSTRICT). File_IO_1.tc is not a testcase but the data file that
+# testsuites/main/Quad_FIO.tc and Quad_FIO1.tc read (it passed only because
+# output after the last line of a testcase was not compared, Bugs40 #76).
 
 AllExpressions.tc
 AllPrimitives.tc
@@ -16,6 +18,5 @@ AP100.tc
 AP210.tc
 apl2lrm.tc
 APnnn.tc
-File_IO_1.tc
 MatrixProduct.tc
 ZZ69_Regression.tc

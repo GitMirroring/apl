@@ -200,7 +200,7 @@ cFunction_P RO = _RO.get_function();
    // check RO up front, not only when it is called (which never happens
    // for an empty A or B), like A f.g B (Bugs38 #105)
    //
-   if (RO->get_fun_valence() != 2)
+   if (RO->get_fun_valence() != 2 || !RO->has_dyadic_form())   // Bugs40 #56
       {
         MORE_ERROR() << "A∘.g B : Bad function " << RO->get_name()
                      << " (expecting a dyadic function)";
@@ -227,7 +227,7 @@ Value_P Z(A.get_shape() + B.get_shape(), LOC);
         // or of a derived RO whose chain contains one (or a macro, e.g.
         // +⍤0), is the identity (LRM Figure 20, Bugs38 #75)
         //
-        Value_P Z1 = (RO->is_defined() || RO->may_push_SI())
+        Value_P Z1 = RO->contains_defined()   // Bugs40 #55
                    ? Fill_B
                    : RO->eval_fill_AB(*Fill_A, *Fill_B).get_apl_val();
 
@@ -337,6 +337,13 @@ Value_P RO_B;
          }
 
       if (result.get_tag() == TOK_ERROR)   return result;
+
+      if (result.get_tag() == TOK_VOID)   // e.g. ⎕ES '' (Bugs40 #9)
+         {
+           MORE_ERROR() << "∘." << RO->get_name() << ": " << RO->get_name()
+                        << " returned no result";
+           VALUE_ERROR;
+         }
 
         Q1(result);   FIXME;
       }

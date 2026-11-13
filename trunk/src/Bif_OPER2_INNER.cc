@@ -48,9 +48,11 @@ cFunction_P RO = _RO.get_function();
    //
    // a monadic LO or RO: VALENCE ERROR, like for A F/ B (Bugs37 #67)
    //
-   if (LO->get_fun_valence() != 2 || RO->get_fun_valence() != 2)
+   if (LO->get_fun_valence() != 2 || RO->get_fun_valence() != 2 ||
+       !LO->has_dyadic_form() || !RO->has_dyadic_form())   // Bugs40 #56
       {
-        const cFunction_P bad = LO->get_fun_valence() != 2 ? LO : RO;
+        const cFunction_P bad = (LO->get_fun_valence() != 2 ||
+                                 !LO->has_dyadic_form()) ? LO : RO;
         MORE_ERROR() << "A f.g B : Bad function " << bad->get_name()
                      << " (expecting a dyadic function)";
         VALENCE_ERROR;
@@ -368,7 +370,7 @@ Value_P Fill_B;   // argument B of the fill function
    // or of a derived g whose chain contains one (or a macro, e.g. ×⍤0),
    // is the identity (Bugs38 #75, Bugs39 #67)
    //
-Token tok = (fun->is_defined() || fun->may_push_SI())
+Token tok = fun->contains_defined()   // Bugs40 #55
           ? Token(TOK_APL_VALUE1, Fill_B)
           : fun->eval_fill_AB(*Fill_A, *Fill_B);
 

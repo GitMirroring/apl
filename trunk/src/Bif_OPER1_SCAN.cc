@@ -51,7 +51,7 @@ cFunction_P LO = tok_LO.get_function();
         DOMAIN_ERROR;
       }
 
-   if (LO->get_fun_valence() != 2)
+   if (LO->get_fun_valence() != 2 || !LO->has_dyadic_form())   // Bugs40 #56
       {
         MORE_ERROR() << LO->get_name() << get_name() << " B : Bad function "
                      << LO->get_name() << " (expecting a dyadic function)";
@@ -84,12 +84,11 @@ const ShapeItem m_len = B->get_shape_item(axis);
    // associative fast path, whose loops over the non-empty axes hung for
    // e.g. +⍀1E15 0⍴0 (Bugs39 #8).
    //
+   // Like the m_len == 0 and m_len == 1 cases above, Z is B (with its
+   // prototype, LRM: (1↑[X]R),...), not a fresh numeric value (Bugs40 #96)
+   //
    if (B->get_shape().is_empty())
-      {
-        Value_P Z(B->get_shape(), LOC);
-        Z->check_value(LOC);
-        return Token(TOK_APL_VALUE1, Z);
-      }
+      return Token(TOK_APL_VALUE1, CLONE_P(B, LOC));
 
 const Shape3 shape_Z3(B->get_shape(), axis);
 
@@ -159,11 +158,10 @@ const Shape3 Z3(B->get_shape(), axis);
         // axis), and B being empty means there are no cells to compute
         // -- so unlike the reduce identity-fun path, there's no need to
         // consult LO's identity element (and no risk of a spurious
-        // DOMAIN_ERROR for an LO that doesn't have one).
+        // DOMAIN_ERROR for an LO that doesn't have one). Z keeps B's
+        // prototype (Bugs40 #96).
         //
-        Value_P Z(B->get_shape(), LOC);
-        Z->check_value(LOC);
-        return Token(TOK_APL_VALUE1, Z);
+        return Token(TOK_APL_VALUE1, CLONE_P(B, LOC));
       }
 
    if (LO->may_push_SI())   // user defined LO

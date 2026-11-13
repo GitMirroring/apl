@@ -21,7 +21,12 @@
 /** @file
 */
 
+#include "Bif_OPER1_COMMUTE.hh"
 #include "Bif_OPER1_EACH.hh"
+#include "Bif_OPER1_REDUCE.hh"
+#include "Bif_OPER1_SCAN.hh"
+#include "Bif_OPER2_POWER.hh"
+#include "Bif_OPER2_RANK.hh"
 #include "Common.hh"
 #include "QuadFunction.hh"
 #include "DerivedFunction.hh"
@@ -67,17 +72,43 @@ DerivedFunction::get_selectivity() const
 bool
 DerivedFunction::has_monadic_form() const
 {
-   if (oper == &Bif_OPER1_EACH::fun)
-      return get_LO() ? get_LO()->has_monadic_form() : true;
+cFunction_P LO = get_LO();
+   if (!LO)   return true;
+
+   // f¨, f⍣N, and f⍤y B call f monadically; f⍨ B, f/ B etc. dyadically
+   // (Bugs40 #56)
+   //
+   if (oper == &Bif_OPER1_EACH::fun  ||
+       oper == &Bif_OPER2_RANK::fun  ||
+       (oper == &Bif_OPER2_POWER::fun && !right_arg.is_function()))
+      return LO->has_monadic_form();
+
+   if (is_dyadic_LO_oper())   return LO->has_dyadic_form();
    return true;
 }
 //────────────────────────────────────────────────────────────────────────────
 bool
 DerivedFunction::has_dyadic_form() const
 {
-   if (oper == &Bif_OPER1_EACH::fun)
-      return get_LO() ? get_LO()->has_dyadic_form() : true;
+cFunction_P LO = get_LO();
+   if (!LO)   return true;
+
+   if (oper == &Bif_OPER1_EACH::fun  ||
+       oper == &Bif_OPER2_RANK::fun  ||
+       (oper == &Bif_OPER2_POWER::fun && !right_arg.is_function()) ||
+       is_dyadic_LO_oper())
+      return LO->has_dyadic_form();
    return true;
+}
+//────────────────────────────────────────────────────────────────────────────
+bool
+DerivedFunction::is_dyadic_LO_oper() const
+{
+   // f⍨ and the reductions and scans call f dyadically in both forms
+   //
+   return oper == &Bif_OPER1_COMMUTE::fun ||
+          oper == &Bif_OPER1_REDUCE::fun  || oper == &Bif_OPER1_REDUCE1::fun ||
+          oper == &Bif_OPER1_SCAN::fun    || oper == &Bif_OPER1_SCAN1::fun;
 }
 //════════════════════════════════════════════════════════════════════════════
 UCS_string
@@ -127,15 +158,25 @@ DerivedFunction::get_fun_valence() const
 
    // f⍨, f⍤y, and f⍣n call f dyadically when called dyadically (f⍨ even
    // when called monadically), and f.g calls g dyadically: a monadic-only
-   // f (resp. g) makes them monadic (Bugs39 #97)
+   // f (resp. g) makes them monadic (Bugs39 #97). Likewise f/ f⌿ f\ f⍀
+   // and ∘.g, which call f (resp. g) dyadically in every form (Bugs40 #90)
    //
    switch(oper->get_Id())
       {
         case ID_OPER1_COMMUTE:
         case ID_OPER2_RANK:
         case ID_OPER2_POWER:
+        case ID_OPER1_REDUCE:
+        case ID_OPER1_REDUCE1:
+        case ID_OPER1_SCAN:
+        case ID_OPER1_SCAN1:
              if (left_arg.is_function())
                 return min(2, left_arg.get_function()->get_fun_valence());
+             break;
+
+        case ID_OPER2_OUTER:
+             if (right_arg.is_function())
+                return min(2, right_arg.get_function()->get_fun_valence());
              break;
 
         case ID_OPER2_INNER:
@@ -418,7 +459,22 @@ DerivedFunction::eval_fill_AB(cValue_R A, cValue_R B) const
    if (contains_system_function())   return Token(TOK_APL_VALUE1,
                                                   CLONE(&B, LOC));
 
-   if (may_push_SI())   return Function::eval_fill_AB(A, B);
+   // a defined operator or operand: the identity (LRM Figure 20), like
+   // UserFunction::eval_fill_AB()
+   //
+   if (contains_defined())   return Token(TOK_APL_VALUE1, CLONE(&B, LOC));
+
+   // only primitive operators and functions, but implemented by a macro
+   // (e.g. ×⍤0): like f¨ and ∘.f (LRM p. 110), the fill function of the
+   // operand, so that the macro remains invisible (Bugs40 #55)
+   //
+   if (may_push_SI())
+      {
+        if (const Function * fun = fill_operand())
+           return (oper == &Bif_OPER1_COMMUTE::fun) ? fun->eval_fill_AB(B, A)
+                                                     : fun->eval_fill_AB(A, B);
+        return Function::eval_fill_AB(A, B);
+      }
    return eval_AB(A, B);
 }
 //────────────────────────────────────────────────────────────────────────────
@@ -450,8 +506,26 @@ DerivedFunction::eval_fill_B(cValue_R B) const
    //
    if (contains_system_function())   return Token(TOK_APL_VALUE1,
                                                   CLONE(&B, LOC));
-   if (may_push_SI())   return Function::eval_fill_B(B);
+   if (contains_defined())   return Token(TOK_APL_VALUE1, CLONE(&B, LOC));
+   if (may_push_SI())
+      {
+        if (const Function * fun = fill_operand())
+           return (oper == &Bif_OPER1_COMMUTE::fun) ? fun->eval_fill_AB(B, B)
+                                                     : fun->eval_fill_B(B);
+        return Function::eval_fill_B(B);
+      }
    return eval_B(B);
+}
+//────────────────────────────────────────────────────────────────────────────
+const Function *
+DerivedFunction::fill_operand() const
+{
+   // the function operand whose fill function is the fill function of this
+   // (primitive) derived function: LO, or else RO.
+   //
+   if (left_arg .is_function())   return left_arg .get_function();
+   if (right_arg.is_function())   return right_arg.get_function();
+   return 0;
 }
 //════════════════════════════════════════════════════════════════════════════
 // DerivedFunctionCache's constructor, destructor, get(), reserve_slot(),

@@ -336,17 +336,12 @@ F[1]  Z←1÷B
 
       ⍝ note: the checksum-mismatch WARNING (from the raw ⎕FIO edit
       ⍝ above) goes to plain CERR, like the other WARNINGs in this
-      ⍝ file, and is not part of the reference comparison. The
-      ⍝ "DOMAIN ERROR+ / F 0" pair below is the level=0 entry's own
-      ⍝ restoration display, which happens (as it would for any
-      ⍝ genuinely suspended function) before the corrupt level=1 entry
-      ⍝ is even reached; the )LOAD is still refused as a whole once it
-      ⍝ is.
+      ⍝ file, and is not part of the reference comparison. The error of
+      ⍝ the corrupt level=1 entry is no longer displayed as an error of
+      ⍝ the level=0 entry (DOMAIN ERROR+ / F 0) that was read before it
+      ⍝ (Bugs40 #14); the )LOAD is refused as a whole.
       ⍝
       )LOAD silevel_test.xml
-DOMAIN ERROR+
-      F 0
-      ^
 )LOAD silevel_test.xml failed: DOMAIN ERROR
       )SI
       ⎕NC 'F'

@@ -135,7 +135,7 @@ RANK ERROR+
       (⍳⍤1) 2 2⍴'ab'
 DOMAIN ERROR
       (⍳⍤1)2 2⍴'ab'
-      ^    ^
+      ^        ^
 
 
 

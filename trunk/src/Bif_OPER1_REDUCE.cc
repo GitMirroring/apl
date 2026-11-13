@@ -109,6 +109,13 @@ prim_f2 scalar_LO       = LO->get_scalar_f2();
                   if (result.get_tag() == TOK_ERROR)
                     throw_apl_error(result.get_ErrorCode(), LOC);
 
+                  if (result.get_tag() == TOK_VOID)   // e.g. ⎕ES (Bugs40 #9)
+                     {
+                       MORE_ERROR() << LO->get_name() << " returned no "
+                                       "result (as the operand of / or \\)";
+                       VALUE_ERROR;
+                     }
+
                   Assert(result.get_Class() == TC_VALUE);
                   Value_P ZZ = result.get_apl_val();
 
@@ -155,7 +162,7 @@ cFunction_P LO = tok_LO.get_function();
         DOMAIN_ERROR;
       }
 
-   if (LO->get_fun_valence() != 2)
+   if (LO->get_fun_valence() != 2 || !LO->has_dyadic_form())   // Bugs40 #56
       {
         MORE_ERROR() << LO->get_name() << "/ B resp. "
                      << LO->get_name() << "⌿ B : Bad function "
@@ -249,7 +256,7 @@ cFunction_P LO = tok_LO.get_function();
         DOMAIN_ERROR;
       }
 
-   if (LO->get_fun_valence() != 2)
+   if (LO->get_fun_valence() != 2 || !LO->has_dyadic_form())   // Bugs40 #56
       {
         MORE_ERROR() << "A " << LO->get_name() << get_name() << " B : Bad"
                         " function " << LO->get_name()
@@ -498,7 +505,8 @@ APL_Integer single_rep = 0;   // the single a (if len_A == 1)
       }
    else              // normal A
       {
-        rep_counts.reserve(len_B);
+        rep_counts.reserve(len_A);   // not len_B, before the LENGTH check
+                                     // (Bugs40 #67)
         ShapeItem nonneg_A = 0;   // number of items >= 0 in A
         loop(a, len_A)
            {

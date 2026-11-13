@@ -340,6 +340,11 @@ dist_noinst_DATA = \
         Bugs39_CD.tc                                  \
         Bugs39_MX.tc                                  \
         Bugs39_Workspace.tc                           \
+        Bugs40_A.tc                                   \
+        Bugs40_B.tc                                   \
+        Bugs40_CD.tc                                  \
+        Bugs40_MX.tc                                  \
+        Bugs40_Workspace.tc                           \
         COPY.tc                                       \
         Catenate.tc                                   \
         Catenate_with_Axis.tc                         \

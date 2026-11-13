@@ -44,6 +44,10 @@ class UserFunction;
 class Executable
 {
 public:
+   /// return the start of the last statement of lambda \b text (after
+   /// its last top-level ◊), or 0 (Bugs40 #41)
+   static ShapeItem lambda_last_statement(const UCS_string & text);
+
    /// constructor
    /// @param ucs source text of the executable
    /// @param multi_line true if the source spans multiple lines

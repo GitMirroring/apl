@@ -215,6 +215,17 @@ ShapeItem repeat_cnt = N0.get_checked_near_int();
                            : LO->eval_AB(*A, *B);
 
          if (result.get_tag() == TOK_ERROR)   return result;
+         // LO without a result (e.g. ⎕ES '') is fine for the last
+         // iteration (like LO B alone), but the next one needs the result
+         // (Bugs40 #9)
+         //
+         if (result.get_tag() == TOK_VOID)
+            {
+              if (repeat_cnt == 1)   return result;
+              MORE_ERROR() << LO->get_name() << "⍣: " << LO->get_name()
+                           << " returned no result";
+              VALUE_ERROR;
+            }
          Assert(result.get_Class() == TC_VALUE);
          if (--repeat_cnt == 0)   return result;
 

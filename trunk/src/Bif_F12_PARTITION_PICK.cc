@@ -898,7 +898,7 @@ const Cell & cA = A.get_cravel(idx_A, cache);
                    if (ar < 0 || ar >= dim)
                       {
                         MORE_ERROR() << "A⊃B: A[" << (idx_A + qio) << "]["
-                                     << (r + qio) << "] = " << (ar + qio)
+                                     << (r + qio) << "] = " << A.get_near_int(r)
                                      << " is not a valid index for axis "
                                      << (r + qio) << " of B (expecting "
                                      << qio << "≤index<" << (dim + qio)
@@ -922,7 +922,7 @@ const Cell & cA = A.get_cravel(idx_A, cache);
         const ShapeItem dim = B.get_shape_item(0);
         if (a < 0 || a >= dim)
            {
-             MORE_ERROR() << "A⊃B: A = " << (a + qio)
+             MORE_ERROR() << "A⊃B: A = " << cValue::index_int(cA)
                           << " is not a valid index for B (expecting "
                           << qio << "≤A<" << (dim + qio) << ")"
                           << ArgCheck::index_io0_note(a, dim);

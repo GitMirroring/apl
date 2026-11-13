@@ -402,7 +402,14 @@ Value_P Z(sh_Z, LOC);
              continue;
            }
 
-        const AP_num proc = AP_num(A.get_near_int(a));
+        // no int truncation, e.g. 1001+2⋆32 shared with 1001 (Bugs40 #63)
+        const APL_Integer proc_A = A.get_near_int(a);
+        if (proc_A < 0 || proc_A > INT_MAX)
+           {
+             MORE_ERROR() << "A ⎕SVO B: bad processor number " << proc_A;
+             DOMAIN_ERROR;
+           }
+        const AP_num proc = AP_num(proc_A);
 
         ValueStackItem * vsp = sym->top_of_stack();
         Assert(vsp);
@@ -555,8 +562,13 @@ Value_P Z;
       }
    else                            // return variables offered by processor ↑B
       {
-        const AP_num proc = AP_num(B.get_near_int(0));
-        Z = get_variables(proc);
+        const APL_Integer proc_B = B.get_near_int(0);   // Bugs40 #63
+        if (proc_B < 0 || proc_B > INT_MAX)
+           {
+             MORE_ERROR() << "⎕SVQ B: bad processor number " << proc_B;
+             DOMAIN_ERROR;
+           }
+        Z = get_variables(AP_num(proc_B));
       }
 
    Z->check_value(LOC);

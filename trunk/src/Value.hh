@@ -1060,6 +1060,11 @@ public:
    /// @param val value whose elements are assigned to the cell references
    void assign_cellrefs(Value_P val);
 
+   /// after a selective specification: replace every PointerCell that
+   /// points to a sub-value which assign_cellrefs() turned into a simple
+   /// scalar (e.g. ⊂1 2 in (1↑↑N)←9) by that scalar's cell (Bugs40 #1)
+   static void collapse_simple_subvalues();
+
    /// throw a DOMAIN ERROR for a selective specification into the member
    /// table of a structured variable (Bugs38 #3)
    [[noreturn]] static void throw_member_table_target();
@@ -1629,6 +1634,14 @@ protected:
 
    /// the size of the next allocation
    static uint64_t alloc_size;
+
+   /// sub-values that assign_cellrefs() turned into simple scalars, see
+   /// collapse_simple_subvalues()
+   static std::vector<const Value *> collapsed_scalars;
+
+   /// remember \b owner if a write made it a simple scalar
+   static void note_overwrite(const Value & owner)
+      { if (owner.is_simple_scalar())   collapsed_scalars.push_back(&owner); }
 
    /// max. number values that have been deleted
    enum { deleted_values_MAX = 10000 };

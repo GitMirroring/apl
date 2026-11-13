@@ -63,7 +63,7 @@ const APL_Integer qio = Workspace::get_IO();
         const ShapeItem ar = shape_A.get_shape_item(r);
         if (ar < 0 || ar >= B.get_rank())
            {
-             MORE_ERROR() << "A⍉B: A[" << (r + qio) << "] = " << (ar + qio)
+             MORE_ERROR() << "A⍉B: A[" << (r + qio) << "] = " << A.get_near_int(r)
                           << " is not a valid axis of B (expecting "
                           << qio << "≤A[" << (r + qio) << "]<"
                           << (B.get_rank() + qio) << ")"

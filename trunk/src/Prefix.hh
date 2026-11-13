@@ -402,8 +402,8 @@ protected:
    /// @param result the token returned by an eval_XXX() function
    void set_action(const Token & result);
 
-   /// read and resolve the token class left of [ ... ], PC is at ']'
-   bool is_value_bracket() const;
+   /// return true if [ ... ] with the ] at body[rbra] indexes a value
+   bool is_value_bracket(Prefix_PC rbra) const;
 
    /// return true if \b this prefix has a valid lookahead token
    int has_MISC() const
@@ -635,6 +635,11 @@ protected:
    /// true if ⎕EA or ⎕EB, called in the current statement, has delivered
    /// an escape (→ in B): the statement is abandoned (see reduce_body())
    bool escape_pending;
+
+   /// the start of the current statement if it failed with a SYNTAX ERROR
+   /// and shall be restarted from there when it is resumed (Bugs40 #3),
+   /// otherwise Prefix_PC_invalid
+   Prefix_PC restart_PC;
 
    /// the best (longest) phrase that matches the current stack,
    /// or 0 if no phrase matches (so the parser will SHIFT)

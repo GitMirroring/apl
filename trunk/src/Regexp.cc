@@ -185,12 +185,16 @@ Regexp::compute_group_parents(const UCS_string & pattern, int flags)
    // like [:space:]), comments (also # comments in extended mode, see
    // (?x) and ⎕RE['x']), and the condition of a conditional group like
    // (?(2)...|...), so that no ( or ) in them is taken for a group
-   // (Bugs39 #28).
+   // (Bugs39 #28). Likewise backtracking verbs like (*MARK:name), callouts
+   // like (?C"text"), and \Q...\E in a character class; with option n (no
+   // auto capture) a plain ( does not capture (Bugs40 #89).
    //
 std::vector<int> parents(1, -1);   // group 0: the whole match
 std::vector<int> open;             // the groups of the open ( (or -1)
 std::vector<bool> open_extended;   // the extended mode outside each open (
+std::vector<bool> open_no_auto;    // the no-auto-capture mode outside it
 bool extended = (flags & PCRE2_EXTENDED) != 0;
+bool no_auto = (flags & PCRE2_NO_AUTO_CAPTURE) != 0;
 const ShapeItem len = pattern.size();
    for (ShapeItem p = 0; p < len; ++p)
        {
@@ -222,6 +226,14 @@ const ShapeItem len = pattern.size();
               if (p < len && pattern[p] == UNI_R_BRACK)      ++p;   // []...]
               for (; p < len && pattern[p] != UNI_R_BRACK; ++p)
                   {
+                    if (pattern[p] == UNI_BACKSLASH && p + 1 < len &&
+                        pattern[p + 1] == UNI_Q)   // \Q ... \E in a class
+                       {
+                         for (p += 2; p < len; ++p)
+                             if (pattern[p] == UNI_BACKSLASH && p + 1 < len &&
+                                 pattern[p + 1] == UNI_E)   { ++p;   break; }
+                         continue;
+                       }
                     if (pattern[p] == UNI_BACKSLASH)   { ++p;   continue; }
                     if (pattern[p] == UNI_L_BRACK && p + 1 < len &&
                         (pattern[p + 1] == UNI_COLON ||   // [:alpha:]
@@ -251,9 +263,51 @@ const ShapeItem len = pattern.size();
                    continue;
                  }
 
+              // a backtracking verb or a start-of-pattern option, e.g.
+              // (*MARK:name), (*:name), (*UTF): no group, and its name may
+              // contain ( or ). The alpha assertions like (*pla:...) are
+              // lower case and contain a sub-pattern.
+              //
+              if (n1 == UNI_ASTERISK &&
+                  ((n2 >= 'A' && n2 <= 'Z') || n2 == UNI_COLON))
+                 {
+                   while (p < len && pattern[p] != UNI_R_PARENT)   ++p;
+                   continue;
+                 }
+
+              // a callout (?C), (?Cn), or (?C"text") with the delimiters
+              // " ' ` ^ % # $ (doubled inside the text) or {...}: no group
+              //
+              if (n1 == UNI_QUESTION && n2 == Unicode('C'))
+                 {
+                   ShapeItem q = p + 3;
+                   const Unicode d = q < len ? pattern[q] : Unicode_0;
+                   if (d == UNI_L_CURLY)
+                      {
+                        while (q < len && pattern[q] != UNI_R_CURLY)   ++q;
+                        ++q;
+                      }
+                   else if (d == UNI_DOUBLE_QUOTE || d == UNI_SINGLE_QUOTE ||
+                            d == Unicode('`') || d == UNI_CIRCUMFLEX ||
+                            d == Unicode('%') || d == UNI_NUMBER_SIGN ||
+                            d == Unicode('$'))
+                      {
+                        for (++q; q < len; ++q)
+                            {
+                              if (pattern[q] != d)   continue;
+                              if (q + 1 < len && pattern[q + 1] == d)   ++q;
+                              else   { ++q;   break; }
+                            }
+                      }
+                   while (q < len && pattern[q] != UNI_R_PARENT)   ++q;
+                   p = q;
+                   continue;
+                 }
+
               // option settings, e.g. (?x) or (?i-x:...)
               //
               bool opt_extended = extended;
+              bool opt_no_auto = no_auto;
               bool is_option = false;
               ShapeItem opt_end = p + 2;
               if (n1 == UNI_QUESTION)
@@ -265,7 +319,10 @@ const ShapeItem len = pattern.size();
                          if (o == UNI_MINUS)   { negative = true;   continue; }
                          if (o == Unicode('x'))
                             { opt_extended = !negative;   continue; }
+                         if (o == Unicode('n'))
+                            { opt_no_auto = !negative;   continue; }
                          if (o == UNI_CIRCUMFLEX)   { opt_extended = false;
+                                                      opt_no_auto = false;
                                                       continue; }
                          if ((o >= 'a' && o <= 'z') || (o >= 'A' && o <= 'Z'))
                             continue;
@@ -279,11 +336,13 @@ const ShapeItem len = pattern.size();
               if (is_option && pattern[opt_end] == UNI_R_PARENT)   // (?x)
                  {
                    extended = opt_extended;   // until the end of the group
+                   no_auto = opt_no_auto;
                    p = opt_end;
                    continue;
                  }
 
-              bool capturing = n1 != UNI_QUESTION && n1 != UNI_ASTERISK;
+              bool capturing = n1 != UNI_QUESTION && n1 != UNI_ASTERISK &&
+                               !no_auto;
               if (n1 == UNI_QUESTION)   // named groups capture
                  {
                    if (n2 == UNI_SINGLE_QUOTE)   capturing = true;
@@ -293,6 +352,7 @@ const ShapeItem len = pattern.size();
                  }
 
               open_extended.push_back(extended);
+              open_no_auto.push_back(no_auto);
               if (capturing)
                  {
                    int parent = 0;
@@ -309,6 +369,7 @@ const ShapeItem len = pattern.size();
               if (is_option)   // (?x: ...)
                  {
                    extended = opt_extended;
+                   no_auto = opt_no_auto;
                    p = opt_end;
                  }
               else if (n1 == UNI_QUESTION && n2 == UNI_L_PARENT)   // (?(
@@ -336,6 +397,8 @@ const ShapeItem len = pattern.size();
               open.pop_back();
               extended = open_extended.back();
               open_extended.pop_back();
+              no_auto = open_no_auto.back();
+              open_no_auto.pop_back();
             }
        }
 

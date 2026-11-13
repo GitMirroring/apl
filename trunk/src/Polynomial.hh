@@ -331,9 +331,14 @@ public:
               Monomial & term = at(t);
               if (term.same_expos(other))   // compatible term
                  {
+                   // the term vanishes if the subtraction cancelled it
+                   // to rounding noise, relative to the coefficients (not
+                   // the absolute 1E¯10, Bugs40 #27)
+                   //
+                   const double scale = abs(term.get_coefficient()) +
+                                        abs(other.get_coefficient());
                    term.subtract_coefficient(other.get_coefficient());
-                   if (Cell::is_near_zero(term.get_coefficient().real()) &&
-                       Cell::is_near_zero(term.get_coefficient().imag()))
+                   if (abs(term.get_coefficient()) <= 16*DBL_EPSILON*scale)
                       {
                         erase(begin() + t);
                       }

@@ -90,6 +90,12 @@ protected:
    /// @param B right argument APL value
    Token do_eval_fill_AB(cValue_R A, cValue_R B) const;
 
+   /// the fill function (lrm p. 56) of the items A and B
+   static Value_P fill_items(const cValue & A, const cValue & B);
+
+   /// item b of B as a value
+   static Value_P item_value(const cValue & B, ShapeItem b);
+
    /// A helper function for eval_fill_B().
    /// @param B right argument APL value
    Token do_eval_fill_B(cValue_R B) const;
@@ -976,6 +982,14 @@ public:
 
    static Bif_F2_FIND  fun;         ///< Built-in function.
 
+   /// the dyadic form is not a scalar function: its fill function is the
+   /// function itself (LRM Figure 20, Bugs40 #40)
+   virtual bool is_scalar_dyadic() const   { return false; }
+
+   /// overloaded ScalarFunction::eval_fill_AB()
+   virtual Token eval_fill_AB(cValue_R A, cValue_R B) const
+      { return eval_AB(A, B); }
+
    /// overloaded ScalarFunction::may_parallel()
    virtual bool may_parallel() const   { return false; }
 
@@ -1313,6 +1327,14 @@ public:
 
    static Bif_F12_ROLL  fun;        ///< Built-in function.
 
+   /// the dyadic form is not a scalar function: its fill function is the
+   /// function itself (LRM Figure 20, Bugs40 #40)
+   virtual bool is_scalar_dyadic() const   { return false; }
+
+   /// overloaded ScalarFunction::eval_fill_AB()
+   virtual Token eval_fill_AB(cValue_R A, cValue_R B) const
+      { return eval_AB(A, B); }
+
 protected:
    /// overloaded Function::eval_B().
    virtual Token eval_B(cValue_R B) const;
@@ -1345,6 +1367,14 @@ public:
    {}
 
    static Bif_F12_WITHOUT  fun;     ///< Built-in function.
+
+   /// the dyadic form is not a scalar function: its fill function is the
+   /// function itself (LRM Figure 20, Bugs40 #40)
+   virtual bool is_scalar_dyadic() const   { return false; }
+
+   /// overloaded ScalarFunction::eval_fill_AB()
+   virtual Token eval_fill_AB(cValue_R A, cValue_R B) const
+      { return eval_AB(A, B); }
 
    /// Compute A without B.
    /// overloaded Function::eval_AB().

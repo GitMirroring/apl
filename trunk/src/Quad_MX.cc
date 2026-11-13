@@ -128,7 +128,7 @@ int modifier = 0;
         // no narrowing to int (Bugs39 #68)
         const APL_Integer x0 = X.get_near_int(0);
         const APL_Integer x1 = X_count > 1 ? X.get_near_int(1) : 0;
-        if (x0 != int(x0))   bad_subfun_number_ERROR(-1);
+        if (x0 != int(x0))   bad_subfun_number_ERROR(x0);   // Bugs40 #63
         if (x1 != int(x1))
            {
              MORE_ERROR() << "⎕MX[X] B: bad modifier X[2] (= " << x1 << ")";
@@ -197,7 +197,7 @@ int modifier = 0;
         // no narrowing to int (Bugs39 #68)
         const APL_Integer x0 = X.get_near_int(0);
         const APL_Integer x1 = X_count > 1 ? X.get_near_int(1) : 0;
-        if (x0 != int(x0))   bad_subfun_number_ERROR(-1);
+        if (x0 != int(x0))   bad_subfun_number_ERROR(x0);   // Bugs40 #63
         if (x1 != int(x1))
            {
              MORE_ERROR() << "⎕MX[X] B: bad modifier X[2] (= " << x1 << ")";
@@ -320,6 +320,20 @@ int rx = 0;
   return cf;
 }
 //────────────────────────────────────────────────────────────────────────────
+/// return z × 2⋆-e and add e to expo, where e is the exponent of the larger
+/// component of z (so that it cannot overflow like |z| can), Bugs40 #18
+static Quad_MX::Dcomplex
+scale_down(const Quad_MX::Dcomplex & z, long & expo)
+{
+const double m = max(fabs(z.real()), fabs(z.imag()));
+   if (m == 0.0 || !isfinite(m))   return z;
+
+int e = 0;
+   frexp(m, &e);
+   expo += e;
+   return Quad_MX::Dcomplex(ldexp(z.real(), -e), ldexp(z.imag(), -e));
+}
+//────────────────────────────────────────────────────────────────────────────
 Quad_MX::Dcomplex
 Quad_MX::getDet(GSL_Matrix * mtx)
 {
@@ -428,14 +442,13 @@ long expo = 0;
                for (int c = k + 1; c < n; ++c)   a[r*n + c] -= f * a[k*n + c];
              }
 
-         // mant ← mant × akk, keeping |mant| in [0.5, 1)
-         int e = 0;
-         frexp(abs(akk), &e);
-         mant *= akk / ldexp(1.0, e);
-         expo += e;
-         frexp(abs(mant), &e);
-         mant /= ldexp(1.0, e);
-         expo += e;
+         // mant ← mant × akk, keeping |mant| near 1. The exponent is taken
+         // from the larger component (|akk| itself can overflow), and the
+         // components are scaled with ldexp(): for |akk| ≥ 2⋆1023,
+         // ldexp(1.0, 1024) is ∞, so akk ÷ ldexp(1.0, e) was 0 (Bugs40 #18)
+         //
+         mant *= scale_down(akk, expo);
+         mant  = scale_down(mant, expo);
        }
 
    if (expo >  2000)   expo =  2000;   // ∞ (ldexp() would overflow anyway)
@@ -1343,6 +1356,12 @@ double minv =  DBL_MAX;
 
 Value_P Z(nr_buckets, LOC);   // WS FULL for a huge A (before buckets)
 vector<ShapeItem> buckets(nr_buckets);
+
+   // halve the operands only if maxv - minv exceeds the double range
+   // (Bugs39 #29): halving loses the last bit of subnormal values, which
+   // moved them into the wrong bucket (Bugs40 #85)
+   //
+const bool halve = !isfinite(maxv - minv);
    loop(b, B_count)
        {   
          Cell cache;
@@ -1354,15 +1373,17 @@ vector<ShapeItem> buckets(nr_buckets);
          // values that lie on an edge (up to rounding) onto that edge,
          // so that the histogram is invariant under scaling (Bugs38 #94).
          //
-         // The halves keep the differences finite also when maxv - minv
-         // exceeds the double range (Bugs39 #29). The snap tolerance is a
+         // The halves (see above) keep the differences finite also when
+         // maxv - minv exceeds the double range (Bugs39 #29). The snap tolerance is a
          // few hundred ulps of q, i.e. rounding errors only, so that
          // values clearly below an edge are not moved up (Bugs39 #27).
          //
          ShapeItem bucket = nr_buckets - 1;   // also if maxv == minv
          if (maxv > minv)
             {
-              double q = (val/2 - minv/2) / (maxv/2 - minv/2) * nr_buckets;
+              double q = halve
+                       ? (val/2 - minv/2) / (maxv/2 - minv/2) * nr_buckets
+                       : (val - minv) / (maxv - minv) * nr_buckets;
               const double edge = nearbyint(q);
               if (fabs(q - edge) < 1E-13 * (1.0 + fabs(edge)))   q = edge;
               if (q < double(nr_buckets - 1))   bucket = ShapeItem(q);
@@ -1619,34 +1640,26 @@ Quad_MX::norm(const Value_P B)
 {
 Value_P Z(B->get_shape(), LOC);
 const ShapeItem B_count = B->element_count();
-Dcomplex sum(0.0, 0.0);
+vector<Dcomplex> v;
+   v.reserve(B_count);
    loop(c, B_count)
        {
          Cell cache;
          const Cell & Bv = B->get_cravel(c, cache);
-         Dcomplex val(Bv.get_real_value(), Bv.get_imag_value());
-         // val*val is the complex SQUARE, not |val|^2 -- see magnitude()
-         // above for why that's wrong for a complex vector norm.
-         sum += val * conj(val);
+         v.push_back(Dcomplex(Bv.get_real_value(), Bv.get_imag_value()));
        }
 
-   sum = sqrt(sum);
-   if (sum == Dcomplex(0.0, 0.0))
+   // scaled by the largest component first (like ⎕MX[3]), so that Σ|b|²
+   // neither overflows (giving 0 0) nor underflows (giving the DOMAIN
+   // ERROR below) for large or tiny B (Bugs40 #46)
+   //
+   if (!unit_vector(v))
       {
         MORE_ERROR() << "⎕MX.norm B: B is the zero vector.";
         DOMAIN_ERROR;
       }
 
-   loop(b, B_count)
-       {
-         Cell cache;
-         const Cell & Bb = B->get_cravel(b, cache);
-         Dcomplex val(Bb.get_real_value(), Bb.get_imag_value());
-         val /= sum;
-
-         Z->next_ravel_Complex(val.real(), val.imag());
-       }
-
+   loop(b, B_count)   Z->next_ravel_Complex(v[b].real(), v[b].imag());
    return Z;
 }
 //────────────────────────────────────────────────────────────────────────────

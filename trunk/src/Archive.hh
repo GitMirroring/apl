@@ -769,6 +769,22 @@ protected:
    /// parents[vid] is the parent of vid, or NO_VID if vid is a top-level value
    std::vector<Vid> parents;
 
+   /// ravel_read[vid] is true if the <Ravel> of vid was read (Bugs40 #13)
+   std::vector<bool> ravel_read;
+
+   /// the vid of the <Ravel> being read (Bugs40 #12)
+   Vid ravel_vid;
+
+   /// check that every value has got its <Ravel> (Bugs40 #13)
+   void check_all_ravels_read() const;
+
+   /// throw a DOMAIN ERROR for a corrupt )SI in the file (Bugs40 #14)
+   static void corrupt_SI();
+
+   /// release the function at the top of \b symbol, which is replaced
+   /// (Bugs40 #72)
+   void release_replaced_function(Symbol & symbol);
+
    /// true for )PCOPY, false for )COPY and )LOAD
    bool protection;
 

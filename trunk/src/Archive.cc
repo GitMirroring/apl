@@ -660,8 +660,10 @@ const Prefix & prefix = si.current_stack;
         << "\" assign-pending=\"" << prefix.get_assign_state()
         << "\" action=\""         << prefix.action
         << "\" lookahead-high=\"" << prefix.get_lookahead_PC()
-        << "\" prefix-len=\""     << prefix.prefix_len   // for ⎕L/⎕R
-        << "\">" << endl;
+        << "\" prefix-len=\""     << prefix.prefix_len;   // for ⎕L/⎕R
+   if (prefix.restart_PC != Prefix_PC_invalid)   // Bugs40 #3
+      outf << "\" restart-PC=\""   << prefix.restart_PC;
+   outf << "\">" << endl;
 
    ++indent;
 
@@ -1177,8 +1179,8 @@ XML_Saving_Archive::emit_token_val(const Token & tok)
                                const cValue * val = idx.values[i].get();
                                if (val)   outf << "vid_" << find_vid(val);
                                else       outf << "-";
-                                outf << "\"";
                              }
+                         outf << "\"";   // after the items (Bugs40 #37)
                        }
                        break;
 
@@ -1374,6 +1376,7 @@ const int offset = Workspace::get_v_Quad_TZ().get_offset();   // timezone offset
 "                <!ATTLIST Parser lookahead-high CDATA #REQUIRED>\n"
 "                <!ATTLIST Parser action         CDATA #REQUIRED>\n"
 "                <!ATTLIST Parser prefix-len     CDATA #IMPLIED>\n"
+"                <!ATTLIST Parser restart-PC     CDATA #IMPLIED>\n"
 
 "                    <!ELEMENT Token (#PCDATA)>\n"
 "                    <!ATTLIST Token pc           CDATA #REQUIRED>\n"
@@ -1466,6 +1469,7 @@ XML_Loading_Archive::XML_Loading_Archive(ostream & of, ostream & ef,
      have_allowed_objects(false),
      line_no(1),
      line_start(0),
+     ravel_vid(NO_VID),
      protection(false),
      reading_vids(false),
      tag_name(0),
@@ -1985,6 +1989,7 @@ const char * tag_order[] =
   0
 };
 const char ** tag_pos = tag_order;
+bool ravels_checked = false;
 
    for (;;)
        {
@@ -2007,6 +2012,15 @@ const char ** tag_pos = tag_order;
                      if (is_tag(*tag_pos))   break;          // found
                      ++tag_pos;
                   }
+            }
+
+         // after the last <Ravel>: every value must have got its <Ravel>
+         // (Bugs40 #13)
+         //
+         if (!ravels_checked && !reading_vids && tag_pos - tag_order > 2)
+            {
+              check_all_ravels_read();
+              ravels_checked = true;
             }
 
          if      (is_tag("Function"))         read_Function();
@@ -2387,7 +2401,7 @@ DerivedFunction * const slot = static_cast<DerivedFunction *>(todo.cache);
              // with only the -1 (no axis) sentinel filtered above --
              // any other out-of-range value was an OOB vector read.
              if (todo.AXIS_vid < 0 || size_t(todo.AXIS_vid) >= values.size())
-                DOMAIN_ERROR;
+                corrupt_SI();
              X = values[todo.AXIS_vid];
            }
 
@@ -2414,7 +2428,7 @@ XML_Loading_Archive::derived_operand(Token & tok, Fid fid, Vid vid)
 
    if (vid != -1)       // a value
       {
-        if (vid < 0 || size_t(vid) >= values.size())   DOMAIN_ERROR;
+        if (vid < 0 || size_t(vid) >= values.size())   corrupt_SI();
         new (&tok) Token(TOK_APL_VALUE1, values[vid]);
         return true;
       }
@@ -2535,6 +2549,27 @@ UTF8 * end = 0;
                                  << (int(values.size()) - 1) << ")";
                     DOMAIN_ERROR;
                   }
+               // the pointee must be a value that was read before (the
+               // <Ravel>s are ordered by depth, so every sub-value precedes
+               // its owners). That excludes a value that )COPY has not
+               // read, the value being read itself, and every cycle. A
+               // scalar sub-value is itself nested (e.g. ⊂1 2 in ⊂⊂1 2).
+               // Note: a sub-value can have several owners, Bugs40 #12.
+               //
+               const char * bad = 0;
+               if (!values[vid])                         bad = "an unknown";
+               else if (!ravel_read[vid] || Vid(vid) == ravel_vid)
+                                                         bad = "an unread";
+               else if (values[vid]->is_simple_scalar()) bad = "a simple";
+
+               if (bad)
+                  {
+                    MORE_ERROR() << "corrupt workspace: pointer to "
+                                 << bad << " value (vid=" << vid
+                                 << " in Ravel vid=" << ravel_vid << ")";
+                    DOMAIN_ERROR;
+                  }
+
                // next_ravel_Value() implements strand-literal semantics
                // (reuse a scalar's own cell instead of boxing it) -- right
                // for Parser::create_vector_value(), wrong here: a saved
@@ -2802,6 +2837,28 @@ cFunction_P pfun = ID::get_system_function(primitive_tag);
 }
 //────────────────────────────────────────────────────────────────────────────
 void
+XML_Loading_Archive::release_replaced_function(Symbol & symbol)
+{
+   // the top level of symbol is about to be popped. If it holds a defined
+   // function or a lambda (e.g. one that a )COPY replaces) then release it,
+   // during a )COPY only after the )COPY has succeeded, since a failing
+   // )COPY restores it (like UserFunction::fix(), Bugs40 #72)
+   //
+   if (symbol.value_stack_size() == 0)   return;
+   if (!(symbol.top_of_stack()->get_NC() & NC_FUN_OPER))   return;
+
+cFunction_P fun = symbol.get_function();
+   if (!fun || fun->is_native() || fun->is_macro())   return;
+const UserFunction * ufun = fun->get_func_ufun();
+   if (!ufun)   return;
+
+   if (UserFunction::deferred_deletes)
+      UserFunction::deferred_deletes->push_back(ufun);
+   else
+      UserFunction::release(ufun);
+}
+//────────────────────────────────────────────────────────────────────────────
+void
 XML_Loading_Archive::read_Function(int d, Symbol & symbol)
 {
 const Fid fid = find_Fid_attr("fid", false, 16);
@@ -2855,7 +2912,33 @@ const Fid OPER_fid_probe = find_Fid_attr("OPER-fid", true, 16);
       {
         if (cFunction_P fun = find_function(fid))
            {
+             // like the ∇/λ branch below: replace level 0 (rather than
+             // pushing a level 1 on top of it, so that )ERASE refused the
+             // name as localized), and give a lambda the reference that
+             // every binding of it holds (Bugs40 #4)
+             //
+             if (d == 0)
+                {
+                  if (copying)   // see the lambda branch below
+                     {
+                       if (const char * why = symbol.cant_be_defined())
+                          {
+                            err << "NOT COPIED: " << symbol.get_name()
+                                << " (" << why << ")" << endl;
+                            return;
+                          }
+                     }
+                  release_replaced_function(symbol);   // Bugs40 #72
+                  symbol.pop();
+                }
              symbol.push_function(fun);
+             const UserFunction * ufun = fun->get_func_ufun();
+             if (ufun && ufun->is_lambda())
+                {
+                  const_cast<UserFunction *>(ufun)
+                            ->increment_refcount(LOC, ")LOAD λ ref");
+                  if (d > 0)   symbol.set_top_owns_lambda();
+                }
              return;
            }
 
@@ -2968,15 +3051,36 @@ UCS_string text;
         // a lambda: λ←λ1 ⍵ ... (with result) or e.g. ⍺ λ1 ⍵ ... (without
         // result, Bugs39 #40), i.e. λ followed by a digit in the header
         //
+        // Not a λ + digit in the comment of a ∇-header, e.g. Z←F B ⍝ λ1
+        // (Bugs40 #26)
+        //
         bool is_lambda = text.size() && text[0] == UNI_LAMBDA;
         for (ShapeItem t = 0; !is_lambda && t + 1 < text.ssize() &&
-                              text[t] != UNI_LF; ++t)
+                              text[t] != UNI_LF &&
+                              text[t] != UNI_COMMENT &&
+                              text[t] != UNI_NUMBER_SIGN; ++t)
             {
               if (text[t] == UNI_LAMBDA &&
                   text[t + 1] >= '0' && text[t + 1] <= '9')   is_lambda = true;
             }
 
         UserFunction * ufun = 0;
+
+        // a lambda replaces the function of level 0 below (Bugs40 #72),
+        // but not one that is suspended or bound as an operand (like a
+        // ∇-function, which fix() refuses)
+        //
+        if (is_lambda && copying && d == 0)
+           {
+             if (const char * why = symbol.cant_be_defined())
+                {
+                  err << "NOT COPIED: " << symbol.get_name() << " (" << why
+                      << ")" << endl;
+                  add_fid_function(fid, 0, LOC);
+                  return;
+                }
+           }
+
         if (is_lambda)
            {
              const char * creator = ")LOAD λ";
@@ -2987,12 +3091,30 @@ UCS_string text;
            }
         else
            {
-             ufun = UserFunction::fix(text, error, false, LOC, creator,
-                                     /* quiet = */ true);
+             // fix() binds the function to the name in its header. In a
+             // corrupt file that name can differ from the <Symbol>, which
+             // would then be a second owner of the function (Bugs40 #10)
+             //
+             const UserFunction_header header(text, false);
+             if (header.get_error() == E_NO_ERROR &&
+                 !(header.get_name() == symbol.get_name()))
+                {
+                  MORE_ERROR() << "its header names " << header.get_name();
+                }
+             else
+                {
+                  ufun = UserFunction::fix(text, error, false, LOC, creator,
+                                          /* quiet = */ true);
+                }
            }
 
         if (ufun)
            {
+             // fix() has replaced (and released) an old function, but
+             // fix_lambda() binds nothing: the level popped below may
+             // still hold the old function, e.g. of a )COPY (Bugs40 #72)
+             //
+             if (is_lambda && d == 0)   release_replaced_function(symbol);
              symbol.pop();   // level d (bound by fix())
              ufun->set_creation_time(creation_time);
              symbol.push_function(ufun);
@@ -3158,7 +3280,7 @@ Symbol dummy(ID_No_ID);
         // the Error refuses the whole workspace (see read_StateIndicator())
         MORE_ERROR() << "corrupt workspace: the lambda " << lambda
                      << " on the )SI cannot be parsed (Bugs38 #2)";
-        DOMAIN_ERROR;
+        corrupt_SI();
       }
 const char * creator = ")LOAD )SI λ";
    ufun->increment_refcount(LOC, creator);
@@ -3182,12 +3304,19 @@ const int ass_state  = find_int_attr("assign-pending", false, 10);
 const int lah_high   = find_int_attr("lookahead-high", false, 10);
 const int action     = find_int_attr("action",         false, 10);
 const int prefix_len = find_int_attr("prefix-len",     true,  10);
+const int restart_PC = find_int_attr("restart-PC",     true,  10);
 
 Prefix & parser = si.current_stack;
    // the length of the last phrase, needed by ⎕L and ⎕R (Bugs37 #51).
    // Optional (-1) in workspaces saved by older versions.
    //
    if (prefix_len >= 0)   parser.prefix_len = prefix_len;
+
+   // the start of a statement that failed with a SYNTAX ERROR, from where
+   // a resume restarts it (Bugs40 #3). Optional (-1 if absent).
+   //
+   if (restart_PC >= 0 && size_t(restart_PC) <= si.get_executable()->get_body().size())
+      parser.restart_PC = Prefix_PC(restart_PC);
 
    parser.set_assign_state(Assign_state(ass_state));
    parser.action = R_action(action);
@@ -3264,6 +3393,15 @@ Value_P Z = values[vid];
         return;   // )COPY with vids_COPY or static value
       }
 
+   if (ravel_read[vid])   // Bugs40 #13
+      {
+        MORE_ERROR() << "corrupt workspace: Ravel vid=" << vid
+                     << " occurs twice";
+        DOMAIN_ERROR;
+      }
+   ravel_read[vid] = true;
+   ravel_vid = Vid(vid);   // the owner of the pointer cells (Bugs40 #12)
+
    if (Z->is_bool_packed())   // so it can't be short and ravel is a utf8_t *
       {
         read_Cells(*Z, cells_utf);
@@ -3313,13 +3451,6 @@ int pc = find_int_attr("pc", false, 10);
 
    Log(LOG_archive)   err << "    read_SI_entry() level=" << level << endl;
 
-const Executable * exec = 0;
-   next_tag(LOC);
-   if      (is_tag("Execute"))        exec = read_SI_Execute();
-   else if (is_tag("Statements"))     exec = read_SI_Statement();
-   else if (is_tag("UserFunction"))   exec = read_SI_UserFunction();
-   else    Assert(0 && "Bad tag at " LOC); 
-
    // lev is this entry's actual position in the file (the loop counter
    // in read_StateIndicator()); level is the file-supplied <SI-entry
    // level="..."> attribute, which a hand-edited or otherwise corrupt
@@ -3329,14 +3460,23 @@ const Executable * exec = 0;
    // extent possible" recovery read_StateIndicator() already performs
    // for any other Error thrown while reading an <SI-entry> -- throw
    // one here too instead of asserting on a file-supplied value.
+   // Before the executable is read, which would leak otherwise (Bugs40 #7).
    //
    if (lev != level)
       {
         MORE_ERROR() << "corrupt workspace: SI-entry level=" << level
                      << " does not match its position (" << lev
                      << ") in the )SI stack";
-        DOMAIN_ERROR;
+        corrupt_SI();
       }
+
+const Executable * exec = 0;
+   next_tag(LOC);
+   if      (is_tag("Execute"))        exec = read_SI_Execute();
+   else if (is_tag("Statements"))     exec = read_SI_Statement();
+   else if (is_tag("UserFunction"))   exec = read_SI_UserFunction();
+   else    Assert(0 && "Bad tag at " LOC); 
+
    Assert(exec);
 
    // pc comes straight from the file (an attacker-controlled or simply
@@ -3583,6 +3723,17 @@ XML_Loading_Archive::copy_restore_snapshots(
         //
         if (snap.size == 0)   continue;
 
+        // a system variable (e.g. ⎕RL, whose pop() reads the then empty
+        // value stack) is restored like ⎕RL←value, so that its own state
+        // follows the value (Bugs40 #11)
+        //
+        if (snap.nc == NC_VARIABLE && !snap.symbol->is_user_defined())
+           {
+             snap.symbol->assign(snap.value, false, LOC);
+             if (snap.localized)   snap.symbol->restore_locals(locals);
+             continue;
+           }
+
         snap.symbol->pop();
         switch (snap.nc)
            {
@@ -3786,12 +3937,31 @@ struct _locals_guard
              return;
            }
 
-        next_tag(LOC);
-        if      (is_tag("unused-name"))       read_unused_name(d, *symbol);
+        const bool eof = next_tag(LOC);
+        if      (eof)                         ;   // see below
+        else if (is_tag("unused-name"))       read_unused_name(d, *symbol);
         else if (is_tag("Variable"))          read_Variable(d, *symbol);
         else if (is_tag("Function"))          read_Function(d, *symbol);
         else if (is_tag("Label"))             read_Label(d, *symbol);
         else if (is_tag("Shared-Variable"))   read_Shared_Variable(d, *symbol);
+        else
+           {
+             // e.g. a stack-size larger than the number of levels in the
+             // file. It used to read the tags of the following symbols as
+             // levels, and to spin until stack-size (Bugs40 #15)
+             //
+             MORE_ERROR() << "corrupt workspace: Symbol " << name_UCS
+                          << " has fewer levels than its stack-size="
+                          << SI_depth << " (line " << line_no << ")";
+             DOMAIN_ERROR;
+           }
+
+        if (eof)
+           {
+             MORE_ERROR() << "corrupt workspace: end of file in Symbol "
+                          << name_UCS;
+             DOMAIN_ERROR;
+           }
       }
 
    next_tag(LOC);
@@ -3895,38 +4065,56 @@ Token tok;
                // straight from the file (a crafted/corrupted
                // )LOAD/)COPY), so an out-of-range value must be an
                // enforced error, not merely asserted.
-               if (vid < 0 || vid >= int(values.size()))   DOMAIN_ERROR;
+               if (vid < 0 || vid >= int(values.size()))   corrupt_SI();
                new (&tok) Token(tag, values[vid]);
              }
              break;
 
         case TV_INDEX: 
              {
+               // the items are vid_N (a value) or - (elided). A malformed
+               // item (e.g. from the misplaced " of older )SAVEs, Bugs40
+               // #37) is a corrupt file; the IndexExpr is then deleted
+               // (Bugs40 #82)
+               //
                const UTF8 * vids = find_mandatory_attr("index");
-               IndexExpr & idx = *new IndexExpr(ASS_none, LOC);
+               IndexExpr * idx = new IndexExpr(ASS_none, LOC);
                while (vids < file_end && *vids != '"')
                   {
                     if (*vids == ',')   ++vids;
-                    if (*vids == '-')   // elided index
+                    const char * bad = 0;
+                    if (idx->get_rank() >= MAX_RANK)   bad = "rank";
+                    else if (*vids == '-')   // elided index
                        {
-                         idx.add_index(Value_P());
+                         idx->add_index(Value_P());
                          ++vids;   // was missing: re-read '-' forever (OOM)
                        }
-                    else                // value
+                    else if (u8::strncmp(vids, "vid_", 4))   bad = "item";
+                    else                     // value
                        {
+                         vids += 4;
                          UTF8 * end = 0;
-                         Assert1(*vids == 'v');   ++vids;
-                         Assert1(*vids == 'i');   ++vids;
-                         Assert1(*vids == 'd');   ++vids;
-                         Assert1(*vids == '_');   ++vids;
                          const int vid = u8::strtoll(vids, &end, 10);
-                         if (vid < 0 || vid >= int(values.size()))
-                            DOMAIN_ERROR;
-                         idx.add_index(values[vid]);
-                         vids = end;
+                         if (end == vids || vid < 0 ||
+                             vid >= int(values.size()) || !values[vid])
+                            bad = "vid";
+                         else
+                            {
+                              idx->add_index(values[vid]);
+                              vids = end;
+                            }
+                       }
+
+                    if (bad)
+                       {
+                         delete idx;
+                         MORE_ERROR() << "corrupt workspace: bad index "
+                                      << bad << " in Token (line "
+                                      << line_no << ")";
+                         corrupt_SI();
                        }
                   }
-               new (&tok) Token(tag, idx);
+               new (&tok) Token(tag, *idx);
              }
              break;
 
@@ -3938,7 +4126,15 @@ Token tok;
              }
              break;
 
-        default: FIXME;
+        default:   // a corrupt file. This used to end the interpreter
+                   // (Bugs40 #14)
+             {
+               char cc[40];
+               SPRINTF(cc, "0x%X", unsigned(tag));
+               MORE_ERROR() << "corrupt workspace: bad Token tag " << cc
+                            << " (line " << line_no << ")";
+             }
+             corrupt_SI();
       }
 
    tloc.copy(Token_loc(tok, Function_PC(tok_pc)), LOC);
@@ -3963,6 +4159,30 @@ XML_Loading_Archive::read_unused_name(int d, Symbol & symbol)
    if (d == 0)   return;   // Symbol::Symbol has already created the top level
 
    symbol.push();
+}
+//────────────────────────────────────────────────────────────────────────────
+void
+XML_Loading_Archive::corrupt_SI()
+{
+   // like DOMAIN_ERROR, but without reporting the error against the )SI
+   // entry that was read from the file last (and will be removed by the
+   // rollback of the )LOAD), Bugs40 #14
+   //
+   Error::throw_parse_error(E_DOMAIN_ERROR, LOC, LOC);
+}
+//────────────────────────────────────────────────────────────────────────────
+void
+XML_Loading_Archive::check_all_ravels_read() const
+{
+   loop(vid, values.size())
+      {
+        if (values[vid] && !ravel_read[vid])
+           {
+             MORE_ERROR() << "corrupt workspace: a Value has no Ravel (vid="
+                          << vid << ")";
+             DOMAIN_ERROR;
+           }
+      }
 }
 //────────────────────────────────────────────────────────────────────────────
 void
@@ -4054,6 +4274,7 @@ bool no_copy = false;   // assume the value is needed
            }
       }
 
+   ravel_read.push_back(false);       // Bugs40 #13
    if (no_copy)
       {
         values.push_back(Value_P());
@@ -4131,7 +4352,21 @@ const int vid = find_int_attr("vid", false, 10);
 
    if (!values[vid])   return;   // value filtered out
 
-   while (symbol.value_stack_size() <= d)   symbol.push();
+   while (symbol.value_stack_size() <= d)
+      {
+        // e.g. ⎕LX or ⎕X, which have no local levels (their push() does
+        // nothing), with a stack-size > 1 in a corrupt file. This used to
+        // loop forever (Bugs40 #15)
+        //
+        const ShapeItem size = symbol.value_stack_size();
+        symbol.push();
+        if (symbol.value_stack_size() == size)
+           {
+             MORE_ERROR() << "corrupt workspace: " << symbol.get_name()
+                          << " has no level " << d;
+             DOMAIN_ERROR;
+           }
+      }
 // if (d != 0)   symbol.push();
 
    // )COPY of a variable over a function of the same name: replace the
@@ -4149,22 +4384,43 @@ const int vid = find_int_attr("vid", false, 10);
                  << ")" << endl;
              return;
            }
-        symbol.expunge();
+
+        // like UserFunction::fix(): during a )COPY, the replaced function
+        // is deleted only after the )COPY has succeeded, since a failing
+        // )COPY restores it. expunge() deleted it at the end of the )COPY
+        // statement (Bugs40 #5).
+        //
+        cFunction_P old_fun = symbol.get_function();
+        const UserFunction * old_ufun = old_fun && !old_fun->is_native()
+                                      ? old_fun->get_func_ufun() : 0;
+        if (old_ufun && UserFunction::deferred_deletes)
+           {
+             UserFunction::deferred_deletes->push_back(old_ufun);
+             symbol.pop();
+             symbol.push();
+           }
+        else
+           {
+             symbol.expunge();
+           }
       }
 
    try
       {
         symbol.assign(values[vid], true, LOC);
       }
+   // do not print the value: it may be the reason for the failure, e.g.
+   // an incomplete value (Bugs40 #13)
+   //
    catch (Error &)
       {
-        err << "*** Could not assign value " << *values[vid]
-             << "    to variable " << symbol.get_name() << " ***" << endl;
+        err << "*** Could not assign value vid=" << vid
+             << " to variable " << symbol.get_name() << " ***" << endl;
       }
    catch (std::bad_alloc &)
       {
-        err << "*** Could not assign value " << *values[vid]
-             << "    to variable " << symbol.get_name() << " ***" << endl;
+        err << "*** Could not assign value vid=" << vid
+             << " to variable " << symbol.get_name() << " ***" << endl;
         WS_FULL;
       }
    catch (...)
@@ -4278,7 +4534,13 @@ XML_Loading_Archive::read_XML_string(UCS_string & ucs, const UTF8 * utf)
                   uni == UNI_PAD_U9)    return from;
             }
 
-         FIXME   // not reached
+         // a stray character, e.g. after the ⁰ of ²...⁰ in a hand-edited
+         // or corrupt file. This used to end the interpreter (Bugs40 #14)
+         //
+         MORE_ERROR() << "corrupt workspace: unexpected character ⎕UCS "
+                      << int(uni) << " in a uni= string (line "
+                      << line_no << ")";
+         DOMAIN_ERROR;
        }
 
    return utf;

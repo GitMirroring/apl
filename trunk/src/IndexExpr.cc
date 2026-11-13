@@ -81,7 +81,7 @@ IndexExpr::check_index_range(const Shape & shape) const
                   const APL_Integer idx = Cell::minus_IO(ival->get_index_int(i), quad_io);
                   if (idx < 0 || idx >= dim)   // invalid index
                      {
-                       MORE_ERROR() << "A[B]: index " << (idx + quad_io)
+                       MORE_ERROR() << "A[B]: index " << ival->get_index_int(i)
                                     << " is not a valid index for axis "
                                     << (r + quad_io) << " of A (expecting "
                                     << quad_io << "≤index<" << (dim + quad_io)
@@ -200,5 +200,17 @@ operator <<(ostream & out, const IndexExpr & idx)
            }
       }
    return out << "]";
+}
+//────────────────────────────────────────────────────────────────────────────
+void
+IndexExpr::unmark() const
+{
+   marked = false;
+
+   // the values of the index are reachable as well, e.g. the 2 of 1+1 in
+   // 2[V0;1+1] suspended with V0 undefined. They were reported as stale,
+   // and )SAVE failed to find them (Bugs40 #8).
+   //
+   loop(r, rank)   if (values[r])   values[r]->unmark();
 }
 //════════════════════════════════════════════════════════════════════════════

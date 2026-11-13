@@ -2075,6 +2075,22 @@ int file_profile = 0;   // the current profile in the preferences file
               const char * path = full_line.c_str() + strlen(opt);
               while (*path && *path <= ' ')   ++path;
               UTF8_string arg_utf(path);
+
+              // but a # or // after white space starts a comment, like for
+              // the other options (Bugs40 #53)
+              //
+              for (size_t a = 1; a < arg_utf.size(); ++a)
+                  {
+                    if (arg_utf[a - 1] > ' ')   continue;
+                    if (arg_utf[a] == '#' ||
+                        (arg_utf[a] == '/' && a + 1 < arg_utf.size() &&
+                         arg_utf[a + 1] == '/'))
+                       {
+                         arg_utf.resize(a);
+                         break;
+                       }
+                  }
+
               while (arg_utf.size() && arg_utf.back() <= ' ')
                     arg_utf.pop_back();
               LibPaths::set_lib_dir(LibRef(lib_ref), arg_utf,

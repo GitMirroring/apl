@@ -236,7 +236,7 @@ FunctionGroup::bad_subfun_name_ERROR(const UCS_string sub_name) const
 }
 //────────────────────────────────────────────────────────────────────────────
 void
-FunctionGroup::bad_subfun_number_ERROR(int number) const
+FunctionGroup::bad_subfun_number_ERROR(APL_Integer number) const
 {
 const Fun_signature signature = Prefix::get_current_signature();
 const char * AX = signature & SIG_X ? "X" : "A";

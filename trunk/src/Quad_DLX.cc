@@ -706,10 +706,14 @@ const int qio = Workspace::get_IO();
 std::vector<bool> covered(headers.size(), false);   // by an earlier step
    loop(a, step_count)
       {
-        const APL_Integer row = Cell::minus_IO(A_steps.get_near_int(stepsIdx++), qio);
+        const APL_Integer given = A_steps.get_near_int(stepsIdx++);
+        const APL_Integer row = Cell::minus_IO(given, qio);
         if (row < 0 || row >= rows)
            {
-             MORE_ERROR() << "bad row: " << row;
+             // the row as given, not row (Bugs40 #95)
+             MORE_ERROR() << "(¯4,R) ⎕DLX B: step row " << given
+                          << " is not a row of B (expecting " << qio
+                          << "≤R<" << (rows + qio) << ")";
              DOMAIN_ERROR;
            }
 

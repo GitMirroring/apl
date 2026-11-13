@@ -71,6 +71,7 @@ uint64_t Value::fast_new_count = 0;
 uint64_t Value::slow_new_count = 0;
 
 uint64_t Value::alloc_size = 0;
+std::vector<const Value *> Value::collapsed_scalars;
 
 //════════════════════════════════════════════════════════════════════════════
 Value::Value(const char * loc)
@@ -416,6 +417,12 @@ Value::assign_cellrefs(Value_P new_value)
         if (get_lval_pick_owner() == 0)   LvalCell::throw_no_owner();
 
         Value & owner = *get_lval_pick_owner();
+
+        // (↑B)←C for an empty B: the slot is the prototype of B, which has
+        // no first item to replace (Bugs40 #58)
+        //
+        if (owner.element_count() == 0)   return;
+
         if (owner.is_member() && !owner.is_writable_member_cell(slot))
            throw_member_table_target();   // Bugs38 #3
         owner.depth_update_for_overwrite(slot - owner.ravel.cells,
@@ -428,6 +435,7 @@ Value::assign_cellrefs(Value_P new_value)
         // fail Assert(!sub_val->is_simple_scalar()) for e.g. (2⊃A)←7.
         //
         slot->init_from_value(new_value.get(), owner, LOC);
+        note_overwrite(owner);   // Bugs40 #1
         return;
       }
 
@@ -658,6 +666,7 @@ const int src_incr  = (new_value_count == 1)  ? 0 : 1;
                                     right_cell.is_pointer_cell() ? 0 : -1);
                          target->release(LOC);   // free sub-values etc.
                          right_cell.init_other(target, owner, LOC);
+                         note_overwrite(owner);   // Bugs40 #1
                        }
                   }
            }
@@ -670,10 +679,63 @@ const int src_incr  = (new_value_count == 1)  ? 0 : 1;
                                     src.is_pointer_cell() ? 0 : -1);
                   target->release(LOC);   // free sub-values etc (if any)
                   src.init_other(target, owner, LOC);
+                  note_overwrite(owner);   // Bugs40 #1
                 }
            }
         else   LEFT_SYNTAX_ERROR;
       }
+}
+//────────────────────────────────────────────────────────────────────────────
+void
+Value::collapse_simple_subvalues()
+{
+   // A selective specification that writes a simple item into the only
+   // cell of a nested scalar sub-value, e.g. ⊂1 2 in (1↑↑N)←9 for
+   // N←(⊂⊂1 2) 5 or Z←⊂⊂1 2 ◊ (↑↑Z)←1, turns that sub-value into a simple
+   // scalar. The PointerCell of its parent must then become that simple
+   // scalar (⊂9 ≡ 9), but values do not know their parents. Such writes
+   // are rare, therefore search all values for the parents (Bugs40 #1).
+   //
+   if (collapsed_scalars.size() == 0)   return;
+
+std::vector<std::pair<Value *, ShapeItem>> parents;
+   for (const DynamicObject * dob = DynamicObject::get_all_values()->get_next();
+        dob != DynamicObject::get_all_values(); dob = dob->get_next())
+       {
+         // WARNING: do not use pValue() here !
+         Value * val = const_cast<Value *>(static_cast<const Value *>(dob));
+         loop(c, val->nz_element_count())
+            {
+              Cell cache;
+              const Cell & cell = val->get_cravel(c, cache);
+              if (!cell.is_pointer_cell())   continue;
+              const Value * sub = cell.get_pointer_value().get();
+              if (!sub->is_simple_scalar())   continue;
+              loop(cs, collapsed_scalars.size())
+                 {
+                   if (collapsed_scalars[cs] == sub)
+                      {
+                        parents.push_back(std::pair<Value *, ShapeItem>(val, c));
+                        break;
+                      }
+                 }
+            }
+       }
+   collapsed_scalars.clear();
+
+   // modify the parents only now, since the release() below may delete
+   // the sub-value (and thus change the list of all values).
+   //
+   loop(p, parents.size())
+       {
+         Value & parent = *parents[p].first;
+         Cell & cell = parent.get_wravel(parents[p].second);
+         Value_P sub = cell.get_pointer_value();
+         parent.depth_update_for_overwrite(parents[p].second, -1);
+         cell.release(LOC);
+         Cell cache;
+         sub->get_cscalar(cache).init_other(&cell, parent, LOC);
+       }
 }
 //────────────────────────────────────────────────────────────────────────────
 Cell *
@@ -1920,30 +1982,23 @@ Value::assign_cell(ShapeItem offset, const Cell & C, const char * loc)
    if (is_packed())
       {
         RavelType rt = get_ravel_type();   // current packing
+
+        // Only exact type matches stay packed (plus bool → int64, which
+        // keeps every item an integer). A widening to float or complex
+        // changed the type of EVERY item, e.g. V[1]←0.5 made all integers
+        // of V floats (losing precision above 2⋆53) and V[3]←1J1 made all
+        // items complex (Bugs40 #38). Those cases are D. below.
+        //
         switch(C.get_cell_type())                // next Cell
            {
              case CT_INT:
                   {
                     if (rt == RPT_BOOL)   rt = explode_to_INT64();   // B→A
 
-                    const APL_Integer v = C.get_int_value();
                     if (rt == RPT_INT64)   // A.
                        {
-                         reinterpret_cast<int64_t *>(ravel.cells)[offset] = v;
-                         return;   // compatible
-                       }
-                    else if (rt == RPT_FLOAT64)   // C
-                       {
-                         reinterpret_cast<double *>
-                                         (ravel.cells)[offset] = double(v);
-                         return;   // compatible
-                       }
-                    else if (rt == RPT_COMPLEX)   // C
-                       {
-                         auto p = reinterpret_cast<double *>
-                                                  (ravel.cells) + 2*offset;
-                         *p++ = double(v);   // real
-                         *p++ = 0.0;         // imag
+                         reinterpret_cast<int64_t *>(ravel.cells)[offset] =
+                                                       C.get_int_value();
                          return;   // compatible
                        }
                   }
@@ -1951,30 +2006,16 @@ Value::assign_cell(ShapeItem offset, const Cell & C, const char * loc)
                   break;
 
              case CT_FLOAT:
-                  {
-                    if (rt & RPT_integer)   rt = explode_to_FLOAT64();   // B→A
-
-                    const APL_Float f = C.get_real_value();
-                    if (rt == RPT_FLOAT64)   // A.
-                       {
-                         reinterpret_cast<double *>(ravel.cells)[offset] = f;
-                         return;
-                       }
-
-                    if (rt == RPT_COMPLEX)   // C.
-                       {
-                         auto p = reinterpret_cast<double *>
-                                                (ravel.cells) + offset * 2;
-                         *p++ = f;
-                         *p++ = 0.0;
-                         return;
-                       }
-                  }
+                  if (rt == RPT_FLOAT64)   // A.
+                     {
+                       reinterpret_cast<double *>(ravel.cells)[offset] =
+                                                    C.get_real_value();
+                       return;
+                     }
                   // D.: explode_to_Cells() below
                   break;
 
              case CT_COMPLEX:
-                  if (rt & RPT_real)   rt = explode_to_COMPLEX();   // B→A
                   if (rt == RPT_COMPLEX)   // A.
                      {
                        auto p = reinterpret_cast<double *>

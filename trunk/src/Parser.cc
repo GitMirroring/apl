@@ -711,10 +711,17 @@ vector<ShapeItem> ends;
          //
          const Token & tok_Q = tos[src_Q];
 
+         // Also not if Q is ] or ) (the end of an indexed or parenthesized
+         // value that strands with A, e.g. V[1] 2 ⍴ 5 or (1+2) 2 ⍴ 5), or a
+         // dyadic operator (A is its right operand), Bugs40 #43.
+         //
+         const TokenClass tc_Q = src_Q >= 0 ? tok_Q.get_Class() : TC_END;
          const bool is_dyadic =
                tos[src_AQ].get_Class() == TC_VALUE &&        // AQ is a Value,
                src_Q >= 0                          &&        // Q is valid, and
-               ! ((1 << tok_Q.get_Class()) & TCG_MAY_GLUE);  // Q is not sticky
+               ! ((1 << tc_Q) & TCG_MAY_GLUE)      &&        // Q is not sticky
+               tc_Q != TC_R_BRACK && tc_Q != TC_R_PARENT && tc_Q != TC_OPER2 &&
+               tc_Q != TC_INDEX;   // e.g. V[1], collapsed to one token
 
          const bool is_monadic =
                ((1 << tos[src_AQ].get_Class()) & TCG_NO_A);   // A not a Value
@@ -1432,6 +1439,13 @@ bool progress = false;
              default: continue;   // nex token
            }
 
+        // a parenthesized value right of a dyadic operator is its entire
+        // right operand, e.g. (0) or (0 1) in -⍤(0 1) 5 6: do not strand it
+        // with the argument that follows (Bugs40 #74)
+        //
+        if (tos[t].get_tag() == TOK_APL_VALUE1 && t > 0 &&
+            tos[t - 1].get_Class() == TC_OPER2)   continue;
+
         // at this point, t is the first item. Collect subsequenct items.
         //
         for (to = t + 1; to < tos.ssize(); ++to)
@@ -1747,6 +1761,24 @@ walk_back_LO_start(const Token_string & tos, int pos_LO)
 
          while (pos_LO > 0 && tos[pos_LO].get_Class() == TC_OPER1)
             --pos_LO;
+
+         // but not onto a token that cannot end a left operand, e.g. ← ; ◊
+         // or [ in Z←⌿⍤0 B or V[1;⌿⍤0 1] (Bugs40 #100)
+         //
+         if (pos_LO < start)   switch(tos[pos_LO].get_Class())
+            {
+              case TC_ASSIGN:
+              case TC_R_ARROW:
+              case TC_L_BRACK:
+              case TC_END:
+              case TC_RETURN:
+              case TC_L_PARENT:
+              case TC_L_CURLY:
+                   ++pos_LO;
+                   break;
+
+              default: break;
+            }
 
          if (pos_LO > 0 && tos[pos_LO - 1].get_Class() == TC_OPER2)
             pos_LO -= 2;   // skip G (right operand) and the operator itself
@@ -2637,6 +2669,19 @@ bool progress = false;   // per iteration progress
                // check for case 2.
                //
                if (closing != (t + 2))   continue;
+
+               // but not for the right operand of a dyadic operator that is
+               // followed by a value, e.g. -⍤(0) 5: the parentheses separate
+               // the operand from the argument (fix_RANK_syntax() leaves
+               // them for Prefix::reduce_A_B__()). Without them the operand
+               // and the argument were merged into one literal (Bugs40 #74)
+               //
+               if (t > 0 && tos[t - 1].get_Class() == TC_OPER2 &&
+                   t + 3 < tos.ssize() &&
+                   (tos[t + 3].get_Class() == TC_VALUE    ||
+                    tos[t + 3].get_Class() == TC_LIT_ITEM ||
+                    tos[t + 3].get_Class() == TC_LIT_GRP))
+                  continue;
 
 
                // case 2. We have tos[t] = ( X ) ...

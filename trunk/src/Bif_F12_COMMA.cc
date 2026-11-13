@@ -79,7 +79,7 @@ const APL_Integer qio = Workspace::get_IO();
         Cell cache;
         const Cell & x0 = X.get_cfirst(cache);
         if (!x0.is_numeric() ||
-            (x0.is_complex_cell() && x0.get_imag_value() != 0.0))
+            !x0.is_near_real())   // near-real: Bugs40 #86
            {
              MORE_ERROR() << where << ": X is not real";
              AXIS_ERROR;
@@ -145,7 +145,7 @@ const APL_Integer qio = Workspace::get_IO();
         const APL_Integer n = Cell::minus_IO(X.get_near_int(0), qio);
         if (n < 0 || n >= B.get_rank())
            {
-             MORE_ERROR() << where << ": X = " << (n + qio)
+             MORE_ERROR() << where << ": X = " << X.get_near_int(0)
                           << " is not a valid axis of B (expecting " << qio
                           << "≤X<" << (B.get_rank() + qio) << ")"
                           << ArgCheck::index_io0_note(n, B.get_rank());
@@ -617,7 +617,7 @@ const APL_Integer qio = Workspace::get_IO();
    // fraction (Bugs39 #63)
    //
    if (!cX.is_numeric() ||
-       (cX.is_complex_cell() && cX.get_imag_value() != 0.0))
+       !cX.is_near_real())   // near-real: Bugs40 #86
       {
         MORE_ERROR() << where << ": X is not real";
         AXIS_ERROR;
@@ -660,7 +660,7 @@ const APL_Integer qio = Workspace::get_IO();
                                   ? A.get_rank() : B.get_rank();
         if (wide_axis < 0 || wide_axis >= max_rank)
            {
-             MORE_ERROR() << where << ": X = " << (wide_axis + qio)
+             MORE_ERROR() << where << ": X = " << cX.get_checked_near_int()
                           << " is not a valid axis (expecting " << qio
                           << "≤X<" << (max_rank + qio) << ")"
                           << ArgCheck::index_io0_note(wide_axis, max_rank);
@@ -688,7 +688,10 @@ const APL_Float axis = cX.get_real_value() - qio;
 ShapeItem
 Bif_COMMA::axis_plus_1(const char * where, ShapeItem len)
 {
-   if (len >= LARGE_INT)   // not a negative (wrapped) length (Bugs39 #38)
+   // only len + 1 may not overflow: the result of two conforming arrays may
+   // have any axis length up to 2⋆63-1 as well (Bugs39 #38, Bugs40 #87)
+   //
+   if (len == std::numeric_limits<ShapeItem>::max())
       {
         MORE_ERROR() << where << ": an axis of the result is too long";
         WS_FULL;

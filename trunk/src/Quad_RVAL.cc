@@ -189,7 +189,7 @@ bool need_restore = false;
                  }
               else   // shape as scalar: Z← (rank⍴ec_B)⍴random_data
                  {
-                   Value_P rank = IntScalar(B.get_int_value(1), LOC);
+                   Value_P rank = IntScalar(B.get_near_int(1), LOC);
                    do_eval_AB(2, *rank);
                  }
             }
@@ -214,7 +214,7 @@ bool need_restore = false;
                  }
               else   // maxdepth as scalar
                  {
-                   Value_P rank = IntScalar(B.get_int_value(3), LOC);
+                   Value_P rank = IntScalar(B.get_near_int(3), LOC);
                    do_eval_AB(4, *rank);
                  }
             }
@@ -227,7 +227,7 @@ bool need_restore = false;
                  }
               else   // ecount as scalar
                  {
-                   Value_P ec = IntScalar(B.get_int_value(4), LOC);
+                   Value_P ec = IntScalar(B.get_near_int(4), LOC);
                    do_eval_AB(5, *ec);
                  }
             }
@@ -514,6 +514,20 @@ vector<int> old_types = desired_types;
      // both of which it rejects with DOMAIN_ERROR.
    }
 
+   // the shape items are used as int (see choose_integer()), like in
+   // 2 ⎕RVAL B. Only an empty B can have a larger one, e.g. 0 3000000000⍴0,
+   // which was silently truncated (Bugs40 #84)
+   //
+   loop(r, Bref.get_rank())
+      {
+        const ShapeItem item = Bref.get_shape_item(r);
+        if (item > INT_MAX)
+           {
+             MORE_ERROR() << "7 ⎕RVAL B: bad shape item " << item;
+             DOMAIN_ERROR;
+           }
+      }
+
    if (rand17() & 1)   // 50%: scalar
       {
         desired_ranks.clear();
@@ -564,7 +578,7 @@ const int dist_len = dist.size();
         const int desired = dist[0];
         if (desired >= 0)   return desired;   // fixed value
         const int rand = rand17();
-        return rand % (1 - desired);          // = 0 ... |desired|
+        return rand % (1 - int64_t(desired));   // = 0 ... |desired|
       }
 
    // dist is a distribution...
@@ -654,7 +668,7 @@ Value_P Z(N, LOC);
         //
         loop(b, new_N)
             {
-              const APL_Integer byte = B.get_int_value(b);
+              const APL_Integer byte = B.get_near_int(b);
               if ((byte < -256) || (byte >  255))
                  {
                    MORE_ERROR() << "Bad right argument B in 0 ⎕RVAL B,"
@@ -665,7 +679,7 @@ Value_P Z(N, LOC);
         N = new_N;
         loop(b, N)
             {
-               state[b] = B.get_int_value(b);
+               state[b] = B.get_near_int(b);
             }
 #if ! MINGW_SRC
          setstate(state);
@@ -915,7 +929,7 @@ Value_P Z(desired_ranks.size(), LOC);
         vector<int>new_ranks;
         loop(b, B.element_count())
             {
-              const APL_Integer rank_b_A = B.get_int_value(b);
+              const APL_Integer rank_b_A = B.get_near_int(b);
               if (rank_b_A > 0x7FFFFFFF)   // Bugs35 #21: not truncated
                  {
                    MORE_ERROR() << "the weight " << rank_b_A << " in a vector right argument B of 1 ⎕RVAL B"
@@ -977,7 +991,7 @@ Value_P Z(MAX_RANK, LOC);
 
              // fill lower dimensions with B
               loop(b, len_B)
-                  new_shape.add_shape_item(B.get_int_value(b));
+                  new_shape.add_shape_item(B.get_near_int(b));
            }
 
         // the shape items are used as int (see choose_integer()); a larger

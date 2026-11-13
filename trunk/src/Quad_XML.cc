@@ -1811,7 +1811,7 @@ const Cell & b0 =  B.get_cfirst(cache_b0);
 const Cell & b1 =  B.get_cravel(1, cache_b1);
 const Cell & b2 =  B.get_cravel(2, cache_b2);
 
-const APL_Integer position = b1.get_int_value();
+const APL_Integer position = b1.get_near_int();   // Bugs40 #70
    if (position < Workspace::get_IO())
       {
          MORE_ERROR() << "¯3 ⎕XML B←NS POS NAME: POS is < ⎕IO";

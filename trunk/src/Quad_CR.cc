@@ -943,21 +943,11 @@ const Symbol * symbol = Workspace::lookup_existing_symbol(symbol_name);
                     // by one λ← on every )DUMP/)LOAD cycle. Find the
                     // same insertion point compute_lambda_body() used
                     // (after the last top-level ◊, or the very start if
-                    // none) and strip it back out here, mirroring that
-                    // function's own (deliberately simple, not string-
-                    // or brace-aware) ◊ scan exactly. See Bugs27 #37.
+                    // none) and strip it back out here, with the same
+                    // (string- and brace-aware) ◊ scan. See Bugs27 #37.
                     //
-                    ShapeItem sols = 0;
-                    for (ShapeItem j = body.ssize() - 1; j >= 0; --j)
-                        {
-                          if (Avec::is_DIAMOND(body[j]))
-                             {
-                               sols = j + 1;
-                               while (sols < body.ssize() &&
-                                      body[sols] <= UNI_SPACE)   ++sols;
-                               break;
-                             }
-                        }
+                    const ShapeItem sols =
+                          Executable::lambda_last_statement(body);  // Bugs40 #41
                     if (sols + 1 < body.ssize() &&
                         body[sols] == UNI_LAMBDA &&
                         body[sols + 1] == UNI_LEFT_ARROW)
@@ -1081,7 +1071,11 @@ int zero_count  = 0;
               ++nested_count;
               continue;
             }
-         if (cell.is_near_zero())
+         // exactly 0 (the ⍴0 fill), not near 0: 1E¯11 is a value of its
+         // own (Bugs40 #36)
+         //
+         if (cell.is_numeric() && cell.get_real_value() == 0.0 &&
+             (!cell.is_complex_cell() || cell.get_imag_value() == 0.0))
             {
               ++zero_count;
             }

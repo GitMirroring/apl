@@ -175,6 +175,16 @@ public:
    /// @param B right APL argument value
    virtual Token eval_fill_AB(cValue_R A, cValue_R B) const;
 
+   /// the operand whose fill function is the fill function of \b this
+   const Function * fill_operand() const;
+
+   /// overloaded Function::contains_defined()
+   virtual bool contains_defined() const
+      { return   oper->is_defined()
+        || (left_arg .is_function() && left_arg .get_function()->contains_defined())
+        || (right_arg.is_function() && right_arg.get_function()->contains_defined());
+      }
+
    /// overloaded Function::eval_fill_B(). See eval_fill_AB() above.
    /// @param B right APL argument value
    virtual Token eval_fill_B(cValue_R B) const;
@@ -221,6 +231,9 @@ protected:
    /// precise VALENCE ERROR was possible, not a safety issue). See the
    /// .cc file (avoids a Bif_OPER1_EACH.hh include here).
    virtual bool has_monadic_form() const;
+
+   /// return \b true if oper calls LO dyadically in both forms (Bugs40 #56)
+   bool is_dyadic_LO_oper() const;
 
    /// overloaded Function::has_dyadic_form(). See has_monadic_form().
    virtual bool has_dyadic_form() const;

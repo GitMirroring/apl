@@ -80,8 +80,25 @@ public:
    /// true if the line requested from get_file_line() is for the ∇-editor
    static bool nabla_reading;
 
+   /// the APL input (⍞, ⎕, or ⎕INP) that requested the line from
+   /// get_file_line(), or 0 if the line is not for such an input
+   static const char * apl_reading;
+
+   /// set by get_file_line() when a testcase file ended while an APL input
+   /// (⍞, ⎕, or ⎕INP) was pending. That input shall then be abandoned
+   /// (with an INTERRUPT) before the testcase is ended (Bugs40 #2)
+   static bool abandon_apl_read;
+
    /// end the current testcase after a line error (--TM 5 or 6)
    static void line_error_done();
+
+   /// finish a test run that is ended by )OFF or --OFF and return the
+   /// exit status (Bugs40 #78)
+   static int finish_tests(int exit_val);
+
+   /// stop (and maybe exit) after a testcase file with \b errors errors,
+   /// depending on --TM. Return true if stopped.
+   static bool stop_after_failed_file(int errors);
 
    /// true if diff_error() has found a line error with --TM 5 or 6
    static bool line_error_pending;

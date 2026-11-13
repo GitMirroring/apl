@@ -408,7 +408,11 @@ const int W = w_props.get_terminal_cols();
    // the canvas and the result (3×H×W) must fit into the workspace. The
    // int product H×W overflowed for e.g. 65536×65537 (Bugs39 #16).
    //
-   if (Value::check_WS_FULL("do_plot_ASCII()", 3 * ShapeItem(H) * W, LOC))
+   // (H×W ≤ (2⋆31)⋆2, so 3×H×W can overflow a ShapeItem: check first,
+   // Bugs40 #64)
+   //
+   if (ShapeItem(H) * W > LARGE_INT / 3 ||
+       Value::check_WS_FULL("do_plot_ASCII()", 3 * ShapeItem(H) * W, LOC))
       {
         MORE_ERROR() << "⎕PLOT: the ASCII canvas (terminal_rows × "
                         "terminal_cols) is too large";

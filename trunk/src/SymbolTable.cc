@@ -324,6 +324,15 @@ Symbol * next;   // the symbol after sym
             }
          else
             {
+              // the SI is clear, so the levels above the base level of a
+              // macro symbol (e.g. the operand F in μ3 of F¨) are left over
+              // from a )LOAD that was refused (and rolled back) after the
+              // symbols were read. They may point to a function that is
+              // deleted here (Bugs40 #7).
+              //
+              if (sym->get_name()[0] == UNI_MUE)
+                 while (sym->value_stack_size() > 1)   sym->pop();
+
               sym->next = symbol_table[hash];
               symbol_table[hash] = sym;
             }

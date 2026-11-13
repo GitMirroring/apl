@@ -769,12 +769,23 @@ const int top_depth_before = top->get_safe_execution_depth();
 
 ExecuteList * fun = 0;
 Error fix_error(E_SYNTAX_ERROR, LOC);   // fallback if nothing better is caught
+
+   // the error of the caller (e.g. one recorded by ⎕EA), which a fix error
+   // of B must not replace: it is only in the result of ⎕EC (LRM p. 280:
+   // "The current value of ⎕ET is not affected", Bugs40 #68)
+   //
+Error caller_error(E_NO_ERROR, LOC);
+   if (const Error * werr = Workspace::get_error())   caller_error = *werr;
+
    try {
          fun = ExecuteList::fix(statement_B, LOC);
          if (fun == 0)   // fix() caught the real error and stashed it away
             {
-              if (const Error * werr = Workspace::get_error())
-                 fix_error = *werr;
+              if (Error * werr = Workspace::get_error())
+                 {
+                   fix_error = *werr;
+                   *werr = caller_error;
+                 }
             }
        }
      catch (Error & err)      { fix_error = err; }
@@ -973,6 +984,42 @@ Quad_ES::eval_AB(cValue_R A, cValue_R B) const
         //
         MORE_ERROR() << text;
         msg << UNI_PLUS;
+        const Token ret = event_simulate(&msg, CLONE(&B, LOC), error);
+        if (error.get_error_code() == E_NO_ERROR)   return ret;
+
+        throw error;
+      }
+
+   // likewise the macro Z__EXEC_EACH_B re-signals the error of an item of
+   // ⍎¨B as (⊃μ11) ⎕ES μ10 with the ⎕EM-like matrix of the item. Report
+   // its message and its )MORE info (rows 4...) as ⍎ does (Bugs40 #97).
+   //
+   if (A.get_rank() == 2 &&
+       Workspace::SI_top()->get_executable()->get_exec_ufun() ==
+       Macro::get_macro(Macro::MAC_Z__EXEC_EACH_B))
+      {
+        UCS_string msg;
+        EB_B_failure_text(A, msg);   // msg: row 1 without a trailing +
+
+        UCS_string more;
+        const ShapeItem cols = A.get_cols();
+        for (ShapeItem r = 3; r < A.get_rows(); ++r)
+            {
+              UCS_string line;
+              loop(c, cols)   line << A.get_char_value(r*cols + c);
+              line.map_pad();
+              line.remove_trailing_whitespaces();
+              if (more.size())   more << UNI_LF;
+              more << line;
+            }
+
+        Error error(E_NO_ERROR, LOC);
+        if (more.size())
+           {
+             MORE_ERROR() << more;
+             msg << UNI_PLUS;
+           }
+        msg << " in macro ⍎¨";
         const Token ret = event_simulate(&msg, CLONE(&B, LOC), error);
         if (error.get_error_code() == E_NO_ERROR)   return ret;
 

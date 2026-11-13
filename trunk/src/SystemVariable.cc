@@ -70,6 +70,7 @@ UCS_string Quad_QUOTE::buffer;
 // raise or clear ⎕SYL[1;2] explicitly.
 ShapeItem Quad_SYL::si_depth_limit = 100000;
 ShapeItem Quad_SYL::si_depth_limit_cleared = 0;
+ShapeItem Quad_SYL::si_depth_backstop = 0;
 ShapeItem Quad_SYL::value_count_limit = 0;
 ShapeItem Quad_SYL::ravel_count_limit = 0;
 ShapeItem Quad_SYL::print_length_limit = 0;
@@ -1152,6 +1153,7 @@ const CoreCount   old_core_count = Thread_context::get_active_core_count();
                    }
                 si_depth_limit = b;
                 si_depth_limit_cleared = 0;   // explicitly set (Bugs39 #17)
+                si_depth_backstop = 0;
               }
            else if (x == SYL_VALUE_COUNT_LIMIT)   // value count limit
               {

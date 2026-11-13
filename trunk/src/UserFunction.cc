@@ -1621,13 +1621,15 @@ int signature = has_result ? SIG_FUN | SIG_Z : SIG_FUN;
              if (header_text[h] != UNI_LAMBDA)   continue;
              int num = 0;
              bool digits = false;
+             bool too_large = false;   // no int overflow (Bugs40 #61)
              for (ShapeItem d = h + 1; d < header_text.ssize() &&
                   header_text[d] >= '0' && header_text[d] <= '9'; ++d)
                  {
-                   num = 10*num + (header_text[d] - '0');
+                   if (num > 100000000)   too_large = true;
+                   else                   num = 10*num + (header_text[d] - '0');
                    digits = true;
                  }
-             if (digits)   lambda_num = Lambda_number(num);
+             if (digits && !too_large)   lambda_num = Lambda_number(num);
            }
       }
 

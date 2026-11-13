@@ -126,8 +126,8 @@ A
       ⍝
       A←''
       (↑A)←33
-      ↑A
-0
+      ' '=↑A
+1
 
       )CHECK
 OK      - no stale functions

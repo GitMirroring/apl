@@ -131,10 +131,19 @@ Workspace::push_SI(const Executable * fun, const char * loc)
       {
         Quad_SYL::si_depth_limit = Quad_SYL::si_depth_limit_cleared;
         Quad_SYL::si_depth_limit_cleared = 0;
+        Quad_SYL::si_depth_backstop = 0;
       }
 
-   if (Quad_SYL::si_depth_limit && SI_top() &&
-       Quad_SYL::si_depth_limit <= SI_top()->get_level())
+   // while the limit is cleared, a resumed (→⍬) runaway recursion is
+   // stopped again after as many further levels as the limit had, rather
+   // than running until the interpreter dies with std::bad_alloc (Bugs40 #6)
+   //
+const bool backstop = Quad_SYL::si_depth_limit == 0 && SI_top() &&
+                      Quad_SYL::si_depth_backstop &&
+                      Quad_SYL::si_depth_backstop <= SI_top()->get_level();
+
+   if (backstop || (Quad_SYL::si_depth_limit && SI_top() &&
+                    Quad_SYL::si_depth_limit <= SI_top()->get_level()))
       {
         MORE_ERROR() <<
 "the system limit on SI depth (as set in ⎕SYL["
@@ -146,8 +155,13 @@ Workspace::push_SI(const Executable * fun, const char * loc)
         // Otherwise the next runaway recursion of the session ended the
         // interpreter with std::bad_alloc (Bugs39 #17).
         //
-        Quad_SYL::si_depth_limit_cleared = Quad_SYL::si_depth_limit;
-        Quad_SYL::si_depth_limit = 0;
+        if (!backstop)
+           {
+             Quad_SYL::si_depth_limit_cleared = Quad_SYL::si_depth_limit;
+             Quad_SYL::si_depth_limit = 0;
+           }
+        Quad_SYL::si_depth_backstop = SI_top()->get_level() +
+                                      Quad_SYL::si_depth_limit_cleared;
 
         // Setting these flags alone (the old behaviour) is not enough: a
         // single statement recursing from inside itself (the common
@@ -765,6 +779,7 @@ Workspace::clear_SI(ostream & out)
       {
         Quad_SYL::si_depth_limit = Quad_SYL::si_depth_limit_cleared;
         Quad_SYL::si_depth_limit_cleared = 0;
+        Quad_SYL::si_depth_backstop = 0;
       }
 
    // clear the SI (pops all localized symbols)

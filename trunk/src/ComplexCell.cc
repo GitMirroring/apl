@@ -1419,15 +1419,14 @@ nc_near_real(APL_Complex c)
    return fabs(c.imag()) < REAL_TOLERANCE * fabs(c.real());   // relatively small
 }
 //────────────────────────────────────────────────────────────────────────────
-/// true if a is greater than b in the order of < (see apl.texi "Comparison
-/// Rules", Bugs38 #124): a and b are not tolerantly equal, and the real
-/// part of a is greater than that of b, or else (equal real parts) the
-/// imaginary part. The real parts are compared exactly (rule 7), so that
-/// the order is transitive (Bugs39 #56).
+/// true if a is greater than b in the exact order of ⌈ and ⌊: the real part
+/// of a is greater than that of b, or else (equal real parts) the
+/// imaginary part. Exactly, like the real ⌈ (e.g. 1⌈1+1E¯14), so that the
+/// order is transitive (Bugs39 #56). Tolerantly equal values were never
+/// greater, which made ⌈/ depend on the order of its items (Bugs40 #54).
 static bool
 complex_greater(APL_Complex a, APL_Complex b)
 {
-   if (Cell::tolerantly_equal(a, b, Workspace::get_CT()))   return false;
    if (a.real() != b.real())   return a.real() > b.real();
    return a.imag() > b.imag();
 }
@@ -1475,6 +1474,12 @@ const double qct = Workspace::get_CT();
    // a, b, and b÷a gives 0, like Cell::rounded_integral() on the real path
    // (Bugs38 #47), e.g. 1E¯5|0J1 (Bugs39 #34)
    //
+   // beyond 2⋆52 the floor of the quotient is exact but b - a×floor(b÷a)
+   // is pure cancellation noise (like FloatCell::bif_residue_ff(), Bugs40
+   // #98), e.g. 0J1E¯5|0J1E15 was 0J¯0.125 at ⎕CT←0
+   //
+   if (abs(quot) > 4.5E15)   return IntCell::z0(Z);
+
    if (qct != 0)
       {
         const APL_Float nr = nearbyint(quot.real());
@@ -1483,6 +1488,13 @@ const double qct = Workspace::get_CT();
         if ((nr != 0.0 || ni != 0.0)              &&
             fabs(quot.real() - nr) <= tolerance   &&
             fabs(quot.imag() - ni) <= tolerance)   return IntCell::z0(Z);
+
+        // a quotient that is a Gaussian integer within ⎕CT, like
+        // Cell::integral_within() on the real path, e.g. 3|2.9999999999999J3
+        // (instead of B being tolerantly equal to A×⌊B÷A, Bugs40 #45)
+        //
+        if (fabs(quot.real() - nr) < qct &&
+            fabs(quot.imag() - ni) < qct)   return IntCell::z0(Z);
       }
 
    // complex floor of quot
@@ -1514,9 +1526,13 @@ const APL_Complex a_floor_quot = a * floor_quot;
    // natural scale, is what ISO's tolerant equality is for (Bugs28
    // #86): e.g. 0J1E¯11|1 gave ~1.11E¯16 instead of 0.
    //
-   if (Cell::tolerantly_equal(b, a_floor_quot, qct))   return IntCell::z0(Z);
-
+   // The noise is a few ulps of |b| though, not ⎕CT×|b|: that discarded
+   // every genuine residue below |b|÷1E13, e.g. 0J10|0J10000000000001 was
+   // 0 (Bugs40 #45). A quotient near a Gaussian integer is handled above.
+   //
 const APL_Complex residue = b - a_floor_quot;
+   if (abs(residue) <= 4 * DBL_EPSILON * abs(b))   return IntCell::z0(Z);
+
 const ErrorCode ret = ComplexCell::zC(Z, residue);
    // the sibling bif_circle_fun_c() right below already does this check
    // (via the same Z->is_finite() idiom); this residue function had no
@@ -1564,6 +1580,17 @@ ErrorCode ret = E_DOMAIN_ERROR;
    return E_DOMAIN_ERROR;
 }
 //────────────────────────────────────────────────────────────────────────────
+bool
+ComplexCell::gaussian_near(APL_Complex b, double qct, APL_Complex & N)
+{
+   // return true if b is tolerantly equal (relative, like =) to a non-zero
+   // Gaussian integer N. Then ⌊b and ⌈b are N, e.g. ⌊(1÷1E¯5)+0J1 is
+   // 100000J1, not 99999J1 from the absolute window 1-⎕CT (Bugs40 #30).
+   //
+   N = APL_Complex(nearbyint(b.real()), nearbyint(b.imag()));
+   return N != APL_Complex(0.0, 0.0) && Cell::tolerantly_equal(b, N, qct);
+}
+//────────────────────────────────────────────────────────────────────────────
 ErrorCode
 ComplexCell::bif_ceiling_c(Cell * Z, APL_Complex b)
 {
@@ -1573,11 +1600,19 @@ ComplexCell::bif_ceiling_c(Cell * Z, APL_Complex b)
    // snapping back down to that integer the way tolerant floor() does
    // for a value a hair below one. ⌈3.000000000000001J2 gave 4J2 instead
    // of the tolerant 3J2.
+   // a zero imaginary part: like the real ⌈ (e.g. ⌈1E15÷3J0, Bugs40 #30)
+   //
+   if (b.imag() == 0.0)   return FloatCell::bif_ceiling_f(Z, b.real());
+
+const double qct = Workspace::get_CT();
+APL_Complex N;
+   if (gaussian_near(b, qct, N))
+      return ComplexCell::zV(Z, N.real(), N.imag());
+
 APL_Float cr = ceil(b.real());
 APL_Float Dr = cr - b.real();
 APL_Float ci = ceil(b.imag());
 APL_Float Di = ci - b.imag();
-const double qct = Workspace::get_CT();
 const double limit = 1.0 - qct;
    if (Dr > limit)   { cr -= 1.0;   Dr = 0.0; }
    if (Di > limit)   { ci -= 1.0;   Di = 0.0; }
@@ -1589,11 +1624,19 @@ const double limit = 1.0 - qct;
 ErrorCode
 ComplexCell::bif_floor_c(Cell * Z, APL_Complex b)
 {
+   // a zero imaginary part: like the real ⌊ (Bugs40 #30)
+   //
+   if (b.imag() == 0.0)   return FloatCell::bif_floor_f(Z, b.real());
+
+const double qct = Workspace::get_CT();
+APL_Complex N;
+   if (gaussian_near(b, qct, N))
+      return ComplexCell::zV(Z, N.real(), N.imag());
+
 APL_Float fr = floor(b.real());
 APL_Float Dr = b.real() - fr;
 APL_Float fi = floor(b.imag());
 APL_Float Di = b.imag() - fi;
-const double qct = Workspace::get_CT();
 const double limit = 1.0 - qct;
    if (Dr > limit)   { fr += 1.0;   Dr = 0.0; }
    if (Di > limit)   { fi += 1.0;   Di = 0.0; }

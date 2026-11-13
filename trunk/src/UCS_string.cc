@@ -1260,6 +1260,7 @@ UCS_string ret;
                    {
                      if (s >= ssize() - 1)   break;
                      const int dig = at(s+1);
+                     if (dig <= 0 || dig > 0x7F)   break;   // Bugs40 #101
                      const char * pos = strchr(hex, dig);
                      if (pos == 0)   break;   // non-hex character
 

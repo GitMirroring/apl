@@ -1184,6 +1184,40 @@ int endif_PC;
    out << " ENDIF@PC=" << endif_PC << endl;
 }
 //────────────────────────────────────────────────────────────────────────────
+ShapeItem
+Executable::lambda_last_statement(const UCS_string & text)
+{
+   // return the start of the last statement of the lambda text (between
+   // { and }), i.e. after its last ◊ (and blanks), or 0. A ◊ in a string
+   // or in a nested lambda does not end a statement of this lambda: λ←
+   // was inserted there, e.g. into 'a⋄b' (Bugs40 #41).
+   //
+ShapeItem sols = 0;
+int level = 0;   // nested { ... }
+   for (ShapeItem t = 0; t < text.ssize(); ++t)
+       {
+         const Unicode uni = text[t];
+         if (uni == UNI_SINGLE_QUOTE ||
+             uni == UNI_DOUBLE_QUOTE ||
+             uni == UNI_LEFT_DAQ)
+            {
+              const ShapeItem end = text.string_end_pos(t, false);
+              if (end == -1)   break;   // malformed: no string end
+              t = end;
+              continue;
+            }
+
+         if      (uni == UNI_L_CURLY)   ++level;
+         else if (uni == UNI_R_CURLY)   --level;
+         else if (level == 0 && Avec::is_DIAMOND(uni))
+            {
+              sols = t + 1;
+              while (sols < text.ssize() && text[sols] <= UNI_SPACE)  ++sols;
+            }
+       }
+   return sols;
+}
+//────────────────────────────────────────────────────────────────────────────
 UCS_string
 Executable::extract_lambda_text(Fun_signature signature, int skip) const
 {
@@ -1284,20 +1318,7 @@ out:
    // statement (= after the last ◊), or at the beginning if there is only
    // one statement
    //
-ShapeItem sols = 0;   // start-of-last-statement; assume no ◊.
-   rev_loop(j, lambda_text.size())
-      {
-        if (Avec::is_DIAMOND(lambda_text[j]))
-           {
-             sols = j + 1;
-             // currently unreachable (SIG_Z implies non-whitespace
-             // follows the last ◊), but bound defensively in case a
-             // future change to lambda parsing makes it reachable.
-             while (sols < lambda_text.ssize() &&
-                    lambda_text[sols] <= UNI_SPACE)   ++sols;
-             break;
-           }
-      }
+const ShapeItem sols = lambda_last_statement(lambda_text);
 
 UCS_string ret;
    loop(j, lambda_text.size())
@@ -1350,15 +1371,21 @@ int level = 0;
       For a multi-statement lambda it is the last ◊ before lambda_body[bend].
     */
 ShapeItem insertion_point = b;
-   for (ShapeItem j = b; j < bend; ++j)
-       {
-         if (body[j].get_tag() == TOK_END)
-            {
-              // TOK_END indicates a multi-statement lambda. Move the
-              // insertion_point to the (beginning of) the next statement.
-              insertion_point = j + 1;
-            }
-       }
+   {
+     int lev = 0;   // nested { ... }: their ◊ are not ours (Bugs40 #41)
+     for (ShapeItem j = b; j < bend; ++j)
+         {
+           const TokenTag tag = body[j].get_tag();
+           if      (tag == TOK_L_CURLY)   ++lev;
+           else if (tag == TOK_R_CURLY)   --lev;
+           else if (tag == TOK_END && lev == 0)
+              {
+                // TOK_END indicates a multi-statement lambda. Move the
+                // insertion_point to the (beginning of) the next statement.
+                insertion_point = j + 1;
+              }
+         }
+   }
 
    // a last statement that consists only of the local variables (e.g.
    // {;A} or {⍵⋄;A}) is empty: no λ← (Bugs38 #111)

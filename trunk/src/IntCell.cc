@@ -947,8 +947,12 @@ const bool invert_Z = b < 0;
         // negative), which later makes a_2_n wrap to 0 and SIGFPEs on the
         // division at line ~822. pow() handles a negative base directly
         // (correct sign for odd/even b), so go straight to the float path.
-        APL_Float z = pow(APL_Float(a), APL_Float(b));
-        if (invert_Z)   z = 1.0 / z;
+        // pow() with the negative exponent directly: 1÷pow() was 1÷∞ = 0
+        // for e.g. M⋆¯17 although 2⋆¯1071 is a (subnormal) double
+        //
+        const APL_Float z = pow(APL_Float(a), invert_Z ? -APL_Float(b)
+                                                      :  APL_Float(b));
+        if (!isfinite(z))   return E_DOMAIN_ERROR;   // Bugs40 #44
         return FloatCell::zF(Z, z);
       }
 

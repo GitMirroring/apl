@@ -1166,7 +1166,8 @@ public:
               int nread = 0;
               const int ret = sscanf(field.c_str(), fmt, &value, &nread);
               if (ret != 1)   return 0;
-              check_range(errno == ERANGE || (conv == 'u' && value < 0),
+              check_range(errno == ERANGE ||
+                          (strchr("uoxX", conv) && value < 0),
                           field.substr(0, nread).c_str());
               return 1;
             }
@@ -1187,9 +1188,10 @@ public:
          int nread = 0;
          const int ret = sscanf(rest.c_str(), fmt, &value, &nread);
          if (ret != 1)   { string_consume(pos, 0);   return 0; }
-         // a %u value ≥ 2⋆63 does not fit into an APL integer: C returns
-         // it as a negative long long (Bugs39 #24)
-         check_range(errno == ERANGE || (conv == 'u' && value < 0),
+         // a %u (or %o, %x, %X) value ≥ 2⋆63 does not fit into an APL
+         // integer: C returns it as a negative long long (Bugs39 #24,
+         // Bugs40 #29)
+         check_range(errno == ERANGE || (strchr("uoxX", conv) && value < 0),
                      rest.substr(0, nread).c_str());
          string_consume(pos, nread);
          return 1;
@@ -1284,14 +1286,24 @@ public:
 
    /// collect the text of a numeric field of conversion \b conv (and at
    /// most \b conv_len characters, if > 0) from the file. APL's negative
-   /// sign ¯ becomes -. The first character that cannot belong to the
-   /// field is left in lookahead (like C's fscanf(), which also pushes
-   /// back only one character).
+   /// sign ¯ becomes -. Like C's fscanf(), the field ends at the first
+   /// character that cannot extend the number according to C's grammar
+   /// for conv, e.g. the second . in 1.2.3 for %f or the 8 in 789 for %o.
+   /// That character is left in lookahead (fscanf() also pushes back only
+   /// one character). The field used to take every character that may
+   /// occur in such a number, and the unconverted rest was lost (Bugs40 #21)
    std::string file_field(char conv, int64_t conv_len)
       {
-        const bool hex   = strchr("xXi", conv) != 0;
-        const bool flt   = strchr("fFeg", conv) != 0;
+        const bool flt = strchr("fFeEgGaA", conv) != 0;
+        int base = 10;                 // 8 for %o, 16 for %x, 0 for %i
+        if (conv == 'o')                 base = 8;
+        if (conv == 'x' || conv == 'X')  base = 16;
+        if (conv == 'i')                 base = 0;   // from the prefix
+
         std::string ret;
+        bool digits = false;        // at least one digit (of the mantissa)
+        bool dot = false;           // flt: . seen
+        bool expo = false;          // flt: e seen
         for (;;)
             {
               if (conv_len > 0 && int64_t(ret.size()) >= conv_len)   break;
@@ -1302,13 +1314,49 @@ public:
 
               const char prev = ret.size() ? ret.back() : 0;
               bool take = false;
-              if (cc >= '0' && cc <= '9')                       take = true;
-              else if (cc == '+' || cc == '-')
+              if (cc == '+' || cc == '-')
+                 {
                    take = ret.size() == 0 ||   // leading sign
                           (flt && (prev == 'e' || prev == 'E'));
-              else if (hex && cc && strchr("abcdefABCDEFxX", cc))
-                   take = true;
-              else if (flt && cc && strchr(".eE", cc))         take = true;
+                 }
+              else if (flt)
+                 {
+                   if (cc >= '0' && cc <= '9')
+                      {
+                        take = true;
+                        if (!expo)   digits = true;
+                      }
+                   else if (cc == '.')   take = !dot && !expo;
+                   else if (cc == 'e' || cc == 'E')   take = digits && !expo;
+                   if (take && cc == '.')   dot = true;
+                   if (take && (cc == 'e' || cc == 'E'))   expo = true;
+                 }
+              else   // integer
+                 {
+                   // %i: 0x... is hex, 0... is octal, otherwise decimal
+                   //
+                   if (base == 0 && digits)
+                      base = (ret == "0" || ret == "-0" || ret == "+0")
+                           ? 8 : 10;
+
+                   const bool zero = ret == "0" || ret == "-0" || ret == "+0";
+                   if ((cc == 'x' || cc == 'X') && zero &&
+                       (conv == 'i' || base == 16))
+                      {
+                        take = true;
+                        base = 16;
+                      }
+                   else
+                      {
+                        const int b = base ? base : 10;
+                        int d = -1;
+                        if (cc >= '0' && cc <= '9')        d = cc - '0';
+                        else if (cc >= 'a' && cc <= 'f')   d = cc - 'a' + 10;
+                        else if (cc >= 'A' && cc <= 'F')   d = cc - 'A' + 10;
+                        take = d >= 0 && d < b;
+                        if (take)   digits = true;
+                      }
+                 }
 
               if (!take)   { unget(uni);   break; }
               ret += cc;
@@ -2355,7 +2403,9 @@ const UTF8_string path(path_ucs);
    errno = 0;
 const int err = mkdir(path.c_str());
 #else // ! MINGW_SRC
-const int mask = A->get_sole_integer();
+   // a mode outside 0...07777 is not silently truncated (Bugs40 #63)
+   if (A->element_count() != 1)   LENGTH_ERROR;
+const int mask = checked_int(*A, 0, 0, 07777);
    errno = 0;
 const int err = mkdir(path.c_str(), mask);
 #endif // ! MINGW_SRC
@@ -2569,8 +2619,11 @@ Quad_FIO::eval_AXB__34(Value_P A, Value_P B)
 {
 const int fd = get_fd(*B.get());
 APL_Integer backlog = 10;
-   if (A->element_count() > 0)
-      backlog = A->get_sole_integer();
+   if (A->element_count() > 0)   // no int truncation (Bugs40 #63)
+      {
+        if (A->element_count() != 1)   LENGTH_ERROR;
+        backlog = checked_int(*A, 0, 0, INT_MAX);
+      }
    errno = 0;
 const int err = listen(fd, backlog);
    return Token(TOK_APL_VALUE1, IntScalar(err ? -errno : 0, LOC));
@@ -2694,8 +2747,8 @@ const ssize_t len = write(fd, utf.c_str(), utf.size());
 Token
 Quad_FIO::eval_AXB__46(Value_P A, Value_P B)
 {
-const APL_Integer level   = A->get_near_int(0);
-const APL_Integer optname = A->get_near_int(1);
+const APL_Integer level   = checked_int(*A, 0, INT_MIN, INT_MAX);   // Bugs40
+const APL_Integer optname = checked_int(*A, 1, INT_MIN, INT_MAX);   // #63
 const int fd = get_fd(*B.get());
 int optval = 0;
 socklen_t olen = sizeof(optval);
@@ -2708,8 +2761,8 @@ const int ret = sys_getsockopt(fd, level, optname, &optval, &olen);
 Token
 Quad_FIO::eval_AXB__47(Value_P A, Value_P B)
 {
-const APL_Integer level   = A->get_near_int(0);
-const APL_Integer optname = A->get_near_int(1);
+const APL_Integer level   = checked_int(*A, 0, INT_MIN, INT_MAX);   // Bugs40
+const APL_Integer optname = checked_int(*A, 1, INT_MIN, INT_MAX);   // #63
 const int optval          = checked_int(*A, 2, INT_MIN, INT_MAX);
 const int fd = get_fd(*B.get());
    errno = 0;
@@ -3597,9 +3650,10 @@ Quad_FIO::eval_XB__32(Value_P B)
 APL_Integer domain = AF_INET;
 APL_Integer type = SOCK_STREAM;
 APL_Integer protocol = 0;
-   if (B->element_count() > 0)   domain   = B->get_near_int(0);
-   if (B->element_count() > 1)   type     = B->get_near_int(1);
-   if (B->element_count() > 2)   protocol = B->get_near_int(2);
+   // no int truncation (Bugs40 #63)
+   if (B->element_count() > 0)   domain   = checked_int(*B, 0, 0, INT_MAX);
+   if (B->element_count() > 1)   type     = checked_int(*B, 1, 0, INT_MAX);
+   if (B->element_count() > 2)   protocol = checked_int(*B, 2, 0, INT_MAX);
 const int sock = socket(domain, type, protocol);
    if (sock == -1)   return Token(TOK_APL_VALUE1, IntScalar(-errno, LOC));
 file_entry fe(0, sock);
@@ -3720,7 +3774,7 @@ APL_Integer max_fd = -1;
         Value_P vex = b2.get_pointer_value();
         loop(l, vex->element_count())
             {
-              const int fd(vex->get_near_int(l));
+              const APL_Integer fd = vex->get_near_int(l);   // Bugs40 #63
               if (fd < 0)              DOMAIN_ERROR;
               if (fd >= FD_SETSIZE)    DOMAIN_ERROR;   // was >, off-by-one
               FD_SET(SOCKET(fd), &exceptfds);

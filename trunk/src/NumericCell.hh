@@ -121,6 +121,11 @@ protected:
    static ErrorCode log_binomial(Cell * Z, APL_Float r_1_A, APL_Float r_1_B,
                                  APL_Float r_1_B__A);
 
+   /// return true if a binomial computed from the log-Γ values with the
+   /// magnitudes \b lg1, \b lg2, and \b lg3 is accurate (Bugs40 #22)
+   static bool log_binomial_accurate(APL_Float lg1, APL_Float lg2,
+                                     APL_Float lg3);
+
    /// return the greatest common divisor of complex a and b
    /// @param z   result complex GCD
    /// @param a   first complex operand

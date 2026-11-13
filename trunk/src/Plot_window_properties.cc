@@ -328,6 +328,23 @@ Plot_window_properties::print(ostream & out) const
    return 0;
 }
 //────────────────────────────────────────────────────────────────────────────
+/// return the (non-negative, at most 1000000) number from..to (e.g. the 2
+/// of line_color-2:), or INT_MIN if it is malformed (Bugs40 #49)
+static int
+strict_number(const char * from, const char * to)
+{
+   while (from < to && to[-1] == ' ')   --to;   // e.g. line_color-2 :
+   if (from == to)   return INT_MIN;
+int ret = 0;
+   for (; from < to; ++from)
+       {
+         if (*from < '0' || *from > '9')   return INT_MIN;
+         ret = 10*ret + (*from - '0');
+         if (ret > 1000000)   return INT_MIN;
+       }
+   return ret;
+}
+//────────────────────────────────────────────────────────────────────────────
 const char *
 Plot_window_properties::set_attribute(const char * att_and_val)
 {
@@ -362,7 +379,10 @@ const char * colon = strchr(att_and_val, ':');
    // skip leading whitespace before the attribute value
    //
 const char * value = colon + 1;
-   while (*value && (*value <= ' '))   ++value;
+   // (unsigned: the bytes of a UTF-8 character, e.g. of ¯ or Ä, are not
+   // whitespace, Bugs40 #49)
+   //
+   while (*value && ((unsigned char)*value <= ' '))   ++value;
 
    // check for optional line number resp. color level
    //
@@ -379,7 +399,8 @@ int line_number = -1;
         //
         if (!strncmp(att_and_val, "color_level-", 12))
            {
-             const int level = strtoll(minus + 1, 0, 10);
+             const int level = strict_number(minus + 1, colon);
+             if (level == INT_MIN)   return "bad color gradient level";
              if (level < 0)     return "color gradient level < 0%";
              if (level > 100)   return "color gradient level > 100%";
              const char * error = 0;
@@ -409,7 +430,8 @@ int line_number = -1;
         // figure the line number in the attribute name, for example in
         // line_color-2. No line number means all lines.
         //
-        const int line1 = strtoll(minus + 1, 0, 10);    // ⎕IO..⎕IO+line_count
+        const int line1 = strict_number(minus + 1, colon);   // ⎕IO..
+        if (line1 == INT_MIN)   return "bad line number";   // Bugs40 #49
         const int line0 = line1 - Workspace::get_IO();   // 0..line_count - 1
         if (line0 < 0)
            {

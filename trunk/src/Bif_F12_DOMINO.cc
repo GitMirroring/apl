@@ -359,11 +359,28 @@ const APL_Integer X0 = X.get_sole_integer();
    switch(X0)
       {
         case  7: return Token(TOK_APL_VALUE1, print_polynomial(A, B));
-        case  8: return Token(TOK_APL_VALUE1, polynomial_product(A, B));
-        case  9: return Token(TOK_APL_VALUE1, poly_quotient(A, B));
-        case 10: return Token(TOK_APL_VALUE1, poly_quotient_NO(A, B, 0, 0));
         case 11: return Token(TOK_APL_VALUE1, scan_polynomial(A, B));
-        case 12: return Token(TOK_APL_VALUE1, poly_quotient_N(A, B));
+      }
+
+   // the polynomial product and quotients may overflow: never a ∞ in a
+   // value (Bugs39 #31, Bugs40 #27)
+   //
+Value_P Z;
+   switch(X0)
+      {
+        case  8: Z = polynomial_product(A, B);           break;
+        case  9: Z = poly_quotient(A, B);                break;
+        case 10: Z = poly_quotient_NO(A, B, 0, 0);       break;
+        case 12: Z = poly_quotient_N(A, B);              break;
+      }
+   if (!!Z)
+      {
+        Z->check_finite("A⌹[X]B");
+        return Token(TOK_APL_VALUE1, Z);
+      }
+
+   switch(X0)
+      {
         case 20: return Token(TOK_APL_VALUE1, integral(&A, B));
       }
 
@@ -1181,6 +1198,42 @@ const UCS_string Z = print_polynomial(vars, B);
    return Value_P(Z, LOC);
 }
 //────────────────────────────────────────────────────────────────────────────
+void
+Bif_F12_DOMINO::store_coefficient(Value & Z, double r, double i, double tiny)
+{
+   // a computed polynomial coefficient: 0 only if it is below the rounding
+   // noise tiny of its computation (relative to the coefficients involved,
+   // not the absolute 1E¯10 that zeroed e.g. 1E¯12×1 1 ⌹[8] 1, Bugs40 #27),
+   // an integer only if it is integral (no rounding, like Bugs39 #33).
+   //
+   if (!isfinite(r) || !isfinite(i))   // overflow: see check_finite()
+      {
+        if (i == 0.0)   Z.next_ravel_Float(r);
+        else            Z.next_ravel_Complex(r, i);
+        return;
+      }
+   if (fabs(i) > tiny)   { Z.next_ravel_Complex(r, i);   return; }
+   if (fabs(r) <= tiny)  { Z.next_ravel_0();   return; }
+   if (r == nearbyint(r) && fabs(r) < 9E18)   Z.next_ravel_Int(APL_Integer(r));
+   else                                       Z.next_ravel_Float(r);
+}
+//────────────────────────────────────────────────────────────────────────────
+double
+Bif_F12_DOMINO::max_magnitude(const cValue & V, ShapeItem count)
+{
+double ret = 0.0;
+   loop(v, count)
+      {
+        Cell cache;
+        const Cell & cell = V.get_cravel(v, cache);
+        const double m = fabs(cell.get_real_value()) +
+                         (cell.is_complex_cell()
+                          ? fabs(cell.get_imag_value()) : 0.0);
+        if (ret < m)   ret = m;
+      }
+   return ret;
+}
+//────────────────────────────────────────────────────────────────────────────
 Value_P
 Bif_F12_DOMINO::polynomial_product(const cValue & A, const cValue & B)
 {
@@ -1217,13 +1270,17 @@ vector<Complex> vZ(shape_Z.get_volume(), Complex(0));
        {
         Cell cache_A;
         const Cell & cell_A = A.get_cravel(a, cache_A);
-        if (cell_A.is_near_zero())   continue;
+        if (cell_A.get_real_value() == 0.0 &&   // exactly 0 (Bugs40 #27)
+            (!cell_A.is_complex_cell() || cell_A.get_imag_value() == 0.0))
+           continue;
         const Shape idx_A = shape_A.offset_to_index(a, /* ⎕IO */ 0);
         loop(b, ec_B)
            {
              Cell cache_B;
              const Cell & cell_B = B.get_cravel(b, cache_B);
-             if (cell_B.is_near_zero())   continue;
+             if (cell_B.get_real_value() == 0.0 &&   // exactly 0
+                 (!cell_B.is_complex_cell() ||
+                  cell_B.get_imag_value() == 0.0))   continue;
              const Shape idx_B = shape_B.offset_to_index(b, /* ⎕IO */ 0);
 
              // at this point A and B are non-zero coefficients, and
@@ -1243,7 +1300,7 @@ vector<Complex> vZ(shape_Z.get_volume(), Complex(0));
              const ShapeItem pos = shape_Z.ravel_pos(idx_AB);
              const double real_a = cell_A.get_real_value();
              const double real_b = cell_B.get_real_value();
-             if (cell_A.is_near_real() && cell_B.is_near_real())
+             if (!cell_A.is_complex_cell() && !cell_B.is_complex_cell())
                 {
                   vZ[pos] = Complex(vZ[pos].real() + real_a * real_b, 0);
                 }
@@ -1262,24 +1319,11 @@ vector<Complex> vZ(shape_Z.get_volume(), Complex(0));
 
    // construct the result
    //
+const double tiny = 16 * DBL_EPSILON * min(ec_A, ec_B) *
+                    max_magnitude(A, ec_A) * max_magnitude(B, ec_B);
 Value_P Z(shape_Z, LOC);
    loop(z, shape_Z.get_volume())
-       {
-         const double real_z = vZ[z].real();
-         const double imag_z = vZ[z].imag();
-         if (!Cell::is_near_zero(imag_z))   // complex coefficient
-             {
-               Z->next_ravel_Complex(real_z, imag_z);
-             }
-         else if (Cell::is_near_zero(real_z))   // 0J0
-             {
-               Z->next_ravel_0();
-             }
-          else
-             {
-               Z->next_ravel_Number(real_z);
-             }
-       }
+       store_coefficient(*Z, vZ[z].real(), vZ[z].imag(), tiny);
 
    Z->check_value(LOC);
    return Z;
@@ -1302,7 +1346,9 @@ ShapeItem ec_B = B.element_count();
    // (Bugs35 #23). Ignore them, and refuse the zero polynomial.
    //
    for (Cell cache; ec_B > 0 &&
-                    B.get_cravel(ec_B - 1, cache).is_near_zero();)   --ec_B;
+                    B.get_cravel(ec_B - 1, cache).get_real_value() == 0.0 &&
+                    B.get_cravel(ec_B - 1, cache).get_imag_value() == 0.0;)
+       --ec_B;   // exactly 0 (Bugs40 #27)
    if (ec_B == 0)
       {
         MORE_ERROR() << "A⌹[9]B: B is the zero polynomial";
@@ -1351,12 +1397,29 @@ bool need_complex = false;
        {
          Cell cache;
          const Cell & cell = B.get_cravel(b, cache);
-         if (cell.is_near_zero())   continue;
+         if (cell.get_real_value() == 0.0 && cell.get_imag_value() == 0.0)
+            continue;   // exactly 0 (Bugs40 #27)
          powers_B.push_back(b);   // remember b
          if (cell.is_complex_cell())   need_complex = true;
        }
 
 const ShapeItem ec_Q = ec_A - ec_B + 1;
+
+   // the rounding noise of the remainder and of the quotient, relative to
+   // A and B (Bugs40 #27)
+   //
+const double max_A = max_magnitude(A, ec_A);
+const double max_B = max_magnitude(B, ec_B);
+const double tiny_R = 16 * DBL_EPSILON * ec_A * max_A;
+double tiny_Q;   // the noise of the quotient: tiny_R ÷ |leading B|
+   {
+     Cell cache;
+     const Cell & lead = B.get_cravel(ec_B - 1, cache);
+     const double lead_B = fabs(lead.get_real_value()) +
+                           (lead.is_complex_cell()
+                            ? fabs(lead.get_imag_value()) : 0.0);
+     tiny_Q = tiny_R / lead_B * (1.0 + max_B / lead_B);
+   }
 
 Value_P Z(2, LOC);   // Z is quotient Z1 and remainder Z2
    if (need_complex)
@@ -1387,8 +1450,7 @@ Value_P Z(2, LOC);   // Z is quotient Z1 and remainder Z2
                     R = B × (R ÷ B) = R × factor.
                */
               const Complex & Rq = R[q];   // dividend
-              if (Cell::is_near_zero(Rq.real()) &&
-                  Cell::is_near_zero(Rq.imag()))
+              if (fabs(Rq.real()) <= tiny_R && fabs(Rq.imag()) <= tiny_R)
                  {
                    Q.push_back(0);
                    continue;
@@ -1413,11 +1475,7 @@ Value_P Z(2, LOC);   // Z is quotient Z1 and remainder Z2
         loop(q, ec_Q)
            {
               const Complex z = Q[ec_Q - q - 1];
-              const double r = z.real();
-              const double i = z.imag();
-              if      (!Cell::is_near_zero(i))     Z1->next_ravel_Complex(r, i);
-              else if (!Cell::is_near_int64_t(r))  Z1->next_ravel_Number(r);
-              else                     Z1->next_ravel_Int(Cell::near_int(r));
+              store_coefficient(*Z1, z.real(), z.imag(), tiny_Q);
            }
         Z1->check_value(LOC);
 
@@ -1425,11 +1483,7 @@ Value_P Z(2, LOC);   // Z is quotient Z1 and remainder Z2
         loop(b, ec_B - 1)
             {
               const Complex z = R[ec_Q + b];
-              const double re = z.real();
-              const double im = z.imag();
-              if (!Cell::is_near_zero(im))      Z2->next_ravel_Complex(re, im);
-              else if (!Cell::is_near_int64_t(re))   Z2->next_ravel_Number(re);
-              else                      Z2->next_ravel_Int(Cell::near_int(re));
+              store_coefficient(*Z2, z.real(), z.imag(), tiny_R);
             }
         Z2->check_value(LOC);
 
@@ -1458,7 +1512,7 @@ Value_P Z(2, LOC);   // Z is quotient Z1 and remainder Z2
                     R = B × (R ÷ B) = R × factor.
                */
               const double Rq = R[q];   // dividend
-              if (Cell::is_near_zero(Rq))
+              if (fabs(Rq) <= tiny_R)
                  {
                    Q.push_back(0);
                    continue;
@@ -1482,9 +1536,7 @@ Value_P Z(2, LOC);   // Z is quotient Z1 and remainder Z2
         Value_P Z1(ec_Q, LOC);   // A÷B
         loop(q, ec_Q)
            {
-              const double r = Q[ec_Q - q - 1];
-              if (!Cell::is_near_int64_t(r))   Z1->next_ravel_Number(r);
-              else                     Z1->next_ravel_Int(Cell::near_int(r));
+              store_coefficient(*Z1, Q[ec_Q - q - 1], 0.0, tiny_Q);
            }
         Z1->check_value(LOC);
 
@@ -1492,9 +1544,7 @@ Value_P Z(2, LOC);   // Z is quotient Z1 and remainder Z2
 
         loop(b, ec_B - 1)
             {
-              const double re = R[ec_Q + b];
-              if (!Cell::is_near_int64_t(re))   Z2->next_ravel_Number(re);
-              else                 Z2->next_ravel_Int(Cell::near_int(re));
+              store_coefficient(*Z2, R[ec_Q + b], 0.0, tiny_R);
             }
         Z2->check_value(LOC);
 
@@ -1537,28 +1587,49 @@ Polynomial T;      // temp remainder
    if (R.needs_complex())   TODO;
    if (D.needs_complex())   TODO;
 
-const Monomial term_R_max = R.get_LT(order_A);
+   // Polynomial() drops zero coefficients, so a zero polynomial has no
+   // terms (Bugs40 #17)
+   //
+   if (D.size() == 0)
+      {
+        const char * sub_fun = order_A ? "poly_divideNO" : "poly_divideN";
+        MORE_ERROR() << "A ⌹." << sub_fun << " B : B is the zero polynomial";
+        DOMAIN_ERROR;
+      }
+
+   // the result is the pair (quotient, remainder), also if A is smaller
+   // than B (quotient 0, remainder A). It was A alone (Bugs40 #47).
+   //
+bool A_smaller = R.size() == 0;   // A is the zero polynomial (Bugs40 #17)
+   if (!A_smaller)
+      {
+        const Monomial term_R_max = R.get_LT(order_A);
+        const Monomial term_D_max = D.get_LT(order_B);
+        if (order_A)
+           {
+             Assert(order_B);
+             A_smaller = term_R_max.get_order(*order_A) <
+                         term_D_max.get_order(*order_B);
+           }
+        else   // default (lexicographic) order
+           {
+             Assert(!order_B);
+             A_smaller = term_R_max < term_D_max;
+           }
+      }
+
+   if (A_smaller)
+      {
+        Value_P Z1 = Q.to_value();   // 0
+        Value_P Z(2, LOC);
+        Z->next_ravel_Value(Z1.get());
+        if (R.size())   Z->next_ravel_Value(A.clone(LOC).get());
+        else            Z->next_ravel_Value(T.to_value().get());   // 0
+        Z->check_value(LOC);
+        return Z;
+      }
+
 const Monomial term_D_max = D.extract_LT(order_B);
-   if (order_A)
-      {
-        Assert(order_B);
-        if (term_R_max.get_order(*order_A) < term_D_max.get_order(*order_B))
-           {
-             // R is already smaller than D: return it.
-             //
-             return A.clone(LOC);
-           }
-      }
-   else   // default (lexicographic) order
-      {
-        Assert(!order_B);
-        if (term_R_max < term_D_max)
-           {
-             // R is already smaller than D: return it.
-             //
-             return A.clone(LOC);
-           }
-      }
 
    while (R.size())
          {
@@ -1611,6 +1682,14 @@ Bif_F12_DOMINO::poly_quotient_N(const cValue & A, const cValue & B)
         MORE_ERROR() << "A ⌹.poly_divideN B : Bad shape of argument A"
                         " (expecting ↑⍴A = 2, for A[1;...]=polynomial and"
                         " A[2;...]=monomial order)";
+        LENGTH_ERROR;
+      }
+
+   if (B.get_shape_item(0) != 2)   // Bugs40 #16
+      {
+        MORE_ERROR() << "A ⌹.poly_divideN B : Bad shape of argument B"
+                        " (expecting ↑⍴B = 2, for B[1;...]=polynomial and"
+                        " B[2;...]=monomial order)";
         LENGTH_ERROR;
       }
 
@@ -1769,16 +1848,36 @@ UCS_string text(B);
 
 Unicode_source src(text);
 
-   // scanner state
+   // scanner state. A ¯ or J belongs to the number right after it (a ¯
+   // used to stick to every later number, so that ⌹[11] ⌹[7] 1 ¯3 was
+   // ¯1 ¯3, Bugs40 #48). A term has at most one real and one imaginary
+   // part, both before its indeterminants (Bugs40 #94).
    //
 char term_sign = '+';
 bool got_j = false;
 bool got_overbar = false;
+bool got_real = false;    // the real part of the current term was scanned
+bool got_imag = false;    // the imaginary part of the current term was scanned
+bool got_indet = false;   // an indeterminant of the current term was scanned
+
+   struct _bad { static void term(const UCS_string & text)
+      {
+        MORE_ERROR() << "⌹[11]B: malformed term in polynomial B: " << text;
+        DOMAIN_ERROR;
+      } };
+
+   // the end of a term: it must have a coefficient or an indeterminant,
+   // and no ¯ or J that is not followed by a number
+   //
+#define END_OF_TERM                                                       \
+   if (got_overbar || got_j || !(got_real || got_imag || got_indet))      \
+      _bad::term(text);                                                   \
+   terms.push_back(T);
 
 vector<Monomial> terms;
 Monomial T;
    if (src.has_more() && *src == '-')   { term_sign = '-';   ++src; }
-   T.set_real(got_overbar, term_sign, 1.0);
+   T.set_real(false, term_sign, 1.0);
 
    while (src.has_more())
      {
@@ -1789,31 +1888,42 @@ Monomial T;
                   continue;
 
              case '+': 
-             case '-': terms.push_back(T);
+             case '-': END_OF_TERM
                        T = Monomial();   // reuse T's expos buffer, not
                                          // new (&T) Monomial (leaked it)
                        term_sign = uni;
-                       T.set_real(got_overbar, term_sign, 1.0);
-                        ++src;
+                       T.set_real(false, term_sign, 1.0);
+                       got_real = got_imag = got_indet = false;
+                       ++src;
                        continue;
 
              case 'J':
-             case 'j': got_j = true;
+             case 'j': if (got_j || got_imag || got_indet)   _bad::term(text);
+                       got_j = true;
                        ++src;   // was missing: *src stayed 'J' forever
                        continue;
 
-             case UNI_OVERBAR: got_overbar = true;
+             case UNI_OVERBAR: if (got_overbar)   _bad::term(text);
+                  got_overbar = true;
                   ++src;
                   continue;
 
              case '0'...'9':
+                       if (got_indet)   _bad::term(text);   // e.g. 3x4
+                       if (got_j ? got_imag : got_real)   _bad::term(text);
+                       if (got_j)   got_imag = true;
+                       else         got_real = true;
                        T.scan_coefficient(src, term_sign, got_j, got_overbar);
+                       got_overbar = false;
                        continue;
 
-             default: T.scan_indeterminants(vars, src);
+             default: if (got_overbar || got_j)   _bad::term(text);
+                      T.scan_indeterminants(vars, src);
+                      got_indet = true;
           }
      }
-   terms.push_back(T); 
+   END_OF_TERM
+#undef END_OF_TERM
 
    // check for duplicate terms
    //
@@ -1904,8 +2014,10 @@ Value_P Z(shape_Z, LOC);
             {
               new (dest) ComplexCell(term.get_real(), term.get_imag());
             }
-         else if (Cell::is_near_int(term.get_real()))   // integer coefficient
+         else if (Cell::is_near_int64_t(term.get_real()))   // integer coeff.
             {
+              // not is_near_int(), which is true also beyond the int64
+              // range (e.g. ⌹[11] '1E19'), like Bugs39 #65 (Bugs40 #94)
               new (dest) IntCell(Cell::near_int(term.get_real()));
             }
          else                                         // real coefficient

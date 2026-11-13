@@ -51,8 +51,10 @@ Prefix::Prefix(StateIndicator & _si, const Token_string & _body)
      PC(Prefix_PC_0),
      assign_state(ASS_none),
      assign_PC(Prefix_PC_invalid),
+     prefix_len(0),   // Bugs40 #81
      action(RA_FIXME),
-     escape_pending(false)
+     escape_pending(false),
+     restart_PC(Prefix_PC_invalid)
 {
 }
 //────────────────────────────────────────────────────────────────────────────
@@ -139,6 +141,7 @@ Prefix::reset(const char * loc)
    clear_MISC(loc);
    lookahead_PC = Prefix_PC_invalid;
    prefix_len = 0;
+   restart_PC = Prefix_PC_invalid;
 
    // The statement being reset here is abandoned outright -- e.g. by
    // A→B (including the same-line "0→COND" retry idiom, see apl.texi's
@@ -256,17 +259,31 @@ Prefix::lookahead_loc() const
 void
 Prefix::syntax_error(const char * loc)
 {
-   // move the PC back to the beginning of the failed statement
+   // a resume (→⍬ or →⍳0) of the failed statement starts again at its
+   // beginning, see reduce_body(). PC itself stays inside the statement,
+   // so that the line of the error is that of the statement. It used to
+   // be moved back to the beginning of the statement, so that →⍬ read the
+   // tokens already on the stack twice (or, in a defined function, it was
+   // moved past the statement, so that →⍬ skipped it), Bugs40 #3.
    //
-   while (PC > Prefix_PC_0)
-      {
-        --PC;
-        if (body[PC].get_Class() == TC_END)
-           {
-             ++PC;
-             break;
-           }
-      }
+   // If the statement's TC_END was already read (it is on the stack, e.g.
+   // "non-empty stack at end of statement"), then body[PC - 1] is the end
+   // of the failed statement and not of the statement before it.
+   //
+   {
+     Prefix_PC pc = PC;
+     loop(s, ssize())
+        {
+          const TokenClass tc = at(s).get_Class();
+          if (tc == TC_END || tc == TC_RETURN)
+             {
+               if (pc > Prefix_PC_0)   --pc;
+               break;
+             }
+        }
+     while (pc > Prefix_PC_0 && body[pc - 1].get_Class() != TC_END)   --pc;
+     restart_PC = pc;
+   }
 
    destroy_derived_in_FIFO();
 
@@ -439,6 +456,12 @@ Prefix::locate_X(UCS_string & function) const
             }
          else if (content[x].get_Class() == TC_INDEX)   // maybe found X ?
             {
+              // a constant axis like [1] (TOK_FAXIS) is part of the body,
+              // which ⎕X cannot change (like for non-derived functions
+              // above). get_apl_valp() threw a VALUE ERROR for it, which
+              // escaped the inverse ⎕TF (Bugs40 #57)
+              //
+              if (content[x].get_ValueType() != TV_VAL)   return 0;
               return content[x].get_token().get_apl_valp();
             }
        }
@@ -492,6 +515,18 @@ Prefix::reduce_body()
         prefix_len = ssize();   // the entire stack
         pop_args_push_result(Token(TOK_ESCAPE));
         return pop().get_token();
+      }
+
+   // resuming (→⍬ or →⍳0) a statement that failed with a SYNTAX ERROR:
+   // syntax_error() has moved PC back to the start of the statement, so
+   // the tokens that the failed attempt had already pushed must go too.
+   // Otherwise they were read twice, e.g. the 2 of X←+⍣2 (Bugs40 #3).
+   //
+   if (restart_PC != Prefix_PC_invalid)
+      {
+        const Prefix_PC start = restart_PC;
+        reset(LOC);   // clears restart_PC
+        PC = start;
       }
 
    if (ssize())   goto again;
@@ -611,7 +646,12 @@ again:   // aka. REDUCE
 
         if (next == TC_L_PARENT)
            {
+             // syntax_error(): the group may hold the missing result of a
+             // function, e.g. W←-(MV 5), which is a VALUE ERROR (Bugs40 #65)
+             //
              MORE_ERROR() << "invalid expression in parentheses";
+             loop(v, ssize())
+                 if (at(v).get_Class() == TC_VOID)   syntax_error(LOC);
              SYNTAX_ERROR;
            }
 
@@ -771,16 +811,60 @@ Prefix::do_shift(TokenClass next) const
              if (next == TC_OPER2)   return true;
              if (is_OPER2_left_of_RO(PC - 1))   return true;
 
-             // A strand must SHIFT if best_phrase binds weakly
+             // A strand must SHIFT if best_phrase binds weakly, but a grouped
+             // right operand of a dyadic operator does not strand with B,
+             // e.g. (1) in ⌽⍤(1) 2 3⍴⍳6 (Bugs40 #74)
              //
-             if (next == TC_VALUE)   return MAY_STRAND;
+             if (next == TC_VALUE)
+                {
+                  if ((body[PC].get_tag() == TOK_APL_VALUE1 ||
+                       body[PC].get_Class() == TC_SYMBOL) &&   // Bugs40 #73
+                      is_OPER2_left_of_RO(PC))   return false;
+                  return MAY_STRAND;
+                }
 
              // A value-) must strand, a function-) must not.
              //
              if (next == TC_R_PARENT)   // ) B
                 {
+                  // but not the parenthesized right operand of a dyadic
+                  // operator, e.g. (1) in ⌽⍤(1) 2 3⍴⍳6 (Bugs40 #74)
+                  //
+                  const Prefix_PC lpar = PC + body[PC].get_int_val2();
+                  if (lpar < body.end_PC() &&
+                      body[lpar].get_Class() == TC_L_PARENT &&
+                      is_OPER2_left_of_RO(lpar))   return false;
+
                   if (is_value_parenthesis(PC))   return MAY_STRAND; // (X+Y) B
                    else                           return false;      // (+/) B
+                }
+
+             // likewise a value-], e.g. V[1] 2 + 10 is (V[1] 2)+10, but not
+             // a function axis, e.g. +[1] 2 (Bugs40 #42)
+             //
+             if (next == TC_R_BRACK)   // ] B
+                {
+                  if (is_value_bracket(PC))   return MAY_STRAND;   // V[I] B
+                  else                        return false;        // f[X] B
+                }
+
+             // the same for a literal index after a name, e.g. V[1] 2 + 10,
+             // which the parser has collapsed into one token (TOK_FAXIS is
+             // the axis of a primitive, e.g. +/[1] 2 + 10)
+             //
+             if (next == TC_INDEX && body[PC].get_tag() != TOK_FAXIS &&
+                 PC + 1 < body.end_PC())
+                {
+                  const Token & left = body[PC + 1];   // the indexed name
+                  if (left.get_Class() == TC_VALUE)   return MAY_STRAND;
+                  if (left.get_Class() == TC_SYMBOL)
+                     {
+                       const bool is_left_sym =
+                                  get_assign_state() == ASS_arrow_seen;
+                       if (left.get_sym_ptr()->resolve_class(is_left_sym)
+                           == TC_VALUE)   return MAY_STRAND;
+                     }
+                  return false;
                 }
              return false;   // REDUCE
 
@@ -1320,13 +1404,17 @@ Prefix::set_action(const Token & result)
 //
 //────────────────────────────────────────────────────────────────────────────
 bool
-Prefix::is_value_bracket() const
+Prefix::is_value_bracket(Prefix_PC rbra) const
 {
-   Assert1(body[PC - 1].get_Class() == TC_R_BRACK);
-const int offset = body[PC - 1].get_int_val2();
-   Assert1(body[PC + offset - 1].get_Class() == TC_L_BRACK);   // opening [
+   // body[rbra] is a ]. Return true if [ ... ] indexes a value (as opposed
+   // to an axis of a function).
+   //
+   Assert1(body[rbra].get_Class() == TC_R_BRACK);
+const int offset = body[rbra].get_int_val2();
+   Assert1(body[rbra + offset].get_Class() == TC_L_BRACK);   // opening [
+   if (rbra + offset + 1 >= body.end_PC())   return false;
 
-const Token & tok1 = body[PC + offset];
+const Token & tok1 = body[rbra + offset + 1];
    if (tok1.get_Class() == TC_VALUE)    return true;
    if (tok1.get_Class() != TC_SYMBOL)   return false;
 
@@ -1393,12 +1481,20 @@ TokenClass next = body[pc].get_Class();
         // stranded 2 3⍴⍳6 with the value parenthesis instead of passing
         // it to the derived function. See Bugs27 #21.
         //
-        if (is_OPER2_left_of_RO(pc))   return false;
+        // but a member of a structured variable, e.g. (S.m), is a value
+        // (Bugs40 #20)
+        //
+        if (is_OPER2_left_of_RO(pc) && !is_member_access(pc))   return false;
 
         const Symbol * sym = body[pc].get_sym_ptr();
         const NameClass nc = sym->get_NC();
 
-        if (nc == NC_FUNCTION)   return false;
+        if (nc == NC_FUNCTION)   // but a niladic function yields a value
+           {
+             const Function * fun = sym->get_function();
+             return fun && !fun->is_operator() &&
+                    fun->get_fun_valence() == 0;   // Bugs40 #20
+           }
         if (nc == NC_OPERATOR)   return false;
         return true;
       }
@@ -1455,9 +1551,12 @@ TokenClass next = body[pc].get_Class();
         return true;
       }
 
-   // dyadic operator with numeric function argument, for example:  ⍤ 0
+   // dyadic operator with numeric function argument, for example:  ⍤ 0,
+   // but not a value right operand stranded with B, e.g. (-⍣2 5), which
+   // is a value (Bugs40 #20)
    //
-   if (next == TC_VALUE && is_OPER2_left_of_RO(pc))   return false;
+   if (next == TC_VALUE && is_OPER2_left_of_RO(pc) && is_entire_value_RO(pc))
+      return false;
 
    return true;
 }
@@ -1538,11 +1637,11 @@ const TokenClass tcl = tok.get_Class();
         goto again;
       }
 
-   // a new statement of immediate execution (e.g. after ◊): a )MORE text
-   // left behind by an earlier statement belongs to another error, e.g.
-   // X←⎕FX ... ◊ QQ (Bugs39 #91)
+   // a new statement (e.g. after ◊): a )MORE text left behind by an
+   // earlier statement belongs to another error, e.g. X←⎕FX ... ◊ QQ
+   // (Bugs39 #91), also in a defined function or lambda (Bugs40 #92)
    //
-   if (statement_start && si.get_parse_mode() == PM_STATEMENT_LIST &&
+   if (statement_start &&
        old_PC != Prefix_PC_0 &&   // not the first statement
        tcl != TC_END && tcl != TC_RETURN)   // not the end of the last
       Workspace::more_error().clear();
@@ -1702,24 +1801,11 @@ UCS_string fun_name;
       MORE_ERROR() << "Missing mandatory right argument of the (derived)"
                       " function at the right end of the statement";
 
-   // In a defined function, the line number of the error (StateIndicator::
-   // get_line()) expects PC after the end of the failed statement (a
-   // restart with →⎕LC starts at the beginning of the line).
+   // PC is left inside the failed statement, so that syntax_error() moves
+   // it back to the start of the statement, from where →⍬ re-executes it
+   // (Bugs39 #3). This used to move PC past the statement in a defined
+   // function or lambda, so that →⍬ skipped it (Bugs40 #3).
    //
-   // Otherwise (immediate execution, ⍎) PC is left inside the failed
-   // statement, so that syntax_error() moves it back to the start of the
-   // statement, from where →⍬ re-executes it. Moving PC past the end of
-   // the statement there made →⍬ execute only its TC_RETURN, which then
-   // failed an assertion (Bugs39 #3).
-   //
-   if (si.get_parse_mode() == PM_FUNCTION)
-      {
-        while (PC < body.end_PC())
-           {
-             const TokenClass tc = body[PC++].get_Class();
-             if (tc == TC_END || tc == TC_RETURN)   break;
-           }
-      }
    syntax_error(LOC);
 }
 //────────────────────────────────────────────────────────────────────────────
@@ -1771,10 +1857,18 @@ Prefix::is_member_access(Prefix_PC pc) const
    if (body[pc + 1].get_tag() != TOK_OPER2_INNER &&
        body[pc + 1].get_Class() != TC_OPER2)    return false;
 
-const Token & left = body[pc + 2].get_token();
-   if (left.get_Class() != TC_SYMBOL)   return false;   // e.g. +.F
+Prefix_PC p = pc + 2;   // the name left of the .
+   if (body[p].get_Class() != TC_SYMBOL)   return false;   // e.g. +.F
 
-const Symbol * sym = left.get_sym_ptr();
+   // in a chain S.b.c only the head S is a global name; b is a member
+   // even if a function b exists (Bugs40 #19)
+   //
+   while (p + 2 < body.end_PC() &&
+          (body[p + 1].get_tag() == TOK_OPER2_INNER ||
+           body[p + 1].get_Class() == TC_OPER2) &&
+          body[p + 2].get_Class() == TC_SYMBOL)   p = p + 2;
+
+const Symbol * sym = body[p].get_sym_ptr();
 const NameClass nc = sym ? sym->get_NC() : NC_UNUSED_USER_NAME;
    return nc != NC_FUNCTION && nc != NC_OPERATOR;
 }
@@ -1891,7 +1985,7 @@ TokenClass next = body[PC].get_Class();   // assume no next
          //
          // We solve this by computing the indexed value first
          //
-         if (is_value_bracket())   // case 1.
+         if (is_value_bracket(PC - 1))   // case 1.
             {
               // we call reduce_RBRA____, which pushes a partial index list
               // onto the stack. The following tokens are processed until the
@@ -3327,6 +3421,25 @@ DerivedFunction * derived = get_fun_oper_slot(&LO_F, M, 0, C, LOC);
 }
 //────────────────────────────────────────────────────────────────────────────
 void
+Prefix::reduce_M_C_M_()
+{
+   Assert1(prefix_len == 3);
+
+   // / ⌿ \ or ⍀ with an axis as the operand of a monadic operator, e.g.
+   // 1 0⌿[1]¨M M: like F C M, i.e. (⌿[1])¨ (Bugs40 #71). But not in e.g.
+   // +/[1]¨, where / is the operator of +/[1] (see MM_is_FM()).
+   //
+   if (at0().is_SLASH_or_BACKSLASH() && MM_is_FM(PC))
+      {
+        reduce_F_C_M_();
+      }
+   else   // the left M is an operator. SHIFT
+      {
+        set_action(RA_PUSH_NEXT);
+      }
+}
+//────────────────────────────────────────────────────────────────────────────
+void
 Prefix::reduce_F_C_M_()
 {
    Assert1(prefix_len == 3);
@@ -4054,24 +4167,15 @@ Value_P Z;
         // dereferenced, and delete'd -- an attacker-controlled pointer.
         if (at1().get_ValueType() != TV_INDEX)   SYNTAX_ERROR;
 
+        // an error leaves A C on the stack, so that resuming the statement
+        // (→⍳0) indexes again, like A[I] (LRM p. 356). It was reduced to an
+        // error token, so that the statement was skipped (Bugs40 #33).
+        // Prefix::clean_up() deletes the IndexExpr of an abandoned C.
+        //
         const IndexExpr * idx =  &at1().get_index_val();
-        try
-           {
-             Z = A->index(*idx);
-             Log(LOG_delete)
-                CERR << "delete " << voidP(idx) << " at " LOC << endl;
-             delete idx;
-           }
-        catch (const Error & err)
-           {
-             const Token result(TOK_ERROR, err.get_error_code());
-             Log(LOG_delete)   CERR << "delete " << voidP(idx)
-                                    << " at " LOC << endl;
-             delete idx;
-             pop_args_push_result(result);
-             set_action(result);
-             return;
-           }
+        Z = A->index(*idx);
+        Log(LOG_delete)   CERR << "delete " << voidP(idx) << " at " LOC << endl;
+        delete idx;
       }
 
 const Token result(TOK_APL_VALUE1, Z);
@@ -4148,9 +4252,11 @@ Prefix::reduce_A_ASS_B_()
 Value_P A = at0().get_apl_val();
 Value_P B = at2().get_apl_val();
 
-   try { A->assign_cellrefs(B); }
+   try { A->assign_cellrefs(B);   Value::collapse_simple_subvalues(); }
    catch (const Error & err)
       {
+        Value::collapse_simple_subvalues();   // after a partial assignment
+
         // A (the left value) may have been neutralized. Drop it, and read
         // the selective specification left of ← again, so that resuming
         // the statement (→⍳0) evaluates it again (with the B and ← that

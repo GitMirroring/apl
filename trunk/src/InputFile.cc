@@ -286,6 +286,63 @@ const bool plain_copy = !has_object_filter() && !protection;
         return in_matched = selected;
       }
 
+   // a ∇-function written by )DUMP as 0 0⍴⎕FX ('header') ... (or with 1 ⎕FX
+   // if locked), or a lambda written as ⍎'NAME←{...}' (if they contain a
+   // character that UTF-8 cannot encode, Bugs39 #60). They were never
+   // selected (Bugs40 #25).
+   //
+   {
+     static const UCS_string fx_1(UTF8_string("0 0⍴⎕FX"));
+     static const UCS_string fx_2(UTF8_string("0 0⍴1 ⎕FX"));
+     static const UCS_string execute(UTF8_string("⍎'"));
+     const bool is_fx = ucs_line.starts_with(fx_1) ||
+                        ucs_line.starts_with(fx_2);
+     if (is_fx || ucs_line.starts_with(execute))
+        {
+          // the first quoted string: the header resp. NAME←{...
+          //
+          UCS_string text;
+          ShapeItem q = 0;
+          while (q < ucs_line.ssize() && ucs_line[q] != UNI_SINGLE_QUOTE) ++q;
+          for (++q; q < ucs_line.ssize(); ++q)
+              {
+                if (ucs_line[q] == UNI_SINGLE_QUOTE)
+                   {
+                     if (q + 1 < ucs_line.ssize() &&
+                         ucs_line[q + 1] == UNI_SINGLE_QUOTE)   ++q;   // ''
+                     else                                   break;  // end
+                   }
+                text << ucs_line[q];
+              }
+
+          UCS_string name;
+          Obj_kind obj_kind = OBJ_FUNCTION;
+          if (is_fx)
+             {
+               UserFunction_header uh(text, false);
+               name = uh.get_name();
+             }
+          else
+             {
+               obj_kind = OBJ_LAMBDA;
+               loop(t, text.size())
+                  {
+                    if (text[t] == UNI_LEFT_ARROW)   break;
+                    name << text[t];
+                  }
+               name.remove_leading_and_trailing_whitespaces();
+             }
+
+          where = WH_in_variable;   // one line, ended by an empty line
+          bool selected = name.size() && is_selected(name);
+          if (selected && protection &&
+              Workspace::lookup_existing_symbol(name))   selected = false;
+          if (selected && !protection)
+             selected = replace_object(name, obj_kind);
+          return in_matched = selected;
+        }
+   }
+
    /* maybe (the start of) a new variable.
       There are two cases (see Symbol::dump()):
 

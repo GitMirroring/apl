@@ -72,6 +72,9 @@ public:
 class Quad_AF : public QuadFunction
 {
 public:
+   /// overloaded Function::has_dyadic_form(): ⎕AF is monadic only
+   virtual bool has_dyadic_form() const   { return false; }   // Bugs40 #56
+
    /// Constructor.
    Quad_AF() : QuadFunction(TOK_Quad_AF) {}
 
@@ -89,6 +92,9 @@ protected:
 class Quad_AT : public QuadFunction
 {
 public:
+   /// overloaded Function::has_monadic_form(): ⎕AT is dyadic only
+   virtual bool has_monadic_form() const   { return false; }   // Bugs40 #56
+
    /// Constructor.
    Quad_AT() : QuadFunction(TOK_Quad_AT) {}
 
@@ -107,6 +113,9 @@ protected:
 class Quad_DL : public QuadFunction
 {
 public:
+   /// overloaded Function::has_dyadic_form(): ⎕DL is monadic only
+   virtual bool has_dyadic_form() const   { return false; }   // Bugs40 #56
+
    /// Constructor.
    Quad_DL() : QuadFunction(TOK_Quad_DL) {}
 
@@ -125,6 +134,9 @@ protected:
 class Quad_EA : public QuadFunction
 {
 public:
+   /// overloaded Function::has_monadic_form(): ⎕EA is dyadic only
+   virtual bool has_monadic_form() const   { return false; }   // Bugs40 #56
+
    /// Constructor.
    Quad_EA() : QuadFunction(TOK_Quad_EA) {}
 
@@ -147,6 +159,9 @@ protected:
 class Quad_EB : public QuadFunction
 {
 public:
+   /// overloaded Function::has_monadic_form(): ⎕EB is dyadic only
+   virtual bool has_monadic_form() const   { return false; }   // Bugs40 #56
+
    /// Constructor.
    Quad_EB() : QuadFunction(TOK_Quad_EB) {}
 
@@ -169,6 +184,9 @@ protected:
 class Quad_EC : public QuadFunction
 {
 public:
+   /// overloaded Function::has_dyadic_form(): ⎕EC is monadic only
+   virtual bool has_dyadic_form() const   { return false; }   // Bugs40 #56
+
    /// Constructor.
    Quad_EC() : QuadFunction(TOK_Quad_EC) {}
 
@@ -198,6 +216,9 @@ protected:
 class Quad_ENV : public QuadFunction
 {
 public:
+   /// overloaded Function::has_dyadic_form(): ⎕ENV is monadic only
+   virtual bool has_dyadic_form() const   { return false; }   // Bugs40 #56
+
    /// Constructor.
    Quad_ENV() : QuadFunction(TOK_Quad_ENV) {}
 
@@ -249,6 +270,9 @@ protected:
 class Quad_EX : public QuadFunction
 {
 public:
+   /// overloaded Function::has_dyadic_form(): ⎕EX is monadic only
+   virtual bool has_dyadic_form() const   { return false; }   // Bugs40 #56
+
    /// Constructor.
    Quad_EX() : QuadFunction(TOK_Quad_EX) {}
 
@@ -365,6 +389,9 @@ protected:
 class Quad_NC : public QuadFunction
 {
 public:
+   /// overloaded Function::has_dyadic_form(): ⎕NC is monadic only
+   virtual bool has_dyadic_form() const   { return false; }   // Bugs40 #56
+
    /// Constructor.
    Quad_NC() : QuadFunction(TOK_Quad_NC) {}
 
@@ -442,6 +469,9 @@ protected:
 class Quad_UCS : public QuadFunction
 {
 public:
+   /// overloaded Function::has_dyadic_form(): ⎕UCS is monadic only
+   virtual bool has_dyadic_form() const   { return false; }   // Bugs40 #56
+
    /// Constructor.
    Quad_UCS() : QuadFunction(TOK_Quad_UCS) {}
 

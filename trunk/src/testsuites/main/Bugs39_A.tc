@@ -52,7 +52,7 @@ SYNTAX ERROR+
       →⍬
 SYNTAX ERROR+
       1+(+/)
-          ^^
+           ^
 
 
 
@@ -233,17 +233,13 @@ SYNTAX ERROR+
 
 
       1J2∨1.3E308J1.3E308
-DOMAIN ERROR
-      1J2∨1.3E308J1.3E308
-      ^  ^
+1J2
 
 
 
 
       1J2∧1.7E308J1.7E308
-DOMAIN ERROR
-      1J2∧1.7E308J1.7E308
-      ^  ^
+1.7E308J1.7E308
 
 
 

@@ -86,6 +86,7 @@ cFunction_P LO = _LO.get_function();
    // which is incorrect in this context. We use get_signature() instead.
    //
    if ((LO->get_signature() & SIG_DYA) != SIG_DYA)   VALENCE_ERROR;
+   if (!LO->has_dyadic_form())   VALENCE_ERROR;   // e.g. ⎕UCS⍨ (Bugs40 #56)
 
    // B is a selective-assignment target (an lvalue/cellrefs array) iff
    // its VF_Flags::left_value flag is set (Value::get_cellrefs() sets it
@@ -171,10 +172,26 @@ cFunction_P LO = _LO.get_function();
         // after the conformance checks above (Bugs38 #34)
         if (!LO->has_result())   return Token(TOK_VOID);
 
+        // B is a selective-assignment target, e.g. (1↑¨V)←9 for an empty V:
+        // nothing is selected, so (like the monadic branch, Bugs31 #4) return
+        // an empty lvalue no-op placeholder instead of the fill value, which
+        // is no LvalCell (SYNTAX ERROR) or, for ⊃, has no target (Bugs40 #58).
+        //
+        if (B.is_left_value())
+           {
+             const_cast<Value &>(static_cast<const Value &>(B))
+                .neutralize_lval_cells(LOC);   // A empty, B not
+             Value_P Z(shape_Z, LOC);
+             new (&Z->get_wproto()) LvalCell(0, 0);
+             Z->set_left_value();
+             Z->check_value(LOC);
+             return Token(TOK_APL_VALUE1, Z);
+           }
+
         // evaluate the fill function (lrm p. 245)
         //
         Value_P Z1;
-        if (LO->is_defined() || LO->may_push_SI())
+        if (LO->contains_defined())   // Bugs40 #55
            {
              // the fill function of a defined function (or of a derived
              // function whose operand is defined, e.g. F⍤1 for a
@@ -187,13 +204,12 @@ cFunction_P LO = _LO.get_function();
              //
              Z1 = first_B;
            }
-        else if (LO->is_scalar_function())
+        else if (LO->is_scalar_dyadic())   // Bugs40 #40
            {
-             // NOTE: even though eval_ALB is dyadic, we call the monadic
-             //       fill function because it (and not the dyadic fill
-             //       function handles the empty argument case).
+             // lrm p. 107: (↑A) FF (↑B); both items contribute to the
+             // prototype of Z, e.g. (0⍴0)×¨⊂1 2 (Bugs40 #55)
              //
-             Token tok_Z1 = LO->eval_fill_B(*(B.is_empty() ? first_B : first_A));
+             Token tok_Z1 = LO->eval_fill_AB(*first_A, *first_B);
              if (tok_Z1.get_Class() != TC_VALUE)   return tok_Z1;
              Z1 = tok_Z1.get_apl_val();
            }
@@ -206,9 +222,13 @@ cFunction_P LO = _LO.get_function();
            }
         else
            {
-             // the fill function is the function itself
+             // the fill function is the function itself, except for a
+             // (primitive) derived function implemented by a macro, e.g.
+             // ×⍤0, which must not be started here (Bugs40 #55)
              //
-             Token tok_Z1 = LO->eval_AB(*first_A, *first_B);
+             Token tok_Z1 = LO->may_push_SI()
+                          ? LO->eval_fill_AB(*first_A, *first_B)
+                          : LO->eval_AB(*first_A, *first_B);
              if (tok_Z1.get_Class() != TC_VALUE)   return tok_Z1;
              Z1 = tok_Z1.get_apl_val();
            }
@@ -233,7 +253,7 @@ cFunction_P LO = _LO.get_function();
         // 56); otherwise the fill result keeps its type, e.g. ⌽¨'' ≡ '',
         // like for ∘.f (Bif_OPER2_OUTER.cc, Bugs28 #37, Bugs38 #35)
         //
-        Z->to_type(LO->is_scalar_function());
+        Z->to_type(LO->is_scalar_dyadic());   // Bugs40 #40
         return Token(TOK_APL_VALUE1, Z);
       }
 
@@ -446,6 +466,7 @@ cFunction_P LO = _LO.get_function();
    if (LO->is_operator() &&
        !_LO.is_SLASH_or_BACKSLASH())     SYNTAX_ERROR;
    if (!(LO->get_signature() & SIG_B))   VALENCE_ERROR;
+   if (!LO->has_monadic_form())   VALENCE_ERROR;   // e.g. ⎕TF⍣1 (Bugs40 #56)
 
    // see the dyadic branch (eval_ALB) for the full explanation of both
    // the VF_Flags::left_value test (B.is_left_value(), not a cell-
@@ -506,7 +527,7 @@ cFunction_P LO = _LO.get_function();
         // evaluate the fill function (lrm p. 245)
         //
         Value_P Z1;
-        if (LO != &Quad_EC::fun && (LO->is_defined() || LO->may_push_SI()))
+        if (LO != &Quad_EC::fun && LO->contains_defined())   // Bugs40 #55
            {
              // the fill function of a defined function (or of a derived
              // function whose operand is defined, e.g. F⍤1 for a
@@ -555,9 +576,12 @@ cFunction_P LO = _LO.get_function();
            }
         else
            {
-             // the fill function is the function itself
+             // the fill function is the function itself, except for a
+             // (primitive) derived function implemented by a macro, e.g.
+             // ×⍤0, which must not be started here (Bugs40 #55)
              //
-             Token tok_Z1 = LO->eval_B(*first_B);
+             Token tok_Z1 = LO->may_push_SI() ? LO->eval_fill_B(*first_B)
+                                              : LO->eval_B(*first_B);
              if (tok_Z1.get_Class() != TC_VALUE)   return tok_Z1;
              Z1 = tok_Z1.get_apl_val();
            }

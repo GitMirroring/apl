@@ -32,6 +32,9 @@
 class Quad_TF : public QuadFunction
 {
 public:
+   /// overloaded Function::has_monadic_form(): ⎕TF is dyadic only
+   virtual bool has_monadic_form() const   { return false; }   // Bugs40 #56
+
    /// Constructor.
    Quad_TF() : QuadFunction(TOK_Quad_TF) {}
 

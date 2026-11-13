@@ -101,6 +101,10 @@ struct InputFile
         void set_loading()
            { loading = true; }
 
+        /// return \b true for the file of a )LOAD, )COPY, or )PCOPY
+        bool is_load_or_copy() const
+           { return copying || loading; }
+
         /// return \b true if check_filter() needs to be called at all, i.e.
         /// for )COPY and )PCOPY (but not )LOAD). Without an object filter
         /// and )PCOPY protection, check_filter() passes every line, but

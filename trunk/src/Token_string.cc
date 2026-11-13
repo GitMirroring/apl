@@ -221,8 +221,9 @@ bool
 Token_string::is_local_name(const Token & tok)
 {
    // a name that can be a local variable of a lambda: not ⍺, ⍵, ⍶, ⍹, or χ
-   // (which are TC_SYMBOLs as well, Bugs39 #83). System variables (e.g. ⎕IO)
-   // are fine.
+   // (which are TC_SYMBOLs as well, Bugs39 #83), and not ⎕, ⍞, or λ, which
+   // ⎕FX rejects in a header as well (Bugs40 #93). System variables (e.g.
+   // ⎕IO) are fine.
    //
    if (tok.get_Class() != TC_SYMBOL)   return false;
    switch(tok.get_tag())
@@ -231,7 +232,10 @@ Token_string::is_local_name(const Token & tok)
         case TOK_OMEGA:
         case TOK_ALPHA_U:
         case TOK_OMEGA_U:
-        case TOK_CHI:      return false;
+        case TOK_CHI:
+        case TOK_Quad_Quad:
+        case TOK_Quad_QUOTE:
+        case TOK_LAMBDA:   return false;
         default:           return true;
       }
 }

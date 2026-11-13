@@ -1405,7 +1405,7 @@ AxesBitmap ret = 0;
          if (axis < 0)
             {
               MORE_ERROR() << where << ": X[" << (e + qio)
-                           << "] = " << (axis + qio)
+                           << "] = " << cX.get_near_int()
                            << " is not a valid axis (expecting "
                            << qio << "≤X[" << (e + qio) << "]<"
                            << (rank_B + qio) << ")." << io_note;
@@ -1415,7 +1415,7 @@ AxesBitmap ret = 0;
          if (axis >= rank_B)
             {
               MORE_ERROR() << where << ": X[" << (e + qio)
-                           << "] = " << (axis + qio)
+                           << "] = " << cX.get_near_int()
                            << " is not a valid axis (expecting "
                            << qio << "≤X[" << (e + qio) << "]<"
                            << (rank_B + qio) << ")." << io_note;
@@ -1425,7 +1425,7 @@ AxesBitmap ret = 0;
          if (ret & 1 << axis)   // aready set
             {
               MORE_ERROR() << where << ": X[" << (e + qio)
-                           << "] = " << (axis + qio)
+                           << "] = " << cX.get_near_int()
                            << " is a duplicate axis.";
               AXIS_ERROR;
             }
@@ -1666,7 +1666,7 @@ const APL_Integer axis = Cell::minus_IO(val->get_near_int(0), qio);
         const char * io_note = (qio == 0 && axis_at_1 >= 0
                                 && axis_at_1 < APL_Integer(max_axis))
                               ? " Note: ⎕IO=0." : "";
-        MORE_ERROR() << where << ": X = " << (axis + qio)
+        MORE_ERROR() << where << ": X = " << val->get_near_int(0)
                      << " is not a valid axis (expecting " << qio
                      << "≤X<" << (max_axis + qio) << ")." << io_note;
         AXIS_ERROR;

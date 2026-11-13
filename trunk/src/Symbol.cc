@@ -253,17 +253,8 @@ const ValueStackItem & vs = value_stack[0];
                    body << uni;
                 }
 
-             ShapeItem sols = 0;
-             for (ShapeItem j = body.ssize() - 1; j >= 0; --j)
-                 {
-                   if (Avec::is_DIAMOND(body[j]))
-                      {
-                        sols = j + 1;
-                        while (sols < body.ssize() &&
-                               body[sols] <= UNI_SPACE)   ++sols;
-                        break;
-                      }
-                 }
+             const ShapeItem sols =
+                   Executable::lambda_last_statement(body);   // Bugs40 #41
              if (sols + 1 < body.ssize() &&
                  body[sols] == UNI_LAMBDA &&
                  body[sols + 1] == UNI_LEFT_ARROW)
@@ -1110,19 +1101,26 @@ ShapeItem idxB = 0;
            }
       }
 
+   // check all indices before the first item is assigned, so that a
+   // failed assignment leaves A unchanged, like A[I;J]←B (Bugs40 #39)
+   //
    loop(x, ec_X)
       {
-        const ShapeItem this_idxX = idxX;
-        const ShapeItem idx = Cell::minus_IO(X->get_index_int(idxX++), qio);
+        const ShapeItem idx = Cell::minus_IO(X->get_index_int(x), qio);
         if (idx < 0 || idx >= max_idx)
            {
-             MORE_ERROR() << "A[B]←C: B[" << (this_idxX + qio) << "] = "
-                          << (idx + qio)
+             MORE_ERROR() << "A[B]←C: B[" << (x + qio) << "] = "
+                          << X->get_index_int(x)   // not idx + qio: Bugs40 #88
                           << " is not a valid index for A (expecting "
                           << qio << "≤index<" << (max_idx + qio) << ")"
                           << ArgCheck::index_io0_note(idx, max_idx);
              INDEX_ERROR;
            }
+      }
+
+   loop(x, ec_X)
+      {
+        const ShapeItem idx = Cell::minus_IO(X->get_index_int(idxX++), qio);
         Cell cache;
         const Cell & cB = B->get_cravel(idxB, cache);
         Z->assign_cell(idx, cB, LOC);
@@ -1809,6 +1807,17 @@ Symbol::resolve_lv(const char * loc)
         Value_P refs = Z->get_cellrefs(loc);
         refs->set_lval_whole_symbol(this);
         return Token(TOK_APL_VALUE1, refs);
+      }
+
+   // LRM: "If any functions appear in the selection expression, then the
+   // name being assigned must have a value", e.g. (,W)←5 with an undefined
+   // W is a VALUE ERROR, like W[1]←5 (Bugs40 #75)
+   //
+   if (value_stack.back().get_NC() == NC_UNUSED_USER_NAME)
+      {
+        MORE_ERROR() << "selective specification of the undefined name "
+                     << get_name();
+        throw_apl_error(E_VALUE_ERROR, loc);
       }
 
    MORE_ERROR() << "Symbol '" << get_name()

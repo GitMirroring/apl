@@ -27,6 +27,7 @@
 #include "ArrayIterator.hh"
 #include "Avec.hh"
 #include "Bif_F12_EQUIV.hh"
+#include "Bif_F12_TAKE_DROP.hh"
 #include "CharCell.hh"
 #include "ComplexCell.hh"
 #include "FloatCell.hh"
@@ -140,9 +141,75 @@ ScalarFunction::do_eval_fill_AB(cValue_R A, cValue_R B) const
       given on p. 110/Figure 20 looks wrong.
     */
 
-   if (B.element_count() == 0)   return do_eval_fill_B(B);
-   if (A.element_count() == 0)   return do_eval_fill_B(A);
-   return do_eval_fill_B(A);
+   // lrm p. 56: Z←Sρ(↑A) fill fn (↑B) where S is the shape of the empty
+   // argument, and the fill function is applied to the items of ↑A and ↑B
+   // recursively. Both ↑A and ↑B contribute to the prototype of Z, e.g.
+   // (0⍴0)×⊂1 2 and (⊂1 2)×0⍴0 are both 0⍴⊂0 0 (Bugs40 #55).
+   //
+   if (A.is_empty() || B.is_empty())
+      {
+        const Shape & shape_Z = B.is_empty() ? B.get_shape() : A.get_shape();
+        Value_P Z1 = fill_items(*Bif_F12_TAKE::first(A),
+                                *Bif_F12_TAKE::first(B));
+        Value_P Z(shape_Z, LOC);
+        Z->set_ravel_Value(0, Z1.get());
+        Z->check_value(LOC);
+        return Token(TOK_APL_VALUE1, Z);
+      }
+
+   // A and B are the (non-empty) items ↑A and ↑B of the empty arguments,
+   // e.g. from A f¨B, A∘.f B, or A g.f B.
+   //
+   return Token(TOK_APL_VALUE1, fill_items(A, B));
+}
+//────────────────────────────────────────────────────────────────────────────
+Value_P
+ScalarFunction::fill_items(const cValue & A, const cValue & B)
+{
+   // the fill function (lrm p. 56) of the items A and B of the arguments of
+   // a dyadic scalar function: the structure of A f B with all simple
+   // scalars replaced by (numeric) 0.
+   //
+   if (A.is_simple_scalar() || B.is_simple_scalar())
+      {
+        Value_P Z = (A.is_simple_scalar() ? B : A).clone(LOC);
+        Z->check_value(LOC);
+        Z->to_type(/* force_numeric */ true);
+        Z->check_value(LOC);
+        return Z;
+      }
+
+   // both nested or non-scalar: pair the items (with scalar extension). If
+   // A and B do not conform then use B (like the non-empty case would fail).
+   //
+const bool ext_A = A.element_count() == 1 && B.element_count() != 1;
+const bool ext_B = B.element_count() == 1 && !ext_A;
+   if (!ext_A && !ext_B && A.get_shape() != B.get_shape())
+      return fill_items(B, *IntScalar(0, LOC));
+
+Value_P Z((ext_A ? B : A).get_shape(), LOC);
+   loop(z, Z->nz_element_count())
+      {
+        Value_P A1 = item_value(A, ext_A ? 0 : z);
+        Value_P B1 = item_value(B, ext_B ? 0 : z);
+        Value_P Z1 = fill_items(*A1, *B1);
+        Z->next_ravel_Value(Z1.get());
+      }
+   Z->check_value(LOC);
+   return Z;
+}
+//────────────────────────────────────────────────────────────────────────────
+Value_P
+ScalarFunction::item_value(const cValue & B, ShapeItem b)
+{
+Cell cache;
+const Cell & cell = B.get_cravel(b, cache);
+   if (cell.is_pointer_cell())   return cell.get_pointer_value();
+
+Value_P Z(LOC);
+   Z->next_ravel_Cell(cell);
+   Z->check_value(LOC);
+   return Z;
 }
 //────────────────────────────────────────────────────────────────────────────
 Token
