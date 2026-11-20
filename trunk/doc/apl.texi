@@ -2655,8 +2655,29 @@ variables C and D like this:
       SUM ← @{ ⍺ + ⍵ ;C;D @}
 
       ⎕CR 'SUM'
-λ←⍺ λ1 ⍵;C;D 
-λ← ⍺ + ⍵     
+λ←⍺ λ1 ⍵;C;D
+λ← ⍺ + ⍵
+@end example
+
+Like in the header of a normal defined function, blanks may be used instead
+of semicolons between the local variables (IBM APL2 allows this in the
+argument of @b{⎕FX}), so @code{@{ ⍺ + ⍵ ;C D @}} also localizes C and D.
+
+Only the variables that are listed as local variables are localized; in
+particular, assigning a value to a system variable inside a lambda body does
+@b{not} localize it. System variables like @b{⎕IO} or @b{⎕PS} can be
+localized in lambdas exactly like in normal defined functions. When a defined
+function or a lambda is called, its localized system variables are
+initialized to their default values (e.g. @b{⎕IO} to 1 and @b{⎕PS} to 0 0)
+and not to the value that they had before the call. In contrast, IBM APL2
+leaves localized system variables without a value until they are assigned.
+
+@example
+      ⎕IO←0
+      @{ ⍵ + ⎕IO ;⎕IO @} 0
+1
+      ⎕IO
+0
 @end example
 
 If a named lambda is created inside a defined function, then the name of the

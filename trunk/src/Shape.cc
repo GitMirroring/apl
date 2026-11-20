@@ -21,6 +21,7 @@
 /** @file
 */
 
+#include <limits>
 #include "Shape.hh"
 #include "Value.hh"
 

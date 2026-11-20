@@ -76,7 +76,7 @@ Next: <a href="#Installing-and-Starting-GNU-APL" accesskey="n" rel="next">Instal
 </div>
 <span id="GNU-APL-Reference-Manual"></span><h1 class="top">GNU APL Reference Manual</h1>
 
-<p>November 6, 2026.
+<p>November 20, 2026.
 This manual briefly documents GNU APL, an interpreter for APL as described
 in ISO standard 13751, aka. &quot;Programming Language APL, Extended&quot;.
 </p>
@@ -3262,8 +3262,29 @@ variables C and D like this:
 <pre class="example">      SUM ← { ⍺ + ⍵ ;C;D }
 
       ⎕CR 'SUM'
-λ←⍺ λ1 ⍵;C;D 
-λ← ⍺ + ⍵     
+λ←⍺ λ1 ⍵;C;D
+λ← ⍺ + ⍵
+</pre></div>
+
+<p>Like in the header of a normal defined function, blanks may be used instead
+of semicolons between the local variables (IBM APL2 allows this in the
+argument of <b>⎕FX</b>), so <code>{ ⍺ + ⍵ ;C D }</code> also localizes C and D.
+</p>
+<p>Only the variables that are listed as local variables are localized; in
+particular, assigning a value to a system variable inside a lambda body does
+<b>not</b> localize it. System variables like <b>⎕IO</b> or <b>⎕PS</b> can be
+localized in lambdas exactly like in normal defined functions. When a defined
+function or a lambda is called, its localized system variables are
+initialized to their default values (e.g. <b>⎕IO</b> to 1 and <b>⎕PS</b> to 0 0)
+and not to the value that they had before the call. In contrast, IBM APL2
+leaves localized system variables without a value until they are assigned.
+</p>
+<div class="example">
+<pre class="example">      ⎕IO←0
+      { ⍵ + ⎕IO ;⎕IO } 0
+1
+      ⎕IO
+0
 </pre></div>
 
 <p>If a named lambda is created inside a defined function, then the name of the

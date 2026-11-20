@@ -21,6 +21,7 @@
 /** @file
 */
 
+#include <limits>
 #include <string.h>
 #include "ArgCheck.hh"
 #include "Bif_F12_COMMA.hh"

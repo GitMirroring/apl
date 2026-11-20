@@ -284,8 +284,8 @@ UserFunction_header::eval_common() const
 /// are TC_SYMBOL tokens too (see Token.def), so every "is this a symbol"
 /// check in init_signature() below accepts them, but none of the header
 /// positions (function name, Z, A, B, LO, RO, axis) may legally be one:
-/// unlike init_local_vars()'s explicit small whitelist of localizable
-/// system variables (⎕CT, ⎕IO, ...), a header position permanently binds
+/// unlike the local names (init_local_vars(), where every system variable
+/// may be localized, LRM p.259), a header position permanently binds
 /// the name, and a system variable's identity/semantics cannot be
 /// shadowed that way.
 ///

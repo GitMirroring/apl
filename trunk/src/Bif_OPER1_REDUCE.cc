@@ -21,6 +21,7 @@
 /** @file
 */
 
+#include <limits>
 #include "ArgCheck.hh"
 #include "Bif_F12_RHO.hh"
 #include "Bif_OPER1_REDUCE.hh"
