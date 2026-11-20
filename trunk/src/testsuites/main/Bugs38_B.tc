@@ -945,10 +945,20 @@ DOMAIN ERROR
 
 
 
-      2∧1E308J1
+      1E308J1∧7E307J1
 DOMAIN ERROR
+      1E308J1∧7E307J1
+      ^      ^
+
+
+
+
+      ⍝ but beyond 2⋆53 (where doubles are not exact integers) 2 divides
+      ⍝ 1E308J1 tolerantly, like 3 divides 1E308 in 3∧1E308 (Bill Heagy,
+      ⍝ 32-bit x87: the complex GCD no longer depends on the FPU)
+      ⍝
       2∧1E308J1
-      ^^
+1E308
 
 
       1E¯320J0∧1

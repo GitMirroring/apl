@@ -101,7 +101,11 @@ ShapeItem last_semi = -1;
       {
         for (ShapeItem t = last_semi; t < lambda_text.ssize(); ++t)
             header << lambda_text[t];
-        text.push_back(header);
+
+        // show blank-separated local names with semicolons, like in
+        // ∇-functions (the UserFunction constructor, Bugs35 #49)
+        //
+        text.push_back(UserFunction_header::canonical_locals(header));
 
         UCS_string new_text(lambda_text);
         new_text.resize(last_semi);

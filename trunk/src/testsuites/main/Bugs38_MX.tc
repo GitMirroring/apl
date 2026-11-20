@@ -10,32 +10,34 @@
 
 
       ⍝ Bugs38 #14: a GSL failure in ⎕MX[4]/⎕MX[5] is a DOMAIN ERROR (it used
-      ⍝ to abort() in GSL's default error handler)
+      ⍝ to abort() in GSL's default error handler). Whether GSL fails for
+      ⍝ this matrix depends on the platform: the 64-bit GSL exceeds its max.
+      ⍝ number of iterations, the 32-bit (x87) GSL converges. Therefore only
+      ⍝ check that the result is either a value or a DOMAIN ERROR (no crash).
 
 
 
 
 
-      ⎕MX[5] 3 3⍴1E308 1 ¯1E308 1E308 1E308 1 1 2 1E308
-DOMAIN ERROR+
-      ⎕MX[5]3 3⍴1E308 1 ¯1E308 1E308 1E308 1 1 2 1E308
-      ^
-
-
-      )MORE
-⎕MX[5] (eigenvalues): GSL error: exceeded max number of iterations
+      BUGS38_14_M←3 3⍴1E308 1 ¯1E308 1E308 1E308 1 1 2 1E308
 
 
 
 
-      ⎕MX[4] 3 3⍴1E308 1 ¯1E308 1E308 1E308 1 1 2 1E308
-DOMAIN ERROR+
-      ⎕MX[4]3 3⍴1E308 1 ¯1E308 1E308 1E308 1 1 2 1E308
-      ^
+
+      '⎕ET≡5 4' ⎕EA '1⊣⎕MX[5] BUGS38_14_M'
+1
 
 
-      )MORE
-⎕MX[4] (eigenvectors): GSL error: exceeded max number of iterations
+
+
+      '⎕ET≡5 4' ⎕EA '1⊣⎕MX[4] BUGS38_14_M'
+1
+
+
+
+
+      )ERASE BUGS38_14_M
 
 
 

@@ -211,3 +211,68 @@ DEFN ERROR+
            
 
       )ERASE ZZ50F1 ZZ50F2 ZZ50F3 ZZ50UT
+
+
+
+
+      ⍝ blank-separated local names of a lambda are shown with semicolons,
+      ⍝ like in ∇-functions (Roy Tobin, 2026-11-08)
+      ⍝
+      LAMBDA_LOCALS_1←{⍵+⎕IO ;⎕IO ⎕PS}
+
+
+
+
+      ⎕CR 'LAMBDA_LOCALS_1'
+λ←λ1 ⍵;⎕IO;⎕PS
+λ←⍵+⎕IO       
+
+
+
+
+      LAMBDA_LOCALS_2←{⍺+⍵ ;C   D;E F}
+
+
+
+
+      ⎕CR 'LAMBDA_LOCALS_2'
+λ←⍺ λ1 ⍵;C;D;E;F
+λ←⍺+⍵           
+
+
+
+
+      ⍝ localized system variables start with their default value
+      ⍝
+      ⎕IO←0
+
+
+
+
+      LAMBDA_LOCALS_1 0
+1
+
+
+
+
+      ⎕IO
+0
+
+
+
+
+      ⎕IO←1
+
+
+
+
+      )ERASE LAMBDA_LOCALS_1 LAMBDA_LOCALS_2
+
+
+
+
+      )SIC
+
+
+
+

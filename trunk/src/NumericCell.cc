@@ -576,6 +576,16 @@ NumericCell::bif_or_bitwise(Cell * Z, const Cell * A) const
    return E_NO_ERROR;
 }
 //────────────────────────────────────────────────────────────────────────────
+/// x rounded to a double. The 80-bit x87 registers of 32-bit x86 machines
+/// may hold a result like ¯0.5-1E16 exactly, so that exactness tests like
+/// (B-A)+A=B succeeded there but not on other machines.
+static inline APL_Float
+as_double(APL_Float x)
+{
+volatile APL_Float ret = x;
+   return ret;
+}
+//────────────────────────────────────────────────────────────────────────────
 ErrorCode
 NumericCell::real_binomial(Cell * Z, const Cell * A) const
 {
@@ -601,14 +611,15 @@ NumericCell::real_binomial(Cell * Z, const Cell * A) const
    {
      const APL_Float r_A = A->get_real_value();
      const APL_Float r_B = get_real_value();
-     const APL_Float r_B__A = r_B - r_A;
+     const APL_Float r_B__A = as_double(r_B - r_A);
      APL_Float K = -1.0;   // no fast path
      if (r_A >= 0.0 && r_A <= 170.0 && A->is_near_int() &&
          !(nearbyint(r_A) == 0.0 && r_A != 0.0))
         K = nearbyint(r_A);
      else if (r_B__A >= 0.0 && r_B__A <= 170.0 &&
               r_B__A == nearbyint(r_B__A) &&
-              r_B__A + r_A == r_B && r_B - r_B__A == r_A)   // exact B-A
+              as_double(r_B__A + r_A) == r_B &&
+              as_double(r_B - r_B__A) == r_A)   // exact B-A
         K = r_B__A;   // e.g. not for ¯1!1E¯20 (B-A rounded, Bugs39 #20)
 
      if (K >= 0.0)
@@ -630,7 +641,8 @@ const APL_Float r_1_B    = 1.0 +    get_real_value();
    // 1 + (B-A), not (1+B) - A: 1+1E19 rounds to 1E19, so that
    // (1+B)-A was 0 for 1E19!1E19, i.e. a pole (Bugs38 #19).
    //
-const APL_Float r_1_B__A = 1.0 + (get_real_value() - A->get_real_value());
+const APL_Float r_1_B__A = as_double(1.0 + as_double(get_real_value() -
+                                                    A->get_real_value()));
 
    // Γ has poles at 0, ¯1, ¯2, ... A pole of the numerator Γ(1+B) is a
    // DOMAIN ERROR (LRM p. 66: "except in the case where R is a negative
@@ -650,7 +662,7 @@ const APL_Float r_1_B__A = 1.0 + (get_real_value() - A->get_real_value());
         //
         const APL_Float b = get_real_value();
         const APL_Float a = A->get_real_value();
-        if ((b - a) + a != b)   return E_DOMAIN_ERROR;
+        if (as_double(as_double(b - a) + a) != b)   return E_DOMAIN_ERROR;
         return IntCell::z0(Z);
       }
 
@@ -809,6 +821,34 @@ NumericCell::cpx_gcd(APL_Complex & z, APL_Complex a, APL_Complex b, double qct)
    //
    a = APL_Complex(round(a.real()), round(a.imag()));
    b = APL_Complex(round(b.real()), round(b.imag()));
+
+   // beyond 2⋆53 a double is not an exact integer, and the remainders in
+   // the loop below are mere rounding artefacts, which also depend on the
+   // FPU: the 80-bit x87 registers of 32-bit x86 machines gave 0J¯1 for
+   // 1J2∨1.3E308J1.3E308, where 64-bit machines give 1J2. Therefore the
+   // smaller operand is the GCD if it divides the larger one tolerantly
+   // (the halved operands, see the loop below).
+   //
+   {
+     const bool a_small = abs(a*0.5) <= abs(b*0.5);
+     const APL_Complex small = a_small ? a : b;
+     const APL_Complex big   = a_small ? b : a;
+     const APL_Float big_max = fmax(fabs(big.real()), fabs(big.imag()));
+     if (big_max > 9007199254740992.0 && small != APL_Complex(0.0, 0.0))
+        {
+          const APL_Complex q = 2.0 * ((big*0.5) / small);
+          if (isfinite(q.real()) && isfinite(q.imag()))
+             {
+               const APL_Complex n(nearbyint(q.real()), nearbyint(q.imag()));
+               const APL_Float tolerance = 4*DBL_EPSILON * abs(n*0.5);
+               if (n != APL_Complex(0.0, 0.0) && abs(q - n) <= tolerance)
+                  {
+                    z = small;
+                    return E_NO_ERROR;
+                  }
+             }
+        }
+   }
 
    // abs(x×0.5) instead of abs(x): the magnitude of a finite x may exceed
    // the double range, e.g. 1.3E308J1.3E308. Then abs(x) is ∞, the loop

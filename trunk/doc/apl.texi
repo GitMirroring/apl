@@ -2662,6 +2662,8 @@ variables C and D like this:
 Like in the header of a normal defined function, blanks may be used instead
 of semicolons between the local variables (IBM APL2 allows this in the
 argument of @b{⎕FX}), so @code{@{ ⍺ + ⍵ ;C D @}} also localizes C and D.
+The semicolons are the proper format, though: @b{⎕CR} (and @b{)SAVE} etc.)
+show the local variables of the above with semicolons, i.e. ;C;D.
 
 Only the variables that are listed as local variables are localized; in
 particular, assigning a value to a system variable inside a lambda body does
