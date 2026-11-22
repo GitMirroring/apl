@@ -46,6 +46,12 @@ public:
 
    static Bif_OPER2_RANK  fun;      ///< Built-in function
 
+   /// the fill function of (A) LO⍤y B for a primitive LO: LO's fill
+   /// function applied to the cells of B (and A) like ⍤ applies LO, and the
+   /// results combined like ⍤ does (Bugs41 #41). A is 0 if monadic
+   static Token fill_ALyB(const Function * LO, const cValue & y,
+                          const cValue * A, const cValue & B);
+
 protected:
    /// overloaded Function::may_push_SI(). f⍤y is implemented via the
    /// Z__LO_RANK_X5_B / Z__A_LO_RANK_X7_B macros (a defined function that

@@ -41,14 +41,18 @@
 //════════════════════════════════════════════════════════════════════════════
 ComplexCell::ComplexCell(APL_Complex c)
 {
-   value.cval[0]  = c.real();
-   value.cval[1] = c.imag();
+   // + 0.0 turns an IEEE -0.0 into 0.0: APL has no signed zero, but log()
+   // and atan2() return the other side of the branch cut for it, e.g.
+   // ⍟-1J1×1J¯1 (-C has the imaginary part -0.0, Bugs41 #28)
+   //
+   value.cval[0] = c.real() + 0.0;
+   value.cval[1] = c.imag() + 0.0;
 }
 //────────────────────────────────────────────────────────────────────────────
 ComplexCell::ComplexCell(APL_Float r, APL_Float i)
 {
-   value.cval[0] = r;
-   value.cval[1] = i;
+   value.cval[0] = r + 0.0;   // no -0.0, see above
+   value.cval[1] = i + 0.0;
 }
 //────────────────────────────────────────────────────────────────────────────
 bool
@@ -163,6 +167,14 @@ ErrorCode
 ComplexCell::bif_subtract(Cell * Z, const Cell * A) const
 {
    return ComplexCell::bif_subtract_cc(Z, A->get_complex_value(), cval());
+}
+//────────────────────────────────────────────────────────────────────────────
+/// x ÷ den ÷ s for a power of 2 s: divide by s first if s < 1, so that a
+/// subnormal x is scaled up before it is divided (Bugs41 #85)
+static inline APL_Float
+scaled_div(APL_Float x, APL_Float den, APL_Float s)
+{
+   return (s < 1.0) ? (x / s) / den : (x / den) / s;
 }
 //────────────────────────────────────────────────────────────────────────────
 ErrorCode
@@ -290,16 +302,21 @@ const APL_Complex z(x, y);
    if (x < 0.5)   // reflection: Γ(z) = π ÷ sin(πz) × Γ(1-z)
       return log(pi) - log(sin(pi * z)) - log_gamma(1.0 - x, -y);
 
-const APL_Complex series = 1.000000000190015
-                         + 76.18009172947146    / APL_Complex(x + 1.0, y)
-                         - 86.50532032941677    / APL_Complex(x + 2.0, y)
-                         + 24.01409824083091    / APL_Complex(x + 3.0, y)
-                         - 1.231739572450155    / APL_Complex(x + 4.0, y)
-                         + 1.208650973866179E-3 / APL_Complex(x + 5.0, y)
-                         - 5.395239384953E-6    / APL_Complex(x + 6.0, y);
-const APL_Complex z1(x + 5.5, y);
-const APL_Complex z2(x + 0.5, y);
-   return 0.5*log(2*M_PI) - log(z) + log(series) + z2*log(z1) - z1;
+   // Stirling's series, which is accurate to a few ulps for |w| ≥ 10. The
+   // Lanczos approximation (as in gamma_nothrow()) has a relative error
+   // of about 2E¯10, which the difference of three log-Γ values in K!B
+   // turned into results with only 10 correct digits (Bugs41 #39).
+   // For a smaller |z|: ln Γ(z) = ln Γ(z+n) - ln(z×(z+1)×...×(z+n-1)).
+   //
+APL_Complex w = z;
+APL_Complex shift(0.0, 0.0);
+   while (abs(w) < 10.0)   { shift += log(w);   w += 1.0; }
+
+const APL_Complex c = 1.0 / w;
+const APL_Complex c2 = c * c;
+const APL_Complex series = c * (1.0/12.0 - c2 * (1.0/360.0 - c2 *
+                               (1.0/1260.0 - c2 * (1.0/1680.0 - c2 / 1188.0))));
+   return (w - 0.5) * log(w) - w + 0.5*log(2*M_PI) + series - shift;
 }
 //────────────────────────────────────────────────────────────────────────────
 APL_Complex
@@ -513,13 +530,14 @@ const APL_Complex one(1.0, 0.0);
                          // for Re b < 0 is done above.
                          //
                          const double arg = 1.0 - 1.0/(b_re*b_re);
-                         const double mag = abs_b * sqrt(arg < 0.0
-                                                          ? 0.0 : arg);
+                         const double mag = abs_b < 1E150   // Bugs41 #84
+                               ? sqrt((abs_b - 1.0)*(abs_b + 1.0))
+                               : abs_b * sqrt(arg < 0.0 ? 0.0 : arg);
                          return ComplexCell::zC(Z, mag);
                        }
 
-                    const APL_Complex root = complex_sqrt(
-                                  APL_Complex(b_re*b_re - 1.0, 0.0));
+                    const APL_Complex root = complex_sqrt(   // Bugs41 #84
+                           APL_Complex((b_re - 1.0)*(b_re + 1.0), 0.0));
                     if (b.imag() == 0.0)   return ComplexCell::zC(Z, root);
                     return ComplexCell::zC(Z, same_sign
                                   ? root : APL_Complex(root.real(),
@@ -592,7 +610,9 @@ const APL_Complex one(1.0, 0.0);
                   {
                     const double abs_b = fabs(b.real());
                     const double arg = 1.0 - 1.0/(b.real()*b.real());
-                    const double mag = abs_b * sqrt(arg < 0.0 ? 0.0 : arg);
+                    const double mag = abs_b < 1E150   // Bugs41 #84
+                          ? sqrt((abs_b - 1.0)*(abs_b + 1.0))
+                          : abs_b * sqrt(arg < 0.0 ? 0.0 : arg);
 
                     // Bugs31 #13 (Blake McBride): see case -4 above --
                     // same shortcut-vs-general-path sign discontinuity,
@@ -1134,15 +1154,15 @@ APL_Complex z;
       {
         const APL_Float r   = b1.imag() / b1.real();
         const APL_Float den = b1.real() + r*b1.imag();
-        z = APL_Complex((a.real() + r*a.imag()) / den / s,
-                         (a.imag() - r*a.real()) / den / s);
+        z = APL_Complex(scaled_div(a.real() + r*a.imag(), den, s),
+                        scaled_div(a.imag() - r*a.real(), den, s));
       }
    else
       {
         const APL_Float r   = b1.real() / b1.imag();
         const APL_Float den = b1.imag() + r*b1.real();
-        z = APL_Complex((a.real()*r + a.imag()) / den / s,
-                         (a.imag()*r - a.real()) / den / s);
+        z = APL_Complex(scaled_div(a.real()*r + a.imag(), den, s),
+                        scaled_div(a.imag()*r - a.real(), den, s));
       }
 
    if (!isfinite(z.real()))   return E_DOMAIN_ERROR;
@@ -1438,9 +1458,26 @@ ComplexCell::max_min_cc(Cell * Z, const Cell & A, const Cell & B, bool max)
    // near-real values like 5J1E¯12 (Bugs39 #93), and return the selected
    // argument exactly, e.g. an IntCell 9007199254740993 (Bugs39 #41)
    //
+   // the real parts exactly: an IntCell beyond 2⋆53 is not a double, e.g.
+   // 9007199254740993 vs. 9007199254740992J1, like ⍋ (Bugs41 #49)
+   //
+int cr;   // the sign of real(A) - real(B)
+   if (A.is_integer_cell() && B.is_integer_cell())
+      cr = (A.get_int_value() > B.get_int_value()) -
+           (A.get_int_value() < B.get_int_value());
+   else if (A.is_integer_cell())
+      cr =  Cell::compare_int_float(A.get_int_value(), B.get_real_value());
+   else if (B.is_integer_cell())
+      cr = -Cell::compare_int_float(B.get_int_value(), A.get_real_value());
+   else
+      cr = (A.get_real_value() > B.get_real_value()) -
+           (A.get_real_value() < B.get_real_value());
+
 const APL_Complex a = A.get_complex_value();
 const APL_Complex b = B.get_complex_value();
-const bool B_selected = max ? complex_greater(b, a) : complex_greater(a, b);
+const bool A_greater = cr ? cr > 0 : complex_greater(a, b);
+const bool B_greater = cr ? cr < 0 : complex_greater(b, a);
+const bool B_selected = max ? B_greater : A_greater;
 const Cell & selected = B_selected ? B : A;
 
    if (selected.is_integer_cell())
@@ -1478,7 +1515,15 @@ const double qct = Workspace::get_CT();
    // is pure cancellation noise (like FloatCell::bif_residue_ff(), Bugs40
    // #98), e.g. 0J1E¯5|0J1E15 was 0J¯0.125 at ⎕CT←0
    //
-   if (abs(quot) > 4.5E15)   return IntCell::z0(Z);
+   // But per component: an exact residue in a small component is kept,
+   // e.g. 1|1000.5J5000000000000000 at ⎕CT←0 (Bugs41 #68)
+   //
+   {
+     const APL_Float qr = fabs(quot.real());
+     const APL_Float qi = fabs(quot.imag());
+     if ((qr > 4.5E15 || qr == 0.0) && (qi > 4.5E15 || qi == 0.0))
+        return IntCell::z0(Z);
+   }
 
    if (qct != 0)
       {
@@ -1493,7 +1538,11 @@ const double qct = Workspace::get_CT();
         // Cell::integral_within() on the real path, e.g. 3|2.9999999999999J3
         // (instead of B being tolerantly equal to A×⌊B÷A, Bugs40 #45)
         //
-        if (fabs(quot.real() - nr) < qct &&
+        // A nearby Gaussian integer 0 is never a match, like on the real
+        // path, e.g. 1E14|1J1 is 1J1 (Bugs41 #21)
+        //
+        if ((nr != 0.0 || ni != 0.0) &&
+            fabs(quot.real() - nr) < qct &&
             fabs(quot.imag() - ni) < qct)   return IntCell::z0(Z);
       }
 
@@ -1530,8 +1579,32 @@ const APL_Complex a_floor_quot = a * floor_quot;
    // every genuine residue below |b|÷1E13, e.g. 0J10|0J10000000000001 was
    // 0 (Bugs40 #45). A quotient near a Gaussian integer is handled above.
    //
-const APL_Complex residue = b - a_floor_quot;
-   if (abs(residue) <= 4 * DBL_EPSILON * abs(b))   return IntCell::z0(Z);
+APL_Complex residue = b - a_floor_quot;
+
+   // per component (Bugs41 #68): the noise of a component is the rounding
+   // of that component of a×⌊b÷a, which fma() gives exactly. An exact
+   // product (e.g. for a real a and a large quotient) has no noise, so that
+   // e.g. 1|1000.5J5000000000000000 is 0.5 at ⎕CT←0, while the rounding of
+   // 0J1E¯5×1E20 in 0J1E¯5|0J1E15 is noise (Bugs40 #98).
+   //
+   {
+     const APL_Float ar = a.real(),           ai = a.imag();
+     const APL_Float fr = floor_quot.real(),  fi = floor_quot.imag();
+     const APL_Float p_rr = ar*fr, p_ii = ai*fi, p_ri = ar*fi, p_ir = ai*fr;
+     // the rounding of the 4 products, and of their sums (if both nonzero)
+     const APL_Float err_r = fabs(fma(ar, fr, -p_rr)) + fabs(fma(ai, fi, -p_ii))
+                + ((p_rr != 0.0 && p_ii != 0.0) ? DBL_EPSILON * fabs(p_rr - p_ii)
+                                                : 0.0);
+     const APL_Float err_i = fabs(fma(ar, fi, -p_ri)) + fabs(fma(ai, fr, -p_ir))
+                + ((p_ri != 0.0 && p_ir != 0.0) ? DBL_EPSILON * fabs(p_ri + p_ir)
+                                                : 0.0);
+     APL_Float rr = residue.real();
+     APL_Float ri = residue.imag();
+     if (fabs(rr) <= 4 * err_r)   rr = 0.0;
+     if (fabs(ri) <= 4 * err_i)   ri = 0.0;
+     if (rr == 0.0 && ri == 0.0)   return IntCell::z0(Z);
+     residue = APL_Complex(rr, ri);
+   }
 
 const ErrorCode ret = ComplexCell::zC(Z, residue);
    // the sibling bif_circle_fun_c() right below already does this check

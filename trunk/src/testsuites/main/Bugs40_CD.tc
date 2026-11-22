@@ -28,12 +28,12 @@ VALENCE ERROR+
        ^^
 
       ⍴(⎕TF⍣1)¨''
-VALENCE ERROR
+VALENCE ERROR+
       ⍴(⎕TF⍣1)¨''
        ^
 
       ⍴⍬(⎕UCS⍣1)¨⍬
-VALENCE ERROR
+VALENCE ERROR+
       ⍴⍬(⎕UCS⍣1)¨⍬
        ^^
 
@@ -48,7 +48,7 @@ VALENCE ERROR+
       ^
 
       ⍴⎕TF¨''
-VALENCE ERROR
+VALENCE ERROR+
       ⍴⎕TF¨''
        ^
 
@@ -220,16 +220,6 @@ DOMAIN ERROR+
 DOMAIN ERROR+
       ⎕FIO[32]4294967298
       ^
-
-      ⎕MX[4294967297 0] 2 2⍴1 2 3 4
-DOMAIN ERROR+
-      ⎕MX[4294967297 0]2 2⍴1 2 3 4
-      ^
-
-      )MORE
-⎕MX[X] B: invalid subfunction number X (= 4294967297).
-See: ⎕MX '' or: ⎕MX ⍬ for a list of valid numbers.
-
 
       (1001+2⋆32) ⎕SVO 'Y'
 DOMAIN ERROR+

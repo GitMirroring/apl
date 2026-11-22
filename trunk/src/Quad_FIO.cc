@@ -1292,6 +1292,18 @@ public:
    /// That character is left in lookahead (fscanf() also pushes back only
    /// one character). The field used to take every character that may
    /// occur in such a number, and the unconverted rest was lost (Bugs40 #21)
+   /// true if sscanf() reads C23 binary numbers like 0b101 with %i
+   static bool sscanf_knows_0b()
+      {
+        static int known = -1;
+        if (known == -1)
+           {
+             int val = 0;
+             known = sscanf("0b11", "%i", &val) == 1 && val == 3;
+           }
+        return known;
+      }
+
    std::string file_field(char conv, int64_t conv_len)
       {
         const bool flt = strchr("fFeEgGaA", conv) != 0;
@@ -1303,7 +1315,8 @@ public:
         std::string ret;
         bool digits = false;        // at least one digit (of the mantissa)
         bool dot = false;           // flt: . seen
-        bool expo = false;          // flt: e seen
+        bool expo = false;          // flt: e (or p) seen
+        bool hex_flt = false;       // flt: a C99 hex float 0x...p... (Bugs41 #50)
         for (;;)
             {
               if (conv_len > 0 && int64_t(ret.size()) >= conv_len)   break;
@@ -1314,10 +1327,26 @@ public:
 
               const char prev = ret.size() ? ret.back() : 0;
               bool take = false;
+              const bool zero = ret == "0" || ret == "-0" || ret == "+0";
               if (cc == '+' || cc == '-')
                  {
                    take = ret.size() == 0 ||   // leading sign
-                          (flt && (prev == 'e' || prev == 'E'));
+                          (flt && !hex_flt && (prev == 'e' || prev == 'E')) ||
+                          (hex_flt && (prev == 'p' || prev == 'P'));
+                 }
+              else if (flt && (cc == 'x' || cc == 'X') && zero)   // 0x...
+                 {
+                   take = hex_flt = true;
+                   digits = false;
+                 }
+              else if (hex_flt)
+                 {
+                   if (isxdigit(cc) && !expo)   take = digits = true;
+                   else if (cc >= '0' && cc <= '9')   take = true;   // p exp
+                   else if (cc == '.')   take = !dot && !expo;
+                   else if (cc == 'p' || cc == 'P')   take = digits && !expo;
+                   if (take && cc == '.')   dot = true;
+                   if (take && (cc == 'p' || cc == 'P'))   expo = true;
                  }
               else if (flt)
                  {
@@ -1339,12 +1368,20 @@ public:
                       base = (ret == "0" || ret == "-0" || ret == "+0")
                            ? 8 : 10;
 
-                   const bool zero = ret == "0" || ret == "-0" || ret == "+0";
                    if ((cc == 'x' || cc == 'X') && zero &&
                        (conv == 'i' || base == 16))
                       {
                         take = true;
                         base = 16;
+                      }
+                   else if ((cc == 'b' || cc == 'B') && zero && conv == 'i' &&
+                            sscanf_knows_0b())
+                      {
+                        // C23 binary 0b..., if sscanf() (and thus ⎕FIO[55])
+                        // reads it (Bugs41 #50)
+                        //
+                        take = true;
+                        base = 2;
                       }
                    else
                       {

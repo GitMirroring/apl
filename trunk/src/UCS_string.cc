@@ -798,9 +798,12 @@ UCS_string::is_comment_or_label() const
 bool
 UCS_string::is_in_range(const UCS_string & from, const UCS_string & to) const
 {
+   // LRM p. 431: this ≥ from and (this ≤ to or this starts with to). A
+   // name that starts with from is ≥ from, but must still be checked
+   // against to, e.g. Acd in A-Ab (Bugs41 #88)
+   //
    if (from.size())   // from provided
       {
-         if (this->starts_with(from))          return true;
          if (this->compare(from) == COMP_LT)   return false;
       }
 

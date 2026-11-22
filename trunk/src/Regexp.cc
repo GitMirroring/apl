@@ -282,10 +282,15 @@ const ShapeItem len = pattern.size();
                  {
                    ShapeItem q = p + 3;
                    const Unicode d = q < len ? pattern[q] : Unicode_0;
-                   if (d == UNI_L_CURLY)
+                   if (d == UNI_L_CURLY)   // a doubled }} is a } (Bugs41 #79)
                       {
-                        while (q < len && pattern[q] != UNI_R_CURLY)   ++q;
-                        ++q;
+                        for (++q; q < len; ++q)
+                            {
+                              if (pattern[q] != UNI_R_CURLY)   continue;
+                              if (q + 1 < len && pattern[q + 1] == UNI_R_CURLY)
+                                 ++q;
+                              else   { ++q;   break; }
+                            }
                       }
                    else if (d == UNI_DOUBLE_QUOTE || d == UNI_SINGLE_QUOTE ||
                             d == Unicode('`') || d == UNI_CIRCUMFLEX ||

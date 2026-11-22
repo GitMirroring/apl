@@ -134,6 +134,9 @@ Symbol::is_UTF8_text(const UCS_string & text)
          const Unicode uni = text[t];
          if (uni >= 0xD800 && uni <= 0xDFFF)   return false;
          if (uni < 0 || uni > 0x10FFFF)        return false;
+
+         // a CR, which the reader of a .apl file ignores (Bugs41 #86)
+         if (uni == UNI_CR)                    return false;
        }
    return true;
 }

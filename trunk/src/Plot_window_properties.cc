@@ -243,12 +243,18 @@ const int max_Zi = ceil(max_Z / tile_Z);
    gridX_last = 0.5 + max_Xi - min_Xi;
    gridY_last = 0.5 + max_Yi - min_Yi;
    gridZ_last = 0.5 + max_Zi - min_Zi;
-   min_X = tile_X * floor(min_X / tile_X);
-   min_Y = tile_Y * floor(min_Y / tile_Y);
-   min_Z = tile_Z * floor(min_Z / tile_Z);
-   max_X = tile_X * ceil(max_X  / tile_X);
-   max_Y = tile_Y * ceil(max_Y  / tile_Y);
-   max_Z = tile_Z * ceil(max_Z  / tile_Z);
+   // round the range to full tiles, unless that overflows (e.g. 1.7E308
+   // rounded up to 1.8E308, Bugs41 #31)
+   //
+#define ROUND(v, f, tile) { const double r = tile * f(v / tile); \
+                            if (isfinite(r))   v = r; }
+   ROUND(min_X, floor, tile_X)
+   ROUND(min_Y, floor, tile_Y)
+   ROUND(min_Z, floor, tile_Z)
+   ROUND(max_X, ceil,  tile_X)
+   ROUND(max_Y, ceil,  tile_Y)
+   ROUND(max_Z, ceil,  tile_Z)
+#undef ROUND
 
    delta_X = max_X - min_X;
    delta_Y = max_Y - min_Y;
@@ -505,8 +511,11 @@ UTF8_string attname_utf(att1);
 const char * attname_cp = attname_utf.c_str();
    if (val.is_integer_cell())   // integer attribute value
       {
-        const int ival = val.get_int_value();
-        SPRINTF(att_and_value, "%s: %d", attname_cp, ival);
+        // the full value, not an int (which took it modulo 2⋆32): the
+        // range check of set_attribute() refuses it (Bugs41 #51)
+        //
+        const long long ival = val.get_int_value();
+        SPRINTF(att_and_value, "%s: %lld", attname_cp, ival);
         return set_attribute(att_and_value);
       }
    else if (val.is_pointer_cell())   // string value
@@ -602,10 +611,13 @@ int expo = 0;
       }
    else                           // use float arithmetic for 10^expo
       {
+        // pow() is 10^expo also for a negative expo (Bugs41 #31: it was
+        // divided by again, so that e.g. 2E¯18 became 2E18)
+        //
         const double expo_val = pow(10, expo);
-        if (val <= 2.0)   return  expo < 0 ? 2.0/expo_val : 2.0*expo_val;
-        if (val <= 5.0)   return  expo < 0 ? 5.0/expo_val : 5.0*expo_val;
-        return  expo < 0 ? 10.0/expo_val : 10.0*expo_val;
+        if (val <= 2.0)   return  2.0*expo_val;
+        if (val <= 5.0)   return  5.0*expo_val;
+        return  10.0*expo_val;
       }
 }
 //────────────────────────────────────────────────────────────────────────────

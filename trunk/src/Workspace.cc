@@ -26,6 +26,7 @@
 #include <sys/stat.h>
 
 #include <fstream>
+#include <map>
 
 using namespace std;
 
@@ -374,7 +375,12 @@ Workspace::immediate_execution(bool exit_on_error)
                         IO_Files::apl_error(LOC);
                       }
                  }
-              if (exit_on_error)   return Token(TOK_OFF);
+              // not for an (expected) error inside a running testcase,
+              // e.g. a DEFN ERROR of the ∇-editor: --TM 4 exits after a
+              // failed testcase (stop_after_failed_file(), Bugs41 #62)
+              //
+              if (exit_on_error && !InputFile::is_validating())
+                 return Token(TOK_OFF);
             }
          catch (const std::bad_alloc & e)
             {
@@ -1307,8 +1313,9 @@ const YMDhmsu time(gmt + 1000000*offset);
 "⍝ " << setw(36) << lib_name.get_name() << " ";
      get_v_Quad_TZ().print_timestamp(*sout, gmt)                 << " ⍝\n"
 "⍝                                                                    ⍝\n"
-" ⍝⍝⍝⍝⍝⍝⍝⍝⍝⍝⍝⍝⍝⍝⍝⍝⍝⍝⍝⍝⍝⍝⍝⍝⍝⍝⍝⍝⍝⍝⍝⍝⍝⍝⍝⍝⍝⍝⍝⍝⍝⍝⍝⍝⍝⍝⍝⍝⍝⍝⍝⍝⍝⍝⍝⍝⍝⍝⍝⍝⍝⍝⍝⍝⍝⍝⍝⍝\n"
-           << endl;
+" ⍝⍝⍝⍝⍝⍝⍝⍝⍝⍝⍝⍝⍝⍝⍝⍝⍝⍝⍝⍝⍝⍝⍝⍝⍝⍝⍝⍝⍝⍝⍝⍝⍝⍝⍝⍝⍝⍝⍝⍝⍝⍝⍝⍝⍝⍝⍝⍝⍝⍝⍝⍝⍝⍝⍝⍝⍝⍝⍝⍝⍝⍝⍝⍝⍝⍝⍝⍝\n";
+
+     *sout << endl;
    }
 
 int function_count = 0;
@@ -1328,6 +1335,18 @@ int variable_count = 0;
                                      ID_ ## x != ID_Quad_X)       \
    { get_v_ ## x().dump(*sout);   ++variable_count; }
 #include "SystemVariable.def"
+
+   // the WSID, which )LOAD restores only if the lines above were loaded
+   // (and )COPY ignores, see InputFile::COPY_filter::check_filter()).
+   // Bugs41 #38.
+   //
+   if (!html && !is_CLEAR_WS())
+      {
+        outf << ")WSID ";
+        const LibRef lib = the_workspace.WS_id.get_libref();
+        if (lib != LIB_NONE)   outf << lib << " ";
+        outf << the_workspace.WS_id.get_name() << endl << endl;
+      }
 
    if (html)   outf << endl << "⍝ EOF </pre></body></html>" << endl;
    else        write_DUMP_checksum(outf, filename.c_str());
@@ -1391,7 +1410,10 @@ XML_Loading_Archive in(out, err, filename.c_str(), dump_fd);
 
         load_DUMP(out, filename, dump_fd, do_LX, silent, 0);   // closes dump_fd
 
-        // )DUMP files have no )WSID, so create one from the filename
+        // create a WSID from the filename. )DUMP writes a )WSID command
+        // near the end of the file, which restores the dumped WSID (like
+        // the wsid= of a .xml file) if the lines before it were loaded
+        // (Bugs41 #38). A file dumped by an older GNU APL has no )WSID.
         //
         // Start with the last path component, which may or may not start
         // with a slash
@@ -1462,6 +1484,7 @@ XML_Loading_Archive in(out, err, filename.c_str(), dump_fd);
              // the specific reason (e.g. a bad )SI stack, or a negative
              // shape item (Bugs32 #26)), if the reader gave one
              const UCS_string reason = Workspace::more_error();
+             repair_SI_levels();   // Bugs41 #16
              the_workspace.clear_WS(out, true);
              out << ")LOAD " << lib_name.get_name() << " failed: "
                  << Error::error_name(err.get_error_code()) << endl;
@@ -1482,6 +1505,7 @@ XML_Loading_Archive in(out, err, filename.c_str(), dump_fd);
              // so Cmd_WS::cmd_LOAD's own catch(std::bad_alloc&)/catch(...)
              // still run their usual reporting on top of this.
              //
+             repair_SI_levels();   // Bugs41 #16
              the_workspace.clear_WS(out, true);
              out << ")LOAD " << lib_name.get_name() << " failed" << endl;
              MORE_ERROR() << "workspace file " << filename
@@ -1492,6 +1516,47 @@ XML_Loading_Archive in(out, err, filename.c_str(), dump_fd);
       }
 
    if (Workspace::get_LX().size())  quad_lx = Workspace::get_LX();
+}
+//────────────────────────────────────────────────────────────────────────────
+//────────────────────────────────────────────────────────────────────────────
+bool
+Workspace::repair_SI_levels()
+{
+   // count how often each symbol is popped when the )SI is cleared
+   //
+std::map<Symbol *, int> pops;
+   for (StateIndicator * si = SI_top(); si; si = si->get_parent())
+       {
+         const UserFunction * ufun = si->get_executable()->get_exec_ufun();
+         if (ufun == 0)   continue;
+
+         const UserFunction_header & header = ufun->get_header();
+         loop(l, header.get_label_count())   ++pops[header.get_label(l).sym];
+         loop(l, header.local_var_count())
+             ++pops[const_cast<Symbol *>(header.get_local_var(l))];
+         if (header.B())    ++pops[header.B()];
+         if (header.X())    ++pops[header.X()];
+         if (header.RO())   ++pops[header.RO()];
+         if (header.LO())   ++pops[header.LO()];
+         if (header.A())    ++pops[header.A()];
+         if (header.Z())    ++pops[header.Z()];
+       }
+
+bool missing = false;
+   for (std::map<Symbol *, int>::iterator p = pops.begin();
+        p != pops.end(); ++p)
+       {
+         Symbol & sym = *p->first;
+         while (sym.value_stack_size() <= p->second)   // base level + pops
+            {
+              const ShapeItem size = sym.value_stack_size();
+              sym.push();
+              if (sym.value_stack_size() == size)   break;   // e.g. ⎕LX
+              missing = true;
+            }
+       }
+
+   return missing;
 }
 //════════════════════════════════════════════════════════════════════════════
 bool
@@ -1567,6 +1632,12 @@ XML_Loading_Archive in(out, err, filename.c_str(), dump_fd);
         std::vector<const UserFunction *> replaced;
       } replaced_functions;
 
+   // the error of a suspended function, which a refused )COPY must not
+   // change (Bugs41 #55)
+   //
+StateIndicator * si_top = Workspace::SI_top();
+const Error si_error = StateIndicator::get_error(si_top);
+
    try
       {
         in.read_vids();
@@ -1574,6 +1645,9 @@ XML_Loading_Archive in(out, err, filename.c_str(), dump_fd);
       }
    catch (Error & err)
       {
+        if (si_top == Workspace::SI_top())
+           StateIndicator::get_error(si_top) = si_error;
+
         // the specific reason, if the reader gave one (e.g. Bugs32 #26)
         const UCS_string reason = Workspace::more_error();
         UserFunction::deferred_deletes = 0;
@@ -1649,7 +1723,10 @@ UCS_string &
 MORE_ERROR()
 {
    Workspace::more_error().clear();
+   Workspace::more_is_info = false;   // the text of an error (Bugs41 #78)
    return Workspace::more_error();
 }
+//────────────────────────────────────────────────────────────────────────────
+bool Workspace::more_is_info = false;
 //════════════════════════════════════════════════════════════════════════════
 

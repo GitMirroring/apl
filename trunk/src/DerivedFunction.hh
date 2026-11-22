@@ -178,6 +178,11 @@ public:
    /// the operand whose fill function is the fill function of \b this
    const Function * fill_operand() const;
 
+   /// the fill of f¨ resp. A∘.g B: the fill function of the operand
+   /// applied to the items resp. pairs of items (LRM p. 110, Bugs41 #47)
+   static Value_P each_outer_fill(const Function * fun, bool outer,
+                                  const cValue * A, const cValue & B);
+
    /// overloaded Function::contains_defined()
    virtual bool contains_defined() const
       { return   oper->is_defined()

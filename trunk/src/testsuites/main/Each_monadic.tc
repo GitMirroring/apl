@@ -117,27 +117,16 @@ Z←0⍴0
       ⍝ Bugs30 #1 regression: LO¨ as a selective-assignment target.
       ⍝
       ⍝ A NULL lvalue (an over-take of an empty vector, 1↑V for empty
-      ⍝ V) used to segfault Bif_OPER1_EACH::do_eval_LB instead of
-      ⍝ erroring cleanly; fixed by guarding dest==0 the same way the
-      ⍝ dyadic branch now does (see Each_dyadic.tc). No display after
-      ⍝ these: a selective assignment produces none (LRM p.41).
+      ⍝ V) used to segfault Bif_OPER1_EACH::do_eval_LB. It was then an
+      ⍝ INDEX ERROR and is now a no-op, like (1↑V)←,1 (Bugs41 #2). No
+      ⍝ display after these: a selective assignment produces none
+      ⍝ (LRM p.41).
 
       V←⍬
       (,¨1↑V)←,1
-INDEX ERROR
-      (,¨1↑V)←,1
-       ^
       (⌽¨1↑V)←,1
-INDEX ERROR
-      (⌽¨1↑V)←,1
-       ^
       (⊂¨1↑V)←,1
-INDEX ERROR
-      (⊂¨1↑V)←,1
-       ^
 
-      ⍝ leaves 3 )SI entries for the failed immediate executions above.
-      ⍝
       )SIC
 
       ⍝ a primitive (structural) LO must still work, per src/Value.cc's

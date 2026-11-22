@@ -2081,7 +2081,9 @@ int file_profile = 0;   // the current profile in the preferences file
               //
               for (size_t a = 1; a < arg_utf.size(); ++a)
                   {
-                    if (arg_utf[a - 1] > ' ')   continue;
+                    // unsigned: a byte of a UTF-8 character (≥ 0x80) is
+                    // no white space (Bugs41 #69)
+                    if (UTF8(arg_utf[a - 1]) > ' ')   continue;
                     if (arg_utf[a] == '#' ||
                         (arg_utf[a] == '/' && a + 1 < arg_utf.size() &&
                          arg_utf[a + 1] == '/'))

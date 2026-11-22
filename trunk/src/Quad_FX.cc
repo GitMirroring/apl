@@ -310,6 +310,10 @@ UserFunction * fun =
 
    if (fun == 0)   // UserFunction::fix() dailed
       {
+        // its )MORE text explains the result, but belongs to no error
+        // (Bugs41 #78)
+        //
+        Workspace::more_is_info = true;
         Value_P Z = IntScalar(error_line + Workspace::get_IO(), LOC);
         return Token(TOK_APL_VALUE1, Z);
       }

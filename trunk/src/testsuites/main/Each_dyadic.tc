@@ -99,20 +99,14 @@
       ⍝ Bugs30 #1 regression: L LO¨ R as a selective-assignment target.
       ⍝
       ⍝ A NULL lvalue (an over-take of an empty vector, 1↑V for empty
-      ⍝ V) used to segfault Bif_OPER1_EACH::eval_ALB instead of
-      ⍝ erroring cleanly; fixed by guarding dest==0 the same way the
-      ⍝ already-fixed monadic branch does (see Each_monadic.tc). No
+      ⍝ V) used to segfault Bif_OPER1_EACH::eval_ALB. It was then an
+      ⍝ INDEX ERROR and is now a no-op, like (1↑V)←1 (Bugs41 #2). No
       ⍝ display after these: a selective assignment produces none
       ⍝ (LRM p.41).
 
       V←⍬
       (1⌽¨1↑V)←1
-INDEX ERROR
-      (1⌽¨1↑V)←1
-       ^^
 
-      ⍝ leaves an )SI entry for the failed immediate execution above.
-      ⍝
       )SIC
 
       ⍝ a genuinely selecting primitive LO (Function::get_selectivity(),

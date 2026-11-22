@@ -471,6 +471,74 @@ const sRank rank_chunk_B = y123_to_chunk_B_rank(LO.get_function()->get_name(),
    return do_LyXB(LO, CLONE(&X, LOC), CLONE(pB, LOC), rank_chunk_B);
 }
 //────────────────────────────────────────────────────────────────────────────
+/// cell c of V, which consists of cells of shape \b cell_shape
+static Value_P
+rank_cell(const cValue & V, const Shape & cell_shape, ShapeItem c)
+{
+const ShapeItem len = cell_shape.get_volume();
+Value_P Z(cell_shape, LOC);
+Cell cache;
+   loop(l, len)   Z->next_ravel_Cell(V.get_cravel(c*len + l, cache));
+   if (len == 0)   Z->set_default(V, LOC);   // prototype
+   Z->check_value(LOC);
+   return Z;
+}
+//────────────────────────────────────────────────────────────────────────────
+Token
+Bif_OPER2_RANK::fill_ALyB(const Function * LO, const cValue & y,
+                          const cValue * A, const cValue & B)
+{
+   // the ranks of the cells and the frames of A and B
+   //
+sRank rk_A = A ? A->get_rank() : 0;
+sRank rk_B = B.get_rank();
+   if (A)   y123_to_AB(&y, rk_A, rk_B);
+   else     rk_B = y123_to_chunk_B_rank(LO->get_name(), &y, B.get_rank());
+
+const Shape frame_B = B.get_shape().frame_shape(B.get_rank() - rk_B);
+const Shape cell_B  = B.get_shape().chunk_shape(rk_B);
+Shape frame_A, cell_A;
+   if (A)
+      {
+        frame_A = A->get_shape().frame_shape(A->get_rank() - rk_A);
+        cell_A  = A->get_shape().chunk_shape(rk_A);
+        if (frame_A.get_rank() && frame_B.get_rank() && frame_A != frame_B)
+           return LO->eval_fill_AB(*A, B);   // as ⍤ would fail
+      }
+
+const Shape & frame = (A && frame_B.get_rank() == 0) ? frame_A : frame_B;
+const ShapeItem count = frame.get_volume();
+
+   // LO's fill of every cell (or of the prototype cell if there is none)
+   //
+Value_P V(frame, LOC);
+Value_P Z1;
+   loop(c, count ? count : 1)
+      {
+        const ShapeItem cA = (A && frame_A.get_rank()) ? c : 0;
+        const ShapeItem cB = frame_B.get_rank() ? c : 0;
+        Value_P B1 = rank_cell(B, cell_B, count ? cB : 0);
+        const Token result = A
+            ? LO->eval_fill_AB(*rank_cell(*A, cell_A, count ? cA : 0), *B1)
+            : LO->eval_fill_B(*B1);
+        if (!result.is_apl_val())   return result;   // error
+        Z1 = result.get_apl_val();
+        if (count)   V->next_ravel_Value(Z1.get());
+      }
+
+   if (count == 0)   // empty frame: ⊃ frame⍴⊂Z1
+      {
+        Value_P EZ1(LOC);
+        Cell cache;
+        if (Z1->is_simple_scalar())   EZ1->next_ravel_Cell(Z1->get_cscalar(cache));
+        else                          EZ1->next_ravel_Pointer(Z1->clone(LOC).get());
+        EZ1->check_value(LOC);
+        V->set_default(*EZ1, LOC);
+      }
+   V->check_value(LOC);
+   return Token(TOK_APL_VALUE1, Bif_F12_PICK::disclose(*V, true));
+}
+//────────────────────────────────────────────────────────────────────────────
 Value_P
 Bif_OPER2_RANK::disclose_empty(const Value & X, const Shape & shape_Z,
                                const Value & Z1)

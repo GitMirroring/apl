@@ -1123,6 +1123,8 @@ const APL_Integer qio = Workspace::get_IO();
    // (Bugs38 #101).
    //
 const ShapeItem   old_si_depth_limit     = si_depth_limit;
+const ShapeItem   old_si_depth_cleared   = si_depth_limit_cleared;  // Bugs41 #11
+const ShapeItem   old_si_depth_backstop  = si_depth_backstop;
 const ShapeItem   old_value_count_limit  = value_count_limit;
 const ShapeItem   old_ravel_count_limit  = ravel_count_limit;
 const ShapeItem   old_print_length_limit = print_length_limit;
@@ -1297,6 +1299,8 @@ const CoreCount   old_core_count = Thread_context::get_active_core_count();
    catch (...)
       {
         si_depth_limit     = old_si_depth_limit;
+        si_depth_limit_cleared = old_si_depth_cleared;   // Bugs41 #11
+        si_depth_backstop  = old_si_depth_backstop;
         value_count_limit  = old_value_count_limit;
         ravel_count_limit  = old_ravel_count_limit;
         print_length_limit = old_print_length_limit;

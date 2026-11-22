@@ -278,6 +278,14 @@ const Cell & first_B = B.get_cfirst(cache);
         return Z;
       }
 
+   // (↑B)←C where the first cell of B has no target (an over-take position,
+   // or a placeholder of the empty-B case above, e.g. (↑↑V)←7 8 for an
+   // empty V): wholesale like the nested case below, but discarded
+   // (Bugs41 #2)
+   //
+   if (B.element_count() && first_B.is_lval_cell() &&
+       first_B.get_lval_value() == 0)   return Value::discarded_lval();
+
    // (f ↑B)←V with a nested first item: like Bif_F12_PICK::pick(), return
    // the cellrefs of that item (so that an outer selector f selects its
    // cells), marked as the pick slot (so that an unbroken (↑B)←V replaces

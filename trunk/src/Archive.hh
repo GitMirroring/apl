@@ -24,6 +24,7 @@
 #include <stdint.h>
 
 #include <fstream>
+#include <set>
 #include <string.h>
 
 #include "DerivedFunction.hh"
@@ -198,6 +199,9 @@ public:
    /// write user-defined function \b fun
    /// @param fun function to serialise
    void save_Function(const Function & fun);
+
+   /// return true if \b fun is a lambda that no symbol holds (Bugs41 #23)
+   static bool is_anonymous_lambda(const Function * fun);
 
    /// write either the name and SI-level of user-defined function or the
    /// id of a system function. Return number of attribute= items written
@@ -623,6 +627,14 @@ protected:
    /// @param lev SI nesting level of the derived function
    void read_Derived(StateIndicator & si, int lev);
 
+   /// map \b fid to the anonymous lambda \b name in the body of the
+   /// current )SI entry (an operand of a derived function, Bugs41 #23)
+   void add_operand_lambda(Fid fid, const UTF8 * name);
+
+   /// read the <Function> of \b fid for \b symbol, which refers to it, but
+   /// whose own <Symbol> was not copied (Bugs41 #32). Return true on success
+   bool read_skipped_function(Fid fid, Symbol & symbol);
+
    /// read next Function element
    void read_Function();
 
@@ -769,6 +781,15 @@ protected:
    /// parents[vid] is the parent of vid, or NO_VID if vid is a top-level value
    std::vector<Vid> parents;
 
+   /// )COPY: sub_vids[vid] are the vids of the pointer cells of vid (from
+   /// the first pass), and copy_needed[vid] is true if vid is reachable
+   /// from a copied name (Bugs41 #33)
+   std::vector<std::vector<Vid>> sub_vids;
+   std::vector<bool> copy_needed;
+
+   /// compute copy_needed from vids_COPY and sub_vids
+   void compute_copy_needed();
+
    /// ravel_read[vid] is true if the <Ravel> of vid was read (Bugs40 #13)
    std::vector<bool> ravel_read;
 
@@ -778,8 +799,18 @@ protected:
    /// check that every value has got its <Ravel> (Bugs40 #13)
    void check_all_ravels_read() const;
 
+   /// the names of the <Symbol>s read so far by read_SymbolTable(), to
+   /// detect a <Symbol> that occurs twice (Bugs41 #5)
+   std::set<UTF8_string> symbol_names_read;
+
    /// throw a DOMAIN ERROR for a corrupt )SI in the file (Bugs40 #14)
    static void corrupt_SI();
+
+   /// throw a DOMAIN ERROR for an end of file in \b element (Bugs41 #12)
+   static void eof_in(const char * element);
+
+   /// push levels onto \b symbol until it has level \b d
+   void push_levels(Symbol & symbol, int d);
 
    /// release the function at the top of \b symbol, which is replaced
    /// (Bugs40 #72)

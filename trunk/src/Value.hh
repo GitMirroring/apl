@@ -1031,6 +1031,24 @@ public:
    bool get_lval_bare_member_ref() const
       { return lval_bare_member_ref; }
 
+   /// mark \b this as the selection of a cell that has no target, i.e. an
+   /// LvalCell(0, 0) (a position of an over-take, or a placeholder for an
+   /// item of an empty value, see Bif_F12_TAKE::first()), from which Pick
+   /// or First selected further: like the per-cell assignment of such a
+   /// cell, an assignment to it is discarded, whatever the new value is
+   /// (Bugs41 #2). Like the markers above, this is never copied into a
+   /// freshly built Value.
+   void set_lval_discard()
+      { lval_discard = true; }
+
+   /// see set_lval_discard()
+   bool get_lval_discard() const
+      { return lval_discard; }
+
+   /// return a scalar left value without a target that discards whatever
+   /// is assigned to it, see set_lval_discard()
+   static Value_P discarded_lval();
+
    /// clear all three "unbroken pass-through" lvalue markers above
    /// (lval_whole_symbol, lval_pick_slot/owner, lval_bare_member_ref).
    /// Needed by an identity fast path (e.g. scalar ⌽, 0⌽/0⊖, identity
@@ -1054,6 +1072,7 @@ public:
         lval_pick_slot = 0;
         lval_pick_owner = 0;
         lval_bare_member_ref = false;
+        lval_discard = false;
       }
 
    /// assign \b val to the cell references in this value.
@@ -1064,6 +1083,9 @@ public:
    /// points to a sub-value which assign_cellrefs() turned into a simple
    /// scalar (e.g. ⊂1 2 in (1↑↑N)←9) by that scalar's cell (Bugs40 #1)
    static void collapse_simple_subvalues();
+
+   /// one pass of collapse_simple_subvalues()
+   static void collapse_simple_subvalues_1();
 
    /// throw a DOMAIN ERROR for a selective specification into the member
    /// table of a structured variable (Bugs38 #3)
@@ -1626,6 +1648,9 @@ protected:
    /// that has not (yet) been narrowed by any selecting function.
    bool lval_bare_member_ref = false;
 
+   /// see set_lval_discard()
+   bool lval_discard = false;
+
    /// a linked list of values that have been deleted
    static _deleted_value * deleted_values;
 
@@ -1639,9 +1664,13 @@ protected:
    /// collapse_simple_subvalues()
    static std::vector<const Value *> collapsed_scalars;
 
-   /// remember \b owner if a write made it a simple scalar
-   static void note_overwrite(const Value & owner)
-      { if (owner.is_simple_scalar())   collapsed_scalars.push_back(&owner); }
+   /// remember \b owner if a write made it a simple scalar. Only a write
+   /// over a PointerCell (\b was_pointer) can do that to a sub-value; a
+   /// scalar variable itself has no parent, and searching all values for
+   /// one was slow (Bugs41 #70)
+   static void note_overwrite(const Value & owner, bool was_pointer)
+      { if (was_pointer && owner.is_simple_scalar())
+           collapsed_scalars.push_back(&owner); }
 
    /// max. number values that have been deleted
    enum { deleted_values_MAX = 10000 };

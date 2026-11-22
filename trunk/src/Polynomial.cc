@@ -145,6 +145,14 @@ const Tokenizer::Int_or_Double id = Tokenizer::tokenize_real(src);
    else         // real part
       {
         set_real(got_overbar, term_sign, id.get_double());
+        if (!id.is_double)   // exact (Bugs41 #80)
+           {
+             const bool negative = (term_sign == '-') != got_overbar;
+             exact_int = true;
+             int_coefficient = negative ? -id.value.APL_int
+                                        :  id.value.APL_int;
+           }
+        else   exact_int = false;
       }
 }
 //════════════════════════════════════════════════════════════════════════════

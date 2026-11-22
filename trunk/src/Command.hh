@@ -87,7 +87,8 @@ public:
 
    /// )OFF: clean-up and exit from APL interpreter
    /// @param exit_val  process exit status code
-   static void cmd_OFF(int exit_val);
+   static void cmd_OFF(int exit_val, bool by_OFF = false,
+                       bool explicit_code = false);
 
    /// )OFF [exit_code] with a validated exit_code (0-255)
    /// @param out stream for the BAD COMMAND message
@@ -259,6 +260,9 @@ protected:
 
         /// the objects that )PIN did not copy
         mutable UCS_string_vector not_copied;
+
+        /// the objects found in the transfer file (for NOT FOUND:, Bugs41 #87)
+        mutable UCS_string_vector found;
 
         /// the record number
         int recnum;

@@ -86,7 +86,12 @@ cFunction_P LO = _LO.get_function();
    // which is incorrect in this context. We use get_signature() instead.
    //
    if ((LO->get_signature() & SIG_DYA) != SIG_DYA)   VALENCE_ERROR;
-   if (!LO->has_dyadic_form())   VALENCE_ERROR;   // e.g. ⎕UCS⍨ (Bugs40 #56)
+   if (!LO->has_dyadic_form())   // e.g. ⎕UCS⍨ (Bugs40 #56)
+      {
+        MORE_ERROR() << "A f¨ B: " << LO->get_name()
+                     << " has no dyadic form";   // Bugs41 #65
+        VALENCE_ERROR;
+      }
 
    // B is a selective-assignment target (an lvalue/cellrefs array) iff
    // its VF_Flags::left_value flag is set (Value::get_cellrefs() sets it
@@ -226,7 +231,10 @@ cFunction_P LO = _LO.get_function();
              // (primitive) derived function implemented by a macro, e.g.
              // ×⍤0, which must not be started here (Bugs40 #55)
              //
-             Token tok_Z1 = LO->may_push_SI()
+             // a derived LO (e.g. ∘.+ or ÷¨) has its own fill function,
+             // e.g. that of its operand (LRM p. 110, Bugs41 #47)
+             //
+             Token tok_Z1 = (LO->may_push_SI() || LO->is_derived())
                           ? LO->eval_fill_AB(*first_A, *first_B)
                           : LO->eval_AB(*first_A, *first_B);
              if (tok_Z1.get_Class() != TC_VALUE)   return tok_Z1;
@@ -398,8 +406,11 @@ Value_P Z;
              // a selective assignment through an over-take of an
              // empty vector, (1 2+¨1↑⍬)←1 2: dereferencing it
              // unconditionally segfaults instead of a clean error.
-             if (dest == 0)   INDEX_ERROR;
-             if (dest->is_pointer_cell())
+             // A target of 0 (an over-take position or a placeholder for an
+             // item of an empty value, e.g. (1↑¨↑V)←9) is passed on as such
+             // (Bugs41 #2) so that LO selects from it like from an item.
+             if (dest == 0)   LO_B = Value::discarded_lval();
+             else if (dest->is_pointer_cell())
                 {
                   Value_P sub = dest->get_pointer_value();
                   LO_B = sub->get_cellrefs(LOC);
@@ -418,6 +429,15 @@ Value_P Z;
 
              if (!Z)
                 ;   // LO without result: nothing to store
+             else if (left_val && vZ->is_scalar() && vZ->get_lval_pick_slot())
+                {
+                  // e.g. (↑¨V)←X where the first item of an item of V is a
+                  // nested scalar: LO selected that slot (wholesale), not
+                  // the cell inside it (Bugs41 #3)
+                  //
+                  Z->next_ravel_Lval(vZ->get_lval_pick_slot(),
+                                     vZ->get_lval_pick_owner());
+                }
              else if (vZ->is_simple_scalar() || (left_val && vZ->is_scalar()))
                 {
                   Cell cache;
@@ -466,7 +486,12 @@ cFunction_P LO = _LO.get_function();
    if (LO->is_operator() &&
        !_LO.is_SLASH_or_BACKSLASH())     SYNTAX_ERROR;
    if (!(LO->get_signature() & SIG_B))   VALENCE_ERROR;
-   if (!LO->has_monadic_form())   VALENCE_ERROR;   // e.g. ⎕TF⍣1 (Bugs40 #56)
+   if (!LO->has_monadic_form())   // e.g. ⎕TF⍣1 (Bugs40 #56)
+      {
+        MORE_ERROR() << "f¨ B: " << LO->get_name()
+                     << " has no monadic form";   // e.g. /¨B, Bugs41 #65
+        VALENCE_ERROR;
+      }
 
    // see the dyadic branch (eval_ALB) for the full explanation of both
    // the VF_Flags::left_value test (B.is_left_value(), not a cell-
@@ -580,7 +605,9 @@ cFunction_P LO = _LO.get_function();
              // (primitive) derived function implemented by a macro, e.g.
              // ×⍤0, which must not be started here (Bugs40 #55)
              //
-             Token tok_Z1 = LO->may_push_SI() ? LO->eval_fill_B(*first_B)
+             // see eval_ALB() (Bugs41 #47)
+             Token tok_Z1 = (LO->may_push_SI() || LO->is_derived())
+                                              ? LO->eval_fill_B(*first_B)
                                               : LO->eval_B(*first_B);
              if (tok_Z1.get_Class() != TC_VALUE)   return tok_Z1;
              Z1 = tok_Z1.get_apl_val();
@@ -689,8 +716,9 @@ Value_P Z;
                   // a selective assignment through an over-take of an
                   // empty vector, (,¨1↑⍬)←,1: dereferencing it
                   // unconditionally segfaults instead of a clean error.
-                  if (dest == 0)   INDEX_ERROR;
-                  if (dest->is_pointer_cell())
+                  // see eval_ALB() (Bugs41 #2)
+                  if (dest == 0)   LO_B = Value::discarded_lval();
+                  else if (dest->is_pointer_cell())
                      {
                        Value_P sub = dest->get_pointer_value();
                        LO_B = sub->get_cellrefs(LOC);
@@ -704,6 +732,13 @@ Value_P Z;
 
                   if (!Z)
                      ;   // LO without result: nothing to store
+                  else if (is_left_val && vZ->is_scalar() &&
+                           vZ->get_lval_pick_slot())
+                     {
+                       // see eval_ALB() (Bugs41 #3)
+                       Z->next_ravel_Lval(vZ->get_lval_pick_slot(),
+                                          vZ->get_lval_pick_owner());
+                     }
                   else if (vZ->is_simple_scalar() ||
                            (is_left_val && vZ->is_scalar()))
                      {

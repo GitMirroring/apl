@@ -276,7 +276,7 @@ mac_def(  Z__A_LO_OUTER_B,
 /// inner product. caller has checked that the shapes of A and B fit
 //
 mac_def(  Z__A_LO_INNER_RO_B,
- "μ1←μ2 (μ3 Z__A_LO_INNER_RO_B μ4) μ6\n"
+ "μ1←μ2 (μ3 Z__A_LO_INNER_RO_B μ4) μ6;μ7\n"
  "⍝ called as Bif_OPER2_INNER::eval_ALRB(A, _LO, _RO, B)\n"
  "⍝\n"
  "⍝ ╔═══╤═══╤════════════════════════════════════════════════════════╗\n"
@@ -298,16 +298,18 @@ mac_def(  Z__A_LO_INNER_RO_B,
  "⍝ of forcing ⎕IO←1 so that those reduce to the simpler ρρμ2 / 1.\n"
  "⍝ The C++ caller has already checked that A's and B's shapes fit.\n"
  "⍝\n"
- "⍝ ↑¨: an item of Z is the item of the reduction μ3/, like for a\n"
+ "⍝ μ7…: an item of Z is the item of the reduction μ3/, like for a\n"
  "⍝ primitive RO (LRM: Z[I;J] ←→ LO/L[I;] RO R[;J]), not a nested\n"
- "⍝ scalar one level deeper (Bugs40 #55).\n"
+ "⍝ scalar one level deeper (Bugs40 #55). Only the nested scalars are\n"
+ "⍝ disclosed: the reduction of a non-scalar RO result (e.g. ⍺∘.×⍵)\n"
+ "⍝ is itself non-scalar and an item as is (Bugs41 #18).\n"
  "⍝\n"
  "    3 → (⍴⍴μ2)=0 ◊ 2 → (⍴⍴μ6)=0\n"
- " μ1←↑¨μ3/¨ (⊂[⎕IO+(⍴⍴μ2)-1]μ2) ∘.μ4 ⊂[⎕IO]μ6 ◊ →0\n"
- " μ1←↑¨μ3/¨ (⊂[⎕IO+(⍴⍴μ2)-1]μ2) ∘.μ4 ⊂μ6      ◊ →0\n"
+ " μ1←μ3/¨ (⊂[⎕IO+(⍴⍴μ2)-1]μ2) ∘.μ4 ⊂[⎕IO]μ6 ◊ μ7←,(⍴¨⍴¨μ1)≡¨⊂,0 ◊ (μ7/,μ1)←↑¨μ7/,μ1 ◊ →0\n"
+ " μ1←μ3/¨ (⊂[⎕IO+(⍴⍴μ2)-1]μ2) ∘.μ4 ⊂μ6      ◊ μ7←,(⍴¨⍴¨μ1)≡¨⊂,0 ◊ (μ7/,μ1)←↑¨μ7/,μ1 ◊ →0\n"
  " 2 → (⍴⍴μ6)=0\n"
- " μ1←↑¨μ3/¨ (⊂μ2)               ∘.μ4 ⊂[⎕IO]μ6 ◊ →0\n"
- " μ1←↑¨μ3/¨ (⊂μ2)               ∘.μ4 ⊂μ6      ◊ →0\n")
+ " μ1←μ3/¨ (⊂μ2)               ∘.μ4 ⊂[⎕IO]μ6 ◊ μ7←,(⍴¨⍴¨μ1)≡¨⊂,0 ◊ (μ7/,μ1)←↑¨μ7/,μ1 ◊ →0\n"
+ " μ1←μ3/¨ (⊂μ2)               ∘.μ4 ⊂μ6      ◊ μ7←,(⍴¨⍴¨μ1)≡¨⊂,0 ◊ (μ7/,μ1)←↑¨μ7/,μ1 ◊ →0\n")
 
 /// monadic power with repeat count and no result
 //
@@ -771,7 +773,10 @@ mac_def(  Z__vA_LO_INNER_RO_vB,
  "⍝ ║μ6 │ B │                                       ║\n"
  "⍝ ╚═══╧═══╧═══════════════════════════════════════╝\n"
  "⍝\n"
- "μ1←μ3/(,μ2) μ4 ,μ6\n")
+ "⍝ the reduction is the (only) item of the scalar result: enclose a\n"
+ "⍝ non-scalar reduction, e.g. of ⍺∘.×⍵ (Bugs41 #48)\n"
+ "⍝\n"
+ "μ1←μ3/(,μ2) μ4 ,μ6 ◊ →(0=⍴⍴μ1)⍴0 ◊ μ1←⊂μ1\n")
 
 /// monadic EACH with ⍎
 //

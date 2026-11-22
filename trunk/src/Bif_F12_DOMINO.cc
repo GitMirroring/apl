@@ -1199,7 +1199,8 @@ const UCS_string Z = print_polynomial(vars, B);
 }
 //────────────────────────────────────────────────────────────────────────────
 void
-Bif_F12_DOMINO::store_coefficient(Value & Z, double r, double i, double tiny)
+Bif_F12_DOMINO::store_coefficient(Value & Z, double r, double i,
+                                  double tiny_r, double tiny_i)
 {
    // a computed polynomial coefficient: 0 only if it is below the rounding
    // noise tiny of its computation (relative to the coefficients involved,
@@ -1212,8 +1213,12 @@ Bif_F12_DOMINO::store_coefficient(Value & Z, double r, double i, double tiny)
         else            Z.next_ravel_Complex(r, i);
         return;
       }
-   if (fabs(i) > tiny)   { Z.next_ravel_Complex(r, i);   return; }
-   if (fabs(r) <= tiny)  { Z.next_ravel_0();   return; }
+   // the noise of the real and of the imaginary part differ, e.g. 0J1 in
+   // 1E8 0J1 ⌹[8] 1E8 1 is exact (Bugs41 #22)
+   //
+   if (fabs(r) <= tiny_r)   r = 0.0;
+   if (fabs(i) > tiny_i)    { Z.next_ravel_Complex(r, i);   return; }
+   if (r == 0.0)            { Z.next_ravel_0();   return; }
    if (r == nearbyint(r) && fabs(r) < 9E18)   Z.next_ravel_Int(APL_Integer(r));
    else                                       Z.next_ravel_Float(r);
 }
@@ -1266,6 +1271,15 @@ Shape shape_Z;
    typedef complex<double> Complex;
 vector<Complex> vZ(shape_Z.get_volume(), Complex(0));
 
+   // scale_r[z] and scale_i[z] are the sums of the magnitudes of the real
+   // and imaginary terms added to vZ[z]. The rounding noise of vZ[z] is
+   // relative to them, not to the
+   // largest coefficients of A and B, which zeroed e.g. the x² of
+   // 1E8 1 ⌹[8] 1E8 1 (Bugs41 #22).
+   //
+vector<double> scale_r(shape_Z.get_volume(), 0.0);
+vector<double> scale_i(shape_Z.get_volume(), 0.0);
+
    loop(a, ec_A)
        {
         Cell cache_A;
@@ -1300,9 +1314,17 @@ vector<Complex> vZ(shape_Z.get_volume(), Complex(0));
              const ShapeItem pos = shape_Z.ravel_pos(idx_AB);
              const double real_a = cell_A.get_real_value();
              const double real_b = cell_B.get_real_value();
+             {
+               const double ia = cell_A.get_imag_value();
+               const double ib = cell_B.get_imag_value();
+               scale_r[pos] += fabs(real_a * real_b) + fabs(ia * ib);
+               scale_i[pos] += fabs(real_a * ib) + fabs(ia * real_b);
+             }
              if (!cell_A.is_complex_cell() && !cell_B.is_complex_cell())
                 {
-                  vZ[pos] = Complex(vZ[pos].real() + real_a * real_b, 0);
+                  // keep the imaginary part of earlier complex terms, e.g.
+                  // (1J1 2) ⌹[8] 0.5 1 (Bugs41 #29)
+                  vZ[pos] += real_a * real_b;
                 }
              else
                 {
@@ -1319,11 +1341,11 @@ vector<Complex> vZ(shape_Z.get_volume(), Complex(0));
 
    // construct the result
    //
-const double tiny = 16 * DBL_EPSILON * min(ec_A, ec_B) *
-                    max_magnitude(A, ec_A) * max_magnitude(B, ec_B);
 Value_P Z(shape_Z, LOC);
    loop(z, shape_Z.get_volume())
-       store_coefficient(*Z, vZ[z].real(), vZ[z].imag(), tiny);
+       store_coefficient(*Z, vZ[z].real(), vZ[z].imag(),
+                         16 * DBL_EPSILON * scale_r[z],
+                         16 * DBL_EPSILON * scale_i[z]);
 
    Z->check_value(LOC);
    return Z;
@@ -1405,21 +1427,39 @@ bool need_complex = false;
 
 const ShapeItem ec_Q = ec_A - ec_B + 1;
 
-   // the rounding noise of the remainder and of the quotient, relative to
-   // A and B (Bugs40 #27)
+   // the rounding noise of the remainder and of the quotient (Bugs40 #27):
+   // SR[r] is the sum of the magnitudes of the terms that were added to the
+   // remainder coefficient R[r]. The noise of R[r] is relative to SR[r],
+   // and the noise of a quotient coefficient R[q]÷D[0] is relative to
+   // SR[q]÷|D[0]|. A bound relative to the largest coefficients of A and B
+   // zeroed exact coefficients, e.g. the quotient of 1E16 0 1 ⌹[9] 1 1
+   // (Bugs41 #22).
    //
-const double max_A = max_magnitude(A, ec_A);
-const double max_B = max_magnitude(B, ec_B);
-const double tiny_R = 16 * DBL_EPSILON * ec_A * max_A;
-double tiny_Q;   // the noise of the quotient: tiny_R ÷ |leading B|
+vector<double> SR;   SR.reserve(ec_A);   // real parts
+vector<double> SI;   SI.reserve(ec_A);   // imaginary parts
+   loop(a, ec_A)   // in the (descending) order of R below
+       {
+         Cell cache;
+         const Cell & cell = A.get_cravel(ec_A - a - 1, cache);
+         SR.push_back(fabs(cell.get_real_value()));
+         SI.push_back(fabs(cell.get_imag_value()));
+       }
+#define NOISE(r)   (16 * DBL_EPSILON * SR[r])
+#define NOISE_I(r) (16 * DBL_EPSILON * SI[r])
+
+   // the leading coefficient of B (the divisor of every quotient term).
+   // Its parts mix the noise of the parts of R[q] in R[q]÷lead.
+   //
+double lead_r, lead_i, lead_2;
    {
      Cell cache;
      const Cell & lead = B.get_cravel(ec_B - 1, cache);
-     const double lead_B = fabs(lead.get_real_value()) +
-                           (lead.is_complex_cell()
-                            ? fabs(lead.get_imag_value()) : 0.0);
-     tiny_Q = tiny_R / lead_B * (1.0 + max_B / lead_B);
+     lead_r = fabs(lead.get_real_value());
+     lead_i = fabs(lead.get_imag_value());
+     lead_2 = lead_r*lead_r + lead_i*lead_i;
    }
+#define NOISE_Q(q)   ((NOISE(q)*lead_r + NOISE_I(q)*lead_i) / lead_2)
+#define NOISE_QI(q)  ((NOISE_I(q)*lead_r + NOISE(q)*lead_i) / lead_2)
 
 Value_P Z(2, LOC);   // Z is quotient Z1 and remainder Z2
    if (need_complex)
@@ -1450,7 +1490,7 @@ Value_P Z(2, LOC);   // Z is quotient Z1 and remainder Z2
                     R = B × (R ÷ B) = R × factor.
                */
               const Complex & Rq = R[q];   // dividend
-              if (fabs(Rq.real()) <= tiny_R && fabs(Rq.imag()) <= tiny_R)
+              if (fabs(Rq.real()) <= NOISE(q) && fabs(Rq.imag()) <= NOISE_I(q))
                  {
                    Q.push_back(0);
                    continue;
@@ -1465,6 +1505,13 @@ Value_P Z(2, LOC);   // Z is quotient Z1 and remainder Z2
                   {
                     const size_t b = powers_B[n];
                     R[q + b] -= factor * D[b];
+                    if (q + b < SR.size())
+                       {
+                         const double fr = factor.real(), fi = factor.imag();
+                         const double dr = D[b].real(),   di = D[b].imag();
+                         SR[q + b] += fabs(fr*dr) + fabs(fi*di);
+                         SI[q + b] += fabs(fr*di) + fabs(fi*dr);
+                       }
                   }
             }
         Assert(size_t(ec_Q) == Q.size());
@@ -1475,7 +1522,8 @@ Value_P Z(2, LOC);   // Z is quotient Z1 and remainder Z2
         loop(q, ec_Q)
            {
               const Complex z = Q[ec_Q - q - 1];
-              store_coefficient(*Z1, z.real(), z.imag(), tiny_Q);
+              store_coefficient(*Z1, z.real(), z.imag(),
+                                NOISE_Q(ec_Q - q - 1), NOISE_QI(ec_Q - q - 1));
            }
         Z1->check_value(LOC);
 
@@ -1483,7 +1531,8 @@ Value_P Z(2, LOC);   // Z is quotient Z1 and remainder Z2
         loop(b, ec_B - 1)
             {
               const Complex z = R[ec_Q + b];
-              store_coefficient(*Z2, z.real(), z.imag(), tiny_R);
+              store_coefficient(*Z2, z.real(), z.imag(),
+                                NOISE(ec_Q + b), NOISE_I(ec_Q + b));
             }
         Z2->check_value(LOC);
 
@@ -1512,7 +1561,7 @@ Value_P Z(2, LOC);   // Z is quotient Z1 and remainder Z2
                     R = B × (R ÷ B) = R × factor.
                */
               const double Rq = R[q];   // dividend
-              if (fabs(Rq) <= tiny_R)
+              if (fabs(Rq) <= NOISE(q))
                  {
                    Q.push_back(0);
                    continue;
@@ -1527,6 +1576,7 @@ Value_P Z(2, LOC);   // Z is quotient Z1 and remainder Z2
                   {
                     const size_t b = powers_B[n];
                     R[q + b] -= factor * D[b];
+                    if (q + b < SR.size())   SR[q + b] += fabs(factor * D[b]);
                   }
             }
         Assert(size_t(ec_Q) == Q.size());
@@ -1536,7 +1586,8 @@ Value_P Z(2, LOC);   // Z is quotient Z1 and remainder Z2
         Value_P Z1(ec_Q, LOC);   // A÷B
         loop(q, ec_Q)
            {
-              store_coefficient(*Z1, Q[ec_Q - q - 1], 0.0, tiny_Q);
+              store_coefficient(*Z1, Q[ec_Q - q - 1], 0.0,
+                                NOISE_Q(ec_Q - q - 1), 0.0);
            }
         Z1->check_value(LOC);
 
@@ -1544,13 +1595,17 @@ Value_P Z(2, LOC);   // Z is quotient Z1 and remainder Z2
 
         loop(b, ec_B - 1)
             {
-              store_coefficient(*Z2, R[ec_Q + b], 0.0, tiny_R);
+              store_coefficient(*Z2, R[ec_Q + b], 0.0, NOISE(ec_Q + b), 0.0);
             }
         Z2->check_value(LOC);
 
         Z->next_ravel_Value(Z1.get());
          Z->next_ravel_Value(Z2.get());
       }
+#undef NOISE
+#undef NOISE_I
+#undef NOISE_Q
+#undef NOISE_QI
 
    Z->check_value(LOC);
    return Z;
@@ -1778,20 +1833,45 @@ const ShapeItem ec_A = A.element_count();
 UCS_string_vector vars;
    if (A.is_char_array())   // case 1. or 2.
       {
-        if (B.get_rank() <= 1)   // case 1. (single indeterminant)
+        // B is the string to be scanned (not the coefficients, as in
+        // print_polynomial()), so the rank of the result is not known
+        // yet. Try A as one name (case 1.), and then a string A of several
+        // characters as one-character names (case 2., which was never
+        // reached, Bugs41 #82), e.g. 'XY' ⌹[11] 'XY' ⌹[7] 2 3⍴⍳6
+        //
+        struct _p { static bool is_power(Unicode u)   // a superscript digit
+           { return u == 0xB2 || u == 0xB3 || u == 0xB9 || u == 0x2070 ||
+                    (u >= 0x2074 && u <= 0x2079); } };
+#define is_power _p::is_power
+        const UCS_string x(A);
+        bool one_name = true;   // every name in B is x
+        if (ec_A > 1 && B.is_char_array())
            {
-             const UCS_string x(A);
-             vars.push_back(x);
+             const UCS_string text(B);
+             ShapeItem t = 0;
+             while (t < text.ssize())
+                {
+                  const Unicode uni = text[t];
+                  if (!Avec::is_symbol_char(uni) || Avec::is_digit(uni) ||
+                      is_power(uni))   { ++t;   continue; }
+
+                  // the J of a complex coefficient, e.g. 3J4x
+                  if ((uni == 'J' || uni == 'j') && t > 0 &&
+                      Avec::is_digit(text[t - 1]))   { ++t;   continue; }
+
+                  // a name ends at a power, e.g. abc² (superscript digits)
+                  UCS_string name;
+                  while (t < text.ssize() && Avec::is_symbol_char(text[t]) &&
+                         !is_power(text[t]))
+                        name << text[t++];
+                  if (name != x)   { one_name = false;   break; }
+                }
            }
-        else                      // case 2: N 1-character indeterminant
-           {
-             if (ec_A != B.get_rank())   LENGTH_ERROR;
-             loop(a, ec_A)
-                 {
-                   const UCS_string x(A.get_char_value(a));
-                   vars.push_back(x);
-                 }
-           }
+
+#undef is_power
+        if (one_name)   vars.push_back(x);
+        else            loop(a, ec_A)
+                           vars.push_back(UCS_string(A.get_char_value(a)));
       }
    else                     // case 3.
       {
@@ -1899,6 +1979,9 @@ Monomial T;
 
              case 'J':
              case 'j': if (got_j || got_imag || got_indet)   _bad::term(text);
+                       // a J follows the real part, e.g. not J4 or ¯J4
+                       // (Bugs41 #81)
+                       if (!got_real || got_overbar)   _bad::term(text);
                        got_j = true;
                        ++src;   // was missing: *src stayed 'J' forever
                        continue;
@@ -2013,6 +2096,10 @@ Value_P Z(shape_Z, LOC);
          if (term.get_imag() != 0)                      // complex coefficient
             {
               new (dest) ComplexCell(term.get_real(), term.get_imag());
+            }
+         else if (term.exact_int)   // an integer as written (Bugs41 #80)
+            {
+              new (dest) IntCell(term.int_coefficient);
             }
          else if (Cell::is_near_int64_t(term.get_real()))   // integer coeff.
             {

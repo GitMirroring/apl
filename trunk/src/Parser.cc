@@ -1774,6 +1774,7 @@ walk_back_LO_start(const Token_string & tos, int pos_LO)
               case TC_RETURN:
               case TC_L_PARENT:
               case TC_L_CURLY:
+              case TC_COLON:   // a label, e.g. L:⌿⍤0 B (Bugs41 #75)
                    ++pos_LO;
                    break;
 
@@ -2676,12 +2677,23 @@ bool progress = false;   // per iteration progress
                // them for Prefix::reduce_A_B__()). Without them the operand
                // and the argument were merged into one literal (Bugs40 #74)
                //
-               if (t > 0 && tos[t - 1].get_Class() == TC_OPER2 &&
-                   t + 3 < tos.ssize() &&
-                   (tos[t + 3].get_Class() == TC_VALUE    ||
-                    tos[t + 3].get_Class() == TC_LIT_ITEM ||
-                    tos[t + 3].get_Class() == TC_LIT_GRP))
+               // Also when followed by another (, e.g. -⍤(0)(5), and after
+               // an outer pair that case 1 has removed, e.g. -⍤((0)) 5
+               // (Bugs41 #45)
+               //
+               ShapeItem prev = t - 1;   // the token left of (, skipping
+               while (prev >= 0 && tos[prev].get_Class() == TC_VOID)   --prev;
+               ShapeItem next = t + 3;   // the token right of ), skipping
+               while (next < tos.ssize() && tos[next].get_Class() == TC_VOID)
+                     ++next;
+               if (prev >= 0 && tos[prev].get_Class() == TC_OPER2 &&
+                   next < tos.ssize() &&
+                   (tos[next].get_Class() == TC_VALUE    ||
+                    tos[next].get_Class() == TC_LIT_ITEM ||
+                    tos[next].get_Class() == TC_LIT_GRP  ||
+                    tos[next].get_Class() == TC_L_PARENT))
                   continue;
+
 
 
                // case 2. We have tos[t] = ( X ) ...

@@ -101,6 +101,14 @@
 #include "Workspace.icc"
 #include "u8_string.hh"
 
+// A DOMAIN ERROR of )LOAD, )COPY, or )SAVE (e.g. a corrupt workspace file)
+// is not an error of the statement on top of the )SI: throw_apl_error()
+// attached it to a suspended function (its ⎕ET, ⎕EM, and an error display
+// of the suspended line, Bugs41 #55). Like corrupt_SI().
+//
+#undef DOMAIN_ERROR
+#define DOMAIN_ERROR   Error::throw_parse_error(E_DOMAIN_ERROR, LOC, LOC)
+
 using namespace std;
 
 /// if there is less than x chars left on the current line then leave
@@ -472,6 +480,19 @@ XML_Saving_Archive::save_Derived(const DerivedFunctionCache & fns)
       }
 }
 //────────────────────────────────────────────────────────────────────────────
+bool
+XML_Saving_Archive::is_anonymous_lambda(const Function * fun)
+{
+const UserFunction * ufun = fun->get_func_ufun();
+   if (ufun == 0 || !ufun->is_lambda())   return false;
+
+const std::vector<const Symbol *> all = Workspace::get_all_symbols();
+   loop(a, all.size())
+       if (const_cast<Symbol *>(all[a])->get_exec_ufun_depth(ufun) >= 0)
+          return false;   // named
+   return true;
+}
+//────────────────────────────────────────────────────────────────────────────
 void
 XML_Saving_Archive::save_Function(const Function & fun)
 {
@@ -509,8 +530,18 @@ XML_Saving_Archive::save_Function(const Function & fun)
         const Value_P lo_val = dfn.get_bound_LO_value();
         const Function * lo = lo_val ? 0 : dfn.get_LO();
         outf << " OPER-fid=\"" << HEX(dfn.get_OPER()) << "\"";
+        if (is_anonymous_lambda(dfn.get_OPER()))   // e.g. 1 -{⍶ ⍵} 0
+           outf << " OPER-lambda=\""
+                << dfn.get_OPER()->get_func_ufun()->get_name() << "\"";
         if (lo)        outf << " LO-fid=\""  << HEX(lo) << "\"";
         else if (lo_val)   outf << " LO-vid=\""  << HEX(find_vid(lo_val.get())) << "\"";
+
+        // an anonymous lambda operand, e.g. {÷⍵} in 1 {÷⍵}¨ 0, has no
+        // <Function> element of its own: also write its name, so that
+        // )LOAD finds it in the body of the )SI entry (Bugs41 #23)
+        //
+        if (lo && is_anonymous_lambda(lo))
+           outf << " LO-lambda=\"" << lo->get_func_ufun()->get_name() << "\"";
 
         const Value_P ro_val = dfn.get_bound_RO_value();
         const Function * ro = ro_val ? 0 : dfn.get_RO();
@@ -522,6 +553,8 @@ XML_Saving_Archive::save_Function(const Function & fun)
              outf << "        ";
            }
         if (ro)            outf << " RO-fid=\""   << HEX(ro) << "\"";
+        if (ro && is_anonymous_lambda(ro))   // Bugs41 #23
+           outf << " RO-lambda=\"" << ro->get_func_ufun()->get_name() << "\"";
         else if (ro_val)   outf << " RO-vid=\""   << HEX(find_vid(ro_val.get())) << "\"";
         if (axis)   outf << " AXIS-vid=\"" << HEX(find_vid(axis)) << "\"";
 
@@ -1181,6 +1214,13 @@ XML_Saving_Archive::emit_token_val(const Token & tok)
                                else       outf << "-";
                              }
                          outf << "\"";   // after the items (Bugs40 #37)
+
+                         // the assignment state of e.g. V[N]←0, which
+                         // reduce_RBRA___() moved into the index (Bugs41 #54)
+                         //
+                         if (idx.get_assign_state() != ASS_none)
+                            outf << " index-assign=\""
+                                 << int(idx.get_assign_state()) << "\"";
                        }
                        break;
 
@@ -1390,6 +1430,7 @@ const int offset = Workspace::get_v_Quad_TZ().get_offset();   // timezone offset
 "                    <!ATTLIST Token line         CDATA #IMPLIED>\n"
 "                    <!ATTLIST Token vid          CDATA #IMPLIED>\n"
 "                    <!ATTLIST Token index        CDATA #IMPLIED>\n"
+"                    <!ATTLIST Token index-assign CDATA #IMPLIED>\n"
 "                    <!ATTLIST Token fun-id       CDATA #IMPLIED>\n"
 "                    <!ATTLIST Token fid          CDATA #IMPLIED>\n"
 "                    <!ATTLIST Token ufun-name    CDATA #IMPLIED>\n"
@@ -1409,8 +1450,26 @@ const int offset = Workspace::get_v_Quad_TZ().get_offset();   // timezone offset
      const LibRef lib = Workspace::get_WSID().get_libref();
      if (lib != LIB_NONE)   outf << lib << " ";
    }
-   outf <<
-        Workspace::get_WSID().get_name()
+   // the name may contain characters that end the attribute (") or the
+   // tag (>), Bugs41 #37
+   //
+   {
+     const UCS_string & name = Workspace::get_WSID().get_name();
+     UCS_string escaped;
+     loop(n, name.size())
+        {
+          switch(name[n])
+             {
+               case '&': escaped << UTF8_string("&amp;");    break;
+               case '<': escaped << UTF8_string("&lt;");     break;
+               case '>': escaped << UTF8_string("&gt;");     break;
+               case '"': escaped << UTF8_string("&quot;");   break;
+               default:  escaped << name[n];
+             }
+        }
+     outf << escaped;
+   }
+   outf
      << "\" year=\""       << (t.tm_year + 1900)
      << "\" month=\""      << (t.tm_mon  + 1)
      << "\" day=\""        <<  t.tm_mday << "\"" << endl <<
@@ -2058,7 +2117,29 @@ bool ravels_checked = false;
         const UTF8 * end = scan_for(wsid, '"');
 
         const UTF8_string wsname_utf(wsid, end - wsid);
-        const UCS_string wsname_ucs(wsname_utf);
+        UCS_string wsname_ucs;   // unescape the name (Bugs41 #37)
+        {
+          const UCS_string esc(wsname_utf);
+          static const char * ent[] = { "&amp;", "&lt;", "&gt;", "&quot;" };
+          static const char   chr[] = { '&',     '<',    '>',    '"'      };
+          for (ShapeItem e = 0; e < esc.ssize();)
+              {
+                bool found = false;
+                loop(k, 4)
+                   {
+                     const UCS_string ent_k(UTF8_string(ent[k]));
+                     if (e + ent_k.ssize() <= esc.ssize() &&
+                         UCS_string(esc, e, ent_k.size()) == ent_k)
+                        {
+                          wsname_ucs << Unicode(chr[k]);
+                          e += ent_k.size();
+                          found = true;
+                          break;
+                        }
+                   }
+                if (!found)   wsname_ucs << esc[e++];
+              }
+        }
 
         // the wsid attribute is "lib name" if )SAVEd with a libref (see
         // XML_Saving_Archive::save()) or else "name". Bugs37 #23.
@@ -2782,6 +2863,93 @@ const int size = find_int_attr("size", false, 10);
 }
 //────────────────────────────────────────────────────────────────────────────
 void
+XML_Loading_Archive::add_operand_lambda(Fid fid, const UTF8 * name)
+{
+   if (fid == NO_FID || find_function(fid))   return;
+
+const UTF8 * end = scan_for(name, '"');
+const UTF8_string name_UTF(name, end - name);
+const UCS_string name_UCS(name_UTF);
+   if (cFunction_P fun = find_lambda(name_UCS))
+      add_fid_function(fid, fun, LOC);
+}
+//────────────────────────────────────────────────────────────────────────────
+bool
+XML_Loading_Archive::read_skipped_function(Fid fid, Symbol & symbol)
+{
+   // find the (defining, i.e. not ref="true") <Function> element of fid
+   //
+char pattern[64];
+   snprintf(pattern, sizeof(pattern), "<Function fid=\"0x%llX\"",
+            (unsigned long long)fid);
+const size_t plen = strlen(pattern);
+const UTF8 * found = 0;
+   for (const UTF8 * p = file_start; p + plen < file_end; ++p)
+       {
+         if (*p != '<' || memcmp(p, pattern, plen))   continue;
+         const UTF8 * q = p + plen;
+         while (q < file_end && *q == ' ')   ++q;
+         if (q + 4 < file_end && !memcmp(q, "ref=", 4))   continue;
+         found = p;
+         break;
+       }
+   if (found == 0)   return false;
+
+   // read it like the <Function> of symbol, then continue where we were
+   //
+const UTF8 * const old_data       = data;
+const UTF8 * const old_tag_name   = tag_name;
+const UTF8 * const old_attributes = attributes;
+const UTF8 * const old_end_attr   = end_attr;
+const UTF8 * const old_line_start = line_start;
+const int          old_line_no    = line_no;
+const Unicode      old_char       = current_char;
+
+   data = found;
+   current_char = Unicode_0;
+bool ok = false;
+   try
+      {
+        if (!next_tag(LOC) && is_tag("Function"))
+           {
+             read_Function(0, symbol);
+             ok = true;
+           }
+      }
+   catch (...)
+      {
+        data = old_data;   tag_name = old_tag_name;
+        attributes = old_attributes;   end_attr = old_end_attr;
+        line_start = old_line_start;   line_no = old_line_no;
+        current_char = old_char;
+        throw;
+      }
+
+   data = old_data;   tag_name = old_tag_name;
+   attributes = old_attributes;   end_attr = old_end_attr;
+   line_start = old_line_start;   line_no = old_line_no;
+   current_char = old_char;
+   return ok;
+}
+//────────────────────────────────────────────────────────────────────────────
+void
+XML_Loading_Archive::compute_copy_needed()
+{
+   copy_needed.resize(parents.size(), false);
+std::vector<Vid> todo;
+   loop(v, vids_COPY.size())   todo.push_back(vids_COPY[v]);
+   while (todo.size())
+      {
+        const Vid vid = todo.back();   todo.pop_back();
+        if (vid < 0 || size_t(vid) >= copy_needed.size())   continue;
+        if (copy_needed[vid])   continue;   // already seen (shared value)
+        copy_needed[vid] = true;
+        if (size_t(vid) < sub_vids.size())
+           loop(s, sub_vids[vid].size())   todo.push_back(sub_vids[vid][s]);
+      }
+}
+//────────────────────────────────────────────────────────────────────────────
+void
 XML_Loading_Archive::read_Derived(StateIndicator & si, int lev)
 {
    Log(LOG_archive)   err << "  read_Derived()" << endl;
@@ -2805,6 +2973,15 @@ Function * derived = si.fun_oper_cache.reserve_slot(LOC);
         err << "got non-derived function when expecting a derived one" << endl;
         return;
       }
+
+   // an anonymous lambda operand is in the body of si (Bugs41 #23)
+   //
+   if (const UTF8 * lo_name = find_optional_attr("LO-lambda"))
+      add_operand_lambda(LO_fid, lo_name);
+   if (const UTF8 * ro_name = find_optional_attr("RO-lambda"))
+      add_operand_lambda(RO_fid, ro_name);
+   if (const UTF8 * op_name = find_optional_attr("OPER-lambda"))
+      add_operand_lambda(OPER_fid, op_name);
 
 _derived_todo td = { derived, 0, 0, fid, LO_fid, OPER_fid, RO_fid,
                      LO_vid, RO_vid, AXIS_vid, LOC };
@@ -2917,6 +3094,19 @@ const Fid OPER_fid_probe = find_Fid_attr("OPER-fid", true, 16);
              // name as localized), and give a lambda the reference that
              // every binding of it holds (Bugs40 #4)
              //
+             // only a lambda can have a second name (e.g. H←F). A ∇-function
+             // at level 0 of another symbol would have two owners, and the
+             // second one freed it again (Bugs41 #13)
+             //
+             const UserFunction * ref_ufun = fun->get_func_ufun();
+             if (d == 0 && ref_ufun && !ref_ufun->is_lambda())
+                {
+                  MORE_ERROR() << "corrupt workspace: <Symbol name=\""
+                               << symbol.get_name() << "\"> refers to "
+                                  "the ∇-function " << fun->get_name();
+                  DOMAIN_ERROR;
+                }
+
              if (d == 0)
                 {
                   if (copying)   // see the lambda branch below
@@ -2939,6 +3129,17 @@ const Fid OPER_fid_probe = find_Fid_attr("OPER-fid", true, 16);
                             ->increment_refcount(LOC, ")LOAD λ ref");
                   if (d > 0)   symbol.set_top_owns_lambda();
                 }
+             return;
+           }
+
+        // )COPY of a second name H of a lambda F (H←F) without F: the
+        // <Function> of F was skipped. Read it for H now (Bugs41 #32).
+        //
+        if (copying && d == 0)
+           {
+             if (!read_skipped_function(fid, symbol))
+                err << "NOT COPIED: " << symbol.get_name()
+                    << " (refers to a function that was not found)" << endl;
              return;
            }
 
@@ -3054,15 +3255,42 @@ UCS_string text;
         // Not a λ + digit in the comment of a ∇-header, e.g. Z←F B ⍝ λ1
         // (Bugs40 #26)
         //
-        bool is_lambda = text.size() && text[0] == UNI_LAMBDA;
-        for (ShapeItem t = 0; !is_lambda && t + 1 < text.ssize() &&
-                              text[t] != UNI_LF &&
-                              text[t] != UNI_COMMENT &&
-                              text[t] != UNI_NUMBER_SIGN; ++t)
-            {
-              if (text[t] == UNI_LAMBDA &&
-                  text[t + 1] >= '0' && text[t + 1] <= '9')   is_lambda = true;
-            }
+        // Not a λ + digit in another name of the header either, e.g. a
+        // function Nλ1, a local ;λ1, or an operand (λ5 Q) (Bugs41 #34):
+        // the names of a lambda header (before its local variables) are
+        // only λ, χ, and its own name λ + digits (⍺ ⍵ ⍶ ⍹ are no names),
+        // while a ∇-header has other names (Z, the function, B, ...).
+        //
+        bool is_lambda = false;
+        {
+          bool other_name = false;
+          ShapeItem t = 0;
+          while (t < text.ssize() && !other_name)
+             {
+               const Unicode uni = text[t];
+               if (uni == UNI_LF || uni == UNI_SEMICOLON ||
+                   uni == UNI_COMMENT || uni == UNI_NUMBER_SIGN)   break;
+               if (!Avec::is_symbol_char(uni))   { ++t;   continue; }
+
+               UCS_string name;   // a name in the header
+               while (t < text.ssize() && Avec::is_symbol_char(text[t]))
+                     name << text[t++];
+               if (name.size() == 1 &&
+                   (name[0] == UNI_LAMBDA || name[0] == UNI_CHI))   continue;
+
+               bool lambda_name = name[0] == UNI_LAMBDA;   // λ + digits ?
+               for (ShapeItem n = 1; n < name.ssize(); ++n)
+                   if (name[n] < '0' || name[n] > '9')   lambda_name = false;
+               if (lambda_name)   is_lambda = true;
+               else               other_name = true;
+             }
+          if (other_name)   is_lambda = false;
+
+          // a lambda with result: λ←... (also with a name, e.g. ⎕FX
+          // 'λ←Test ⍵' in UserFunction::fix_lambda())
+          //
+          if (text.size() && text[0] == UNI_LAMBDA)   is_lambda = true;
+        }
 
         UserFunction * ufun = 0;
 
@@ -3315,18 +3543,44 @@ Prefix & parser = si.current_stack;
    // the start of a statement that failed with a SYNTAX ERROR, from where
    // a resume restarts it (Bugs40 #3). Optional (-1 if absent).
    //
-   if (restart_PC >= 0 && size_t(restart_PC) <= si.get_executable()->get_body().size())
-      parser.restart_PC = Prefix_PC(restart_PC);
+   // It must be the start of a statement of the body (Bugs41 #6: the end
+   // of the body was accepted, and →⍬ then read past it).
+   //
+   if (restart_PC >= 0)
+      {
+        const Token_string & body = si.get_executable()->get_body();
+        if (size_t(restart_PC) >= body.size() ||
+            (restart_PC > 0 && body[restart_PC - 1].get_Class() != TC_END))
+           {
+             MORE_ERROR() << "corrupt workspace: <Parser restart-PC=\""
+                          << restart_PC << "\"> is not the start of a "
+                             "statement";
+             corrupt_SI();
+           }
+        parser.restart_PC = Prefix_PC(restart_PC);
+      }
 
+   // no enum casts of arbitrary numbers from the file (Bugs41 #58)
+   //
+   if (ass_state < ASS_none || ass_state > ASS_unknown ||
+       action < RA_CONTINUE || action > RA_FIXME)
+      {
+        MORE_ERROR() << "corrupt workspace: <Parser assign-pending=\""
+                     << ass_state << "\" action=\"" << action << "\">";
+        corrupt_SI();
+      }
    parser.set_assign_state(Assign_state(ass_state));
    parser.action = R_action(action);
    parser.set_lookahead_PC(Prefix_PC(lah_high));
 
    // read derived functions cache
    //
+   // An end of file before </Parser> is a corrupt file; next_tag() then
+   // stays at the last tag, so the loops below would never end (Bugs41 #12)
+   //
    for (;;)
        {
-         next_tag(LOC);
+         if (next_tag(LOC))   eof_in("Parser");
          if (is_tag("/Parser"))   break;
          if (is_tag("Token"))     break;
 
@@ -3348,9 +3602,19 @@ Prefix & parser = si.current_stack;
               read_Token(tl);
 
               if (parser.ssize() < stack_size)   parser.push(tl);
+              else if (tl.get_ValueType() == TV_INDEX)
+                 {
+                   // an index is never left in saved_MISC, and nothing
+                   // would free it there (Bugs41 #57)
+                   //
+                   delete &tl.get_token().get_index_val();
+                   MORE_ERROR() << "corrupt workspace: an index beyond the"
+                                   " <Parser size=\"" << stack_size << "\">";
+                   corrupt_SI();
+                 }
               else                             parser.saved_MISC.copy(tl, LOC);
             }
-         next_tag(LOC);
+         if (next_tag(LOC))   eof_in("Parser");
        }
 
    Log(LOG_archive)
@@ -3365,7 +3629,29 @@ Prefix & parser = si.current_stack;
 void
 XML_Loading_Archive::read_Ravel()
 {
-   if (reading_vids)   return;
+   if (reading_vids)   // )COPY: remember the sub-values (Bugs41 #33)
+      {
+        const int vid = find_int_attr("vid", false, 10);
+        const UTF8 * cells = find_optional_attr("cells");
+        if (vid < 0 || cells == 0)   return;
+        if (size_t(vid) >= sub_vids.size())   sub_vids.resize(vid + 1);
+
+        // a pointer cell is ⁶ followed by the vid (⁶ does not occur
+        // otherwise: other non-ASCII characters are written as ¹hex)
+        //
+        static const UTF8 PAD_6[] = { 0xE2, 0x81, 0xB6 };   // ⁶
+        for (const UTF8 * p = cells; p + 3 < file_end && *p != '"'; ++p)
+            {
+              if (memcmp(p, PAD_6, 3))   continue;
+              p += 3;
+              int64_t sub = 0;
+              while (p < file_end && *p >= '0' && *p <= '9' && sub < 1E15)
+                    sub = 10*sub + (*p++ - '0');
+              sub_vids[vid].push_back(Vid(sub));
+              --p;
+            }
+        return;
+      }
 
 const int vid = find_int_attr("vid", false, 10);
 const UTF8 * cells_utf = find_optional_attr("cells");
@@ -3489,14 +3775,6 @@ const Executable * exec = 0;
    // pc == size is valid: e.g. a ⍎ whose statement was fully reduced
    // while it executes a function (like ⍎'F¨1 2' with F suspended)
    //
-   if (pc < 0 || size_t(pc) > exec->get_body().size())
-      {
-        MORE_ERROR() << "corrupt workspace: SI-entry pc=" << pc
-                     << " out of range (body has "
-                     << exec->get_body().size() << " tokens)";
-        pc = 0;
-      }
-
    Workspace::push_SI(exec, LOC);
 StateIndicator * si = Workspace::SI_top();
    Assert(si);
@@ -3505,6 +3783,33 @@ StateIndicator * si = Workspace::SI_top();
    // (Bugs38 #80)
    if (SI_lambda_created)   si->set_owns_lambda();
    SI_lambda_created = false;
+
+   // the checks of pc come after push_SI() and set_owns_lambda(), so that
+   // the rollback of the )LOAD releases exec (Bugs41 #14)
+   //
+   if (pc < 0 || size_t(pc) > exec->get_body().size())
+      {
+        MORE_ERROR() << "corrupt workspace: SI-entry pc=" << pc
+                     << " out of range (body has "
+                     << exec->get_body().size() << " tokens)";
+        corrupt_SI();   // Bugs41 #14 (was: pc = 0)
+      }
+
+   // the line of pc must exist in a ∇-function, e.g. not in a function
+   // whose body lines were deleted from the file, which )SIS listed with a
+   // failed assertion (Bugs41 #14)
+   //
+   if (const UserFunction * ufun = exec->get_exec_ufun())
+      {
+        if (!ufun->is_lambda() &&
+            !ufun->is_valid_line(ufun->get_line(Prefix_PC(pc))))
+           {
+             MORE_ERROR() << "corrupt workspace: SI-entry pc=" << pc
+                          << " is not in a line of " << ufun->get_name();
+             corrupt_SI();
+           }
+      }
+
    si->get_prefix().goto_PC(Prefix_PC(pc));
    read_Parser(*si, lev);
 
@@ -3512,7 +3817,7 @@ StateIndicator * si = Workspace::SI_top();
        {
          // skip old EOC tags
          //
-         next_tag(LOC);
+         if (next_tag(LOC))   eof_in("SI-entry");   // Bugs41 #12
          if (is_tag("/SI-entry"))   break;
          if (is_tag("Error"))       read_SI_Error(*si);
        }
@@ -3540,6 +3845,19 @@ UCS_string line_2;
 
    next_tag(LOC);
    expect_tag("/Error", LOC);
+
+   // no enum cast of an unknown error code (Bugs41 #58)
+   //
+   switch(code)
+      {
+#define err_def(c, _txt, _maj, _min) case E_ ## c:
+#include "Error.def"
+             break;
+        default:
+             MORE_ERROR() << "corrupt workspace: <Error code=\"" << code
+                          << "\">";
+             corrupt_SI();
+      }
 
 Error error(ErrorCode(code), LOC);
    error.set_error_line_1(UTF8_string(line_1).c_str());
@@ -3598,16 +3916,28 @@ const UTF8 * n  = scan_for(name, '"');
 UTF8_string name_UTF(name, n - name);
 UCS_string name_UCS(name_UTF);
 
+   // the file may be corrupt, e.g. the function could not be ⎕FX'ed
+   // (Bugs41 #14): no assertions
+   //
 Symbol * symbol = Workspace::lookup_symbol(name_UCS);
    Assert(symbol);
-   Assert(level >= 0);
-   Assert(level < symbol->value_stack_size());
+   if (level < 0 || level >= symbol->value_stack_size())
+      {
+        MORE_ERROR() << "corrupt workspace: SI-entry of " << name_UCS
+                     << " with bad symbol-level=" << level;
+        corrupt_SI();
+      }
+
 const ValueStackItem & vsi = (*symbol)[level];
-   Assert(vsi.get_NC() == NC_FUNCTION || vsi.get_NC() == NC_OPERATOR);
-cFunction_P fun = vsi.get_function();
-   Assert(fun);
-const UserFunction * ufun = fun->get_func_ufun();
-   Assert(fun == ufun);
+cFunction_P fun = (vsi.get_NC() == NC_FUNCTION || vsi.get_NC() == NC_OPERATOR)
+                ? vsi.get_function() : 0;
+const UserFunction * ufun = fun ? fun->get_func_ufun() : 0;
+   if (ufun == 0 || fun != ufun)
+      {
+        MORE_ERROR() << "corrupt workspace: SI-entry of " << name_UCS
+                     << ", which is not a defined function";
+        corrupt_SI();
+      }
 
    return ufun;
 }
@@ -3647,6 +3977,17 @@ const int levels = find_int_attr("levels", false, 10);
 
    instantiate_derived_functions(true);
    instantiate_derived_functions(false);
+
+   // the levels of the symbols come from their <Symbol>s: every symbol
+   // that an )SI entry will pop (e.g. a μ of a macro, ⍵ of a lambda, or a
+   // local variable) must have that level (Bugs41 #16)
+   //
+   if (Workspace::repair_SI_levels())
+      {
+        MORE_ERROR() << "corrupt workspace: a local variable of an SI-entry"
+                        " has no level for it";
+        corrupt_SI();
+      }
 
    next_tag(LOC);
    expect_tag("/StateIndicator", LOC);
@@ -3778,6 +4119,17 @@ UCS_string  name_UCS(name_UTF);
 
    Log(LOG_archive)   err << "    read_Symbol() name=" << name_UCS << endl;
 
+   // a second <Symbol> of the same name would replace (and release) what
+   // the first one has defined, while the fids and vids of the first one
+   // remain in use (Bugs41 #5)
+   //
+   if (!symbol_names_read.insert(name_UTF).second)
+      {
+        MORE_ERROR() << "corrupt workspace: <Symbol name=\"" << name_UCS
+                     << "\"> occurs twice";
+        DOMAIN_ERROR;
+      }
+
    // ⎕NLT and ⎕PT were removed, but could lurk around in old workspaces.
    // ⎕PW and ⎕TZ are session variables that must not )LOADed (but might be
    // )COPYd)
@@ -3809,6 +4161,21 @@ Symbol * symbol;
       symbol = &Workspace::get_v_OMEGA_U();
    else
       symbol = Workspace::lookup_existing_symbol(name_UCS);
+
+   // an unknown ⎕-name (e.g. from a damaged file, or a system variable of
+   // a newer GNU APL) or a name that starts with a digit cannot be a
+   // symbol: Workspace::lookup_symbol() below ended the interpreter for
+   // the former and created a symbol 16 for the latter (Bugs41 #17)
+   //
+   if (symbol == 0 && (Avec::is_quad(name_UCS[0]) ||
+                       Avec::is_digit(name_UCS[0])))
+      {
+        err << "*** Warning: invalid or unknown Symbol name " << name_UCS
+            << " in XML archive " << filename << " around line "
+            << line_no << " (skipped)" << endl;
+        skip_to_tag("/Symbol");
+        return;
+      }
 
    // we do NOT copy if:
    //
@@ -3974,6 +4341,7 @@ XML_Loading_Archive::read_SymbolTable()
 const int size = find_int_attr("size", false, 10);
 
    Log(LOG_archive)   err << "  read_SymbolTable()" << endl;
+   symbol_names_read.clear();
 
    loop(s, size)
       {
@@ -4078,7 +4446,10 @@ Token tok;
                // (Bugs40 #82)
                //
                const UTF8 * vids = find_mandatory_attr("index");
-               IndexExpr * idx = new IndexExpr(ASS_none, LOC);
+               const int ass = find_int_attr("index-assign", true, 10);
+               const Assign_state astate = (ass >= ASS_none && ass <= ASS_unknown)
+                                         ? Assign_state(ass) : ASS_none;
+               IndexExpr * idx = new IndexExpr(astate, LOC);   // Bugs41 #54
                while (vids < file_end && *vids != '"')
                   {
                     if (*vids == ',')   ++vids;
@@ -4115,6 +4486,11 @@ Token tok;
                        }
                   }
                new (&tok) Token(tag, *idx);
+
+               // a complete index of rank 1 becomes the (axis) value of tok,
+               // which does not keep idx (Bugs41 #57)
+               //
+               if (tok.get_ValueType() != TV_INDEX)   delete idx;
              }
              break;
 
@@ -4159,6 +4535,13 @@ XML_Loading_Archive::read_unused_name(int d, Symbol & symbol)
    if (d == 0)   return;   // Symbol::Symbol has already created the top level
 
    symbol.push();
+}
+//────────────────────────────────────────────────────────────────────────────
+void
+XML_Loading_Archive::eof_in(const char * element)
+{
+   MORE_ERROR() << "corrupt workspace: end of file in " << element;
+   corrupt_SI();
 }
 //────────────────────────────────────────────────────────────────────────────
 void
@@ -4244,34 +4627,14 @@ Shape sh_value;
 bool no_copy = false;   // assume the value is needed
    if (copying)
       {
-        // if vid is a sub-value then find its topmost owner
+        // A sub-value may have several owners, but its parent= names
+        // only one of them, which may not be copied (e.g. B←2⊃A, or
+        // T T and T 5). Copy every value that is reachable from a
+        // copied name through pointer cells (Bugs41 #33).
         //
-        int parent = vid;
-        loop(steps, parents.size() + 1)
-            {
-              // Assert() alone is a no-op at ASSERT_LEVEL 0, and neither
-              // it nor an out-of-range check catches a self-referential
-              // chain (a crafted <Value vid="5" parent="5"/>): parent
-              // stays a valid index forever, so the loop below would spin
-              // unboundedly. Enforce the bound, and cap iterations at
-              // parents.size()+1 -- a genuine (acyclic) chain can be at
-              // most parents.size() long before reaching -1.
-              if (parent < 0 || parent >= int(parents.size()))
-                 DOMAIN_ERROR;
-              if (parents[parent] == -1)   break;   // topmost owner found
-              parent = parents[parent];
-              if (steps == ShapeItem(parents.size()))   DOMAIN_ERROR;   // cycle
-            }
-
-        no_copy = true;   // assume the value is not needed
-        loop(v, vids_COPY.size())
-           {
-              if (parent == vids_COPY[v])   // vid is in the list: copy
-                 {
-                   no_copy = false;
-                   break;
-                 }
-           }
+        if (copy_needed.size() == 0)   compute_copy_needed();
+        if (vid < 0 || size_t(vid) >= copy_needed.size())   DOMAIN_ERROR;
+        no_copy = !copy_needed[vid];
       }
 
    ravel_read.push_back(false);       // Bugs40 #13
@@ -4312,6 +4675,26 @@ bool no_copy = false;   // assume the value is needed
 }
 //────────────────────────────────────────────────────────────────────────────
 void
+XML_Loading_Archive::push_levels(Symbol & symbol, int d)
+{
+   while (symbol.value_stack_size() <= d)
+      {
+        // e.g. ⎕LX or ⎕X, which have no local levels (their push() does
+        // nothing), with a stack-size > 1 in a corrupt file. This used to
+        // loop forever (Bugs40 #15)
+        //
+        const ShapeItem size = symbol.value_stack_size();
+        symbol.push();
+        if (symbol.value_stack_size() == size)
+           {
+             MORE_ERROR() << "corrupt workspace: " << symbol.get_name()
+                          << " has no level " << d;
+             DOMAIN_ERROR;
+           }
+      }
+}
+//────────────────────────────────────────────────────────────────────────────
+void
 XML_Loading_Archive::read_Variable(int d, Symbol & symbol)
 {
 const int vid = find_int_attr("vid", false, 10);
@@ -4347,26 +4730,18 @@ const int vid = find_int_attr("vid", false, 10);
       {
         Log(LOG_archive)   err << "      " << symbol.get_name()
                                 << " looks like a stale variable" << endl;
+
+        // a local level must exist nevertheless (without a value), since
+        // the )SI frame that localizes the symbol will pop it. Otherwise
+        // the frame popped the global level (Bugs41 #15)
+        //
+        if (d > 0)   push_levels(symbol, d);
         return;
       }
 
    if (!values[vid])   return;   // value filtered out
 
-   while (symbol.value_stack_size() <= d)
-      {
-        // e.g. ⎕LX or ⎕X, which have no local levels (their push() does
-        // nothing), with a stack-size > 1 in a corrupt file. This used to
-        // loop forever (Bugs40 #15)
-        //
-        const ShapeItem size = symbol.value_stack_size();
-        symbol.push();
-        if (symbol.value_stack_size() == size)
-           {
-             MORE_ERROR() << "corrupt workspace: " << symbol.get_name()
-                          << " has no level " << d;
-             DOMAIN_ERROR;
-           }
-      }
+   push_levels(symbol, d);
 // if (d != 0)   symbol.push();
 
    // )COPY of a variable over a function of the same name: replace the

@@ -40,6 +40,9 @@ public:
 
    static Quad_RE  fun;          ///< Built-in function.
 
+   /// overloaded Function::has_monadic_form(): ⎕RE is dyadic only
+   virtual bool has_monadic_form() const   { return false; }   // Bugs41 #46
+
 protected:
    /// the type of result
    enum Result_type

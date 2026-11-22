@@ -105,6 +105,13 @@ public:
    /// @param loc caller location for diagnostics
    void syntax_error(const char * loc);
 
+   /// set restart_PC to the start of the current statement, so that a
+   /// resume (→⍬ or →⍳0) restarts it
+   void set_restart_PC();
+
+   /// the work of reduce_D_V__()
+   void do_reduce_D_V__();
+
    /// release any DerivedFunction (e.g. from f⍨, f¨, f⍤y, f⍣N) still
    /// sitting in the FIFO, so a statement being abandoned by an error
    /// does not leak its DerivedFunctionCache slot (and whatever Value_P
@@ -404,6 +411,9 @@ protected:
 
    /// return true if [ ... ] with the ] at body[rbra] indexes a value
    bool is_value_bracket(Prefix_PC rbra) const;
+
+   /// return true if body[pc], the token left of an index, is a value
+   bool is_indexed_value(Prefix_PC pc) const;
 
    /// return true if \b this prefix has a valid lookahead token
    int has_MISC() const

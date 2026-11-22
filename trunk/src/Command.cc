@@ -111,13 +111,17 @@ bool valid = arg.size() <= 3;
         return;
       }
 
-   cmd_OFF(arg.size() ? arg.atoi() : 0);
+   cmd_OFF(arg.size() ? arg.atoi() : 0, true, arg.size() != 0);
 }
 //────────────────────────────────────────────────────────────────────────────
 void
-Command::cmd_OFF(int exit_val)
+Command::cmd_OFF(int exit_val, bool by_OFF, bool explicit_code)
 {
-   exit_val = IO_Files::finish_tests(exit_val);   // Bugs40 #78
+   // finish a test run that is ended by )OFF (Bugs40 #78), but not one that
+   // ends otherwise, e.g. after a crash (whose testcase was already
+   // reported, Bugs41 #42) or at the end of input
+   //
+   if (by_OFF)   exit_val = IO_Files::finish_tests(exit_val, explicit_code);
    COUT << endl;
    if (UserPreferences::uprefs.silence < NO_BANNER)
       {
@@ -851,7 +855,7 @@ const UCS_string prompt = UCS_string(UNI_RIGHT_ARROW) + Workspace::get_prompt();
                  {
                    IO_Files::abandon_input = false;
                    multiline_status = MLS_APL_text;
-                   multiline_start = 0;
+                   multiline_start = -1;   // not 0 (= line 1, Bugs41 #36)
                    return;
                  }
 
@@ -870,7 +874,7 @@ const UCS_string prompt = UCS_string(UNI_RIGHT_ARROW) + Workspace::get_prompt();
 
 const UCS_string suffix(line, multi_pos + 3);
 
-    multiline_start = 0;   // inform IO_Files.cc
+    multiline_start = -1;   // inform IO_Files.cc (not 0, Bugs41 #36)
 
    if (multi_literal)   // literal (not string)
       {

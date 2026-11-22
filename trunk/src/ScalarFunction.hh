@@ -91,7 +91,8 @@ protected:
    Token do_eval_fill_AB(cValue_R A, cValue_R B) const;
 
    /// the fill function (lrm p. 56) of the items A and B
-   static Value_P fill_items(const cValue & A, const cValue & B);
+   static Value_P fill_items(const cValue & A, const cValue & B,
+                             bool prefer_A);
 
    /// item b of B as a value
    static Value_P item_value(const cValue & B, ShapeItem b);

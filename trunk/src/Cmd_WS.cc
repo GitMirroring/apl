@@ -34,6 +34,7 @@
 #include "Cmd_WS.hh"
 #include "Command.hh"
 #include "Common.hh"
+#include "InputFile.hh"
 #include "IO_Files.hh"
 #include "LibPaths.hh"
 #include "Security.hh"
@@ -185,7 +186,7 @@ const UCS_string wsname(U"CONTINUE");
    Workspace::wsid(out, wsname, LIB_NONE, false);     // )WSID CONTINUE
 const LibRef_name lib_name(wsname, false);
    Workspace::save_WS(out, lib_name, true);           // )SAVE
-   Command::cmd_OFF(0);                                        // )OFF
+   Command::cmd_OFF(0, true);                                  // )OFF
 }
 //────────────────────────────────────────────────────────────────────────────
 void
@@ -514,6 +515,12 @@ UCS_string arg;   // ""
         lib = LibRef(args.front()[0] - '0');
         arg = args[1];   // ""
       }
-   Workspace::wsid(out, arg, lib, false);
+
+   // the )WSID at the end of a .apl file that is being )LOADed sets the
+   // WSID of the dumped workspace silently (Bugs41 #38)
+   //
+const InputFile * file = InputFile::current_file();
+const bool loading = file && file->copy_filter.loading;
+   Workspace::wsid(out, arg, lib, loading);
 }
 //════════════════════════════════════════════════════════════════════════════

@@ -193,8 +193,10 @@ for tcfile_name in sys.argv[1:]:
             # (]FILE_CTL SKIP_*, or after ]NEXTFILE or a --TM 5/6 stop):
             # keep it unchanged (it was deleted, Bugs40 #59)
             emit(line[6:-1])
-        elif line[:6] == "extra:":   # reference
-            apl_extra = line[6:-1]
+        elif line[:7] == "extra: ":   # reference
+            # the output starts after "extra: " (DiffOut.cc), not after
+            # "extra:", which kept a leading blank (Bugs41 #92)
+            apl_extra = line[7:-1]
             print("apl='%s'" % apl_extra)
             emit(apl_extra)
         else:

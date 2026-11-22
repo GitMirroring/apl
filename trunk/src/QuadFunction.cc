@@ -84,6 +84,25 @@ Quad_STOP  Quad_STOP ::fun;   // S∆
 Quad_TRACE Quad_TRACE::fun;   // T∆
 
 //════════════════════════════════════════════════════════════════════════════
+/// true if \b line (row 1 of ⎕EM) already has the )MORE marker +, either at
+/// its end or right after the error name, e.g. LENGTH ERROR+ in macro ⍎¨
+/// (like Error::add_MORE_indicator(), Bugs41 #66)
+static bool
+has_MORE_marker(const UCS_string & line)
+{
+   if (line.size() && line.back() == UNI_PLUS)   return true;
+
+const UTF8_string line_utf(line);
+#define err_def(c, _txt, _maj, _min)                                       \
+   { const char * name = Error::error_name(E_ ## c);                       \
+     const size_t len = strlen(name);                                     \
+     if (len && line_utf.size() > len &&                                  \
+         !strncmp(line_utf.c_str(), name, len) && line_utf[len] == '+')   \
+        return true; }
+#include "Error.def"
+   return false;
+}
+//════════════════════════════════════════════════════════════════════════════
 Token
 Quad_AF::eval_B(cValue_R B) const
 {
@@ -524,8 +543,7 @@ Value_P Z(3, LOC);
         // Appending a second one unconditionally gave e.g. "DOMAIN
         // ERROR++".
         //
-        if (more_info.size() &&
-            (line_1.size() == 0 || line_1.back() != UNI_PLUS))
+        if (more_info.size() && !has_MORE_marker(line_1))   // Bugs41 #66
            line_1 << UNI_PLUS;
 
         PrintBuffer pb;
@@ -830,8 +848,7 @@ Error caller_error(E_NO_ERROR, LOC);
         Workspace::more_error().clear();
 
         UCS_string line_1((UTF8_string(Error::error_name(ec))));
-        if (more_info.size() &&
-            (line_1.size() == 0 || line_1.back() != UNI_PLUS))
+        if (more_info.size() && !has_MORE_marker(line_1))   // Bugs41 #66
            line_1 << UNI_PLUS;
 
         PrintBuffer pb;
@@ -1017,7 +1034,7 @@ Quad_ES::eval_AB(cValue_R A, cValue_R B) const
         if (more.size())
            {
              MORE_ERROR() << more;
-             msg << UNI_PLUS;
+             if (!has_MORE_marker(msg))   msg << UNI_PLUS;   // Bugs41 #66
            }
         msg << " in macro ⍎¨";
         const Token ret = event_simulate(&msg, CLONE(&B, LOC), error);

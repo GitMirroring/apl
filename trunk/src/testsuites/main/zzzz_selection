@@ -40,6 +40,11 @@ Bugs40_B.tc
 Bugs40_CD.tc
 Bugs40_MX.tc
 Bugs40_Workspace.tc
+Bugs41_A.tc
+Bugs41_B.tc
+Bugs41_CD.tc
+Bugs41_MX.tc
+Bugs41_Workspace.tc
 COPY.tc
 Catenate.tc
 Catenate_with_Axis.tc

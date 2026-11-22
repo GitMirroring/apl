@@ -232,6 +232,11 @@ const bool plain_copy = !has_object_filter() && !protection;
       Look for the start of a new function or variable...
     */
 
+   // the )WSID that )DUMP writes near the end of the file belongs to )LOAD;
+   // )COPY does not change the WSID (Bugs41 #38)
+   //
+   if (ucs_line.starts_with(UCS_ASCII_string(")WSID")))   return false;
+
    // a system variable: )COPY copies only ⎕CT, ⎕FC, ⎕IO, ⎕LX, ⎕PP, ⎕PR,
    // and ⎕RL, with or without object names (LRM p. 423, Bugs38 #23, #82),
    // and )PCOPY none of them (they always exist).

@@ -957,6 +957,14 @@ const Symbol * symbol = Workspace::lookup_existing_symbol(symbol_name);
                        }
 
                     res << body;
+
+                    // the local variables, like Symbol::dump() for )DUMP,
+                    // e.g. R←{A←⍵ ◊ A×2;A} (Bugs41 #35)
+                    //
+                    if (const UserFunction * uf = ufun.get_func_ufun())
+                       loop(l, uf->local_var_count())
+                           res << ";" << uf->get_local_var(l)->get_name();
+
                     res << (UNI_R_CURLY);
                     result.push_back(res);
                   }

@@ -409,6 +409,11 @@ Value::assign_cellrefs(Value_P new_value)
    // a fresh Value for its own narrowed result and never copied the
    // marker, so the ordinary per-cell path below still applies there.
    //
+   // Pick or First from a cell without a target, e.g. (2⊃↑V)←9 for an
+   // empty V (Bugs41 #2): nothing to assign
+   //
+   if (get_lval_discard())   return;
+
    if (Cell * slot = get_lval_pick_slot())
       {
         // no owner: Pick from a value assembled across several nested
@@ -427,6 +432,7 @@ Value::assign_cellrefs(Value_P new_value)
            throw_member_table_target();   // Bugs38 #3
         owner.depth_update_for_overwrite(slot - owner.ravel.cells,
                                 new_value->is_simple_scalar() ? -1 : 0);
+        const bool was_pointer = slot->is_pointer_cell();   // Bugs41 #70
         slot->release(LOC);
         // init_from_value() enclose-wraps new_value in a fresh PointerCell
         // unless it is itself a simple scalar, in which case it places a
@@ -435,7 +441,7 @@ Value::assign_cellrefs(Value_P new_value)
         // fail Assert(!sub_val->is_simple_scalar()) for e.g. (2⊃A)←7.
         //
         slot->init_from_value(new_value.get(), owner, LOC);
-        note_overwrite(owner);   // Bugs40 #1
+        note_overwrite(owner, was_pointer);   // Bugs40 #1
         return;
       }
 
@@ -619,6 +625,8 @@ const int src_incr  = (new_value_count == 1)  ? 0 : 1;
               // picked item wholesale (as (A⊃N)←B does, LRM), not cell by
               // cell with the shape of the old item (Bugs34 #18)
               //
+              if (left_sub->get_lval_discard())   continue;   // Bugs41 #2
+
               if (left_sub->get_lval_pick_slot())
                  {
                    left_sub->assign_cellrefs(src.is_pointer_cell()
@@ -664,9 +672,10 @@ const int src_incr  = (new_value_count == 1)  ? 0 : 1;
                                      right_sub->get_cravel(s, right_cache) : src;
                          owner.depth_update_for_overwrite(target - owner.ravel.cells,
                                     right_cell.is_pointer_cell() ? 0 : -1);
+                         const bool was_pointer = target->is_pointer_cell();
                          target->release(LOC);   // free sub-values etc.
                          right_cell.init_other(target, owner, LOC);
-                         note_overwrite(owner);   // Bugs40 #1
+                         note_overwrite(owner, was_pointer);   // Bugs40 #1
                        }
                   }
            }
@@ -677,13 +686,25 @@ const int src_incr  = (new_value_count == 1)  ? 0 : 1;
                   Value & owner = *dest.get_cell_owner();
                   owner.depth_update_for_overwrite(target - owner.ravel.cells,
                                     src.is_pointer_cell() ? 0 : -1);
+                  const bool was_pointer = target->is_pointer_cell();
                   target->release(LOC);   // free sub-values etc (if any)
                   src.init_other(target, owner, LOC);
-                  note_overwrite(owner);   // Bugs40 #1
+                  note_overwrite(owner, was_pointer);   // Bugs40 #1
                 }
            }
         else   LEFT_SYNTAX_ERROR;
       }
+}
+//────────────────────────────────────────────────────────────────────────────
+Value_P
+Value::discarded_lval()
+{
+Value_P Z(LOC);
+   Z->next_ravel_Lval(0, 0);
+   Z->set_left_value();
+   Z->set_lval_discard();
+   Z->check_value(LOC);
+   return Z;
 }
 //────────────────────────────────────────────────────────────────────────────
 void
@@ -696,8 +717,16 @@ Value::collapse_simple_subvalues()
    // scalar (⊂9 ≡ 9), but values do not know their parents. Such writes
    // are rare, therefore search all values for the parents (Bugs40 #1).
    //
-   if (collapsed_scalars.size() == 0)   return;
-
+   // A parent that becomes a simple scalar itself (e.g. ⊂⊂9 after
+   // (1↑↑↑N)←9 for N←⊂⊂⊂1 2) must be collapsed into its own parent as
+   // well, so repeat until nothing collapses any more (Bugs41 #7).
+   //
+   while (collapsed_scalars.size())   collapse_simple_subvalues_1();
+}
+//────────────────────────────────────────────────────────────────────────────
+void
+Value::collapse_simple_subvalues_1()
+{
 std::vector<std::pair<Value *, ShapeItem>> parents;
    for (const DynamicObject * dob = DynamicObject::get_all_values()->get_next();
         dob != DynamicObject::get_all_values(); dob = dob->get_next())
@@ -735,6 +764,7 @@ std::vector<std::pair<Value *, ShapeItem>> parents;
          cell.release(LOC);
          Cell cache;
          sub->get_cscalar(cache).init_other(&cell, parent, LOC);
+         if (parent.is_simple_scalar())   collapsed_scalars.push_back(&parent);
        }
 }
 //────────────────────────────────────────────────────────────────────────────

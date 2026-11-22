@@ -257,6 +257,27 @@ Prefix::lookahead_loc() const
 }
 //────────────────────────────────────────────────────────────────────────────
 void
+Prefix::set_restart_PC()
+{
+   // If the statement's TC_END was already read (it is on the stack, e.g.
+   // "non-empty stack at end of statement"), then body[PC - 1] is the end
+   // of the failed statement and not of the statement before it.
+   //
+Prefix_PC pc = PC;
+   loop(s, ssize())
+      {
+        const TokenClass tc = at(s).get_Class();
+        if (tc == TC_END || tc == TC_RETURN)
+           {
+             if (pc > Prefix_PC_0)   --pc;
+             break;
+           }
+      }
+   while (pc > Prefix_PC_0 && body[pc - 1].get_Class() != TC_END)   --pc;
+   restart_PC = pc;
+}
+//────────────────────────────────────────────────────────────────────────────
+void
 Prefix::syntax_error(const char * loc)
 {
    // a resume (→⍬ or →⍳0) of the failed statement starts again at its
@@ -266,25 +287,7 @@ Prefix::syntax_error(const char * loc)
    // tokens already on the stack twice (or, in a defined function, it was
    // moved past the statement, so that →⍬ skipped it), Bugs40 #3.
    //
-   // If the statement's TC_END was already read (it is on the stack, e.g.
-   // "non-empty stack at end of statement"), then body[PC - 1] is the end
-   // of the failed statement and not of the statement before it.
-   //
-   {
-     Prefix_PC pc = PC;
-     loop(s, ssize())
-        {
-          const TokenClass tc = at(s).get_Class();
-          if (tc == TC_END || tc == TC_RETURN)
-             {
-               if (pc > Prefix_PC_0)   --pc;
-               break;
-             }
-        }
-     while (pc > Prefix_PC_0 && body[pc - 1].get_Class() != TC_END)   --pc;
-     restart_PC = pc;
-   }
-
+   set_restart_PC();
    destroy_derived_in_FIFO();
 
    // see if error was caused by a function not returning a value.
@@ -815,6 +818,20 @@ Prefix::do_shift(TokenClass next) const
              // right operand of a dyadic operator does not strand with B,
              // e.g. (1) in ⌽⍤(1) 2 3⍴⍳6 (Bugs40 #74)
              //
+             // A member S.m is a value too, also if no global variable m
+             // exists (the next token is then a symbol), e.g. S.m 2 + 10 is
+             // (S.m 2)+10, and the . left of m is not a dyadic operator
+             // (Bugs41 #20)
+             //
+             if ((next == TC_VALUE || next == TC_SYMBOL) &&
+                 body[PC].get_Class() == TC_SYMBOL && is_member_access(PC))
+                return MAY_STRAND;
+
+             // a niladic function (or lambda) yields a value: NL 2 + 10 is
+             // (NL 2)+10 (LRM p. 31, Bugs41 #25)
+             //
+             if (next == TC_FUN0)   return MAY_STRAND;
+
              if (next == TC_VALUE)
                 {
                   if ((body[PC].get_tag() == TOK_APL_VALUE1 ||
@@ -844,8 +861,15 @@ Prefix::do_shift(TokenClass next) const
              //
              if (next == TC_R_BRACK)   // ] B
                 {
-                  if (is_value_bracket(PC))   return MAY_STRAND;   // V[I] B
-                  else                        return false;        // f[X] B
+                  if (!is_value_bracket(PC))   return false;   // f[X] B
+
+                  // but an indexed right operand of a dyadic operator binds
+                  // stronger than the strand, e.g. -⍣N[1] V+1 (Bugs41 #19)
+                  //
+                  const Prefix_PC lbra = PC + body[PC].get_int_val2();
+                  if (is_OPER2_left_of_RO(lbra + 1) &&
+                      !is_member_access(lbra + 1))   return false;
+                  return MAY_STRAND;   // V[I] B
                 }
 
              // the same for a literal index after a name, e.g. V[1] 2 + 10,
@@ -855,15 +879,12 @@ Prefix::do_shift(TokenClass next) const
              if (next == TC_INDEX && body[PC].get_tag() != TOK_FAXIS &&
                  PC + 1 < body.end_PC())
                 {
-                  const Token & left = body[PC + 1];   // the indexed name
-                  if (left.get_Class() == TC_VALUE)   return MAY_STRAND;
-                  if (left.get_Class() == TC_SYMBOL)
-                     {
-                       const bool is_left_sym =
-                                  get_assign_state() == ASS_arrow_seen;
-                       if (left.get_sym_ptr()->resolve_class(is_left_sym)
-                           == TC_VALUE)   return MAY_STRAND;
-                     }
+                  // an indexed right operand, e.g. -⍣NN[1] V+1 (Bugs41 #19)
+                  if (is_OPER2_left_of_RO(PC + 1) &&
+                      !is_member_access(PC + 1))   return false;
+
+                  // the indexed value, e.g. V, S.m, N, (⌽V), V[1 2]
+                  if (is_indexed_value(PC + 1))   return MAY_STRAND;
                   return false;
                 }
              return false;   // REDUCE
@@ -1197,7 +1218,15 @@ Prefix::value_expected() const
                       const Symbol * sym = tok.get_sym_ptr();
                       const NameClass nc = sym->get_NC();
 
-                      if (nc == NC_FUNCTION)   return false;
+                      // but a niladic function is a value, e.g. N in
+                      // 2 N[1] + 10 (Bugs41 #24)
+                      //
+                      if (nc == NC_FUNCTION)
+                         {
+                           const Function * fun = sym->get_function();
+                           return fun && !fun->is_operator() &&
+                                  fun->get_fun_valence() == 0;
+                         }
                       if (nc == NC_OPERATOR)   return false;
                       return true;   // value
                     }
@@ -1414,13 +1443,45 @@ const int offset = body[rbra].get_int_val2();
    Assert1(body[rbra + offset].get_Class() == TC_L_BRACK);   // opening [
    if (rbra + offset + 1 >= body.end_PC())   return false;
 
-const Token & tok1 = body[rbra + offset + 1];
-   if (tok1.get_Class() == TC_VALUE)    return true;
-   if (tok1.get_Class() != TC_SYMBOL)   return false;
+   return is_indexed_value(rbra + offset + 1);
+}
+//────────────────────────────────────────────────────────────────────────────
+bool
+Prefix::is_indexed_value(Prefix_PC pc) const
+{
+   // body[pc] is the token left of an index [...] (or of a literal index).
+   // Return true if it is a value (as opposed to a function with an axis).
+   // Not only a value or a variable, but also a member S.m, a niladic
+   // function, a value (...), or an indexed value V[1 2] (Bugs41 #24).
+   //
+   if (pc >= body.end_PC())   return false;
 
-Symbol * sym = tok1.get_sym_ptr();
+const Token & tok = body[pc];
+   switch(tok.get_Class())
+      {
+        case TC_VALUE:     return true;
+        case TC_R_PARENT:  return is_value_parenthesis(pc);   // (⌽V)[1]
+        case TC_R_BRACK:   return is_value_bracket(pc);       // V[1 2][1]
+        case TC_INDEX:     return tok.get_tag() != TOK_FAXIS &&
+                                  is_indexed_value(pc + 1);   // V[1 2][1]
+        case TC_SYMBOL:    break;
+        default:           return false;
+      }
+
+   if (is_member_access(pc))   return true;   // S.m[1]
+
+Symbol * sym = tok.get_sym_ptr();
 const bool is_left_sym = get_assign_state() == ASS_arrow_seen;
-   return sym->resolve_class(is_left_sym) == TC_VALUE;
+   if (sym->resolve_class(is_left_sym) == TC_VALUE)   return true;
+
+   // a niladic function, e.g. N[1]
+   //
+   if (sym->get_NC() == NC_FUNCTION)
+      {
+        const Function * fun = sym->get_function();
+        return fun && !fun->is_operator() && fun->get_fun_valence() == 0;
+      }
+   return false;
 }
 //────────────────────────────────────────────────────────────────────────────
 bool
@@ -1628,6 +1689,7 @@ const TokenClass tcl = tok.get_Class();
              << Token::class_name(tok.get_tag()) << endl;
       }
 
+const Prefix_PC old_lookahead_PC = lookahead_PC;
    lookahead_PC = old_PC;   // the position (in body) of the lookahead token
 
    if (tok.get_tag() == TOK_GOTO_PC)   // →N
@@ -1646,6 +1708,11 @@ const TokenClass tcl = tok.get_Class();
        tcl != TC_END && tcl != TC_RETURN)   // not the end of the last
       Workspace::more_error().clear();
 
+   // and the phrase length (for ⎕R) of the previous statement does not
+   // belong to this one (Bugs41 #76)
+   //
+   if (statement_start)   prefix_len = 0;
+
    if (tcl == TC_SYMBOL)          // resolve symbol if necessary
       {
         try
@@ -1659,6 +1726,7 @@ const TokenClass tcl = tok.get_Class();
              // gives 7 (LRM p. 60, Bugs38 #39).
              //
              PC = old_PC;
+             lookahead_PC = old_lookahead_PC;   // e.g. for X[1]+1 (Bugs41 #53)
              throw;
            }
         if (statement_start)   check_dangling_function();
@@ -2331,10 +2399,13 @@ Symbol * const symbol = tl.get_token().get_sym_ptr();
            1. a normal inner product f.SYM, or
            2. a value member VAL.SYM
 
-           We check the name class of symbol to decide.
+           We check the name class of symbol to decide, and also the head
+           of the chain: a member c of S in S.c can be named like a
+           function c (Bugs41 #26, like the middle members of Bugs40 #19).
          */
         const NameClass nc = symbol->get_NC();
-        if (nc != NC_FUNCTION && nc != NC_OPERATOR)   // case 2: value member
+        if ((nc != NC_FUNCTION && nc != NC_OPERATOR) ||   // case 2: value member
+            is_member_access(PC - 1))
            {
              // Bugs28 #55: something with strong-enough binding priority
              // (currently: a pending bracket index) is already on the
@@ -3195,10 +3266,14 @@ Value_P B = at2().get_apl_val();
         // LENGTH ERROR before this fix). The subfunction which is an
         // operator is ⎕FIO[49] aka. ⎕FIO.read_text.
         //
+        // The subfunction may also be given by its name, e.g.
+        // LO ⎕FIO['read_text'] B (Bugs41 #30): map C like Quad_FIO::
+        // eval_XB() does (which also reports a bad C).
+        //
         const TokenTag tag_M = at0().get_tag();
-        if (tag_M == TOK_Quad_FIO && C->element_count() == 1 &&
-            C->get_sole_integer() == 49)
+        if (tag_M == TOK_Quad_FIO && M->value_to_subfun(*C) == 49)
            {
+             if (!C->is_int_scalar())   C = IntScalar(49, LOC);   // a name
              Token LO(saved_MISC.get_token());
              DerivedFunction * derived = get_fun_oper_slot(&LO, M, 0, C, LOC);
              clear_MISC(LOC);
@@ -3478,6 +3553,22 @@ DerivedFunction * derived = get_fun_oper_slot(&tok_F_C, M, 0, MX, LOC);
 //────────────────────────────────────────────────────────────────────────────
 void
 Prefix::reduce_D_V__()
+{
+   // a VALUE ERROR of a member (e.g. Q.a+4 with Q undefined, or Q.zz with
+   // no member zz): a resume (→⍬) restarts the statement, like after a
+   // SYNTAX ERROR. The member chain was already read, so that it could
+   // not be read again (Bugs41 #52).
+   //
+   try   { do_reduce_D_V__(); }
+   catch (const Error & err)
+      {
+        if (err.get_error_code() == E_VALUE_ERROR)   set_restart_PC();
+        throw;
+      }
+}
+//────────────────────────────────────────────────────────────────────────────
+void
+Prefix::do_reduce_D_V__()
 {
    /* This is the end of an A.B.C...V chain.
 
@@ -4947,6 +5038,12 @@ Prefix::reduce_END_GOTO_B_()
 
    Assert1(prefix_len == 3);
 
+   // B must be the rightmost item of the statement: in e.g. →3 M← the
+   // incomplete assignment M← is still on the stack (like
+   // reduce_RETC_GOTO_B_(), Bugs41 #10)
+   //
+   if (ssize() != 3)   syntax_error(LOC);
+
    // a lambda cannot branch. Its fix-time check (Executable::
    // compute_lambda_body()) rejects →B at the start of a statement, but
    // cannot know if a name left of → is a value (A→B) or a function, e.g.
@@ -5033,6 +5130,10 @@ Prefix::reduce_A_GOTO_B_()
    // dyadic LABEL → CONDITION.
 
    Assert1(prefix_len == 3);
+
+   // B must be the rightmost item, e.g. not in 1→1 M← (Bugs41 #10)
+   //
+   if (ssize() != 3)   syntax_error(LOC);
 
    // we want this to be fast, therefore we don't check the shape but
    // rather use ↑A and ↑B,

@@ -59,6 +59,23 @@ const double qct = Workspace::get_CT();
    if ((A->is_complex_cell() || is_complex_cell()) &&   // complex
        !(A->get_imag_value() == 0.0 && get_imag_value() == 0.0))
       {
+        // a near-real pair, e.g. 1.5∧1J1E¯20: the real GCD of the real
+        // parts (like A∨B in bif_or()), and the LCM A×B÷GCD with the tiny
+        // imaginary parts (Bugs41 #40)
+        //
+        if (A->is_near_real() && is_near_real())
+           {
+             APL_Float rgcd;
+             const ErrorCode err = flt_gcd(rgcd, A->get_real_value(),
+                                                 get_real_value(), qct);
+             if (err)   return err;
+             const APL_Complex lcm = A->get_complex_value() *
+                                     (get_complex_value() / rgcd);
+             if (!isfinite(lcm.real()) || !isfinite(lcm.imag()))
+                return E_DOMAIN_ERROR;
+             return ComplexCell::zC(Z, lcm);
+           }
+
         // a or b is complex; we assume (require) Gaussian integers.
         //
         APL_Complex gcd;
@@ -393,13 +410,32 @@ APL_Complex z = gam_1_b / (gam_1_a * gam_1_b__a);
         // for a (small) natural number A, K!B is the polynomial
         // B×(B-1)×...×(B-K+1)÷!K, which is exact (Bugs40 #22)
         //
-        if (i_A == 0.0 && r_A >= 0.0 && r_A <= 1000.0 &&
+        // The partial products may exceed the double range although the
+        // result does not, e.g. 1000!1100J0.1: keep their binary exponent
+        // apart (Bugs41 #39).
+        //
+        if (i_A == 0.0 && r_A >= 0.0 && r_A <= 100000.0 &&
             r_A == floor(r_A))
            {
              z = APL_Complex(1.0, 0.0);
+             int64_t expo = 0;   // z × 2⋆expo
              const APL_Complex b(r_B, i_B);
              for (int k = 0; k < int(r_A); ++k)
-                 z *= (b - APL_Float(k)) / APL_Float(k + 1);
+                 {
+                   z *= (b - APL_Float(k)) / APL_Float(k + 1);
+                   const APL_Float m = max(fabs(z.real()), fabs(z.imag()));
+                   if (m > 1E100 || (m < 1E-100 && m > 0.0))
+                      {
+                        int e;
+                        frexp(m, &e);
+                        z = APL_Complex(ldexp(z.real(), -e),
+                                        ldexp(z.imag(), -e));
+                        expo += e;
+                      }
+                 }
+             if (expo > 100000 || expo < -100000)   return E_DOMAIN_ERROR;
+             z = APL_Complex(ldexp(z.real(), int(expo)),
+                             ldexp(z.imag(), int(expo)));
              if (!isfinite(z.real()) || !isfinite(z.imag()))
                 return E_DOMAIN_ERROR;
              return ComplexCell::zC(Z, z);

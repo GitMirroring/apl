@@ -263,6 +263,13 @@ protected:
   /// rather than literals, so an out-of-range axis like 104 correctly
   /// falls through to bad_subfun_number_ERROR() instead of being
   /// silently absorbed into an invalid distribution index.
+  /// return the subfunction number \b x as MX_ops, checking it first: a
+  /// number outside the enum is no MX_ops (UB, Bugs41 #59)
+  MX_ops to_MX_op(int64_t x) const
+     { if (x < 0 || x > 0xFFFF || !get_info_by_axis(uAxis(x)))
+          bad_subfun_number_ERROR(x);
+       return MX_ops(x); }
+
   static void remap_randoms_subfun(MX_ops & op, int & modifier)
      {
        if (op >= OP_RANDOMS_100 && op <= OP_RANDOMS_103)

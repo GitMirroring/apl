@@ -71,8 +71,12 @@ const bool is_lval_scalar = B.is_scalar() && B.get_cscalar(cache).is_lval_cell()
         // implies that in Value::assign_cellrefs().
         //
         if (is_lval_scalar)
-           if (Cell * target = B.get_cscalar(cache).get_lval_value())
-              Z->set_lval_pick_slot(target, B.get_lval_cellowner());
+           {
+             if (Cell * target = B.get_cscalar(cache).get_lval_value())
+                Z->set_lval_pick_slot(target, B.get_lval_cellowner());
+             else
+                Z->set_lval_discard();   // no target (Bugs41 #2)
+           }
       }
    else                         // B is nested: clone and copy
       {
@@ -711,6 +715,13 @@ const Cell & cB = B.get_cravel(offset, cache);
                          *cB.get_pointer_value(), qio);
            }
 
+        // a cell without a target (an over-take position, or a
+        // placeholder for an item of an empty value): nothing below it can
+        // be assigned (Bugs41 #2)
+        //
+        if (cB.is_lval_cell() && cB.get_lval_value() == 0)
+           return Value::discarded_lval();
+
         if (cB.is_lval_cell())
            {
              // Note: this is a little tricky...
@@ -755,7 +766,7 @@ const Cell & cB = B.get_cravel(offset, cache);
    if (cB.is_lval_cell())   // selective assignment, e.g. (A⊃B) ← C
       {
         Cell * target = cB.get_lval_value();
-        Assert(target);
+        if (target == 0)   return Value::discarded_lval();   // Bugs41 #2
 
         if (target->is_pointer_cell())
            {

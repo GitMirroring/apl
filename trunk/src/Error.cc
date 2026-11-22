@@ -292,7 +292,11 @@ Error::update_error_info(StateIndicator * si)
    // for every error, not only for those of throw_apl_error(), e.g. also
    // the VALUE ERROR of an undefined name or a ⎕ES error (Bugs40 #66)
    //
-   if (si)   StateIndicator::top_level_error.clear_error_code();
+   // But not an error inside ⎕EC or ⎕EA, which is caught and does not
+   // affect ⎕ET (LRM p. 280, Bugs41 #73)
+   //
+   if (si && si->get_safe_execution_depth() == 0)
+      StateIndicator::top_level_error.clear_error_code();
 
    /*
       construct lines 2 and 3 of the standard 3-line APL error message.
@@ -616,9 +620,12 @@ UTF8_string fun_name_utf(fun_name);
    SPRINTF(err.symbol_name, "%s", fun_name_utf.c_str());
 
 UTF8_string cmd_utf(cmd);   // cmd is something like ∇FUN[⎕]∇
-   SPRINTF(err.error_message_2, "PROMPT%s", cmd_utf.c_str());
+   // the prompt (6 blanks, not the placeholder PROMPT), and not stored in
+   // the error of the )SI entry on top, which is e.g. a suspended function
+   // that the ∇-editor has not executed (Bugs41 #56)
+   //
+   SPRINTF(err.error_message_2, "      %s", cmd_utf.c_str());
    eref.left_caret = 5 + cmd.size();   // last Unicode of error_message_2
-   if (Workspace::SI_top())   *Workspace::get_error() = eref;
    throw eref;
 }
 //────────────────────────────────────────────────────────────────────────────
@@ -728,7 +735,11 @@ Error::throw_symbol_error(const UCS_string & sym_name, const char * loc)
    // null-checked a few lines further down in this same function for
    // exactly this reason. An empty SI is trivially "not in ⎕ES", so
    // treat it the same as get_safe_execution_depth()==0.
-   if (Workspace::more_error().size() == 0 &&   // no )MORE info provided, and
+   // (a )MORE text that is only information, e.g. of a ⎕FX that returned a
+   // line number, belongs to no error, Bugs41 #78)
+   //
+   if ((Workspace::more_error().size() == 0 ||  // no )MORE info provided, and
+        Workspace::more_is_info) &&
        (!Workspace::SI_top() ||
         Workspace::SI_top()->get_safe_execution_depth() == 0))   // and not in ⎕ES
       {

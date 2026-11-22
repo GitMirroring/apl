@@ -57,6 +57,7 @@ bool IO_Files::nabla_reading = false;
 bool IO_Files::abandon_input = false;
 const char * IO_Files::apl_reading = 0;
 bool IO_Files::abandon_apl_read = false;
+int IO_Files::abandoned_reads = 0;
 bool IO_Files::line_error_pending = false;
 ofstream IO_Files::current_testreport;
 //════════════════════════════════════════════════════════════════════════════
@@ -101,10 +102,25 @@ IO_Files::init_summary(bool append)
          break;
        }
 
-   if (!append)   // remove the results of a previous run
+   // the directory may exist, but be read-only, e.g. an installed tree
+   // (Bugs41 #90): then use the current directory
+   //
+   {
+     ofstream summary(summary_path.c_str(),
+                      append ? ofstream::app : ofstream::trunc);
+     if (summary.is_open())   return;
+   }
+
+   if (summary_path != UTF8_string("summary.log"))
       {
-        ofstream summary(summary_path.c_str(), ofstream::trunc);
+        CERR << "cannot write " << summary_path.c_str()
+             << "; writing summary.log into the current directory" << endl;
+        summary_path = UTF8_string("summary.log");
+        ofstream summary(summary_path.c_str(),
+                         append ? ofstream::app : ofstream::trunc);
+        if (summary.is_open())   return;
       }
+   CERR << "cannot write " << summary_path.c_str() << endl;
 }
 
 //────────────────────────────────────────────────────────────────────────────
@@ -337,15 +353,15 @@ IO_Files::get_file_line(UTF8_string & line, bool & eof)
              // abandoned, rather than continued with the lines of the next
              // testcase files (which then all "passed", Bugs39 #52).
              //
-             // the same for a ∇-definition in a )LOAD or )COPY file, which
-             // continued with the caller's lines (Bugs40 #52)
+             // the same for a ∇-definition (Bugs40 #52) or a multi-line
+             // string (Bugs41 #36) in a )LOAD or )COPY file, which
+             // continued with the caller's lines
              //
              const bool load_copy = InputFile::current_file() &&
                    InputFile::current_file()->copy_filter.is_load_or_copy();
              const bool open_input =
-                   (InputFile::is_validating() &&
-                    (nabla_reading || Command::inside_multi())) ||
-                   (load_copy && nabla_reading);
+                   (InputFile::is_validating() || load_copy) &&
+                   (nabla_reading || Command::inside_multi());
              if (open_input)
                 {
                   const char * what = nabla_reading
@@ -407,6 +423,30 @@ IO_Files::get_file_line(UTF8_string & line, bool & eof)
                                         << InputFile::current_filename()
                                         << endl;
                   apl_error(LOC);
+
+                  // the testcase has trapped the INTERRUPT of the previous
+                  // abandon and reads again (e.g. L:''⎕EA'X←⍞' ◊ →L): it
+                  // would never end, so end the test run (Bugs41 #8)
+                  //
+                  if (abandoned_reads++)
+                     {
+                       CERR << "*** " << InputFile::current_filename()
+                            << " keeps reading input after its end;"
+                               " test run ended" << endl;
+                       if (current_testreport.is_open())
+                          current_testreport << "*** test run ended: the"
+                             " testcase keeps reading input after its end"
+                             << endl;
+                       InputFile::files_todo.erase(
+                                  InputFile::files_todo.begin() + 1,
+                                  InputFile::files_todo.end());
+                       end_of_current_file();
+                       print_summary();
+                       need_total = false;
+                       cleanup(true);
+                       Command::cmd_OFF(1);
+                     }
+
                   abandon_apl_read = true;
                   eof = true;
                   return;
@@ -450,9 +490,13 @@ IO_Files::get_file_line(UTF8_string & line, bool & eof)
         // --TM 5 exits too (its line errors and failed files exited
         // already), rather than staying in the interpreter (Bugs40 #77)
         //
+        // and so does --TM 4, the exit mode for automatic regression tests
+        // (Bugs41 #89)
+        //
         if ((test_mode == TM_EXIT_AFTER_LAST_FILE) ||
             (test_mode == TM_EXIT_AFTER_LAST_FILE_IF_OK && !total_errors) ||
-            test_mode == TM_EXIT_AFTER_LINE_ERROR)
+            test_mode == TM_EXIT_AFTER_LINE_ERROR ||
+            test_mode == TM_EXIT_AFTER_FILE_ERROR)
           {
             CERR << "Exiting (test_mode " << test_mode << ") : "
                  << total_errors << " errors" << endl;
@@ -751,32 +795,57 @@ bool first_line = false;
 }
 //════════════════════════════════════════════════════════════════════════════
 int
-IO_Files::finish_tests(int exit_val)
+IO_Files::finish_tests(int exit_val, bool explicit_code)
 {
+   // the run is over (and was reported) if no testcase runs and the total
+   // was printed: then an explicit )OFF 0 exits with 0 (Bugs41 #71)
+   //
+const bool run_over = !InputFile::is_validating() && !need_total;
+
    // )OFF (or --OFF) during a test run: end the running testcase normally
    // (its summary.log line), report the testcases that were not run, and
    // print the total. The run ended silently with exit status 0 and an
    // empty summary.log (Bugs40 #78)
    //
-int not_run = 0;
-   if (InputFile::is_validating())
+   // the )OFF may come from a script in front of the testcase, e.g. the
+   // .apl file of a )COPY in the testcase: close it first, like
+   // line_error_done() (Bugs41 #61)
+   //
+   while (InputFile::files_todo.size() > 1 && !InputFile::is_validating())
       {
-        const UTF8_string name(InputFile::current_filename());
+        InputFile::close_current_file();
+        InputFile::files_todo.erase(InputFile::files_todo.begin());
+      }
+
+int not_run = 0;
+const bool running = InputFile::is_validating() &&
+                     InputFile::current_file()->file;   // started
+UTF8_string name;
+   if (running)   name = UTF8_string(InputFile::current_filename());
+   loop(f, InputFile::files_todo.size())
+      if ((f || !running) && InputFile::files_todo[f].test)   ++not_run;
+
+   if (running)
+      {
         CERR << ")OFF in testcase " << name.c_str() << endl;
-        loop(f, InputFile::files_todo.size())
-           if (f && InputFile::files_todo[f].test)   ++not_run;
         if (InputFile::files_todo.size() > 1)
            InputFile::files_todo.erase(InputFile::files_todo.begin() + 1,
                                        InputFile::files_todo.end());
         end_of_current_file();   // may exit via stop_after_failed_file()
-        if (not_run)
-           {
-             CERR << not_run << " testcase file(s) not run" << endl;
-             ofstream summary(summary_path.c_str(), ofstream::app);
-             summary << endl << "  " << not_run
-                     << " testcase file(s) not run after )OFF in "
-                     << name.c_str() << endl;
-           }
+      }
+   else if (not_run)   // e.g. )OFF in an -f script before the testcases
+      {
+        name = UTF8_string(")OFF before the testcases");
+        InputFile::files_todo.clear();
+      }
+
+   if (not_run)
+      {
+        CERR << not_run << " testcase file(s) not run" << endl;
+        ofstream summary(summary_path.c_str(), ofstream::app);
+        summary << endl << "  " << not_run
+                << " testcase file(s) not run after )OFF in "
+                << name.c_str() << endl;
       }
 
    if (need_total)
@@ -785,7 +854,8 @@ int not_run = 0;
         need_total = false;
       }
 
-   if ((total_errors || not_run) && exit_val == 0)   return 1;
+   if ((total_errors || not_run) && exit_val == 0 &&
+       !(explicit_code && run_over))   return 1;
    return exit_val;
 }
 //────────────────────────────────────────────────────────────────────────────
@@ -823,9 +893,24 @@ IO_Files::stop_after_failed_file(int errors)
    return true;
 }
 //────────────────────────────────────────────────────────────────────────────
+/// return true if \b file is a regular file (not e.g. a FIFO or a tty)
+static bool
+is_regular_file(FILE * file)
+{
+struct stat st;
+   if (fstat(fileno(file), &st))   return false;
+   return S_ISREG(st.st_mode);
+}
+//────────────────────────────────────────────────────────────────────────────
 bool
 IO_Files::end_of_current_file()
 {
+   // no current file: e.g. a ]NEXTFILE (pushed by ⍎) has ended the testcase
+   // after a line error with --TM 6 and stop_after_failed_file() has
+   // dropped all files, before line_error_done() (Bugs41 #4)
+   //
+   if (InputFile::files_todo.size() == 0)   return false;
+
    // the end of a file that a testcase has opened (e.g. a .apl file of
    // )COPY or )PCOPY) is not the end of the testcase: its error counts
    // must survive (they were reset below, so that every diff before a
@@ -837,18 +922,32 @@ const bool testcase_ends = InputFile::is_validating();
    // error with --TM 5 or 6): log its unread lines, so that accept_tc.py
    // keeps them (Bugs40 #59)
    //
+   // Only for a regular file: stdin (-T -) or a FIFO is the rest of the
+   // session, and draining it blocked a terminal (Bugs41 #72)
+   //
    if (testcase_ends && current_testreport.is_open() &&
        InputFile::current_file() && InputFile::current_file()->test &&
-       InputFile::current_file()->file)
+       InputFile::current_file()->file &&
+       InputFile::current_file()->file != stdin &&
+       is_regular_file(InputFile::current_file()->file))
       {
+        // one -skp> line per line of the file, also for a line longer than
+        // buffer, which fgets() returns in several chunks (Bugs41 #91)
+        //
         char buffer[4096];
+        bool line_start = true;
         while (fgets(buffer, sizeof(buffer), InputFile::current_file()->file))
            {
              size_t len = strlen(buffer);
+             const bool line_end = len && buffer[len - 1] == '\n';
              while (len && (buffer[len - 1] == '\n' || buffer[len - 1] == '\r'))
                    buffer[--len] = 0;
-             current_testreport << "-skp> " << buffer << endl;
+             if (line_start)   current_testreport << "-skp> ";
+             current_testreport << buffer;
+             if (line_end)   current_testreport << endl;
+             line_start = line_end;
            }
+        if (!line_start)   current_testreport << endl;   // no final LF
       }
 
    if (testcase_ends)   // running a .tc file
@@ -1006,7 +1105,7 @@ const bool testcase_ends = InputFile::is_validating();
        ! InputFile::files_todo.size())   Command::cmd_OFF(0);
 
    Output::reset_dout();
-   if (testcase_ends)   reset_errors();
+   if (testcase_ends)   { reset_errors();   abandoned_reads = 0; }
    return true;   // continue processing
 }
 //────────────────────────────────────────────────────────────────────────────

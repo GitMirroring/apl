@@ -612,10 +612,9 @@ ShapeItem count = ec;
                    // otherwise the Lval cell points to a cell and was
                    // counted correctly
                  }
-              else   // invalid Lval cel
-                 {
-                   count--;   // deduct the Lval cell
-                 }
+              // otherwise a placeholder without a target (a fill position
+              // of an over-take or expand), which is a (non-storing)
+              // position like for , (LRM p. 119, Bugs41 #60)
             }
        }
 
@@ -715,9 +714,9 @@ cValue::enlist_left(Value & Z) const
          else if (cell.is_lval_cell())
             {
               Cell * target = cell.get_lval_value();
-              if (target == 0)
+              if (target == 0)   // a fill position, see get_enlist_count()
                  {
-                   CERR << "0-pointer at " LOC << endl;
+                   Z.next_ravel_Lval(0, 0);   // Bugs41 #60
                  }
               else if (target->is_pointer_cell())
                  {
@@ -795,8 +794,10 @@ cValue::enlist_right(Value & Z) const
             }
          else if (cell.is_lval_cell() && cell.get_lval_value() == 0)
             {
-              // invalid/placeholder LvalCell -- deducted from
-              // get_enlist_count() already, so not written here either.
+              // a placeholder LvalCell (fill position), counted by
+              // get_enlist_count() (Bugs41 #60)
+              //
+              Z.next_ravel_Lval(0, 0);
             }
          else if (cell.is_lval_cell() &&
                   cell.get_lval_value()->is_pointer_cell())

@@ -118,7 +118,7 @@ int modifier = 0;
 
    if (X.is_int_scalar() || X.is_char_string())   // op only
       {
-        op = MX_ops(value_to_subfun(X));
+        op = to_MX_op(value_to_subfun(X));
       }
    else if (X.is_vector())                         // op and modifier
       {
@@ -134,7 +134,7 @@ int modifier = 0;
              MORE_ERROR() << "⎕MX[X] B: bad modifier X[2] (= " << x1 << ")";
              DOMAIN_ERROR;
            }
-        op = MX_ops(x0);
+        op = to_MX_op(x0);
         modifier = x1;
       }
    else
@@ -187,7 +187,7 @@ int modifier = 0;
 
   if (X.is_int_scalar() || X.is_char_string())   // op only
      {
-       op = MX_ops(value_to_subfun(X));
+       op = to_MX_op(value_to_subfun(X));
      }
   else if (X.is_vector())                         // op and modifier
      {
@@ -203,7 +203,7 @@ int modifier = 0;
              MORE_ERROR() << "⎕MX[X] B: bad modifier X[2] (= " << x1 << ")";
              DOMAIN_ERROR;
            }
-        op = MX_ops(x0);
+        op = to_MX_op(x0);
         modifier = x1;
       }
    else
@@ -421,6 +421,31 @@ bool negate = false;
    //
 Dcomplex mant(1.0, 0.0);
 long expo = 0;
+
+   // scale every row by a power of 2 so that its largest entry is near 1
+   // (exactly, adding the exponent to expo): an elimination update of
+   // unscaled rows could overflow although the determinant does not, e.g.
+   // ⎕MX[1] 3 3⍴1 0 1E308 ¯1 1 1E308 0 1E¯300 0 (Bugs41 #83)
+   //
+   loop(r, n)
+      {
+        double row_max = 0.0;
+        loop(c, n)
+           {
+             const Dcomplex & x = a[r*n + c];
+             row_max = max(row_max, max(fabs(x.real()), fabs(x.imag())));
+           }
+        if (row_max == 0.0 || !isfinite(row_max))   continue;
+        int e;
+        frexp(row_max, &e);
+        loop(c, n)
+           {
+             Dcomplex & x = a[r*n + c];
+             x = Dcomplex(ldexp(x.real(), -e), ldexp(x.imag(), -e));
+           }
+        expo += e;
+      }
+
    for (int k = 0; k < n; ++k)
        {
          // pivot: the largest |a[r;k]| in column k, rows k...

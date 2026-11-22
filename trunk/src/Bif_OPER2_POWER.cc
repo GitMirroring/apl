@@ -277,13 +277,25 @@ cFunction_P RO = _RO.get_function();   Assert(RO);
          const Token result_LO = !A ? LO->eval_B(*B) : LO->eval_AB(*A, *B);
          if (result_LO.get_tag() == TOK_ERROR)   return result_LO;
 
-         Assert(result_LO.get_Class() == TC_VALUE);
+         // LO or RO without a result, e.g. (⎕ES⍣=) '' (Bugs41 #9)
+         //
+         if (result_LO.get_Class() != TC_VALUE)
+            {
+              MORE_ERROR() << "(LO⍣RO)B: LO (" << LO->get_name()
+                           << ") returned no result";
+              VALUE_ERROR;
+            }
          Value_P LO_Z = result_LO.get_apl_val();
 
          const Token result_RO = RO->eval_AB(*LO_Z, *B);
          if (result_RO.get_tag() == TOK_ERROR)   return result_RO;
 
-         Assert(result_RO.get_Class() == TC_VALUE);
+         if (result_RO.get_Class() != TC_VALUE)   // Bugs41 #9
+            {
+              MORE_ERROR() << "(LO⍣RO)B: RO (" << RO->get_name()
+                           << ") returned no result";
+              VALUE_ERROR;
+            }
          Value_P condition = result_RO.get_apl_val();
          if (!condition->is_scalar_extensible() || !condition->is_near_bool(0))
             {

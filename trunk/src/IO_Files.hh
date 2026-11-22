@@ -89,12 +89,17 @@ public:
    /// (with an INTERRUPT) before the testcase is ended (Bugs40 #2)
    static bool abandon_apl_read;
 
+   /// the number of APL inputs abandoned in the current testcase file. A
+   /// second one means that the testcase has trapped the INTERRUPT (e.g.
+   /// with ⎕EA in a loop), and the test run is ended (Bugs41 #8)
+   static int abandoned_reads;
+
    /// end the current testcase after a line error (--TM 5 or 6)
    static void line_error_done();
 
    /// finish a test run that is ended by )OFF or --OFF and return the
    /// exit status (Bugs40 #78)
-   static int finish_tests(int exit_val);
+   static int finish_tests(int exit_val, bool explicit_code);
 
    /// stop (and maybe exit) after a testcase file with \b errors errors,
    /// depending on --TM. Return true if stopped.

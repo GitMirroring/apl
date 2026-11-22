@@ -86,6 +86,15 @@ const APL_Integer qio = Workspace::get_IO();
              AXIS_ERROR;
            }
 
+        // an integral real part with a (relatively small) imaginary part,
+        // e.g. 2J1.5E¯10, is no fraction either (Bugs41 #67)
+        //
+        if (Cell::is_near_int(x0.get_real_value()))
+           {
+             MORE_ERROR() << where << ": X is not integral";
+             AXIS_ERROR;
+           }
+
         // a fraction is only valid as a scalar (LRM p. 204), e.g. not
         // ,[1.5 99]M (Bugs38 #88)
         if (X.element_count() != 1)
@@ -168,10 +177,23 @@ const APL_Integer qio = Workspace::get_IO();
    //
 const Shape axes(X, qio);
 
+   // X as written (not the 0-based axes, which saturate at ¯2⋆63), for the
+   // )MORE texts below (Bugs41 #77)
+   //
+const ShapeItem len_X = X.element_count();
+const APL_Integer X_first = X.get_near_int(0);
+const APL_Integer X_last  = X.get_near_int(len_X - 1);
+UCS_string X_text;
+   loop(x, len_X)
+      {
+        if (x)   X_text << " ";
+        X_text << ShapeItem(X.get_near_int(x));
+      }
+
 const ShapeItem from = axes.get_first_shape_item();
    if (from < 0)
       {
-        MORE_ERROR() << where << ": X = " << (from + qio)
+        MORE_ERROR() << where << ": X = " << X_first
                      << " is not a valid axis of B (expecting " << qio
                      << "≤X<" << (B.get_rank() + qio) << ")"
                      << ArgCheck::index_io0_note(from, B.get_rank());
@@ -181,7 +203,7 @@ const ShapeItem from = axes.get_first_shape_item();
 const ShapeItem to   = axes.get_last_shape_item();
    if (to >= B.get_rank())
       {
-        MORE_ERROR() << where << ": X = " << (to + qio)
+        MORE_ERROR() << where << ": X = " << X_last
                      << " is not a valid axis of B (expecting " << qio
                      << "≤X<" << (B.get_rank() + qio) << ")"
                      << ArgCheck::index_io0_note(to, B.get_rank());
@@ -200,9 +222,9 @@ const ShapeItem to   = axes.get_last_shape_item();
    //
    if (from > to)
       {
-        MORE_ERROR() << where << ": X = " << axes
+        MORE_ERROR() << where << ": X = " << X_text
                      << " is not ascending (expecting consecutive axes "
-                     << (to + qio) << ".." << (from + qio)
+                     << X_last << ".." << X_first
                      << " listed low to high)";
         AXIS_ERROR;
       }
@@ -215,10 +237,9 @@ ShapeItem count = 1;
       {
         if (axes.get_shape_item(a) != (from + a))
            {
-             MORE_ERROR() << where << ": X = " << axes
+             MORE_ERROR() << where << ": X = " << X_text
                           << " is not contiguous (expecting consecutive"
-                             " axes " << (from + qio) << ".."
-                          << (to + qio) << ")";
+                             " axes " << X_first << ".." << X_last << ")";
              AXIS_ERROR;
            }
         count *= B.get_shape_item(from + a);
@@ -621,6 +642,15 @@ const APL_Integer qio = Workspace::get_IO();
        !cX.is_near_real())   // near-real: Bugs40 #86
       {
         MORE_ERROR() << where << ": X is not real";
+        AXIS_ERROR;
+      }
+
+   // an integral real part with a (relatively small) imaginary part, e.g.
+   // 2J1.5E¯10, is neither an integer axis nor a fraction (Bugs41 #67)
+   //
+   if (!cX.is_near_int() && Cell::is_near_int(cX.get_real_value()))
+      {
+        MORE_ERROR() << where << ": X is not integral";
         AXIS_ERROR;
       }
 
