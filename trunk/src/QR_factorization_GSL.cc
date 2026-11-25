@@ -274,7 +274,14 @@ Value_P Z0(M, M, LOC);   // Z[0] is the orthogonal M×M matrix Q
   loop(col, N)   gsl_matrix_set(Li, row, col,
                                 gsl_matrix_get(L, row + M - N, col));
 
-  gsl_linalg_tri_invert(CblasLower, CblasNonUnit, Li);
+  // gsl_linalg_tri_invert() only returns GSL_ESING for a singular L (it does
+  // not call the error handler), which left L itself as its "inverse"
+  //
+  if (gsl_linalg_tri_invert(CblasLower, CblasNonUnit, Li))
+     {
+       MORE_ERROR() << "⌹[X]B: B is singular (L has no inverse)";
+       DOMAIN_ERROR;
+     }
   gsl_matrix_free(L);   L = 0;
   gsl_matrix_free(Q);   Q = 0;
 
@@ -352,7 +359,13 @@ Value_P Z1(N, N, LOC);   // Z2 is the upper triangle N×N matrix R
 
   // 2. Invert Z1 to get Z2. R is inverted in place.
   //
-  gsl_linalg_tri_invert(CblasUpper, CblasNonUnit, R);
+  // see QL_factorize_DD_matrix() for the status check
+  //
+  if (gsl_linalg_tri_invert(CblasUpper, CblasNonUnit, R))
+     {
+       MORE_ERROR() << "⌹[X]B: B is singular (R has no inverse)";
+       DOMAIN_ERROR;
+     }
 Value_P Z2(N, N, LOC);   // Z[2] is the N×N matrix Ri
   loop(row, N)
   loop(col, N)
@@ -456,7 +469,13 @@ Value_P Z1(N, N, LOC);   // Z2 is the upper triangle N×N matrix R
 
   // 2. Invert Z1 to get Z2. R is inverted in place.
   //
-  gsl_linalg_complex_tri_invert(CblasUpper, CblasNonUnit, R);
+  // see QL_factorize_DD_matrix() for the status check
+  //
+  if (gsl_linalg_complex_tri_invert(CblasUpper, CblasNonUnit, R))
+     {
+       MORE_ERROR() << "⌹[X]B: B is singular (R has no inverse)";
+       DOMAIN_ERROR;
+     }
 Value_P Z2(N, N, LOC);   // Z[2] is the N×N matrix Ri
   loop(row, N)
   loop(col, N)

@@ -195,10 +195,56 @@ DOMAIN ERROR+
 
 
 
-      L←3⊃⌹[5] 2 2⍴1E308 1E308 1E308 1E308
+      ⍝ (the overflow of a result item must not depend on the rounding of the
+
+
+
+
+      ⍝ platform: 1E308 1E308 1E308 1E308 overflowed on 64-bit, but not on the
+
+
+
+
+      ⍝ x87 of a 32-bit machine, Bill Heagy)
+
+
+
+
+      X←2⋆¯1030 ◊ L←3⊃⌹[5] 2 2⍴X 0 0 X
 DOMAIN ERROR+
-      L←3⊃⌹[5]2 2⍴1E308 1E308 1E308 1E308
+      L←3⊃⌹[5]2 2⍴X 0 0 X
           ^
+
+      ⍝ a singular B is a DOMAIN ERROR (the inverse of L or R was L or R itself)
+
+
+
+
+      ⌹[5] 2 2⍴0 1 0 1
+DOMAIN ERROR+
+      ⌹[5]2 2⍴0 1 0 1
+      ^
+
+      )MORE
+⌹[X]B: B is singular (L has no inverse)
+
+
+
+      ⌹[2] 2 2⍴1 0 1 0
+DOMAIN ERROR+
+      ⌹[2]2 2⍴1 0 1 0
+      ^
+
+      ⌹[2] 2 2⍴1J1 0 1 0
+DOMAIN ERROR+
+      ⌹[2]2 2⍴1J1 0 1 0
+      ^
+
+      )ERASE X
+
+
+
+
 
 
 
