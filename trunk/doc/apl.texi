@@ -4546,6 +4546,67 @@ if the item was not found).
 
 
 @c ----------------------------------------------------------------------------
+@node Monadic →B as an Expression
+@section Monadic →B as an Expression
+
+In standard APL (e.g. IBM APL2), the branch arrow @b{→} must be the
+leftmost symbol of a statement or immediately follow a label. A statement
+like @b{Q←Q×→N} is therefore a @b{SYNTAX ERROR} in IBM APL2.
+
+GNU APL allows monadic @b{→B} also in the middle of an expression, i.e.
+with a function or a monadic operator to its left. The purpose of this
+extension is to leave a statement (and continue elsewhere) from the middle
+of an expression, for example when a condition computed in that expression
+shows that the rest of the statement should not be executed, or to combine
+a computation and its loop control in a single line. The rules are:
+
+@itemize
+@item
+If @b{B} is not empty, then the branch is taken exactly as for a leftmost
+@b{→B}: the rest of the statement (everything left of @b{→} that has not
+yet been evaluated) is abandoned and execution continues at line @b{↑B}
+(or the function returns if @b{↑B} is not a valid line number).
+
+@item
+If @b{B} is empty, then no branch is taken. Instead @b{→B} returns @b{B}
+itself (as a committed value) and the evaluation of the statement continues
+normally with that value. For example, @b{Q←Q×→⍬} is the same as
+@b{Q←Q×⍬}, and @b{⎕←1+→⍬} is the same as @b{⎕←1+⍬}. Since @b{B} is
+returned unchanged, the program can construct @b{B} so that it fits the
+function left of @b{→}, e.g. as an empty vector of the proper type. This
+includes an empty @b{B} of rank > 1 (e.g. @b{0 2⍴0}): it is up to the
+function left of @b{→} to accept its rank or not.
+@end itemize
+
+In other words, @b{→B} in an expression is a pass-through if @b{B} is
+empty and a branch otherwise. Example:
+
+@example
+∇FOO;N
+ N←4
+L: (N⍴'-'),'yes', →(0=N←N-1)/0 ◊ →L
+∇
+      FOO
+---yes
+--yes
+-yes
+@end example
+
+Here @b{(0=N)/0} is empty as long as @b{N} is not 0, so that @b{,} catenates
+an empty vector to @b{'yes'} and the line prints its result. Once @b{N} is
+0, @b{(0=N)/0} is @b{,0} and the function returns before anything is printed.
+
+Only a non-empty @b{B} of rank > 1 is a @b{RANK ERROR} (it is not a line
+number). An empty @b{B} is never a @b{RANK ERROR} of @b{→}, whatever its
+rank, but is passed through as described above. An incomplete assignment
+right of @b{B} (e.g. @b{Q←Q×→3 M←}) is a @b{SYNTAX ERROR}. A lambda cannot
+branch, therefore @b{→B} is not allowed in a lambda. Note also that @b{←→} (without a blank between @b{←} and @b{→}) is
+not an assignment of @b{→B} but the @i{else} part of the GNU APL
+conditionals @b{→→}, @b{←→}, and @b{←←}.
+
+Programs that use this extension are not portable to other APL interpreters.
+
+@c ----------------------------------------------------------------------------
 @node Dyadic A→B
 @section Dyadic A→B
 

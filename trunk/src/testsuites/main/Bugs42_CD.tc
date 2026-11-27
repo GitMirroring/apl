@@ -625,7 +625,7 @@ F56[1]  Z←B÷0
 
       )SIC
       )ERASE F56
-      ⍝ Bugs42 #28: → must be the leftmost item of a statement (or follow a label)
+      ⍝ Bugs42 #28: → as an expression: a non-empty B branches, an empty B is passed through
 
 
 
@@ -644,16 +644,7 @@ G4
 
 
       G4
-SYNTAX ERROR+
-G4[2]  Q←Q×→3
-          ^ ^
-
-
-
-
-
-      )SIC
-
+5
 
 
 
@@ -671,16 +662,7 @@ FH
 
 
       FH
-SYNTAX ERROR+
-FH[2]  Z←Z,→3
-          ^ ^
-
-
-
-
-
-      )SIC
-
+99 1
 
 
 
@@ -697,10 +679,181 @@ G1
 
 
 
-      G1
-SYNTAX ERROR+
-G1[2]  Q←Q×→⍬
-          ^ ^
+      ⍴G1
+0
+
+
+
+
+
+
+
+      ⎕FX 'Z←FJ' 'Z←0' '⎕←''<'',(1+→⍬),''>''' 'Z←Z,1'
+FJ
+
+
+
+
+
+
+
+      FJ
+<>
+0 1
+
+
+
+
+
+
+      ⎕FX 'Z←FK' 'Z←0' '⎕←''<'',(1+→3),''>''' 'Z←Z,1'
+FK
+
+
+
+
+
+
+
+      FK
+0 1
+
+
+
+
+
+
+
+      ⎕FX 'Z←FM' 'Z←0' 'Z←Z×→3 M←' 'Z←Z,1'
+FM
+
+
+
+
+
+
+
+      FM
+SYNTAX ERROR
+FM[2]  Z←Z×→3 M←
+          ^    ^
+
+
+
+
+
+      )SIC
+
+
+
+
+
+
+
+
+      ⎕FX 'Z←FN' 'Z←0' 'Z←Z×→⍬ M←' 'Z←Z,1'
+FN
+
+
+
+
+
+
+
+      FN
+SYNTAX ERROR
+FN[2]  Z←Z×→⍬M←
+         ^    ^
+
+
+
+
+
+      )SIC
+
+
+
+
+
+
+
+
+      ⎕FX 'Z←FR' 'Z←+/→⍬' 'Z←Z,1'
+FR
+
+
+
+
+
+
+
+      FR
+0 1
+
+
+
+
+
+
+
+      ⎕FX 'Z←GE' 'Q←5' 'Q←Q×→0 2⍴0' 'Z←Q'
+GE
+
+
+
+
+
+
+
+      ⍴GE
+0 2
+
+
+
+
+
+
+
+      ⎕FX 'Z←GF' 'Z←⍳→0 2⍴0'
+GF
+
+
+
+
+
+
+
+      GF
+RANK ERROR+
+GF[1]  Z←⍳→0 2⍴0
+         ^
+
+
+
+
+
+      )SIC
+
+
+
+
+
+
+
+
+      ⎕FX 'Z←GM' 'Q←5' 'Q←Q×→2 2⍴3' 'Z←Q'
+GM
+
+
+
+
+
+
+
+      GM
+RANK ERROR
+GM[2]  Q←Q×→2 2⍴3
+          ^^
 
 
 
@@ -751,6 +904,15 @@ GD
 
 
 
+      ⍴1+→⍬
+0
+
+
+
+
+
+
+
       Q←5
 
 
@@ -763,22 +925,13 @@ GD
       Q←Q×→3
 SYNTAX ERROR+
       Q←Q×→3
-         ^ ^
+         ^
 
 
 
 
 
-      )SIC
-
-
-
-
-
-
-
-
-      )ERASE G4 FH G1 GL GD Q
+      )ERASE G4 FH G1 FJ FK FM FN FR GE GF GM GL GD Q
 
 
 

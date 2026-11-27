@@ -5126,20 +5126,47 @@ Prefix::reduce_END_GOTO_B_()
 
    Assert1(prefix_len == 3);
 
-   // B must be the rightmost item of the statement: in e.g. →3 M← the
-   // incomplete assignment M← is still on the stack (like
-   // reduce_RETC_GOTO_B_(), Bugs41 #10)
-   //
-   if (ssize() != 3)   syntax_error(LOC);
-
-   // and → must be the leftmost item of the statement (or follow a label,
-   // APL2 LRM p. 29, as IBM APL2 does): the phrases F GOTO B and M GOTO B
-   // discarded the function left of → and everything left of it, e.g.
-   // Q←Q×→3 (Bugs42 #28)
+   // → as an expression (GNU APL extension), i.e. F → B or M → B as in
+   // Q←Q×→N: a non-empty B branches (and abandons the rest of the
+   // statement) like a leftmost →B. An empty B does not branch; it is
+   // passed through as the (committed) value of →B, so that Q←Q×→⍬ is
+   // Q←Q×⍬. Formerly the function left of → was dropped silently in that
+   // case (Bugs42 #28).
    //
    if (at0().get_Class() != TC_END)
       {
-        MORE_ERROR() << "→ must be the leftmost item of a statement";
+        // An empty B of any rank is passed through: it is up to the function
+        // left of → to accept its rank or not.
+        //
+        const Value_P B = at2().get_apl_val();
+        if (B->element_count() == 0)   // pass B through
+           {
+             const Token_loc tl_X(at(0).get_token(), at(0));   // F or M
+             const Token_loc tl_B(Token(TOK_APL_VALUE2, B), at(2));
+             pop_and_discard();   // X
+             pop_and_discard();   // →
+             pop_and_discard();   // B
+             push(tl_B);
+             push(tl_X);
+             set_action(RA_CONTINUE);
+             return;
+           }
+
+        // a branch out of an expression: the items right of B (e.g. the
+        // ),'>' in '<',(1+→3),'>') are abandoned, but an incomplete
+        // assignment right of B (e.g. M← in Q×→3 M←) is still wrong.
+        //
+        for (int s = 3; s < ssize(); ++s)
+            {
+              if (at(s).get_Class() == TC_ASSIGN)   syntax_error(LOC);
+            }
+      }
+   else if (ssize() != 3)   // →B M←
+      {
+        // B must be the rightmost item of the statement: in e.g. →3 M← the
+        // incomplete assignment M← is still on the stack (like
+        // reduce_RETC_GOTO_B_(), Bugs41 #10)
+        //
         syntax_error(LOC);
       }
 
