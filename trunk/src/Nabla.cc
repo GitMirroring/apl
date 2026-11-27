@@ -689,6 +689,15 @@ bool hdr_has_vars;
              if (InputFile::running_script() &&
                  ecmd == ECMD_NOP)   // script, new header
                 {
+                  // but not a function on the )SI, like case 2. below: the
+                  // editor then read the following lines of the script as
+                  // its body (Bugs41 #56 residue)
+                  //
+                  if (const char * why = fun_symbol->cant_be_defined())
+                     return why;
+                  if (Workspace::is_called(fun_symbol->get_name()))
+                     return "function is used, pendent or suspended";
+
                   // case 1c.
                   if (const char * loc = open_new_function())   return loc;
                   break;   // continue below

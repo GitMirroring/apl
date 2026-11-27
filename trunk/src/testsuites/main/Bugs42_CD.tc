@@ -1,0 +1,794 @@
+⍝ Bugs42_CD.tc
+⍝ ----------------------------------
+⍝ Blake McBride's Bugs42 severity C and D items (#22 - #38), and the
+⍝ residues of his Bugs41 confirmation.
+
+
+
+
+      ⍝ Bugs42 #34: for non-conforming items, A+B, A+¨B, and A∘.+B all take the
+
+
+
+
+      ⍝ item of the empty argument (also for a non-empty item)
+
+
+
+
+      A←0⍴⊂1 2 3 ◊ B←⊂3 4
+
+
+
+
+      Z←A+B ◊ 2 ⎕TF 'Z'
+Z←0⍴(⊂3⍴0 0 0)
+
+
+
+      Z←A+¨B ◊ 2 ⎕TF 'Z'
+Z←0⍴(⊂3⍴0 0 0)
+
+
+
+      Z←A∘.+B ◊ 2 ⎕TF 'Z'
+Z←0⍴(⊂3⍴0 0 0)
+
+
+
+      Z←B+A ◊ 2 ⎕TF 'Z'
+Z←0⍴(⊂3⍴0 0 0)
+
+
+
+      Z←B+¨A ◊ 2 ⎕TF 'Z'
+Z←0⍴(⊂3⍴0 0 0)
+
+
+
+      Z←B∘.+A ◊ 2 ⎕TF 'Z'
+Z←0⍴(⊂3⍴0 0 0)
+
+
+
+      A←0⍴⊂1 2 3 ◊ B←⊂1 2
+
+
+
+
+      (⍴↑A+B) (⍴↑B+A) (⍴↑A+¨B) (⍴↑A∘.+B) (⍴↑B+¨A) (⍴↑B∘.+A)
+ 3  3  3  3  3  3 
+
+
+
+      ⍝ Bugs42 #23: the fill of f⍤[X]y combines the cells with ⊃[X]
+
+
+
+
+      B←2 4⍴0 ◊ E←0⍴⊂B
+
+
+
+
+      ⍴⌽⍤[1]1⊢B
+4 2
+
+
+
+      ⍴↑(⌽⍤[1]1)¨E
+4 2
+
+
+
+      ⍴,⍤[1]0⊢B
+1 2 4
+
+
+
+      ⍴↑(,⍤[1]0)¨E
+1 2 4
+
+
+
+      ⍴B (,⍤[1]1) B
+8 2
+
+
+
+      ⍴↑E (,⍤[1]1)¨ E
+8 2
+
+
+
+      ⍴↑⍬∘.(⌽⍤[1]1)E
+4 2
+
+
+
+      Z←(⌽⍤[1]1)¨E ◊ 2 ⎕TF 'Z'
+Z←0⍴(⊂4 2⍴0 0 0 0 0 0 0 0)
+
+
+
+      ⍴↑(⌽⍤1)¨E
+2 4
+
+
+
+      )ERASE B E Z
+
+
+
+
+      ⍝ Bugs42 #24: f⍣g has no form at all if the condition g has no dyadic form
+
+
+
+
+      ⍴(⊢⍣⎕UCS)¨⍬
+VALENCE ERROR+
+      ⍴(⊢⍣⎕UCS)¨⍬
+       ^
+
+      ⍴⍬(⊣⍣⎕UCS)¨⍬
+VALENCE ERROR+
+      ⍴⍬(⊣⍣⎕UCS)¨⍬
+       ^^
+
+      (⊢⍣⎕UCS)/5
+VALENCE ERROR+
+      (⊢⍣⎕UCS)/5
+      ^
+
+      ⍴⍬∘.(⊢⍣⎕UCS)⍬
+VALENCE ERROR+
+      ⍴⍬∘.(⊢⍣⎕UCS)⍬
+       ^^
+
+      ⍴⍬ (+.(⊢⍣⎕UCS))¨ ⍬
+VALENCE ERROR+
+      ⍴⍬(+.(⊢⍣⎕UCS))¨⍬
+       ^^
+
+      ⍴(⊢⍣⎕EX)¨''
+VALENCE ERROR+
+      ⍴(⊢⍣⎕EX)¨''
+       ^
+
+      ⍴(⊢⍣⎕TF)¨''
+0
+
+
+
+      ⍴(⊢⍣=)¨⍬
+0
+
+
+
+      (-⍣=)¨⍬
+
+
+
+
+      (-⍣2)¨1 2
+1 2
+
+
+
+      (⌽⍣2)¨(1 2)(3 4)
+ 1 2  3 4 
+
+
+
+      ⍝ Bugs42 #25: (∊F V)←X counts a nested fill item of F V with all its
+
+
+
+
+      ⍝ positions in ∊F V
+
+
+
+
+      V←(1 2)(3 4) ◊ (∊3↑V)←10 20 30 40 50 60 ◊ V
+ 10 20  30 40 
+
+
+
+      V←(1 2)(3 4) ◊ (∊3↑V)←10 20 30 40 50 ◊ V
+LENGTH ERROR+
+      (ϵ3↑V)←10 20 30 40 50
+      ^     ^
+
+      V←(1 2)(3 4) ◊ (∊1 0 1\V)←10 20 30 40 50 60 ◊ V
+ 10 20  50 60 
+
+
+
+      V←(1 2)(3 (4 5)) ◊ (∊3↑V)←⍳7 ◊ V
+ 1 2   3  4 5  
+
+
+
+      V←(1 2)(3 (4 5)) ◊ (∊3↑V)←⍳6 ◊ V
+LENGTH ERROR+
+      (ϵ3↑V)←⍳6
+      ^     ^
+
+      V←1 2 3 ◊ (∊5↑V)←10 20 30 40 50 ◊ V
+10 20 30
+
+
+
+      V←1 2 3 ◊ (∊1 0 1 1\V)←10 20 30 40 ◊ V
+10 30 40
+
+
+
+      )ERASE V
+
+
+
+
+      ⍝ Bugs42 #26: the placeholder of a fill position has the shape of the fill
+
+
+
+
+      ⍝ item, so that a selection that needs its rank or axes works
+
+
+
+
+      V←(1 2)(3 4) ◊ (2⊃¨4↑V)←9 ◊ V
+ 1 9  3 9 
+
+
+
+      V←(1 2)(3 4) ◊ ((⊂2)⌷¨4↑V)←9 ◊ V
+ 1 9  3 9 
+
+
+
+      V←(1 2)(3 4) ◊ ((⊂1 0)/¨4↑V)←9 ◊ V
+ 9 2  9 4 
+
+
+
+      M←(2 2⍴1 2 3 4)(2 2⍴5 6 7 8) ◊ (⊖¨3↑M)←9 ◊ M
+ 9 9   9 9 
+ 9 9   9 9 
+
+
+      M←(2 2⍴1 2 3 4)(2 2⍴5 6 7 8) ◊ (⌽[1]¨3↑M)←9 ◊ M
+ 9 9   9 9 
+ 9 9   9 9 
+
+
+      M←(2 2⍴1 2 3 4)(2 2⍴5 6 7 8) ◊ (1⌷[1]¨3↑M)←9 ◊ M
+ 9 9   9 9 
+ 3 4   7 8 
+
+
+      M←(2 2⍴1 2 3 4)(2 2⍴5 6 7 8) ◊ ((⊂⊂1 1)⊃¨3↑M)←9 ◊ M
+ 9 2   9 6 
+ 3 4   7 8 
+
+
+      M←(2 2⍴1 2 3 4)(2 2⍴5 6 7 8) ◊ (1↑[2]¨3↑M)←9 ◊ M
+ 9 2   9 6 
+ 9 4   9 8 
+
+
+      V←(1 2)(3 4) ◊ (2⊃¨1 0 1\V)←7 8 9 ◊ V
+ 1 7  3 9 
+
+
+
+      V←0⍴⊂(1 2)(3 4) ◊ (2⊃¨↑V)←9 ◊ V≡0⍴⊂(1 2)(3 4)
+1
+
+
+
+      ⎕IO←0 ◊ V←(1 2)(3 4) ◊ (1⊃¨5↑V)←9 ◊ V ◊ ⎕IO←1
+ 1 9  3 9 
+
+
+
+      V←0⍴⊂1 2 3 ◊ (2⊃¨↑V)←⊂9
+RANK ERROR+
+      (2⊃¨↑V)←⊂9
+       ^^
+
+      )ERASE V M
+
+
+
+
+      ⍝ Bugs42 #27: an empty selection from a left value built by f¨ is a no-op,
+
+
+
+
+      ⍝ and the over-drop of such a scalar leaks nothing
+
+
+
+
+      V←(1 2)(3 4) ◊ (0↑V)←⍬ ◊ (0 0/V)←9 ◊ V
+ 1 2  3 4 
+
+
+
+      (0↑,¨V)←⍬ ◊ V
+ 1 2  3 4 
+
+
+
+      (0 0/⌽¨V)←9 ◊ V
+ 1 2  3 4 
+
+
+
+      (0↑2↑¨V)←⍬ ◊ V
+ 1 2  3 4 
+
+
+
+      W←1 2 3 ◊ (0↑,¨W)←⍬ ◊ W
+1 2 3
+
+
+
+      ((0 0)/,¨V)←⍬ ◊ V
+ 1 2  3 4 
+
+
+
+      (⍬⍴0↑⌽¨V)←9 ◊ V
+ 1 2  3 4 
+
+
+
+      (1↓1⌷,¨V)←⍬ ◊ V
+ 1 2  3 4 
+
+
+
+      (1↓(⊂1)⌷3↑¨V)←1 2 ◊ V
+ 1 2  3 4 
+
+
+
+      S←⊂⊂⊂1 2 ◊ (1↓,¨S)←⊂9 9 ◊ S
+   1 2   
+
+
+
+      (1↑,¨V)←⊂7 8 ◊ V
+ 7 8  3 4 
+
+
+
+      )CHECK
+OK      - no stale functions
+OK      - no stale values
+OK      - no stale indices
+OK      - no duplicate parents
+      )ERASE V W S
+
+
+
+
+      ⍝ Bugs42 #29: the fill of a reduction whose operand is implemented by a
+
+
+
+
+      ⍝ macro (e.g. (+⍤0)/) folds the operand's fill along the axis
+
+
+
+
+      B←2 3⍴0 ◊ E←0⍴⊂B
+
+
+
+
+      (⍴(+⍤0)/B) (⍴↑((+⍤0)/)¨E)
+ 2  2 
+
+
+
+      (⍴(+⍤0)⌿B) (⍴↑((+⍤0)⌿)¨E)
+ 3  3 
+
+
+
+      (⍴(×⍤0)/[1]B) (⍴↑((×⍤0)/[1])¨E)
+ 3  3 
+
+
+
+      (⍴(+⍤1)/B) (⍴↑((+⍤1)/)¨E)
+ 2  2 
+
+
+
+      Z←((,⍤1)/)¨E ◊ 2 ⎕TF 'Z'
+Z←0⍴(⊂2⍴(0 0 0) (0 0 0))
+
+
+
+      Z←(,⍤1)/B ◊ 2 ⎕TF 'Z'
+Z←2⍴(0 0 0) (0 0 0)
+
+
+
+      Z←((+⍤0)/)¨E ◊ 2 ⎕TF 'Z'
+Z←0⍴(⊂2⍴0 0)
+
+
+
+      Z←(+/)¨E ◊ 2 ⎕TF 'Z'
+Z←0⍴(⊂2⍴0 0)
+
+
+
+      Z←⍬∘.((+⍤0)/)E ◊ 2 ⎕TF 'Z'
+Z←0 0⍴(⊂2 3⍴0 0 0 0 0 0)
+
+
+
+      Z←((~⍤2 1)/)¨0⍴⊂(1 2)(3 4 5) ◊ 2 ⎕TF 'Z'
+Z←0⍴(⊂⊂0⍴0)
+
+
+
+      Z←(~⍤2 1)/(0 0)(0 0 0) ◊ 2 ⎕TF 'Z'
+Z←⊂0⍴0
+
+
+
+      )ERASE B E Z
+
+
+
+
+      ⍝ Bugs42 #35: the )MORE information of a failed ⎕FX belongs to no other
+
+
+
+
+      ⍝ error later in the statement
+
+
+
+
+      ⎕FX 'Z←H B' 'Z←1÷0'
+H
+
+
+
+      H ⎕FX 'Z←G' 'Z←⍳¯1;2'
+DOMAIN ERROR
+H[1]  Z←1÷0
+        ^^
+
+      )MORE
+NO )MORE ERROR INFO
+
+
+
+      )SIC
+
+
+
+
+      'a'+⎕FX 'Z←G' 'Z←⍳¯1;2'
+DOMAIN ERROR
+      'a'+⎕FX 'Z←G' 'Z←⍳¯1;2'
+      ^  ^
+
+      )MORE
+NO )MORE ERROR INFO
+
+
+
+      ⎕ES ⎕FX 'Z←G' 'Z←⍳¯1;2'
+LENGTH ERROR
+      ⎕ES ⎕FX 'Z←G' 'Z←⍳¯1;2'
+      ^
+
+      )MORE
+NO )MORE ERROR INFO
+
+
+
+      ⎕FX 'Z←G' 'Z←⍳¯1;2'
+2
+
+
+
+      )MORE
+Error in function body in function line [1] of:
+[0] Z←G
+[1] Z←⍳¯1;2
+
+      )SIC
+
+
+
+
+      )ERASE H
+
+
+
+
+      ⍝ Bugs42 #38: ⎕TRACE on a line with diamonds traces every statement
+
+
+
+
+      ∇Z←F B
+      A←10 ◊ C←20 ◊ D←30
+      →(B>5)/L ◊ Z←'not branched'
+      →0
+      L: Z←'branched' ◊ →0
+      ∇
+
+
+
+
+      1 2 3 4 ⎕TRACE 'F'
+
+
+
+
+      F 7
+F[1] 10
+F[1] 20
+F[1] 30
+F[2] ↦4
+F[4] branched
+F[4] ↦0
+branched
+
+
+      F 3
+F[1] 10
+F[1] 20
+F[1] 30
+F[2] not branched
+F[3] ↦0
+not branched
+
+
+      )ERASE F A C D
+
+
+
+
+      ⍝ Bugs41 #56 residue: in a script, a new header for a suspended function is
+
+
+
+
+      ⍝ refused at once, and the following lines are not read as its body
+
+
+
+
+      ∇Z←F56 B
+      Z←B÷0
+      ∇
+
+
+
+
+      F56 1
+DOMAIN ERROR
+F56[1]  Z←B÷0
+          ^^
+
+      ∇Z←F56 B
+DEFN ERROR+
+      ∇Z←F56 B
+             ^
+      2+2
+4
+
+
+
+
+
+
+
+      )SIS
+F56[1]  Z←B÷0
+          ^^
+*  F56 1
+   ^
+
+
+
+
+      ⎕ET
+5 4
+
+
+
+
+
+
+
+      )SIC
+      )ERASE F56
+      ⍝ Bugs42 #28: → must be the leftmost item of a statement (or follow a label)
+
+
+
+
+
+
+
+
+      ⎕FX 'Z←G4' 'Q←5' 'Q←Q×→3' 'Z←99' 'Z←Q'
+G4
+
+
+
+
+
+
+
+      G4
+SYNTAX ERROR+
+G4[2]  Q←Q×→3
+          ^ ^
+
+
+
+
+
+      )SIC
+
+
+
+
+
+
+
+
+      ⎕FX 'Z←FH' 'Z←0' 'Z←Z,→3' 'Z←99' 'Z←Z,1'
+FH
+
+
+
+
+
+
+
+      FH
+SYNTAX ERROR+
+FH[2]  Z←Z,→3
+          ^ ^
+
+
+
+
+
+      )SIC
+
+
+
+
+
+
+
+
+      ⎕FX 'Z←G1' 'Q←5' 'Q←Q×→⍬' 'Z←Q'
+G1
+
+
+
+
+
+
+
+      G1
+SYNTAX ERROR+
+G1[2]  Q←Q×→⍬
+          ^ ^
+
+
+
+
+
+      )SIC
+
+
+
+
+
+
+
+
+      ⎕FX 'Z←GL' 'Z←1' 'L:→4' 'Z←2' 'Z←Z,3'
+GL
+
+
+
+
+
+
+
+      GL
+1 3
+
+
+
+
+
+
+
+      ⎕FX 'Z←GD' 'Z←1 ◊ →3' 'Z←2' 'Z←Z,3'
+GD
+
+
+
+
+
+
+
+      GD
+1 3
+
+
+
+
+
+
+
+      Q←5
+
+
+
+
+
+
+
+
+      Q←Q×→3
+SYNTAX ERROR+
+      Q←Q×→3
+         ^ ^
+
+
+
+
+
+      )SIC
+
+
+
+
+
+
+
+
+      )ERASE G4 FH G1 GL GD Q
+
+
+
+
+
+
+
+
+      )SIC
+
+
+
+

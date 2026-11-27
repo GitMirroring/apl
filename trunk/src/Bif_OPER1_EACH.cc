@@ -48,6 +48,43 @@ is_system_function(const Function * fun)
    return false;
 }
 //════════════════════════════════════════════════════════════════════════════
+/// a value with the structure of the fill item at the fill position b of
+/// the left value B (Bugs42 #26): the item b of the prototype of an empty
+/// value (the pick slot of ↑V), or else the first selected item of B, whose
+/// structure the fill item has. 0 if unknown (or simple).
+static Value_P
+fill_item_like(const cValue & B, ShapeItem b)
+{
+   // the pick slot of ↑V of an empty V
+   //
+   if (const Cell * slot = static_cast<const Value &>(B).get_lval_pick_slot())
+      {
+        if (slot->is_pointer_cell())
+           {
+             Value_P proto = slot->get_pointer_value();
+             if (b < proto->nz_element_count())
+                {
+                  Cell cache;
+                  const Cell & item = proto->get_cravel(b, cache);
+                  if (item.is_pointer_cell())   return item.get_pointer_value();
+                }
+           }
+        return Value_P();
+      }
+
+   loop(c, B.element_count())
+       {
+         Cell cache;
+         const Cell & cell = B.get_cravel(c, cache);
+         if (!cell.is_lval_cell())   continue;
+         const Cell * target = cell.get_lval_value();
+         if (target == 0)   continue;   // another fill position
+         if (target->is_pointer_cell())   return target->get_pointer_value();
+         return Value_P();   // a simple item
+       }
+   return Value_P();
+}
+//────────────────────────────────────────────────────────────────────────────
 Token
 Bif_OPER1_EACH::eval_ALB(cValue_R A, Token & _LO, cValue_R B) const
 {
@@ -193,8 +230,10 @@ cFunction_P LO = _LO.get_function();
              return Token(TOK_APL_VALUE1, Z);
            }
 
-        // evaluate the fill function (lrm p. 245)
+        // evaluate the fill function (lrm p. 245). For non-conforming
+        // items, the fill is the item of the empty argument (Bugs42 #34)
         //
+        const Fill_prefer_A prefer_A(A.is_empty());
         Value_P Z1;
         if (LO->contains_defined())   // Bugs40 #55
            {
@@ -409,7 +448,8 @@ Value_P Z;
              // A target of 0 (an over-take position or a placeholder for an
              // item of an empty value, e.g. (1↑¨↑V)←9) is passed on as such
              // (Bugs41 #2) so that LO selects from it like from an item.
-             if (dest == 0)   LO_B = Value::discarded_lval();
+             if (dest == 0)   LO_B = Value::discarded_lval(
+                                        fill_item_like(B, inc_B * z).get());
              else if (dest->is_pointer_cell())
                 {
                   Value_P sub = dest->get_pointer_value();
@@ -717,7 +757,8 @@ Value_P Z;
                   // empty vector, (,¨1↑⍬)←,1: dereferencing it
                   // unconditionally segfaults instead of a clean error.
                   // see eval_ALB() (Bugs41 #2)
-                  if (dest == 0)   LO_B = Value::discarded_lval();
+                  if (dest == 0)   LO_B = Value::discarded_lval(
+                                             fill_item_like(B, z).get());
                   else if (dest->is_pointer_cell())
                      {
                        Value_P sub = dest->get_pointer_value();

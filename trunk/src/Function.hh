@@ -456,6 +456,27 @@ public:
    /// Evaluate \b the fill function.
    virtual Token eval_fill_AB(cValue_R A, cValue_R B) const;
 
+   /// true if A was the empty argument of the A f¨ B or A∘.f B whose fill
+   /// is being computed: for non-conforming items, the fill is the item of
+   /// the empty argument (Bugs41 #64, Bugs42 #1, #34)
+   static bool fill_prefer_A;
+
+   /// set fill_prefer_A for the lifetime of this object
+   struct Fill_prefer_A
+      {
+        /// constructor: set fill_prefer_A to \b prefer_A
+        Fill_prefer_A(bool prefer_A)
+        : old(fill_prefer_A)
+        { fill_prefer_A = prefer_A; }
+
+        /// destructor: restore fill_prefer_A
+        ~Fill_prefer_A()
+        { fill_prefer_A = old; }
+
+        /// the previous fill_prefer_A
+        const bool old;
+      };
+
    /// Evaluate \b the fill function.
    virtual Token eval_fill_B(cValue_R B) const;
 

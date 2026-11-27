@@ -194,6 +194,18 @@ DOMAIN ERROR+
 
 
 
+      ⍝ the error tests above leave )SI entries, which the guard below
+      ⍝ would skip (Bugs42 #31)
+
+
+
+
+      )SIC
+
+
+
+
+
       ⍝ the ⎕MX items need libgsl: done if ⎕MX is not available (Bugs41 #63)
       ⍝
       ]NEXTFILE NO-GSL

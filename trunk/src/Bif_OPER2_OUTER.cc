@@ -223,6 +223,11 @@ Value_P Z(A.get_shape() + B.get_shape(), LOC);
         Value_P Fill_A = Bif_F12_TAKE::first(A);
         Value_P Fill_B = Bif_F12_TAKE::first(B);
 
+        // for non-conforming items, the fill is the item of the empty
+        // argument (Bugs42 #34)
+        //
+        const Function::Fill_prefer_A prefer_A(A.is_empty());
+
         // like f¨ (Bif_OPER1_EACH.cc): the fill function of a defined RO,
         // or of a derived RO whose chain contains one (or a macro, e.g.
         // +⍤0), is the identity (LRM Figure 20, Bugs38 #75)

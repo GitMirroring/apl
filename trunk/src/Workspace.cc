@@ -1340,12 +1340,22 @@ int variable_count = 0;
    // (and )COPY ignores, see InputFile::COPY_filter::check_filter()).
    // Bugs41 #38.
    //
-   if (!html && !is_CLEAR_WS())
+   // A CLEAR WS has no WSID: then the name of the )DUMP command, so that
+   // )LOAD gives the dumped workspace that name, including its directory
+   // (Bugs41 #38 residue)
+   //
+   if (!html)
       {
+        const LibRef_name & id = is_CLEAR_WS() ? lib_name
+                                               : the_workspace.WS_id;
+        UCS_string name = id.get_name();
+        if (is_CLEAR_WS() && UTF8_string(name).ends_with(".apl"))
+           name.resize(name.size() - 4);   // )SAVE adds .xml, )DUMP .apl
         outf << ")WSID ";
-        const LibRef lib = the_workspace.WS_id.get_libref();
-        if (lib != LIB_NONE)   outf << lib << " ";
-        outf << the_workspace.WS_id.get_name() << endl << endl;
+        const LibRef lib = id.get_libref();
+        if (lib != LIB_NONE && !(is_CLEAR_WS() && lib == LIB0))
+           outf << lib << " ";
+        outf << name << endl << endl;
       }
 
    if (html)   outf << endl << "⍝ EOF </pre></body></html>" << endl;

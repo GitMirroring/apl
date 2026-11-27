@@ -509,12 +509,18 @@ Function_PC right_pc = pcs.low;
    // left end of statement ≤ left end of phrase ≤ right end of phrase
    //                       ≤ right end of statement
    //
+   // The PCs of the phrase are only used for the error display. A token of
+   // a (damaged) )LOADed parser stack may have any pc (Bugs42 #7), so put
+   // a PC outside the statement to its nearest end instead of asserting.
+   //
    if (left_pc != Function_PC_invalid)
       {
         const Function_PC stat_left  = stat_after[stat_after.size() - 1].get_PC();
         const Function_PC stat_right = stat_after[0].get_PC();
-        Assert(stat_left <= left_pc && left_pc <= right_pc &&
-               right_pc <= stat_right);
+        if (left_pc  < stat_left)    left_pc  = stat_left;
+        if (left_pc  > stat_right)   left_pc  = stat_right;
+        if (right_pc < left_pc)      right_pc = left_pc;
+        if (right_pc > stat_right)   right_pc = stat_right;
       }
 
 const Function_PC leftmost = Function_PC(failed_statement.size() - 1);

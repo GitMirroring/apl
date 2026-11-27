@@ -69,8 +69,22 @@ const double qct = Workspace::get_CT();
              const ErrorCode err = flt_gcd(rgcd, A->get_real_value(),
                                                  get_real_value(), qct);
              if (err)   return err;
-             const APL_Complex lcm = A->get_complex_value() *
-                                     (get_complex_value() / rgcd);
+
+             // like the real path below (Bugs42 #11): if the gcd is one
+             // operand then the LCM is the other one, exactly (Bugs39 #43),
+             // and otherwise divide the operand that gcd divides without
+             // overflow (Bugs38 #17)
+             //
+             const APL_Complex a = A->get_complex_value();
+             const APL_Complex b =    get_complex_value();
+             const APL_Float ra = a.real();
+             const APL_Float rb = b.real();
+             if (rgcd == fabs(ra))   return ComplexCell::zC(Z, ra < 0 ? -b : b);
+             if (rgcd == fabs(rb))   return ComplexCell::zC(Z, rb < 0 ? -a : a);
+
+             APL_Complex lcm = a * (b / rgcd);
+             if (!isfinite(lcm.real()) || !isfinite(lcm.imag()))
+                lcm = (a / rgcd) * b;
              if (!isfinite(lcm.real()) || !isfinite(lcm.imag()))
                 return E_DOMAIN_ERROR;
              return ComplexCell::zC(Z, lcm);
@@ -779,6 +793,44 @@ const APL_Float z = exp(lg_B - lg_A - lg_B__A);
    return FloatCell::zF(Z, (sign_B * sign_A * sign_B__A) < 0 ? -z : z);
 }
 //────────────────────────────────────────────────────────────────────────────
+#ifdef __SIZEOF_INT128__
+/// x ÷ d rounded half away from 0 (like round()), for d > 0
+static __int128
+round_div(__int128 x, __int128 d)
+{
+   return (x >= 0) ? (2*x + d) / (2*d) : -((-2*x + d) / (2*d));
+}
+
+/// the GCD of the Gaussian integers a and b, whose components are at most
+/// 2⋆62 in magnitude, computed exactly with the same Euclidean steps as the
+/// loop in cpx_gcd() (Bugs42 #12)
+static APL_Complex
+exact_gaussian_gcd(APL_Complex a, APL_Complex b)
+{
+__int128 ar = __int128(a.real()), ai = __int128(a.imag());
+__int128 br = __int128(b.real()), bi = __int128(b.imag());
+   for (;;)
+       {
+         if (ar*ar + ai*ai > br*br + bi*bi)   // make ∣b∣ ≥ ∣a∣
+            {
+              __int128 t = ar;   ar = br;   br = t;
+                       t = ai;   ai = bi;   bi = t;
+            }
+         if (ar == 0 && ai == 0)
+            return APL_Complex(APL_Float(br), APL_Float(bi));
+
+         // q = round(b÷a) = round(b×conj(a) ÷ ∣a∣²), r = b - q×a
+         const __int128 d  = ar*ar + ai*ai;
+         const __int128 qr = round_div(br*ar + bi*ai, d);
+         const __int128 qi = round_div(bi*ar - br*ai, d);
+         const __int128 rr = br - (qr*ar - qi*ai);
+         const __int128 ri = bi - (qr*ai + qi*ar);
+         br = ar;   bi = ai;
+         ar = rr;   ai = ri;
+       }
+}
+#endif
+//────────────────────────────────────────────────────────────────────────────
 ErrorCode
 NumericCell::cpx_gcd(APL_Complex & z, APL_Complex a, APL_Complex b, double qct)
 {
@@ -858,19 +910,33 @@ NumericCell::cpx_gcd(APL_Complex & z, APL_Complex a, APL_Complex b, double qct)
    a = APL_Complex(round(a.real()), round(a.imag()));
    b = APL_Complex(round(b.real()), round(b.imag()));
 
-   // beyond 2⋆53 a double is not an exact integer, and the remainders in
-   // the loop below are mere rounding artefacts, which also depend on the
-   // FPU: the 80-bit x87 registers of 32-bit x86 machines gave 0J¯1 for
-   // 1J2∨1.3E308J1.3E308, where 64-bit machines give 1J2. Therefore the
-   // smaller operand is the GCD if it divides the larger one tolerantly
-   // (the halved operands, see the loop below).
+   // beyond 2⋆53 the products in the loop below may be inexact. Up to 2⋆62
+   // the GCD is computed exactly with 128-bit integers (if the compiler has
+   // them), e.g. 3∨9007199254740994J9007199254740994 is a unit (Bugs42 #12)
+   //
+const APL_Float max_ab = fmax(fmax(fabs(a.real()), fabs(a.imag())),
+                              fmax(fabs(b.real()), fabs(b.imag())));
+#ifdef __SIZEOF_INT128__
+   if (max_ab > 9007199254740992.0 && max_ab <= 4611686018427387904.0)
+      {
+        z = exact_gaussian_gcd(a, b);
+        return E_NO_ERROR;
+      }
+#endif
+
+   // far beyond that, the remainders in the loop below are mere rounding
+   // artefacts, which also depend on the FPU: the 80-bit x87 registers of
+   // 32-bit x86 machines gave 0J¯1 for 1J2∨1.3E308J1.3E308, where 64-bit
+   // machines give 1J2. Therefore the smaller operand is the GCD if it
+   // divides the larger one tolerantly (the halved operands, see the loop
+   // below).
    //
    {
      const bool a_small = abs(a*0.5) <= abs(b*0.5);
      const APL_Complex small = a_small ? a : b;
      const APL_Complex big   = a_small ? b : a;
      const APL_Float big_max = fmax(fabs(big.real()), fabs(big.imag()));
-     if (big_max > 9007199254740992.0 && small != APL_Complex(0.0, 0.0))
+     if (big_max > 4611686018427387904.0 && small != APL_Complex(0.0, 0.0))
         {
           const APL_Complex q = 2.0 * ((big*0.5) / small);
           if (isfinite(q.real()) && isfinite(q.imag()))

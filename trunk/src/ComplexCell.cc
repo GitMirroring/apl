@@ -169,12 +169,16 @@ ComplexCell::bif_subtract(Cell * Z, const Cell * A) const
    return ComplexCell::bif_subtract_cc(Z, A->get_complex_value(), cval());
 }
 //────────────────────────────────────────────────────────────────────────────
-/// x ÷ den ÷ s for a power of 2 s: divide by s first if s < 1, so that a
-/// subnormal x is scaled up before it is divided (Bugs41 #85)
+/// x ÷ den ÷ s for a power of 2 s and den in [1, 4). Divide by s first
+/// only if x ÷ den would be subnormal (or 0), so that a subnormal x is
+/// scaled up before it is divided (Bugs41 #85); otherwise x ÷ s may
+/// overflow although the quotient is finite, e.g. 1E308J1÷0.75 (Bugs42 #10)
 static inline APL_Float
 scaled_div(APL_Float x, APL_Float den, APL_Float s)
 {
-   return (s < 1.0) ? (x / s) / den : (x / den) / s;
+const APL_Float q = x / den;
+   if (s < 1.0 && x != 0.0 && fabs(q) < DBL_MIN)   return (x / s) / den;
+   return q / s;
 }
 //────────────────────────────────────────────────────────────────────────────
 ErrorCode
@@ -1518,10 +1522,17 @@ const double qct = Workspace::get_CT();
    // But per component: an exact residue in a small component is kept,
    // e.g. 1|1000.5J5000000000000000 at ⎕CT←0 (Bugs41 #68)
    //
+   // A quotient that overflows (a non-finite component, e.g. the NaN that
+   // the complex division leaves in 1E¯300|1E10J1) counts as huge, but
+   // one that underflows to 0J0 (e.g. 1E300|1E¯30J1E¯30) does not: its
+   // residue is B (Bugs42 #9)
+   //
    {
      const APL_Float qr = fabs(quot.real());
      const APL_Float qi = fabs(quot.imag());
-     if ((qr > 4.5E15 || qr == 0.0) && (qi > 4.5E15 || qi == 0.0))
+     const bool huge_r = !isfinite(qr) || qr > 4.5E15;
+     const bool huge_i = !isfinite(qi) || qi > 4.5E15;
+     if ((huge_r || huge_i) && (huge_r || qr == 0.0) && (huge_i || qi == 0.0))
         return IntCell::z0(Z);
    }
 

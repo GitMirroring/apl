@@ -48,9 +48,11 @@ public:
 
    /// the fill function of (A) LO⍤y B for a primitive LO: LO's fill
    /// function applied to the cells of B (and A) like ⍤ applies LO, and the
-   /// results combined like ⍤ does (Bugs41 #41). A is 0 if monadic
+   /// results combined like ⍤ does (Bugs41 #41), i.e. with ⊃[X] for the
+   /// axis X of LO⍤[X]y (Bugs42 #23). A is 0 if monadic, X is 0 if none
    static Token fill_ALyB(const Function * LO, const cValue & y,
-                          const cValue * A, const cValue & B);
+                          const cValue * A, const cValue & B,
+                          const cValue * X = 0);
 
 protected:
    /// overloaded Function::may_push_SI(). f⍤y is implemented via the

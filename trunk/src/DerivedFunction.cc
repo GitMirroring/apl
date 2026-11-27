@@ -85,6 +85,17 @@ cFunction_P LO = get_LO();
    // f¨, f⍣N, f⍣g, and f⍤y B call f monadically; f⍨ B, f/ B etc.
    // dyadically (Bugs40 #56, f⍣g: Bugs41 #46)
    //
+   // the condition g of f⍣g is always called dyadically (Z g B), so f⍣g has
+   // no form at all if g has no dyadic form (Bugs42 #24)
+   //
+   if (oper == &Bif_OPER2_POWER::fun)
+      {
+        // (not get_RO(), which assumes a function, e.g. not the 2 of -⍣2)
+        cFunction_P RO = right_arg.is_function() ? right_arg.get_function()
+                                                 : 0;
+        if (RO && !RO->has_dyadic_form())   return false;
+      }
+
    if (oper == &Bif_OPER1_EACH::fun  ||
        oper == &Bif_OPER2_RANK::fun  ||
        oper == &Bif_OPER2_POWER::fun)
@@ -109,6 +120,16 @@ DerivedFunction::has_dyadic_form() const
 
 cFunction_P LO = get_LO();
    if (!LO)   return true;
+
+   // see has_monadic_form() (Bugs42 #24)
+   //
+   if (oper == &Bif_OPER2_POWER::fun)
+      {
+        // (not get_RO(), which assumes a function, e.g. not the 2 of -⍣2)
+        cFunction_P RO = right_arg.is_function() ? right_arg.get_function()
+                                                 : 0;
+        if (RO && !RO->has_dyadic_form())   return false;
+      }
 
    if (oper == &Bif_OPER1_EACH::fun  ||
        oper == &Bif_OPER2_RANK::fun  ||
@@ -503,7 +524,12 @@ DerivedFunction::eval_fill_AB(cValue_R A, cValue_R B) const
         if (oper == &Bif_OPER2_RANK::fun && left_arg.is_function() &&
             right_arg.is_apl_val())
            return Bif_OPER2_RANK::fill_ALyB(left_arg.get_function(),
-                                            *right_arg.get_apl_val(), &A, B);
+                                            *right_arg.get_apl_val(), &A, B,
+                                            axis.get());   // Bugs42 #23
+
+        // a reduction folds g along an axis (Bugs42 #29)
+        //
+        if (Value_P Z = reduce_fill(&A, B))   return Token(TOK_APL_VALUE1, Z);
 
         if (const Function * fun = fill_operand())
            return (oper == &Bif_OPER1_COMMUTE::fun) ? fun->eval_fill_AB(B, A)
@@ -556,7 +582,12 @@ DerivedFunction::eval_fill_B(cValue_R B) const
         if (oper == &Bif_OPER2_RANK::fun && left_arg.is_function() &&
             right_arg.is_apl_val())
            return Bif_OPER2_RANK::fill_ALyB(left_arg.get_function(),
-                                            *right_arg.get_apl_val(), 0, B);
+                                            *right_arg.get_apl_val(), 0, B,
+                                            axis.get());   // Bugs42 #23
+
+        // a reduction folds g along an axis (Bugs42 #29)
+        //
+        if (Value_P Z = reduce_fill(0, B))   return Token(TOK_APL_VALUE1, Z);
 
         if (const Function * fun = fill_operand())
            return (oper == &Bif_OPER1_COMMUTE::fun) ? fun->eval_fill_AB(B, B)
@@ -564,6 +595,69 @@ DerivedFunction::eval_fill_B(cValue_R B) const
         return Function::eval_fill_B(B);
       }
    return eval_B(B);
+}
+//────────────────────────────────────────────────────────────────────────────
+Value_P
+DerivedFunction::reduce_fill(const cValue * A, const cValue & B) const
+{
+   if (oper != &Bif_OPER1_REDUCE::fun && oper != &Bif_OPER1_REDUCE1::fun)
+      return Value_P();
+   if (!left_arg.is_function())   return Value_P();
+const Function * g = left_arg.get_function();
+
+   // the reduced axis: the last (/) or the first (⌿), or [X]
+   //
+   if (B.get_rank() == 0)   return Value_P();
+sRank ax = (oper == &Bif_OPER1_REDUCE::fun) ? B.get_rank() - 1 : 0;
+   if (!!axis)
+      {
+        Cell cache;
+        if (!axis->is_scalar_or_len1_vector() ||
+            !axis->get_cfirst(cache).is_near_int())   return Value_P();
+        ax = axis->get_cfirst(cache).get_near_int() - Workspace::get_IO();
+        if (ax < 0 || ax >= sRank(B.get_rank()))   return Value_P();
+      }
+const ShapeItem len = B.get_shape_item(ax);
+
+   // the number of items that are folded: all (g/B) or the window of A g/B
+   //
+ShapeItem n = len;
+Shape shape_Z = B.get_shape().without_axis(ax);
+   if (A)
+      {
+        Cell cache;
+        if (!A->is_scalar_or_len1_vector() ||
+            !A->get_cfirst(cache).is_near_int())   return Value_P();
+        n = A->get_cfirst(cache).get_near_int();
+        if (n < 0)   n = -n;
+        if (n == 0 || n > len)   return Value_P();
+        shape_Z = B.get_shape();
+        shape_Z.set_shape_item(ax, len - n + 1);
+      }
+   if (n == 0 || n > 10000)   return Value_P();   // identity, or too long
+
+   // a1 g a2 g ... an for the (fill) items a of B
+   //
+Value_P item;
+   {
+     Cell cache;
+     const Cell & cell = B.get_cfirst(cache);
+     if (cell.is_pointer_cell())   item = cell.get_pointer_value();
+     else   { item = Value_P(LOC);   item->next_ravel_Cell(cell);
+              item->check_value(LOC); }
+   }
+Value_P acc = item;
+   for (ShapeItem i = 1; i < n; ++i)
+       {
+         const Token tok = g->eval_fill_AB(*item, *acc);
+         if (!tok.is_apl_val())   return Value_P();
+         acc = tok.get_apl_val();
+       }
+
+Value_P Z(shape_Z, LOC);
+   loop(z, Z->nz_element_count())   Z->set_ravel_Value(z, acc.get());
+   Z->check_value(LOC);
+   return Z;
 }
 //────────────────────────────────────────────────────────────────────────────
 /// item i of V as a value
@@ -586,9 +680,22 @@ DerivedFunction::each_outer_fill(const Function * fun, bool outer,
    // the shape of the result: that of B (or of the non-scalar A) for f¨,
    // and (⍴A),⍴B for ∘.g
    //
+   // A f¨ B: a single item of A or B is extended (like f¨ does). If A and B
+   // do not conform (the non-empty case would fail), then the fill is that
+   // of the item of the empty argument with itself (Bugs41 #64, Bugs42 #1)
+   //
+const bool ext_A = A && !outer && A->element_count() == 1
+                                && B.element_count() != 1;
+const bool ext_B = A && !outer && !ext_A && B.element_count() == 1;
+   if (A && !outer && !ext_A && !ext_B && A->get_shape() != B.get_shape())
+      {
+        const cValue & item = fill_prefer_A ? *A : B;
+        return each_outer_fill(fun, false, &item, item);
+      }
+
 Shape shape_Z = B.get_shape();
-   if (outer)                                   shape_Z = A->get_shape() + B.get_shape();
-   else if (A && B.is_scalar() && !A->is_scalar())   shape_Z = A->get_shape();
+   if (outer)       shape_Z = A->get_shape() + B.get_shape();
+   else if (ext_B)  shape_Z = A->get_shape();
 
 const ShapeItem len_B = B.element_count();
 const ShapeItem count = shape_Z.get_volume();
@@ -596,10 +703,9 @@ Value_P Z(shape_Z, LOC);
    loop(z, count ? count : 1)   // at least the prototype
       {
         ShapeItem a = 0, b = 0;
-        if (outer)                          { a = z / (len_B ? len_B : 1);
-                                              b = z % (len_B ? len_B : 1); }
-        else if (A && !A->is_scalar())      { a = z;   b = B.is_scalar() ? 0 : z; }
-        else                                { b = z; }
+        if (outer)   { a = z / (len_B ? len_B : 1);
+                       b = z % (len_B ? len_B : 1); }
+        else         { a = ext_A ? 0 : z;   b = ext_B ? 0 : z; }
         if (count == 0)   a = b = 0;   // the prototypes
 
         Value_P B1 = fill_item(B, b);

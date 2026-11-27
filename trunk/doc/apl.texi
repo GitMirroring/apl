@@ -3511,8 +3511,9 @@ connection to APserver has failed (@pxref{]STATUS Command}).
 
 When @b{]NEXTFILE} is executed with @b{⍎} (e.g.
 @code{⍎(condition)/']NEXTFILE'}, possibly inside a defined function),
-then it takes effect after @b{⍎} (and the defined function) have
-returned.
+then the statement that started it is abandoned (including all defined
+functions that it has called, which therefore do not remain on the
+@b{)SI}), and @b{]NEXTFILE} takes effect thereafter.
 
 @c ............................................................................
 @node ]PUSHFILE

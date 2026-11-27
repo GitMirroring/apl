@@ -439,6 +439,40 @@ std::vector<ShapeItem> stack;
    return E_NO_ERROR;
 }
 //────────────────────────────────────────────────────────────────────────────
+/// true if \b tok is a dyadic operator: a primitive one, or a defined one
+/// (a symbol whose function is a dyadic operator, e.g. OP in - OP (10) 5,
+/// Bugs42 #21)
+static bool
+is_dyadic_operator(const Token & tok)
+{
+   if (tok.get_Class() == TC_OPER2)    return true;
+   if (tok.get_Class() != TC_SYMBOL)   return false;
+
+const Symbol * sym = tok.get_sym_ptr();
+const Function * fun = sym ? sym->get_function() : 0;
+   return fun && fun->is_operator() && fun->get_oper_valence() == 2;
+}
+//────────────────────────────────────────────────────────────────────────────
+/// true if tos[pos] is a dyadic operator (see above), or the } of a lambda
+/// that is a dyadic operator, i.e. that uses ⍹ (at its own nesting level),
+/// e.g. {⍶ ⍵+⍹} in - {⍶ ⍵+⍹} (10) 5 (Bugs42 #21)
+static bool
+is_dyadic_operator_at(const Token_string & tos, ShapeItem pos)
+{
+   if (is_dyadic_operator(tos[pos]))           return true;
+   if (tos[pos].get_tag() != TOK_R_CURLY)   return false;
+
+int level = 0;
+   for (ShapeItem t = pos - 1; t >= 0; --t)
+       {
+         const TokenTag tag = tos[t].get_tag();
+         if (tag == TOK_R_CURLY)        ++level;
+         else if (tag == TOK_L_CURLY)   { if (level-- == 0)   break; }
+         else if (level == 0 && tag == TOK_OMEGA_U)   return true;
+       }
+   return false;
+}
+//────────────────────────────────────────────────────────────────────────────
 /// return true iff tos[pos] is (the end of) a function, seeing through
 /// any chain of closing parens -- e.g. tos[pos] == ) in (+/)[1] correctly
 /// sees the / inside. Deliberately does not special-case TC_SYMBOL (the
@@ -448,6 +482,21 @@ std::vector<ShapeItem> stack;
 static bool
 ends_in_function(const Token_string & tos, int pos)
 {
+   // a member c in S.c is a value, also if a function c exists, e.g. the
+   // [1] in S.c[1] is an index, not an axis (Bugs42 #18)
+   //
+   if (tos[pos].get_Class() == TC_SYMBOL && pos >= 2 &&
+       tos[pos - 1].get_tag() == TOK_OPER2_INNER &&
+       tos[pos - 2].get_Class() == TC_SYMBOL)
+      {
+        int head = pos - 2;   // the head S of the chain S.b.c
+        while (head >= 2 && tos[head - 1].get_tag() == TOK_OPER2_INNER &&
+               tos[head - 2].get_Class() == TC_SYMBOL)   head -= 2;
+        const Symbol * sym = tos[head].get_sym_ptr();
+        const NameClass nc = sym ? sym->get_NC() : NC_UNUSED_USER_NAME;
+        if (nc != NC_FUNCTION && nc != NC_OPERATOR)   return false;
+      }
+
    if (tos[pos].is_function())          return true;
    if (tos[pos].get_Class() != TC_R_PARENT)   return false;
    if (pos == 0)                        return false;   // syntax error
@@ -1444,7 +1493,7 @@ bool progress = false;
         // with the argument that follows (Bugs40 #74)
         //
         if (tos[t].get_tag() == TOK_APL_VALUE1 && t > 0 &&
-            tos[t - 1].get_Class() == TC_OPER2)   continue;
+            is_dyadic_operator_at(tos, t - 1))   continue;
 
         // at this point, t is the first item. Collect subsequenct items.
         //
@@ -2686,7 +2735,7 @@ bool progress = false;   // per iteration progress
                ShapeItem next = t + 3;   // the token right of ), skipping
                while (next < tos.ssize() && tos[next].get_Class() == TC_VOID)
                      ++next;
-               if (prev >= 0 && tos[prev].get_Class() == TC_OPER2 &&
+               if (prev >= 0 && is_dyadic_operator_at(tos, prev) &&
                    next < tos.ssize() &&
                    (tos[next].get_Class() == TC_VALUE    ||
                     tos[next].get_Class() == TC_LIT_ITEM ||

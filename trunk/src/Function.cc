@@ -389,6 +389,8 @@ Function::eval_XB(cValue_R X, cValue_R B) const
    return phrase_error("XB");
 }
 //────────────────────────────────────────────────────────────────────────────
+bool Function::fill_prefer_A = false;
+//────────────────────────────────────────────────────────────────────────────
 Token
 Function::eval_fill_AB(cValue_R A, cValue_R B) const
 {

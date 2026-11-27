@@ -50,6 +50,8 @@ Plot_window_properties::Plot_window_properties(const Plot_data * data,
      scale_X(0),
      scale_Y(0),
      scale_Z(0),
+     range_X(1),
+     range_Y(1),
      tile_X(0),
      tile_Y(0),
      tile_Z(0),
@@ -207,9 +209,13 @@ const double orig_len = sqrt(origin_X*origin_X + origin_Y*origin_Y);
            << setw(20) << "scale_Y (1): " << scale_Y << " pixels/Y" << endl
            << setw(20) << "scale_Z (1): " << scale_Z << " pixels/Z" << endl;
 
-const double tile_X_raw = gridX_pixels / scale_X;
-const double tile_Y_raw = gridY_pixels / scale_Y;
-const double tile_Z_raw = gridZ_pixels / scale_Z;
+   // not gridX_pixels / scale_X: scale_X overflows to ∞ for a tiny range,
+   // e.g. 1E¯307 2E¯307 (Bugs42 #37)
+   //
+const double tile_X_raw = gridX_pixels * (delta_X / pa_width);
+const double tile_Y_raw = gridY_pixels * (delta_Y / pa_height);
+const double tile_Z_raw = orig_len ? gridZ_pixels * (delta_Z / orig_len)
+                                   : gridZ_pixels;
 
   if (verbosity & SHOW_DRAW)
       CERR << setw(20) << "tile_X_raw: " << tile_X_raw
@@ -265,6 +271,8 @@ const int max_Zi = ceil(max_Z / tile_Z);
    scale_X = pa_width  / delta_X;
    scale_Y = pa_height / delta_Y;
    scale_Z = orig_len ? orig_len  / delta_Z : 1.0;
+   range_X = delta_X;
+   range_Y = delta_Y;
 
    if (verbosity & SHOW_DRAW)
       CERR << setw(20) << "min_X (2): " << min_X << endl

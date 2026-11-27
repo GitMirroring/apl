@@ -3107,6 +3107,18 @@ const Fid OPER_fid_probe = find_Fid_attr("OPER-fid", true, 16);
                   DOMAIN_ERROR;
                 }
 
+             // nor can a function that an )SI entry owns, e.g. its
+             // anonymous lambda or a derived function: the )SI entry
+             // deletes it in )SIC (Bugs42 #6)
+             //
+             if (d == 0 && !symbol_lambda_fids.count(fid))
+                {
+                  MORE_ERROR() << "corrupt workspace: <Symbol name=\""
+                               << symbol.get_name() << "\"> refers to "
+                                  "a function that is not a named lambda";
+                  DOMAIN_ERROR;
+                }
+
              if (d == 0)
                 {
                   if (copying)   // see the lambda branch below
@@ -3144,9 +3156,17 @@ const Fid OPER_fid_probe = find_Fid_attr("OPER-fid", true, 16);
            }
 
         // a derived function that is created later (from its <Function>
-        // in the Parser of its )SI entry)
+        // in the Parser of its )SI entry). Level 0 cannot hold one: a
+        // derived function cannot be assigned to a name (Bugs42 #6)
         //
-        if (d > 0)   symbol.push();   // placeholder, bound in phase 2
+        if (d == 0)
+           {
+             MORE_ERROR() << "corrupt workspace: <Symbol name=\""
+                          << symbol.get_name() << "\"> refers to "
+                             "a function that is not a named lambda";
+             DOMAIN_ERROR;
+           }
+        symbol.push();   // placeholder, bound in phase 2
         _derived_todo td = { 0, &symbol, symbol.value_stack_size() - 1,
                              fid, NO_FID, NO_FID, NO_FID,
                              NO_VID, NO_VID, NO_VID, LOC };
@@ -3353,6 +3373,7 @@ UCS_string text;
              //
              if (is_lambda && d > 0)   symbol.set_top_owns_lambda();
              add_fid_function(fid, ufun, LOC);
+             if (is_lambda)   symbol_lambda_fids.insert(fid);   // Bugs42 #6
              ufun->set_exec_properties(eprops);
              if (!copying && (stop_lines.size() || trace_lines.size()))
                 {
@@ -3375,6 +3396,35 @@ UCS_string text;
              add_fid_function(fid, 0, LOC);
            }
       }
+}
+//────────────────────────────────────────────────────────────────────────────
+/// the symbol of a name (an attribute \b what) in a workspace file. An empty
+/// name, an unknown ⎕-name, or a name that starts with a digit is a corrupt
+/// workspace: Workspace::lookup_symbol() ended the interpreter for the former
+/// (Bugs42 #5, like Bugs41 #17 for <Symbol name>)
+static Symbol *
+file_symbol(const UCS_string & name, const char * what)
+{
+   if (name.size() == 0 || Avec::is_digit(name[0]))
+      {
+        MORE_ERROR() << "corrupt workspace: invalid name '" << name
+                     << "' in " << what;
+        DOMAIN_ERROR;
+      }
+
+   if (Avec::is_quad(name[0]))
+      {
+        Symbol * symbol = Workspace::lookup_existing_symbol(name);
+        if (symbol == 0)
+           {
+             MORE_ERROR() << "corrupt workspace: unknown name '" << name
+                          << "' in " << what;
+             DOMAIN_ERROR;
+           }
+        return symbol;
+      }
+
+   return Workspace::lookup_symbol(name);
 }
 //────────────────────────────────────────────────────────────────────────────
 cFunction_P
@@ -3430,13 +3480,19 @@ const UTF8 * fun_name = find_optional_attr("ufun-name");
              Error::throw_parse_error(E_DOMAIN_ERROR, LOC, LOC);
            }
 
-        const Symbol & symbol = *Workspace::lookup_symbol(name_UCS);
-        Assert(level < symbol.value_stack_size());
-        const ValueStackItem & vsi = symbol[level];
-        Assert(vsi.get_NC() == NC_FUNCTION);
-        cFunction_P fun = vsi.get_function();
-        Assert(fun);
-        return fun;
+        // no assertions: the file may be corrupt (Bugs42 #5)
+        //
+        const Symbol & symbol = *file_symbol(name_UCS, "<Token ufun-name>");
+        if (level < 0 || level >= symbol.value_stack_size() ||
+            symbol[level].get_NC() != NC_FUNCTION ||
+            !symbol[level].get_function())
+           {
+             MORE_ERROR() << "corrupt workspace: <Token ufun-name=\""
+                          << name_UCS << "\"> at symbol-level " << level
+                          << " is not a function";
+             DOMAIN_ERROR;
+           }
+        return symbol[level].get_function();
       }
 
 const int fun_id = find_int_attr("fun-id", true, 16);
@@ -3631,9 +3687,20 @@ XML_Loading_Archive::read_Ravel()
 {
    if (reading_vids)   // )COPY: remember the sub-values (Bugs41 #33)
       {
-        const int vid = find_int_attr("vid", false, 10);
+        // the <Value>s (parents) were read before: a vid beyond them is
+        // the error of the normal pass (and must not size sub_vids,
+        // Bugs42 #3)
+        //
+        const int64_t vid = find_int_attr("vid", false, 10);
         const UTF8 * cells = find_optional_attr("cells");
-        if (vid < 0 || cells == 0)   return;
+        if (vid < 0 || vid >= int64_t(parents.size()))
+           {
+             MORE_ERROR() << "corrupt workspace: Ravel vid=" << vid
+                          << " out of range (0.."
+                          << (int64_t(parents.size()) - 1) << ")";
+             DOMAIN_ERROR;
+           }
+        if (cells == 0)   return;
         if (size_t(vid) >= sub_vids.size())   sub_vids.resize(vid + 1);
 
         // a pointer cell is ⁶ followed by the vid (⁶ does not occur
@@ -3919,8 +3986,7 @@ UCS_string name_UCS(name_UTF);
    // the file may be corrupt, e.g. the function could not be ⎕FX'ed
    // (Bugs41 #14): no assertions
    //
-Symbol * symbol = Workspace::lookup_symbol(name_UCS);
-   Assert(symbol);
+Symbol * symbol = file_symbol(name_UCS, "<UserFunction ufun-name>");
    if (level < 0 || level >= symbol->value_stack_size())
       {
         MORE_ERROR() << "corrupt workspace: SI-entry of " << name_UCS
@@ -4235,11 +4301,17 @@ bool no_copy = is_protected || (have_allowed_objects && !is_selected);
    // in a )LOAD silently ignore session variables (⎕PW, ⎕TZ, and ⎕PS,
    // which survives )CLEAR and )LOAD since Bugs37 #60, Bugs38 #23)
    //
+   // But a session variable localized by a function on the )SI still needs
+   // its local levels, which the SI entry pops in )SIC (the file was
+   // refused as corrupt, Bugs42 #16). They get the session value.
+   //
    if (!copying &&   // )LOAD
         (name_UCS == ID::get_name_UCS(ID_Quad_PW) ||
          name_UCS == ID::get_name_UCS(ID_Quad_TZ) ||
          name_UCS == ID::get_name_UCS(ID_Quad_PS)))
       {
+        if (symbol)
+           for (int d = 1; d < SI_depth; ++d)   symbol->push();
         skip_to_tag("/Symbol");
         return;
       }
@@ -4412,9 +4484,7 @@ Token tok;
                UTF8_string name_UTF(sym_name, end - sym_name);
                UCS_string name_UCS(name_UTF);
 
-               Symbol * symbol = Avec::is_quad(name_UCS[0])
-                               ? Workspace::lookup_existing_symbol(name_UCS)
-                               : Workspace::lookup_symbol(name_UCS);
+               Symbol * symbol = file_symbol(name_UCS, "<Token sym>");
                new (&tok) Token(tag, symbol);
              }
              break;

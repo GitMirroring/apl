@@ -4,7 +4,9 @@
       ⍝ monadic →B (standard APL)
       ⍝ dyadic A→B (GNU APL extension)
 
-      ⍝ monadic → as expression
+      ⍝ monadic → must be the leftmost item of a statement (or follow a
+      ⍝ label): → as an expression is a SYNTAX ERROR, as in IBM APL2 (APL2
+      ⍝ LRM p. 29, Bugs42 #28)
       ⍝
       )ERASE FOO
 
@@ -13,9 +15,11 @@
 L: (N⍴'-'),'yes', →(0=N←N-1)/0 ◊ →L
 ∇
       FOO
----yes
---yes
--yes
+SYNTAX ERROR+
+FOO[2]  L: (N⍴'-'),'yes',→(0=N←N-1)/0
+                        ^ ^
+
+      )SIC
 
 
       ⍝ dyadic → in immediate execution

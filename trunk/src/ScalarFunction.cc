@@ -158,9 +158,10 @@ ScalarFunction::do_eval_fill_AB(cValue_R A, cValue_R B) const
       }
 
    // A and B are the (non-empty) items ↑A and ↑B of the empty arguments,
-   // e.g. from A f¨B, A∘.f B, or A g.f B.
+   // e.g. from A f¨B, A∘.f B, or A g.f B, whose caller has set
+   // fill_prefer_A (Bugs42 #34).
    //
-   return Token(TOK_APL_VALUE1, fill_items(A, B, false));
+   return Token(TOK_APL_VALUE1, fill_items(A, B, fill_prefer_A));
 }
 //────────────────────────────────────────────────────────────────────────────
 Value_P

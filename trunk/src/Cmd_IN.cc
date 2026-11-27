@@ -41,8 +41,7 @@ Cmd_IN::cmd_IN(ostream & out, UCS_string_vector & args, bool protection)
    // IN filename [objects...]
 
 UCS_string fname = args.front();
-   args.front() = args.back();
-   args.pop_back();
+   args.erase(0);   // keep the order of the objects for NOT FOUND: (Bugs42 #33)
 
 const LibRef_name lib_name(LIB0, fname);
 const UTF8_string filename = LibPaths::get_filename(lib_name, true, ".atf", 0);

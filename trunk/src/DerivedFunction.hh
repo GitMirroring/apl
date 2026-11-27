@@ -183,6 +183,11 @@ public:
    static Value_P each_outer_fill(const Function * fun, bool outer,
                                   const cValue * A, const cValue & B);
 
+   /// the fill of (A) g/B or (A) g⌿B for an operand g that is implemented
+   /// by a macro: g's fill function folded along the axis like the
+   /// reduction folds g (Bugs42 #29). 0 if not applicable.
+   Value_P reduce_fill(const cValue * A, const cValue & B) const;
+
    /// overloaded Function::contains_defined()
    virtual bool contains_defined() const
       { return   oper->is_defined()

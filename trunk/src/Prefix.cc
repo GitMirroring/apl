@@ -823,14 +823,29 @@ Prefix::do_shift(TokenClass next) const
              // (S.m 2)+10, and the . left of m is not a dyadic operator
              // (Bugs41 #20)
              //
-             if ((next == TC_VALUE || next == TC_SYMBOL) &&
-                 body[PC].get_Class() == TC_SYMBOL && is_member_access(PC))
-                return MAY_STRAND;
+             // But like any value, the member, a niladic function, or an
+             // indexed value can be the right operand of a dyadic operator,
+             // which binds stronger than the strand, e.g. -⍣S.n V+1
+             // (Bugs40 #73, Bugs42 #8)
+             //
+             // next is the class of the GLOBAL name, e.g. TC_FUN12 if a
+             // function m exists, but a member is a value regardless
+             // (Bugs42 #17)
+             //
+             if (body[PC].get_Class() == TC_SYMBOL && is_member_access(PC))
+                {
+                  if (is_OPER2_left_of_RO(value_head(PC)))   return false;
+                  return MAY_STRAND;
+                }
 
              // a niladic function (or lambda) yields a value: NL 2 + 10 is
              // (NL 2)+10 (LRM p. 31, Bugs41 #25)
              //
-             if (next == TC_FUN0)   return MAY_STRAND;
+             if (next == TC_FUN0)
+                {
+                  if (is_OPER2_left_of_RO(PC))   return false;
+                  return MAY_STRAND;
+                }
 
              if (next == TC_VALUE)
                 {
@@ -866,9 +881,7 @@ Prefix::do_shift(TokenClass next) const
                   // but an indexed right operand of a dyadic operator binds
                   // stronger than the strand, e.g. -⍣N[1] V+1 (Bugs41 #19)
                   //
-                  const Prefix_PC lbra = PC + body[PC].get_int_val2();
-                  if (is_OPER2_left_of_RO(lbra + 1) &&
-                      !is_member_access(lbra + 1))   return false;
+                  if (is_OPER2_left_of_RO(value_head(PC)))   return false;
                   return MAY_STRAND;   // V[I] B
                 }
 
@@ -880,8 +893,7 @@ Prefix::do_shift(TokenClass next) const
                  PC + 1 < body.end_PC())
                 {
                   // an indexed right operand, e.g. -⍣NN[1] V+1 (Bugs41 #19)
-                  if (is_OPER2_left_of_RO(PC + 1) &&
-                      !is_member_access(PC + 1))   return false;
+                  if (is_OPER2_left_of_RO(value_head(PC)))   return false;
 
                   // the indexed value, e.g. V, S.m, N, (⌽V), V[1 2]
                   if (is_indexed_value(PC + 1))   return MAY_STRAND;
@@ -1215,6 +1227,11 @@ Prefix::value_expected() const
 
                case TC_SYMBOL:
                     {
+                      // a member is a value, also if a function of its
+                      // name exists, e.g. c in S.c[1]+1 (Bugs42 #18)
+                      //
+                      if (is_member_access(pc - 1))   return true;
+
                       const Symbol * sym = tok.get_sym_ptr();
                       const NameClass nc = sym->get_NC();
 
@@ -1446,6 +1463,33 @@ const int offset = body[rbra].get_int_val2();
    return is_indexed_value(rbra + offset + 1);
 }
 //────────────────────────────────────────────────────────────────────────────
+Prefix_PC
+Prefix::value_head(Prefix_PC pc) const
+{
+   for (;;)
+       {
+         if (pc >= body.end_PC())   return pc;
+         const Token & tok = body[pc];
+         if (tok.get_Class() == TC_R_BRACK)   // V[...]
+            {
+              const Prefix_PC lbra = pc + tok.get_int_val2();
+              if (lbra >= body.end_PC() ||
+                  body[lbra].get_Class() != TC_L_BRACK)   return pc;
+              pc = lbra + 1;
+            }
+         else if (tok.get_Class() == TC_INDEX &&   // V[1] (collapsed)
+                  tok.get_tag() != TOK_FAXIS)
+            {
+              pc = pc + 1;
+            }
+         else if (tok.get_Class() == TC_SYMBOL && is_member_access(pc))
+            {
+              pc = pc + 2;   // the name left of the .
+            }
+         else return pc;
+       }
+}
+//────────────────────────────────────────────────────────────────────────────
 bool
 Prefix::is_indexed_value(Prefix_PC pc) const
 {
@@ -1533,6 +1577,11 @@ TokenClass next = body[pc].get_Class();
         next = body[pc].get_Class();
       }
 
+   // a niladic lambda (or function) as the right operand of a dyadic
+   // operator, e.g. {1} in (⌽⍣{1}) (Bugs42 #20)
+   //
+   if (next == TC_FUN0 && is_OPER2_left_of_RO(pc))   return false;
+
    if (next == TC_SYMBOL)   // resolve symbol if necessary
       {
         // dyadic operator with a variable RO, e.g. Y in (⍴⍤Y) -- mirror
@@ -1543,9 +1592,11 @@ TokenClass next = body[pc].get_Class();
         // it to the derived function. See Bugs27 #21.
         //
         // but a member of a structured variable, e.g. (S.m), is a value
-        // (Bugs40 #20)
+        // (Bugs40 #20), unless the whole chain is the right operand, e.g.
+        // (⌽⍣S.n) (Bugs42 #20)
         //
-        if (is_OPER2_left_of_RO(pc) && !is_member_access(pc))   return false;
+        if (is_OPER2_left_of_RO(value_head(pc)))   return false;
+        if (is_member_access(pc))                  return true;
 
         const Symbol * sym = body[pc].get_sym_ptr();
         const NameClass nc = sym->get_NC();
@@ -1797,7 +1848,12 @@ const Token & tok = at(0).get_token();
         case TC_INDEX:   // e.g. ,[1] (constant axis) as opposed to X[1]
              if (tok.get_tag() != TOK_MARKER && PC < body.end_PC())
                 {
-                  if (_::is_fun_or_oper(body[PC].get_token()))
+                  // a member named like a function is a value, e.g. c in
+                  // S.c[1] (Bugs42 #18)
+                  //
+                  if (_::is_fun_or_oper(body[PC].get_token()) &&
+                      !(body[PC].get_Class() == TC_SYMBOL &&
+                        is_member_access(PC)))
                      fun_tok = &body[PC].get_token();
                   else if (body[PC].get_Class() == TC_R_PARENT &&
                            is_function_parenthesis(PC))   // (+/)[1]
@@ -1817,6 +1873,8 @@ const Token & tok = at(0).get_token();
                         {
                           if (pc + 1 >= body.end_PC())   break;
                           const Token & ft = body[pc + 1].get_token();
+                          if (ft.get_Class() == TC_SYMBOL &&
+                              is_member_access(pc + 1))   break;   // S.c[I]
                           if (_::is_fun_or_oper(ft))   fun_tok = &ft;
                           else if (ft.get_Class() == TC_R_PARENT &&
                                    is_function_parenthesis(pc + 1))
@@ -3559,10 +3617,34 @@ Prefix::reduce_D_V__()
    // SYNTAX ERROR. The member chain was already read, so that it could
    // not be read again (Bugs41 #52).
    //
+   // Un-read the member chain like a plain name (Bugs38 #39), so that a
+   // resume reads it again but keeps what was evaluated right of it: a
+   // restart of the statement evaluated that a second time, e.g. N←N+1 in
+   // Q.a+N←N+1, and covered only the VALUE ERROR (Bugs42 #19).
+   //
+const Prefix_PC lah = lookahead_PC;
    try   { do_reduce_D_V__(); }
    catch (const Error & err)
       {
-        if (err.get_error_code() == E_VALUE_ERROR)   set_restart_PC();
+        // at0() is the . and at1() the member V; the . was read last (it
+        // may also be the lookahead token)
+        //
+        const Prefix_PC pc_D = (lah < body.end_PC() &&
+                                body[lah].get_tag() == TOK_OPER2_INNER)
+                             ? lah : lah - 1;
+        if (ssize() >= 2 && at0().get_tag() == TOK_OPER2_INNER &&
+            at1().get_Class() == TC_SYMBOL && pc_D > Prefix_PC_0 &&
+            body[pc_D].get_tag() == TOK_OPER2_INNER)
+           {
+             pop();   // the .
+             pop();   // the member V
+             PC = pc_D - 1;
+             lookahead_PC = (PC > Prefix_PC_0) ? PC - 1 : Prefix_PC_0;
+           }
+        else
+           {
+             set_restart_PC();
+           }
         throw;
       }
 }
@@ -4844,7 +4926,10 @@ Prefix::reduce_END_VOID__()
    if (ssize() != 2)   syntax_error(LOC);
 
 const bool end_of_line = at0().get_tag() == TOK_ENDL;
-const bool trace = end_of_line && (at0().get_int_val() & 1);
+// every statement of a traced line, also before a ◊ (Bugs42 #38), but
+// not →→ or ←→, whose value is a jump target, not a trace flag
+const bool trace = (at0().get_tag() == TOK_ENDL ||
+                    at0().get_tag() == TOK_END) && (at0().get_int_val() & 1);
 
    handle_ELSE(at0(), 3);
 
@@ -4882,7 +4967,10 @@ Prefix::reduce_END_B__()
 
 const Token END = pop().get_token();   // pop END
 const bool end_of_line = END.get_tag() == TOK_ENDL;
-const bool trace = end_of_line && (END.get_int_val() & 1);
+// every statement of a traced line, also before a ◊ (Bugs42 #38), but
+// not →→ or ←→, whose value is a jump target, not a trace flag
+const bool trace = (END.get_tag() == TOK_ENDL || END.get_tag() == TOK_END) &&
+                   (END.get_int_val() & 1);
 
 Token B = pop().get_token();   // pop B
 
@@ -5044,6 +5132,17 @@ Prefix::reduce_END_GOTO_B_()
    //
    if (ssize() != 3)   syntax_error(LOC);
 
+   // and → must be the leftmost item of the statement (or follow a label,
+   // APL2 LRM p. 29, as IBM APL2 does): the phrases F GOTO B and M GOTO B
+   // discarded the function left of → and everything left of it, e.g.
+   // Q←Q×→3 (Bugs42 #28)
+   //
+   if (at0().get_Class() != TC_END)
+      {
+        MORE_ERROR() << "→ must be the leftmost item of a statement";
+        syntax_error(LOC);
+      }
+
    // a lambda cannot branch. Its fix-time check (Executable::
    // compute_lambda_body()) rejects →B at the start of a statement, but
    // cannot know if a name left of → is a value (A→B) or a function, e.g.
@@ -5065,7 +5164,10 @@ Prefix::reduce_END_GOTO_B_()
    //       or TOK_OPER1
    //
 const bool end_of_line = at0().get_tag() == TOK_ENDL;
-const bool trace = end_of_line && (at0().get_int_val() & 1);
+// every statement of a traced line, also before a ◊ (Bugs42 #38), but
+// not →→ or ←→, whose value is a jump target, not a trace flag
+const bool trace = (at0().get_tag() == TOK_ENDL ||
+                    at0().get_tag() == TOK_END) && (at0().get_int_val() & 1);
 
    // →LAB vs →4/→2+2: si.jump() below always tags a real branch-back
    // result as TOK_BRANCH_INT since it only ever sees the resolved
@@ -5489,7 +5591,10 @@ Prefix::reduce_RETC_GOTO_B_()
    //       or TOK_OPER1
    //
 const bool end_of_line = at0().get_tag() == TOK_ENDL;
-const bool trace = end_of_line && (at0().get_int_val() & 1);
+// every statement of a traced line, also before a ◊ (Bugs42 #38), but
+// not →→ or ←→, whose value is a jump target, not a trace flag
+const bool trace = (at0().get_tag() == TOK_ENDL ||
+                    at0().get_tag() == TOK_END) && (at0().get_int_val() & 1);
 
    // see the matching comment in reduce_END_GOTO_B_()
 const bool is_label = at2().get_tag() == TOK_APL_VALUE5;

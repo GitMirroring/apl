@@ -60,9 +60,14 @@ Value::set_default(const Value & B, const char * loc)
        Assert1(this->get_cproto(proto_cache).is_integer_cell());  // by constructor
        Cell cache;
        const Cell & cell = B.get_cproto(cache);
-       if (cell.is_lval_cell())   new (&get_wproto()) LvalCell(0, 0);
-       else                       Cell::init_type_at(&get_wproto(), cell,
-                                                      *this, loc);
+       // also the sub-value of a left value, e.g. of ,¨V in (0↑,¨V)←⍬,
+       // whose prototype were plain zeros (Bugs42 #27)
+       //
+       if (cell.is_lval_cell() ||
+           (B.is_left_value() && cell.is_pointer_cell()))
+          new (&get_wproto()) LvalCell(0, 0);
+       else
+          Cell::init_type_at(&get_wproto(), cell, *this, loc);
      }
 }
 //──────────────────────────────────────────────────────────────────────────
@@ -75,9 +80,14 @@ Value::set_default(const cValue & B, const char * loc)
        Assert1(this->get_cproto(proto_cache).is_integer_cell());  // by constructor
        Cell cache;
        const Cell & cell = B.get_cproto(cache);
-       if (cell.is_lval_cell())   new (&get_wproto()) LvalCell(0, 0);
-       else                       Cell::init_type_at(&get_wproto(), cell,
-                                                      *this, loc);
+       // also the sub-value of a left value, e.g. of ,¨V in (0↑,¨V)←⍬,
+       // whose prototype were plain zeros (Bugs42 #27)
+       //
+       if (cell.is_lval_cell() ||
+           (B.is_left_value() && cell.is_pointer_cell()))
+          new (&get_wproto()) LvalCell(0, 0);
+       else
+          Cell::init_type_at(&get_wproto(), cell, *this, loc);
      }
 }
 //──────────────────────────────────────────────────────────────────────────

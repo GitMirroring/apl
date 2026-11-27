@@ -550,6 +550,11 @@ public:
    /// Return the number of scalars in this value (enlist).
    ShapeItem get_enlist_count() const;
 
+   /// the number of scalars of a fill position (a placeholder LvalCell
+   /// without target) in the enlist of this left value: that of the first
+   /// selected item, whose structure the fill item has (Bugs42 #25)
+   ShapeItem fill_enlist_count() const;
+
    /// compute the depth of this value.
    APL_types::Depth compute_depth() const;
 
@@ -1045,9 +1050,10 @@ public:
    bool get_lval_discard() const
       { return lval_discard; }
 
-   /// return a scalar left value without a target that discards whatever
-   /// is assigned to it, see set_lval_discard()
-   static Value_P discarded_lval();
+   /// return a left value without a target that discards whatever is
+   /// assigned to it, see set_lval_discard(). It is a scalar, or has the
+   /// shape of \b like (the fill item, Bugs42 #26)
+   static Value_P discarded_lval(const cValue * like = 0);
 
    /// clear all three "unbroken pass-through" lvalue markers above
    /// (lval_whole_symbol, lval_pick_slot/owner, lval_bare_member_ref).

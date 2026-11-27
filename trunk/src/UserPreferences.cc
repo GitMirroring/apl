@@ -1502,7 +1502,7 @@ const char * apl_args = args[1];   // the args after e.g. /usr/bin/apl
        {
          // skip leading whitespace
          //
-         while (*apl_args && *apl_args <= ' ')   ++apl_args;
+         while (*apl_args && UTF8(*apl_args) <= ' ')   ++apl_args;
 
          if (*apl_args == 0)   break;
 
@@ -1795,7 +1795,7 @@ int file_profile = 0;   // the current profile in the preferences file
 
          // skip leading spaces
          //
-         while (*s && *s <= ' ')   ++s;
+         while (*s && UTF8(*s) <= ' ')   ++s;
 
          if (*s == 0)     continue;   // empty line
          if (*s == '#')   continue;   // comment line
@@ -1872,7 +1872,7 @@ int file_profile = 0;   // the current profile in the preferences file
          int sargs_idx = 0;
          for (;;)
             {
-              while (*p && *p <= ' ')   ++p;    // discard leading whitespace
+              while (*p && UTF8(*p) <= ' ')   ++p;    // discard leading whitespace
               if (*p == 0)   break;
 
               if (p[0] == '/' && p[1] == '/')   break;   // comment
@@ -2072,8 +2072,10 @@ int file_profile = 0;   // the current profile in the preferences file
               // the rest of the line (a path may contain blanks; only its
               // first word was used, Bugs39 #80)
               //
+              // UTF8: a byte ≥ 0x80 is no white space (Bugs42 #36)
+              //
               const char * path = full_line.c_str() + strlen(opt);
-              while (*path && *path <= ' ')   ++path;
+              while (*path && UTF8(*path) <= ' ')   ++path;
               UTF8_string arg_utf(path);
 
               // but a # or // after white space starts a comment, like for
@@ -2357,7 +2359,7 @@ int line = 0;
 
          // skip leading spaces
          //
-         while (*s && *s <= ' ')   ++s;
+         while (*s && UTF8(*s) <= ' ')   ++s;
 
          if (*s == 0)     continue;   // empty line
          if (*s == '#')   continue;   // comment line or #undef

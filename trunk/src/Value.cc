@@ -697,10 +697,14 @@ const int src_incr  = (new_value_count == 1)  ? 0 : 1;
 }
 //────────────────────────────────────────────────────────────────────────────
 Value_P
-Value::discarded_lval()
+Value::discarded_lval(const cValue * like)
 {
-Value_P Z(LOC);
-   Z->next_ravel_Lval(0, 0);
+   // with the shape of the fill item \b like (if any), so that a selection
+   // that needs its rank or axes, e.g. 2⊃¨ or ⌽[1]¨, can select from it
+   // (Bugs42 #26)
+   //
+Value_P Z = like ? Value_P(like->get_shape(), LOC) : Value_P(LOC);
+   loop(z, Z->nz_element_count())   new (&Z->get_wravel(z)) LvalCell(0, 0);
    Z->set_left_value();
    Z->set_lval_discard();
    Z->check_value(LOC);

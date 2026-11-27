@@ -589,6 +589,16 @@ StateIndicator * si = Workspace::SI_top();   // the current )SI entry
 
    code = maybe_convert_to_domain_error(code, si);
 
+   // a )MORE text that is only information, e.g. of a ⎕FX that returned a
+   // line number, belongs to no error (Bugs41 #78), also not to e.g. a
+   // DOMAIN ERROR later in the same statement (Bugs42 #35)
+   //
+   if (Workspace::more_is_info)
+      {
+        Workspace::more_error().clear();
+        Workspace::more_is_info = false;
+      }
+
 Error error(code, loc);
    if (si)
       {

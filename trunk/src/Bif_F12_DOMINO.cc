@@ -1277,6 +1277,12 @@ vector<Complex> vZ(shape_Z.get_volume(), Complex(0));
    // largest coefficients of A and B, which zeroed e.g. the x² of
    // 1E8 1 ⌹[8] 1E8 1 (Bugs41 #22).
    //
+   // The terms are multiplied by 16×DBL_EPSILON before they are added:
+   // the plain sum overflowed to ∞ for coefficients beyond about 9E307,
+   // and the ∞ bound then zeroed the coefficient, e.g. the 1E308 of
+   // 1E308 1E308 ⌹[8] 1.5 ¯0.5 (Bugs42 #15)
+   //
+const double noise_factor = 16 * DBL_EPSILON;
 vector<double> scale_r(shape_Z.get_volume(), 0.0);
 vector<double> scale_i(shape_Z.get_volume(), 0.0);
 
@@ -1317,8 +1323,10 @@ vector<double> scale_i(shape_Z.get_volume(), 0.0);
              {
                const double ia = cell_A.get_imag_value();
                const double ib = cell_B.get_imag_value();
-               scale_r[pos] += fabs(real_a * real_b) + fabs(ia * ib);
-               scale_i[pos] += fabs(real_a * ib) + fabs(ia * real_b);
+               scale_r[pos] += noise_factor * fabs(real_a * real_b)
+                             + noise_factor * fabs(ia * ib);
+               scale_i[pos] += noise_factor * fabs(real_a * ib)
+                             + noise_factor * fabs(ia * real_b);
              }
              if (!cell_A.is_complex_cell() && !cell_B.is_complex_cell())
                 {
@@ -1344,8 +1352,7 @@ vector<double> scale_i(shape_Z.get_volume(), 0.0);
 Value_P Z(shape_Z, LOC);
    loop(z, shape_Z.get_volume())
        store_coefficient(*Z, vZ[z].real(), vZ[z].imag(),
-                         16 * DBL_EPSILON * scale_r[z],
-                         16 * DBL_EPSILON * scale_i[z]);
+                         scale_r[z], scale_i[z]);
 
    Z->check_value(LOC);
    return Z;
@@ -1441,25 +1448,40 @@ vector<double> SI;   SI.reserve(ec_A);   // imaginary parts
        {
          Cell cache;
          const Cell & cell = A.get_cravel(ec_A - a - 1, cache);
-         SR.push_back(fabs(cell.get_real_value()));
-         SI.push_back(fabs(cell.get_imag_value()));
+         SR.push_back(16 * DBL_EPSILON * fabs(cell.get_real_value()));
+         SI.push_back(16 * DBL_EPSILON * fabs(cell.get_imag_value()));
        }
-#define NOISE(r)   (16 * DBL_EPSILON * SR[r])
-#define NOISE_I(r) (16 * DBL_EPSILON * SI[r])
+
+   // SR and SI already contain the factor 16×DBL_EPSILON, so that their
+   // sums do not overflow (Bugs42 #15, see polynomial_product())
+   //
+#define NOISE(r)   (SR[r])
+#define NOISE_I(r) (SI[r])
 
    // the leading coefficient of B (the divisor of every quotient term).
    // Its parts mix the noise of the parts of R[q] in R[q]÷lead.
    //
-double lead_r, lead_i, lead_2;
+   // w_r = |lead_r|÷|lead|² and w_i = |lead_i|÷|lead|², computed without
+   // squaring the (possibly huge) parts (Bugs42 #15)
+   //
+double w_r = 0.0, w_i = 0.0;
    {
      Cell cache;
      const Cell & lead = B.get_cravel(ec_B - 1, cache);
-     lead_r = fabs(lead.get_real_value());
-     lead_i = fabs(lead.get_imag_value());
-     lead_2 = lead_r*lead_r + lead_i*lead_i;
+     const double lead_r = fabs(lead.get_real_value());
+     const double lead_i = fabs(lead.get_imag_value());
+     const double m = fmax(lead_r, lead_i);
+     if (m > 0.0)
+        {
+          const double lr = lead_r / m;
+          const double li = lead_i / m;
+          const double n2 = lr*lr + li*li;   // in [1, 2]
+          w_r = (lr / n2) / m;
+          w_i = (li / n2) / m;
+        }
    }
-#define NOISE_Q(q)   ((NOISE(q)*lead_r + NOISE_I(q)*lead_i) / lead_2)
-#define NOISE_QI(q)  ((NOISE_I(q)*lead_r + NOISE(q)*lead_i) / lead_2)
+#define NOISE_Q(q)   (NOISE(q)*w_r + NOISE_I(q)*w_i)
+#define NOISE_QI(q)  (NOISE_I(q)*w_r + NOISE(q)*w_i)
 
 Value_P Z(2, LOC);   // Z is quotient Z1 and remainder Z2
    if (need_complex)
@@ -1509,8 +1531,10 @@ Value_P Z(2, LOC);   // Z is quotient Z1 and remainder Z2
                        {
                          const double fr = factor.real(), fi = factor.imag();
                          const double dr = D[b].real(),   di = D[b].imag();
-                         SR[q + b] += fabs(fr*dr) + fabs(fi*di);
-                         SI[q + b] += fabs(fr*di) + fabs(fi*dr);
+                         SR[q + b] += 16 * DBL_EPSILON * fabs(fr*dr)
+                                    + 16 * DBL_EPSILON * fabs(fi*di);
+                         SI[q + b] += 16 * DBL_EPSILON * fabs(fr*di)
+                                    + 16 * DBL_EPSILON * fabs(fi*dr);
                        }
                   }
             }
@@ -1576,7 +1600,8 @@ Value_P Z(2, LOC);   // Z is quotient Z1 and remainder Z2
                   {
                     const size_t b = powers_B[n];
                     R[q + b] -= factor * D[b];
-                    if (q + b < SR.size())   SR[q + b] += fabs(factor * D[b]);
+                    if (q + b < SR.size())
+                       SR[q + b] += 16 * DBL_EPSILON * fabs(factor * D[b]);
                   }
             }
         Assert(size_t(ec_Q) == Q.size());
@@ -1849,15 +1874,50 @@ UCS_string_vector vars;
            {
              const UCS_string text(B);
              ShapeItem t = 0;
+             // the end of the (unsigned) real number at text[t], e.g. 1.5E¯3
+             struct _n { static ShapeItem real_end(const UCS_string & s,
+                                                   ShapeItem t)
+                {
+                  while (t < s.ssize() && (Avec::is_digit(s[t]) ||
+                                           s[t] == '.'))   ++t;
+                  if (t + 1 < s.ssize() && (s[t] == 'E' || s[t] == 'e'))
+                     {
+                       ShapeItem e = t + 1;
+                       if (s[e] == UNI_OVERBAR)   ++e;
+                       if (e < s.ssize() && Avec::is_digit(s[e]))
+                          {
+                            t = e;
+                            while (t < s.ssize() && Avec::is_digit(s[t]))   ++t;
+                          }
+                     }
+                  return t;
+                } };
+
              while (t < text.ssize())
                 {
                   const Unicode uni = text[t];
-                  if (!Avec::is_symbol_char(uni) || Avec::is_digit(uni) ||
-                      is_power(uni))   { ++t;   continue; }
 
-                  // the J of a complex coefficient, e.g. 3J4x
-                  if ((uni == 'J' || uni == 'j') && t > 0 &&
-                      Avec::is_digit(text[t - 1]))   { ++t;   continue; }
+                  // a coefficient, e.g. ¯3, 1E5, or 3J¯4: not a name
+                  // (Bugs42 #14)
+                  //
+                  if (uni == UNI_OVERBAR || uni == '.' || Avec::is_digit(uni))
+                     {
+                       if (uni == UNI_OVERBAR)   ++t;
+                       t = _n::real_end(text, t);
+                       if (t + 1 < text.ssize() &&
+                           (text[t] == 'J' || text[t] == 'j'))
+                          {
+                            ShapeItem j = t + 1;
+                            if (text[j] == UNI_OVERBAR)   ++j;
+                            if (j < text.ssize() && (Avec::is_digit(text[j]) ||
+                                                     text[j] == '.'))
+                               t = _n::real_end(text, j);
+                          }
+                       continue;
+                     }
+
+                  if (!Avec::is_first_symbol_char(uni) || is_power(uni))
+                     { ++t;   continue; }
 
                   // a name ends at a power, e.g. abc² (superscript digits)
                   UCS_string name;

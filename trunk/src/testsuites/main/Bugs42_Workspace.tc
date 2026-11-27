@@ -1,0 +1,810 @@
+⍝ Bugs42_Workspace.tc
+⍝ ----------------------------------
+⍝ Blake McBride's Bugs42 items for )SAVE, )LOAD, )COPY, and )DUMP.
+
+
+
+
+      ⍝ Bugs42 #3: )COPY refuses a Ravel vid beyond the Values of the file before
+
+
+
+
+      ⍝ it allocates anything
+
+
+
+
+      )CLEAR
+CLEAR WS
+
+
+
+      V←1 2 3 ◊ W←'abc'
+
+
+
+
+      )WSID B42W3
+WAS CLEAR WS
+
+
+
+      )SAVE
+³
+
+
+
+      )CLEAR
+CLEAR WS
+
+
+
+      G←'testcases/libroot/workspaces/B42W3.xml' ◊ D0←19 ⎕CR ⎕FIO[26] G
+
+
+
+
+      ∇ZZ3 D;H;N
+
+
+
+
+       H←'w' ⎕FIO[3] 'testcases/libroot/workspaces/B42W3X.xml' ◊ N←(18 ⎕CR D) ⎕FIO[7] H ◊ ⎕FIO[4] H
+
+
+
+
+      ∇
+
+
+
+
+      P←(⍸'<Ravel vid="'⍷D0)[1]+11 ◊ Q←P+¯1+(P↓D0)⍳'"'
+
+
+
+
+      ZZ3 (P↑D0),'2147483647',(Q+1)↓D0
+0
+
+
+
+      X←'mine'
+
+
+
+
+      )COPY B42W3X W
+
+
+
+
+      )MORE
+workspace file ³
+corrupt workspace: Ravel vid=2147483647 out of range (0..24)
+
+
+      ZZ3 (P↑D0),'-2147483649',(Q+1)↓D0
+0
+
+
+
+      )COPY B42W3X W
+
+
+
+
+      )MORE
+workspace file ³
+corrupt workspace: Ravel vid=¯2147483649 out of range (0..24)
+
+
+      X
+mine
+
+
+
+      ⎕FIO[19] 'testcases/libroot/workspaces/B42W3X.xml'
+0
+
+
+
+      )DROP B42W3
+³
+
+
+
+      )ERASE ZZ3 G D0 P Q X
+
+
+
+
+      ⍝ Bugs42 #5: an empty or unknown name in <UserFunction ufun-name>, <Token
+
+
+
+
+      ⍝ ufun-name>, or <Token sym> is a corrupt workspace (not a session end)
+
+
+
+
+      )CLEAR
+CLEAR WS
+
+
+
+      )WSID B42W5L
+WAS CLEAR WS
+
+
+
+      ⎕FX 'Z←A G B' 'Z←A÷B'
+G
+
+
+
+      1 G 0
+DOMAIN ERROR
+G[1]  Z←A÷B
+        ^^
+
+      )SAVE
+³
+
+
+
+      )CLEAR
+CLEAR WS
+
+
+
+      )WSID B42W5T
+WAS CLEAR WS
+
+
+
+      F←{⍺+⍵}
+
+
+
+
+      1 F÷0
+DOMAIN ERROR
+      1 F÷0
+         ^
+
+      )SAVE
+³
+
+
+
+      )CLEAR
+CLEAR WS
+
+
+
+      )WSID B42W5S
+WAS CLEAR WS
+
+
+
+      ⎕FX 'Z←H B;V' 'V←1 2 3' 'V[B]←0' 'Z←V'
+H
+
+
+
+      H 9
+INDEX ERROR+
+H[2]  V[B]←0
+      ^   ^
+
+      )SAVE
+³
+
+
+
+      )CLEAR
+CLEAR WS
+
+
+
+      ∇D←ZZ5 B;F;OLD;NEW;P
+       (F OLD NEW)←B ◊ D←19 ⎕CR ⎕FIO[26] 'testcases/libroot/workspaces/',F,'.xml'
+       P←(⍸OLD⍷D)[1] ◊ D←18 ⎕CR ((P-1)↑D),NEW,(P+¯1+⍴OLD)↓D
+      ∇
+
+
+
+
+      H←'w' ⎕FIO[3] 'testcases/libroot/workspaces/B42W5X1.xml' ◊ N←(ZZ5 'B42W5L' '<UserFunction ufun-name="G"' '<UserFunction ufun-name="⎕XYZ"') ⎕FIO[7] H ◊ ⎕FIO[4] H
+0
+
+
+
+      H←'w' ⎕FIO[3] 'testcases/libroot/workspaces/B42W5X2.xml' ◊ N←(ZZ5 'B42W5L' '<UserFunction ufun-name="G"' '<UserFunction ufun-name=""') ⎕FIO[7] H ◊ ⎕FIO[4] H
+0
+
+
+
+      H←'w' ⎕FIO[3] 'testcases/libroot/workspaces/B42W5X3.xml' ◊ N←(ZZ5 'B42W5T' 'ufun-name="F" symbol-level' 'ufun-name="" symbol-level') ⎕FIO[7] H ◊ ⎕FIO[4] H
+0
+
+
+
+      H←'w' ⎕FIO[3] 'testcases/libroot/workspaces/B42W5X4.xml' ◊ N←(ZZ5 'B42W5T' 'ufun-name="F" symbol-level' 'ufun-name="⎕XYZ" symbol-level') ⎕FIO[7] H ◊ ⎕FIO[4] H
+0
+
+
+
+      H←'w' ⎕FIO[3] 'testcases/libroot/workspaces/B42W5X5.xml' ◊ N←(ZZ5 'B42W5S' 'sym="V"' 'sym=""') ⎕FIO[7] H ◊ ⎕FIO[4] H
+0
+
+
+
+      H←'w' ⎕FIO[3] 'testcases/libroot/workspaces/B42W5X6.xml' ◊ N←(ZZ5 'B42W5S' 'sym="V"' 'sym="⎕XYZ"') ⎕FIO[7] H ◊ ⎕FIO[4] H
+0
+
+
+
+      )LOAD B42W5X1
+)LOAD B42W5X1 failed: DOMAIN ERROR
+
+
+
+      )MORE
+workspace file ³
+corrupt workspace: unknown name '⎕XYZ' in <UserFunction ufun-name>
+
+
+      )LOAD B42W5X2
+)LOAD B42W5X2 failed: DOMAIN ERROR
+
+
+
+      )MORE
+workspace file ³
+corrupt workspace: invalid name '' in <UserFunction ufun-name>
+
+
+      )LOAD B42W5X3
+)LOAD B42W5X3 failed: DOMAIN ERROR
+
+
+
+      )MORE
+workspace file ³
+corrupt workspace: invalid name '' in <Token ufun-name>
+
+
+      )LOAD B42W5X4
+)LOAD B42W5X4 failed: DOMAIN ERROR
+
+
+
+      )MORE
+workspace file ³
+corrupt workspace: unknown name '⎕XYZ' in <Token ufun-name>
+
+
+      )LOAD B42W5X5
+)LOAD B42W5X5 failed: DOMAIN ERROR
+
+
+
+      )MORE
+workspace file ³
+corrupt workspace: invalid name '' in <Token sym>
+
+
+      )LOAD B42W5X6
+)LOAD B42W5X6 failed: DOMAIN ERROR
+
+
+
+      )MORE
+workspace file ³
+corrupt workspace: unknown name '⎕XYZ' in <Token sym>
+
+
+      ⎕FIO[19]¨(⊂'testcases/libroot/workspaces/B42W5X'),¨(⍕¨⍳6),¨⊂'.xml'
+0 0 0 0 0 0
+
+
+
+      )DROP B42W5L
+³
+
+
+
+      )DROP B42W5T
+³
+
+
+
+      )DROP B42W5S
+³
+
+
+
+      ⍝ Bugs42 #6: a level-0 ref may only refer to a named lambda, not to the
+
+
+
+
+      ⍝ anonymous lambda or the derived function of an )SI entry
+
+
+
+
+      )CLEAR
+CLEAR WS
+
+
+
+      )WSID B42W6
+WAS CLEAR WS
+
+
+
+      F←{⍺+⍵} ◊ H←F
+
+
+
+
+      ⎕FX 'K B' 'Q←{⍵÷0}¨B'
+K
+
+
+
+      K 1 2
+DOMAIN ERROR
+λ1[1]  λ←⍵÷0
+         ^^
+
+      )SAVE
+³
+
+
+
+      )SIC
+
+
+
+
+      )CLEAR
+CLEAR WS
+
+
+
+      D0←19 ⎕CR ⎕FIO[26] 'testcases/libroot/workspaces/B42W6.xml' ◊ X←⍸'<Function fid="'⍷D0 ◊ FID←{(¯1+⍵⍳'"')↑⍵}
+
+
+
+
+      P←(⍸'<Symbol name="H"'⍷D0)[1] ◊ HF←FID(14+⌊/(X>P)/X)↓D0
+
+
+
+
+      P←(⍸'OPER-fid="0x'⍷D0)[1] ◊ DF←FID(14+⌈/(X<P)/X)↓D0 ◊ LF←FID(7+(⍸'LO-fid="'⍷D0)[1])↓D0
+
+
+
+
+      OLD←'fid="',HF,'" ref' ◊ P←(⍸OLD⍷D0)[1] ◊ SUB←{18 ⎕CR ((P-1)↑D0),('fid="',⍵,'" ref'),(P+¯1+⍴OLD)↓D0}
+
+
+
+
+      H←'w' ⎕FIO[3] 'testcases/libroot/workspaces/B42W6L.xml' ◊ N←(SUB LF) ⎕FIO[7] H ◊ ⎕FIO[4] H
+0
+
+
+
+      H←'w' ⎕FIO[3] 'testcases/libroot/workspaces/B42W6D.xml' ◊ N←(SUB DF) ⎕FIO[7] H ◊ ⎕FIO[4] H
+0
+
+
+
+      )LOAD B42W6L
+)LOAD B42W6L failed: DOMAIN ERROR
+
+
+
+      )MORE
+workspace file ³
+corrupt workspace: <Symbol name="H"> refers to a function that is not a named lambda
+
+
+      )LOAD B42W6D
+)LOAD B42W6D failed: DOMAIN ERROR
+
+
+
+      )MORE
+workspace file ³
+corrupt workspace: <Symbol name="H"> refers to a function that is not a named lambda
+
+
+      )LOAD B42W6
+³
+
+
+
+      1 H 2
+3
+
+
+
+      )SIC
+
+
+
+
+      1 H 2
+3
+
+
+
+      ⎕FIO[19] 'testcases/libroot/workspaces/B42W6L.xml'
+0
+
+
+
+      ⎕FIO[19] 'testcases/libroot/workspaces/B42W6D.xml'
+0
+
+
+
+      )DROP B42W6
+³
+
+
+
+      ⍝ Bugs42 #7: a parser-stack <Token pc> outside its statement is not an
+
+
+
+
+      ⍝ assertion on the resume
+
+
+
+
+      )CLEAR
+CLEAR WS
+
+
+
+      )WSID B42W7
+WAS CLEAR WS
+
+
+
+      ⎕FX 'Z←A G B' 'Z←A÷B'
+G
+
+
+
+      1 G 0
+DOMAIN ERROR
+G[1]  Z←A÷B
+        ^^
+
+      )SAVE
+³
+
+
+
+      )SIC
+
+
+
+
+      )CLEAR
+CLEAR WS
+
+
+
+      D0←19 ⎕CR ⎕FIO[26] 'testcases/libroot/workspaces/B42W7.xml' ◊ OLD←'<Token pc="3" tag="0x44030907"' ◊ P←(⍸OLD⍷D0)[1] ◊ SUB←{18 ⎕CR ((P-1)↑D0),('<Token pc="',⍵,'" tag="0x44030907"'),(P+¯1+⍴OLD)↓D0}
+
+
+
+
+      H←'w' ⎕FIO[3] 'testcases/libroot/workspaces/B42W7A.xml' ◊ N←(SUB '0') ⎕FIO[7] H ◊ ⎕FIO[4] H
+0
+
+
+
+      H←'w' ⎕FIO[3] 'testcases/libroot/workspaces/B42W7B.xml' ◊ N←(SUB '99999') ⎕FIO[7] H ◊ ⎕FIO[4] H
+0
+
+
+
+      )LOAD B42W7A
+³
+
+
+
+      →⍬
+DOMAIN ERROR
+G[1]  Z←A÷B
+        ^
+
+      )SIC
+
+
+
+
+      )LOAD B42W7B
+³
+
+
+
+      →⍬
+DOMAIN ERROR
+G[1]  Z←A÷B
+        ^ ^
+
+      )SIC
+
+
+
+
+      ⎕FIO[19] 'testcases/libroot/workspaces/B42W7A.xml'
+0
+
+
+
+      ⎕FIO[19] 'testcases/libroot/workspaces/B42W7B.xml'
+0
+
+
+
+      )DROP B42W7
+³
+
+
+
+      ⍝ Bugs42 #16: a workspace with a suspended function that localizes ⎕PW, ⎕TZ,
+
+
+
+
+      ⍝ or ⎕PS can be )LOADed, and its )SIC restores the session values
+
+
+
+
+      )CLEAR
+CLEAR WS
+
+
+
+      X←'my data'
+
+
+
+
+      ⎕FX 'Z←F B;⎕PW;⎕TZ;⎕PS' '⎕PW←100' 'Z←B÷0'
+F
+
+
+
+      F 1
+DOMAIN ERROR
+F[2]  Z←B÷0
+        ^^
+
+      )WSID B42W16
+WAS CLEAR WS
+
+
+
+      )SAVE
+³
+
+
+
+      )CLEAR
+CLEAR WS
+
+
+
+      )LOAD B42W16
+³
+
+
+
+      X
+my data
+
+
+
+      )SI
+F[2]
+*
+
+
+      OLD←⎕PW ⎕TZ ⎕PS
+
+
+
+
+      )SIC
+
+
+
+
+      OLD≡⎕PW ⎕TZ ⎕PS
+1
+
+
+
+      L←{⍵÷0 ;⎕IO ⎕PS}
+
+
+
+
+      L 1
+DOMAIN ERROR
+L[1]  λ←⍵÷0
+        ^^
+
+      )SAVE
+³
+
+
+
+      )CLEAR
+CLEAR WS
+
+
+
+      )LOAD B42W16
+³
+
+
+
+      )SI
+L[1]
+*
+
+
+      )SIC
+
+
+
+
+      )DROP B42W16
+³
+
+
+
+      )CHECK
+OK      - no stale functions
+OK      - no stale values
+OK      - no stale indices
+OK      - no duplicate parents
+      ⍝ Bugs42 #33: )IN and )PIN report the missing objects in the order given
+
+
+
+
+      )CLEAR
+CLEAR WS
+
+
+
+      A←1 2 3 ◊ B←'xy' ◊ ⎕FX 'Z←F' 'Z←42'
+F
+
+
+
+      )OUT B42O33
+
+
+
+
+      )CLEAR
+CLEAR WS
+
+
+
+      )IN B42O33 Q R
+NOT FOUND: Q R
+
+
+
+      )IN B42O33 Q R A S
+NOT FOUND: Q R S
+
+
+
+      A
+1 2 3
+
+
+
+      )PIN B42O33 Q R B S
+NOT FOUND: Q R S
+
+
+
+      ⎕FIO[19] 'testcases/libroot/workspaces/B42O33.atf'
+0
+
+
+
+      )CLEAR
+CLEAR WS
+
+
+
+      ⍝ Bugs41 #38 residue: a )DUMP of a CLEAR WS stores the name of the )DUMP
+
+
+
+
+      ⍝ command as its WSID (without .apl)
+
+
+
+
+      )CLEAR
+CLEAR WS
+
+
+
+      X←1
+
+
+
+
+      )DUMP B42W38R.apl
+³
+
+
+
+      )WSID
+IS CLEAR WS
+
+
+
+      )CLEAR
+CLEAR WS
+
+
+
+      )LOAD B42W38R.apl
+³
+
+
+
+      )WSID
+IS B42W38R
+
+
+
+      X
+1
+
+
+
+      ⎕FIO[19] 'testcases/libroot/workspaces/B42W38R.apl'
+0
+
+
+
+      )CLEAR
+CLEAR WS
+
+
+
+      )SIC
+
+
+
+

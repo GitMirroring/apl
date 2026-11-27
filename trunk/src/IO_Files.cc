@@ -588,7 +588,8 @@ IO_Files::open_next_file()
                 InputFile::files_todo.erase(InputFile::files_todo.begin());
 
                 if (UserPreferences::uprefs.auto_OFF &&
-                    ! InputFile::files_todo.size())   Command::cmd_OFF(0);
+                    ! InputFile::files_todo.size())   // like )OFF (Bugs42 #22)
+                   Command::cmd_OFF(0, true);
 
                 continue;
               }
@@ -811,6 +812,7 @@ const bool run_over = !InputFile::is_validating() && !need_total;
    // .apl file of a )COPY in the testcase: close it first, like
    // line_error_done() (Bugs41 #61)
    //
+const UTF8_string off_file(InputFile::current_filename());   // Bugs42 #32
    while (InputFile::files_todo.size() > 1 && !InputFile::is_validating())
       {
         InputFile::close_current_file();
@@ -835,7 +837,8 @@ UTF8_string name;
       }
    else if (not_run)   // e.g. )OFF in an -f script before the testcases
       {
-        name = UTF8_string(")OFF before the testcases");
+        // the file that executed the )OFF, e.g. the script (Bugs42 #32)
+        name = off_file;
         InputFile::files_todo.clear();
       }
 
@@ -1102,7 +1105,8 @@ const bool testcase_ends = InputFile::is_validating();
    InputFile::files_todo.erase(InputFile::files_todo.begin());
 
    if (UserPreferences::uprefs.auto_OFF &&
-       ! InputFile::files_todo.size())   Command::cmd_OFF(0);
+       ! InputFile::files_todo.size())   // like )OFF (Bugs42 #22)
+      Command::cmd_OFF(0, true);
 
    Output::reset_dout();
    if (testcase_ends)   { reset_errors();   abandoned_reads = 0; }

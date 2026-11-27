@@ -583,10 +583,28 @@ ShapeItem valid_rows = 0;
 }
 //────────────────────────────────────────────────────────────────────────────
 ShapeItem
+cValue::fill_enlist_count() const
+{
+   loop(c, element_count())
+       {
+         Cell cache;
+         const Cell & cell = get_cravel(c, cache);
+         if (!cell.is_lval_cell())   continue;
+         const Cell * target = cell.get_lval_value();
+         if (target == 0)   continue;   // another fill position
+         if (target->is_pointer_cell())
+            return target->get_pointer_value()->get_enlist_count();
+         return 1;
+       }
+   return 1;   // no selected item (all fill)
+}
+//────────────────────────────────────────────────────────────────────────────
+ShapeItem
 cValue::get_enlist_count() const
 {
 const ShapeItem ec = element_count();
 ShapeItem count = ec;
+ShapeItem fill_count = -1;   // not yet known
 
    // take care of non-simple cells...
    //
@@ -614,7 +632,14 @@ ShapeItem count = ec;
                  }
               // otherwise a placeholder without a target (a fill position
               // of an over-take or expand), which is a (non-storing)
-              // position like for , (LRM p. 119, Bugs41 #60)
+              // position like for , (LRM p. 119, Bugs41 #60), or several
+              // for a nested fill item (Bugs42 #25)
+              //
+              else
+                 {
+                   if (fill_count < 0)   fill_count = fill_enlist_count();
+                   count += fill_count - 1;
+                 }
             }
        }
 
@@ -716,7 +741,9 @@ cValue::enlist_left(Value & Z) const
               Cell * target = cell.get_lval_value();
               if (target == 0)   // a fill position, see get_enlist_count()
                  {
-                   Z.next_ravel_Lval(0, 0);   // Bugs41 #60
+                   // Bugs41 #60, several for a nested fill item (Bugs42 #25)
+                   const ShapeItem fill_count = fill_enlist_count();
+                   loop(f, fill_count)   Z.next_ravel_Lval(0, 0);
                  }
               else if (target->is_pointer_cell())
                  {
@@ -795,9 +822,10 @@ cValue::enlist_right(Value & Z) const
          else if (cell.is_lval_cell() && cell.get_lval_value() == 0)
             {
               // a placeholder LvalCell (fill position), counted by
-              // get_enlist_count() (Bugs41 #60)
+              // get_enlist_count() (Bugs41 #60, Bugs42 #25)
               //
-              Z.next_ravel_Lval(0, 0);
+              const ShapeItem fill_count = fill_enlist_count();
+              loop(f, fill_count)   Z.next_ravel_Lval(0, 0);
             }
          else if (cell.is_lval_cell() &&
                   cell.get_lval_value()->is_pointer_cell())

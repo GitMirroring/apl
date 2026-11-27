@@ -548,7 +548,18 @@ check_EOC:
             {
               if (token.get_int_val() == E_COMMAND_PUSHED)
                  {
+                   // the statement that executed the command (with ⍎) is
+                   // abandoned: unwind all of its frames, not only the
+                   // innermost one, e.g. also G in G → F → ⍎']NEXTFILE',
+                   // which stayed suspended without an error (Bugs42 #30)
+                   //
                    Workspace::pop_SI(LOC);
+                   while (StateIndicator * si = Workspace::SI_top())
+                      {
+                        if (si->get_parse_mode() == PM_STATEMENT_LIST)   break;
+                        si->escape();   // pop the local variables
+                        Workspace::pop_SI(LOC);
+                      }
                    UCS_string pushed_command = Workspace::get_pushed_Command();
                    process_line(pushed_command, 0);
                    pushed_command.clear();

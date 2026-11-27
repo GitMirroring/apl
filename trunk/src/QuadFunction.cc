@@ -1580,7 +1580,14 @@ UCS_string e1;
 UCS_string e2;
    get_esc(CLONE(&A, LOC), e1, e2);
 
-   Quad_INP_running = true;
+   // Quad_INP_running is cleared also if the read is abandoned, e.g. by
+   // the INTERRUPT at the end of a testcase (Bugs42 #4)
+   //
+   struct running_guard
+      {
+        running_guard()    { Quad_INP_running = true; }
+        ~running_guard()   { Quad_INP_running = false; }
+      } running;
 
    end_marker = B.get_UCS_ravel();
    esc1 = e1;
@@ -1635,7 +1642,6 @@ Token ret = Macro::get_macro(Macro::MAC_Z__Quad_INP_B)->eval_B(*BB);
 
 // loop(l, line_count)   BB->release(l, LOC);
 
-   Quad_INP_running = false;
    return Token(TOK_SI_PUSHED);
 }
 //════════════════════════════════════════════════════════════════════════════
@@ -1655,7 +1661,13 @@ Quad_INP::eval_B(cValue_R B) const
 
    end_marker = B.get_UCS_ravel();
 
-   Quad_INP_running = true;
+   // see eval_AB() (Bugs42 #4)
+   //
+   struct running_guard
+      {
+        running_guard()    { Quad_INP_running = true; }
+        ~running_guard()   { Quad_INP_running = false; }
+      } running;
 
    read_strings();    // read lines from file or stdin
 
@@ -1666,7 +1678,6 @@ Value_P Z(raw_lines.size(), LOC);
          Z->next_ravel_Pointer(ZZ.get());
        }
 
-   Quad_INP_running = false;
    Z->check_value(LOC);
    return Token(TOK_APL_VALUE1, Z);
 }

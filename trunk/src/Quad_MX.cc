@@ -422,11 +422,16 @@ bool negate = false;
 Dcomplex mant(1.0, 0.0);
 long expo = 0;
 
-   // scale every row by a power of 2 so that its largest entry is near 1
-   // (exactly, adding the exponent to expo): an elimination update of
-   // unscaled rows could overflow although the determinant does not, e.g.
-   // ⎕MX[1] 3 3⍴1 0 1E308 ¯1 1 1E308 0 1E¯300 0 (Bugs41 #83)
+   // scale a row with a huge entry down by a power of 2 (exactly, adding
+   // the exponent to expo): an elimination update of unscaled rows could
+   // overflow although the determinant does not, e.g.
+   // ⎕MX[1] 3 3⍴1 0 1E308 ¯1 1 1E308 0 1E¯300 0 (Bugs41 #83). With
+   // pivoting, an update at most doubles the largest entry (per step), so
+   // a row maximum of 2⋆(1021-n) suffices. Scaling further down (e.g. to 1)
+   // flushed the small entries of the row to 0, e.g.
+   // ⎕MX[1] 2 2⍴1E308 1E¯300 1E308 2E¯300 was 0 (Bugs42 #13)
    //
+const int max_e = std::max(1021 - n, 0);
    loop(r, n)
       {
         double row_max = 0.0;
@@ -438,6 +443,8 @@ long expo = 0;
         if (row_max == 0.0 || !isfinite(row_max))   continue;
         int e;
         frexp(row_max, &e);
+        if (e <= max_e)   continue;   // no overflow possible
+        e -= max_e;
         loop(c, n)
            {
              Dcomplex & x = a[r*n + c];

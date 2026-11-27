@@ -125,12 +125,12 @@ public:
    /// convert \n val_X to the X coordinate of the pixel in the plot area
    /// @param val_X data-space X value to convert
    Pixel_X valX2pixel(double val_X) const
-      { return pa_border_L + val_X * scale_X; }
+      { return pa_border_L + (val_X / range_X) * pa_width; }   // Bugs42 #37
 
    /// convert \n val_Y to the Y coordinate of the pixel in the plot area
    /// @param val_Y data-space Y value to convert
    Pixel_Y valY2pixel(double val_Y) const
-      { return pa_border_T + pa_height - val_Y * scale_Y; }
+      { return pa_border_T + pa_height - (val_Y / range_Y) * pa_height; }
 
    /// convert \n val_Z to the relative Z vector (q. quadrant)
    /// @param val_Z data-space Z value to convert
@@ -327,6 +327,13 @@ protected:
 
    /// the Z value → Z pixels scaling factor
    double scale_Z;
+
+   /// the final X range (max_X - min_X). valX2pixel() divides by it instead
+   /// of multiplying by scale_X, which overflows for a tiny range (Bugs42 #37)
+   double range_X;
+
+   /// the final Y range (max_Y - min_Y), see range_X
+   double range_Y;
 
    /// the number of pixels between X grid lines
    double tile_X;

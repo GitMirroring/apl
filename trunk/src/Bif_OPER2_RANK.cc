@@ -478,7 +478,14 @@ rank_cell(const cValue & V, const Shape & cell_shape, ShapeItem c)
 const ShapeItem len = cell_shape.get_volume();
 Value_P Z(cell_shape, LOC);
 Cell cache;
-   loop(l, len)   Z->next_ravel_Cell(V.get_cravel(c*len + l, cache));
+   if (V.is_empty())   // empty frame: only the prototype of V (Bugs42 #2)
+      {
+        loop(l, len)   Z->next_ravel_Cell(V.get_cravel(0, cache));
+      }
+   else
+      {
+        loop(l, len)   Z->next_ravel_Cell(V.get_cravel(c*len + l, cache));
+      }
    if (len == 0)   Z->set_default(V, LOC);   // prototype
    Z->check_value(LOC);
    return Z;
@@ -486,7 +493,7 @@ Cell cache;
 //────────────────────────────────────────────────────────────────────────────
 Token
 Bif_OPER2_RANK::fill_ALyB(const Function * LO, const cValue & y,
-                          const cValue * A, const cValue & B)
+                          const cValue * A, const cValue & B, const cValue * X)
 {
    // the ranks of the cells and the frames of A and B
    //
@@ -536,6 +543,8 @@ Value_P Z1;
         V->set_default(*EZ1, LOC);
       }
    V->check_value(LOC);
+   if (X)   return Token(TOK_APL_VALUE1,
+                         Bif_F12_PICK::disclose_with_axis(*X, *V));
    return Token(TOK_APL_VALUE1, Bif_F12_PICK::disclose(*V, true));
 }
 //────────────────────────────────────────────────────────────────────────────

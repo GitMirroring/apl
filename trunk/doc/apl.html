@@ -76,7 +76,7 @@ Next: <a href="#Installing-and-Starting-GNU-APL" accesskey="n" rel="next">Instal
 </div>
 <span id="GNU-APL-Reference-Manual"></span><h1 class="top">GNU APL Reference Manual</h1>
 
-<p>November 20, 2026.
+<p>November 27, 2026.
 This manual briefly documents GNU APL, an interpreter for APL as described
 in ISO standard 13751, aka. &quot;Programming Language APL, Extended&quot;.
 </p>
@@ -4258,8 +4258,9 @@ connection to APserver has failed (see <a href="#g_t_005dSTATUS-Command">]STATUS
 </p>
 <p>When <b>]NEXTFILE</b> is executed with <b>⍎</b> (e.g.
 <code>⍎(condition)/']NEXTFILE'</code>, possibly inside a defined function),
-then it takes effect after <b>⍎</b> (and the defined function) have
-returned.
+then the statement that started it is abandoned (including all defined
+functions that it has called, which therefore do not remain on the
+<b>)SI</b>), and <b>]NEXTFILE</b> takes effect thereafter.
 </p>
 <hr>
 </div>

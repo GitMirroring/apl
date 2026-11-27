@@ -284,8 +284,11 @@ Unicode POINT = Unicode(U'●');
 
    // scale ranges to screen size. Actually a litte less to avoud rounding
    // problems.
-const double scale_X = (W2 - 0.1) / delta_X;
-const double scale_Y = (H2 - 0.1) / delta_Y;
+// (divide by delta first: (W2 - 0.1) / delta_X overflows for a tiny range,
+// e.g. 1E¯307 2E¯307, Bugs42 #37)
+//
+const double width_X  = W2 - 0.1;
+const double height_Y = H2 - 0.1;
 
 const VT100_color color = round_color(lp.get_point_color());
    loop(n, data[row].get_N())
@@ -297,8 +300,8 @@ const VT100_color color = round_color(lp.get_point_color());
 
         // scale the values to the canvas size
         //
-        const double  x = (Vx - min_X) * scale_X;
-        const double  y = (Vy - min_Y) * scale_Y;
+        const double  x = ((Vx - min_X) / delta_X) * width_X;
+        const double  y = ((Vy - min_Y) / delta_Y) * height_Y;
 
         // a point outside a user-given range (rangeX_min etc.) is not
         // drawn (Bugs39 #15). The negated tests also skip NaNs.

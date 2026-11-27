@@ -409,6 +409,10 @@ const Shape ravel_A(A, /* ⎕IO */ 0);
                   // invalid/placeholder LvalCell(0,0) pattern used
                   // elsewhere for this "no real cell to select" case.
                   //
+                  // release the cell copied above first, e.g. the sub-value
+                  // of ,¨V in (1↓1⌷,¨V)←⍬, which leaked (Bugs42 #27)
+                  //
+                  Z->get_wproto().release(LOC);
                   new (&Z->get_wproto()) LvalCell(0, 0);
                 }
              else

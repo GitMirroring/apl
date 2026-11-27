@@ -748,6 +748,10 @@ protected:
       /// derived functions that need to be instantiated
       vector<_derived_todo> derived_todos;
 
+   /// the fids of the lambdas defined by a <Symbol> (at any level). Only
+   /// they can have a second name at level 0 (e.g. H←F, Bugs42 #6)
+   std::set<Fid> symbol_lambda_fids;
+
    /// the end of attributes
    const UTF8 * end_attr;
 

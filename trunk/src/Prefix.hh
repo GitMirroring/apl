@@ -415,6 +415,10 @@ protected:
    /// return true if body[pc], the token left of an index, is a value
    bool is_indexed_value(Prefix_PC pc) const;
 
+   /// the leftmost token of the value whose rightmost token is body[pc],
+   /// e.g. S of S.b.c, or N of N[1 2][1] (Bugs42 #8)
+   Prefix_PC value_head(Prefix_PC pc) const;
+
    /// return true if \b this prefix has a valid lookahead token
    int has_MISC() const
       { return saved_MISC.get_token().get_tag() == TOK_VOID ? 0 : 1; }
