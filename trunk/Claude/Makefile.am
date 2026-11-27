@@ -1,6 +1,6 @@
 
 MD = CLAUDE.md
 
-dist_doc_DATA = $(MD)
+EXTRA_DIST = $(MD)   # for developers only: not installed
 
 
